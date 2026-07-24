@@ -30,7 +30,7 @@ Sistem ini dirancang menggunakan pendekatan **Modular Monolith** berbasis bahasa
 | **Employee Movement & Career** | 8 entities | ✅ | ✅ **Completed** — Promosi/Demosi, PKWT, Mutation, Pensiun |
 | **Competency Management** | 7 entities (DB only) | ❌ | 🗄️ **DB Schema Only** — Go module belum diimplementasi |
 | **Time & Attendance** | **10 GORM entities** | ✅ **83 tests** | ✅ **Completed (26 Juli 2026)** — Settings, Shifts, Employee Shifts, Locations, Events, Sessions, Overtime, Exempt Positions |
-| **Leave & Time Off** | — | ❌ | ❌ **Belum dikerjakan** |
+| **Leave & Time Off** | **6 GORM entities** | ✅ **38 tests** | ✅ **Completed (26 Juli 2026)** — Leave Types, Accrual Policies, Reasons, Requests (23 endpoints), Details, Balances |
 | **Approval Engine** | **5 GORM entities** | ✅ **67 tests** | ✅ **Completed (24 Juli 2026)** — Flows, Steps, Instances, Actions, Tasks |
 
 ---
@@ -130,7 +130,8 @@ Untuk melengkapi cakupan *Full-Suite HRIS*, modul-modul operasional berikut masu
   * **Perpanjangan Kontrak (PKWT):** Pengelolaan masa berlaku kerja, peringatan jatuh tempo, dan adendum kontrak.
   * **Pensiun & Offboarding/PHK:** Pengelolaan masa purna bakti, pemutusan hubungan kerja, dan integrasi perhitungan pesangon/uang jasa pada modul Payroll.
 * [x] **Time & Attendance:** Perekaman presensi, penjadwalan *shift*, lembur (*overtime*), dan kalkulasi keterlambatan.
-* [ ] **Leave & Time Off:** Pengajuan cuti, sakit, izin, manajemen kuota cuti tahunan, dan *multi-level approval*.
+* [x] **Leave & Time Off:** Pengajuan cuti, sakit, izin, manajemen kuota cuti tahunan, dan *multi-level approval*.  
+  * **6 GORM entities** — LeaveType, LeaveAccrualPolicy, LeaveReason, LeaveRequest, LeaveRequestDetail, EmployeeLeaveBalance. Full CRUD untuk 5 sub-entities. **38 unit tests** (14 repo + 12 service + 12 handler). **23 endpoints**. |
 * [ ] **Performance Management:** Penilaian kinerja (KPI, OKR, review 360) yang terintegrasi langsung dengan modul *Job Management* dan *Competency*.
 * [ ] **Reimbursement & Claim:** Pengajuan dan verifikasi klaim kesehatan maupun operasional dinas.
 * [ ] **Recruitment & Onboarding (ATS):** Manajemen kandidat, alur seleksi, hingga otomatisasi pendaftaran karyawan baru (*onboarding*).
@@ -148,6 +149,7 @@ Untuk melengkapi cakupan *Full-Suite HRIS*, modul-modul operasional berikut masu
 | **Architecture**| Cache Sync | ✅ Done | Distributed cache (local sync.Map + Redis) + Pub/Sub invalidation via `internal/pkg/cache/`. |
 | **Payroll**| Payroll & Compensation Engine | ✅ **Done** | 21 GORM entities, full CRUD, 34 unit tests. BPJS, PPh21, Payroll Run, Employee Payroll Profiles. |
 | **Attendance**| Time & Attendance | ✅ **Done (26 Juli 2026)** | 10 GORM entities, full CRUD, 83 unit tests. Settings, Shifts, Locations, Events, Sessions, Overtime. |
+| **Leave**| Leave & Time Off | ✅ **Done (26 Juli 2026)** | 6 GORM entities, full CRUD, 38 unit tests, 21 endpoints. Types, Accrual Policies, Reasons, Requests, Balances. |
 
 ---
 *Document Version: 1.6-Updated (v3)*  
@@ -157,6 +159,7 @@ Untuk melengkapi cakupan *Full-Suite HRIS*, modul-modul operasional berikut masu
 
 | Versi | Tanggal | Perubahan |
 |-------|---------|-----------|
+| v5 | 26 Juli 2026 | ✅ Leave & Time Off selesai: 6 GORM entities, full CRUD, 38 unit tests, 23 endpoints |
 | v4 | 26 Juli 2026 | ✅ Time & Attendance selesai: 10 GORM entities, full CRUD, 83 unit tests, 30 endpoints, OpenAPI docs |
 | v3 | 24 Juli 2026 | ✅ Payroll & Compensation Engine selesai: 21 GORM entities, full CRUD, 34 unit tests, BPJS & PPh21 Indonesia |
 | v2 | 22 Juli 2026 | ✅ Job Management selesai: 18 GORM entities, 74 unit tests, OpenAPI docs. Distribusi cache & migration fixes |

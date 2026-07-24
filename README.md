@@ -40,7 +40,7 @@ Modular monolith backend untuk platform HRIS enterprise dengan arsitektur multi-
 │  │ • Company    │  │ • Config    │  │  │ Organization     ││ │
 │  │ • Module     │  │ • Database  │  │  │ Employee         ││ │
 │  │ • License    │  │ • Auth/JWT  │  │  │ Attendance       ││ │
-│  │ • User       │  │ • Middleware│  │  │ Leave            ││ │
+│  │ • User       │  │ • Middleware│  │  │ Leave & Time Off ││ │
 │  │ • Feature    │  │ • Router   │  │  │ Payroll          ││ │
 │  │   Flag       │  │ • Logger   │  │  │ Competency       ││ │
 │  │              │  │ • Module   │  │  │ Job Management   ││ │
@@ -158,7 +158,11 @@ hris-platform/
 │   │   │   ├── employee/             #   Employee CRUD + 8 sub-modules
 │   │   │   ├── jobmanagement/        #   Job Management (18 entities)
 │   │   │   ├── competency/           #   Competency Management (7 entities)
-│   │   │   └── employeemovement/     #   Employee Movement & Career Management (2 entities)
+│   │   │   ├── employeemovement/     #   Employee Movement & Career Management (2 entities)
+│   │   │   ├── attendance/           #   Time & Attendance (10 entities, 30 endpoints)
+│   │   │   ├── approval/             #   Approval Engine (5 entities, 15 endpoints)
+│   │   │   ├── payroll/              #   Payroll & Compensation Engine (21 entities)
+│   │   │   └── leave/                #   Leave & Time Off (6 entities, 21 endpoints)
 │   │   └── pkg/                      # Shared Kernel│       │   ├── config/               # Viper configuration loader
 │       │   ├── database/             # Multi-tenant DB manager
 │       │   ├── driver/               # Shared DB driver type
@@ -910,6 +914,7 @@ docker run -p 8080:8080 hris-platform:latest
 | `internal/modules/approval/` | **67** (repository 25 + service 25 + handler 14) | — | — | **67** |
 | `internal/modules/employeemovement/` | **58** (service 22 + repository 22 + handler 14) | — | — | **58** |
 | `internal/modules/attendance/` | **83** (repository 37 + service 25 + handler 21) | — | — | **83** |
+| `internal/modules/leave/` | **38** (repository 14 + service 12 + handler 12) | — | — | **38** |
 
 ### Run Tests
 
@@ -1222,13 +1227,13 @@ POST /api/v1/platform/companies
   - **Payroll Run**: Periods, Runs (dengan status workflow DRAFT→CALCULATED→REVIEWED→APPROVED→LOCKED), Run Employees, Items, Payslips
   - **OpenAPI**: **23 path groups** (~46 endpoints), 21 request schemas, 22 response schemas (total 153 schemas) — versi 1.6.0 |
 | **Time & Attendance** | ✅ **Completed (26 Juli 2026)** | **10 GORM entities**: Company Settings, Company Shifts, Employee Shifts, Locations (Geofence), Device Captures, Face Captures, Events (Check-in/out), Sessions (Daily Work), Overtime Requests, Exempt Positions. Full CRUD untuk 8 sub-entities. **83 unit tests** (37 repo + 25 service + 21 handler). **30 endpoints**. OpenAPI docs enhanced — versi 1.6.3 |
+| **Leave & Time Off** | ✅ **Completed (26 Juli 2026)** | **6 GORM entities**: LeaveTypes, LeaveAccrualPolicies, LeaveReasons, LeaveRequests, LeaveRequestDetails, EmployeeLeaveBalances. Full CRUD untuk 5 sub-entities. **38 unit tests** (14 repo + 12 service + 12 handler). **23 endpoints**. |
 
 ### Modul Operasional & Siklus Karier (Planned 🗓️)
 
 | Modul | Prioritas | Scope |
 |-------|:---------:|-------|
 | **Organization History, Versioning & Cloning** | 🟢 High | Change Capture, Full Structure Cloning DRAFT, Version Audit Trail |
-| **Leave & Time Off** | 🟢 High | Pengajuan cuti/sakit/izin, kuota tahunan, multi-level approval |
 | **Performance Management** | 🟡 Medium | KPI, OKR, review 360 terintegrasi Job Management & Competency |
 | **Reimbursement & Claim** | 🟡 Medium | Klaim kesehatan & operasional dinas |
 | **Recruitment & Onboarding (ATS)** | 🟡 Medium | Kandidat, alur seleksi, otomatisasi onboarding |
@@ -1476,7 +1481,7 @@ $ go build ./...  # ✅ Berhasil
 ### Phase 4: Operations & Career ✅
 - ✅ **Employee Movement & Career Management** (Promosi/Demosi, PKWT, Pensiun/PHK) — [Selesai 23 Juli 2026]
 - ✅ **Time & Attendance (presensi, shift, lembur) — [Selesai 26 Juli 2026]**
-- 🗓️ Leave & Time Off (cuti, izin, sakit, multi-level approval)
+- ✅ **Leave & Time Off (cuti, izin, sakit, multi-level approval) — [Selesai 26 Juli 2026]**
 - 🗓️ Performance Management (KPI, OKR, review 360)
 - ⬜ Reimbursement & Claim
 - ⬜ Recruitment & Onboarding (ATS)

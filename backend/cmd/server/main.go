@@ -42,6 +42,7 @@ import (
 	"github.com/inthros/hris-platform/internal/modules/employee"
 	"github.com/inthros/hris-platform/internal/modules/employeemovement"
 	"github.com/inthros/hris-platform/internal/modules/jobmanagement"
+	"github.com/inthros/hris-platform/internal/modules/leave"
 	"github.com/inthros/hris-platform/internal/modules/organization"
 	"github.com/inthros/hris-platform/internal/modules/payroll"
 )
@@ -244,6 +245,11 @@ func main() {
 			Module:   payroll.NewModule(dbManager, l, payrollApprovalEngine),
 			TargetDB: module.TargetTenant,
 			Priority: 8,
+		},
+		module.ModuleRegistration{
+			Module:   leave.NewModule(dbManager, l),
+			TargetDB: module.TargetTenant,
+			Priority: 9,
 		},
 	)
 

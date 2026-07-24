@@ -28,6 +28,7 @@ Management.
 | **Payroll & Compensation Engine** | ✅ **Completed (24 Juli 2026)** | 21 GORM entities, full CRUD, 34 unit tests. BPJS Settings & Rate Components, PPh21 (Settings, Tax Brackets, PTKP Rates, Calculation Logs), Payroll Run (Periods, Runs, Items, Payslips), Employee Payroll Profiles (Bank, BPJS, Tax) |
 | **Competency Management** | 🗄️ DB Schema Only | Tabel database tersedia (DDL migration 008_competency.sql — 7 tabel), Go module belum diimplementasikan |
 | **Time & Attendance** | ✅ **Completed (26 Juli 2026)** | **10 GORM entities**, full CRUD, **83 unit tests** (37 repo + 25 service + 21 handler), 30 endpoints. Settings, Shifts, Employee Shifts, Locations (Geofence), Device Captures, Face Captures, Events (Check-in/out), Sessions (Daily Work), Overtime Requests, Exempt Positions. OpenAPI docs (130 schemas, 158 paths). |
+| **Leave & Time Off** | ✅ **Completed (26 Juli 2026)** | **6 GORM entities**, full CRUD, **38 unit tests** (14 repo + 12 service + 12 handler), 23 endpoints. LeaveTypes, LeaveAccrualPolicies, LeaveReasons, LeaveRequests, LeaveRequestDetails, EmployeeLeaveBalances. |
 
 ### 3.2 Modul Operasional & Siklus Karier (Planned 🗓️)
 
