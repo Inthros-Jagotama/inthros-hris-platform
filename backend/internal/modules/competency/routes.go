@@ -51,7 +51,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 
 		// Competency Score Details
 		comp.POST("/score-details", handler.CreateCompetencyScoreDetail)
-		comp.GET("/scores/:scoreId/details", handler.ListCompetencyScoreDetails)
+		comp.GET("/scores/:id/details", handler.ListCompetencyScoreDetails)
 		comp.GET("/score-details/:id", handler.GetCompetencyScoreDetailByID)
 		comp.PUT("/score-details/:id", handler.UpdateCompetencyScoreDetail)
 		comp.DELETE("/score-details/:id", handler.DeleteCompetencyScoreDetail)

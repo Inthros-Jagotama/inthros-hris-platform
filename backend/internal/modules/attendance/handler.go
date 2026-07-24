@@ -1,4 +1,4 @@
-package competency
+package attendance
 
 import (
 	"net/http"
@@ -16,25 +16,25 @@ func NewHandler(service *Service) *Handler {
 }
 
 // =========================================================================
-// Competency Handlers
+// Company Settings
 // =========================================================================
 
-func (h *Handler) CreateCompetency(c *gin.Context) {
-	var req CreateCompetencyRequest
+func (h *Handler) UpsertCompanySetting(c *gin.Context) {
+	var req CreateCompanySettingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
 		return
 	}
-	resp, err := h.service.CreateCompetency(c.Request.Context(), req)
+	resp, err := h.service.UpsertCompanySetting(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) GetCompetencyByID(c *gin.Context) {
-	resp, err := h.service.GetCompetencyByID(c.Request.Context(), c.Param("id"))
+func (h *Handler) GetCompanySetting(c *gin.Context) {
+	resp, err := h.service.GetCompanySetting(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
@@ -42,50 +42,17 @@ func (h *Handler) GetCompetencyByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) ListCompetencies(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListCompetencies(c.Request.Context(), page, perPage)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, resp)
-}
+// =========================================================================
+// Company Shifts
+// =========================================================================
 
-func (h *Handler) UpdateCompetency(c *gin.Context) {
-	var req UpdateCompetencyRequest
+func (h *Handler) CreateShift(c *gin.Context) {
+	var req CreateCompanyShiftRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
 		return
 	}
-	resp, err := h.service.UpdateCompetency(c.Request.Context(), c.Param("id"), req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
-}
-
-func (h *Handler) DeleteCompetency(c *gin.Context) {
-	if err := h.service.DeleteCompetency(c.Request.Context(), c.Param("id")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Competency deleted"})
-}
-
-// =========================================================================
-// CompetenceValue Handlers (legacy)
-// =========================================================================
-
-func (h *Handler) CreateCompetenceValue(c *gin.Context) {
-	var req CreateCompetenceValueRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
-		return
-	}
-	resp, err := h.service.CreateCompetenceValue(c.Request.Context(), req)
+	resp, err := h.service.CreateShift(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -93,8 +60,8 @@ func (h *Handler) CreateCompetenceValue(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) GetCompetenceValueByID(c *gin.Context) {
-	resp, err := h.service.GetCompetenceValueByID(c.Request.Context(), c.Param("id"))
+func (h *Handler) GetShiftByID(c *gin.Context) {
+	resp, err := h.service.GetShiftByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
@@ -102,10 +69,10 @@ func (h *Handler) GetCompetenceValueByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) ListCompetenceValues(c *gin.Context) {
+func (h *Handler) ListShifts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListCompetenceValues(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListShifts(c.Request.Context(), page, perPage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -113,13 +80,13 @@ func (h *Handler) ListCompetenceValues(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) UpdateCompetenceValue(c *gin.Context) {
-	var req UpdateCompetenceValueRequest
+func (h *Handler) UpdateShift(c *gin.Context) {
+	var req UpdateCompanyShiftRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
 		return
 	}
-	resp, err := h.service.UpdateCompetenceValue(c.Request.Context(), c.Param("id"), req)
+	resp, err := h.service.UpdateShift(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -127,25 +94,25 @@ func (h *Handler) UpdateCompetenceValue(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) DeleteCompetenceValue(c *gin.Context) {
-	if err := h.service.DeleteCompetenceValue(c.Request.Context(), c.Param("id")); err != nil {
+func (h *Handler) DeleteShift(c *gin.Context) {
+	if err := h.service.DeleteShift(c.Request.Context(), c.Param("id")); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Competence value deleted"})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Shift deleted"})
 }
 
 // =========================================================================
-// CompetencyValue Handlers (structured)
+// Employee Shifts
 // =========================================================================
 
-func (h *Handler) CreateCompetencyValue(c *gin.Context) {
-	var req CreateCompetencyValueRequest
+func (h *Handler) CreateEmployeeShift(c *gin.Context) {
+	var req CreateEmployeeShiftRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
 		return
 	}
-	resp, err := h.service.CreateCompetencyValue(c.Request.Context(), req)
+	resp, err := h.service.CreateEmployeeShift(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -153,8 +120,8 @@ func (h *Handler) CreateCompetencyValue(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) GetCompetencyValueByID(c *gin.Context) {
-	resp, err := h.service.GetCompetencyValueByID(c.Request.Context(), c.Param("id"))
+func (h *Handler) GetEmployeeShiftByID(c *gin.Context) {
+	resp, err := h.service.GetEmployeeShiftByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
@@ -162,10 +129,11 @@ func (h *Handler) GetCompetencyValueByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) ListCompetencyValues(c *gin.Context) {
+func (h *Handler) ListEmployeeShifts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListCompetencyValues(c.Request.Context(), page, perPage)
+	employeeID := c.Query("employee_id")
+	resp, err := h.service.ListEmployeeShifts(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -173,13 +141,13 @@ func (h *Handler) ListCompetencyValues(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) UpdateCompetencyValue(c *gin.Context) {
-	var req UpdateCompetencyValueRequest
+func (h *Handler) UpdateEmployeeShift(c *gin.Context) {
+	var req UpdateEmployeeShiftRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
 		return
 	}
-	resp, err := h.service.UpdateCompetencyValue(c.Request.Context(), c.Param("id"), req)
+	resp, err := h.service.UpdateEmployeeShift(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -187,25 +155,25 @@ func (h *Handler) UpdateCompetencyValue(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) DeleteCompetencyValue(c *gin.Context) {
-	if err := h.service.DeleteCompetencyValue(c.Request.Context(), c.Param("id")); err != nil {
+func (h *Handler) DeleteEmployeeShift(c *gin.Context) {
+	if err := h.service.DeleteEmployeeShift(c.Request.Context(), c.Param("id")); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Competency value deleted"})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Employee shift deleted"})
 }
 
 // =========================================================================
-// CompetencyEvent Handlers
+// Locations
 // =========================================================================
 
-func (h *Handler) CreateCompetencyEvent(c *gin.Context) {
-	var req CreateCompetencyEventRequest
+func (h *Handler) CreateLocation(c *gin.Context) {
+	var req CreateLocationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
 		return
 	}
-	resp, err := h.service.CreateCompetencyEvent(c.Request.Context(), req)
+	resp, err := h.service.CreateLocation(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -213,8 +181,8 @@ func (h *Handler) CreateCompetencyEvent(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) GetCompetencyEventByID(c *gin.Context) {
-	resp, err := h.service.GetCompetencyEventByID(c.Request.Context(), c.Param("id"))
+func (h *Handler) GetLocationByID(c *gin.Context) {
+	resp, err := h.service.GetLocationByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
@@ -222,10 +190,10 @@ func (h *Handler) GetCompetencyEventByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) ListCompetencyEvents(c *gin.Context) {
+func (h *Handler) ListLocations(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListCompetencyEvents(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListLocations(c.Request.Context(), page, perPage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -233,13 +201,13 @@ func (h *Handler) ListCompetencyEvents(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) UpdateCompetencyEvent(c *gin.Context) {
-	var req UpdateCompetencyEventRequest
+func (h *Handler) UpdateLocation(c *gin.Context) {
+	var req UpdateLocationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
 		return
 	}
-	resp, err := h.service.UpdateCompetencyEvent(c.Request.Context(), c.Param("id"), req)
+	resp, err := h.service.UpdateLocation(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -247,25 +215,25 @@ func (h *Handler) UpdateCompetencyEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) DeleteCompetencyEvent(c *gin.Context) {
-	if err := h.service.DeleteCompetencyEvent(c.Request.Context(), c.Param("id")); err != nil {
+func (h *Handler) DeleteLocation(c *gin.Context) {
+	if err := h.service.DeleteLocation(c.Request.Context(), c.Param("id")); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Competency event deleted"})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Location deleted"})
 }
 
 // =========================================================================
-// CompetencyEventTarget Handlers
+// Events
 // =========================================================================
 
-func (h *Handler) CreateCompetencyEventTarget(c *gin.Context) {
-	var req CreateCompetencyEventTargetRequest
+func (h *Handler) CreateEvent(c *gin.Context) {
+	var req CreateEventRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
 		return
 	}
-	resp, err := h.service.CreateCompetencyEventTarget(c.Request.Context(), req)
+	resp, err := h.service.CreateEvent(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -273,8 +241,8 @@ func (h *Handler) CreateCompetencyEventTarget(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) GetCompetencyEventTargetByID(c *gin.Context) {
-	resp, err := h.service.GetCompetencyEventTargetByID(c.Request.Context(), c.Param("id"))
+func (h *Handler) GetEventByID(c *gin.Context) {
+	resp, err := h.service.GetEventByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
@@ -282,10 +250,11 @@ func (h *Handler) GetCompetencyEventTargetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) ListCompetencyEventTargets(c *gin.Context) {
+func (h *Handler) ListEvents(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListCompetencyEventTargets(c.Request.Context(), page, perPage)
+	employeeID := c.Query("employee_id")
+	resp, err := h.service.ListEvents(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -293,39 +262,48 @@ func (h *Handler) ListCompetencyEventTargets(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) UpdateCompetencyEventTarget(c *gin.Context) {
-	var req UpdateCompetencyEventTargetRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+// =========================================================================
+// Sessions
+// =========================================================================
+
+func (h *Handler) GetSession(c *gin.Context) {
+	employeeID := c.Query("employee_id")
+	workDate := c.Query("work_date")
+	if employeeID == "" || workDate == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": "employee_id and work_date query params are required"}})
 		return
 	}
-	resp, err := h.service.UpdateCompetencyEventTarget(c.Request.Context(), c.Param("id"), req)
+	resp, err := h.service.GetSession(c.Request.Context(), employeeID, workDate)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) DeleteCompetencyEventTarget(c *gin.Context) {
-	if err := h.service.DeleteCompetencyEventTarget(c.Request.Context(), c.Param("id")); err != nil {
+func (h *Handler) ListSessions(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	employeeID := c.Query("employee_id")
+	resp, err := h.service.ListSessions(c.Request.Context(), &employeeID, page, perPage)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Competency event target deleted"})
+	c.JSON(http.StatusOK, resp)
 }
 
 // =========================================================================
-// CompetencyScore Handlers
+// Overtime Requests
 // =========================================================================
 
-func (h *Handler) CreateCompetencyScore(c *gin.Context) {
-	var req CreateCompetencyScoreRequest
+func (h *Handler) CreateOvertimeRequest(c *gin.Context) {
+	var req CreateOvertimeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
 		return
 	}
-	resp, err := h.service.CreateCompetencyScore(c.Request.Context(), req)
+	resp, err := h.service.CreateOvertimeRequest(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -333,8 +311,8 @@ func (h *Handler) CreateCompetencyScore(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) GetCompetencyScoreByID(c *gin.Context) {
-	resp, err := h.service.GetCompetencyScoreByID(c.Request.Context(), c.Param("id"))
+func (h *Handler) GetOvertimeRequestByID(c *gin.Context) {
+	resp, err := h.service.GetOvertimeRequestByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
@@ -342,10 +320,11 @@ func (h *Handler) GetCompetencyScoreByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) ListCompetencyScores(c *gin.Context) {
+func (h *Handler) ListOvertimeRequests(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListCompetencyScores(c.Request.Context(), page, perPage)
+	employeeID := c.Query("employee_id")
+	resp, err := h.service.ListOvertimeRequests(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -353,39 +332,17 @@ func (h *Handler) ListCompetencyScores(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) UpdateCompetencyScore(c *gin.Context) {
-	var req UpdateCompetencyScoreRequest
+// =========================================================================
+// Exempt Positions
+// =========================================================================
+
+func (h *Handler) CreateExemptPosition(c *gin.Context) {
+	var req CreateExemptPositionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
 		return
 	}
-	resp, err := h.service.UpdateCompetencyScore(c.Request.Context(), c.Param("id"), req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
-}
-
-func (h *Handler) DeleteCompetencyScore(c *gin.Context) {
-	if err := h.service.DeleteCompetencyScore(c.Request.Context(), c.Param("id")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Competency score deleted"})
-}
-
-// =========================================================================
-// CompetencyScoreDetail Handlers
-// =========================================================================
-
-func (h *Handler) CreateCompetencyScoreDetail(c *gin.Context) {
-	var req CreateCompetencyScoreDetailRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
-		return
-	}
-	resp, err := h.service.CreateCompetencyScoreDetail(c.Request.Context(), req)
+	resp, err := h.service.CreateExemptPosition(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -393,8 +350,8 @@ func (h *Handler) CreateCompetencyScoreDetail(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) GetCompetencyScoreDetailByID(c *gin.Context) {
-	resp, err := h.service.GetCompetencyScoreDetailByID(c.Request.Context(), c.Param("id"))
+func (h *Handler) GetExemptPositionByID(c *gin.Context) {
+	resp, err := h.service.GetExemptPositionByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
@@ -402,10 +359,10 @@ func (h *Handler) GetCompetencyScoreDetailByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) ListCompetencyScoreDetails(c *gin.Context) {
+func (h *Handler) ListExemptPositions(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListCompetencyScoreDetails(c.Request.Context(), c.Param("id"), page, perPage)
+	resp, err := h.service.ListExemptPositions(c.Request.Context(), page, perPage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -413,13 +370,13 @@ func (h *Handler) ListCompetencyScoreDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) UpdateCompetencyScoreDetail(c *gin.Context) {
-	var req UpdateCompetencyScoreDetailRequest
+func (h *Handler) UpdateExemptPosition(c *gin.Context) {
+	var req UpdateExemptPositionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
 		return
 	}
-	resp, err := h.service.UpdateCompetencyScoreDetail(c.Request.Context(), c.Param("id"), req)
+	resp, err := h.service.UpdateExemptPosition(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
@@ -427,10 +384,10 @@ func (h *Handler) UpdateCompetencyScoreDetail(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) DeleteCompetencyScoreDetail(c *gin.Context) {
-	if err := h.service.DeleteCompetencyScoreDetail(c.Request.Context(), c.Param("id")); err != nil {
+func (h *Handler) DeleteExemptPosition(c *gin.Context) {
+	if err := h.service.DeleteExemptPosition(c.Request.Context(), c.Param("id")); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Competency score detail deleted"})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Exempt position deleted"})
 }

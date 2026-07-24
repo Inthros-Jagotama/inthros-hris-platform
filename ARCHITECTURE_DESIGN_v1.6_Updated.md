@@ -16,6 +16,25 @@ Sistem ini dirancang menggunakan pendekatan **Modular Monolith** berbasis bahasa
 
 ---
 
+## 2. Module Implementation Status
+
+### 2.0. Modul Go Backend — Status Implementasi
+
+| Modul | Entities | Tests | Status |
+|:---|---:|:---:|:---:|
+| **Platform & Tenant Management** | 6 platform entities | ✅ | ✅ **Completed** — Company, License, Module Management, Users, Monitoring |
+| **Organization Management** | 5 GORM entities | ❌ | ✅ **Completed** — Organization, Zone, Position, Level, Summary |
+| **Employee Management** | 9+ entities | ✅ 25+ tests | ✅ **Completed** — Personal, kontak, alamat, keluarga, pendidikan, dokumen, dll |
+| **Job Management** | 18 GORM entities | ✅ **74 tests** | ✅ **Completed** — Titles, Values, Responsibilities, Authorities, Working Activities/Risks |
+| **Payroll & Compensation Engine** | **21 GORM entities** | ✅ **34 tests** | ✅ **Completed (24 Juli 2026)** — BPJS, PPh21, Payroll Run, Employee Profiles |
+| **Employee Movement & Career** | 8 entities | ✅ | ✅ **Completed** — Promosi/Demosi, PKWT, Mutation, Pensiun |
+| **Competency Management** | 7 entities (DB only) | ❌ | 🗄️ **DB Schema Only** — Go module belum diimplementasi |
+| **Time & Attendance** | **10 GORM entities** | ✅ **83 tests** | ✅ **Completed (26 Juli 2026)** — Settings, Shifts, Employee Shifts, Locations, Events, Sessions, Overtime, Exempt Positions |
+| **Leave & Time Off** | — | ❌ | ❌ **Belum dikerjakan** |
+| **Approval Engine** | **5 GORM entities** | ✅ **67 tests** | ✅ **Completed (24 Juli 2026)** — Flows, Steps, Instances, Actions, Tasks |
+
+---
+
 ## 2. Analisis Arsitektur & Rekomendasi Teknis (Gap Analysis)
 
 Berdasarkan tinjauan arsitektur teknis, beberapa area kritis berikut harus diterapkan untuk menjamin keandalan sistem pada skala produksi (*production-ready*):
@@ -95,6 +114,12 @@ Modul-modul berikut telah selesai didesain dan diimplementasikan sebagai fondasi
     * **Version Audit Trail:** Perbandingan (*diff*) antar versi arsitektur organisasi secara historis.
 * [x] **Employee Management:** Data personal, kontak, alamat, keluarga, pendidikan, dokumen, riwayat kerja, rekening/pajak, serta pengaturan akun.
 * [x] **Job Management:** Deskripsi jabatan lengkap (*Responsibilities, Working Activities, Operational/HR Authorities, Working Risks, Title Subs, Assets, Financials*).
+* [x] **Payroll & Compensation Engine:** **21 GORM entities** — SalaryComponent, PayrollPeriod, PayrollRun, EmployeePayrollProfile, EmployeeBankProfile, EmployeeBpjsProfile, EmployeeTaxProfile, BpjsSetting, BpjsRateComponent, Pph21Setting, Pph21PtkpRate, Pph21TaxBracket, PayrollRunEmployee, PayrollRunItem, PayrollPayslip, Pph21CalculationLog, dan lainnya. Full CRUD (Create/Read/Update/Delete) untuk seluruh entity. **34 unit tests** (13 repository + 21 service).
+  * **BPJS Indonesia:** BPJS Settings, BPJS Rate Components (Kesehatan & Ketenagakerjaan), Employee BPJS Profiles.
+  * **PPh21:** PPh21 Settings, Tax Brackets, PTKP Rates, Calculation Logs.
+  * **Payroll Run:** Payroll Periods, Payroll Runs (dengan status workflow), Run Employees, Run Items, Payroll Payslips.
+  * **Employee Payroll:** Employee Payroll Profiles, Bank Profiles, BPJS Profiles, Tax Profiles.
+* [x] **Time & Attendance:** **10 GORM entities** — Company Settings, Company Shifts, Employee Shifts, Locations (Geofence), Device Captures, Face Captures, Events (Check-in/out), Sessions (Daily Work), Overtime Requests, Exempt Positions. Full CRUD untuk 8 sub-entities. **83 unit tests** (37 repository + 25 service + 21 handler).
 * [ ] **Competency Management:** 🗄️ **DB Schema Only** — Tabel database tersedia (DDL migration 008_competency.sql — 7 tabel), Go module belum diimplementasikan.
 
 ### 3.2. Modul Operasional & Siklus Karier (Planned / Phase 2 Roadmap)
@@ -104,9 +129,8 @@ Untuk melengkapi cakupan *Full-Suite HRIS*, modul-modul operasional berikut masu
   * **Promosi & Demosi:** Perubahan jenjang jabatan, posisi, dan penyesuaian kelas gaji.
   * **Perpanjangan Kontrak (PKWT):** Pengelolaan masa berlaku kerja, peringatan jatuh tempo, dan adendum kontrak.
   * **Pensiun & Offboarding/PHK:** Pengelolaan masa purna bakti, pemutusan hubungan kerja, dan integrasi perhitungan pesangon/uang jasa pada modul Payroll.
-* [ ] **Time & Attendance:** Perekaman presensi, penjadwalan *shift*, lembur (*overtime*), dan kalkulasi keterlambatan.
+* [x] **Time & Attendance:** Perekaman presensi, penjadwalan *shift*, lembur (*overtime*), dan kalkulasi keterlambatan.
 * [ ] **Leave & Time Off:** Pengajuan cuti, sakit, izin, manajemen kuota cuti tahunan, dan *multi-level approval*.
-* [ ] **Payroll & Compensation Engine:** Kalkulasi gaji bersih/kotor, tunjangan/potongan, PPh 21, BPJS Ketenagakerjaan/Kesehatan, dan slip gaji digital.
 * [ ] **Performance Management:** Penilaian kinerja (KPI, OKR, review 360) yang terintegrasi langsung dengan modul *Job Management* dan *Competency*.
 * [ ] **Reimbursement & Claim:** Pengajuan dan verifikasi klaim kesehatan maupun operasional dinas.
 * [ ] **Recruitment & Onboarding (ATS):** Manajemen kandidat, alur seleksi, hingga otomatisasi pendaftaran karyawan baru (*onboarding*).
@@ -122,8 +146,18 @@ Untuk melengkapi cakupan *Full-Suite HRIS*, modul-modul operasional berikut masu
 | **Resource** | Lifecycle Tenant | ✅ Done | `CloseTenantConnection()` sudah terimplementasi dan terintegrasi di lifecycle management. |
 | **Performance**| Connection Pool | ✅ Done | Platform pool (10/5/1jam) & Tenant pool (10/3/30mnt/5mnt) terpisah. `PoolStats()` + PgBouncer. |
 | **Architecture**| Cache Sync | ✅ Done | Distributed cache (local sync.Map + Redis) + Pub/Sub invalidation via `internal/pkg/cache/`. |
-| **Architecture**| Modul Operasional & Career | 🟢 Low | Inisiasi desain skema database modul *Employee Movement*, *Time & Attendance*, dan *Payroll*. |
+| **Payroll**| Payroll & Compensation Engine | ✅ **Done** | 21 GORM entities, full CRUD, 34 unit tests. BPJS, PPh21, Payroll Run, Employee Payroll Profiles. |
+| **Attendance**| Time & Attendance | ✅ **Done (26 Juli 2026)** | 10 GORM entities, full CRUD, 83 unit tests. Settings, Shifts, Locations, Events, Sessions, Overtime. |
 
 ---
-*Document Version: 1.6-Updated (v2)*  
+*Document Version: 1.6-Updated (v3)*  
 *Status: Approved for Architecture Enhancement*
+
+### Changelog
+
+| Versi | Tanggal | Perubahan |
+|-------|---------|-----------|
+| v4 | 26 Juli 2026 | ✅ Time & Attendance selesai: 10 GORM entities, full CRUD, 83 unit tests, 30 endpoints, OpenAPI docs |
+| v3 | 24 Juli 2026 | ✅ Payroll & Compensation Engine selesai: 21 GORM entities, full CRUD, 34 unit tests, BPJS & PPh21 Indonesia |
+| v2 | 22 Juli 2026 | ✅ Job Management selesai: 18 GORM entities, 74 unit tests, OpenAPI docs. Distribusi cache & migration fixes |
+| v1 | 22 Juli 2026 | Initial architecture enhancement: Tenant lifecycle, crypto, connection pool, SQL dialect, distributed cache |

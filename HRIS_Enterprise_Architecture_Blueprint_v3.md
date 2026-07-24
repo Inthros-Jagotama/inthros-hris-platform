@@ -25,7 +25,9 @@ Management.
 | **Organization Management** | ✅ Completed | Multi-Company Architecture, Dynamic Department Hierarchy (Adjacency List), Location & Geofencing Zones, Organization Summary |
 | **Employee Management** | ✅ Completed | Data personal, kontak, alamat, keluarga, pendidikan, dokumen, riwayat kerja, rekening/pajak, 8 sub-modules |
 | **Job Management** | ✅ Completed | 18 GORM entities: Titles, Subs, Values, Objectives, Identifications, Responsibilities, Education Experiences, HR/Operational Authorities, Working Activities/Risks, Relationships, Subordinate Controls, Assets, Financials, Potency Competencies, Scores, Competency Groups |
+| **Payroll & Compensation Engine** | ✅ **Completed (24 Juli 2026)** | 21 GORM entities, full CRUD, 34 unit tests. BPJS Settings & Rate Components, PPh21 (Settings, Tax Brackets, PTKP Rates, Calculation Logs), Payroll Run (Periods, Runs, Items, Payslips), Employee Payroll Profiles (Bank, BPJS, Tax) |
 | **Competency Management** | 🗄️ DB Schema Only | Tabel database tersedia (DDL migration 008_competency.sql — 7 tabel), Go module belum diimplementasikan |
+| **Time & Attendance** | ✅ **Completed (26 Juli 2026)** | **10 GORM entities**, full CRUD, **83 unit tests** (37 repo + 25 service + 21 handler), 30 endpoints. Settings, Shifts, Employee Shifts, Locations (Geofence), Device Captures, Face Captures, Events (Check-in/out), Sessions (Daily Work), Overtime Requests, Exempt Positions. OpenAPI docs (130 schemas, 158 paths). |
 
 ### 3.2 Modul Operasional & Siklus Karier (Planned 🗓️)
 
@@ -33,9 +35,7 @@ Management.
 |-------|:---------:|-------|
 | **Organization History, Versioning & Cloning** | 🟢 High | Change Capture, Full Structure Cloning DRAFT, Version Audit Trail |
 | **Employee Movement & Career Management** | 🔴 High | Promosi/Demosi, Perpanjangan Kontrak (PKWT), Pensiun & Offboarding/PHK |
-| **Time & Attendance** | 🔴 High | Presensi, penjadwalan shift, lembur (overtime), kalkulasi keterlambatan |
 | **Leave & Time Off** | 🔴 High | Pengajuan cuti/sakit/izin, kuota tahunan, multi-level approval |
-| **Payroll & Compensation Engine** | 🔴 High | Kalkulasi gaji, tunjangan/potongan, PPh 21, BPJS, slip gaji digital |
 | **Performance Management** | 🟡 Medium | KPI, OKR, review 360 terintegrasi Job Management & Competency |
 | **Reimbursement & Claim** | 🟡 Medium | Klaim kesehatan & operasional dinas |
 | **Recruitment & Onboarding (ATS)** | 🟡 Medium | Kandidat, alur seleksi, otomatisasi onboarding |

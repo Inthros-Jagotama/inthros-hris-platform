@@ -134,6 +134,7 @@ func (e *Enforcer) loadDefaultPolicies() {
 	e.AddPolicy(RoleManager, "employee", "view,create,update")
 	e.AddPolicy(RoleManager, "attendance", "view")
 	e.AddPolicy(RoleManager, "leave", "view,create")
+	e.AddPolicy(RoleManager, "payroll", "view,create,update")
 	e.AddPolicy(RoleManager, "competency", "view,create,update")
 	e.AddPolicy(RoleManager, "jobmanagement", "view,create,update")
 	e.AddPolicy(RoleManager, "employeemovement", "view,create,update")
@@ -395,6 +396,7 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 		"employee":         {"view", "create", "update"},
 		"attendance":       {"view"},
 		"leave":            {"view", "create"},
+		"payroll":          {"view", "create", "update"},
 		"competency":       {"view", "create", "update"},
 		"jobmanagement":    {"view", "create", "update"},
 		"employeemovement": {"view", "create", "update"},

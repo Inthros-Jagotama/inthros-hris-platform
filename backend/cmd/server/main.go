@@ -6,6 +6,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 
 	"github.com/inthros/hris-platform/internal/pkg/auth"
 	"github.com/inthros/hris-platform/internal/pkg/authz"
@@ -34,10 +36,44 @@ import (
 	"github.com/inthros/hris-platform/internal/platform/user"
 
 	// Tenant modules
+	"github.com/inthros/hris-platform/internal/modules/approval"
+	"github.com/inthros/hris-platform/internal/modules/attendance"
+	"github.com/inthros/hris-platform/internal/modules/competency"
 	"github.com/inthros/hris-platform/internal/modules/employee"
+	"github.com/inthros/hris-platform/internal/modules/employeemovement"
 	"github.com/inthros/hris-platform/internal/modules/jobmanagement"
 	"github.com/inthros/hris-platform/internal/modules/organization"
+	"github.com/inthros/hris-platform/internal/modules/payroll"
 )
+
+// =============================================================================
+// Approval Engine Adapter (for Payroll integration)
+// =============================================================================
+
+// payrollApprovalAdapter implements payroll.ApprovalEngine using the approval service.
+type payrollApprovalAdapter struct {
+	approvalSvc *approval.Service
+}
+
+func (a *payrollApprovalAdapter) CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error) {
+	resp, err := a.approvalSvc.CreateInstance(ctx, approval.CreateInstanceRequest{
+		Module:     module,
+		DocumentID: documentID,
+		FlowID:     flowID,
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.ID, nil
+}
+
+func (a *payrollApprovalAdapter) GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error) {
+	resp, err := a.approvalSvc.GetInstanceByID(ctx, instanceID)
+	if err != nil {
+		return "", err
+	}
+	return resp.Status, nil
+}
 
 func main() {
 	configPath := flag.String("config", "", "Path to configuration file")
@@ -149,7 +185,25 @@ func main() {
 		},
 	)
 
-	// 6b. Register tenant modules
+	// 6b. Create approval engine adapter (for payroll integration)
+	// Approval service needs a tenant DB resolver like other modules
+	approvalResolver := func(ctx context.Context) (*gorm.DB, error) {
+		companyID, ok := ctx.Value("company_id").(string)
+		if !ok || companyID == "" {
+			return nil, fmt.Errorf("tenant context not found in request: company_id is required")
+		}
+		return dbManager.TenantDB(companyID)
+	}
+	approvalLogger := l.Named("approval")
+	approvalRepo := approval.NewRepository(approvalResolver)
+	approvalSvc := approval.NewService(approvalRepo, approvalLogger)
+
+	// Create the ApprovalEngine adapter that the payroll module expects
+	payrollApprovalEngine := &payrollApprovalAdapter{
+		approvalSvc: approvalSvc,
+	}
+
+	// 6c. Register tenant modules (ordered by priority & dependency)
 	tenantModules = append(tenantModules,
 		module.ModuleRegistration{
 			Module:   organization.NewModule(dbManager, l),
@@ -165,6 +219,31 @@ func main() {
 			Module:   jobmanagement.NewModule(dbManager, l),
 			TargetDB: module.TargetTenant,
 			Priority: 3,
+		},
+		module.ModuleRegistration{
+			Module:   competency.NewModule(dbManager, l),
+			TargetDB: module.TargetTenant,
+			Priority: 4,
+		},
+		module.ModuleRegistration{
+			Module:   employeemovement.NewModule(dbManager, l),
+			TargetDB: module.TargetTenant,
+			Priority: 5,
+		},
+		module.ModuleRegistration{
+			Module:   attendance.NewModule(dbManager, l),
+			TargetDB: module.TargetTenant,
+			Priority: 6,
+		},
+		module.ModuleRegistration{
+			Module:   approval.NewModuleWithService(dbManager, l, approvalSvc),
+			TargetDB: module.TargetTenant,
+			Priority: 7,
+		},
+		module.ModuleRegistration{
+			Module:   payroll.NewModule(dbManager, l, payrollApprovalEngine),
+			TargetDB: module.TargetTenant,
+			Priority: 8,
 		},
 	)
 

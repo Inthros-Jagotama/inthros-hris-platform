@@ -905,8 +905,11 @@ docker run -p 8080:8080 hris-platform:latest
 |---------|:----------:|:-----------------:|:----------:|:----:|
 | `internal/pkg/cache/` | 42 (cache + PubSub) | 8 (full lifecycle, 2-instance Pub/Sub, TTL, concurrent, data types) | 31 (set/get/invalidate/PubSub/concurrent/data size) | **81** |
 | `internal/modules/competency/` | 54 (service 25 + repository 14 + handler 15) | — | — | **54** |
+| `internal/modules/payroll/` | **34** (repository 13 + service 21) | — | — | **34** |
 | `internal/pkg/authz/` | **80+** (enforcer 26 + repository 22 + service 20 + handler 12) | — | — | **80+** |
+| `internal/modules/approval/` | **67** (repository 25 + service 25 + handler 14) | — | — | **67** |
 | `internal/modules/employeemovement/` | **58** (service 22 + repository 22 + handler 14) | — | — | **58** |
+| `internal/modules/attendance/` | **83** (repository 37 + service 25 + handler 21) | — | — | **83** |
 
 ### Run Tests
 
@@ -1207,15 +1210,25 @@ POST /api/v1/platform/companies
 | **Competency Management** | ✅ **Completed** | 7 GORM entities: Competencies, CompetenceValues (legacy), CompetencyValues (structured), CompetencyEvents, CompetencyEventTargets, CompetencyScores, CompetencyScoreDetails |
 | **RBAC Management (Database-Backed)** | ✅ **Completed** | 4 default roles with hierarchy, 13 seeded resources (70+ permissions), CRUD API (10 endpoints), enforcer auto-reload, **80+ unit tests** |
 | **Employee Movement & Career Management** | ✅ **Completed** | 2 entities (EmployeeMovement, EmployeeContract) with 8 movement types, contract extension chain, 3-step approval flow (draft→approved→executed), **58 unit tests**, 15 OpenAPI endpoints |
+| **Approval Engine** | ✅ **Completed (24 Juli 2026)** | **5 GORM entities**: ApprovalFlow, ApprovalFlowStep, ApprovalInstance, ApprovalAction, ApprovalTask. Multi-step workflow engine dengan flexible approval flows. **67 unit tests** (25 repository + 25 service + 14 handler + 3 helpers). **15 endpoints** — 3 approval modes (ANY_ONE, ALL, N_OF_M), 3 approver types (USER, ROLE, SUPERVISOR), instance tracking & task management.
+  - **Flows**: CRUD approval flows, soft-delete, module-based filtering
+  - **Steps**: Ordered step management per flow (auto-increment step_order)
+  - **Instances**: Create approval instances for any module/document, with status workflow PENDING→APPROVED/REJECTED/CANCELLED
+  - **Actions**: Submit approve/reject actions, automatic next-step advancement or full approval
+  - **Tasks**: Task management per approver with assignee resolution |
+| **Payroll & Compensation Engine** | ✅ **Completed (24 Juli 2026)** | **21 GORM entities**: SalaryComponent, PayrollPeriod, PayrollRun, BpjsSetting, BpjsRateComponent, Pph21Setting, Pph21PtkpRate, Pph21TaxBracket, EmployeePayrollProfile, EmployeeBankProfile, EmployeeBpjsProfile, EmployeeTaxProfile, PayrollRunEmployee, PayrollRunItem, PayrollPayslip, Pph21CalculationLog, dan lainnya. Full CRUD (Create/Read/Update/Delete) untuk seluruh entity. **34 unit tests** (13 repository + 21 service).
+  - **BPJS Indonesia**: BPJS Settings & Rate Components (Kesehatan & Ketenagakerjaan)
+  - **PPh21**: Settings, Tax Brackets, PTKP Rates, Calculation Logs
+  - **Payroll Run**: Periods, Runs (dengan status workflow DRAFT→CALCULATED→REVIEWED→APPROVED→LOCKED), Run Employees, Items, Payslips
+  - **OpenAPI**: **23 path groups** (~46 endpoints), 21 request schemas, 22 response schemas (total 153 schemas) — versi 1.6.0 |
+| **Time & Attendance** | ✅ **Completed (26 Juli 2026)** | **10 GORM entities**: Company Settings, Company Shifts, Employee Shifts, Locations (Geofence), Device Captures, Face Captures, Events (Check-in/out), Sessions (Daily Work), Overtime Requests, Exempt Positions. Full CRUD untuk 8 sub-entities. **83 unit tests** (37 repo + 25 service + 21 handler). **30 endpoints**. OpenAPI docs enhanced — versi 1.6.3 |
 
 ### Modul Operasional & Siklus Karier (Planned 🗓️)
 
 | Modul | Prioritas | Scope |
 |-------|:---------:|-------|
 | **Organization History, Versioning & Cloning** | 🟢 High | Change Capture, Full Structure Cloning DRAFT, Version Audit Trail |
-| **Time & Attendance** | 🟢 High | Presensi, penjadwalan shift, lembur (overtime), kalkulasi keterlambatan |
 | **Leave & Time Off** | 🟢 High | Pengajuan cuti/sakit/izin, kuota tahunan, multi-level approval |
-| **Payroll & Compensation Engine** | 🟢 High | Kalkulasi gaji, tunjangan/potongan, PPh 21, BPJS, slip gaji digital |
 | **Performance Management** | 🟡 Medium | KPI, OKR, review 360 terintegrasi Job Management & Competency |
 | **Reimbursement & Claim** | 🟡 Medium | Klaim kesehatan & operasional dinas |
 | **Recruitment & Onboarding (ATS)** | 🟡 Medium | Kandidat, alur seleksi, otomatisasi onboarding |
@@ -1457,24 +1470,23 @@ $ go build ./...  # ✅ Berhasil
 
 ### Phase 3: Payroll & Complex ✅
 - ✅ **Job Management Module** (16+ models, 18 GORM entities, full CRUD + scoring) -- [Selesai 22 Juli 2026]
-- 🗄️ **Competency Management** (DB Schema Only — 008_competency.sql, Go module belum diimplementasi)
-- ⬜ Payroll Module (calculator, PPh21, BPJS)
+- ✅ **Competency Management** (7 entities: Competencies, Values, Events, Targets, Scores, Score Details) — [Selesai 23 Juli 2026]
+- ✅ **Payroll & Compensation Engine** (21 GORM entities, full CRUD, 34 unit tests) — [Selesai 24 Juli 2026]
 
 ### Phase 4: Operations & Career ✅
 - ✅ **Employee Movement & Career Management** (Promosi/Demosi, PKWT, Pensiun/PHK) — [Selesai 23 Juli 2026]
-- 🗓️ Time & Attendance (presensi, shift, lembur)
+- ✅ **Time & Attendance (presensi, shift, lembur) — [Selesai 26 Juli 2026]**
 - 🗓️ Leave & Time Off (cuti, izin, sakit, multi-level approval)
-- 🗓️ Payroll & Compensation Engine (gaji, PPh 21, BPJS)
 - 🗓️ Performance Management (KPI, OKR, review 360)
 - ⬜ Reimbursement & Claim
 - ⬜ Recruitment & Onboarding (ATS)
 
 ### Production Readiness 🎯
 - ✅ AES-256-GCM encryption untuk kredensial tenant DB (`internal/pkg/crypto/`, CLI `encrypt-passwords`)
-- ⬜ Connection Pool optimization (10-20 per tenant + PgBouncer)
+- ✅ **Connection Pool optimization** (Platform: 10/5/1jam, Tenant: 10/3/30mnt/5mnt idle→close, PoolStats(), PgBouncer support)
 - ✅ SQL dialect separation (PostgreSQL vs MySQL migrations) — 22 file per dialect, auto-select via `TenantRootPath(driver)`
 - ✅ Redis Pub/Sub untuk distributed cache invalidation (`internal/pkg/cache/` — two-tier + Pub/Sub)
-- ⬜ Frontend Implementationtegration (Vue 3 + PrimeVue)
+- ⬜ Frontend Implementation (Vue 3 + PrimeVue)
 
 ### Phase 5: Polish
 - ⬜ E2E Testing (Playwright)
@@ -1510,4 +1522,4 @@ Proprietary — All rights reserved.
 
 ---
 
-*Dokumen ini diperbarui pada: 22 Juli 2026*
+*Dokumen ini diperbarui pada: 24 Juli 2026*

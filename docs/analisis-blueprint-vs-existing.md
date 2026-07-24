@@ -1,8 +1,8 @@
 # Analisis Perbandingan: HRIS Enterprise Architecture Blueprint v3 vs Existing Application (inthros-web)
 
 **Dokumen:** Analisis Gap & Kesesuaian Arsitektur
-**Tanggal:** 22 Juli 2026
-**Versi:** 1.0
+**Tanggal:** 24 Juli 2026
+**Versi:** 1.1
 
 ---
 
@@ -55,8 +55,8 @@ Referensi utama analisis:
 | **Stack backend berbeda total** (Laravel PHP vs Go) | 🔴 Gap Kritis | High |
 | **Arsitektur frontend-backend** (Inertia monolith vs REST API) | 🔴 Gap Kritis | High |
 | **Multi-tenant model** (single-DB dengan company_id vs DB-per-company) | 🔴 Gap Kritis | High |
-| **Domain coverage** | 🟢 Existing masih lebih luas (competency, payroll lokal) — Job Management sudah tercover di Go backend | - |
-| **Payroll & tax Indonesia** | 🟢 Existing sudah mature | - |
+| **Domain coverage** | 🟢 Existing masih lebih luas (competency) — Job Management & Payroll sudah tercover di Go backend | - |
+| **Payroll & tax Indonesia** | 🟢 Existing sudah mature — ✅ **Go backend (24 Juli 2026):** 21 GORM entities, full CRUD, 34 unit tests (BPJS, PPh21, Payroll Run) | - |
 | **Module Management & License** | 🟡 Belum ada | Medium |
 | **Testing & Observability** | 🟡 Masih minimal | Medium |
 
@@ -204,7 +204,7 @@ class SetPermissionTeam
 | **Employee** | ✅ Module SDK | ✅ | Employee + 12 sub-modules (address, family, education, experience, documents, insurance, bank, BPJS, tax, payroll, salary, employment) | 🟢 Sangat lengkap |
 | **Attendance** | ✅ Module SDK | ✅ | Sessions, events, shifts, exempt positions, company settings, overtime, device captures, face captures, locations | 🟢 Lengkap |
 | **Leave** | ✅ Module SDK | ✅ | Types, requests, accrual policies, balances, reasons, request details | 🟢 Lengkap |
-| **Payroll** | ✅ Module SDK | ✅ | Periods, runs, items, payslips, BPJS settings & rate components, PPh21 (PTKP, tax brackets, settings, calculation logs), salary components & grade components, employee adjustments, change logs | 🟢 Sangat lengkap (dengan stored procedures MySQL) |
+| **Payroll** | ✅ **Module SDK (Selesai 24 Juli 2026)** — 21 GORM entities, full CRUD, 34 unit tests | ✅ | Periods, runs, items, payslips, BPJS settings & rate components, PPh21 (PTKP, tax brackets, settings, calculation logs), salary components & grade components, employee adjustments, change logs | 🟢 **Go backend sudah match** — 21 GORM entities terimplementasi dengan Repository → Service → Handler → Routes → Module pattern |
 | **Approval** | ✅ Module SDK | ✅ | Approval flows, steps, instances, tasks, actions | 🟢 Lengkap |
 | **Reports** | ✅ Module SDK | ✅ | Attendance reports, employee reports (PDF + Excel), job management reports | 🟢 Ada |
 | **Competency** | ❌ Tidak disebut | ✅ | Competency management, events, targets, scores & details, assignments, dashboard | 🟢 Existing lebih lengkap |
@@ -588,6 +588,10 @@ Module penuh untuk manajemen kompetensi:
 
 ### 8.3 Pajak & BPJS Indonesia (Payroll Spesifik Lokal)
 
+> ✅ **Status Implementasi Go (24 Juli 2026):** Seluruh 21 entities sudah terimplementasi di Go backend
+> dengan full CRUD, Repository → Service → Handler → Routes → Module pattern, 34 unit tests,
+> dan RBAC permission `payroll.*`. Lihat `backend/internal/modules/payroll/`.
+
 | Fitur | Deskripsi |
 |---|---|
 | PTKP | Penghasilan Tidak Kena Pajak |
@@ -747,7 +751,7 @@ Ringkasan jumlah resource berdasarkan hasil eksplorasi direktori:
 | 5 | **Multi-company scoping** | Meski single DB, scoping sudah benar via HasCompany trait |
 | 6 | **ACL system** | Spatie + custom mapping sudah mature |
 | 7 | **WebAuthn/Passkey** | Security modern sudah terintegrasi |
-| 8 | **Domain coverage** | Existing masih lebih luas (competency, payroll lokal) — Job Management sudah tercover di Go backend |
+| 8 | **Domain coverage** | Existing masih lebih luas (competency) — Job Management & Payroll sudah tercover di Go backend |
 | 9 | **Coding standards** | AI_CODING_RULES.md sangat comprehensive |
 | 10 | **CI/CD** | GitHub Actions sudah jalan |
 
@@ -764,6 +768,10 @@ Kelebihan aplikasi existing dibandingkan target blueprint:
 - ✅ Payroll run dengan lock/unlock mechanism
 - ✅ Payslip generation & publishing
 - ✅ Change logs untuk audit
+
+> ✅ **Go backend (24 Juli 2026):** Semua fitur di atas sudah diimplementasi di Go backend
+> dengan 21 GORM entities, full CRUD, 34 unit tests (13 repository + 21 service),
+> dan RBAC permission `payroll.*`. Lihat `backend/internal/modules/payroll/`.
 
 ### 12.2 Comprehensive Job Analysis
 - ✅ 16+ model untuk analisis jabatan
@@ -832,6 +840,8 @@ Backend Laravel tetap untuk existing modules. Module baru dan Platform Managemen
 |---|---|---|---|
 | **Fase 1** | Platform Management (Module, License, Tenant) | **Go + Gin** | 3-4 bulan |
 | **Fase 2** | Recruitment, Performance, Training, Asset | **Go + Gin** | 4-6 bulan |
+| **Fase 3** | Upgrade existing (Audit Log, Testing, Docker) | **Laravel** | 2-3 bulan |
+| **Fase 2b** | Payroll Engine (Go) | **Go + Gin** | ✅ **Selesai (24 Juli 2026)** |
 | **Fase 3** | Upgrade existing (Audit Log, Testing, Docker) | **Laravel** | 2-3 bulan |
 | **Fase 4** | Migration bertahap module existing ke Go | **Go** | 6-12 bulan |
 
