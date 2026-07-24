@@ -45,6 +45,7 @@ import (
 	"github.com/inthros/hris-platform/internal/modules/leave"
 	"github.com/inthros/hris-platform/internal/modules/organization"
 	"github.com/inthros/hris-platform/internal/modules/payroll"
+	"github.com/inthros/hris-platform/internal/modules/reimbursement"
 )
 
 // =============================================================================
@@ -250,6 +251,11 @@ func main() {
 			Module:   leave.NewModule(dbManager, l),
 			TargetDB: module.TargetTenant,
 			Priority: 9,
+		},
+		module.ModuleRegistration{
+			Module:   reimbursement.NewModule(dbManager, l),
+			TargetDB: module.TargetTenant,
+			Priority: 10,
 		},
 	)
 

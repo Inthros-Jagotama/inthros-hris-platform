@@ -45,6 +45,7 @@ Modular monolith backend untuk platform HRIS enterprise dengan arsitektur multi-
 │  │   Flag       │  │ • Logger   │  │  │ Competency       ││ │
 │  │              │  │ • Module   │  │  │ Job Management   ││ │
 │  │              │  │   SDK      │  │  │ Approval         ││ │
+│  │              │  │             │  │  │ Reimbursement    ││ │
 │  └─────────────┘  └─────────────┘  │  └──────────────────┘│ │
 │                                     └──────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
@@ -162,7 +163,8 @@ hris-platform/
 │   │   │   ├── attendance/           #   Time & Attendance (10 entities, 30 endpoints)
 │   │   │   ├── approval/             #   Approval Engine (5 entities, 15 endpoints)
 │   │   │   ├── payroll/              #   Payroll & Compensation Engine (21 entities)
-│   │   │   └── leave/                #   Leave & Time Off (6 entities, 21 endpoints)
+│   │   │   ├── leave/                #   Leave & Time Off (6 entities, 21 endpoints)
+│   │   │   └── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints)
 │   │   └── pkg/                      # Shared Kernel│       │   ├── config/               # Viper configuration loader
 │       │   ├── database/             # Multi-tenant DB manager
 │       │   ├── driver/               # Shared DB driver type
@@ -799,6 +801,33 @@ Authorization: Bearer <access_token>
 | `DELETE` | `/employee-movements/contracts/:id` | Delete contract |
 | `GET` | `/employee-movements/employees/:employeeId/contracts` | List contracts by employee |
 
+**Reimbursement & Claim — Reimbursement Types**
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `GET` | `/reimbursements/types` | List reimbursement types (pagination) |
+| `POST` | `/reimbursements/types` | Create reimbursement type |
+| `GET` | `/reimbursements/types/:id` | Get reimbursement type by ID |
+| `PUT` | `/reimbursements/types/:id` | Update reimbursement type |
+| `DELETE` | `/reimbursements/types/:id` | Delete reimbursement type |
+
+**Reimbursement & Claim — Reimbursement Requests**
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `GET` | `/reimbursements/requests` | List reimbursement requests (pagination) |
+| `POST` | `/reimbursements/requests` | Create reimbursement request |
+| `GET` | `/reimbursements/requests/:id` | Get reimbursement request by ID |
+| `PUT` | `/reimbursements/requests/:id` | Update reimbursement request |
+| `PUT` | `/reimbursements/requests/:id/status` | Update request status (submit/approve/reject/pay/cancel) |
+| `DELETE` | `/reimbursements/requests/:id` | Delete reimbursement request |
+
+**Reimbursement & Claim — Reimbursement Items**
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `GET` | `/reimbursements/requests/:requestId/items` | List items attached to a request |
+| `POST` | `/reimbursements/requests/:requestId/items` | Add a new item to a reimbursement request |
+| `PUT` | `/reimbursements/requests/:requestId/items/:itemId` | Update a reimbursement item |
+| `DELETE` | `/reimbursements/requests/:requestId/items/:itemId` | Delete a reimbursement item |
+
 ### Response Format
 
 ```json
@@ -915,6 +944,7 @@ docker run -p 8080:8080 hris-platform:latest
 | `internal/modules/employeemovement/` | **58** (service 22 + repository 22 + handler 14) | — | — | **58** |
 | `internal/modules/attendance/` | **83** (repository 37 + service 25 + handler 21) | — | — | **83** |
 | `internal/modules/leave/` | **38** (repository 14 + service 12 + handler 12) | — | — | **38** |
+| `internal/modules/reimbursement/` | **48** (repository 18 + service 20 + handler 16) | — | — | **48** |
 
 ### Run Tests
 
@@ -1078,12 +1108,12 @@ POST /api/v1/platform/companies
    ├── b. Connect sebagai superuser (root@localhost)
    ├── c. Buat database tenant (CREATE DATABASE IF NOT EXISTS)
    ├── d. Simpan TenantConnection ke platform DB (ID = companyID)
-   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 12 tenant SQL migrations (108 tables)
+   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 13 tenant SQL migrations (111 tables)
 5. Jika provisioning berhasil → company status: active
 6. Jika provisioning gagal → company status: suspended (data tetap tersimpan)
 ```
 
-### Tenant Migration Files (12 files → 108 tables)
+### Tenant Migration Files (13 files → 111 tables)
 
 | File | Isi |
 |------|-----|
@@ -1098,8 +1128,10 @@ POST /api/v1/platform/companies
 | `009_job_management.sql` | Job titling, values, objectives, responsibilities |
 | `010_permissions.sql` | Roles, permissions, model_has_roles/ permissions |
 | `011_pph21.sql` | PPh21 settings, tax brackets, PTKP rates |
+| `012_employee_movement.sql` | Employee movements & contracts |
+| `013_reimbursement.sql` | Reimbursement types, requests, items |
 
-> **Catatan:** Total 106 tabel termasuk `schema_migrations` (auto-created oleh migrator engine).
+> **Catatan:** Total 111 tabel termasuk `schema_migrations` (auto-created oleh migrator engine).
 
 ### Daftar Lengkap 106 Tabel Tenant
 
@@ -1228,6 +1260,7 @@ POST /api/v1/platform/companies
   - **OpenAPI**: **23 path groups** (~46 endpoints), 21 request schemas, 22 response schemas (total 153 schemas) — versi 1.6.0 |
 | **Time & Attendance** | ✅ **Completed (26 Juli 2026)** | **10 GORM entities**: Company Settings, Company Shifts, Employee Shifts, Locations (Geofence), Device Captures, Face Captures, Events (Check-in/out), Sessions (Daily Work), Overtime Requests, Exempt Positions. Full CRUD untuk 8 sub-entities. **83 unit tests** (37 repo + 25 service + 21 handler). **30 endpoints**. OpenAPI docs enhanced — versi 1.6.3 |
 | **Leave & Time Off** | ✅ **Completed (26 Juli 2026)** | **6 GORM entities**: LeaveTypes, LeaveAccrualPolicies, LeaveReasons, LeaveRequests, LeaveRequestDetails, EmployeeLeaveBalances. Full CRUD untuk 5 sub-entities. **38 unit tests** (14 repo + 12 service + 12 handler). **23 endpoints**. |
+| **Reimbursement & Claim** | ✅ **Completed (30 Juli 2026)** | **3 GORM entities**: ReimbursementType, ReimbursementRequest, ReimbursementItem. Multi-step status flow (DRAFT->SUBMITTED->APPROVED->PAID). **48 unit tests** (18 repo + 20 service + 16 handler). **15 OpenAPI endpoints**. Approval integration via Approval Engine. |
 
 ### Modul Operasional & Siklus Karier (Planned 🗓️)
 
@@ -1235,7 +1268,6 @@ POST /api/v1/platform/companies
 |-------|:---------:|-------|
 | **Organization History, Versioning & Cloning** | 🟢 High | Change Capture, Full Structure Cloning DRAFT, Version Audit Trail |
 | **Performance Management** | 🟡 Medium | KPI, OKR, review 360 terintegrasi Job Management & Competency |
-| **Reimbursement & Claim** | 🟡 Medium | Klaim kesehatan & operasional dinas |
 | **Recruitment & Onboarding (ATS)** | 🟡 Medium | Kandidat, alur seleksi, otomatisasi onboarding |
 
 ---
@@ -1483,7 +1515,7 @@ $ go build ./...  # ✅ Berhasil
 - ✅ **Time & Attendance (presensi, shift, lembur) — [Selesai 26 Juli 2026]**
 - ✅ **Leave & Time Off (cuti, izin, sakit, multi-level approval) — [Selesai 26 Juli 2026]**
 - 🗓️ Performance Management (KPI, OKR, review 360)
-- ⬜ Reimbursement & Claim
+- ✅ Reimbursement & Claim
 - ⬜ Recruitment & Onboarding (ATS)
 
 ### Production Readiness 🎯

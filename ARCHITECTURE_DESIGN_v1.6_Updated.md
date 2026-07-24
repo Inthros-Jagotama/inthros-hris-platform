@@ -26,12 +26,13 @@ Sistem ini dirancang menggunakan pendekatan **Modular Monolith** berbasis bahasa
 | **Organization Management** | 5 GORM entities | ❌ | ✅ **Completed** — Organization, Zone, Position, Level, Summary |
 | **Employee Management** | 9+ entities | ✅ 25+ tests | ✅ **Completed** — Personal, kontak, alamat, keluarga, pendidikan, dokumen, dll |
 | **Job Management** | 18 GORM entities | ✅ **74 tests** | ✅ **Completed** — Titles, Values, Responsibilities, Authorities, Working Activities/Risks |
-| **Payroll & Compensation Engine** | **21 GORM entities** | ✅ **34 tests** | ✅ **Completed (24 Juli 2026)** — BPJS, PPh21, Payroll Run, Employee Profiles |
-| **Employee Movement & Career** | 8 entities | ✅ | ✅ **Completed** — Promosi/Demosi, PKWT, Mutation, Pensiun |
-| **Competency Management** | 7 entities (DB only) | ❌ | 🗄️ **DB Schema Only** — Go module belum diimplementasi |
-| **Time & Attendance** | **10 GORM entities** | ✅ **83 tests** | ✅ **Completed (26 Juli 2026)** — Settings, Shifts, Employee Shifts, Locations, Events, Sessions, Overtime, Exempt Positions |
+| **Competency Management** | 7 GORM entities | ✅ **54 tests** | ✅ **Completed (30 Juli 2026)** — Competencies, Values, Events, Targets, Scores, Details. **35 OpenAPI endpoints** |
+| **Employee Movement & Career** | 2 GORM entities | ✅ **58 tests** | ✅ **Completed (30 Juli 2026)** — Movements (promotion/demotion/mutation/retirement/offboarding), Contracts (PKWT/PKWTT). **15 OpenAPI endpoints** |
+| **Approval Engine** | **5 GORM entities** | ✅ **67 tests** | ✅ **Completed (24 Juli 2026)** — Flows, Steps, Instances, Actions, Tasks. **15 OpenAPI endpoints** |
+| **Payroll & Compensation Engine** | **21 GORM entities** | ✅ **34 tests** | ✅ **Completed (24 Juli 2026)** — BPJS, PPh21, Payroll Run, Employee Profiles. **47 OpenAPI endpoints** |
+| **Time & Attendance** | **10 GORM entities** | ✅ **83 tests** | ✅ **Completed (26 Juli 2026)** — Settings, Shifts, Employee Shifts, Locations, Events, Sessions, Overtime, Exempt Positions. **30 OpenAPI endpoints** |
 | **Leave & Time Off** | **6 GORM entities** | ✅ **38 tests** | ✅ **Completed (26 Juli 2026)** — Leave Types, Accrual Policies, Reasons, Requests (23 endpoints), Details, Balances |
-| **Approval Engine** | **5 GORM entities** | ✅ **67 tests** | ✅ **Completed (24 Juli 2026)** — Flows, Steps, Instances, Actions, Tasks |
+| **Reimbursement & Claim** | **3 GORM entities** | ✅ **48 tests** | ✅ **Completed (30 Juli 2026)** — Reimbursement Types, Requests, Items. **15 OpenAPI endpoints** |
 
 ---
 
@@ -120,21 +121,18 @@ Modul-modul berikut telah selesai didesain dan diimplementasikan sebagai fondasi
   * **Payroll Run:** Payroll Periods, Payroll Runs (dengan status workflow), Run Employees, Run Items, Payroll Payslips.
   * **Employee Payroll:** Employee Payroll Profiles, Bank Profiles, BPJS Profiles, Tax Profiles.
 * [x] **Time & Attendance:** **10 GORM entities** — Company Settings, Company Shifts, Employee Shifts, Locations (Geofence), Device Captures, Face Captures, Events (Check-in/out), Sessions (Daily Work), Overtime Requests, Exempt Positions. Full CRUD untuk 8 sub-entities. **83 unit tests** (37 repository + 25 service + 21 handler).
-* [ ] **Competency Management:** 🗄️ **DB Schema Only** — Tabel database tersedia (DDL migration 008_competency.sql — 7 tabel), Go module belum diimplementasikan.
+* [x] **Competency Management:** ✅ **Completed (30 Juli 2026)** — 7 GORM entities, full CRUD. Competencies, Values (legacy + structured), Events, Targets, Scores, Score Details. **35 OpenAPI endpoints**, **54 unit tests**.
+* [x] **Employee Movement & Career Management:** ✅ **Completed (30 Juli 2026)** — 2 GORM entities. 8 movement types (promotion, demotion, mutation, contract_extension, status_change, retirement, offboarding, other). 4 contract types (PKWT, PKWTT, daily, other). **15 OpenAPI endpoints**, **58 unit tests**.
+* [x] **Reimbursement & Claim:** ✅ **Completed (30 Juli 2026)** — 3 GORM entities (ReimbursementType, ReimbursementRequest, ReimbursementItem). Multi-step approval flow (DRAFT->SUBMITTED->APPROVED->PAID). **15 OpenAPI endpoints**, **48 unit tests**.
 
 ### 3.2. Modul Operasional & Siklus Karier (Planned / Phase 2 Roadmap)
 Untuk melengkapi cakupan *Full-Suite HRIS*, modul-modul operasional berikut masuk dalam skala prioritas pengembangan tahap berikutnya:
 
-* [ ] **Employee Movement & Career Management:**
-  * **Promosi & Demosi:** Perubahan jenjang jabatan, posisi, dan penyesuaian kelas gaji.
-  * **Perpanjangan Kontrak (PKWT):** Pengelolaan masa berlaku kerja, peringatan jatuh tempo, dan adendum kontrak.
-  * **Pensiun & Offboarding/PHK:** Pengelolaan masa purna bakti, pemutusan hubungan kerja, dan integrasi perhitungan pesangon/uang jasa pada modul Payroll.
-* [x] **Time & Attendance:** Perekaman presensi, penjadwalan *shift*, lembur (*overtime*), dan kalkulasi keterlambatan.
-* [x] **Leave & Time Off:** Pengajuan cuti, sakit, izin, manajemen kuota cuti tahunan, dan *multi-level approval*.  
-  * **6 GORM entities** — LeaveType, LeaveAccrualPolicy, LeaveReason, LeaveRequest, LeaveRequestDetail, EmployeeLeaveBalance. Full CRUD untuk 5 sub-entities. **38 unit tests** (14 repo + 12 service + 12 handler). **23 endpoints**. |
+* [x] **Time & Attendance:** ✅ Perekaman presensi, penjadwalan *shift*, lembur (*overtime*), dan kalkulasi keterlambatan.
+* [x] **Leave & Time Off:** ✅ Pengajuan cuti, sakit, izin, manajemen kuota cuti tahunan, dan *multi-level approval*.
 * [ ] **Performance Management:** Penilaian kinerja (KPI, OKR, review 360) yang terintegrasi langsung dengan modul *Job Management* dan *Competency*.
-* [ ] **Reimbursement & Claim:** Pengajuan dan verifikasi klaim kesehatan maupun operasional dinas.
 * [ ] **Recruitment & Onboarding (ATS):** Manajemen kandidat, alur seleksi, hingga otomatisasi pendaftaran karyawan baru (*onboarding*).
+* [ ] **Organization History, Versioning & Cloning:** Change Capture, Full Structure Cloning, Version Audit Trail.
 
 ---
 
@@ -150,15 +148,20 @@ Untuk melengkapi cakupan *Full-Suite HRIS*, modul-modul operasional berikut masu
 | **Payroll**| Payroll & Compensation Engine | ✅ **Done** | 21 GORM entities, full CRUD, 34 unit tests. BPJS, PPh21, Payroll Run, Employee Payroll Profiles. |
 | **Attendance**| Time & Attendance | ✅ **Done (26 Juli 2026)** | 10 GORM entities, full CRUD, 83 unit tests. Settings, Shifts, Locations, Events, Sessions, Overtime. |
 | **Leave**| Leave & Time Off | ✅ **Done (26 Juli 2026)** | 6 GORM entities, full CRUD, 38 unit tests, 21 endpoints. Types, Accrual Policies, Reasons, Requests, Balances. |
+| **Competency**| Competency Management | ✅ **Done (30 Juli 2026)** | 7 GORM entities, full CRUD, 54 unit tests. Competencies, Values, Events, Scores. **35 OpenAPI endpoints**. |
+| **Movement**| Employee Movement & Career | ✅ **Done (30 Juli 2026)** | 2 GORM entities, 58 unit tests. 8 movement types, contract extension chain. **15 OpenAPI endpoints**. |
+| **Reimbursement**| Reimbursement & Claim | ✅ **Done (30 Juli 2026)** | 3 GORM entities, 48 unit tests. Multi-step status flow. **15 OpenAPI endpoints**. |
 
 ---
-*Document Version: 1.6-Updated (v3)*  
+*Document Version: 1.6-Updated (v6)*  
+*Status: Approved for Architecture Enhancement*  
 *Status: Approved for Architecture Enhancement*
 
 ### Changelog
 
 | Versi | Tanggal | Perubahan |
 |-------|---------|-----------|
+| v6 | 30 Juli 2026 | ✅ Competency, Employee Movement, Reimbursement selesai. OpenAPI docs full coverage (348 endpoints, 208 schemas, 19 tags) |
 | v5 | 26 Juli 2026 | ✅ Leave & Time Off selesai: 6 GORM entities, full CRUD, 38 unit tests, 23 endpoints |
 | v4 | 26 Juli 2026 | ✅ Time & Attendance selesai: 10 GORM entities, full CRUD, 83 unit tests, 30 endpoints, OpenAPI docs |
 | v3 | 24 Juli 2026 | ✅ Payroll & Compensation Engine selesai: 21 GORM entities, full CRUD, 34 unit tests, BPJS & PPh21 Indonesia |
