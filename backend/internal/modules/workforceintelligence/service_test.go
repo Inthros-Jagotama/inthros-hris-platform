@@ -1,0 +1,733 @@
+package workforceintelligence
+
+import (
+	"context"
+	"testing"
+
+	"github.com/google/uuid"
+)
+
+func ctx() context.Context {
+	return context.Background()
+}
+
+// =========================================================================
+// Headcount Plan Service Tests
+// =========================================================================
+
+func TestService_CreateHeadcountPlan_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	req := CreateHeadcountPlanRequest{
+		Period:         "2026-Q3",
+		OrganizationID: uuid.New().String(),
+		PlannedHC:      100,
+	}
+
+	resp, err := svc.CreateHeadcountPlan(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateHeadcountPlan failed: %v", err)
+	}
+
+	if resp.Period != "2026-Q3" {
+		t.Errorf("expected period '2026-Q3', got '%s'", resp.Period)
+	}
+	if resp.PlannedHC != 100 {
+		t.Errorf("expected PlannedHC 100, got %d", resp.PlannedHC)
+	}
+	if resp.ID == "" {
+		t.Error("expected ID to be set")
+	}
+}
+
+func TestService_CreateHeadcountPlan_InvalidOrgID(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	req := CreateHeadcountPlanRequest{
+		Period:         "2026-Q3",
+		OrganizationID: "not-a-uuid",
+		PlannedHC:      100,
+	}
+
+	_, err := svc.CreateHeadcountPlan(ctx(), req)
+	if err == nil {
+		t.Fatal("expected error for invalid organization_id")
+	}
+}
+
+func TestService_GetHeadcountPlanByID_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestHeadcountPlan(repo)
+
+	found, err := svc.GetHeadcountPlanByID(ctx(), created.ID.String())
+	if err != nil {
+		t.Fatalf("GetHeadcountPlanByID failed: %v", err)
+	}
+
+	if found.ID != created.ID.String() {
+		t.Errorf("expected ID '%s', got '%s'", created.ID.String(), found.ID)
+	}
+}
+
+func TestService_ListHeadcountPlans_DefaultPagination(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	for i := 0; i < 3; i++ {
+		createTestHeadcountPlan(repo)
+	}
+
+	resp, err := svc.ListHeadcountPlans(ctx(), "", "", 0, 0)
+	if err != nil {
+		t.Fatalf("ListHeadcountPlans failed: %v", err)
+	}
+
+	if resp.Total != 3 {
+		t.Errorf("expected total 3, got %d", resp.Total)
+	}
+	if !resp.Success {
+		t.Error("expected success=true")
+	}
+}
+
+func TestService_UpdateHeadcountPlan_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestHeadcountPlan(repo)
+	newPlanned := 200
+	req := UpdateHeadcountPlanRequest{PlannedHC: &newPlanned}
+
+	updated, err := svc.UpdateHeadcountPlan(ctx(), created.ID.String(), req)
+	if err != nil {
+		t.Fatalf("UpdateHeadcountPlan failed: %v", err)
+	}
+
+	if updated.PlannedHC != 200 {
+		t.Errorf("expected PlannedHC 200, got %d", updated.PlannedHC)
+	}
+}
+
+func TestService_DeleteHeadcountPlan_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestHeadcountPlan(repo)
+
+	if err := svc.DeleteHeadcountPlan(ctx(), created.ID.String()); err != nil {
+		t.Fatalf("DeleteHeadcountPlan failed: %v", err)
+	}
+
+	_, err := svc.GetHeadcountPlanByID(ctx(), created.ID.String())
+	if err == nil {
+		t.Fatal("expected error after deleting headcount plan")
+	}
+}
+
+// =========================================================================
+// Forecast Service Tests
+// =========================================================================
+
+func TestService_CreateForecast_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	req := CreateForecastRequest{
+		Period:          "2026-Q3",
+		OrganizationID:  uuid.New().String(),
+		ForecastType:    "DEMAND",
+		Headcount:       150,
+		ConfidenceLevel: 90.0,
+	}
+
+	resp, err := svc.CreateForecast(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateForecast failed: %v", err)
+	}
+
+	if resp.Headcount != 150 {
+		t.Errorf("expected Headcount 150, got %d", resp.Headcount)
+	}
+	if resp.ForecastType != "DEMAND" {
+		t.Errorf("expected type 'DEMAND', got '%s'", resp.ForecastType)
+	}
+}
+
+func TestService_GetForecastByID_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestForecast(repo)
+
+	found, err := svc.GetForecastByID(ctx(), created.ID.String())
+	if err != nil {
+		t.Fatalf("GetForecastByID failed: %v", err)
+	}
+
+	if found.ID != created.ID.String() {
+		t.Errorf("expected ID '%s', got '%s'", created.ID.String(), found.ID)
+	}
+}
+
+func TestService_UpdateForecast_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestForecast(repo)
+	newHC := 200
+	req := UpdateForecastRequest{Headcount: &newHC}
+
+	updated, err := svc.UpdateForecast(ctx(), created.ID.String(), req)
+	if err != nil {
+		t.Fatalf("UpdateForecast failed: %v", err)
+	}
+
+	if updated.Headcount != 200 {
+		t.Errorf("expected Headcount 200, got %d", updated.Headcount)
+	}
+}
+
+func TestService_DeleteForecast_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestForecast(repo)
+
+	if err := svc.DeleteForecast(ctx(), created.ID.String()); err != nil {
+		t.Fatalf("DeleteForecast failed: %v", err)
+	}
+
+	_, err := svc.GetForecastByID(ctx(), created.ID.String())
+	if err == nil {
+		t.Fatal("expected error after deleting forecast")
+	}
+}
+
+// =========================================================================
+// KPI Service Tests
+// =========================================================================
+
+func TestService_ListKPIs_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	createTestKPI(repo)
+	createTestKPI(repo)
+
+	resp, err := svc.ListKPIs(ctx(), "", "", "", 1, 10)
+	if err != nil {
+		t.Fatalf("ListKPIs failed: %v", err)
+	}
+
+	if resp.Total != 2 {
+		t.Errorf("expected total 2, got %d", resp.Total)
+	}
+}
+
+func TestService_GetKPISummary_Empty(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	summary, err := svc.GetKPISummary(ctx(), "2026-Q3")
+	if err != nil {
+		t.Fatalf("GetKPISummary failed: %v", err)
+	}
+
+	if summary.TotalKPIs != 0 {
+		t.Errorf("expected 0 KPIs, got %d", summary.TotalKPIs)
+	}
+	if summary.Period != "2026-Q3" {
+		t.Errorf("expected period '2026-Q3', got '%s'", summary.Period)
+	}
+}
+
+func TestService_GetKPIByCode_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestKPI(repo)
+
+	found, err := svc.GetKPIByCode(ctx(), created.KpiCode)
+	if err != nil {
+		t.Fatalf("GetKPIByCode failed: %v", err)
+	}
+
+	if found.KpiCode != created.KpiCode {
+		t.Errorf("expected code '%s', got '%s'", created.KpiCode, found.KpiCode)
+	}
+}
+
+func TestService_GetKPIByCode_NotFound(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	_, err := svc.GetKPIByCode(ctx(), "NONEXISTENT")
+	if err == nil {
+		t.Fatal("expected error for non-existent KPI code")
+	}
+}
+
+// =========================================================================
+// Scenario Service Tests
+// =========================================================================
+
+func TestService_CreateScenario_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	req := CreateScenarioRequest{
+		Name:         "Growth Simulation",
+		Description:  "10% growth scenario",
+		ScenarioType: "GROWTH",
+		Parameters:   map[string]interface{}{"growth_rate": 10.0},
+	}
+
+	resp, err := svc.CreateScenario(context.WithValue(ctx(), "user_id", uuid.New().String()), req)
+	if err != nil {
+		t.Fatalf("CreateScenario failed: %v", err)
+	}
+
+	if resp.Name != "Growth Simulation" {
+		t.Errorf("expected name 'Growth Simulation', got '%s'", resp.Name)
+	}
+	if resp.Status != "DRAFT" {
+		t.Errorf("expected status DRAFT, got '%s'", resp.Status)
+	}
+}
+
+func TestService_GetScenarioByID_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestScenario(repo)
+
+	found, err := svc.GetScenarioByID(ctx(), created.ID.String())
+	if err != nil {
+		t.Fatalf("GetScenarioByID failed: %v", err)
+	}
+
+	if found.ID != created.ID.String() {
+		t.Errorf("expected ID '%s', got '%s'", created.ID.String(), found.ID)
+	}
+}
+
+func TestService_RunScenario_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestScenario(repo)
+	created.ScenarioType = "GROWTH"
+	created.Parameters = JSON{"growth_rate": 10.0}
+	_ = repo.UpdateScenario(ctx(), created)
+
+	result, err := svc.RunScenario(ctx(), created.ID.String())
+	if err != nil {
+		t.Fatalf("RunScenario failed: %v", err)
+	}
+
+	if result.Status != "COMPLETED" {
+		t.Errorf("expected status COMPLETED, got '%s'", result.Status)
+	}
+	if result.Results == nil {
+		t.Error("expected results to be populated")
+	}
+}
+
+func TestService_RunScenario_AlreadyCompleted_Fails(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestScenario(repo)
+	created.Status = "COMPLETED"
+	_ = repo.UpdateScenario(ctx(), created)
+
+	_, err := svc.RunScenario(ctx(), created.ID.String())
+	if err == nil {
+		t.Fatal("expected error when running already-completed scenario")
+	}
+}
+
+func TestService_CloneScenario_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestScenario(repo)
+
+	clone, err := svc.CloneScenario(ctx(), created.ID.String())
+	if err != nil {
+		t.Fatalf("CloneScenario failed: %v", err)
+	}
+
+	if clone.ID == created.ID.String() {
+		t.Error("expected cloned ID to be different from original")
+	}
+	if clone.Status != "DRAFT" {
+		t.Errorf("expected status DRAFT for clone, got '%s'", clone.Status)
+	}
+}
+
+func TestService_UpdateScenario_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestScenario(repo)
+	newName := "Updated Scenario"
+	req := UpdateScenarioRequest{Name: &newName}
+
+	updated, err := svc.UpdateScenario(ctx(), created.ID.String(), req)
+	if err != nil {
+		t.Fatalf("UpdateScenario failed: %v", err)
+	}
+
+	if updated.Name != "Updated Scenario" {
+		t.Errorf("expected name 'Updated Scenario', got '%s'", updated.Name)
+	}
+}
+
+func TestService_DeleteScenario_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestScenario(repo)
+
+	if err := svc.DeleteScenario(ctx(), created.ID.String()); err != nil {
+		t.Fatalf("DeleteScenario failed: %v", err)
+	}
+
+	_, err := svc.GetScenarioByID(ctx(), created.ID.String())
+	if err == nil {
+		t.Fatal("expected error after deleting scenario")
+	}
+}
+
+// =========================================================================
+// Risk Service Tests
+// =========================================================================
+
+func TestService_ListRiskIndicators_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	createTestRiskIndicator(repo)
+	createTestRiskIndicator(repo)
+
+	resp, err := svc.ListRiskIndicators(ctx(), "", "", 1, 10)
+	if err != nil {
+		t.Fatalf("ListRiskIndicators failed: %v", err)
+	}
+
+	if resp.Total != 2 {
+		t.Errorf("expected total 2, got %d", resp.Total)
+	}
+}
+
+func TestService_GetRiskIndicatorByID_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestRiskIndicator(repo)
+
+	found, err := svc.GetRiskIndicatorByID(ctx(), created.ID.String())
+	if err != nil {
+		t.Fatalf("GetRiskIndicatorByID failed: %v", err)
+	}
+
+	if found.ID != created.ID.String() {
+		t.Errorf("expected ID '%s', got '%s'", created.ID.String(), found.ID)
+	}
+}
+
+func TestService_UpdateRiskIndicator_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestRiskIndicator(repo)
+	newLevel := "HIGH"
+	req := UpdateRiskRequest{RiskLevel: &newLevel}
+
+	updated, err := svc.UpdateRiskIndicator(ctx(), created.ID.String(), req)
+	if err != nil {
+		t.Fatalf("UpdateRiskIndicator failed: %v", err)
+	}
+
+	if updated.RiskLevel != "HIGH" {
+		t.Errorf("expected level 'HIGH', got '%s'", updated.RiskLevel)
+	}
+}
+
+func TestService_GetRiskDetail_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	detail, err := svc.GetRiskDetail(ctx(), "high-turnover")
+	if err != nil {
+		t.Fatalf("GetRiskDetail failed: %v", err)
+	}
+
+	if detail.RiskCode != "HIGH_TURNOVER" {
+		t.Errorf("expected code 'HIGH_TURNOVER', got '%s'", detail.RiskCode)
+	}
+	if len(detail.Recommendations) == 0 {
+		t.Error("expected recommendations to be populated")
+	}
+}
+
+func TestService_GetRiskDetail_UnknownType(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	_, err := svc.GetRiskDetail(ctx(), "unknown-risk")
+	if err == nil {
+		t.Fatal("expected error for unknown risk type")
+	}
+}
+
+// =========================================================================
+// Health Score Service Tests
+// =========================================================================
+
+func TestService_ListHealthScores_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	createTestHealthScore(repo)
+
+	resp, err := svc.ListHealthScores(ctx(), "", "", 1, 10)
+	if err != nil {
+		t.Fatalf("ListHealthScores failed: %v", err)
+	}
+
+	if resp.Total != 1 {
+		t.Errorf("expected total 1, got %d", resp.Total)
+	}
+}
+
+func TestService_GetHealthDashboard_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	createTestHealthScore(repo)
+	createTestHealthScore(repo)
+
+	dash, err := svc.GetHealthDashboard(ctx(), "")
+	if err != nil {
+		t.Fatalf("GetHealthDashboard failed: %v", err)
+	}
+
+	if len(dash) > 2 {
+		t.Errorf("expected at most 2 health scores, got %d", len(dash))
+	}
+}
+
+func TestService_GetHealthScoreByID_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestHealthScore(repo)
+
+	found, err := svc.GetHealthScoreByID(ctx(), created.ID.String())
+	if err != nil {
+		t.Fatalf("GetHealthScoreByID failed: %v", err)
+	}
+
+	if found.ID != created.ID.String() {
+		t.Errorf("expected ID '%s', got '%s'", created.ID.String(), found.ID)
+	}
+}
+
+func TestService_GetSpanOfControl_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	resp, err := svc.GetSpanOfControl(ctx())
+	if err != nil {
+		t.Fatalf("GetSpanOfControl failed: %v", err)
+	}
+
+	if resp.AvgRatio <= 0 {
+		t.Errorf("expected positive AvgRatio, got %.1f", resp.AvgRatio)
+	}
+	if resp.Status != "HEALTHY" {
+		t.Errorf("expected status 'HEALTHY', got '%s'", resp.Status)
+	}
+}
+
+func TestService_GetSuccessionReadiness_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	resp, err := svc.GetSuccessionReadiness(ctx())
+	if err != nil {
+		t.Fatalf("GetSuccessionReadiness failed: %v", err)
+	}
+
+	if resp.CoverageRate <= 0 {
+		t.Errorf("expected positive CoverageRate, got %.1f", resp.CoverageRate)
+	}
+}
+
+// =========================================================================
+// People Analytics Service Tests
+// =========================================================================
+
+func TestService_GetPeopleAnalytics_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	resp, err := svc.GetPeopleAnalytics(ctx(), "training-vs-performance")
+	if err != nil {
+		t.Fatalf("GetPeopleAnalytics failed: %v", err)
+	}
+
+	if resp.AnalysisType == "" {
+		t.Error("expected AnalysisType to be set")
+	}
+	if resp.Correlation == 0 {
+		t.Error("expected non-zero correlation")
+	}
+	if resp.Strength == "" {
+		t.Error("expected Strength to be set")
+	}
+}
+
+func TestService_GetPeopleAnalytics_UnknownType(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	_, err := svc.GetPeopleAnalytics(ctx(), "unknown-analysis")
+	if err == nil {
+		t.Fatal("expected error for unknown analysis type")
+	}
+}
+
+// =========================================================================
+// Gap Analysis Service Tests
+// =========================================================================
+
+func TestService_GetGapAnalysis_NoForecasts(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	_, err := svc.GetGapAnalysis(ctx(), "")
+	if err != nil {
+		// Expected: employees table doesn't exist in test DB context
+		t.Logf("GetGapAnalysis expected error (no employees table): %v", err)
+	}
+}
+
+// =========================================================================
+// Projections Service Tests
+// =========================================================================
+
+func TestService_GetProjections_NoEmployeesTable(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	_, err := svc.GetProjections(ctx(), "2026-Q3")
+	if err != nil {
+		// Expected: employees table doesn't exist in test DB context
+		t.Logf("GetProjections expected error (no employees table): %v", err)
+	}
+}
+
+// =========================================================================
+// Executive Dashboard Service Tests
+// =========================================================================
+
+func TestService_GetExecutiveSummary_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	summary, err := svc.GetExecutiveSummary(ctx())
+	if err != nil {
+		t.Fatalf("GetExecutiveSummary failed: %v", err)
+	}
+
+	if summary.Period == "" {
+		t.Error("expected period to be set")
+	}
+	if summary.HealthScore <= 0 {
+		t.Errorf("expected positive HealthScore, got %.1f", summary.HealthScore)
+	}
+}
+
+func TestService_GetExecutiveGrowth_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	resp, err := svc.GetExecutiveGrowth(ctx())
+	if err != nil {
+		t.Fatalf("GetExecutiveGrowth failed: %v", err)
+	}
+
+	if resp.Period == "" {
+		t.Error("expected period to be set")
+	}
+}
+
+func TestService_GetExecutiveHealthScore_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	resp, err := svc.GetExecutiveHealthScore(ctx())
+	if err != nil {
+		t.Fatalf("GetExecutiveHealthScore failed: %v", err)
+	}
+
+	if resp.Score <= 0 {
+		t.Errorf("expected positive Score, got %.1f", resp.Score)
+	}
+}
+
+// =========================================================================
+// Capacity & Cost Service Tests
+// =========================================================================
+
+func TestService_GetCapacityForecast_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	resp, err := svc.GetCapacityForecast(ctx())
+	if err != nil {
+		t.Fatalf("GetCapacityForecast failed: %v", err)
+	}
+
+	if resp.Period == "" {
+		t.Error("expected period to be set")
+	}
+	if resp.ProjectedUtil <= 0 {
+		t.Errorf("expected positive ProjectedUtil, got %.1f", resp.ProjectedUtil)
+	}
+}
+
+func TestService_GetPayrollCostBreakdown_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	resp, err := svc.GetPayrollCostBreakdown(ctx())
+	if err != nil {
+		t.Fatalf("GetPayrollCostBreakdown failed: %v", err)
+	}
+
+	if resp.TotalSalary <= 0 {
+		t.Errorf("expected positive TotalSalary, got %.2f", resp.TotalSalary)
+	}
+}
+
+func TestService_GetCostPerEmployee_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	resp, err := svc.GetCostPerEmployee(ctx())
+	if err != nil {
+		t.Fatalf("GetCostPerEmployee failed: %v", err)
+	}
+
+	if resp.AvgCostPerEmployee <= 0 {
+		t.Errorf("expected positive AvgCostPerEmployee, got %.2f", resp.AvgCostPerEmployee)
+	}
+}

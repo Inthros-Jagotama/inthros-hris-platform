@@ -1,19 +1,19 @@
 = HRIS Platform — OpenAPI Comprehensive Report (v8) =
 
-**Generated:** 1 Agustus 2026
-**Spec Version:** 1.6.8
-**Total Paths:** 232
-**Total Endpoints (methods):** 457
-**Total Schemas:** 290
-**Total Tags:** 22
+**Generated:** 25 Juli 2026
+**Spec Version:** 1.6.9
+**Total Paths:** 300
+**Total Endpoints (methods):** 544
+**Total Schemas:** 352
+**Total Tags:** 24
 
 ## Coverage Summary
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 457/457 | 100% |
-| Endpoints with `description` | 457/457 | 100% |
-| Endpoints with `operationId` | 457/457 | 100% |
+| Endpoints with `summary` | 544/544 | 100% |
+| Endpoints with `description` | 544/544 | 100% |
+| Endpoints with `operationId` | 544/544 | 100% |
 
 ## 1. Endpoints per Module (Tag)
 
@@ -41,7 +41,9 @@
 | 20 | Platform: Monitoring | 3 | 3 |
 | 21 | Platform: Auth | 2 | 2 |
 | 22 | Tenant: Approval Engine | 1 | 1 |
-| | **TOTAL** | **457** | **232** |
+| 23 | Tenant: Workforce Intelligence & Strategic Planning | 68 | 58 |
+| 24 | Tenant: Career Intelligence | 19 | 10 |
+| | **TOTAL** | **544** | **300** |
 
 ## 2. Module Detail
 
@@ -657,6 +659,127 @@
 | `POST` | `/api/v1/tenant/approval/instances/{id}` | Cancel approval instance | Create a new instances record. Validates required fields and returns the created resource with it... |
 
 ## 3. Recent Improvements
+
+### Tenant: Workforce Intelligence & Strategic Planning
+**Endpoints:** 68 | **Paths:** 58
+**Methods:** DELETE=3 GET=56 POST=5 PUT=4
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/workforce-intelligence/planning/headcounts` | List headcount plans | Retrieve a paginated list of headcount plans. Filter by period and organization unit. |
+| `POST` | `/api/v1/tenant/workforce-intelligence/planning/headcounts` | Create headcount plan | Create a new headcount plan for a specific period and organization. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/planning/headcounts/{id}` | Get headcount plan by ID | Get detailed information about a specific headcount plan. |
+| `PUT` | `/api/v1/tenant/workforce-intelligence/planning/headcounts/{id}` | Update headcount plan | Update an existing headcount plan. |
+| `DELETE` | `/api/v1/tenant/workforce-intelligence/planning/headcounts/{id}` | Delete headcount plan | Remove a headcount plan record. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/planning/forecasts` | List workforce forecasts | Retrieve a paginated list of workforce forecasts. |
+| `POST` | `/api/v1/tenant/workforce-intelligence/planning/forecasts` | Create workforce forecast | Create a new workforce forecast. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/planning/forecasts/{id}` | Get forecast by ID | Get detailed information about a specific workforce forecast. |
+| `PUT` | `/api/v1/tenant/workforce-intelligence/planning/forecasts/{id}` | Update forecast | Update an existing workforce forecast. |
+| `DELETE` | `/api/v1/tenant/workforce-intelligence/planning/forecasts/{id}` | Delete forecast | Remove a workforce forecast record. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/planning/gap-analysis` | Workforce gap analysis | Analyze workforce gaps by comparing supply vs demand. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/planning/projections` | Workforce projections | Get workforce projections including hiring needs and retirement counts. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/kpi` | List KPIs | Retrieve a paginated list of workforce KPIs. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/kpi/summary` | KPI summary | Get a summary of KPIs showing on-target vs below-target counts. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/kpi/{code}` | Get KPI by code | Get a specific KPI by its unique code. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/analytics/headcount` | Headcount analytics dashboard | Analyze workforce composition. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/analytics/attendance` | Attendance analytics dashboard | Analyze attendance metrics. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/analytics/leave` | Leave analytics dashboard | Analyze leave utilization. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/analytics/overtime` | Overtime analytics dashboard | Analyze overtime patterns. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/analytics/payroll` | Payroll analytics dashboard | Analyze payroll metrics. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/analytics/performance` | Performance analytics dashboard | Analyze employee performance. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/analytics/learning` | Learning analytics dashboard | Analyze learning and development. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/analytics/recruitment` | Recruitment analytics dashboard | Analyze recruitment efficiency. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/analytics/movement` | Movement analytics dashboard | Analyze employee movement. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/capacity/dashboard` | Capacity dashboard | Get workforce capacity dashboard. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/capacity/utilization` | Resource utilization rate | Get workforce utilization rate. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/capacity/forecast` | Capacity forecast | Get projected capacity forecast. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/capacity/bottlenecks` | Bottleneck analysis | Identify capacity bottlenecks across departments. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/cost/summary` | Cost summary dashboard | Get workforce cost summary. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/cost/payroll` | Payroll cost breakdown | Get detailed payroll cost breakdown. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/cost/per-employee` | Cost per employee analysis | Get cost per employee metrics. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/cost/per-department` | Cost by department | Get workforce cost by department. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/cost/budget-vs-actual` | Budget vs actual cost comparison | Get budget vs actual cost comparison. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/risk/dashboard` | Risk dashboard | Get risk dashboard overview. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/risk/indicators` | List risk indicators | Retrieve a paginated list of risk indicators. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/risk/indicators/{id}` | Get risk indicator by ID | Get detailed information about a specific risk indicator. |
+| `PUT` | `/api/v1/tenant/workforce-intelligence/risk/indicators/{id}` | Update risk indicator | Update a risk indicator level and recommendation. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/risk/high-turnover` | High turnover risk analysis | Analyze high turnover risk. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/risk/retirement` | Retirement risk analysis | Analyze retirement risk. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/risk/contract-expiry` | Contract expiration risk analysis | Analyze contract expiry risk. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/risk/high-absenteeism` | High absenteeism risk analysis | Analyze high absenteeism risk. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/executive/summary` | Executive workforce summary | Executive dashboard summary. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/executive/growth` | Executive workforce growth trend | Executive-level growth trend analysis. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/executive/cost-trend` | Executive cost trend | Executive-level cost trend analysis. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/executive/attrition-trend` | Executive attrition trend | Executive-level attrition rate trend. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/executive/capacity` | Executive capacity overview | Executive-level capacity overview. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/executive/hiring-progress` | Hiring progress tracker | Track hiring progress. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/executive/risk-overview` | Executive risk overview | Executive-level risk overview. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/executive/health-score` | Executive health score | Executive-level organization health score. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/scenarios` | List scenarios | Retrieve a paginated list of saved simulation scenarios. |
+| `POST` | `/api/v1/tenant/workforce-intelligence/scenarios` | Create scenario | Create a new scenario for workforce simulation. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}` | Get scenario by ID | Get detailed information about a specific scenario. |
+| `PUT` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}` | Update scenario | Update an existing scenario. |
+| `DELETE` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}` | Delete scenario | Soft-delete a scenario by ID. |
+| `POST` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}/run` | Run scenario simulation | Execute a scenario simulation. |
+| `POST` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}/clone` | Clone scenario | Clone an existing scenario. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/health/dashboard` | Organization health dashboard | Get organization health dashboard. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/health/scores` | List health scores | Retrieve a paginated list of health scores. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/health/scores/{id}` | Get health score by ID | Get detailed health score components. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/health/span-of-control` | Span of control analysis | Analyze span of control. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/health/succession` | Succession readiness analysis | Analyze succession readiness. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/people-analytics/training-vs-performance` | Training vs performance correlation | Analyze correlation between training and performance. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/people-analytics/overtime-vs-productivity` | Overtime vs productivity correlation | Analyze correlation between overtime and productivity. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/people-analytics/attendance-vs-performance` | Attendance vs performance correlation | Analyze correlation between attendance and performance. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/people-analytics/compensation-vs-turnover` | Compensation vs turnover correlation | Analyze correlation between compensation and turnover. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/people-analytics/source-vs-retention` | Recruitment source vs retention correlation | Analyze correlation between recruitment source and retention. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/people-analytics/career-progression` | Career progression vs performance correlation | Analyze correlation between career progression and performance. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/people-analytics/learning-effectiveness` | Learning effectiveness analysis | Analyze learning program effectiveness. |
+
+### Tenant: Career Intelligence
+**Endpoints:** 19 | **Paths:** 10
+**Methods:** DELETE=3 GET=10 POST=4 PUT=2
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/career-intelligence/talent-maps` | List talent maps | Retrieve a paginated list of talent mapping records showing employee placement in the 9-box grid. Filters by organization, position, or competency cluster. |
+| `POST` | `/api/v1/tenant/career-intelligence/talent-maps` | Create talent mapping entry | Create a new talent mapping assessment for an employee, placing them in the performance-potential 9-box grid. |
+| `GET` | `/api/v1/tenant/career-intelligence/talent-maps/grid` | Get talent map grid overview | Retrieve the 9-box talent grid summary showing distribution of employees across performance-potential quadrants. |
+| `GET` | `/api/v1/tenant/career-intelligence/talent-maps/employee/{employeeId}` | Get employee talent profile | Retrieve a specific employee's talent mapping profile including current grid position, historical changes, and recommended career paths. |
+| `GET` | `/api/v1/tenant/career-intelligence/talent-maps/{id}` | Get talent map by ID | Get detailed information about a specific talent mapping entry. |
+| `PUT` | `/api/v1/tenant/career-intelligence/talent-maps/{id}` | Update talent map entry | Update an existing talent map entry's performance rating, potential rating, and/or notes. Changes automatically recalculate the grid position. |
+| `DELETE` | `/api/v1/tenant/career-intelligence/talent-maps/{id}` | Delete talent map entry | Soft-delete a talent map entry. |
+| `GET` | `/api/v1/tenant/career-intelligence/interests` | List career interests | Retrieve a paginated list of career interest records, optionally filtered by employee or interest category. |
+| `POST` | `/api/v1/tenant/career-intelligence/interests` | Record career interest | Create a new career interest record for an employee (e.g., leadership track, specialist track, international assignment). |
+| `GET` | `/api/v1/tenant/career-intelligence/interests/employee/{employeeId}` | Get employee career interests | Retrieve all recorded career interests and aspirations for a specific employee. |
+| `GET` | `/api/v1/tenant/career-intelligence/paths` | List career paths | Retrieve a paginated list of career path templates defining possible progression routes between positions. |
+| `POST` | `/api/v1/tenant/career-intelligence/paths` | Create career path | Create a new career path template linking source and target positions with competency requirements and typical duration. |
+| `DELETE` | `/api/v1/tenant/career-intelligence/paths/{id}` | Delete career path | Remove a career path template by its unique ID. |
+| `GET` | `/api/v1/tenant/career-intelligence/paths/gap-analysis` | Run career gap analysis | Analyze competency gaps for an employee against a target position or career path. Returns skill gaps, recommended training, and estimated readiness timeline. |
+| `GET` | `/api/v1/tenant/career-intelligence/successions` | List succession plans | Retrieve a paginated list of succession plans, optionally filtered by position or readiness status. |
+| `POST` | `/api/v1/tenant/career-intelligence/successions` | Create succession plan | Create a succession plan designating a successor (employee) for a critical position with readiness level and target date. |
+| `GET` | `/api/v1/tenant/career-intelligence/successions/{id}` | Get succession plan by ID | Get detailed information about a specific succession plan including successor details, readiness level, and development plan. |
+| `PUT` | `/api/v1/tenant/career-intelligence/successions/{id}` | Update succession plan | Update the readiness level, target date, or notes for an existing succession plan entry. |
+| `DELETE` | `/api/v1/tenant/career-intelligence/successions/{id}` | Delete succession plan | Remove a succession plan record by its unique ID. |
+
+### v11 (Current — Career Intelligence Expansion)
+- **Career Intelligence** — Expanded from 15 to 19 endpoints (4 new CRUD operations added)
+- **New Endpoints (4):** GET/PUT/DELETE /talent-maps/{id} and GET /successions/{id}
+- **New Schemas:** CreateTalentMapRequest, UpdateTalentMapRequest, CreateCareerPathRequest, CreateSuccessionPlanRequest, UpdateSuccessionPlanRequest, CareerGapAnalysisResponse, CareerGapRecommendation, PaginatedResponseCI
+- **Stats update:** 540 to 544 endpoints (+4), 348 to 352 schemas (+4), 290 to 300 paths (+10), 24 tags (unchanged)
+
+### v10 (25 Juli 2026)
+- **Career Intelligence** — New standalone module (15 endpoints, 14 schemas, 7 paths)
+- **New Endpoints:** 15 endpoints across 4 resource groups under `/career-intelligence/` prefix: Talent Maps (4), Career Interests (3), Career Paths (3), Succession Plans (5)
+- **New Schemas:** 14 new schemas: TalentMappingRequest, TalentMappingResponse, TalentGridResponse, EmployeeTalentProfileResponse, CareerInterestRequest, CareerInterestResponse, CareerPathRequest, CareerPathResponse, GapAnalysisRequest, CareerGapAnalysisResponse, SuccessionPlanRequest, SuccessionPlanResponse, PaginatedCareerResponse, CareerPathListResponse
+- **Stats update:** 525 to 540 endpoints, 334 to 348 schemas, 290 to 290 paths, 23 to 24 tags
+- **New Tag:** Tenant: Career Intelligence
+
+### v9 (25 Juli 2026)
+- **Workforce Intelligence & Strategic Planning** — New strategic analytics module (68 endpoints, 44 schemas, 58 paths)
+- **New Endpoints:** 68 endpoints across 10 groups: Planning (12), Analytics (9), Risk (8), Executive (8), Scenarios (7), People Analytics (7), Cost (5), Capacity (4), Health (5), KPI (3)
+- **New Schemas:** 44 new schemas: HeadcountPlan, Forecast, GapAnalysis/Projection, KPI, 9 Analytics types, Capacity, Cost, Risk Dashboard/Detail, Executive Summary/Health/Capacity, Scenario, Health Score, People Analytics Correlation, Span of Control, Succession Readiness
+- **Stats update:** 457 to 525 endpoints, 290 to 334 schemas, 232 to 290 paths, 22 to 23 tags
+- **New Tag:** Tenant: Workforce Intelligence & Strategic Planning
 
 ### v8 (1 Agustus 2026)
 - **Cross-documentation sync** — Training & Development Management module now fully documented in:

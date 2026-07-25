@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "HRIS Platform API",
-    "description": "API untuk HRIS Platform Enterprise — modular monolith dengan multi-tenant architecture. Mendukung PostgreSQL dan MySQL.\n\n## Authentication\n\nSemua endpoint tenant (prefixed `/api/v1/tenant`) memerlukan JWT Bearer Token:\n```\nAuthorization: Bearer <access_token>\n```\n\nUntuk mendapatkan token, login via platform endpoint.\n\n## RBAC (Role-Based Access Control)\n\nPlatform menggunakan RBAC dengan 2 role:\n\n| Role | Akses |\n|------|-------|\n| **super_admin** | Akses penuh ke semua resource platform |\n| **company_admin** | Akses view-only ke company, user, license miliknya sendiri |\n\nEndpoint yang memerlukan proteksi akan mengembalikan **403 Forbidden** jika role tidak memiliki permission yang sesuai.\n\n### Permission Format\n\nSetiap endpoint memiliki permission requirement dalam format `resource.action`:\n```\ncompany.view, company.create, company.update, company.delete\ncompany.suspend, company.activate, company.terminate, company.backup, company.restore\nuser.view, user.create, user.update\nmodule.view, module.create, module.update, module.activate, module.deactivate\nlicense.view, license.create, license.update\nmonitoring.view\nemployee.address.create, employee.address.update, employee.address.delete\nemployee.contact.create, employee.contact.update, employee.contact.delete\nemployee.family.create, employee.family.update, employee.family.delete\nemployee.education.create, employee.education.update, employee.education.delete\nemployee.experience.create, employee.experience.update, employee.experience.delete\nemployee.document.create, employee.document.update, employee.document.delete\nemployee.insurance.create, employee.insurance.update, employee.insurance.delete\nemployee.employment.create, employee.employment.update, employee.employment.delete\n```\n\norganization.view, organization.create, organization.update, organization.delete\ncompetency.view, competency.create, competency.update, competency.delete\nemployeemovement.view, employeemovement.create, employeemovement.update, employeemovement.delete, employeemovement.approve, employeemovement.execute\n\napproval.view, approval.create, approval.update, approval.delete, approval.approve\n\npayroll.salary-component.view, payroll.salary-component.create, payroll.salary-component.update, payroll.salary-component.delete\npayroll.period.view, payroll.period.create, payroll.period.update\npayroll.bpjs-setting.view, payroll.bpjs-setting.create, payroll.bpjs-setting.update, payroll.bpjs-setting.delete\npayroll.bpjs-rate-component.view, payroll.bpjs-rate-component.create, payroll.bpjs-rate-component.update, payroll.bpjs-rate-component.delete\npayroll.pph21-setting.view, payroll.pph21-setting.create, payroll.pph21-setting.update, payroll.pph21-setting.delete\npayroll.pph21-ptkp-rate.view, payroll.pph21-ptkp-rate.create\npayroll.pph21-tax-bracket.view, payroll.pph21-tax-bracket.create\npayroll.run.view, payroll.run.create, payroll.run.update\npayroll.employee-profile.view, payroll.employee-profile.create, payroll.employee-profile.delete\npayroll.employee-bank.view, payroll.employee-bank.create, payroll.employee-bank.update, payroll.employee-bank.delete\npayroll.employee-bpjs.view, payroll.employee-bpjs.create, payroll.employee-bpjs.update, payroll.employee-bpjs.delete\npayroll.employee-tax.view, payroll.employee-tax.create, payroll.employee-tax.update, payroll.employee-tax.delete\n\nleave.view, leave.create, leave.update, leave.delete\n\nreimbursement.view, reimbursement.create, reimbursement.update, reimbursement.delete, reimbursement.approve\n\n",
+    "description": "API untuk HRIS Platform Enterprise — modular monolith dengan multi-tenant architecture. Mendukung PostgreSQL dan MySQL.\n\n## Authentication\n\nSemua endpoint tenant (prefixed `/api/v1/tenant`) memerlukan JWT Bearer Token:\n```\nAuthorization: Bearer <access_token>\n```\n\nUntuk mendapatkan token, login via platform endpoint.\n\n## RBAC (Role-Based Access Control)\n\nPlatform menggunakan RBAC dengan 2 role:\n\n| Role | Akses |\n|------|-------|\n| **super_admin** | Akses penuh ke semua resource platform |\n| **company_admin** | Akses view-only ke company, user, license miliknya sendiri |\n\nEndpoint yang memerlukan proteksi akan mengembalikan **403 Forbidden** jika role tidak memiliki permission yang sesuai.\n\n### Permission Format\n\nSetiap endpoint memiliki permission requirement dalam format `resource.action`:\n```\ncompany.view, company.create, company.update, company.delete\ncompany.suspend, company.activate, company.terminate, company.backup, company.restore\nuser.view, user.create, user.update\nmodule.view, module.create, module.update, module.activate, module.deactivate\nlicense.view, license.create, license.update\nmonitoring.view\nemployee.address.create, employee.address.update, employee.address.delete\nemployee.contact.create, employee.contact.update, employee.contact.delete\nemployee.family.create, employee.family.update, employee.family.delete\nemployee.education.create, employee.education.update, employee.education.delete\nemployee.experience.create, employee.experience.update, employee.experience.delete\nemployee.document.create, employee.document.update, employee.document.delete\nemployee.insurance.create, employee.insurance.update, employee.insurance.delete\nemployee.employment.create, employee.employment.update, employee.employment.delete\n```\n\norganization.view, organization.create, organization.update, organization.delete\ncompetency.view, competency.create, competency.update, competency.delete\nemployeemovement.view, employeemovement.create, employeemovement.update, employeemovement.delete, employeemovement.approve, employeemovement.execute\n\napproval.view, approval.create, approval.update, approval.delete, approval.approve\n\npayroll.salary-component.view, payroll.salary-component.create, payroll.salary-component.update, payroll.salary-component.delete\npayroll.period.view, payroll.period.create, payroll.period.update\npayroll.bpjs-setting.view, payroll.bpjs-setting.create, payroll.bpjs-setting.update, payroll.bpjs-setting.delete\npayroll.bpjs-rate-component.view, payroll.bpjs-rate-component.create, payroll.bpjs-rate-component.update, payroll.bpjs-rate-component.delete\npayroll.pph21-setting.view, payroll.pph21-setting.create, payroll.pph21-setting.update, payroll.pph21-setting.delete\npayroll.pph21-ptkp-rate.view, payroll.pph21-ptkp-rate.create\npayroll.pph21-tax-bracket.view, payroll.pph21-tax-bracket.create\npayroll.run.view, payroll.run.create, payroll.run.update\npayroll.employee-profile.view, payroll.employee-profile.create, payroll.employee-profile.delete\npayroll.employee-bank.view, payroll.employee-bank.create, payroll.employee-bank.update, payroll.employee-bank.delete\npayroll.employee-bpjs.view, payroll.employee-bpjs.create, payroll.employee-bpjs.update, payroll.employee-bpjs.delete\npayroll.employee-tax.view, payroll.employee-tax.create, payroll.employee-tax.update, payroll.employee-tax.delete\n\nleave.view, leave.create, leave.update, leave.delete\n\nreimbursement.view, reimbursement.create, reimbursement.update, reimbursement.delete, reimbursement.approve\n\nworkforce.view\n\n",
     "version": "1.6.3",
     "contact": {
       "name": "HRIS Platform Team",
@@ -103,6 +103,14 @@
     {
       "name": "Tenant: Training & Development Management",
       "description": "End-to-end training and development management including course catalog, session scheduling, participant registration, attendance tracking, materials, evaluations, and certificate issuance"
+    },
+    {
+      "name": "Tenant: Workforce Intelligence & Strategic Planning",
+      "description": "Workforce Intelligence & Strategic Workforce Planning — strategic analytics layer for headcount planning, forecasting, gap analysis, KPI monitoring, workforce analytics (headcount, attendance, leave, overtime, payroll, performance, learning, recruitment, movement), capacity planning, cost analytics, risk monitoring, executive dashboards, scenario simulation, organization health scoring, and people analytics (training-vs-performance, overtime-vs-productivity, etc.). Read-only analytics module aggregating data from all operational HR modules."
+    },
+    {
+      "name": "Tenant: Career Intelligence",
+      "description": "Career Intelligence & Talent Management — strategic talent analytics for 9-box talent mapping, career interests tracking, career path gap analysis, and succession planning. Provides talent review data to identify high-potential employees, plan career development, and ensure leadership pipeline readiness."
     }
   ],
   "paths": {
@@ -18186,6 +18194,3502 @@
           }
         }
       }
+    },
+    "/api/v1/tenant/workforce-intelligence/planning/headcounts": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "List headcount plans (planned vs actual HC per period)",
+        "operationId": "wfListHeadcountPlans",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organization_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseWF"
+                }
+              }
+            }
+          }
+        },
+        "description": "Retrieve a paginated list of headcount plans. Filter by period (YYYY-MM) and/or organization unit. Each record shows planned headcount, actual headcount, and variance."
+      },
+      "post": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Create headcount plan",
+        "operationId": "wfCreateHeadcountPlan",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHeadcountPlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeadcountPlanResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create a new headcount plan for a specific period and organization. Records the planned headcount target for workforce planning purposes."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/planning/headcounts/{id}": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Get headcount plan by ID",
+        "operationId": "wfGetHeadcountPlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeadcountPlanResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get detailed information about a specific headcount plan including planned vs actual headcount and variance."
+      },
+      "put": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Update headcount plan",
+        "operationId": "wfUpdateHeadcountPlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHeadcountPlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeadcountPlanResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update an existing headcount plan's planned headcount or snapshot date."
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Delete headcount plan",
+        "operationId": "wfDeleteHeadcountPlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Headcount plan deleted"
+          }
+        },
+        "description": "Remove a headcount plan record from the system."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/planning/forecasts": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "List workforce forecasts",
+        "operationId": "wfListForecasts",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organization_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "forecast_type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DEMAND",
+                "SUPPLY",
+                "HIRING"
+              ]
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseWF"
+                }
+              }
+            }
+          }
+        },
+        "description": "Retrieve a paginated list of workforce forecasts. Filter by period, organization, and forecast type (DEMAND, SUPPLY, or HIRING)."
+      },
+      "post": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Create workforce forecast",
+        "operationId": "wfCreateForecast",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateForecastRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create a new workforce forecast. Supports DEMAND (required headcount), SUPPLY (available headcount), and HIRING (gap to fill) forecast types."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/planning/forecasts/{id}": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Get forecast by ID",
+        "operationId": "wfGetForecast",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get detailed information about a specific workforce forecast including headcount projection and confidence level."
+      },
+      "put": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Update forecast",
+        "operationId": "wfUpdateForecast",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateForecastRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update an existing workforce forecast's headcount and confidence level."
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Delete forecast",
+        "operationId": "wfDeleteForecast",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Forecast deleted"
+          }
+        },
+        "description": "Remove a workforce forecast record."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/planning/gap-analysis": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Workforce gap analysis (supply vs demand)",
+        "operationId": "wfGetGapAnalysis",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GapAnalysisResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze workforce gaps by comparing supply (available HC) vs demand (required HC). Returns SURPLUS, SHORTAGE, or OPTIMAL status per department and overall."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/planning/projections": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Workforce projections (hiring, retirement, growth)",
+        "operationId": "wfGetProjections",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectionResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get workforce projections including projected headcount, hiring needs, retirement counts, and growth rates for strategic workforce planning."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/kpi": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "List KPIs",
+        "operationId": "wfListKPIs",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dimension",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kpi_code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseWF"
+                }
+              }
+            }
+          }
+        },
+        "description": "Retrieve a paginated list of workforce KPIs. Filter by period, dimension, or KPI code. Each KPI includes value, target, unit, and snapshot date."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/kpi/summary": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "KPI summary (on-target vs below-target)",
+        "operationId": "wfGetKPISummary",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KPISummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get a summary of KPIs showing total count, on-target count, and below-target count for a given period."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/kpi/{code}": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Get KPI by code",
+        "operationId": "wfGetKPIByCode",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KPIResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get a specific KPI by its unique code (e.g., attrition_rate, turnover_rate, retention_rate, etc.)."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/analytics/headcount": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Headcount analytics dashboard",
+        "operationId": "wfAnalyticsHeadcount",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeadcountAnalytics"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze workforce composition: total HC, active HC, distribution by department, employment type, gender, and headcount trend over time."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/analytics/attendance": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Attendance analytics dashboard",
+        "operationId": "wfAnalyticsAttendance",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceAnalytics"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze attendance metrics: average attendance rate, late rate, absentee rate, trend, and department breakdown."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/analytics/leave": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Leave analytics dashboard",
+        "operationId": "wfAnalyticsLeave",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveAnalytics"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze leave utilization: average utilization rate, total days taken, breakdown by leave type and department."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/analytics/overtime": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Overtime analytics dashboard",
+        "operationId": "wfAnalyticsOvertime",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OvertimeAnalytics"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze overtime patterns: average OT hours, total OT cost, department breakdown, and trend over time."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/analytics/payroll": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Payroll analytics dashboard",
+        "operationId": "wfAnalyticsPayroll",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollAnalytics"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze payroll metrics: total payroll cost, average salary, breakdown by department and grade, with trend analysis."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/analytics/performance": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Performance analytics dashboard",
+        "operationId": "wfAnalyticsPerformance",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceAnalytics"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze employee performance: average score, top performer percentage, department breakdown, and score distribution."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/analytics/learning": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Learning analytics dashboard",
+        "operationId": "wfAnalyticsLearning",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningAnalytics"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze learning and development: completion rate, average score, total training hours, and breakdown by course."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/analytics/recruitment": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Recruitment analytics dashboard",
+        "operationId": "wfAnalyticsRecruitment",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecruitmentAnalytics"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze recruitment efficiency: time to hire, cost per hire, source breakdown, and recruitment funnel metrics."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/analytics/movement": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Movement analytics dashboard",
+        "operationId": "wfAnalyticsMovement",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovementAnalytics"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze employee movement: promotion and mutation counts with breakdown by department and movement type."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/capacity/dashboard": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Capacity dashboard",
+        "operationId": "wfGetCapacityDashboard",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapacityDashboardResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get workforce capacity dashboard: overall utilization rate, available headcount, department breakdown, and bottleneck identification."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/capacity/utilization": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Resource utilization rate",
+        "operationId": "wfGetUtilization",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success — list of items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataPoint"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Get workforce utilization rate data points. Shows how effectively the workforce is being utilized."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/capacity/forecast": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Capacity forecast",
+        "operationId": "wfGetCapacityForecast",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapacityForecastResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get projected capacity forecast: future utilization, current vs projected needed headcount, and capacity gap analysis by department."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/capacity/bottlenecks": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Bottleneck analysis",
+        "operationId": "wfGetBottlenecks",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success — list of items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Bottleneck"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Identify capacity bottlenecks across departments. Flags departments with WARNING or CRITICAL utilization levels."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/cost/summary": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Cost summary dashboard",
+        "operationId": "wfGetCostSummary",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get workforce cost summary: total payroll, total benefit, total labor cost, cost per employee, department breakdown, and budget vs actual comparison."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/cost/payroll": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Payroll cost breakdown",
+        "operationId": "wfGetPayrollCostBreakdown",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollCostResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get detailed payroll cost breakdown: total salary, allowances, deductions, BPJS contributions, by grade and component."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/cost/per-employee": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Cost per employee analysis",
+        "operationId": "wfGetCostPerEmployee",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostPerEmployeeResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get cost per employee metrics: average, median, minimum, and maximum cost per employee with breakdown by department and grade."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/cost/per-department": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Cost by department",
+        "operationId": "wfGetCostByDepartment",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success — list of items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataPoint"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Get workforce cost broken down by department for comparison and budget allocation analysis."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/cost/budget-vs-actual": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Budget vs actual cost comparison",
+        "operationId": "wfGetBudgetVsActual",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success — list of items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataPoint"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Get budget vs actual workforce cost comparison. Shows budget targets versus actual spending for cost control analysis."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/risk/dashboard": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Risk dashboard",
+        "operationId": "wfGetRiskDashboard",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskDashboardResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get risk dashboard overview: total risks, high/critical risk counts, and list of active risk indicators with their levels and scores."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/risk/indicators": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "List risk indicators",
+        "operationId": "wfListRiskIndicators",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "risk_level",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "LOW",
+                "MEDIUM",
+                "HIGH",
+                "CRITICAL"
+              ]
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseWF"
+                }
+              }
+            }
+          }
+        },
+        "description": "Retrieve a paginated list of risk indicators. Filter by period and/or risk level (LOW, MEDIUM, HIGH, CRITICAL)."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/risk/indicators/{id}": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Get risk indicator by ID",
+        "operationId": "wfGetRiskIndicator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get detailed information about a specific risk indicator including current score, threshold, and recommendations."
+      },
+      "put": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Update risk indicator",
+        "operationId": "wfUpdateRiskIndicator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRiskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update a risk indicator's level and/or recommendation. Used to acknowledge and document mitigation actions."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/risk/high-turnover": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "High turnover risk analysis",
+        "operationId": "wfRiskHighTurnover",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze high turnover risk: current turnover rate vs threshold, affected departments, trend, and recommended interventions."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/risk/retirement": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Retirement risk analysis",
+        "operationId": "wfRiskRetirement",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze retirement risk: upcoming retirements, impacted roles, succession gaps, and recommendations for knowledge transfer."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/risk/contract-expiry": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Contract expiration risk analysis",
+        "operationId": "wfRiskContractExpiry",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze contract expiry risk: upcoming contract/PKWT expirations, departments affected, and renewal recommendations."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/risk/high-absenteeism": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "High absenteeism risk analysis",
+        "operationId": "wfRiskHighAbsenteeism",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze high absenteeism risk: current absenteeism rate vs threshold, affected departments, trend, and intervention recommendations."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/executive/summary": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Executive workforce summary",
+        "operationId": "wfGetExecutiveSummary",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutiveSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Executive dashboard summary: total HC, HC growth, attrition rate, average cost, utilization rate, and overall health score in a single view."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/executive/growth": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Executive workforce growth trend",
+        "operationId": "wfExecutiveGrowth",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutiveTrendResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Executive-level workforce growth trend analysis showing HC change over time."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/executive/cost-trend": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Executive cost trend",
+        "operationId": "wfExecutiveCostTrend",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutiveTrendResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Executive-level workforce cost trend analysis for budget planning and cost control."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/executive/attrition-trend": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Executive attrition trend",
+        "operationId": "wfExecutiveAttritionTrend",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutiveTrendResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Executive-level attrition rate trend analysis to monitor talent retention."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/executive/capacity": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Executive capacity overview",
+        "operationId": "wfExecutiveCapacity",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutiveCapacityResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Executive-level capacity overview: utilization rate, available HC, active departments, and bottleneck count."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/executive/hiring-progress": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Hiring progress tracker",
+        "operationId": "wfExecutiveHiringProgress",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringProgressResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Track hiring progress: planned, in-progress, and completed hires for executive monitoring."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/executive/risk-overview": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Executive risk overview",
+        "operationId": "wfExecutiveRiskOverview",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutiveRiskOverviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Executive-level risk overview: total risks, high and critical counts, by department and category."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/executive/health-score": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Executive health score",
+        "operationId": "wfExecutiveHealthScore",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutiveHealthScoreResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Executive-level organization health score with span of control, manager ratio, internal hiring rate, succession coverage, and overall status (HEALTHY/WARNING/CRITICAL)."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/scenarios": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "List scenarios",
+        "operationId": "wfListScenarios",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "scenario_type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NEW_BRANCH",
+                "REORG",
+                "GROWTH",
+                "REDUCTION",
+                "RETIREMENT",
+                "BUDGET"
+              ]
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseWF"
+                }
+              }
+            }
+          }
+        },
+        "description": "Retrieve a paginated list of saved simulation scenarios. Filter by scenario type (NEW_BRANCH, REORG, GROWTH, REDUCTION, RETIREMENT, BUDGET)."
+      },
+      "post": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Create scenario",
+        "operationId": "wfCreateScenario",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScenarioRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create a new scenario for workforce simulation. Supports NEW_BRANCH, REORG, GROWTH, REDUCTION, RETIREMENT, and BUDGET scenario types. Parameters are JSON-defined per type."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/scenarios/{id}": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Get scenario by ID",
+        "operationId": "wfGetScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get detailed information about a specific scenario including its parameters, results (if run), and status (DRAFT, RUNNING, COMPLETED)."
+      },
+      "put": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Update scenario",
+        "operationId": "wfUpdateScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScenarioRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update an existing scenario's name, description, and/or parameters."
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Delete scenario",
+        "operationId": "wfDeleteScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scenario deleted"
+          }
+        },
+        "description": "Soft-delete a scenario by ID."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/scenarios/{id}/run": {
+      "post": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Run scenario simulation",
+        "operationId": "wfRunScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Execute a scenario simulation. Runs the scenario's parameters through the simulation engine and stores results in the scenario record."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/scenarios/{id}/clone": {
+      "post": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Clone scenario",
+        "operationId": "wfCloneScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Clone an existing scenario as a new DRAFT scenario. Useful for creating variations of a simulation without affecting the original."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/health/dashboard": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Organization health dashboard",
+        "operationId": "wfGetHealthDashboard",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthScoreResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get organization health dashboard: composite health score with span of control, manager ratio, promotion rate, internal hiring rate, succession coverage, and stability ratio."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/health/scores": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "List health scores",
+        "operationId": "wfListHealthScores",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organization_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseWF"
+                }
+              }
+            }
+          }
+        },
+        "description": "Retrieve a paginated list of organization health scores. Filter by period and organization unit."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/health/scores/{id}": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Get health score by ID",
+        "operationId": "wfGetHealthScoreByID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthScoreResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get detailed health score components for a specific score record."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/health/span-of-control": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Span of control analysis",
+        "operationId": "wfGetSpanOfControl",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpanOfControlResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze span of control: average manager-to-report ratio, healthy range (3:1-7:1), status indicator, and department breakdown."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/health/succession": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Succession readiness analysis",
+        "operationId": "wfGetSuccessionReadiness",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessionReadinessResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze succession readiness: roles with identified successors, total key roles, coverage rate, status (HEALTHY/WARNING/CRITICAL), and department breakdown."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/people-analytics/training-vs-performance": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Training vs performance correlation",
+        "operationId": "wfPeopleTrainingVsPerformance",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrelationResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze correlation between training participation and employee performance scores. Helps evaluate training ROI and effectiveness."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/people-analytics/overtime-vs-productivity": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Overtime vs productivity correlation",
+        "operationId": "wfPeopleOvertimeVsProductivity",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrelationResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze correlation between overtime hours and productivity metrics to identify optimal workload levels."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/people-analytics/attendance-vs-performance": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Attendance vs performance correlation",
+        "operationId": "wfPeopleAttendanceVsPerformance",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrelationResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze correlation between attendance rate and employee performance to identify attendance-related performance risks."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/people-analytics/compensation-vs-turnover": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Compensation vs turnover correlation",
+        "operationId": "wfPeopleCompensationVsTurnover",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrelationResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze correlation between compensation levels and turnover rates to evaluate compensation competitiveness and retention strategies."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/people-analytics/source-vs-retention": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Recruitment source vs retention correlation",
+        "operationId": "wfPeopleSourceVsRetention",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrelationResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze correlation between recruitment source (job board, referral, agency, etc.) and employee retention rates to optimize sourcing strategy."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/people-analytics/career-progression": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Career progression vs performance correlation",
+        "operationId": "wfPeopleCareerProgression",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrelationResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze correlation between career advancement (promotions, movements) and employee performance trends."
+      }
+    },
+    "/api/v1/tenant/workforce-intelligence/people-analytics/learning-effectiveness": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Learning effectiveness analysis",
+        "operationId": "wfPeopleLearningEffectiveness",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrelationResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze the effectiveness of learning programs by correlating training completion, scores, and subsequent performance improvements."
+      }
+    },
+    "/api/v1/tenant/career-intelligence/talent-maps": {
+      "get": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "List talent maps",
+        "operationId": "ciListTalentMaps",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Assessment period (e.g., 2026-Q1)"
+          },
+          {
+            "name": "employee_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseCI"
+                }
+              }
+            }
+          }
+        },
+        "description": "Retrieve a paginated list of talent mapping entries for 9-box assessment. Filter by assessment period (e.g., 2026-Q1) and/or employee."
+      },
+      "post": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Create talent map entry",
+        "operationId": "ciCreateTalentMap",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTalentMapRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TalentMapResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create a new 9-box talent mapping entry for an employee. Combines performance rating (LOW/MEDIUM/HIGH) and potential rating (LOW/MEDIUM/HIGH) to determine grid position (9-BOX-1 through 9-BOX-9)."
+      }
+    },
+    "/api/v1/tenant/career-intelligence/talent-maps/grid": {
+      "get": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Get talent map grid (9-box view)",
+        "operationId": "ciGetTalentGrid",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Assessment period (e.g., 2026-Q1)"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TalentGridResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get the 9-box talent grid overview for a given period. Returns employee counts per quadrant (9-BOX-1 through 9-BOX-9) with labels and descriptions for talent review purposes."
+      }
+    },
+    "/api/v1/tenant/career-intelligence/talent-maps/employee/{employeeId}": {
+      "get": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Get employee talent profile",
+        "operationId": "ciGetEmployeeTalentProfile",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeTalentProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get a comprehensive talent profile for an employee: current 9-box assessment, historical talent map entries, career interests, and recommended next positions."
+      }
+    },
+    "/api/v1/tenant/career-intelligence/talent-maps/{id}": {
+      "get": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Get talent map by ID",
+        "operationId": "ciGetTalentMap",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TalentMapResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get detailed information about a specific talent mapping entry."
+      },
+      "put": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Update talent map entry",
+        "operationId": "ciUpdateTalentMap",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTalentMapRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TalentMapResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update an existing talent map entry's performance rating, potential rating, and/or notes. Changes to performance/potential automatically recalculate the grid position."
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Delete talent map entry",
+        "operationId": "ciDeleteTalentMap",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Talent map entry deleted"
+          }
+        },
+        "description": "Soft-delete a talent map entry."
+      }
+    },
+    "/api/v1/tenant/career-intelligence/interests": {
+      "get": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "List career interests",
+        "operationId": "ciListCareerInterests",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "employee_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseCI"
+                }
+              }
+            }
+          }
+        },
+        "description": "Retrieve a paginated list of career interests. Filter by employee to see an individual's career aspirations."
+      },
+      "post": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Record career interest",
+        "operationId": "ciCreateCareerInterest",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCareerInterestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerInterestResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Record a career interest for an employee. Supports interest types: LEADERSHIP, SPECIALIST, INTERNATIONAL, and ENTREPRENEUR with optional target position, department, and readiness level."
+      }
+    },
+    "/api/v1/tenant/career-intelligence/interests/employee/{employeeId}": {
+      "get": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Get employee career interests",
+        "operationId": "ciGetEmployeeCareerInterests",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerInterestResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get all active career interests for a specific employee. Used in talent review and career development planning."
+      }
+    },
+    "/api/v1/tenant/career-intelligence/paths": {
+      "get": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "List career paths",
+        "operationId": "ciListCareerPaths",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseCI"
+                }
+              }
+            }
+          }
+        },
+        "description": "Retrieve a paginated list of defined career paths between position titles. Includes PROMOTION, LATERAL, DEMOTION, and CROSSFUNCTIONAL path types."
+      },
+      "post": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Create career path",
+        "operationId": "ciCreateCareerPath",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCareerPathRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerPathResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Define a career path between two position titles. Specifies the path type (PROMOTION/LATERAL/DEMOTION/CROSSFUNCTIONAL), typical tenure, requirements, and required competencies."
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Delete career path",
+        "operationId": "ciDeleteCareerPath",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Career path deleted"
+          }
+        },
+        "description": "Soft-delete a career path definition."
+      }
+    },
+    "/api/v1/tenant/career-intelligence/paths/gap-analysis": {
+      "get": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Career gap analysis",
+        "operationId": "ciGetGapAnalysis",
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "target_title_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GapAnalysisResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyze the gap between an employee's current qualifications and the requirements of a target position title. Returns matched skills, total requirements, gap percentage, and actionable recommendations (TRAINING/EXPERIENCE/CERTIFICATION) with priority levels."
+      }
+    },
+    "/api/v1/tenant/career-intelligence/successions": {
+      "get": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "List succession plans",
+        "operationId": "ciListSuccessionPlans",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseCI"
+                }
+              }
+            }
+          }
+        },
+        "description": "Retrieve a paginated list of succession plans. Shows which positions have identified successors with readiness levels (READY_NOW, READY_1YR, READY_2YR, POTENTIAL)."
+      },
+      "post": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Create succession plan",
+        "operationId": "ciCreateSuccessionPlan",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSuccessionPlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessionPlanResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create a succession plan for a key position. Identifies a potential successor with readiness level, priority order, target date, and development plan."
+      }
+    },
+    "/api/v1/tenant/career-intelligence/successions/{id}": {
+      "get": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Get succession plan by ID",
+        "operationId": "ciGetSuccessionPlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessionPlanResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get detailed information about a specific succession plan including successor details, readiness level, and development plan."
+      },
+      "put": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Update succession plan",
+        "operationId": "ciUpdateSuccessionPlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSuccessionPlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessionPlanResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update an existing succession plan's readiness level, priority order, target date, development plan, and/or notes."
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "Delete succession plan",
+        "operationId": "ciDeleteSuccessionPlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succession plan deleted"
+          }
+        },
+        "description": "Soft-delete a succession plan."
+      }
     }
   },
   "components": {
@@ -28909,6 +32413,1878 @@
           },
           "total_pages": {
             "type": "integer"
+          }
+        }
+      },
+      "CreateHeadcountPlanRequest": {
+        "type": "object",
+        "required": [
+          "period",
+          "organization_id",
+          "planned_hc"
+        ],
+        "properties": {
+          "period": {
+            "type": "string",
+            "maxLength": 7,
+            "example": "2026-01"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planned_hc": {
+            "type": "integer",
+            "example": 150
+          },
+          "snapshot_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "UpdateHeadcountPlanRequest": {
+        "type": "object",
+        "properties": {
+          "planned_hc": {
+            "type": "integer"
+          },
+          "snapshot_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "HeadcountPlanResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "period": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planned_hc": {
+            "type": "integer"
+          },
+          "actual_hc": {
+            "type": "integer"
+          },
+          "variance": {
+            "type": "integer"
+          },
+          "snapshot_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateForecastRequest": {
+        "type": "object",
+        "required": [
+          "period",
+          "organization_id",
+          "forecast_type",
+          "headcount"
+        ],
+        "properties": {
+          "period": {
+            "type": "string",
+            "maxLength": 7,
+            "example": "2026-01"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "forecast_type": {
+            "type": "string",
+            "enum": [
+              "DEMAND",
+              "SUPPLY",
+              "HIRING"
+            ]
+          },
+          "headcount": {
+            "type": "integer"
+          },
+          "confidence_level": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "UpdateForecastRequest": {
+        "type": "object",
+        "properties": {
+          "headcount": {
+            "type": "integer"
+          },
+          "confidence_level": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "ForecastResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "period": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "forecast_type": {
+            "type": "string"
+          },
+          "headcount": {
+            "type": "integer"
+          },
+          "confidence_level": {
+            "type": "number",
+            "format": "float"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GapAnalysisResponse": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "supply": {
+            "type": "integer"
+          },
+          "demand": {
+            "type": "integer"
+          },
+          "gap": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SURPLUS",
+              "SHORTAGE",
+              "OPTIMAL"
+            ]
+          },
+          "departments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "organization_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "organization_name": {
+                  "type": "string"
+                },
+                "supply": {
+                  "type": "integer"
+                },
+                "demand": {
+                  "type": "integer"
+                },
+                "gap": {
+                  "type": "integer"
+                },
+                "status": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ProjectionResponse": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "current_hc": {
+            "type": "integer"
+          },
+          "projected_hc": {
+            "type": "integer"
+          },
+          "hiring_needed": {
+            "type": "integer"
+          },
+          "retirement_count": {
+            "type": "integer"
+          },
+          "growth_rate": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "KPIResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "period": {
+            "type": "string"
+          },
+          "kpi_code": {
+            "type": "string"
+          },
+          "kpi_name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "float"
+          },
+          "target": {
+            "type": "number",
+            "format": "float"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "dimension": {
+            "type": "string"
+          },
+          "dimension_id": {
+            "type": "string"
+          },
+          "snapshot_at": {
+            "type": "string",
+            "format": "date"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "KPISummaryResponse": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "total_kpis": {
+            "type": "integer"
+          },
+          "on_target": {
+            "type": "integer"
+          },
+          "below_target": {
+            "type": "integer"
+          },
+          "kpis": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KPIResponse"
+            }
+          }
+        }
+      },
+      "HeadcountAnalytics": {
+        "type": "object",
+        "properties": {
+          "total_hc": {
+            "type": "integer"
+          },
+          "active_hc": {
+            "type": "integer"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "by_employment_type": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "by_gender": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "AttendanceAnalytics": {
+        "type": "object",
+        "properties": {
+          "avg_attendance_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "avg_late_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "avg_absent_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "LeaveAnalytics": {
+        "type": "object",
+        "properties": {
+          "avg_utilization": {
+            "type": "number",
+            "format": "float"
+          },
+          "total_days_taken": {
+            "type": "integer"
+          },
+          "by_type": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "OvertimeAnalytics": {
+        "type": "object",
+        "properties": {
+          "avg_ot_hours": {
+            "type": "number",
+            "format": "float"
+          },
+          "total_ot_cost": {
+            "type": "number",
+            "format": "float"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "PayrollAnalytics": {
+        "type": "object",
+        "properties": {
+          "total_payroll": {
+            "type": "number",
+            "format": "float"
+          },
+          "avg_salary": {
+            "type": "number",
+            "format": "float"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "by_grade": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "PerformanceAnalytics": {
+        "type": "object",
+        "properties": {
+          "avg_score": {
+            "type": "number",
+            "format": "float"
+          },
+          "top_performer_pct": {
+            "type": "number",
+            "format": "float"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "distribution": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "LearningAnalytics": {
+        "type": "object",
+        "properties": {
+          "completion_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "avg_score": {
+            "type": "number",
+            "format": "float"
+          },
+          "total_hours": {
+            "type": "number",
+            "format": "float"
+          },
+          "by_course": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "RecruitmentAnalytics": {
+        "type": "object",
+        "properties": {
+          "time_to_hire": {
+            "type": "number",
+            "format": "float"
+          },
+          "cost_per_hire": {
+            "type": "number",
+            "format": "float"
+          },
+          "by_source": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "funnel": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "MovementAnalytics": {
+        "type": "object",
+        "properties": {
+          "promotion_count": {
+            "type": "integer"
+          },
+          "mutation_count": {
+            "type": "integer"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "by_type": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "CapacityDashboardResponse": {
+        "type": "object",
+        "properties": {
+          "utilization_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "available_hc": {
+            "type": "integer"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "bottlenecks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Bottleneck"
+            }
+          }
+        }
+      },
+      "Bottleneck": {
+        "type": "object",
+        "properties": {
+          "department_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "department_name": {
+            "type": "string"
+          },
+          "utilization": {
+            "type": "number",
+            "format": "float"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "WARNING",
+              "CRITICAL"
+            ]
+          }
+        }
+      },
+      "CostSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "total_payroll": {
+            "type": "number",
+            "format": "float"
+          },
+          "total_benefit": {
+            "type": "number",
+            "format": "float"
+          },
+          "total_labor": {
+            "type": "number",
+            "format": "float"
+          },
+          "cost_per_employee": {
+            "type": "number",
+            "format": "float"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "budget_vs_actual": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "RiskDashboardResponse": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "total_risks": {
+            "type": "integer"
+          },
+          "high_risks": {
+            "type": "integer"
+          },
+          "critical_risks": {
+            "type": "integer"
+          },
+          "indicators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskResponse"
+            }
+          }
+        }
+      },
+      "RiskResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "risk_code": {
+            "type": "string"
+          },
+          "risk_name": {
+            "type": "string"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "score": {
+            "type": "number",
+            "format": "float"
+          },
+          "threshold": {
+            "type": "number",
+            "format": "float"
+          },
+          "department_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "snapshot_at": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "UpdateRiskRequest": {
+        "type": "object",
+        "properties": {
+          "risk_level": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "recommendation": {
+            "type": "string"
+          }
+        }
+      },
+      "ExecutiveSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "total_hc": {
+            "type": "integer"
+          },
+          "hc_growth": {
+            "type": "number",
+            "format": "float"
+          },
+          "attrition_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "avg_cost": {
+            "type": "number",
+            "format": "float"
+          },
+          "utilization_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "health_score": {
+            "type": "number",
+            "format": "float"
+          },
+          "period": {
+            "type": "string"
+          }
+        }
+      },
+      "HiringProgressResponse": {
+        "type": "object",
+        "properties": {
+          "planned": {
+            "type": "integer"
+          },
+          "in_progress": {
+            "type": "integer"
+          },
+          "completed": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateScenarioRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "scenario_type",
+          "parameters"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "description": {
+            "type": "string"
+          },
+          "scenario_type": {
+            "type": "string",
+            "enum": [
+              "NEW_BRANCH",
+              "REORG",
+              "GROWTH",
+              "REDUCTION",
+              "RETIREMENT",
+              "BUDGET"
+            ]
+          },
+          "parameters": {
+            "type": "object"
+          }
+        }
+      },
+      "UpdateScenarioRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "description": {
+            "type": "string"
+          },
+          "parameters": {
+            "type": "object"
+          }
+        }
+      },
+      "ScenarioResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "scenario_type": {
+            "type": "string"
+          },
+          "parameters": {
+            "type": "object"
+          },
+          "results": {
+            "type": "object"
+          },
+          "status": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "HealthScoreResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "period": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "score": {
+            "type": "number",
+            "format": "float"
+          },
+          "span_of_control": {
+            "type": "number",
+            "format": "float"
+          },
+          "manager_ratio": {
+            "type": "number",
+            "format": "float"
+          },
+          "promotion_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "internal_hiring_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "succession_coverage": {
+            "type": "number",
+            "format": "float"
+          },
+          "stability_ratio": {
+            "type": "number",
+            "format": "float"
+          },
+          "components": {
+            "type": "object"
+          },
+          "snapshot_at": {
+            "type": "string",
+            "format": "date"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CorrelationResponse": {
+        "type": "object",
+        "properties": {
+          "analysis_type": {
+            "type": "string"
+          },
+          "correlation": {
+            "type": "number",
+            "format": "float"
+          },
+          "strength": {
+            "type": "string",
+            "enum": [
+              "STRONG",
+              "MODERATE",
+              "WEAK",
+              "NONE"
+            ]
+          },
+          "data_points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "insight": {
+            "type": "string"
+          }
+        }
+      },
+      "CapacityForecastResponse": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "projected_utilization": {
+            "type": "number",
+            "format": "float"
+          },
+          "current_capacity": {
+            "type": "integer"
+          },
+          "projected_needed": {
+            "type": "integer"
+          },
+          "gap": {
+            "type": "integer"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "PayrollCostResponse": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "total_salary": {
+            "type": "number",
+            "format": "float"
+          },
+          "total_allowance": {
+            "type": "number",
+            "format": "float"
+          },
+          "total_deduction": {
+            "type": "number",
+            "format": "float"
+          },
+          "total_bpjs": {
+            "type": "number",
+            "format": "float"
+          },
+          "by_grade": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "by_component": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "CostPerEmployeeResponse": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "avg_cost_per_employee": {
+            "type": "number",
+            "format": "float"
+          },
+          "median_cost": {
+            "type": "number",
+            "format": "float"
+          },
+          "min_cost": {
+            "type": "number",
+            "format": "float"
+          },
+          "max_cost": {
+            "type": "number",
+            "format": "float"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "by_grade": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "ExecutiveTrendResponse": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "current": {
+            "type": "number",
+            "format": "float"
+          },
+          "change": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "ExecutiveCapacityResponse": {
+        "type": "object",
+        "properties": {
+          "utilization_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "available_hc": {
+            "type": "integer"
+          },
+          "active_dept_count": {
+            "type": "integer"
+          },
+          "bottleneck_count": {
+            "type": "integer"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "ExecutiveRiskOverviewResponse": {
+        "type": "object",
+        "properties": {
+          "total_risks": {
+            "type": "integer"
+          },
+          "high_risk_count": {
+            "type": "integer"
+          },
+          "critical_count": {
+            "type": "integer"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "by_category": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "ExecutiveHealthScoreResponse": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "format": "float"
+          },
+          "span_of_control": {
+            "type": "number",
+            "format": "float"
+          },
+          "manager_ratio": {
+            "type": "number",
+            "format": "float"
+          },
+          "internal_hiring_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "succession_coverage": {
+            "type": "number",
+            "format": "float"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "HEALTHY",
+              "WARNING",
+              "CRITICAL"
+            ]
+          },
+          "components": {
+            "type": "object"
+          }
+        }
+      },
+      "RiskDetailResponse": {
+        "type": "object",
+        "properties": {
+          "risk_code": {
+            "type": "string"
+          },
+          "risk_name": {
+            "type": "string"
+          },
+          "risk_level": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "float"
+          },
+          "threshold": {
+            "type": "number",
+            "format": "float"
+          },
+          "exceeded_by": {
+            "type": "number",
+            "format": "float"
+          },
+          "affected_departments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "SpanOfControlResponse": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "avg_ratio": {
+            "type": "number",
+            "format": "float"
+          },
+          "healthy_range": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "SuccessionReadinessResponse": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "roles_with_successors": {
+            "type": "integer"
+          },
+          "total_key_roles": {
+            "type": "integer"
+          },
+          "coverage_rate": {
+            "type": "number",
+            "format": "float"
+          },
+          "status": {
+            "type": "string"
+          },
+          "by_department": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          }
+        }
+      },
+      "DataPoint": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "PaginatedResponseWF": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "total_pages": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateTalentMapRequest": {
+        "type": "object",
+        "required": [
+          "employee_id",
+          "period",
+          "performance",
+          "potential"
+        ],
+        "properties": {
+          "employee_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the employee being assessed"
+          },
+          "period": {
+            "type": "string",
+            "maxLength": 7,
+            "example": "2026-Q1",
+            "description": "Assessment period (e.g., 2026-Q1, 2026-H1)"
+          },
+          "performance": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ],
+            "description": "Performance rating"
+          },
+          "potential": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ],
+            "description": "Potential rating"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional assessment notes"
+          }
+        }
+      },
+      "UpdateTalentMapRequest": {
+        "type": "object",
+        "properties": {
+          "performance": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ],
+            "description": "Updated performance rating"
+          },
+          "potential": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ],
+            "description": "Updated potential rating"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Updated assessment notes"
+          }
+        }
+      },
+      "TalentMapResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "period": {
+            "type": "string"
+          },
+          "performance": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "potential": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "grid_position": {
+            "type": "string",
+            "description": "9-Box grid position (e.g., 9-BOX-1, 9-BOX-5, 9-BOX-9)"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "assessor_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the assessor (manager/HR)"
+          },
+          "assessed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TalentGridResponse": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "quadrants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TalentQuadrant"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "TalentQuadrant": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Quadrant label (e.g., 'High Performer - High Potential')"
+          },
+          "position": {
+            "type": "string",
+            "description": "Grid position code (e.g., '9-BOX-1')"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of employees in this quadrant"
+          },
+          "description": {
+            "type": "string",
+            "description": "Quadrant description"
+          }
+        }
+      },
+      "EmployeeTalentProfileResponse": {
+        "type": "object",
+        "properties": {
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "current_map": {
+            "$ref": "#/components/schemas/TalentMapResponse",
+            "description": "Current period's talent map entry"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TalentMapResponse"
+            },
+            "description": "Historical talent map entries"
+          },
+          "interests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CareerInterestResponse"
+            },
+            "description": "Employee's career interests"
+          },
+          "ready_for": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Recommended next positions"
+          }
+        }
+      },
+      "CreateCareerInterestRequest": {
+        "type": "object",
+        "required": [
+          "employee_id",
+          "interest_type"
+        ],
+        "properties": {
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interest_type": {
+            "type": "string",
+            "enum": [
+              "LEADERSHIP",
+              "SPECIALIST",
+              "INTERNATIONAL",
+              "ENTREPRENEUR"
+            ]
+          },
+          "target_position": {
+            "type": "string",
+            "description": "Desired position title"
+          },
+          "target_department": {
+            "type": "string",
+            "description": "Desired department"
+          },
+          "motivation": {
+            "type": "string",
+            "description": "Career motivation or reason"
+          },
+          "readiness_level": {
+            "type": "string",
+            "enum": [
+              "NOW",
+              "1_YEAR",
+              "2_3_YEARS",
+              "3_PLUS"
+            ],
+            "description": "Readiness to move"
+          }
+        }
+      },
+      "CareerInterestResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interest_type": {
+            "type": "string"
+          },
+          "target_position": {
+            "type": "string"
+          },
+          "target_department": {
+            "type": "string"
+          },
+          "motivation": {
+            "type": "string"
+          },
+          "readiness_level": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateCareerPathRequest": {
+        "type": "object",
+        "required": [
+          "source_title_id",
+          "target_title_id",
+          "path_type"
+        ],
+        "properties": {
+          "source_title_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Source position title ID"
+          },
+          "target_title_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Target position title ID"
+          },
+          "path_type": {
+            "type": "string",
+            "enum": [
+              "PROMOTION",
+              "LATERAL",
+              "DEMOTION",
+              "CROSSFUNCTIONAL"
+            ]
+          },
+          "typical_tenure": {
+            "type": "integer",
+            "description": "Typical tenure in months before moving"
+          },
+          "requirements": {
+            "type": "string",
+            "description": "Requirements for this career path"
+          },
+          "competencies": {
+            "type": "string",
+            "description": "Required competencies"
+          }
+        }
+      },
+      "CareerPathResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_title_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target_title_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "path_type": {
+            "type": "string"
+          },
+          "typical_tenure": {
+            "type": "integer"
+          },
+          "requirements": {
+            "type": "string"
+          },
+          "competencies": {
+            "type": "string"
+          },
+          "certifications": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GapAnalysisRequest": {
+        "type": "object",
+        "properties": {
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target_title_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "GapRecommendation": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "TRAINING",
+              "EXPERIENCE",
+              "CERTIFICATION"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          }
+        }
+      },
+      "CreateSuccessionPlanRequest": {
+        "type": "object",
+        "required": [
+          "position_id",
+          "successor_id",
+          "readiness_level"
+        ],
+        "properties": {
+          "position_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Position being planned for succession"
+          },
+          "successor_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Employee ID of the potential successor"
+          },
+          "readiness_level": {
+            "type": "string",
+            "enum": [
+              "READY_NOW",
+              "READY_1YR",
+              "READY_2YR",
+              "POTENTIAL"
+            ]
+          },
+          "priority_order": {
+            "type": "integer",
+            "description": "Priority order among multiple successors"
+          },
+          "target_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Target date for succession"
+          },
+          "development_plan": {
+            "type": "string",
+            "description": "Development plan for the successor"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateSuccessionPlanRequest": {
+        "type": "object",
+        "properties": {
+          "readiness_level": {
+            "type": "string",
+            "enum": [
+              "READY_NOW",
+              "READY_1YR",
+              "READY_2YR",
+              "POTENTIAL"
+            ]
+          },
+          "priority_order": {
+            "type": "integer"
+          },
+          "target_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "development_plan": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "SuccessionPlanResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "successor_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "readiness_level": {
+            "type": "string"
+          },
+          "priority_order": {
+            "type": "integer"
+          },
+          "target_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "development_plan": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "FILLED"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaginatedResponseCI": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "total_pages": {
+            "type": "integer"
+          }
+        }
+      },
+      "CareerGapAnalysisResponse": {
+        "type": "object",
+        "properties": {
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target_title": {
+            "type": "string",
+            "description": "Target position title name"
+          },
+          "matched_skills": {
+            "type": "integer"
+          },
+          "total_required": {
+            "type": "integer"
+          },
+          "gap_percentage": {
+            "type": "number",
+            "format": "float"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CareerGapRecommendation"
+            }
+          },
+          "estimated_timeline": {
+            "type": "string",
+            "description": "Estimated timeline (e.g., '12-18 months')"
+          }
+        }
+      },
+      "CareerGapRecommendation": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "TRAINING",
+              "EXPERIENCE",
+              "CERTIFICATION"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
           }
         }
       }

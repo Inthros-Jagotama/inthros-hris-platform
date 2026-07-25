@@ -9,6 +9,7 @@
 |--------|:--------:|:--------------:|:------------:|:-------------:|:----------:|:-----:|
 | approval | 5 | 16 | 30 | 15 | 15 | 64 |
 | attendance | 10 | 30 | 34 | 30 | 30 | 88 |
+| careerintelligence | 4 | 19 | 24 | 19 | 19 | 65 |
 | competency | 7 | 35 | 36 | 35 | 35 | 60 |
 | employee | 9 | 29 | 39 | 29 | 29 | 35 |
 | employeemovement | 2 | 15 | 17 | 15 | 15 | 62 |
@@ -20,7 +21,8 @@
 | reimbursement | 3 | 15 | 17 | 15 | 15 | 60 |
 | recruitment | 7 | 33 | 37 | 33 | 33 | 66 |
 | performance | 7 | 35 | 36 | 34 | 34 | 55 |
-| **TOTAL** | **105** | **415** | **487** | **411** | **411** | **667** |
+| workforceintelligence | 7 | 46 | 36 | 70 | 68 | 108 |
+| **TOTAL** | **116** | **480** | **547** | **500** | **498** | **840** |
 
 ### Test Breakdown per Module
 
@@ -28,12 +30,14 @@
 |--------|:----------:|:-------------:|:-------------:|:-----:|
 | approval | 25 | 25 | 14 | 64 |
 | attendance | 33 | 29 | 26 | 88 |
+| careerintelligence | 23 | 20 | 22 | 65 |
 | competency | 12 | 35 | 13 | 60 |
 | employee | 18 | 17 | 0 | 35 |
 | employeemovement | 20 | 26 | 16 | 62 |
 | jobmanagement | 26 | 28 | 10 | 64 |
 | leave | 15 | 13 | 11 | 39 |
 | organization | 0 | 0 | 0 | 0 |
+| workforceintelligence | 31 | 41 | 36 | 108 |
 | training | 14 | 9 | 8 | 31 |
 | payroll | 17 | 23 | 0 | 40 |
 | reimbursement | 19 | 24 | 17 | 60 |
@@ -206,6 +210,21 @@
 - TrainingMaterial
 - TrainingEvaluation
 - TrainingCertificate
+
+### workforceintelligence
+- WorkforcePlanningHeadcount
+- WorkforceForecast
+- WorkforceKPI
+- WorkforceAnalyticsCache
+- WorkforceScenario
+- WorkforceRiskIndicator
+- WorkforceHealthScore
+
+### careerintelligence
+- CareerTalentMap
+- CareerInterest
+- CareerPath
+- CareerSuccessionPlan
 
 ### company
 - Company
@@ -664,25 +683,95 @@
 - `DeletePerformanceTarget()`
 - `calcTotalPages()`
 
+### workforceintelligence.Service — 46 methods
+- `CreateHeadcountPlan()`
+- `GetHeadcountPlanByID()`
+- `ListHeadcountPlans()`
+- `UpdateHeadcountPlan()`
+- `DeleteHeadcountPlan()`
+- `CreateForecast()`
+- `GetForecastByID()`
+- `ListForecasts()`
+- `UpdateForecast()`
+- `DeleteForecast()`
+- `GetGapAnalysis()`
+- `GetProjections()`
+- `CreateKPI()`
+- `ListKPIs()`
+- `GetKPISummary()`
+- `GetKPIByCode()`
+- `GetHeadcountAnalytics()`
+- `GetMovementAnalytics()`
+- `GetRiskDashboard()`
+- `GetRiskDetail()`
+- `ListRiskIndicators()`
+- `GetRiskIndicatorByID()`
+- `UpdateRiskIndicator()`
+- `GetExecutiveSummary()`
+- `GetExecutiveGrowth()`
+- `GetExecutiveCostTrend()`
+- `GetExecutiveAttritionTrend()`
+- `GetExecutiveCapacity()`
+- `GetExecutiveRiskOverview()`
+- `GetExecutiveHealthScore()`
+- `ListScenarios()`
+- `CreateScenario()`
+- `GetScenarioByID()`
+- `UpdateScenario()`
+- `DeleteScenario()`
+- `RunScenario()`
+- `CloneScenario()`
+- `GetHealthDashboard()`
+- `ListHealthScores()`
+- `GetHealthScoreByID()`
+- `GetSpanOfControl()`
+- `GetSuccessionReadiness()`
+- `GetPeopleAnalytics()`
+- `GetCapacityForecast()`
+- `GetPayrollCostBreakdown()`
+- `GetCostPerEmployee()`
+- `executeSimulation()` (private)
+
+### careerintelligence.Service — 19 methods
+- `CreateTalentMap()`
+- `GetTalentMapByID()`
+- `ListTalentMaps()`
+- `UpdateTalentMap()`
+- `DeleteTalentMap()`
+- `GetTalentGrid()`
+- `GetEmployeeTalentProfile()`
+- `CreateCareerInterest()`
+- `ListCareerInterests()`
+- `GetEmployeeCareerInterests()`
+- `CreateCareerPath()`
+- `ListCareerPaths()`
+- `DeleteCareerPath()`
+- `GetGapAnalysis()`
+- `CreateSuccessionPlan()`
+- `ListSuccessionPlans()`
+- `GetSuccessionPlanByID()`
+- `UpdateSuccessionPlan()`
+- `DeleteSuccessionPlan()`
+
 ## SECTION 6: GRAND TOTALS
 
 | Category | Count |
 |----------|:-----:|
-| Tenant Modules | 13 |
+| Tenant Modules | 14 |
 | Platform Modules | 5 |
 | Shared Kernel Packages | 17 |
-| **Total Architecture Layers** | **35** |
-| Total GORM Entities (tenant) | 105 |
+| **Total Architecture Layers** | **36** |
+| Total GORM Entities (tenant) | 109 |
 | Total GORM Entities (platform) | 5 |
-| **Total Entities (combined)** | **110** |
-| Total Service Methods | 445 |
-| Total Repository Methods | 512 |
-| Total Handler Functions | 442 |
-| Total Route Registrations | 442 |
-| **Total Unit Tests (all)** | **831** |
-| Total Go Source Files | 147 |
-| Total Test Files (_test.go) | 61 |
-| **Total Go Files** | **208** |
+| **Total Entities (combined)** | **121** |
+| Total Service Methods | 510 |
+| Total Repository Methods | 572 |
+| Total Handler Functions | 531 |
+| Total Route Registrations | 529 |
+| **Total Unit Tests (all)** | **1004** |
+| Total Go Source Files | 155 |
+| Total Test Files (_test.go) | 69 |
+| **Total Go Files** | **224** |
 
 ## SECTION 7: TEST FILE INVENTORY
 
@@ -731,6 +820,18 @@
 | `modules\reimbursement\helpers_test.go` | 0 |
 | `modules\reimbursement\repository_test.go` | 19 |
 | `modules\reimbursement\service_test.go` | 24 |
+| `modules\workforceintelligence\helpers_test.go` | 0 |
+| `modules\workforceintelligence\repository_test.go` | 31 |
+| `modules\workforceintelligence\service_test.go` | 41 |
+| `modules\workforceintelligence\handler_test.go` | 36 |
+| `modules\careerintelligence\helpers_test.go` | 0 |
+| `modules\careerintelligence\repository_test.go` | 23 |
+| `modules\careerintelligence\service_test.go` | 20 |
+| `modules\careerintelligence\handler_test.go` | 22 |
+| `modules\training\handler_test.go` | 8 |
+| `modules\training\helpers_test.go` | 0 |
+| `modules\training\repository_test.go` | 14 |
+| `modules\training\service_test.go` | 9 |
 | `pkg\authz\handler_test.go` | 16 |
 | `pkg\authz\helpers_test.go` | 0 |
 | `pkg\authz\rbac_test.go` | 26 |

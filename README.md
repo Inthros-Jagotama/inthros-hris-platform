@@ -167,6 +167,8 @@ hris-platform/
 │   │   │   ├── performance/          #   Performance Management (7 entities, 34 endpoints, 55 tests)
 │   │   │   ├── recruitment/          #   Recruitment & Onboarding ATS (7 entities, 33 endpoints, 66 tests)
 │   │   │   ├── training/            #   Training & Development (7 entities, 35 endpoints, 31 tests)
+│   │   │   ├── careerintelligence/   #   Career Intelligence & Talent Management (4 entities, 19 endpoints, 65 tests)
+│   │   │   ├── workforceintelligence/#   Workforce Intelligence & Strategic Planning (analytics layer)
 │   │   │   └── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints)
 │   │   └── pkg/                      # Shared Kernel│       │   ├── config/               # Viper configuration loader
 │       │   ├── database/             # Multi-tenant DB manager
@@ -951,6 +953,8 @@ docker run -p 8080:8080 hris-platform:latest
 | `internal/modules/recruitment/` | **66** (repository 27 + service 23 + handler 16) | — | — | **66** |
 | `internal/modules/reimbursement/` | **48** (repository 18 + service 20 + handler 16) | — | — | **48** |
 | `internal/modules/training/` | **31** (repository 14 + service 9 + handler 8) | — | — | **31** |
+| `internal/modules/workforceintelligence/` | **108** (repository 31 + service 41 + handler 36) | — | — | **108** |
+| `internal/modules/careerintelligence/` | **65** (repository 23 + service 20 + handler 22) | — | — | **65** |
 
 ### Run Tests
 
@@ -1114,12 +1118,12 @@ POST /api/v1/platform/companies
    ├── b. Connect sebagai superuser (root@localhost)
    ├── c. Buat database tenant (CREATE DATABASE IF NOT EXISTS)
    ├── d. Simpan TenantConnection ke platform DB (ID = companyID)
-   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 16 tenant SQL migrations (132 tables)
+   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 17 tenant SQL migrations (139 tables)
 5. Jika provisioning berhasil → company status: active
 6. Jika provisioning gagal → company status: suspended (data tetap tersimpan)
 ```
 
-### Tenant Migration Files (16 files → 132 tables)
+### Tenant Migration Files (18 files → 143 tables)
 
 | File | Isi |
 |------|-----|
@@ -1139,10 +1143,12 @@ POST /api/v1/platform/companies
 | `014_performance.sql` | Performance periods, perspectives, templates, indicators, evaluations, targets |
 | `015_recruitment.sql` | Job requisitions, candidates, applications, interviews, onboarding tasks |
 | `016_training.sql` | Training categories, courses, sessions, participants, materials, evaluations, certificates |
+| `017_workforce_intelligence.sql` | Workforce planning headcounts, forecasts, KPIs, analytics cache, scenarios, risk indicators, health scores |
+| `018_career_intelligence.sql` | Career talent maps (9-box grid), career interests, career paths, succession plans |
 
-> **Catatan:** Total 132 tabel termasuk `schema_migrations` (auto-created oleh migrator engine).
+> **Catatan:** Total 143 tabel termasuk `schema_migrations` (auto-created oleh migrator engine).
 
-### Daftar Lengkap 127 Tabel Tenant
+### Daftar Lengkap 134 Tabel Tenant
 
 **Approval (5):**
 `approval_actions`, `approval_flow_steps`, `approval_flows`, `approval_instances`, `approval_tasks`
@@ -1198,6 +1204,14 @@ POST /api/v1/platform/companies
 `job_requisitions`, `candidates`, `job_applications`, `interviews`,
 `onboarding_task_templates`, `employee_onboardings`, `onboarding_task_items`
 
+**Workforce Intelligence (7):**
+`workforce_planning_headcounts`, `workforce_forecasts`, `workforce_kpis`,
+`workforce_analytics_cache`, `workforce_scenarios`, `workforce_risk_indicators`,
+`workforce_health_scores`
+
+**Career Intelligence (4):**
+`career_talent_maps`, `career_interests`, `career_paths`, `career_succession_plans`
+
 **Training & Development (7):**
 `training_categories`, `training_courses`, `training_sessions`, `training_participants`,
 `training_materials`, `training_evaluations`, `training_certificates`
@@ -1223,8 +1237,8 @@ POST /api/v1/platform/companies
 | Company status | ✅ **active** | API mengembalikan `status: "active"` |
 | Tenant database | ✅ Created | `hris_final-provision-test` |
 | Tenant connection | ✅ Saved | Record di `tenant_connections` tersimpan |
-| Migrations | ✅ **16 files** | 001 → 016 sukses semua |
-| Total tables | ✅ **127 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
+| Migrations | ✅ **18 files** | 001 → 018 sukses semua |
+| Total tables | ✅ **143 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
 | Server log | ✅ Clean | "Tenant provisioning completed successfully" |
 
 #### API Test Response
@@ -1285,6 +1299,8 @@ POST /api/v1/platform/companies
 | **Leave & Time Off** | ✅ **Completed (26 Juli 2026)** | **6 GORM entities**: LeaveTypes, LeaveAccrualPolicies, LeaveReasons, LeaveRequests, LeaveRequestDetails, EmployeeLeaveBalances. Full CRUD untuk 5 sub-entities. **38 unit tests** (14 repo + 12 service + 12 handler). **23 endpoints**. |
 | **Reimbursement & Claim** | ✅ **Completed (30 Juli 2026)** | **3 GORM entities**: ReimbursementType, ReimbursementRequest, ReimbursementItem. Multi-step status flow (DRAFT->SUBMITTED->APPROVED->PAID). **48 unit tests** (18 repo + 20 service + 16 handler). **15 OpenAPI endpoints**. Approval integration via Approval Engine. |
 | **Training & Development Management** | ✅ **Completed (1 Agustus 2026)** | **7 GORM entities**: TrainingCategory, TrainingCourse, TrainingSession, TrainingParticipant, TrainingMaterial, TrainingEvaluation, TrainingCertificate. Full CRUD untuk 7 resource groups dengan validasi (quota checks, FK existence, session status). **31 unit tests** (14 repository + 9 service + 8 handler). **35 endpoints** — categories, courses, sessions (with status update), participants, materials, evaluations, certificates. Migration files (016_training) untuk MySQL & Postgres. |
+| **Workforce Intelligence & Strategic Planning** | ✅ **Completed (25 Juli 2026)** | **7 GORM entities**: WorkforcePlanningHeadcount, WorkforceForecast, WorkforceKPI, WorkforceAnalyticsCache, WorkforceScenario, WorkforceRiskIndicator, WorkforceHealthScore. **108 unit tests** (31 repo + 41 service + 36 handler). **68 endpoints** — Planning (12), Analytics (9), Risk (8), Executive (8), Scenarios (7), People Analytics (7), Cost (5), Capacity (4), Health (5), KPI (3). Migration files (017_workforce_intelligence) untuk MySQL & Postgres. |
+| **Career Intelligence & Talent Management** | ✅ **Completed (1 September 2026)** | **4 GORM entities**: CareerTalentMap, CareerInterest, CareerPath, CareerSuccessionPlan. **65 unit tests** (23 repo + 20 service + 22 handler). **19 endpoints** — 9-box talent mapping (7), career interests (3), career paths (4), succession plans (5). OpenAPI docs (19 endpoints, 16 schemas, 24th tag). Migration files (018_career_intelligence) untuk MySQL & Postgres. |
 
 ### Modul Operasional & Siklus Karier (Planned 🗓️)
 
@@ -1302,9 +1318,9 @@ POST /api/v1/platform/companies
 |---|------|------|
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
-| ✅ | Project completion dashboard (13 modules, 860+ tests, 127 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
-| ✅ | OpenAPI comprehensive report (457 endpoints, 290 schemas, 22 tags) | `docs/openapi-report.md` |
-| ✅ | Go module architecture report (110 entities, 445 services, 831 tests) | `docs/go-module-architecture-report.md` |
+| ✅ | Project completion dashboard (14 modules, 1004+ tests, 143 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
+| ✅ | OpenAPI comprehensive report (544 endpoints, 352 schemas, 24 tags) | `docs/openapi-report.md` |
+| ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
 | ✅ | README utama proyek | `README.md` |
@@ -1562,8 +1578,8 @@ $ go build ./...  # ✅ Berhasil
 | Dokumen | Deskripsi |
 |---|---|
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap |
-| [`docs/PROJECT_COMPLETION_DASHBOARD.md`](docs/PROJECT_COMPLETION_DASHBOARD.md) | **NEW** — Project completion dashboard (13 modules, 860+ tests, 127 tables) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v8 — 457 endpoints, 290 schemas, 22 tags) |
+| [`docs/PROJECT_COMPLETION_DASHBOARD.md`](docs/PROJECT_COMPLETION_DASHBOARD.md) | **NEW** — Project completion dashboard (14 modules, 939+ tests, 139 tables) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v9 — 525 endpoints, 334 schemas, 23 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
 | [`docs/analisis-blueprint-vs-existing.md`](docs/analisis-blueprint-vs-existing.md) | Analisis blueprint vs existing Laravel app |
 | [`backend/.env.example`](backend/.env.example) | Template environment variables |
