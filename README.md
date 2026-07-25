@@ -102,7 +102,7 @@ Berdasarkan tinjauan arsitektur teknis, berikut area kritis yang harus diterapka
 
 ### 4. Penanganan Dialek SQL Migrasi ✅
 - **Masalah:** Eksekusi file `.sql` mentah bermasalah untuk dual-driver (PostgreSQL vs MySQL) karena perbedaan sintaksis DDL.
-- **Status:** ✅ **Sudah diimplementasikan** — Migrasi dipisah per dialect: `migrations/tenant/mysql/` (22 file) dan `migrations/tenant/postgres/` (22 file). Go code menggunakan `TenantRootPath(driver)` untuk seleksi otomatis saat provisioning.
+- **Status:** ✅ **Sudah diimplementasikan** — Migrasi dipisah per dialect: `migrations/tenant/mysql/` (30 file) dan `migrations/tenant/postgres/` (30 file). Go code menggunakan `TenantRootPath(driver)` untuk seleksi otomatis saat provisioning.
 
 ### 5. Sinkronisasi Cache Terdistribusi ✅
 - **Masalah:** Pembaruan *Feature Flags* atau *Permissions* di Redis perlu dikonsumsi konsisten oleh semua instance server.
@@ -164,6 +164,9 @@ hris-platform/
 │   │   │   ├── approval/             #   Approval Engine (5 entities, 15 endpoints)
 │   │   │   ├── payroll/              #   Payroll & Compensation Engine (21 entities)
 │   │   │   ├── leave/                #   Leave & Time Off (6 entities, 21 endpoints)
+│   │   │   ├── performance/          #   Performance Management (7 entities, 34 endpoints, 55 tests)
+│   │   │   ├── recruitment/          #   Recruitment & Onboarding ATS (7 entities, 33 endpoints, 66 tests)
+│   │   │   ├── training/            #   Training & Development (7 entities, 35 endpoints, 31 tests)
 │   │   │   └── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints)
 │   │   └── pkg/                      # Shared Kernel│       │   ├── config/               # Viper configuration loader
 │       │   ├── database/             # Multi-tenant DB manager
@@ -185,7 +188,7 @@ hris-platform/
 │               └── migrations/
 │                   ├── platform/     #  Platform DDL (6 files)
 │                   ├── seeders/      #  Seed data (1 file)
-│                   └── tenant/       #  Tenant template (future)
+│                   └── tenant/       #  Tenant migrations (30 file per dialect — mysql & postgres)
 │   ├── docker/
 │   │   └── Dockerfile
 │   ├── .env.example                  # Environment template
@@ -479,7 +482,7 @@ Semua perubahan role/permission akan otomatis me-reload enforcer (`Service.Sync(
 
 | Action | Company Status | Tenant Connection | Tenant Database |
 |--------|---------------|-------------------|-----------------|
-| `Create` | `active` | `is_active = true` | ✅ Created + migrated (106 tables) |
+| `Create` | `active` | `is_active = true` | ✅ Created + migrated (120 tables) |
 | `Suspend` | `suspended` | `is_active = false` + cache cleared | ✅ Data preserved |
 | `Activate` | `active` | `is_active = true` + cache cleared | ✅ Reconnected |
 | `Soft Delete` | (hidden via `deleted_at`) | `is_active = false` + cache cleared | ✅ Data preserved |
@@ -944,7 +947,10 @@ docker run -p 8080:8080 hris-platform:latest
 | `internal/modules/employeemovement/` | **58** (service 22 + repository 22 + handler 14) | — | — | **58** |
 | `internal/modules/attendance/` | **83** (repository 37 + service 25 + handler 21) | — | — | **83** |
 | `internal/modules/leave/` | **38** (repository 14 + service 12 + handler 12) | — | — | **38** |
+| `internal/modules/performance/` | **55** (repository 14 + service 24 + handler 17) | — | — | **55** |
+| `internal/modules/recruitment/` | **66** (repository 27 + service 23 + handler 16) | — | — | **66** |
 | `internal/modules/reimbursement/` | **48** (repository 18 + service 20 + handler 16) | — | — | **48** |
+| `internal/modules/training/` | **31** (repository 14 + service 9 + handler 8) | — | — | **31** |
 
 ### Run Tests
 
@@ -1081,7 +1087,7 @@ CREATE TABLE schema_migrations (
 
 - `internal/pkg/migrator/migrations/platform/` — 7 platform DDL files (termasuk RBAC roles, permissions, role_permissions)
 - `internal/pkg/migrator/migrations/seeders/` — 1 seeder file
-- `internal/pkg/migrator/migrations/tenant/` — Tenant template (future)
+- `internal/pkg/migrator/migrations/tenant/` — Tenant migrations (30 file per dialect — mysql & postgres)
 
 ### Transaction Safety
 
@@ -1108,12 +1114,12 @@ POST /api/v1/platform/companies
    ├── b. Connect sebagai superuser (root@localhost)
    ├── c. Buat database tenant (CREATE DATABASE IF NOT EXISTS)
    ├── d. Simpan TenantConnection ke platform DB (ID = companyID)
-   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 13 tenant SQL migrations (111 tables)
+   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 16 tenant SQL migrations (132 tables)
 5. Jika provisioning berhasil → company status: active
 6. Jika provisioning gagal → company status: suspended (data tetap tersimpan)
 ```
 
-### Tenant Migration Files (13 files → 111 tables)
+### Tenant Migration Files (16 files → 132 tables)
 
 | File | Isi |
 |------|-----|
@@ -1130,10 +1136,13 @@ POST /api/v1/platform/companies
 | `011_pph21.sql` | PPh21 settings, tax brackets, PTKP rates |
 | `012_employee_movement.sql` | Employee movements & contracts |
 | `013_reimbursement.sql` | Reimbursement types, requests, items |
+| `014_performance.sql` | Performance periods, perspectives, templates, indicators, evaluations, targets |
+| `015_recruitment.sql` | Job requisitions, candidates, applications, interviews, onboarding tasks |
+| `016_training.sql` | Training categories, courses, sessions, participants, materials, evaluations, certificates |
 
-> **Catatan:** Total 111 tabel termasuk `schema_migrations` (auto-created oleh migrator engine).
+> **Catatan:** Total 132 tabel termasuk `schema_migrations` (auto-created oleh migrator engine).
 
-### Daftar Lengkap 106 Tabel Tenant
+### Daftar Lengkap 127 Tabel Tenant
 
 **Approval (5):**
 `approval_actions`, `approval_flow_steps`, `approval_flows`, `approval_instances`, `approval_tasks`
@@ -1181,6 +1190,18 @@ POST /api/v1/platform/companies
 `pph21_settings`, `pph21_tax_brackets`, `ptkps`, `salary_change_logs`,
 `salary_components`, `salary_employee_adjustments`, `salary_employee_components`, `salary_grade_components`
 
+**Performance (7):**
+`performance_periods`, `performance_perspectives`, `performance_templates`, `performance_indicators`,
+`performance_evaluations`, `performance_evaluation_details`, `performance_targets`
+
+**Recruitment (7):**
+`job_requisitions`, `candidates`, `job_applications`, `interviews`,
+`onboarding_task_templates`, `employee_onboardings`, `onboarding_task_items`
+
+**Training & Development (7):**
+`training_categories`, `training_courses`, `training_sessions`, `training_participants`,
+`training_materials`, `training_evaluations`, `training_certificates`
+
 **Settings & Permissions (7):**
 `feature_permission`, `features`, `model_has_permissions`, `model_has_roles`,
 `permissions`, `role_has_permissions`, `roles`
@@ -1202,8 +1223,8 @@ POST /api/v1/platform/companies
 | Company status | ✅ **active** | API mengembalikan `status: "active"` |
 | Tenant database | ✅ Created | `hris_final-provision-test` |
 | Tenant connection | ✅ Saved | Record di `tenant_connections` tersimpan |
-| Migrations | ✅ **12 files** | 001 → 012 sukses semua |
-| Total tables | ✅ **106 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
+| Migrations | ✅ **16 files** | 001 → 016 sukses semua |
+| Total tables | ✅ **127 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
 | Server log | ✅ Clean | "Tenant provisioning completed successfully" |
 
 #### API Test Response
@@ -1256,19 +1277,20 @@ POST /api/v1/platform/companies
 | **Payroll & Compensation Engine** | ✅ **Completed (24 Juli 2026)** | **21 GORM entities**: SalaryComponent, PayrollPeriod, PayrollRun, BpjsSetting, BpjsRateComponent, Pph21Setting, Pph21PtkpRate, Pph21TaxBracket, EmployeePayrollProfile, EmployeeBankProfile, EmployeeBpjsProfile, EmployeeTaxProfile, PayrollRunEmployee, PayrollRunItem, PayrollPayslip, Pph21CalculationLog, dan lainnya. Full CRUD (Create/Read/Update/Delete) untuk seluruh entity. **34 unit tests** (13 repository + 21 service).
   - **BPJS Indonesia**: BPJS Settings & Rate Components (Kesehatan & Ketenagakerjaan)
   - **PPh21**: Settings, Tax Brackets, PTKP Rates, Calculation Logs
-  - **Payroll Run**: Periods, Runs (dengan status workflow DRAFT→CALCULATED→REVIEWED→APPROVED→LOCKED), Run Employees, Items, Payslips
+  - **Payroll Run** |
+| **Performance Management** | ✅ **Completed (31 Juli 2026)** | **7 GORM entities**: PerformancePeriod, PerformancePerspective, PerformanceTemplate, PerformanceIndicator, PerformanceEvaluation, PerformanceEvaluationDetail, PerformanceTarget. KPI & OKR framework dengan period-based evaluations. **55 unit tests** (14 repository + 24 service + 17 handler). **34 endpoints** — periods, perspectives, templates, indicators, evaluations (with status workflow & score details), targets. Full OpenAPI documentation dengan 253 schemas terintegrasi. |
+| **Recruitment & Onboarding ATS** | ✅ **Completed (31 Juli 2026)** | **7 GORM entities**: Requisition, Candidate, Application, Interview, InterviewResult, OnboardingTask, OnboardingChecklist. End-to-end hiring pipeline: job req → candidate sourcing → application → interview → offer → onboarding. **66 unit tests** (27 repository + 23 service + 16 handler). **33 endpoints** across 7 resource groups. Full ATS workflow with status tracking (OPEN→IN_PROGRESS→FILLED→CANCELLED). |: Periods, Runs (dengan status workflow DRAFT→CALCULATED→REVIEWED→APPROVED→LOCKED), Run Employees, Items, Payslips
   - **OpenAPI**: **23 path groups** (~46 endpoints), 21 request schemas, 22 response schemas (total 153 schemas) — versi 1.6.0 |
 | **Time & Attendance** | ✅ **Completed (26 Juli 2026)** | **10 GORM entities**: Company Settings, Company Shifts, Employee Shifts, Locations (Geofence), Device Captures, Face Captures, Events (Check-in/out), Sessions (Daily Work), Overtime Requests, Exempt Positions. Full CRUD untuk 8 sub-entities. **83 unit tests** (37 repo + 25 service + 21 handler). **30 endpoints**. OpenAPI docs enhanced — versi 1.6.3 |
 | **Leave & Time Off** | ✅ **Completed (26 Juli 2026)** | **6 GORM entities**: LeaveTypes, LeaveAccrualPolicies, LeaveReasons, LeaveRequests, LeaveRequestDetails, EmployeeLeaveBalances. Full CRUD untuk 5 sub-entities. **38 unit tests** (14 repo + 12 service + 12 handler). **23 endpoints**. |
 | **Reimbursement & Claim** | ✅ **Completed (30 Juli 2026)** | **3 GORM entities**: ReimbursementType, ReimbursementRequest, ReimbursementItem. Multi-step status flow (DRAFT->SUBMITTED->APPROVED->PAID). **48 unit tests** (18 repo + 20 service + 16 handler). **15 OpenAPI endpoints**. Approval integration via Approval Engine. |
+| **Training & Development Management** | ✅ **Completed (1 Agustus 2026)** | **7 GORM entities**: TrainingCategory, TrainingCourse, TrainingSession, TrainingParticipant, TrainingMaterial, TrainingEvaluation, TrainingCertificate. Full CRUD untuk 7 resource groups dengan validasi (quota checks, FK existence, session status). **31 unit tests** (14 repository + 9 service + 8 handler). **35 endpoints** — categories, courses, sessions (with status update), participants, materials, evaluations, certificates. Migration files (016_training) untuk MySQL & Postgres. |
 
 ### Modul Operasional & Siklus Karier (Planned 🗓️)
 
 | Modul | Prioritas | Scope |
 |-------|:---------:|-------|
 | **Organization History, Versioning & Cloning** | 🟢 High | Change Capture, Full Structure Cloning DRAFT, Version Audit Trail |
-| **Performance Management** | 🟡 Medium | KPI, OKR, review 360 terintegrasi Job Management & Competency |
-| **Recruitment & Onboarding (ATS)** | 🟡 Medium | Kandidat, alur seleksi, otomatisasi onboarding |
 
 ---
 
@@ -1280,6 +1302,9 @@ POST /api/v1/platform/companies
 |---|------|------|
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
+| ✅ | Project completion dashboard (13 modules, 860+ tests, 127 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
+| ✅ | OpenAPI comprehensive report (457 endpoints, 290 schemas, 22 tags) | `docs/openapi-report.md` |
+| ✅ | Go module architecture report (110 entities, 445 services, 831 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
 | ✅ | README utama proyek | `README.md` |
@@ -1418,10 +1443,10 @@ gorm.io/gorm v1.30.0                      # ORM
 | # | Item | Detail |
 |---|------|--------|
 | ✅ | Provisioning Engine | Database creation + TenantConnection save |
-| ✅ | Tenant SQL Migrations | 11 migration files → 106 tables |
+| ✅ | Tenant SQL Migrations | 15 migration files → 120 tables |
 | ✅ | Multi-statement MySQL support | `multiStatements=true` di DSN |
 | ✅ | Error handling / graceful failure | Company status = `suspended` jika provisioning gagal |
-| ✅ | End-to-end test | Company active ✅, 106 tables ✅, MySQL |
+| ✅ | End-to-end test | Company active ✅, 120 tables ✅, MySQL |
 
 ### ✅ Tenant Lifecycle Management
 
@@ -1512,16 +1537,17 @@ $ go build ./...  # ✅ Berhasil
 
 ### Phase 4: Operations & Career ✅
 - ✅ **Employee Movement & Career Management** (Promosi/Demosi, PKWT, Pensiun/PHK) — [Selesai 23 Juli 2026]
-- ✅ **Time & Attendance (presensi, shift, lembur) — [Selesai 26 Juli 2026]**
-- ✅ **Leave & Time Off (cuti, izin, sakit, multi-level approval) — [Selesai 26 Juli 2026]**
-- 🗓️ Performance Management (KPI, OKR, review 360)
-- ✅ Reimbursement & Claim
-- ⬜ Recruitment & Onboarding (ATS)
+- ✅ **Time & Attendance** (presensi, shift, lembur) — [Selesai 26 Juli 2026]
+- ✅ **Leave & Time Off** (cuti, izin, sakit, multi-level approval) — [Selesai 26 Juli 2026]
+- ✅ **Performance Management** (KPI, OKR, review 360) — [Selesai 31 Juli 2026]
+- ✅ **Reimbursement & Claim** — [Selesai 30 Juli 2026]
+- ✅ **Recruitment & Onboarding (ATS)** — [Selesai 31 Juli 2026]
+- ✅ **Training & Development Management** (Training categories, courses, sessions, participants, materials, evaluations, certificates) — [Selesai 1 Agustus 2026]
 
 ### Production Readiness 🎯
 - ✅ AES-256-GCM encryption untuk kredensial tenant DB (`internal/pkg/crypto/`, CLI `encrypt-passwords`)
 - ✅ **Connection Pool optimization** (Platform: 10/5/1jam, Tenant: 10/3/30mnt/5mnt idle→close, PoolStats(), PgBouncer support)
-- ✅ SQL dialect separation (PostgreSQL vs MySQL migrations) — 22 file per dialect, auto-select via `TenantRootPath(driver)`
+- ✅ SQL dialect separation (PostgreSQL vs MySQL migrations) — 30 file per dialect (15 up + 15 down), auto-select via `TenantRootPath(driver)`
 - ✅ Redis Pub/Sub untuk distributed cache invalidation (`internal/pkg/cache/` — two-tier + Pub/Sub)
 - ⬜ Frontend Implementation (Vue 3 + PrimeVue)
 
@@ -1536,6 +1562,9 @@ $ go build ./...  # ✅ Berhasil
 | Dokumen | Deskripsi |
 |---|---|
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap |
+| [`docs/PROJECT_COMPLETION_DASHBOARD.md`](docs/PROJECT_COMPLETION_DASHBOARD.md) | **NEW** — Project completion dashboard (13 modules, 860+ tests, 127 tables) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v8 — 457 endpoints, 290 schemas, 22 tags) |
+| [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
 | [`docs/analisis-blueprint-vs-existing.md`](docs/analisis-blueprint-vs-existing.md) | Analisis blueprint vs existing Laravel app |
 | [`backend/.env.example`](backend/.env.example) | Template environment variables |
 | [`backend/Makefile`](backend/Makefile) | Build & development commands |

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -658,8 +657,8 @@ func TestCache_Close(t *testing.T) {
 // Test: New with Redis Connection Failure (Error Path)
 // =========================================================================
 
-// TestCache_New_InvalidAddress verifies that New() returns an error when
-// the Redis server is unreachable.
+// TestCache_New_InvalidAddress verifies that New() falls back to local-only cache
+// when the Redis server is unreachable.
 func TestCache_New_InvalidAddress(t *testing.T) {
 	logger := mustNewLogger(t)
 
@@ -670,22 +669,30 @@ func TestCache_New_InvalidAddress(t *testing.T) {
 		DefaultTTL:    5 * time.Minute,
 	}
 
-	_, err := New(cfg, logger)
-	if err == nil {
-		t.Fatal("expected error when Redis is unreachable, got nil")
+	c, err := New(cfg, logger)
+	if err != nil {
+		t.Fatalf("expected fallback to local-only cache, got error: %v", err)
+	}
+	defer c.Close()
+
+	// Verify local-only mode (client should be nil)
+	if c.client != nil {
+		t.Fatal("expected local-only cache (client=nil) when Redis is unreachable")
 	}
 
-	// Verify the error message is descriptive (contains the address)
-	if !strings.Contains(err.Error(), "127.0.0.1:1") {
-		t.Fatalf("error should contain the Redis address, got: %v", err)
+	// Verify local-only cache still works for basic operations
+	ctx := context.Background()
+	if err := c.Set(ctx, "test:local", []byte("data"), 0); err != nil {
+		t.Fatalf("local Set failed: %v", err)
 	}
-	if !strings.Contains(err.Error(), "failed to connect to Redis") {
-		t.Fatalf("error should mention 'failed to connect to Redis', got: %v", err)
+	val, ok := c.Get(ctx, "test:local")
+	if !ok || string(val) != "data" {
+		t.Fatalf("local Get failed: got %q, %v", string(val), ok)
 	}
 }
 
-// TestCache_New_EmptyAddress verifies that New() returns an error when
-// Redis address is empty.
+// TestCache_New_EmptyAddress verifies that New() falls back to local-only cache
+// even when Redis address has an invalid port.
 func TestCache_New_EmptyAddress(t *testing.T) {
 	logger := mustNewLogger(t)
 
@@ -696,14 +703,20 @@ func TestCache_New_EmptyAddress(t *testing.T) {
 		DefaultTTL:    5 * time.Minute,
 	}
 
-	_, err := New(cfg, logger)
-	if err == nil {
-		t.Fatal("expected error when Redis address has invalid port, got nil")
+	c, err := New(cfg, logger)
+	if err != nil {
+		t.Fatalf("expected fallback to local-only cache, got error: %v", err)
+	}
+	defer c.Close()
+
+	// Verify local-only mode
+	if c.client != nil {
+		t.Fatal("expected local-only cache (client=nil) when Redis connection fails")
 	}
 }
 
-// TestCache_New_ClosedRedis verifies that New() returns an error when
-// the provided Redis client cannot be pinged (simulated via stopped server).
+// TestCache_New_ClosedRedis verifies that New() falls back to local-only cache
+// when the provided Redis server is stopped.
 func TestCache_New_ClosedRedis(t *testing.T) {
 	// Start and immediately stop a miniredis to get a port that was
 	// briefly active but is now closed.
@@ -723,16 +736,22 @@ func TestCache_New_ClosedRedis(t *testing.T) {
 		DefaultTTL:    5 * time.Minute,
 	}
 
-	// New() should fail because the server is already closed
-	_, err = New(cfg, logger)
-	if err == nil {
-		t.Fatal("expected error when connecting to closed Redis server, got nil")
+	// New() should fallback to local-only when Redis is closed
+	c, err := New(cfg, logger)
+	if err != nil {
+		t.Fatalf("expected fallback to local-only cache, got error: %v", err)
+	}
+	defer c.Close()
+
+	// Verify local-only mode
+	if c.client != nil {
+		t.Fatal("expected local-only cache (client=nil) when Redis is closed")
 	}
 }
 
-// TestCache_New_ErrorMessage_Format verifies the error message format
-// contains all expected context for debugging.
-func TestCache_New_ErrorMessage_Format(t *testing.T) {
+// TestCache_New_LocalOnlyFallback verifies that New() falls back to local-only cache
+// when Redis is unreachable (e.g. TEST-NET address).
+func TestCache_New_LocalOnlyFallback(t *testing.T) {
 	logger := mustNewLogger(t)
 
 	cfg := Config{
@@ -742,17 +761,16 @@ func TestCache_New_ErrorMessage_Format(t *testing.T) {
 		DefaultTTL:    5 * time.Minute,
 	}
 
-	_, err := New(cfg, logger)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	c, err := New(cfg, logger)
+	if err != nil {
+		t.Fatalf("expected fallback to local-only cache, got error: %v", err)
 	}
+	defer c.Close()
 
-	errMsg := err.Error()
-	// Should contain the address for debugging
-	if !strings.Contains(errMsg, "192.0.2.1:6379") {
-		t.Fatalf("error should contain Redis address, got: %s", errMsg)
+	// Verify local-only mode (client should be nil)
+	if c.client != nil {
+		t.Fatal("expected local-only cache (client=nil) when Redis is unreachable")
 	}
-	t.Logf("connection error message: %s", errMsg)
 }
 
 

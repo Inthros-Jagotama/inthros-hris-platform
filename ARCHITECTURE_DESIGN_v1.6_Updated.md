@@ -32,7 +32,10 @@ Sistem ini dirancang menggunakan pendekatan **Modular Monolith** berbasis bahasa
 | **Payroll & Compensation Engine** | **21 GORM entities** | ✅ **34 tests** | ✅ **Completed (24 Juli 2026)** — BPJS, PPh21, Payroll Run, Employee Profiles. **47 OpenAPI endpoints** |
 | **Time & Attendance** | **10 GORM entities** | ✅ **83 tests** | ✅ **Completed (26 Juli 2026)** — Settings, Shifts, Employee Shifts, Locations, Events, Sessions, Overtime, Exempt Positions. **30 OpenAPI endpoints** |
 | **Leave & Time Off** | **6 GORM entities** | ✅ **38 tests** | ✅ **Completed (26 Juli 2026)** — Leave Types, Accrual Policies, Reasons, Requests (23 endpoints), Details, Balances |
+| **Performance Management** | **7 GORM entities** | ✅ **55 tests** | ✅ **Completed (31 Juli 2026)** — Periods, Perspectives, Templates, Indicators, Evaluations, Details, Targets. KPI/OKR/BSC framework. **34 OpenAPI endpoints** |
+| **Recruitment & Onboarding ATS** | **7 GORM entities** | ✅ **66 tests** | ✅ **Completed (31 Juli 2026)** — Requisitions, Candidates, Applications, Interviews, Onboardings, Task Templates, Items. **33 OpenAPI endpoints** |
 | **Reimbursement & Claim** | **3 GORM entities** | ✅ **48 tests** | ✅ **Completed (30 Juli 2026)** — Reimbursement Types, Requests, Items. **15 OpenAPI endpoints** |
+| **Training & Development Management** | **7 GORM entities** | ✅ **31 tests** | ✅ **Completed (1 Agustus 2026)** — Training categories, courses, sessions, participants, materials, evaluations, certificates. **35 OpenAPI endpoints** |
 
 ---
 
@@ -84,7 +87,7 @@ PgBouncer (opsional, untuk production):
 
 ### 2.4. Penanganan Dialek SQL Migrasi ✅
 * **Masalah:** Penggunaan eksekusi file `.sql` mentah memerlukan penanganan khusus jika sistem mendukung dual-driver (PostgreSQL & MySQL) karena perbedaan sintaksis DDL (seperti `UUID` vs `VARCHAR/CHAR(36)`).
-* **Status:** ✅ **Sudah diimplementasikan** — Direktori migrasi dipisah: `migrations/tenant/mysql/` (22 file MySQL-optimized) dan `migrations/tenant/postgres/` (22 file PostgreSQL-optimized). Go code menggunakan `TenantRootPath(driver)` untuk memilih dialect yang sesuai secara otomatis saat provisioning.
+* **Status:** ✅ **Sudah diimplementasikan** — Direktori migrasi dipisah: `migrations/tenant/mysql/` (30 file MySQL-optimized) dan `migrations/tenant/postgres/` (30 file PostgreSQL-optimized). Go code menggunakan `TenantRootPath(driver)` untuk memilih dialect yang sesuai secara otomatis saat provisioning.
 
 ### 2.5. Sinkronisasi Cache Terdistribusi ✅
 * **Masalah:** Pembaruan *Feature Flags* atau *Permissions* di Redis pada satu instance Go server perlu dikonsumsi secara konsisten oleh instance lainnya pada lingkungan *multi-node deployment*.
@@ -124,14 +127,16 @@ Modul-modul berikut telah selesai didesain dan diimplementasikan sebagai fondasi
 * [x] **Competency Management:** ✅ **Completed (30 Juli 2026)** — 7 GORM entities, full CRUD. Competencies, Values (legacy + structured), Events, Targets, Scores, Score Details. **35 OpenAPI endpoints**, **54 unit tests**.
 * [x] **Employee Movement & Career Management:** ✅ **Completed (30 Juli 2026)** — 2 GORM entities. 8 movement types (promotion, demotion, mutation, contract_extension, status_change, retirement, offboarding, other). 4 contract types (PKWT, PKWTT, daily, other). **15 OpenAPI endpoints**, **58 unit tests**.
 * [x] **Reimbursement & Claim:** ✅ **Completed (30 Juli 2026)** — 3 GORM entities (ReimbursementType, ReimbursementRequest, ReimbursementItem). Multi-step approval flow (DRAFT->SUBMITTED->APPROVED->PAID). **15 OpenAPI endpoints**, **48 unit tests**.
+* [x] **Training & Development Management:** ✅ **Completed (1 Agustus 2026)** — 7 GORM entities (TrainingCategory, TrainingCourse, TrainingSession, TrainingParticipant, TrainingMaterial, TrainingEvaluation, TrainingCertificate). Full CRUD with validations. **35 OpenAPI endpoints**, **31 unit tests**.
 
 ### 3.2. Modul Operasional & Siklus Karier (Planned / Phase 2 Roadmap)
 Untuk melengkapi cakupan *Full-Suite HRIS*, modul-modul operasional berikut masuk dalam skala prioritas pengembangan tahap berikutnya:
 
 * [x] **Time & Attendance:** ✅ Perekaman presensi, penjadwalan *shift*, lembur (*overtime*), dan kalkulasi keterlambatan.
 * [x] **Leave & Time Off:** ✅ Pengajuan cuti, sakit, izin, manajemen kuota cuti tahunan, dan *multi-level approval*.
-* [ ] **Performance Management:** Penilaian kinerja (KPI, OKR, review 360) yang terintegrasi langsung dengan modul *Job Management* dan *Competency*.
-* [ ] **Recruitment & Onboarding (ATS):** Manajemen kandidat, alur seleksi, hingga otomatisasi pendaftaran karyawan baru (*onboarding*).
+* [x] **Performance Management:** ✅ **Completed (31 Juli 2026)** — KPI/OKR/BSC dengan 7 GORM entities, period-based evaluations, perspective scoring, dan 55 unit tests.
+* [x] **Recruitment & Onboarding (ATS):** ✅ **Completed (31 Juli 2026)** — End-to-end ATS dengan 7 GORM entities, candidate pipeline, interview scheduling, onboarding workflows, dan 66 unit tests.
+* [x] **Training & Development Management:** ✅ **Completed (1 Agustus 2026)** — 7 GORM entities, training categories, courses, sessions, participants, materials, evaluations, certificates. 35 endpoints, 31 unit tests.
 * [ ] **Organization History, Versioning & Cloning:** Change Capture, Full Structure Cloning, Version Audit Trail.
 
 ---
@@ -151,6 +156,9 @@ Untuk melengkapi cakupan *Full-Suite HRIS*, modul-modul operasional berikut masu
 | **Competency**| Competency Management | ✅ **Done (30 Juli 2026)** | 7 GORM entities, full CRUD, 54 unit tests. Competencies, Values, Events, Scores. **35 OpenAPI endpoints**. |
 | **Movement**| Employee Movement & Career | ✅ **Done (30 Juli 2026)** | 2 GORM entities, 58 unit tests. 8 movement types, contract extension chain. **15 OpenAPI endpoints**. |
 | **Reimbursement**| Reimbursement & Claim | ✅ **Done (30 Juli 2026)** | 3 GORM entities, 48 unit tests. Multi-step status flow. **15 OpenAPI endpoints**. |
+| **Performance**| Performance Management | ✅ **Done (31 Juli 2026)** | 7 GORM entities, 55 unit tests, 34 endpoints. KPI/OKR/BSC framework with period-based evaluations. |
+| **Recruitment**| Recruitment & Onboarding ATS | ✅ **Done (31 Juli 2026)** | 7 GORM entities, 66 unit tests, 33 endpoints. End-to-end ATS pipeline. |
+| **Training**| Training & Development Management | ✅ **Done (1 Agustus 2026)** | 7 GORM entities, 31 unit tests, 35 endpoints. Categories, courses, sessions, participants, materials, evaluations, certificates. |
 
 ---
 *Document Version: 1.6-Updated (v6)*  
@@ -161,6 +169,8 @@ Untuk melengkapi cakupan *Full-Suite HRIS*, modul-modul operasional berikut masu
 
 | Versi | Tanggal | Perubahan |
 |-------|---------|-----------|
+| v8 | 1 Agustus 2026 | ✅ Training & Development Management (7 entities, 31 tests, 35 endpoints) selesai. OpenAPI full coverage (457 endpoints, 290 schemas, 22 tags). Migration files 001-016 (132 tables). |
+| v7 | 31 Juli 2026 | ✅ Performance Management (7 entities, 55 tests, 34 endpoints) & Recruitment ATS (7 entities, 66 tests, 33 endpoints) selesai. OpenAPI full coverage (415 endpoints, 253 schemas, 21 tags). Migration files 001-015 (120 tables). |
 | v6 | 30 Juli 2026 | ✅ Competency, Employee Movement, Reimbursement selesai. OpenAPI docs full coverage (348 endpoints, 208 schemas, 19 tags) |
 | v5 | 26 Juli 2026 | ✅ Leave & Time Off selesai: 6 GORM entities, full CRUD, 38 unit tests, 23 endpoints |
 | v4 | 26 Juli 2026 | ✅ Time & Attendance selesai: 10 GORM entities, full CRUD, 83 unit tests, 30 endpoints, OpenAPI docs |

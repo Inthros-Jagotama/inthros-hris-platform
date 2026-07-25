@@ -96,3 +96,144 @@ func (r *Repository) SoftDelete(ctx context.Context, id uuid.UUID) error {
 	}
 	return db.Where("id = ?", id).Delete(&Organization{}).Error
 }
+
+// =========================================================================
+// History Repository Methods
+// =========================================================================
+
+func (r *Repository) CreateHistory(ctx context.Context, history *OrganizationHistory) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(history).Error
+}
+
+func (r *Repository) FindHistoryByOrgID(ctx context.Context, orgID uuid.UUID, page, perPage int) ([]OrganizationHistory, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var histories []OrganizationHistory
+	var total int64
+
+	query := db.Model(&OrganizationHistory{}).Where("organization_id = ?", orgID)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&histories).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return histories, total, nil
+}
+
+func (r *Repository) FindAllHistory(ctx context.Context, page, perPage int) ([]OrganizationHistory, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var histories []OrganizationHistory
+	var total int64
+
+	query := db.Model(&OrganizationHistory{})
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&histories).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return histories, total, nil
+}
+
+// =========================================================================
+// Version Repository Methods
+// =========================================================================
+
+func (r *Repository) CreateVersion(ctx context.Context, version *OrganizationVersion) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(version).Error
+}
+
+func (r *Repository) FindVersionByID(ctx context.Context, id uuid.UUID) (*OrganizationVersion, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var version OrganizationVersion
+	if err := db.First(&version, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("version not found: %w", err)
+	}
+	return &version, nil
+}
+
+func (r *Repository) FindAllVersions(ctx context.Context, page, perPage int) ([]OrganizationVersion, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var versions []OrganizationVersion
+	var total int64
+
+	query := db.Model(&OrganizationVersion{})
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&versions).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return versions, total, nil
+}
+
+func (r *Repository) UpdateVersion(ctx context.Context, version *OrganizationVersion) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(version).Error
+}
+
+func (r *Repository) FindAllOrganizationsFlat(ctx context.Context) ([]Organization, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var orgs []Organization
+	if err := db.Order("full_code ASC").Find(&orgs).Error; err != nil {
+		return nil, err
+	}
+	return orgs, nil
+}
+
+// RestoreAllFromSnapshot replaces the entire organization tree atomically.
+// Performs hard delete + bulk create in a single transaction to prevent data loss.
+func (r *Repository) RestoreAllFromSnapshot(ctx context.Context, newOrgs []Organization) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		// 1. Remove all existing organizations
+		if err := tx.Unscoped().Where("1 = 1").Delete(&Organization{}).Error; err != nil {
+			return err
+		}
+		// 2. Create all organizations from snapshot
+		for i := range newOrgs {
+			if err := tx.Create(&newOrgs[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}

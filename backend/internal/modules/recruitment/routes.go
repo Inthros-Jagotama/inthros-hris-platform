@@ -1,0 +1,56 @@
+package recruitment
+
+import "github.com/gin-gonic/gin"
+
+// RegisterRoutes mendaftarkan semua endpoint Recruitment & Onboarding ke router group tenant.
+func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
+	rec := rg.Group("/recruitment")
+	{
+		// Job Requisitions
+		rec.POST("/requisitions", handler.CreateRequisition)
+		rec.GET("/requisitions", handler.ListRequisitions)
+		rec.GET("/requisitions/:id", handler.GetRequisitionByID)
+		rec.PUT("/requisitions/:id", handler.UpdateRequisition)
+		rec.DELETE("/requisitions/:id", handler.DeleteRequisition)
+
+		// Candidates
+		rec.POST("/candidates", handler.CreateCandidate)
+		rec.GET("/candidates", handler.ListCandidates)
+		rec.GET("/candidates/:id", handler.GetCandidateByID)
+		rec.PUT("/candidates/:id", handler.UpdateCandidate)
+		rec.DELETE("/candidates/:id", handler.DeleteCandidate)
+
+		// Job Applications
+		rec.POST("/applications", handler.CreateApplication)
+		rec.GET("/applications", handler.ListApplications)
+		rec.GET("/applications/:id", handler.GetApplicationByID)
+		rec.PUT("/applications/:id/status", handler.UpdateApplicationStatus)
+		rec.DELETE("/applications/:id", handler.DeleteApplication)
+
+		// Interviews
+		rec.POST("/interviews", handler.CreateInterview)
+		rec.GET("/interviews", handler.ListInterviews)
+		rec.GET("/interviews/:id", handler.GetInterviewByID)
+		rec.PUT("/interviews/:id", handler.UpdateInterview)
+		rec.DELETE("/interviews/:id", handler.DeleteInterview)
+
+		// Onboarding Task Templates
+		rec.POST("/onboarding-task-templates", handler.CreateOnboardingTaskTemplate)
+		rec.GET("/onboarding-task-templates", handler.ListOnboardingTaskTemplates)
+		rec.PUT("/onboarding-task-templates/:id", handler.UpdateOnboardingTaskTemplate)
+		rec.DELETE("/onboarding-task-templates/:id", handler.DeleteOnboardingTaskTemplate)
+
+		// Employee Onboarding
+		rec.POST("/employee-onboardings", handler.CreateEmployeeOnboarding)
+		rec.GET("/employee-onboardings", handler.ListEmployeeOnboardings)
+		rec.GET("/employee-onboardings/:id", handler.GetEmployeeOnboardingByID)
+		rec.PUT("/employee-onboardings/:id", handler.UpdateEmployeeOnboarding)
+		rec.DELETE("/employee-onboardings/:id", handler.DeleteEmployeeOnboarding)
+
+		// Onboarding Task Items (nested under onboardings)
+		rec.POST("/onboarding-task-items", handler.CreateOnboardingTaskItem)
+		rec.GET("/employee-onboardings/:id/task-items", handler.ListOnboardingTaskItems)
+		rec.PUT("/onboarding-task-items/:id", handler.UpdateOnboardingTaskItem)
+		rec.DELETE("/onboarding-task-items/:id", handler.DeleteOnboardingTaskItem)
+	}
+}

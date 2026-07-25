@@ -84,7 +84,11 @@ func (m *orgModule) RegisterRoutes(rg *gin.RouterGroup) {
 }
 
 func (m *orgModule) Migrate(db *gorm.DB) error {
-	return db.AutoMigrate(&Organization{})
+	return db.AutoMigrate(
+		&Organization{},
+		&OrganizationHistory{},
+		&OrganizationVersion{},
+	)
 }
 
 func (m *orgModule) Seed(db *gorm.DB) error {

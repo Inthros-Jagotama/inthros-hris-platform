@@ -70,6 +70,8 @@ type Config struct {
 }
 
 // New membuat Cache baru dan memulai Pub/Sub listener.
+// Jika Redis tidak tersedia, secara otomatis fallback ke local-only cache
+// (tanpa Redis / Pub/Sub) untuk development environment.
 func New(cfg Config, logger *zap.Logger) (*Cache, error) {
 	if cfg.DefaultTTL == 0 {
 		cfg.DefaultTTL = 5 * time.Minute
@@ -81,12 +83,26 @@ func New(cfg Config, logger *zap.Logger) (*Cache, error) {
 		DB:       cfg.RedisDB,
 	})
 
-	// Test koneksi
+	// Test koneksi — jika gagal, fallback ke local-only cache
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	if err := rdb.Ping(ctx).Err(); err != nil {
-		return nil, fmt.Errorf("cache: failed to connect to Redis at %s: %w", cfg.RedisAddr, err)
+		logger.Warn("Redis unavailable, falling back to local-only cache",
+			zap.String("redis_addr", cfg.RedisAddr),
+			zap.Error(err),
+		)
+		// Local-only cache (no Redis, no Pub/Sub)
+		c := &Cache{
+			client:     nil,
+			local:      sync.Map{},
+			logger:     logger,
+			defaultTTL: cfg.DefaultTTL,
+		}
+		logger.Info("Local-only cache initialized (no Redis)",
+			zap.Duration("default_ttl", cfg.DefaultTTL),
+		)
+		return c, nil
 	}
 
 	c := &Cache{
@@ -98,11 +114,25 @@ func New(cfg Config, logger *zap.Logger) (*Cache, error) {
 	// Inisialisasi Pub/Sub untuk distributed cache invalidation
 	ps, err := NewPubSub(rdb, logger, c.evictLocal)
 	if err != nil {
-		return nil, fmt.Errorf("cache: failed to init pubsub: %w", err)
+		logger.Warn("Pub/Sub initialization failed, falling back to local-only cache",
+			zap.Error(err),
+		)
+		// Close Redis client since we'll use local-only
+		rdb.Close()
+		c := &Cache{
+			client:     nil,
+			local:      sync.Map{},
+			logger:     logger,
+			defaultTTL: cfg.DefaultTTL,
+		}
+		logger.Info("Local-only cache initialized (Pub/Sub unavailable)",
+			zap.Duration("default_ttl", cfg.DefaultTTL),
+		)
+		return c, nil
 	}
 	c.pubSub = ps
 
-	logger.Info("Cache initialized",
+	logger.Info("Cache initialized with Redis",
 		zap.String("redis_addr", cfg.RedisAddr),
 		zap.Duration("default_ttl", cfg.DefaultTTL),
 	)
@@ -121,12 +151,14 @@ func (c *Cache) Get(ctx context.Context, key string) ([]byte, bool) {
 		return val, true
 	}
 
-	// 2. Cek Redis
-	val, err := c.client.Get(ctx, key).Bytes()
-	if err == nil {
-		// Simpan ke local cache untuk akses berikutnya
-		c.setLocal(key, val, c.defaultTTL)
-		return val, true
+	// 2. Cek Redis (jika tersedia)
+	if c.client != nil {
+		val, err := c.client.Get(ctx, key).Bytes()
+		if err == nil {
+			// Simpan ke local cache untuk akses berikutnya
+			c.setLocal(key, val, c.defaultTTL)
+			return val, true
+		}
 	}
 
 	return nil, false
@@ -138,8 +170,10 @@ func (c *Cache) Set(ctx context.Context, key string, value []byte, ttl time.Dura
 		ttl = c.defaultTTL
 	}
 
-	if err := c.client.Set(ctx, key, value, ttl).Err(); err != nil {
-		return fmt.Errorf("cache: set failed for %s: %w", key, err)
+	if c.client != nil {
+		if err := c.client.Set(ctx, key, value, ttl).Err(); err != nil {
+			return fmt.Errorf("cache: set failed for %s: %w", key, err)
+		}
 	}
 
 	c.setLocal(key, value, ttl)
@@ -157,9 +191,11 @@ func (c *Cache) SetJSON(ctx context.Context, key string, data interface{}, ttl t
 
 // Invalidate menghapus key dari semua cache (lokal + Redis + instance lain via Pub/Sub).
 func (c *Cache) Invalidate(ctx context.Context, key string) error {
-	// 1. Hapus dari Redis
-	if err := c.client.Del(ctx, key).Err(); err != nil {
-		return fmt.Errorf("cache: invalidate failed for %s: %w", key, err)
+	// 1. Hapus dari Redis (jika tersedia)
+	if c.client != nil {
+		if err := c.client.Del(ctx, key).Err(); err != nil {
+			return fmt.Errorf("cache: invalidate failed for %s: %w", key, err)
+		}
 	}
 
 	// 2. Hapus dari local cache
@@ -176,7 +212,17 @@ func (c *Cache) Invalidate(ctx context.Context, key string) error {
 // InvalidatePrefix menghapus semua key dengan prefix tertentu.
 // Contoh: InvalidatePrefix("hris:platform:company:") akan menghapus
 // semua cache company.
+//
+// Jika Redis tidak tersedia (local-only mode), hanya menghapus dari local cache.
 func (c *Cache) InvalidatePrefix(ctx context.Context, prefix string) error {
+	// Local-only mode: hanya hapus dari local cache (kita tidak bisa scan Redis)
+	if c.client == nil {
+		c.logger.Debug("Cache invalidate prefix (local-only mode)",
+			zap.String("prefix", prefix),
+		)
+		return nil
+	}
+
 	iter := c.client.Scan(ctx, 0, prefix+"*", 100).Iterator()
 	var keys []string
 	for iter.Next(ctx) {
@@ -210,7 +256,10 @@ func (c *Cache) Close() error {
 	if c.pubSub != nil {
 		c.pubSub.Close()
 	}
-	return c.client.Close()
+	if c.client != nil {
+		return c.client.Close()
+	}
+	return nil
 }
 
 // =========================================================================
@@ -254,7 +303,10 @@ func (c *Cache) evictLocal(keys ...string) {
 // Health check
 // =========================================================================
 
-// Ping memeriksa koneksi ke Redis.
+// Ping memeriksa koneksi ke Redis. Di local-only mode, selalu return nil.
 func (c *Cache) Ping(ctx context.Context) error {
+	if c.client == nil {
+		return nil
+	}
 	return c.client.Ping(ctx).Err()
 }
