@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
 
 defineProps({
     modelValue: [String, Number],
@@ -8,6 +9,18 @@ defineProps({
     size: {
         type: String,
         default: 'small'
+    },
+    textarea: {
+        type: Boolean,
+        default: false
+    },
+    rows: {
+        type: [Number, String],
+        default: 3
+    },
+    autoResize: {
+        type: Boolean,
+        default: true
     }
 });
 
@@ -29,7 +42,17 @@ defineExpose({
 </script>
 
 <template>
+    <Textarea
+        v-if="textarea"
+        ref="inputRef"
+        :value="modelValue"
+        :rows="rows"
+        :autoResize="autoResize"
+        class="w-full"
+        @input="$emit('update:modelValue', $event.target.value)"
+    />
     <InputText
+        v-else
         ref="inputRef"
         :value="modelValue"
         :size="size"

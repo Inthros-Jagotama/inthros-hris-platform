@@ -32,12 +32,19 @@ func (s *Service) CreateModule(req CreateModuleRequest) (*ModuleResponse, error)
 		return nil, fmt.Errorf("module with slug '%s' already exists", req.Slug)
 	}
 
+	desc := req.Description
+	dep := req.DependsOn
 	module := &PlatformModule{
-		Name:        req.Name,
-		Slug:        req.Slug,
-		Version:     req.Version,
-		Description: req.Description,
-		IsCore:      req.IsCore,
+		Name:    req.Name,
+		Slug:    req.Slug,
+		Version: req.Version,
+		IsCore:  req.IsCore,
+	}
+	if desc != "" {
+		module.Description = &desc
+	}
+	if dep != "" {
+		module.DependsOn = &dep
 	}
 
 	if err := s.repo.Create(module); err != nil {
@@ -45,7 +52,7 @@ func (s *Service) CreateModule(req CreateModuleRequest) (*ModuleResponse, error)
 	}
 
 	s.logger.Info("Module registered",
-		zap.String("module_id", module.ID.String()),
+		zap.String("module_id", module.ID),
 		zap.String("name", module.Name),
 		zap.String("slug", module.Slug),
 	)
@@ -56,12 +63,7 @@ func (s *Service) CreateModule(req CreateModuleRequest) (*ModuleResponse, error)
 
 // GetModule mengembalikan modul berdasarkan ID.
 func (s *Service) GetModule(id string) (*ModuleResponse, error) {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, fmt.Errorf("invalid module id: %w", err)
-	}
-
-	module, err := s.repo.FindByID(uid)
+	module, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -70,8 +72,9 @@ func (s *Service) GetModule(id string) (*ModuleResponse, error) {
 	return &response, nil
 }
 
-// ListModules mengembalikan daftar semua modul dengan pagination.
-func (s *Service) ListModules(page, perPage int) (*PaginatedResponse, error) {
+// ListModules mengembalikan daftar semua modul dengan pagination dan optional filter module_type.
+// moduleType bisa "platform", "tenant", atau "" untuk semua.
+func (s *Service) ListModules(page, perPage int, moduleType string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -79,7 +82,7 @@ func (s *Service) ListModules(page, perPage int) (*PaginatedResponse, error) {
 		perPage = 20
 	}
 
-	modules, total, err := s.repo.FindAll(page, perPage)
+	modules, total, err := s.repo.FindAll(page, perPage, moduleType)
 	if err != nil {
 		return nil, err
 	}
@@ -106,12 +109,7 @@ func (s *Service) ListModules(page, perPage int) (*PaginatedResponse, error) {
 
 // UpdateModule mengupdate modul.
 func (s *Service) UpdateModule(id string, req UpdateModuleRequest) (*ModuleResponse, error) {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, fmt.Errorf("invalid module id: %w", err)
-	}
-
-	module, err := s.repo.FindByID(uid)
+	module, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -123,10 +121,13 @@ func (s *Service) UpdateModule(id string, req UpdateModuleRequest) (*ModuleRespo
 		module.Version = *req.Version
 	}
 	if req.Description != nil {
-		module.Description = *req.Description
+		module.Description = req.Description
 	}
 	if req.IsCore != nil {
 		module.IsCore = *req.IsCore
+	}
+	if req.DependsOn != nil {
+		module.DependsOn = req.DependsOn
 	}
 
 	if err := s.repo.Update(module); err != nil {
@@ -139,17 +140,17 @@ func (s *Service) UpdateModule(id string, req UpdateModuleRequest) (*ModuleRespo
 
 // ActivateModule mengaktifkan modul untuk company tertentu.
 func (s *Service) ActivateModule(moduleID, companyID string) (*CompanyModuleResponse, error) {
-	mid, err := uuid.Parse(moduleID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid module id: %w", err)
-	}
 	cid, err := uuid.Parse(companyID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid company id: %w", err)
 	}
+	mid, err := uuid.Parse(moduleID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid module id: %w", err)
+	}
 
 	// Cek apakah modul sudah terdaftar
-	module, err := s.repo.FindByID(mid)
+	module, err := s.repo.FindByID(moduleID)
 	if err != nil {
 		return nil, fmt.Errorf("module not found: %w", err)
 	}
@@ -177,16 +178,16 @@ func (s *Service) ActivateModule(moduleID, companyID string) (*CompanyModuleResp
 
 // DeactivateModule menonaktifkan modul untuk company tertentu.
 func (s *Service) DeactivateModule(moduleID, companyID string) (*CompanyModuleResponse, error) {
-	mid, err := uuid.Parse(moduleID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid module id: %w", err)
-	}
 	cid, err := uuid.Parse(companyID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid company id: %w", err)
 	}
+	mid, err := uuid.Parse(moduleID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid module id: %w", err)
+	}
 
-	module, err := s.repo.FindByID(mid)
+	module, err := s.repo.FindByID(moduleID)
 	if err != nil {
 		return nil, fmt.Errorf("module not found: %w", err)
 	}

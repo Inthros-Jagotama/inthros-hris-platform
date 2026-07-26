@@ -22,7 +22,9 @@ const routes = [
         name: 'Dashboard',
         component: () => import('@/views/Dashboard.vue'),
         meta: { 
-          title: 'Dashboard', 
+          title: 'Dashboard',
+          titleKey: 'dashboard.title',
+          descKey: 'dashboard.description',
           icon: 'pi pi-home',
           description: 'Platform overview & real-time statistics'
         }
@@ -32,7 +34,9 @@ const routes = [
         name: 'Companies',
         component: () => import('@/views/Companies.vue'),
         meta: { 
-          title: 'Companies', 
+          title: 'Companies',
+          titleKey: 'companies.title',
+          descKey: 'companies.description',
           icon: 'pi pi-building',
           description: 'Manage tenant companies & their lifecycle'
         }
@@ -42,7 +46,9 @@ const routes = [
         name: 'Users',
         component: () => import('@/views/Users.vue'),
         meta: { 
-          title: 'Users', 
+          title: 'Users',
+          titleKey: 'users.title',
+          descKey: 'users.description',
           icon: 'pi pi-users',
           description: 'Manage platform admin accounts'
         }
@@ -52,7 +58,9 @@ const routes = [
         name: 'Modules',
         component: () => import('@/views/Modules.vue'),
         meta: { 
-          title: 'Modules', 
+          title: 'Modules',
+          titleKey: 'modules.title',
+          descKey: 'modules.description',
           icon: 'pi pi-cog',
           description: 'Module management, including module installation and uninstallation.'
         }
@@ -62,7 +70,9 @@ const routes = [
         name: 'Licenses',
         component: () => import('@/views/Licenses.vue'),
         meta: { 
-          title: 'Licenses', 
+          title: 'Licenses',
+          titleKey: 'licenses.title',
+          descKey: 'licenses.description',
           icon: 'pi pi-id-card',
           description: 'Manage software licenses for tenant companies.'
         }
@@ -72,9 +82,47 @@ const routes = [
         name: 'Monitoring',
         component: () => import('@/views/Monitoring.vue'),
         meta: {
-          title: 'Monitoring', 
+          title: 'Monitoring',
+          titleKey: 'monitoring.title',
+          descKey: 'monitoring.description',
           icon: 'pi pi-chart-bar',
           description: 'Platform health, database connectivity & tenant status.'
+        }
+      },
+      {
+        path: 'packages',
+        name: 'Packages',
+        component: () => import('@/views/Packages.vue'),
+        meta: {
+          title: 'Packages',
+          titleKey: 'packages.title',
+          descKey: 'packages.description',
+          icon: 'pi pi-box',
+          description: 'Manage module packages with pricing and dependencies.'
+        }
+      },
+      {
+        path: 'rbac',
+        name: 'RBAC',
+        component: () => import('@/views/Rbac.vue'),
+        meta: {
+          title: 'RBAC',
+          titleKey: 'rbac.title',
+          descKey: 'rbac.description',
+          icon: 'pi pi-shield',
+          description: 'Manage roles, permissions, and access control.'
+        }
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/Profile.vue'),
+        meta: {
+          title: 'Profile',
+          titleKey: 'profile.title',
+          descKey: 'profile.description',
+          icon: 'pi pi-user',
+          description: 'Account settings & profil'
         }
       }
     ]

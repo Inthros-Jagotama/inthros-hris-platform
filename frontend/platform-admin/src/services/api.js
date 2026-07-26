@@ -1,10 +1,18 @@
 import axios from 'axios'
 import { useAuth } from '@/stores/auth'
+import { useLanguage } from '@/stores/language'
 
 const api = axios.create({
   baseURL: '',
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' }
+})
+
+// Request interceptor — auto-attach language header
+api.interceptors.request.use((config) => {
+  const { state } = useLanguage()
+  config.headers['Accept-Language'] = state.lang
+  return config
 })
 
 // Response interceptor — auto-refresh on 401

@@ -38,6 +38,8 @@ type License struct {
 	StartDate    time.Time      `gorm:"type:date;not null" json:"start_date"`
 	EndDate      time.Time      `gorm:"type:date;not null" json:"end_date"`
 	Status       string         `gorm:"type:varchar(20);default:'active'" json:"status"`
+	PackageID    *uuid.UUID     `gorm:"type:char(36);index" json:"package_id,omitempty"`
+	PackageName  string         `gorm:"type:varchar(255);not null;default:''" json:"package_name,omitempty"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`

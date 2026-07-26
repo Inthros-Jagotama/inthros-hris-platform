@@ -16,9 +16,16 @@ const (
 )
 
 // NewModule membuat instance baru Module Management Module.
+// Service dibuat secara internal.
 func NewModule(dbManager *database.Manager, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
 	repo := NewRepository(dbManager.PlatformDB())
 	svc := NewService(repo, dbManager, logger)
+	return NewModuleWithService(svc, logger, authMW, rbacMW)
+}
+
+// NewModuleWithService membuat instance Module Management Module dengan service yang sudah ada.
+// Digunakan ketika service perlu di-share dengan komponen lain (misal subscribe flow).
+func NewModuleWithService(svc *Service, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
 	handler := NewHandler(svc)
 
 	return &modulemgmtModule{

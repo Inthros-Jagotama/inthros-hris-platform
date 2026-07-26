@@ -267,6 +267,35 @@ func (s *Service) CreateCompanyUser(companyID, name, email, password string) (st
 	return user.ID.String(), nil
 }
 
+// DeleteUser melakukan soft delete user.
+func (s *Service) DeleteUser(id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid user id: %w", err)
+	}
+
+	user, err := s.repo.FindByID(uid)
+	if err != nil {
+		return err
+	}
+
+	// Prevent deleting super_admin
+	if user.Role == string(RoleSuperAdmin) {
+		return fmt.Errorf("cannot delete super admin user")
+	}
+
+	if err := s.repo.SoftDelete(uid); err != nil {
+		return err
+	}
+
+	s.logger.Info("Platform user deleted",
+		zap.String("user_id", id),
+		zap.String("email", user.Email),
+	)
+
+	return nil
+}
+
 // UpdateUser mengupdate data user.
 func (s *Service) UpdateUser(id string, req UpdateUserRequest) (*UserResponse, error) {
 	uid, err := uuid.Parse(id)
@@ -298,6 +327,41 @@ func (s *Service) UpdateUser(id string, req UpdateUserRequest) (*UserResponse, e
 
 	response := user.ToResponse()
 	return &response, nil
+}
+
+// ChangePassword mengubah password user berdasarkan ID.
+func (s *Service) ChangePassword(id string, req ChangePasswordRequest) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid user id: %w", err)
+	}
+
+	user, err := s.repo.FindByID(uid)
+	if err != nil {
+		return err
+	}
+
+	// Verify current password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword)); err != nil {
+		return fmt.Errorf("current password is incorrect")
+	}
+
+	// Hash new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	user.PasswordHash = string(hashedPassword)
+	if err := s.repo.Update(user); err != nil {
+		return err
+	}
+
+	s.logger.Info("Password changed for user",
+		zap.String("user_id", id),
+	)
+
+	return nil
 }
 
 // PaginatedResponse untuk response pagination (reused across modules).

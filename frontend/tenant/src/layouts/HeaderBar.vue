@@ -16,7 +16,22 @@
     </div>
 
     <!-- Right: Actions -->
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1">
+      <!-- Language Switcher -->
+      <Button
+        severity="secondary"
+        text
+        size="small"
+        class="!p-1.5"
+        v-tooltip.top="{ value: langStore.state.lang === 'en' ? 'Bahasa Indonesia' : 'English', showDelay: 300 }"
+        @click="langStore.toggleLang()"
+      >
+        <div class="flex items-center gap-1">
+          <i class="pi pi-globe text-sm"></i>
+          <span class="text-xs font-semibold uppercase">{{ langStore.state.lang }}</span>
+        </div>
+      </Button>
+
       <!-- Search -->
       <IconField>
         <InputIcon class="pi pi-search" />
@@ -66,6 +81,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useLanguage } from '@/stores/language'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputIcon from 'primevue/inputicon'
@@ -81,6 +97,7 @@ const router = useRouter()
 const searchQuery = ref('')
 const userMenu = ref(null)
 const userMenuVisible = ref(false)
+const langStore = useLanguage()
 
 const userMenuItems = [
   { label: 'Profile', icon: 'pi pi-user', command: () => {} },

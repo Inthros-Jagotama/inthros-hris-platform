@@ -29,11 +29,16 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/migrator"
 	"github.com/gin-gonic/gin"
 
+	"github.com/inthros/hris-platform/internal/pkg/httputil"
+
+	"github.com/google/uuid"
+
 	// Platform modules
 	"github.com/inthros/hris-platform/internal/platform/company"
 	"github.com/inthros/hris-platform/internal/platform/license"
 	"github.com/inthros/hris-platform/internal/platform/modulemgmt"
 	"github.com/inthros/hris-platform/internal/platform/monitoring"
+	pkgmgr "github.com/inthros/hris-platform/internal/platform/package"
 	"github.com/inthros/hris-platform/internal/platform/user"
 
 	// Tenant modules
@@ -55,7 +60,7 @@ import (
 )
 
 // =============================================================================
-// Approval Engine Adapter (for Payroll integration)
+// Adapters
 // =============================================================================
 
 // payrollApprovalAdapter implements payroll.ApprovalEngine using the approval service.
@@ -81,6 +86,26 @@ func (a *payrollApprovalAdapter) GetApprovalInstanceStatus(ctx context.Context, 
 		return "", err
 	}
 	return resp.Status, nil
+}
+
+// licenseCreatorAdapter implements company.LicenseCreator using the license service.
+// Digunakan untuk auto-create license saat signup company dengan package.
+type licenseCreatorAdapter struct {
+	licenseSvc *license.Service
+}
+
+func (a *licenseCreatorAdapter) CreateFromPackage(companyID, packageID string) (licenseID, licenseKey, planType string, err error) {
+	resp, err := a.licenseSvc.CreateLicense(license.CreateLicenseRequest{
+		CompanyID: companyID,
+		PlanType:  "pro",
+		StartDate: time.Now().Format("2006-01-02"),
+		EndDate:   time.Now().AddDate(1, 0, 0).Format("2006-01-02"),
+		PackageID: packageID,
+	})
+	if err != nil {
+		return "", "", "", err
+	}
+	return resp.ID, resp.LicenseKey, resp.PlanType, nil
 }
 
 func main() {
@@ -176,11 +201,32 @@ func main() {
 	userRepo := user.NewRepository(dbManager.PlatformDB())
 	userSvc := user.NewService(userRepo, authManager, l)
 
+	// License service dibuat secara eksternal agar bisa di-share
+	// dengan LicenseCreator adapter untuk company signup flow.
+	licenseRepo := license.NewRepository(dbManager.PlatformDB())
+	licenseSvc := license.NewService(licenseRepo, dbManager, l)
+
+	// LicenseCreator adapter wraps license.Service untuk auto-create
+	// license saat signup company dengan package.
+	licenseCreator := &licenseCreatorAdapter{licenseSvc: licenseSvc}
+
+	// Package service & handler dibuat secara eksternal agar bisa di-share
+	// dengan tenant route untuk menampilkan public packages.
+	pkgRepo := pkgmgr.NewRepository(dbManager.PlatformDB())
+	pkgSvc := pkgmgr.NewService(pkgRepo, l)
+	pkgHandler := pkgmgr.NewHandler(pkgSvc)
+
+	// Module Management service dibuat secara eksternal agar bisa di-share
+	// dengan subscribe flow untuk auto-activate modules dari package.
+	modulemgmtRepo := modulemgmt.NewRepository(dbManager.PlatformDB())
+	modulemgmtSvc := modulemgmt.NewService(modulemgmtRepo, dbManager, l)
+
 	// Company module menerima UserCreator (user service) untuk
-	// auto-create admin user saat create company.
+	// auto-create admin user saat create company, dan LicenseCreator
+	// untuk auto-create license dari package.
 	platformModules = append(platformModules,
 		module.ModuleRegistration{
-			Module:   company.NewModule(dbManager, userSvc, l, authMW, nil),
+			Module:   company.NewModule(dbManager, userSvc, licenseCreator, l, authMW, nil),
 			TargetDB: module.TargetPlatform,
 			Priority: 1,
 		},
@@ -190,14 +236,19 @@ func main() {
 			Priority: 2,
 		},
 		module.ModuleRegistration{
-			Module:   modulemgmt.NewModule(dbManager, l, authMW, nil),
+			Module:   modulemgmt.NewModuleWithService(modulemgmtSvc, l, authMW, nil),
 			TargetDB: module.TargetPlatform,
 			Priority: 3,
 		},
 		module.ModuleRegistration{
-			Module:   license.NewModule(dbManager, l, authMW, nil),
+			Module:   license.NewModuleWithService(licenseSvc, l, authMW, nil),
 			TargetDB: module.TargetPlatform,
 			Priority: 4,
+		},
+		module.ModuleRegistration{
+			Module:   pkgmgr.NewModuleWithService(pkgSvc, l, authMW, nil),
+			TargetDB: module.TargetPlatform,
+			Priority: 5,
 		},
 	)
 
@@ -392,6 +443,119 @@ func main() {
 	// Register platform monitoring routes (standalone, no module interface needed)
 	monitoringHandler := monitoring.NewHandler(dbManager, cacheManager, l)
 	monitoring.RegisterRoutes(platformGroup, monitoringHandler, authMW, rbacMW)
+
+	// Register tenant packages routes — authenticated tenant users can browse
+	// published packages and subscribe (upgrade/downgrade) their company license.
+	tenantPkgGroup := r.Group("/api/v1/tenant")
+	tenantPkgGroup.Use(authMW)
+	tenantPkgGroup.Use(middleware.TenantRequired())
+	{
+		tenantPkgGroup.GET("/packages", pkgHandler.ListPublishedPackages)
+		tenantPkgGroup.POST("/packages/:id/subscribe", func(c *gin.Context) {
+			packageID := c.Param("id")
+			companyID := middleware.GetCompanyID(c)
+
+			// Validate package exists and is published
+			pkg, err := pkgSvc.GetPackage(packageID)
+			if err != nil {
+				httputil.NotFound(c, "Package not found")
+				return
+			}
+			if pkg.Status != "published" {
+				httputil.ErrorRaw(c, 400, "VALIDATION_ERROR", "Package is not available for subscription")
+				return
+			}
+
+			// Create license via adapter (creates a new license for this company + package)
+			licenseID, licenseKey, planType, err := licenseCreator.CreateFromPackage(companyID, packageID)
+			if err != nil {
+				httputil.InternalError(c, err.Error())
+				return
+			}
+
+			// Auto-activate all modules included in the package
+			var activatedModules []string
+			if len(pkg.Modules) > 0 {
+				for _, m := range pkg.Modules {
+					_, err := modulemgmtSvc.ActivateModule(m.ModuleID, companyID)
+					if err != nil {
+						l.Warn("Failed to auto-activate module during subscribe",
+							zap.String("module_id", m.ModuleID),
+							zap.String("module_name", m.ModuleName),
+							zap.String("company_id", companyID),
+							zap.Error(err),
+						)
+						continue
+					}
+					activatedModules = append(activatedModules, m.ModuleName)
+				}
+			}
+
+			httputil.CreatedJSON(c, gin.H{
+				"license_id":        licenseID,
+				"license_key":       licenseKey,
+				"plan_type":         planType,
+				"package_id":        packageID,
+				"package_name":      pkg.Name,
+				"activated_modules": activatedModules,
+			}, "package.subscribed")
+		})
+
+		tenantPkgGroup.POST("/packages/:id/unsubscribe", func(c *gin.Context) {
+			packageID := c.Param("id")
+			companyID := middleware.GetCompanyID(c)
+
+			// Validate package exists
+			pkg, err := pkgSvc.GetPackage(packageID)
+			if err != nil {
+				httputil.NotFound(c, "Package not found")
+				return
+			}
+
+			// Deactivate all modules from the package
+			var deactivatedModules []string
+			if len(pkg.Modules) > 0 {
+				for _, m := range pkg.Modules {
+					_, err := modulemgmtSvc.DeactivateModule(m.ModuleID, companyID)
+					if err != nil {
+						l.Warn("Failed to deactivate module during unsubscribe",
+							zap.String("module_id", m.ModuleID),
+							zap.String("module_name", m.ModuleName),
+							zap.String("company_id", companyID),
+							zap.Error(err),
+						)
+						continue
+					}
+					deactivatedModules = append(deactivatedModules, m.ModuleName)
+				}
+			}
+
+			// Suspend the active license associated with this package
+			// Find license by company ID and package ID via license service
+			cid, _ := uuid.Parse(companyID)
+			pid, _ := uuid.Parse(packageID)
+			license, err := licenseRepo.FindByCompanyIDAndPackageID(cid, pid)
+			if err == nil && license != nil {
+				license.Status = "suspended"
+				if err := licenseRepo.Update(license); err != nil {
+					l.Warn("Failed to suspend license during unsubscribe",
+						zap.String("license_id", license.ID.String()),
+						zap.Error(err),
+					)
+				}
+			} else {
+				l.Warn("No active license found for company and package during unsubscribe",
+					zap.String("company_id", companyID),
+					zap.String("package_id", packageID),
+				)
+			}
+
+			httputil.MessageJSON(c, "package.unsubscribed")
+		})
+	}
+
+	// Register public packages endpoint (no auth)
+	r.GET("/api/v1/public/packages", pkgHandler.ListPublishedPackages)
 
 	// Register Scalar API Documentation
 	r.GET("/docs", docs.ScalarUIHandler())

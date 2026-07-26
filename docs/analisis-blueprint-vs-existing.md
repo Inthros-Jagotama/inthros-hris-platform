@@ -71,6 +71,7 @@ Referensi utama analisis:
 | **Backend Language** | Go | **PHP 8.3 (Laravel 12)** | 🔴 Total berbeda |
 | **Backend Framework** | Gin + GORM | **Laravel 12 + Eloquent** | 🔴 Total berbeda |
 | **Frontend Framework** | Vue 3 + TypeScript | **Vue 3 + Inertia.js** | 🟡 Sama Vue 3, beda approach |
+| **Bilingual Support** | **✅ Go backend** — `internal/pkg/httputil/` (EN/ID), middleware auto-detect, 80+ message pairs, custom Indonesian validators | **✅ vue-i18n** (frontend-only) | 🟡 Go backend punya bilingual system sendiri, tidak bergantung pada vue-i18n |
 | **UI Library** | PrimeVue | **Metronic Theme + Tailwind + Flowbite** | 🟡 Beda UI library |
 | **State Management** | Pinia | **Inertia.js props (tidak pakai Pinia)** | 🟡 Inertia menggantikan Pinia |
 | **Data Fetching** | TanStack Query | **Inertia.js (server-driven)** | 🟡 Pendekatan berbeda |

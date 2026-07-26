@@ -41,6 +41,10 @@
       "description": "License management for companies"
     },
     {
+      "name": "Platform: Packages",
+      "description": "Package management — bundle tenant modules with pricing, dependency validation, and publishing"
+    },
+    {
       "name": "Platform: Monitoring",
       "description": "Platform and tenant health monitoring"
     },
@@ -71,6 +75,10 @@
     {
       "name": "Tenant: Time & Attendance",
       "description": "Time and attendance management including company settings, shifts, employee shift assignments, geofence locations, check-in/check-out events, daily work sessions, overtime requests, and exempt positions"
+    },
+    {
+      "name": "Tenant: Packages",
+      "description": "Published package browsing for authenticated tenant users"
     },
     {
       "name": "Tenant: Leave & Time Off",
@@ -420,7 +428,7 @@
         },
         "responses": {
           "201": {
-            "description": "Company created successfully"
+            "description": "Company created successfully. Response includes admin_user (id, name, email, role) and if package_id was provided, license_info (id, license_key, plan_type, package_id)."
           },
           "400": {
             "description": "Validation error"
@@ -429,7 +437,7 @@
             "description": "Forbidden: hanya super_admin"
           }
         },
-        "description": "Register a new company tenant. Also creates a company_admin user automatically. Request now includes admin_name, admin_email, admin_password fields. Response includes admin_user with id, name, email, role. This triggers the full tenant provisioning flow: creates the company record, provisions a new database, runs all migrations (13 files, ~111 tables), activates the tenant, and creates the admin user. The process is atomic — if provisioning fails, the company is marked as suspended."
+        "description": "Register a new company tenant. Also creates a company_admin user automatically. Request now includes admin_name, admin_email, admin_password fields. If package_id is provided, a license is auto-created from the published package and the response includes license_info with id, license_key, plan_type, package_id. This triggers the full tenant provisioning flow: creates the company record, provisions a new database, runs all migrations (13 files, ~111 tables), activates the tenant, and creates the admin user. The process is atomic -- if provisioning fails, the company is marked as suspended."
       },
       "get": {
         "tags": [
@@ -464,13 +472,13 @@
         ],
         "responses": {
           "200": {
-            "description": "Paginated list of companies"
+            "description": "Paginated list of companies with admin_user and license_info"
           },
           "403": {
             "description": "Forbidden"
           }
         },
-        "description": "Retrieve a paginated list of all registered companies (tenants) in the platform. Includes company status, contact information, and subscription details."
+        "description": "Retrieve a paginated list of all registered companies (tenants) in the platform. Includes company status, contact information, subscription details, and associated license_info per company."
       }
     },
     "/api/v1/platform/companies/{id}": {
@@ -500,7 +508,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Company details"
+            "description": "Company details with admin_user and license_info (if applicable)"
           },
           "403": {
             "description": "Forbidden"
@@ -509,7 +517,7 @@
             "description": "Company not found"
           }
         },
-        "description": "Get detailed information about a specific company/tenant including its status, contact details, subscription plan, and database connection health."
+        "description": "Get detailed information about a specific company/tenant including its status, contact details, subscription plan, database connection health, and associated license_info (if any)."
       },
       "put": {
         "tags": [
@@ -1215,6 +1223,368 @@
         "description": "Update license terms including plan upgrade/downgrade, extension of validity period, seat count adjustments, or license status changes."
       }
     },
+    "/api/v1/public/packages": {
+      "get": {
+        "tags": [
+          "Platform: Packages"
+        ],
+        "summary": "List published packages (public)",
+        "operationId": "listPublishedPackages",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "List of published packages with modules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicPackageResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Retrieve a list of published packages for public display. No authentication required. Returns package name, description, price, and included module list."
+      }
+    },
+    "/api/v1/platform/packages": {
+      "get": {
+        "tags": [
+          "Platform: Packages"
+        ],
+        "summary": "List all packages (admin)",
+        "operationId": "listPackages",
+        "x-rbac": {
+          "permission": "package.view",
+          "roles": [
+            "super_admin"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of packages"
+          },
+          "403": {
+            "description": "Forbidden: only super_admin"
+          }
+        },
+        "description": "Retrieve a paginated list of all packages. Includes draft, published, and archived packages with their module associations."
+      },
+      "post": {
+        "tags": [
+          "Platform: Packages"
+        ],
+        "summary": "Create a new package",
+        "operationId": "createPackage",
+        "x-rbac": {
+          "permission": "package.create",
+          "roles": [
+            "super_admin"
+          ]
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePackageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Package created"
+          },
+          "400": {
+            "description": "Validation error or dependency validation failed"
+          },
+          "403": {
+            "description": "Forbidden: only super_admin"
+          },
+          "409": {
+            "description": "Package slug already exists"
+          }
+        },
+        "description": "Create a new package that bundles tenant modules with pricing. Validates module dependencies before creation — all required dependencies (depends_on) must be included in the package."
+      }
+    },
+    "/api/v1/platform/packages/{id}": {
+      "get": {
+        "tags": [
+          "Platform: Packages"
+        ],
+        "summary": "Get package by ID",
+        "operationId": "getPackage",
+        "x-rbac": {
+          "permission": "package.view",
+          "roles": [
+            "super_admin"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Package details with modules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Package not found"
+          }
+        },
+        "description": "Get detailed information about a specific package including its modules, pricing, status, and sort order."
+      },
+      "put": {
+        "tags": [
+          "Platform: Packages"
+        ],
+        "summary": "Update package",
+        "operationId": "updatePackage",
+        "x-rbac": {
+          "permission": "package.update",
+          "roles": [
+            "super_admin"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePackageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Package updated"
+          },
+          "400": {
+            "description": "Validation error or dependency validation failed"
+          },
+          "403": {
+            "description": "Forbidden: only super_admin"
+          },
+          "409": {
+            "description": "Conflict (e.g., slug already exists)"
+          }
+        },
+        "description": "Update a package's metadata, pricing, status, or module associations. When updating modules, dependency validation is re-run."
+      },
+      "delete": {
+        "tags": [
+          "Platform: Packages"
+        ],
+        "summary": "Delete package (soft-delete)",
+        "operationId": "deletePackage",
+        "x-rbac": {
+          "permission": "package.delete",
+          "roles": [
+            "super_admin"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Package soft-deleted"
+          },
+          "403": {
+            "description": "Forbidden: only super_admin"
+          },
+          "404": {
+            "description": "Package not found"
+          }
+        },
+        "description": "Soft-delete a package. Sets the deleted_at timestamp and removes module associations. The package is hidden from standard queries."
+      }
+    },
+    "/api/v1/platform/packages/{id}/publish": {
+      "post": {
+        "tags": [
+          "Platform: Packages"
+        ],
+        "summary": "Publish package",
+        "operationId": "publishPackage",
+        "x-rbac": {
+          "permission": "package.update",
+          "roles": [
+            "super_admin"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Package published — status=published, is_public=true"
+          },
+          "400": {
+            "description": "Validation error: no modules or missing dependencies"
+          },
+          "403": {
+            "description": "Forbidden: only super_admin"
+          },
+          "404": {
+            "description": "Package not found"
+          }
+        },
+        "description": "Publish a package to make it visible on public endpoints. Validates that the package has at least one module and all module dependencies are fulfilled."
+      }
+    },
+    "/api/v1/platform/packages/{id}/unpublish": {
+      "post": {
+        "tags": [
+          "Platform: Packages"
+        ],
+        "summary": "Unpublish package",
+        "operationId": "unpublishPackage",
+        "x-rbac": {
+          "permission": "package.update",
+          "roles": [
+            "super_admin"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Package unpublished — status=draft"
+          },
+          "403": {
+            "description": "Forbidden: only super_admin"
+          },
+          "404": {
+            "description": "Package not found"
+          }
+        },
+        "description": "Unpublish a package. Sets status back to 'draft' and removes it from public endpoints."
+      }
+    },
+    "/api/v1/platform/packages/{id}/validate": {
+      "get": {
+        "tags": [
+          "Platform: Packages"
+        ],
+        "summary": "Validate package module dependencies",
+        "operationId": "validatePackageDependencies",
+        "x-rbac": {
+          "permission": "package.view",
+          "roles": [
+            "super_admin"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dependency validation results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ModuleDependency"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Package not found"
+          }
+        },
+        "description": "Validate that all module dependencies within a package are fulfilled. Returns a detailed report showing each module's dependency status (resolved/unresolved)."
+      }
+    },
     "/api/v1/platform/monitoring/health": {
       "get": {
         "tags": [
@@ -1543,6 +1913,194 @@
           }
         },
         "description": "Remove an organizational unit from the hierarchy."
+      }
+    },
+    "/api/v1/tenant/packages": {
+      "get": {
+        "tags": [
+          "Tenant: Packages"
+        ],
+        "summary": "List published packages (tenant)",
+        "operationId": "listTenantPackages",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of published packages with modules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PublicPackageResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized: missing or invalid JWT"
+          }
+        },
+        "description": "Retrieve a list of published packages for authenticated tenant users. Requires JWT Bearer Token. Returns the same data as the public endpoint but within the authenticated tenant context. Useful for company admins to browse available packages for subscription or upgrade."
+      }
+    },
+    "/api/v1/tenant/packages/{id}/subscribe": {
+      "post": {
+        "tags": [
+          "Tenant: Packages"
+        ],
+        "summary": "Subscribe to a package (create/renew license)",
+        "operationId": "subscribePackage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Package ID to subscribe to"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successfully subscribed to package",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "license_id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "license_key": {
+                          "type": "string"
+                        },
+                        "plan_type": {
+                          "type": "string",
+                          "example": "pro"
+                        },
+                        "package_id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "package_name": {
+                          "type": "string"
+                        },
+                        "activated_modules": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "List of module names that were auto-activated for this company"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Successfully subscribed to package"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error: package not published"
+          },
+          "401": {
+            "description": "Unauthorized: missing or invalid JWT"
+          },
+          "404": {
+            "description": "Package not found"
+          },
+          "500": {
+            "description": "Internal server error: license creation failed"
+          }
+        },
+        "description": "Subscribe the authenticated company to a published package. Creates a new license for the company associated with the specified package and auto-activates all modules included in the package. Requires JWT Bearer Token with company context. The company_id is extracted from the JWT claims."
+      }
+    },
+    "/api/v1/tenant/packages/{id}/unsubscribe": {
+      "post": {
+        "tags": [
+          "Tenant: Packages"
+        ],
+        "summary": "Unsubscribe from a package (deactivate modules + suspend license)",
+        "operationId": "unsubscribePackage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Package ID to unsubscribe from"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully unsubscribed from package",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Successfully unsubscribed from package"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized: missing or invalid JWT"
+          },
+          "404": {
+            "description": "Package not found"
+          }
+        },
+        "description": "Unsubscribe the authenticated company from a package. Deactivates all modules included in the package and suspends the active license associated with this company and package. Requires JWT Bearer Token with company context."
       }
     },
     "/api/v1/tenant/employees": {
@@ -21845,6 +22403,11 @@
             "format": "password",
             "minLength": 6,
             "example": "securePass123"
+          },
+          "package_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional: associate this company with a published package (auto-creates license on signup)"
           }
         }
       },
@@ -21972,6 +22535,11 @@
             "type": "integer",
             "minimum": 0
           },
+          "package_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional: associate this license with a published package"
+          },
           "start_date": {
             "type": "string",
             "format": "date",
@@ -22003,6 +22571,11 @@
           "max_modules": {
             "type": "integer",
             "minimum": 0
+          },
+          "package_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional: associate with a published package (empty string to remove)"
           },
           "start_date": {
             "type": "string",
@@ -34304,6 +34877,245 @@
               "MEDIUM",
               "LOW"
             ]
+          }
+        }
+      },
+      "CreatePackageRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "slug"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 255,
+            "description": "Package display name"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "description": "Unique URL-friendly identifier"
+          },
+          "description": {
+            "type": "string",
+            "description": "Package description"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Package price"
+          },
+          "sort_order": {
+            "type": "integer",
+            "description": "Display order (lower = first)"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageModuleInput"
+            },
+            "description": "Modules included in this package"
+          }
+        }
+      },
+      "PackageModuleInput": {
+        "type": "object",
+        "required": [
+          "module_id"
+        ],
+        "properties": {
+          "module_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the module from module registry"
+          },
+          "is_mandatory": {
+            "type": "boolean",
+            "description": "Whether this module is mandatory (cannot be disabled)",
+            "default": false
+          },
+          "sort_order": {
+            "type": "integer",
+            "description": "Display order within the package",
+            "default": 0
+          }
+        }
+      },
+      "UpdatePackageRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "description": "Package display name"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 2,
+            "description": "Unique URL-friendly identifier"
+          },
+          "description": {
+            "type": "string",
+            "description": "Package description"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Package price"
+          },
+          "sort_order": {
+            "type": "integer",
+            "description": "Display order"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ],
+            "description": "Package status"
+          },
+          "is_public": {
+            "type": "boolean",
+            "description": "Whether visible on public endpoints"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageModuleInput"
+            },
+            "description": "Replace all module associations"
+          }
+        }
+      },
+      "PackageResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ]
+          },
+          "is_public": {
+            "type": "boolean"
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "module_count": {
+            "type": "integer",
+            "description": "Number of modules in this package"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageModuleResponse"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PackageModuleResponse": {
+        "type": "object",
+        "properties": {
+          "module_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "module_name": {
+            "type": "string"
+          },
+          "module_slug": {
+            "type": "string"
+          },
+          "is_mandatory": {
+            "type": "boolean"
+          },
+          "sort_order": {
+            "type": "integer"
+          }
+        }
+      },
+      "PublicPackageResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "module_count": {
+            "type": "integer"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageModuleResponse"
+            }
+          }
+        }
+      },
+      "ModuleDependency": {
+        "type": "object",
+        "properties": {
+          "module_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "module_name": {
+            "type": "string"
+          },
+          "depends_on": {
+            "type": "string",
+            "description": "Dependency description (e.g. 'needs: employee,organization' or '(none)')"
+          },
+          "resolved": {
+            "type": "boolean",
+            "description": "Whether all dependencies are satisfied within this package"
           }
         }
       }

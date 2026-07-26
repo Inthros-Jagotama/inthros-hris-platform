@@ -10,10 +10,25 @@
         class="!p-1.5"
       />
       <i class="pi pi-chevron-right text-sm text-gray-300"></i>
-      <span class="text-sm text-gray-500 font-medium truncate">{{ route.meta?.title || 'Dashboard' }}</span>
+      <span class="text-sm text-gray-500 font-medium truncate">{{ route.meta?.titleKey ? t(route.meta.titleKey) : (route.meta?.title || '') }}</span>
     </div>
 
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1">
+      <!-- Language Switcher -->
+      <Button
+        severity="secondary"
+        text
+        size="small"
+        class="!p-1.5"
+        v-tooltip.top="{ value: langStore.state.lang === 'en' ? 'Bahasa Indonesia' : 'English', showDelay: 300 }"
+        @click="langStore.toggleLang()"
+      >
+        <div class="flex items-center gap-1">
+          <i class="pi pi-globe text-sm"></i>
+          <span class="text-xs font-semibold uppercase">{{ langStore.state.lang }}</span>
+        </div>
+      </Button>
+
       <div class="flex items-center gap-2 text-sm text-gray-500 mr-2">
         <i class="pi pi-circle-fill text-emerald-400 text-[6px]"></i>
         <span>Live</span>
@@ -42,8 +57,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useLanguage } from '@/stores/language'
+import { useI18n } from '@/composables/useI18n'
 import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
 import Menu from 'primevue/menu'
@@ -52,10 +69,14 @@ const emit = defineEmits(['toggle-sidebar', 'logout'])
 
 const route = useRoute()
 const menu = ref(null)
+const langStore = useLanguage()
+const { t } = useI18n()
 
-const menuItems = [
-  { label: 'Profile', icon: 'pi pi-user', command: () => {} },
+const router = useRouter()
+
+const menuItems = computed(() => [
+  { label: t('auth.login.profile'), icon: 'pi pi-user', command: () => router.push('/profile') },
   { separator: true },
-  { label: 'Logout', icon: 'pi pi-sign-out', command: () => emit('logout') }
-]
+  { label: t('auth.login.logout'), icon: 'pi pi-sign-out', command: () => emit('logout') }
+])
 </script>

@@ -8,7 +8,9 @@ type CreateModuleRequest struct {
 	Slug        string `json:"slug" binding:"required,min=2,max=100"`
 	Version     string `json:"version" binding:"required,max=20"`
 	Description string `json:"description,omitempty"`
+	ModuleType  string `json:"module_type,omitempty" binding:"omitempty,oneof=platform tenant"`
 	IsCore      bool   `json:"is_core,omitempty"`
+	DependsOn   string `json:"depends_on,omitempty"`
 }
 
 // UpdateModuleRequest untuk update modul.
@@ -16,7 +18,9 @@ type UpdateModuleRequest struct {
 	Name        *string `json:"name,omitempty" binding:"omitempty,min=3,max=255"`
 	Version     *string `json:"version,omitempty" binding:"omitempty,max=20"`
 	Description *string `json:"description,omitempty"`
+	ModuleType  *string `json:"module_type,omitempty" binding:"omitempty,oneof=platform tenant"`
 	IsCore      *bool   `json:"is_core,omitempty"`
+	DependsOn   *string `json:"depends_on,omitempty"`
 }
 
 // ModuleResponse untuk response data modul.
@@ -26,7 +30,9 @@ type ModuleResponse struct {
 	Slug        string    `json:"slug"`
 	Version     string    `json:"version"`
 	Description string    `json:"description,omitempty"`
+	ModuleType  string    `json:"module_type"`
 	IsCore      bool      `json:"is_core"`
+	DependsOn   string    `json:"depends_on,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -47,13 +53,23 @@ type CompanyModuleResponse struct {
 
 // ToResponse mengonversi PlatformModule ke ModuleResponse.
 func (m *PlatformModule) ToResponse() ModuleResponse {
+	desc := ""
+	dep := ""
+	if m.Description != nil {
+		desc = *m.Description
+	}
+	if m.DependsOn != nil {
+		dep = *m.DependsOn
+	}
 	return ModuleResponse{
-		ID:          m.ID.String(),
+		ID:          m.ID,
 		Name:        m.Name,
 		Slug:        m.Slug,
 		Version:     m.Version,
-		Description: m.Description,
+		Description: desc,
+		ModuleType:  m.ModuleType,
 		IsCore:      m.IsCore,
+		DependsOn:   dep,
 		CreatedAt:   m.CreatedAt,
 		UpdatedAt:   m.UpdatedAt,
 	}

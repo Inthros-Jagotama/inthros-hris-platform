@@ -93,6 +93,18 @@ func (h *Handler) CreateUser(c *gin.Context) {
 	httputil.CreatedJSON(c, response, "user.created")
 }
 
+// DeleteUser menangani DELETE /api/v1/platform/users/:id
+func (h *Handler) DeleteUser(c *gin.Context) {
+	id := c.Param("id")
+
+	if err := h.service.DeleteUser(id); err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	httputil.DeletedJSON(c, "user.deleted")
+}
+
 // UpdateUser menangani PUT /api/v1/platform/users/:id
 func (h *Handler) UpdateUser(c *gin.Context) {
 	id := c.Param("id")
@@ -109,4 +121,21 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 	}
 
 	httputil.UpdatedJSON(c, response, "user.updated")
+}
+
+// ChangePassword menangani PUT /api/v1/platform/users/:id/password
+func (h *Handler) ChangePassword(c *gin.Context) {
+	id := c.Param("id")
+
+	var req ChangePasswordRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+
+	if err := h.service.ChangePassword(id, req); err != nil {
+		httputil.ErrorRaw(c, 400, "BAD_REQUEST", err.Error())
+		return
+	}
+
+	httputil.UpdatedJSON(c, nil, "password.updated")
 }

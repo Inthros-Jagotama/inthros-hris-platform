@@ -16,9 +16,16 @@ const (
 )
 
 // NewModule membuat instance baru License Management Module.
+// Service dibuat secara internal.
 func NewModule(dbManager *database.Manager, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
 	repo := NewRepository(dbManager.PlatformDB())
 	svc := NewService(repo, dbManager, logger)
+	return NewModuleWithService(svc, logger, authMW, rbacMW)
+}
+
+// NewModuleWithService membuat instance License Module dengan service yang sudah ada.
+// Digunakan untuk sharing service instance dengan adapter (misal company signup).
+func NewModuleWithService(svc *Service, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
 	handler := NewHandler(svc)
 
 	return &licenseModule{

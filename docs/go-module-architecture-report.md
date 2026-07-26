@@ -1,6 +1,6 @@
 ====================================================================================================
   HRIS PLATFORM — GO MODULE ARCHITECTURE REPORT
-  Generated: 31 Juli 2026
+  Generated: 26 Jul 2026
 ====================================================================================================
 
 ## SECTION 1: TENANT MODULES (internal/modules/)
@@ -52,8 +52,9 @@
 | license | 1 | 4 | 6 | 4 | 4 | 0 |
 | modulemgmt | 2 | 7 | 7 | 7 | 7 | 0 |
 | monitoring | 0 | 0 | 0 | 4 | 4 | 0 |
+| package | 2 | 12 | 9 | 9 | 9 | 25 |
 | user | 1 | 8 | 6 | 6 | 6 | 0 |
-| **TOTAL** | **5** | **30** | **25** | **31** | **31** | **11** |
+| **TOTAL** | **7** | **42** | **34** | **40** | **40** | **36** |
 
 ## SECTION 3: SHARED KERNEL PACKAGES (internal/pkg/)
 
@@ -68,15 +69,16 @@
 | docs | 1 | 0 | OpenAPI/Scalar documentation |
 | driver | 1 | 0 | DB driver detection |
 | errors | 0 | 0 | errors |
+| **httputil** | **4** | **0** | **Bilingual response helpers** (SuccessJSON, CreatedJSON, ErrorJSON, NotFound) + **locale message catalog** (80+ EN/ID pairs) + **custom Indonesian validators** (NIK, NPWP, KK, Passport, SIM, No Rekening) |
 | logger | 1 | 0 | Structured logging |
-| middleware | 5 | 0 | HTTP middleware (auth, cors, logger, recovery, tenant) |
+| middleware | **6** | 0 | HTTP middleware: Auth, CORS, Logger, Recovery, Tenant, **Localize** (auto-detect Accept-Language) |
 | migrator | 3 | 3 | Database migration engine |
 | module | 1 | 0 | Module SDK |
 | router | 1 | 0 | Router setup |
 | telemetry | 0 | 0 | telemetry |
 | tenant | 0 | 0 | tenant |
 | validator | 0 | 0 | validator |
-| **TOTAL** | **36** | **153** | |
+| **TOTAL** | **41** | **153** | |
 
 ## SECTION 4: ENTITY DETAIL PER MODULE
 
@@ -233,8 +235,14 @@
 - License
 
 ### modulemgmt
-- PlatformModule
+- PlatformModule — `module_type` field ("platform"/"tenant") ditambahkan via migration 012
+  - Filter endpoint: `GET /modules?module_type=platform|tenant` (query param di ListModules)
 - CompanyModule
+
+### package
+- Package — paket modul dengan harga, status (draft/published), is_public flag
+- PackageModule — relasi modul dalam paket (module_id, is_mandatory, sort_order)
+  - Filter endpoint: `GET /packages?module_type=platform|tenant` dan `GET /public/packages?module_type=platform|tenant`
 
 ### user
 - PlatformUser
@@ -753,25 +761,39 @@
 - `UpdateSuccessionPlan()`
 - `DeleteSuccessionPlan()`
 
+### package.Service — 12 methods
+- `CreatePackage()`
+- `GetPackage()`
+- `GetPackageBySlug()`
+- `ListPackages()`
+- `ListPublishedPackages()`
+- `UpdatePackage()`
+- `DeletePackage()`
+- `PublishPackage()`
+- `UnpublishPackage()`
+- `ValidatePackageDependencies()`
+- `updateStatus()` (private)
+- `validateModuleDependencies()` (private)
+
 ## SECTION 6: GRAND TOTALS
 
 | Category | Count |
 |----------|:-----:|
-| Tenant Modules | 14 |
-| Platform Modules | 5 |
+| Tenant Modules | 15 |
+| Platform Modules | 6 |
 | Shared Kernel Packages | 17 |
-| **Total Architecture Layers** | **36** |
-| Total GORM Entities (tenant) | 109 |
-| Total GORM Entities (platform) | 5 |
-| **Total Entities (combined)** | **121** |
-| Total Service Methods | 510 |
-| Total Repository Methods | 572 |
-| Total Handler Functions | 531 |
-| Total Route Registrations | 529 |
-| **Total Unit Tests (all)** | **1004** |
-| Total Go Source Files | 155 |
-| Total Test Files (_test.go) | 69 |
-| **Total Go Files** | **224** |
+| **Total Architecture Layers** | **38** |
+| Total GORM Entities (tenant) | 116 |
+| Total GORM Entities (platform) | 7 |
+| **Total Entities (combined)** | **123** |
+| Total Service Methods | 522 |
+| Total Repository Methods | 581 |
+| Total Handler Functions | 540 |
+| Total Route Registrations | 538 |
+| **Total Unit Tests (all)** | **1029** |
+| Total Go Source Files | 161 |
+| Total Test Files (_test.go) | 70 |
+| **Total Go Files** | **231** |
 
 ## SECTION 7: TEST FILE INVENTORY
 
@@ -843,6 +865,8 @@
 | `pkg\cache\pubsub_test.go` | 19 |
 | `pkg\crypto\crypto_test.go` | 8 |
 | `pkg\migrator\migrator_integration_test.go` | 3 |
+| `platform\package\helpers_test.go` | 0 |
+| `platform\package\service_test.go` | 25 |
 | `platform\company\handler_test.go` | 4 |
 | `platform\company\helpers_test.go` | 0 |
 | `platform\company\service_test.go` | 7 |

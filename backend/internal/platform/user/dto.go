@@ -47,6 +47,12 @@ type UpdateUserRequest struct {
 	IsActive *bool   `json:"is_active,omitempty"`
 }
 
+// ChangePasswordRequest untuk ubah password.
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
+}
+
 // UserResponse untuk response data user.
 type UserResponse struct {
 	ID          string     `json:"id"`

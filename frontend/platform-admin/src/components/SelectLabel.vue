@@ -37,6 +37,11 @@ defineProps({
     emptyFilterMessage: {
         type: String,
         default: 'Data tidak ditemukan'
+    },
+    // Tampilkan tombol clear untuk menghapus nilai yang dipilih
+    showClear: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -70,6 +75,7 @@ defineExpose({
         :size="size"
         :fluid="fluid"
         :filter="filter"
+        :showClear="showClear"
         :emptyFilterMessage="emptyFilterMessage"
         class="w-full"
         @update:modelValue="$emit('update:modelValue', $event)"

@@ -5,25 +5,42 @@
       <!-- Login Card -->
       <Card class="!shadow-lg !rounded-xl">
         <template #content>
+          <!-- Language Switcher (top-right) -->
+          <div class="flex justify-end mb-2">
+            <Button
+              severity="secondary"
+              text
+              size="small"
+              class="!p-1.5 !text-xs"
+              v-tooltip.left="{ value: t('auth.login.subtitle'), showDelay: 300 }"
+              @click="langStore.toggleLang()"
+            >
+              <div class="flex items-center gap-1">
+                <i class="pi pi-globe text-xs"></i>
+                <span class="text-xs font-semibold uppercase">{{ langStore.state.lang }}</span>
+              </div>
+            </Button>
+          </div>
+
           <!-- Logo Area -->
           <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-indigo-600 text-white mb-4">
               <i class="pi pi-shield text-2xl"></i>
             </div>
-            <h1 class="text-xl font-bold text-gray-900">HRIS Platform Admin</h1>
-            <p class="text-sm text-gray-500 mt-1">Sign in to manage your platform</p>
+            <h1 class="text-xl font-bold text-gray-900">{{ t('auth.title') }}</h1>
+            <p class="text-sm text-gray-500 mt-1">{{ t('auth.login.subtitle') }}</p>
           </div>
           <!-- Login Form -->
           <form @submit.prevent="handleLogin" class="space-y-4">
             <!-- Email -->
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ t('auth.login.email') }}</label>
               <IconField>
                 <InputIcon class="pi pi-envelope" />
                 <InputText
                   v-model="email"
                   type="email"
-                  placeholder="admin@company.com"
+                  :placeholder="t('auth.login.email_placeholder')"
                   class="!w-full"
                   :disabled="loading"
                   autocomplete="email"
@@ -33,13 +50,13 @@
 
             <!-- Password -->
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Password</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ t('auth.login.password') }}</label>
               <IconField>
                 <InputIcon class="pi pi-lock" />
                 <InputText
                   v-model="password"
                   type="password"
-                  placeholder="••••••••"
+                  :placeholder="t('auth.login.password_placeholder')"
                   class="!w-full"
                   :disabled="loading"
                   autocomplete="current-password"
@@ -55,7 +72,7 @@
             <!-- Submit -->
             <Button
               type="submit"
-              label="Sign In"
+              :label="t('auth.login.button')"
               icon="pi pi-sign-in"
               class="!w-full"
               :loading="loading"
@@ -65,7 +82,7 @@
       </Card>
 
       <p class="text-center text-sm text-gray-400 mt-6">
-        HRIS Platform v1.6.3 &mdash; Enterprise Edition
+        {{ t('auth.version') }}
       </p>
     </div>
   </div>
@@ -75,6 +92,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/stores/auth'
+import { useLanguage } from '@/stores/language'
+import { useI18n } from '@/composables/useI18n'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -83,6 +102,8 @@ import IconField from 'primevue/iconfield'
 
 const router = useRouter()
 const { login } = useAuth()
+const langStore = useLanguage()
+const { t } = useI18n()
 
 const email = ref('')
 const password = ref('')
@@ -91,7 +112,7 @@ const error = ref('')
 
 async function handleLogin() {
   if (!email.value || !password.value) {
-    error.value = 'Please enter email and password'
+    error.value = t('auth.login.validation_required')
     return
   }
   loading.value = true
@@ -100,7 +121,10 @@ async function handleLogin() {
     await login(email.value, password.value)
     router.push('/dashboard')
   } catch (e) {
-    error.value = e.response?.data?.message || 'Invalid credentials. Please try again.'
+    // Backend sudah mengembalikan error message dalam bahasa yg diminta
+    error.value = e.response?.data?.message 
+      || e.response?.data?.error?.message 
+      || t('auth.login.invalid_credentials')
   } finally {
     loading.value = false
   }

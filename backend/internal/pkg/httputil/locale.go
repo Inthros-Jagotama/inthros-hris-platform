@@ -332,6 +332,10 @@ var localeMessages = map[string]map[Lang]string{
 		LangEN: "User deleted successfully",
 		LangID: "Pengguna berhasil dihapus",
 	},
+	"password.updated": {
+		LangEN: "Password updated successfully",
+		LangID: "Kata sandi berhasil diperbarui",
+	},
 
 	"license.created": {
 		LangEN: "License created successfully",
@@ -555,5 +559,35 @@ var localeMessages = map[string]map[Lang]string{
 	"employment.deleted": {
 		LangEN: "Employment record deleted",
 		LangID: "Riwayat pekerjaan berhasil dihapus",
+	},
+
+	// --- Package Management messages ---
+	"package.created": {
+		LangEN: "Package created successfully",
+		LangID: "Paket berhasil dibuat",
+	},
+	"package.updated": {
+		LangEN: "Package updated successfully",
+		LangID: "Paket berhasil diperbarui",
+	},
+	"package.deleted": {
+		LangEN: "Package deleted successfully",
+		LangID: "Paket berhasil dihapus",
+	},
+	"package.published": {
+		LangEN: "Package published successfully",
+		LangID: "Paket berhasil dipublikasikan",
+	},
+	"package.unpublished": {
+		LangEN: "Package unpublished successfully",
+		LangID: "Paket berhasil ditarik",
+	},
+	"package.subscribed": {
+		LangEN: "Successfully subscribed to package",
+		LangID: "Berhasil berlangganan paket",
+	},
+	"package.unsubscribed": {
+		LangEN: "Successfully unsubscribed from package",
+		LangID: "Berhasil berhenti berlangganan paket",
 	},
 }

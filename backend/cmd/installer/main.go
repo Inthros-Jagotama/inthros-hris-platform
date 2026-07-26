@@ -212,7 +212,9 @@ type moduleDef struct {
 	Slug        string
 	Version     string
 	Description string
+	ModuleType  string // "platform" atau "tenant"
 	IsCore      bool
+	DependsOn   string
 }
 
 // handleSeedModules mendaftarkan semua modul platform & tenant ke database.
@@ -222,27 +224,28 @@ func handleSeedModules(l *zap.Logger, dbManager *database.Manager) {
 
 	modules := []moduleDef{
 		// Platform modules (core)
-		{Name: "Company Management", Slug: "company", Version: "1.0.0", Description: "Manage companies/tenants and their lifecycle", IsCore: true},
-		{Name: "Platform Users & Auth", Slug: "platform-users", Version: "1.0.0", Description: "Platform user authentication, authorization, and user management", IsCore: true},
-		{Name: "Module Management", Slug: "module-management", Version: "1.0.0", Description: "Manage platform modules and their activation for companies", IsCore: true},
-		{Name: "License Management", Slug: "license-management", Version: "1.0.0", Description: "Manage company licenses, plans, and subscription billing", IsCore: true},
+		{Name: "Company Management", Slug: "company", Version: "1.0.0", Description: "Manage companies/tenants and their lifecycle", ModuleType: "platform", IsCore: true, DependsOn: ""},
+		{Name: "Platform Users & Auth", Slug: "platform-users", Version: "1.0.0", Description: "Platform user authentication, authorization, and user management", ModuleType: "platform", IsCore: true, DependsOn: ""},
+		{Name: "Module Management", Slug: "module-management", Version: "1.0.0", Description: "Manage platform modules and their activation for companies", ModuleType: "platform", IsCore: true, DependsOn: ""},
+		{Name: "License Management", Slug: "license-management", Version: "1.0.0", Description: "Manage company licenses, plans, and subscription billing", ModuleType: "platform", IsCore: true, DependsOn: "company"},
+		{Name: "Package Management", Slug: "package-management", Version: "1.0.0", Description: "Bundle tenant modules with pricing, dependency validation, and publishing", ModuleType: "platform", IsCore: true, DependsOn: "module-management"},
 
 		// Tenant modules
-		{Name: "Organization Management", Slug: "organization", Version: "1.0.0", Description: "Manage organizational structure, departments, and positions"},
-		{Name: "Employee Management", Slug: "employee", Version: "1.0.0", Description: "Employee master data, documents, and lifecycle"},
-		{Name: "Job Management", Slug: "job-management", Version: "1.0.0", Description: "Job titles, job grades, and position management"},
-		{Name: "Competency Management", Slug: "competency", Version: "1.0.0", Description: "Skills, competency dictionaries, and assessments"},
-		{Name: "Employee Movement", Slug: "employee-movement", Version: "1.0.0", Description: "Promotions, transfers, resignations, and mutations"},
-		{Name: "Attendance Management", Slug: "attendance", Version: "1.0.0", Description: "Time tracking, attendance logs, and overtime"},
-		{Name: "Approval Engine", Slug: "approval", Version: "1.0.0", Description: "Approval workflows, multi-level approvals, and delegation"},
-		{Name: "Payroll Management", Slug: "payroll", Version: "1.0.0", Description: "Payroll processing, tax calculations, and salary components"},
-		{Name: "Leave Management", Slug: "leave", Version: "1.0.0", Description: "Leave requests, balances, and calendars"},
-		{Name: "Performance Management", Slug: "performance", Version: "1.0.0", Description: "Performance reviews, KPI tracking, and feedback"},
-		{Name: "Recruitment & Onboarding", Slug: "recruitment", Version: "1.0.0", Description: "Job postings, candidate management, and onboarding"},
-		{Name: "Reimbursement", Slug: "reimbursement", Version: "1.0.0", Description: "Expense reimbursement requests and approvals"},
-		{Name: "Training Management", Slug: "training", Version: "1.0.0", Description: "Training programs, enrollments, and certifications"},
-		{Name: "Workforce Intelligence", Slug: "workforce-intelligence", Version: "1.0.0", Description: "Workforce analytics, planning, and strategic dashboards", IsCore: false},
-		{Name: "Career Intelligence", Slug: "career-intelligence", Version: "1.0.0", Description: "Career development, succession planning, and talent management"},
+		{Name: "Organization Management", Slug: "organization", Version: "1.0.0", Description: "Manage organizational structure, departments, and positions", ModuleType: "tenant", DependsOn: ""},
+		{Name: "Employee Management", Slug: "employee", Version: "1.0.0", Description: "Employee master data, documents, and lifecycle", ModuleType: "tenant", DependsOn: "organization"},
+		{Name: "Job Management", Slug: "jobmanagement", Version: "1.0.0", Description: "Job titles, job grades, and position management", ModuleType: "tenant", DependsOn: "organization"},
+		{Name: "Competency Management", Slug: "competency", Version: "1.0.0", Description: "Skills, competency dictionaries, and assessments", ModuleType: "tenant", DependsOn: "organization,employee"},
+		{Name: "Employee Movement", Slug: "employeemovement", Version: "1.0.0", Description: "Promotions, transfers, resignations, and mutations", ModuleType: "tenant", DependsOn: "employee,organization"},
+		{Name: "Attendance Management", Slug: "attendance", Version: "1.0.0", Description: "Time tracking, attendance logs, and overtime", ModuleType: "tenant", DependsOn: "employee,organization"},
+		{Name: "Approval Engine", Slug: "approval", Version: "1.0.0", Description: "Approval workflows, multi-level approvals, and delegation", ModuleType: "tenant", DependsOn: "employee,organization"},
+		{Name: "Payroll Management", Slug: "payroll", Version: "1.0.0", Description: "Payroll processing, tax calculations, and salary components", ModuleType: "tenant", DependsOn: "employee,organization"},
+		{Name: "Leave Management", Slug: "leave", Version: "1.0.0", Description: "Leave requests, balances, and calendars", ModuleType: "tenant", DependsOn: "employee,organization"},
+		{Name: "Performance Management", Slug: "performance", Version: "1.0.0", Description: "Performance reviews, KPI tracking, and feedback", ModuleType: "tenant", DependsOn: "organization,employee,jobmanagement,competency"},
+		{Name: "Recruitment & Onboarding", Slug: "recruitment", Version: "1.0.0", Description: "Job postings, candidate management, and onboarding", ModuleType: "tenant", DependsOn: "organization,employee"},
+		{Name: "Reimbursement", Slug: "reimbursement", Version: "1.0.0", Description: "Expense reimbursement requests and approvals", ModuleType: "tenant", DependsOn: "employee"},
+		{Name: "Training Management", Slug: "training", Version: "1.0.0", Description: "Training programs, enrollments, and certifications", ModuleType: "tenant", DependsOn: "employee,organization"},
+		{Name: "Workforce Intelligence", Slug: "workforce-intelligence", Version: "1.0.0", Description: "Workforce analytics, planning, and strategic dashboards", ModuleType: "tenant", DependsOn: "organization,employee,attendance,leave,payroll,performance,competency,training,recruitment,employeemovement"},
+		{Name: "Career Intelligence", Slug: "career-intelligence", Version: "1.0.0", Description: "Career development, succession planning, and talent management", ModuleType: "tenant", DependsOn: "organization,employee,jobmanagement,competency"},
 	}
 
 	db := dbManager.PlatformDB()
@@ -261,13 +264,19 @@ func handleSeedModules(l *zap.Logger, dbManager *database.Manager) {
 		}
 
 		// Insert module
+		moduleType := m.ModuleType
+		if moduleType == "" {
+			moduleType = "tenant" // default
+		}
 		result := db.Table("modules").Create(map[string]interface{}{
 			"id":          uuid.New().String(),
 			"name":        m.Name,
 			"slug":        m.Slug,
 			"version":     m.Version,
 			"description": m.Description,
+			"module_type":  moduleType,
 			"is_core":      0, // All tenant modules default to non-core
+			"depends_on":   m.DependsOn,
 		})
 
 		if m.IsCore {

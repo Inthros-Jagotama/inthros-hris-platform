@@ -48,11 +48,16 @@ func (h *Handler) GetModule(c *gin.Context) {
 }
 
 // ListModules menangani GET /api/v1/platform/modules
+// Query params:
+//   - page: halaman (default 1)
+//   - per_page: item per halaman (default 20, max 100)
+//   - module_type: filter berdasarkan tipe ("platform" atau "tenant"), kosongkan untuk semua
 func (h *Handler) ListModules(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	moduleType := c.Query("module_type")
 
-	response, err := h.service.ListModules(page, perPage)
+	response, err := h.service.ListModules(page, perPage, moduleType)
 	if err != nil {
 		httputil.InternalError(c, err.Error())
 		return

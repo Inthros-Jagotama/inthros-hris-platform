@@ -28,7 +28,7 @@ func (r *Repository) FindBySlug(slug string) (*PlatformModule, error) {
 }
 
 // FindByID mencari modul berdasarkan ID.
-func (r *Repository) FindByID(id uuid.UUID) (*PlatformModule, error) {
+func (r *Repository) FindByID(id string) (*PlatformModule, error) {
 	var m PlatformModule
 	if err := r.db.Where("id = ?", id).First(&m).Error; err != nil {
 		return nil, fmt.Errorf("module not found: %w", err)
@@ -36,20 +36,28 @@ func (r *Repository) FindByID(id uuid.UUID) (*PlatformModule, error) {
 	return &m, nil
 }
 
-// FindAll mengembalikan semua modul dengan pagination.
-// Gunakan query chain terpisah untuk Count dan Find.
-func (r *Repository) FindAll(page, perPage int) ([]PlatformModule, int64, error) {
+// FindAll mengembalikan semua modul dengan pagination dan optional filter module_type.
+// Jika moduleType tidak kosong, hanya mengembalikan modul dengan tipe tersebut (platform/tenant).
+func (r *Repository) FindAll(page, perPage int, moduleType string) ([]PlatformModule, int64, error) {
 	var modules []PlatformModule
 	var total int64
 
-	// Count total — chain terpisah
-	if err := r.db.Model(&PlatformModule{}).Count(&total).Error; err != nil {
+	// Count total
+	countQuery := r.db.Model(&PlatformModule{})
+	if moduleType != "" {
+		countQuery = countQuery.Where("module_type = ?", moduleType)
+	}
+	if err := countQuery.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to count modules: %w", err)
 	}
 
-	// Get paginated data — chain terpisah
+	// Get paginated data
 	offset := (page - 1) * perPage
-	if err := r.db.Model(&PlatformModule{}).
+	dataQuery := r.db.Model(&PlatformModule{})
+	if moduleType != "" {
+		dataQuery = dataQuery.Where("module_type = ?", moduleType)
+	}
+	if err := dataQuery.
 		Offset(offset).
 		Limit(perPage).
 		Order("created_at DESC").

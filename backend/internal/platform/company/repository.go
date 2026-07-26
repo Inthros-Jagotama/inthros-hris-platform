@@ -84,3 +84,29 @@ func (r *Repository) SoftDelete(id uuid.UUID) error {
 	}
 	return nil
 }
+
+// FindTenantConnectionsByCompanyIDs mencari tenant connections untuk
+// kumpulan company IDs. Mengembalikan map[companyID]TenantConnection.
+func (r *Repository) FindTenantConnectionsByCompanyIDs(ids []uuid.UUID) (map[uuid.UUID]TenantConnection, error) {
+	if len(ids) == 0 {
+		return make(map[uuid.UUID]TenantConnection), nil
+	}
+	var conns []TenantConnection
+	if err := r.db.Where("company_id IN ?", ids).Find(&conns).Error; err != nil {
+		return nil, fmt.Errorf("failed to find tenant connections: %w", err)
+	}
+	result := make(map[uuid.UUID]TenantConnection, len(conns))
+	for _, c := range conns {
+		result[c.CompanyID] = c
+	}
+	return result, nil
+}
+
+// FindTenantConnectionByCompanyID mencari satu tenant connection berdasarkan company ID.
+func (r *Repository) FindTenantConnectionByCompanyID(companyID uuid.UUID) (*TenantConnection, error) {
+	var conn TenantConnection
+	if err := r.db.Where("company_id = ?", companyID).First(&conn).Error; err != nil {
+		return nil, fmt.Errorf("tenant connection not found: %w", err)
+	}
+	return &conn, nil
+}

@@ -130,7 +130,7 @@ func newTestService() (*Service, *FakeTenantManager, func()) {
 	repo := NewRepository(db)
 	logger, _ := zap.NewDevelopment()
 	fakeTM := &FakeTenantManager{}
-	svc := NewService(repo, fakeTM, nil, logger)
+	svc := NewService(repo, fakeTM, nil, nil, logger) // licenseCreator=nil OK for non-package tests
 	return svc, fakeTM, func() {
 		cleanup()
 		_ = logger.Sync()

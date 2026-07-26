@@ -4,8 +4,10 @@ import api from '@/services/api'
 const TOKEN_KEY = 'platform_admin_token'
 const REFRESH_KEY = 'platform_admin_refresh'
 
+const USER_KEY = 'platform_user'
+
 const state = reactive({
-  user: null,
+  user: JSON.parse(localStorage.getItem(USER_KEY) || 'null'),
   accessToken: localStorage.getItem(TOKEN_KEY) || null,
   refreshToken: localStorage.getItem(REFRESH_KEY) || null,
   isAuthenticated: !!localStorage.getItem(TOKEN_KEY)
@@ -27,6 +29,7 @@ export function useAuth() {
     state.isAuthenticated = true
     localStorage.setItem(TOKEN_KEY, accessToken)
     localStorage.setItem(REFRESH_KEY, refreshToken)
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
     api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
     return user
   }
@@ -52,6 +55,7 @@ export function useAuth() {
     state.isAuthenticated = false
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(REFRESH_KEY)
+    localStorage.removeItem(USER_KEY)
     delete api.defaults.headers.common['Authorization']
   }
 

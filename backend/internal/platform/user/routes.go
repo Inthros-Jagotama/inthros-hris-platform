@@ -24,6 +24,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW, rbacMW gin.Ha
 			users.GET("/:id", handler.GetUser)
 			users.POST("", handler.CreateUser)
 			users.PUT("/:id", handler.UpdateUser)
+			users.PUT("/:id/password", handler.ChangePassword)
+			users.DELETE("/:id", handler.DeleteUser)
 		}
 	}
 }

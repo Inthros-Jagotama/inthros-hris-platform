@@ -86,6 +86,27 @@ func (s *Service) CreateLicense(req CreateLicenseRequest) (*LicenseResponse, err
 		Status:       string(LicenseActive),
 	}
 
+	// Optional: associate with a package
+	if req.PackageID != "" {
+		pid, err := uuid.Parse(req.PackageID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid package_id: %w", err)
+		}
+
+		pkgName, err := s.repo.FindPackageNameByID(pid)
+		if err != nil {
+			return nil, fmt.Errorf("published package not found: %w", err)
+		}
+
+		license.PackageID = &pid
+		license.PackageName = pkgName
+
+		s.logger.Info("License associated with package",
+			zap.String("package_id", req.PackageID),
+			zap.String("package_name", pkgName),
+		)
+	}
+
 	if err := s.repo.Create(license); err != nil {
 		return nil, err
 	}
@@ -184,6 +205,26 @@ func (s *Service) UpdateLicense(id string, req UpdateLicenseRequest) (*LicenseRe
 		endDate, err := time.Parse("2006-01-02", *req.EndDate)
 		if err == nil {
 			license.EndDate = endDate
+		}
+	}
+
+	// Optional: update package association
+	if req.PackageID != nil {
+		if *req.PackageID == "" {
+			// Remove package association
+			license.PackageID = nil
+			license.PackageName = ""
+		} else {
+			pid, err := uuid.Parse(*req.PackageID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid package_id: %w", err)
+			}
+			pkgName, err := s.repo.FindPackageNameByID(pid)
+			if err != nil {
+				return nil, fmt.Errorf("published package not found: %w", err)
+			}
+			license.PackageID = &pid
+			license.PackageName = pkgName
 		}
 	}
 

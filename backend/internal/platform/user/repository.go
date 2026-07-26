@@ -87,3 +87,15 @@ func (r *Repository) UpdateLastLogin(id uuid.UUID) error {
 	}
 	return nil
 }
+
+// SoftDelete melakukan soft delete user.
+func (r *Repository) SoftDelete(id uuid.UUID) error {
+	result := r.db.Where("id = ?", id).Delete(&PlatformUser{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete user: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}

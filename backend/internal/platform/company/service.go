@@ -19,6 +19,13 @@ type UserCreator interface {
 	CreateCompanyUser(companyID, name, email, password string) (userID string, err error)
 }
 
+// LicenseCreator mendefinisikan interface untuk membuat lisensi
+// saat create company dengan package tertentu.
+// Diimplementasikan oleh license.Service (via adapter di main.go).
+type LicenseCreator interface {
+	CreateFromPackage(companyID, packageID string) (licenseID, licenseKey, planType string, err error)
+}
+
 // TenantManager mendefinisikan interface untuk operasi lifecycle tenant
 // yang digunakan oleh Company Service. Memungkinkan mocking di unit test
 // tanpa memerlukan koneksi database nyata.
@@ -35,19 +42,21 @@ type TenantManager interface {
 
 // Service untuk business logic Company.
 type Service struct {
-	repo        *Repository
-	dbManager   TenantManager
-	userCreator UserCreator
-	logger      *zap.Logger
+	repo           *Repository
+	dbManager      TenantManager
+	userCreator    UserCreator
+	licenseCreator LicenseCreator
+	logger         *zap.Logger
 }
 
 // NewService membuat Service baru.
-func NewService(repo *Repository, dbManager TenantManager, userCreator UserCreator, logger *zap.Logger) *Service {
+func NewService(repo *Repository, dbManager TenantManager, userCreator UserCreator, licenseCreator LicenseCreator, logger *zap.Logger) *Service {
 	return &Service{
-		repo:        repo,
-		dbManager:   dbManager,
-		userCreator: userCreator,
-		logger:      logger,
+		repo:           repo,
+		dbManager:      dbManager,
+		userCreator:    userCreator,
+		licenseCreator: licenseCreator,
+		logger:         logger,
 	}
 }
 
@@ -100,6 +109,8 @@ func (s *Service) Create(req CreateCompanyRequest) (*CompanyResponse, error) {
 	}
 
 	// Create admin user dengan role company_admin
+	response := company.ToResponse()
+
 	if s.userCreator != nil {
 		userID, err := s.userCreator.CreateCompanyUser(
 			company.ID.String(),
@@ -115,18 +126,42 @@ func (s *Service) Create(req CreateCompanyRequest) (*CompanyResponse, error) {
 				zap.Error(err),
 			)
 		} else {
-			response := company.ToResponse()
 			response.AdminUser = &AdminUserInfo{
 				ID:    userID,
 				Name:  req.AdminName,
 				Email: req.AdminEmail,
 				Role:  "company_admin",
 			}
-			return &response, nil
 		}
 	}
 
-	response := company.ToResponse()
+	// Auto-create license from package if specified
+	if req.PackageID != "" && s.licenseCreator != nil {
+		licenseID, licenseKey, planType, err := s.licenseCreator.CreateFromPackage(
+			company.ID.String(),
+			req.PackageID,
+		)
+		if err != nil {
+			s.logger.Warn("Failed to create license from package",
+				zap.String("company_id", company.ID.String()),
+				zap.String("package_id", req.PackageID),
+				zap.Error(err),
+			)
+		} else {
+			response.LicenseInfo = &LicenseInfo{
+				ID:         licenseID,
+				LicenseKey: licenseKey,
+				PlanType:   planType,
+				PackageID:  req.PackageID,
+			}
+			s.logger.Info("License auto-created from package",
+				zap.String("company_id", company.ID.String()),
+				zap.String("package_id", req.PackageID),
+				zap.String("license_id", licenseID),
+			)
+		}
+	}
+
 	return &response, nil
 }
 
@@ -204,6 +239,17 @@ func (s *Service) GetByID(id string) (*CompanyResponse, error) {
 	}
 
 	response := company.ToResponse()
+
+	// Include provisioning info
+	if conn, err := s.repo.FindTenantConnectionByCompanyID(uid); err == nil {
+		response.ProvisioningInfo = &ProvisioningInfo{
+			Provisioned: true,
+			IsActive:    conn.IsActive,
+			Driver:      conn.Driver,
+			DBName:      conn.DBName,
+		}
+	}
+
 	return &response, nil
 }
 
@@ -221,10 +267,31 @@ func (s *Service) List(page, perPage int) (*PaginatedResponse, error) {
 		return nil, err
 	}
 
-	// Convert to response
+	// Collect company IDs and load tenant connections
+	var companyIDs []uuid.UUID
+	for _, c := range companies {
+		companyIDs = append(companyIDs, c.ID)
+	}
+
+	connMap, _ := s.repo.FindTenantConnectionsByCompanyIDs(companyIDs)
+
+	// Convert to response with provisioning info
 	var responses []CompanyResponse
 	for _, c := range companies {
-		responses = append(responses, c.ToResponse())
+		resp := c.ToResponse()
+		if conn, ok := connMap[c.ID]; ok {
+			resp.ProvisioningInfo = &ProvisioningInfo{
+				Provisioned: true,
+				IsActive:    conn.IsActive,
+				Driver:      conn.Driver,
+				DBName:      conn.DBName,
+			}
+		} else {
+			resp.ProvisioningInfo = &ProvisioningInfo{
+				Provisioned: false,
+			}
+		}
+		responses = append(responses, resp)
 	}
 
 	totalPages := int(total) / perPage

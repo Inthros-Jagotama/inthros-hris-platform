@@ -17,9 +17,11 @@ const ModuleVersion = "1.0.0"
 // NewModule membuat instance baru Company Module untuk registrasi.
 // userCreator adalah implementasi dari interface UserCreator (user.Service),
 // digunakan untuk membuat company_admin user saat create company.
-func NewModule(dbManager *database.Manager, userCreator UserCreator, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
+// licenseCreator adalah implementasi dari interface LicenseCreator (license.Service),
+// digunakan untuk auto-create license dari package saat create company.
+func NewModule(dbManager *database.Manager, userCreator UserCreator, licenseCreator LicenseCreator, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
 	repo := NewRepository(dbManager.PlatformDB())
-	svc := NewService(repo, dbManager, userCreator, logger)
+	svc := NewService(repo, dbManager, userCreator, licenseCreator, logger)
 	handler := NewHandler(svc)
 
 	return &companyModule{

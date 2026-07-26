@@ -3,18 +3,18 @@
 
 **Generated:** 26 July 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 300
-**Total Endpoints (methods):** 544
-**Total Schemas:** 352
-**Total Tags:** 24
+**Total Paths:** 309
+**Total Endpoints (methods):** 556
+**Total Schemas:** 359
+**Total Tags:** 26
 
 ## Coverage Summary
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 544/544 | 100% |
-| Endpoints with `description` | 544/544 | 100% |
-| Endpoints with `operationId` | 544/544 | 100% |
+| Endpoints with `summary` | 556/556 | 100% |
+| Endpoints with `description` | 556/556 | 100% |
+| Endpoints with `operationId` | 556/556 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -122,14 +122,16 @@ Tenant endpoints support validation for Indonesian data formats:
 | 15 | Tenant: Organizations | 12 | 8 |
 | 16 | Platform: Companies | 10 | 7 |
 | 17 | Platform: RBAC Management | 10 | 6 |
-| 18 | Platform: Modules | 7 | 5 |
-| 19 | Health | 4 | 4 |
-| 20 | Platform: Users | 4 | 2 |
-| 21 | Platform: Licenses | 4 | 2 |
-| 22 | Platform: Monitoring | 3 | 3 |
-| 23 | Platform: Auth | 2 | 2 |
-| 24 | Tenant: Approval Engine | 1 | 1 |
-| | **TOTAL** | **544** | **300** |
+| 18 | Platform: Packages | 9 | 6 |
+| 19 | Platform: Modules | 7 | 5 |
+| 20 | Health | 4 | 4 |
+| 21 | Platform: Users | 4 | 2 |
+| 22 | Platform: Licenses | 4 | 2 |
+| 23 | Platform: Monitoring | 3 | 3 |
+| 24 | Tenant: Packages | 3 | 3 |
+| 25 | Platform: Auth | 2 | 2 |
+| 26 | Tenant: Approval Engine | 1 | 1 |
+| | **TOTAL** | **556** | **309** |
 
 ## 2. Module Detail
 
@@ -759,8 +761,8 @@ Tenant endpoints support validation for Indonesian data formats:
 | Method | Path | Summary | Description |
 |---|---|---|---|
 | `POST` | `/api/v1/platform/companies` | Create a new company/tenant | Register a new company tenant. Also creates a company_admin user automatically. Request now includes admin_name, admin_email, admin_password fields... |
-| `GET` | `/api/v1/platform/companies` | List all companies | Retrieve a paginated list of all registered companies (tenants) in the platform. Includes company status, contact information, and subscription det... |
-| `GET` | `/api/v1/platform/companies/{id}` | Get company by ID | Get detailed information about a specific company/tenant including its status, contact details, subscription plan, and database connection health. |
+| `GET` | `/api/v1/platform/companies` | List all companies | Retrieve a paginated list of all registered companies (tenants) in the platform. Includes company status, contact information, subscription details... |
+| `GET` | `/api/v1/platform/companies/{id}` | Get company by ID | Get detailed information about a specific company/tenant including its status, contact details, subscription plan, database connection health, and ... |
 | `PUT` | `/api/v1/platform/companies/{id}` | Update company | Update a company's profile information including name, email, phone, address, and other contact details. |
 | `DELETE` | `/api/v1/platform/companies/{id}` | Soft delete company (deactivate connection + deleted_at) | Soft-delete a company tenant. Deactivates the tenant database connection and sets the deleted_at timestamp. The company record is hidden from stand... |
 | `POST` | `/api/v1/platform/companies/{id}/activate` | Activate a company/tenant (reactivate connection) | Reactivate a previously suspended company tenant. Re-establishes the database connection and sets the company status back to 'active'. All tenant A... |
@@ -786,6 +788,23 @@ Tenant endpoints support validation for Indonesian data formats:
 | `DELETE` | `/api/v1/platform/rbac/roles/{id}` | Delete a role (non-system roles only) | Delete a non-system role. Users assigned to this role will lose their associated permissions until reassigned. System roles (super_admin) cannot be... |
 | `POST` | `/api/v1/platform/rbac/roles/{id}/permissions` | Assign a permission to a role | Assign a permission to a role. The permission becomes available to all users with that role (and child roles through inheritance). The enforcer aut... |
 | `DELETE` | `/api/v1/platform/rbac/roles/{id}/permissions/{permissionId}` | Revoke a permission from a role | Revoke a permission from a role. The permission will no longer be available to users with that role. The enforcer auto-reloads to apply changes imm... |
+
+### Platform: Packages
+**Description:** Package management â€” bundle tenant modules with pricing, dependency validation, and publishing
+**Endpoints:** 9 | **Paths:** 6
+**Methods:** DELETE=1 GET=4 POST=3 PUT=1
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/platform/packages` | List all packages (admin) | Retrieve a paginated list of all packages. Includes draft, published, and archived packages with their module associations. |
+| `POST` | `/api/v1/platform/packages` | Create a new package | Create a new package that bundles tenant modules with pricing. Validates module dependencies before creation â€” all required dependencies (depends... |
+| `GET` | `/api/v1/platform/packages/{id}` | Get package by ID | Get detailed information about a specific package including its modules, pricing, status, and sort order. |
+| `PUT` | `/api/v1/platform/packages/{id}` | Update package | Update a package's metadata, pricing, status, or module associations. When updating modules, dependency validation is re-run. |
+| `DELETE` | `/api/v1/platform/packages/{id}` | Delete package (soft-delete) | Soft-delete a package. Sets the deleted_at timestamp and removes module associations. The package is hidden from standard queries. |
+| `POST` | `/api/v1/platform/packages/{id}/publish` | Publish package | Publish a package to make it visible on public endpoints. Validates that the package has at least one module and all module dependencies are fulfil... |
+| `POST` | `/api/v1/platform/packages/{id}/unpublish` | Unpublish package | Unpublish a package. Sets status back to 'draft' and removes it from public endpoints. |
+| `GET` | `/api/v1/platform/packages/{id}/validate` | Validate package module dependencies | Validate that all module dependencies within a package are fulfilled. Returns a detailed report showing each module's dependency status (resolved/u... |
+| `GET` | `/api/v1/public/packages` | List published packages (public) | Retrieve a list of published packages for public display. No authentication required. Returns package name, description, price, and included module... |
 
 ### Platform: Modules
 **Description:** Module registration and activation management
@@ -848,6 +867,17 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/platform/monitoring/health` | Platform health check with database status | Platform health check endpoint providing detailed status of database connectivity, Redis cache health, and overall service uptime metrics. |
 | `GET` | `/api/v1/platform/monitoring/tenants` | List all active tenant connections health | List all active tenant database connections with their health status, pool statistics (open/idle connections), and last activity timestamps. |
 | `GET` | `/api/v1/platform/monitoring/tenants/{id}` | Get tenant connection health detail | Get detailed health information for a specific tenant database connection, including connection pool stats, query latency, and error counts. |
+
+### Tenant: Packages
+**Description:** Published package browsing for authenticated tenant users
+**Endpoints:** 3 | **Paths:** 3
+**Methods:** GET=1 POST=2
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/packages` | List published packages (tenant) | Retrieve a list of published packages for authenticated tenant users. Requires JWT Bearer Token. Returns the same data as the public endpoint but w... |
+| `POST` | `/api/v1/tenant/packages/{id}/subscribe` | Subscribe to a package (create/renew license) | Subscribe the authenticated company to a published package. Creates a new license for the company associated with the specified package and auto-ac... |
+| `POST` | `/api/v1/tenant/packages/{id}/unsubscribe` | Unsubscribe from a package (deactivate modules + suspend license) | Unsubscribe the authenticated company from a package. Deactivates all modules included in the package and suspends the active license associated wi... |
 
 ### Platform: Auth
 **Description:** Platform authentication (login, refresh token)

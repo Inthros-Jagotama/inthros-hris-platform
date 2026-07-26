@@ -129,8 +129,10 @@ Berdasarkan tinjauan arsitektur teknis, berikut area kritis yang harus diterapka
 
 | Layer | Teknologi |
 |---|---|
-| **Bahasa** | Go 1.22+ |
-| **HTTP Framework** | Gin |
+| **Bahasa** | Go 1.22+ / Vue 3 (Composition API) |
+| **HTTP Framework** | Gin (backend) / Axios (frontend) |
+| **Frontend UI** | PrimeVue 4 + Tailwind CSS 4 + PrimeIcons |
+| **Frontend State** | Pinia + Vue Router 4 |
 | **ORM** | GORM (PostgreSQL & MySQL) |
 | **Database** | PostgreSQL 16+ / MySQL 8+ |
 | **Cache** | Redis 7+ |
@@ -197,7 +199,7 @@ hris-platform/
 │   ├── Makefile
 │   ├── go.mod
 │   └── go.sum
-├── frontend/                         # Vue 3 + TypeScript (future)
+├── frontend/                         # Vue 3 + PrimeVue (Platform Admin & Tenant)
 ├── docker/
 │   └── docker-compose.yml            # Full infra compose
 └── docs/
@@ -494,7 +496,7 @@ Semua perubahan role/permission akan otomatis me-reload enforcer (`Service.Sync(
 
 | Method | Endpoint | Deskripsi | Auth | RBAC |
 |---|---|---|---|---|
-| `GET` | `/modules` | List all registered modules | ✅ | `module.view` (super_admin only) |
+| `GET` | `/modules?module_type=` | List all modules (filter: `?module_type=platform` atau `tenant`) | ✅ | `module.view` (super_admin only) |
 | `POST` | `/modules` | Register new module | ✅ | `module.create` (super_admin only) |
 | `GET` | `/modules/:id` | Get module detail | ✅ | `module.view` (super_admin only) |
 | `PUT` | `/modules/:id` | Update module | ✅ | `module.update` (super_admin only) |
@@ -518,6 +520,30 @@ Semua perubahan role/permission akan otomatis me-reload enforcer (`Service.Sync(
 | `GET` | `/monitoring/health` | Platform health + DB status | ✅ | `monitoring.view` (super_admin only) |
 | `GET` | `/monitoring/tenants` | List tenant connections health | ✅ | `monitoring.view` (super_admin only) |
 | `GET` | `/monitoring/tenants/:id` | Get tenant health detail | ✅ | `monitoring.view` (super_admin only) |
+
+#### 📦 Package Management
+
+| Method | Endpoint | Deskripsi | Auth | RBAC |
+|---|---|---|---|---|
+| `GET` | `/packages?module_type=` | List all packages (filter: `?module_type=platform` atau `tenant`) | ✅ | `package.view` (super_admin) |
+| `POST` | `/packages` | Create package with modules | ✅ | `package.create` (super_admin only) |
+| `GET` | `/packages/:id` | Get package detail | ✅ | `package.view` (super_admin) |
+| `PUT` | `/packages/:id` | Update package | ✅ | `package.update` (super_admin only) |
+| `DELETE` | `/packages/:id` | Soft-delete package | ✅ | `package.delete` (super_admin only) |
+| `POST` | `/packages/:id/publish` | Publish package (validate dependencies) | ✅ | `package.update` (super_admin only) |
+| `POST` | `/packages/:id/unpublish` | Unpublish package | ✅ | `package.update` (super_admin only) |
+| `GET` | `/packages/:id/validate` | Validate module dependencies | ✅ | `package.view` (super_admin) |
+
+**Public endpoint (no auth):**
+
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `GET` | `/api/v1/public/packages?module_type=` | List published packages (filter: `?module_type=platform` atau `tenant`) |
+
+**Package-License Integration:**
+- Setiap package dapat di-assign ke license melalui field `package_id`
+- Saat create company dengan `package_id`, license auto-created
+- Package memiliki validasi dependensi modul (`depends_on`) — semua dependensi wajib disertakan dalam package yang sama
 
 ### Tenant API (`/api/v1/tenant`)
 
@@ -833,6 +859,30 @@ Authorization: Bearer <access_token>
 | `PUT` | `/reimbursements/requests/:requestId/items/:itemId` | Update a reimbursement item |
 | `DELETE` | `/reimbursements/requests/:requestId/items/:itemId` | Delete a reimbursement item |
 
+**Tenant: Packages — Browse & Subscribe**
+
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `GET` | `/packages` | List published packages (browse available packages) |
+| `POST` | `/packages/:id/subscribe` | Subscribe to package — create license + auto-activate modules |
+| `POST` | `/packages/:id/unsubscribe` | Unsubscribe from package — deactivate modules + suspend license |
+
+**Subscribe response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "license_id": "uuid",
+    "license_key": "xxx",
+    "plan_type": "pro",
+    "package_id": "uuid",
+    "package_name": "HR Pro Package",
+    "activated_modules": ["Employee Management", "Payroll"]
+  },
+  "message": "Successfully subscribed to package"
+}
+```
+
 ### Response Format
 
 ```json
@@ -847,14 +897,177 @@ Authorization: Bearer <access_token>
     }
 }
 
-// Error
+// Error (general)
+{
+    "success": false,
+    "error": {
+        "code": "NOT_FOUND",
+        "message": "Company not found"
+    }
+}
+
+// Error (validation — field-level)
 {
     "success": false,
     "error": {
         "code": "VALIDATION_ERROR",
-        "message": "Email is required"
+        "message": "Validation failed",
+        "fields": {
+            "name": ["This field is required"],
+            "email": ["Must be a valid email address", "Already exists"],
+            "admin_name": ["This field is required"]
+        }
     }
 }
+```
+
+**Frontend field-level validation display** (platform-admin):
+Gunakan `getValidationErrors()` dari `services/responseHandler.js` untuk mengekstrak field errors:
+```js
+import { getValidationErrors } from '@/services/responseHandler'
+
+const errors = ref({})
+try {
+  await api.post('/endpoint', data)
+} catch (e) {
+  errors.value = getValidationErrors(e)
+  // errors.value = { name: "This field is required", email: "Must be valid, Already exists" }
+  // Array values otomatis di-implode dengan ', '
+}
+```
+
+Tampilkan error per-field di `FormRow`:
+```vue
+<FormRow label="Email" :errors="errors?.email">
+  <TextInput v-model="form.email" :class="{ 'p-invalid': errors?.email }" />
+</FormRow>
+```
+
+### Bilingual Support (Bahasa Indonesia & English)
+
+API mendukung dua bahasa untuk pesan response.
+
+- **English** (default): Jika header `Accept-Language` tidak disertakan atau bernilai selain `id`
+- **Bahasa Indonesia**: Kirim header `Accept-Language: id`
+
+Header ini memengaruhi semua pesan response, termasuk:
+- Pesan sukses (created, updated, deleted)
+- Pesan error (not found, internal error)
+- Pesan validasi (field-level errors)
+
+**Contoh:**
+```bash
+# Response in English (default)
+curl http://localhost:8080/api/v1/platform/companies/not-found
+# {"success":false,"error":{"code":"NOT_FOUND","message":"Not found"}}
+
+# Response in Bahasa Indonesia
+curl -H "Accept-Language: id" http://localhost:8080/api/v1/platform/companies/not-found
+# {"success":false,"error":{"code":"NOT_FOUND","message":"Tidak ditemukan"}}
+```
+
+### Custom Validators for Indonesian Data Formats
+
+Endpoint tenant (prefixed `/api/v1/tenant`) mendukung validasi built-in untuk format data Indonesia:
+
+| Tag | Format | Contoh | Keterangan |
+|-----|--------|--------|------------|
+| `nik` | 16 digit angka | `3273010101900001` | NIK KTP |
+| `npwp` | 15-16 digit angka | `0123456789012345` | NPWP |
+| `npwp_format` | XX.XXX.XXX.X-XXX.XXX | `01.234.567.8-901.234` | NPWP terformat |
+| `kk` | 16 digit angka | `1234567890123456` | Kartu Keluarga |
+| `phone_id` | +628/08xx (7-11 digit) | `08123456789` | No. Telepon Indonesia |
+| `postal_code` | 5 digit angka | `12345` | Kode Pos |
+| `date_id` | YYYY-MM-DD | `2026-12-31` | Tanggal |
+| `passport` | 1 huruf + 8 angka | `A12345678` | Passport |
+| `sim` | 12 digit angka | `123456789012` | SIM |
+| `no_rekening` | 8-20 digit angka | `1234567890` | No. Rekening Bank |
+
+**Contoh penggunaan di DTO:**
+```go
+type CreateEmployeeRequest struct {
+    Name        string  `json:"name" binding:"required"`
+    NIK         string  `json:"nik" binding:"omitempty,nik"`
+    NPWP        *string `json:"npwp" binding:"omitempty,npwp"`
+    Phone       *string `json:"phone" binding:"omitempty,phone_id"`
+    Passport    *string `json:"passport" binding:"omitempty,passport"`
+    NoRekening  *string `json:"no_rekening" binding:"omitempty,no_rekening"`
+}
+```
+
+Error response untuk validasi field:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validasi gagal",
+    "fields": {
+      "nik": ["Format NIK tidak valid, harus 16 digit angka"],
+      "npwp": ["Format NPWP tidak valid, harus 15-16 digit angka"]
+    }
+  }
+}
+```
+
+---
+
+## 🖥️ Frontend — Platform Admin (Phase 1 ✅)
+
+Platform Admin frontend dibangun dengan **Vue 3 + PrimeVue 4 + Tailwind CSS 4** dan mencakup **9 halaman** yang terintegrasi penuh dengan backend API.
+
+### Fitur Umum
+
+- 🌐 **Bilingual EN/ID** — Language switcher di HeaderBar, semua label/title/toast mendukung 2 bahasa
+- ✅ **Field-Level Validation** — Error per-field dari API ditampilkan langsung di bawah input
+- 🔍 **Filter & Search** — Setiap halaman memiliki filter chips, search input, dan sortable columns
+- ♻️ **Real-time Polling** — Dashboard & Monitoring dengan auto-refresh 30s
+- 📦 **Shared Components** — FormRow, TextInput, SelectLabel, ToggleSwitch, DatePicker, TextArea, dll reusable
+- 🔗 **Axios Interceptors** — Auto JWT + Accept-Language header + 401 auto-refresh
+
+### Halaman
+
+| Modul | Halaman | Fitur Unggulan |
+|-------|---------|----------------|
+| B.1 | **Login** (`Login.vue`) | JWT auth, bilingual form, error per field |
+| B.2 | **Dashboard** (`Dashboard.vue`) | 6 KPI cards, bar chart (company/month), system health, polling 30s |
+| B.3 | **Companies** (`Companies.vue`) | Filter by status/package, search, license inline, **provisioning progress** (DB column + tooltip) |
+| B.4 | **Users** (`Users.vue`) | Filter by role, search, **bulk actions** (Change Role + Delete), super_admin protection |
+| B.5 | **Modules** (`Modules.vue`) | Filter `?module_type=`, filter chips, depends_on tooltip, auto-slug |
+| B.6 | **Licenses** (`Licenses.vue`) | Package integration, filter by package, copy key, expiry warnings |
+| B.7 | **Monitoring** (`Monitoring.vue`) | Auto-refresh toggle, **pool utilization chart** (Line), **alert thresholds** |
+| B.8 | **Packages** (`Packages.vue`) | CRUD + publish/unpublish, **dependency validation**, module selector with Select All |
+| B.9 | **RBAC** (`Rbac.vue`) | Roles CRUD, **permission matrix** grouped by module/resource, system protection |
+
+### Bilingual Architecture
+
+```
+[Language Switcher HeaderBar]
+    → Pinia Store (language.js) — persist to localStorage
+    → Axios Interceptor — header Accept-Language: en|id
+    → Backend Localize middleware — response otomatis sesuai bahasa
+    → Response Handler — parse message + validation errors bilingual
+```
+
+- **200+ locale keys** di `en.json` & `id.json` untuk static UI text
+- **9+ bilingual composables** (`useI18n`, `useNotification`, `useSlugify`)
+- **Semua view** menggunakan `t('key')` untuk label, header, filter, tooltip
+
+### Struktur Frontend
+
+```
+frontend/platform-admin/src/
+├── App.vue                    # Root — Toast + ConfirmDialog
+├── main.js                    # PrimeVue, Tailwind, Router, Pinia
+├── assets/css/                # Global CSS (slug-animation.css)
+├── components/                # 9 reusable form components
+├── composables/               # useI18n, useNotification, useSlugify
+├── layouts/                   # AppLayout, HeaderBar (lang switcher), Sidebar
+├── locales/                   # en.json, id.json (200+ keys)
+├── router/index.js            # 9 routes + auth guard
+├── services/                  # api.js (axios) + responseHandler.js
+├── stores/                    # auth.js + language.js (Pinia)
+└── views/                     # 9 halaman
 ```
 
 ---

@@ -119,6 +119,7 @@ func (e *Enforcer) loadDefaultPolicies() {
 	e.AddPolicy(RoleCompanyAdmin, "company", "view")
 	e.AddPolicy(RoleCompanyAdmin, "user", "view")
 	e.AddPolicy(RoleCompanyAdmin, "license", "view")
+	e.AddPolicy(RoleCompanyAdmin, "package", "view")
 	e.AddPolicy(RoleCompanyAdmin, "organization", "*")
 	e.AddPolicy(RoleCompanyAdmin, "employee", "*")
 	e.AddPolicy(RoleCompanyAdmin, "attendance", "*")
@@ -252,8 +253,9 @@ func (e *Enforcer) loadFromDB(db *gorm.DB) error {
 	return nil
 }
 
-// seedDefaults memasukkan role dan permission default ke database
-// jika tabel masih kosong. Hanya berjalan sekali saat pertama kali.
+// seedDefaults memasukkan role dan permission default ke database.
+// Jika tabel masih kosong, lakukan full seed.
+// Jika sudah ada data, lakukan upsert permission yang belum ada.
 func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 	var count int64
 
@@ -262,7 +264,8 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 		return err
 	}
 	if count > 0 {
-		return nil // sudah ada data, skip seed
+		// Sudah ada data — upsert permission yang belum terdaftar
+		return e.upsertMissingPermissions(db)
 	}
 
 	// Buat default roles
@@ -285,24 +288,7 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 	}
 
 	// Buat permissions dari hardcoded defaults
-	allResources := []defaultPerm{
-		// Platform resources
-		{"company", []string{"view", "create", "update", "delete", "suspend", "activate", "terminate", "backup", "restore"}},
-		{"user", []string{"view", "create", "update"}},
-		{"module", []string{"view", "create", "update", "activate", "deactivate"}},
-		{"license", []string{"view", "create", "update"}},
-		{"monitoring", []string{"view"}},
-		// Tenant resources
-		{"organization", []string{"view", "create", "update", "delete"}},
-		{"employee", []string{"view", "create", "update", "delete"}},
-		{"attendance", []string{"view", "create", "update", "delete"}},
-		{"leave", []string{"view", "create", "update", "delete"}},
-		{"payroll", []string{"view", "create", "update", "delete"}},
-		{"competency", []string{"view", "create", "update", "delete"}},
-		{"jobmanagement", []string{"view", "create", "update", "delete"}},
-		{"employeemovement", []string{"view", "create", "update", "delete"}},
-		{"approval", []string{"view", "create", "update", "delete"}},
-	}
+	allResources := defaultResources()
 
 	// Simpan permission IDs untuk mapping role_permissions nanti
 	permIDs := make(map[string]map[string]uuid.UUID) // resource → action → id
@@ -376,6 +362,7 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 		"company":          {"view"},
 		"user":             {"view"},
 		"license":          {"view"},
+		"package":          {"view"},
 		"organization":     {"*"},
 		"employee":         {"*"},
 		"attendance":       {"*"},
@@ -423,6 +410,29 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 	return nil
 }
 
+// defaultResources mengembalikan daftar semua resource default dengan actions-nya.
+// Digunakan bersama oleh seedDefaults() dan upsertMissingPermissions().
+func defaultResources() []defaultPerm {
+	return []defaultPerm{
+		{"rbac", []string{"view", "create", "update", "delete"}},
+		{"company", []string{"view", "create", "update", "delete", "suspend", "activate", "terminate", "backup", "restore"}},
+		{"user", []string{"view", "create", "update"}},
+		{"module", []string{"view", "create", "update", "activate", "deactivate"}},
+		{"license", []string{"view", "create", "update"}},
+		{"monitoring", []string{"view"}},
+		{"package", []string{"view", "create", "update", "delete", "publish"}},
+		{"organization", []string{"view", "create", "update", "delete"}},
+		{"employee", []string{"view", "create", "update", "delete"}},
+		{"attendance", []string{"view", "create", "update", "delete"}},
+		{"leave", []string{"view", "create", "update", "delete"}},
+		{"payroll", []string{"view", "create", "update", "delete"}},
+		{"competency", []string{"view", "create", "update", "delete"}},
+		{"jobmanagement", []string{"view", "create", "update", "delete"}},
+		{"employeemovement", []string{"view", "create", "update", "delete"}},
+		{"approval", []string{"view", "create", "update", "delete"}},
+	}
+}
+
 // allPermActions mengembalikan semua action yang terdaftar untuk suatu resource.
 func allPermActions(resource string, resources []defaultPerm) []string {
 	for _, r := range resources {
@@ -430,6 +440,49 @@ func allPermActions(resource string, resources []defaultPerm) []string {
 			return r.actions
 		}
 	}
+	return nil
+}
+
+// upsertMissingPermissions menambahkan permission yang belum ada di database
+// beserta role_permission untuk super_admin. Berguna saat resource baru
+// ditambahkan ke allResources setelah initial seed.
+func (e *Enforcer) upsertMissingPermissions(db *gorm.DB) error {
+	allResources := defaultResources()
+
+	// Cari super_admin role untuk assign permission nanti
+	var superAdminRole RbacRole
+	if err := db.Where("slug = ?", "super_admin").First(&superAdminRole).Error; err != nil {
+		return fmt.Errorf("super_admin role not found: %w", err)
+	}
+
+	for _, r := range allResources {
+		for _, action := range r.actions {
+			// Cek apakah permission sudah ada
+			var existing RbacPermission
+			err := db.Where("resource = ? AND action = ?", r.resource, action).First(&existing).Error
+			if err == nil {
+				continue // sudah ada
+			}
+
+			// Buat permission baru
+			perm := RbacPermission{
+				Resource:    r.resource,
+				Action:      action,
+				Description: strPtr(fmt.Sprintf("Can %s %s", action, r.resource)),
+				IsSystem:    true,
+			}
+			if err := db.Create(&perm).Error; err != nil {
+				return fmt.Errorf("failed to create permission %s.%s: %w", r.resource, action, err)
+			}
+
+			// Assign ke super_admin
+			rp := RbacRolePermission{RoleID: superAdminRole.ID, PermissionID: perm.ID}
+			if err := db.Create(&rp).Error; err != nil {
+				return fmt.Errorf("failed to assign permission %s.%s to super_admin: %w", r.resource, action, err)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -562,6 +615,7 @@ func singularize(s string) string {
 		"companies":                  "company",
 		"licenses":                   "license",
 		"modules":                    "module",
+		"packages":                   "package",
 		"users":                      "user",
 		"monitoring":                 "monitoring",
 		"tenants":                    "tenant",

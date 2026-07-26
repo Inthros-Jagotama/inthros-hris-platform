@@ -1,0 +1,304 @@
+{
+  "_meta": {
+    "description": "English locale for HRIS Tenant",
+    "lang": "en"
+  },
+
+  "nav": {
+    "app_title": "HRIS Platform",
+    "tenant_label": "Tenant: {name}",
+    "dashboard": "Dashboard",
+    "core_hr": "Core HR",
+    "organization": "Organization",
+    "employees": "Employees",
+    "job_management": "Job Management",
+    "talent": "Talent",
+    "competency": "Competency",
+    "performance": "Performance",
+    "training": "Training",
+    "recruitment": "Recruitment",
+    "operations": "Operations",
+    "attendance": "Attendance",
+    "leave": "Leave",
+    "movement": "Movement",
+    "approval": "Approval",
+    "finance": "Finance",
+    "payroll": "Payroll",
+    "reimbursement": "Reimbursement",
+    "strategic": "Strategic",
+    "workforce_intel": "Workforce Intel",
+    "career_intel": "Career Intel",
+    "packages": "Packages"
+  },
+
+  "common": {
+    "search": "Search...",
+    "filter": "Filter",
+    "all": "All",
+    "create": "Create",
+    "add": "Add",
+    "edit": "Edit",
+    "update": "Update",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "confirm": "Confirm",
+    "refresh": "Refresh",
+    "view": "View",
+    "details": "Details",
+    "back": "Back",
+    "loading": "Loading...",
+    "no_data": "No data available",
+    "select": "Select",
+    "actions": "Actions",
+    "status": "Status",
+    "name": "Name",
+    "description": "Description"
+  },
+
+  "common_status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "draft": "Draft",
+    "published": "Published",
+    "suspended": "Suspended",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "paid": "Paid",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "expired": "Expired"
+  },
+
+  "message": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "operation_failed": "Operation failed",
+    "failed_to_load": "Failed to load data",
+    "saved": "Saved successfully",
+    "created": "Created successfully",
+    "updated": "Updated successfully",
+    "deleted": "Deleted successfully"
+  },
+
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome to HRIS Platform",
+    "welcome_id": "Selamat datang di HRIS Platform",
+    "period_filter": "Period",
+    "kpi_total_employees": "Total Employees",
+    "kpi_active_today": "Active Today",
+    "kpi_on_leave": "On Leave",
+    "kpi_pending_approvals": "Pending Approvals",
+    "quick_access": "Module Quick Access",
+    "recent_activity": "Recent Activity",
+    "vs_last_month": "vs last month",
+    "this_month": "This Month",
+    "this_quarter": "This Quarter",
+    "this_year": "This Year",
+    "employees": "Employees",
+    "attendance": "Attendance",
+    "leave": "Leave",
+    "payroll": "Payroll",
+    "approvals": "Approvals",
+    "performance": "Performance",
+    "training": "Training",
+    "recruitment": "Recruitment",
+    "organization": "Organization",
+    "reimbursement": "Reimbursement",
+    "workforce_intel": "Workforce Intel",
+    "career_intel": "Career Intel"
+  },
+
+  "organization": {
+    "title": "Organization",
+    "description": "Manage organization structure, positions, and job families.",
+    "tree_view": "Organization Tree",
+    "zones": "Zones",
+    "positions": "Positions",
+    "job_families": "Job Families",
+    "levels": "Levels",
+    "empty_title": "No organizations created yet"
+  },
+
+  "employee": {
+    "title": "Employees",
+    "description": "Manage employee data and records.",
+    "wizard_step_personal": "Personal Data",
+    "wizard_step_address": "Address",
+    "wizard_step_contact": "Emergency Contact",
+    "wizard_step_family": "Family",
+    "wizard_step_education": "Education",
+    "wizard_step_experience": "Work Experience",
+    "wizard_step_documents": "Documents",
+    "wizard_step_insurance": "Insurance (BPJS)",
+    "wizard_step_employment": "Employment Record",
+    "tab_profile": "Profile",
+    "tab_addresses": "Addresses",
+    "tab_contacts": "Contacts",
+    "tab_family": "Family",
+    "tab_education": "Education",
+    "tab_experience": "Experience",
+    "tab_documents": "Documents",
+    "tab_insurance": "Insurance",
+    "tab_employment": "Employment",
+    "empty_title": "No employees registered yet",
+    "search": "Search employees..."
+  },
+
+  "attendance": {
+    "title": "Attendance",
+    "description": "Manage attendance, shifts, and overtime.",
+    "settings": "Company Settings",
+    "shifts": "Shifts",
+    "employee_shifts": "Employee Shifts",
+    "events": "Events",
+    "sessions": "Daily Sessions",
+    "overtime": "Overtime Requests",
+    "locations": "Locations"
+  },
+
+  "leave": {
+    "title": "Leave",
+    "description": "Manage leave types, requests, and balances.",
+    "types": "Leave Types",
+    "requests": "Leave Requests",
+    "balances": "Leave Balances",
+    "accrual_policies": "Accrual Policies"
+  },
+
+  "payroll": {
+    "title": "Payroll",
+    "description": "Manage payroll runs, components, and profiles.",
+    "salary_components": "Salary Components",
+    "payroll_periods": "Payroll Periods",
+    "payroll_runs": "Payroll Runs",
+    "employee_profiles": "Employee Profiles",
+    "bpjs": "BPJS Settings",
+    "pph21": "PPh21 Settings",
+    "payslips": "Payslips"
+  },
+
+  "performance": {
+    "title": "Performance",
+    "description": "Manage performance evaluations, KPI/OKR targets.",
+    "periods": "Periods",
+    "perspectives": "Perspectives",
+    "templates": "Templates",
+    "evaluations": "Evaluations"
+  },
+
+  "recruitment": {
+    "title": "Recruitment",
+    "description": "Manage job requisitions, candidates, and onboarding.",
+    "requisitions": "Job Requisitions",
+    "candidates": "Candidates",
+    "applications": "Applications",
+    "interviews": "Interviews",
+    "onboarding": "Onboarding"
+  },
+
+  "training": {
+    "title": "Training",
+    "description": "Manage training courses, sessions, and certifications.",
+    "categories": "Categories",
+    "courses": "Courses",
+    "sessions": "Sessions",
+    "participants": "Participants",
+    "evaluations": "Evaluations",
+    "certificates": "Certificates"
+  },
+
+  "reimbursement": {
+    "title": "Reimbursement",
+    "description": "Manage reimbursement types and requests.",
+    "types": "Reimbursement Types",
+    "requests": "Reimbursement Requests"
+  },
+
+  "employee_movement": {
+    "title": "Employee Movement",
+    "description": "Manage employee movements and contracts.",
+    "movements": "Movements",
+    "contracts": "Contracts"
+  },
+
+  "approval": {
+    "title": "Approval",
+    "description": "Manage approval flows and pending tasks.",
+    "flows": "Approval Flows",
+    "my_tasks": "My Tasks",
+    "history": "History"
+  },
+
+  "job_management": {
+    "title": "Job Management",
+    "description": "Manage job titles, responsibilities, and scoring.",
+    "titles": "Job Titles",
+    "values": "Job Values",
+    "objectives": "Job Objectives",
+    "activities": "Working Activities",
+    "risks": "Working Risks",
+    "scores": "Job Scores",
+    "competency_groups": "Competency Groups"
+  },
+
+  "competency": {
+    "title": "Competency",
+    "description": "Manage competencies, values, and scoring.",
+    "competencies": "Competencies",
+    "values": "Competency Values",
+    "events": "Competency Events",
+    "scores": "Competency Scores"
+  },
+
+  "workforce_intel": {
+    "title": "Workforce Intelligence",
+    "description": "Analytics, planning, and strategic workforce insights.",
+    "dashboard": "Dashboard",
+    "headcount_planning": "Headcount Planning",
+    "analytics": "Analytics",
+    "risk": "Risk Dashboard",
+    "executive": "Executive Dashboard",
+    "scenarios": "Scenario Planning"
+  },
+
+  "career_intel": {
+    "title": "Career Intelligence",
+    "description": "Talent mapping, career paths, and succession planning.",
+    "talent_map": "9-Box Talent Map",
+    "interests": "Career Interests",
+    "paths": "Career Paths",
+    "succession": "Succession Plans"
+  },
+
+  "packages": {
+    "title": "Subscription Packages",
+    "description": "Browse and manage your subscription packages.",
+    "browse": "Browse Packages",
+    "current_subscription": "Current Subscription",
+    "subscribe": "Subscribe",
+    "unsubscribe": "Unsubscribe",
+    "activated_modules": "Activated Modules",
+    "no_packages": "No packages available yet.",
+    "no_subscription": "No active subscription.",
+    "price": "Price",
+    "modules_included": "Modules Included",
+    "confirm_subscribe": "Subscribe to this package?",
+    "confirm_unsubscribe": "Unsubscribe from this package? Modules may be deactivated."
+  },
+
+  "time": {
+    "just_now": "Just now",
+    "minutes_ago": "{n} minutes ago",
+    "hours_ago": "{n} hours ago",
+    "days_ago": "{n} days ago",
+    "this_month": "This Month",
+    "this_quarter": "This Quarter",
+    "this_year": "This Year"
+  }
+}

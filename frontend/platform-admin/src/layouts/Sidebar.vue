@@ -6,7 +6,7 @@
     <!-- Logo -->
     <div class="flex items-center h-12 px-4 border-b border-gray-200 shrink-0 gap-2">
       <i class="pi pi-shield text-indigo-600 text-lg"></i>
-      <span v-if="!collapsed" class="font-semibold text-sm text-gray-800 truncate">Platform Admin</span>
+      <span v-if="!collapsed" class="font-semibold text-sm text-gray-800 truncate">{{ t('nav.platform_admin') }}</span>
     </div>
 
     <!-- Nav: Expanded -->
@@ -19,7 +19,7 @@
         :class="isActive(item.path) ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-600 hover:bg-gray-100'"
       >
         <i :class="item.icon" class="text-sm w-4 text-center"></i>
-        <span>{{ item.label }}</span>
+        <span>{{ t(item.labelKey) }}</span>
       </router-link>
     </nav>
 
@@ -29,7 +29,7 @@
         v-for="item in navItems"
         :key="item.path"
         :to="item.path"
-        v-tooltip.left="item.label"
+        v-tooltip.left="t(item.labelKey)"
         class="w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
         :class="isActive(item.path) ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'"
       >
@@ -41,6 +41,7 @@
 
 <script setup>
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/composables/useI18n'
 
 defineProps({
   collapsed: { type: Boolean, default: false }
@@ -49,14 +50,17 @@ defineProps({
 defineEmits(['toggle'])
 
 const route = useRoute()
+const { t } = useI18n()
 
 const navItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: 'pi pi-home' },
-  { label: 'Companies', path: '/companies', icon: 'pi pi-building' },
-  { label: 'Users', path: '/users', icon: 'pi pi-users' },
-  { label: 'Modules', path: '/modules', icon: 'pi pi-cog' },
-  { label: 'Licenses', path: '/licenses', icon: 'pi pi-id-card' },
-  { label: 'Monitoring', path: '/monitoring', icon: 'pi pi-chart-bar' }
+  { labelKey: 'nav.dashboard', path: '/dashboard', icon: 'pi pi-home' },
+  { labelKey: 'nav.companies', path: '/companies', icon: 'pi pi-building' },
+  { labelKey: 'nav.users', path: '/users', icon: 'pi pi-users' },
+  { labelKey: 'nav.modules', path: '/modules', icon: 'pi pi-cog' },
+  { labelKey: 'nav.licenses', path: '/licenses', icon: 'pi pi-id-card' },
+  { labelKey: 'nav.packages', path: '/packages', icon: 'pi pi-box' },
+  { labelKey: 'nav.rbac', path: '/rbac', icon: 'pi pi-shield' },
+  { labelKey: 'nav.monitoring', path: '/monitoring', icon: 'pi pi-chart-bar' }
 ]
 
 function isActive(path) {

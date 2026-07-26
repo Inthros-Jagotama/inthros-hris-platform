@@ -12,6 +12,20 @@ type Repository struct {
 	db *gorm.DB
 }
 
+// FindPackageNameByID mencari nama package yang published berdasarkan ID.
+// Cross-module query ke tabel packages (package management module).
+func (r *Repository) FindPackageNameByID(packageID uuid.UUID) (string, error) {
+	var name string
+	row := r.db.Table("packages").
+		Select("name").
+		Where("id = ? AND status = ?", packageID.String(), "published").
+		Row()
+	if err := row.Scan(&name); err != nil {
+		return "", fmt.Errorf("published package not found: %w", err)
+	}
+	return name, nil
+}
+
 // NewRepository membuat Repository baru.
 func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
@@ -31,6 +45,15 @@ func (r *Repository) FindByCompanyID(companyID uuid.UUID) (*License, error) {
 	var l License
 	if err := r.db.Where("company_id = ? AND status = ?", companyID, LicenseActive).First(&l).Error; err != nil {
 		return nil, fmt.Errorf("active license not found for company: %w", err)
+	}
+	return &l, nil
+}
+
+// FindByCompanyIDAndPackageID mencari lisensi aktif berdasarkan company ID dan package ID.
+func (r *Repository) FindByCompanyIDAndPackageID(companyID, packageID uuid.UUID) (*License, error) {
+	var l License
+	if err := r.db.Where("company_id = ? AND package_id = ? AND status = ?", companyID, packageID.String(), LicenseActive).First(&l).Error; err != nil {
+		return nil, fmt.Errorf("active license not found for company and package: %w", err)
 	}
 	return &l, nil
 }

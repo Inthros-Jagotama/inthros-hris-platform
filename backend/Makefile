@@ -10,7 +10,7 @@
 # make seed        - Run seeders
 # make coverage    - Run tests with coverage
 
-.PHONY: build build-installer run run-hot test test-verbose test-short test-pkg test-employee test-organization test-cache test-cache-quick test-cache-integration test-cache-error bench-cache bench-cache-compare coverage cover-view cover-func lint vet migrate seed docker docker-compose-up docker-compose-down tidy clean help
+.PHONY: build build-installer run run-hot test test-verbose test-short test-pkg test-employee test-organization test-cache test-cache-quick test-cache-integration test-cache-error bench-cache bench-cache-compare coverage cover-view cover-func lint vet migrate seed seed-modules docker docker-compose-up docker-compose-down tidy clean help
 
 BUILD_DIR := ./bin
 BINARY := $(BUILD_DIR)/server
@@ -127,6 +127,10 @@ seed:
 	@echo "Running seeders..."
 	@go run ./cmd/server seed --config ./config/config.yaml
 
+seed-modules:
+	@echo "Running module seeder..."
+	@go run ./cmd/installer seed-modules --config ./config/config.yaml
+
 # ============ Docker ============
 
 docker:
@@ -189,6 +193,7 @@ help:
 	@echo "=== Database ==="
 	@echo "migrate        - Run platform migrations"
 	@echo "seed           - Run seeders"
+	@echo "seed-modules   - Seed/update modules table from module definitions"
 	@echo ""
 	@echo "=== Docker ==="
 	@echo "docker         - Build Docker image"

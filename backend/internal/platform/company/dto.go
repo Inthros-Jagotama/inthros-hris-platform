@@ -13,6 +13,7 @@ type CreateCompanyRequest struct {
 	AdminName    string  `json:"admin_name" binding:"required,min=1"`
 	AdminEmail   string  `json:"admin_email" binding:"required,email"`
 	AdminPassword string  `json:"admin_password" binding:"required,min=6"`
+	PackageID    string  `json:"package_id,omitempty"`
 }
 
 // UpdateCompanyRequest DTO untuk update company.
@@ -27,18 +28,36 @@ type UpdateCompanyRequest struct {
 
 // CompanyResponse DTO untuk response company.
 type CompanyResponse struct {
-	ID          string          `json:"id"`
-	Name        string          `json:"name"`
-	Slug        string          `json:"slug"`
-	NPWP        *string         `json:"npwp,omitempty"`
-	NIB         *string         `json:"nib,omitempty"`
-	Address     *string         `json:"address,omitempty"`
-	Email       *string         `json:"email,omitempty"`
-	Phone       *string         `json:"phone,omitempty"`
-	Status      string          `json:"status"`
-	AdminUser   *AdminUserInfo  `json:"admin_user,omitempty"`
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
+	ID               string            `json:"id"`
+	Name             string            `json:"name"`
+	Slug             string            `json:"slug"`
+	NPWP             *string           `json:"npwp,omitempty"`
+	NIB              *string           `json:"nib,omitempty"`
+	Address          *string           `json:"address,omitempty"`
+	Email            *string           `json:"email,omitempty"`
+	Phone            *string           `json:"phone,omitempty"`
+	Status           string            `json:"status"`
+	AdminUser        *AdminUserInfo    `json:"admin_user,omitempty"`
+	LicenseInfo      *LicenseInfo      `json:"license_info,omitempty"`
+	ProvisioningInfo *ProvisioningInfo `json:"provisioning_info,omitempty"`
+	CreatedAt        time.Time         `json:"created_at"`
+	UpdatedAt        time.Time         `json:"updated_at"`
+}
+
+// LicenseInfo menampilkan informasi lisensi yang dibuat saat signup.
+type LicenseInfo struct {
+	ID         string `json:"id"`
+	LicenseKey string `json:"license_key"`
+	PlanType   string `json:"plan_type"`
+	PackageID  string `json:"package_id,omitempty"`
+}
+
+// ProvisioningInfo menampilkan status provisioning tenant database.
+type ProvisioningInfo struct {
+	Provisioned bool   `json:"provisioned"`
+	IsActive    bool   `json:"is_active"`
+	Driver      string `json:"driver,omitempty"`
+	DBName      string `json:"db_name,omitempty"`
 }
 
 // AdminUserInfo menampilkan informasi admin yang dibuat saat create company.
