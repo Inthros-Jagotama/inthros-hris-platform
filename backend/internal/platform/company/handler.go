@@ -1,10 +1,11 @@
 package company
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
 // Handler untuk HTTP endpoints Company.
@@ -20,34 +21,17 @@ func NewHandler(service *Service) *Handler {
 // Create menangani POST /api/v1/platform/companies
 func (h *Handler) Create(c *gin.Context) {
 	var req CreateCompanyRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "VALIDATION_ERROR",
-				"message": err.Error(),
-			},
-		})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 
 	response, err := h.service.Create(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": err.Error(),
-			},
-		})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"success": true,
-		"data":    response,
-		"message": "Company created successfully",
-	})
+	httputil.CreatedJSON(c, response, "company.created")
 }
 
 // GetByID menangani GET /api/v1/platform/companies/:id
@@ -56,20 +40,11 @@ func (h *Handler) GetByID(c *gin.Context) {
 
 	response, err := h.service.GetByID(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "NOT_FOUND",
-				"message": err.Error(),
-			},
-		})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    response,
-	})
+	httputil.SuccessJSON(c, response)
 }
 
 // List menangani GET /api/v1/platform/companies
@@ -79,17 +54,11 @@ func (h *Handler) List(c *gin.Context) {
 
 	response, err := h.service.List(page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": err.Error(),
-			},
-		})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(200, response)
 }
 
 // Update menangani PUT /api/v1/platform/companies/:id
@@ -97,34 +66,17 @@ func (h *Handler) Update(c *gin.Context) {
 	id := c.Param("id")
 
 	var req UpdateCompanyRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "VALIDATION_ERROR",
-				"message": err.Error(),
-			},
-		})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 
 	response, err := h.service.Update(id, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": err.Error(),
-			},
-		})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    response,
-		"message": "Company updated successfully",
-	})
+	httputil.UpdatedJSON(c, response, "company.updated")
 }
 
 // Delete menangani DELETE /api/v1/platform/companies/:id
@@ -132,20 +84,11 @@ func (h *Handler) Delete(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := h.service.Delete(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": err.Error(),
-			},
-		})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Company deleted successfully",
-	})
+	httputil.DeletedJSON(c, "company.deleted")
 }
 
 // Suspend menangani POST /api/v1/platform/companies/:id/suspend
@@ -154,21 +97,11 @@ func (h *Handler) Suspend(c *gin.Context) {
 
 	response, err := h.service.Suspend(id)
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "SUSPEND_FAILED",
-				"message": err.Error(),
-			},
-		})
+		httputil.ErrorRaw(c, 409, "SUSPEND_FAILED", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    response,
-		"message": "Company suspended successfully — tenant connection deactivated",
-	})
+	httputil.UpdatedJSON(c, response, "company.suspended")
 }
 
 // Activate menangani POST /api/v1/platform/companies/:id/activate
@@ -177,21 +110,11 @@ func (h *Handler) Activate(c *gin.Context) {
 
 	response, err := h.service.Activate(id)
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "ACTIVATE_FAILED",
-				"message": err.Error(),
-			},
-		})
+		httputil.ErrorRaw(c, 409, "ACTIVATE_FAILED", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    response,
-		"message": "Company activated successfully — tenant connection reactivated",
-	})
+	httputil.UpdatedJSON(c, response, "company.activated")
 }
 
 // Terminate menangani POST /api/v1/platform/companies/:id/terminate
@@ -200,21 +123,11 @@ func (h *Handler) Terminate(c *gin.Context) {
 
 	response, err := h.service.Terminate(id)
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "TERMINATE_FAILED",
-				"message": err.Error(),
-			},
-		})
+		httputil.ErrorRaw(c, 409, "TERMINATE_FAILED", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    response,
-		"message": "Company terminated — tenant database dropped and connection removed",
-	})
+	httputil.UpdatedJSON(c, response, "company.terminated")
 }
 
 // Backup menangani POST /api/v1/platform/companies/:id/backup
@@ -224,10 +137,7 @@ func (h *Handler) Backup(c *gin.Context) {
 	// TODO: Implement actual backup logic (Phase 2)
 	_ = id
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Backup initiated (Phase 2 - not yet implemented)",
-	})
+	httputil.MessageJSON(c, "success.backed_up")
 }
 
 // Restore menangani POST /api/v1/platform/companies/:id/restore
@@ -237,8 +147,5 @@ func (h *Handler) Restore(c *gin.Context) {
 	// TODO: Implement actual restore logic (Phase 2)
 	_ = id
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Restore initiated (Phase 2 - not yet implemented)",
-	})
+	httputil.MessageJSON(c, "success.restored_data")
 }

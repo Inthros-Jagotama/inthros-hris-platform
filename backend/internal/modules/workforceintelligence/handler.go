@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
 type Handler struct {
@@ -21,16 +23,15 @@ func NewHandler(svc *Service) *Handler {
 
 func (h *Handler) CreateHeadcountPlan(c *gin.Context) {
 	var req CreateHeadcountPlanRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateHeadcountPlan(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListHeadcountPlans(c *gin.Context) {
@@ -39,7 +40,7 @@ func (h *Handler) ListHeadcountPlans(c *gin.Context) {
 	orgID := c.Query("organization_id")
 	resp, err := h.svc.ListHeadcountPlans(c.Request.Context(), period, orgID, page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -49,34 +50,33 @@ func (h *Handler) GetHeadcountPlanByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetHeadcountPlanByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) UpdateHeadcountPlan(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateHeadcountPlanRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateHeadcountPlan(c.Request.Context(), id, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteHeadcountPlan(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.svc.DeleteHeadcountPlan(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Headcount plan deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -85,16 +85,15 @@ func (h *Handler) DeleteHeadcountPlan(c *gin.Context) {
 
 func (h *Handler) CreateForecast(c *gin.Context) {
 	var req CreateForecastRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateForecast(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListForecasts(c *gin.Context) {
@@ -104,7 +103,7 @@ func (h *Handler) ListForecasts(c *gin.Context) {
 	forecastType := c.Query("forecast_type")
 	resp, err := h.svc.ListForecasts(c.Request.Context(), period, orgID, forecastType, page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -114,34 +113,33 @@ func (h *Handler) GetForecastByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetForecastByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) UpdateForecast(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateForecastRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateForecast(c.Request.Context(), id, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteForecast(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.svc.DeleteForecast(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Forecast deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -152,19 +150,19 @@ func (h *Handler) GetGapAnalysis(c *gin.Context) {
 	period := c.DefaultQuery("period", "")
 	resp, err := h.svc.GetGapAnalysis(c.Request.Context(), period)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetProjections(c *gin.Context) {
 	resp, err := h.svc.GetProjections(c.Request.Context(), c.DefaultQuery("period", ""))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================
@@ -175,10 +173,10 @@ func (h *Handler) GetKPISummary(c *gin.Context) {
 	period := c.DefaultQuery("period", "")
 	resp, err := h.svc.GetKPISummary(c.Request.Context(), period)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) ListKPIs(c *gin.Context) {
@@ -188,7 +186,7 @@ func (h *Handler) ListKPIs(c *gin.Context) {
 	kpiCode := c.Query("kpi_code")
 	resp, err := h.svc.ListKPIs(c.Request.Context(), period, dimension, kpiCode, page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -201,10 +199,10 @@ func (h *Handler) ListKPIs(c *gin.Context) {
 func (h *Handler) GetHeadcountAnalytics(c *gin.Context) {
 	resp, err := h.svc.GetHeadcountAnalytics(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetAttendanceAnalytics(c *gin.Context) {
@@ -262,10 +260,10 @@ func (h *Handler) GetMovementAnalytics(c *gin.Context) {
 	period := c.DefaultQuery("period", "")
 	resp, err := h.svc.GetMovementAnalytics(c.Request.Context(), period)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================
@@ -319,17 +317,17 @@ func (h *Handler) GetRiskDashboard(c *gin.Context) {
 	period := c.DefaultQuery("period", "")
 	resp, err := h.svc.GetRiskDashboard(c.Request.Context(), period)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) ListRiskIndicators(c *gin.Context) {
 	page, perPage := parsePagination(c)
 	resp, err := h.svc.ListRiskIndicators(c.Request.Context(), c.DefaultQuery("period", ""), c.Query("risk_level"), page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -338,24 +336,23 @@ func (h *Handler) ListRiskIndicators(c *gin.Context) {
 func (h *Handler) GetRiskIndicatorByID(c *gin.Context) {
 	resp, err := h.svc.GetRiskIndicatorByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) UpdateRiskIndicator(c *gin.Context) {
 	var req UpdateRiskRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateRiskIndicator(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================
@@ -365,10 +362,10 @@ func (h *Handler) UpdateRiskIndicator(c *gin.Context) {
 func (h *Handler) GetExecutiveSummary(c *gin.Context) {
 	resp, err := h.svc.GetExecutiveSummary(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetHiringProgress(c *gin.Context) {
@@ -386,23 +383,22 @@ func (h *Handler) GetHiringProgress(c *gin.Context) {
 
 func (h *Handler) CreateScenario(c *gin.Context) {
 	var req CreateScenarioRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateScenario(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListScenarios(c *gin.Context) {
 	page, perPage := parsePagination(c)
 	resp, err := h.svc.ListScenarios(c.Request.Context(), c.Query("scenario_type"), page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -411,51 +407,50 @@ func (h *Handler) ListScenarios(c *gin.Context) {
 func (h *Handler) GetScenarioByID(c *gin.Context) {
 	resp, err := h.svc.GetScenarioByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) UpdateScenario(c *gin.Context) {
 	var req UpdateScenarioRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateScenario(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteScenario(c *gin.Context) {
 	if err := h.svc.DeleteScenario(c.Request.Context(), c.Param("id")); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Scenario deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 func (h *Handler) RunScenario(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.RunScenario(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) CloneScenario(c *gin.Context) {
 	resp, err := h.svc.CloneScenario(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 // =========================================================================
@@ -465,17 +460,17 @@ func (h *Handler) CloneScenario(c *gin.Context) {
 func (h *Handler) GetHealthDashboard(c *gin.Context) {
 	resp, err := h.svc.GetHealthDashboard(c.Request.Context(), c.DefaultQuery("period", ""))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) ListHealthScores(c *gin.Context) {
 	page, perPage := parsePagination(c)
 	resp, err := h.svc.ListHealthScores(c.Request.Context(), c.Query("period"), c.Query("organization_id"), page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -516,10 +511,10 @@ func (h *Handler) GetLearningEffectiveness(c *gin.Context) {
 func (h *Handler) peopleAnalyticsResponse(c *gin.Context, analysisType string) {
 	resp, err := h.svc.GetPeopleAnalytics(c.Request.Context(), analysisType)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================
@@ -529,10 +524,10 @@ func (h *Handler) peopleAnalyticsResponse(c *gin.Context, analysisType string) {
 func (h *Handler) GetCapacityForecast(c *gin.Context) {
 	resp, err := h.svc.GetCapacityForecast(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================
@@ -542,19 +537,19 @@ func (h *Handler) GetCapacityForecast(c *gin.Context) {
 func (h *Handler) GetPayrollCostBreakdown(c *gin.Context) {
 	resp, err := h.svc.GetPayrollCostBreakdown(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetCostPerEmployee(c *gin.Context) {
 	resp, err := h.svc.GetCostPerEmployee(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================
@@ -564,55 +559,55 @@ func (h *Handler) GetCostPerEmployee(c *gin.Context) {
 func (h *Handler) GetExecutiveGrowth(c *gin.Context) {
 	resp, err := h.svc.GetExecutiveGrowth(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetExecutiveCostTrend(c *gin.Context) {
 	resp, err := h.svc.GetExecutiveCostTrend(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetExecutiveAttritionTrend(c *gin.Context) {
 	resp, err := h.svc.GetExecutiveAttritionTrend(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetExecutiveCapacity(c *gin.Context) {
 	resp, err := h.svc.GetExecutiveCapacity(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetExecutiveRiskOverview(c *gin.Context) {
 	resp, err := h.svc.GetExecutiveRiskOverview(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetExecutiveHealthScore(c *gin.Context) {
 	resp, err := h.svc.GetExecutiveHealthScore(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================
@@ -622,28 +617,28 @@ func (h *Handler) GetExecutiveHealthScore(c *gin.Context) {
 func (h *Handler) GetHealthScoreByID(c *gin.Context) {
 	resp, err := h.svc.GetHealthScoreByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetSpanOfControl(c *gin.Context) {
 	resp, err := h.svc.GetSpanOfControl(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetSuccessionReadiness(c *gin.Context) {
 	resp, err := h.svc.GetSuccessionReadiness(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================
@@ -669,10 +664,10 @@ func (h *Handler) GetRiskHighAbsenteeism(c *gin.Context) {
 func (h *Handler) riskDetailResponse(c *gin.Context, riskType string) {
 	resp, err := h.svc.GetRiskDetail(c.Request.Context(), riskType)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================
@@ -682,10 +677,10 @@ func (h *Handler) riskDetailResponse(c *gin.Context, riskType string) {
 func (h *Handler) GetKPIByCode(c *gin.Context) {
 	resp, err := h.svc.GetKPIByCode(c.Request.Context(), c.Param("code"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================

@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/inthros/hris-platform/internal/pkg/httputil"
 	"go.uber.org/zap"
 )
 
@@ -23,12 +25,12 @@ func parsePagination(c *gin.Context) (int, int) {
 	return page, perPage
 }
 
-func respondError(c *gin.Context, code int, msg string) {
-	c.JSON(code, gin.H{"success": false, "error": gin.H{"code": http.StatusText(code), "message": msg}})
+func respondError(c *gin.Context, status int, msg string) {
+	httputil.ErrorRaw(c, status, http.StatusText(status), msg)
 }
 
 func respondSuccess(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": data})
+	httputil.SuccessJSON(c, data)
 }
 
 // =========================================================================
@@ -48,8 +50,7 @@ func (h *Handler) ListTalentMaps(c *gin.Context) {
 
 func (h *Handler) CreateTalentMap(c *gin.Context) {
 	var req CreateTalentMapRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		respondError(c, http.StatusBadRequest, err.Error())
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	result, err := h.svc.CreateTalentMap(c.Request.Context(), req)
@@ -57,7 +58,7 @@ func (h *Handler) CreateTalentMap(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": result})
+	httputil.CreatedJSON(c, result, "success.created")
 }
 
 func (h *Handler) GetTalentMapByID(c *gin.Context) {
@@ -71,8 +72,7 @@ func (h *Handler) GetTalentMapByID(c *gin.Context) {
 
 func (h *Handler) UpdateTalentMap(c *gin.Context) {
 	var req UpdateTalentMapRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		respondError(c, http.StatusBadRequest, err.Error())
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	result, err := h.svc.UpdateTalentMap(c.Request.Context(), c.Param("id"), req)
@@ -88,7 +88,7 @@ func (h *Handler) DeleteTalentMap(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Talent map deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 func (h *Handler) GetTalentGrid(c *gin.Context) {
@@ -126,8 +126,7 @@ func (h *Handler) ListCareerInterests(c *gin.Context) {
 
 func (h *Handler) CreateCareerInterest(c *gin.Context) {
 	var req CreateCareerInterestRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		respondError(c, http.StatusBadRequest, err.Error())
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	result, err := h.svc.CreateCareerInterest(c.Request.Context(), req)
@@ -135,7 +134,7 @@ func (h *Handler) CreateCareerInterest(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": result})
+	httputil.CreatedJSON(c, result, "success.created")
 }
 
 func (h *Handler) GetEmployeeCareerInterests(c *gin.Context) {
@@ -163,8 +162,7 @@ func (h *Handler) ListCareerPaths(c *gin.Context) {
 
 func (h *Handler) CreateCareerPath(c *gin.Context) {
 	var req CreateCareerPathRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		respondError(c, http.StatusBadRequest, err.Error())
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	result, err := h.svc.CreateCareerPath(c.Request.Context(), req)
@@ -172,7 +170,7 @@ func (h *Handler) CreateCareerPath(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": result})
+	httputil.CreatedJSON(c, result, "success.created")
 }
 
 func (h *Handler) DeleteCareerPath(c *gin.Context) {
@@ -180,7 +178,7 @@ func (h *Handler) DeleteCareerPath(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Career path deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 func (h *Handler) GetGapAnalysis(c *gin.Context) {
@@ -216,8 +214,7 @@ func (h *Handler) ListSuccessionPlans(c *gin.Context) {
 
 func (h *Handler) CreateSuccessionPlan(c *gin.Context) {
 	var req CreateSuccessionPlanRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		respondError(c, http.StatusBadRequest, err.Error())
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	result, err := h.svc.CreateSuccessionPlan(c.Request.Context(), req)
@@ -225,7 +222,7 @@ func (h *Handler) CreateSuccessionPlan(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": result})
+	httputil.CreatedJSON(c, result, "success.created")
 }
 
 func (h *Handler) GetSuccessionPlanByID(c *gin.Context) {
@@ -239,8 +236,7 @@ func (h *Handler) GetSuccessionPlanByID(c *gin.Context) {
 
 func (h *Handler) UpdateSuccessionPlan(c *gin.Context) {
 	var req UpdateSuccessionPlanRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		respondError(c, http.StatusBadRequest, err.Error())
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	result, err := h.svc.UpdateSuccessionPlan(c.Request.Context(), c.Param("id"), req)
@@ -256,5 +252,5 @@ func (h *Handler) DeleteSuccessionPlan(c *gin.Context) {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Succession plan deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }

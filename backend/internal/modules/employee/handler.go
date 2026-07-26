@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
 type Handler struct {
@@ -18,24 +20,17 @@ func NewHandler(service *Service) *Handler {
 // POST /api/v1/tenant/employees
 func (h *Handler) Create(c *gin.Context) {
 	var req CreateEmployeeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   gin.H{"code": "VALIDATION_ERROR", "message": err.Error()},
-		})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 
 	resp, err := h.service.Create(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   gin.H{"code": "INTERNAL_ERROR", "message": err.Error()},
-		})
+			httputil.InternalError(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 // GET /api/v1/tenant/employees
@@ -45,10 +40,7 @@ func (h *Handler) List(c *gin.Context) {
 
 	resp, err := h.service.List(c.Request.Context(), page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -59,50 +51,37 @@ func (h *Handler) List(c *gin.Context) {
 func (h *Handler) GetByID(c *gin.Context) {
 	resp, err := h.service.GetByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"error":   gin.H{"code": "NOT_FOUND", "message": err.Error()},
-		})
+			httputil.NotFound(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // PUT /api/v1/tenant/employees/:id
 func (h *Handler) Update(c *gin.Context) {
 	var req UpdateEmployeeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   gin.H{"code": "VALIDATION_ERROR", "message": err.Error()},
-		})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 
 	resp, err := h.service.Update(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // DELETE /api/v1/tenant/employees/:id
 func (h *Handler) Delete(c *gin.Context) {
 	if err := h.service.Delete(c.Request.Context(), c.Param("id")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Employee deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -112,8 +91,7 @@ func (h *Handler) Delete(c *gin.Context) {
 func (h *Handler) CreateAddress(c *gin.Context) {
 	employeeID := c.Param("id")
 	var req CreateAddressRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateAddress(c.Request.Context(), employeeID, req)
@@ -121,13 +99,12 @@ func (h *Handler) CreateAddress(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) UpdateAddress(c *gin.Context) {
 	var req UpdateAddressRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateAddress(c.Request.Context(), c.Param("id"), c.Param("addressId"), req)
@@ -135,15 +112,15 @@ func (h *Handler) UpdateAddress(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteAddress(c *gin.Context) {
 	if err := h.service.DeleteAddress(c.Request.Context(), c.Param("id"), c.Param("addressId")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Address deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -153,8 +130,7 @@ func (h *Handler) DeleteAddress(c *gin.Context) {
 func (h *Handler) CreateEmergencyContact(c *gin.Context) {
 	employeeID := c.Param("id")
 	var req CreateEmergencyContactRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateEmergencyContact(c.Request.Context(), employeeID, req)
@@ -162,13 +138,12 @@ func (h *Handler) CreateEmergencyContact(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) UpdateEmergencyContact(c *gin.Context) {
 	var req UpdateEmergencyContactRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateEmergencyContact(c.Request.Context(), c.Param("id"), c.Param("contactId"), req)
@@ -176,15 +151,15 @@ func (h *Handler) UpdateEmergencyContact(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteEmergencyContact(c *gin.Context) {
 	if err := h.service.DeleteEmergencyContact(c.Request.Context(), c.Param("id"), c.Param("contactId")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Emergency contact deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -194,8 +169,7 @@ func (h *Handler) DeleteEmergencyContact(c *gin.Context) {
 func (h *Handler) CreateFamily(c *gin.Context) {
 	employeeID := c.Param("id")
 	var req CreateFamilyRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateFamily(c.Request.Context(), employeeID, req)
@@ -203,13 +177,12 @@ func (h *Handler) CreateFamily(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) UpdateFamily(c *gin.Context) {
 	var req UpdateFamilyRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateFamily(c.Request.Context(), c.Param("id"), c.Param("familyId"), req)
@@ -217,15 +190,15 @@ func (h *Handler) UpdateFamily(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteFamily(c *gin.Context) {
 	if err := h.service.DeleteFamily(c.Request.Context(), c.Param("id"), c.Param("familyId")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Family deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -235,8 +208,7 @@ func (h *Handler) DeleteFamily(c *gin.Context) {
 func (h *Handler) CreateEducation(c *gin.Context) {
 	employeeID := c.Param("id")
 	var req CreateEducationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateEducation(c.Request.Context(), employeeID, req)
@@ -244,13 +216,12 @@ func (h *Handler) CreateEducation(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) UpdateEducation(c *gin.Context) {
 	var req UpdateEducationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateEducation(c.Request.Context(), c.Param("id"), c.Param("educationId"), req)
@@ -258,15 +229,15 @@ func (h *Handler) UpdateEducation(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteEducation(c *gin.Context) {
 	if err := h.service.DeleteEducation(c.Request.Context(), c.Param("id"), c.Param("educationId")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Education deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -276,8 +247,7 @@ func (h *Handler) DeleteEducation(c *gin.Context) {
 func (h *Handler) CreateExperience(c *gin.Context) {
 	employeeID := c.Param("id")
 	var req CreateExperienceRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateExperience(c.Request.Context(), employeeID, req)
@@ -285,13 +255,12 @@ func (h *Handler) CreateExperience(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) UpdateExperience(c *gin.Context) {
 	var req UpdateExperienceRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateExperience(c.Request.Context(), c.Param("id"), c.Param("experienceId"), req)
@@ -299,15 +268,15 @@ func (h *Handler) UpdateExperience(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteExperience(c *gin.Context) {
 	if err := h.service.DeleteExperience(c.Request.Context(), c.Param("id"), c.Param("experienceId")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Experience deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -317,8 +286,7 @@ func (h *Handler) DeleteExperience(c *gin.Context) {
 func (h *Handler) CreateDocument(c *gin.Context) {
 	employeeID := c.Param("id")
 	var req CreateDocumentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateDocument(c.Request.Context(), employeeID, req)
@@ -326,13 +294,12 @@ func (h *Handler) CreateDocument(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) UpdateDocument(c *gin.Context) {
 	var req UpdateDocumentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateDocument(c.Request.Context(), c.Param("id"), c.Param("documentId"), req)
@@ -340,15 +307,15 @@ func (h *Handler) UpdateDocument(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteDocument(c *gin.Context) {
 	if err := h.service.DeleteDocument(c.Request.Context(), c.Param("id"), c.Param("documentId")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Document deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -358,8 +325,7 @@ func (h *Handler) DeleteDocument(c *gin.Context) {
 func (h *Handler) CreateInsurance(c *gin.Context) {
 	employeeID := c.Param("id")
 	var req CreateInsuranceRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateInsurance(c.Request.Context(), employeeID, req)
@@ -367,13 +333,12 @@ func (h *Handler) CreateInsurance(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) UpdateInsurance(c *gin.Context) {
 	var req UpdateInsuranceRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateInsurance(c.Request.Context(), c.Param("id"), c.Param("insuranceId"), req)
@@ -381,15 +346,15 @@ func (h *Handler) UpdateInsurance(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteInsurance(c *gin.Context) {
 	if err := h.service.DeleteInsurance(c.Request.Context(), c.Param("id"), c.Param("insuranceId")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Insurance deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -399,8 +364,7 @@ func (h *Handler) DeleteInsurance(c *gin.Context) {
 func (h *Handler) CreateEmployment(c *gin.Context) {
 	employeeID := c.Param("id")
 	var req CreateEmploymentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateEmployment(c.Request.Context(), employeeID, req)
@@ -408,13 +372,12 @@ func (h *Handler) CreateEmployment(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) UpdateEmployment(c *gin.Context) {
 	var req UpdateEmploymentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateEmployment(c.Request.Context(), c.Param("id"), c.Param("employmentId"), req)
@@ -422,13 +385,13 @@ func (h *Handler) UpdateEmployment(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteEmployment(c *gin.Context) {
 	if err := h.service.DeleteEmployment(c.Request.Context(), c.Param("id"), c.Param("employmentId")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Employment deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }

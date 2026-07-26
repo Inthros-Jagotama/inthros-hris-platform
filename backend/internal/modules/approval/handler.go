@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
 // Handler untuk HTTP endpoints Approval Engine.
@@ -24,14 +26,7 @@ func NewHandler(service *Service) *Handler {
 // CreateFlow menangani POST /api/v1/tenant/approval/flows
 func (h *Handler) CreateFlow(c *gin.Context) {
 	var req CreateFlowRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "VALIDATION_ERROR",
-				"message": err.Error(),
-			},
-		})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 
@@ -101,14 +96,7 @@ func (h *Handler) UpdateFlow(c *gin.Context) {
 	id := c.Param("flowId")
 
 	var req UpdateFlowRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "VALIDATION_ERROR",
-				"message": err.Error(),
-			},
-		})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 
@@ -161,14 +149,7 @@ func (h *Handler) CreateStep(c *gin.Context) {
 	flowID := c.Param("flowId")
 
 	var req CreateStepRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "VALIDATION_ERROR",
-				"message": err.Error(),
-			},
-		})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 
@@ -219,14 +200,7 @@ func (h *Handler) UpdateStep(c *gin.Context) {
 	stepID := c.Param("stepId")
 
 	var req UpdateStepRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "VALIDATION_ERROR",
-				"message": err.Error(),
-			},
-		})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 
@@ -278,14 +252,7 @@ func (h *Handler) DeleteStep(c *gin.Context) {
 // CreateInstance menangani POST /api/v1/tenant/approval/instances
 func (h *Handler) CreateInstance(c *gin.Context) {
 	var req CreateInstanceRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "VALIDATION_ERROR",
-				"message": err.Error(),
-			},
-		})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 
@@ -382,14 +349,7 @@ func (h *Handler) SubmitAction(c *gin.Context) {
 	id := c.Param("id")
 
 	var req SubmitActionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "VALIDATION_ERROR",
-				"message": err.Error(),
-			},
-		})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 

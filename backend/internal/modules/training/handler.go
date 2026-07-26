@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
 type Handler struct {
@@ -21,8 +23,7 @@ func NewHandler(svc *Service) *Handler {
 
 func (h *Handler) CreateCategory(c *gin.Context) {
 	var req CreateTrainingCategoryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateCategory(c.Request.Context(), req)
@@ -30,7 +31,7 @@ func (h *Handler) CreateCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListCategories(c *gin.Context) {
@@ -48,7 +49,7 @@ func (h *Handler) GetCategoryByID(c *gin.Context) {
 	resp, err := h.svc.GetCategoryByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training category not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training category not found"}})
+			httputil.NotFound(c, "Training category not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -60,14 +61,13 @@ func (h *Handler) GetCategoryByID(c *gin.Context) {
 func (h *Handler) UpdateCategory(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateTrainingCategoryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateCategory(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training category not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training category not found"}})
+			httputil.NotFound(c, "Training category not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -82,7 +82,7 @@ func (h *Handler) DeleteCategory(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Training category deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -91,8 +91,7 @@ func (h *Handler) DeleteCategory(c *gin.Context) {
 
 func (h *Handler) CreateCourse(c *gin.Context) {
 	var req CreateTrainingCourseRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateCourse(c.Request.Context(), req)
@@ -100,7 +99,7 @@ func (h *Handler) CreateCourse(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListCourses(c *gin.Context) {
@@ -123,7 +122,7 @@ func (h *Handler) GetCourseByID(c *gin.Context) {
 	resp, err := h.svc.GetCourseByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training course not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training course not found"}})
+			httputil.NotFound(c, "Training course not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -135,14 +134,13 @@ func (h *Handler) GetCourseByID(c *gin.Context) {
 func (h *Handler) UpdateCourse(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateTrainingCourseRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateCourse(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training course not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training course not found"}})
+			httputil.NotFound(c, "Training course not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -157,7 +155,7 @@ func (h *Handler) DeleteCourse(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Training course deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -166,8 +164,7 @@ func (h *Handler) DeleteCourse(c *gin.Context) {
 
 func (h *Handler) CreateSession(c *gin.Context) {
 	var req CreateTrainingSessionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateSession(c.Request.Context(), req)
@@ -175,7 +172,7 @@ func (h *Handler) CreateSession(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListSessions(c *gin.Context) {
@@ -203,7 +200,7 @@ func (h *Handler) GetSessionByID(c *gin.Context) {
 	resp, err := h.svc.GetSessionByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training session not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training session not found"}})
+			httputil.NotFound(c, "Training session not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -215,14 +212,13 @@ func (h *Handler) GetSessionByID(c *gin.Context) {
 func (h *Handler) UpdateSession(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateTrainingSessionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateSession(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training session not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training session not found"}})
+			httputil.NotFound(c, "Training session not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -234,8 +230,7 @@ func (h *Handler) UpdateSession(c *gin.Context) {
 func (h *Handler) UpdateSessionStatus(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateSessionStatusRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateSessionStatus(c.Request.Context(), id, req.Status)
@@ -252,7 +247,7 @@ func (h *Handler) DeleteSession(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Training session deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -261,8 +256,7 @@ func (h *Handler) DeleteSession(c *gin.Context) {
 
 func (h *Handler) CreateParticipant(c *gin.Context) {
 	var req CreateTrainingParticipantRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateParticipant(c.Request.Context(), req)
@@ -270,7 +264,7 @@ func (h *Handler) CreateParticipant(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListParticipants(c *gin.Context) {
@@ -297,7 +291,7 @@ func (h *Handler) GetParticipantByID(c *gin.Context) {
 	resp, err := h.svc.GetParticipantByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training participant not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training participant not found"}})
+			httputil.NotFound(c, "Training participant not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -309,8 +303,7 @@ func (h *Handler) GetParticipantByID(c *gin.Context) {
 func (h *Handler) UpdateParticipant(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateTrainingParticipantRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateParticipant(c.Request.Context(), id, req)
@@ -327,7 +320,7 @@ func (h *Handler) DeleteParticipant(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Training participant deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -336,8 +329,7 @@ func (h *Handler) DeleteParticipant(c *gin.Context) {
 
 func (h *Handler) CreateMaterial(c *gin.Context) {
 	var req CreateTrainingMaterialRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateMaterial(c.Request.Context(), req)
@@ -345,7 +337,7 @@ func (h *Handler) CreateMaterial(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListMaterials(c *gin.Context) {
@@ -365,14 +357,13 @@ func (h *Handler) ListMaterials(c *gin.Context) {
 func (h *Handler) UpdateMaterial(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateTrainingMaterialRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateMaterial(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training material not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training material not found"}})
+			httputil.NotFound(c, "Training material not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -387,7 +378,7 @@ func (h *Handler) DeleteMaterial(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Training material deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -396,8 +387,7 @@ func (h *Handler) DeleteMaterial(c *gin.Context) {
 
 func (h *Handler) CreateEvaluation(c *gin.Context) {
 	var req CreateTrainingEvaluationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateEvaluation(c.Request.Context(), req)
@@ -405,7 +395,7 @@ func (h *Handler) CreateEvaluation(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListEvaluations(c *gin.Context) {
@@ -432,7 +422,7 @@ func (h *Handler) GetEvaluationByID(c *gin.Context) {
 	resp, err := h.svc.GetEvaluationByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training evaluation not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training evaluation not found"}})
+			httputil.NotFound(c, "Training evaluation not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -444,14 +434,13 @@ func (h *Handler) GetEvaluationByID(c *gin.Context) {
 func (h *Handler) UpdateEvaluation(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateTrainingEvaluationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateEvaluation(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training evaluation not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training evaluation not found"}})
+			httputil.NotFound(c, "Training evaluation not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -466,7 +455,7 @@ func (h *Handler) DeleteEvaluation(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Training evaluation deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -475,8 +464,7 @@ func (h *Handler) DeleteEvaluation(c *gin.Context) {
 
 func (h *Handler) CreateCertificate(c *gin.Context) {
 	var req CreateTrainingCertificateRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateCertificate(c.Request.Context(), req)
@@ -484,7 +472,7 @@ func (h *Handler) CreateCertificate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListCertificates(c *gin.Context) {
@@ -507,7 +495,7 @@ func (h *Handler) GetCertificateByID(c *gin.Context) {
 	resp, err := h.svc.GetCertificateByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training certificate not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training certificate not found"}})
+			httputil.NotFound(c, "Training certificate not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -519,14 +507,13 @@ func (h *Handler) GetCertificateByID(c *gin.Context) {
 func (h *Handler) UpdateCertificate(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateTrainingCertificateRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateCertificate(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training certificate not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Training certificate not found"}})
+			httputil.NotFound(c, "Training certificate not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -541,7 +528,7 @@ func (h *Handler) DeleteCertificate(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Training certificate deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================

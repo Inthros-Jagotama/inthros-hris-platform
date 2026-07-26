@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
 type Handler struct {
@@ -21,25 +23,24 @@ func NewHandler(service *Service) *Handler {
 
 func (h *Handler) UpsertCompanySetting(c *gin.Context) {
 	var req CreateCompanySettingRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpsertCompanySetting(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetCompanySetting(c *gin.Context) {
 	resp, err := h.service.GetCompanySetting(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================
@@ -48,25 +49,24 @@ func (h *Handler) GetCompanySetting(c *gin.Context) {
 
 func (h *Handler) CreateShift(c *gin.Context) {
 	var req CreateCompanyShiftRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateShift(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) GetShiftByID(c *gin.Context) {
 	resp, err := h.service.GetShiftByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) ListShifts(c *gin.Context) {
@@ -74,7 +74,7 @@ func (h *Handler) ListShifts(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListShifts(c.Request.Context(), page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -82,24 +82,23 @@ func (h *Handler) ListShifts(c *gin.Context) {
 
 func (h *Handler) UpdateShift(c *gin.Context) {
 	var req UpdateCompanyShiftRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateShift(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteShift(c *gin.Context) {
 	if err := h.service.DeleteShift(c.Request.Context(), c.Param("id")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Shift deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -108,25 +107,24 @@ func (h *Handler) DeleteShift(c *gin.Context) {
 
 func (h *Handler) CreateEmployeeShift(c *gin.Context) {
 	var req CreateEmployeeShiftRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateEmployeeShift(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) GetEmployeeShiftByID(c *gin.Context) {
 	resp, err := h.service.GetEmployeeShiftByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) ListEmployeeShifts(c *gin.Context) {
@@ -135,7 +133,7 @@ func (h *Handler) ListEmployeeShifts(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	resp, err := h.service.ListEmployeeShifts(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -143,24 +141,23 @@ func (h *Handler) ListEmployeeShifts(c *gin.Context) {
 
 func (h *Handler) UpdateEmployeeShift(c *gin.Context) {
 	var req UpdateEmployeeShiftRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateEmployeeShift(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteEmployeeShift(c *gin.Context) {
 	if err := h.service.DeleteEmployeeShift(c.Request.Context(), c.Param("id")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Employee shift deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -169,25 +166,24 @@ func (h *Handler) DeleteEmployeeShift(c *gin.Context) {
 
 func (h *Handler) CreateLocation(c *gin.Context) {
 	var req CreateLocationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateLocation(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) GetLocationByID(c *gin.Context) {
 	resp, err := h.service.GetLocationByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) ListLocations(c *gin.Context) {
@@ -195,7 +191,7 @@ func (h *Handler) ListLocations(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListLocations(c.Request.Context(), page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -203,24 +199,23 @@ func (h *Handler) ListLocations(c *gin.Context) {
 
 func (h *Handler) UpdateLocation(c *gin.Context) {
 	var req UpdateLocationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateLocation(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteLocation(c *gin.Context) {
 	if err := h.service.DeleteLocation(c.Request.Context(), c.Param("id")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Location deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -229,25 +224,24 @@ func (h *Handler) DeleteLocation(c *gin.Context) {
 
 func (h *Handler) CreateEvent(c *gin.Context) {
 	var req CreateEventRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateEvent(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) GetEventByID(c *gin.Context) {
 	resp, err := h.service.GetEventByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) ListEvents(c *gin.Context) {
@@ -256,7 +250,7 @@ func (h *Handler) ListEvents(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	resp, err := h.service.ListEvents(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -275,10 +269,10 @@ func (h *Handler) GetSession(c *gin.Context) {
 	}
 	resp, err := h.service.GetSession(c.Request.Context(), employeeID, workDate)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) ListSessions(c *gin.Context) {
@@ -287,7 +281,7 @@ func (h *Handler) ListSessions(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	resp, err := h.service.ListSessions(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -299,25 +293,24 @@ func (h *Handler) ListSessions(c *gin.Context) {
 
 func (h *Handler) CreateOvertimeRequest(c *gin.Context) {
 	var req CreateOvertimeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateOvertimeRequest(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) GetOvertimeRequestByID(c *gin.Context) {
 	resp, err := h.service.GetOvertimeRequestByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) ListOvertimeRequests(c *gin.Context) {
@@ -326,7 +319,7 @@ func (h *Handler) ListOvertimeRequests(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	resp, err := h.service.ListOvertimeRequests(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -338,25 +331,24 @@ func (h *Handler) ListOvertimeRequests(c *gin.Context) {
 
 func (h *Handler) CreateExemptPosition(c *gin.Context) {
 	var req CreateExemptPositionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.CreateExemptPosition(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) GetExemptPositionByID(c *gin.Context) {
 	resp, err := h.service.GetExemptPositionByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) ListExemptPositions(c *gin.Context) {
@@ -364,7 +356,7 @@ func (h *Handler) ListExemptPositions(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListExemptPositions(c.Request.Context(), page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -372,22 +364,21 @@ func (h *Handler) ListExemptPositions(c *gin.Context) {
 
 func (h *Handler) UpdateExemptPosition(c *gin.Context) {
 	var req UpdateExemptPositionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.service.UpdateExemptPosition(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) DeleteExemptPosition(c *gin.Context) {
 	if err := h.service.DeleteExemptPosition(c.Request.Context(), c.Param("id")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Exempt position deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }

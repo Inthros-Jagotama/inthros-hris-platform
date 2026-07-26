@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
 type Handler struct {
@@ -22,8 +24,7 @@ func NewHandler(svc *Service) *Handler {
 
 func (h *Handler) CreateLeaveType(c *gin.Context) {
 	var req CreateLeaveTypeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateLeaveType(c.Request.Context(), req)
@@ -31,7 +32,7 @@ func (h *Handler) CreateLeaveType(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListLeaveTypes(c *gin.Context) {
@@ -49,7 +50,7 @@ func (h *Handler) GetLeaveTypeByID(c *gin.Context) {
 	resp, err := h.svc.GetLeaveTypeByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "leave type not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Leave type not found"}})
+			httputil.NotFound(c, "Leave type not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -61,14 +62,13 @@ func (h *Handler) GetLeaveTypeByID(c *gin.Context) {
 func (h *Handler) UpdateLeaveType(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateLeaveTypeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateLeaveType(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "leave type not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Leave type not found"}})
+			httputil.NotFound(c, "Leave type not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -83,7 +83,7 @@ func (h *Handler) DeleteLeaveType(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Leave type deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -92,8 +92,7 @@ func (h *Handler) DeleteLeaveType(c *gin.Context) {
 
 func (h *Handler) CreateAccrualPolicy(c *gin.Context) {
 	var req CreateAccrualPolicyRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateAccrualPolicy(c.Request.Context(), req)
@@ -101,7 +100,7 @@ func (h *Handler) CreateAccrualPolicy(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListAccrualPolicies(c *gin.Context) {
@@ -124,7 +123,7 @@ func (h *Handler) GetAccrualPolicyByID(c *gin.Context) {
 	resp, err := h.svc.GetAccrualPolicyByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "accrual policy not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Accrual policy not found"}})
+			httputil.NotFound(c, "Accrual policy not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -136,8 +135,7 @@ func (h *Handler) GetAccrualPolicyByID(c *gin.Context) {
 func (h *Handler) UpdateAccrualPolicy(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateAccrualPolicyRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateAccrualPolicy(c.Request.Context(), id, req)
@@ -154,7 +152,7 @@ func (h *Handler) DeleteAccrualPolicy(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Accrual policy deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -163,8 +161,7 @@ func (h *Handler) DeleteAccrualPolicy(c *gin.Context) {
 
 func (h *Handler) CreateLeaveReason(c *gin.Context) {
 	var req CreateLeaveReasonRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateLeaveReason(c.Request.Context(), req)
@@ -172,7 +169,7 @@ func (h *Handler) CreateLeaveReason(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListLeaveReasons(c *gin.Context) {
@@ -189,7 +186,7 @@ func (h *Handler) GetLeaveReasonByID(c *gin.Context) {
 	resp, err := h.svc.GetLeaveReasonByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "leave reason not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Leave reason not found"}})
+			httputil.NotFound(c, "Leave reason not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -201,8 +198,7 @@ func (h *Handler) GetLeaveReasonByID(c *gin.Context) {
 func (h *Handler) UpdateLeaveReason(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateLeaveReasonRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateLeaveReason(c.Request.Context(), id, req)
@@ -219,7 +215,7 @@ func (h *Handler) DeleteLeaveReason(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Leave reason deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -228,8 +224,7 @@ func (h *Handler) DeleteLeaveReason(c *gin.Context) {
 
 func (h *Handler) CreateLeaveRequest(c *gin.Context) {
 	var req CreateLeaveRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.CreateLeaveRequest(c.Request.Context(), req)
@@ -237,7 +232,7 @@ func (h *Handler) CreateLeaveRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": resp})
+	httputil.CreatedJSON(c, resp, "success.created")
 }
 
 func (h *Handler) ListLeaveRequests(c *gin.Context) {
@@ -261,7 +256,7 @@ func (h *Handler) GetLeaveRequestByID(c *gin.Context) {
 	resp, err := h.svc.GetLeaveRequestByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "leave request not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Leave request not found"}})
+			httputil.NotFound(c, "Leave request not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -273,8 +268,7 @@ func (h *Handler) GetLeaveRequestByID(c *gin.Context) {
 func (h *Handler) UpdateLeaveRequestStatus(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateLeaveRequestStatus
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()}})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	resp, err := h.svc.UpdateLeaveRequestStatus(c.Request.Context(), id, req.Status, req.Note)
@@ -291,7 +285,7 @@ func (h *Handler) DeleteLeaveRequest(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Leave request deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -339,7 +333,7 @@ func (h *Handler) GetLeaveBalance(c *gin.Context) {
 	resp, err := h.svc.GetLeaveBalance(c.Request.Context(), empID, lTypeID, year)
 	if err != nil {
 		if err.Error() == "leave balance not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Leave balance not found"}})
+			httputil.NotFound(c, "Leave balance not found")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})

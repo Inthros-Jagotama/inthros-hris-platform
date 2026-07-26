@@ -117,7 +117,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
+  # ===================================================================
+  # Mailpit - SMTP Testing Server
+  # ===================================================================
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: hris-mailpit
+    restart: unless-stopped
+    networks:
+      - hris-network
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATA_FILE: /data/mailpit.db
+    volumes:
+      - mailpit_data:/data
   # ===================================================================
   # Go API Server
   # ===================================================================

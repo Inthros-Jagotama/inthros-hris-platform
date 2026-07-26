@@ -5,6 +5,7 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 
+	"github.com/inthros/hris-platform/internal/pkg/middleware"
 	"github.com/inthros/hris-platform/internal/pkg/module"
 )
 
@@ -34,6 +35,7 @@ func Setup(cfg Config, authMiddleware, tenantMiddleware, rbacMiddleware gin.Hand
 	r.Use(recoveryMiddleware)
 	r.Use(loggerMiddleware)
 	r.Use(corsMiddleware)
+	r.Use(middleware.Localize())
 
 	// Health check (no auth)
 	r.GET("/healthz", func(c *gin.Context) {
