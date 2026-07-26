@@ -17,9 +17,21 @@ const (
 )
 
 // NewModule membuat instance baru Platform User Module.
+// Membuat repository dan service baru secara internal.
 func NewModule(dbManager *database.Manager, authManager *auth.Manager, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
 	repo := NewRepository(dbManager.PlatformDB())
 	svc := NewService(repo, authManager, logger)
+	return newModuleWithService(svc, logger, authMW, rbacMW)
+}
+
+// NewModuleWithService membuat instance baru Platform User Module
+// dengan service yang sudah ada. Digunakan dari main.go ketika
+// service perlu dibagikan ke module lain (seperti Company module).
+func NewModuleWithService(svc *Service, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
+	return newModuleWithService(svc, logger, authMW, rbacMW)
+}
+
+func newModuleWithService(svc *Service, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
 	handler := NewHandler(svc)
 
 	return &userModule{
@@ -37,6 +49,11 @@ type userModule struct {
 	logger  *zap.Logger
 	authMW  gin.HandlerFunc
 	rbacMW  gin.HandlerFunc
+}
+
+// SetRBACMiddleware memperbarui RBAC middleware setelah inisialisasi.
+func (m *userModule) SetRBACMiddleware(mw gin.HandlerFunc) {
+	m.rbacMW = mw
 }
 
 func (m *userModule) Info() module.ModuleInfo {

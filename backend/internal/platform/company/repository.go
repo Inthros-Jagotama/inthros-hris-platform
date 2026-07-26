@@ -44,20 +44,25 @@ func (r *Repository) FindBySlug(slug string) (*Company, error) {
 }
 
 // FindAll mengembalikan semua company dengan pagination.
+// Gunakan query chain terpisah untuk Count dan Find untuk
+// menghindari GORM v2 issue di mana Count() (terminal operation)
+// dapat mengkonsumsi state dari query chain.
 func (r *Repository) FindAll(page, perPage int) ([]Company, int64, error) {
 	var companies []Company
 	var total int64
 
-	query := r.db.Model(&Company{})
-
-	// Count total
-	if err := query.Count(&total).Error; err != nil {
+	// Count total — chain terpisah
+	if err := r.db.Model(&Company{}).Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to count companies: %w", err)
 	}
 
-	// Get paginated data
+	// Get paginated data — chain terpisah
 	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&companies).Error; err != nil {
+	if err := r.db.Model(&Company{}).
+		Offset(offset).
+		Limit(perPage).
+		Order("created_at DESC").
+		Find(&companies).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to list companies: %w", err)
 	}
 

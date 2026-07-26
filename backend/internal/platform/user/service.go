@@ -167,6 +167,7 @@ func (s *Service) GetUser(id string) (*UserResponse, error) {
 	}
 
 	response := user.ToResponse()
+	s.enrichWithCompany(user, &response)
 	return &response, nil
 }
 
@@ -185,8 +186,10 @@ func (s *Service) ListUsers(page, perPage int) (*PaginatedResponse, error) {
 	}
 
 	var responses []UserResponse
-	for _, u := range users {
-		responses = append(responses, u.ToResponse())
+	for i := range users {
+		resp := users[i].ToResponse()
+		s.enrichWithCompany(&users[i], &resp)
+		responses = append(responses, resp)
 	}
 
 	totalPages := int(total) / perPage
@@ -202,6 +205,66 @@ func (s *Service) ListUsers(page, perPage int) (*PaginatedResponse, error) {
 		Total:      total,
 		TotalPages: totalPages,
 	}, nil
+}
+
+// enrichWithCompany mengisi CompanyName pada UserResponse dengan melakukan
+// lookup ke tabel companies. Jika user tidak punya CompanyID, tidak ada perubahan.
+func (s *Service) enrichWithCompany(user *PlatformUser, resp *UserResponse) {
+	if user.CompanyID == nil {
+		return
+	}
+
+	var companyName string
+	err := s.repo.DB().Model(&PlatformUser{}).
+		Select("c.name").
+		Joins("LEFT JOIN companies c ON c.id = platform_users.company_id").
+		Where("platform_users.id = ?", user.ID).
+		Pluck("c.name", &companyName).Error
+	if err == nil && companyName != "" {
+		resp.CompanyName = &companyName
+	}
+}
+
+// CreateCompanyUser membuat platform user dengan role company_admin
+// yang terikat ke company tertentu. Method ini mengimplementasikan
+// interface company.UserCreator untuk digunakan saat create company.
+func (s *Service) CreateCompanyUser(companyID, name, email, password string) (string, error) {
+	cid, err := uuid.Parse(companyID)
+	if err != nil {
+		return "", fmt.Errorf("invalid company_id: %w", err)
+	}
+
+	// Cek apakah email sudah terdaftar
+	if existing, _ := s.repo.FindByEmail(email); existing != nil {
+		return "", fmt.Errorf("email already registered")
+	}
+
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	user := &PlatformUser{
+		Email:        email,
+		PasswordHash: string(hashedPassword),
+		Name:         name,
+		Role:         string(RoleCompanyAdmin),
+		CompanyID:    &cid,
+		IsActive:     true,
+	}
+
+	if err := s.repo.Create(user); err != nil {
+		return "", err
+	}
+
+	s.logger.Info("Company admin user created",
+		zap.String("user_id", user.ID.String()),
+		zap.String("email", email),
+		zap.String("company_id", companyID),
+	)
+
+	return user.ID.String(), nil
 }
 
 // UpdateUser mengupdate data user.

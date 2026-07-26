@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@import "primeicons/primeicons.css";
+
+/* ── PrimeVue Overrides ── */
+:root {
+  --p-datatable-header-cell-padding: 0.5rem 0.75rem;
+  --p-datatable-body-cell-padding: 0.5rem 0.75rem;
+  --p-datatable-header-font-size: 0.8125rem;
+  --p-datatable-body-font-size: 0.875rem;
+  --p-inputtext-padding-y: 0.5rem;
+  --p-inputtext-padding-x: 0.75rem;
+  --p-inputtext-font-size: 0.875rem;
+  --p-button-padding-x: 0.875rem;
+  --p-button-padding-y: 0.5rem;
+  --p-button-font-size: 0.875rem;
+  --p-dialog-header-padding: 1rem 1.25rem;
+  --p-dialog-content-padding: 1.25rem;
+  --p-menubar-padding: 0.5rem 0.625rem;
+  --p-tag-font-size: 0.75rem;
+  --p-select-font-size: 0.875rem;
+  --p-select-padding-y: 0.5rem;
+  --p-select-padding-x: 0.75rem;
+}
+
+/* ── Thin Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+/* ── PrimeVue DataTable Compact ── */
+.p-datatable-table { border-collapse: collapse; }
+.p-datatable-table th { font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: #6b7280; background: #f9fafb; }
+.p-datatable-table tr:hover td { background: #f0fdf4; }

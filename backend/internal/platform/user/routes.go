@@ -11,10 +11,12 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW, rbacMW gin.Ha
 	rg.POST("/login", handler.Login)
 	rg.POST("/refresh", handler.RefreshToken)
 
-	// Protected: User management (JWT + RBAC required)
+	// Protected: User management (JWT + RBAC jika tersedia)
 	protected := rg.Group("")
 	protected.Use(authMW)
-	protected.Use(rbacMW)
+	if rbacMW != nil {
+		protected.Use(rbacMW)
+	}
 	{
 		users := protected.Group("/users")
 		{

@@ -12,6 +12,13 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/migrator"
 )
 
+// UserCreator mendefinisikan interface untuk membuat platform user
+// saat create company. Diimplementasikan oleh user.Service untuk
+// menghindari circular dependency antar package.
+type UserCreator interface {
+	CreateCompanyUser(companyID, name, email, password string) (userID string, err error)
+}
+
 // TenantManager mendefinisikan interface untuk operasi lifecycle tenant
 // yang digunakan oleh Company Service. Memungkinkan mocking di unit test
 // tanpa memerlukan koneksi database nyata.
@@ -28,21 +35,24 @@ type TenantManager interface {
 
 // Service untuk business logic Company.
 type Service struct {
-	repo      *Repository
-	dbManager TenantManager
-	logger    *zap.Logger
+	repo        *Repository
+	dbManager   TenantManager
+	userCreator UserCreator
+	logger      *zap.Logger
 }
 
 // NewService membuat Service baru.
-func NewService(repo *Repository, dbManager TenantManager, logger *zap.Logger) *Service {
+func NewService(repo *Repository, dbManager TenantManager, userCreator UserCreator, logger *zap.Logger) *Service {
 	return &Service{
-		repo:      repo,
-		dbManager: dbManager,
-		logger:    logger,
+		repo:        repo,
+		dbManager:   dbManager,
+		userCreator: userCreator,
+		logger:      logger,
 	}
 }
 
-// Create membuat company baru dan melakukan provisioning tenant database.
+// Create membuat company baru, melakukan provisioning tenant database,
+// dan membuat admin user dengan role company_admin.
 func (s *Service) Create(req CreateCompanyRequest) (*CompanyResponse, error) {
 	// Generate slug dari name
 	companySlug := slug.Make(req.Name)
@@ -87,6 +97,33 @@ func (s *Service) Create(req CreateCompanyRequest) (*CompanyResponse, error) {
 		s.logger.Info("Tenant provisioning completed",
 			zap.String("company_id", company.ID.String()),
 		)
+	}
+
+	// Create admin user dengan role company_admin
+	if s.userCreator != nil {
+		userID, err := s.userCreator.CreateCompanyUser(
+			company.ID.String(),
+			req.AdminName,
+			req.AdminEmail,
+			req.AdminPassword,
+		)
+		if err != nil {
+			// Admin user gagal dibuat — log warning, company tetap sukses
+			s.logger.Warn("Failed to create company admin user",
+				zap.String("company_id", company.ID.String()),
+				zap.String("admin_email", req.AdminEmail),
+				zap.Error(err),
+			)
+		} else {
+			response := company.ToResponse()
+			response.AdminUser = &AdminUserInfo{
+				ID:    userID,
+				Name:  req.AdminName,
+				Email: req.AdminEmail,
+				Role:  "company_admin",
+			}
+			return &response, nil
+		}
 	}
 
 	response := company.ToResponse()

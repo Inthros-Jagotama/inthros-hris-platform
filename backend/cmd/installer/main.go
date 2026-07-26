@@ -14,6 +14,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/google/uuid"
+
 	"github.com/inthros/hris-platform/internal/pkg/config"
 	"github.com/inthros/hris-platform/internal/pkg/database"
 	"github.com/inthros/hris-platform/internal/pkg/logger"
@@ -89,6 +91,9 @@ func main() {
 	case "encrypt-passwords":
 		handleEncryptPasswords(l, dbManager)
 
+	case "seed-modules":
+		handleSeedModules(l, dbManager)
+
 	default:
 		printUsage()
 		os.Exit(1)
@@ -107,6 +112,7 @@ func printUsage() {
 	fmt.Println("  provision          Provision a new tenant (create database + run migrations)")
 	fmt.Println("  migrate            Run pending tenant migrations for an existing company")
 	fmt.Println("  encrypt-passwords  Encrypt legacy plaintext passwords in tenant_connections")
+	fmt.Println("  seed-modules       Register all platform & tenant modules into database")
 	fmt.Println("")
 	fmt.Println("Environment:")
 	fmt.Println("  HRIS_ENCRYPTION_KEY    Required for encrypt-passwords (32-byte hex, 64 chars)")
@@ -198,4 +204,89 @@ func handleTenantMigrate(l *zap.Logger, dbManager *database.Manager, companyID s
 	}
 
 	l.Info("Tenant migration completed successfully")
+}
+
+// moduleDef untuk data modul yang akan di-seed.
+type moduleDef struct {
+	Name        string
+	Slug        string
+	Version     string
+	Description string
+	IsCore      bool
+}
+
+// handleSeedModules mendaftarkan semua modul platform & tenant ke database.
+// Me-skip modul yang sudah terdaftar (berdasarkan slug).
+func handleSeedModules(l *zap.Logger, dbManager *database.Manager) {
+	l.Info("Seeding modules into platform database...")
+
+	modules := []moduleDef{
+		// Platform modules (core)
+		{Name: "Company Management", Slug: "company", Version: "1.0.0", Description: "Manage companies/tenants and their lifecycle", IsCore: true},
+		{Name: "Platform Users & Auth", Slug: "platform-users", Version: "1.0.0", Description: "Platform user authentication, authorization, and user management", IsCore: true},
+		{Name: "Module Management", Slug: "module-management", Version: "1.0.0", Description: "Manage platform modules and their activation for companies", IsCore: true},
+		{Name: "License Management", Slug: "license-management", Version: "1.0.0", Description: "Manage company licenses, plans, and subscription billing", IsCore: true},
+
+		// Tenant modules
+		{Name: "Organization Management", Slug: "organization", Version: "1.0.0", Description: "Manage organizational structure, departments, and positions"},
+		{Name: "Employee Management", Slug: "employee", Version: "1.0.0", Description: "Employee master data, documents, and lifecycle"},
+		{Name: "Job Management", Slug: "job-management", Version: "1.0.0", Description: "Job titles, job grades, and position management"},
+		{Name: "Competency Management", Slug: "competency", Version: "1.0.0", Description: "Skills, competency dictionaries, and assessments"},
+		{Name: "Employee Movement", Slug: "employee-movement", Version: "1.0.0", Description: "Promotions, transfers, resignations, and mutations"},
+		{Name: "Attendance Management", Slug: "attendance", Version: "1.0.0", Description: "Time tracking, attendance logs, and overtime"},
+		{Name: "Approval Engine", Slug: "approval", Version: "1.0.0", Description: "Approval workflows, multi-level approvals, and delegation"},
+		{Name: "Payroll Management", Slug: "payroll", Version: "1.0.0", Description: "Payroll processing, tax calculations, and salary components"},
+		{Name: "Leave Management", Slug: "leave", Version: "1.0.0", Description: "Leave requests, balances, and calendars"},
+		{Name: "Performance Management", Slug: "performance", Version: "1.0.0", Description: "Performance reviews, KPI tracking, and feedback"},
+		{Name: "Recruitment & Onboarding", Slug: "recruitment", Version: "1.0.0", Description: "Job postings, candidate management, and onboarding"},
+		{Name: "Reimbursement", Slug: "reimbursement", Version: "1.0.0", Description: "Expense reimbursement requests and approvals"},
+		{Name: "Training Management", Slug: "training", Version: "1.0.0", Description: "Training programs, enrollments, and certifications"},
+		{Name: "Workforce Intelligence", Slug: "workforce-intelligence", Version: "1.0.0", Description: "Workforce analytics, planning, and strategic dashboards", IsCore: false},
+		{Name: "Career Intelligence", Slug: "career-intelligence", Version: "1.0.0", Description: "Career development, succession planning, and talent management"},
+	}
+
+	db := dbManager.PlatformDB()
+	registered := 0
+	skipped := 0
+	errors := 0
+
+	for _, m := range modules {
+		// Cek apakah slug sudah ada
+		var count int64
+		db.Table("modules").Where("slug = ?", m.Slug).Count(&count)
+		if count > 0 {
+			l.Debug("Module already registered, skipping", zap.String("slug", m.Slug))
+			skipped++
+			continue
+		}
+
+		// Insert module
+		result := db.Table("modules").Create(map[string]interface{}{
+			"id":          uuid.New().String(),
+			"name":        m.Name,
+			"slug":        m.Slug,
+			"version":     m.Version,
+			"description": m.Description,
+			"is_core":      0, // All tenant modules default to non-core
+		})
+
+		if m.IsCore {
+			db.Table("modules").Where("slug = ?", m.Slug).Update("is_core", 1)
+		}
+
+		if result.Error != nil {
+			l.Error("Failed to register module", zap.String("slug", m.Slug), zap.Error(result.Error))
+			errors++
+			continue
+		}
+
+		l.Info("Module registered", zap.String("slug", m.Slug), zap.String("name", m.Name))
+		registered++
+	}
+
+	l.Info("Module seeding completed",
+		zap.Int("registered", registered),
+		zap.Int("skipped", skipped),
+		zap.Int("errors", errors),
+	)
 }

@@ -28,7 +28,7 @@ func setupTestEnv() *testEnv {
 	repo := NewRepository(db)
 	logger, _ := zap.NewDevelopment()
 	fakeTM := &FakeTenantManager{}
-	svc := NewService(repo, fakeTM, logger)
+	svc := NewService(repo, fakeTM, nil, logger)
 	handler := NewHandler(svc)
 
 	r := gin.New()

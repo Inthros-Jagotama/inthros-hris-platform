@@ -130,7 +130,7 @@ func newTestService() (*Service, *FakeTenantManager, func()) {
 	repo := NewRepository(db)
 	logger, _ := zap.NewDevelopment()
 	fakeTM := &FakeTenantManager{}
-	svc := NewService(repo, fakeTM, logger)
+	svc := NewService(repo, fakeTM, nil, logger)
 	return svc, fakeTM, func() {
 		cleanup()
 		_ = logger.Sync()

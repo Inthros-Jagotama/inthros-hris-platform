@@ -17,6 +17,11 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
+// DB mengembalikan koneksi GORM untuk query manual.
+func (r *Repository) DB() *gorm.DB {
+	return r.db
+}
+
 // FindByEmail mencari user berdasarkan email.
 func (r *Repository) FindByEmail(email string) (*PlatformUser, error) {
 	var u PlatformUser
@@ -36,17 +41,23 @@ func (r *Repository) FindByID(id uuid.UUID) (*PlatformUser, error) {
 }
 
 // FindAll mengembalikan semua platform user dengan pagination.
+// Gunakan query chain terpisah untuk Count dan Find.
 func (r *Repository) FindAll(page, perPage int) ([]PlatformUser, int64, error) {
 	var users []PlatformUser
 	var total int64
 
-	query := r.db.Model(&PlatformUser{})
-	if err := query.Count(&total).Error; err != nil {
+	// Count total — chain terpisah
+	if err := r.db.Model(&PlatformUser{}).Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to count users: %w", err)
 	}
 
+	// Get paginated data — chain terpisah
 	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&users).Error; err != nil {
+	if err := r.db.Model(&PlatformUser{}).
+		Offset(offset).
+		Limit(perPage).
+		Order("created_at DESC").
+		Find(&users).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to list users: %w", err)
 	}
 

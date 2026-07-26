@@ -45,17 +45,23 @@ func (r *Repository) FindByLicenseKey(key string) (*License, error) {
 }
 
 // FindAll mengembalikan semua lisensi dengan pagination.
+// Gunakan query chain terpisah untuk Count dan Find.
 func (r *Repository) FindAll(page, perPage int) ([]License, int64, error) {
 	var licenses []License
 	var total int64
 
-	query := r.db.Model(&License{})
-	if err := query.Count(&total).Error; err != nil {
+	// Count total — chain terpisah
+	if err := r.db.Model(&License{}).Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to count licenses: %w", err)
 	}
 
+	// Get paginated data — chain terpisah
 	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&licenses).Error; err != nil {
+	if err := r.db.Model(&License{}).
+		Offset(offset).
+		Limit(perPage).
+		Order("created_at DESC").
+		Find(&licenses).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to list licenses: %w", err)
 	}
 

@@ -15,9 +15,11 @@ const ModuleSlug = "company"
 const ModuleVersion = "1.0.0"
 
 // NewModule membuat instance baru Company Module untuk registrasi.
-func NewModule(dbManager *database.Manager, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
+// userCreator adalah implementasi dari interface UserCreator (user.Service),
+// digunakan untuk membuat company_admin user saat create company.
+func NewModule(dbManager *database.Manager, userCreator UserCreator, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
 	repo := NewRepository(dbManager.PlatformDB())
-	svc := NewService(repo, dbManager, logger)
+	svc := NewService(repo, dbManager, userCreator, logger)
 	handler := NewHandler(svc)
 
 	return &companyModule{
@@ -33,6 +35,12 @@ type companyModule struct {
 	logger  *zap.Logger
 	authMW  gin.HandlerFunc
 	rbacMW  gin.HandlerFunc
+}
+
+// SetRBACMiddleware memperbarui RBAC middleware setelah inisialisasi.
+// Dipanggil dari main.go setelah RBAC enforcer siap.
+func (m *companyModule) SetRBACMiddleware(mw gin.HandlerFunc) {
+	m.rbacMW = mw
 }
 
 func (m *companyModule) Info() module.ModuleInfo {

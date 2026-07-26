@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 0px;
+  --header-height: 48px;
+}
+
+/* PrimeVue overrides for high-density layout */
+.p-datatable-table-container {
+  scrollbar-width: thin;
+}
+
+.p-datatable.p-datatable-sm .p-datatable-thead > tr > th {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.p-datatable.p-datatable-sm .p-datatable-tbody > tr > td {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.p-dialog .p-dialog-header {
+  padding: 0.75rem 1rem;
+}
+
+.p-dialog .p-dialog-content {
+  padding: 1rem;
+}
+
+.p-drawer .p-drawer-header {
+  padding: 0.75rem 1rem;
+}
+
+.p-drawer .p-drawer-content {
+  padding: 1rem;
+}
+
+.p-toolbar {
+  padding: 0.5rem 0.75rem;
+}
+
+.p-inputtext,
+.p-password input {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+.p-button.p-button-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* Status badges */
+.badge-active {
+  @apply bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md px-2 py-0.5 text-xs font-medium;
+}
+
+.badge-pending {
+  @apply bg-amber-50 text-amber-700 border border-amber-200 rounded-md px-2 py-0.5 text-xs font-medium;
+}
+
+.badge-draft {
+  @apply bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md px-2 py-0.5 text-xs font-medium;
+}
+
+.badge-inactive {
+  @apply bg-rose-50 text-rose-700 border border-rose-200 rounded-md px-2 py-0.5 text-xs font-medium;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

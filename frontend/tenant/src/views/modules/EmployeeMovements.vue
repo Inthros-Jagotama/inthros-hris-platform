@@ -1,0 +1,1 @@
+<template><div class="flex items-center justify-center h-full"><div class="text-center"><i class="pi pi-spinner text-3xl text-emerald-500 mb-3"></i><h2 class="text-lg font-semibold text-gray-700">EmployeeMovements Module</h2><p class="text-sm text-gray-400 mt-1">Coming soon</p></div></div></template>

@@ -270,7 +270,7 @@
             "description": "Forbidden: role tidak memiliki permission user.view"
           }
         },
-        "description": "Retrieve a paginated list of platform user accounts. Supports filtering by company, role, and search term."
+        "description": "Retrieve a paginated list of platform user accounts. Now includes company_name field. Supports filtering by company, role, and search term."
       },
       "post": {
         "tags": [
@@ -347,7 +347,7 @@
             "description": "User not found"
           }
         },
-        "description": "Get detailed information about a specific platform user including their assigned company, role, and account status."
+        "description": "Get detailed information about a specific platform user including company_name, assigned company, role, and account status."
       },
       "put": {
         "tags": [
@@ -429,7 +429,7 @@
             "description": "Forbidden: hanya super_admin"
           }
         },
-        "description": "Register a new company tenant. This triggers the full tenant provisioning flow: creates the company record, provisions a new database, runs all migrations (13 files, ~111 tables), and activates the tenant. The process is atomic — if provisioning fails, the company is marked as suspended."
+        "description": "Register a new company tenant. Also creates a company_admin user automatically. Request now includes admin_name, admin_email, admin_password fields. Response includes admin_user with id, name, email, role. This triggers the full tenant provisioning flow: creates the company record, provisions a new database, runs all migrations (13 files, ~111 tables), activates the tenant, and creates the admin user. The process is atomic — if provisioning fails, the company is marked as suspended."
       },
       "get": {
         "tags": [
@@ -21795,7 +21795,10 @@
       "CreateCompanyRequest": {
         "type": "object",
         "required": [
-          "name"
+          "name",
+          "admin_name",
+          "admin_email",
+          "admin_password"
         ],
         "properties": {
           "name": {
@@ -21826,6 +21829,22 @@
             "type": "string",
             "example": "021-12345678",
             "maxLength": 20
+          },
+          "admin_name": {
+            "type": "string",
+            "example": "John Doe",
+            "minLength": 1
+          },
+          "admin_email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@company.com"
+          },
+          "admin_password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 6,
+            "example": "securePass123"
           }
         }
       },

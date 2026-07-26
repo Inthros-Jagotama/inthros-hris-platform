@@ -36,6 +36,11 @@ type modulemgmtModule struct {
 	rbacMW  gin.HandlerFunc
 }
 
+// SetRBACMiddleware memperbarui RBAC middleware setelah inisialisasi.
+func (m *modulemgmtModule) SetRBACMiddleware(mw gin.HandlerFunc) {
+	m.rbacMW = mw
+}
+
 func (m *modulemgmtModule) Info() module.ModuleInfo {
 	return module.ModuleInfo{
 		Name:        ModuleName,

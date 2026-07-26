@@ -49,18 +49,21 @@ type UpdateUserRequest struct {
 
 // UserResponse untuk response data user.
 type UserResponse struct {
-	ID        string     `json:"id"`
-	Email     string     `json:"email"`
-	Name      string     `json:"name"`
-	Role      string     `json:"role"`
-	IsActive  bool       `json:"is_active"`
-	CompanyID *string    `json:"company_id,omitempty"`
-	LastLogin *time.Time `json:"last_login,omitempty"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID          string     `json:"id"`
+	Email       string     `json:"email"`
+	Name        string     `json:"name"`
+	Role        string     `json:"role"`
+	IsActive    bool       `json:"is_active"`
+	CompanyID   *string    `json:"company_id,omitempty"`
+	CompanyName *string    `json:"company_name,omitempty"`
+	LastLogin   *time.Time `json:"last_login,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 // ToResponse mengonversi PlatformUser ke UserResponse.
+// Catatan: CompanyName tidak diisi di sini karena membutuhkan
+// lookup ke tabel companies. Diisi oleh service layer.
 func (u *PlatformUser) ToResponse() UserResponse {
 	resp := UserResponse{
 		ID:        u.ID.String(),

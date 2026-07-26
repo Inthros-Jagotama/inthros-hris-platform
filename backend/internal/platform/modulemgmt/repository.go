@@ -37,17 +37,23 @@ func (r *Repository) FindByID(id uuid.UUID) (*PlatformModule, error) {
 }
 
 // FindAll mengembalikan semua modul dengan pagination.
+// Gunakan query chain terpisah untuk Count dan Find.
 func (r *Repository) FindAll(page, perPage int) ([]PlatformModule, int64, error) {
 	var modules []PlatformModule
 	var total int64
 
-	query := r.db.Model(&PlatformModule{})
-	if err := query.Count(&total).Error; err != nil {
+	// Count total — chain terpisah
+	if err := r.db.Model(&PlatformModule{}).Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to count modules: %w", err)
 	}
 
+	// Get paginated data — chain terpisah
 	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&modules).Error; err != nil {
+	if err := r.db.Model(&PlatformModule{}).
+		Offset(offset).
+		Limit(perPage).
+		Order("created_at DESC").
+		Find(&modules).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to list modules: %w", err)
 	}
 

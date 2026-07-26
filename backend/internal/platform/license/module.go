@@ -36,6 +36,11 @@ type licenseModule struct {
 	rbacMW  gin.HandlerFunc
 }
 
+// SetRBACMiddleware memperbarui RBAC middleware setelah inisialisasi.
+func (m *licenseModule) SetRBACMiddleware(mw gin.HandlerFunc) {
+	m.rbacMW = mw
+}
+
 func (m *licenseModule) Info() module.ModuleInfo {
 	return module.ModuleInfo{
 		Name:        ModuleName,

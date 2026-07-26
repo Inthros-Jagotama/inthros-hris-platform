@@ -27,6 +27,7 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/router"
 	"github.com/inthros/hris-platform/internal/pkg/docs"
 	"github.com/inthros/hris-platform/internal/pkg/migrator"
+	"github.com/gin-gonic/gin"
 
 	// Platform modules
 	"github.com/inthros/hris-platform/internal/platform/company"
@@ -169,14 +170,22 @@ func main() {
 	// 6a. Register platform modules (ordered by priority)
 	// Note: rbacMW diinisialisasi setelah SQL migrations karena membutuhkan
 	// tabel RBAC di database. Tapi kita pass nil dulu dan update setelah init.
+	//
+	// User service dibuat terlebih dahulu karena dibutuhkan oleh
+	// Company module untuk membuat company_admin user saat create company.
+	userRepo := user.NewRepository(dbManager.PlatformDB())
+	userSvc := user.NewService(userRepo, authManager, l)
+
+	// Company module menerima UserCreator (user service) untuk
+	// auto-create admin user saat create company.
 	platformModules = append(platformModules,
 		module.ModuleRegistration{
-			Module:   company.NewModule(dbManager, l, authMW, nil),
+			Module:   company.NewModule(dbManager, userSvc, l, authMW, nil),
 			TargetDB: module.TargetPlatform,
 			Priority: 1,
 		},
 		module.ModuleRegistration{
-			Module:   user.NewModule(dbManager, authManager, l, authMW, nil),
+			Module:   user.NewModuleWithService(userSvc, l, authMW, nil),
 			TargetDB: module.TargetPlatform,
 			Priority: 2,
 		},
@@ -325,6 +334,18 @@ func main() {
 		l.Fatal("Failed to initialize RBAC enforcer", zap.Error(err))
 	}
 	rbacMW := authz.NewMiddleware(authz.MiddlewareConfig{Enforcer: rbacEnforcer})
+
+	// Update platform modules dengan RBAC middleware yang sebenarnya
+	// (sebelumnya modules dibuat dengan nil karena RBAC butuh DB siap)
+	l.Info("Wiring RBAC middleware to platform modules...")
+	for _, reg := range platformModules {
+		if setter, ok := reg.Module.(interface{ SetRBACMiddleware(gin.HandlerFunc) }); ok {
+			setter.SetRBACMiddleware(rbacMW)
+			l.Debug("RBAC middleware wired",
+				zap.String("module", reg.Module.Info().Name),
+			)
+		}
+	}
 
 	// 10a. Create RBAC service & handler for management API
 	rbacLogger := l.Named("rbac")

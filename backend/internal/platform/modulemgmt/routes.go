@@ -9,7 +9,9 @@ import (
 func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW, rbacMW gin.HandlerFunc) {
 	protected := rg.Group("")
 	protected.Use(authMW)
-	protected.Use(rbacMW)
+	if rbacMW != nil {
+		protected.Use(rbacMW)
+	}
 	{
 		modules := protected.Group("/modules")
 		{
