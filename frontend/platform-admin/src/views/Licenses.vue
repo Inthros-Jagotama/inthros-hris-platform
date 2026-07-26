@@ -124,12 +124,12 @@
           </div>
           <div>
             <FormRow :label="t('licenses.start_date')" :errors="errors?.start_date">
-              <DatePicker v-model="form.start_date" showClear :class="{ 'p-invalid': errors?.start_date }" />
+              <DateInput v-model="form.start_date" showClear :class="{ 'p-invalid': errors?.start_date }" />
             </FormRow>
           </div>
           <div>
             <FormRow :label="t('licenses.end_date')" :errors="errors?.end_date">
-              <DatePicker v-model="form.end_date" showClear :class="{ 'p-invalid': errors?.end_date }" />
+              <DateInput v-model="form.end_date" showClear :class="{ 'p-invalid': errors?.end_date }" />
             </FormRow>
           </div>
           <div>
@@ -166,7 +166,8 @@ import IconField from 'primevue/iconfield'
 import FormRow from '@/components/FormRow.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
 import TextInput from '@/components/TextInput.vue'
-import DatePicker from '@/components/DatePicker.vue'
+import DateInput from '@/components/DateInput.vue'
+import InputText from 'primevue/inputtext'
 
 const toast = useToast()
 const { t } = useI18n()
