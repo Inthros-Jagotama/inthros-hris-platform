@@ -103,7 +103,7 @@
   "auth": {
     "login": {
       "title": "Masuk",
-      "subtitle": "Sign in to manage your platform",
+      "subtitle": "Masuk untuk mengelola platform",
       "subtitle_id": "Masuk untuk mengelola platform",
       "email": "Email",
       "password": "Kata Sandi",
