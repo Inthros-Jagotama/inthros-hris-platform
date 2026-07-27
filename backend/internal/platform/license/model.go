@@ -11,7 +11,7 @@ import (
 type LicensePlanType string
 
 const (
-	PlanFree       LicensePlanType = "free"
+	PlanTrial      LicensePlanType = "trial"
 	PlanBasic      LicensePlanType = "basic"
 	PlanPro        LicensePlanType = "pro"
 	PlanEnterprise LicensePlanType = "enterprise"

@@ -155,7 +155,9 @@
     "pool_wait_count": "Antrean Koneksi Pool",
     "pool_wait_desc": "Total antrean koneksi menunggu",
     "live_indicator": "Langsung",
-    "auto_refresh": "Muat ulang otomatis tiap 30d"
+    "auto_refresh": "Muat ulang otomatis tiap 30d",
+    "light_mode": "Mode Terang",
+    "dark_mode": "Mode Gelap"
   },
 
   "companies": {
@@ -274,7 +276,7 @@
     "company": "Perusahaan",
     "plan": "Paket",
     "plan_type": "Tipe Paket",
-    "seats": "Kursi",
+    "max_employees": "Maks. Karyawan",
     "valid_from": "Berlaku Dari",
     "valid_until": "Berlaku Sampai",
     "start_date": "Tanggal Mulai",

@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS licenses (
     id             CHAR(36) PRIMARY KEY,
     company_id     CHAR(36) NOT NULL,
     license_key    VARCHAR(100) NOT NULL UNIQUE,
-    plan_type      VARCHAR(50) NOT NULL COMMENT 'free | basic | pro | enterprise',
+    plan_type      VARCHAR(50) NOT NULL COMMENT 'trial | basic | pro | enterprise',
     max_employees  INT NOT NULL DEFAULT 0 COMMENT '0 = unlimited',
     max_modules    INT NOT NULL DEFAULT 0 COMMENT '0 = unlimited',
     start_date     DATE NOT NULL,

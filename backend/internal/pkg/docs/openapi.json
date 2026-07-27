@@ -22521,7 +22521,7 @@
           "plan_type": {
             "type": "string",
             "enum": [
-              "free",
+              "trial",
               "basic",
               "pro",
               "enterprise"
@@ -22558,7 +22558,7 @@
           "plan_type": {
             "type": "string",
             "enum": [
-              "free",
+              "trial",
               "basic",
               "pro",
               "enterprise"

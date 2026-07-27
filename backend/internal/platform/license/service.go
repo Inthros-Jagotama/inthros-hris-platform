@@ -50,7 +50,7 @@ func (s *Service) CreateLicense(req CreateLicenseRequest) (*LicenseResponse, err
 	maxEmployees := req.MaxEmployees
 	if maxEmployees <= 0 {
 		switch req.PlanType {
-		case "free":
+		case "trial":
 			maxEmployees = 10
 		case "basic":
 			maxEmployees = 50
@@ -64,7 +64,7 @@ func (s *Service) CreateLicense(req CreateLicenseRequest) (*LicenseResponse, err
 	maxModules := req.MaxModules
 	if maxModules <= 0 {
 		switch req.PlanType {
-		case "free":
+		case "trial":
 			maxModules = 3
 		case "basic":
 			maxModules = 8
@@ -151,9 +151,20 @@ func (s *Service) ListLicenses(page, perPage int) (*PaginatedResponse, error) {
 		return nil, err
 	}
 
+	// Collect company IDs untuk batch lookup
+	companyIDs := make([]uuid.UUID, len(licenses))
+	for i, l := range licenses {
+		companyIDs[i] = l.CompanyID
+	}
+	companyNames := s.repo.FindCompanyNames(companyIDs)
+
 	var responses []LicenseResponse
 	for _, l := range licenses {
-		responses = append(responses, l.ToResponse())
+		resp := l.ToResponse()
+		if name, ok := companyNames[l.CompanyID.String()]; ok {
+			resp.CompanyName = name
+		}
+		responses = append(responses, resp)
 	}
 
 	totalPages := int(total) / perPage

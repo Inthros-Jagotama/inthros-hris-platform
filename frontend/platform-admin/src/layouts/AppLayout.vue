@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen overflow-hidden bg-gray-50">
+  <div class="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
     <Sidebar
       :collapsed="sidebarCollapsed"
       @toggle="sidebarCollapsed = !sidebarCollapsed"
@@ -9,11 +9,11 @@
         @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
         @logout="handleLogout"
       />
-      <main class="flex-1 overflow-auto bg-white">
+      <main class="flex-1 overflow-auto bg-white dark:bg-gray-900">
         <!-- Main Header — Bilingual dari route name -->
-        <div v-if="pageTitle" class="border-b border-gray-200 gap-1 flex-row px-4 py-1">
-          <h1 class="text-lg font-semibold text-gray-800">{{ pageTitle }}</h1>
-          <p v-if="pageDescription" class="text-xs text-gray-500">{{ pageDescription }}</p>
+        <div v-if="pageTitle" class="border-b border-gray-200 dark:border-gray-700 gap-1 flex-row px-4 py-1">
+          <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ pageTitle }}</h1>
+          <p v-if="pageDescription" class="text-xs text-gray-500 dark:text-gray-400">{{ pageDescription }}</p>
         </div>
         <div class="p-4">
           <router-view />

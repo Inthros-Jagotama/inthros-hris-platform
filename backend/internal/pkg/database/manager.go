@@ -54,18 +54,18 @@ type TenantConnection struct {
 
 // Config adalah konfigurasi untuk database manager.
 type Config struct {
-	Driver            string
-	PlatformDSN       string
-	PlatformHost      string
-	PlatformPort      int
-	PlatformUser      string
-	PlatformPassword  string
-	PlatformSSLMode   string
-	TenantHost        string
-	TenantPort        int
-	TenantSuperUser   string
-	TenantSuperPass   string
-	TenantSSLMode     string
+	Driver           string
+	PlatformDSN      string
+	PlatformHost     string
+	PlatformPort     int
+	PlatformUser     string
+	PlatformPassword string
+	PlatformSSLMode  string
+	TenantHost       string
+	TenantPort       int
+	TenantSuperUser  string
+	TenantSuperPass  string
+	TenantSSLMode    string
 
 	// Platform connection pool settings (single DB)
 	MaxOpenConns      int
@@ -498,11 +498,11 @@ func (m *Manager) DropTenantDB(companyID string) error {
 // yang masih dalam bentuk plaintext (legacy data sebelum enkripsi diaktifkan).
 //
 // Metode deteksi:
-//   1. Cek apakah password LooksEncrypted (valid hex + panjang >= 12 bytes)
-//      a. Jika YA → coba decrypt
-//         - Berhasil → sudah terenkripsi dengan kunci saat ini, skip
-//         - Gagal → terenkripsi dengan kunci berbeda! Log warning, skip untuk hindari data loss
-//      b. Jika TIDAK → plaintext, encrypt & update
+//  1. Cek apakah password LooksEncrypted (valid hex + panjang >= 12 bytes)
+//     a. Jika YA → coba decrypt
+//     - Berhasil → sudah terenkripsi dengan kunci saat ini, skip
+//     - Gagal → terenkripsi dengan kunci berbeda! Log warning, skip untuk hindari data loss
+//     b. Jika TIDAK → plaintext, encrypt & update
 //
 // Design ini mencegah data loss jika HRIS_ENCRYPTION_KEY dirotasi.
 //

@@ -26,17 +26,19 @@
       </div>
     </div>
     <!-- DataTable -->
+    <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="6" />
+
     <DataTable 
+    v-else
     :value="filteredCompanies" 
     paginator 
     :rows="15" 
     sortField="createdAt" 
     :sortOrder="-1" 
     size="small" 
-    :loading="loading"
-    class="!text-sm p-datatable-sm border border-gray-200 rounded-lg overflow-hidden">
+    class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       <template #empty>
-        <div class="flex flex-col items-center justify-center py-10 text-gray-400">
+        <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
           <i class="pi pi-building text-3xl mb-2 opacity-50"></i>
           <p class="text-sm font-medium">{{ t('companies.empty_title') }}</p>
           <p class="text-sm mt-1">{{ t('companies.empty_hint') }}</p>
@@ -45,8 +47,8 @@
       <Column field="name" :header="t('companies.company_name')" sortable>
         <template #body="{ data }">
           <div class="flex-row gap-2">
-            <div class="uppercase font-semibold text-gray-600">{{ data.name }}</div>
-            <div class="text-sm text-gray-500">{{ data.address }}</div>
+            <div class="uppercase font-semibold text-gray-600 dark:text-gray-300">{{ data.name }}</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">{{ data.address }}</div>
           </div>
         </template>
       </Column>
@@ -58,7 +60,7 @@
           <template v-if="data.license_info">
             <Tag :value="data.license_info.plan_type" :severity="planSeverity(data.license_info.plan_type)" class="!text-xs !px-1.5 !py-0.5" />
           </template>
-          <span v-else class="text-gray-300 italic text-xs">—</span>
+          <span v-else class="text-gray-300 dark:text-gray-600 italic text-xs">—</span>
         </template>
       </Column>
       <!-- Provisioning Status Column -->
@@ -86,7 +88,7 @@
               class="!text-[10px] !px-1.5 !py-0"
             />
           </template>
-          <span v-else class="text-gray-300 italic text-xs">—</span>
+          <span v-else class="text-gray-300 dark:text-gray-600 italic text-xs">—</span>
         </template>
       </Column>
 
@@ -97,7 +99,7 @@
       </Column>
       <Column field="createdAt" :header="t('companies.created')" sortable>
         <template #body="{ data }">
-          <span class="text-gray-500">{{ data.createdAt || '-' }}</span>
+          <span class="text-gray-500 dark:text-gray-400">{{ data.createdAt || '-' }}</span>
         </template>
       </Column>
       <Column :header="t('common.actions')" :style="{ width: '160px' }">
@@ -117,7 +119,7 @@
       <div class="space-y-4">
         <!-- Company Info -->
         <div>
-          <h3 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-1.5">
             <i class="pi pi-building text-indigo-400 text-sm"></i>
             {{ t('companies.new_company') }}
           </h3>
@@ -149,25 +151,25 @@
 
         <!-- Current License Info (edit only) -->
         <div v-if="isEditing && editingLicense">
-          <div class="border-t border-gray-200 my-3"></div>
-          <h3 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+          <div class="border-t border-gray-200 dark:border-gray-700 my-3"></div>
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-1.5">
             <i class="pi pi-id-card text-indigo-400 text-sm"></i>
             {{ t('companies.license_section') }}
           </h3>
           <div class="flex items-center gap-3 text-sm">
             <Tag :value="editingLicense.plan_type" :severity="planSeverity(editingLicense.plan_type)" class="!text-xs" />
-            <span class="text-gray-500">{{ t('companies.license_key_label') }}: {{ editingLicense.license_key?.substring(0, 12) }}...</span>
+            <span class="text-gray-500 dark:text-gray-400">{{ t('companies.license_key_label') }}: {{ editingLicense.license_key?.substring(0, 12) }}...</span>
           </div>
         </div>
 
         <!-- Admin User (only for create) -->
         <div v-if="!isEditing">
-          <div class="border-t border-gray-200 my-3"></div>
-          <h3 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+          <div class="border-t border-gray-200 dark:border-gray-700 my-3"></div>
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-1.5">
             <i class="pi pi-user text-indigo-400 text-sm"></i>
             {{ t('companies.admin_section_title') }}
           </h3>
-          <p class="text-sm text-gray-500 mb-3">{{ t('companies.admin_section_hint') }}</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ t('companies.admin_section_hint') }}</p>
           <div>
             <FormRow label="Admin Name" :errors="errors?.admin_name" :required="true">
                 <TextInput v-model="form.admin_name" autofocus :class="{ 'p-invalid': errors?.admin_name }" />
@@ -199,7 +201,7 @@
 
     <!-- Confirm Dialog (suspend/activate/terminate) -->
     <Dialog v-model:visible="confirmVisible" :header="confirmTitle" modal :style="{ width: '400px' }">
-      <p class="text-xs text-gray-600">{{ confirmMessage }}</p>
+      <p class="text-xs text-gray-600 dark:text-gray-300">{{ confirmMessage }}</p>
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" text size="small" @click="confirmVisible = false" />
         <Button :label="confirmActionLabel" :severity="confirmSeverity" size="small" :loading="confirming" :disabled="confirming" @click="executeConfirm" />
@@ -226,6 +228,7 @@ import Dialog from 'primevue/dialog'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
+import SkeletonTable from '@/components/SkeletonTable.vue'
 
 const toast = useToast()
 const { t } = useI18n()
@@ -271,6 +274,17 @@ const filterChips = computed(() => [
   { label: t('common_status.suspended'), value: 'suspended', severity: 'warn' },
   { label: t('common_status.terminated'), value: 'terminated', severity: 'danger' }
 ])
+
+const skeletonColumns = [
+  { type: 'compound', widths: ['w-28', 'w-36'], headerWidth: 'w-20' },
+  { type: 'text', width: 'w-32', headerWidth: 'w-16' },
+  { type: 'text', width: 'w-20', headerWidth: 'w-16' },
+  { type: 'tag', width: 'w-16', headerWidth: 'w-16' },
+  { type: 'tag', width: 'w-14', headerWidth: 'w-20' },
+  { type: 'tag', width: 'w-14', headerWidth: 'w-14' },
+  { type: 'text', width: 'w-16', headerWidth: 'w-16' },
+  { type: 'icons', count: 3, headerWidth: 'w-16' }
+]
 
 const filteredCompanies = computed(() => {
   let result = companies.value

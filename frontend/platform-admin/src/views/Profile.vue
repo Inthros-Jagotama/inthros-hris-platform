@@ -4,22 +4,22 @@
     <Card>
       <template #title>
         <div class="flex items-center gap-3">
-          <Avatar icon="pi pi-user" size="xlarge" class="!w-14 !h-14 !bg-indigo-100 !text-indigo-700 !text-2xl" />
+          <Avatar icon="pi pi-user" size="xlarge" class="!w-14 !h-14 !bg-indigo-100 dark:!bg-indigo-900/50 !text-indigo-700 dark:!text-indigo-300 !text-2xl" />
           <div>
-            <h2 class="text-xl font-semibold text-gray-800">{{ user?.name || '—' }}</h2>
-            <p class="text-sm text-gray-500">{{ user?.email || '—' }}</p>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{{ user?.name || '—' }}</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ user?.email || '—' }}</p>
           </div>
         </div>
       </template>
       <template #content>
         <div class="grid grid-cols-2 gap-4 mt-2">
           <div>
-            <label class="block text-xs text-gray-400 uppercase tracking-wide mb-1">{{ t('profile.role') }}</label>
+            <label class="block text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">{{ t('profile.role') }}</label>
             <Tag :value="t(`users.${user?.role}`)" :severity="user?.role === 'super_admin' ? 'danger' : 'info'" class="!text-xs" />
           </div>
           <div>
             <label class="block text-xs text-gray-400 uppercase tracking-wide mb-1">{{ t('profile.company') }}</label>
-            <span class="text-sm text-gray-700">{{ user?.company_name || '—' }}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{{ user?.company_name || '—' }}</span>
           </div>
           <div>
             <label class="block text-xs text-gray-400 uppercase tracking-wide mb-1">{{ t('profile.status') }}</label>
@@ -28,7 +28,7 @@
           </div>
           <div>
             <label class="block text-xs text-gray-400 uppercase tracking-wide mb-1">{{ t('profile.last_login') }}</label>
-            <span class="text-sm text-gray-700">{{ user?.last_login ? formatDate(user.last_login) : '—' }}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{{ user?.last_login ? formatDate(user.last_login) : '—' }}</span>
           </div>
         </div>
       </template>
@@ -39,7 +39,7 @@
       <template #title>
         <div class="flex items-center gap-2">
           <i class="pi pi-lock text-indigo-500"></i>
-          <span class="text-lg font-semibold text-gray-800">{{ t('profile.change_password') }}</span>
+          <span class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('profile.change_password') }}</span>
         </div>
       </template>
       <template #content>

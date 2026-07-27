@@ -1,24 +1,28 @@
 # ===================================================================
 # Stage 1: Build Go binary
 # ===================================================================
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Install build dependencies
 RUN apk --no-cache add git ca-certificates tzdata
 
 WORKDIR /app
 
-# Cache dependencies
+# Atur GOPROXY dengan fallback 'direct' agar jika proxy golang timeout/terblokir,
+# Go akan langsung mencoba download dari repository sumber (GitHub, dll.)
+ENV GOPROXY=https://proxy.golang.org,direct
+ENV GO111MODULE=on
+
+# Copy dependency files lebih dulu untuk memanfaatkan layer caching Docker
 COPY go.mod go.sum ./
+
+# Download dependencies (ditambahkan -x atau retry jika koneksi lambat)
 RUN go mod download
 
-# Copy source code
+# Copy seluruh source code
 COPY . .
 
 # Build binary
-# - CGO_ENABLED=0: static binary (no C dependencies)
-# - GOOS=linux: target Linux
-# - ldflags: strip debug info untuk binary yang lebih kecil
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags="-s -w" \
     -o /app/bin/server \

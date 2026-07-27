@@ -5,9 +5,11 @@
       <Button :label="t('rbac.new_role')" icon="pi pi-plus" size="small" @click="openCreate" />
     </div>
 
-    <DataTable :value="roles" paginator :rows="15" size="small" :loading="loading" class="!text-sm p-datatable-sm border border-gray-200 rounded-lg overflow-hidden">
+    <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="6" />
+
+    <DataTable v-else :value="roles" paginator :rows="15" size="small" class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       <template #empty>
-        <div class="flex flex-col items-center justify-center py-10 text-gray-400">
+        <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
           <i class="pi pi-shield text-3xl mb-2 opacity-50"></i>
           <p class="text-sm font-medium">{{ t('rbac.empty_title') }}</p>
           <p class="text-sm mt-1">{{ t('rbac.empty_hint') }}</p>
@@ -100,7 +102,7 @@
         {{ t('rbac.no_permissions') }}
       </div>
       <div v-else class="max-h-[520px] overflow-y-auto space-y-3 pr-1">
-        <div v-for="group in groupedPermissions" :key="group.resource" class="rounded-lg border border-gray-200 overflow-hidden">
+        <div v-for="group in groupedPermissions" :key="group.resource" class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
           <!-- Module Header -->
           <div class="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200">
             <div class="flex items-center gap-2.5">
@@ -202,13 +204,15 @@ import Dialog from 'primevue/dialog'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
+import { useSkeletonPage } from '@/composables/useSkeletonPage'
+import SkeletonTable from '@/components/SkeletonTable.vue'
 
 const toast = useToast()
 const { t } = useI18n()
 
 // Data
+const { loading, wrapLoad } = useSkeletonPage()
 const roles = ref([])
-const loading = ref(true)
 const allPermissions = ref([])
 const roleDialogVisible = ref(false)
 const isEditing = ref(false)
@@ -264,6 +268,14 @@ const selectedCountPerGroup = computed(() => {
   return counts
 })
 
+const skeletonColumns = [
+  { type: 'name-tag', width: 'w-20', showTag: true, headerWidth: 'w-24' },
+  { type: 'text', width: 'w-16', headerWidth: 'w-16' },
+  { type: 'text', width: 'w-28', headerWidth: 'w-28' },
+  { type: 'tags', count: 3, showOverflow: true, tagWidth: 'w-12', headerWidth: 'w-32' },
+  { type: 'icons', count: 3, headerWidth: 'w-14' }
+]
+
 // Confirm dialog
 const confirmVisible = ref(false)
 const confirmTarget = ref(null)
@@ -271,20 +283,19 @@ const confirming = ref(false)
 
 // Load data
 async function loadData() {
-  loading.value = true
   try {
-    const [roleRes, permRes] = await Promise.all([
-      api.get('/api/v1/platform/rbac/roles'),
-      api.get('/api/v1/platform/rbac/permissions')
-    ])
-    const rolePayload = roleRes.data
-    roles.value = Array.isArray(rolePayload.data) ? rolePayload.data : (Array.isArray(rolePayload) ? rolePayload : [])
-    const permPayload = permRes.data
-    allPermissions.value = Array.isArray(permPayload.data) ? permPayload.data : (Array.isArray(permPayload) ? permPayload : [])
+    await wrapLoad(async () => {
+      const [roleRes, permRes] = await Promise.all([
+        api.get('/api/v1/platform/rbac/roles'),
+        api.get('/api/v1/platform/rbac/permissions')
+      ])
+      const rolePayload = roleRes.data
+      roles.value = Array.isArray(rolePayload.data) ? rolePayload.data : (Array.isArray(rolePayload) ? rolePayload : [])
+      const permPayload = permRes.data
+      allPermissions.value = Array.isArray(permPayload.data) ? permPayload.data : (Array.isArray(permPayload) ? permPayload : [])
+    })
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: t('message.failed_to_load'), life: 3000 })
-  } finally {
-    loading.value = false
   }
 }
 

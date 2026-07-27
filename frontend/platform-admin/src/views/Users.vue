@@ -26,11 +26,11 @@
     <!-- Bulk Action Toolbar -->
     <div
       v-if="selectedUsers.length > 0"
-      class="flex items-center justify-between px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg text-sm"
+      class="flex items-center justify-between px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-sm"
     >
       <div class="flex items-center gap-2">
         <i class="pi pi-check-circle text-indigo-400 text-sm"></i>
-        <span class="text-indigo-700 font-medium">{{ selectedUsers.length }} {{ t('users.selected') }}</span>
+        <span class="text-indigo-700 dark:text-indigo-300 font-medium">{{ selectedUsers.length }} {{ t('users.selected') }}</span>
         <Button
           icon="pi pi-times"
           size="small"
@@ -61,19 +61,21 @@
       </div>
     </div>
 
+    <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="6" />
+
     <DataTable
+      v-else
       :value="filteredUsers"
       paginator
       :rows="15"
       v-model:selection="selectedUsers"
       dataKey="id"
       size="small"
-      :loading="loading"
-      class="!text-sm p-datatable-sm border border-gray-200 rounded-lg overflow-hidden"
+      class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
     >
       <Column selectionMode="multiple" headerStyle="width: 40px" />
       <template #empty>
-        <div class="flex flex-col items-center justify-center py-10 text-gray-400">
+        <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
           <i class="pi pi-users text-3xl mb-2 opacity-50"></i>
           <p class="text-sm font-medium">{{ t('users.empty_title') }}</p>
           <p class="text-sm mt-1">{{ t('users.empty_hint') }}</p>
@@ -96,9 +98,9 @@
         <template #body="{ data }">
           <div class="flex items-center gap-1.5">
             <template v-if="data.company_name">
-              <span class="text-gray-700">{{ data.company_name }}</span>
+              <span class="text-gray-700 dark:text-gray-200">{{ data.company_name }}</span>
             </template>
-            <span v-else class="text-gray-400 italic text-sm">—</span>
+            <span v-else class="text-gray-400 dark:text-gray-500 italic text-sm">—</span>
           </div>
         </template>
       </Column>
@@ -139,7 +141,7 @@
     <!-- Bulk Change Role Dialog -->
     <Dialog v-model:visible="bulkRoleVisible" :header="t('users.bulk_change_role')" modal :style="{ width: '420px' }">
       <div class="space-y-3">
-        <p class="text-sm text-gray-600">
+        <p class="text-sm text-gray-600 dark:text-gray-300">
           {{ t('users.bulk_change_role_message', { count: selectedUsers.length }) }}
         </p>
         <FormRow :label="t('users.role')" :required="true">
@@ -152,7 +154,7 @@
             class="!w-full"
           />
         </FormRow>
-        <div class="text-xs text-gray-400">
+        <div class="text-xs text-gray-400 dark:text-gray-500">
           <span class="font-medium">{{ t('users.selected') }}:</span>
           <span class="ml-1">{{ selectedUserNames }}</span>
         </div>
@@ -165,7 +167,7 @@
 
     <!-- Confirm Delete Dialog -->
     <Dialog v-model:visible="confirmVisible" :header="confirmDeleteTitle" modal :style="{ width: '400px' }">
-      <p class="text-sm text-gray-600">{{ confirmDeleteMessage }}</p>
+      <p class="text-sm text-gray-600 dark:text-gray-300">{{ confirmDeleteMessage }}</p>
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" text size="small" @click="confirmVisible = false" />
         <Button :label="t('common.delete')" severity="danger" size="small" :loading="confirmDeleting" :disabled="confirmDeleting" @click="executeDelete" />
@@ -192,12 +194,14 @@ import Dialog from 'primevue/dialog'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
+import SkeletonTable from '@/components/SkeletonTable.vue'
+import { useSkeletonPage } from '@/composables/useSkeletonPage'
 
 const toast = useToast()
 const { t } = useI18n()
 
+const { loading, wrapLoad } = useSkeletonPage()
 const users = ref([])
-const loading = ref(true)
 const dialogVisible = ref(false)
 const isEditing = ref(false)
 const editingId = ref(null)
@@ -221,6 +225,16 @@ const bulkRoleSaving = ref(false)
 const confirmVisible = ref(false)
 const confirmDeleteTarget = ref(null) // single delete target or 'bulk'
 const confirmDeleting = ref(false)
+
+const skeletonColumns = [
+  { type: 'checkbox', headerWidth: 'w-6' },
+  { type: 'text', width: 'w-24', headerWidth: 'w-20' },
+  { type: 'text', width: 'w-32', headerWidth: 'w-28' },
+  { type: 'tag', width: 'w-20', headerWidth: 'w-16' },
+  { type: 'text', width: 'w-24', headerWidth: 'w-20' },
+  { type: 'tag', width: 'w-14', headerWidth: 'w-12' },
+  { type: 'icons', count: 2, headerWidth: 'w-14' }
+]
 
 // Role filter chips
 const roleFilterChips = computed(() => [
@@ -278,15 +292,14 @@ onMounted(async () => {
 })
 
 async function loadUsers() {
-  loading.value = true
   try {
-    const res = await api.get('/api/v1/platform/users')
-    const payload = res.data
-    users.value = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : [])
+    await wrapLoad(async () => {
+      const res = await api.get('/api/v1/platform/users')
+      const payload = res.data
+      users.value = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : [])
+    })
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: t('message.failed_to_load'), life: 3000 })
-  } finally {
-    loading.value = false
   }
 }
 

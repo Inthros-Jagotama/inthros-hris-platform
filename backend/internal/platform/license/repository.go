@@ -91,6 +91,29 @@ func (r *Repository) FindAll(page, perPage int) ([]License, int64, error) {
 	return licenses, total, nil
 }
 
+// FindCompanyNames mengambil nama company untuk daftar company ID.
+func (r *Repository) FindCompanyNames(companyIDs []uuid.UUID) map[string]string {
+	if len(companyIDs) == 0 {
+		return map[string]string{}
+	}
+
+	type result struct {
+		ID   string
+		Name string
+	}
+	var rows []result
+	r.db.Table("companies").
+		Select("id, name").
+		Where("id IN ?", companyIDs).
+		Find(&rows)
+
+	names := make(map[string]string, len(rows))
+	for _, r := range rows {
+		names[r.ID] = r.Name
+	}
+	return names
+}
+
 // Create menyimpan lisensi baru.
 func (r *Repository) Create(license *License) error {
 	if err := r.db.Create(license).Error; err != nil {

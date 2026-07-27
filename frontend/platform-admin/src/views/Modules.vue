@@ -23,16 +23,18 @@
       </div>
     </div>
 
+    <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="6" />
+
     <DataTable 
+    v-else
     :value="filteredModules" 
     paginator 
     :rows="15" 
     size="small" 
-    :loading="loading"
-    class="!text-sm p-datatable-sm border border-gray-200 rounded-lg overflow-hidden"
+    class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
     >
       <template #empty>
-        <div class="flex flex-col items-center justify-center py-10 text-gray-400">
+        <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
           <i class="pi pi-cog text-3xl mb-2 opacity-50"></i>
           <p class="text-sm font-medium">{{ t('modules.empty_title') }}</p>
           <p class="text-sm mt-1">{{ t('modules.empty_hint') }}</p>
@@ -41,8 +43,8 @@
       <Column field="name" :header="t('modules.module_name')" sortable>
         <template #body="{ data }">
           <div class="flex-row gap-2">
-            <div class="uppercase font-semibold text-gray-600">{{ data.name }}</div>
-            <div class="text-sm text-gray-500">{{ data.description }}</div>
+            <div class="uppercase font-semibold text-gray-600 dark:text-gray-300">{{ data.name }}</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">{{ data.description }}</div>
           </div>
         </template>
       </Column>
@@ -61,7 +63,7 @@
       </Column>
       <Column field="created_at" :header="t('modules.registered')" sortable>
         <template #body="{ data }">
-          <span class="text-gray-500">{{ data.created_at || '-' }}</span>
+          <span class="text-gray-500 dark:text-gray-400">{{ data.created_at || '-' }}</span>
         </template>
       </Column>
       <Column :header="t('common.actions')" :style="{ width: '120px' }">
@@ -110,8 +112,8 @@
     <!-- Company Assignment Dialog -->
     <Dialog v-model:visible="companyDialogVisible" :header="'Module: ' + (selectedModule?.name || '')" modal :style="{ width: '500px' }">
       <div class="space-y-2">
-        <p class="text-sm text-gray-500 mb-2">{{ t('modules.companies_subtitle') }}</p>
-        <div v-for="c in moduleCompanies" :key="c.company_id" class="flex items-center justify-between px-3 py-2 rounded-md bg-gray-50 text-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">{{ t('modules.companies_subtitle') }}</p>
+        <div v-for="c in moduleCompanies" :key="c.company_id" class="flex items-center justify-between px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-700 text-sm">
           <span>{{ c.company_name || c.company_id }}</span>
           <Tag :value="c.is_active ? 'Active' : 'Inactive'" :severity="c.is_active ? 'success' : 'warn'" class="!text-xs" />
         </div>
@@ -140,13 +142,15 @@ import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
+import SkeletonTable from '@/components/SkeletonTable.vue'
+import { useSkeletonPage } from '@/composables/useSkeletonPage'
 import { useSlugify } from '@/composables/useSlugify'
 
 const toast = useToast()
 const { t } = useI18n()
 
+const { loading, wrapLoad } = useSkeletonPage()
 const modules = ref([])
-const loading = ref(true)
 const searchQuery = ref('')
 const moduleTypeFilter = ref(null)
 const dialogVisible = ref(false)
@@ -163,6 +167,16 @@ const { slugManuallyEdited, slugHighlighted, resetSlug, disableAutoSlug } = useS
 const companyDialogVisible = ref(false)
 const selectedModule = ref(null)
 const moduleCompanies = ref([])
+
+const skeletonColumns = [
+  { type: 'compound', widths: ['w-24', 'w-36'], headerWidth: 'w-28' },
+  { type: 'text', width: 'w-16', headerWidth: 'w-16' },
+  { type: 'tag', width: 'w-16', headerWidth: 'w-18' },
+  { type: 'text', width: 'w-14', headerWidth: 'w-14' },
+  { type: 'text', width: 'w-20', headerWidth: 'w-20' },
+  { type: 'text', width: 'w-16', headerWidth: 'w-16' },
+  { type: 'icons', count: 2, headerWidth: 'w-14' }
+]
 
 // Filter chips
 const filterChips = computed(() => [
@@ -189,16 +203,15 @@ const filteredModules = computed(() => {
 
 // Reload modules from API dengan filter opsional
 async function loadModules(type) {
-  loading.value = true
   try {
-    const params = type ? `?module_type=${type}` : ''
-    const res = await api.get(`/api/v1/platform/modules${params}`)
-    const payload = res.data
-    modules.value = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : [])
+    await wrapLoad(async () => {
+      const params = type ? `?module_type=${type}` : ''
+      const res = await api.get(`/api/v1/platform/modules${params}`)
+      const payload = res.data
+      modules.value = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : [])
+    })
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: t('message.failed_to_load'), life: 3000 })
-  } finally {
-    loading.value = false
   }
 }
 

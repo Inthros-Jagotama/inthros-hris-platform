@@ -155,7 +155,9 @@
     "pool_wait_count": "Pool Wait Count",
     "pool_wait_desc": "Total connection waits",
     "live_indicator": "Live",
-    "auto_refresh": "Auto-refresh every 30s"
+    "auto_refresh": "Auto-refresh every 30s",
+    "light_mode": "Light Mode",
+    "dark_mode": "Dark Mode"
   },
 
   "companies": {
@@ -233,7 +235,7 @@
     "module_name": "Module Name",
     "slug": "Slug",
     "version": "Version",
-    "description": "Description",
+    "desc": "Description",
     "registered": "Registered",
     "empty_title": "No modules registered yet",
     "empty_hint": "Click \"Register Module\" to add the first module.",
@@ -254,7 +256,7 @@
     "edit_role": "Edit Role",
     "role_name": "Role Name",
     "slug": "Slug",
-    "description": "Description",
+    "desc": "Description",
     "permissions": "Permissions",
     "empty_title": "No roles created yet",
     "empty_hint": "Click \"New Role\" to create the first role.",
@@ -274,7 +276,7 @@
     "company": "Company",
     "plan": "Plan",
     "plan_type": "Plan Type",
-    "seats": "Seats",
+    "max_employees": "Max Employees",
     "valid_from": "Valid From",
     "valid_until": "Valid Until",
     "start_date": "Start Date",

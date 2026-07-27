@@ -9,18 +9,20 @@
         <Button :label="t('packages.new_package')" icon="pi pi-plus" size="small" @click="openCreate" />
       </div>
 
+    <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="6" />
+
     <DataTable 
+      v-else
       :value="filteredPackages" 
       paginator 
       :rows="15" 
       size="small" 
       sortField="sort_order" 
       :sortOrder="1"
-      :loading="loading"
-      class="!text-sm p-datatable-sm border border-gray-200 rounded-lg overflow-hidden"
+      class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
     >
       <template #empty>
-        <div class="flex flex-col items-center justify-center py-10 text-gray-400">
+        <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
           <i class="pi pi-box text-3xl mb-2 opacity-50"></i>
           <p class="text-sm font-medium">{{ t('packages.empty_title') }}</p>
           <p class="text-sm mt-1">{{ t('packages.empty_hint') }}</p>
@@ -29,14 +31,14 @@
       <Column field="name" :header="t('packages.package_name')" sortable>
         <template #body="{ data }">
           <div class="flex-row gap-2">
-            <div class="uppercase font-semibold text-gray-600">{{ data.name }}</div>
-            <div class="text-xs text-gray-400">{{ data.slug }}</div>
+            <div class="uppercase font-semibold text-gray-600 dark:text-gray-300">{{ data.name }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500">{{ data.slug }}</div>
           </div>
         </template>
       </Column>
       <Column field="price" :header="t('packages.price')" sortable>
         <template #body="{ data }">
-          <span class="font-medium text-gray-700">{{ formatPrice(data.price) }}</span>
+          <span class="font-medium text-gray-700 dark:text-gray-200">{{ formatPrice(data.price) }}</span>
         </template>
       </Column>
       <Column field="status" :header="t('packages.status')" sortable>
@@ -46,7 +48,7 @@
       </Column>
       <Column field="module_count" :header="t('packages.module_count')" sortable>
         <template #body="{ data }">
-          <span class="text-gray-600">{{ data.module_count }}</span>
+          <span class="text-gray-600 dark:text-gray-300">{{ data.module_count }}</span>
         </template>
       </Column>
       <Column field="sort_order" :header="t('packages.sort_order')" sortable />
@@ -67,8 +69,8 @@
     <Dialog v-model:visible="dialogVisible" :header="isEditing ? t('packages.edit_package') : t('packages.new_package')" modal :style="{ width: '920px' }" :closable="true" @hide="() => (errors.value = {})">
       <div class="grid grid-cols-2 gap-6">
         <!-- Left Column: Package Data -->
-        <div class="space-y-3 pr-4 border-r border-gray-200">
-          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{{ t('packages.package_info') }}</div>
+        <div class="space-y-3 pr-4 border-r border-gray-200 dark:border-gray-700">
+          <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ t('packages.package_info') }}</div>
           
           <FormRow :label="t('packages.package_name')" :errors="errors?.name" :required="true">
             <TextInput v-model="form.name" autofocus :class="{ 'p-invalid': errors?.name }" />
@@ -98,7 +100,7 @@
         <!-- Right Column: Module Selector -->
         <div class="space-y-2">
           <div class="flex items-center justify-between mb-2">
-            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ t('packages.select_modules') }} <span class="text-gray-400 font-normal normal-case">({{ selectedModuleIds.length }} {{ t('common.selected') }})</span></div>
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('packages.select_modules') }} <span class="text-gray-400 dark:text-gray-500 font-normal normal-case">({{ selectedModuleIds.length }} {{ t('common.selected') }})</span></div>
             <Button 
               v-if="availableModules.length > 0"
               :label="allModulesSelected ? t('common.deselect_all') : t('common.select_all')"
@@ -117,8 +119,8 @@
               :key="mod.value" 
               class="border rounded-lg transition-all duration-150"
               :class="selectedModuleIds.includes(mod.value) 
-                ? 'border-indigo-200 bg-indigo-50/40 shadow-sm' 
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'">
+                ? 'border-indigo-200 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-900/20 shadow-sm' 
+                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'">
               
               <!-- Module Header (always visible) -->
               <div class="flex items-center gap-2 px-2.5 py-2 cursor-pointer" @click="toggleModule(mod.value)">
@@ -130,14 +132,14 @@
                 />
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-1.5">
-                    <span class="text-sm font-medium text-gray-700 truncate">{{ mod.module_name }}</span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">{{ mod.module_name }}</span>
                     <Tag 
                       :value="mod.module_type === 'platform' ? 'P' : 'T'" 
                       :severity="mod.module_type === 'platform' ? 'info' : 'success'" 
                       class="!text-[10px] !px-1.5 !py-0 shrink-0" 
                     />
                   </div>
-                  <div class="text-xs text-gray-400 truncate">{{ mod.module_slug }}</div>
+                  <div class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ mod.module_slug }}</div>
                 </div>
                 <i 
                   v-if="selectedModuleIds.includes(mod.value)"
@@ -148,15 +150,15 @@
 
               <!-- Module Details (shown when selected and expanded) -->
               <div v-if="selectedModuleIds.includes(mod.value) && expandedModules[mod.value]" class="px-2.5 pb-2.5 space-y-1.5">
-                <div class="border-t border-indigo-100 pt-1.5 space-y-1">
+                <div class="border-t border-indigo-100 dark:border-indigo-800 pt-1.5 space-y-1">
                   <div v-if="mod.module_description" class="flex items-start gap-1.5">
                     <i class="pi pi-align-left text-[10px] text-gray-400 mt-0.5"></i>
-                    <p class="text-xs text-gray-500 leading-relaxed">{{ mod.module_description }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{{ mod.module_description }}</p>
                   </div>
                   <div v-if="mod.depends_on" class="flex items-start gap-1.5">
                     <i class="pi pi-sitemap text-[10px] text-gray-400 mt-0.5"></i>
                     <p class="text-xs">
-                      <span class="text-gray-400">{{ t('packages.depends_on') }}:</span>
+                      <span class="text-gray-400 dark:text-gray-500">{{ t('packages.depends_on') }}:</span>
                       <span class="text-amber-600 ml-1">{{ mod.depends_on }}</span>
                     </p>
                   </div>
@@ -168,10 +170,10 @@
                       @update:modelValue="v => moduleMandatory[mod.value] = v" 
                       class="!scale-75 !origin-left"
                     />
-                    <span class="text-[11px] text-gray-500 whitespace-nowrap">{{ t('packages.is_mandatory') }}</span>
+                    <span class="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('packages.is_mandatory') }}</span>
                   </div>
                   <div class="flex items-center gap-1.5 ml-auto">
-                    <label class="text-[11px] text-gray-500 whitespace-nowrap">{{ t('packages.sort_order') }}</label>
+                    <label class="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('packages.sort_order') }}</label>
                     <InputNumber 
                       :modelValue="moduleSortOrders[mod.value] || 0" 
                       @update:modelValue="v => moduleSortOrders[mod.value] = v" 
@@ -185,7 +187,7 @@
             </div>
           </div>
 
-          <div v-if="availableModules.length === 0" class="text-sm text-gray-400 text-center py-6 border border-dashed border-gray-200 rounded-lg">
+          <div v-if="availableModules.length === 0" class="text-sm text-gray-400 dark:text-gray-500 text-center py-6 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
             <i class="pi pi-spinner pi-spin mr-1"></i>
             {{ t('packages.loading_modules') }}
           </div>
@@ -205,11 +207,11 @@
     <!-- Validate Dependencies Dialog -->
     <Dialog v-model:visible="depsDialogVisible" :header="t('packages.validate_deps')" modal :style="{ width: '500px' }">
       <div class="space-y-2">
-        <div v-for="dep in dependencies" :key="dep.module_id" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm" :class="dep.resolved ? 'bg-emerald-50' : 'bg-rose-50'">
+        <div v-for="dep in dependencies" :key="dep.module_id" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm" :class="dep.resolved ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-rose-50 dark:bg-rose-900/20'">
           <i :class="dep.resolved ? 'pi pi-check-circle text-emerald-500' : 'pi pi-exclamation-circle text-rose-500'" class="text-base"></i>
           <div class="flex-1">
             <span class="font-medium">{{ dep.module_name }}</span>
-            <span class="text-gray-500 ml-2">{{ dep.depends_on }}</span>
+            <span class="text-gray-500 dark:text-gray-400 ml-2">{{ dep.depends_on }}</span>
           </div>
           <Tag :value="dep.resolved ? t('packages.deps_resolved') : t('packages.deps_unresolved')" :severity="dep.resolved ? 'success' : 'danger'" class="!text-xs" />
         </div>
@@ -222,7 +224,7 @@
 
     <!-- Confirm Dialog -->
     <Dialog v-model:visible="confirmVisible" :header="confirmTitle" modal :style="{ width: '400px' }">
-      <p class="text-sm text-gray-600">{{ confirmMessage }}</p>
+      <p class="text-sm text-gray-600 dark:text-gray-300">{{ confirmMessage }}</p>
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="confirmVisible = false" />
         <Button :label="confirmActionLabel" :severity="confirmSeverity" size="small" :loading="confirming" :disabled="confirming" @click="executeConfirm" />
@@ -250,14 +252,16 @@ import Dialog from 'primevue/dialog'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
+import SkeletonTable from '@/components/SkeletonTable.vue'
+import { useSkeletonPage } from '@/composables/useSkeletonPage'
 import { useSlugify } from '@/composables/useSlugify'
 
 const toast = useToast()
 const { t } = useI18n()
 
 // Data
+const { loading, wrapLoad } = useSkeletonPage()
 const packages = ref([])
-const loading = ref(true)
 const availableModules = ref([])
 const searchQuery = ref('')
 const dialogVisible = ref(false)
@@ -282,6 +286,15 @@ const confirming = ref(false)
 // Dependencies dialog
 const depsDialogVisible = ref(false)
 const dependencies = ref([])
+
+const skeletonColumns = [
+  { type: 'compound', widths: ['w-24', 'w-16'], headerWidth: 'w-28' },
+  { type: 'text', width: 'w-24', headerWidth: 'w-20' },
+  { type: 'tag', width: 'w-16', headerWidth: 'w-14' },
+  { type: 'text', width: 'w-10', headerWidth: 'w-12' },
+  { type: 'text', width: 'w-10', headerWidth: 'w-10' },
+  { type: 'icons', count: 5, headerWidth: 'w-20' }
+]
 
 // Filtered packages (client-side search only)
 const filteredPackages = computed(() => {
@@ -333,15 +346,14 @@ function formatPrice(price) {
 
 // Load packages from API
 async function loadPackages() {
-  loading.value = true
   try {
-    const res = await api.get('/api/v1/platform/packages?per_page=100')
-    const payload = res.data
-    packages.value = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : [])
+    await wrapLoad(async () => {
+      const res = await api.get('/api/v1/platform/packages?per_page=100')
+      const payload = res.data
+      packages.value = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : [])
+    })
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: t('message.failed_to_load'), life: 3000 })
-  } finally {
-    loading.value = false
   }
 }
 

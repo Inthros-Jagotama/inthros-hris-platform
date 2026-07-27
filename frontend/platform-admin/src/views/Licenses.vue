@@ -34,9 +34,11 @@
       </div>
     </div>
 
-    <DataTable :value="filteredLicenses" paginator :rows="15" size="small" :loading="loading" class="!text-sm p-datatable-sm border border-gray-200 rounded-lg overflow-hidden">
+    <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="6" />
+
+    <DataTable v-else :value="filteredLicenses" paginator :rows="15" size="small" class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       <template #empty>
-        <div class="flex flex-col items-center justify-center py-10 text-gray-400">
+        <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
           <i class="pi pi-id-card text-3xl mb-2 opacity-50"></i>
           <p class="text-sm font-medium">{{ t('licenses.empty_title') }}</p>
           <p class="text-sm mt-1">{{ t('licenses.empty_hint') }}</p>
@@ -45,8 +47,8 @@
       <Column field="company_name" :header="t('licenses.company')" sortable />
       <Column field="package_name" :header="t('licenses.package')" sortable>
         <template #body="{ data }">
-          <span v-if="data.package_name" class="text-gray-700">{{ data.package_name }}</span>
-          <span v-else class="text-gray-400 italic">—</span>
+          <span v-if="data.package_name" class="text-gray-700 dark:text-gray-200">{{ data.package_name }}</span>
+          <span v-else class="text-gray-400 dark:text-gray-500 italic">—</span>
         </template>
       </Column>
       <Column field="plan_type" :header="t('licenses.plan')" sortable>
@@ -54,7 +56,7 @@
           <Tag :value="data.plan_type" :severity="planSeverity(data.plan_type)" class="!text-xs !px-1.5 !py-0.5" />
         </template>
       </Column>
-      <Column field="seat_count" :header="t('licenses.seats')" sortable />
+      <Column field="max_employees" :header="t('licenses.max_employees')" sortable />
       <Column field="start_date" :header="t('licenses.valid_from')" sortable>
         <template #body="{ data }">{{ data.start_date || '-' }}</template>
       </Column>
@@ -78,7 +80,7 @@
       <Column field="license_key" :header="t('licenses.key')" sortable>
         <template #body="{ data }">
           <div class="flex items-center gap-1.5">
-            <code class="text-xs bg-gray-100 px-1.5 py-0.5 rounded font-mono truncate max-w-[160px] block">{{ data.license_key }}</code>
+            <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded font-mono truncate max-w-[160px] block">{{ data.license_key }}</code>
             <Button
               icon="pi pi-copy"
               size="small"
@@ -133,8 +135,8 @@
             </FormRow>
           </div>
           <div>
-            <FormRow :label="t('licenses.seats')" :errors="errors?.seat_count" :required="true">
-              <InputNumber v-model="form.seat_count" class="!w-full" inputClass="!w-full !text-sm" :min="1" :class="{ 'p-invalid': errors?.seat_count }" />
+            <FormRow :label="t('licenses.max_employees')" :errors="errors?.max_employees" :required="true">
+              <InputNumber v-model="form.max_employees" class="!w-full" inputClass="!w-full !text-sm" :min="1" :class="{ 'p-invalid': errors?.max_employees }" />
             </FormRow>
           </div>
         </div>
@@ -167,27 +169,41 @@ import FormRow from '@/components/FormRow.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
 import TextInput from '@/components/TextInput.vue'
 import DateInput from '@/components/DateInput.vue'
+import SkeletonTable from '@/components/SkeletonTable.vue'
+import { useSkeletonPage } from '@/composables/useSkeletonPage'
 import InputText from 'primevue/inputtext'
 
 const toast = useToast()
 const { t } = useI18n()
 
 // Data
+const { loading, wrapLoad } = useSkeletonPage()
 const licenses = ref([])
 const companies = ref([])
 const packages = ref([])
-const loading = ref(true)
 const dialogVisible = ref(false)
 const isEditing = ref(false)
 const editingId = ref(null)
 const saving = ref(false)
-const form = ref({ company_id: null, plan_type: 'trial', package_id: null, seat_count: 1, start_date: '', end_date: '' })
+const form = ref({ company_id: null, plan_type: 'trial', package_id: null, max_employees: 1, start_date: '', end_date: '' })
 const errors = ref({})
 
 // Filters
 const searchQuery = ref('')
 const statusFilter = ref(null)
 const packageFilter = ref(null)
+
+const skeletonColumns = [
+  { type: 'text', width: 'w-24', headerWidth: 'w-20' },
+  { type: 'text', width: 'w-20', headerWidth: 'w-18' },
+  { type: 'tag', width: 'w-16', headerWidth: 'w-14' },
+  { type: 'text', width: 'w-10', headerWidth: 'w-10' },
+  { type: 'text', width: 'w-16', headerWidth: 'w-16' },
+  { type: 'text', width: 'w-16', headerWidth: 'w-16' },
+  { type: 'key-copy', width: 'w-24', headerWidth: 'w-28' },
+  { type: 'tag', width: 'w-14', headerWidth: 'w-12' },
+  { type: 'icons', count: 1, headerWidth: 'w-10' }
+]
 
 // Plan options
 const planOptions = computed(() => [
@@ -260,23 +276,22 @@ function isExpired(dateStr) {
 
 // Load data
 async function loadData() {
-  loading.value = true
   try {
-    const [licRes, compRes, pkgRes] = await Promise.all([
-      api.get('/api/v1/platform/licenses'),
-      api.get('/api/v1/platform/companies'),
-      api.get('/api/v1/platform/packages?per_page=100')
-    ])
-    const licPayload = licRes.data
-    licenses.value = Array.isArray(licPayload.data) ? licPayload.data : (Array.isArray(licPayload) ? licPayload : [])
-    const compPayload = compRes.data
-    companies.value = Array.isArray(compPayload.data) ? compPayload.data : (Array.isArray(compPayload) ? compPayload : [])
-    const pkgPayload = pkgRes.data
-    packages.value = Array.isArray(pkgPayload.data) ? pkgPayload.data : (Array.isArray(pkgPayload) ? pkgPayload : [])
+    await wrapLoad(async () => {
+      const [licRes, compRes, pkgRes] = await Promise.all([
+        api.get('/api/v1/platform/licenses'),
+        api.get('/api/v1/platform/companies'),
+        api.get('/api/v1/platform/packages?per_page=100')
+      ])
+      const licPayload = licRes.data
+      licenses.value = Array.isArray(licPayload.data) ? licPayload.data : (Array.isArray(licPayload) ? licPayload : [])
+      const compPayload = compRes.data
+      companies.value = Array.isArray(compPayload.data) ? compPayload.data : (Array.isArray(compPayload) ? compPayload : [])
+      const pkgPayload = pkgRes.data
+      packages.value = Array.isArray(pkgPayload.data) ? pkgPayload.data : (Array.isArray(pkgPayload) ? pkgPayload : [])
+    })
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: t('message.failed_to_load'), life: 3000 })
-  } finally {
-    loading.value = false
   }
 }
 
@@ -320,7 +335,7 @@ async function copyKey(key) {
 function openCreate() {
   isEditing.value = false
   editingId.value = null
-  form.value = { company_id: null, plan_type: 'trial', package_id: null, seat_count: 1, start_date: '', end_date: '' }
+  form.value = { company_id: null, plan_type: 'trial', package_id: null, max_employees: 1, start_date: '', end_date: '' }
   errors.value = {}
   dialogVisible.value = true
 }
@@ -333,7 +348,7 @@ function openEdit(lic) {
     company_id: lic.company_id,
     plan_type: lic.plan_type,
     package_id: lic.package_id || null,
-    seat_count: lic.seat_count,
+    max_employees: lic.max_employees,
     start_date: lic.start_date,
     end_date: lic.end_date
   }

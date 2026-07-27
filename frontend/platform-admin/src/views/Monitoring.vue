@@ -44,24 +44,61 @@
       </div>
     </div>
 
-    <!-- Loading Skeleton -->
-    <div v-if="loading && !loaded" class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div class="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
-        <div class="h-4 w-32 bg-gray-200 rounded mb-3"></div>
-        <div class="h-32 bg-gray-100 rounded"></div>
-      </div>
-      <div class="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
-        <div class="h-4 w-24 bg-gray-200 rounded mb-3"></div>
-        <div class="space-y-2">
-          <div v-for="i in 4" :key="i" class="h-6 bg-gray-100 rounded"></div>
+    <!-- Transition: skeleton ↔ content (initial load) -->
+    <Transition name="fadeSkeleton" mode="out-in">
+      <!-- Full Loading Skeleton (initial load only) -->
+      <div v-if="loading && !loaded" key="skeleton" class="space-y-4">
+      <!-- Chart + Health Skeleton -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-pulse">
+        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div class="h-4 w-36 bg-gray-200 rounded mb-4"></div>
+          <div class="flex items-end gap-1.5 h-40">
+            <div v-for="h in [45, 65, 35, 80, 55, 70, 40, 75]" :key="h" class="flex-1 bg-gray-100 rounded-t" :style="{ height: h + '%' }"></div>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div class="h-4 w-28 bg-gray-200 rounded mb-4"></div>
+          <div class="space-y-3">
+            <div v-for="i in 5" :key="i" class="flex items-center justify-between">
+              <div class="h-3 w-24 bg-gray-200 rounded"></div>
+              <div class="h-3 w-14 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+          <div class="border-t border-gray-100 mt-3 pt-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="h-3 w-12 bg-gray-200 rounded"></div>
+              <div class="h-3 w-10 bg-gray-200 rounded"></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="h-3 w-10 bg-gray-200 rounded"></div>
+              <div class="h-3 w-10 bg-gray-200 rounded"></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="h-3 w-12 bg-gray-200 rounded"></div>
+              <div class="h-3 w-10 bg-gray-200 rounded"></div>
+            </div>
+            <div class="h-1.5 bg-gray-200 rounded-full mt-2"></div>
+          </div>
         </div>
       </div>
+
+      <!-- Tenant Table Skeleton -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 animate-pulse">
+          <div class="h-4 w-32 bg-gray-200 rounded"></div>
+          <div class="h-3 w-20 bg-gray-200 rounded"></div>
+        </div>
+        <SkeletonTable :columns="tenantSkeletonColumns" :rows="4" />
+      </div>
+
+      <!-- Quick Stats Skeleton -->
+      <SkeletonCard type="stat" cols="grid-cols-2 md:grid-cols-4" />
     </div>
 
-    <!-- Charts & Platform Health -->
-    <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <!-- Charts & Platform Health -->
+      <div v-else key="content" class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <!-- Pool Utilization Chart -->
-      <div class="lg:col-span-2 bg-white rounded-lg border border-gray-200">
+      <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
           <h3 class="text-sm font-semibold text-gray-700">{{ t('monitoring.pool_utilization_chart') }}</h3>
           <div class="flex items-center gap-3">
@@ -81,7 +118,7 @@
       </div>
 
       <!-- Platform Health Card -->
-      <div class="bg-white rounded-lg border border-gray-200">
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
           <h3 class="text-sm font-semibold text-gray-700">{{ t('monitoring.platform_health') }}</h3>
           <Tag :value="overallHealthStatus" :severity="overallHealthSeverity" class="!text-xs" />
@@ -128,9 +165,10 @@
         </div>
       </div>
     </div>
+    </Transition>
 
     <!-- Tenant Connections -->
-    <div class="bg-white rounded-lg border border-gray-200">
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
       <div class="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
         <h3 class="text-sm font-semibold text-gray-700">{{ t('monitoring.tenant_connections') }}</h3>
         <div class="flex items-center gap-2">
@@ -194,7 +232,7 @@
 
     <!-- Quick Stats Row -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <div v-for="stat in quickStats" :key="stat.label" class="bg-white rounded-lg border border-gray-200 p-3" :class="stat.highlight ? 'ring-2 ring-amber-200' : ''">
+      <div v-for="stat in quickStats" :key="stat.label" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3" :class="stat.highlight ? 'ring-2 ring-amber-200' : ''">
         <p class="text-sm text-gray-500">{{ stat.label }}</p>
         <p class="text-lg font-bold mt-0.5" :class="stat.color || 'text-gray-800'">{{ stat.value }}</p>
       </div>
@@ -213,8 +251,21 @@ import Button from 'primevue/button'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
 import Chart from 'primevue/chart'
 import ProgressBar from 'primevue/progressbar'
+import SkeletonTable from '@/components/SkeletonTable.vue'
+import SkeletonCard from '@/components/SkeletonCard.vue'
 
 const { t } = useI18n()
+
+const tenantSkeletonColumns = [
+  { type: 'compound', widths: ['w-20', 'w-16'], headerWidth: 'w-24' },
+  { type: 'tag', width: 'w-14', headerWidth: 'w-12' },
+  { type: 'text', width: 'w-8', headerWidth: 'w-10' },
+  { type: 'text', width: 'w-8', headerWidth: 'w-12' },
+  { type: 'text', width: 'w-8', headerWidth: 'w-10' },
+  { type: 'text', width: 'w-8', headerWidth: 'w-10' },
+  { type: 'text', width: 'w-14', headerWidth: 'w-12' },
+  { type: 'text', width: 'w-16', headerWidth: 'w-14' }
+]
 
 const health = ref({})
 const tenants = ref([])
@@ -475,3 +526,14 @@ onUnmounted(() => {
   stopAutoRefresh()
 })
 </script>
+
+<style scoped>
+.fadeSkeleton-enter-active,
+.fadeSkeleton-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fadeSkeleton-enter-from,
+.fadeSkeleton-leave-to {
+  opacity: 0;
+}
+</style>

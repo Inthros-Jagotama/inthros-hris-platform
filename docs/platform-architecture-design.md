@@ -509,7 +509,7 @@ CREATE TABLE licenses (
     id              CHAR(36) PRIMARY KEY,
     company_id      CHAR(36) REFERENCES companies(id),
     license_key     VARCHAR(100) UNIQUE NOT NULL,
-    plan_type       VARCHAR(50) NOT NULL,      -- free, basic, pro, enterprise
+    plan_type       VARCHAR(50) NOT NULL,      -- trial, basic, pro, enterprise
     max_employees   INTEGER DEFAULT 0,
     max_modules     INTEGER DEFAULT 0,
     start_date      DATE NOT NULL,

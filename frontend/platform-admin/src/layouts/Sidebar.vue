@@ -1,12 +1,12 @@
 <template>
   <aside
-    class="flex flex-col bg-white border-r border-gray-200 transition-all duration-200 overflow-hidden"
+    class="flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 overflow-hidden"
     :class="collapsed ? 'w-16' : 'w-56'"
   >
     <!-- Logo -->
-    <div class="flex items-center h-12 px-4 border-b border-gray-200 shrink-0 gap-2">
+    <div class="flex items-center h-12 px-4 border-b border-gray-200 dark:border-gray-700 shrink-0 gap-2">
       <i class="pi pi-shield text-indigo-600 text-lg"></i>
-      <span v-if="!collapsed" class="font-semibold text-sm text-gray-800 truncate">{{ t('nav.platform_admin') }}</span>
+      <span v-if="!collapsed" class="font-semibold text-sm text-gray-800 dark:text-gray-100 truncate">{{ t('nav.platform_admin') }}</span>
     </div>
 
     <!-- Nav: Expanded -->
@@ -16,7 +16,7 @@
         :key="item.path"
         :to="item.path"
         class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors"
-        :class="isActive(item.path) ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-600 hover:bg-gray-100'"
+        :class="isActive(item.path) ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
       >
         <i :class="item.icon" class="text-sm w-4 text-center"></i>
         <span>{{ t(item.labelKey) }}</span>
@@ -31,7 +31,7 @@
         :to="item.path"
         v-tooltip.left="t(item.labelKey)"
         class="w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
-        :class="isActive(item.path) ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'"
+        :class="isActive(item.path) ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'"
       >
         <i :class="item.icon" class="text-sm"></i>
       </router-link>

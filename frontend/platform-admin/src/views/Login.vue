@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-indigo-100 p-4">
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-4">
     <div class="w-full max-w-sm">
       
       <!-- Login Card -->
@@ -27,14 +27,14 @@
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-indigo-600 text-white mb-4">
               <i class="pi pi-shield text-2xl"></i>
             </div>
-            <h1 class="text-xl font-bold text-gray-900">{{ t('auth.title') }}</h1>
-            <p class="text-sm text-gray-500 mt-1">{{ t('auth.login.subtitle') }}</p>
+            <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('auth.title') }}</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('auth.login.subtitle') }}</p>
           </div>
           <!-- Login Form -->
           <form @submit.prevent="handleLogin" class="space-y-4">
             <!-- Email -->
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">{{ t('auth.login.email') }}</label>
+              <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('auth.login.email') }}</label>
               <IconField>
                 <InputIcon class="pi pi-envelope" />
                 <InputText
@@ -50,7 +50,7 @@
 
             <!-- Password -->
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">{{ t('auth.login.password') }}</label>
+              <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('auth.login.password') }}</label>
               <IconField>
                 <InputIcon class="pi pi-lock" />
                 <InputText
@@ -65,7 +65,7 @@
             </div>
 
             <!-- Error -->
-            <div v-if="error" class="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-md px-3 py-2">
+            <div v-if="error" class="text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-md px-3 py-2">
               <i class="pi pi-exclamation-circle mr-1"></i> {{ error }}
             </div>
 
@@ -81,7 +81,7 @@
         </template>
       </Card>
 
-      <p class="text-center text-sm text-gray-400 mt-6">
+      <p class="text-center text-sm text-gray-400 dark:text-gray-500 mt-6">
         {{ t('auth.version') }}
       </p>
     </div>

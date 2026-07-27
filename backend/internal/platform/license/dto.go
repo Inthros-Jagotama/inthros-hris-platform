@@ -5,7 +5,7 @@ import "time"
 // CreateLicenseRequest untuk membuat lisensi baru.
 type CreateLicenseRequest struct {
 	CompanyID    string `json:"company_id" binding:"required"`
-	PlanType     string `json:"plan_type" binding:"required,oneof=free basic pro enterprise"`
+	PlanType     string `json:"plan_type" binding:"required,oneof=trial basic pro enterprise"`
 	MaxEmployees int    `json:"max_employees" binding:"omitempty,min=0"`
 	MaxModules   int    `json:"max_modules" binding:"omitempty,min=0"`
 	StartDate    string `json:"start_date" binding:"required"`        // format: YYYY-MM-DD
@@ -15,7 +15,7 @@ type CreateLicenseRequest struct {
 
 // UpdateLicenseRequest untuk update lisensi.
 type UpdateLicenseRequest struct {
-	PlanType     *string `json:"plan_type,omitempty" binding:"omitempty,oneof=free basic pro enterprise"`
+	PlanType     *string `json:"plan_type,omitempty" binding:"omitempty,oneof=trial basic pro enterprise"`
 	MaxEmployees *int    `json:"max_employees,omitempty" binding:"omitempty,min=0"`
 	MaxModules   *int    `json:"max_modules,omitempty" binding:"omitempty,min=0"`
 	StartDate    *string `json:"start_date,omitempty"`                // format: YYYY-MM-DD
@@ -28,6 +28,7 @@ type UpdateLicenseRequest struct {
 type LicenseResponse struct {
 	ID           string    `json:"id"`
 	CompanyID    string    `json:"company_id"`
+	CompanyName  string    `json:"company_name,omitempty"`
 	LicenseKey   string    `json:"license_key"`
 	PlanType     string    `json:"plan_type"`
 	MaxEmployees int       `json:"max_employees"`

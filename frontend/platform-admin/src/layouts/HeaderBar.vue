@@ -1,5 +1,5 @@
 <template>
-  <header class="flex items-center h-12 bg-white border-b border-gray-200 px-4 shrink-0">
+  <header class="flex items-center h-12 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 shrink-0">
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <Button
         icon="pi pi-bars"
@@ -14,6 +14,18 @@
     </div>
 
     <div class="flex items-center gap-1">
+      <!-- Theme Switcher -->
+      <Button
+        severity="secondary"
+        text
+        size="small"
+        class="!p-1.5"
+        v-tooltip.top="{ value: themeStore.isDark() ? t('dashboard.light_mode') : t('dashboard.dark_mode'), showDelay: 300 }"
+        @click="themeStore.toggleTheme()"
+      >
+        <i :class="themeStore.isDark() ? 'pi pi-sun' : 'pi pi-moon'" class="text-sm"></i>
+      </Button>
+
       <!-- Language Switcher -->
       <Button
         severity="secondary"
@@ -29,7 +41,7 @@
         </div>
       </Button>
 
-      <div class="flex items-center gap-2 text-sm text-gray-500 mr-2">
+      <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mr-2">
         <i class="pi pi-circle-fill text-emerald-400 text-[6px]"></i>
         <span>Live</span>
       </div>
@@ -47,7 +59,7 @@
             size="small"
             class="!w-7 !h-7 !bg-indigo-100 !text-indigo-700"
           />
-          <span class="text-sm text-gray-700 hidden sm:inline">Admin</span>
+          <span class="text-sm text-gray-700 dark:text-gray-200 hidden sm:inline">Admin</span>
           <i class="pi pi-chevron-down text-sm text-gray-400"></i>
         </div>
       </Button>
@@ -60,6 +72,7 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useLanguage } from '@/stores/language'
+import { useTheme } from '@/stores/theme'
 import { useI18n } from '@/composables/useI18n'
 import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
@@ -70,6 +83,7 @@ const emit = defineEmits(['toggle-sidebar', 'logout'])
 const route = useRoute()
 const menu = ref(null)
 const langStore = useLanguage()
+const themeStore = useTheme()
 const { t } = useI18n()
 
 const router = useRouter()
