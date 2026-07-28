@@ -3,18 +3,22 @@
 -- =============================================================================
 -- Tabel master data yang digunakan oleh semua modul tenant.
 -- Setiap tenant memiliki database sendiri, sehingga tidak perlu company_id.
--- Semua primary key menggunakan CHAR(36) UUID.
+-- Region tables (countries, provinces, regencies, districts, villages) menggunakan kode BPS sebagai PK (CHAR(2/4/6/10)).
+-- Tabel lainnya menggunakan CHAR(36) UUID sebagai PK.
 
 -- ---------------------------------------------------------------------------
 -- 1.1 Religions
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS religions (
     id          CHAR(36) PRIMARY KEY,
-    religion    VARCHAR(200) NOT NULL,
+    code        VARCHAR(20) NOT NULL,
+    name        VARCHAR(255) NOT NULL,
+    sort_order  INT DEFAULT 0,
     created_by  CHAR(36) NULL,
     updated_by  CHAR(36) NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
 );
 
 -- ---------------------------------------------------------------------------
@@ -22,11 +26,14 @@ CREATE TABLE IF NOT EXISTS religions (
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS educations (
     id          CHAR(36) PRIMARY KEY,
-    education   VARCHAR(200) NOT NULL,
+    code        VARCHAR(20) NOT NULL,
+    name        VARCHAR(255) NOT NULL,
+    sort_order  INT DEFAULT 0,
     created_by  CHAR(36) NULL,
     updated_by  CHAR(36) NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
 );
 
 -- ---------------------------------------------------------------------------
@@ -34,11 +41,14 @@ CREATE TABLE IF NOT EXISTS educations (
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS marital_statuses (
     id              CHAR(36) PRIMARY KEY,
-    marital_status  VARCHAR(100) NOT NULL,
+    code            VARCHAR(20) NOT NULL,
+    name            VARCHAR(255) NOT NULL,
+    sort_order      INT DEFAULT 0,
     created_by      CHAR(36) NULL,
     updated_by      CHAR(36) NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
 );
 
 -- ---------------------------------------------------------------------------
@@ -50,6 +60,7 @@ CREATE TABLE IF NOT EXISTS countries (
     name        VARCHAR(100) NOT NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_countries_code ON countries (code);
@@ -59,9 +70,11 @@ CREATE INDEX IF NOT EXISTS idx_countries_code ON countries (code);
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS provinces (
     id          CHAR(2) PRIMARY KEY,
+    code        VARCHAR(10) NOT NULL,
     name        VARCHAR(100) NOT NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
 );
 
 -- ---------------------------------------------------------------------------
@@ -69,6 +82,7 @@ CREATE TABLE IF NOT EXISTS provinces (
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS regencies (
     id          CHAR(4) PRIMARY KEY,
+    code        VARCHAR(10) NOT NULL,
     province_id CHAR(2) NOT NULL,
     name        VARCHAR(100) NOT NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -84,6 +98,7 @@ CREATE INDEX IF NOT EXISTS idx_regencies_province ON regencies (province_id);
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS districts (
     id          CHAR(6) PRIMARY KEY,
+    code        VARCHAR(15) NOT NULL,
     regency_id  CHAR(4) NOT NULL,
     name        VARCHAR(100) NOT NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -99,6 +114,7 @@ CREATE INDEX IF NOT EXISTS idx_districts_regency ON districts (regency_id);
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS villages (
     id          CHAR(10) PRIMARY KEY,
+    code        VARCHAR(15) NOT NULL,
     district_id CHAR(6) NOT NULL,
     name        VARCHAR(100) NOT NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -114,12 +130,14 @@ CREATE INDEX IF NOT EXISTS idx_villages_district ON villages (district_id);
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS relationship_types (
     id          CHAR(36) PRIMARY KEY,
-    slug        VARCHAR(200) NOT NULL,
+    code        VARCHAR(20) NOT NULL,
     name        VARCHAR(100) NOT NULL,
+    sort_order  INT DEFAULT 0,
     created_by  CHAR(36) NULL,
     updated_by  CHAR(36) NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
 );
 
 -- ---------------------------------------------------------------------------
@@ -127,14 +145,17 @@ CREATE TABLE IF NOT EXISTS relationship_types (
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS employment_statuses (
     id              CHAR(36) PRIMARY KEY,
+    code            VARCHAR(20) NOT NULL,
     name            VARCHAR(100) NOT NULL,
     has_duration    SMALLINT NOT NULL DEFAULT 0,
     duration        INT NULL,
     duration_type   VARCHAR(255) NULL,
+    sort_order      INT DEFAULT 0,
     created_by      CHAR(36) NULL,
     updated_by      CHAR(36) NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
 );
 
 -- ---------------------------------------------------------------------------
@@ -148,6 +169,7 @@ CREATE TABLE IF NOT EXISTS gradings (
     updated_by    CHAR(36) NULL,
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
 );
 
 -- ---------------------------------------------------------------------------
@@ -155,15 +177,61 @@ CREATE TABLE IF NOT EXISTS gradings (
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS job_families (
     id          CHAR(36) PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL,
     name        VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT NULL,
+    sort_order  INT DEFAULT 0,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_job_families_name ON job_families (name);
 
 -- ---------------------------------------------------------------------------
--- 1.13 PPh21 PTKP (Penghasilan Tidak Kena Pajak)
+-- 1.13 Banks
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS banks (
+    id          CHAR(36) PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL,
+    name        VARCHAR(255) NOT NULL,
+    sort_order  INT DEFAULT 0,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
+);
+
+-- ---------------------------------------------------------------------------
+-- 1.14 Nationalities
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS nationalities (
+    id          CHAR(36) PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL,
+    name        VARCHAR(255) NOT NULL,
+    sort_order  INT DEFAULT 0,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
+);
+
+-- ---------------------------------------------------------------------------
+-- 1.15 Salary Grades
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS salary_grades (
+    id          CHAR(36) PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL,
+    name        VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    min_amount  DECIMAL(18,2) DEFAULT 0,
+    max_amount  DECIMAL(18,2) DEFAULT 0,
+    sort_order  INT DEFAULT 0,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
+);
+
+-- ---------------------------------------------------------------------------
+-- 1.16 PPh21 PTKP (Penghasilan Tidak Kena Pajak)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ptkps (
     id          CHAR(36) PRIMARY KEY,
@@ -174,10 +242,11 @@ CREATE TABLE IF NOT EXISTS ptkps (
     updated_by  CHAR(36) NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
 );
 
 -- ---------------------------------------------------------------------------
--- 1.14 Tarif Efektif Rata-rata (TER)
+-- 1.17 Tarif Efektif Rata-rata (TER)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ters (
     id          CHAR(36) PRIMARY KEY,
@@ -189,4 +258,5 @@ CREATE TABLE IF NOT EXISTS ters (
     updated_by  CHAR(36) NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    deleted_at  TIMESTAMP
 );

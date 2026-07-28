@@ -94,6 +94,26 @@ func main() {
 	case "seed-modules":
 		handleSeedModules(l, dbManager)
 
+	case "seed-data":
+		seedCmd := flag.NewFlagSet("seed-data", flag.ExitOnError)
+		seedCmd.String("config", "", "Path to configuration file")
+		seedCompanyID := seedCmd.String("company", "", "Company ID to seed tenant master data (optional)")
+		seedCmd.Parse(os.Args[2:])
+		if *seedCompanyID != "" {
+			// Seed ke tenant database
+			tenantDB, err := dbManager.TenantDB(*seedCompanyID)
+			if err != nil {
+				l.Fatal("Failed to connect to tenant database", zap.Error(err))
+			}
+			if err := seedTenantMasterData(tenantDB, l); err != nil {
+				l.Fatal("Failed to seed tenant master data", zap.Error(err))
+			}
+			l.Info("Tenant master data seeding completed", zap.String("company_id", *seedCompanyID))
+		} else {
+			l.Info("No company specified. Use --company=<id> to seed a specific tenant.")
+			l.Info("Example: installer --config=./config/config.yaml seed-data --company=<uuid>")
+		}
+
 	default:
 		printUsage()
 		os.Exit(1)
@@ -107,12 +127,15 @@ func printUsage() {
 	fmt.Println("  installer [--config=<path>] provision --company=<id> [--db-name=<name>]")
 	fmt.Println("  installer [--config=<path>] migrate --company=<id>")
 	fmt.Println("  installer [--config=<path>] encrypt-passwords")
+	fmt.Println("  installer [--config=<path>] seed-modules")
+	fmt.Println("  installer [--config=<path>] seed-data --company=<id>")
 	fmt.Println("")
 	fmt.Println("Commands:")
-	fmt.Println("  provision          Provision a new tenant (create database + run migrations)")
+	fmt.Println("  provision          Provision a new tenant (create database + run migrations + seed data)")
 	fmt.Println("  migrate            Run pending tenant migrations for an existing company")
 	fmt.Println("  encrypt-passwords  Encrypt legacy plaintext passwords in tenant_connections")
 	fmt.Println("  seed-modules       Register all platform & tenant modules into database")
+	fmt.Println("  seed-data          Seed master reference data into a tenant DB")
 	fmt.Println("")
 	fmt.Println("Environment:")
 	fmt.Println("  HRIS_ENCRYPTION_KEY    Required for encrypt-passwords (32-byte hex, 64 chars)")
@@ -155,6 +178,12 @@ func handleProvision(l *zap.Logger, dbManager *database.Manager, companyID, dbNa
 	tenantMigrator := migrator.New(tenantDB, l, migrator.MigrationsFS, tenantRoot)
 	if err := tenantMigrator.Up(); err != nil {
 		l.Fatal("Tenant migration failed", zap.Error(err))
+	}
+
+	// 5. Seed master reference data (religions, educations, provinces, districts, villages, etc.)
+	l.Info("Seeding tenant master data...")
+	if err := seedTenantMasterData(tenantDB, l); err != nil {
+		l.Fatal("Failed to seed tenant master data", zap.Error(err))
 	}
 
 	l.Info("Tenant provisioning completed successfully",

@@ -43,7 +43,12 @@ CREATE TABLE IF NOT EXISTS organization_levels (
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS zones (
     id          CHAR(36) PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL,
+    name        VARCHAR(255) NOT NULL,
     zone        VARCHAR(200) NOT NULL,
+    region      VARCHAR(100) NULL,
+    is_active   TINYINT(1) DEFAULT 1,
+    sort_order  INT DEFAULT 0,
     description VARCHAR(255) NOT NULL,
     created_by  CHAR(36) NULL,
     updated_by  CHAR(36) NULL,

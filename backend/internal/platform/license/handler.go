@@ -78,3 +78,19 @@ func (h *Handler) UpdateLicense(c *gin.Context) {
 
 	httputil.UpdatedJSON(c, response, "license.updated")
 }
+
+// DeleteLicense menangani DELETE /api/v1/platform/licenses/:id
+func (h *Handler) DeleteLicense(c *gin.Context) {
+	id := c.Param("id")
+
+	if err := h.service.DeleteLicense(id); err != nil {
+		if err.Error() == "license not found: record not found" || err.Error() == "license not found: license not found" {
+			httputil.NotFound(c, err.Error())
+			return
+		}
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	httputil.DeletedJSON(c, "license.deleted")
+}

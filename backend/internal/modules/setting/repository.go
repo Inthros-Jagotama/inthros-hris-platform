@@ -31,7 +31,7 @@ func (r *Repository) create(ctx context.Context, model interface{}) error {
 	return db.Create(model).Error
 }
 
-func (r *Repository) findByID(ctx context.Context, model interface{}, id uuid.UUID, table string) error {
+func (r *Repository) findByID(ctx context.Context, model interface{}, id interface{}, table string) error {
 	db, err := r.getDB(ctx)
 	if err != nil { return err }
 	return db.First(model, "id = ?", id).Error
@@ -50,7 +50,7 @@ func (r *Repository) findAll(ctx context.Context, model interface{}, table strin
 	return total, nil
 }
 
-func (r *Repository) findAllByParent(ctx context.Context, model interface{}, parentField string, parentID uuid.UUID, order string) error {
+func (r *Repository) findAllByParent(ctx context.Context, model interface{}, parentField string, parentID interface{}, order string) error {
 	db, err := r.getDB(ctx)
 	if err != nil { return err }
 	return db.Where(fmt.Sprintf("%s = ?", parentField), parentID).Order(order).Find(model).Error
@@ -62,7 +62,7 @@ func (r *Repository) update(ctx context.Context, model interface{}) error {
 	return db.Save(model).Error
 }
 
-func (r *Repository) softDelete(ctx context.Context, model interface{}, id uuid.UUID) error {
+func (r *Repository) softDelete(ctx context.Context, model interface{}, id interface{}) error {
 	db, err := r.getDB(ctx)
 	if err != nil { return err }
 	return db.Where("id = ?", id).Delete(model).Error
@@ -96,7 +96,7 @@ func (r *Repository) DeleteZone(ctx context.Context, id uuid.UUID) error { retur
 
 // ── Province ──
 func (r *Repository) CreateProvince(ctx context.Context, p *Province) error { return r.create(ctx, p) }
-func (r *Repository) FindProvinceByID(ctx context.Context, id uuid.UUID) (*Province, error) {
+func (r *Repository) FindProvinceByID(ctx context.Context, id string) (*Province, error) {
 	var p Province
 	if err := r.findByID(ctx, &p, id, "provinces"); err != nil {
 		return nil, fmt.Errorf("province not found: %w", err)
@@ -116,11 +116,11 @@ func (r *Repository) FindAllProvincesList(ctx context.Context) ([]Province, erro
 	return provinces, nil
 }
 func (r *Repository) UpdateProvince(ctx context.Context, p *Province) error { return r.update(ctx, p) }
-func (r *Repository) DeleteProvince(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &Province{}, id) }
+func (r *Repository) DeleteProvince(ctx context.Context, id string) error { return r.softDelete(ctx, &Province{}, id) }
 
 // ── Regency ──
 func (r *Repository) CreateRegency(ctx context.Context, reg *Regency) error { return r.create(ctx, reg) }
-func (r *Repository) FindRegencyByID(ctx context.Context, id uuid.UUID) (*Regency, error) {
+func (r *Repository) FindRegencyByID(ctx context.Context, id string) (*Regency, error) {
 	var reg Regency
 	if err := r.findByID(ctx, &reg, id, "regencies"); err != nil {
 		return nil, fmt.Errorf("regency not found: %w", err)
@@ -132,7 +132,7 @@ func (r *Repository) FindAllRegencies(ctx context.Context, page, perPage int) ([
 	total, err := r.findAll(ctx, &regencies, "regencies", page, perPage, "code ASC")
 	return regencies, total, err
 }
-func (r *Repository) FindRegenciesByProvince(ctx context.Context, provinceID uuid.UUID) ([]Regency, error) {
+func (r *Repository) FindRegenciesByProvince(ctx context.Context, provinceID string) ([]Regency, error) {
 	var regencies []Regency
 	if err := r.findAllByParent(ctx, &regencies, "province_id", provinceID, "code ASC"); err != nil {
 		return nil, err
@@ -140,11 +140,11 @@ func (r *Repository) FindRegenciesByProvince(ctx context.Context, provinceID uui
 	return regencies, nil
 }
 func (r *Repository) UpdateRegency(ctx context.Context, reg *Regency) error { return r.update(ctx, reg) }
-func (r *Repository) DeleteRegency(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &Regency{}, id) }
+func (r *Repository) DeleteRegency(ctx context.Context, id string) error { return r.softDelete(ctx, &Regency{}, id) }
 
 // ── District ──
 func (r *Repository) CreateDistrict(ctx context.Context, d *District) error { return r.create(ctx, d) }
-func (r *Repository) FindDistrictByID(ctx context.Context, id uuid.UUID) (*District, error) {
+func (r *Repository) FindDistrictByID(ctx context.Context, id string) (*District, error) {
 	var d District
 	if err := r.findByID(ctx, &d, id, "districts"); err != nil {
 		return nil, fmt.Errorf("district not found: %w", err)
@@ -156,7 +156,7 @@ func (r *Repository) FindAllDistricts(ctx context.Context, page, perPage int) ([
 	total, err := r.findAll(ctx, &districts, "districts", page, perPage, "code ASC")
 	return districts, total, err
 }
-func (r *Repository) FindDistrictsByRegency(ctx context.Context, regencyID uuid.UUID) ([]District, error) {
+func (r *Repository) FindDistrictsByRegency(ctx context.Context, regencyID string) ([]District, error) {
 	var districts []District
 	if err := r.findAllByParent(ctx, &districts, "regency_id", regencyID, "code ASC"); err != nil {
 		return nil, err
@@ -164,11 +164,11 @@ func (r *Repository) FindDistrictsByRegency(ctx context.Context, regencyID uuid.
 	return districts, nil
 }
 func (r *Repository) UpdateDistrict(ctx context.Context, d *District) error { return r.update(ctx, d) }
-func (r *Repository) DeleteDistrict(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &District{}, id) }
+func (r *Repository) DeleteDistrict(ctx context.Context, id string) error { return r.softDelete(ctx, &District{}, id) }
 
 // ── Village ──
 func (r *Repository) CreateVillage(ctx context.Context, v *Village) error { return r.create(ctx, v) }
-func (r *Repository) FindVillageByID(ctx context.Context, id uuid.UUID) (*Village, error) {
+func (r *Repository) FindVillageByID(ctx context.Context, id string) (*Village, error) {
 	var v Village
 	if err := r.findByID(ctx, &v, id, "villages"); err != nil {
 		return nil, fmt.Errorf("village not found: %w", err)
@@ -180,7 +180,7 @@ func (r *Repository) FindAllVillages(ctx context.Context, page, perPage int) ([]
 	total, err := r.findAll(ctx, &villages, "villages", page, perPage, "code ASC")
 	return villages, total, err
 }
-func (r *Repository) FindVillagesByDistrict(ctx context.Context, districtID uuid.UUID) ([]Village, error) {
+func (r *Repository) FindVillagesByDistrict(ctx context.Context, districtID string) ([]Village, error) {
 	var villages []Village
 	if err := r.findAllByParent(ctx, &villages, "district_id", districtID, "code ASC"); err != nil {
 		return nil, err
@@ -188,7 +188,7 @@ func (r *Repository) FindVillagesByDistrict(ctx context.Context, districtID uuid
 	return villages, nil
 }
 func (r *Repository) UpdateVillage(ctx context.Context, v *Village) error { return r.update(ctx, v) }
-func (r *Repository) DeleteVillage(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &Village{}, id) }
+func (r *Repository) DeleteVillage(ctx context.Context, id string) error { return r.softDelete(ctx, &Village{}, id) }
 
 // ── Education ──
 func (r *Repository) CreateEducation(ctx context.Context, e *Education) error { return r.create(ctx, e) }
@@ -342,3 +342,45 @@ func (r *Repository) FindAllSalaryGrades(ctx context.Context, page, perPage int)
 }
 func (r *Repository) UpdateSalaryGrade(ctx context.Context, sg *SalaryGrade) error { return r.update(ctx, sg) }
 func (r *Repository) DeleteSalaryGrade(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &SalaryGrade{}, id) }
+
+// ── TER ──
+func (r *Repository) CreateTER(ctx context.Context, t *TER) error { return r.create(ctx, t) }
+func (r *Repository) FindTERByID(ctx context.Context, id uuid.UUID) (*TER, error) {
+	var t TER
+	if err := r.findByID(ctx, &t, id, "ters"); err != nil {
+		return nil, fmt.Errorf("TER not found: %w", err)
+	}
+	return &t, nil
+}
+func (r *Repository) FindAllTERs(ctx context.Context, page, perPage int) ([]TER, int64, error) {
+	var list []TER
+	total, err := r.findAll(ctx, &list, "ters", page, perPage, "`group` ASC, bruto_min ASC")
+	return list, total, err
+}
+func (r *Repository) UpdateTER(ctx context.Context, t *TER) error { return r.update(ctx, t) }
+func (r *Repository) DeleteTER(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil { return err }
+	return db.Delete(&TER{}, "id = ?", id).Error
+}
+
+// ── PTKP ──
+func (r *Repository) CreatePTKP(ctx context.Context, p *PTKP) error { return r.create(ctx, p) }
+func (r *Repository) FindPTKPByID(ctx context.Context, id uuid.UUID) (*PTKP, error) {
+	var p PTKP
+	if err := r.findByID(ctx, &p, id, "ptkps"); err != nil {
+		return nil, fmt.Errorf("PTKP not found: %w", err)
+	}
+	return &p, nil
+}
+func (r *Repository) FindAllPTKPs(ctx context.Context, page, perPage int) ([]PTKP, int64, error) {
+	var list []PTKP
+	total, err := r.findAll(ctx, &list, "ptkps", page, perPage, "`group` ASC, ptkp ASC")
+	return list, total, err
+}
+func (r *Repository) UpdatePTKP(ctx context.Context, p *PTKP) error { return r.update(ctx, p) }
+func (r *Repository) DeletePTKP(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil { return err }
+	return db.Delete(&PTKP{}, "id = ?", id).Error
+}

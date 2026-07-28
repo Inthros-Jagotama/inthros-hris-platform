@@ -171,7 +171,7 @@ hris-platform/
 │   │   │   ├── training/            #   Training & Development (7 entities, 35 endpoints, 31 tests)
 │   │   │   ├── careerintelligence/   #   Career Intelligence & Talent Management (4 entities, 19 endpoints, 65 tests)
 │   │   │   ├── workforceintelligence/#   Workforce Intelligence & Strategic Planning (analytics layer)│   │   │   ├── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints)
-│   │   │   └── setting/              #   Settings — 14 reference CRUDs (Zones, Provinces, Regencies, Districts, Villages, Educations, Religions, MaritalStatuses, RelationshipTypes, Banks, EmploymentStatuses, Nationalities, JobFamilies, SalaryGrades)
+│   │   │   └── setting/              #   Settings — 16 reference CRUDs (Zones, Provinces, Regencies, Districts, Villages, Educations, Religions, MaritalStatuses, RelationshipTypes, Banks, EmploymentStatuses, Nationalities, JobFamilies, SalaryGrades, TER, PTKP)
 │   │   └── pkg/                      # Shared Kernel│       │   ├── config/               # Viper configuration loader
 │       │   ├── database/             # Multi-tenant DB manager
 │       │   ├── driver/               # Shared DB driver type
@@ -513,6 +513,7 @@ Semua perubahan role/permission akan otomatis me-reload enforcer (`Service.Sync(
 | `POST` | `/licenses` | Create license for company | ✅ | `license.create` (super_admin only) |
 | `GET` | `/licenses/:id` | Get license detail | ✅ | `license.view` (super_admin, company_admin) |
 | `PUT` | `/licenses/:id` | Update license | ✅ | `license.update` (super_admin only) |
+| `DELETE` | `/licenses/:id` | Soft-delete license (deactivates modules) | ✅ | `license.delete` (super_admin only) |
 
 #### 📊 Monitoring
 
@@ -864,22 +865,24 @@ Authorization: Bearer <access_token>
 
 Semua endpoint settings berada di `/api/v1/tenant/settings/`. Masing-masing entity memiliki 5 CRUD endpoint standar (`GET`, `POST`, `GET/:id`, `PUT/:id`, `DELETE/:id`):
 
-| Entity | Endpoint | Fields | Frontend View |
-|--------|----------|--------|:-------------:|
-| Zones | `/settings/zones` | Code, Name, Region, IsActive, SortOrder | `ZonesView.vue` |
-| Provinces | `/settings/provinces` | Code, Name, SortOrder | `ProvincesView.vue` |
-| Regencies | `/settings/regencies` | Code, Name, ProvinceID (parent), SortOrder | `RegenciesView.vue` |
-| Districts | `/settings/districts` | Code, Name, RegencyID (parent), SortOrder | `DistrictsView.vue` |
-| Villages | `/settings/villages` | Code, Name, DistrictID (parent), SortOrder | `VillagesView.vue` |
-| Educations | `/settings/educations` | Code, Name, SortOrder | `EducationsView.vue` |
-| Religions | `/settings/religions` | Code, Name, SortOrder | `ReligionsView.vue` |
-| Marital Statuses | `/settings/marital-statuses` | Code, Name, SortOrder | `MaritalStatusesView.vue` |
-| Relationship Types | `/settings/relationship-types` | Code, Name, SortOrder | `RelationshipTypesView.vue` |
-| Banks | `/settings/banks` | Code, Name, SortOrder | `BanksView.vue` |
-| Employment Statuses | `/settings/employment-statuses` | Code, Name, SortOrder | `EmploymentStatusesView.vue` |
-| Nationalities | `/settings/nationalities` | Code, Name, SortOrder | `NationalitiesView.vue` |
-| Job Families | `/settings/job-families` | Code, Name, SortOrder | `JobFamiliesView.vue` |
-| Salary Grades | `/settings/salary-grades` | Code, Name, Grade, MinSalary, MaxSalary, SortOrder | `SalaryGradesView.vue` |
+| Entity | Endpoint | Fields | PK Type | Frontend View |
+|--------|----------|--------|:-------:|:-------------:|
+| Zones | `/settings/zones` | Code, Name, Region, IsActive, SortOrder | `UUID` | `ZonesView.vue` |
+| Provinces | `/settings/provinces` | Code, Name | `CHAR(2)` — BPS code | `ProvincesView.vue` |
+| Regencies | `/settings/regencies` | Code, Name, ProvinceID (parent) | `CHAR(4)` — BPS code | `RegenciesView.vue` |
+| Districts | `/settings/districts` | Code, Name, RegencyID (parent) | `CHAR(6)` — BPS code | `DistrictsView.vue` |
+| Villages | `/settings/villages` | Code, Name, DistrictID (parent) | `CHAR(10)` — BPS code | `VillagesView.vue` |
+| Educations | `/settings/educations` | Code, Name, SortOrder | `UUID` | `EducationsView.vue` |
+| Religions | `/settings/religions` | Code, Name, SortOrder | `UUID` | `ReligionsView.vue` |
+| Marital Statuses | `/settings/marital-statuses` | Code, Name, SortOrder | `UUID` | `MaritalStatusesView.vue` |
+| Relationship Types | `/settings/relationship-types` | Code, Name, SortOrder | `UUID` | `RelationshipTypesView.vue` |
+| Banks | `/settings/banks` | Code, Name, SortOrder | `UUID` | `BanksView.vue` |
+| Employment Statuses | `/settings/employment-statuses` | Code, Name, SortOrder | `UUID` | `EmploymentStatusesView.vue` |
+| Nationalities | `/settings/nationalities` | Code, Name, SortOrder | `UUID` | `NationalitiesView.vue` |
+| Job Families | `/settings/job-families` | Code, Name, SortOrder | `UUID` | `JobFamiliesView.vue` |
+| Salary Grades | `/settings/salary-grades` | Code, Name, Grade, MinSalary, MaxSalary, SortOrder | `UUID` | `SalaryGradesView.vue` |
+| Ters | `/settings/ters` | Group, BrutoMin, BrutoMax, Rate, SortOrder | `UUID` | `TersView.vue` |
+| Ptkps | `/settings/ptkps` | Status, DependentCount, Amount, SortOrder | `UUID` | `PtkpsView.vue` |
 
 > **Query parameters:** Semua endpoint GET mendukung `?page=&per_page=&search=&sort_by=&sort_order=` — standar server-side pagination & sorting. Untuk zona, ada tambahan `?active_only=true`.
 
@@ -1095,6 +1098,143 @@ frontend/platform-admin/src/
 ```
 
 ---
+
+## 💻 Development
+
+## 🔧 CLI Installer Commands
+
+CLI Installer (`go run ./cmd/installer`) menyediakan perintah untuk provisioning tenant, migrasi, dan seeding data.
+
+### Prerequisites
+
+```bash
+cd backend
+go mod download
+```
+
+### Perintah Dasar
+
+| Command | Deskripsi |
+|---------|-----------|
+| `provision` | Provision tenant baru (create DB + migrate + seed data) |
+| `migrate` | Jalankan migrasi pending untuk tenant |
+| `seed-data` | Seed master reference data ke tenant DB |
+| `seed-modules` | Register modul platform & tenant ke database |
+| `encrypt-passwords` | Encrypt legacy credentials |
+
+### Seeders — Master Reference Data
+
+Berikut data master yang di-seed ke setiap tenant baru (dan bisa di-re-seed untuk tenant existing):
+
+#### Reference Data (Simple CRUD)
+
+| Tabel | Records | Keterangan |
+|-------|:-------:|------------|
+| `religions` | 7 | Islam, Kristen, Katolik, Hindu, Budha, Konghucu, Lainnya |
+| `educations` | 12 | TK s.d. S3 |
+| `marital_statuses` | 4 | Belum Kawin, Kawin, Cerai Hidup, Cerai Mati |
+| `relationship_types` | 10 | Suami, Istri, Anak, Orang Tua, dll |
+| `employment_statuses` | 6 | Tetap, Kontrak, Magang, Harian Lepas, Outsourcing, Pensiunan |
+| `banks` | 25 | Bank Mandiri, BCA, BNI, BRI, BSI, dll |
+| `nationalities` | 18 | Indonesia, Malaysia, Singapore, dll |
+| `job_families` | 15 | Finance, HR, IT, Marketing, Sales, dll |
+| `countries` | 43 | ID, MY, SG, US, GB, JP, CN, dll |
+
+#### Data Wilayah Indonesia (Bulk)
+
+| Tabel | Records | PK Type | Sumber Data |
+|-------|:-------:|:-------:|:-----------:|
+| `provinces` | **38** | `CHAR(2)` — BPS code (e.g. `11`) | Kemendagri |
+| `regencies` | **188** | `CHAR(4)` — BPS code (e.g. `1101`) | Kemendagri |
+| `districts` | **7.230** | `CHAR(6)` — BPS code (e.g. `110101`) | SQL bulk file (`002_seed_districts.sql`) |
+| `villages` | **83.441** | `CHAR(10)` — BPS code (e.g. `1101012001`) | SQL bulk file (`003_seed_villages.sql`) |
+
+> ℹ️ **ID = Code:** Tabel wilayah menggunakan kode BPS (Badan Pusat Statistik) sebagai primary key, bukan UUID. Hal ini karena data wilayah merupakan referensi tetap yang di-seed dari dataset Kemendagri — foreign keys (`province_id`, `regency_id`, `district_id`) menggunakan kode BPS parent yang sesuai.
+
+#### Payroll & Pajak Data
+
+| Tabel | Records | Keterangan |
+|-------|:-------:|------------|
+| `salary_grades` | **12** | Golongan IA s.d. IVC (Rp1,5jt–200jt) |
+| `ptkps` | **12** | Status PTKP TK/0–K/I/3 (Rp54jt–126jt) |
+| `pph21_ptkp_rates` | **12** | PTKP rates 2024 |
+| `pph21_tax_brackets` | **5** | Bracket PPh21: 5%–35% (UU HPP) |
+| `ters` | **124** | TER Group A=44, B=40, C=40 (rate 0%–34%) |
+| `bpjs_settings` | **1** | Default BPJS 2024 (health max Rp12jt) |
+| `bpjs_rate_components` | **13** | HEALTH(2), JHT(2), JP(2), JKK(5), JKM(1), JKP(1) |
+
+**Total:** ~90.948 records (termasuk 83.441 villages + 7.230 districts)
+
+### Contoh Penggunaan
+
+#### 1. Provision Tenant Baru (Auto-Seed)
+
+```bash
+cd backend
+
+# Provision + auto-migrate + auto-seed (satu perintah)
+go run ./cmd/installer provision --company=<uuid> --config=./config/config.yaml
+```
+
+Ini akan:
+1. Create database `hris_tenant_<uuid[:8]>`
+2. Save TenantConnection
+3. Jalankan 143+ migration
+4. ✅ **Auto-seed semua data master** (~90.948 records)
+
+#### 2. Seed Data ke Tenant Existing
+
+```bash
+# Seed semua data master (idempotent — record yang sudah ada di-skip)
+go run ./cmd/installer seed-data --company=<uuid> --config=./config/config.yaml
+```
+
+#### 3. Jalankan Migrasi Tenant
+
+```bash
+go run ./cmd/installer migrate --company=<uuid> --config=./config/config.yaml
+```
+
+#### 4. Register Modules
+
+```bash
+# Daftarkan module platform & tenant ke database
+make seed-modules
+# atau:
+go run ./cmd/installer seed-modules --config=./config/config.yaml
+```
+
+#### 5. Encrypt Legacy Passwords
+
+```bash
+export HRIS_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+
+go run ./cmd/installer encrypt-passwords --config=./config/config.yaml
+```
+
+### Makefile Shortcuts
+
+| Perintah | Fungsi |
+|---------|--------|
+| `make seed-modules` | Register modules ke platform database |
+| `make seed` | Jalankan platform seeding (via server) |
+| `make migrate` | Jalankan platform migrations |
+| `make build-installer` | Build CLI installer binary (ke `bin/installer`) |
+
+> **Catatan:** `make seed` (server) berbeda dari `go run ./cmd/installer seed-data` (installer). Gunakan `make seed` untuk platform-level dan installer `seed-data --company=<uuid>` untuk tenant-level master data.
+
+### Idempotency
+
+Semua seeder bersifat **idempotent** — jika dijalankan ulang, record yang sudah ada akan di-skip (berdasarkan UUID deterministik).
+
+```
+Contoh output:
+  religions                  inserted=0     skipped=7     5ms
+  districts                  inserted=0     skipped=7293  2.3s
+  salary_grades              inserted=0     skipped=12    8ms
+  bpjs_settings              inserted=0     skipped=1     5ms
+  ters                       inserted=0     skipped=124   15ms
+```
 
 ## 💻 Development
 
@@ -1556,7 +1696,7 @@ POST /api/v1/platform/companies
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
 | ✅ | Project completion dashboard (14 modules, 1004+ tests, 143 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
-| ✅ | OpenAPI comprehensive report (626 endpoints, 412 schemas, 27 tags) | `docs/openapi-report.md` |
+| ✅ | OpenAPI comprehensive report (651 endpoints, 426 schemas, 27 tags) | `docs/openapi-report.md` |
 | ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
@@ -1816,7 +1956,7 @@ $ go build ./...  # ✅ Berhasil
 |---|---|
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap |
 | [`docs/PROJECT_COMPLETION_DASHBOARD.md`](docs/PROJECT_COMPLETION_DASHBOARD.md) | **NEW** — Project completion dashboard (14 modules, 939+ tests, 139 tables) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v9 — 525 endpoints, 334 schemas, 23 tags) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v14 — 651 endpoints, 426 schemas, 27 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
 | [`docs/analisis-blueprint-vs-existing.md`](docs/analisis-blueprint-vs-existing.md) | Analisis blueprint vs existing Laravel app |
 | [`backend/.env.example`](backend/.env.example) | Template environment variables |

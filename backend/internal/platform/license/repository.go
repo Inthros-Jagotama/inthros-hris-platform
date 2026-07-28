@@ -12,16 +12,18 @@ type Repository struct {
 	db *gorm.DB
 }
 
-// FindPackageNameByID mencari nama package yang published berdasarkan ID.
+// FindPackageNameByID mencari nama package berdasarkan ID (semua status).
 // Cross-module query ke tabel packages (package management module).
+// Mengizinkan semua status package (draft, published, archived) agar
+// admin dapat membuat/mengupdate lisensi dengan package apapun.
 func (r *Repository) FindPackageNameByID(packageID uuid.UUID) (string, error) {
 	var name string
 	row := r.db.Table("packages").
 		Select("name").
-		Where("id = ? AND status = ?", packageID.String(), "published").
+		Where("id = ?", packageID.String()).
 		Row()
 	if err := row.Scan(&name); err != nil {
-		return "", fmt.Errorf("published package not found: %w", err)
+		return "", fmt.Errorf("package not found: %w", err)
 	}
 	return name, nil
 }
@@ -126,6 +128,14 @@ func (r *Repository) Create(license *License) error {
 func (r *Repository) Update(license *License) error {
 	if err := r.db.Save(license).Error; err != nil {
 		return fmt.Errorf("failed to update license: %w", err)
+	}
+	return nil
+}
+
+// SoftDelete melakukan soft-delete lisensi berdasarkan ID.
+func (r *Repository) SoftDelete(id uuid.UUID) error {
+	if err := r.db.Where("id = ?", id).Delete(&License{}).Error; err != nil {
+		return fmt.Errorf("failed to delete license: %w", err)
 	}
 	return nil
 }

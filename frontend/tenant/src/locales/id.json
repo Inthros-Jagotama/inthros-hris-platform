@@ -56,7 +56,8 @@
     "actions": "Aksi",
     "status": "Status",
     "name": "Nama",
-    "description": "Deskripsi"
+    "description": "Deskripsi",
+    "items": "item"
   },
 
   "form": {
@@ -121,6 +122,32 @@
     "reimbursement": "Reimbursemen",
     "workforce_intel": "Intel Tenaga Kerja",
     "career_intel": "Intel Karir"
+  },
+
+  "org_summary": {
+    "title": "Ringkasan Organisasi",
+    "description": "Kelola surat keputusan (SK) pendirian organisasi dan ringkasan struktur.",
+    "new": "Ringkasan Baru",
+    "edit": "Ubah Ringkasan",
+    "code": "Kode",
+    "code_placeholder": "Mis: ORG-001",
+    "decree_no": "No. SK",
+    "decree_no_placeholder": "Mis: SK-2024/001",
+    "decree_date": "Tanggal SK",
+    "decree_date_placeholder": "Pilih tanggal SK",
+    "decree": "SK",
+    "date_label": "Tanggal",
+    "orgs": "Organisasi",
+    "orgs_attached": "{n} organisasi terikat",
+    "empty_title": "Belum ada ringkasan organisasi",
+    "empty_hint": "Buat ringkasan untuk mendaftarkan SK pendirian organisasi.",
+    "go_to_tree": "Pohon Organisasi",
+    "confirm_delete_title": "Hapus Ringkasan",
+    "confirm_delete": "Hapus ringkasan {code} - {decree}? Tindakan ini tidak dapat dibatalkan.",
+    "delete_warning": "Ringkasan ini memiliki {n} organisasi terikat. Hapus organisasi terlebih dahulu.",
+    "created": "Ringkasan berhasil dibuat",
+    "updated": "Ringkasan berhasil diubah",
+    "deleted": "Ringkasan berhasil dihapus"
   },
 
   "organization": {
@@ -390,7 +417,9 @@
     "nationalities": "Kebangsaan",
     "banks": "Bank",
     "job_families": "Grup Jabatan",
-    "salary_grades": "Grade Gaji"
+    "salary_grades": "Grade Gaji",
+    "ters": "TER (Tarif Efektif)",
+    "ptkps": "PTKP"
   },
 
   "provinces": {
@@ -486,7 +515,7 @@
     "new_religion": "Agama Baru",
     "edit_religion": "Ubah Agama",
     "code": "Kode",
-    "name": "Nama Agama",
+    "name": "Agama",
     "sort_order": "Urutan",
     "search": "Cari agama...",
     "empty_title": "Belum ada agama dibuat",
@@ -612,6 +641,41 @@
     "created": "Grade gaji berhasil dibuat",
     "updated": "Grade gaji berhasil diperbarui",
     "deleted": "Grade gaji berhasil dihapus"
+  },
+
+  "ters": {
+    "title": "TER (Tarif Efektif Rata-rata)",
+    "description": "Kelola tarif efektif rata-rata untuk perhitungan PPh21.",
+    "new": "TER Baru",
+    "edit": "Ubah TER",
+    "group": "Grup",
+    "bruto_min": "Bruto Min",
+    "bruto_max": "Bruto Max",
+    "rate": "Tarif",
+    "select_group": "Pilih grup...",
+    "empty_title": "Belum ada tarif TER dibuat",
+    "confirm_delete": "Hapus TER {name}?",
+    "confirm_delete_title": "Hapus TER",
+    "created": "TER berhasil dibuat",
+    "updated": "TER berhasil diperbarui",
+    "deleted": "TER berhasil dihapus"
+  },
+
+  "ptkps": {
+    "title": "PTKP",
+    "description": "Kelola besaran penghasilan tidak kena pajak.",
+    "new": "PTKP Baru",
+    "edit": "Ubah PTKP",
+    "name": "Nama",
+    "group": "Grup",
+    "ptkp": "Nilai PTKP",
+    "select_group": "Pilih grup...",
+    "empty_title": "Belum ada PTKP dibuat",
+    "confirm_delete": "Hapus PTKP \"{name}\"?",
+    "confirm_delete_title": "Hapus PTKP",
+    "created": "PTKP berhasil dibuat",
+    "updated": "PTKP berhasil diperbarui",
+    "deleted": "PTKP berhasil dihapus"
   },
 
   "time": {

@@ -16,10 +16,12 @@ const (
 )
 
 // NewModule membuat instance baru License Management Module.
-// Service dibuat secara internal.
+// Service dibuat secara internal (dengan nil moduleManager).
+// Untuk auto-activation module, gunakan NewModuleWithService dan inject
+// service yang sudah memiliki PackageModuleManager.
 func NewModule(dbManager *database.Manager, logger *zap.Logger, authMW, rbacMW gin.HandlerFunc) module.Module {
 	repo := NewRepository(dbManager.PlatformDB())
-	svc := NewService(repo, dbManager, logger)
+	svc := NewService(repo, dbManager, nil, logger)
 	return NewModuleWithService(svc, logger, authMW, rbacMW)
 }
 

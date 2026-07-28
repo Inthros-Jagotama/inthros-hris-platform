@@ -47,6 +47,7 @@ type CompanyModuleResponse struct {
 	CompanyID   string     `json:"company_id"`
 	ModuleID    string     `json:"module_id"`
 	ModuleName  string     `json:"module_name"`
+	ModuleSlug  string     `json:"module_slug"`
 	Enabled     bool       `json:"enabled"`
 	ActivatedAt *time.Time `json:"activated_at,omitempty"`
 }

@@ -98,11 +98,28 @@
           <Tag :value="data.status || 'active'" :severity="statusSeverity(data.status)" class="!text-xs" />
         </template>
       </Column>
-      <Column :header="t('common.actions')" :style="{ width: '80px' }">
+      <Column :header="t('common.actions')" :style="{ width: '120px' }">
         <template #body="{ data }">
           <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openEdit(data)" />
+          <Button
+            icon="pi pi-trash"
+            size="small"
+            text
+            severity="danger"
+            v-tooltip.left="{ value: t('licenses.tooltip_delete'), showDelay: 300 }"
+            @click="confirmDelete(data)"
+          />
         </template>
       </Column>
+
+    <!-- Delete Confirmation Dialog -->
+    <Dialog v-model:visible="deleteDialogVisible" :header="t('licenses.confirm_delete_title')" modal :style="{ width: '420px' }">
+      <p class="text-sm text-gray-600 dark:text-gray-300">{{ confirmDeleteMessage }}</p>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="deleteDialogVisible = false" />
+        <Button :label="t('common.delete')" severity="danger" size="small" :loading="deleting" :disabled="deleting" @click="handleDelete" />
+      </template>
+    </Dialog>
     </DataTable>
 
     <!-- Create/Edit Dialog -->
@@ -156,7 +173,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import api from '@/services/api'
-import { getValidationErrors } from '@/services/responseHandler'
+import { getValidationErrors, getErrorMessage } from '@/services/responseHandler'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
@@ -188,6 +205,12 @@ const saving = ref(false)
 const form = ref({ company_id: null, plan_type: 'trial', package_id: null, max_employees: 1, start_date: '', end_date: '' })
 const errors = ref({})
 
+// Delete state
+const deleteDialogVisible = ref(false)
+const deleting = ref(false)
+const deletingId = ref(null)
+const deletingName = ref('')
+
 // Filters
 const searchQuery = ref('')
 const statusFilter = ref(null)
@@ -209,7 +232,7 @@ const skeletonColumns = [
 const planOptions = computed(() => [
   { label: t('licenses.plan_trial'), value: 'trial' },
   { label: t('licenses.plan_basic'), value: 'basic' },
-  { label: t('licenses.plan_professional'), value: 'professional' },
+  { label: t('licenses.plan_professional'), value: 'pro' },
   { label: t('licenses.plan_enterprise'), value: 'enterprise' }
 ])
 
@@ -328,6 +351,36 @@ async function copyKey(key) {
     toast.add({ severity: 'success', summary: t('licenses.key_copied'), life: 1500 })
   } catch {
     toast.add({ severity: 'error', summary: t('message.error'), detail: t('message.operation_failed'), life: 2000 })
+  }
+}
+
+// Confirm delete dialog
+const confirmDeleteMessage = computed(() => {
+  const name = deletingName.value
+  if (typeof t('licenses.confirm_delete_message') === 'string') {
+    return t('licenses.confirm_delete_message').replace('{name}', name)
+  }
+  return `Delete license for company "${name}"? All package modules will be deactivated.`
+})
+
+function confirmDelete(data) {
+  deletingId.value = data.id
+  deletingName.value = data.company_name || data.company_id || ''
+  deleteDialogVisible.value = true
+}
+
+async function handleDelete() {
+  deleting.value = true
+  try {
+    await api.delete(`/api/v1/platform/licenses/${deletingId.value}`)
+    toast.add({ severity: 'success', summary: t('message.deleted'), life: 2000 })
+    deleteDialogVisible.value = false
+    await loadData()
+  } catch (e) {
+    const msg = getErrorMessage(e, t('message.operation_failed'))
+    toast.add({ severity: 'error', summary: t('message.error'), detail: msg, life: 3000 })
+  } finally {
+    deleting.value = false
   }
 }
 

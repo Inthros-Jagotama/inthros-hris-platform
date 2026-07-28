@@ -295,7 +295,32 @@
     "select_package": "Select package...",
     "tooltip_copy_key": "Copy license key",
     "key_copied": "License key copied",
-    "expiring_soon": "Expiring Soon"
+    "expiring_soon": "Expiring Soon",
+    "confirm_delete_title": "Delete License",
+    "confirm_delete_message": "Delete license for company \"{name}\"? All package modules will be deactivated for this company.",
+    "tooltip_delete": "Delete this license — deactivates all package modules"
+  },
+
+  "seed_data": {
+    "title": "Seed Data Status",
+    "description": "Seed data completeness for tenant databases",
+    "select_company": "Select company to check seed status",
+    "loading": "Loading seed data...",
+    "no_company": "Select a company to view seed data status",
+    "total_records": "Total Records",
+    "reference_data": "Reference Data",
+    "region_data": "Region Data",
+    "payroll_data": "Payroll & Tax Data",
+    "table": "Table",
+    "count": "Count",
+    "category": "Category",
+    "seed_all_hint": "Provision the company or run seed-data to populate missing tables",
+    "fully_seeded": "All tables seeded",
+    "partially_seeded": "Some tables missing",
+    "not_seeded": "Not seeded",
+    "time": "Time",
+    "tables": "tables",
+    "records": "records"
   },
 
   "monitoring": {

@@ -56,7 +56,8 @@
     "actions": "Actions",
     "status": "Status",
     "name": "Name",
-    "description": "Description"
+    "description": "Description",
+    "items": "items"
   },
 
   "form": {
@@ -121,6 +122,32 @@
     "reimbursement": "Reimbursement",
     "workforce_intel": "Workforce Intel",
     "career_intel": "Career Intel"
+  },
+
+  "org_summary": {
+    "title": "Organization Summary",
+    "description": "Manage organization establishment decrees and structure summaries.",
+    "new": "New Summary",
+    "edit": "Edit Summary",
+    "code": "Code",
+    "code_placeholder": "e.g. ORG-001",
+    "decree_no": "Decree Number",
+    "decree_no_placeholder": "e.g. SK-2024/001",
+    "decree_date": "Decree Date",
+    "decree_date_placeholder": "Select decree date",
+    "decree": "Decree",
+    "date_label": "Date",
+    "orgs": "Organizations",
+    "orgs_attached": "{n} organization(s) attached",
+    "empty_title": "No organization summaries",
+    "empty_hint": "Create a summary to register your organization establishment decree.",
+    "go_to_tree": "Organization Tree",
+    "confirm_delete_title": "Delete Summary",
+    "confirm_delete": "Delete summary {code} - {decree}? This action cannot be undone.",
+    "delete_warning": "This summary has {n} organization(s) attached. Remove them first.",
+    "created": "Summary created successfully",
+    "updated": "Summary updated successfully",
+    "deleted": "Summary deleted successfully"
   },
 
   "organization": {
@@ -390,7 +417,9 @@
     "nationalities": "Nationalities",
     "banks": "Banks",
     "job_families": "Job Families",
-    "salary_grades": "Salary Grades"
+    "salary_grades": "Salary Grades",
+    "ters": "TER (Tarif Efektif)",
+    "ptkps": "PTKP"
   },
 
   "provinces": {
@@ -486,7 +515,7 @@
     "new_religion": "New Religion",
     "edit_religion": "Edit Religion",
     "code": "Code",
-    "name": "Religion Name",
+    "name": "Religion",
     "sort_order": "Sort Order",
     "search": "Search religions...",
     "empty_title": "No religions created yet",
@@ -612,6 +641,41 @@
     "created": "Salary grade created successfully",
     "updated": "Salary grade updated successfully",
     "deleted": "Salary grade deleted successfully"
+  },
+
+  "ters": {
+    "title": "TER (Tarif Efektif Rata-rata)",
+    "description": "Manage effective average tax rates for PPh21 calculation.",
+    "new": "New TER",
+    "edit": "Edit TER",
+    "group": "Group",
+    "bruto_min": "Bruto Min",
+    "bruto_max": "Bruto Max",
+    "rate": "Rate",
+    "select_group": "Select group...",
+    "empty_title": "No TER rates created yet",
+    "confirm_delete": "Delete TER {name}?",
+    "confirm_delete_title": "Delete TER",
+    "created": "TER created successfully",
+    "updated": "TER updated successfully",
+    "deleted": "TER deleted successfully"
+  },
+
+  "ptkps": {
+    "title": "PTKP",
+    "description": "Manage non-taxable income thresholds.",
+    "new": "New PTKP",
+    "edit": "Edit PTKP",
+    "name": "Name",
+    "group": "Group",
+    "ptkp": "PTKP Amount",
+    "select_group": "Select group...",
+    "empty_title": "No PTKPs created yet",
+    "confirm_delete": "Delete PTKP \"{name}\"?",
+    "confirm_delete_title": "Delete PTKP",
+    "created": "PTKP created successfully",
+    "updated": "PTKP updated successfully",
+    "deleted": "PTKP deleted successfully"
   },
 
   "time": {

@@ -40,7 +40,9 @@ tag_order = sorted(tag_endpoints.keys(), key=lambda t: len(tag_endpoints[t]), re
 generated_date = datetime.now().strftime("%d %B %Y")
 
 lines = []
-lines.append(f"= HRIS Platform — OpenAPI Comprehensive Report (v8) =\n")
+# Human-readable report version (update this when significant changes are made)
+REPORT_VERSION = "v14"
+lines.append(f"= HRIS Platform — OpenAPI Comprehensive Report ({REPORT_VERSION}) =\n")
 lines.append("")
 lines.append(f"**Generated:** {generated_date}")
 lines.append(f"**Spec Version:** {version}")

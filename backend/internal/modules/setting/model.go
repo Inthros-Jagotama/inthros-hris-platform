@@ -9,26 +9,30 @@ import (
 
 // ── Zone ──
 type Zone struct {
-	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	Code      string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_zone_code" json:"code"`
-	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
-	Region    string         `gorm:"type:varchar(100)" json:"region,omitempty"`
-	IsActive  bool           `gorm:"default:true" json:"is_active"`
-	SortOrder int            `gorm:"default:0" json:"sort_order"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	ID          uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	Code        string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_zone_code" json:"code"`
+	Name        string         `gorm:"type:varchar(255);not null" json:"name"`
+	Zone        string         `gorm:"column:zone;type:varchar(200);not null" json:"-"`
+	Region      string         `gorm:"type:varchar(100)" json:"region,omitempty"`
+	Description string         `gorm:"column:description;type:varchar(255);not null" json:"description,omitempty"`
+	IsActive    bool           `gorm:"default:true" json:"is_active"`
+	SortOrder   int            `gorm:"default:0" json:"sort_order"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 func (Zone) TableName() string { return "zones" }
 func (z *Zone) BeforeCreate(tx *gorm.DB) error {
 	if z.ID == uuid.Nil { z.ID = uuid.New() }
+	if z.Zone == "" { z.Zone = z.Name }
+
 	return nil
 }
 
-// ── Province ──
+// ── Province (ID from BPS code, char(2)) ──
 type Province struct {
-	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	ID        string         `gorm:"type:char(2);primaryKey" json:"id"`
 	Code      string         `gorm:"type:varchar(10);not null;uniqueIndex:idx_province_code" json:"code"`
 	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -37,67 +41,51 @@ type Province struct {
 }
 
 func (Province) TableName() string { return "provinces" }
-func (p *Province) BeforeCreate(tx *gorm.DB) error {
-	if p.ID == uuid.Nil { p.ID = uuid.New() }
-	return nil
-}
 
-// ── Regency ──
+// ── Regency (ID from BPS code, char(4)) ──
 type Regency struct {
-	ID         uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	ID         string         `gorm:"type:char(4);primaryKey" json:"id"`
 	Code       string         `gorm:"type:varchar(10);not null;uniqueIndex:idx_regency_code" json:"code"`
 	Name       string         `gorm:"type:varchar(255);not null" json:"name"`
-	ProvinceID uuid.UUID      `gorm:"type:char(36);not null;index:idx_regency_province" json:"province_id"`
+	ProvinceID string         `gorm:"type:char(2);not null;index:idx_regency_province" json:"province_id"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 func (Regency) TableName() string { return "regencies" }
-func (r *Regency) BeforeCreate(tx *gorm.DB) error {
-	if r.ID == uuid.Nil { r.ID = uuid.New() }
-	return nil
-}
 
-// ── District ──
+// ── District (ID from BPS code, char(6)) ──
 type District struct {
-	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	Code      string         `gorm:"type:varchar(10);not null;uniqueIndex:idx_district_code" json:"code"`
+	ID        string         `gorm:"type:char(6);primaryKey" json:"id"`
+	Code      string         `gorm:"type:varchar(15);not null;uniqueIndex:idx_district_code" json:"code"`
 	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
-	RegencyID uuid.UUID      `gorm:"type:char(36);not null;index:idx_district_regency" json:"regency_id"`
+	RegencyID string         `gorm:"type:char(4);not null;index:idx_district_regency" json:"regency_id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 func (District) TableName() string { return "districts" }
-func (d *District) BeforeCreate(tx *gorm.DB) error {
-	if d.ID == uuid.Nil { d.ID = uuid.New() }
-	return nil
-}
 
-// ── Village ──
+// ── Village (ID from BPS code, char(10)) ──
 type Village struct {
-	ID         uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	ID         string         `gorm:"type:char(10);primaryKey" json:"id"`
 	Code       string         `gorm:"type:varchar(15);not null;uniqueIndex:idx_village_code" json:"code"`
 	Name       string         `gorm:"type:varchar(255);not null" json:"name"`
-	DistrictID uuid.UUID      `gorm:"type:char(36);not null;index:idx_village_district" json:"district_id"`
+	DistrictID string         `gorm:"type:char(6);not null;index:idx_village_district" json:"district_id"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 func (Village) TableName() string { return "villages" }
-func (v *Village) BeforeCreate(tx *gorm.DB) error {
-	if v.ID == uuid.Nil { v.ID = uuid.New() }
-	return nil
-}
 
 // ── Education ──
 type Education struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	Code      string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_education_code" json:"code"`
-	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
+	Name      string         `gorm:"column:education;type:varchar(200);not null" json:"name"`
 	SortOrder int            `gorm:"default:0" json:"sort_order"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -114,7 +102,7 @@ func (e *Education) BeforeCreate(tx *gorm.DB) error {
 type Religion struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	Code      string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_religion_code" json:"code"`
-	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
+	Name      string         `gorm:"column:religion;type:varchar(200);not null" json:"name"`
 	SortOrder int            `gorm:"default:0" json:"sort_order"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -131,7 +119,7 @@ func (r *Religion) BeforeCreate(tx *gorm.DB) error {
 type MaritalStatus struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	Code      string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_marital_status_code" json:"code"`
-	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
+	Name      string         `gorm:"column:marital_status;type:varchar(100);not null" json:"name"`
 	SortOrder int            `gorm:"default:0" json:"sort_order"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -247,5 +235,38 @@ type SalaryGrade struct {
 func (SalaryGrade) TableName() string { return "salary_grades" }
 func (sg *SalaryGrade) BeforeCreate(tx *gorm.DB) error {
 	if sg.ID == uuid.Nil { sg.ID = uuid.New() }
+	return nil
+}
+
+// ── TER (Tarif Efektif Rata-rata) ──
+type TER struct {
+	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	Group     string         `gorm:"column:group;type:char(1);not null;index:idx_ter_group" json:"group"`
+	BrutoMin  *int64         `gorm:"column:bruto_min" json:"bruto_min,omitempty"`
+	BrutoMax  *int64         `gorm:"column:bruto_max" json:"bruto_max,omitempty"`
+	Rate      float64        `gorm:"type:decimal(10,2);not null" json:"rate"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+}
+
+func (TER) TableName() string { return "ters" }
+func (t *TER) BeforeCreate(tx *gorm.DB) error {
+	if t.ID == uuid.Nil { t.ID = uuid.New() }
+	return nil
+}
+
+// ── PTKP (Penghasilan Tidak Kena Pajak) ──
+type PTKP struct {
+	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
+	PTKP      int64          `gorm:"column:ptkp;not null" json:"ptkp"`
+	Group     string         `gorm:"column:group;type:char(1);not null;index:idx_ptkp_group" json:"group"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+}
+
+func (PTKP) TableName() string { return "ptkps" }
+func (p *PTKP) BeforeCreate(tx *gorm.DB) error {
+	if p.ID == uuid.Nil { p.ID = uuid.New() }
 	return nil
 }

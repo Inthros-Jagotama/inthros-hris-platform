@@ -24,9 +24,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/stores/auth'
+import { useActiveModules } from '@/stores/activeModules'
 import { useI18n } from '@/composables/useI18n'
 import Sidebar from './Sidebar.vue'
 import HeaderBar from './HeaderBar.vue'
@@ -34,8 +35,14 @@ import HeaderBar from './HeaderBar.vue'
 const router = useRouter()
 const route = useRoute()
 const { logout } = useAuth()
+const activeMod = useActiveModules()
 const { t } = useI18n()
 const sidebarCollapsed = ref(false)
+
+// Fetch active modules on mount
+onMounted(() => {
+  activeMod.fetchActiveModules()
+})
 
 /**
  * Bilingual page title & description via route.meta.title / meta.description.

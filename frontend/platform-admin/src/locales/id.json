@@ -295,7 +295,32 @@
     "select_package": "Pilih paket...",
     "tooltip_copy_key": "Salin kunci lisensi",
     "key_copied": "Kunci lisensi disalin",
-    "expiring_soon": "Segera Kadaluwarsa"
+    "expiring_soon": "Segera Kadaluwarsa",
+    "confirm_delete_title": "Hapus Lisensi",
+    "confirm_delete_message": "Hapus lisensi untuk perusahaan \"{name}\"? Semua modul paket akan dinonaktifkan untuk perusahaan ini.",
+    "tooltip_delete": "Hapus lisensi ini — menonaktifkan semua modul paket"
+  },
+
+  "seed_data": {
+    "title": "Status Data Seed",
+    "description": "Kelengkapan data master di database tenant",
+    "select_company": "Pilih perusahaan untuk cek status seed",
+    "loading": "Memuat data seed...",
+    "no_company": "Pilih perusahaan untuk melihat status data seed",
+    "total_records": "Total Record",
+    "reference_data": "Data Referensi",
+    "region_data": "Data Wilayah",
+    "payroll_data": "Data Penggajian & Pajak",
+    "table": "Tabel",
+    "count": "Jumlah",
+    "category": "Kategori",
+    "seed_all_hint": "Provision perusahaan atau jalankan seed-data untuk mengisi tabel yang hilang",
+    "fully_seeded": "Semua tabel terisi",
+    "partially_seeded": "Beberapa tabel belum terisi",
+    "not_seeded": "Belum di-seed",
+    "time": "Waktu",
+    "tables": "tabel",
+    "records": "record"
   },
 
   "monitoring": {

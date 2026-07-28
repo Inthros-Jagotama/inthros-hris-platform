@@ -11,23 +11,44 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/database"
 )
 
+// ── PackageModuleManager ──
+
+// PackageModuleManager mendefinisikan interface untuk mengaktifkan/menonaktifkan
+// modul dari suatu package saat lisensi dibuat/diupdate.
+// Diimplementasikan oleh adapter di main.go untuk menghindari circular dependency.
+type PackageModuleManager interface {
+	// ActivatePackageModules mengaktifkan semua modul dalam package untuk company.
+	// Mengembalikan daftar nama modul yang berhasil diaktifkan.
+	ActivatePackageModules(packageID, companyID string) ([]string, error)
+
+	// DeactivatePackageModules menonaktifkan semua modul dalam package untuk company.
+	// Mengembalikan daftar nama modul yang berhasil dinonaktifkan.
+	DeactivatePackageModules(packageID, companyID string) ([]string, error)
+}
+
+// ── Service ──
+
 // Service untuk business logic License Management.
 type Service struct {
-	repo      *Repository
-	dbManager *database.Manager
-	logger    *zap.Logger
+	repo          *Repository
+	dbManager     *database.Manager
+	moduleManager PackageModuleManager
+	logger        *zap.Logger
 }
 
 // NewService membuat Service baru.
-func NewService(repo *Repository, dbManager *database.Manager, logger *zap.Logger) *Service {
+// moduleManager opsional — jika nil, auto-activation module tidak terjadi.
+func NewService(repo *Repository, dbManager *database.Manager, moduleManager PackageModuleManager, logger *zap.Logger) *Service {
 	return &Service{
-		repo:      repo,
-		dbManager: dbManager,
-		logger:    logger,
+		repo:          repo,
+		dbManager:     dbManager,
+		moduleManager: moduleManager,
+		logger:        logger,
 	}
 }
 
 // CreateLicense membuat lisensi baru untuk company.
+// Jika PackageID disertakan, modul-modul dalam package akan auto-diaktifkan.
 func (s *Service) CreateLicense(req CreateLicenseRequest) (*LicenseResponse, error) {
 	cid, err := uuid.Parse(req.CompanyID)
 	if err != nil {
@@ -95,7 +116,7 @@ func (s *Service) CreateLicense(req CreateLicenseRequest) (*LicenseResponse, err
 
 		pkgName, err := s.repo.FindPackageNameByID(pid)
 		if err != nil {
-			return nil, fmt.Errorf("published package not found: %w", err)
+			return nil, fmt.Errorf("package not found: %w", err)
 		}
 
 		license.PackageID = &pid
@@ -116,6 +137,25 @@ func (s *Service) CreateLicense(req CreateLicenseRequest) (*LicenseResponse, err
 		zap.String("company_id", req.CompanyID),
 		zap.String("plan_type", req.PlanType),
 	)
+
+	// Auto-activate package modules after license created
+	if req.PackageID != "" && s.moduleManager != nil {
+		activated, err := s.moduleManager.ActivatePackageModules(req.PackageID, req.CompanyID)
+		if err != nil {
+			// Log warning tapi tidak gagalkan pembuatan license
+			s.logger.Warn("Failed to auto-activate package modules",
+				zap.String("package_id", req.PackageID),
+				zap.String("company_id", req.CompanyID),
+				zap.Error(err),
+			)
+		} else {
+			s.logger.Info("Package modules auto-activated",
+				zap.String("package_id", req.PackageID),
+				zap.String("company_id", req.CompanyID),
+				zap.Strings("modules", activated),
+			)
+		}
+	}
 
 	response := license.ToResponse()
 	return &response, nil
@@ -183,6 +223,9 @@ func (s *Service) ListLicenses(page, perPage int) (*PaginatedResponse, error) {
 }
 
 // UpdateLicense mengupdate lisensi.
+// Jika package_id berubah, module modules akan disesuaikan:
+// - Old package modules di-deactivate
+// - New package modules di-activate
 func (s *Service) UpdateLicense(id string, req UpdateLicenseRequest) (*LicenseResponse, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -193,6 +236,13 @@ func (s *Service) UpdateLicense(id string, req UpdateLicenseRequest) (*LicenseRe
 	if err != nil {
 		return nil, err
 	}
+
+	// Simpan old package_id sebelum diupdate
+	var oldPackageID string
+	if license.PackageID != nil {
+		oldPackageID = license.PackageID.String()
+	}
+	companyID := license.CompanyID.String()
 
 	if req.PlanType != nil {
 		license.PlanType = *req.PlanType
@@ -219,6 +269,9 @@ func (s *Service) UpdateLicense(id string, req UpdateLicenseRequest) (*LicenseRe
 		}
 	}
 
+	// Track new package_id untuk perubahan
+	var newPackageID string
+
 	// Optional: update package association
 	if req.PackageID != nil {
 		if *req.PackageID == "" {
@@ -232,10 +285,11 @@ func (s *Service) UpdateLicense(id string, req UpdateLicenseRequest) (*LicenseRe
 			}
 			pkgName, err := s.repo.FindPackageNameByID(pid)
 			if err != nil {
-				return nil, fmt.Errorf("published package not found: %w", err)
+				return nil, fmt.Errorf("package not found: %w", err)
 			}
 			license.PackageID = &pid
 			license.PackageName = pkgName
+			newPackageID = *req.PackageID
 		}
 	}
 
@@ -243,6 +297,91 @@ func (s *Service) UpdateLicense(id string, req UpdateLicenseRequest) (*LicenseRe
 		return nil, err
 	}
 
+	// Handle module changes based on package_id transition
+	if s.moduleManager != nil {
+		// Case 1: Package changed from A to B (or A to none)
+		if oldPackageID != "" && (newPackageID == "" || newPackageID != oldPackageID) {
+			deactivated, err := s.moduleManager.DeactivatePackageModules(oldPackageID, companyID)
+			if err != nil {
+				s.logger.Warn("Failed to deactivate old package modules during license update",
+					zap.String("license_id", id),
+					zap.String("old_package_id", oldPackageID),
+					zap.Error(err),
+				)
+			} else if len(deactivated) > 0 {
+				s.logger.Info("Old package modules deactivated during license update",
+					zap.String("old_package_id", oldPackageID),
+					zap.Strings("modules", deactivated),
+				)
+			}
+		}
+
+		// Case 2: Package changed from none to B, or from A to B
+		if newPackageID != "" && (oldPackageID == "" || newPackageID != oldPackageID) {
+			activated, err := s.moduleManager.ActivatePackageModules(newPackageID, companyID)
+			if err != nil {
+				s.logger.Warn("Failed to activate new package modules during license update",
+					zap.String("license_id", id),
+					zap.String("new_package_id", newPackageID),
+					zap.Error(err),
+				)
+			} else if len(activated) > 0 {
+				s.logger.Info("New package modules activated during license update",
+					zap.String("new_package_id", newPackageID),
+					zap.Strings("modules", activated),
+				)
+			}
+		}
+	}
+
 	response := license.ToResponse()
 	return &response, nil
+}
+
+// DeleteLicense melakukan soft-delete lisensi.
+// Jika lisensi memiliki package, modules dari package tersebut akan di-deactivate.
+func (s *Service) DeleteLicense(id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid license id: %w", err)
+	}
+
+	license, err := s.repo.FindByID(uid)
+	if err != nil {
+		return err
+	}
+
+	companyID := license.CompanyID.String()
+
+	// Deactivate package modules if the license had a package association
+	var oldPackageID string
+	if license.PackageID != nil {
+		oldPackageID = license.PackageID.String()
+	}
+
+	if oldPackageID != "" && s.moduleManager != nil {
+		deactivated, err := s.moduleManager.DeactivatePackageModules(oldPackageID, companyID)
+		if err != nil {
+			s.logger.Warn("Failed to deactivate package modules during license deletion",
+				zap.String("license_id", id),
+				zap.String("package_id", oldPackageID),
+				zap.Error(err),
+			)
+		} else if len(deactivated) > 0 {
+			s.logger.Info("Package modules deactivated during license deletion",
+				zap.String("package_id", oldPackageID),
+				zap.Strings("modules", deactivated),
+			)
+		}
+	}
+
+	// Soft delete the license
+	if err := s.repo.SoftDelete(uid); err != nil {
+		return err
+	}
+
+	s.logger.Info("License soft-deleted",
+		zap.String("license_id", id),
+	)
+	return nil
 }

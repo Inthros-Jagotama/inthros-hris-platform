@@ -19,6 +19,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW, rbacMW gin.Ha
 			licenses.POST("", handler.CreateLicense)
 			licenses.GET("/:id", handler.GetLicense)
 			licenses.PUT("/:id", handler.UpdateLicense)
+			licenses.DELETE("/:id", handler.DeleteLicense)
 		}
 	}
 }

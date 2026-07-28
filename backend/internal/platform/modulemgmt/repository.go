@@ -122,8 +122,8 @@ func (r *Repository) FindCompanyModules(companyID uuid.UUID) ([]CompanyModuleRes
 
 	rows, err := r.db.Table("company_modules").
 		Select(`company_modules.company_id, company_modules.module_id, 
-				modules.name as module_name, company_modules.enabled, 
-				company_modules.activated_at`).
+				modules.name as module_name, modules.slug as module_slug, 
+				company_modules.enabled, company_modules.activated_at`).
 		Joins("JOIN modules ON modules.id = company_modules.module_id").
 		Where("company_modules.company_id = ?", companyID).
 		Rows()

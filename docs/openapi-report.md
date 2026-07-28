@@ -1,20 +1,20 @@
-= HRIS Platform — OpenAPI Comprehensive Report (v8) =
+= HRIS Platform — OpenAPI Comprehensive Report (v14) =
 
 
 **Generated:** 28 July 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 337
-**Total Endpoints (methods):** 626
-**Total Schemas:** 412
+**Total Paths:** 349
+**Total Endpoints (methods):** 651
+**Total Schemas:** 426
 **Total Tags:** 27
 
 ## Coverage Summary
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 626/626 | 100% |
-| Endpoints with `description` | 626/626 | 100% |
-| Endpoints with `operationId` | 626/626 | 100% |
+| Endpoints with `summary` | 651/651 | 100% |
+| Endpoints with `description` | 651/651 | 100% |
+| Endpoints with `operationId` | 651/651 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -106,9 +106,9 @@ Tenant endpoints support validation for Indonesian data formats:
 | # | Tag | Endpoints | Paths |
 |---|---|---|---|
 | 1 | Tenant: Job Management | 88 | 36 |
-| 2 | Tenant: Settings | 70 | 28 |
+| 2 | Tenant: Settings | 80 | 32 |
 | 3 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
-| 4 | Tenant: Payroll & Compensation Engine | 47 | 24 |
+| 4 | Tenant: Payroll & Compensation Engine | 53 | 26 |
 | 5 | Tenant: Competency Management | 36 | 15 |
 | 6 | Tenant: Training & Development Management | 35 | 15 |
 | 7 | Tenant: Performance Management | 34 | 17 |
@@ -117,22 +117,22 @@ Tenant endpoints support validation for Indonesian data formats:
 | 10 | Tenant: Employees | 29 | 18 |
 | 11 | Tenant: Leave & Time Off | 23 | 12 |
 | 12 | Tenant: Career Intelligence | 19 | 10 |
-| 13 | Tenant: Employee Movement & Career Management | 15 | 9 |
-| 14 | Tenant: Approval | 15 | 9 |
-| 15 | Tenant: Reimbursement & Claim | 15 | 7 |
-| 16 | Tenant: Organizations | 12 | 8 |
+| 13 | Tenant: Organizations | 18 | 11 |
+| 14 | Tenant: Employee Movement & Career Management | 15 | 9 |
+| 15 | Tenant: Approval | 15 | 9 |
+| 16 | Tenant: Reimbursement & Claim | 15 | 7 |
 | 17 | Platform: Companies | 10 | 7 |
 | 18 | Platform: RBAC Management | 10 | 6 |
 | 19 | Platform: Packages | 9 | 6 |
 | 20 | Platform: Modules | 7 | 5 |
-| 21 | Health | 4 | 4 |
-| 22 | Platform: Users | 4 | 2 |
-| 23 | Platform: Licenses | 4 | 2 |
-| 24 | Platform: Monitoring | 3 | 3 |
-| 25 | Tenant: Packages | 3 | 3 |
+| 21 | Platform: Monitoring | 5 | 5 |
+| 22 | Health | 4 | 4 |
+| 23 | Platform: Users | 4 | 2 |
+| 24 | Platform: Licenses | 4 | 2 |
+| 25 | Tenant: Packages | 4 | 4 |
 | 26 | Platform: Auth | 2 | 2 |
 | 27 | Tenant: Approval Engine | 1 | 1 |
-| | **TOTAL** | **626** | **337** |
+| | **TOTAL** | **651** | **349** |
 
 ## 2. Module Detail
 
@@ -234,8 +234,8 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Tenant: Settings
 **Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data.
-**Endpoints:** 70 | **Paths:** 28
-**Methods:** DELETE=14 GET=28 POST=14 PUT=14
+**Endpoints:** 80 | **Paths:** 32
+**Methods:** DELETE=16 GET=32 POST=16 PUT=16
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -279,6 +279,11 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/settings/provinces/{id}` | Get province by ID | Get detailed information about a specific province by its ID. |
 | `PUT` | `/api/v1/tenant/settings/provinces/{id}` | Update province | Update a province record's details including code, name, and other attributes. |
 | `DELETE` | `/api/v1/tenant/settings/provinces/{id}` | Delete province | Soft-delete a province record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/ptkps` | List all PTKPs | Retrieve a paginated list of Penghasilan Tidak Kena Pajak (PTKP) records. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/ptkps` | Create a new PTKP | Create a new PTKP record with name, amount, and group. |
+| `GET` | `/api/v1/tenant/settings/ptkps/{id}` | Get PTKP by ID | Get detailed information about a specific PTKP record by its ID. |
+| `PUT` | `/api/v1/tenant/settings/ptkps/{id}` | Update PTKP | Update a PTKP record's name, amount, or group. |
+| `DELETE` | `/api/v1/tenant/settings/ptkps/{id}` | Delete PTKP | Delete a PTKP record. |
 | `GET` | `/api/v1/tenant/settings/regencies` | List all Regencies | Retrieve a paginated list of Regencies. Supports pagination parameters. |
 | `POST` | `/api/v1/tenant/settings/regencies` | Create a new regency | Create a new regencies record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/settings/regencies/{id}` | Get regency by ID | Get detailed information about a specific regency by its ID. |
@@ -299,6 +304,11 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/settings/salary-grades/{id}` | Get salarygrade by ID | Get detailed information about a specific salarygrade by its ID. |
 | `PUT` | `/api/v1/tenant/settings/salary-grades/{id}` | Update salarygrade | Update a salarygrade record's details including code, name, and other attributes. |
 | `DELETE` | `/api/v1/tenant/settings/salary-grades/{id}` | Delete salarygrade | Soft-delete a salarygrade record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/ters` | List all TERs | Retrieve a paginated list of Tarif Efektif Rata-rata (TER) records used for PPh21 calculation. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/ters` | Create a new TER | Create a new TER record with group, bruto range, and rate. |
+| `GET` | `/api/v1/tenant/settings/ters/{id}` | Get TER by ID | Get detailed information about a specific TER record by its ID. |
+| `PUT` | `/api/v1/tenant/settings/ters/{id}` | Update TER | Update a TER record's group, bruto range, or rate. |
+| `DELETE` | `/api/v1/tenant/settings/ters/{id}` | Delete TER | Delete a TER record. |
 | `GET` | `/api/v1/tenant/settings/villages` | List all Villages | Retrieve a paginated list of Villages. Supports pagination parameters. |
 | `POST` | `/api/v1/tenant/settings/villages` | Create a new village | Create a new villages record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/settings/villages/{id}` | Get village by ID | Get detailed information about a specific village by its ID. |
@@ -387,8 +397,8 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}/run` | Run scenario simulation | Execute a scenario simulation. Runs the scenario's parameters through the simulation engine and stores results in the scenario record. |
 
 ### Tenant: Payroll & Compensation Engine
-**Endpoints:** 47 | **Paths:** 24
-**Methods:** DELETE=8 GET=18 POST=12 PUT=9
+**Endpoints:** 53 | **Paths:** 26
+**Methods:** DELETE=10 GET=20 POST=12 PUT=11
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -422,6 +432,9 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/payroll/periods/{id}` | Update payroll period | Update an existing periods record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `GET` | `/api/v1/tenant/payroll/pph21-ptkp-rates` | List PPh21 PTKP rates | Retrieve a paginated list of pph21 ptkp rates records. Supports filtering, sorting, and pagination parameters. |
 | `POST` | `/api/v1/tenant/payroll/pph21-ptkp-rates` | Create PPh21 PTKP rate | Create a new pph21 ptkp rates record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/payroll/pph21-ptkp-rates/{id}` | Get PPh21 PTKP rate by ID | Get detailed information about a specific PPh21 PTKP rate record by its ID. |
+| `PUT` | `/api/v1/tenant/payroll/pph21-ptkp-rates/{id}` | Update PPh21 PTKP rate | Update a PPh21 PTKP rate record. |
+| `DELETE` | `/api/v1/tenant/payroll/pph21-ptkp-rates/{id}` | Delete PPh21 PTKP rate | Delete a PPh21 PTKP rate record. |
 | `GET` | `/api/v1/tenant/payroll/pph21-settings` | List PPh21 settings | Retrieve a paginated list of pph21 settings records. Supports filtering, sorting, and pagination parameters. |
 | `POST` | `/api/v1/tenant/payroll/pph21-settings` | Create PPh21 setting | Create a new pph21 settings record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/payroll/pph21-settings/{id}` | Get PPh21 setting by ID | Retrieve a paginated list of pph21 settings records. Supports filtering, sorting, and pagination parameters. |
@@ -429,6 +442,9 @@ Tenant endpoints support validation for Indonesian data formats:
 | `DELETE` | `/api/v1/tenant/payroll/pph21-settings/{id}` | Delete PPh21 setting | Delete a pph21 settings record by its unique ID. This action may be reversible depending on system configuration. |
 | `GET` | `/api/v1/tenant/payroll/pph21-tax-brackets` | List PPh21 tax brackets | Retrieve a paginated list of pph21 tax brackets records. Supports filtering, sorting, and pagination parameters. |
 | `POST` | `/api/v1/tenant/payroll/pph21-tax-brackets` | Create PPh21 tax bracket | Create a new pph21 tax brackets record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/payroll/pph21-tax-brackets/{id}` | Get PPh21 tax bracket by ID | Get detailed information about a specific PPh21 tax bracket record by its ID. |
+| `PUT` | `/api/v1/tenant/payroll/pph21-tax-brackets/{id}` | Update PPh21 tax bracket | Update a PPh21 tax bracket record. |
+| `DELETE` | `/api/v1/tenant/payroll/pph21-tax-brackets/{id}` | Delete PPh21 tax bracket | Delete a PPh21 tax bracket record. |
 | `GET` | `/api/v1/tenant/payroll/runs` | List payroll runs | Retrieve a paginated list of runs records. Supports filtering, sorting, and pagination parameters. |
 | `POST` | `/api/v1/tenant/payroll/runs` | Create payroll run | Create a new runs record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/payroll/runs/{id}` | Get payroll run by ID | Retrieve a paginated list of runs records. Supports filtering, sorting, and pagination parameters. |
@@ -743,6 +759,32 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/career-intelligence/talent-maps/{id}` | Update talent map entry | Update an existing talent map entry's performance rating, potential rating, and/or notes. Changes to performance/potential automatically recalculat... |
 | `DELETE` | `/api/v1/tenant/career-intelligence/talent-maps/{id}` | Delete talent map entry | Soft-delete a talent map entry. |
 
+### Tenant: Organizations
+**Description:** Organization structure (tree hierarchy)
+**Endpoints:** 18 | **Paths:** 11
+**Methods:** DELETE=2 GET=9 POST=5 PUT=2
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/tenant/organization-summaries` | Create organization summary | Create a new organization summary record. Requires code, decree_no, and decree_date. |
+| `GET` | `/api/v1/tenant/organization-summaries` | List organization summaries (paginated) | Retrieve a paginated list of organization summaries sorted by creation date (descending). |
+| `GET` | `/api/v1/tenant/organization-summaries/stats` | Get organization summary statistics | Get aggregate statistics about organization summaries and organizations. |
+| `GET` | `/api/v1/tenant/organization-summaries/{id}` | Get organization summary by ID | Get detailed information about a specific organization summary by its ID. |
+| `PUT` | `/api/v1/tenant/organization-summaries/{id}` | Update organization summary | Update an existing organization summary's code, decree_no, decree_date, or status. |
+| `DELETE` | `/api/v1/tenant/organization-summaries/{id}` | Delete organization summary | Soft-delete an organization summary. Cannot delete if organizations are still attached to this summary. |
+| `GET` | `/api/v1/tenant/organizations` | List organizations or get tree | Get detailed information about an organizational unit and its children. |
+| `POST` | `/api/v1/tenant/organizations` | Create organization | Create a new organizations record. Validates required fields and returns the created resource with its assigned ID. |
+| `POST` | `/api/v1/tenant/organizations/clone` | Clone current organization tree to a draft version | Create a DRAFT version snapshot of the current organization tree for restructuring simulation. The clone preserves the complete tree structure in a... |
+| `GET` | `/api/v1/tenant/organizations/history` | List organization change history | Retrieve a paginated audit trail of all changes made to the organization structure. Supports filtering by specific organization ID. Each entry reco... |
+| `POST` | `/api/v1/tenant/organizations/versions` | Create a new version snapshot of the organization tree | Capture a point-in-time snapshot of the entire organization tree structure. The snapshot includes both the hierarchical tree view and a flat list o... |
+| `GET` | `/api/v1/tenant/organizations/versions` | List all organization versions | Retrieve a paginated list of all saved organization structure versions. Each version entry includes metadata (name, status, node count) but exclude... |
+| `GET` | `/api/v1/tenant/organizations/versions/{id}` | Get organization version detail | Get detailed information about a specific organization version. By default, the snapshot payload is excluded for performance. Append ?snapshot=true... |
+| `GET` | `/api/v1/tenant/organizations/versions/{id}/diff/{targetId}` | Compare two organization versions and show differences | Compare two organization versions and produce a detailed diff. The response categorizes changes into ADDED (nodes in target but not source), REMOVE... |
+| `POST` | `/api/v1/tenant/organizations/versions/{id}/restore` | Restore organization tree from a version snapshot | Restore the entire organization structure from a version snapshot. This operation atomically: (1) hard-deletes all current organizations, (2) recre... |
+| `GET` | `/api/v1/tenant/organizations/{id}` | Get organization by ID | Get detailed information about an organizational unit and its children. |
+| `PUT` | `/api/v1/tenant/organizations/{id}` | Update organization | Update organizational unit code, name, or parent assignment. |
+| `DELETE` | `/api/v1/tenant/organizations/{id}` | Delete organization | Remove an organizational unit from the hierarchy. |
+
 ### Tenant: Employee Movement & Career Management
 **Description:** Employee career movements management including promotions, demotions, mutations, contract extensions (PKWT), retirements, offboarding, and employment contract management
 **Endpoints:** 15 | **Paths:** 9
@@ -812,26 +854,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/reimbursements/types/{id}` | Update reimbursement type | Update a reimbursement type's name, maximum amount, or description. Changes apply to new requests only. |
 | `DELETE` | `/api/v1/tenant/reimbursements/types/{id}` | Delete reimbursement type | Delete a reimbursement type from the system. Existing requests using this type will retain their type reference. |
 
-### Tenant: Organizations
-**Description:** Organization structure (tree hierarchy)
-**Endpoints:** 12 | **Paths:** 8
-**Methods:** DELETE=1 GET=6 POST=4 PUT=1
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/tenant/organizations` | List organizations or get tree | Get detailed information about an organizational unit and its children. |
-| `POST` | `/api/v1/tenant/organizations` | Create organization | Create a new organizations record. Validates required fields and returns the created resource with its assigned ID. |
-| `POST` | `/api/v1/tenant/organizations/clone` | Clone current organization tree to a draft version | Create a DRAFT version snapshot of the current organization tree for restructuring simulation. The clone preserves the complete tree structure in a... |
-| `GET` | `/api/v1/tenant/organizations/history` | List organization change history | Retrieve a paginated audit trail of all changes made to the organization structure. Supports filtering by specific organization ID. Each entry reco... |
-| `POST` | `/api/v1/tenant/organizations/versions` | Create a new version snapshot of the organization tree | Capture a point-in-time snapshot of the entire organization tree structure. The snapshot includes both the hierarchical tree view and a flat list o... |
-| `GET` | `/api/v1/tenant/organizations/versions` | List all organization versions | Retrieve a paginated list of all saved organization structure versions. Each version entry includes metadata (name, status, node count) but exclude... |
-| `GET` | `/api/v1/tenant/organizations/versions/{id}` | Get organization version detail | Get detailed information about a specific organization version. By default, the snapshot payload is excluded for performance. Append ?snapshot=true... |
-| `GET` | `/api/v1/tenant/organizations/versions/{id}/diff/{targetId}` | Compare two organization versions and show differences | Compare two organization versions and produce a detailed diff. The response categorizes changes into ADDED (nodes in target but not source), REMOVE... |
-| `POST` | `/api/v1/tenant/organizations/versions/{id}/restore` | Restore organization tree from a version snapshot | Restore the entire organization structure from a version snapshot. This operation atomically: (1) hard-deletes all current organizations, (2) recre... |
-| `GET` | `/api/v1/tenant/organizations/{id}` | Get organization by ID | Get detailed information about an organizational unit and its children. |
-| `PUT` | `/api/v1/tenant/organizations/{id}` | Update organization | Update organizational unit code, name, or parent assignment. |
-| `DELETE` | `/api/v1/tenant/organizations/{id}` | Delete organization | Remove an organizational unit from the hierarchy. |
-
 ### Platform: Companies
 **Description:** Company/Tenant management
 **Endpoints:** 10 | **Paths:** 7
@@ -900,6 +922,19 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/platform/modules/{id}/companies` | List companies using this module | Retrieve a list of companies that have this module activated. Shows activation date and module-specific settings per company. |
 | `POST` | `/api/v1/platform/modules/{id}/deactivate` | Deactivate module for a company | Deactivate a module for a specific company tenant. The module's features are hidden from that tenant's API and UI. |
 
+### Platform: Monitoring
+**Description:** Platform and tenant health monitoring
+**Endpoints:** 5 | **Paths:** 5
+**Methods:** GET=5
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/platform/monitoring/health` | Platform health check with database status | Platform health check endpoint providing detailed status of database connectivity, Redis cache health, and overall service uptime metrics. |
+| `GET` | `/api/v1/platform/monitoring/pool` | Get connection pool statistics | Get real-time database connection pool statistics including open, idle, and wait counts for both platform and tenant pools. |
+| `GET` | `/api/v1/platform/monitoring/seed-status` | Get seed data status | Get seed data status for all tenant master tables. Shows record counts and seeding status per table. Optionally filter by company_id. |
+| `GET` | `/api/v1/platform/monitoring/tenants` | List all active tenant connections health | List all active tenant database connections with their health status, pool statistics (open/idle connections), and last activity timestamps. |
+| `GET` | `/api/v1/platform/monitoring/tenants/{id}` | Get tenant connection health detail | Get detailed health information for a specific tenant database connection, including connection pool stats, query latency, and error counts. |
+
 ### Health
 **Description:** Health check endpoints
 **Endpoints:** 4 | **Paths:** 4
@@ -936,24 +971,14 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/platform/licenses/{id}` | Get license by ID | Get detailed information about a specific license including plan type, validity period, seat usage, and feature entitlements. |
 | `PUT` | `/api/v1/platform/licenses/{id}` | Update license | Update license terms including plan upgrade/downgrade, extension of validity period, seat count adjustments, or license status changes. |
 
-### Platform: Monitoring
-**Description:** Platform and tenant health monitoring
-**Endpoints:** 3 | **Paths:** 3
-**Methods:** GET=3
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/platform/monitoring/health` | Platform health check with database status | Platform health check endpoint providing detailed status of database connectivity, Redis cache health, and overall service uptime metrics. |
-| `GET` | `/api/v1/platform/monitoring/tenants` | List all active tenant connections health | List all active tenant database connections with their health status, pool statistics (open/idle connections), and last activity timestamps. |
-| `GET` | `/api/v1/platform/monitoring/tenants/{id}` | Get tenant connection health detail | Get detailed health information for a specific tenant database connection, including connection pool stats, query latency, and error counts. |
-
 ### Tenant: Packages
 **Description:** Published package browsing for authenticated tenant users
-**Endpoints:** 3 | **Paths:** 3
-**Methods:** GET=1 POST=2
+**Endpoints:** 4 | **Paths:** 4
+**Methods:** GET=2 POST=2
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
+| `GET` | `/api/v1/tenant/company-modules` | List active modules for current company | Retrieve the list of active modules for the authenticated company. Returns module slugs and names that are activated for this tenant. Used for UI m... |
 | `GET` | `/api/v1/tenant/packages` | List published packages (tenant) | Retrieve a list of published packages for authenticated tenant users. Requires JWT Bearer Token. Returns the same data as the public endpoint but w... |
 | `POST` | `/api/v1/tenant/packages/{id}/subscribe` | Subscribe to a package (create/renew license) | Subscribe the authenticated company to a published package. Creates a new license for the company associated with the specified package and auto-ac... |
 | `POST` | `/api/v1/tenant/packages/{id}/unsubscribe` | Unsubscribe from a package (deactivate modules + suspend license) | Unsubscribe the authenticated company from a package. Deactivates all modules included in the package and suspends the active license associated wi... |

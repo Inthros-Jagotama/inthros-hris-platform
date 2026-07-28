@@ -45,7 +45,12 @@ CREATE INDEX IF NOT EXISTS idx_orglevel_deleted_at ON organization_levels (delet
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS zones (
     id          CHAR(36) PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL,
+    name        VARCHAR(255) NOT NULL,
     zone        VARCHAR(200) NOT NULL,
+    region      VARCHAR(100) NULL,
+    is_active   SMALLINT DEFAULT 1,
+    sort_order  INT DEFAULT 0,
     description VARCHAR(255) NOT NULL,
     created_by  CHAR(36) NULL,
     updated_by  CHAR(36) NULL,
@@ -77,7 +82,6 @@ CREATE TABLE IF NOT EXISTS organizations (
     deleted_at                TIMESTAMP,
     created_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
 
     CONSTRAINT fk_orgs_summary FOREIGN KEY (organization_summary_id) REFERENCES organization_summaries(id) ON DELETE SET NULL,
     CONSTRAINT fk_orgs_parent  FOREIGN KEY (parent_id)               REFERENCES organizations(id)          ON DELETE SET NULL,

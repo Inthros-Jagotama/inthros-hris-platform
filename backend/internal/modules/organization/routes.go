@@ -25,4 +25,15 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// Cloning
 		orgs.POST("/clone", handler.CloneTree)
 	}
+
+	// Organization Summaries CRUD
+	summaries := rg.Group("/organization-summaries")
+	{
+		summaries.POST("", handler.CreateSummary)
+		summaries.GET("", handler.ListSummaries)
+		summaries.GET("/stats", handler.GetSummaryStats)
+		summaries.GET("/:id", handler.GetSummaryByID)
+		summaries.PUT("/:id", handler.UpdateSummary)
+		summaries.DELETE("/:id", handler.DeleteSummary)
+	}
 }

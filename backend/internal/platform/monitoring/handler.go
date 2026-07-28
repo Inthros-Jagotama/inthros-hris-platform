@@ -93,6 +93,110 @@ func (h *Handler) HealthCheck(c *gin.Context) {
 }
 
 // =========================================================================
+// GET /api/v1/platform/monitoring/seed-status
+// =========================================================================
+// SeedDataStatus mengembalikan status seeding master data untuk tenant
+// tertentu, termasuk jumlah record per tabel yang sudah di-seed.
+//
+// Response:
+// {
+//   "success": true,
+//   "data": {
+//     "company_id": "...",
+//     "total_records": 90948,
+//     "tables": [ { "table": "religions", "count": 7, "category": "reference" }, ... ]
+//   }
+// }
+
+func (h *Handler) SeedDataStatus(c *gin.Context) {
+	companyID := c.Query("company_id")
+
+	// Konek ke tenant DB
+	tenantDB, err := h.dbManager.TenantDB(companyID)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data": gin.H{
+				"company_id":    companyID,
+				"total_records": 0,
+				"tables":        []map[string]interface{}{},
+				"message":       "Cannot connect to tenant database: " + err.Error(),
+			},
+		})
+		return
+	}
+
+	// Daftar tabel yang di-seed beserta kategorinya
+	seedTables := []struct {
+		Table    string
+		Category string
+		Label    string
+	}{
+		{"religions", "reference", "Religions"},
+		{"educations", "reference", "Educations"},
+		{"marital_statuses", "reference", "Marital Statuses"},
+		{"relationship_types", "reference", "Relationship Types"},
+		{"employment_statuses", "reference", "Employment Statuses"},
+		{"banks", "reference", "Banks"},
+		{"nationalities", "reference", "Nationalities"},
+		{"job_families", "reference", "Job Families"},
+		{"countries", "reference", "Countries"},
+		{"provinces", "region", "Provinces"},
+		{"regencies", "region", "Regencies"},
+		{"districts", "region", "Districts"},
+		{"villages", "region", "Villages"},
+		{"salary_grades", "payroll", "Salary Grades"},
+		{"ptkps", "payroll", "PTKPs"},
+		{"pph21_ptkp_rates", "payroll", "PPh21 PTKP Rates"},
+		{"pph21_tax_brackets", "payroll", "PPh21 Tax Brackets"},
+		{"ters", "payroll", "TER Rates"},
+		{"bpjs_settings", "payroll", "BPJS Settings"},
+		{"bpjs_rate_components", "payroll", "BPJS Rate Components"},
+	}
+
+	var results []map[string]interface{}
+	totalRecords := int64(0)
+
+	for _, st := range seedTables {
+		var count int64
+		if err := tenantDB.Table(st.Table).Count(&count).Error; err != nil {
+			// Table might not exist yet
+			h.logger.Debug("Table not found or error counting",
+				zap.String("table", st.Table),
+				zap.Error(err),
+			)
+			continue
+		}
+
+		results = append(results, gin.H{
+			"table":    st.Table,
+			"label":    st.Label,
+			"category": st.Category,
+			"count":    count,
+		})
+		totalRecords += count
+	}
+
+	// Hitung summary per kategori
+	categorySummary := map[string]int64{}
+	for _, r := range results {
+		cat := r["category"].(string)
+		cnt := r["count"].(int64)
+		categorySummary[cat] += cnt
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"company_id":       companyID,
+			"total_records":    totalRecords,
+			"tables":           results,
+			"category_summary": categorySummary,
+		},
+	})
+}
+
+// =========================================================================
 // GET /api/v1/platform/monitoring/pool
 // =========================================================================
 // PoolStats mengembalikan detail connection pool untuk setiap koneksi

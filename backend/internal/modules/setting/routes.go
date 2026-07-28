@@ -131,5 +131,23 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			salaryGrades.PUT("/:id", handler.UpdateSalaryGrade)
 			salaryGrades.DELETE("/:id", handler.DeleteSalaryGrade)
 		}
+		// TER (Tarif Efektif Rata-rata)
+		ters := settings.Group("/ters")
+		{
+			ters.POST("", handler.CreateTER)
+			ters.GET("", handler.ListTERs)
+			ters.GET("/:id", handler.GetTERByID)
+			ters.PUT("/:id", handler.UpdateTER)
+			ters.DELETE("/:id", handler.DeleteTER)
+		}
+		// PTKP (Penghasilan Tidak Kena Pajak)
+		ptkps := settings.Group("/ptkps")
+		{
+			ptkps.POST("", handler.CreatePTKP)
+			ptkps.GET("", handler.ListPTKPs)
+			ptkps.GET("/:id", handler.GetPTKPByID)
+			ptkps.PUT("/:id", handler.UpdatePTKP)
+			ptkps.DELETE("/:id", handler.DeletePTKP)
+		}
 	}
 }

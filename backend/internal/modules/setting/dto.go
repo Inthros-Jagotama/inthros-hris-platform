@@ -48,7 +48,7 @@ type ProvinceResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 func (p *Province) ToResponse() ProvinceResponse {
-	return ProvinceResponse{ID: p.ID.String(), Code: p.Code, Name: p.Name, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt}
+	return ProvinceResponse{ID: p.ID, Code: p.Code, Name: p.Name, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt}
 }
 
 // ── Regency DTOs ──
@@ -71,7 +71,7 @@ type RegencyResponse struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 func (r *Regency) ToResponse() RegencyResponse {
-	return RegencyResponse{ID: r.ID.String(), Code: r.Code, Name: r.Name, ProvinceID: r.ProvinceID.String(), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt}
+	return RegencyResponse{ID: r.ID, Code: r.Code, Name: r.Name, ProvinceID: r.ProvinceID, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt}
 }
 
 // ── District DTOs ──
@@ -94,7 +94,7 @@ type DistrictResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 func (d *District) ToResponse() DistrictResponse {
-	return DistrictResponse{ID: d.ID.String(), Code: d.Code, Name: d.Name, RegencyID: d.RegencyID.String(), CreatedAt: d.CreatedAt, UpdatedAt: d.UpdatedAt}
+	return DistrictResponse{ID: d.ID, Code: d.Code, Name: d.Name, RegencyID: d.RegencyID, CreatedAt: d.CreatedAt, UpdatedAt: d.UpdatedAt}
 }
 
 // ── Village DTOs ──
@@ -117,7 +117,7 @@ type VillageResponse struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 func (v *Village) ToResponse() VillageResponse {
-	return VillageResponse{ID: v.ID.String(), Code: v.Code, Name: v.Name, DistrictID: v.DistrictID.String(), CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
+	return VillageResponse{ID: v.ID, Code: v.Code, Name: v.Name, DistrictID: v.DistrictID, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
 }
 
 // ── Education DTOs ──
@@ -457,4 +457,65 @@ type SalaryGradePaginatedResponse struct {
 	PerPage    int                   `json:"per_page"`
 	Total      int64                 `json:"total"`
 	TotalPages int                   `json:"total_pages"`
+}
+
+// ── TER DTOs ──
+type CreateTERRequest struct {
+	Group    string  `json:"group" binding:"required,oneof=A B C,len=1"`
+	BrutoMin *int64  `json:"bruto_min,omitempty"`
+	BrutoMax *int64  `json:"bruto_max,omitempty"`
+	Rate     float64 `json:"rate" binding:"required"`
+}
+type UpdateTERRequest struct {
+	Group    *string  `json:"group,omitempty" binding:"omitempty,oneof=A B C,len=1"`
+	BrutoMin *int64   `json:"bruto_min,omitempty"`
+	BrutoMax *int64   `json:"bruto_max,omitempty"`
+	Rate     *float64 `json:"rate,omitempty"`
+}
+type TERResponse struct {
+	ID       string  `json:"id"`
+	Group    string  `json:"group"`
+	BrutoMin *int64  `json:"bruto_min,omitempty"`
+	BrutoMax *int64  `json:"bruto_max,omitempty"`
+	Rate     float64 `json:"rate"`
+}
+func (t *TER) ToResponse() TERResponse {
+	return TERResponse{ID: t.ID.String(), Group: t.Group, BrutoMin: t.BrutoMin, BrutoMax: t.BrutoMax, Rate: t.Rate}
+}
+type TERPaginatedResponse struct {
+	Success    bool          `json:"success"`
+	Data       []TERResponse `json:"data"`
+	Page       int           `json:"page"`
+	PerPage    int           `json:"per_page"`
+	Total      int64         `json:"total"`
+	TotalPages int           `json:"total_pages"`
+}
+
+// ── PTKP DTOs ──
+type CreatePTKPRequest struct {
+	Name  string `json:"name" binding:"required,max=255"`
+	PTKP  int64  `json:"ptkp" binding:"required"`
+	Group string `json:"group" binding:"required,oneof=A B C,len=1"`
+}
+type UpdatePTKPRequest struct {
+	Name  *string `json:"name,omitempty" binding:"omitempty,max=255"`
+	PTKP  *int64  `json:"ptkp,omitempty"`
+	Group *string `json:"group,omitempty" binding:"omitempty,oneof=A B C,len=1"`
+}
+type PTKPResponse struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	PTKP  int64  `json:"ptkp"`
+	Group string `json:"group"`
+}
+func (p *PTKP) ToResponse() PTKPResponse {
+	return PTKPResponse{ID: p.ID.String(), Name: p.Name, PTKP: p.PTKP, Group: p.Group}
+}
+type PTKPPaginatedResponse struct {
+	Success    bool            `json:"success"`
+	Data       []PTKPResponse  `json:"data"`
+	Page       int             `json:"page"`
+	PerPage    int             `json:"per_page"`
+	Total      int64           `json:"total"`
+	TotalPages int             `json:"total_pages"`
 }

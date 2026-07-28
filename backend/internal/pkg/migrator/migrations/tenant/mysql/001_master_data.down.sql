@@ -1,6 +1,9 @@
 -- Down Migration: 001_master_data
 DROP TABLE IF EXISTS ters;
 DROP TABLE IF EXISTS ptkps;
+DROP TABLE IF EXISTS salary_grades;
+DROP TABLE IF EXISTS nationalities;
+DROP TABLE IF EXISTS banks;
 DROP TABLE IF EXISTS job_families;
 DROP TABLE IF EXISTS gradings;
 DROP TABLE IF EXISTS employment_statuses;

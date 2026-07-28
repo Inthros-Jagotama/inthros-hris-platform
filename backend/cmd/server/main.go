@@ -109,6 +109,61 @@ func (a *licenseCreatorAdapter) CreateFromPackage(companyID, packageID string) (
 	return resp.ID, resp.LicenseKey, resp.PlanType, nil
 }
 
+// packageModuleAdapter implements license.PackageModuleManager using the package service
+// and module management service. Digunakan untuk auto-activate/deactivate modules
+// saat license dibuat/diupdate dengan package.
+type packageModuleAdapter struct {
+	pkgSvc        *pkgmgr.Service
+	modulemgmtSvc *modulemgmt.Service
+	logger        *zap.Logger
+}
+
+func (a *packageModuleAdapter) ActivatePackageModules(packageID, companyID string) ([]string, error) {
+	pkg, err := a.pkgSvc.GetPackage(packageID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get package: %w", err)
+	}
+
+	var activated []string
+	for _, m := range pkg.Modules {
+		_, err := a.modulemgmtSvc.ActivateModule(m.ModuleID, companyID)
+		if err != nil {
+			a.logger.Warn("Failed to activate module during package activation",
+				zap.String("module_id", m.ModuleID),
+				zap.String("module_name", m.ModuleName),
+				zap.String("company_id", companyID),
+				zap.Error(err),
+			)
+			continue
+		}
+		activated = append(activated, m.ModuleName)
+	}
+	return activated, nil
+}
+
+func (a *packageModuleAdapter) DeactivatePackageModules(packageID, companyID string) ([]string, error) {
+	pkg, err := a.pkgSvc.GetPackage(packageID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get package: %w", err)
+	}
+
+	var deactivated []string
+	for _, m := range pkg.Modules {
+		_, err := a.modulemgmtSvc.DeactivateModule(m.ModuleID, companyID)
+		if err != nil {
+			a.logger.Warn("Failed to deactivate module during package deactivation",
+				zap.String("module_id", m.ModuleID),
+				zap.String("module_name", m.ModuleName),
+				zap.String("company_id", companyID),
+				zap.Error(err),
+			)
+			continue
+		}
+		deactivated = append(deactivated, m.ModuleName)
+	}
+	return deactivated, nil
+}
+
 func main() {
 	configPath := flag.String("config", "", "Path to configuration file")
 	migrateDown := flag.Bool("migrate-down", false, "Rollback all applied migrations and exit")
@@ -202,15 +257,6 @@ func main() {
 	userRepo := user.NewRepository(dbManager.PlatformDB())
 	userSvc := user.NewService(userRepo, authManager, l)
 
-	// License service dibuat secara eksternal agar bisa di-share
-	// dengan LicenseCreator adapter untuk company signup flow.
-	licenseRepo := license.NewRepository(dbManager.PlatformDB())
-	licenseSvc := license.NewService(licenseRepo, dbManager, l)
-
-	// LicenseCreator adapter wraps license.Service untuk auto-create
-	// license saat signup company dengan package.
-	licenseCreator := &licenseCreatorAdapter{licenseSvc: licenseSvc}
-
 	// Package service & handler dibuat secara eksternal agar bisa di-share
 	// dengan tenant route untuk menampilkan public packages.
 	pkgRepo := pkgmgr.NewRepository(dbManager.PlatformDB())
@@ -221,6 +267,24 @@ func main() {
 	// dengan subscribe flow untuk auto-activate modules dari package.
 	modulemgmtRepo := modulemgmt.NewRepository(dbManager.PlatformDB())
 	modulemgmtSvc := modulemgmt.NewService(modulemgmtRepo, dbManager, l)
+
+	// PackageModuleAdapter — license service akan auto-activate modules
+	// saat license dibuat/diupdate dengan package.
+	pkgModuleMgr := &packageModuleAdapter{
+		pkgSvc:        pkgSvc,
+		modulemgmtSvc: modulemgmtSvc,
+		logger:        l.Named("pkg-module-mgr"),
+	}
+
+	// License service dibuat secara eksternal agar bisa di-share
+	// dengan LicenseCreator adapter untuk company signup flow.
+	// Dilengkapi dengan PackageModuleManager untuk auto-activate modules.
+	licenseRepo := license.NewRepository(dbManager.PlatformDB())
+	licenseSvc := license.NewService(licenseRepo, dbManager, pkgModuleMgr, l)
+
+	// LicenseCreator adapter wraps license.Service untuk auto-create
+	// license saat signup company dengan package.
+	licenseCreator := &licenseCreatorAdapter{licenseSvc: licenseSvc}
 
 	// Company module menerima UserCreator (user service) untuk
 	// auto-create admin user saat create company, dan LicenseCreator
@@ -456,6 +520,30 @@ func main() {
 	tenantPkgGroup.Use(authMW)
 	tenantPkgGroup.Use(middleware.TenantRequired())
 	{
+		// Endpoint untuk mendapatkan daftar module aktif company (digunakan frontend tenant untuk menu filtering)
+		tenantPkgGroup.GET("/company-modules", func(c *gin.Context) {
+			companyID := middleware.GetCompanyID(c)
+			if companyID == "" {
+				httputil.Unauthorized(c, "Company ID is required")
+				return
+			}
+			modules, err := modulemgmtSvc.ListCompanyModules(companyID)
+			if err != nil {
+				httputil.InternalError(c, "Failed to fetch company modules")
+				return
+			}
+			// Hanya kembalikan slug untuk module yang enabled
+			var activeModuleSlugs []string
+			for _, m := range modules {
+				if m.Enabled {
+					activeModuleSlugs = append(activeModuleSlugs, m.ModuleSlug)
+				}
+			}
+			httputil.SuccessJSON(c, gin.H{
+				"company_id": companyID,
+				"modules":    activeModuleSlugs,
+			})
+		})
 		tenantPkgGroup.GET("/packages", pkgHandler.ListPublishedPackages)
 		tenantPkgGroup.POST("/packages/:id/subscribe", func(c *gin.Context) {
 			packageID := c.Param("id")
@@ -473,28 +561,18 @@ func main() {
 			}
 
 			// Create license via adapter (creates a new license for this company + package)
+			// License service akan auto-activate modules dari package via PackageModuleManager
 			licenseID, licenseKey, planType, err := licenseCreator.CreateFromPackage(companyID, packageID)
 			if err != nil {
 				httputil.InternalError(c, err.Error())
 				return
 			}
 
-			// Auto-activate all modules included in the package
+			// Modules sudah auto-activated oleh license service via PackageModuleManager.
+			// Ambil daftar nama module dari package untuk response.
 			var activatedModules []string
-			if len(pkg.Modules) > 0 {
-				for _, m := range pkg.Modules {
-					_, err := modulemgmtSvc.ActivateModule(m.ModuleID, companyID)
-					if err != nil {
-						l.Warn("Failed to auto-activate module during subscribe",
-							zap.String("module_id", m.ModuleID),
-							zap.String("module_name", m.ModuleName),
-							zap.String("company_id", companyID),
-							zap.Error(err),
-						)
-						continue
-					}
-					activatedModules = append(activatedModules, m.ModuleName)
-				}
+			for _, m := range pkg.Modules {
+				activatedModules = append(activatedModules, m.ModuleName)
 			}
 
 			httputil.CreatedJSON(c, gin.H{
@@ -512,32 +590,22 @@ func main() {
 			companyID := middleware.GetCompanyID(c)
 
 			// Validate package exists
-			pkg, err := pkgSvc.GetPackage(packageID)
+			_, err := pkgSvc.GetPackage(packageID)
 			if err != nil {
 				httputil.NotFound(c, "Package not found")
 				return
 			}
 
-			// Deactivate all modules from the package
-			var deactivatedModules []string
-			if len(pkg.Modules) > 0 {
-				for _, m := range pkg.Modules {
-					_, err := modulemgmtSvc.DeactivateModule(m.ModuleID, companyID)
-					if err != nil {
-						l.Warn("Failed to deactivate module during unsubscribe",
-							zap.String("module_id", m.ModuleID),
-							zap.String("module_name", m.ModuleName),
-							zap.String("company_id", companyID),
-							zap.Error(err),
-						)
-						continue
-					}
-					deactivatedModules = append(deactivatedModules, m.ModuleName)
-				}
+			// Deactivate all modules from the package via PackageModuleManager
+			if _, err := pkgModuleMgr.DeactivatePackageModules(packageID, companyID); err != nil {
+				l.Warn("Failed to deactivate package modules during unsubscribe",
+					zap.String("package_id", packageID),
+					zap.String("company_id", companyID),
+					zap.Error(err),
+				)
 			}
 
 			// Suspend the active license associated with this package
-			// Find license by company ID and package ID via license service
 			cid, _ := uuid.Parse(companyID)
 			pid, _ := uuid.Parse(packageID)
 			license, err := licenseRepo.FindByCompanyIDAndPackageID(cid, pid)

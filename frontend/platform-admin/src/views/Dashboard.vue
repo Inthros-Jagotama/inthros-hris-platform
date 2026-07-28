@@ -265,7 +265,139 @@
       <router-link to="/monitoring" class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm text-gray-600 dark:text-gray-300 hover:border-indigo-200 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
         <i class="pi pi-chart-bar text-sm"></i> {{ t('dashboard.quick_view_health') }}
       </router-link>
-    </div>      </div>
+    </div>
+
+    <!-- Seed Data Monitoring -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div class="flex flex-wrap items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-gray-700 gap-2">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+          <i class="pi pi-database text-indigo-400 text-xs"></i>
+          {{ t('seed_data.title') }}
+        </h3>
+        <div class="flex items-center gap-2">
+          <Select
+            v-model="selectedCompanyId"
+            :options="seedCompanyOptions"
+            option-value="id"
+            option-label="name"
+            :placeholder="t('seed_data.select_company')"
+            class="!w-56 !text-xs"
+            size="small"
+            showClear
+            @change="onCompanyChange"
+          />
+          <Button
+            icon="pi pi-refresh"
+            size="small"
+            severity="secondary"
+            text
+            :loading="seedDataLoading"
+            @click="fetchSeedData"
+            :disabled="!selectedCompanyId"
+            v-tooltip.left="t('common.refresh')"
+          />
+        </div>
+      </div>
+
+      <div class="p-3">
+        <!-- No company selected -->
+        <div v-if="!selectedCompanyId" class="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
+          <i class="pi pi-building text-2xl mb-2 opacity-50"></i>
+          <p class="text-sm">{{ t('seed_data.no_company') }}</p>
+        </div>
+
+        <!-- Loading -->
+        <div v-else-if="seedDataLoading" class="space-y-3 animate-pulse">
+          <div class="flex gap-3">
+            <div v-for="i in 3" :key="i" class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+              <div class="h-3 w-16 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
+              <div class="h-6 w-12 bg-gray-200 dark:bg-gray-600 rounded mb-1"></div>
+              <div class="h-3 w-20 bg-gray-200 dark:bg-gray-600 rounded"></div>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <div v-for="i in 5" :key="i" class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded">
+              <div class="h-3 w-24 bg-gray-200 dark:bg-gray-600 rounded"></div>
+              <div class="h-3 w-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seed Data Content -->
+        <div v-else-if="seedData">
+          <!-- Message if connection failed -->
+          <div v-if="seedData.message" class="flex items-center gap-2 px-3 py-2 mb-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-md text-sm text-amber-700 dark:text-amber-300">
+            <i class="pi pi-exclamation-triangle text-sm"></i>
+            <span>{{ seedData.message }}</span>
+          </div>
+
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+            <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-2.5 text-center">
+              <p class="text-xs text-indigo-600 dark:text-indigo-300 font-medium">{{ t('seed_data.total_records') }}</p>
+              <p class="text-xl font-bold text-indigo-700 dark:text-indigo-200">{{ seedData.total_records?.toLocaleString() || 0 }}</p>
+              <p class="text-[10px] text-indigo-400 dark:text-indigo-400 mt-0.5">{{ seedTables.length }} {{ t('seed_data.tables') }}</p>
+            </div>
+            <div :class="categoryCardClass('reference')">
+              <p class="text-xs font-medium" :class="categoryCardTextClass('reference')">{{ t('seed_data.reference_data') }}</p>
+              <p class="text-xl font-bold" :class="categoryCardValueClass('reference')">{{ categoryCount('reference') }}</p>
+              <p class="text-[10px] mt-0.5" :class="categoryCardTextClass('reference')">{{ categoryTableCount('reference') }} tables</p>
+            </div>
+            <div :class="categoryCardClass('region')">
+              <p class="text-xs font-medium" :class="categoryCardTextClass('region')">{{ t('seed_data.region_data') }}</p>
+              <p class="text-xl font-bold" :class="categoryCardValueClass('region')">{{ categoryCount('region') }}</p>
+              <p class="text-[10px] mt-0.5" :class="categoryCardTextClass('region')">{{ categoryTableCount('region') }} tables</p>
+            </div>
+            <div :class="categoryCardClass('payroll')">
+              <p class="text-xs font-medium" :class="categoryCardTextClass('payroll')">{{ t('seed_data.payroll_data') }}</p>
+              <p class="text-xl font-bold" :class="categoryCardValueClass('payroll')">{{ categoryCount('payroll') }}</p>
+              <p class="text-[10px] mt-0.5" :class="categoryCardTextClass('payroll')">{{ categoryTableCount('payroll') }} tables</p>
+            </div>
+          </div>
+
+          <!-- Table Details -->
+          <div class="max-h-56 overflow-y-auto space-y-0.5 border border-gray-100 dark:border-gray-700 rounded-md">
+            <div
+              v-for="tbl in seedTables"
+              :key="tbl.table"
+              class="flex items-center justify-between px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="pi pi-table text-gray-300 dark:text-gray-600 text-[10px]"></i>
+                <span class="text-gray-700 dark:text-gray-300 truncate">{{ tbl.label }}</span>
+                <Tag
+                  :value="tbl.category"
+                  :severity="categoryTagSeverity(tbl.category)"
+                  class="!text-[10px] !px-1 !py-0"
+                  rounded
+                />
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="font-medium text-gray-700 dark:text-gray-200">{{ getTableCount(tbl.table) }}</span>
+                <span v-if="getTableCount(tbl.table) === 0" class="text-rose-400">
+                  <i class="pi pi-exclamation-circle text-[10px]"></i>
+                </span>
+                <span v-else class="text-emerald-400">
+                  <i class="pi pi-check-circle text-[10px]"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer hint -->
+          <div v-if="missingTableCount > 0" class="mt-2 flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+            <i class="pi pi-info-circle"></i>
+            <span>{{ missingTableCount }} empty {{ missingTableCount === 1 ? 'table' : 'tables' }} — {{ t('seed_data.seed_all_hint') }}</span>
+          </div>
+          <div v-else class="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400">
+            <i class="pi pi-check-circle"></i>
+            <span>{{ t('seed_data.fully_seeded') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+      </div>
     </Transition>
   </div>
 </template>
@@ -280,6 +412,7 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Chart from 'primevue/chart'
 import ProgressBar from 'primevue/progressbar'
+import Select from 'primevue/select'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import { useSkeletonPage } from '@/composables/useSkeletonPage'
 
@@ -296,6 +429,130 @@ const modulesTotal = ref(0)
 const health = ref(null)
 const autoRefreshActive = ref(true)
 let refreshTimer = null
+
+// ── Seed Data State ──
+const selectedCompanyId = ref('')
+const seedData = ref(null)
+const seedDataLoading = ref(false)
+
+// Companies with active tenant connections for seed data selector
+const seedCompanyOptions = computed(() => {
+  return safeCompanies.value
+    .filter(c => c?.status === 'active' || c?.provision_status === 'provisioned')
+    .map(c => ({ id: c.id, name: c.name || c.company_name || c.id }))
+})
+
+// Pre-defined list of seed tables with their categories
+const seedTables = [
+  { table: 'religions', category: 'reference', label: 'Religions' },
+  { table: 'educations', category: 'reference', label: 'Educations' },
+  { table: 'marital_statuses', category: 'reference', label: 'Marital Statuses' },
+  { table: 'relationship_types', category: 'reference', label: 'Relationship Types' },
+  { table: 'employment_statuses', category: 'reference', label: 'Employment Statuses' },
+  { table: 'banks', category: 'reference', label: 'Banks' },
+  { table: 'nationalities', category: 'reference', label: 'Nationalities' },
+  { table: 'job_families', category: 'reference', label: 'Job Families' },
+  { table: 'countries', category: 'reference', label: 'Countries' },
+  { table: 'provinces', category: 'region', label: 'Provinces' },
+  { table: 'regencies', category: 'region', label: 'Regencies' },
+  { table: 'districts', category: 'region', label: 'Districts' },
+  { table: 'villages', category: 'region', label: 'Villages' },
+  { table: 'salary_grades', category: 'payroll', label: 'Salary Grades' },
+  { table: 'ptkps', category: 'payroll', label: 'PTKPs' },
+  { table: 'pph21_ptkp_rates', category: 'payroll', label: 'PPh21 PTKP Rates' },
+  { table: 'pph21_tax_brackets', category: 'payroll', label: 'PPh21 Tax Brackets' },
+  { table: 'ters', category: 'payroll', label: 'TER Rates' },
+  { table: 'bpjs_settings', category: 'payroll', label: 'BPJS Settings' },
+  { table: 'bpjs_rate_components', category: 'payroll', label: 'BPJS Rate Components' },
+]
+
+// Get count for a specific table from seed data response
+function getTableCount(tableName) {
+  if (!seedData.value?.tables) return 0
+  const tbl = seedData.value.tables.find(t => t.table === tableName)
+  return tbl?.count ?? 0
+}
+
+// Aggregate count by category
+function categoryCount(category) {
+  if (!seedData.value?.tables) return 0
+  return seedData.value.tables
+    .filter(t => t.category === category)
+    .reduce((sum, t) => sum + (t.count || 0), 0)
+}
+
+// Count tables in a category
+function categoryTableCount(category) {
+  return seedTables.filter(t => t.category === category).length
+}
+
+// Tables with zero count
+const missingTableCount = computed(() => {
+  if (!seedData.value?.tables) return 0
+  return seedData.value.tables.filter(t => !t.count || t.count === 0).length
+})
+
+// Category card styling
+function categoryCardClass(category) {
+  const base = 'rounded-lg p-2.5 text-center '
+  const colors = {
+    reference: 'bg-sky-50 dark:bg-sky-900/20 ',
+    region: 'bg-emerald-50 dark:bg-emerald-900/20 ',
+    payroll: 'bg-purple-50 dark:bg-purple-900/20 '
+  }
+  return base + (colors[category] || 'bg-gray-50 ')
+}
+
+function categoryCardTextClass(category) {
+  const colors = {
+    reference: 'text-sky-600 dark:text-sky-300',
+    region: 'text-emerald-600 dark:text-emerald-300',
+    payroll: 'text-purple-600 dark:text-purple-300'
+  }
+  return colors[category] || 'text-gray-600'
+}
+
+function categoryCardValueClass(category) {
+  const colors = {
+    reference: 'text-sky-700 dark:text-sky-200',
+    region: 'text-emerald-700 dark:text-emerald-200',
+    payroll: 'text-purple-700 dark:text-purple-200'
+  }
+  return colors[category] || 'text-gray-700'
+}
+
+function categoryTagSeverity(category) {
+  const severities = { reference: 'info', region: 'success', payroll: 'warn' }
+  return severities[category] || 'info'
+}
+
+// Fetch seed data when company changes
+function onCompanyChange() {
+  if (selectedCompanyId.value) {
+    fetchSeedData()
+  } else {
+    seedData.value = null
+  }
+}
+
+async function fetchSeedData() {
+  if (!selectedCompanyId.value) return
+  seedDataLoading.value = true
+  try {
+    const res = await api.get(`/api/v1/platform/monitoring/seed-status?company_id=${selectedCompanyId.value}`)
+    seedData.value = res.data?.data || null
+  } catch (e) {
+    seedData.value = null
+    toast.add({
+      severity: 'error',
+      summary: t('message.error'),
+      detail: t('message.failed_to_load'),
+      life: 3000
+    })
+  } finally {
+    seedDataLoading.value = false
+  }
+}
 
 // ── Derived ──
 const safeCompanies = computed(() => Array.isArray(companies.value) ? companies.value : [])

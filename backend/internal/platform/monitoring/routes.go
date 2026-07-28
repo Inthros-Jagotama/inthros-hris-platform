@@ -18,6 +18,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW, rbacMW gin.Ha
 			monitoring.GET("/pool", handler.PoolStats)
 			monitoring.GET("/tenants", handler.TenantHealth)
 			monitoring.GET("/tenants/:id", handler.TenantDetail)
+			monitoring.GET("/seed-status", handler.SeedDataStatus)
 		}
 	}
 }

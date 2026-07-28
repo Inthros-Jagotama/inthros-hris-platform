@@ -1,7 +1,7 @@
 # Frontend Development Plan — HRIS Platform
 
 **Generated:** 27 July 2026
-**Last Updated:** 27 July 2026 (All 14 Settings CRUD views — Zones, Provinces, Regencies, Districts, Villages, Educations, Religions, MaritalStatus, Banks, EmploymentStatus, Nationalities, RelationshipTypes, JobFamilies, SalaryGrades)
+**Last Updated:** 28 July 2026 (16 Settings CRUD views — 14 original + TER + PTKP)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios
 
 ---
@@ -246,8 +246,8 @@ frontend/
 - [x] **SkeletonCard.vue** — 6 card skeleton types (kpi/stat/metric/alert/sparkline/detail)
 - [x] **useSkeletonPage.js** — Copied composable with loading/loaded/error states
 
-### C.7. Setting Module — All 14 Reference CRUDs ✅ (BARU - Done)
-**Backend:** `backend/internal/modules/setting/` — packages for zones, provinces, regencies, districts, villages, educations, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades + 5 legacy endpoints
+### C.7. Setting Module — All 16 Reference CRUDs ✅ (BARU - Done)
+**Backend:** `backend/internal/modules/setting/` — packages for zones, provinces, regencies, districts, villages, educations, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades, ters, ptkps + 5 legacy endpoints
 - [x] **Zones CRUD** — Code, Name, Region, IsActive, SortOrder
 - [x] **Provinces CRUD** — Code, Name, SortOrder
 - [x] **Regencies CRUD** — Code, Name, ProvinceID, SortOrder
@@ -262,8 +262,10 @@ frontend/
 - [x] **Nationalities CRUD** — Code, Name, SortOrder
 - [x] **JobFamilies CRUD** — Code, Name, SortOrder
 - [x] **SalaryGrades CRUD** — Code, Name, Grade, MinSalary, MaxSalary, SortOrder
+- [x] **TER CRUD** — Group, BrutoMin, BrutoMax, Rate, SortOrder
+- [x] **PTKP CRUD** — Name, Group, PTKP Amount, SortOrder
 
-**Frontend — Pattern Companies.vue (applied to all 14 views):**
+**Frontend — Pattern Companies.vue (applied to all 16 views):**
 - [x] **Search bar** (IconField + InputText) — client-side filter by code/name
 - [x] **DataTable** — `p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden` styling
 - [x] **SkeletonTable** — Proper `skeletonColumns` array config (not just column count)
@@ -753,12 +755,12 @@ frontend/tenant/src/
 
 | Langkah | Task | Kompleksitas | Status |
 |:-------:|------|:------------:|:------:|
-| 1 | Language Store (Pinia) + localStorage persistence | 🟢 Easy | ⬜ TODO |
-| 2 | Axios interceptor `Accept-Language` header | 🟢 Easy | ⬜ TODO |
-| 3 | Language Switcher button di HeaderBar | 🟢 Easy | ⬜ TODO |
-| 4 | Composable `useI18n` + locale files EN/ID | 🟡 Medium | ⬜ TODO |
-| 5 | Response handler + bilingual toast notification | 🟡 Medium | ⬜ TODO |
-| 6 | Integrasi bilingual di semua view (label, header, filter) | 🟡 Medium | ⬜ TODO |
+| 1 | Language Store (Pinia) + localStorage persistence | 🟢 Easy | ✅ Done |
+| 2 | Axios interceptor `Accept-Language` header | 🟢 Easy | ✅ Done |
+| 3 | Language Switcher button di HeaderBar | 🟢 Easy | ✅ Done |
+| 4 | Composable `useI18n` + locale files EN/ID | 🟡 Medium | ✅ Done |
+| 5 | Response handler + bilingual toast notification | 🟡 Medium | ✅ Done |
+| 6 | Integrasi bilingual di semua view (label, header, filter) | 🟡 Medium | ✅ Done |
 
 ### I.5. Alur Lengkap Bilingual Request → Response
 
@@ -820,7 +822,7 @@ Response handler → toast.show("Berhasil dibuat")
 | Priority | Feature | Kompleksitas | Status |
 |:--------:|---------|:------------:|:------:|
 | P0 | Organization Management (Tree + CRUD) | 🟡 Medium | ✅ Done |
-| P0 | Setting Module — All 14 Reference CRUDs | 🟡 Medium | ✅ Done |
+| P0 | Setting Module — All 16 Reference CRUDs (incl. TER & PTKP) | 🟡 Medium | ✅ Done |
 | P0 | Employee Management (Wizard) | 🔴 Complex | 🔴 TODO |
 | P1 | Leave & Attendance | 🟡 Medium | 🔴 TODO |
 | P1 | Payroll (read-only payslip) | 🟡 Medium | 🔴 TODO |

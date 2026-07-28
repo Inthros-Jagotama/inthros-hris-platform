@@ -627,6 +627,7 @@ func singularize(s string) string {
 		"monitoring":                 "monitoring",
 		"tenants":                    "tenant",
 		"organizations":              "organization",
+		"organization-summaries":     "organization",
 		"employees":                  "employee",
 		"attendances":                "attendance",
 		"competencies":               "competency",

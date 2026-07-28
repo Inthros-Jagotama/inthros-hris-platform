@@ -463,6 +463,70 @@ func (h *Handler) DeleteJobFamily(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+// ── TER Handlers ──
+func (h *Handler) CreateTER(c *gin.Context) {
+	var req CreateTERRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.CreateTER(c.Request.Context(), req)
+	if err != nil { httputil.InternalError(c, err.Error()); return }
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+func (h *Handler) ListTERs(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	resp, err := h.service.ListTERs(c.Request.Context(), page, perPage)
+	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	c.JSON(http.StatusOK, resp)
+}
+func (h *Handler) GetTERByID(c *gin.Context) {
+	resp, err := h.service.GetTERByID(c.Request.Context(), c.Param("id"))
+	if err != nil { c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}}); return }
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) UpdateTER(c *gin.Context) {
+	var req UpdateTERRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.UpdateTER(c.Request.Context(), c.Param("id"), req)
+	if err != nil { httputil.InternalError(c, err.Error()); return }
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) DeleteTER(c *gin.Context) {
+	if err := h.service.DeleteTER(c.Request.Context(), c.Param("id")); err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// ── PTKP Handlers ──
+func (h *Handler) CreatePTKP(c *gin.Context) {
+	var req CreatePTKPRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.CreatePTKP(c.Request.Context(), req)
+	if err != nil { httputil.InternalError(c, err.Error()); return }
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+func (h *Handler) ListPTKPs(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	resp, err := h.service.ListPTKPs(c.Request.Context(), page, perPage)
+	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	c.JSON(http.StatusOK, resp)
+}
+func (h *Handler) GetPTKPByID(c *gin.Context) {
+	resp, err := h.service.GetPTKPByID(c.Request.Context(), c.Param("id"))
+	if err != nil { c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}}); return }
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) UpdatePTKP(c *gin.Context) {
+	var req UpdatePTKPRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.UpdatePTKP(c.Request.Context(), c.Param("id"), req)
+	if err != nil { httputil.InternalError(c, err.Error()); return }
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) DeletePTKP(c *gin.Context) {
+	if err := h.service.DeletePTKP(c.Request.Context(), c.Param("id")); err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
 // ── SalaryGrade Handlers ──
 func (h *Handler) CreateSalaryGrade(c *gin.Context) {
 	var req CreateSalaryGradeRequest

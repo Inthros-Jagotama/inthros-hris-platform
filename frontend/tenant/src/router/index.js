@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useActiveModules } from '@/stores/activeModules'
 
 const routes = [
   {
@@ -24,6 +25,13 @@ const routes = [
         name: 'Dashboard',
         component: () => import('@/views/Dashboard.vue'),
         meta: { title: 'Dashboard', titleKey: 'dashboard.title', descKey: 'dashboard.description', icon: 'pi pi-home' }
+      },
+      // Organization Summary (masuk via menu Organization)
+      {
+        path: 'organization-summary',
+        name: 'OrganizationSummary',
+        component: () => import('@/views/modules/OrganizationSummary.vue'),
+        meta: { title: 'Organization', titleKey: 'organization.title', descKey: 'org_summary.description', icon: 'pi pi-building', module: 'organization' }
       },
       // Organization Management
       {
@@ -141,11 +149,13 @@ const routes = [
       { path: 'settings/religions', name: 'SettingsReligions', component: () => import('@/views/settings/ReligionsView.vue'), meta: { title: 'Religions', titleKey: 'religions.title', descKey: 'religions.description', icon: 'pi pi-globe', module: 'setting' } },
       { path: 'settings/marital-statuses', name: 'SettingsMaritalStatuses', component: () => import('@/views/settings/MaritalStatusesView.vue'), meta: { title: 'Marital Statuses', titleKey: 'marital_status.title', descKey: 'marital_status.description', icon: 'pi pi-heart', module: 'setting' } },
       { path: 'settings/relationship-types', name: 'SettingsRelationshipTypes', component: () => import('@/views/settings/RelationshipTypesView.vue'), meta: { title: 'Relationship Types', titleKey: 'relationship_types.title', descKey: 'relationship_types.description', icon: 'pi pi-users', module: 'setting' } },
-      { path: 'settings/banks', name: 'SettingsBanks', component: () => import('@/views/settings/BanksView.vue'), meta: { title: 'Banks', titleKey: 'banks.title', descKey: 'banks.description', icon: 'pi pi-building-column', module: 'setting' } },
+      { path: 'settings/banks', name: 'SettingsBanks', component: () => import('@/views/settings/BanksView.vue'), meta: { title: 'Banks', titleKey: 'banks.title', descKey: 'banks.description', icon: 'pi pi-home', module: 'setting' } },
       { path: 'settings/employment-statuses', name: 'SettingsEmploymentStatuses', component: () => import('@/views/settings/EmploymentStatusesView.vue'), meta: { title: 'Employment Statuses', titleKey: 'employment_statuses.title', descKey: 'employment_statuses.description', icon: 'pi pi-briefcase', module: 'setting' } },
       { path: 'settings/nationalities', name: 'SettingsNationalities', component: () => import('@/views/settings/NationalitiesView.vue'), meta: { title: 'Nationalities', titleKey: 'nationalities.title', descKey: 'nationalities.description', icon: 'pi pi-globe', module: 'setting' } },
       { path: 'settings/job-families', name: 'SettingsJobFamilies', component: () => import('@/views/settings/JobFamiliesView.vue'), meta: { title: 'Job Families', titleKey: 'job_families.title', descKey: 'job_families.description', icon: 'pi pi-briefcase', module: 'setting' } },
-      { path: 'settings/salary-grades', name: 'SettingsSalaryGrades', component: () => import('@/views/settings/SalaryGradesView.vue'), meta: { title: 'Salary Grades', titleKey: 'salary_grades.title', descKey: 'salary_grades.description', icon: 'pi pi-chart-bar', module: 'setting' } }
+      { path: 'settings/salary-grades', name: 'SettingsSalaryGrades', component: () => import('@/views/settings/SalaryGradesView.vue'), meta: { title: 'Salary Grades', titleKey: 'salary_grades.title', descKey: 'salary_grades.description', icon: 'pi pi-chart-bar', module: 'setting' } },
+      { path: 'settings/ters', name: 'SettingsTERs', component: () => import('@/views/settings/TersView.vue'), meta: { title: 'TER', titleKey: 'ters.title', descKey: 'ters.description', icon: 'pi pi-calculator', module: 'setting' } },
+      { path: 'settings/ptkps', name: 'SettingsPTKPs', component: () => import('@/views/settings/PtkpsView.vue'), meta: { title: 'PTKP', titleKey: 'ptkps.title', descKey: 'ptkps.description', icon: 'pi pi-receipt', module: 'setting' } }
     ]
   }
 ]
@@ -159,17 +169,44 @@ const router = createRouter({
 })
 
 // Navigation guard — redirect to /login if not authenticated
-router.beforeEach((to, from, next) => {
+// Also check module access based on active modules
+router.beforeEach(async (to, from, next) => {
+  // Reset active modules cache on logout (navigating to login)
+  if (to.name === 'Login') {
+    useActiveModules().reset()
+  }
   const token = localStorage.getItem('tenant_token')
   const isAuthenticated = !!token
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'Login' })
-  } else if (to.meta.guest && isAuthenticated) {
-    next({ name: 'Dashboard' })
-  } else {
-    next()
+    return
   }
+  
+  if (to.meta.guest && isAuthenticated) {
+    next({ name: 'Dashboard' })
+    return
+  }
+
+  // Check module access for routes with meta.module
+  if (to.meta.module && isAuthenticated) {
+    try {
+      const activeMod = useActiveModules()
+      // Ensure modules are loaded
+      if (!activeMod.state.loaded) {
+        await activeMod.fetchActiveModules()
+      }
+      if (!activeMod.hasModule(to.meta.module)) {
+        // Module not active — redirect to dashboard
+        next({ name: 'Dashboard' })
+        return
+      }
+    } catch {
+      // On error, allow access (fail open)
+    }
+  }
+
+  next()
 })
 
 export default router

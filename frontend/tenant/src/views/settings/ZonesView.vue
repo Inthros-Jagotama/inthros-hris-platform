@@ -15,10 +15,9 @@
         />
       </div>
       <div class="flex items-center gap-2">
-        <IconField>
-          <InputIcon class="pi pi-search" />
-          <InputText v-model="searchQuery" :placeholder="t('zones.search')" size="small" />
-        </IconField>
+        <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500">
+          {{ totalRecords }} {{ t('common.items') }}
+        </span>
         <Button :label="t('zones.new_zone')" icon="pi pi-plus" size="small" @click="openDialog()" />
       </div>
     </div>
@@ -28,9 +27,15 @@
 
     <DataTable
       v-else
-      :value="filteredItems"
+      :value="clientFiltered"
+      lazy
+      :totalRecords="totalRecords"
+      :first="firstRecord"
+      :rows="perPage"
+      @page="onPage($event)"
       paginator
-      :rows="15"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+      :rowsPerPageOptions="[10, 15, 25, 50]"
       size="small"
       class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
       sortField="sort_order"
@@ -126,7 +131,7 @@ const confirm = useConfirm()
 
 const items = ref([])
 const loading = ref(false)
-const searchQuery = ref('')
+const totalRecords = ref(0); const currentPage = ref(1); const perPage = ref(15)
 const activeFilter = ref(null)
 const dialogVisible = ref(false)
 const editing = ref(false)
@@ -150,16 +155,8 @@ const filterChips = computed(() => [
   { label: t('common_status.inactive'), value: 'inactive', severity: 'warn' }
 ])
 
-const filteredItems = computed(() => {
+const clientFiltered = computed(() => {
   let result = items.value
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    result = result.filter(i =>
-      i.code?.toLowerCase().includes(q) ||
-      i.name?.toLowerCase().includes(q) ||
-      i.region?.toLowerCase().includes(q)
-    )
-  }
   if (activeFilter.value === 'active') {
     result = result.filter(i => i.is_active === true)
   } else if (activeFilter.value === 'inactive') {
@@ -168,16 +165,28 @@ const filteredItems = computed(() => {
   return result
 })
 
+const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
+
 async function loadData() {
   loading.value = true
   try {
-    const res = await api.get('/api/v1/tenant/settings/zones?per_page=200')
-    items.value = res.data?.data?.data || res.data?.data || []
+    const res = await api.get('/api/v1/tenant/settings/zones', {
+      params: { page: currentPage.value, per_page: perPage.value }
+    })
+    const body = res.data
+    items.value = body?.data || []
+    totalRecords.value = body?.total || 0
+    if (body?.page) currentPage.value = body.page
   } catch(e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.failed_to_load'), life: 4000 })
   } finally {
     loading.value = false
   }
+}
+function onPage(event) {
+  currentPage.value = event.page + 1
+  perPage.value = event.rows
+  loadData()
 }
 
 function openDialog(item) {
