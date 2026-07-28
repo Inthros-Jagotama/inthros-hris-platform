@@ -57,6 +57,7 @@ import (
 	"github.com/inthros/hris-platform/internal/modules/training"
 	"github.com/inthros/hris-platform/internal/modules/workforceintelligence"
 	"github.com/inthros/hris-platform/internal/modules/careerintelligence"
+	"github.com/inthros/hris-platform/internal/modules/setting"
 )
 
 // =============================================================================
@@ -346,6 +347,11 @@ func main() {
 			Module:   careerintelligence.NewModule(dbManager, l),
 			TargetDB: module.TargetTenant,
 			Priority: 15,
+		},
+		module.ModuleRegistration{
+			Module:   setting.NewModule(dbManager, l),
+			TargetDB: module.TargetTenant,
+			Priority: 16,
 		},
 	)
 

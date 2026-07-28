@@ -57,7 +57,7 @@ func (m *payrollModule) Info() module.ModuleInfo {
 		Version:     ModuleVersion,
 		Description: "Manage payroll structure (salary components, grade components, employee profiles, bank/BPJS/tax profiles, BPJS settings, PPh21 settings), payroll runs, payslips, and tax calculations",
 		IsCore:      true,
-		DependsOn:   []string{"employee", "organization"},
+		DependsOn:   []string{"employee", "organization", "setting"},
 		Permissions: []string{
 			"payroll.view",
 			"payroll.create",

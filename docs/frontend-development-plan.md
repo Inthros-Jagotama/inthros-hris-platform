@@ -1,6 +1,7 @@
 # Frontend Development Plan — HRIS Platform
 
-**Generated:** 26 July 2026
+**Generated:** 27 July 2026
+**Last Updated:** 27 July 2026 (All 14 Settings CRUD views — Zones, Provinces, Regencies, Districts, Villages, Educations, Religions, MaritalStatus, Banks, EmploymentStatus, Nationalities, RelationshipTypes, JobFamilies, SalaryGrades)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios
 
 ---
@@ -159,39 +160,140 @@ frontend/
 - [x] Route registered: `/profile` with auth guard
 - [x] Bilingual (EN/ID): 12 locale keys in `profile.*` section
 - [x] Date formatting respects language setting (`id-ID` vs `en-US`)
+- [x] **Company name + last login fetch** — Profile fetches enriched user data from `GET /api/v1/platform/users/:id` on mount (backfill company_name, updated last_login)
+
+### B.11. Dark/Light Mode Toggle ✅ (BARU - Done)
+- [x] **Theme store** — `stores/theme.js` dengan localStorage persist, deteksi system preference, auto-apply `.dark` + `.p-dark` ke `<html>`
+- [x] **HeaderBar** — Theme toggle button (moon/sun icon) dengan tooltip bilingual
+- [x] **Sidebar** — Dark mode classes (`dark:bg-gray-800`, `dark:border-gray-700`, dll)
+- [x] **All views** — Dark mode classes di text, bg, border, cards, dialogs, tables
+- [x] **Form dialogs** — Section headers, dividers, labels, input fields dark mode
+- [x] **PrimeVue integration** — `.p-dark` selector untuk PrimeVue theme
+- [x] **main.css** — `@custom-variant dark`, dark scrollbar, smooth transitions
+
+### B.12. Skeleton Loading Components ✅ (BARU - Done)
+- [x] **SkeletonTable.vue** — Reusable table skeleton dengan props columns (compound/tag/icons/checkbox/key-copy) + rows
+- [x] **SkeletonCard.vue** — 6 card skeleton types: kpi, stat, metric, alert, sparkline, detail
+- [x] **useSkeletonPage composable** — Standardized loading/loaded/error states dengan `wrapLoad()` helper
+- [x] **Dashboard** — Skeleton KPI cards, chart, recent companies, system health dengan `<Transition>` fade
+- [x] **Monitoring** — Skeleton untuk stat cards + table
+- [x] **All remaining views** — Integrasi useSkeletonPage ke Users, Modules, Licenses, Packages, Rbac, Profile
+- [x] **Transition fade** — `<Transition name="fade">` antara skeleton dan konten
 
 ---
 
 ## C. Phase 2: Tenant — Module Views
 
-### C.1. Layout & Navigation ✅ (Existing)
+### C.1. Layout & Navigation ✅ (Existing - Enhanced)
 - [x] Sidebar with all module links
 - [x] HeaderBar with user info
 - [x] Responsive sidebar (collapsible)
 - [x] 15 module routes registered
 - [x] Dashboard with KPI cards + quick access
+- [x] **Dark mode** — All layout components dark mode classes (bg, text, border)
+- [x] **Skeleton components** — Copied SkeletonCard, SkeletonTable, useSkeletonPage to tenant frontend
+- [x] **Sidebar company name** — Dynamic company_name from `GET /api/v1/platform/users/:id` fetch + local ref (fallback: 'Company' / 'HRIS Platform')
+- [x] **Sidebar PanelMenu dark hover** — Custom `:deep(.p-dark ...)` for green hover in dark mode
 
-### C.2. Dashboard ✅ (Existing - Mock Data)
+### C.2. Dashboard ✅ (Existing - Enhanced)
 - [x] KPI Cards (Total Employees, Active Today, On Leave, Pending Approvals)
 - [x] Quick Access Modules grid (12 modules)
 - [x] Recent Activity (static)
 - [x] Period filter (This Month/Quarter/Year)
-- [ ] **Perbaiki:** Ganti mock data dengan real API calls
+- [x] **Dark mode** — All cards, modules, activity `dark:` classes
+- [x] **Bilingual** — All static text converted to `t()` locale lookups via `computed()`
+- [x] **KPI labels bilingual** — `dashboard.kpi_total_employees`, `dashboard.kpi_active_today`, dll
+- [ ] **Ganti mock data dengan real API calls**
   - GET /api/v1/tenant/employees?per_page=1 (total count)
   - GET /api/v1/tenant/attendance/events (active today)
   - GET /api/v1/tenant/leave/requests (on leave count)
   - GET /api/v1/tenant/approval/tasks (pending approval count)
 
-### C.3. Organization Management 🔴 (BARU)
-**Backend:** 12 endpoints
-- [ ] DataTable organizations (tree view dengan PrimeVue TreeTable atau OrganizationChart)
-- [ ] CRUD organization (inline editing atau dialog)
-- [ ] Organization Tree view (hierarki parent-child)
-- [ ] Zones CRUD
-- [ ] Positions CRUD
-- [ ] Job Families CRUD
+### C.3. Tenant Authentication & Login ✅ (BARU - Done)
+- [x] **Login page** — `views/Login.vue` bilingual + dark mode (emerald brand, gradient bg)
+- [x] **Auth store** — `stores/auth.js` dengan login/logout/refresh, localStorage persist (prefix `tenant_`)
+- [x] **API service** — `services/api.js` axios instance dengan Language header + Auth token interceptor + 401 auto-refresh
+- [x] **Router guard** — Navigation guard `beforeEach`: redirect ke `/login` jika tidak authenticated, redirect ke `/dashboard` jika sudah login
+- [x] **HeaderBar** — User menu dengan Profile + Logout, display `authState.user?.name`
+- [x] **HeaderBar dropdown fix** — Menggunakan `menu.toggle($event)` (PrimeVue API) bukan boolean ref
+- [x] **Bilingual** — Auth locale keys (title, email, password, button, validation, profile, logout) EN/ID
+- [x] **Same backend** — Tenant users login via `/api/v1/platform/login` (PlatformUser dengan company_id)
+- [x] **User data enrichment** — `onMounted` fetch `GET /api/v1/platform/users/:id` untuk company_name + last_login
 
-### C.4. Employee Management 🔴 (BARU)
+### C.4. Tenant Profile Page ✅ (BARU - Done)
+- [x] **User info card** — Avatar (emerald), name, email, role (Tag), company, status (Tag), last login
+- [x] **Change password form** — Current/New/Confirm password dengan PrimeVue Password component (toggleMask + feedback)
+- [x] **Client-side validation** — Required current_password, min 6 chars, confirm match
+- [x] **Server validation** — `getValidationErrors()` + Toast notification
+- [x] **API** — `PUT /api/v1/platform/users/:id/password` untuk change password
+- [x] **Enriched data** — Fetch `GET /api/v1/platform/users/:id` untuk company_name + updated last_login
+- [x] **Bilingual** — 14+ locale keys (profile.*) EN/ID
+- [x] **Dark mode** — All text, bg, Avatar, Tag dark: classes
+- [x] **Route** — `/profile` with auth guard
+- [x] **Router breadcrumb** — Static `title: 'Profile'` untuk HeaderBar breadcrumb
+
+### C.5. Tenant Dark/Light Mode ✅ (BARU - Done)
+- [x] **Theme store** — Copied from platform-admin: localStorage persist, system preference, `.dark` + `.p-dark` auto-apply
+- [x] **main.css** — `@custom-variant dark`, dark scrollbar, dark DataTable + PanelMenu overrides
+- [x] **AppLayout** — `dark:bg-gray-900` root + main bg
+- [x] **HeaderBar** — Theme toggle button (moon/sun), dark mode bg/text/border
+- [x] **Sidebar** — `dark:` classes, PanelMenu dark hover fix, tenant label dark mode
+- [x] **Dashboard** — All KPI cards, module grid, activity, skeleton `dark:` classes
+- [x] **Locale keys** — `dashboard.light_mode` / `dashboard.dark_mode` EN/ID
+
+### C.6. Tenant Skeleton Components ✅ (BARU - Done)
+- [x] **SkeletonTable.vue** — Copied from platform-admin with compound/tag/icons/checkbox/key-copy columns
+- [x] **SkeletonCard.vue** — 6 card skeleton types (kpi/stat/metric/alert/sparkline/detail)
+- [x] **useSkeletonPage.js** — Copied composable with loading/loaded/error states
+
+### C.7. Setting Module — All 14 Reference CRUDs ✅ (BARU - Done)
+**Backend:** `backend/internal/modules/setting/` — packages for zones, provinces, regencies, districts, villages, educations, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades + 5 legacy endpoints
+- [x] **Zones CRUD** — Code, Name, Region, IsActive, SortOrder
+- [x] **Provinces CRUD** — Code, Name, SortOrder
+- [x] **Regencies CRUD** — Code, Name, ProvinceID, SortOrder
+- [x] **Districts CRUD** — Code, Name, RegencyID, SortOrder
+- [x] **Villages CRUD** — Code, Name, DistrictID, SortOrder
+- [x] **Educations CRUD** — Code, Name, SortOrder
+- [x] **Religions CRUD** — Code, Name, SortOrder
+- [x] **MaritalStatuses CRUD** — Code, Name, SortOrder
+- [x] **RelationshipTypes CRUD** — Code, Name, SortOrder
+- [x] **Banks CRUD** — Code, Name, SortOrder
+- [x] **EmploymentStatuses CRUD** — Code, Name, SortOrder
+- [x] **Nationalities CRUD** — Code, Name, SortOrder
+- [x] **JobFamilies CRUD** — Code, Name, SortOrder
+- [x] **SalaryGrades CRUD** — Code, Name, Grade, MinSalary, MaxSalary, SortOrder
+
+**Frontend — Pattern Companies.vue (applied to all 14 views):**
+- [x] **Search bar** (IconField + InputText) — client-side filter by code/name
+- [x] **DataTable** — `p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden` styling
+- [x] **SkeletonTable** — Proper `skeletonColumns` array config (not just column count)
+- [x] **filteredItems computed** — search by code/name + client-side pagination
+- [x] **Dialog section header** — Icon indigo (`pi pi-map-marker`/`pi pi-book`/`pi pi-globe`/`pi pi-heart`/`pi pi-users`/`pi pi-building`/`pi pi-briefcase`/`pi pi-flag`/`pi pi-star`/`pi pi-dollar`)
+- [x] **Actions** — `v-tooltip.left` with bilingual tooltips
+- [x] **Sortable columns** — All data columns sortable
+- [x] **Footer** — `ml-auto` layout (Cancel + Save buttons)
+- [x] **Dead code cleaned** — `onPage`, `page`, `total` refs removed
+- [x] **Data loading** — All via `?per_page=200` (client-side pagination & filter)
+- [x] **Dark mode classes** — All bg, text, border, dialog elements
+- [x] **Bilingual** — All labels via `t()` locale lookups
+- [x] **ConfirmDialog** — Delete confirmation with bilingual text
+- [x] **Locale keys** — 6+ keys per entity (title, description, create, edit, delete, confirm_delete)
+
+### C.8. Organization Management ✅ (BARU - Done)
+**Backend:** 12 endpoints
+- [x] **TreeTable view** — Organization hierarchy dengan PrimeVue TreeTable
+- [x] **CRUD organization** — Dialog create (dengan parent selection), edit, delete
+- [x] **Organization Tree** — Hierarki parent-child, expandable, striped rows
+- [x] **Create with parent** — Otomatis set parent_id + parent label banner
+- [x] **Edit** — Pre-filled form, parent tidak bisa diubah
+- [x] **Delete** — ConfirmDialog bilingual (warning: child nodes juga terhapus)
+- [x] **Skeleton loading** — 5 row skeleton saat loading
+- [x] **Bilingual + dark mode** — t() locale keys + dark: classes
+- [x] **Locale keys:** 20+ keys `organization.*` EN/ID
+- [ ] **Positions CRUD** — 🔴 TODO
+- [ ] **Job Families CRUD** — 🔴 TODO
+
+### C.9. Employee Management 🔴 (BARU)
 **Backend:** 29 endpoints
 - [ ] DataTable employees (with search, filter by department/status)
 - [ ] Create Employee Wizard (multi-step form)
@@ -209,7 +311,7 @@ frontend/
 - [ ] Edit per sub-module (inline dialog)
 - [ ] Delete with confirmation
 
-### C.5. Job Management 🔴 (BARU)
+### C.10. Job Management 🔴 (BARU)
 **Backend:** 88 endpoints (18 sub-entities)
 - [ ] Tab layout per sub-entity
 - [ ] Job Titles CRUD + Title Subs
@@ -222,21 +324,21 @@ frontend/
 - [ ] Job Scores (by organization)
 - [ ] Competency Groups CRUD
 
-### C.6. Competency Management 🔴 (BARU)
+### C.11. Competency Management 🔴 (BARU)
 **Backend:** 35 endpoints (7 entities)
 - [ ] Competencies CRUD
 - [ ] Competency Values CRUD
 - [ ] Competency Events + Targets CRUD
 - [ ] Competency Scores + Details CRUD
 
-### C.7. Employee Movement 🔴 (BARU)
+### C.12. Employee Movement 🔴 (BARU)
 **Backend:** 15 endpoints
 - [ ] Movements list (DataTable with status workflow)
 - [ ] Create Movement (type: promotion/demotion/mutation, etc.)
 - [ ] Approve / Execute / Cancel workflow buttons
 - [ ] Contracts CRUD (PKWT/PKWTT)
 
-### C.8. Time & Attendance 🔴 (BARU)
+### C.13. Time & Attendance 🔴 (BARU)
 **Backend:** 30 endpoints (10 entities)
 - [ ] Company Settings
 - [ ] Shifts CRUD
@@ -247,14 +349,14 @@ frontend/
 - [ ] Location management (geofence)
 - [ ] Exempt Positions
 
-### C.9. Approval Engine 🔴 (BARU)
+### C.14. Approval Engine 🔴 (BARU)
 **Backend:** 15 endpoints
 - [ ] Approval Flows CRUD (with multi-step)
 - [ ] My Tasks (pending approvals list)
 - [ ] Approval Instances history
 - [ ] Approve / Reject actions
 
-### C.10. Payroll & Compensation 🔴 (BARU)
+### C.15. Payroll & Compensation 🔴 (BARU)
 **Backend:** 47 endpoints (21 entities)
 - [ ] Salary Components CRUD
 - [ ] Payroll Periods CRUD
@@ -265,14 +367,14 @@ frontend/
 - [ ] Tax Brackets
 - [ ] Payslip view
 
-### C.11. Leave & Time Off 🔴 (BARU)
+### C.16. Leave & Time Off 🔴 (BARU)
 **Backend:** 23 endpoints
 - [ ] Leave Types CRUD
 - [ ] Accrual Policies CRUD
 - [ ] Leave Requests (create, approve, reject)
 - [ ] Leave Balances per employee
 
-### C.12. Performance Management 🔴 (BARU)
+### C.17. Performance Management 🔴 (BARU)
 **Backend:** 34 endpoints
 - [ ] Performance Periods CRUD
 - [ ] Perspectives CRUD
@@ -280,7 +382,7 @@ frontend/
 - [ ] Evaluations (with details)
 - [ ] KPI/OKR Targets
 
-### C.13. Recruitment & Onboarding (ATS) 🔴 (BARU)
+### C.18. Recruitment & Onboarding (ATS) 🔴 (BARU)
 **Backend:** 33 endpoints
 - [ ] Job Requisitions CRUD
 - [ ] Candidates CRUD
@@ -288,14 +390,14 @@ frontend/
 - [ ] Interviews scheduling
 - [ ] Onboarding Tasks
 
-### C.14. Reimbursement & Claim 🔴 (BARU)
+### C.19. Reimbursement & Claim 🔴 (BARU)
 **Backend:** 15 endpoints
 - [ ] Reimbursement Types CRUD
 - [ ] Requests (DRAFT → SUBMITTED → APPROVED → PAID)
 - [ ] Items per request
 - [ ] Status workflow buttons
 
-### C.15. Training & Development 🔴 (BARU)
+### C.20. Training & Development 🔴 (BARU)
 **Backend:** 35 endpoints
 - [ ] Categories CRUD
 - [ ] Courses CRUD
@@ -304,7 +406,7 @@ frontend/
 - [ ] Evaluations
 - [ ] Certificates
 
-### C.16. Workforce Intelligence 🔴 (BARU)
+### C.21. Workforce Intelligence 🔴 (BARU)
 **Backend:** 68 endpoints (analytics layer)
 - [ ] Dashboard (KPI summaries)
 - [ ] Headcount Planning
@@ -315,7 +417,7 @@ frontend/
 - [ ] Organization Health metrics
 - [ ] People Analytics charts
 
-### C.17. Career Intelligence 🔴 (BARU)
+### C.22. Career Intelligence 🔴 (BARU)
 **Backend:** 19 endpoints
 - [ ] 9-Box Talent Grid visualization
 - [ ] Talent Maps CRUD
@@ -324,7 +426,7 @@ frontend/
 - [ ] Gap Analysis view
 - [ ] Succession Plans CRUD
 
-### C.18. Package Subscription (Tenant) 🔴 (BARU)
+### C.23. Package Subscription (Tenant) 🔴 (BARU)
 - [ ] Browse published packages (GET /api/v1/public/packages)
   - Card layout: nama, deskripsi, harga, daftar module
   - Filter: `?module_type=tenant`
@@ -704,32 +806,43 @@ Response handler → toast.show("Berhasil dibuat")
 | P2 | RBAC Management | 🔴 Complex | ✅ Done |
 | P2 | Profile Page + Change Password | 🟢 Easy | ✅ Done |
 
-### Phase 2 — Tenant Core Modules — Estimasi: 4-6 minggu
-| Priority | Feature | Kompleksitas |
-|:--------:|---------|:------------:|
-| P0 | Organization Management | 🟡 Medium |
-| P0 | Employee Management (Wizard) | 🔴 Complex |
-| P1 | Leave & Attendance | 🟡 Medium |
-| P1 | Payroll (read-only payslip) | 🟡 Medium |
-| P2 | Job Management | 🔴 Complex |
-| P2 | Competency Management | 🔴 Complex |
+### Phase 2 — Tenant Foundation & Auth — Estimasi: 1 minggu ✅ Selesai
+| Priority | Feature | Kompleksitas | Status |
+|:--------:|---------|:------------:|:------:|
+| P0 | Login Page + Auth Store + API Service | 🟢 Easy | ✅ Done |
+| P0 | Profile Page + Change Password | 🟢 Easy | ✅ Done |
+| P0 | Dark/Light Mode Toggle | 🟡 Medium | ✅ Done |
+| P0 | Skeleton Components (Table/Card) | 🟡 Medium | ✅ Done |
+| P0 | Sidebar Company Name (dynamic) | 🟢 Easy | ✅ Done |
+| P0 | Dashboard Dark Mode + Bilingual | 🟡 Medium | ✅ Done |
 
-### Phase 3 — Tenant Advanced Modules — Estimasi: 4-6 minggu
-| Priority | Feature | Kompleksitas |
-|:--------:|---------|:------------:|
-| P1 | Performance Management | 🔴 Complex |
-| P1 | Recruitment (ATS Pipeline) | 🔴 Complex |
-| P2 | Approval Engine (Flow Builder) | 🔴 Complex |
-| P2 | Employee Movement (Workflow) | 🟡 Medium |
-| P2 | Training Management | 🟡 Medium |
-| P2 | Reimbursement | 🟡 Medium |
+### Phase 3 — Tenant Core Modules — Estimasi: 4-6 minggu
+| Priority | Feature | Kompleksitas | Status |
+|:--------:|---------|:------------:|:------:|
+| P0 | Organization Management (Tree + CRUD) | 🟡 Medium | ✅ Done |
+| P0 | Setting Module — All 14 Reference CRUDs | 🟡 Medium | ✅ Done |
+| P0 | Employee Management (Wizard) | 🔴 Complex | 🔴 TODO |
+| P1 | Leave & Attendance | 🟡 Medium | 🔴 TODO |
+| P1 | Payroll (read-only payslip) | 🟡 Medium | 🔴 TODO |
+| P2 | Job Management | 🔴 Complex | 🔴 TODO |
+| P2 | Competency Management | 🔴 Complex | 🔴 TODO |
 
-### Phase 4 — Intelligence & Subscription — Estimasi: 2-3 minggu
-| Priority | Feature | Kompleksitas |
-|:--------:|---------|:------------:|
-| P1 | Workforce Intelligence Dashboards | 🔴 Complex |
-| P1 | Career Intelligence (9-box Grid) | 🔴 Complex |
-| P1 | Package Subscription (Tenant) | 🟡 Medium |
+### Phase 4 — Tenant Advanced Modules — Estimasi: 4-6 minggu
+| Priority | Feature | Kompleksitas | Status |
+|:--------:|---------|:------------:|:------:|
+| P1 | Performance Management | 🔴 Complex | 🔴 TODO |
+| P1 | Recruitment (ATS Pipeline) | 🔴 Complex | 🔴 TODO |
+| P2 | Approval Engine (Flow Builder) | 🔴 Complex | 🔴 TODO |
+| P2 | Employee Movement (Workflow) | 🟡 Medium | 🔴 TODO |
+| P2 | Training Management | 🟡 Medium | 🔴 TODO |
+| P2 | Reimbursement | 🟡 Medium | 🔴 TODO |
+
+### Phase 5 — Intelligence & Subscription — Estimasi: 2-3 minggu
+| Priority | Feature | Kompleksitas | Status |
+|:--------:|---------|:------------:|:------:|
+| P1 | Workforce Intelligence Dashboards | 🔴 Complex | 🔴 TODO |
+| P1 | Career Intelligence (9-box Grid) | 🔴 Complex | 🔴 TODO |
+| P1 | Package Subscription (Tenant) | 🟡 Medium | 🔴 TODO |
 
 ---
 

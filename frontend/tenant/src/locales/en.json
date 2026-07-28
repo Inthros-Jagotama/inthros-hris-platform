@@ -28,7 +28,9 @@
     "strategic": "Strategic",
     "workforce_intel": "Workforce Intel",
     "career_intel": "Career Intel",
-    "packages": "Packages"
+    "packages": "Packages",
+    "settings": "Settings",
+    "profile": "Profile"
   },
 
   "common": {
@@ -55,6 +57,10 @@
     "status": "Status",
     "name": "Name",
     "description": "Description"
+  },
+
+  "form": {
+    "required": "This field is required"
   },
 
   "common_status": {
@@ -87,6 +93,7 @@
 
   "dashboard": {
     "title": "Dashboard",
+    "description": "Real-time overview of HR operations, KPIs, and quick access to modules.",
     "welcome": "Welcome to HRIS Platform",
     "welcome_id": "Selamat datang di HRIS Platform",
     "period_filter": "Period",
@@ -100,6 +107,8 @@
     "this_month": "This Month",
     "this_quarter": "This Quarter",
     "this_year": "This Year",
+    "light_mode": "Light Mode",
+    "dark_mode": "Dark Mode",
     "employees": "Employees",
     "attendance": "Attendance",
     "leave": "Leave",
@@ -122,7 +131,45 @@
     "positions": "Positions",
     "job_families": "Job Families",
     "levels": "Levels",
-    "empty_title": "No organizations created yet"
+    "empty_title": "No organizations created yet",
+    "empty_tree": "No organization nodes. Click \"Add Root\" to create the first node.",
+    "create": "Create Organization",
+    "edit": "Edit Organization",
+    "add_root": "Add Root",
+    "add_child": "Add Child",
+    "code": "Code",
+    "full_code": "Full Code",
+    "nomenclature": "Name",
+    "parent": "Parent Organization",
+    "level": "Level",
+    "sort_order": "Sort Order",
+    "node_type": "Type",
+    "select_parent": "Select parent organization...",
+    "no_parent": "Root (Top Level)",
+    "confirm_delete": "Delete organization \"{name}\"? This will also delete all child nodes.",
+    "confirm_delete_title": "Delete Organization",
+    "created": "Organization created successfully",
+    "updated": "Organization updated successfully",
+    "deleted": "Organization deleted successfully"
+  },
+
+  "zones": {
+    "title": "Zones",
+    "description": "Manage geographic zones and regions for organizational structure.",
+    "new_zone": "New Zone",
+    "edit_zone": "Edit Zone",
+    "code": "Code",
+    "name": "Zone Name",
+    "region": "Region",
+    "sort_order": "Sort Order",
+    "is_active": "Active",
+    "search": "Search zones...",
+    "empty_title": "No zones created yet",
+    "confirm_delete": "Delete zone \"{name}\"?",
+    "confirm_delete_title": "Delete Zone",
+    "created": "Zone created successfully",
+    "updated": "Zone updated successfully",
+    "deleted": "Zone deleted successfully"
   },
 
   "employee": {
@@ -290,6 +337,281 @@
     "modules_included": "Modules Included",
     "confirm_subscribe": "Subscribe to this package?",
     "confirm_unsubscribe": "Unsubscribe from this package? Modules may be deactivated."
+  },
+
+  "profile": {
+    "title": "Profile",
+    "description": "Manage your account settings and password.",
+    "change_password": "Change Password",
+    "current_password": "Current Password",
+    "new_password": "New Password",
+    "confirm_password": "Confirm New Password",
+    "update_password": "Update Password",
+    "password_updated": "Password updated successfully",
+    "password_mismatch": "Passwords do not match",
+    "role": "Role",
+    "role_company_admin": "Company Admin",
+    "role_super_admin": "Super Admin",
+    "company": "Company",
+    "status": "Status",
+    "last_login": "Last Login"
+  },
+
+  "auth": {
+    "title": "HRIS Platform",
+    "version": "HRIS Platform v1.0",
+    "login": {
+      "email": "Email",
+      "password": "Password",
+      "email_placeholder": "Enter your email",
+      "password_placeholder": "Enter your password",
+      "button": "Sign In",
+      "subtitle": "Sign in to your account",
+      "validation_required": "Please enter email and password",
+      "invalid_credentials": "Invalid email or password",
+      "profile": "Profile",
+      "logout": "Logout"
+    }
+  },
+
+  "settings": {
+    "title": "Settings",
+    "description": "Manage administrative areas, zones, and regional data for the organization.",
+    "zones": "Zones",
+    "provinces": "Provinces",
+    "regencies": "Regencies",
+    "districts": "Districts",
+    "villages": "Villages",
+    "educations": "Educations",
+    "religions": "Religions",
+    "marital_statuses": "Marital Statuses",
+    "relationship_types": "Relationship Types",
+    "employment_statuses": "Employment Statuses",
+    "nationalities": "Nationalities",
+    "banks": "Banks",
+    "job_families": "Job Families",
+    "salary_grades": "Salary Grades"
+  },
+
+  "provinces": {
+    "title": "Provinces",
+    "description": "Manage provinces within the country.",
+    "new_province": "New Province",
+    "edit_province": "Edit Province",
+    "code": "Code",
+    "name": "Province Name",
+    "search": "Search provinces...",
+    "empty_title": "No provinces created yet",
+    "confirm_delete": "Delete province \"{name}\"?",
+    "confirm_delete_title": "Delete Province",
+    "created": "Province created successfully",
+    "updated": "Province updated successfully",
+    "deleted": "Province deleted successfully"
+  },
+
+  "regencies": {
+    "title": "Regencies",
+    "description": "Manage regencies / cities within each province.",
+    "new_regency": "New Regency",
+    "edit_regency": "Edit Regency",
+    "code": "Code",
+    "name": "Regency Name",
+    "province": "Province",
+    "select_province": "Select province...",
+    "search": "Search regencies...",
+    "empty_title": "No regencies created yet",
+    "confirm_delete": "Delete regency \"{name}\"?",
+    "confirm_delete_title": "Delete Regency",
+    "created": "Regency created successfully",
+    "updated": "Regency updated successfully",
+    "deleted": "Regency deleted successfully"
+  },
+
+  "districts": {
+    "title": "Districts",
+    "description": "Manage districts / sub-districts within each regency.",
+    "new_district": "New District",
+    "edit_district": "Edit District",
+    "code": "Code",
+    "name": "District Name",
+    "regency": "Regency",
+    "select_regency": "Select regency...",
+    "search": "Search districts...",
+    "empty_title": "No districts created yet",
+    "confirm_delete": "Delete district \"{name}\"?",
+    "confirm_delete_title": "Delete District",
+    "created": "District created successfully",
+    "updated": "District updated successfully",
+    "deleted": "District deleted successfully"
+  },
+
+  "villages": {
+    "title": "Villages",
+    "description": "Manage villages / kelurahan within each district.",
+    "new_village": "New Village",
+    "edit_village": "Edit Village",
+    "code": "Code",
+    "name": "Village Name",
+    "district": "District",
+    "select_district": "Select district...",
+    "search": "Search villages...",
+    "empty_title": "No villages created yet",
+    "confirm_delete": "Delete village \"{name}\"?",
+    "confirm_delete_title": "Delete Village",
+    "created": "Village created successfully",
+    "updated": "Village updated successfully",
+    "deleted": "Village deleted successfully"
+  },
+
+  "educations": {
+    "title": "Educations",
+    "description": "Manage education levels.",
+    "new_education": "New Education",
+    "edit_education": "Edit Education",
+    "code": "Code",
+    "name": "Education Name",
+    "sort_order": "Sort Order",
+    "search": "Search educations...",
+    "empty_title": "No educations created yet",
+    "confirm_delete": "Delete education \"{name}\"?",
+    "confirm_delete_title": "Delete Education",
+    "created": "Education created successfully",
+    "updated": "Education updated successfully",
+    "deleted": "Education deleted successfully"
+  },
+
+  "religions": {
+    "title": "Religions",
+    "description": "Manage religions.",
+    "new_religion": "New Religion",
+    "edit_religion": "Edit Religion",
+    "code": "Code",
+    "name": "Religion Name",
+    "sort_order": "Sort Order",
+    "search": "Search religions...",
+    "empty_title": "No religions created yet",
+    "confirm_delete": "Delete religion \"{name}\"?",
+    "confirm_delete_title": "Delete Religion",
+    "created": "Religion created successfully",
+    "updated": "Religion updated successfully",
+    "deleted": "Religion deleted successfully"
+  },
+
+  "marital_status": {
+    "title": "Marital Statuses",
+    "description": "Manage marital statuses.",
+    "new_marital_status": "New Marital Status",
+    "edit_marital_status": "Edit Marital Status",
+    "code": "Code",
+    "name": "Marital Status Name",
+    "sort_order": "Sort Order",
+    "search": "Search marital statuses...",
+    "empty_title": "No marital statuses created yet",
+    "confirm_delete": "Delete marital status \"{name}\"?",
+    "confirm_delete_title": "Delete Marital Status",
+    "created": "Marital status created successfully",
+    "updated": "Marital status updated successfully",
+    "deleted": "Marital status deleted successfully"
+  },
+
+  "relationship_types": {
+    "title": "Relationship Types",
+    "description": "Manage relationship types for employee emergency contacts and family.",
+    "new": "New Relationship Type",
+    "edit": "Edit Relationship Type",
+    "code": "Code",
+    "name": "Name",
+    "sort_order": "Sort Order",
+    "empty_title": "No relationship types created yet",
+    "confirm_delete": "Delete relationship type \"{name}\"?",
+    "confirm_delete_title": "Delete Relationship Type",
+    "created": "Relationship type created successfully",
+    "updated": "Relationship type updated successfully",
+    "deleted": "Relationship type deleted successfully"
+  },
+
+  "employment_statuses": {
+    "title": "Employment Statuses",
+    "description": "Manage employment status types for employee contracts.",
+    "new": "New Employment Status",
+    "edit": "Edit Employment Status",
+    "code": "Code",
+    "name": "Name",
+    "sort_order": "Sort Order",
+    "empty_title": "No employment statuses created yet",
+    "confirm_delete": "Delete employment status \"{name}\"?",
+    "confirm_delete_title": "Delete Employment Status",
+    "created": "Employment status created successfully",
+    "updated": "Employment status updated successfully",
+    "deleted": "Employment status deleted successfully"
+  },
+
+  "banks": {
+    "title": "Banks",
+    "description": "Manage bank list for employee payroll profiles.",
+    "new": "New Bank",
+    "edit": "Edit Bank",
+    "code": "Code",
+    "name": "Bank Name",
+    "sort_order": "Sort Order",
+    "empty_title": "No banks created yet",
+    "confirm_delete": "Delete bank \"{name}\"?",
+    "confirm_delete_title": "Delete Bank",
+    "created": "Bank created successfully",
+    "updated": "Bank updated successfully",
+    "deleted": "Bank deleted successfully"
+  },
+
+  "nationalities": {
+    "title": "Nationalities",
+    "description": "Manage nationalities for employee profiles.",
+    "new": "New Nationality",
+    "edit": "Edit Nationality",
+    "code": "Code",
+    "name": "Nationality Name",
+    "sort_order": "Sort Order",
+    "empty_title": "No nationalities created yet",
+    "confirm_delete": "Delete nationality \"{name}\"?",
+    "confirm_delete_title": "Delete Nationality",
+    "created": "Nationality created successfully",
+    "updated": "Nationality updated successfully",
+    "deleted": "Nationality deleted successfully"
+  },
+
+  "job_families": {
+    "title": "Job Families",
+    "description": "Manage job family groupings for organizational structure.",
+    "new": "New Job Family",
+    "edit": "Edit Job Family",
+    "code": "Code",
+    "name": "Name",
+    "description": "Description",
+    "sort_order": "Sort Order",
+    "empty_title": "No job families created yet",
+    "confirm_delete": "Delete job family \"{name}\"?",
+    "confirm_delete_title": "Delete Job Family",
+    "created": "Job family created successfully",
+    "updated": "Job family updated successfully",
+    "deleted": "Job family deleted successfully"
+  },
+
+  "salary_grades": {
+    "title": "Salary Grades",
+    "description": "Manage salary grading levels for position and payroll structures.",
+    "new": "New Salary Grade",
+    "edit": "Edit Salary Grade",
+    "code": "Code",
+    "name": "Name",
+    "description": "Description",
+    "min_amount": "Min Amount",
+    "max_amount": "Max Amount",
+    "sort_order": "Sort Order",
+    "empty_title": "No salary grades created yet",
+    "confirm_delete": "Delete salary grade \"{name}\"?",
+    "confirm_delete_title": "Delete Salary Grade",
+    "created": "Salary grade created successfully",
+    "updated": "Salary grade updated successfully",
+    "deleted": "Salary grade deleted successfully"
   },
 
   "time": {

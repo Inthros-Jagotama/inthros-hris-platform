@@ -55,7 +55,7 @@ func (m *empModule) Info() module.ModuleInfo {
 		Version:     ModuleVersion,
 		Description: "Manage employee data including addresses, families, educations, documents, and employment history",
 		IsCore:      true,
-		DependsOn:   []string{"organization"},
+		DependsOn:   []string{"organization", "setting"},
 		Permissions: []string{
 			"employee.view",
 			"employee.create",

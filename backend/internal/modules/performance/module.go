@@ -52,7 +52,7 @@ func (m *perfModule) Info() module.ModuleInfo {
 		Version:     ModuleVersion,
 		Description: "Balanced Scorecard performance management with KPI/OKR target setting, evaluation periods, perspective-based scoring, and 360 review capabilities",
 		IsCore:      false,
-		DependsOn:   []string{"organization", "employee", "jobmanagement", "competency"},
+		DependsOn:   []string{"organization", "employee", "jobmanagement", "competency", "setting"},
 		Permissions: []string{
 			"performance.view",
 			"performance.create",

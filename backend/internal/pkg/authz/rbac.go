@@ -129,6 +129,7 @@ func (e *Enforcer) loadDefaultPolicies() {
 	e.AddPolicy(RoleCompanyAdmin, "jobmanagement", "*")
 	e.AddPolicy(RoleCompanyAdmin, "employeemovement", "*")
 	e.AddPolicy(RoleCompanyAdmin, "approval", "*")
+	e.AddPolicy(RoleCompanyAdmin, "setting", "*")
 
 	// Manager: view/create/update (no delete)
 	e.AddPolicy(RoleManager, "organization", "view,create,update")
@@ -139,6 +140,7 @@ func (e *Enforcer) loadDefaultPolicies() {
 	e.AddPolicy(RoleManager, "competency", "view,create,update")
 	e.AddPolicy(RoleManager, "jobmanagement", "view,create,update")
 	e.AddPolicy(RoleManager, "employeemovement", "view,create,update")
+	e.AddPolicy(RoleManager, "setting", "view,create,update")
 	e.AddPolicy(RoleManager, "approval", "view,create,update")
 
 	// Employee: view-only
@@ -149,6 +151,7 @@ func (e *Enforcer) loadDefaultPolicies() {
 	e.AddPolicy(RoleEmployee, "competency", "view")
 	e.AddPolicy(RoleEmployee, "employeemovement", "view")
 	e.AddPolicy(RoleEmployee, "payroll", "view")
+	e.AddPolicy(RoleEmployee, "setting", "view")
 }
 
 // Reload menyegarkan semua policies dari database.
@@ -372,6 +375,7 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 		"jobmanagement":    {"*"},
 		"employeemovement": {"*"},
 		"approval":         {"*"},
+		"setting":          {"*"},
 	}
 	if err := addPerms(companyAdminUUID, companyAdminPerms); err != nil {
 		return err
@@ -388,6 +392,7 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 		"jobmanagement":    {"view", "create", "update"},
 		"employeemovement": {"view", "create", "update"},
 		"approval":         {"view", "create", "update"},
+		"setting":          {"view", "create", "update"},
 	}
 	if err := addPerms(managerUUID, managerPerms); err != nil {
 		return err
@@ -402,6 +407,7 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 		"payroll":          {"view"},
 		"competency":       {"view"},
 		"employeemovement": {"view"},
+		"setting":          {"view"},
 	}
 	if err := addPerms(employeeUUID, employeePerms); err != nil {
 		return err
@@ -430,6 +436,7 @@ func defaultResources() []defaultPerm {
 		{"jobmanagement", []string{"view", "create", "update", "delete"}},
 		{"employeemovement", []string{"view", "create", "update", "delete"}},
 		{"approval", []string{"view", "create", "update", "delete"}},
+		{"setting", []string{"view", "create", "update", "delete"}},
 	}
 }
 
@@ -625,6 +632,7 @@ func singularize(s string) string {
 		"competencies":               "competency",
 		"job-management":             "jobmanagement",
 		"employee-movements":         "employeemovement",
+		"settings":                    "setting",
 	}
 	if singular, ok := irregular[s]; ok {
 		return singular

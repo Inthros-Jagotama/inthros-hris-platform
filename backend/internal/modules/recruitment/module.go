@@ -52,7 +52,7 @@ func (m *recModule) Info() module.ModuleInfo {
 		Version:     ModuleVersion,
 		Description: "End-to-end recruitment & applicant tracking system with job requisitions, candidate management, interview scheduling, and employee onboarding workflows",
 		IsCore:      false,
-		DependsOn:   []string{"organization", "employee"},
+		DependsOn:   []string{"organization", "employee", "setting"},
 		Permissions: []string{
 			"recruitment.view",
 			"recruitment.create",

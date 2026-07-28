@@ -22,7 +22,8 @@
 | recruitment | 7 | 33 | 37 | 33 | 33 | 66 |
 | performance | 7 | 35 | 36 | 34 | 34 | 55 |
 | workforceintelligence | 7 | 46 | 36 | 70 | 68 | 108 |
-| **TOTAL** | **116** | **480** | **547** | **500** | **498** | **840** |
+| **setting** | **14** | **70** | **70** | **70** | **70** | **0** |
+| **TOTAL** | **130** | **550** | **617** | **570** | **568** | **840** |
 
 ### Test Breakdown per Module
 
@@ -221,6 +222,22 @@
 - WorkforceScenario
 - WorkforceRiskIndicator
 - WorkforceHealthScore
+
+### setting
+- Zone
+- Province
+- Regency
+- District
+- Village
+- Education
+- Religion
+- MaritalStatus
+- RelationshipType
+- EmploymentStatus
+- Bank
+- Nationality
+- JobFamily
+- SalaryGrade
 
 ### careerintelligence
 - CareerTalentMap
@@ -740,6 +757,22 @@
 - `GetCostPerEmployee()`
 - `executeSimulation()` (private)
 
+### setting.Service — 70 methods
+- `CreateZone()` / `GetZoneByID()` / `ListZones()` / `UpdateZone()` / `DeleteZone()`
+- `CreateProvince()` / `GetProvinceByID()` / `ListProvinces()` / `UpdateProvince()` / `DeleteProvince()`
+- `CreateRegency()` / `GetRegencyByID()` / `ListRegencies()` / `UpdateRegency()` / `DeleteRegency()`
+- `CreateDistrict()` / `GetDistrictByID()` / `ListDistricts()` / `UpdateDistrict()` / `DeleteDistrict()`
+- `CreateVillage()` / `GetVillageByID()` / `ListVillages()` / `UpdateVillage()` / `DeleteVillage()`
+- `CreateEducation()` / `GetEducationByID()` / `ListEducations()` / `UpdateEducation()` / `DeleteEducation()`
+- `CreateReligion()` / `GetReligionByID()` / `ListReligions()` / `UpdateReligion()` / `DeleteReligion()`
+- `CreateMaritalStatus()` / `GetMaritalStatusByID()` / `ListMaritalStatuses()` / `UpdateMaritalStatus()` / `DeleteMaritalStatus()`
+- `CreateRelationshipType()` / `GetRelationshipTypeByID()` / `ListRelationshipTypes()` / `UpdateRelationshipType()` / `DeleteRelationshipType()`
+- `CreateEmploymentStatus()` / `GetEmploymentStatusByID()` / `ListEmploymentStatuses()` / `UpdateEmploymentStatus()` / `DeleteEmploymentStatus()`
+- `CreateBank()` / `GetBankByID()` / `ListBanks()` / `UpdateBank()` / `DeleteBank()`
+- `CreateNationality()` / `GetNationalityByID()` / `ListNationalities()` / `UpdateNationality()` / `DeleteNationality()`
+- `CreateJobFamily()` / `GetJobFamilyByID()` / `ListJobFamilies()` / `UpdateJobFamily()` / `DeleteJobFamily()`
+- `CreateSalaryGrade()` / `GetSalaryGradeByID()` / `ListSalaryGrades()` / `UpdateSalaryGrade()` / `DeleteSalaryGrade()`
+
 ### careerintelligence.Service — 19 methods
 - `CreateTalentMap()`
 - `GetTalentMapByID()`
@@ -779,17 +812,17 @@
 
 | Category | Count |
 |----------|:-----:|
-| Tenant Modules | 15 |
+| Tenant Modules | 16 |
 | Platform Modules | 6 |
 | Shared Kernel Packages | 17 |
-| **Total Architecture Layers** | **38** |
-| Total GORM Entities (tenant) | 116 |
+| **Total Architecture Layers** | **39** |
+| Total GORM Entities (tenant) | 130 |
 | Total GORM Entities (platform) | 7 |
-| **Total Entities (combined)** | **123** |
-| Total Service Methods | 522 |
-| Total Repository Methods | 581 |
-| Total Handler Functions | 540 |
-| Total Route Registrations | 538 |
+| **Total Entities (combined)** | **137** |
+| Total Service Methods | 622 |
+| Total Repository Methods | 687 |
+| Total Handler Functions | 640 |
+| Total Route Registrations | 638 |
 | **Total Unit Tests (all)** | **1029** |
 | Total Go Source Files | 161 |
 | Total Test Files (_test.go) | 70 |

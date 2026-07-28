@@ -52,7 +52,7 @@ func (m *empMovementModule) Info() module.ModuleInfo {
 		Version:     ModuleVersion,
 		Description: "Manage employee career movements (promotions, demotions, mutations, contract extensions, retirements, offboarding) and employment contracts (PKWT/PKWTT)",
 		IsCore:      true,
-		DependsOn:   []string{"employee", "organization"},
+		DependsOn:   []string{"employee", "organization", "setting"},
 		Permissions: []string{
 			"employeemovement.view",
 			"employeemovement.create",

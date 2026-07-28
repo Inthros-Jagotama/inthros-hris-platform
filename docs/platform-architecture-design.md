@@ -126,7 +126,7 @@ graph TB
 | **Cache** | Redis | Session cache, rate limiting, queue |
 | **Queue** | Asynq | Redis-based, delay/scheduler, monitoring UI |
 | **Auth** | JWT (golang-jwt) | Stateless, multi-tenant compatible |
-| **RBAC** | Custom authz engine | Resource-action based permission checking dengan role hierarchy |
+| **RBAC** | Custom authz engine | Resource-action based permission checking dengan role hierarchy (14 resources, 74+ permissions) |
 | **Validation** | go-playground/validator | Struct tag-based, kaya fitur |
 | **Logging** | Zap | High performance structured logging |
 | **Tracing** | OpenTelemetry | Standard observability |

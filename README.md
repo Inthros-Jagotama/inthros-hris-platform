@@ -170,8 +170,8 @@ hris-platform/
 │   │   │   ├── recruitment/          #   Recruitment & Onboarding ATS (7 entities, 33 endpoints, 66 tests)
 │   │   │   ├── training/            #   Training & Development (7 entities, 35 endpoints, 31 tests)
 │   │   │   ├── careerintelligence/   #   Career Intelligence & Talent Management (4 entities, 19 endpoints, 65 tests)
-│   │   │   ├── workforceintelligence/#   Workforce Intelligence & Strategic Planning (analytics layer)
-│   │   │   └── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints)
+│   │   │   ├── workforceintelligence/#   Workforce Intelligence & Strategic Planning (analytics layer)│   │   │   ├── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints)
+│   │   │   └── setting/              #   Settings — 14 reference CRUDs (Zones, Provinces, Regencies, Districts, Villages, Educations, Religions, MaritalStatuses, RelationshipTypes, Banks, EmploymentStatuses, Nationalities, JobFamilies, SalaryGrades)
 │   │   └── pkg/                      # Shared Kernel│       │   ├── config/               # Viper configuration loader
 │       │   ├── database/             # Multi-tenant DB manager
 │       │   ├── driver/               # Shared DB driver type
@@ -378,7 +378,7 @@ Role, permission, dan role-permission assignments disimpan di tabel platform:
 - `rbac_role_permissions` — many-to-many assignment
 
 Saat startup, `NewEnforcerFromDB()`:
-1. **Seed defaults** jika tabel kosong (4 role + 70+ permission)
+1. **Seed defaults** jika tabel kosong (4 role + 74+ permission dari 14 resource)
 2. **Load ke memori** sebagai map[role]map[resource]actions
 3. Siap digunakan untuk Check() — sub-milidetik, tanpa query DB per request
 
@@ -406,6 +406,7 @@ Setelah perubahan role/permission via API, enforcer di-**Reload()** otomatis —
 | `competency` | ✅ * | ✅ * | ✅ V/C/U | ✅ V |
 | `jobmanagement` | ✅ * | ✅ * | ✅ V/C/U | ❌ |
 | `approval` | ✅ * | ✅ * | ✅ V/C/U | ❌ |
+| `setting` | ✅ * | ✅ * | ✅ V/C/U | ✅ V |
 
 > * = all actions, V = view, C = create, U = update
 
@@ -858,6 +859,29 @@ Authorization: Bearer <access_token>
 | `POST` | `/reimbursements/requests/:requestId/items` | Add a new item to a reimbursement request |
 | `PUT` | `/reimbursements/requests/:requestId/items/:itemId` | Update a reimbursement item |
 | `DELETE` | `/reimbursements/requests/:requestId/items/:itemId` | Delete a reimbursement item |
+
+**Settings — Master Data / Reference CRUD**
+
+Semua endpoint settings berada di `/api/v1/tenant/settings/`. Masing-masing entity memiliki 5 CRUD endpoint standar (`GET`, `POST`, `GET/:id`, `PUT/:id`, `DELETE/:id`):
+
+| Entity | Endpoint | Fields | Frontend View |
+|--------|----------|--------|:-------------:|
+| Zones | `/settings/zones` | Code, Name, Region, IsActive, SortOrder | `ZonesView.vue` |
+| Provinces | `/settings/provinces` | Code, Name, SortOrder | `ProvincesView.vue` |
+| Regencies | `/settings/regencies` | Code, Name, ProvinceID (parent), SortOrder | `RegenciesView.vue` |
+| Districts | `/settings/districts` | Code, Name, RegencyID (parent), SortOrder | `DistrictsView.vue` |
+| Villages | `/settings/villages` | Code, Name, DistrictID (parent), SortOrder | `VillagesView.vue` |
+| Educations | `/settings/educations` | Code, Name, SortOrder | `EducationsView.vue` |
+| Religions | `/settings/religions` | Code, Name, SortOrder | `ReligionsView.vue` |
+| Marital Statuses | `/settings/marital-statuses` | Code, Name, SortOrder | `MaritalStatusesView.vue` |
+| Relationship Types | `/settings/relationship-types` | Code, Name, SortOrder | `RelationshipTypesView.vue` |
+| Banks | `/settings/banks` | Code, Name, SortOrder | `BanksView.vue` |
+| Employment Statuses | `/settings/employment-statuses` | Code, Name, SortOrder | `EmploymentStatusesView.vue` |
+| Nationalities | `/settings/nationalities` | Code, Name, SortOrder | `NationalitiesView.vue` |
+| Job Families | `/settings/job-families` | Code, Name, SortOrder | `JobFamiliesView.vue` |
+| Salary Grades | `/settings/salary-grades` | Code, Name, Grade, MinSalary, MaxSalary, SortOrder | `SalaryGradesView.vue` |
+
+> **Query parameters:** Semua endpoint GET mendukung `?page=&per_page=&search=&sort_by=&sort_order=` — standar server-side pagination & sorting. Untuk zona, ada tambahan `?active_only=true`.
 
 **Tenant: Packages — Browse & Subscribe**
 
@@ -1532,7 +1556,7 @@ POST /api/v1/platform/companies
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
 | ✅ | Project completion dashboard (14 modules, 1004+ tests, 143 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
-| ✅ | OpenAPI comprehensive report (544 endpoints, 352 schemas, 24 tags) | `docs/openapi-report.md` |
+| ✅ | OpenAPI comprehensive report (626 endpoints, 412 schemas, 27 tags) | `docs/openapi-report.md` |
 | ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |

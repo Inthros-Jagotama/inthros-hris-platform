@@ -1,6 +1,6 @@
 # HRIS Platform — Project Completion Dashboard
 
-**Generated:** 26 July 2026  
+**Generated:** 28 July 2026  
 **Server:** ✅ Running (`http://localhost:8080`) — Status: `ok`
 
 ---
@@ -9,14 +9,14 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tenant Modules** | **15** complete |
+| **Tenant Modules** | **16** complete (15 business + Settings with 14 reference CRUDs) |
 | **Platform Modules** | **6** complete + **2** shared packages |
 | **Total Go Files** | **224+** (155 source + 69 test) |
 | **Total GORM Entities** | **121** (116 tenant + 5 platform) |
 | **Total Test Functions** | **~1004+** |
-| **Total OpenAPI Endpoints** | **556** |
-| **Total OpenAPI Schemas** | **359** |
-| **Total OpenAPI Tags** | **26** |
+| **Total OpenAPI Endpoints** | **626** |
+| **Total OpenAPI Schemas** | **412** |
+| **Total OpenAPI Tags** | **27** |
 | **Module Type Filter** | ✅ **3 endpoints** (`/modules`, `/packages`, `/public/packages`) |
 | **Bilingual Support** | ✅ **EN/ID** — Backend 80+ message pairs + Frontend 200+ locale keys, middleware auto-detect, field validation errors |
 | **Frontend Phase 1** | ✅ **9/9 Platform Admin pages** — 100% complete with bilingual support |
@@ -34,7 +34,7 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                    Go Modular Monolith                       │
 │  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────┐ │
-│  │  Platform    │  │   Shared    │  │  15 Tenant Modules   │ │
+│  │  Platform    │  │   Shared    │  │  16 Tenant Modules   │ │
 │  │  Management  │  │   Kernel    │  │                      │ │
 │  │              │  │             │  │  • Organization      │ │
 │  │ • Company    │  │ • Config    │  │  • Employee          │ │
@@ -51,6 +51,7 @@
 │  │              │  │ • Migrator  │  │  • Training & Dev    │ │
 │  │              │  │             │  │  • Workforce Intell  │ │
 │  │              │  │             │  │  • Career Intell     │ │
+│  │  • Settings (Master) │ │
 │  └─────────────┘  └─────────────┘  └──────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -59,7 +60,7 @@
 
 ## 📦 Module Completion Status
 
-### Tenant Modules (14/14 — 100% Complete ✅)
+### Tenant Modules (16/16 — 100% Complete ✅)
 
 | # | Module | Entities | Tests | OpenAPI Endpoints | Status | Completed |
 |---|--------|:--------:|:-----:|:-----------------:|:------:|:---------:|
@@ -78,7 +79,8 @@
 | 13 | Training & Development | 7 | 31 | 35 | ✅ Complete | 26 Jul 2026 |
 | 14 | **Workforce Intelligence & Strategic Planning** | **7** | **108** | **68** | ✅ Complete | **25 Jul 2026** |
 | 15 | **Career Intelligence & Talent Management** | **4** | **65** | **19** | ✅ Complete | **26 Jul 2026** |
-| | **TOTAL** | **116** | **850** | **499** | **15/15 (100%)** | |
+| 16 | **Settings (Master Data)** | **14** | **—** | **70** | ✅ Complete | **27 Jul 2026** |
+| | **TOTAL** | **130** | **850** | **569** | **16/16 (100%)** | |
 
 ### Platform Modules (6/6 — 100% Complete ✅)
 
@@ -96,7 +98,7 @@
 
 | # | Package | Tests | Description |
 |---|---------|:-----:|-------------|
-| 1 | `internal/pkg/authz/` (RBAC) | **134** | Database-backed RBAC with 4 default roles, 70+ permissions, auto-reload |
+| 1 | `internal/pkg/authz/` (RBAC) | **134** | Database-backed RBAC with 4 default roles, **74+ permissions (14 resources)**, auto-reload, **31 assertions for setting resource** (V/C/U/D per role, ResourceFromPath, singularize) |
 | 2 | `internal/pkg/cache/` | **51** | Two-tier distributed cache (local sync.Map + Redis) + Pub/Sub invalidation |
 | 3 | `internal/pkg/config/` | — | Viper configuration loader (YAML + .env + env vars) |
 | 4 | `internal/pkg/database/` | — | Multi-tenant DB connection manager with caching |
@@ -111,7 +113,7 @@
 
 | Module | Tests | % of Total | Key Test Areas |
 |--------|:-----:|:----------:|----------------|
-| **Shared: authz (RBAC)** | **134** | 14.6% | Enforcer DB loading, repository, service, handler |
+| **Shared: authz (RBAC)** | **134** | 14.6% | Enforcer DB loading, repository, service, handler — 14 resources, 74+ permissions, **setting resource test coverage** (31 assertions across 7 test functions) |
 | **Attendance** | **88** | 9.6% | Repository (37), service (25), handler (21) |
 | **Recruitment (ATS)** | **75** | 8.2% | Repository (27), service (23), handler (16) |
 | **Job Management** | **67** | 7.3% | Repository, service, handler |
@@ -138,9 +140,9 @@
 | Document | Description | Status |
 |----------|-------------|:------:|
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
-| `ARCHITECTURE_DESIGN_v1.6_Updated.md` | Architecture design, module status, priority matrix | ✅ v8 updated |
-| `docs/openapi-report.md` | OpenAPI comprehensive report (v11) | ✅ v11 — 556 endpoints, 359 schemas, 26 tags |
-| `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ Updated with Career Intelligence (116 entities, 480 services, 1004 tests) |
+| `ARCHITECTURE_DESIGN_v1.6_Updated.md` | Architecture design, module status, priority matrix | ✅ v13 updated (Settings + DependsOn) |
+| `docs/openapi-report.md` | OpenAPI comprehensive report (v12) | ✅ v12 — 626 endpoints, 412 schemas, 27 tags |
+| `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ Updated with Settings module (130 entities, 550 service methods, 1029 tests) |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
 | `docs/PROJECT_COMPLETION_DASHBOARD.md` | **This document** | ✅ **Updated — Phase 1 Frontend added** |
@@ -183,9 +185,9 @@
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 556 endpoints |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 626 endpoints |
 | **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs |
-| **RBAC Engine** | ✅ **Active** | 4 default roles, 70+ permissions, auto-reload |
+| **RBAC Engine** | ✅ **Active** | 4 default roles, **74+ permissions (14 resources)**, auto-reload |
 | **Cache (Redis)** | 🔶 **Optional** | Redis required for distributed mode |
 | **Docker Compose** | ✅ **Ready** | PostgreSQL, Redis, API, Asynqmon |
 | **Dockerfile** | ✅ **Multi-stage** | Optimized Go build |
@@ -274,7 +276,11 @@
 | Task | Priority | Notes | Status |
 |------|:--------:|-------|:------:|
 | **Frontend Phase 1 — Platform Admin** | 🟢 High | 9 pages: Login, Dashboard, Companies, Users, Modules, Licenses, Packages, Monitoring, RBAC | ✅ **Done (26 Jul 2026)** |
-| Frontend Phase 2 — Tenant Module Views | 🟡 Medium | Organization, Employee, Leave, Payroll, Attendance, dll. | ⬜ Planned |
+| Frontend Phase 2 — Tenant Module Views | 🟡 Medium | Organization, Employee, Leave, Payroll, Attendance, dll. | ✅ **Partial (14 Settings CRUD views done)** |
+| — Settings: Zones, Provinces, Regencies, Districts, Villages | 🟢 Easy | 5 geographic entities with parent-child hierarchy | ✅ **Done** |
+| — Settings: Educations, Religions, MaritalStatuses, RelationshipTypes | 🟢 Easy | 4 simple reference CRUDs | ✅ **Done** |
+| — Settings: Banks, EmploymentStatuses, Nationalities | 🟢 Easy | 3 simple reference CRUDs | ✅ **Done** |
+| — Settings: JobFamilies, SalaryGrades | 🟢 Easy | 2 reference CRUDs (SalaryGrades: Grade, MinSalary, MaxSalary) | ✅ **Done** |
 | E2E Testing (Playwright) | 🟡 Medium | Phase 5 | ⬜ Planned |
 | Performance Optimization | 🟢 High | Phase 5 | ⬜ Planned |
 | CI/CD Pipeline | 🟡 Medium | Phase 5 | ⬜ Planned |
@@ -287,7 +293,7 @@
 |----------|------|
 | Main README | `./README.md` |
 | Architecture Design | `./ARCHITECTURE_DESIGN_v1.6_Updated.md` |
-| OpenAPI Report (v11) | `./docs/openapi-report.md` |
+| OpenAPI Report (v12) | `./docs/openapi-report.md` |
 | Go Module Architecture Report | `./docs/go-module-architecture-report.md` |
 | Platform Architecture Design | `./docs/platform-architecture-design.md` |
 | Blueprint vs Existing Analysis | `./docs/analisis-blueprint-vs-existing.md` |

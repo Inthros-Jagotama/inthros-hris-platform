@@ -28,7 +28,9 @@
     "strategic": "Strategis",
     "workforce_intel": "Intel Tenaga Kerja",
     "career_intel": "Intel Karir",
-    "packages": "Paket"
+    "packages": "Paket",
+    "settings": "Pengaturan",
+    "profile": "Profil"
   },
 
   "common": {
@@ -55,6 +57,10 @@
     "status": "Status",
     "name": "Nama",
     "description": "Deskripsi"
+  },
+
+  "form": {
+    "required": "Field ini wajib diisi"
   },
 
   "common_status": {
@@ -87,6 +93,7 @@
 
   "dashboard": {
     "title": "Dasbor",
+    "description": "Ikhtisar real-time operasi HR, KPI, dan akses cepat ke modul.",
     "welcome": "Selamat datang di HRIS Platform",
     "welcome_id": "Selamat datang di HRIS Platform",
     "period_filter": "Periode",
@@ -100,6 +107,8 @@
     "this_month": "Bulan Ini",
     "this_quarter": "Kuartal Ini",
     "this_year": "Tahun Ini",
+    "light_mode": "Mode Terang",
+    "dark_mode": "Mode Gelap",
     "employees": "Karyawan",
     "attendance": "Absensi",
     "leave": "Cuti",
@@ -122,7 +131,45 @@
     "positions": "Posisi",
     "job_families": "Grup Jabatan",
     "levels": "Level",
-    "empty_title": "Belum ada organisasi dibuat"
+    "empty_title": "Belum ada organisasi dibuat",
+    "empty_tree": "Belum ada node organisasi. Klik \"Tambah Root\" untuk membuat node pertama.",
+    "create": "Buat Organisasi",
+    "edit": "Ubah Organisasi",
+    "add_root": "Tambah Root",
+    "add_child": "Tambah Anak",
+    "code": "Kode",
+    "full_code": "Kode Lengkap",
+    "nomenclature": "Nama",
+    "parent": "Organisasi Induk",
+    "level": "Level",
+    "sort_order": "Urutan",
+    "node_type": "Tipe",
+    "select_parent": "Pilih organisasi induk...",
+    "no_parent": "Root (Level Teratas)",
+    "confirm_delete": "Hapus organisasi \"{name}\"? Semua node anak juga akan dihapus.",
+    "confirm_delete_title": "Hapus Organisasi",
+    "created": "Organisasi berhasil dibuat",
+    "updated": "Organisasi berhasil diperbarui",
+    "deleted": "Organisasi berhasil dihapus"
+  },
+
+  "zones": {
+    "title": "Wilayah",
+    "description": "Kelola zona dan wilayah geografis untuk struktur organisasi.",
+    "new_zone": "Wilayah Baru",
+    "edit_zone": "Ubah Wilayah",
+    "code": "Kode",
+    "name": "Nama Wilayah",
+    "region": "Region",
+    "sort_order": "Urutan",
+    "is_active": "Aktif",
+    "search": "Cari wilayah...",
+    "empty_title": "Belum ada wilayah dibuat",
+    "confirm_delete": "Hapus wilayah \"{name}\"?",
+    "confirm_delete_title": "Hapus Wilayah",
+    "created": "Wilayah berhasil dibuat",
+    "updated": "Wilayah berhasil diperbarui",
+    "deleted": "Wilayah berhasil dihapus"
   },
 
   "employee": {
@@ -290,6 +337,281 @@
     "modules_included": "Modul Termasuk",
     "confirm_subscribe": "Langganan paket ini?",
     "confirm_unsubscribe": "Berhenti berlangganan paket ini? Modul mungkin dinonaktifkan."
+  },
+
+  "profile": {
+    "title": "Profil",
+    "description": "Kelola pengaturan akun dan kata sandi Anda.",
+    "change_password": "Ubah Kata Sandi",
+    "current_password": "Kata Sandi Saat Ini",
+    "new_password": "Kata Sandi Baru",
+    "confirm_password": "Konfirmasi Kata Sandi Baru",
+    "update_password": "Perbarui Kata Sandi",
+    "password_updated": "Kata sandi berhasil diperbarui",
+    "password_mismatch": "Kata sandi tidak cocok",
+    "role": "Peran",
+    "role_company_admin": "Admin Perusahaan",
+    "role_super_admin": "Super Admin",
+    "company": "Perusahaan",
+    "status": "Status",
+    "last_login": "Terakhir Masuk"
+  },
+
+  "auth": {
+    "title": "HRIS Platform",
+    "version": "HRIS Platform v1.0",
+    "login": {
+      "email": "Email",
+      "password": "Kata Sandi",
+      "email_placeholder": "Masukkan email Anda",
+      "password_placeholder": "Masukkan kata sandi Anda",
+      "button": "Masuk",
+      "subtitle": "Masuk ke akun Anda",
+      "validation_required": "Silakan masukkan email dan kata sandi",
+      "invalid_credentials": "Email atau kata sandi salah",
+      "profile": "Profil",
+      "logout": "Keluar"
+    }
+  },
+
+  "settings": {
+    "title": "Pengaturan",
+    "description": "Kelola area administratif, zona, dan data regional untuk organisasi.",
+    "zones": "Wilayah",
+    "provinces": "Provinsi",
+    "regencies": "Kabupaten/Kota",
+    "districts": "Kecamatan",
+    "villages": "Desa/Kelurahan",
+    "educations": "Pendidikan",
+    "religions": "Agama",
+    "marital_statuses": "Status Pernikahan",
+    "relationship_types": "Tipe Hubungan",
+    "employment_statuses": "Status Kepegawaian",
+    "nationalities": "Kebangsaan",
+    "banks": "Bank",
+    "job_families": "Grup Jabatan",
+    "salary_grades": "Grade Gaji"
+  },
+
+  "provinces": {
+    "title": "Provinsi",
+    "description": "Kelola provinsi di dalam negara.",
+    "new_province": "Provinsi Baru",
+    "edit_province": "Ubah Provinsi",
+    "code": "Kode",
+    "name": "Nama Provinsi",
+    "search": "Cari provinsi...",
+    "empty_title": "Belum ada provinsi dibuat",
+    "confirm_delete": "Hapus provinsi \"{name}\"?",
+    "confirm_delete_title": "Hapus Provinsi",
+    "created": "Provinsi berhasil dibuat",
+    "updated": "Provinsi berhasil diperbarui",
+    "deleted": "Provinsi berhasil dihapus"
+  },
+
+  "regencies": {
+    "title": "Kabupaten/Kota",
+    "description": "Kelola kabupaten/kota di dalam setiap provinsi.",
+    "new_regency": "Kabupaten Baru",
+    "edit_regency": "Ubah Kabupaten",
+    "code": "Kode",
+    "name": "Nama Kabupaten",
+    "province": "Provinsi",
+    "select_province": "Pilih provinsi...",
+    "search": "Cari kabupaten...",
+    "empty_title": "Belum ada kabupaten dibuat",
+    "confirm_delete": "Hapus kabupaten \"{name}\"?",
+    "confirm_delete_title": "Hapus Kabupaten",
+    "created": "Kabupaten berhasil dibuat",
+    "updated": "Kabupaten berhasil diperbarui",
+    "deleted": "Kabupaten berhasil dihapus"
+  },
+
+  "districts": {
+    "title": "Kecamatan",
+    "description": "Kelola kecamatan di dalam setiap kabupaten.",
+    "new_district": "Kecamatan Baru",
+    "edit_district": "Ubah Kecamatan",
+    "code": "Kode",
+    "name": "Nama Kecamatan",
+    "regency": "Kabupaten",
+    "select_regency": "Pilih kabupaten...",
+    "search": "Cari kecamatan...",
+    "empty_title": "Belum ada kecamatan dibuat",
+    "confirm_delete": "Hapus kecamatan \"{name}\"?",
+    "confirm_delete_title": "Hapus Kecamatan",
+    "created": "Kecamatan berhasil dibuat",
+    "updated": "Kecamatan berhasil diperbarui",
+    "deleted": "Kecamatan berhasil dihapus"
+  },
+
+  "villages": {
+    "title": "Desa/Kelurahan",
+    "description": "Kelola desa/kelurahan di dalam setiap kecamatan.",
+    "new_village": "Desa Baru",
+    "edit_village": "Ubah Desa",
+    "code": "Kode",
+    "name": "Nama Desa",
+    "district": "Kecamatan",
+    "select_district": "Pilih kecamatan...",
+    "search": "Cari desa...",
+    "empty_title": "Belum ada desa dibuat",
+    "confirm_delete": "Hapus desa \"{name}\"?",
+    "confirm_delete_title": "Hapus Desa",
+    "created": "Desa berhasil dibuat",
+    "updated": "Desa berhasil diperbarui",
+    "deleted": "Desa berhasil dihapus"
+  },
+
+  "educations": {
+    "title": "Pendidikan",
+    "description": "Kelola tingkat pendidikan.",
+    "new_education": "Pendidikan Baru",
+    "edit_education": "Ubah Pendidikan",
+    "code": "Kode",
+    "name": "Nama Pendidikan",
+    "sort_order": "Urutan",
+    "search": "Cari pendidikan...",
+    "empty_title": "Belum ada pendidikan dibuat",
+    "confirm_delete": "Hapus pendidikan \"{name}\"?",
+    "confirm_delete_title": "Hapus Pendidikan",
+    "created": "Pendidikan berhasil dibuat",
+    "updated": "Pendidikan berhasil diperbarui",
+    "deleted": "Pendidikan berhasil dihapus"
+  },
+
+  "religions": {
+    "title": "Agama",
+    "description": "Kelola agama.",
+    "new_religion": "Agama Baru",
+    "edit_religion": "Ubah Agama",
+    "code": "Kode",
+    "name": "Nama Agama",
+    "sort_order": "Urutan",
+    "search": "Cari agama...",
+    "empty_title": "Belum ada agama dibuat",
+    "confirm_delete": "Hapus agama \"{name}\"?",
+    "confirm_delete_title": "Hapus Agama",
+    "created": "Agama berhasil dibuat",
+    "updated": "Agama berhasil diperbarui",
+    "deleted": "Agama berhasil dihapus"
+  },
+
+  "marital_status": {
+    "title": "Status Pernikahan",
+    "description": "Kelola status pernikahan.",
+    "new_marital_status": "Status Baru",
+    "edit_marital_status": "Ubah Status",
+    "code": "Kode",
+    "name": "Nama Status",
+    "sort_order": "Urutan",
+    "search": "Cari status pernikahan...",
+    "empty_title": "Belum ada status pernikahan dibuat",
+    "confirm_delete": "Hapus status pernikahan \"{name}\"?",
+    "confirm_delete_title": "Hapus Status Perkawinan",
+    "created": "Status pernikahan berhasil dibuat",
+    "updated": "Status pernikahan berhasil diperbarui",
+    "deleted": "Status pernikahan berhasil dihapus"
+  },
+
+  "relationship_types": {
+    "title": "Tipe Hubungan",
+    "description": "Kelola tipe hubungan untuk kontak darurat dan keluarga karyawan.",
+    "new": "Tipe Hubungan Baru",
+    "edit": "Ubah Tipe Hubungan",
+    "code": "Kode",
+    "name": "Nama",
+    "sort_order": "Urutan",
+    "empty_title": "Belum ada tipe hubungan dibuat",
+    "confirm_delete": "Hapus tipe hubungan \"{name}\"?",
+    "confirm_delete_title": "Hapus Tipe Hubungan",
+    "created": "Tipe hubungan berhasil dibuat",
+    "updated": "Tipe hubungan berhasil diperbarui",
+    "deleted": "Tipe hubungan berhasil dihapus"
+  },
+
+  "employment_statuses": {
+    "title": "Status Kepegawaian",
+    "description": "Kelola status kepegawaian untuk kontrak karyawan.",
+    "new": "Status Baru",
+    "edit": "Ubah Status",
+    "code": "Kode",
+    "name": "Nama",
+    "sort_order": "Urutan",
+    "empty_title": "Belum ada status kepegawaian dibuat",
+    "confirm_delete": "Hapus status kepegawaian \"{name}\"?",
+    "confirm_delete_title": "Hapus Status Kepegawaian",
+    "created": "Status kepegawaian berhasil dibuat",
+    "updated": "Status kepegawaian berhasil diperbarui",
+    "deleted": "Status kepegawaian berhasil dihapus"
+  },
+
+  "banks": {
+    "title": "Bank",
+    "description": "Kelola daftar bank untuk profil penggajian karyawan.",
+    "new": "Bank Baru",
+    "edit": "Ubah Bank",
+    "code": "Kode",
+    "name": "Nama Bank",
+    "sort_order": "Urutan",
+    "empty_title": "Belum ada bank dibuat",
+    "confirm_delete": "Hapus bank \"{name}\"?",
+    "confirm_delete_title": "Hapus Bank",
+    "created": "Bank berhasil dibuat",
+    "updated": "Bank berhasil diperbarui",
+    "deleted": "Bank berhasil dihapus"
+  },
+
+  "nationalities": {
+    "title": "Kebangsaan",
+    "description": "Kelola kebangsaan untuk profil karyawan.",
+    "new": "Kebangsaan Baru",
+    "edit": "Ubah Kebangsaan",
+    "code": "Kode",
+    "name": "Nama Kebangsaan",
+    "sort_order": "Urutan",
+    "empty_title": "Belum ada kebangsaan dibuat",
+    "confirm_delete": "Hapus kebangsaan \"{name}\"?",
+    "confirm_delete_title": "Hapus Kebangsaan",
+    "created": "Kebangsaan berhasil dibuat",
+    "updated": "Kebangsaan berhasil diperbarui",
+    "deleted": "Kebangsaan berhasil dihapus"
+  },
+
+  "job_families": {
+    "title": "Grup Jabatan",
+    "description": "Kelola grup jabatan untuk struktur organisasi.",
+    "new": "Grup Baru",
+    "edit": "Ubah Grup",
+    "code": "Kode",
+    "name": "Nama",
+    "description": "Deskripsi",
+    "sort_order": "Urutan",
+    "empty_title": "Belum ada grup jabatan dibuat",
+    "confirm_delete": "Hapus grup jabatan \"{name}\"?",
+    "confirm_delete_title": "Hapus Grup Jabatan",
+    "created": "Grup jabatan berhasil dibuat",
+    "updated": "Grup jabatan berhasil diperbarui",
+    "deleted": "Grup jabatan berhasil dihapus"
+  },
+
+  "salary_grades": {
+    "title": "Grade Gaji",
+    "description": "Kelola grade gaji untuk struktur jabatan dan penggajian.",
+    "new": "Grade Baru",
+    "edit": "Ubah Grade",
+    "code": "Kode",
+    "name": "Nama",
+    "description": "Deskripsi",
+    "min_amount": "Nilai Min",
+    "max_amount": "Nilai Max",
+    "sort_order": "Urutan",
+    "empty_title": "Belum ada grade gaji dibuat",
+    "confirm_delete": "Hapus grade gaji \"{name}\"?",
+    "confirm_delete_title": "Hapus Grade Gaji",
+    "created": "Grade gaji berhasil dibuat",
+    "updated": "Grade gaji berhasil diperbarui",
+    "deleted": "Grade gaji berhasil dihapus"
   },
 
   "time": {

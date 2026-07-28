@@ -232,20 +232,21 @@ func handleSeedModules(l *zap.Logger, dbManager *database.Manager) {
 
 		// Tenant modules
 		{Name: "Organization Management", Slug: "organization", Version: "1.0.0", Description: "Manage organizational structure, departments, and positions", ModuleType: "tenant", DependsOn: ""},
-		{Name: "Employee Management", Slug: "employee", Version: "1.0.0", Description: "Employee master data, documents, and lifecycle", ModuleType: "tenant", DependsOn: "organization"},
+		{Name: "Employee Management", Slug: "employee", Version: "1.0.0", Description: "Employee master data, documents, and lifecycle", ModuleType: "tenant", DependsOn: "organization,setting"},
 		{Name: "Job Management", Slug: "jobmanagement", Version: "1.0.0", Description: "Job titles, job grades, and position management", ModuleType: "tenant", DependsOn: "organization"},
 		{Name: "Competency Management", Slug: "competency", Version: "1.0.0", Description: "Skills, competency dictionaries, and assessments", ModuleType: "tenant", DependsOn: "organization,employee"},
-		{Name: "Employee Movement", Slug: "employeemovement", Version: "1.0.0", Description: "Promotions, transfers, resignations, and mutations", ModuleType: "tenant", DependsOn: "employee,organization"},
+		{Name: "Employee Movement", Slug: "employeemovement", Version: "1.0.0", Description: "Promotions, transfers, resignations, and mutations", ModuleType: "tenant", DependsOn: "employee,organization,setting"},
 		{Name: "Attendance Management", Slug: "attendance", Version: "1.0.0", Description: "Time tracking, attendance logs, and overtime", ModuleType: "tenant", DependsOn: "employee,organization"},
 		{Name: "Approval Engine", Slug: "approval", Version: "1.0.0", Description: "Approval workflows, multi-level approvals, and delegation", ModuleType: "tenant", DependsOn: "employee,organization"},
-		{Name: "Payroll Management", Slug: "payroll", Version: "1.0.0", Description: "Payroll processing, tax calculations, and salary components", ModuleType: "tenant", DependsOn: "employee,organization"},
+		{Name: "Payroll Management", Slug: "payroll", Version: "1.0.0", Description: "Payroll processing, tax calculations, and salary components", ModuleType: "tenant", DependsOn: "employee,organization,setting"},
 		{Name: "Leave Management", Slug: "leave", Version: "1.0.0", Description: "Leave requests, balances, and calendars", ModuleType: "tenant", DependsOn: "employee,organization"},
-		{Name: "Performance Management", Slug: "performance", Version: "1.0.0", Description: "Performance reviews, KPI tracking, and feedback", ModuleType: "tenant", DependsOn: "organization,employee,jobmanagement,competency"},
-		{Name: "Recruitment & Onboarding", Slug: "recruitment", Version: "1.0.0", Description: "Job postings, candidate management, and onboarding", ModuleType: "tenant", DependsOn: "organization,employee"},
+		{Name: "Performance Management", Slug: "performance", Version: "1.0.0", Description: "Performance reviews, KPI tracking, and feedback", ModuleType: "tenant", DependsOn: "organization,employee,jobmanagement,competency,setting"},
+		{Name: "Recruitment & Onboarding", Slug: "recruitment", Version: "1.0.0", Description: "Job postings, candidate management, and onboarding", ModuleType: "tenant", DependsOn: "organization,employee,setting"},
 		{Name: "Reimbursement", Slug: "reimbursement", Version: "1.0.0", Description: "Expense reimbursement requests and approvals", ModuleType: "tenant", DependsOn: "employee"},
-		{Name: "Training Management", Slug: "training", Version: "1.0.0", Description: "Training programs, enrollments, and certifications", ModuleType: "tenant", DependsOn: "employee,organization"},
+		{Name: "Training Management", Slug: "training", Version: "1.0.0", Description: "Training programs, enrollments, and certifications", ModuleType: "tenant", DependsOn: "employee,organization,setting"},
 		{Name: "Workforce Intelligence", Slug: "workforce-intelligence", Version: "1.0.0", Description: "Workforce analytics, planning, and strategic dashboards", ModuleType: "tenant", DependsOn: "organization,employee,attendance,leave,payroll,performance,competency,training,recruitment,employeemovement"},
 		{Name: "Career Intelligence", Slug: "career-intelligence", Version: "1.0.0", Description: "Career development, succession planning, and talent management", ModuleType: "tenant", DependsOn: "organization,employee,jobmanagement,competency"},
+		{Name: "Settings (Master Data)", Slug: "setting", Version: "1.0.0", Description: "Manage tenant reference data — zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades", ModuleType: "tenant", DependsOn: ""},
 	}
 
 	db := dbManager.PlatformDB()

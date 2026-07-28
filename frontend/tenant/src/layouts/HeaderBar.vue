@@ -1,6 +1,5 @@
 <template>
-  <header class="flex items-center h-12 bg-white border-b border-gray-200 px-4 shrink-0">
-    <!-- Left: Toggle + Breadcrumb -->
+  <header class="flex items-center h-12 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 shrink-0">
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <Button
         icon="pi pi-bars"
@@ -10,13 +9,23 @@
         @click="$emit('toggle-sidebar')"
         class="!p-1.5"
       />
-      <span class="text-sm text-gray-500 font-medium truncate">
-        {{ route.meta?.title || 'Dashboard' }}
-      </span>
+      <i class="pi pi-chevron-right text-sm text-gray-300"></i>
+      <span class="text-sm text-gray-500 dark:text-gray-400 font-medium truncate">{{ route.meta?.titleKey ? t(route.meta.titleKey) : (route.meta?.title || '') }}</span>
     </div>
 
-    <!-- Right: Actions -->
     <div class="flex items-center gap-1">
+      <!-- Theme Switcher -->
+      <Button
+        severity="secondary"
+        text
+        size="small"
+        class="!p-1.5"
+        v-tooltip.top="{ value: themeStore.isDark() ? t('dashboard.light_mode') : t('dashboard.dark_mode'), showDelay: 300 }"
+        @click="themeStore.toggleTheme()"
+      >
+        <i :class="themeStore.isDark() ? 'pi pi-sun' : 'pi pi-moon'" class="text-sm"></i>
+      </Button>
+
       <!-- Language Switcher -->
       <Button
         severity="secondary"
@@ -32,17 +41,6 @@
         </div>
       </Button>
 
-      <!-- Search -->
-      <IconField>
-        <InputIcon class="pi pi-search" />
-        <InputText
-          v-model="searchQuery"
-          placeholder="Search modules..."
-          class="!w-48 !h-8 !text-sm"
-          @keyup.enter="handleSearch"
-        />
-      </IconField>
-
       <!-- Notifications -->
       <div class="relative">
         <Button
@@ -55,13 +53,17 @@
         <Badge value="3" severity="danger" class="!absolute -top-0.5 -right-0.5 !text-xs !min-w-[1.1rem] !h-[1.1rem]" />
       </div>
 
-      <!-- User Menu -->
+      <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mr-2">
+        <i class="pi pi-circle-fill text-emerald-400 text-[6px]"></i>
+        <span>Live</span>
+      </div>
+
       <Button
         severity="secondary"
         text
         size="small"
         class="!p-1"
-        @click="userMenuVisible = !userMenuVisible"
+        @click="userMenu.toggle($event)"
       >
         <div class="flex items-center gap-2">
           <Avatar
@@ -69,7 +71,7 @@
             size="small"
             class="!w-7 !h-7 !bg-emerald-100 !text-emerald-700"
           />
-          <span class="text-sm text-gray-700 hidden sm:inline">Admin</span>
+          <span class="text-sm text-gray-700 dark:text-gray-200 hidden sm:inline">{{ authState.user?.name || 'Admin' }}</span>
           <i class="pi pi-chevron-down text-sm text-gray-400"></i>
         </div>
       </Button>
@@ -79,44 +81,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLanguage } from '@/stores/language'
+import { useTheme } from '@/stores/theme'
+import { useAuth } from '@/stores/auth'
+import { useI18n } from '@/composables/useI18n'
 import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import InputIcon from 'primevue/inputicon'
-import IconField from 'primevue/iconfield'
 import Avatar from 'primevue/avatar'
-import Menu from 'primevue/menu'
 import Badge from 'primevue/badge'
+import Menu from 'primevue/menu'
 
-defineEmits(['toggle-sidebar'])
+const emit = defineEmits(['toggle-sidebar', 'logout'])
 
 const route = useRoute()
 const router = useRouter()
-const searchQuery = ref('')
 const userMenu = ref(null)
-const userMenuVisible = ref(false)
 const langStore = useLanguage()
+const themeStore = useTheme()
+const { state: authState } = useAuth()
+const { t } = useI18n()
 
-const userMenuItems = [
-  { label: 'Profile', icon: 'pi pi-user', command: () => {} },
-  { label: 'Settings', icon: 'pi pi-cog', command: () => {} },
+const userMenuItems = computed(() => [
+  { label: t('auth.login.profile'), icon: 'pi pi-user', command: () => router.push('/profile') },
   { separator: true },
-  { label: 'Logout', icon: 'pi pi-sign-out', command: () => {} }
-]
-
-function handleSearch() {
-  if (!searchQuery.value.trim()) return
-  const q = searchQuery.value.toLowerCase()
-  const routes = router.getRoutes()
-  const found = routes.find(r =>
-    r.meta?.title?.toLowerCase().includes(q) ||
-    r.path?.toLowerCase().includes(q)
-  )
-  if (found) {
-    router.push(found.path)
-    searchQuery.value = ''
-  }
-}
+  { label: t('auth.login.logout'), icon: 'pi pi-sign-out', command: () => emit('logout') }
+])
 </script>

@@ -37,6 +37,20 @@ func TestNewEnforcer_NonDB_HasDefaultPolicies(t *testing.T) {
 	// Employee does NOT have 'company' in policies → traverses to manager (no company) → company_admin (company:view) → ALLOW
 	assertAllow(t, e, "employee", "company", "view")
 
+	// Setting resource: company_admin full, manager edit, employee view
+	assertAllow(t, e, "company_admin", "setting", "view")
+	assertAllow(t, e, "company_admin", "setting", "create")
+	assertAllow(t, e, "company_admin", "setting", "update")
+	assertAllow(t, e, "company_admin", "setting", "delete")
+	assertAllow(t, e, "manager", "setting", "view")
+	assertAllow(t, e, "manager", "setting", "create")
+	assertAllow(t, e, "manager", "setting", "update")
+	assertDeny(t, e, "manager", "setting", "delete")
+	assertAllow(t, e, "employee", "setting", "view")
+	assertDeny(t, e, "employee", "setting", "create")
+	assertDeny(t, e, "employee", "setting", "update")
+	assertDeny(t, e, "employee", "setting", "delete")
+
 	// Unknown role: no policies, no hierarchy → DENY
 	assertDeny(t, e, "unknown_role", "organization", "view")
 }
@@ -238,6 +252,10 @@ func TestNewEnforcerFromDB_SuperAdminAllResources(t *testing.T) {
 	assertAllow(t, e, "super_admin", "leave", "view")
 	assertAllow(t, e, "super_admin", "attendance", "delete")
 	assertAllow(t, e, "super_admin", "jobmanagement", "update")
+	assertAllow(t, e, "super_admin", "setting", "view")
+	assertAllow(t, e, "super_admin", "setting", "create")
+	assertAllow(t, e, "super_admin", "setting", "update")
+	assertAllow(t, e, "super_admin", "setting", "delete")
 
 	// Non-defined resources are NOT accessible via DB-backed enforcer
 	// because super_admin has no parent to traverse to
@@ -266,6 +284,12 @@ func TestNewEnforcerFromDB_CompanyAdminTenantFull(t *testing.T) {
 	assertAllow(t, e, "company_admin", "employee", "delete")
 	assertAllow(t, e, "company_admin", "competency", "create")
 	assertAllow(t, e, "company_admin", "jobmanagement", "update")
+
+	// Company admin: setting full access (tenant resource)
+	assertAllow(t, e, "company_admin", "setting", "view")
+	assertAllow(t, e, "company_admin", "setting", "create")
+	assertAllow(t, e, "company_admin", "setting", "update")
+	assertAllow(t, e, "company_admin", "setting", "delete")
 }
 
 func TestNewEnforcerFromDB_ManagerEditNoDelete(t *testing.T) {
@@ -293,6 +317,12 @@ func TestNewEnforcerFromDB_ManagerEditNoDelete(t *testing.T) {
 
 	// Manager: delete for platform resources is still denied via company_admin's intentional deny
 	assertDeny(t, e, "manager", "company", "delete")  // company_admin has company:view not delete
+
+	// Manager: setting view/create/update, no delete
+	assertAllow(t, e, "manager", "setting", "view")
+	assertAllow(t, e, "manager", "setting", "create")
+	assertAllow(t, e, "manager", "setting", "update")
+	assertDeny(t, e, "manager", "setting", "delete")
 }
 
 func TestNewEnforcerFromDB_EmployeeViewOnly(t *testing.T) {
@@ -317,6 +347,12 @@ func TestNewEnforcerFromDB_EmployeeViewOnly(t *testing.T) {
 	assertDeny(t, e, "employee", "organization", "update")
 	assertDeny(t, e, "employee", "organization", "delete")
 	assertDeny(t, e, "employee", "competency", "create")
+
+	// Employee: setting view-only
+	assertAllow(t, e, "employee", "setting", "view")
+	assertDeny(t, e, "employee", "setting", "create")
+	assertDeny(t, e, "employee", "setting", "update")
+	assertDeny(t, e, "employee", "setting", "delete")
 }
 
 // =========================================================================
@@ -442,6 +478,9 @@ func TestResourceFromPath_TenantPaths(t *testing.T) {
 		{"/api/v1/tenant/competencies", "competency"},
 		{"/api/v1/tenant/job-management/titles", "jobmanagement"},
 		{"/api/v1/tenant/employees/123", "employee"},
+		{"/api/v1/tenant/settings/zones", "setting"},
+		{"/api/v1/tenant/settings/banks", "setting"},
+		{"/api/v1/tenant/settings/educations", "setting"},
 	}
 
 	for _, tt := range tests {
@@ -520,6 +559,8 @@ func TestSingularize(t *testing.T) {
 		{"attendances", "attendance"},
 		{"competencies", "competency"},
 		{"job-management", "jobmanagement"},
+		// Settings (irregular)
+		{"settings", "setting"},
 		// -ies → -y
 		{"policies", "policy"},
 		{"categories", "category"},

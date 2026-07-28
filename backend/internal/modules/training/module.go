@@ -52,7 +52,7 @@ func (m *trainingModule) Info() module.ModuleInfo {
 		Version:     ModuleVersion,
 		Description: "End-to-end training and development management including course catalog, session scheduling, participant registration, attendance tracking, materials, evaluations, and certificate issuance",
 		IsCore:      false,
-		DependsOn:   []string{"employee", "organization"},
+		DependsOn:   []string{"employee", "organization", "setting"},
 		Permissions: []string{
 			"training.view",
 			"training.create",

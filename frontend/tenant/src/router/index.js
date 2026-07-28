@@ -2,121 +2,150 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/Login.vue'),
+    meta: { guest: true }
+  },
+  {
     path: '/',
     component: () => import('@/layouts/AppLayout.vue'),
     redirect: '/dashboard',
+    meta: { requiresAuth: true },
     children: [
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/Profile.vue'),
+        meta: { title: 'Profile', titleKey: 'profile.title', descKey: 'profile.description', icon: 'pi pi-user' }
+      },
       {
         path: 'dashboard',
         name: 'Dashboard',
         component: () => import('@/views/Dashboard.vue'),
-        meta: { title: 'Dashboard', icon: 'pi pi-home' }
+        meta: { title: 'Dashboard', titleKey: 'dashboard.title', descKey: 'dashboard.description', icon: 'pi pi-home' }
       },
       // Organization Management
       {
         path: 'organizations',
         name: 'Organizations',
         component: () => import('@/views/modules/Organizations.vue'),
-        meta: { title: 'Organization', icon: 'pi pi-sitemap', module: 'organization' }
+        meta: { title: 'Organization', titleKey: 'organization.title', descKey: 'organization.description', icon: 'pi pi-sitemap', module: 'organization' }
       },
       // Employee Management
       {
         path: 'employees',
         name: 'Employees',
         component: () => import('@/views/modules/Employees.vue'),
-        meta: { title: 'Employees', icon: 'pi pi-users', module: 'employee' }
+        meta: { title: 'Employees', titleKey: 'employee.title', descKey: 'employee.description', icon: 'pi pi-users', module: 'employee' }
       },
       // Job Management
       {
         path: 'job-management',
         name: 'JobManagement',
         component: () => import('@/views/modules/JobManagement.vue'),
-        meta: { title: 'Job Management', icon: 'pi pi-briefcase', module: 'job-management' }
+        meta: { title: 'Job Management', titleKey: 'job_management.title', descKey: 'job_management.description', icon: 'pi pi-briefcase', module: 'job-management' }
       },
       // Competency Management
       {
         path: 'competencies',
         name: 'Competencies',
         component: () => import('@/views/modules/Competencies.vue'),
-        meta: { title: 'Competency', icon: 'pi pi-star', module: 'competency' }
+        meta: { title: 'Competency', titleKey: 'competency.title', descKey: 'competency.description', icon: 'pi pi-star', module: 'competency' }
       },
       // Employee Movement
       {
         path: 'employee-movements',
         name: 'EmployeeMovements',
         component: () => import('@/views/modules/EmployeeMovements.vue'),
-        meta: { title: 'Movement', icon: 'pi pi-arrows-alt', module: 'employee-movement' }
+        meta: { title: 'Movement', titleKey: 'employee_movement.title', descKey: 'employee_movement.description', icon: 'pi pi-arrows-alt', module: 'employee-movement' }
       },
       // Time & Attendance
       {
         path: 'attendance',
         name: 'Attendance',
         component: () => import('@/views/modules/Attendance.vue'),
-        meta: { title: 'Attendance', icon: 'pi pi-clock', module: 'attendance' }
+        meta: { title: 'Attendance', titleKey: 'attendance.title', descKey: 'attendance.description', icon: 'pi pi-clock', module: 'attendance' }
       },
       // Approval Engine
       {
         path: 'approvals',
         name: 'Approvals',
         component: () => import('@/views/modules/Approvals.vue'),
-        meta: { title: 'Approval', icon: 'pi pi-check-square', module: 'approval' }
+        meta: { title: 'Approval', titleKey: 'approval.title', descKey: 'approval.description', icon: 'pi pi-check-square', module: 'approval' }
       },
       // Payroll
       {
         path: 'payroll',
         name: 'Payroll',
         component: () => import('@/views/modules/Payroll.vue'),
-        meta: { title: 'Payroll', icon: 'pi pi-dollar', module: 'payroll' }
+        meta: { title: 'Payroll', titleKey: 'payroll.title', descKey: 'payroll.description', icon: 'pi pi-dollar', module: 'payroll' }
       },
       // Leave & Time Off
       {
         path: 'leave',
         name: 'Leave',
         component: () => import('@/views/modules/Leave.vue'),
-        meta: { title: 'Leave', icon: 'pi pi-calendar', module: 'leave' }
+        meta: { title: 'Leave', titleKey: 'leave.title', descKey: 'leave.description', icon: 'pi pi-calendar', module: 'leave' }
       },
       // Performance Management
       {
         path: 'performance',
         name: 'Performance',
         component: () => import('@/views/modules/Performance.vue'),
-        meta: { title: 'Performance', icon: 'pi pi-chart-line', module: 'performance' }
+        meta: { title: 'Performance', titleKey: 'performance.title', descKey: 'performance.description', icon: 'pi pi-chart-line', module: 'performance' }
       },
       // Recruitment & Onboarding
       {
         path: 'recruitment',
         name: 'Recruitment',
         component: () => import('@/views/modules/Recruitment.vue'),
-        meta: { title: 'Recruitment', icon: 'pi pi-user-plus', module: 'recruitment' }
+        meta: { title: 'Recruitment', titleKey: 'recruitment.title', descKey: 'recruitment.description', icon: 'pi pi-user-plus', module: 'recruitment' }
       },
       // Reimbursement
       {
         path: 'reimbursements',
         name: 'Reimbursements',
         component: () => import('@/views/modules/Reimbursements.vue'),
-        meta: { title: 'Reimbursement', icon: 'pi pi-credit-card', module: 'reimbursement' }
+        meta: { title: 'Reimbursement', titleKey: 'reimbursement.title', descKey: 'reimbursement.description', icon: 'pi pi-credit-card', module: 'reimbursement' }
       },
       // Training & Development
       {
         path: 'training',
         name: 'Training',
         component: () => import('@/views/modules/Training.vue'),
-        meta: { title: 'Training', icon: 'pi pi-book', module: 'training' }
+        meta: { title: 'Training', titleKey: 'training.title', descKey: 'training.description', icon: 'pi pi-book', module: 'training' }
       },
       // Workforce Intelligence
       {
         path: 'workforce-intelligence',
         name: 'WorkforceIntelligence',
         component: () => import('@/views/modules/WorkforceIntelligence.vue'),
-        meta: { title: 'Workforce Intel', icon: 'pi pi-chart-bar', module: 'workforce-intelligence' }
+        meta: { title: 'Workforce Intel', titleKey: 'workforce_intel.title', descKey: 'workforce_intel.description', icon: 'pi pi-chart-bar', module: 'workforce-intelligence' }
       },
       // Career Intelligence
       {
         path: 'career-intelligence',
         name: 'CareerIntelligence',
         component: () => import('@/views/modules/CareerIntelligence.vue'),
-        meta: { title: 'Career Intel', icon: 'pi pi-road', module: 'career-intelligence' }
-      }
+        meta: { title: 'Career Intel', titleKey: 'career_intel.title', descKey: 'career_intel.description', icon: 'pi pi-road', module: 'career-intelligence' }
+      },
+      // Settings — redirect to zones as default
+      { path: 'settings', redirect: '/settings/zones' },
+      { path: 'settings/zones', name: 'SettingsZones', component: () => import('@/views/settings/ZonesView.vue'), meta: { title: 'Zones', titleKey: 'zones.title', descKey: 'zones.description', icon: 'pi pi-map-marker', module: 'setting' } },
+      { path: 'settings/provinces', name: 'SettingsProvinces', component: () => import('@/views/settings/ProvincesView.vue'), meta: { title: 'Provinces', titleKey: 'provinces.title', descKey: 'provinces.description', icon: 'pi pi-globe', module: 'setting' } },
+      { path: 'settings/regencies', name: 'SettingsRegencies', component: () => import('@/views/settings/RegenciesView.vue'), meta: { title: 'Regencies', titleKey: 'regencies.title', descKey: 'regencies.description', icon: 'pi pi-map', module: 'setting' } },
+      { path: 'settings/districts', name: 'SettingsDistricts', component: () => import('@/views/settings/DistrictsView.vue'), meta: { title: 'Districts', titleKey: 'districts.title', descKey: 'districts.description', icon: 'pi pi-building', module: 'setting' } },
+      { path: 'settings/villages', name: 'SettingsVillages', component: () => import('@/views/settings/VillagesView.vue'), meta: { title: 'Villages', titleKey: 'villages.title', descKey: 'villages.description', icon: 'pi pi-home', module: 'setting' } },
+      { path: 'settings/educations', name: 'SettingsEducations', component: () => import('@/views/settings/EducationsView.vue'), meta: { title: 'Educations', titleKey: 'educations.title', descKey: 'educations.description', icon: 'pi pi-graduation-cap', module: 'setting' } },
+      { path: 'settings/religions', name: 'SettingsReligions', component: () => import('@/views/settings/ReligionsView.vue'), meta: { title: 'Religions', titleKey: 'religions.title', descKey: 'religions.description', icon: 'pi pi-globe', module: 'setting' } },
+      { path: 'settings/marital-statuses', name: 'SettingsMaritalStatuses', component: () => import('@/views/settings/MaritalStatusesView.vue'), meta: { title: 'Marital Statuses', titleKey: 'marital_status.title', descKey: 'marital_status.description', icon: 'pi pi-heart', module: 'setting' } },
+      { path: 'settings/relationship-types', name: 'SettingsRelationshipTypes', component: () => import('@/views/settings/RelationshipTypesView.vue'), meta: { title: 'Relationship Types', titleKey: 'relationship_types.title', descKey: 'relationship_types.description', icon: 'pi pi-users', module: 'setting' } },
+      { path: 'settings/banks', name: 'SettingsBanks', component: () => import('@/views/settings/BanksView.vue'), meta: { title: 'Banks', titleKey: 'banks.title', descKey: 'banks.description', icon: 'pi pi-building-column', module: 'setting' } },
+      { path: 'settings/employment-statuses', name: 'SettingsEmploymentStatuses', component: () => import('@/views/settings/EmploymentStatusesView.vue'), meta: { title: 'Employment Statuses', titleKey: 'employment_statuses.title', descKey: 'employment_statuses.description', icon: 'pi pi-briefcase', module: 'setting' } },
+      { path: 'settings/nationalities', name: 'SettingsNationalities', component: () => import('@/views/settings/NationalitiesView.vue'), meta: { title: 'Nationalities', titleKey: 'nationalities.title', descKey: 'nationalities.description', icon: 'pi pi-globe', module: 'setting' } },
+      { path: 'settings/job-families', name: 'SettingsJobFamilies', component: () => import('@/views/settings/JobFamiliesView.vue'), meta: { title: 'Job Families', titleKey: 'job_families.title', descKey: 'job_families.description', icon: 'pi pi-briefcase', module: 'setting' } },
+      { path: 'settings/salary-grades', name: 'SettingsSalaryGrades', component: () => import('@/views/settings/SalaryGradesView.vue'), meta: { title: 'Salary Grades', titleKey: 'salary_grades.title', descKey: 'salary_grades.description', icon: 'pi pi-chart-bar', module: 'setting' } }
     ]
   }
 ]
@@ -126,6 +155,20 @@ const router = createRouter({
   routes,
   scrollBehavior() {
     return { top: 0 }
+  }
+})
+
+// Navigation guard — redirect to /login if not authenticated
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('tenant_token')
+  const isAuthenticated = !!token
+
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next({ name: 'Login' })
+  } else if (to.meta.guest && isAuthenticated) {
+    next({ name: 'Dashboard' })
+  } else {
+    next()
   }
 })
 

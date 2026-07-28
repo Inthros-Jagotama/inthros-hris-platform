@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuth } from '@/stores/auth'
 import { useLanguage } from '@/stores/language'
 
 const api = axios.create({
@@ -7,10 +8,15 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-// Request interceptor — auto-attach language header
+// Request interceptor — auto-attach language header + auth token
 api.interceptors.request.use((config) => {
   const { state } = useLanguage()
   config.headers['Accept-Language'] = state.lang
+
+  const { state: authState } = useAuth()
+  if (authState.accessToken) {
+    config.headers['Authorization'] = `Bearer ${authState.accessToken}`
+  }
   return config
 })
 
@@ -21,6 +27,15 @@ api.interceptors.response.use(
     const original = err.config
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true
+      try {
+        const { refreshToken, logout } = useAuth()
+        await refreshToken()
+        original.headers['Authorization'] = `Bearer ${localStorage.getItem('tenant_token')}`
+        return api(original)
+      } catch {
+        logout()
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(err)
   }
