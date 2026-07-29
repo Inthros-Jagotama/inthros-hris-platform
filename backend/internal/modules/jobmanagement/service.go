@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 const (
@@ -46,6 +48,8 @@ func (s *Service) CreateJobTitle(ctx context.Context, req CreateJobTitleRequest)
 	if req.Status != 0 {
 		t.Status = &req.Status
 	}
+	t.CreatedBy = authctx.GetUserID(ctx)
+	t.UpdatedBy = t.CreatedBy
 	if err := s.repo.CreateJobTitle(ctx, t); err != nil {
 		return nil, err
 	}
@@ -105,6 +109,7 @@ func (s *Service) UpdateJobTitle(ctx context.Context, id string, req UpdateJobTi
 	if err != nil {
 		return nil, err
 	}
+	t.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Name != nil {
 		t.Name = req.Name
 	}
@@ -148,6 +153,8 @@ func (s *Service) CreateJobTitleSub(ctx context.Context, titleID string, req Cre
 	if req.Status != 0 {
 		sub.Status = &req.Status
 	}
+	sub.CreatedBy = authctx.GetUserID(ctx)
+	sub.UpdatedBy = sub.CreatedBy
 	// Copy title name if available
 	title, err := s.repo.FindJobTitleByID(ctx, titleUID)
 	if err == nil && title.Name != nil {
@@ -198,6 +205,7 @@ func (s *Service) UpdateJobTitleSub(ctx context.Context, id string, req UpdateJo
 	if err != nil {
 		return nil, err
 	}
+	sub.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Name != nil {
 		sub.Name = req.Name
 	}
@@ -254,6 +262,8 @@ func (s *Service) CreateJobValue(ctx context.Context, req CreateJobValueRequest)
 	if req.Sort != nil {
 		v.Sort = req.Sort
 	}
+	v.CreatedBy = authctx.GetUserID(ctx)
+	v.UpdatedBy = v.CreatedBy
 	if err := s.repo.CreateJobValue(ctx, v); err != nil {
 		return nil, err
 	}
@@ -312,6 +322,7 @@ func (s *Service) UpdateJobValue(ctx context.Context, id string, req UpdateJobVa
 	if err != nil {
 		return nil, err
 	}
+	v.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Type != nil {
 		v.Type = *req.Type
 	}
@@ -365,6 +376,8 @@ func (s *Service) CreateJobObjective(ctx context.Context, req CreateJobObjective
 	if req.Objective != "" {
 		o.Objective = &req.Objective
 	}
+	o.CreatedBy = authctx.GetUserID(ctx)
+	o.UpdatedBy = o.CreatedBy
 	if err := s.repo.CreateJobObjective(ctx, o); err != nil {
 		return nil, err
 	}
@@ -416,6 +429,7 @@ func (s *Service) UpdateJobObjective(ctx context.Context, id string, req UpdateJ
 	if err != nil {
 		return nil, err
 	}
+	o.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		o.Nomenclature = *req.Nomenclature
 	}
@@ -459,6 +473,8 @@ func (s *Service) CreateJobIdentification(ctx context.Context, req CreateJobIden
 		return nil, fmt.Errorf("invalid grading_id: %w", err)
 	}
 	i.GradingID = gradingID
+	i.CreatedBy = authctx.GetUserID(ctx)
+	i.UpdatedBy = i.CreatedBy
 	if err := s.repo.CreateJobIdentification(ctx, i); err != nil {
 		return nil, err
 	}
@@ -510,6 +526,7 @@ func (s *Service) UpdateJobIdentification(ctx context.Context, id string, req Up
 	if err != nil {
 		return nil, err
 	}
+	i.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		i.Nomenclature = *req.Nomenclature
 	}
@@ -561,6 +578,8 @@ func (s *Service) CreateJobResponsibility(ctx context.Context, req CreateJobResp
 	if req.SuccessIndicators != "" {
 		r.SuccessIndicators = &req.SuccessIndicators
 	}
+	r.CreatedBy = authctx.GetUserID(ctx)
+	r.UpdatedBy = r.CreatedBy
 	if err := s.repo.CreateJobResponsibility(ctx, r); err != nil {
 		return nil, err
 	}
@@ -612,6 +631,7 @@ func (s *Service) UpdateJobResponsibility(ctx context.Context, id string, req Up
 	if err != nil {
 		return nil, err
 	}
+	r.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		r.Nomenclature = *req.Nomenclature
 	}
@@ -664,6 +684,8 @@ func (s *Service) CreateJobEducationExperience(ctx context.Context, req CreateJo
 		id, _ := uuid.Parse(*req.JobManagementValueExperienceID)
 		e.JobManagementValueExperienceID = &id
 	}
+	e.CreatedBy = authctx.GetUserID(ctx)
+	e.UpdatedBy = e.CreatedBy
 	if err := s.repo.CreateJobEducationExperience(ctx, e); err != nil {
 		return nil, err
 	}
@@ -715,6 +737,7 @@ func (s *Service) UpdateJobEducationExperience(ctx context.Context, id string, r
 	if err != nil {
 		return nil, err
 	}
+	e.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		e.Nomenclature = *req.Nomenclature
 	}
@@ -758,6 +781,8 @@ func (s *Service) CreateJobHRAuthority(ctx context.Context, req CreateJobHRAutho
 	if req.Description != "" {
 		a.Description = &req.Description
 	}
+	a.CreatedBy = authctx.GetUserID(ctx)
+	a.UpdatedBy = a.CreatedBy
 	if err := s.repo.CreateJobHRAuthority(ctx, a); err != nil {
 		return nil, err
 	}
@@ -809,6 +834,7 @@ func (s *Service) UpdateJobHRAuthority(ctx context.Context, id string, req Updat
 	if err != nil {
 		return nil, err
 	}
+	a.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		a.Nomenclature = *req.Nomenclature
 	}
@@ -847,6 +873,8 @@ func (s *Service) CreateJobOperationalAuthority(ctx context.Context, req CreateJ
 	if req.Description != "" {
 		a.Description = &req.Description
 	}
+	a.CreatedBy = authctx.GetUserID(ctx)
+	a.UpdatedBy = a.CreatedBy
 	if err := s.repo.CreateJobOperationalAuthority(ctx, a); err != nil {
 		return nil, err
 	}
@@ -898,6 +926,7 @@ func (s *Service) UpdateJobOperationalAuthority(ctx context.Context, id string, 
 	if err != nil {
 		return nil, err
 	}
+	a.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		a.Nomenclature = *req.Nomenclature
 	}
@@ -937,6 +966,8 @@ func (s *Service) CreateJobWorkingActivity(ctx context.Context, req CreateJobWor
 		id, _ := uuid.Parse(*req.JobManagementValueID)
 		a.JobManagementValueID = &id
 	}
+	a.CreatedBy = authctx.GetUserID(ctx)
+	a.UpdatedBy = a.CreatedBy
 	if err := s.repo.CreateJobWorkingActivity(ctx, a); err != nil {
 		return nil, err
 	}
@@ -988,6 +1019,7 @@ func (s *Service) UpdateJobWorkingActivity(ctx context.Context, id string, req U
 	if err != nil {
 		return nil, err
 	}
+	a.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		a.Nomenclature = *req.Nomenclature
 	}
@@ -1030,8 +1062,10 @@ func (s *Service) CreateJobWorkingRisk(ctx context.Context, req CreateJobWorking
 	}
 	if req.JobManagementValueHazardID != nil && *req.JobManagementValueHazardID != "" {
 		id, _ := uuid.Parse(*req.JobManagementValueHazardID)
-		r.JobManagementValueHazardID = &id
+	r.JobManagementValueHazardID = &id
 	}
+	r.CreatedBy = authctx.GetUserID(ctx)
+	r.UpdatedBy = r.CreatedBy
 	if err := s.repo.CreateJobWorkingRisk(ctx, r); err != nil {
 		return nil, err
 	}
@@ -1083,6 +1117,7 @@ func (s *Service) UpdateJobWorkingRisk(ctx context.Context, id string, req Updat
 	if err != nil {
 		return nil, err
 	}
+	r.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		r.Nomenclature = *req.Nomenclature
 	}
@@ -1129,8 +1164,10 @@ func (s *Service) CreateJobRelationship(ctx context.Context, req CreateJobRelati
 	}
 	if req.JobManagementValueFrequencyID != nil && *req.JobManagementValueFrequencyID != "" {
 		id, _ := uuid.Parse(*req.JobManagementValueFrequencyID)
-		r.JobManagementValueFrequencyID = &id
+	r.JobManagementValueFrequencyID = &id
 	}
+	r.CreatedBy = authctx.GetUserID(ctx)
+	r.UpdatedBy = r.CreatedBy
 	if err := s.repo.CreateJobRelationship(ctx, r); err != nil {
 		return nil, err
 	}
@@ -1182,6 +1219,7 @@ func (s *Service) UpdateJobRelationship(ctx context.Context, id string, req Upda
 	if err != nil {
 		return nil, err
 	}
+	r.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		r.Nomenclature = *req.Nomenclature
 	}
@@ -1226,6 +1264,8 @@ func (s *Service) CreateJobSubordinateControl(ctx context.Context, req CreateJob
 		id, _ := uuid.Parse(*req.JobManagementValueID)
 		c.JobManagementValueID = &id
 	}
+	c.CreatedBy = authctx.GetUserID(ctx)
+	c.UpdatedBy = c.CreatedBy
 	if err := s.repo.CreateJobSubordinateControl(ctx, c); err != nil {
 		return nil, err
 	}
@@ -1277,6 +1317,7 @@ func (s *Service) UpdateJobSubordinateControl(ctx context.Context, id string, re
 	if err != nil {
 		return nil, err
 	}
+	c.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		c.Nomenclature = *req.Nomenclature
 	}
@@ -1321,6 +1362,8 @@ func (s *Service) CreateJobAsset(ctx context.Context, req CreateJobAssetRequest)
 		id, _ := uuid.Parse(*req.JobManagementValueAuthorityID)
 		a.JobManagementValueAuthorityID = &id
 	}
+	a.CreatedBy = authctx.GetUserID(ctx)
+	a.UpdatedBy = a.CreatedBy
 	if err := s.repo.CreateJobAsset(ctx, a); err != nil {
 		return nil, err
 	}
@@ -1372,6 +1415,7 @@ func (s *Service) UpdateJobAsset(ctx context.Context, id string, req UpdateJobAs
 	if err != nil {
 		return nil, err
 	}
+	a.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		a.Nomenclature = *req.Nomenclature
 	}
@@ -1425,6 +1469,8 @@ func (s *Service) CreateJobFinancial(ctx context.Context, req CreateJobFinancial
 		id, _ := uuid.Parse(*req.JobManagementValueImpactID)
 		f.JobManagementValueImpactID = &id
 	}
+	f.CreatedBy = authctx.GetUserID(ctx)
+	f.UpdatedBy = f.CreatedBy
 	if err := s.repo.CreateJobFinancial(ctx, f); err != nil {
 		return nil, err
 	}
@@ -1476,6 +1522,7 @@ func (s *Service) UpdateJobFinancial(ctx context.Context, id string, req UpdateJ
 	if err != nil {
 		return nil, err
 	}
+	f.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Nomenclature != nil {
 		f.Nomenclature = *req.Nomenclature
 	}
@@ -1531,6 +1578,8 @@ func (s *Service) CreateJobPotencyCompetency(ctx context.Context, req CreateJobP
 	if req.Weight != nil {
 		c.Weight = req.Weight
 	}
+	c.CreatedBy = authctx.GetUserID(ctx)
+	c.UpdatedBy = c.CreatedBy
 	if err := s.repo.CreateJobPotencyCompetency(ctx, c); err != nil {
 		return nil, err
 	}
@@ -1582,6 +1631,7 @@ func (s *Service) UpdateJobPotencyCompetency(ctx context.Context, id string, req
 	if err != nil {
 		return nil, err
 	}
+	c.UpdatedBy = authctx.GetUserID(ctx)
 	if req.JobManagementValueID != nil && *req.JobManagementValueID != "" {
 		id, _ := uuid.Parse(*req.JobManagementValueID)
 		c.JobManagementValueID = &id

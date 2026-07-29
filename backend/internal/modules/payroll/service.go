@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 const (
@@ -86,6 +88,8 @@ func (s *Service) CreateSalaryComponent(ctx context.Context, req CreateSalaryCom
 	if req.Status != nil {
 		sc.Status = *req.Status
 	}
+	sc.CreatedBy = authctx.GetUserID(ctx)
+	sc.UpdatedBy = sc.CreatedBy
 
 	if err := s.repo.CreateSalaryComponent(ctx, sc); err != nil {
 		return nil, err
@@ -143,6 +147,7 @@ func (s *Service) UpdateSalaryComponent(ctx context.Context, id string, req Upda
 	if err != nil {
 		return nil, err
 	}
+	sc.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Name != nil {
 		sc.Name = *req.Name
 	}
@@ -210,6 +215,8 @@ func (s *Service) CreatePayrollPeriod(ctx context.Context, req CreatePayrollPeri
 		AsOfDate:    req.AsOfDate,
 		Status:      status,
 	}
+	p.CreatedBy = authctx.GetUserID(ctx)
+	p.UpdatedBy = p.CreatedBy
 	if err := s.repo.CreatePayrollPeriod(ctx, p); err != nil {
 		return nil, err
 	}
@@ -252,6 +259,7 @@ func (s *Service) UpdatePayrollPeriod(ctx context.Context, id string, req Update
 	if err != nil {
 		return nil, err
 	}
+	p.UpdatedBy = authctx.GetUserID(ctx)
 	if req.StartDate != nil {
 		p.StartDate = *req.StartDate
 	}
@@ -315,6 +323,8 @@ func (s *Service) CreateEmployeePayrollProfile(ctx context.Context, req CreateEm
 	if req.Notes != nil {
 		p.Notes = req.Notes
 	}
+	p.CreatedBy = authctx.GetUserID(ctx)
+	p.UpdatedBy = p.CreatedBy
 	if err := s.repo.CreateEmployeePayrollProfile(ctx, p); err != nil {
 		return nil, err
 	}
@@ -394,6 +404,7 @@ func (s *Service) UpdateEmployeeBankProfile(ctx context.Context, id string, req 
 	if err != nil {
 		return nil, err
 	}
+	b.UpdatedBy = authctx.GetUserID(ctx)
 	if req.BankCode != nil {
 		b.BankCode = req.BankCode
 	}
@@ -464,6 +475,8 @@ func (s *Service) CreateEmployeeBankProfile(ctx context.Context, req CreateEmplo
 	if req.Status != "" {
 		b.Status = req.Status
 	}
+	b.CreatedBy = authctx.GetUserID(ctx)
+	b.UpdatedBy = b.CreatedBy
 	if err := s.repo.CreateEmployeeBankProfile(ctx, b); err != nil {
 		return nil, err
 	}
@@ -493,6 +506,7 @@ func (s *Service) UpdateEmployeeBpjsProfile(ctx context.Context, id string, req 
 	if err != nil {
 		return nil, err
 	}
+	b.UpdatedBy = authctx.GetUserID(ctx)
 	if req.BpjsHealthActive != nil {
 		b.BpjsHealthActive = *req.BpjsHealthActive
 	}
@@ -585,6 +599,8 @@ func (s *Service) CreateEmployeeBpjsProfile(ctx context.Context, req CreateEmplo
 	if req.Notes != nil {
 		b.Notes = req.Notes
 	}
+	b.CreatedBy = authctx.GetUserID(ctx)
+	b.UpdatedBy = b.CreatedBy
 	if err := s.repo.CreateEmployeeBpjsProfile(ctx, b); err != nil {
 		return nil, err
 	}
@@ -614,6 +630,7 @@ func (s *Service) UpdateEmployeeTaxProfile(ctx context.Context, id string, req U
 	if err != nil {
 		return nil, err
 	}
+	t.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Npwp != nil {
 		t.Npwp = req.Npwp
 	}
@@ -695,6 +712,8 @@ func (s *Service) CreateEmployeeTaxProfile(ctx context.Context, req CreateEmploy
 	if req.Notes != nil {
 		t.Notes = req.Notes
 	}
+	t.CreatedBy = authctx.GetUserID(ctx)
+	t.UpdatedBy = t.CreatedBy
 	if err := s.repo.CreateEmployeeTaxProfile(ctx, t); err != nil {
 		return nil, err
 	}
@@ -740,6 +759,8 @@ func (s *Service) CreateBpjsSetting(ctx context.Context, req CreateBpjsSettingRe
 	if req.Notes != nil {
 		bs.Notes = req.Notes
 	}
+	bs.CreatedBy = authctx.GetUserID(ctx)
+	bs.UpdatedBy = bs.CreatedBy
 	if err := s.repo.CreateBpjsSetting(ctx, bs); err != nil {
 		return nil, err
 	}
@@ -814,6 +835,8 @@ func (s *Service) CreatePph21Setting(ctx context.Context, req CreatePph21Setting
 	if req.Status != "" {
 		ps.Status = req.Status
 	}
+	ps.CreatedBy = authctx.GetUserID(ctx)
+	ps.UpdatedBy = ps.CreatedBy
 	if err := s.repo.CreatePph21Setting(ctx, ps); err != nil {
 		return nil, err
 	}
@@ -839,6 +862,8 @@ func (s *Service) CreatePayrollRun(ctx context.Context, req CreatePayrollRunRequ
 	if req.RunType != "" {
 		pr.RunType = req.RunType
 	}
+	pr.CreatedBy = authctx.GetUserID(ctx)
+	pr.UpdatedBy = pr.CreatedBy
 	if err := s.repo.CreatePayrollRun(ctx, pr); err != nil {
 		return nil, err
 	}
@@ -1019,6 +1044,7 @@ func (s *Service) UpdateBpjsSetting(ctx context.Context, id string, req UpdateBp
 	if err != nil {
 		return nil, err
 	}
+	bs.UpdatedBy = authctx.GetUserID(ctx)
 	if req.SettingCode != nil {
 		bs.SettingCode = *req.SettingCode
 	}
@@ -1128,6 +1154,7 @@ func (s *Service) UpdateBpjsRateComponent(ctx context.Context, id string, req Up
 	if err != nil {
 		return nil, err
 	}
+	br.UpdatedBy = authctx.GetUserID(ctx)
 	if req.BpjsSettingID != nil && *req.BpjsSettingID != "" {
 		sid, _ := uuid.Parse(*req.BpjsSettingID)
 		br.BpjsSettingID = sid
@@ -1260,6 +1287,8 @@ func (s *Service) CreateBpjsRateComponent(ctx context.Context, req CreateBpjsRat
 	if req.Status != "" {
 		br.Status = req.Status
 	}
+	br.CreatedBy = authctx.GetUserID(ctx)
+	br.UpdatedBy = br.CreatedBy
 	if err := s.repo.CreateBpjsRateComponent(ctx, br); err != nil {
 		return nil, err
 	}
@@ -1315,6 +1344,7 @@ func (s *Service) UpdatePph21Setting(ctx context.Context, id string, req UpdateP
 	if err != nil {
 		return nil, err
 	}
+	ps.UpdatedBy = authctx.GetUserID(ctx)
 	if req.SettingCode != nil {
 		ps.SettingCode = *req.SettingCode
 	}
@@ -1402,6 +1432,7 @@ func (s *Service) CreatePph21PtkpRate(ctx context.Context, req CreatePph21PtkpRa
 	if req.Status != "" {
 		pr.Status = req.Status
 	}
+	pr.CreatedBy = authctx.GetUserID(ctx)
 	if err := s.repo.CreatePph21PtkpRate(ctx, pr); err != nil {
 		return nil, err
 	}
@@ -1452,6 +1483,7 @@ func (s *Service) CreatePph21TaxBracket(ctx context.Context, req CreatePph21TaxB
 	if req.Status != "" {
 		tb.Status = req.Status
 	}
+	tb.CreatedBy = authctx.GetUserID(ctx)
 	if err := s.repo.CreatePph21TaxBracket(ctx, tb); err != nil {
 		return nil, err
 	}

@@ -8,6 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 const (
@@ -45,6 +47,8 @@ func (s *Service) UpsertCompanySetting(ctx context.Context, req CreateCompanySet
 	setting.MaxDistanceMeter = req.MaxDistanceMeter
 	setting.LateToleranceMinutes = req.LateToleranceMinutes
 	setting.OvertimeMinMinutes = req.OvertimeMinMinutes
+	setting.CreatedBy = authctx.GetUserID(ctx)
+	setting.UpdatedBy = setting.CreatedBy
 
 	if err := s.repo.UpsertCompanySetting(ctx, setting); err != nil {
 		return nil, err
@@ -75,6 +79,8 @@ func (s *Service) CreateShift(ctx context.Context, req CreateCompanyShiftRequest
 	if req.IsCrossMidnight != nil {
 		shift.IsCrossMidnight = *req.IsCrossMidnight
 	}
+	shift.CreatedBy = authctx.GetUserID(ctx)
+	shift.UpdatedBy = shift.CreatedBy
 
 	if err := s.repo.CreateShift(ctx, shift); err != nil {
 		return nil, err
@@ -128,6 +134,7 @@ func (s *Service) UpdateShift(ctx context.Context, id string, req UpdateCompanyS
 	if err != nil {
 		return nil, err
 	}
+	shift.UpdatedBy = authctx.GetUserID(ctx)
 	if req.ShiftName != nil {
 		shift.ShiftName = *req.ShiftName
 	}
@@ -176,6 +183,8 @@ func (s *Service) CreateEmployeeShift(ctx context.Context, req CreateEmployeeShi
 		DaysOfWeekMask:    req.DaysOfWeekMask,
 		IsDayOff:          req.IsDayOff,
 	}
+	es.CreatedBy = authctx.GetUserID(ctx)
+	es.UpdatedBy = es.CreatedBy
 	if err := s.repo.CreateEmployeeShift(ctx, es); err != nil {
 		return nil, err
 	}
@@ -236,6 +245,7 @@ func (s *Service) UpdateEmployeeShift(ctx context.Context, id string, req Update
 	if err != nil {
 		return nil, err
 	}
+	es.UpdatedBy = authctx.GetUserID(ctx)
 	if req.AttendanceShiftID != nil {
 		sid, err := uuid.Parse(*req.AttendanceShiftID)
 		if err != nil {
@@ -283,6 +293,8 @@ func (s *Service) CreateLocation(ctx context.Context, req CreateLocationRequest)
 	if req.RadiusM != nil && *req.RadiusM > 0 {
 		loc.RadiusM = *req.RadiusM
 	}
+	loc.CreatedBy = authctx.GetUserID(ctx)
+	loc.UpdatedBy = loc.CreatedBy
 	if err := s.repo.CreateLocation(ctx, loc); err != nil {
 		return nil, err
 	}
@@ -335,6 +347,7 @@ func (s *Service) UpdateLocation(ctx context.Context, id string, req UpdateLocat
 	if err != nil {
 		return nil, err
 	}
+	loc.UpdatedBy = authctx.GetUserID(ctx)
 	if req.Name != nil {
 		loc.Name = *req.Name
 	}
@@ -397,7 +410,6 @@ func (s *Service) CreateEvent(ctx context.Context, req CreateEventRequest) (*Eve
 			event.DeviceID = &did
 		}
 	}
-
 	if err := s.repo.CreateEvent(ctx, event); err != nil {
 		return nil, err
 	}
@@ -594,6 +606,8 @@ func (s *Service) CreateExemptPosition(ctx context.Context, req CreateExemptPosi
 	if req.IsExempt != nil {
 		p.IsExempt = *req.IsExempt
 	}
+	p.CreatedBy = authctx.GetUserID(ctx)
+	p.UpdatedBy = p.CreatedBy
 	if err := s.repo.CreateExemptPosition(ctx, p); err != nil {
 		return nil, err
 	}
@@ -646,6 +660,7 @@ func (s *Service) UpdateExemptPosition(ctx context.Context, id string, req Updat
 	if err != nil {
 		return nil, err
 	}
+	p.UpdatedBy = authctx.GetUserID(ctx)
 	if req.IsExempt != nil {
 		p.IsExempt = *req.IsExempt
 	}

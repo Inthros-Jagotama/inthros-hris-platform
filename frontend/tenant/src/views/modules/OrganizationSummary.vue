@@ -18,14 +18,6 @@
         <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500">
           {{ totalRecords }} {{ t('common.items') }}
         </span>
-        <Button
-          :label="t('org_summary.go_to_tree')"
-          icon="pi pi-sitemap"
-          size="small"
-          severity="secondary"
-          outlined
-          @click="goToOrgTree"
-        />
         <Button :label="t('org_summary.new')" icon="pi pi-plus" size="small" @click="openCreateDialog()" />
       </div>
     </div>

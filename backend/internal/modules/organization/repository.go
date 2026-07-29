@@ -43,14 +43,25 @@ func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Organization,
 	return &org, nil
 }
 
-func (r *Repository) FindTree(ctx context.Context) ([]Organization, error) {
+// FindTree returns root organizations (parent_id IS NULL), optionally filtered by summary_id.
+func (r *Repository) FindTree(ctx context.Context, summaryID string) ([]Organization, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var roots []Organization
-	if err := db.Where("parent_id IS NULL").
+	query := db.Where("parent_id IS NULL")
+	if summaryID != "" {
+		query = query.Where("organization_summary_id = ?", summaryID)
+	}
+	if err := query.
 		Preload("Children", func(db *gorm.DB) *gorm.DB {
+			return db.Order("sort_order ASC")
+		}).
+		Preload("Children.Children", func(db *gorm.DB) *gorm.DB {
+			return db.Order("sort_order ASC")
+		}).
+		Preload("Children.Children.Children", func(db *gorm.DB) *gorm.DB {
 			return db.Order("sort_order ASC")
 		}).
 		Order("sort_order ASC").
@@ -60,7 +71,8 @@ func (r *Repository) FindTree(ctx context.Context) ([]Organization, error) {
 	return roots, nil
 }
 
-func (r *Repository) FindAll(ctx context.Context, page, perPage int) ([]Organization, int64, error) {
+// FindAll returns paginated organizations, optionally filtered by summary_id.
+func (r *Repository) FindAll(ctx context.Context, page, perPage int, summaryID string) ([]Organization, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -69,6 +81,9 @@ func (r *Repository) FindAll(ctx context.Context, page, perPage int) ([]Organiza
 	var total int64
 
 	query := db.Model(&Organization{})
+	if summaryID != "" {
+		query = query.Where("organization_summary_id = ?", summaryID)
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}

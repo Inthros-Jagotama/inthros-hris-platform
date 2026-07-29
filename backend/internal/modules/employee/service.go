@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 const (
@@ -33,6 +35,8 @@ func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*Emplo
 		Name:       req.Name,
 		Status:     "active",
 	}
+	emp.CreatedBy = authctx.GetUserID(ctx)
+	emp.UpdatedBy = emp.CreatedBy
 
 	if req.NIK != nil {
 		emp.NIK = req.NIK
@@ -158,6 +162,7 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateEmployeeReque
 	if err != nil {
 		return nil, err
 	}
+	emp.UpdatedBy = authctx.GetUserID(ctx)
 
 	if req.Name != nil {
 		emp.Name = *req.Name
@@ -262,6 +267,8 @@ func (s *Service) CreateAddress(ctx context.Context, employeeID string, req Crea
 	if req.PostalCode != nil {
 		addr.PostalCode = req.PostalCode
 	}
+	addr.CreatedBy = authctx.GetUserID(ctx)
+	addr.UpdatedBy = addr.CreatedBy
 
 	if err := s.repo.CreateAddress(ctx, addr); err != nil {
 		return nil, err
@@ -281,6 +288,7 @@ func (s *Service) UpdateAddress(ctx context.Context, employeeID, addressID strin
 	if err != nil {
 		return nil, err
 	}
+	addr.UpdatedBy = authctx.GetUserID(ctx)
 
 	if req.Type != nil {
 		addr.Type = req.Type
@@ -342,6 +350,8 @@ func (s *Service) CreateEmergencyContact(ctx context.Context, employeeID string,
 	if req.Address != nil {
 		contact.Address = req.Address
 	}
+	contact.CreatedBy = authctx.GetUserID(ctx)
+	contact.UpdatedBy = contact.CreatedBy
 
 	if err := s.repo.CreateEmergencyContact(ctx, contact); err != nil {
 		return nil, err
@@ -361,6 +371,7 @@ func (s *Service) UpdateEmergencyContact(ctx context.Context, employeeID, contac
 	if err != nil {
 		return nil, err
 	}
+	contact.UpdatedBy = authctx.GetUserID(ctx)
 
 	if req.Name != nil {
 		contact.Name = *req.Name
@@ -420,6 +431,8 @@ func (s *Service) CreateFamily(ctx context.Context, employeeID string, req Creat
 		id, _ := uuid.Parse(*req.EducationID)
 		fam.EducationID = &id
 	}
+	fam.CreatedBy = authctx.GetUserID(ctx)
+	fam.UpdatedBy = fam.CreatedBy
 
 	if err := s.repo.CreateFamily(ctx, fam); err != nil {
 		return nil, err
@@ -439,6 +452,7 @@ func (s *Service) UpdateFamily(ctx context.Context, employeeID, familyID string,
 	if err != nil {
 		return nil, err
 	}
+	fam.UpdatedBy = authctx.GetUserID(ctx)
 
 	if req.Name != nil {
 		fam.Name = *req.Name
@@ -498,6 +512,8 @@ func (s *Service) CreateEducation(ctx context.Context, employeeID string, req Cr
 	if req.GradYear != nil {
 		edu.GradYear = req.GradYear
 	}
+	edu.CreatedBy = authctx.GetUserID(ctx)
+	edu.UpdatedBy = edu.CreatedBy
 
 	if err := s.repo.CreateEducation(ctx, edu); err != nil {
 		return nil, err
@@ -517,6 +533,7 @@ func (s *Service) UpdateEducation(ctx context.Context, employeeID, educationID s
 	if err != nil {
 		return nil, err
 	}
+	edu.UpdatedBy = authctx.GetUserID(ctx)
 
 	if req.Name != nil {
 		edu.Name = *req.Name
@@ -571,6 +588,8 @@ func (s *Service) CreateExperience(ctx context.Context, employeeID string, req C
 	if req.EndYear != nil {
 		exp.EndYear = req.EndYear
 	}
+	exp.CreatedBy = authctx.GetUserID(ctx)
+	exp.UpdatedBy = exp.CreatedBy
 
 	if err := s.repo.CreateExperience(ctx, exp); err != nil {
 		return nil, err
@@ -590,6 +609,7 @@ func (s *Service) UpdateExperience(ctx context.Context, employeeID, experienceID
 	if err != nil {
 		return nil, err
 	}
+	exp.UpdatedBy = authctx.GetUserID(ctx)
 
 	if req.Company != nil {
 		exp.Company = *req.Company
@@ -638,6 +658,8 @@ func (s *Service) CreateDocument(ctx context.Context, employeeID string, req Cre
 	if req.Note != nil {
 		doc.Note = req.Note
 	}
+	doc.CreatedBy = authctx.GetUserID(ctx)
+	doc.UpdatedBy = doc.CreatedBy
 
 	if err := s.repo.CreateDocument(ctx, doc); err != nil {
 		return nil, err
@@ -657,6 +679,7 @@ func (s *Service) UpdateDocument(ctx context.Context, employeeID, documentID str
 	if err != nil {
 		return nil, err
 	}
+	doc.UpdatedBy = authctx.GetUserID(ctx)
 
 	if req.Name != nil {
 		doc.Name = *req.Name
@@ -705,6 +728,8 @@ func (s *Service) CreateInsurance(ctx context.Context, employeeID string, req Cr
 	if req.Type != nil {
 		ins.Type = req.Type
 	}
+	ins.CreatedBy = authctx.GetUserID(ctx)
+	ins.UpdatedBy = ins.CreatedBy
 
 	if err := s.repo.CreateInsurance(ctx, ins); err != nil {
 		return nil, err
@@ -724,6 +749,7 @@ func (s *Service) UpdateInsurance(ctx context.Context, employeeID, insuranceID s
 	if err != nil {
 		return nil, err
 	}
+	ins.UpdatedBy = authctx.GetUserID(ctx)
 
 	if req.Number != nil {
 		ins.Number = *req.Number
@@ -785,6 +811,8 @@ func (s *Service) CreateEmployment(ctx context.Context, employeeID string, req C
 	if req.EffectiveEndDate != nil {
 		empl.EffectiveEndDate = req.EffectiveEndDate
 	}
+	empl.CreatedBy = authctx.GetUserID(ctx)
+	empl.UpdatedBy = empl.CreatedBy
 
 	if err := s.repo.CreateEmployment(ctx, empl); err != nil {
 		return nil, err
@@ -804,6 +832,7 @@ func (s *Service) UpdateEmployment(ctx context.Context, employeeID, employmentID
 	if err != nil {
 		return nil, err
 	}
+	empl.UpdatedBy = authctx.GetUserID(ctx)
 
 	if req.DecisionLetterNumber != nil {
 		empl.DecisionLetterNumber = *req.DecisionLetterNumber

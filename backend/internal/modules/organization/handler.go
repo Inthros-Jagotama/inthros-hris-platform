@@ -26,7 +26,7 @@ func (h *Handler) Create(c *gin.Context) {
 
 	resp, err := h.service.Create(c.Request.Context(), req)
 	if err != nil {
-			httputil.InternalError(c, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 
@@ -50,10 +50,11 @@ func (h *Handler) GetByID(c *gin.Context) {
 func (h *Handler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	summaryID := c.Query("summary_id")
 
 	// If tree=true, return tree structure
 	if c.Query("tree") == "true" {
-		tree, err := h.service.GetTree(c.Request.Context())
+		tree, err := h.service.GetTree(c.Request.Context(), summaryID)
 		if err != nil {
 			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 			return
@@ -63,7 +64,7 @@ func (h *Handler) List(c *gin.Context) {
 	}
 
 	// Default: paginated flat list
-	resp, err := h.service.List(c.Request.Context(), page, perPage)
+	resp, err := h.service.List(c.Request.Context(), page, perPage, summaryID)
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return

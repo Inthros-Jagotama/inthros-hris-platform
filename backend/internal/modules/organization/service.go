@@ -8,12 +8,14 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 const (
 	defaultPage    = 1
 	defaultPerPage = 20
-	maxPerPage     = 100
+	maxPerPage     = 500
 )
 
 // PaginatedResponse DTO untuk response pagination.
@@ -40,25 +42,59 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 // =========================================================================
 
 func (s *Service) Create(ctx context.Context, req CreateOrganizationRequest) (*OrganizationResponse, error) {
+	// Parse required organization_summary_id
+	summaryUUID, err := uuid.Parse(req.OrganizationSummaryID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid organization_summary_id: %w", err)
+	}
+
+	// ── Field-level length validations (defense-in-depth) ──
+	if len(req.Code) > 10 {
+		return nil, fmt.Errorf("code must not exceed 10 characters")
+	}
+	if len(req.Nomenclature) > 255 {
+		return nil, fmt.Errorf("nomenclature must not exceed 255 characters")
+	}
+
+	// Set current user from context
+	currentUserID := authctx.GetUserID(ctx)
+
 	org := &Organization{
-		Code:         req.Code,
-		Nomenclature: req.Nomenclature,
+		Code:                  req.Code,
+		Nomenclature:          req.Nomenclature,
+		OrganizationSummaryID: &summaryUUID,
+		CreatedBy:             currentUserID,
+		UpdatedBy:             currentUserID,
 	}
 
 	// Parse optional foreign keys with error handling
-	if req.OrganizationSummaryID != nil && *req.OrganizationSummaryID != "" {
-		id, err := uuid.Parse(*req.OrganizationSummaryID)
-		if err != nil {
-			return nil, fmt.Errorf("invalid organization_summary_id: %w", err)
-		}
-		org.OrganizationSummaryID = &id
-	}
 	if req.ParentID != nil && *req.ParentID != "" {
 		id, err := uuid.Parse(*req.ParentID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid parent_id: %w", err)
 		}
 		org.ParentID = &id
+	}
+	if req.ZoneID != nil && *req.ZoneID != "" {
+		id, err := uuid.Parse(*req.ZoneID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid zone_id: %w", err)
+		}
+		org.ZoneID = &id
+	}
+	if req.JobFamilyID != nil && *req.JobFamilyID != "" {
+		id, err := uuid.Parse(*req.JobFamilyID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid job_family_id: %w", err)
+		}
+		org.JobFamilyID = &id
+	}
+	if req.GradingID != nil && *req.GradingID != "" {
+		id, err := uuid.Parse(*req.GradingID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid grading_id: %w", err)
+		}
+		org.GradingID = &id
 	}
 
 	// Generate full_code and level based on parent
@@ -72,6 +108,11 @@ func (s *Service) Create(ctx context.Context, req CreateOrganizationRequest) (*O
 	} else {
 		org.FullCode = org.Code
 		org.Level = 0
+	}
+
+	// Validate auto-generated full_code length
+	if len(org.FullCode) > 50 {
+		return nil, fmt.Errorf("generated full_code '%s' exceeds maximum length of 50 characters", org.FullCode)
 	}
 
 	if err := s.repo.Create(ctx, org); err != nil {
@@ -108,8 +149,8 @@ func (s *Service) GetByID(ctx context.Context, id string) (*OrganizationResponse
 	return &response, nil
 }
 
-// List mengembalikan daftar organisasi dengan pagination.
-func (s *Service) List(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+// List mengembalikan daftar organisasi dengan pagination, opsional filter summary_id.
+func (s *Service) List(ctx context.Context, page, perPage int, summaryID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
@@ -117,7 +158,7 @@ func (s *Service) List(ctx context.Context, page, perPage int) (*PaginatedRespon
 		perPage = defaultPerPage
 	}
 
-	orgs, total, err := s.repo.FindAll(ctx, page, perPage)
+	orgs, total, err := s.repo.FindAll(ctx, page, perPage, summaryID)
 	if err != nil {
 		return nil, err
 	}
@@ -142,8 +183,8 @@ func (s *Service) List(ctx context.Context, page, perPage int) (*PaginatedRespon
 	}, nil
 }
 
-func (s *Service) GetTree(ctx context.Context) ([]OrganizationResponse, error) {
-	tree, err := s.repo.FindTree(ctx)
+func (s *Service) GetTree(ctx context.Context, summaryID string) ([]OrganizationResponse, error) {
+	tree, err := s.repo.FindTree(ctx, summaryID)
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +207,18 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateOrganizationR
 		return nil, err
 	}
 
+	// ── Field-level length validations (defense-in-depth) ──
+	if req.Code != nil && len(*req.Code) > 10 {
+		return nil, fmt.Errorf("code must not exceed 10 characters")
+	}
+	if req.Nomenclature != nil && len(*req.Nomenclature) > 255 {
+		return nil, fmt.Errorf("nomenclature must not exceed 255 characters")
+	}
+
+	// Set current user from context
+	currentUserID := authctx.GetUserID(ctx)
+	org.UpdatedBy = currentUserID
+
 	// Capture old values before update
 	oldValues := captureOrgValues(org)
 	oldJSON, _ := toJSONString(oldValues)
@@ -184,6 +237,44 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateOrganizationR
 	}
 	if req.Nomenclature != nil {
 		org.Nomenclature = *req.Nomenclature
+	}
+	if req.ZoneID != nil {
+		if *req.ZoneID == "" {
+			org.ZoneID = nil
+		} else {
+			id, err := uuid.Parse(*req.ZoneID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid zone_id: %w", err)
+			}
+			org.ZoneID = &id
+		}
+	}
+	if req.JobFamilyID != nil {
+		if *req.JobFamilyID == "" {
+			org.JobFamilyID = nil
+		} else {
+			id, err := uuid.Parse(*req.JobFamilyID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid job_family_id: %w", err)
+			}
+			org.JobFamilyID = &id
+		}
+	}
+	if req.GradingID != nil {
+		if *req.GradingID == "" {
+			org.GradingID = nil
+		} else {
+			id, err := uuid.Parse(*req.GradingID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid grading_id: %w", err)
+			}
+			org.GradingID = &id
+		}
+	}
+
+	// Validate auto-generated full_code after update
+	if len(org.FullCode) > 50 {
+		return nil, fmt.Errorf("generated full_code '%s' exceeds maximum length of 50 characters", org.FullCode)
 	}
 
 	if err := s.repo.Update(ctx, org); err != nil {
@@ -293,7 +384,7 @@ func (s *Service) GetHistory(ctx context.Context, orgID string, page, perPage in
 
 func (s *Service) CreateVersion(ctx context.Context, req CreateVersionRequest) (*VersionResponse, error) {
 	// Get current full tree
-	tree, err := s.GetTree(ctx)
+	tree, err := s.GetTree(ctx, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get organization tree: %w", err)
 	}
@@ -515,6 +606,17 @@ func (s *Service) RestoreVersion(ctx context.Context, versionID string) (*Versio
 	// Uses atomic RestoreAllFromSnapshot (delete + create in one transaction).
 	newOrgs := make([]Organization, 0, len(data.Nodes))
 	for _, n := range data.Nodes {
+		// ── Field-level length validations (defense-in-depth) ──
+		if len(n.Code) > 10 {
+			return nil, fmt.Errorf("snapshot node '%s': code must not exceed 10 characters", n.Code)
+		}
+		if len(n.FullCode) > 50 {
+			return nil, fmt.Errorf("snapshot node '%s': full_code must not exceed 50 characters", n.Code)
+		}
+		if len(n.Nomenclature) > 255 {
+			return nil, fmt.Errorf("snapshot node '%s': nomenclature must not exceed 255 characters", n.Nomenclature)
+		}
+
 		orgID, err := uuid.Parse(n.ID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid UUID in snapshot for node %s: %w", n.Code, err)
@@ -576,7 +678,7 @@ func (s *Service) RestoreVersion(ctx context.Context, versionID string) (*Versio
 
 func (s *Service) CloneVersion(ctx context.Context, req CloneRequest) (*CloneResponse, error) {
 	// Get current tree
-	tree, err := s.GetTree(ctx)
+	tree, err := s.GetTree(ctx, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get organization tree: %w", err)
 	}
@@ -632,16 +734,16 @@ func (s *Service) CloneVersion(ctx context.Context, req CloneRequest) (*CloneRes
 // =========================================================================
 
 type organizationNode struct {
-	ID                   string `json:"id"`
-	Code                 string `json:"code"`
-	FullCode             string `json:"full_code"`
-	Nomenclature         string `json:"nomenclature"`
-	ParentID             string `json:"parent_id"`
-	ZoneID               string `json:"zone_id"`
-	JobFamilyID          string `json:"job_family_id"`
-	GradingID            string `json:"grading_id"`
-	Level                int    `json:"level"`
-	SortOrder            int    `json:"sort_order"`
+	ID                    string `json:"id"`
+	Code                  string `json:"code"`
+	FullCode              string `json:"full_code"`
+	Nomenclature          string `json:"nomenclature"`
+	ParentID              string `json:"parent_id"`
+	ZoneID                string `json:"zone_id"`
+	JobFamilyID           string `json:"job_family_id"`
+	GradingID             string `json:"grading_id"`
+	Level                 int    `json:"level"`
+	SortOrder             int    `json:"sort_order"`
 	OrganizationSummaryID string `json:"organization_summary_id"`
 }
 

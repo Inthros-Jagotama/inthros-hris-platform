@@ -3,7 +3,7 @@ package organization
 import "time"
 
 type CreateOrganizationRequest struct {
-	OrganizationSummaryID *string `json:"organization_summary_id"`
+	OrganizationSummaryID string  `json:"organization_summary_id" binding:"required,uuid"`
 	Code                  string  `json:"code" binding:"required,max=10"`
 	Nomenclature          string  `json:"nomenclature" binding:"required,max=255"`
 	ParentID              *string `json:"parent_id"`
@@ -27,6 +27,9 @@ type OrganizationResponse struct {
 	FullCode             string     `json:"full_code"`
 	Nomenclature         string     `json:"nomenclature"`
 	ParentID             *string    `json:"parent_id,omitempty"`
+	ZoneID               *string    `json:"zone_id,omitempty"`
+	JobFamilyID          *string    `json:"job_family_id,omitempty"`
+	GradingID            *string    `json:"grading_id,omitempty"`
 	Level                int        `json:"level"`
 	SortOrder            int        `json:"sort_order"`
 	CreatedAt            time.Time  `json:"created_at"`
@@ -49,6 +52,18 @@ func (o *Organization) ToResponse() OrganizationResponse {
 	if o.ParentID != nil {
 		pid := o.ParentID.String()
 		resp.ParentID = &pid
+	}
+	if o.ZoneID != nil {
+		zid := o.ZoneID.String()
+		resp.ZoneID = &zid
+	}
+	if o.JobFamilyID != nil {
+		jid := o.JobFamilyID.String()
+		resp.JobFamilyID = &jid
+	}
+	if o.GradingID != nil {
+		gid := o.GradingID.String()
+		resp.GradingID = &gid
 	}
 
 	// Convert children recursively

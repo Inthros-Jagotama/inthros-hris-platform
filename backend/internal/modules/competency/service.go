@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 const (
@@ -31,6 +33,8 @@ func (s *Service) CreateCompetency(ctx context.Context, req CreateCompetencyRequ
 	ent := &Competency{
 		Name: req.Name,
 	}
+	ent.CreatedBy = authctx.GetUserID(ctx)
+	ent.UpdatedBy = ent.CreatedBy
 	if req.Field != nil {
 		ent.Field = req.Field
 	}
@@ -106,6 +110,8 @@ func (s *Service) UpdateCompetency(ctx context.Context, id string, req UpdateCom
 	if err != nil {
 		return nil, err
 	}
+
+	ent.UpdatedBy = authctx.GetUserID(ctx)
 
 	if req.Name != nil {
 		ent.Name = *req.Name

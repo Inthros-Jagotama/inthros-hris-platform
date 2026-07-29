@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 // Service untuk business logic Approval Engine.
@@ -37,7 +39,6 @@ func (s *Service) CreateFlow(ctx context.Context, req CreateFlowRequest) (*FlowR
 	if flow.Version == 0 {
 		flow.Version = 1
 	}
-
 	if err := s.repo.CreateFlow(ctx, flow); err != nil {
 		return nil, err
 	}
@@ -335,6 +336,7 @@ func (s *Service) CreateInstance(ctx context.Context, req CreateInstanceRequest)
 		Status:      InstanceStatusPending,
 		CurrentStep: 1,
 	}
+	instance.CreatedBy = authctx.GetUserID(ctx)
 
 	// Create tasks for the first step
 	var tasks []ApprovalTask

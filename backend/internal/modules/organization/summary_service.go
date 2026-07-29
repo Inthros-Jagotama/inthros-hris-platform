@@ -7,14 +7,20 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 func (s *Service) CreateSummary(ctx context.Context, req CreateOrganizationSummaryRequest) (*OrganizationSummaryResponse, error) {
+	currentUserID := authctx.GetUserID(ctx)
+
 	summary := &OrganizationSummary{
 		Code:       req.Code,
 		DecreeNo:   req.DecreeNo,
 		DecreeDate: req.DecreeDate,
 		Status:     "active",
+		CreatedBy:  currentUserID,
+		UpdatedBy:  currentUserID,
 	}
 
 	if err := s.repo.CreateSummary(ctx, summary); err != nil {
@@ -94,6 +100,10 @@ func (s *Service) UpdateSummary(ctx context.Context, id string, req UpdateOrgani
 	if err != nil {
 		return nil, err
 	}
+
+	// Set current user from context
+	currentUserID := authctx.GetUserID(ctx)
+	summary.UpdatedBy = currentUserID
 
 	if req.Code != nil {
 		summary.Code = *req.Code

@@ -12,7 +12,7 @@ import (
 //
 // Middleware ini:
 // 1. Validasi company_id ada di gin context (dari JWT claims)
-// 2. Propagate company_id ke request context agar bisa diakses
+// 2. Propagate company_id & user_id ke request context agar bisa diakses
 //    oleh service/repository melalui c.Request.Context()
 func TenantRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -28,9 +28,12 @@ func TenantRequired() gin.HandlerFunc {
 			return
 		}
 
-		// Propagate company_id ke request context agar bisa diakses
-		// oleh service/repository via c.Request.Context()
+		// Propagate company_id & user_id ke request context agar bisa
+		// diakses oleh service/repository via c.Request.Context()
 		ctx := context.WithValue(c.Request.Context(), "company_id", companyID)
+		if userID := c.GetString("user_id"); userID != "" {
+			ctx = context.WithValue(ctx, "user_id", userID)
+		}
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()

@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 // Service untuk business logic Employee Movement & Career Management.
@@ -34,6 +36,8 @@ func (s *Service) CreateMovement(ctx context.Context, req CreateMovementRequest)
 	}
 
 	movement := &EmployeeMovement{
+		CreatedBy: authctx.GetUserID(ctx),
+		UpdatedBy: authctx.GetUserID(ctx),
 		EmployeeID:           employeeUUID,
 		MovementType:         MovementType(req.MovementType),
 		DecisionLetterNumber: req.DecisionLetterNumber,
@@ -203,6 +207,7 @@ func (s *Service) UpdateMovement(ctx context.Context, id string, req UpdateMovem
 	if err != nil {
 		return nil, err
 	}
+	movement.UpdatedBy = authctx.GetUserID(ctx)
 
 	if movement.Status != MovementStatusDraft {
 		return nil, fmt.Errorf("cannot update movement with status '%s', only draft movements can be updated", movement.Status)
@@ -324,6 +329,8 @@ func (s *Service) CreateContract(ctx context.Context, req CreateContractRequest)
 	}
 
 	contract := &EmployeeContract{
+		CreatedBy: authctx.GetUserID(ctx),
+		UpdatedBy: authctx.GetUserID(ctx),
 		EmployeeID:     employeeUUID,
 		ContractNumber: req.ContractNumber,
 		ContractType:   ContractType(req.ContractType),
@@ -471,6 +478,7 @@ func (s *Service) UpdateContract(ctx context.Context, id string, req UpdateContr
 	if err != nil {
 		return nil, err
 	}
+	contract.UpdatedBy = authctx.GetUserID(ctx)
 
 	if req.ContractNumber != nil {
 		contract.ContractNumber = *req.ContractNumber

@@ -9,8 +9,26 @@
         @click="$emit('toggle-sidebar')"
         class="!p-1.5"
       />
-      <i class="pi pi-chevron-right text-sm text-gray-300"></i>
-      <span class="text-sm text-gray-500 dark:text-gray-400 font-medium truncate">{{ route.meta?.titleKey ? t(route.meta.titleKey) : (route.meta?.title || '') }}</span>
+
+      <!-- Breadcrumb: Organization Summary > Organization -->
+      <template v-if="showOrgBreadcrumb">
+        <Button
+          text
+          size="small"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          @click="goBackToSummary"
+        >
+          {{ t('org_summary.title') }}
+        </Button>
+        <i class="pi pi-chevron-right text-xs text-gray-300"></i>
+        <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ t('organization.title') }}</span>
+      </template>
+
+      <!-- Normal page title -->
+      <template v-else>
+        <i class="pi pi-chevron-right text-sm text-gray-300"></i>
+        <span class="text-sm text-gray-500 dark:text-gray-400 font-medium truncate">{{ route.meta?.titleKey ? t(route.meta.titleKey) : (route.meta?.title || '') }}</span>
+      </template>
     </div>
 
     <div class="flex items-center gap-1">
@@ -101,6 +119,15 @@ const langStore = useLanguage()
 const themeStore = useTheme()
 const { state: authState } = useAuth()
 const { t } = useI18n()
+
+/** Show breadcrumb when visiting Organizations with summary_id query param */
+const showOrgBreadcrumb = computed(() => {
+  return route.name === 'Organizations' && route.query?.summary_id
+})
+
+function goBackToSummary() {
+  router.push('/organization-summary')
+}
 
 const userMenuItems = computed(() => [
   { label: t('auth.login.profile'), icon: 'pi pi-user', command: () => router.push('/profile') },
