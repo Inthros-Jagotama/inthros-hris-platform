@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS organizations (
     id                        CHAR(36) PRIMARY KEY,
     organization_summary_id   CHAR(36) NULL,
     code                      VARCHAR(2) NOT NULL,
-    full_code                 VARCHAR(50) NOT NULL UNIQUE,
+    full_code                 VARCHAR(50) NOT NULL,
     nomenclature              VARCHAR(255) NOT NULL,
     description               VARCHAR(255) NULL,
     parent_id                 CHAR(36) NULL,
@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS organizations (
     INDEX idx_orgs_job_family (job_family_id),
     INDEX idx_orgs_grading (grading_id),
     INDEX idx_orgs_full_code (full_code),
+    UNIQUE KEY uk_orgs_summary_code (organization_summary_id, full_code),
     INDEX idx_orgs_deleted_at (deleted_at),
 
     CONSTRAINT fk_orgs_summary FOREIGN KEY (organization_summary_id) REFERENCES organization_summaries(id) ON DELETE SET NULL,

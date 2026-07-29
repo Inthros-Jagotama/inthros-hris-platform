@@ -218,6 +218,24 @@ func (jf *JobFamily) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+// ── Grading ──
+type Grading struct {
+	ID          uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	Code        string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_grading_code" json:"code"`
+	Name        string         `gorm:"type:varchar(255);not null" json:"name"`
+	Description string         `gorm:"type:text" json:"description,omitempty"`
+	SortOrder   int            `gorm:"default:0" json:"sort_order"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+}
+
+func (Grading) TableName() string { return "gradings" }
+func (g *Grading) BeforeCreate(tx *gorm.DB) error {
+	if g.ID == uuid.Nil { g.ID = uuid.New() }
+	return nil
+}
+
 // ── SalaryGrade ──
 type SalaryGrade struct {
 	ID          uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`

@@ -122,6 +122,15 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			jobFamilies.PUT("/:id", handler.UpdateJobFamily)
 			jobFamilies.DELETE("/:id", handler.DeleteJobFamily)
 		}
+		// Grading
+		gradings := settings.Group("/gradings")
+		{
+			gradings.POST("", handler.CreateGrading)
+			gradings.GET("", handler.ListGradings)
+			gradings.GET("/:id", handler.GetGradingByID)
+			gradings.PUT("/:id", handler.UpdateGrading)
+			gradings.DELETE("/:id", handler.DeleteGrading)
+		}
 		// SalaryGrade
 		salaryGrades := settings.Group("/salary-grades")
 		{

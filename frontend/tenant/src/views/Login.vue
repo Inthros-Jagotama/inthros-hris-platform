@@ -1,7 +1,6 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-4">
     <div class="w-full max-w-sm">
-
       <!-- Login Card -->
       <Card class="!shadow-lg !rounded-xl">
         <template #content>
@@ -21,7 +20,6 @@
               </div>
             </Button>
           </div>
-
           <!-- Logo Area -->
           <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-emerald-600 text-white mb-4">
@@ -30,7 +28,6 @@
             <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('auth.title') }}</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('auth.login.subtitle') }}</p>
           </div>
-
           <!-- Login Form -->
           <form @submit.prevent="handleLogin" class="space-y-4">
             <!-- Email -->
@@ -48,7 +45,6 @@
                 />
               </IconField>
             </div>
-
             <!-- Password -->
             <div>
               <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('auth.login.password') }}</label>
@@ -64,12 +60,10 @@
                 />
               </IconField>
             </div>
-
             <!-- Error -->
             <div v-if="error" class="text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-md px-3 py-2">
               <i class="pi pi-exclamation-circle mr-1"></i> {{ error }}
             </div>
-
             <!-- Submit -->
             <Button
               type="submit"
@@ -81,14 +75,12 @@
           </form>
         </template>
       </Card>
-
       <p class="text-center text-sm text-gray-400 dark:text-gray-500 mt-6">
         {{ t('auth.version') }}
       </p>
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -100,17 +92,14 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputIcon from 'primevue/inputicon'
 import IconField from 'primevue/iconfield'
-
 const router = useRouter()
 const { login } = useAuth()
 const langStore = useLanguage()
 const { t } = useI18n()
-
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
-
 async function handleLogin() {
   if (!email.value || !password.value) {
     error.value = t('auth.login.validation_required')

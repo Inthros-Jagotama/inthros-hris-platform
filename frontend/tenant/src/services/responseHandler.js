@@ -31,7 +31,14 @@ export function getErrorMessage(error, fallback = 'An error occurred') {
 export function getValidationErrors(error) {
   if (!error) return {}
   const errData = error.response?.data || error
-  return errData?.error?.errors || {}
+  const raw = errData?.error?.errors || errData?.error?.fields || {}
+
+  // Implode array values menjadi comma-separated string
+  const result = {}
+  for (const [key, value] of Object.entries(raw)) {
+    result[key] = Array.isArray(value) ? value.join(', ') : String(value)
+  }
+  return result
 }
 
 export function getStatus(error) {

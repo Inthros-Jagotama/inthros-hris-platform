@@ -67,6 +67,7 @@ func (m *settingModule) Info() module.ModuleInfo {
 			"setting.employment_status.view", "setting.employment_status.create", "setting.employment_status.update", "setting.employment_status.delete",
 			"setting.nationality.view", "setting.nationality.create", "setting.nationality.update", "setting.nationality.delete",
 			"setting.job_family.view", "setting.job_family.create", "setting.job_family.update", "setting.job_family.delete",
+			"setting.grading.view", "setting.grading.create", "setting.grading.update", "setting.grading.delete",
 			"setting.salary_grade.view", "setting.salary_grade.create", "setting.salary_grade.update", "setting.salary_grade.delete",
 			"setting.ter.view", "setting.ter.create", "setting.ter.update", "setting.ter.delete",
 			"setting.ptkp.view", "setting.ptkp.create", "setting.ptkp.update", "setting.ptkp.delete",
@@ -90,6 +91,7 @@ func (m *settingModule) Info() module.ModuleInfo {
 					{Name: "Employment Statuses", Icon: "briefcase", Route: "/admin/settings/employment-statuses"},
 					{Name: "Nationalities", Icon: "globe", Route: "/admin/settings/nationalities"},
 					{Name: "Job Families", Icon: "briefcase", Route: "/admin/settings/job-families"},
+					{Name: "Gradings", Icon: "chart-bar", Route: "/admin/settings/gradings"},
 					{Name: "Salary Grades", Icon: "chart-bar", Route: "/admin/settings/salary-grades"},
 					{Name: "TER (Tarif Efektif)", Icon: "calculator", Route: "/admin/settings/ters"},
 					{Name: "PTKP", Icon: "receipt", Route: "/admin/settings/ptkps"},
@@ -104,7 +106,7 @@ func (m *settingModule) RegisterRoutes(rg *gin.RouterGroup) {
 }
 
 func (m *settingModule) Migrate(db *gorm.DB) error {
-	return db.AutoMigrate(&Zone{}, &Province{}, &Regency{}, &District{}, &Village{}, &Education{}, &Religion{}, &MaritalStatus{}, &RelationshipType{}, &EmploymentStatus{}, &Bank{}, &Nationality{}, &JobFamily{}, &SalaryGrade{}, &TER{}, &PTKP{})
+	return db.AutoMigrate(&Zone{}, &Province{}, &Regency{}, &District{}, &Village{}, &Education{}, &Religion{}, &MaritalStatus{}, &RelationshipType{}, &EmploymentStatus{}, &Bank{}, &Nationality{}, &JobFamily{}, &Grading{}, &SalaryGrade{}, &TER{}, &PTKP{})
 }
 
 func (m *settingModule) Seed(db *gorm.DB) error {

@@ -252,6 +252,8 @@
 | **TextArea** | Packages, RBAC (description fields) |
 | **useSlugify** | Packages, Modules, RBAC (auto-slug) |
 | **useI18n / useNotification** | All views (bilingual text + toast) |
+| **SkeletonTable / SkeletonCard** | All tenant views (loading skeleton) |
+| **ConfirmDeleteDialog** | **20+ tenant views** — Custom dialog yang tetap terbuka selama API call, error tampil inline (menggantikan PrimeVue ConfirmDialog) |
 
 ### Tech Highlights
 - Vue 3 Composition API + `<script setup>`
@@ -283,7 +285,7 @@
 | — Settings: Banks, EmploymentStatuses, Nationalities | 🟢 Easy | 3 simple reference CRUDs | ✅ **Done** |
 | — Settings: JobFamilies, SalaryGrades | 🟢 Easy | 2 reference CRUDs (SalaryGrades: Grade, MinSalary, MaxSalary) | ✅ **Done** |
 | — Settings: TER & PTKP | 🟢 Easy | 2 tax reference CRUDs (TER: Group, BrutoMin, BrutoMax, Rate; PTKP: Name, Group, Amount) | ✅ **Done** |
-| — Organization Management | 🟡 Medium | TreeTable view, CRUD with parent selection, dark mode, bilingual | ✅ **Done** |
+| — Organization Management | 🟡 Medium | TreeTable view, CRUD with parent selection, dark mode, bilingual (Positions CRUD ⏸️ postponed) | ✅ **Done** |
 | — Employee Management (Wizard) | 🔴 Complex | Multi-step form (9 steps) | 🔴 TODO |
 | E2E Testing (Playwright) | 🟡 Medium | Phase 5 | ⬜ Planned |
 | Performance Optimization | 🟢 High | Phase 5 | ⬜ Planned |

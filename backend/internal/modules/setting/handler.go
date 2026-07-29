@@ -1,6 +1,7 @@
 package setting
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -17,12 +18,26 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// handleDupErr checks if the error is a DuplicateCodeError and sends a
+// bilingual conflict response. Returns true if the error was handled.
+func handleDupErr(c *gin.Context, err error) bool {
+	var dupErr *DuplicateCodeError
+	if errors.As(err, &dupErr) {
+		httputil.ErrorJSON(c, 409, "DUPLICATE_CODE", "setting.duplicate_code", dupErr.Code)
+		return true
+	}
+	return false
+}
+
 // ── Zone Handlers ──
 func (h *Handler) CreateZone(c *gin.Context) {
 	var req CreateZoneRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.CreateZone(c.Request.Context(), req)
-	if err != nil { httputil.InternalError(c, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 func (h *Handler) ListZones(c *gin.Context) {
@@ -47,7 +62,10 @@ func (h *Handler) UpdateZone(c *gin.Context) {
 	var req UpdateZoneRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.UpdateZone(c.Request.Context(), c.Param("id"), req)
-	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteZone(c *gin.Context) {
@@ -212,7 +230,10 @@ func (h *Handler) CreateEducation(c *gin.Context) {
 	var req CreateEducationRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.CreateEducation(c.Request.Context(), req)
-	if err != nil { httputil.InternalError(c, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 func (h *Handler) ListEducations(c *gin.Context) {
@@ -231,7 +252,10 @@ func (h *Handler) UpdateEducation(c *gin.Context) {
 	var req UpdateEducationRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.UpdateEducation(c.Request.Context(), c.Param("id"), req)
-	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteEducation(c *gin.Context) {
@@ -244,7 +268,10 @@ func (h *Handler) CreateReligion(c *gin.Context) {
 	var req CreateReligionRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.CreateReligion(c.Request.Context(), req)
-	if err != nil { httputil.InternalError(c, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 func (h *Handler) ListReligions(c *gin.Context) {
@@ -263,7 +290,10 @@ func (h *Handler) UpdateReligion(c *gin.Context) {
 	var req UpdateReligionRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.UpdateReligion(c.Request.Context(), c.Param("id"), req)
-	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteReligion(c *gin.Context) {
@@ -276,7 +306,10 @@ func (h *Handler) CreateMaritalStatus(c *gin.Context) {
 	var req CreateMaritalStatusRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.CreateMaritalStatus(c.Request.Context(), req)
-	if err != nil { httputil.InternalError(c, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 func (h *Handler) ListMaritalStatuses(c *gin.Context) {
@@ -295,7 +328,10 @@ func (h *Handler) UpdateMaritalStatus(c *gin.Context) {
 	var req UpdateMaritalStatusRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.UpdateMaritalStatus(c.Request.Context(), c.Param("id"), req)
-	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteMaritalStatus(c *gin.Context) {
@@ -308,7 +344,10 @@ func (h *Handler) CreateRelationshipType(c *gin.Context) {
 	var req CreateRelationshipTypeRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.CreateRelationshipType(c.Request.Context(), req)
-	if err != nil { httputil.InternalError(c, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 func (h *Handler) ListRelationshipTypes(c *gin.Context) {
@@ -327,7 +366,10 @@ func (h *Handler) UpdateRelationshipType(c *gin.Context) {
 	var req UpdateRelationshipTypeRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.UpdateRelationshipType(c.Request.Context(), c.Param("id"), req)
-	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteRelationshipType(c *gin.Context) {
@@ -340,7 +382,10 @@ func (h *Handler) CreateEmploymentStatus(c *gin.Context) {
 	var req CreateEmploymentStatusRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.CreateEmploymentStatus(c.Request.Context(), req)
-	if err != nil { httputil.InternalError(c, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 func (h *Handler) ListEmploymentStatuses(c *gin.Context) {
@@ -359,7 +404,10 @@ func (h *Handler) UpdateEmploymentStatus(c *gin.Context) {
 	var req UpdateEmploymentStatusRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.UpdateEmploymentStatus(c.Request.Context(), c.Param("id"), req)
-	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteEmploymentStatus(c *gin.Context) {
@@ -372,7 +420,10 @@ func (h *Handler) CreateBank(c *gin.Context) {
 	var req CreateBankRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.CreateBank(c.Request.Context(), req)
-	if err != nil { httputil.InternalError(c, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 func (h *Handler) ListBanks(c *gin.Context) {
@@ -391,7 +442,10 @@ func (h *Handler) UpdateBank(c *gin.Context) {
 	var req UpdateBankRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.UpdateBank(c.Request.Context(), c.Param("id"), req)
-	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteBank(c *gin.Context) {
@@ -404,7 +458,10 @@ func (h *Handler) CreateNationality(c *gin.Context) {
 	var req CreateNationalityRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.CreateNationality(c.Request.Context(), req)
-	if err != nil { httputil.InternalError(c, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 func (h *Handler) ListNationalities(c *gin.Context) {
@@ -423,7 +480,10 @@ func (h *Handler) UpdateNationality(c *gin.Context) {
 	var req UpdateNationalityRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.UpdateNationality(c.Request.Context(), c.Param("id"), req)
-	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteNationality(c *gin.Context) {
@@ -436,7 +496,10 @@ func (h *Handler) CreateJobFamily(c *gin.Context) {
 	var req CreateJobFamilyRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.CreateJobFamily(c.Request.Context(), req)
-	if err != nil { httputil.InternalError(c, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 func (h *Handler) ListJobFamilies(c *gin.Context) {
@@ -455,7 +518,10 @@ func (h *Handler) UpdateJobFamily(c *gin.Context) {
 	var req UpdateJobFamilyRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.UpdateJobFamily(c.Request.Context(), c.Param("id"), req)
-	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteJobFamily(c *gin.Context) {
@@ -527,12 +593,53 @@ func (h *Handler) DeletePTKP(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+// ── Grading Handlers ──
+func (h *Handler) CreateGrading(c *gin.Context) {
+	var req CreateGradingRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.CreateGrading(c.Request.Context(), req)
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+func (h *Handler) ListGradings(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	resp, err := h.service.ListGradings(c.Request.Context(), page, perPage)
+	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	c.JSON(http.StatusOK, resp)
+}
+func (h *Handler) GetGradingByID(c *gin.Context) {
+	resp, err := h.service.GetGradingByID(c.Request.Context(), c.Param("id"))
+	if err != nil { c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}}); return }
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) UpdateGrading(c *gin.Context) {
+	var req UpdateGradingRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.UpdateGrading(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) DeleteGrading(c *gin.Context) {
+	if err := h.service.DeleteGrading(c.Request.Context(), c.Param("id")); err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
 // ── SalaryGrade Handlers ──
 func (h *Handler) CreateSalaryGrade(c *gin.Context) {
 	var req CreateSalaryGradeRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.CreateSalaryGrade(c.Request.Context(), req)
-	if err != nil { httputil.InternalError(c, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 func (h *Handler) ListSalaryGrades(c *gin.Context) {
@@ -551,7 +658,10 @@ func (h *Handler) UpdateSalaryGrade(c *gin.Context) {
 	var req UpdateSalaryGradeRequest
 	if !httputil.BindAndValidate(c, &req) { return }
 	resp, err := h.service.UpdateSalaryGrade(c.Request.Context(), c.Param("id"), req)
-	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteSalaryGrade(c *gin.Context) {

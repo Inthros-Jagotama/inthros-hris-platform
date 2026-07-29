@@ -1041,7 +1041,7 @@ Error response untuk validasi field:
 
 ## 🖥️ Frontend — Platform Admin (Phase 1 ✅)
 
-Platform Admin frontend dibangun dengan **Vue 3 + PrimeVue 4 + Tailwind CSS 4** dan mencakup **9 halaman** yang terintegrasi penuh dengan backend API.
+Platform Admin frontend dibangun dengan **Vue 3 + PrimeVue 4 + Tailwind CSS 4** dan mencakup **9 halaman** (Platform Admin) + **19+ views** (Tenant) = **28+ total views** dengan **32+ komponen reusable** yang terintegrasi penuh dengan backend API.
 
 ### Fitur Umum
 
@@ -1790,7 +1790,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**80+ endpoints**) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**651+ endpoints**, 426 schemas, 27 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 

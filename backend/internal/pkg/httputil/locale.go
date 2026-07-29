@@ -561,6 +561,12 @@ var localeMessages = map[string]map[Lang]string{
 		LangID: "Riwayat pekerjaan berhasil dihapus",
 	},
 
+	// --- Setting module messages ---
+	"setting.duplicate_code": {
+		LangEN: "Code '%s' is already in use",
+		LangID: "Kode '%s' sudah digunakan",
+	},
+
 	// --- Package Management messages ---
 	"package.created": {
 		LangEN: "Package created successfully",

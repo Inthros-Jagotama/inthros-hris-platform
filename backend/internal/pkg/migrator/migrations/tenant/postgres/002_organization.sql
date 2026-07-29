@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS organizations (
     id                        CHAR(36) PRIMARY KEY,
     organization_summary_id   CHAR(36) NULL,
     code                      VARCHAR(2) NOT NULL,
-    full_code                 VARCHAR(50) NOT NULL UNIQUE,
+    full_code                 VARCHAR(50) NOT NULL,
     nomenclature              VARCHAR(255) NOT NULL,
     description               VARCHAR(255) NULL,
     parent_id                 CHAR(36) NULL,
@@ -99,6 +99,9 @@ CREATE INDEX IF NOT EXISTS idx_orgs_job_family ON organizations (job_family_id);
 CREATE INDEX IF NOT EXISTS idx_orgs_grading ON organizations (grading_id);
 
 CREATE INDEX IF NOT EXISTS idx_orgs_full_code ON organizations (full_code);
+
+-- Composite unique: full_code unique per organization_summary
+CREATE UNIQUE INDEX IF NOT EXISTS uk_orgs_summary_code ON organizations (organization_summary_id, full_code);
 
 CREATE INDEX IF NOT EXISTS idx_orgs_deleted_at ON organizations (deleted_at);
 

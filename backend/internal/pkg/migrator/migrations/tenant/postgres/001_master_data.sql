@@ -162,15 +162,17 @@ CREATE TABLE IF NOT EXISTS employment_statuses (
 -- 1.11 Gradings
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gradings (
-    id            CHAR(36) PRIMARY KEY,
-    grading_name  VARCHAR(30) NULL,
-    status        SMALLINT NULL,
-    created_by    CHAR(36) NULL,
-    updated_by    CHAR(36) NULL,
-    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id          CHAR(36) PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL,
+    name        VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    sort_order  INT DEFAULT 0,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at  TIMESTAMP
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gradings_code ON gradings (code);
 
 -- ---------------------------------------------------------------------------
 -- 1.12 Job Families

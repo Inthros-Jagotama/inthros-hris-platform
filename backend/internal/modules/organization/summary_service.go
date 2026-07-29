@@ -27,6 +27,84 @@ func (s *Service) CreateSummary(ctx context.Context, req CreateOrganizationSumma
 		return nil, err
 	}
 
+	var clonedFromID string
+
+	// ── Clone organizations from source summary ──
+	if req.CloneFromID != "" {
+		sourceUUID, err := uuid.Parse(req.CloneFromID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid clone_from_id: %w", err)
+		}
+
+		// Get all organizations from source summary
+		sourceOrgs, err := s.repo.FindAllBySummaryID(ctx, sourceUUID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch source organizations: %w", err)
+		}
+
+		if len(sourceOrgs) > 0 {
+			// Build UUID mapping: old UUID → new UUID
+			uuidMap := make(map[string]string) // old uuid string → new uuid string
+			for _, org := range sourceOrgs {
+				uuidMap[org.ID.String()] = uuid.New().String()
+			}
+
+			// Create new organizations with mapped UUIDs and parent references
+			newOrgs := make([]Organization, 0, len(sourceOrgs))
+			for _, src := range sourceOrgs {
+				newID, _ := uuid.Parse(uuidMap[src.ID.String()])
+				newSummaryID := summary.ID
+
+				newOrg := Organization{
+					ID:                   newID,
+					OrganizationSummaryID: &newSummaryID,
+					Code:                 src.Code,
+					FullCode:             src.FullCode,
+					Nomenclature:         src.Nomenclature,
+					Level:                src.Level,
+					SortOrder:            src.SortOrder,
+				}
+
+				// Map ZoneID (referensi ke setting — tetap sama)
+				if src.ZoneID != nil {
+					newOrg.ZoneID = src.ZoneID
+				}
+				// Map JobFamilyID (referensi ke setting — tetap sama)
+				if src.JobFamilyID != nil {
+					newOrg.JobFamilyID = src.JobFamilyID
+				}
+				// Map GradingID (referensi ke setting — tetap sama)
+				if src.GradingID != nil {
+					newOrg.GradingID = src.GradingID
+				}
+				// Map ParentID (referensi ke org yang sudah di-clone)
+				if src.ParentID != nil {
+					if newParentIDStr, ok := uuidMap[src.ParentID.String()]; ok {
+						newParentUUID, _ := uuid.Parse(newParentIDStr)
+						newOrg.ParentID = &newParentUUID
+					}
+				}
+				// Map CreatedBy/UpdatedBy
+				newOrg.CreatedBy = currentUserID
+				newOrg.UpdatedBy = currentUserID
+
+				newOrgs = append(newOrgs, newOrg)
+			}
+
+			if err := s.repo.BulkCreateOrganizations(ctx, newOrgs); err != nil {
+				return nil, fmt.Errorf("failed to clone organizations: %w", err)
+			}
+
+			clonedFromID = req.CloneFromID
+
+			s.logger.Info("Organizations cloned from summary",
+				zap.String("source_summary_id", req.CloneFromID),
+				zap.String("target_summary_id", summary.ID.String()),
+				zap.Int("orgs_cloned", len(newOrgs)),
+			)
+		}
+	}
+
 	s.logger.Info("Organization summary created",
 		zap.String("id", summary.ID.String()),
 		zap.String("code", summary.Code),
@@ -34,6 +112,7 @@ func (s *Service) CreateSummary(ctx context.Context, req CreateOrganizationSumma
 	)
 
 	resp := summary.ToResponse()
+	resp.ClonedFromID = clonedFromID
 	return &resp, nil
 }
 

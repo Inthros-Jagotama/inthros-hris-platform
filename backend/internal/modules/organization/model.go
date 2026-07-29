@@ -12,9 +12,9 @@ import (
 // hierarki organisasi.
 type Organization struct {
 	ID                   uuid.UUID       `gorm:"type:char(36);primaryKey" json:"id"`
-	OrganizationSummaryID *uuid.UUID     `gorm:"type:char(36)" json:"organization_summary_id,omitempty"`
+	OrganizationSummaryID *uuid.UUID     `gorm:"type:char(36);uniqueIndex:uk_orgs_summary_code,priority:1" json:"organization_summary_id,omitempty"`
 	Code                 string          `gorm:"type:varchar(10);not null" json:"code"`
-	FullCode             string          `gorm:"type:varchar(50);not null;index" json:"full_code"`
+	FullCode             string          `gorm:"type:varchar(50);not null;uniqueIndex:uk_orgs_summary_code,priority:2" json:"full_code"`
 	Nomenclature         string          `gorm:"type:varchar(255);not null" json:"nomenclature"`
 	ParentID             *uuid.UUID      `gorm:"type:char(36)" json:"parent_id,omitempty"`
 	ZoneID               *uuid.UUID      `gorm:"type:char(36)" json:"zone_id,omitempty"`

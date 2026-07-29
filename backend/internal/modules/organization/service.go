@@ -115,6 +115,12 @@ func (s *Service) Create(ctx context.Context, req CreateOrganizationRequest) (*O
 		return nil, fmt.Errorf("generated full_code '%s' exceeds maximum length of 50 characters", org.FullCode)
 	}
 
+	// Validate unique full_code within the same summary
+	existing, err := s.repo.FindByFullCodeAndSummary(ctx, org.FullCode, *org.OrganizationSummaryID)
+	if err == nil && existing != nil {
+		return nil, fmt.Errorf("full_code '%s' already exists in this organization summary", org.FullCode)
+	}
+
 	if err := s.repo.Create(ctx, org); err != nil {
 		return nil, err
 	}
@@ -275,6 +281,14 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateOrganizationR
 	// Validate auto-generated full_code after update
 	if len(org.FullCode) > 50 {
 		return nil, fmt.Errorf("generated full_code '%s' exceeds maximum length of 50 characters", org.FullCode)
+	}
+
+	// Validate unique full_code within the same summary (exclude self)
+	if org.OrganizationSummaryID != nil {
+		existing, err := s.repo.FindByFullCodeAndSummaryExcludeSelf(ctx, org.FullCode, *org.OrganizationSummaryID, uid)
+		if err == nil && existing != nil {
+			return nil, fmt.Errorf("full_code '%s' already exists in this organization summary", org.FullCode)
+		}
 	}
 
 	if err := s.repo.Update(ctx, org); err != nil {

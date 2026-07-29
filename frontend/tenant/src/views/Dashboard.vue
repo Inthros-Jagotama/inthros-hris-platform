@@ -16,7 +16,6 @@
         />
       </div>
     </div>
-
     <!-- KPI Cards Row -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
       <div
@@ -41,7 +40,6 @@
         </div>
       </div>
     </div>
-
     <!-- Main Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <!-- Quick Access Modules -->
@@ -61,7 +59,6 @@
           </div>
         </div>
       </div>
-
       <!-- Recent Activity -->
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
         <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">{{ t('dashboard.recent_activity') }}</h2>
@@ -78,28 +75,23 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, computed } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import SelectButton from 'primevue/selectbutton'
-
 const { t } = useI18n()
-
 const periodFilter = ref('this-month')
 const periodOptions = computed(() => [
   { label: t('dashboard.this_month'), value: 'this-month' },
   { label: t('dashboard.this_quarter'), value: 'this-quarter' },
   { label: t('dashboard.this_year'), value: 'this-year' }
 ])
-
 const kpiCards = computed(() => [
   { label: t('dashboard.kpi_total_employees'), value: '1,247', icon: 'pi pi-users', iconColor: 'text-emerald-500', trend: 3.2 },
   { label: t('dashboard.kpi_active_today'), value: '1,183', icon: 'pi pi-check-circle', iconColor: 'text-blue-500', trend: 1.5 },
   { label: t('dashboard.kpi_on_leave'), value: '42', icon: 'pi pi-calendar', iconColor: 'text-amber-500', trend: -2.1 },
   { label: t('dashboard.kpi_pending_approvals'), value: '28', icon: 'pi pi-clock', iconColor: 'text-rose-500', trend: 12.5 }
 ])
-
 const quickModules = computed(() => [
   { name: t('dashboard.employees'), icon: 'pi pi-users', route: '/employees', bg: 'bg-blue-50', color: 'text-blue-600' },
   { name: t('dashboard.attendance'), icon: 'pi pi-clock', route: '/attendance', bg: 'bg-emerald-50', color: 'text-emerald-600' },
@@ -114,7 +106,6 @@ const quickModules = computed(() => [
   { name: t('dashboard.workforce_intel'), icon: 'pi pi-chart-bar', route: '/workforce-intelligence', bg: 'bg-slate-50', color: 'text-slate-600' },
   { name: t('dashboard.career_intel'), icon: 'pi pi-road', route: '/career-intelligence', bg: 'bg-pink-50', color: 'text-pink-600' }
 ])
-
 const recentActivities = [
   { text: '15 new employees added this week', time: '2 hours ago', dotColor: 'bg-emerald-400' },
   { text: 'Payroll run for August completed', time: '5 hours ago', dotColor: 'bg-blue-400' },

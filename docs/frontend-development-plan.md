@@ -241,10 +241,46 @@ frontend/
 - [x] **Dashboard** — All KPI cards, module grid, activity, skeleton `dark:` classes
 - [x] **Locale keys** — `dashboard.light_mode` / `dashboard.dark_mode` EN/ID
 
-### C.6. Tenant Skeleton Components ✅ (BARU - Done)
+### C.6. Tenant Shared Components ✅ (BARU - Done)
 - [x] **SkeletonTable.vue** — Copied from platform-admin with compound/tag/icons/checkbox/key-copy columns
 - [x] **SkeletonCard.vue** — 6 card skeleton types (kpi/stat/metric/alert/sparkline/detail)
 - [x] **useSkeletonPage.js** — Copied composable with loading/loaded/error states
+- [x] **ConfirmDeleteDialog.vue** — Custom dialog component yang tetap terbuka selama API call:
+  - Props: visible, title, message, loading, errorMsg, cancelLabel, confirmLabel
+  - Emits: update:visible, confirm, cancel
+  - `closable`, `dismissable-mask`, `close-on-escape` disable saat loading
+  - Error message ditampilkan sebagai red banner di dalam dialog (bukan toast)
+  - Dialog hanya close setelah sukses response dari API
+
+### C.6a. ConfirmDeleteDialog Refactoring — 20+ Tenant Views ✅ (BARU - Done)
+- Mengganti `confirm.require()` (PrimeVue ConfirmDialog) dengan `ConfirmDeleteDialog` custom component
+- Pattern baru: `confirmDelete(item)` → set `deleteTarget`, clear `deleteError`, buka dialog
+- Pattern baru: `handleDelete()` async → `deleting=true`, API call, close dialog on success, show error inside dialog on failure
+- Semua `import { useConfirm }`, `const confirm = useConfirm()`, `<ConfirmDialog />` dihapus
+
+**Files refactored:**
+| No | File | Perubahan |
+|:--:|------|-----------|
+| 1 | `components/ConfirmDeleteDialog.vue` | **NEW** — Custom dialog component |
+| 2 | `settings/ZonesView.vue` | Full konversi dari `confirm.require()` |
+| 3 | `modules/Organizations.vue` | Full konversi dari `confirm.require()` |
+| 4 | `modules/OrganizationSummary.vue` | Remove leftover `<ConfirmDialog />` + import |
+| 5 | `settings/ProvincesView.vue` | Remove leftover `<ConfirmDialog />` + import |
+| 6 | `settings/RegenciesView.vue` | Same |
+| 7 | `settings/DistrictsView.vue` | Same |
+| 8 | `settings/VillagesView.vue` | Same |
+| 9 | `settings/EducationsView.vue` | Same |
+| 10 | `settings/ReligionsView.vue` | Same |
+| 11 | `settings/MaritalStatusesView.vue` | Same |
+| 12 | `settings/RelationshipTypesView.vue` | Same |
+| 13 | `settings/EmploymentStatusesView.vue` | Same |
+| 14 | `settings/NationalitiesView.vue` | Same |
+| 15 | `settings/BanksView.vue` | Remove duplicate `handleDelete` + leftover `<ConfirmDialog />` |
+| 16 | `settings/JobFamiliesView.vue` | Remove leftover `<ConfirmDialog />` + import |
+| 17 | `settings/SalaryGradesView.vue` | Same |
+| 18 | `settings/TersView.vue` | Same |
+| 19 | `settings/PtkpsView.vue` | Same |
+| 20 | `settings/GradingsView.vue` | Remove duplicate `handleDelete` + leftover old code fragment (wrong API path `/gradings/` → `/settings/gradings/`) |
 
 ### C.7. Setting Module — All 16 Reference CRUDs ✅ (BARU - Done)
 **Backend:** `backend/internal/modules/setting/` — packages for zones, provinces, regencies, districts, villages, educations, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades, ters, ptkps + 5 legacy endpoints
@@ -278,7 +314,7 @@ frontend/
 - [x] **Data loading** — All via `?per_page=200` (client-side pagination & filter)
 - [x] **Dark mode classes** — All bg, text, border, dialog elements
 - [x] **Bilingual** — All labels via `t()` locale lookups
-- [x] **ConfirmDialog** — Delete confirmation with bilingual text
+- [x] **ConfirmDeleteDialog** (custom) — Delete confirmation dengan custom component (bukan PrimeVue ConfirmDialog), tetap terbuka selama API call, error tampil inline
 - [x] **Locale keys** — 6+ keys per entity (title, description, create, edit, delete, confirm_delete)
 
 ### C.8. Organization Management ✅ (BARU - Done)
@@ -292,8 +328,7 @@ frontend/
 - [x] **Skeleton loading** — 5 row skeleton saat loading
 - [x] **Bilingual + dark mode** — t() locale keys + dark: classes
 - [x] **Locale keys:** 20+ keys `organization.*` EN/ID
-- [ ] **Positions CRUD** — 🔴 TODO
-- [ ] **Job Families CRUD** — 🔴 TODO
+- [ ] **Positions CRUD** — ⏸️ **Postponed**
 
 ### C.9. Employee Management 🔴 (BARU)
 **Backend:** 29 endpoints

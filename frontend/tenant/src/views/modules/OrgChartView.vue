@@ -8,30 +8,24 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import * as d3 from 'd3'
-
 const props = defineProps({
   data: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false }
 })
-
 const emit = defineEmits(['node-click', 'node-edit', 'node-delete', 'add-child'])
-
 const { t } = useI18n()
 const chartRef = ref(null)
 let chartInstance = null
-
 // Detect dark mode — pakai class di <html> (mengikuti app toggle)
 const isDark = ref(document.documentElement.classList.contains('p-dark'))
 const observer = new MutationObserver(() => {
   isDark.value = document.documentElement.classList.contains('p-dark')
 })
 observer.observe(document.documentElement, { attributeFilter: ['class'] })
-
 // Flatten tree data into d3-org-chart format
 function flattenForChart(nodes, parentId = null) {
   const result = []
@@ -51,18 +45,13 @@ function flattenForChart(nodes, parentId = null) {
   })
   return result
 }
-
 function initChart() {
   if (!chartRef.value || !props.data?.length) return
-
   const el = chartRef.value
   const width = el.clientWidth || 900
-
   // Clear previous
   el.innerHTML = ''
-
   const flatData = flattenForChart(props.data)
-
   import('d3-org-chart')
     .then(({ OrgChart }) => {
       chartInstance = new OrgChart()
@@ -85,7 +74,6 @@ function initChart() {
           const name = String(d.data.nomenclature || '').replace(/[&<>"']/g, '')
           const code = String(d.data.code || '').replace(/[&<>"']/g, '')
           const fullCode = String(d.data.full_code || '').replace(/[&<>"']/g, '')
-
           return `
             <div style="background:${color};border-radius:10px;padding:12px 14px;width:210px;box-shadow:0 2px 8px rgba(0,0,0,0.12);font-family:inherit;">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
@@ -107,24 +95,20 @@ function initChart() {
       console.error('Failed to load OrgChart:', err)
     })
 }
-
 watch(() => props.data, () => {
   nextTick(() => {
     chartInstance = null
     initChart()
   })
 })
-
 onMounted(() => {
   nextTick(() => initChart())
 })
-
 onBeforeUnmount(() => {
   observer.disconnect()
   chartInstance = null
 })
 </script>
-
 <style scoped>
 .org-chart-container {
   position: relative;

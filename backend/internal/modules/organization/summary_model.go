@@ -39,9 +39,10 @@ func (s *OrganizationSummary) BeforeCreate(tx *gorm.DB) error {
 // ── DTOs ──
 
 type CreateOrganizationSummaryRequest struct {
-	Code       string `json:"code" binding:"required,max=7"`
-	DecreeNo   string `json:"decree_no" binding:"required,max=20"`
-	DecreeDate string `json:"decree_date" binding:"required"` // format: YYYY-MM-DD
+	Code        string `json:"code" binding:"required,max=7"`
+	DecreeNo    string `json:"decree_no" binding:"required,max=20"`
+	DecreeDate  string `json:"decree_date" binding:"required"` // format: YYYY-MM-DD
+	CloneFromID string `json:"clone_from_id" binding:"omitempty,uuid"`
 }
 
 type UpdateOrganizationSummaryRequest struct {
@@ -52,14 +53,15 @@ type UpdateOrganizationSummaryRequest struct {
 }
 
 type OrganizationSummaryResponse struct {
-	ID         string `json:"id"`
-	Code       string `json:"code"`
-	DecreeNo   string `json:"decree_no"`
-	DecreeDate string `json:"decree_date"`
-	Status     string `json:"status"`
-	OrgCount   int    `json:"org_count"`
-	CreatedAt  string `json:"created_at"`
-	UpdatedAt  string `json:"updated_at"`
+	ID           string `json:"id"`
+	Code         string `json:"code"`
+	DecreeNo     string `json:"decree_no"`
+	DecreeDate   string `json:"decree_date"`
+	Status       string `json:"status"`
+	OrgCount     int    `json:"org_count"`
+	ClonedFromID string `json:"cloned_from_id,omitempty"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
 }
 
 type PaginatedSummaryResponse struct {

@@ -56,19 +56,17 @@
 
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('districts.edit_district') : t('districts.new_district')" modal :style="{ width: '520px' }" :closable="true" @hide="resetForm">
       <div class="space-y-4">
-        <div>
-          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-1.5">
-            <i class="pi pi-building text-indigo-400 text-sm"></i>
-            {{ editing ? t('districts.edit_district') : t('districts.new_district') }}
-          </h3>
-          <div class="space-y-2">
-            <div><label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('districts.code') }} <span class="text-red-500">*</span></label><InputText v-model="form.code" class="!w-full" :class="{'p-invalid':errors?.code}" maxlength="10" autofocus :placeholder="t('districts.code')" /><small v-if="errors?.code" class="text-red-500 text-xs mt-1 block">{{ errors.code }}</small></div>
-            <div><label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('districts.name') }} <span class="text-red-500">*</span></label><InputText v-model="form.name" class="!w-full" :class="{'p-invalid':errors?.name}" maxlength="255" :placeholder="t('districts.name')" /><small v-if="errors?.name" class="text-red-500 text-xs mt-1 block">{{ errors.name }}</small></div>
+        <div class="space-y-2">
+            <FormRow :label="t('districts.code')" required :errors="errors?.code">
+            <TextInput v-model="form.code" maxlength="10" autofocus :placeholder="t('districts.code')" :class="{'p-invalid':errors?.code}" />
+          </FormRow>
+            <FormRow :label="t('districts.name')" required :errors="errors?.name">
+            <TextInput v-model="form.name" maxlength="255" :placeholder="t('districts.name')" :class="{'p-invalid':errors?.name}" />
+          </FormRow>
             <div><label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('districts.regency') }} <span class="text-red-500">*</span></label>
               <Select v-model="form.regency_id" :options="regencyOptions" optionValue="id" optionLabel="label" :placeholder="t('districts.select_regency')" class="!w-full" :class="{'p-invalid':errors?.regency_id}" :showClear="true" />
               <small v-if="errors?.regency_id" class="text-red-500 text-xs mt-1 block">{{ errors.regency_id }}</small>
             </div>
-          </div>
         </div>
       </div>
       <template #footer>
@@ -81,13 +79,11 @@
       </template>
     </Dialog>
 
-    <ConfirmDialog />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
@@ -101,13 +97,13 @@ import IconField from 'primevue/iconfield'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
-import ConfirmDialog from 'primevue/confirmdialog'
 import SkeletonTable from '@/components/SkeletonTable.vue'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+import FormRow from '@/components/FormRow.vue'
+import TextInput from '@/components/TextInput.vue'
 
 const { t } = useI18n()
 const toast = useToast()
-const confirm = useConfirm()
-
 const items = ref([])
 const loading = ref(false)
 const totalRecords = ref(0); const currentPage = ref(1); const perPage = ref(15)
@@ -116,6 +112,10 @@ const editing = ref(false)
 const editingId = ref(null)
 const saving = ref(false)
 const errors = ref({})
+const deleteDialogVisible = ref(false)
+const deleting = ref(false)
+const deleteError = ref('')
+const deleteTarget = ref(null)
 const form = ref({ code: '', name: '', regency_id: null })
 const allRegencies = ref([])
 
@@ -206,25 +206,26 @@ async function handleSave() {
 }
 
 function confirmDelete(item) {
-  confirm.require({
-    header: t('districts.confirm_delete_title'),
-    message: t('districts.confirm_delete', { name: item.name }),
-    icon: 'pi pi-exclamation-triangle',
-    rejectLabel: t('common.cancel'),
-    acceptLabel: t('common.delete'),
-    rejectClass: 'p-button-outlined p-button-secondary',
-    acceptClass: 'p-button-danger',
-    accept: async () => {
-      try {
-        await api.delete(`/api/v1/tenant/settings/districts/${item.id}`)
-        toast.add({ severity: 'success', summary: t('message.success'), detail: t('districts.deleted'), life: 3000 })
-        await loadData()
-      } catch(e) {
-        toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
-      }
-    }
-  })
+  deleteTarget.value = item
+  deleteError.value = ''
+  deleteDialogVisible.value = true
 }
+
+async function handleDelete() {
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await api.delete(`/api/v1/tenant/settings/districts/${deleteTarget.value.id}`)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('districts.deleted'), life: 3000 })
+    deleteDialogVisible.value = false
+    await loadData()
+  } catch(e) {
+    deleteError.value = e.response?.data?.error?.message || t('message.operation_failed')
+  } finally {
+    deleting.value = false
+  }
+}
+
 
 onMounted(loadData)
 </script>

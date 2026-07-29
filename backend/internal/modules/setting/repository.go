@@ -68,6 +68,26 @@ func (r *Repository) softDelete(ctx context.Context, model interface{}, id inter
 	return db.Where("id = ?", id).Delete(model).Error
 }
 
+func (r *Repository) findByCode(ctx context.Context, model interface{}, code string, table string) (bool, error) {
+	db, err := r.getDB(ctx)
+	if err != nil { return false, err }
+	var count int64
+	if err := db.Model(model).Where("code = ?", code).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *Repository) findByCodeExcludeSelf(ctx context.Context, model interface{}, code string, id interface{}, table string) (bool, error) {
+	db, err := r.getDB(ctx)
+	if err != nil { return false, err }
+	var count int64
+	if err := db.Model(model).Where("code = ? AND id != ?", code, id).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 // ── Zone ──
 func (r *Repository) CreateZone(ctx context.Context, zone *Zone) error { return r.create(ctx, zone) }
 func (r *Repository) FindZoneByID(ctx context.Context, id uuid.UUID) (*Zone, error) {
@@ -325,6 +345,23 @@ func (r *Repository) FindAllJobFamilies(ctx context.Context, page, perPage int) 
 }
 func (r *Repository) UpdateJobFamily(ctx context.Context, jf *JobFamily) error { return r.update(ctx, jf) }
 func (r *Repository) DeleteJobFamily(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &JobFamily{}, id) }
+
+// ── Grading ──
+func (r *Repository) CreateGrading(ctx context.Context, g *Grading) error { return r.create(ctx, g) }
+func (r *Repository) FindGradingByID(ctx context.Context, id uuid.UUID) (*Grading, error) {
+	var g Grading
+	if err := r.findByID(ctx, &g, id, "gradings"); err != nil {
+		return nil, fmt.Errorf("grading not found: %w", err)
+	}
+	return &g, nil
+}
+func (r *Repository) FindAllGradings(ctx context.Context, page, perPage int) ([]Grading, int64, error) {
+	var list []Grading
+	total, err := r.findAll(ctx, &list, "gradings", page, perPage, "sort_order ASC, code ASC")
+	return list, total, err
+}
+func (r *Repository) UpdateGrading(ctx context.Context, g *Grading) error { return r.update(ctx, g) }
+func (r *Repository) DeleteGrading(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &Grading{}, id) }
 
 // ── SalaryGrade ──
 func (r *Repository) CreateSalaryGrade(ctx context.Context, sg *SalaryGrade) error { return r.create(ctx, sg) }

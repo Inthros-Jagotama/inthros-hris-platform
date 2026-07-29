@@ -409,6 +409,40 @@ func (jf *JobFamily) ToResponse() JobFamilyResponse {
 	return JobFamilyResponse{ID: jf.ID.String(), Code: jf.Code, Name: jf.Name, Description: jf.Description, SortOrder: jf.SortOrder, CreatedAt: jf.CreatedAt, UpdatedAt: jf.UpdatedAt}
 }
 
+// ── Grading DTOs ──
+type CreateGradingRequest struct {
+	Code        string `json:"code" binding:"required,max=20"`
+	Name        string `json:"name" binding:"required,max=255"`
+	Description string `json:"description,omitempty"`
+	SortOrder   int    `json:"sort_order,omitempty"`
+}
+type UpdateGradingRequest struct {
+	Code        *string `json:"code,omitempty" binding:"omitempty,max=20"`
+	Name        *string `json:"name,omitempty" binding:"omitempty,max=255"`
+	Description *string `json:"description,omitempty"`
+	SortOrder   *int    `json:"sort_order,omitempty"`
+}
+type GradingResponse struct {
+	ID          string    `json:"id"`
+	Code        string    `json:"code"`
+	Name        string    `json:"name"`
+	Description string    `json:"description,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+func (g *Grading) ToResponse() GradingResponse {
+	return GradingResponse{ID: g.ID.String(), Code: g.Code, Name: g.Name, Description: g.Description, SortOrder: g.SortOrder, CreatedAt: g.CreatedAt, UpdatedAt: g.UpdatedAt}
+}
+type GradingPaginatedResponse struct {
+	Success    bool              `json:"success"`
+	Data       []GradingResponse `json:"data"`
+	Page       int               `json:"page"`
+	PerPage    int               `json:"per_page"`
+	Total      int64             `json:"total"`
+	TotalPages int               `json:"total_pages"`
+}
+
 // ── SalaryGrade DTOs ──
 type CreateSalaryGradeRequest struct {
 	Code        string  `json:"code" binding:"required,max=20"`

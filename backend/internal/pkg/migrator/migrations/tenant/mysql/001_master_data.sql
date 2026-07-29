@@ -160,13 +160,16 @@ CREATE TABLE IF NOT EXISTS employment_statuses (
 -- 1.11 Gradings
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gradings (
-    id            CHAR(36) PRIMARY KEY,
-    grading_name  VARCHAR(30) NULL,
-    status        TINYINT NULL,
-    created_by    CHAR(36) NULL,
-    updated_by    CHAR(36) NULL,
-    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at  TIMESTAMP NULL
+    id          CHAR(36) PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL,
+    name        VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    sort_order  INT DEFAULT 0,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at  TIMESTAMP NULL,
+
+    UNIQUE INDEX idx_gradings_code (code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------

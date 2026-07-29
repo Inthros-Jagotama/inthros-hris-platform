@@ -77,19 +77,21 @@
     <!-- Create/Edit Dialog -->
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('zones.edit_zone') : t('zones.new_zone')" modal :style="{ width: '520px' }" :closable="true" @hide="resetForm">
       <div class="space-y-4">
-        <div>
-          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-1.5">
-            <i class="pi pi-map-marker text-indigo-400 text-sm"></i>
-            {{ editing ? t('zones.edit_zone') : t('zones.new_zone') }}
-          </h3>
-          <div class="space-y-2">
-            <div><label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('zones.code') }} <span class="text-red-500">*</span></label><InputText v-model="form.code" class="!w-full" :class="{'p-invalid':errors?.code}" maxlength="20" autofocus :placeholder="t('zones.code')" /><small v-if="errors?.code" class="text-red-500 text-xs mt-1 block">{{ errors.code }}</small></div>
-            <div><label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('zones.name') }} <span class="text-red-500">*</span></label><InputText v-model="form.name" class="!w-full" :class="{'p-invalid':errors?.name}" maxlength="255" :placeholder="t('zones.name')" /><small v-if="errors?.name" class="text-red-500 text-xs mt-1 block">{{ errors.name }}</small></div>
-            <div><label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('zones.region') }}</label><InputText v-model="form.region" class="!w-full" maxlength="100" :placeholder="t('zones.region')" /></div>
-            <div class="flex items-center justify-between"><label class="block text-sm font-medium text-gray-600 dark:text-gray-300">{{ t('zones.is_active') }}</label><ToggleSwitch v-model="form.is_active" /></div>
-            <div><label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('zones.sort_order') }}</label><InputNumber v-model="form.sort_order" class="!w-full" :min="0" /></div>
+        <div class="space-y-2">
+            <FormRow :label="t('zones.code')" required :errors="errors?.code">
+            <TextInput v-model="form.code" maxlength="20" autofocus :placeholder="t('zones.code')" :class="{'p-invalid':errors?.code}" />
+          </FormRow>
+            <FormRow :label="t('zones.name')" required :errors="errors?.name">
+            <TextInput v-model="form.name" maxlength="255" :placeholder="t('zones.name')" :class="{'p-invalid':errors?.name}" />
+          </FormRow>
+            <FormRow :label="t('zones.region')" :errors="errors?.region">
+            <TextInput v-model="form.region" maxlength="100" :placeholder="t('zones.region')" />
+          </FormRow>
+            <div class="flex items-center justify-between pt-2"><label class="text-sm font-medium text-gray-600 dark:text-gray-300">{{ t('zones.is_active') }}</label><ToggleSwitch v-model="form.is_active" /></div>
+            <FormRow :label="t('zones.sort_order')" :errors="errors?.sort_order">
+            <InputNumber v-model="form.sort_order" class="!w-full" :min="0" size="small" />
+          </FormRow>
           </div>
-        </div>
       </div>
       <template #footer>
         <div class="flex items-center justify-between">
@@ -101,13 +103,21 @@
       </template>
     </Dialog>
 
-    <ConfirmDialog />
+    <ConfirmDeleteDialog
+      v-model:visible="deleteDialogVisible"
+      :title="t('zones.confirm_delete_title')"
+      :message="t('zones.confirm_delete', { name: deleteTarget?.name || '' })"
+      :loading="deleting"
+      :error-msg="deleteError"
+      :confirm-label="t('common.delete')"
+      :cancel-label="t('common.cancel')"
+      @confirm="handleDelete"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
@@ -122,12 +132,13 @@ import InputNumber from 'primevue/inputnumber'
 import Tag from 'primevue/tag'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Dialog from 'primevue/dialog'
-import ConfirmDialog from 'primevue/confirmdialog'
 import SkeletonTable from '@/components/SkeletonTable.vue'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+import FormRow from '@/components/FormRow.vue'
+import TextInput from '@/components/TextInput.vue'
 
 const { t } = useI18n()
 const toast = useToast()
-const confirm = useConfirm()
 
 const items = ref([])
 const loading = ref(false)
@@ -139,6 +150,10 @@ const editingId = ref(null)
 const saving = ref(false)
 const errors = ref({})
 const form = ref({ code: '', name: '', region: '', is_active: true, sort_order: 0 })
+const deleteDialogVisible = ref(false)
+const deleting = ref(false)
+const deleteError = ref('')
+const deleteTarget = ref(null)
 
 const skeletonColumns = [
   { type: 'tag', width: 'w-20', headerWidth: 'w-16' },
@@ -245,24 +260,24 @@ async function handleSave() {
 }
 
 function confirmDelete(item) {
-  confirm.require({
-    header: t('zones.confirm_delete_title'),
-    message: t('zones.confirm_delete', { name: item.name }),
-    icon: 'pi pi-exclamation-triangle',
-    rejectLabel: t('common.cancel'),
-    acceptLabel: t('common.delete'),
-    rejectClass: 'p-button-outlined p-button-secondary',
-    acceptClass: 'p-button-danger',
-    accept: async () => {
-      try {
-        await api.delete(`/api/v1/tenant/settings/zones/${item.id}`)
-        toast.add({ severity: 'success', summary: t('message.success'), detail: t('zones.deleted'), life: 3000 })
-        await loadData()
-      } catch(e) {
-        toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
-      }
-    }
-  })
+  deleteTarget.value = item
+  deleteError.value = ''
+  deleteDialogVisible.value = true
+}
+
+async function handleDelete() {
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await api.delete(`/api/v1/tenant/settings/zones/${deleteTarget.value.id}`)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('zones.deleted'), life: 3000 })
+    deleteDialogVisible.value = false
+    await loadData()
+  } catch(e) {
+    deleteError.value = e.response?.data?.error?.message || t('message.operation_failed')
+  } finally {
+    deleting.value = false
+  }
 }
 
 onMounted(loadData)

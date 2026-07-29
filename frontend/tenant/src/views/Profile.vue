@@ -36,7 +36,6 @@
         </div>
       </template>
     </Card>
-
     <!-- Change Password Card -->
     <Card>
       <template #title>
@@ -63,7 +62,6 @@
               {{ Array.isArray(errors.current_password) ? errors.current_password.join(', ') : errors.current_password }}
             </small>
           </div>
-
           <!-- New Password -->
           <div>
             <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('profile.new_password') }}</label>
@@ -79,7 +77,6 @@
               {{ Array.isArray(errors.new_password) ? errors.new_password.join(', ') : errors.new_password }}
             </small>
           </div>
-
           <!-- Confirm Password -->
           <div>
             <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('profile.confirm_password') }}</label>
@@ -95,7 +92,6 @@
               {{ Array.isArray(errors.confirm_password) ? errors.confirm_password.join(', ') : errors.confirm_password }}
             </small>
           </div>
-
           <div class="flex justify-end gap-2 pt-2">
             <Button
               :label="t('common.cancel')"
@@ -117,7 +113,6 @@
     </Card>
   </div>
 </template>
-
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useAuth } from '@/stores/auth'
@@ -131,16 +126,13 @@ import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import Password from 'primevue/password'
 import { useToast } from 'primevue/usetoast'
-
 const toast = useToast()
 const { state: auth } = useAuth()
 const langStore = useLanguage()
 const { t } = useI18n()
-
 const user = ref(auth.user)
 const submitting = ref(false)
 const errors = ref({})
-
 // Fetch enriched user data from API (includes company_name, proper last_login)
 onMounted(async () => {
   try {
@@ -152,34 +144,28 @@ onMounted(async () => {
     user.value = auth.user
   }
 })
-
 const roleLabel = computed(() => {
   if (user.value?.role === 'company_admin') return t('profile.role_company_admin')
   if (user.value?.role === 'super_admin') return t('profile.role_super_admin')
   return user.value?.role || '—'
 })
-
 const form = reactive({
   current_password: '',
   new_password: '',
   confirm_password: ''
 })
-
 function resetForm() {
   form.current_password = ''
   form.new_password = ''
   form.confirm_password = ''
   errors.value = {}
 }
-
 function formatDate(dateStr) {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleDateString(langStore.state.lang === 'id' ? 'id-ID' : 'en-US')
 }
-
 async function handleChangePassword() {
   errors.value = {}
-
   // Client-side validation
   if (!form.current_password) {
     errors.value = { current_password: [t('form.required')] }
@@ -193,7 +179,6 @@ async function handleChangePassword() {
     errors.value = { confirm_password: [t('profile.password_mismatch')] }
     return
   }
-
   submitting.value = true
   try {
     await api.put(`/api/v1/platform/users/${user.value.id}/password`, {

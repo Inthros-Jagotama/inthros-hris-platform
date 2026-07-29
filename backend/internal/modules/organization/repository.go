@@ -252,3 +252,64 @@ func (r *Repository) RestoreAllFromSnapshot(ctx context.Context, newOrgs []Organ
 		return nil
 	})
 }
+
+// =========================================================================
+// Unique Validation Repository Methods
+// =========================================================================
+
+func (r *Repository) FindByFullCodeAndSummary(ctx context.Context, fullCode string, summaryID uuid.UUID) (*Organization, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var org Organization
+	if err := db.Where("full_code = ? AND organization_summary_id = ?", fullCode, summaryID).First(&org).Error; err != nil {
+		return nil, err
+	}
+	return &org, nil
+}
+
+func (r *Repository) FindByFullCodeAndSummaryExcludeSelf(ctx context.Context, fullCode string, summaryID uuid.UUID, excludeID uuid.UUID) (*Organization, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var org Organization
+	if err := db.Where("full_code = ? AND organization_summary_id = ? AND id != ?", fullCode, summaryID, excludeID).First(&org).Error; err != nil {
+		return nil, err
+	}
+	return &org, nil
+}
+
+// =========================================================================
+// Clone Helper Repository Methods
+// =========================================================================
+
+func (r *Repository) FindAllBySummaryID(ctx context.Context, summaryID uuid.UUID) ([]Organization, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var orgs []Organization
+	if err := db.Where("organization_summary_id = ?", summaryID).
+		Order("full_code ASC").
+		Find(&orgs).Error; err != nil {
+		return nil, err
+	}
+	return orgs, nil
+}
+
+func (r *Repository) BulkCreateOrganizations(ctx context.Context, orgs []Organization) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		for i := range orgs {
+			if err := tx.Create(&orgs[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}

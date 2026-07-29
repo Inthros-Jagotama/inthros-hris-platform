@@ -19,6 +19,28 @@ type Service struct {
 	logger *zap.Logger
 }
 
+func (s *Service) validateUniqueCode(ctx context.Context, model interface{}, code string, table string) error {
+	exists, err := s.repo.findByCode(ctx, model, code, table)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return &DuplicateCodeError{Table: table, Code: code}
+	}
+	return nil
+}
+
+func (s *Service) validateUniqueCodeExcludeSelf(ctx context.Context, model interface{}, code string, id interface{}, table string) error {
+	exists, err := s.repo.findByCodeExcludeSelf(ctx, model, code, id, table)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return &DuplicateCodeError{Table: table, Code: code}
+	}
+	return nil
+}
+
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
 }
@@ -28,6 +50,7 @@ func (s *Service) CreateZone(ctx context.Context, req CreateZoneRequest) (*ZoneR
 	isActive := true
 	if req.IsActive != nil { isActive = *req.IsActive }
 	zone := &Zone{Code: req.Code, Name: req.Name, Zone: req.Name, Region: req.Region, IsActive: isActive, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &Zone{}, req.Code, "zones"); err != nil { return nil, err }
 	if err := s.repo.CreateZone(ctx, zone); err != nil { return nil, err }
 	s.logger.Info("Zone created", zap.String("id", zone.ID.String()), zap.String("code", zone.Code))
 	resp := zone.ToResponse()
@@ -65,7 +88,10 @@ func (s *Service) UpdateZone(ctx context.Context, id string, req UpdateZoneReque
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
 	zone, err := s.repo.FindZoneByID(ctx, uid)
 	if err != nil { return nil, err }
-	if req.Code != nil { zone.Code = *req.Code }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &Zone{}, *req.Code, zone.ID, "zones"); err != nil { return nil, err }
+		zone.Code = *req.Code
+	}
 	if req.Name != nil { zone.Name = *req.Name; zone.Zone = *req.Name }
 	if req.Region != nil { zone.Region = *req.Region }
 	if req.IsActive != nil { zone.IsActive = *req.IsActive }
@@ -270,6 +296,7 @@ func (s *Service) DeleteVillage(ctx context.Context, id string) error {
 // ── Education CRUD ──
 func (s *Service) CreateEducation(ctx context.Context, req CreateEducationRequest) (*EducationResponse, error) {
 	e := &Education{Code: req.Code, Name: req.Name, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &Education{}, req.Code, "educations"); err != nil { return nil, err }
 	if err := s.repo.CreateEducation(ctx, e); err != nil { return nil, err }
 	s.logger.Info("Education created", zap.String("id", e.ID.String()), zap.String("code", e.Code))
 	resp := e.ToResponse()
@@ -300,7 +327,10 @@ func (s *Service) UpdateEducation(ctx context.Context, id string, req UpdateEduc
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
 	e, err := s.repo.FindEducationByID(ctx, uid)
 	if err != nil { return nil, err }
-	if req.Code != nil { e.Code = *req.Code }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &Education{}, *req.Code, e.ID, "educations"); err != nil { return nil, err }
+		e.Code = *req.Code
+	}
 	if req.Name != nil { e.Name = *req.Name }
 	if req.SortOrder != nil { e.SortOrder = *req.SortOrder }
 	if err := s.repo.UpdateEducation(ctx, e); err != nil { return nil, err }
@@ -316,6 +346,7 @@ func (s *Service) DeleteEducation(ctx context.Context, id string) error {
 // ── Religion CRUD ──
 func (s *Service) CreateReligion(ctx context.Context, req CreateReligionRequest) (*ReligionResponse, error) {
 	rel := &Religion{Code: req.Code, Name: req.Name, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &Religion{}, req.Code, "religions"); err != nil { return nil, err }
 	if err := s.repo.CreateReligion(ctx, rel); err != nil { return nil, err }
 	s.logger.Info("Religion created", zap.String("id", rel.ID.String()), zap.String("code", rel.Code))
 	resp := rel.ToResponse()
@@ -346,7 +377,10 @@ func (s *Service) UpdateReligion(ctx context.Context, id string, req UpdateRelig
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
 	rel, err := s.repo.FindReligionByID(ctx, uid)
 	if err != nil { return nil, err }
-	if req.Code != nil { rel.Code = *req.Code }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &Religion{}, *req.Code, rel.ID, "religions"); err != nil { return nil, err }
+		rel.Code = *req.Code
+	}
 	if req.Name != nil { rel.Name = *req.Name }
 	if req.SortOrder != nil { rel.SortOrder = *req.SortOrder }
 	if err := s.repo.UpdateReligion(ctx, rel); err != nil { return nil, err }
@@ -362,6 +396,7 @@ func (s *Service) DeleteReligion(ctx context.Context, id string) error {
 // ── MaritalStatus CRUD ──
 func (s *Service) CreateMaritalStatus(ctx context.Context, req CreateMaritalStatusRequest) (*MaritalStatusResponse, error) {
 	m := &MaritalStatus{Code: req.Code, Name: req.Name, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &MaritalStatus{}, req.Code, "marital_statuses"); err != nil { return nil, err }
 	if err := s.repo.CreateMaritalStatus(ctx, m); err != nil { return nil, err }
 	s.logger.Info("MaritalStatus created", zap.String("id", m.ID.String()), zap.String("code", m.Code))
 	resp := m.ToResponse()
@@ -392,7 +427,10 @@ func (s *Service) UpdateMaritalStatus(ctx context.Context, id string, req Update
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
 	m, err := s.repo.FindMaritalStatusByID(ctx, uid)
 	if err != nil { return nil, err }
-	if req.Code != nil { m.Code = *req.Code }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &MaritalStatus{}, *req.Code, m.ID, "marital_statuses"); err != nil { return nil, err }
+		m.Code = *req.Code
+	}
 	if req.Name != nil { m.Name = *req.Name }
 	if req.SortOrder != nil { m.SortOrder = *req.SortOrder }
 	if err := s.repo.UpdateMaritalStatus(ctx, m); err != nil { return nil, err }
@@ -408,6 +446,7 @@ func (s *Service) DeleteMaritalStatus(ctx context.Context, id string) error {
 // ── Bank CRUD ──
 func (s *Service) CreateBank(ctx context.Context, req CreateBankRequest) (*BankResponse, error) {
 	b := &Bank{Code: req.Code, Name: req.Name, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &Bank{}, req.Code, "banks"); err != nil { return nil, err }
 	if err := s.repo.CreateBank(ctx, b); err != nil { return nil, err }
 	s.logger.Info("Bank created", zap.String("id", b.ID.String()), zap.String("code", b.Code))
 	resp := b.ToResponse()
@@ -438,7 +477,10 @@ func (s *Service) UpdateBank(ctx context.Context, id string, req UpdateBankReque
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
 	b, err := s.repo.FindBankByID(ctx, uid)
 	if err != nil { return nil, err }
-	if req.Code != nil { b.Code = *req.Code }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &Bank{}, *req.Code, b.ID, "banks"); err != nil { return nil, err }
+		b.Code = *req.Code
+	}
 	if req.Name != nil { b.Name = *req.Name }
 	if req.SortOrder != nil { b.SortOrder = *req.SortOrder }
 	if err := s.repo.UpdateBank(ctx, b); err != nil { return nil, err }
@@ -454,6 +496,7 @@ func (s *Service) DeleteBank(ctx context.Context, id string) error {
 // ── Nationality CRUD ──
 func (s *Service) CreateNationality(ctx context.Context, req CreateNationalityRequest) (*NationalityResponse, error) {
 	n := &Nationality{Code: req.Code, Name: req.Name, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &Nationality{}, req.Code, "nationalities"); err != nil { return nil, err }
 	if err := s.repo.CreateNationality(ctx, n); err != nil { return nil, err }
 	s.logger.Info("Nationality created", zap.String("id", n.ID.String()), zap.String("code", n.Code))
 	resp := n.ToResponse()
@@ -484,7 +527,10 @@ func (s *Service) UpdateNationality(ctx context.Context, id string, req UpdateNa
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
 	n, err := s.repo.FindNationalityByID(ctx, uid)
 	if err != nil { return nil, err }
-	if req.Code != nil { n.Code = *req.Code }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &Nationality{}, *req.Code, n.ID, "nationalities"); err != nil { return nil, err }
+		n.Code = *req.Code
+	}
 	if req.Name != nil { n.Name = *req.Name }
 	if req.SortOrder != nil { n.SortOrder = *req.SortOrder }
 	if err := s.repo.UpdateNationality(ctx, n); err != nil { return nil, err }
@@ -500,6 +546,7 @@ func (s *Service) DeleteNationality(ctx context.Context, id string) error {
 // ── RelationshipType CRUD ──
 func (s *Service) CreateRelationshipType(ctx context.Context, req CreateRelationshipTypeRequest) (*RelationshipTypeResponse, error) {
 	rt := &RelationshipType{Code: req.Code, Name: req.Name, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &RelationshipType{}, req.Code, "relationship_types"); err != nil { return nil, err }
 	if err := s.repo.CreateRelationshipType(ctx, rt); err != nil { return nil, err }
 	s.logger.Info("RelationshipType created", zap.String("id", rt.ID.String()), zap.String("code", rt.Code))
 	resp := rt.ToResponse()
@@ -530,7 +577,10 @@ func (s *Service) UpdateRelationshipType(ctx context.Context, id string, req Upd
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
 	rt, err := s.repo.FindRelationshipTypeByID(ctx, uid)
 	if err != nil { return nil, err }
-	if req.Code != nil { rt.Code = *req.Code }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &RelationshipType{}, *req.Code, rt.ID, "relationship_types"); err != nil { return nil, err }
+		rt.Code = *req.Code
+	}
 	if req.Name != nil { rt.Name = *req.Name }
 	if req.SortOrder != nil { rt.SortOrder = *req.SortOrder }
 	if err := s.repo.UpdateRelationshipType(ctx, rt); err != nil { return nil, err }
@@ -546,6 +596,7 @@ func (s *Service) DeleteRelationshipType(ctx context.Context, id string) error {
 // ── EmploymentStatus CRUD ──
 func (s *Service) CreateEmploymentStatus(ctx context.Context, req CreateEmploymentStatusRequest) (*EmploymentStatusResponse, error) {
 	es := &EmploymentStatus{Code: req.Code, Name: req.Name, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &EmploymentStatus{}, req.Code, "employment_statuses"); err != nil { return nil, err }
 	if err := s.repo.CreateEmploymentStatus(ctx, es); err != nil { return nil, err }
 	s.logger.Info("EmploymentStatus created", zap.String("id", es.ID.String()), zap.String("code", es.Code))
 	resp := es.ToResponse()
@@ -576,7 +627,10 @@ func (s *Service) UpdateEmploymentStatus(ctx context.Context, id string, req Upd
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
 	es, err := s.repo.FindEmploymentStatusByID(ctx, uid)
 	if err != nil { return nil, err }
-	if req.Code != nil { es.Code = *req.Code }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &EmploymentStatus{}, *req.Code, es.ID, "employment_statuses"); err != nil { return nil, err }
+		es.Code = *req.Code
+	}
 	if req.Name != nil { es.Name = *req.Name }
 	if req.SortOrder != nil { es.SortOrder = *req.SortOrder }
 	if err := s.repo.UpdateEmploymentStatus(ctx, es); err != nil { return nil, err }
@@ -592,6 +646,7 @@ func (s *Service) DeleteEmploymentStatus(ctx context.Context, id string) error {
 // ── JobFamily CRUD ──
 func (s *Service) CreateJobFamily(ctx context.Context, req CreateJobFamilyRequest) (*JobFamilyResponse, error) {
 	jf := &JobFamily{Code: req.Code, Name: req.Name, Description: req.Description, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &JobFamily{}, req.Code, "job_families"); err != nil { return nil, err }
 	if err := s.repo.CreateJobFamily(ctx, jf); err != nil { return nil, err }
 	s.logger.Info("JobFamily created", zap.String("id", jf.ID.String()), zap.String("code", jf.Code))
 	resp := jf.ToResponse()
@@ -622,7 +677,10 @@ func (s *Service) UpdateJobFamily(ctx context.Context, id string, req UpdateJobF
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
 	jf, err := s.repo.FindJobFamilyByID(ctx, uid)
 	if err != nil { return nil, err }
-	if req.Code != nil { jf.Code = *req.Code }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &JobFamily{}, *req.Code, jf.ID, "job_families"); err != nil { return nil, err }
+		jf.Code = *req.Code
+	}
 	if req.Name != nil { jf.Name = *req.Name }
 	if req.Description != nil { jf.Description = *req.Description }
 	if req.SortOrder != nil { jf.SortOrder = *req.SortOrder }
@@ -636,9 +694,62 @@ func (s *Service) DeleteJobFamily(ctx context.Context, id string) error {
 	return s.repo.DeleteJobFamily(ctx, uid)
 }
 
+// ── Grading CRUD ──
+func (s *Service) CreateGrading(ctx context.Context, req CreateGradingRequest) (*GradingResponse, error) {
+	g := &Grading{Code: req.Code, Name: req.Name, Description: req.Description, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &Grading{}, req.Code, "gradings"); err != nil { return nil, err }
+	if err := s.repo.CreateGrading(ctx, g); err != nil { return nil, err }
+	s.logger.Info("Grading created", zap.String("id", g.ID.String()), zap.String("code", g.Code))
+	resp := g.ToResponse()
+	return &resp, nil
+}
+func (s *Service) GetGradingByID(ctx context.Context, id string) (*GradingResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
+	g, err := s.repo.FindGradingByID(ctx, uid)
+	if err != nil { return nil, err }
+	resp := g.ToResponse()
+	return &resp, nil
+}
+func (s *Service) ListGradings(ctx context.Context, page, perPage int) (*GradingPaginatedResponse, error) {
+	if page < 1 { page = defaultPage }
+	if perPage < 1 { perPage = defaultPerPage }
+	if perPage > maxPerPage { perPage = maxPerPage }
+	list, total, err := s.repo.FindAllGradings(ctx, page, perPage)
+	if err != nil { return nil, err }
+	responses := make([]GradingResponse, len(list))
+	for i, g := range list { responses[i] = g.ToResponse() }
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 { totalPages++ }
+	return &GradingPaginatedResponse{Success: true, Data: responses, Page: page, PerPage: perPage, Total: total, TotalPages: totalPages}, nil
+}
+func (s *Service) UpdateGrading(ctx context.Context, id string, req UpdateGradingRequest) (*GradingResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
+	g, err := s.repo.FindGradingByID(ctx, uid)
+	if err != nil { return nil, err }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &Grading{}, *req.Code, g.ID, "gradings"); err != nil { return nil, err }
+		g.Code = *req.Code
+	}
+	if req.Name != nil { g.Name = *req.Name }
+	if req.Description != nil { g.Description = *req.Description }
+	if req.SortOrder != nil { g.SortOrder = *req.SortOrder }
+	if err := s.repo.UpdateGrading(ctx, g); err != nil { return nil, err }
+	s.logger.Info("Grading updated", zap.String("id", g.ID.String()))
+	resp := g.ToResponse()
+	return &resp, nil
+}
+func (s *Service) DeleteGrading(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil { return fmt.Errorf("invalid id: %w", err) }
+	return s.repo.DeleteGrading(ctx, uid)
+}
+
 // ── SalaryGrade CRUD ──
 func (s *Service) CreateSalaryGrade(ctx context.Context, req CreateSalaryGradeRequest) (*SalaryGradeResponse, error) {
 	sg := &SalaryGrade{Code: req.Code, Name: req.Name, Description: req.Description, MinAmount: req.MinAmount, MaxAmount: req.MaxAmount, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &SalaryGrade{}, req.Code, "salary_grades"); err != nil { return nil, err }
 	if err := s.repo.CreateSalaryGrade(ctx, sg); err != nil { return nil, err }
 	s.logger.Info("SalaryGrade created", zap.String("id", sg.ID.String()), zap.String("code", sg.Code))
 	resp := sg.ToResponse()
@@ -669,7 +780,10 @@ func (s *Service) UpdateSalaryGrade(ctx context.Context, id string, req UpdateSa
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
 	sg, err := s.repo.FindSalaryGradeByID(ctx, uid)
 	if err != nil { return nil, err }
-	if req.Code != nil { sg.Code = *req.Code }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &SalaryGrade{}, *req.Code, sg.ID, "salary_grades"); err != nil { return nil, err }
+		sg.Code = *req.Code
+	}
 	if req.Name != nil { sg.Name = *req.Name }
 	if req.Description != nil { sg.Description = *req.Description }
 	if req.MinAmount != nil { sg.MinAmount = *req.MinAmount }

@@ -267,38 +267,24 @@
           <i class="pi pi-arrow-right mr-1"></i>
           {{ t('organization.parent') }}: <strong>{{ parentLabel }}</strong>
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('organization.code') }} <span class="text-red-500">*</span></label>
-            <InputText v-model="form.code" class="!w-full" :class="{ 'p-invalid': errors?.code }" maxlength="10" :placeholder="t('organization.code')" />
-            <small v-if="errors?.code" class="text-red-500 text-xs mt-1 block">{{ errors.code }}</small>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('organization.nomenclature') }} <span class="text-red-500">*</span></label>
-            <InputText v-model="form.nomenclature" class="!w-full" :class="{ 'p-invalid': errors?.nomenclature }" maxlength="255" :placeholder="t('organization.nomenclature')" />
-            <small v-if="errors?.nomenclature" class="text-red-500 text-xs mt-1 block">{{ errors.nomenclature }}</small>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('organization.zone') }}</label>
-            <Select v-model="form.zone_id" :options="zoneOptions" optionValue="id" optionLabel="label" :placeholder="t('organization.select_zone')" class="!w-full" :showClear="true" :loading="refLoading" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('organization.job_family') }}</label>
-            <Select v-model="form.job_family_id" :options="jobFamilyOptions" optionValue="id" optionLabel="label" :placeholder="t('organization.select_job_family')" class="!w-full" :showClear="true" :loading="refLoading" />
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('organization.sort_order') }}</label>
-            <InputNumber v-model="form.sort_order" class="!w-full" :min="0" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('organization.grading') }}</label>
-            <Select v-model="form.grading_id" :options="gradingOptions" optionValue="id" optionLabel="label" :placeholder="t('organization.select_grading')" class="!w-full" :showClear="true" :loading="refLoading" />
-          </div>
-        </div>
+        <FormRow :label="t('organization.code')" required :errors="errors?.code">
+            <TextInput v-model="form.code" :class="{ 'p-invalid': errors?.code }" maxlength="10" :placeholder="t('organization.code')" />
+          </FormRow>
+          <FormRow :label="t('organization.nomenclature')" required :errors="errors?.nomenclature">
+            <TextInput v-model="form.nomenclature" :class="{ 'p-invalid': errors?.nomenclature }" maxlength="255" :placeholder="t('organization.nomenclature')" />
+          </FormRow>
+          <FormRow :label="t('organization.zone')">
+            <SelectLabel v-model="form.zone_id" :options="zoneOptions" option-value="id" option-label="label" :placeholder="t('organization.select_zone')" :showClear="true" />
+          </FormRow>
+          <FormRow :label="t('organization.job_family')">
+            <SelectLabel v-model="form.job_family_id" :options="jobFamilyOptions" option-value="id" option-label="label" :placeholder="t('organization.select_job_family')" :showClear="true" />
+          </FormRow>
+          <FormRow :label="t('organization.sort_order')">
+            <InputNumber v-model="form.sort_order" class="!w-full" :min="0" size="small" />
+          </FormRow>
+          <FormRow :label="t('organization.grading')">
+            <SelectLabel v-model="form.grading_id" :options="gradingOptions" option-value="id" option-label="label" :placeholder="t('organization.select_grading')" :showClear="true" />
+          </FormRow>
       </div>
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible = false" />
@@ -307,14 +293,22 @@
     </Dialog>
 
     <!-- Delete Confirm -->
-    <ConfirmDialog />
+    <ConfirmDeleteDialog
+      v-model:visible="deleteDialogVisible"
+      :title="t('organization.confirm_delete_title')"
+      :message="t('organization.confirm_delete', { name: deleteTarget?.nomenclature || '' })"
+      :loading="deleting"
+      :error-msg="deleteError"
+      :confirm-label="t('common.delete')"
+      :cancel-label="t('common.cancel')"
+      @confirm="handleDelete"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
@@ -327,15 +321,16 @@ import InputText from 'primevue/inputtext'
 import InputIcon from 'primevue/inputicon'
 import IconField from 'primevue/iconfield'
 import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Skeleton from 'primevue/skeleton'
-import ConfirmDialog from 'primevue/confirmdialog'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+import FormRow from '@/components/FormRow.vue'
+import TextInput from '@/components/TextInput.vue'
+import SelectLabel from '@/components/SelectLabel.vue'
 import OrgChartView from './OrgChartView.vue'
 
 const { t } = useI18n()
 const toast = useToast()
-const confirm = useConfirm()
 const route = useRoute()
 
 const summaryID = computed(() => route.query.summary_id || '')
@@ -356,6 +351,10 @@ const dialogVisible = ref(false)
 const isEditing = ref(false)
 const editingId = ref(null)
 const errors = ref({})
+const deleteDialogVisible = ref(false)
+const deleting = ref(false)
+const deleteError = ref('')
+const deleteTarget = ref(null)
 
 const form = ref({
   code: '',
@@ -407,7 +406,6 @@ function flattenTree(nodes) {
 const zoneOptions = computed(() => zones.value.map(z => ({ id: z.id, label: `${z.code} — ${z.name}` })))
 const jobFamilyOptions = computed(() => jobFamilies.value.map(jf => ({ id: jf.id, label: `${jf.code} — ${jf.name}` })))
 const gradingOptions = computed(() => salaryGrades.value.map(sg => ({ id: sg.id, label: `${sg.code} — ${sg.name}` })))
-
 
 
 // Load reference data (zones, job families, salary grades) from setting module
@@ -579,29 +577,24 @@ async function handleSave() {
 
 // Confirm delete
 function confirmDelete(org) {
-  confirm.require({
-    header: t('organization.confirm_delete_title'),
-    message: t('organization.confirm_delete', { name: org.nomenclature }),
-    icon: 'pi pi-exclamation-triangle',
-    rejectLabel: t('common.cancel'),
-    acceptLabel: t('common.delete'),
-    rejectClass: 'p-button-outlined p-button-secondary',
-    acceptClass: 'p-button-danger',
-    accept: async () => {
-      try {
-        await api.delete(`/api/v1/tenant/organizations/${org.id}`)
-        toast.add({ severity: 'success', summary: t('message.success'), detail: t('organization.deleted'), life: 3000 })
-        await loadTree()
-      } catch (e) {
-        toast.add({
-          severity: 'error',
-          summary: t('message.error'),
-          detail: e.response?.data?.error?.message || t('message.operation_failed'),
-          life: 4000
-        })
-      }
-    }
-  })
+  deleteTarget.value = org
+  deleteError.value = ''
+  deleteDialogVisible.value = true
+}
+
+async function handleDelete() {
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await api.delete(`/api/v1/tenant/organizations/${deleteTarget.value.id}`)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('organization.deleted'), life: 3000 })
+    deleteDialogVisible.value = false
+    await loadTree()
+  } catch(e) {
+    deleteError.value = e.response?.data?.error?.message || t('message.operation_failed')
+  } finally {
+    deleting.value = false
+  }
 }
 
 // Handle node click from org chart

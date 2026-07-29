@@ -81,30 +81,18 @@
     <!-- Create/Edit Dialog -->
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('org_summary.edit') : t('org_summary.new')" modal :style="{ width: '520px' }" :closable="true" @hide="resetForm">
       <div class="space-y-4">
-        <div>
-          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-1.5">
-            <i class="pi pi-building text-indigo-400 text-sm"></i>
-            {{ editing ? t('org_summary.edit') : t('org_summary.new') }}
-          </h3>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('org_summary.code') }} <span class="text-red-500">*</span></label>
-              <InputText v-model="form.code" class="!w-full" :class="{ 'p-invalid': errors?.code }" maxlength="7" autofocus :placeholder="t('org_summary.code_placeholder')" />
-              <small v-if="errors?.code" class="text-red-500 text-xs mt-1 block">{{ errors.code }}</small>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('org_summary.decree_no') }} <span class="text-red-500">*</span></label>
-              <InputText v-model="form.decree_no" class="!w-full" :class="{ 'p-invalid': errors?.decree_no }" maxlength="20" :placeholder="t('org_summary.decree_no_placeholder')" />
-              <small v-if="errors?.decree_no" class="text-red-500 text-xs mt-1 block">{{ errors.decree_no }}</small>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('org_summary.decree_date') }} <span class="text-red-500">*</span></label>
-              <Calendar v-model="form.decree_date" class="!w-full" :class="{ 'p-invalid': errors?.decree_date }" dateFormat="yy-mm-dd" :placeholder="t('org_summary.decree_date_placeholder')" :showIcon="true" />
-              <small v-if="errors?.decree_date" class="text-red-500 text-xs mt-1 block">{{ errors.decree_date }}</small>
-            </div>
+        <div class="space-y-3">
+            <FormRow :label="t('org_summary.code')" required :errors="errors?.code">
+              <TextInput v-model="form.code" :class="{ 'p-invalid': errors?.code }" maxlength="7" autofocus :placeholder="t('org_summary.code_placeholder')" />
+            </FormRow>
+            <FormRow :label="t('org_summary.decree_no')" required :errors="errors?.decree_no">
+              <TextInput v-model="form.decree_no" :class="{ 'p-invalid': errors?.decree_no }" maxlength="20" :placeholder="t('org_summary.decree_no_placeholder')" />
+            </FormRow>
+            <FormRow :label="t('org_summary.decree_date')" required :errors="errors?.decree_date">
+              <DateInput v-model="form.decree_date" :class="{ 'p-invalid': errors?.decree_date }" :placeholder="t('org_summary.decree_date_placeholder')" />
+            </FormRow>
           </div>
         </div>
-      </div>
       <template #footer>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 ml-auto">
@@ -115,14 +103,22 @@
       </template>
     </Dialog>
 
-    <ConfirmDialog />
+    <ConfirmDeleteDialog
+      v-model:visible="deleteDialogVisible"
+      :title="t('org_summary.confirm_delete_title')"
+      :message="t('org_summary.confirm_delete', { code: deleteTarget?.code || '', decree: deleteTarget?.decree_no || '' })"
+      :loading="deleting"
+      :error-msg="deleteError"
+      :confirm-label="t('common.delete')"
+      :cancel-label="t('common.cancel')"
+      @confirm="handleDelete"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
@@ -130,18 +126,17 @@ import api from '@/services/api'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import Calendar from 'primevue/calendar'
+import DateInput from '@/components/DateInput.vue'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
-import ConfirmDialog from 'primevue/confirmdialog'
 import SkeletonTable from '@/components/SkeletonTable.vue'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+import FormRow from '@/components/FormRow.vue'
+import TextInput from '@/components/TextInput.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const toast = useToast()
-const confirm = useConfirm()
-
 const items = ref([])
 const loading = ref(false)
 const totalRecords = ref(0)
@@ -153,6 +148,10 @@ const editing = ref(false)
 const editingId = ref(null)
 const saving = ref(false)
 const errors = ref({})
+const deleteDialogVisible = ref(false)
+const deleting = ref(false)
+const deleteError = ref('')
+const deleteTarget = ref(null)
 const form = ref({ code: '', decree_no: '', decree_date: null })
 
 const skeletonColumns = [
@@ -241,25 +240,26 @@ function goToOrgTree(summaryId) {
 }
 
 function confirmDelete(item) {
-  confirm.require({
-    header: t('org_summary.confirm_delete_title'),
-    message: t('org_summary.confirm_delete', { code: item.code, decree: item.decree_no }),
-    icon: 'pi pi-exclamation-triangle',
-    rejectLabel: t('common.cancel'),
-    acceptLabel: t('common.delete'),
-    rejectClass: 'p-button-outlined p-button-secondary',
-    acceptClass: 'p-button-danger',
-    accept: async () => {
-      try {
-        await api.delete(`/api/v1/tenant/organization-summaries/${item.id}`)
-        toast.add({ severity: 'success', summary: t('message.success'), detail: t('org_summary.deleted'), life: 3000 })
-        await loadData()
-      } catch (e) {
-        toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
-      }
-    }
-  })
+  deleteTarget.value = item
+  deleteError.value = ''
+  deleteDialogVisible.value = true
 }
+
+async function handleDelete() {
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await api.delete(`/api/v1/tenant/organization-summaries/${deleteTarget.value.id}`)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('org_summary.deleted'), life: 3000 })
+    deleteDialogVisible.value = false
+    await loadData()
+  } catch(e) {
+    deleteError.value = e.response?.data?.error?.message || t('message.operation_failed')
+  } finally {
+    deleting.value = false
+  }
+}
+
 
 async function handleSave() {
   errors.value = {}

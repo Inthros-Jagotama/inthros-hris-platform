@@ -175,6 +175,7 @@ const menuGroups = computed(() => [
       { label: t('settings.employment_statuses'), icon: 'pi pi-briefcase', command: () => router.push('/settings/employment-statuses'), moduleSlug: 'setting' },
       { label: t('settings.nationalities'), icon: 'pi pi-globe', command: () => router.push('/settings/nationalities'), moduleSlug: 'setting' },
       { label: t('settings.job_families'), icon: 'pi pi-briefcase', command: () => router.push('/settings/job-families'), moduleSlug: 'setting' },
+      { label: t('settings.gradings'), icon: 'pi pi-chart-bar', command: () => router.push('/settings/gradings'), moduleSlug: 'setting' },
       { label: t('settings.salary_grades'), icon: 'pi pi-chart-bar', command: () => router.push('/settings/salary-grades'), moduleSlug: 'setting' },
       { label: t('settings.ters'), icon: 'pi pi-calculator', command: () => router.push('/settings/ters'), moduleSlug: 'setting' },
       { label: t('settings.ptkps'), icon: 'pi pi-receipt', command: () => router.push('/settings/ptkps'), moduleSlug: 'setting' }
@@ -241,6 +242,12 @@ function isActive(item) {
 </script>
 
 <style scoped>
+:deep(.p-panelmenu){
+  gap: 0px !important;
+}
+:deep(.p-panelmenu-header-label) {
+  font-size: 1.2em !important;
+}
 :deep(.p-panelmenu-panel) {
   background: transparent !important;
   border: none !important;
