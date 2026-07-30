@@ -1,6 +1,8 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import PrimeDatePicker from 'primevue/datepicker'
+import { useI18n } from '@/composables/useI18n'
+import { getPrimeLocale } from '@/utils/primevueLocale'
 
 const props = defineProps({
     modelValue: [String, Date, Number],
@@ -16,6 +18,9 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue'])
 const dpRef = ref(null)
+
+const { locale } = useI18n()
+const primeLocale = computed(() => getPrimeLocale(locale.value))
 
 function toDate(val) {
     if (!val) return null
@@ -56,5 +61,5 @@ function onDateSelect(selectedVal) {
 function onClearClick() { localDate.value = null; emit('update:modelValue', '') }
 </script>
 <template>
-    <PrimeDatePicker ref="dpRef" v-model="localDate" size="small" :dateFormat="dateFormat" :placeholder="placeholder" :showIcon="showIcon" :showTodayButton="showTodayButton" :showClear="showClear" :disabled="disabled" :minDate="parsedMinDate" :maxDate="parsedMaxDate" :view="view" class="w-full" @date-select="onDateSelect" @clear-click="onClearClick" />
+    <PrimeDatePicker ref="dpRef" v-model="localDate" size="small" :dateFormat="dateFormat" :placeholder="placeholder" :showIcon="showIcon" :showTodayButton="showTodayButton" :showClear="showClear" :disabled="disabled" :minDate="parsedMinDate" :maxDate="parsedMaxDate" :view="view" :locale="primeLocale" class="w-full" @date-select="onDateSelect" @clear-click="onClearClick" />
 </template>

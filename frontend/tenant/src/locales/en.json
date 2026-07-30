@@ -142,6 +142,7 @@
     "empty_title": "No organization summaries",
     "empty_hint": "Create a summary to register your organization establishment decree.",
     "go_to_tree": "Organization Tree",
+    "status": "Status",
     "clone": "Clone Summary",
     "confirm_delete_title": "Delete Summary",
     "confirm_delete": "Delete summary {code} - {decree}? This action cannot be undone.",

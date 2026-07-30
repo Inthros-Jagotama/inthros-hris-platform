@@ -142,6 +142,7 @@
     "empty_title": "Belum ada ringkasan organisasi",
     "empty_hint": "Buat ringkasan untuk mendaftarkan SK pendirian organisasi.",
     "go_to_tree": "Pohon Organisasi",
+    "status": "Status",
     "clone": "Duplikat Ringkasan",
     "confirm_delete_title": "Hapus Ringkasan",
     "confirm_delete": "Hapus ringkasan {code} - {decree}? Tindakan ini tidak dapat dibatalkan.",

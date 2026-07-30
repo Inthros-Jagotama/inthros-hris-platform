@@ -1050,6 +1050,8 @@ Platform Admin frontend dibangun dengan **Vue 3 + PrimeVue 4 + Tailwind CSS 4** 
 - 🔍 **Filter & Search** — Setiap halaman memiliki filter chips, search input, dan sortable columns
 - ♻️ **Real-time Polling** — Dashboard & Monitoring dengan auto-refresh 30s
 - 📦 **Shared Components** — FormRow, TextInput, SelectLabel, ToggleSwitch, DatePicker, TextArea, dll reusable
+- 📅 **Bilingual Date Formatting** — `formatDate(value, locale)` → "30 July 2026" (EN) / "30 Juli 2026" (ID)
+- 🗓️ **PrimeVue DatePicker Locale** — Calendar popup menampilkan nama bulan/hari sesuai bahasa aktif + tombol "Today"/"Hari Ini"
 - 🔗 **Axios Interceptors** — Auto JWT + Accept-Language header + 401 auto-refresh
 
 ### Halaman
@@ -1078,7 +1080,9 @@ Platform Admin frontend dibangun dengan **Vue 3 + PrimeVue 4 + Tailwind CSS 4** 
 
 - **200+ locale keys** di `en.json` & `id.json` untuk static UI text
 - **9+ bilingual composables** (`useI18n`, `useNotification`, `useSlugify`)
+- **2 bilingual utils** (`formatDate.js` — date formatting EN/ID; `primevueLocale.js` — PrimeVue DatePicker locale)
 - **Semua view** menggunakan `t('key')` untuk label, header, filter, tooltip
+- **DateInput bilingual** — Calendar popup menampilkan nama bulan Bahasa Indonesia (Januari, Februari, ...) saat bahasa ID aktif
 
 ### Struktur Frontend
 
@@ -1956,7 +1960,7 @@ $ go build ./...  # ✅ Berhasil
 |---|---|
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap |
 | [`docs/PROJECT_COMPLETION_DASHBOARD.md`](docs/PROJECT_COMPLETION_DASHBOARD.md) | **NEW** — Project completion dashboard (14 modules, 939+ tests, 139 tables) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v14 — 651 endpoints, 426 schemas, 27 tags) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v15 — 651 endpoints, 426 schemas, 27 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
 | [`docs/analisis-blueprint-vs-existing.md`](docs/analisis-blueprint-vs-existing.md) | Analisis blueprint vs existing Laravel app |
 | [`backend/.env.example`](backend/.env.example) | Template environment variables |

@@ -252,7 +252,15 @@ frontend/
   - Error message ditampilkan sebagai red banner di dalam dialog (bukan toast)
   - Dialog hanya close setelah sukses response dari API
 
-### C.6a. ConfirmDeleteDialog Refactoring — 20+ Tenant Views ✅ (BARU - Done)
+### C.6a. DateInput Bilingual + FormatDate Utility ✅ (BARU - Done)
+**Files:**
+- `utils/formatDate.js` — **NEW** Bilingual date formatting: `formatDate(value, lang)` → "30 July 2026" (EN) / "30 Juli 2026" (ID); `formatDateShort(value)` → "30/07/2026"
+- `utils/primevueLocale.js` — **NEW** PrimeVue locale configs EN/ID for DatePicker (month/day names, today/clear buttons, first day of week)
+- `components/DateInput.vue` — **UPDATED** Added `useI18n` import + reactive `:locale="primeLocale"` prop to PrimeDatePicker (calendar popup shows bilingual month/day names)
+
+**Bug fix:** `openEditDialog()` di OrganizationSummary.vue — Changed from `new Date(item.decree_date + 'T00:00:00')` (timezone-ambiguous, caused empty field) to `item.decree_date || null` (raw string, parsed safely by DateInput's `toDate()` via `new Date(y, m-1, d)` without timezone issues)
+
+### C.6b. ConfirmDeleteDialog Refactoring — 20+ Tenant Views ✅ (BARU - Done)
 - Mengganti `confirm.require()` (PrimeVue ConfirmDialog) dengan `ConfirmDeleteDialog` custom component
 - Pattern baru: `confirmDelete(item)` → set `deleteTarget`, clear `deleteError`, buka dialog
 - Pattern baru: `handleDelete()` async → `deleting=true`, API call, close dialog on success, show error inside dialog on failure

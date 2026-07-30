@@ -21,7 +21,7 @@
 | **Bilingual Support** | ✅ **EN/ID** — Backend 80+ message pairs + Frontend 200+ locale keys, middleware auto-detect, field validation errors |
 | **Frontend Phase 1** | ✅ **9/9 Platform Admin pages** — 100% complete with bilingual support |
 | **Frontend Tenant (Phase 2)** | ✅ **19+ views** — Dashboard, Login, Profile, Organization, 16 Settings CRUDs |
-| **Frontend Components** | **32+** (11 views, 9 form components, 3 composables, stores, services) |
+| **Frontend Components** | **34+** (11 views, 9 form components, 3 composables, 2 utils, stores, services) |
 | **Frontend Build** | ✅ **Clean** — zero warnings |
 | **Migration Files** | **36 per dialect** (18 up + 18 down) |
 | **Database Drivers** | PostgreSQL & MySQL |
@@ -142,7 +142,7 @@
 |----------|-------------|:------:|
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
 | `ARCHITECTURE_DESIGN_v1.6_Updated.md` | Architecture design, module status, priority matrix | ✅ v15 updated (Org Summary CRUD + 6 endpoints) |
-| `docs/openapi-report.md` | OpenAPI comprehensive report (v14) | ✅ v14 — 651 endpoints, 426 schemas, 27 tags |
+| `docs/openapi-report.md` | OpenAPI comprehensive report (v15) | ✅ v15 — 651 endpoints, 426 schemas, 27 tags |
 | `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ Updated with Settings module (130 entities, 550 service methods, 1029 tests) |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
@@ -254,6 +254,9 @@
 | **useI18n / useNotification** | All views (bilingual text + toast) |
 | **SkeletonTable / SkeletonCard** | All tenant views (loading skeleton) |
 | **ConfirmDeleteDialog** | **20+ tenant views** — Custom dialog yang tetap terbuka selama API call, error tampil inline (menggantikan PrimeVue ConfirmDialog) |
+| **formatDate.js** | **Utility** — Bilingual date formatting: `formatDate(value, locale)` → "30 July 2026" (EN) / "30 Juli 2026" (ID); `formatDateShort()` → "30/07/2026" |
+| **primevueLocale.js** | **Utility** — PrimeVue locale configs EN/ID untuk DatePicker (nama bulan/hari bilingual, first day of week, tombol "Today"/"Hari Ini") |
+| **DateInput bilingual** | **OrganizationSummary** — Calendar popup menampilkan nama bulan/hari sesuai bahasa aktif; bug fix: raw string `item.decree_date || null` (ganti `new Date(... + 'T00:00:00')`) |
 
 ### Tech Highlights
 - Vue 3 Composition API + `<script setup>`
@@ -299,7 +302,7 @@
 |----------|------|
 | Main README | `./README.md` |
 | Architecture Design | `./ARCHITECTURE_DESIGN_v1.6_Updated.md` |
-| OpenAPI Report (v14) | `./docs/openapi-report.md` |
+| OpenAPI Report (v15) | `./docs/openapi-report.md` |
 | Go Module Architecture Report | `./docs/go-module-architecture-report.md` |
 | Platform Architecture Design | `./docs/platform-architecture-design.md` |
 | Blueprint vs Existing Analysis | `./docs/analisis-blueprint-vs-existing.md` |

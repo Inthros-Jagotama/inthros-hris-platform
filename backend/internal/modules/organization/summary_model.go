@@ -14,7 +14,7 @@ type OrganizationSummary struct {
 	Code       string         `gorm:"type:varchar(7);not null;uniqueIndex:idx_orgsum_code" json:"code"`
 	DecreeNo   string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_orgsum_decree" json:"decree_no"`
 	DecreeDate string         `gorm:"type:date;not null" json:"decree_date"`
-	Status     string         `gorm:"type:varchar(20);default:active" json:"status"`
+	Status     string         `gorm:"type:varchar(20);default:inactive" json:"status"`
 	CreatedBy  *uuid.UUID     `gorm:"type:char(36)" json:"created_by,omitempty"`
 	UpdatedBy  *uuid.UUID     `gorm:"type:char(36)" json:"updated_by,omitempty"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
@@ -42,6 +42,7 @@ type CreateOrganizationSummaryRequest struct {
 	Code        string `json:"code" binding:"required,max=7"`
 	DecreeNo    string `json:"decree_no" binding:"required,max=20"`
 	DecreeDate  string `json:"decree_date" binding:"required"` // format: YYYY-MM-DD
+	Status      string `json:"status" binding:"omitempty,oneof=active inactive"`
 	CloneFromID string `json:"clone_from_id" binding:"omitempty,uuid"`
 }
 

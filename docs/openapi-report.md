@@ -1,7 +1,7 @@
-= HRIS Platform — OpenAPI Comprehensive Report (v14) =
+= HRIS Platform — OpenAPI Comprehensive Report (v15) =
 
 
-**Generated:** 28 July 2026
+**Generated:** 30 July 2026
 **Spec Version:** 1.6.3
 **Total Paths:** 349
 **Total Endpoints (methods):** 651
@@ -766,11 +766,11 @@ Tenant endpoints support validation for Indonesian data formats:
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
-| `POST` | `/api/v1/tenant/organization-summaries` | Create organization summary | Create a new organization summary record. Requires code, decree_no, and decree_date. |
+| `POST` | `/api/v1/tenant/organization-summaries` | Create organization summary | Create a new organization summary record. Requires code, decree_no, and decree_date. Optional status (default: inactive). Only ONE summary can have... |
 | `GET` | `/api/v1/tenant/organization-summaries` | List organization summaries (paginated) | Retrieve a paginated list of organization summaries sorted by creation date (descending). |
 | `GET` | `/api/v1/tenant/organization-summaries/stats` | Get organization summary statistics | Get aggregate statistics about organization summaries and organizations. |
 | `GET` | `/api/v1/tenant/organization-summaries/{id}` | Get organization summary by ID | Get detailed information about a specific organization summary by its ID. |
-| `PUT` | `/api/v1/tenant/organization-summaries/{id}` | Update organization summary | Update an existing organization summary's code, decree_no, decree_date, or status. |
+| `PUT` | `/api/v1/tenant/organization-summaries/{id}` | Update organization summary | Update an existing organization summary's code, decree_no, decree_date, or status. Only ONE summary can have status=active at a time — setting stat... |
 | `DELETE` | `/api/v1/tenant/organization-summaries/{id}` | Delete organization summary | Soft-delete an organization summary. Cannot delete if organizations are still attached to this summary. |
 | `GET` | `/api/v1/tenant/organizations` | List organizations or get tree | Get detailed information about an organizational unit and its children. |
 | `POST` | `/api/v1/tenant/organizations` | Create organization | Create a new organizations record. Validates required fields and returns the created resource with its assigned ID. |

@@ -8,7 +8,7 @@ from datetime import datetime
 JSON_PATH = "backend/internal/pkg/docs/openapi.json"
 REPORT_PATH = "docs/openapi-report.md"
 
-with open(JSON_PATH, "r") as f:
+with open(JSON_PATH, "r", encoding="utf-8") as f:
     spec = json.load(f)
 
 version = spec["info"]["version"]
@@ -41,7 +41,7 @@ generated_date = datetime.now().strftime("%d %B %Y")
 
 lines = []
 # Human-readable report version (update this when significant changes are made)
-REPORT_VERSION = "v14"
+REPORT_VERSION = "v15"
 lines.append(f"= HRIS Platform — OpenAPI Comprehensive Report ({REPORT_VERSION}) =\n")
 lines.append("")
 lines.append(f"**Generated:** {generated_date}")

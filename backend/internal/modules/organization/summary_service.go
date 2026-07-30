@@ -14,11 +14,26 @@ import (
 func (s *Service) CreateSummary(ctx context.Context, req CreateOrganizationSummaryRequest) (*OrganizationSummaryResponse, error) {
 	currentUserID := authctx.GetUserID(ctx)
 
+	// ── Validate only one active ──
+	status := req.Status
+	if status == "" {
+		status = "inactive"
+	}
+	if status == "active" {
+		activeCount, err := s.repo.CountActiveSummaries(ctx, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check active summaries: %w", err)
+		}
+		if activeCount > 0 {
+			return nil, fmt.Errorf("only one organization summary can be active at a time. Deactivate the current active summary first")
+		}
+	}
+
 	summary := &OrganizationSummary{
 		Code:       req.Code,
 		DecreeNo:   req.DecreeNo,
 		DecreeDate: req.DecreeDate,
-		Status:     "active",
+		Status:     status,
 		CreatedBy:  currentUserID,
 		UpdatedBy:  currentUserID,
 	}
@@ -194,7 +209,18 @@ func (s *Service) UpdateSummary(ctx context.Context, id string, req UpdateOrgani
 		summary.DecreeDate = *req.DecreeDate
 	}
 	if req.Status != nil {
-		summary.Status = *req.Status
+		newStatus := *req.Status
+		// ── Validate only one active ──
+		if newStatus == "active" && summary.Status != "active" {
+			activeCount, err := s.repo.CountActiveSummaries(ctx, &uid)
+			if err != nil {
+				return nil, fmt.Errorf("failed to check active summaries: %w", err)
+			}
+			if activeCount > 0 {
+				return nil, fmt.Errorf("only one organization summary can be active at a time. Deactivate the current active summary first")
+			}
+		}
+		summary.Status = newStatus
 	}
 
 	if err := s.repo.UpdateSummary(ctx, summary); err != nil {

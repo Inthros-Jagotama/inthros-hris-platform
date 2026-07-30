@@ -52,8 +52,8 @@
       <Column field="decree_no" :header="t('org_summary.decree_no')" sortable>
         <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.decree_no }}</span></template>
       </Column>
-      <Column field="decree_date" :header="t('org_summary.decree_date')" sortable style="width:140px">
-        <template #body="{data}"><span class="text-gray-500 dark:text-gray-400">{{ data.decree_date }}</span></template>
+      <Column field="decree_date" :header="t('org_summary.decree_date')" sortable style="width:160px">
+        <template #body="{data}"><span class="text-gray-500 dark:text-gray-400">{{ formatDate(data.decree_date, locale) }}</span></template>
       </Column>
       <Column field="status" :header="t('common.status')" sortable style="width:100px">
         <template #body="{data}">
@@ -91,6 +91,14 @@
             <FormRow :label="t('org_summary.decree_date')" required :errors="errors?.decree_date">
               <DateInput v-model="form.decree_date" :class="{ 'p-invalid': errors?.decree_date }" :placeholder="t('org_summary.decree_date_placeholder')" />
             </FormRow>
+            <FormRow :label="t('org_summary.status')" :errors="errors?.status">
+              <div class="flex items-center gap-2">
+                <ToggleSwitch v-model="form.status" :class="{ 'p-invalid': errors?.status }" />
+                <span class="text-sm" :class="form.status ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-500 dark:text-gray-400'">
+                  {{ form.status ? t('common_status.active') : t('common_status.inactive') }}
+                </span>
+              </div>
+            </FormRow>
           </div>
         </div>
       <template #footer>
@@ -122,6 +130,7 @@ import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
+import { formatDate } from '@/utils/formatDate'
 import api from '@/services/api'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -133,8 +142,9 @@ import SkeletonTable from '@/components/SkeletonTable.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
+import ToggleSwitch from 'primevue/toggleswitch'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const toast = useToast()
 const items = ref([])
@@ -152,7 +162,7 @@ const deleteDialogVisible = ref(false)
 const deleting = ref(false)
 const deleteError = ref('')
 const deleteTarget = ref(null)
-const form = ref({ code: '', decree_no: '', decree_date: null })
+const form = ref({ code: '', decree_no: '', decree_date: null, status: false })
 
 const skeletonColumns = [
   { type: 'tag', width: 'w-20', headerWidth: 'w-16' },
@@ -208,7 +218,7 @@ function openCreateDialog() {
   editing.value = false
   editingId.value = null
   errors.value = {}
-  form.value = { code: '', decree_no: '', decree_date: null }
+  form.value = { code: '', decree_no: '', decree_date: null, status: false }
   dialogVisible.value = true
 }
 
@@ -219,13 +229,14 @@ function openEditDialog(item) {
   form.value = {
     code: item.code,
     decree_no: item.decree_no,
-    decree_date: item.decree_date ? new Date(item.decree_date + 'T00:00:00') : null
+    decree_date: item.decree_date || null,
+    status: item.status === 'active'
   }
   dialogVisible.value = true
 }
 
 function resetForm() {
-  form.value = { code: '', decree_no: '', decree_date: null }
+  form.value = { code: '', decree_no: '', decree_date: null, status: false }
   errors.value = {}
   editing.value = false
   editingId.value = null
@@ -274,7 +285,8 @@ async function handleSave() {
       decree_no: form.value.decree_no,
       decree_date: form.value.decree_date instanceof Date
         ? form.value.decree_date.toISOString().split('T')[0]
-        : form.value.decree_date
+        : form.value.decree_date,
+      status: form.value.status ? 'active' : 'inactive'
     }
 
     if (editing.value) {

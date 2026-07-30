@@ -63,3 +63,19 @@ func (r *Repository) SoftDeleteSummary(ctx context.Context, id uuid.UUID) error 
 	}
 	return db.Where("id = ?", id).Delete(&OrganizationSummary{}).Error
 }
+
+func (r *Repository) CountActiveSummaries(ctx context.Context, excludeID *uuid.UUID) (int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return 0, err
+	}
+	query := db.Model(&OrganizationSummary{}).Where("status = ?", "active")
+	if excludeID != nil {
+		query = query.Where("id != ?", *excludeID)
+	}
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
