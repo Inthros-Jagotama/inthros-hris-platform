@@ -15,6 +15,7 @@ type CreateEmployeeRequest struct {
 	Gender          *string `json:"gender" binding:"omitempty,oneof=M F"`
 	NationalityType *string `json:"nationality_type" binding:"omitempty,oneof=WNI WNA"`
 	NationalityID   *string `json:"nationality_id" binding:"omitempty,len=2"`
+	Passport        *string `json:"passport" binding:"omitempty,max=50"`
 	POB             *string `json:"pob" binding:"omitempty,max=255"`
 	DOB             *string `json:"dob" binding:"omitempty"`
 	PhoneNumber     *string `json:"phone_number" binding:"omitempty,max=255"`
@@ -33,6 +34,7 @@ type UpdateEmployeeRequest struct {
 	Gender          *string `json:"gender" binding:"omitempty,oneof=M F"`
 	NationalityType *string `json:"nationality_type" binding:"omitempty,oneof=WNI WNA"`
 	NationalityID   *string `json:"nationality_id" binding:"omitempty,len=2"`
+	Passport        *string `json:"passport" binding:"omitempty,max=50"`
 	POB             *string `json:"pob" binding:"omitempty,max=255"`
 	DOB             *string `json:"dob" binding:"omitempty"`
 	PhoneNumber     *string `json:"phone_number" binding:"omitempty,max=255"`
@@ -250,13 +252,19 @@ type EmployeeResponse struct {
 	ID              string     `json:"id"`
 	EmployeeID      string     `json:"employee_id"`
 	NIK             string     `json:"nik,omitempty"`
+	FamilyID        string     `json:"family_id,omitempty"`
 	Name            string     `json:"name"`
 	MotherName      string     `json:"mother_name,omitempty"`
 	Gender          string     `json:"gender,omitempty"`
+	NationalityType string     `json:"nationality_type,omitempty"`
+	NationalityID   string     `json:"nationality_id,omitempty"`
+	Passport        string     `json:"passport,omitempty"`
 	POB             string     `json:"pob,omitempty"`
 	DOB             string     `json:"dob,omitempty"`
 	PhoneNumber     string     `json:"phone_number,omitempty"`
 	Email           string     `json:"email,omitempty"`
+	LinkedIn        string     `json:"linkedin,omitempty"`
+	Instagram       string     `json:"ig,omitempty"`
 	ReligionID      string     `json:"religion_id,omitempty"`
 	MaritalStatusID string     `json:"marital_status_id,omitempty"`
 	ProfilePicture  string     `json:"profile_picture,omitempty"`
@@ -445,8 +453,20 @@ func (e *Employee) ToResponse() EmployeeResponse {
 	if e.NIK != nil {
 		r.NIK = *e.NIK
 	}
+	if e.FamilyID != nil {
+		r.FamilyID = *e.FamilyID
+	}
 	if e.Gender != nil {
 		r.Gender = *e.Gender
+	}
+	if e.NationalityType != nil {
+		r.NationalityType = *e.NationalityType
+	}
+	if e.NationalityID != nil {
+		r.NationalityID = *e.NationalityID
+	}
+	if e.Passport != nil {
+		r.Passport = *e.Passport
 	}
 	if e.POB != nil {
 		r.POB = *e.POB
@@ -468,6 +488,12 @@ func (e *Employee) ToResponse() EmployeeResponse {
 	}
 	if e.MotherName != nil {
 		r.MotherName = *e.MotherName
+	}
+	if e.LinkedIn != nil {
+		r.LinkedIn = *e.LinkedIn
+	}
+	if e.Instagram != nil {
+		r.Instagram = *e.Instagram
 	}
 	if e.ProfilePicture != nil {
 		r.ProfilePicture = *e.ProfilePicture

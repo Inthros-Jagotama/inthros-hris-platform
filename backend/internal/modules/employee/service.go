@@ -56,6 +56,9 @@ func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*Emplo
 	if req.NationalityID != nil {
 		emp.NationalityID = req.NationalityID
 	}
+	if req.Passport != nil {
+		emp.Passport = req.Passport
+	}
 	if req.POB != nil {
 		emp.POB = req.POB
 	}
@@ -184,6 +187,9 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateEmployeeReque
 	}
 	if req.NationalityID != nil {
 		emp.NationalityID = req.NationalityID
+	}
+	if req.Passport != nil {
+		emp.Passport = req.Passport
 	}
 	if req.POB != nil {
 		emp.POB = req.POB

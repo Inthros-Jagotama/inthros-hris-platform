@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS employees (
     gender            ENUM('M','F') NULL,
     nationality_type  ENUM('WNI','WNA') NULL,
     nationality_id    CHAR(2) NULL,
+    passport          VARCHAR(50) NULL,
     pob               VARCHAR(255) NULL,
     dob               DATE NULL,
     phone_number      VARCHAR(255) NULL,

@@ -36,7 +36,7 @@
 
       <!-- Right: Form Content -->
       <div class="flex-1 min-w-0">
-        <PersonalForm v-if="activeStep === 0" :form="form" :errors="stepErrors" :gender-options="genderOptions" :religion-options="religionOptions" :marital-status-options="maritalStatusOptions" :saving="stepLoading" :disabled="isEdit" :employee-id="employeeId" :photo-url="profilePicture" @save="savePersonalData" @update:photo="profilePicture = $event" />
+        <PersonalForm v-if="activeStep === 0" :form="form" :errors="stepErrors" :gender-options="genderOptions" :religion-options="religionOptions" :marital-status-options="maritalStatusOptions" :nationality-options="nationalityOptions" :saving="stepLoading" :disabled="isEdit" :employee-id="employeeId" :photo-url="profilePicture" @save="savePersonalData" @update:photo="profilePicture = $event" />
 
         <AddressForm v-else-if="activeStep === 1" :items="addresses" :errs="addrErrors" :address-type-options="addressTypeOptions" :province-options="provinceOptions" :regency-options="regencyOptions" :district-options="districtOptions" :village-options="villageOptions" :saving="stepLoading" :on-search-village="searchVillages" @update:items="addresses = $event" @save="() => saveStep(1)" />
 
@@ -107,7 +107,7 @@ const steps = [
 ]
 
 // ── Form Data ──
-const form = ref({ employee_id: '', name: '', nik: '', gender: '', mother_name: '', pob: '', dob: '', phone_number: '', email: '', religion_id: '', marital_status_id: '' })
+const form = ref({ employee_id: '', name: '', nik: '', family_id: '', gender: '', mother_name: '', pob: '', dob: '', phone_number: '', email: '', linkedin: '', ig: '', religion_id: '', marital_status_id: '', nationality_type: '', nationality_id: '', passport: '' })
 const addresses = ref([])
 const contacts = ref([])
 const families = ref([])
@@ -172,6 +172,7 @@ const insuranceCategoryOptions = computed(() => [
 
 const religionOptions = ref([])
 const maritalStatusOptions = ref([])
+const nationalityOptions = ref([])
 const relationshipTypeOptions = ref([])
 const educationOptions = ref([])
 const employmentStatusOptions = ref([])
@@ -182,9 +183,10 @@ const districtOptions = ref([])
 const villageOptions = ref([])
 
 async function loadRefData() {
-  const [relRes, msRes, rtRes, eduRes, esRes, provRes, orgRes] = await Promise.all([
+  const [relRes, msRes, natRes, rtRes, eduRes, esRes, provRes, orgRes] = await Promise.all([
     api.get('/api/v1/tenant/settings/religions?per_page=100'),
     api.get('/api/v1/tenant/settings/marital-statuses?per_page=100'),
+    api.get('/api/v1/tenant/settings/nationalities?per_page=250'),
     api.get('/api/v1/tenant/settings/relationship-types?per_page=100'),
     api.get('/api/v1/tenant/settings/educations?per_page=100'),
     api.get('/api/v1/tenant/settings/employment-statuses?per_page=100'),
@@ -193,6 +195,7 @@ async function loadRefData() {
   ])
   religionOptions.value = (relRes.data?.data || []).map(r => ({ label: r.name, value: r.id }))
   maritalStatusOptions.value = (msRes.data?.data || []).map(m => ({ label: m.name, value: m.id }))
+  nationalityOptions.value = (natRes.data?.data || []).map(n => ({ label: `${n.code} - ${n.name}`, value: n.code }))
   relationshipTypeOptions.value = (rtRes.data?.data || []).map(r => ({ label: r.name, value: r.id }))
   educationOptions.value = (eduRes.data?.data || []).map(e => ({ label: e.name, value: e.id }))
   employmentStatusOptions.value = (esRes.data?.data || []).map(e => ({ label: e.name, value: e.id }))
@@ -274,7 +277,7 @@ async function savePersonalData() {
   if (!form.value.name?.trim()) { stepErrors.value = { name: [t('form.required')] }; return }
   stepLoading.value = true
   try {
-    const payload = { employee_id: form.value.employee_id, name: form.value.name, nik: form.value.nik || null, gender: form.value.gender || null, mother_name: form.value.mother_name || null, pob: form.value.pob || null, dob: form.value.dob || null, phone_number: form.value.phone_number || null, email: form.value.email || null, religion_id: form.value.religion_id || null, marital_status_id: form.value.marital_status_id || null }
+    const payload = { employee_id: form.value.employee_id, name: form.value.name, nik: form.value.nik || null, family_id: form.value.family_id || null, gender: form.value.gender || null, mother_name: form.value.mother_name || null, nationality_type: form.value.nationality_type || null, nationality_id: form.value.nationality_id || null, passport: form.value.passport || null, pob: form.value.pob || null, dob: form.value.dob || null, phone_number: form.value.phone_number || null, email: form.value.email || null, linkedin: form.value.linkedin || null, ig: form.value.ig || null, religion_id: form.value.religion_id || null, marital_status_id: form.value.marital_status_id || null }
     if (isEdit.value && employeeId.value) {
       await api.put(`/api/v1/tenant/employees/${employeeId.value}`, payload)
     } else {
@@ -358,7 +361,7 @@ async function loadEmployee() {
   const res = await api.get(`/api/v1/tenant/employees/${employeeId.value}`)
   const data = res.data?.data
   if (!data) return
-  form.value = { employee_id: data.employee_id || '', name: data.name || '', nik: data.nik || '', gender: data.gender || '', mother_name: data.mother_name || '', pob: data.pob || '', dob: data.dob || '', phone_number: data.phone_number || '', email: data.email || '', religion_id: data.religion_id || '', marital_status_id: data.marital_status_id || '' }
+  form.value = { employee_id: data.employee_id || '', name: data.name || '', nik: data.nik || '', family_id: data.family_id || '', gender: data.gender || '', mother_name: data.mother_name || '', nationality_type: data.nationality_type || '', nationality_id: data.nationality_id || '', passport: data.passport || '', pob: data.pob || '', dob: data.dob || '', phone_number: data.phone_number || '', email: data.email || '', linkedin: data.linkedin || '', ig: data.ig || '', religion_id: data.religion_id || '', marital_status_id: data.marital_status_id || '' }
   savedEmployeeId.value = data.employee_id
   profilePicture.value = data.profile_picture || ''
   stepSaved[0] = true

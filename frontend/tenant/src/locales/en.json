@@ -351,7 +351,21 @@
     "document_description": "Manage employee documents such as ID cards, certificates, and contracts.",
     "insurance_description": "Manage BPJS and other insurance memberships for the employee.",
     "employment_description": "Manage employment records including decrees, effective dates, and assignments.",
-    "search_village": "Search village..."
+    "search_village": "Search village...",
+    "nationality_type": "Nationality Status",
+    "wni": "Indonesian (WNI)",
+    "wna": "Foreigner (WNA)",
+    "nationality": "Nationality",
+    "select_nationality": "Select nationality...",
+    "family_id": "Family ID (No. KK)",
+    "family_id_placeholder": "Enter family card number",
+    "passport": "Passport Number",
+    "passport_placeholder": "Enter passport number",
+    "linkedin": "LinkedIn",
+    "linkedin_placeholder": "Enter LinkedIn URL (e.g. https://linkedin.com/in/...)",
+    "instagram": "Instagram",
+    "instagram_placeholder": "Enter Instagram username (e.g. @username)",
+    "social_media": "Social Media"
   },
   "attendance": {
     "title": "Attendance",

@@ -20,6 +20,7 @@ type Employee struct {
 	Gender          *string    `gorm:"type:varchar(10)" json:"gender,omitempty"`
 	NationalityType *string    `gorm:"type:varchar(10)" json:"nationality_type,omitempty"`
 	NationalityID   *string    `gorm:"type:char(2);index" json:"nationality_id,omitempty"`
+	Passport        *string    `gorm:"type:varchar(50)" json:"passport,omitempty"`
 	POB             *string    `gorm:"type:varchar(255)" json:"pob,omitempty"`
 	DOB             *string    `gorm:"type:date" json:"dob,omitempty"`
 	PhoneNumber     *string    `gorm:"type:varchar(255)" json:"phone_number,omitempty"`

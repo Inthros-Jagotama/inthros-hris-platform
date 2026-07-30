@@ -40,11 +40,39 @@
       <FormRow :label="t('common.name')" required :errors="errors?.name">
         <TextInput v-model="form.name" maxlength="255" :placeholder="t('common.name')" :class="{'p-invalid':errors?.name}" />
       </FormRow>
-      <FormRow :label="t('employee.nik')" :errors="errors?.nik">
-        <TextInput v-model="form.nik" maxlength="16" :placeholder="t('employee.nik_placeholder')" :class="{'p-invalid':errors?.nik}" />
+      <!-- Nationality Type -->
+      <FormRow :label="t('employee.nationality_type')" :errors="errors?.nationality_type" class="md:col-span-2">
+        <div class="flex gap-4">
+          <RadioLabel v-for="opt in [{label: t('employee.wni'), value: 'WNI'}, {label: t('employee.wna'), value: 'WNA'}]" :key="opt.value" v-model="form.nationality_type" :value="opt.value" :label="opt.label" :id="'nationality-' + opt.value" />
+        </div>
       </FormRow>
+
+      <!-- WNI fields -->
+      <template v-if="form.nationality_type === 'WNI'">
+        <FormRow :label="t('employee.nik')" :errors="errors?.nik">
+          <TextInput v-model="form.nik" maxlength="16" :placeholder="t('employee.nik_placeholder')" :class="{'p-invalid':errors?.nik}" />
+        </FormRow>
+        <FormRow :label="t('employee.family_id')" :errors="errors?.family_id">
+          <TextInput v-model="form.family_id" maxlength="16" :placeholder="t('employee.family_id_placeholder')" :class="{'p-invalid':errors?.family_id}" />
+        </FormRow>
+      </template>
+
+      <!-- WNA fields -->
+      <template v-if="form.nationality_type === 'WNA'">
+        <FormRow :label="t('employee.nationality')" :errors="errors?.nationality_id">
+          <SelectLabel v-model="form.nationality_id" :options="nationalityOptions" optionLabel="label" optionValue="value" :placeholder="t('employee.select_nationality')" :class="{'p-invalid':errors?.nationality_id}" :showClear="true" />
+        </FormRow>
+      </template>
+
+      <!-- Passport (both) -->
+      <FormRow v-if="form.nationality_type" :label="t('employee.passport')" :errors="errors?.passport">
+        <TextInput v-model="form.passport" maxlength="50" :placeholder="t('employee.passport_placeholder')" :class="{'p-invalid':errors?.passport}" />
+      </FormRow>
+
       <FormRow :label="t('employee.gender')" :errors="errors?.gender">
-        <SelectLabel v-model="form.gender" :options="genderOptions" optionLabel="label" optionValue="value" :placeholder="t('employee.select_gender')" :class="{'p-invalid':errors?.gender}" :showClear="true" />
+        <div class="flex gap-4">
+          <RadioLabel v-for="opt in genderOptions" :key="opt.value" v-model="form.gender" :value="opt.value" :label="opt.label" :id="'gender-' + opt.value" />
+        </div>
       </FormRow>
       <FormRow :label="t('employee.mother_name')" :errors="errors?.mother_name">
         <TextInput v-model="form.mother_name" maxlength="255" :placeholder="t('employee.mother_name_placeholder')" :class="{'p-invalid':errors?.mother_name}" />
@@ -66,6 +94,21 @@
       </FormRow>
       <FormRow :label="t('employee.marital_status')" :errors="errors?.marital_status_id">
         <SelectLabel v-model="form.marital_status_id" :options="maritalStatusOptions" optionLabel="label" optionValue="value" :placeholder="t('employee.select_marital_status')" :class="{'p-invalid':errors?.marital_status_id}" :showClear="true" />
+      </FormRow>
+
+      <!-- Section: Social Media -->
+      <div class="md:col-span-2">
+        <div class="flex items-center gap-2 pt-2">
+          <i class="pi pi-share-alt text-gray-400 text-sm"></i>
+          <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('employee.social_media') }}</span>
+          <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+        </div>
+      </div>
+      <FormRow :label="t('employee.linkedin')" :errors="errors?.linkedin">
+        <TextInput v-model="form.linkedin" maxlength="255" :placeholder="t('employee.linkedin_placeholder')" :class="{'p-invalid':errors?.linkedin}" />
+      </FormRow>
+      <FormRow :label="t('employee.instagram')" :errors="errors?.ig">
+        <TextInput v-model="form.ig" maxlength="255" :placeholder="t('employee.instagram_placeholder')" :class="{'p-invalid':errors?.ig}" />
       </FormRow>
     </div>
     <div class="flex justify-end pt-2">
@@ -101,6 +144,7 @@ import Button from 'primevue/button'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
+import RadioLabel from '@/components/RadioLabel.vue'
 import DateInput from '@/components/DateInput.vue'
 import { useToast } from 'primevue/usetoast'
 import api from '@/services/api'
@@ -120,6 +164,7 @@ const props = defineProps({
   genderOptions: { type: Array, default: () => [] },
   religionOptions: { type: Array, default: () => [] },
   maritalStatusOptions: { type: Array, default: () => [] },
+  nationalityOptions: { type: Array, default: () => [] },
   saving: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
   employeeId: { type: String, default: '' },

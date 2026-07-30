@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS employees (
     gender            VARCHAR(255) NULL,
     nationality_type  VARCHAR(255) NULL,
     nationality_id    CHAR(2) NULL,
+    passport          VARCHAR(50) NULL,
     pob               VARCHAR(255) NULL,
     dob               DATE NULL,
     phone_number      VARCHAR(255) NULL,

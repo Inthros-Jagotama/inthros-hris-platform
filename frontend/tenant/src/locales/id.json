@@ -351,7 +351,21 @@
     "document_description": "Kelola dokumen karyawan seperti KTP, ijazah, sertifikat, dan kontrak.",
     "insurance_description": "Kelola keanggotaan BPJS dan asuransi lainnya untuk karyawan.",
     "employment_description": "Kelola riwayat jabatan termasuk SK, tanggal efektif, dan penempatan.",
-    "search_village": "Cari desa/kelurahan..."
+    "search_village": "Cari desa/kelurahan...",
+    "nationality_type": "Status Kewarganegaraan",
+    "wni": "WNI",
+    "wna": "WNA",
+    "nationality": "Kewarganegaraan",
+    "select_nationality": "Pilih kewarganegaraan...",
+    "family_id": "No. Kartu Keluarga",
+    "family_id_placeholder": "Masukkan No. KK",
+    "passport": "No. Paspor",
+    "passport_placeholder": "Masukkan No. Paspor",
+    "linkedin": "LinkedIn",
+    "linkedin_placeholder": "Masukkan URL LinkedIn (contoh: https://linkedin.com/in/...)",
+    "instagram": "Instagram",
+    "instagram_placeholder": "Masukkan username Instagram (contoh: @username)",
+    "social_media": "Media Sosial"
   },
   "attendance": {
     "title": "Absensi",
