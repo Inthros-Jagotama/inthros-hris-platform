@@ -6,9 +6,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
@@ -367,6 +370,156 @@ func (h *Handler) CreateDocument(c *gin.Context) {
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+// POST /api/v1/tenant/employees/:id/documents/upload — Upload document file
+func (h *Handler) UploadDocumentFile(c *gin.Context) {
+	employeeID := c.Param("id")
+
+	name := c.PostForm("name")
+	if name == "" {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "Name is required")
+		return
+	}
+
+	var note *string
+	if n := c.PostForm("note"); n != "" {
+		note = &n
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "Document file is required")
+		return
+	}
+
+	// Validate file extension
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	allowedExts := map[string]bool{
+	".pdf": true, ".doc": true, ".docx": true,
+	".xls": true, ".xlsx": true,
+	".jpg": true, ".jpeg": true, ".png": true, ".gif": true,
+	".txt": true,
+	}
+	if !allowedExts[ext] {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "File type not allowed. Allowed: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT")
+		return
+	}
+
+	// Max 10MB
+	if file.Size > 10*1024*1024 {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "File size must be less than 10MB")
+		return
+	}
+
+	// Build unique filename: employeeID_timestamp + ext
+	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 36)
+	filename := employeeID + "_" + timestamp + ext
+	uploadDir := "uploads/documents"
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		httputil.InternalError(c, "Failed to create upload directory")
+		return
+	}
+
+	destPath := uploadDir + "/" + filename
+	if err := c.SaveUploadedFile(file, destPath); err != nil {
+		httputil.InternalError(c, "Failed to save uploaded file")
+		return
+	}
+
+	filePath := "/" + destPath
+
+	empUID, err := uuid.Parse(employeeID)
+	if err != nil {
+		os.Remove(destPath)
+		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid employee ID")
+		return
+	}
+
+	// Create document record in DB
+	doc := &EmployeeDocument{
+		EmployeeID: &empUID,
+		Name:       name,
+		File:       filePath,
+		Note:       note,
+		CreatedBy:  authctx.GetUserID(c.Request.Context()),
+		UpdatedBy:  authctx.GetUserID(c.Request.Context()),
+	}
+
+	if err := h.service.CreateDocumentRecord(c.Request.Context(), doc); err != nil {
+		// Clean up file if DB insert fails
+		os.Remove(destPath)
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	httputil.CreatedJSON(c, toDocumentResponse(doc), "success.created")
+}
+
+// PUT /api/v1/tenant/employees/:id/documents/:documentId/upload — Replace document file
+func (h *Handler) UpdateDocumentFile(c *gin.Context) {
+	employeeID := c.Param("id")
+	documentID := c.Param("documentId")
+
+	name := c.PostForm("name")
+	var note *string
+	if n := c.PostForm("note"); n != "" {
+		note = &n
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		// No new file — update metadata only via existing endpoint
+		var req UpdateDocumentRequest
+		if name != "" {
+			req.Name = &name
+		}
+		req.Note = note
+		resp, err := h.service.UpdateDocument(c.Request.Context(), employeeID, documentID, req)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			return
+		}
+		httputil.SuccessJSON(c, resp)
+		return
+	}
+
+	// Validate extension
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	allowedExts := map[string]bool{
+	".pdf": true, ".doc": true, ".docx": true,
+	".xls": true, ".xlsx": true,
+	".jpg": true, ".jpeg": true, ".png": true, ".gif": true,
+	".txt": true,
+	}
+	if !allowedExts[ext] {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "File type not allowed")
+		return
+	}
+	if file.Size > 10*1024*1024 {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "File size must be less than 10MB")
+		return
+	}
+
+	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 36)
+	filename := employeeID + "_" + timestamp + ext
+	uploadDir := "uploads/documents"
+	os.MkdirAll(uploadDir, 0755)
+	destPath := uploadDir + "/" + filename
+	if err := c.SaveUploadedFile(file, destPath); err != nil {
+		httputil.InternalError(c, "Failed to save uploaded file")
+		return
+	}
+
+	filePath := "/" + destPath
+
+	if err := h.service.UpdateDocumentFile(c.Request.Context(), documentID, name, filePath, note); err != nil {
+		os.Remove(destPath)
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	httputil.SuccessJSON(c, gin.H{"file": filePath})
 }
 
 func (h *Handler) UpdateDocument(c *gin.Context) {

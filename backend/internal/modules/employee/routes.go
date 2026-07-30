@@ -43,7 +43,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 
 		// Documents
 		emps.POST("/:id/documents", handler.CreateDocument)
+		emps.POST("/:id/documents/upload", handler.UploadDocumentFile)
 		emps.PUT("/:id/documents/:documentId", handler.UpdateDocument)
+		emps.PUT("/:id/documents/:documentId/upload", handler.UpdateDocumentFile)
 		emps.DELETE("/:id/documents/:documentId", handler.DeleteDocument)
 
 		// Insurances

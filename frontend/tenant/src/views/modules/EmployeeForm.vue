@@ -40,15 +40,15 @@
 
         <AddressForm v-else-if="activeStep === 1" :items="addresses" :errs="addrErrors" :address-type-options="addressTypeOptions" :province-options="provinceOptions" :regency-options="regencyOptions" :district-options="districtOptions" :village-options="villageOptions" :saving="stepLoading" :employee-id="employeeId" :on-search-village="searchVillages" @update:items="addresses = $event" @save="() => saveStep(1)" />
 
-        <ContactForm v-else-if="activeStep === 2" :items="contacts" :errs="contactErrors" :relationship-type-options="relationshipTypeOptions" :saving="stepLoading" @update:items="contacts = $event" @save="() => saveStep(2)" />
+        <ContactForm v-else-if="activeStep === 2" :items="contacts" :errs="contactErrors" :relationship-type-options="relationshipTypeOptions" :saving="stepLoading" :employee-id="employeeId" @update:items="contacts = $event" @save="() => saveStep(2)" />
 
-        <FamilyForm v-else-if="activeStep === 3" :items="families" :errs="famErrors" :relationship-type-options="relationshipTypeOptions" :education-options="educationOptions" :saving="stepLoading" @update:items="families = $event" @save="() => saveStep(3)" />
+        <FamilyForm v-else-if="activeStep === 3" :items="families" :errs="famErrors" :relationship-type-options="relationshipTypeOptions" :education-options="educationOptions" :saving="stepLoading" :employee-id="employeeId" @update:items="families = $event" @save="() => saveStep(3)" />
 
-        <EducationForm v-else-if="activeStep === 4" :items="educations" :errs="eduErrors" :education-options="educationOptions" :saving="stepLoading" @update:items="educations = $event" @save="() => saveStep(4)" />
+        <EducationForm v-else-if="activeStep === 4" :items="educations" :errs="eduErrors" :education-options="educationOptions" :saving="stepLoading" :employee-id="employeeId" @update:items="educations = $event" @save="() => saveStep(4)" />
 
-        <ExperienceForm v-else-if="activeStep === 5" :items="experiences" :errs="expErrors" :saving="stepLoading" @update:items="experiences = $event" @save="() => saveStep(5)" />
+        <ExperienceForm v-else-if="activeStep === 5" :items="experiences" :errs="expErrors" :saving="stepLoading" :employee-id="employeeId" @update:items="experiences = $event" @save="() => saveStep(5)" />
 
-        <DocumentForm v-else-if="activeStep === 6" :items="documents" :errs="docErrors" :saving="stepLoading" @update:items="documents = $event" @save="() => saveStep(6)" />
+        <DocumentForm v-else-if="activeStep === 6" :items="documents" :errs="docErrors" :saving="stepLoading" :employee-id="employeeId" @update:items="documents = $event" @save="() => saveStep(6)" />
 
         <InsuranceForm v-else-if="activeStep === 7" :items="insurances" :errs="insErrors" :insurance-category-options="insuranceCategoryOptions" :saving="stepLoading" @update:items="insurances = $event" @save="() => saveStep(7)" />
 
@@ -385,11 +385,11 @@ async function loadEmployee() {
     // Load village labels for existing villages
     loadExistingVillageLabels(addresses.value)
   }
-  if (data.emergency_contacts) { contacts.value = data.emergency_contacts.map(c => { const item = { name: c.name || '', relationship_type_id: c.relationship_type_id || '', phone_number: c.phone_number || '', address: c.address || '' }; markSaved(item); return item }); if (contacts.value.length > 0) stepSaved[2] = true }
-  if (data.families) { families.value = data.families.map(f => { const item = { nik: f.nik || '', name: f.name || '', dob: f.dob || '', relationship_type_id: f.relationship_type_id || '', education_id: f.education_id || '' }; markSaved(item); return item }); if (families.value.length > 0) stepSaved[3] = true }
-  if (data.educations) { educations.value = data.educations.map(e => { const item = { education_id: e.education_id || '', name: e.name || '', major: e.major || '', graduation_year: e.graduation_year ? String(e.graduation_year) : '' }; markSaved(item); return item }); if (educations.value.length > 0) stepSaved[4] = true }
-  if (data.experiences) { experiences.value = data.experiences.map(x => { const item = { company: x.company || '', position: x.position || '', start_year: x.start_year ? String(x.start_year) : '', end_year: x.end_year ? String(x.end_year) : '' }; markSaved(item); return item }); if (experiences.value.length > 0) stepSaved[5] = true }
-  if (data.documents) { documents.value = data.documents.map(d => { const item = { name: d.name || '', file: d.file || '', note: d.note || '' }; markSaved(item); return item }); if (documents.value.length > 0) stepSaved[6] = true }
+  if (data.emergency_contacts) { contacts.value = data.emergency_contacts.map(c => { const item = { name: c.name || '', relationship_type_id: c.relationship_type_id || '', phone_number: c.phone_number || '', address: c.address || '', _id: c.id || '' }; markSaved(item); return item }); if (contacts.value.length > 0) stepSaved[2] = true }
+  if (data.families) { families.value = data.families.map(f => { const item = { nik: f.nik || '', name: f.name || '', dob: f.dob || '', relationship_type_id: f.relationship_type_id || '', education_id: f.education_id || '', _id: f.id || '' }; markSaved(item); return item }); if (families.value.length > 0) stepSaved[3] = true }
+  if (data.educations) { educations.value = data.educations.map(e => { const item = { education_id: e.education_id || '', name: e.name || '', major: e.major || '', graduation_year: e.graduation_year ? String(e.graduation_year) : '', _id: e.id || '' }; markSaved(item); return item }); if (educations.value.length > 0) stepSaved[4] = true }
+  if (data.experiences) { experiences.value = data.experiences.map(x => { const item = { company: x.company || '', position: x.position || '', start_year: x.start_year ? String(x.start_year) : '', end_year: x.end_year ? String(x.end_year) : '', _id: x.id || '' }; markSaved(item); return item }); if (experiences.value.length > 0) stepSaved[5] = true }
+  if (data.documents) { documents.value = data.documents.map(d => { const item = { name: d.name || '', file: d.file || '', note: d.note || '', _id: d.id || '' }; markSaved(item); return item }); if (documents.value.length > 0) stepSaved[6] = true }
   if (data.insurances) { insurances.value = data.insurances.map(i => { const item = { category: i.category || '', number: i.number || '', name: i.name || '', type: i.type || '' }; markSaved(item); return item }); if (insurances.value.length > 0) stepSaved[7] = true }
   if (data.employments) { employments.value = data.employments.map(em => { const item = { organization_id: em.organization_id || '', employment_status_id: em.employment_status_id || '', decision_letter_number: em.decision_letter_number || '', decision_letter_date: em.decision_letter_date || '', effective_date: em.effective_date || '', effective_end_date: em.effective_end_date || '' }; markSaved(item); return item }); if (employments.value.length > 0) stepSaved[8] = true }
 }

@@ -745,6 +745,37 @@ func (s *Service) DeleteDocument(ctx context.Context, employeeID, documentID str
 	return s.repo.DeleteDocument(ctx, docUID)
 }
 
+// CreateDocumentRecord creates a document record directly (for upload flow).
+func (s *Service) CreateDocumentRecord(ctx context.Context, doc *EmployeeDocument) error {
+	return s.repo.CreateDocument(ctx, doc)
+}
+
+// UpdateDocumentFile updates document metadata and file path.
+func (s *Service) UpdateDocumentFile(ctx context.Context, documentID, name, filePath string, note *string) error {
+	docUID, err := uuid.Parse(documentID)
+	if err != nil {
+		return fmt.Errorf("invalid document id: %w", err)
+	}
+
+	doc, err := s.repo.FindDocumentByID(ctx, docUID)
+	if err != nil {
+		return err
+	}
+	doc.UpdatedBy = authctx.GetUserID(ctx)
+
+	if name != "" {
+		doc.Name = name
+	}
+	if filePath != "" {
+		doc.File = filePath
+	}
+	if note != nil {
+		doc.Note = note
+	}
+
+	return s.repo.UpdateDocument(ctx, doc)
+}
+
 // =========================================================================
 // Sub-module CRUD: Insurances
 // =========================================================================
