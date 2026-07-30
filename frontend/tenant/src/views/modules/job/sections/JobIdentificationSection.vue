@@ -5,7 +5,7 @@
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.identification_description') }}</p>
     </div>
 
-    <div class="max-w-lg space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+    <div class="max-w-2xl space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
       <!-- Read-only from org data -->
       <FormRow :label="t('organization.nomenclature')">
         <TextInput :model-value="orgName" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />

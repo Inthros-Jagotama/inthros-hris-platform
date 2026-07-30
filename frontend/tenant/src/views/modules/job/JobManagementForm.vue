@@ -103,8 +103,8 @@ const competencyOptions = ref([])
 const sections = [
   { labelKey: 'job_management.identifications', icon: 'pi pi-id-card', comp: JobIdentificationSection },
   { labelKey: 'job_management.objectives', icon: 'pi pi-bullseye', comp: JobObjectiveSection },
-  { labelKey: 'job_management.education_experience', icon: 'pi pi-graduation-cap', comp: JobEduExpSection },
   { labelKey: 'job_management.responsibilities_title', icon: 'pi pi-list-check', comp: JobResponsibilitySection },
+  { labelKey: 'job_management.education_experience', icon: 'pi pi-graduation-cap', comp: JobEduExpSection },
   { labelKey: 'job_management.hr_authorities', icon: 'pi pi-users', comp: JobHRAuthoritySection },
   { labelKey: 'job_management.op_authorities', icon: 'pi pi-cog', comp: JobOpAuthoritySection },
   { labelKey: 'job_management.activities', icon: 'pi pi-bolt', comp: JobActivitySection },

@@ -1,44 +1,176 @@
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.objectives') }}</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.objective_description') }}</p>
-      </div>
-      <Button :label="t('common.create')" icon="pi pi-plus" size="small" @click="openCreate()" />
+    <div>
+      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.objectives') }}</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.objective_description') }}</p>
     </div>
-    <DataTableSection :items="items" :loading="loading" :total="total" :columns="objColumns" entity="objectives" :org-id="orgId" :on-load="loadData" @edit="openEdit" @delete="confirmDelete">
-      <template #empty><div class="flex flex-col items-center justify-center py-10 text-gray-400"><i class="pi pi-bullseye text-3xl mb-2 opacity-50"></i><p class="text-sm font-medium">{{ t('job_management.empty_objectives') }}</p></div></template>
-    </DataTableSection>
-    <DialogForm v-model:visible="dialogVisible" :title="editing ? t('common.edit') : t('common.create')" :saving="saving" :errors="errors" @save="handleSave" @cancel="dialogVisible=false">
-      <FormRow :label="t('organization.nomenclature')" required :errors="errors?.nomenclature"><TextInput v-model="form.nomenclature" maxlength="50" :class="{'p-invalid':errors?.nomenclature}" /></FormRow>
-      <FormRow :label="t('organization.full_code')" required :errors="errors?.full_code"><TextInput v-model="form.full_code" maxlength="20" :class="{'p-invalid':errors?.full_code}" /></FormRow>
-      <FormRow :label="t('job_management.objective')" :errors="errors?.objective"><Textarea v-model="form.objective" rows="3" :class="{'p-invalid':errors?.objective}" /></FormRow>
-    </DialogForm>
+
+    <div class="max-w-2xl space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+      <!-- Read-only from org data -->
+      <FormRow :label="t('organization.nomenclature')">
+        <TextInput :model-value="orgName" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
+      </FormRow>
+      <FormRow :label="t('organization.full_code')">
+        <TextInput :model-value="orgCode" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
+      </FormRow>
+
+      <!-- Editable objective -->
+      <FormRow :label="t('job_management.objective')">
+        <Textarea
+          v-model="form.objective"
+          rows="3"
+          class="w-full"
+          :class="{ 'p-invalid': errors.objective }"
+          :placeholder="t('job_management.objective') + '...'"
+        />
+      </FormRow>
+
+      <!-- Error display -->
+      <div v-if="errorMsg" class="text-sm text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+        {{ errorMsg }}
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-2 pt-2">
+        <Button
+          v-if="existingId"
+          :label="t('common.delete')"
+          icon="pi pi-trash"
+          severity="danger"
+          size="small"
+          outlined
+          @click="deleteVisible = true"
+        />
+        <Button
+          :label="existingId ? t('common.update') : t('common.save')"
+          icon="pi pi-check"
+          size="small"
+          :loading="saving"
+          :disabled="saving"
+          @click="handleSave"
+        />
+      </div>
+    </div>
+
     <ConfirmDeleteDialog v-model:visible="deleteVisible" :loading="deleting" :error-msg="deleteError" @confirm="handleDelete" @cancel="deleteVisible=false" />
   </div>
 </template>
+
 <script setup>
-import { ref, computed } from 'vue'
-import { useI18n } from '@/composables/useI18n'
+import { ref, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
-import { getValidationErrors } from '@/services/responseHandler'
-import api from '@/services/api'
-import Button from 'primevue/button'
+import { useI18n } from '@/composables/useI18n'
+import FormRow from '@/components/FormRow.vue'
+import TextInput from '@/components/TextInput.vue'
 import Textarea from 'primevue/textarea'
-import FormRow from '@/components/FormRow.vue'; import TextInput from '@/components/TextInput.vue'
-import DataTableSection from './DataTableSection.vue'; import DialogForm from './DialogForm.vue'
+import Button from 'primevue/button'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
-const props = defineProps({ orgId: String }); const emit = defineEmits(['saved'])
-const { t } = useI18n(); const toast = useToast(); const apiBase = '/api/v1/tenant/job-management/objectives'
-const items=ref([]); const loading=ref(false); const total=ref(0); const dialogVisible=ref(false); const editing=ref(false); const editId=ref('')
-const saving=ref(false); const errors=ref({}); const deleteVisible=ref(false); const deleting=ref(false); const deleteError=ref(''); const deleteTarget=ref(null)
-const form=ref({ nomenclature:'', full_code:'', objective:'' })
-const objColumns=computed(()=>[{field:'nomenclature',header:t('organization.nomenclature')},{field:'full_code',header:t('organization.full_code')},{field:'objective',header:t('job_management.objective')}])
-async function loadData(page, perPage) { loading.value=true; try { const r=await api.get(apiBase,{params:{page,per_page:perPage,organization_id:props.orgId}}); items.value=r.data?.data||[]; total.value=r.data?.total||0 } catch(e){ toast.add({severity:'error',detail:e.response?.data?.error?.message||t('message.failed_to_load'),life:4000}) }finally{ loading.value=false } }
-function openCreate() { editing.value=false; editId.value=''; form.value={nomenclature:'',full_code:'',objective:''}; errors.value={}; dialogVisible.value=true }
-function openEdit(d) { editing.value=true; editId.value=d.id; form.value={nomenclature:d.nomenclature||'',full_code:d.full_code||'',objective:d.objective||''}; errors.value={}; dialogVisible.value=true }
-async function handleSave() { saving.value=true; errors.value={}; try { const p={...form.value,organization_id:props.orgId}; if(editing.value) await api.put(`${apiBase}/${editId.value}`,p); else await api.post(apiBase,p); dialogVisible.value=false; emit('saved'); toast.add({severity:'success',detail:t('message.saved'),life:2000}); loadData(1,15) } catch(e){ const fe=getValidationErrors(e); if(Object.keys(fe).length) errors.value=fe; else toast.add({severity:'error',detail:e.response?.data?.error?.message||t('message.operation_failed'),life:4000}) }finally{ saving.value=false } }
-function confirmDelete(d) { deleteTarget.value=d; deleteError.value=''; deleteVisible.value=true }
-async function handleDelete() { if(!deleteTarget.value) return; deleting.value=true; deleteError.value=''; try { await api.delete(`${apiBase}/${deleteTarget.value.id}`); deleteVisible.value=false; emit('saved'); toast.add({severity:'success',detail:t('message.deleted'),life:2000}); loadData(1,15) } catch(e){ deleteError.value=e.response?.data?.error?.message||t('message.operation_failed') }finally{ deleting.value=false } }
+import api from '@/services/api'
+
+const emit = defineEmits(['saved'])
+
+const props = defineProps({
+  orgId: String,
+  orgName: { type: String, default: '' },
+  orgCode: { type: String, default: '' }
+})
+
+const { t } = useI18n()
+const toast = useToast()
+
+const saving = ref(false)
+const deleting = ref(false)
+const errorMsg = ref('')
+const errors = ref({})
+const existingId = ref('')
+const deleteVisible = ref(false)
+const deleteError = ref('')
+
+const form = ref({
+  objective: ''
+})
+
+const apiBase = '/api/v1/tenant/job-management/objectives'
+
+function getValidationErrors(err) {
+  const fields = err?.response?.data?.error?.fields
+  if (fields && typeof fields === 'object') {
+    const map = {}
+    for (const [key, msgs] of Object.entries(fields)) {
+      map[key] = Array.isArray(msgs) ? msgs[0] : msgs
+    }
+    return map
+  }
+  return {}
+}
+
+async function loadData() {
+  if (!props.orgId) return
+  try {
+    const res = await api.get(apiBase, { params: { organization_id: props.orgId, per_page: 1 } })
+    const list = res.data?.data || []
+    if (list.length > 0) {
+      const item = list[0]
+      existingId.value = item.id
+      form.value.objective = item.objective || ''
+    }
+  } catch {
+    // No existing record
+  }
+}
+
+async function handleSave() {
+  errorMsg.value = ''
+  errors.value = {}
+
+  saving.value = true
+  try {
+    const payload = {
+      nomenclature: props.orgName || '',
+      full_code: props.orgCode || '',
+      objective: form.value.objective || '',
+      organization_id: props.orgId
+    }
+
+    if (existingId.value) {
+      await api.put(`${apiBase}/${existingId.value}`, { objective: form.value.objective || '' })
+    } else {
+      const res = await api.post(apiBase, payload)
+      existingId.value = res.data?.data?.id || ''
+    }
+
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('common.saved'), life: 2000 })
+    emit('saved')
+  } catch (err) {
+    const ve = getValidationErrors(err)
+    if (Object.keys(ve).length > 0) {
+      errors.value = ve
+      errorMsg.value = Object.values(ve).join(', ')
+    } else {
+      errorMsg.value = err?.response?.data?.error?.message || err.message || t('message.operation_failed')
+    }
+  } finally {
+    saving.value = false
+  }
+}
+
+async function handleDelete() {
+  if (!existingId.value) return
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await api.delete(`${apiBase}/${existingId.value}`)
+    deleteVisible.value = false
+    existingId.value = ''
+    form.value.objective = ''
+    emit('saved')
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.deleted'), life: 2000 })
+  } catch (err) {
+    deleteError.value = err?.response?.data?.error?.message || t('message.operation_failed')
+  } finally {
+    deleting.value = false
+  }
+}
+
+onMounted(loadData)
 </script>
