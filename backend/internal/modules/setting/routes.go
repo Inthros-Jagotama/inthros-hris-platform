@@ -47,6 +47,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			villages.POST("", handler.CreateVillage)
 			villages.GET("", handler.ListVillages)
 			villages.GET("/search", handler.SearchVillages)
+			villages.GET("/:id/detail", handler.GetVillageDetail)
 			villages.GET("/:id", handler.GetVillageByID)
 			villages.PUT("/:id", handler.UpdateVillage)
 			villages.DELETE("/:id", handler.DeleteVillage)

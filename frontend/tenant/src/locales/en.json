@@ -365,7 +365,11 @@
     "linkedin_placeholder": "Enter LinkedIn URL (e.g. https://linkedin.com/in/...)",
     "instagram": "Instagram",
     "instagram_placeholder": "Enter Instagram username (e.g. @username)",
-    "social_media": "Social Media"
+    "social_media": "Social Media",
+    "district_auto": "Auto-filled from village",
+    "regency_auto": "Auto-filled from village",
+    "province_auto": "Auto-filled from village",
+    "confirm_delete_address": "Delete this address? This action cannot be undone."
   },
   "attendance": {
     "title": "Attendance",

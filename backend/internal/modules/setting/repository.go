@@ -195,6 +195,15 @@ func (r *Repository) FindVillageByID(ctx context.Context, id string) (*Village, 
 	}
 	return &v, nil
 }
+func (r *Repository) FindVillageByIDWithPreload(ctx context.Context, id string) (*Village, error) {
+	db, err := r.getDB(ctx)
+	if err != nil { return nil, err }
+	var v Village
+	if err := db.Preload("District.Regency.Province").First(&v, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("village not found: %w", err)
+	}
+	return &v, nil
+}
 func (r *Repository) FindAllVillages(ctx context.Context, page, perPage int) ([]Village, int64, error) {
 	var villages []Village
 	total, err := r.findAll(ctx, &villages, "villages", page, perPage, "code ASC")

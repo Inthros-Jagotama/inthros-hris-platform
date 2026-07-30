@@ -365,7 +365,11 @@
     "linkedin_placeholder": "Masukkan URL LinkedIn (contoh: https://linkedin.com/in/...)",
     "instagram": "Instagram",
     "instagram_placeholder": "Masukkan username Instagram (contoh: @username)",
-    "social_media": "Media Sosial"
+    "social_media": "Media Sosial",
+    "district_auto": "Terisi otomatis dari desa",
+    "regency_auto": "Terisi otomatis dari desa",
+    "province_auto": "Terisi otomatis dari desa",
+    "confirm_delete_address": "Hapus alamat ini? Tindakan ini tidak dapat dibatalkan."
   },
   "attendance": {
     "title": "Absensi",

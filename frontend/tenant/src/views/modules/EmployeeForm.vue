@@ -38,7 +38,7 @@
       <div class="flex-1 min-w-0">
         <PersonalForm v-if="activeStep === 0" :form="form" :errors="stepErrors" :gender-options="genderOptions" :religion-options="religionOptions" :marital-status-options="maritalStatusOptions" :nationality-options="nationalityOptions" :saving="stepLoading" :disabled="isEdit" :employee-id="employeeId" :photo-url="profilePicture" @save="savePersonalData" @update:photo="profilePicture = $event" />
 
-        <AddressForm v-else-if="activeStep === 1" :items="addresses" :errs="addrErrors" :address-type-options="addressTypeOptions" :province-options="provinceOptions" :regency-options="regencyOptions" :district-options="districtOptions" :village-options="villageOptions" :saving="stepLoading" :on-search-village="searchVillages" @update:items="addresses = $event" @save="() => saveStep(1)" />
+        <AddressForm v-else-if="activeStep === 1" :items="addresses" :errs="addrErrors" :address-type-options="addressTypeOptions" :province-options="provinceOptions" :regency-options="regencyOptions" :district-options="districtOptions" :village-options="villageOptions" :saving="stepLoading" :employee-id="employeeId" :on-search-village="searchVillages" @update:items="addresses = $event" @save="() => saveStep(1)" />
 
         <ContactForm v-else-if="activeStep === 2" :items="contacts" :errs="contactErrors" :relationship-type-options="relationshipTypeOptions" :saving="stepLoading" @update:items="contacts = $event" @save="() => saveStep(2)" />
 
@@ -130,7 +130,12 @@ const empErrors = ref([])
 
 // ── Nav helpers ──
 function isStepEnabled(i) { return i === 0 || !!personalDataSaved.value }
-function selectStep(i) { if (isStepEnabled(i)) activeStep.value = i }
+function selectStep(i) {
+  if (isStepEnabled(i)) {
+    activeStep.value = i
+    router.replace({ query: { ...route.query, step: String(i) } })
+  }
+}
 
 function getNavItemClass(i) {
   const active = activeStep.value === i
@@ -224,10 +229,13 @@ async function loadExistingVillageLabels(addressList) {
   for (const addr of addressList) {
     if (addr.village_id && !addr._villageLabel) {
       try {
-        const res = await api.get(`/api/v1/tenant/settings/villages/search?q=${encodeURIComponent(addr.village_id)}`)
-        const found = (res.data?.data || []).find(v => v.id === addr.village_id)
+        const res = await api.get(`/api/v1/tenant/settings/villages/${addr.village_id}/detail`)
+        const found = res.data?.data
         if (found) {
-          addr._villageLabel = `${found.name} - ${found.district_name ? 'Kec. '+found.district_name : ''}${found.regency_name ? ', Kab. '+found.regency_name : ''}`
+          addr._villageLabel = found.name
+          addr._district_name = found.district_name || ''
+          addr._regency_name = found.regency_name || ''
+          addr._province_name = found.province_name || ''
         }
       } catch { /* ignore */ }
     }
@@ -368,7 +376,7 @@ async function loadEmployee() {
   const markSaved = item => { item._saved = true }
   if (data.addresses) {
     addresses.value = data.addresses.map(a => {
-      const item = { type: a.type || '', address: a.address || '', province_id: a.province_id || '', regency_id: a.regency_id || '', district_id: a.district_id || '', village_id: a.village_id || '', postal_code: a.postal_code || '', _villageLabel: a.village_label || '' }
+      const item = { type: a.type || '', address: a.address || '', province_id: a.province_id || '', regency_id: a.regency_id || '', district_id: a.district_id || '', village_id: a.village_id || '', postal_code: a.postal_code || '', _villageLabel: a.village_label || '', _id: a.id || '' }
       markSaved(item)
       return item
     })
@@ -390,6 +398,14 @@ onMounted(async () => {
   try {
     await loadRefData()
     if (isEdit.value) await loadEmployee()
+
+    // Restore active step from query param (only if step is enabled/personal data saved)
+    const stepParam = parseInt(route.query.step)
+    if (!isNaN(stepParam) && stepParam >= 0 && stepParam < steps.length) {
+      if (isStepEnabled(stepParam)) {
+        activeStep.value = stepParam
+      }
+    }
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: t('message.failed_to_load'), life: 4000 })
   } finally { pageLoading.value = false }

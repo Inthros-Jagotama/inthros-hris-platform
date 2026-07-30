@@ -224,6 +224,12 @@ func (h *Handler) DeleteVillage(c *gin.Context) {
 	if err := h.service.DeleteVillage(c.Request.Context(), c.Param("id")); err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
 	httputil.DeletedJSON(c, "success.deleted")
 }
+func (h *Handler) GetVillageDetail(c *gin.Context) {
+	resp, err := h.service.GetVillageDetail(c.Request.Context(), c.Param("id"))
+	if err != nil { c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}}); return }
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) SearchVillages(c *gin.Context) {
 	query := c.Query("q")
 	resp, err := h.service.SearchVillages(c.Request.Context(), query)

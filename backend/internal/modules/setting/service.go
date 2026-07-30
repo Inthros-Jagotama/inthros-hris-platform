@@ -292,6 +292,29 @@ func (s *Service) UpdateVillage(ctx context.Context, id string, req UpdateVillag
 func (s *Service) DeleteVillage(ctx context.Context, id string) error {
 	return s.repo.DeleteVillage(ctx, id)
 }
+func (s *Service) GetVillageDetail(ctx context.Context, id string) (*VillageSearchResponse, error) {
+	v, err := s.repo.FindVillageByIDWithPreload(ctx, id)
+	if err != nil { return nil, err }
+	r := VillageSearchResponse{
+		ID:         v.ID,
+		Code:       v.Code,
+		Name:       v.Name,
+		DistrictID: v.DistrictID,
+	}
+	if v.District != nil {
+		r.DistrictName = v.District.Name
+		if v.District.Regency != nil {
+			r.RegencyID = v.District.Regency.ID
+			r.RegencyName = v.District.Regency.Name
+			if v.District.Regency.Province != nil {
+				r.ProvinceID = v.District.Regency.Province.ID
+				r.ProvinceName = v.District.Regency.Province.Name
+			}
+		}
+	}
+	return &r, nil
+}
+
 func (s *Service) SearchVillages(ctx context.Context, query string) (*VillageSearchListResponse, error) {
 	if query == "" {
 		return &VillageSearchListResponse{Success: true, Data: []VillageSearchResponse{}}, nil
