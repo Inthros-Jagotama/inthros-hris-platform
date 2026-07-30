@@ -127,3 +127,169 @@ html.dark .p-menu *,
 html.dark .p-toast * {
   transition: none;
 }
+
+.editor-content {
+    line-height: 1.7;
+    color: inherit;
+    word-break: break-word;
+}
+
+/* Paragraph */
+.editor-content p {
+    margin: 0 0 1rem;
+}
+
+/* Heading */
+.editor-content h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 1rem 0;
+}
+
+.editor-content h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: .875rem 0;
+}
+
+.editor-content h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: .75rem 0;
+}
+
+.editor-content h4,
+.editor-content h5,
+.editor-content h6 {
+    font-weight: 600;
+    margin: .5rem 0;
+}
+
+/* List */
+.editor-content ol {
+    list-style: decimal;
+    padding-left: 1.5rem;
+    margin: 1rem 0;
+}
+
+.editor-content ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+    margin: 1rem 0;
+}
+
+.editor-content li {
+    margin: .25rem 0;
+}
+
+.editor-content li > ol,
+.editor-content li > ul {
+    margin-top: .25rem;
+}
+
+/* Blockquote */
+.editor-content blockquote {
+    border-left: 4px solid #d1d5db;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    font-style: italic;
+    color: #6b7280;
+}
+
+/* Code */
+.editor-content code {
+    background: #f3f4f6;
+    padding: .15rem .35rem;
+    border-radius: .25rem;
+    font-family: Consolas, Monaco, monospace;
+    font-size: .9em;
+}
+
+.editor-content pre {
+    background: #111827;
+    color: #f9fafb;
+    padding: 1rem;
+    border-radius: .5rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+.editor-content pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+}
+
+/* Link */
+.editor-content a {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+/* Image */
+.editor-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: .5rem;
+}
+
+/* Table */
+.editor-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.editor-content table th,
+.editor-content table td {
+    border: 1px solid #d1d5db;
+    padding: .5rem;
+}
+
+.editor-content table th {
+    background: #f9fafb;
+    font-weight: 600;
+}
+
+/* Horizontal rule */
+.editor-content hr {
+    margin: 1.5rem 0;
+    border: 0;
+    border-top: 1px solid #d1d5db;
+}
+
+/* Alignment */
+.editor-content .ql-align-center {
+    text-align: center;
+}
+
+.editor-content .ql-align-right {
+    text-align: right;
+}
+
+.editor-content .ql-align-justify {
+    text-align: justify;
+}
+
+/* Indent */
+.editor-content .ql-indent-1 { padding-left: 3em; }
+.editor-content .ql-indent-2 { padding-left: 6em; }
+.editor-content .ql-indent-3 { padding-left: 9em; }
+.editor-content .ql-indent-4 { padding-left: 12em; }
+.editor-content .ql-indent-5 { padding-left: 15em; }
+.editor-content .ql-indent-6 { padding-left: 18em; }
+.editor-content .ql-indent-7 { padding-left: 21em; }
+.editor-content .ql-indent-8 { padding-left: 24em; }
+
+/* Font size (Quill) */
+.editor-content .ql-size-small {
+    font-size: .75rem;
+}
+
+.editor-content .ql-size-large {
+    font-size: 1.5rem;
+}
+
+.editor-content .ql-size-huge {
+    font-size: 2.5rem;
+}

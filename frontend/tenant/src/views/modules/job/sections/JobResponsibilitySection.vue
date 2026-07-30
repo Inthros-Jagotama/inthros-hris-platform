@@ -16,7 +16,6 @@
         </div>
       </template>
     </DataTableSection>
-
     <DialogForm v-model:visible="dialogVisible" :title="dialogTitle" :saving="saving" :errors="errors" width="maximize" @save="handleSave" @cancel="dialogVisible=false">
       <template v-if="dialogVisible">
         <FormRow :label="t('job_management.main_task')" :errors="errors?.main_task">
@@ -84,15 +83,15 @@ const form = ref({
 
 const dialogTitle = computed(() => {
   const base = t('job_management.responsibilities_title')
-  if (editing.value) return `${base} - ${props.orgName}`
+  if (editing.value) return `${base}`
   return `${t('common.create')} ${base}`
 })
 
 const columns = computed(() => [
-  { field: 'main_task', header: t('job_management.main_task') },
-  { field: 'activities', header: t('job_management.activities') },
-  { field: 'outputs', header: t('job_management.outputs') },
-  { field: 'success_indicators', header: t('job_management.success_indicators') }
+  { field: 'main_task', header: t('job_management.main_task'), html: true },
+  { field: 'activities', header: t('job_management.activities'), html: true },
+  { field: 'outputs', header: t('job_management.outputs'), html: true },
+  { field: 'success_indicators', header: t('job_management.success_indicators'), html: true }
 ])
 
 function stripHtml(html) {
@@ -107,10 +106,10 @@ async function loadData(page, perPage) {
     const raw = r.data?.data || []
     items.value = raw.map(item => ({
       ...item,
-      main_task: stripHtml(item.main_task),
-      activities: stripHtml(item.activities),
-      outputs: stripHtml(item.outputs),
-      success_indicators: stripHtml(item.success_indicators)
+      main_task: item.main_task,
+      activities: item.activities,
+      outputs: item.outputs,
+      success_indicators: item.success_indicators
     }))
     total.value = r.data?.total || 0
   } catch (e) {

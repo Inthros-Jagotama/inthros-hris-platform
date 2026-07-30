@@ -10,8 +10,75 @@
     </div>
 
     <!-- Navigation: Expanded -->
-    <nav v-if="!collapsed" class="flex-1 overflow-y-auto py-2 px-2">
-      <PanelMenu :model="menuItems" class="border-none !bg-transparent" />
+    <nav v-if="!collapsed" class="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
+      <!-- Dashboard -->
+      <router-link
+        to="/dashboard"
+        class="flex items-center gap-2 px-2.5 py-2 text-sm rounded-md transition-colors"
+        :class="route.path === '/dashboard' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+      >
+        <i class="pi pi-home" style="font-size:0.875rem"></i>
+        <span>{{ t('nav.dashboard') }}</span>
+      </router-link>
+
+      <!-- Core HR Section Title -->
+      <div v-if="coreHRItems.length > 0" class="pt-2">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          <i class="pi pi-building" style="font-size:0.7rem"></i>
+          <span>{{ t('nav.core_hr') }}</span>
+        </div>
+        <div
+          v-for="item in coreHRItems"
+          :key="item.key || item.label"
+          class="ml-2 flex items-center gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
+          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+          @click="item.command()"
+        >
+          <i :class="item.icon" class="text-xs"></i>
+          <span>{{ item.label }}</span>
+        </div>
+      </div>
+
+      <!-- Talent Section Title -->
+      <div v-if="talentItems.length > 0" class="pt-2">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          <i class="pi pi-star" style="font-size:0.7rem"></i>
+          <span>{{ t('nav.talent') }}</span>
+        </div>
+        <div
+          v-for="item in talentItems"
+          :key="item.key || item.label"
+          class="ml-2 flex items-center gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
+          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+          @click="item.command()"
+        >
+          <i :class="item.icon" class="text-xs"></i>
+          <span>{{ item.label }}</span>
+        </div>
+      </div>
+
+      <!-- Operations Section Title -->
+      <div v-if="operationsItems.length > 0" class="pt-2">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          <i class="pi pi-cog" style="font-size:0.7rem"></i>
+          <span>{{ t('nav.operations') }}</span>
+        </div>
+        <div
+          v-for="item in operationsItems"
+          :key="item.key || item.label"
+          class="ml-2 flex items-center gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
+          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+          @click="item.command()"
+        >
+          <i :class="item.icon" class="text-xs"></i>
+          <span>{{ item.label }}</span>
+        </div>
+      </div>
+
+      <!-- Other groups as PanelMenu -->
+      <div class="pt-1">
+        <PanelMenu :model="panelMenuItems" class="border-none !bg-transparent" />
+      </div>
     </nav>
 
     <!-- Navigation: Collapsed (icon-only) -->
@@ -91,51 +158,37 @@ function filterByModule(items) {
   })
 }
 
-// ── Full menu items for expanded PanelMenu ──
-const menuGroups = computed(() => [
-  // Dashboard — always visible
-  {
-    key: 'dashboard',
-    label: t('nav.dashboard'),
-    icon: 'pi pi-home',
-    command: () => router.push('/dashboard'),
-    class: route.name === 'Dashboard' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-md' : ''
-  },
-  // Core HR
-  {
-    key: 'core_hr',
-    label: t('nav.core_hr'),
-    icon: 'pi pi-building',
-    items: [
-      { label: t('nav.organization'), icon: 'pi pi-building', command: () => router.push('/organization-summary'), moduleSlug: 'organization' },
-      { label: t('nav.employees'), icon: 'pi pi-users', command: () => router.push('/employees'), moduleSlug: 'employee' },
-      { label: t('nav.job_management'), icon: 'pi pi-briefcase', command: () => router.push('/job-management'), moduleSlug: 'jobmanagement' }
-    ]
-  },
-  // Talent
-  {
-    key: 'talent',
-    label: t('nav.talent'),
-    icon: 'pi pi-star',
-    items: [
-      { label: t('nav.competency'), icon: 'pi pi-star', command: () => router.push('/competencies'), moduleSlug: 'competency' },
-      { label: t('nav.performance'), icon: 'pi pi-chart-line', command: () => router.push('/performance'), moduleSlug: 'performance' },
-      { label: t('nav.training'), icon: 'pi pi-book', command: () => router.push('/training'), moduleSlug: 'training' },
-      { label: t('nav.recruitment'), icon: 'pi pi-user-plus', command: () => router.push('/recruitment'), moduleSlug: 'recruitment' }
-    ]
-  },
-  // Operations
-  {
-    key: 'operations',
-    label: t('nav.operations'),
-    icon: 'pi pi-cog',
-    items: [
-      { label: t('nav.attendance'), icon: 'pi pi-clock', command: () => router.push('/attendance'), moduleSlug: 'attendance' },
-      { label: t('nav.leave'), icon: 'pi pi-calendar', command: () => router.push('/leave'), moduleSlug: 'leave' },
-      { label: t('nav.movement'), icon: 'pi pi-arrows-alt', command: () => router.push('/employee-movements'), moduleSlug: 'employeemovement' },
-      { label: t('nav.approval'), icon: 'pi pi-check-square', command: () => router.push('/approvals'), moduleSlug: 'approval' }
-    ]
-  },
+// ── Core HR items (flat, not dropdown) ──
+const coreHRItems = computed(() => {
+  return filterByModule([
+    { key: 'organization', label: t('nav.organization'), icon: 'pi pi-sitemap', command: () => router.push('/organization-summary'), path: '/organization-summary', moduleSlug: 'organization' },
+    { key: 'employees', label: t('nav.employees'), icon: 'pi pi-users', command: () => router.push('/employees'), path: '/employees', moduleSlug: 'employee' },
+    { key: 'job_management', label: t('nav.job_management'), icon: 'pi pi-briefcase', command: () => router.push('/job-management'), path: '/job-management', moduleSlug: 'jobmanagement' }
+  ])
+})
+
+// ── Talent items (flat, not dropdown) ──
+const talentItems = computed(() => {
+  return filterByModule([
+    { key: 'competency', label: t('nav.competency'), icon: 'pi pi-star', command: () => router.push('/competencies'), path: '/competencies', moduleSlug: 'competency' },
+    { key: 'performance', label: t('nav.performance'), icon: 'pi pi-chart-line', command: () => router.push('/performance'), path: '/performance', moduleSlug: 'performance' },
+    { key: 'training', label: t('nav.training'), icon: 'pi pi-book', command: () => router.push('/training'), path: '/training', moduleSlug: 'training' },
+    { key: 'recruitment', label: t('nav.recruitment'), icon: 'pi pi-user-plus', command: () => router.push('/recruitment'), path: '/recruitment', moduleSlug: 'recruitment' }
+  ])
+})
+
+// ── Operations items (flat, not dropdown) ──
+const operationsItems = computed(() => {
+  return filterByModule([
+    { key: 'attendance', label: t('nav.attendance'), icon: 'pi pi-clock', command: () => router.push('/attendance'), path: '/attendance', moduleSlug: 'attendance' },
+    { key: 'leave', label: t('nav.leave'), icon: 'pi pi-calendar', command: () => router.push('/leave'), path: '/leave', moduleSlug: 'leave' },
+    { key: 'movement', label: t('nav.movement'), icon: 'pi pi-arrows-alt', command: () => router.push('/employee-movements'), path: '/employee-movements', moduleSlug: 'employeemovement' },
+    { key: 'approval', label: t('nav.approval'), icon: 'pi pi-check-square', command: () => router.push('/approvals'), path: '/approvals', moduleSlug: 'approval' }
+  ])
+})
+
+// ── Panel menu groups for other sections ──
+const panelGroups = computed(() => [
   // Finance
   {
     key: 'finance',
@@ -156,7 +209,7 @@ const menuGroups = computed(() => [
       { label: t('nav.career_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/career-intelligence'), moduleSlug: 'career-intelligence' }
     ]
   },
-  // Settings — filter by setting module
+  // Settings
   {
     key: 'settings',
     label: t('nav.settings'),
@@ -184,41 +237,38 @@ const menuGroups = computed(() => [
   }
 ])
 
-// ── Filtered menu items — only show visible groups/items ──
-const menuItems = computed(() => {
-  return menuGroups.value
+// ── Filtered PanelMenu items — only show visible groups ──
+const panelMenuItems = computed(() => {
+  return panelGroups.value
     .map(group => {
-      if (group.items) {
-        // Filter child items by module
-        const visibleItems = filterByModule(group.items)
-        if (visibleItems.length === 0) return null // Hide group if no visible children
-        return { ...group, items: visibleItems }
-      }
-      // Single item (dashboard) — always visible
-      return group
+      const visibleItems = filterByModule(group.items)
+      if (visibleItems.length === 0) return null
+      return { ...group, items: visibleItems }
     })
-    .filter(Boolean) // Remove null groups
+    .filter(Boolean)
 })
 
 // ── Flatten top-level items for collapsed sidebar ──
-// Only include groups that have visible items
 const topLevelMenuItems = computed(() => {
   const items = []
   // Dashboard — always visible
   items.push({ key: 'Dashboard', label: t('nav.dashboard'), path: '/dashboard', icon: 'pi pi-home', command: () => router.push('/dashboard') })
   
-  // Core HR — show only if organization OR employee OR jobmanagement is active
-  if (activeMod.hasModule('organization') || activeMod.hasModule('employee') || activeMod.hasModule('jobmanagement')) {
-    items.push({ key: 'CoreHR', label: t('nav.core_hr'), path: '/organization-summary', icon: 'pi pi-building', command: () => router.push('/organization-summary') })
-  }
-  // Talent — show only if competency OR performance OR training OR recruitment is active
-  if (activeMod.hasModule('competency') || activeMod.hasModule('performance') || activeMod.hasModule('training') || activeMod.hasModule('recruitment')) {
-    items.push({ key: 'Talent', label: t('nav.talent'), path: '/competencies', icon: 'pi pi-star', command: () => router.push('/competencies') })
-  }
-  // Operations
-  if (activeMod.hasModule('attendance') || activeMod.hasModule('leave') || activeMod.hasModule('employeemovement') || activeMod.hasModule('approval')) {
-    items.push({ key: 'Operations', label: t('nav.operations'), path: '/attendance', icon: 'pi pi-cog', command: () => router.push('/attendance') })
-  }
+  // Core HR items
+  coreHRItems.value.forEach(item => {
+    items.push({ ...item, key: 'CoreHR-' + item.key })
+  })
+  
+  // Talent items
+  talentItems.value.forEach(item => {
+    items.push({ ...item, key: 'Talent-' + item.key })
+  })
+
+  // Operations items
+  operationsItems.value.forEach(item => {
+    items.push({ ...item, key: 'Operations-' + item.key })
+  })
+
   // Finance
   if (activeMod.hasModule('payroll') || activeMod.hasModule('reimbursement')) {
     items.push({ key: 'Finance', label: t('nav.finance'), path: '/payroll', icon: 'pi pi-dollar', command: () => router.push('/payroll') })
@@ -240,21 +290,30 @@ function isActive(item) {
   if (!item.path) return false
   return route.path.startsWith(item.path)
 }
+
+function isItemActive(item) {
+  if (!item.path) return false
+  // Exact match or starts with path
+  if (route.path === item.path) return true
+  return route.path.startsWith(item.path + '/') || route.path.startsWith(item.path + '?')
+}
 </script>
 
 <style scoped>
 :deep(.p-panelmenu){
   gap: 0px !important;
 }
-:deep(.p-panelmenu-header-label) {
+/* :deep(.p-panelmenu-header-label) {
   font-size: 1.2em !important;
-}
+} */
 :deep(.p-panelmenu-panel) {
   background: transparent !important;
   border: none !important;
   margin-bottom: 1px;
 }
-
+:deep(.p-panelmenu-item-label) {
+  font-size: 0.8125rem !important;
+}
 :deep(.p-panelmenu-header-link) {
   padding: 0.5rem 0.625rem !important;
   font-size: 0.8125rem !important;
