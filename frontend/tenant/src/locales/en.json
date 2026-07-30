@@ -3,7 +3,6 @@
     "description": "English locale for HRIS Tenant",
     "lang": "en"
   },
-
   "nav": {
     "app_title": "HRIS Platform",
     "tenant_label": "Tenant: {name}",
@@ -32,7 +31,6 @@
     "settings": "Settings",
     "profile": "Profile"
   },
-
   "common": {
     "search": "Search...",
     "filter": "Filter",
@@ -50,6 +48,7 @@
     "view": "View",
     "details": "Details",
     "back": "Back",
+    "next": "Next",
     "loading": "Loading...",
     "no_data": "No data available",
     "select": "Select",
@@ -57,13 +56,15 @@
     "status": "Status",
     "name": "Name",
     "description": "Description",
-    "items": "items"
+    "items": "items",
+    "aspect_ratio": "Aspect Ratio",
+    "custom": "Custom",
+    "apply": "Apply",
+    "reset": "Reset"
   },
-
   "form": {
     "required": "This field is required"
   },
-
   "common_status": {
     "active": "Active",
     "inactive": "Inactive",
@@ -78,7 +79,6 @@
     "cancelled": "Cancelled",
     "expired": "Expired"
   },
-
   "message": {
     "success": "Success",
     "error": "Error",
@@ -91,7 +91,6 @@
     "updated": "Updated successfully",
     "deleted": "Deleted successfully"
   },
-
   "dashboard": {
     "title": "Dashboard",
     "description": "Real-time overview of HR operations, KPIs, and quick access to modules.",
@@ -123,7 +122,6 @@
     "workforce_intel": "Workforce Intel",
     "career_intel": "Career Intel"
   },
-
   "org_summary": {
     "title": "Organization Summary",
     "description": "Manage organization establishment decrees and structure summaries.",
@@ -151,7 +149,6 @@
     "updated": "Summary updated successfully",
     "deleted": "Summary deleted successfully"
   },
-
   "organization": {
     "title": "Organization",
     "description": "Manage organization structure, positions, and job families.",
@@ -192,7 +189,6 @@
     "updated": "Organization updated successfully",
     "deleted": "Organization deleted successfully"
   },
-
   "zones": {
     "title": "Zones",
     "description": "Manage geographic zones and regions for organizational structure.",
@@ -211,10 +207,99 @@
     "updated": "Zone updated successfully",
     "deleted": "Zone deleted successfully"
   },
-
   "employee": {
     "title": "Employees",
     "description": "Manage employee data and records.",
+    "saved": "Employee data saved successfully",
+    "mother_name": "Mother's Name",
+    "mother_name_placeholder": "Enter mother's name",
+    "pob": "Place of Birth",
+    "pob_placeholder": "e.g. Jakarta",
+    "dob": "Date of Birth",
+    "dob_placeholder": "Select date of birth",
+    "religion": "Religion",
+    "select_religion": "Select religion...",
+    "marital_status": "Marital Status",
+    "select_marital_status": "Select marital status...",
+    "address_type": "Address Type",
+    "select_address_type": "Select type...",
+    "address_main": "Main Address",
+    "address_domicile": "Domicile",
+    "address": "Address",
+    "address_placeholder": "Enter street address",
+    "province": "Province",
+    "select_province": "Select province...",
+    "regency": "Regency",
+    "select_regency": "Select regency...",
+    "district": "District",
+    "select_district": "Select district...",
+    "village": "Village",
+    "select_village": "Select village...",
+    "postal_code": "Postal Code",
+    "postal_code_placeholder": "e.g. 12345",
+    "no_addresses": "No addresses added yet",
+    "contact_name": "Contact Name",
+    "contact_name_placeholder": "Enter contact name",
+    "contact_phone": "Phone Number",
+    "select_relationship": "Select relationship...",
+    "no_contacts": "No emergency contacts added yet",
+    "no_family": "No family members added yet",
+    "education_level": "Education Level",
+    "select_education": "Select education level...",
+    "school_name": "Institution Name",
+    "school_name_placeholder": "e.g. University of Indonesia",
+    "major": "Major",
+    "major_placeholder": "e.g. Computer Science",
+    "graduation_year": "Graduation Year",
+    "graduation_year_placeholder": "e.g. 2020",
+    "no_education": "No education records added yet",
+    "company": "Company",
+    "company_placeholder": "e.g. PT ABC",
+    "position": "Position",
+    "position_placeholder": "e.g. Manager",
+    "start_year": "Start Year",
+    "end_year": "End Year",
+    "year_placeholder": "e.g. 2020",
+    "no_experience": "No work experience added yet",
+    "document_name": "Document Name",
+    "document_name_placeholder": "e.g. ID Card",
+    "document_file": "File Path",
+    "document_file_placeholder": "e.g. uploads/id_card.pdf",
+    "note": "Note",
+    "note_placeholder": "Additional notes",
+    "no_documents": "No documents added yet",
+    "insurance_category": "Category",
+    "select_insurance_category": "Select category...",
+    "insurance_number": "Member Number",
+    "insurance_number_placeholder": "e.g. 0001234567890",
+    "insurance_name": "Insurance Name",
+    "insurance_name_placeholder": "e.g. BPJS Kesehatan",
+    "insurance_type": "Type",
+    "insurance_type_placeholder": "e.g. Mandiri",
+    "no_insurance": "No insurance added yet",
+    "organization": "Organization",
+    "select_organization": "Select organization...",
+    "employment_status": "Employment Status",
+    "select_employment_status": "Select status...",
+    "decision_letter": "Decree Number",
+    "decision_letter_placeholder": "e.g. SK-2024/001",
+    "decision_letter_date": "Decree Date",
+    "effective_date": "Effective Date",
+    "effective_end_date": "End Date",
+    "date_placeholder": "Select date",
+    "no_employment": "No employment records added yet",
+    "save_personal": "Save Personal Data",
+    "save_step": "Save",
+    "personal_first": "Please save Personal Data first",
+    "no_new_items": "No new items to save",
+    "profile_photo": "Profile Photo",
+    "change_photo": "Change photo",
+    "photo_hint": "JPG, PNG, GIF or WebP. Max 2MB.",
+    "uploading": "Uploading...",
+    "photo_saved": "Photo saved",
+    "photo_uploaded": "Photo uploaded successfully",
+    "photo_too_large": "File size must be less than 2MB",
+    "photo_invalid_type": "Only image files (JPG, PNG, GIF, WebP) are allowed",
     "wizard_step_personal": "Personal Data",
     "wizard_step_address": "Address",
     "wizard_step_contact": "Emergency Contact",
@@ -233,10 +318,32 @@
     "tab_documents": "Documents",
     "tab_insurance": "Insurance",
     "tab_employment": "Employment",
+    "employee_id": "Employee ID",
+    "nik": "NIK",
+    "gender": "Gender",
+    "gender_m": "Male",
+    "gender_f": "Female",
+    "phone": "Phone",
+    "email": "Email",
+    "new": "New Employee",
+    "edit": "Edit Employee",
+    "employee_id_placeholder": "e.g. EMP-001",
+    "nik_placeholder": "Enter NIK",
+    "select_gender": "Select gender...",
+    "phone_placeholder": "Enter phone number",
+    "email_placeholder": "Enter email address",
     "empty_title": "No employees registered yet",
-    "search": "Search employees..."
+    "search": "Search employees...",
+    "confirm_delete": "Delete employee \"{name}\"?",
+    "confirm_delete_title": "Delete Employee",
+    "created": "Employee created successfully",
+    "updated": "Employee updated successfully",
+    "deleted": "Employee deleted successfully",
+    "remove_photo": "Remove photo",
+    "confirm_remove_photo": "Remove this profile photo?",
+    "photo_removed": "Profile photo removed successfully",
+    "crop_photo": "Crop Photo"
   },
-
   "attendance": {
     "title": "Attendance",
     "description": "Manage attendance, shifts, and overtime.",
@@ -248,7 +355,6 @@
     "overtime": "Overtime Requests",
     "locations": "Locations"
   },
-
   "leave": {
     "title": "Leave",
     "description": "Manage leave types, requests, and balances.",
@@ -257,7 +363,6 @@
     "balances": "Leave Balances",
     "accrual_policies": "Accrual Policies"
   },
-
   "payroll": {
     "title": "Payroll",
     "description": "Manage payroll runs, components, and profiles.",
@@ -269,7 +374,6 @@
     "pph21": "PPh21 Settings",
     "payslips": "Payslips"
   },
-
   "performance": {
     "title": "Performance",
     "description": "Manage performance evaluations, KPI/OKR targets.",
@@ -278,7 +382,6 @@
     "templates": "Templates",
     "evaluations": "Evaluations"
   },
-
   "recruitment": {
     "title": "Recruitment",
     "description": "Manage job requisitions, candidates, and onboarding.",
@@ -288,7 +391,6 @@
     "interviews": "Interviews",
     "onboarding": "Onboarding"
   },
-
   "training": {
     "title": "Training",
     "description": "Manage training courses, sessions, and certifications.",
@@ -299,21 +401,18 @@
     "evaluations": "Evaluations",
     "certificates": "Certificates"
   },
-
   "reimbursement": {
     "title": "Reimbursement",
     "description": "Manage reimbursement types and requests.",
     "types": "Reimbursement Types",
     "requests": "Reimbursement Requests"
   },
-
   "employee_movement": {
     "title": "Employee Movement",
     "description": "Manage employee movements and contracts.",
     "movements": "Movements",
     "contracts": "Contracts"
   },
-
   "approval": {
     "title": "Approval",
     "description": "Manage approval flows and pending tasks.",
@@ -321,7 +420,6 @@
     "my_tasks": "My Tasks",
     "history": "History"
   },
-
   "job_management": {
     "title": "Job Management",
     "description": "Manage job titles, responsibilities, and scoring.",
@@ -333,7 +431,6 @@
     "scores": "Job Scores",
     "competency_groups": "Competency Groups"
   },
-
   "competency": {
     "title": "Competency",
     "description": "Manage competencies, values, and scoring.",
@@ -342,7 +439,6 @@
     "events": "Competency Events",
     "scores": "Competency Scores"
   },
-
   "workforce_intel": {
     "title": "Workforce Intelligence",
     "description": "Analytics, planning, and strategic workforce insights.",
@@ -353,7 +449,6 @@
     "executive": "Executive Dashboard",
     "scenarios": "Scenario Planning"
   },
-
   "career_intel": {
     "title": "Career Intelligence",
     "description": "Talent mapping, career paths, and succession planning.",
@@ -362,7 +457,6 @@
     "paths": "Career Paths",
     "succession": "Succession Plans"
   },
-
   "packages": {
     "title": "Subscription Packages",
     "description": "Browse and manage your subscription packages.",
@@ -378,7 +472,6 @@
     "confirm_subscribe": "Subscribe to this package?",
     "confirm_unsubscribe": "Unsubscribe from this package? Modules may be deactivated."
   },
-
   "profile": {
     "title": "Profile",
     "description": "Manage your account settings and password.",
@@ -396,7 +489,6 @@
     "status": "Status",
     "last_login": "Last Login"
   },
-
   "auth": {
     "title": "HRIS Platform",
     "version": "HRIS Platform v1.0",
@@ -413,7 +505,6 @@
       "logout": "Logout"
     }
   },
-
   "settings": {
     "title": "Settings",
     "description": "Manage administrative areas, zones, and regional data for the organization.",
@@ -435,7 +526,6 @@
     "ters": "TER (Tarif Efektif)",
     "ptkps": "PTKP"
   },
-
   "provinces": {
     "title": "Provinces",
     "description": "Manage provinces within the country.",
@@ -451,7 +541,6 @@
     "updated": "Province updated successfully",
     "deleted": "Province deleted successfully"
   },
-
   "regencies": {
     "title": "Regencies",
     "description": "Manage regencies / cities within each province.",
@@ -469,7 +558,6 @@
     "updated": "Regency updated successfully",
     "deleted": "Regency deleted successfully"
   },
-
   "districts": {
     "title": "Districts",
     "description": "Manage districts / sub-districts within each regency.",
@@ -487,7 +575,6 @@
     "updated": "District updated successfully",
     "deleted": "District deleted successfully"
   },
-
   "villages": {
     "title": "Villages",
     "description": "Manage villages / kelurahan within each district.",
@@ -505,7 +592,6 @@
     "updated": "Village updated successfully",
     "deleted": "Village deleted successfully"
   },
-
   "educations": {
     "title": "Educations",
     "description": "Manage education levels.",
@@ -522,7 +608,6 @@
     "updated": "Education updated successfully",
     "deleted": "Education deleted successfully"
   },
-
   "religions": {
     "title": "Religions",
     "description": "Manage religions.",
@@ -539,7 +624,6 @@
     "updated": "Religion updated successfully",
     "deleted": "Religion deleted successfully"
   },
-
   "marital_status": {
     "title": "Marital Statuses",
     "description": "Manage marital statuses.",
@@ -556,7 +640,6 @@
     "updated": "Marital status updated successfully",
     "deleted": "Marital status deleted successfully"
   },
-
   "relationship_types": {
     "title": "Relationship Types",
     "description": "Manage relationship types for employee emergency contacts and family.",
@@ -572,7 +655,6 @@
     "updated": "Relationship type updated successfully",
     "deleted": "Relationship type deleted successfully"
   },
-
   "employment_statuses": {
     "title": "Employment Statuses",
     "description": "Manage employment status types for employee contracts.",
@@ -588,7 +670,6 @@
     "updated": "Employment status updated successfully",
     "deleted": "Employment status deleted successfully"
   },
-
   "banks": {
     "title": "Banks",
     "description": "Manage bank list for employee payroll profiles.",
@@ -604,7 +685,6 @@
     "updated": "Bank updated successfully",
     "deleted": "Bank deleted successfully"
   },
-
   "nationalities": {
     "title": "Nationalities",
     "description": "Manage nationalities for employee profiles.",
@@ -620,7 +700,6 @@
     "updated": "Nationality updated successfully",
     "deleted": "Nationality deleted successfully"
   },
-
   "job_families": {
     "title": "Job Families",
     "description": "Manage job family groupings for organizational structure.",
@@ -637,7 +716,6 @@
     "updated": "Job family updated successfully",
     "deleted": "Job family deleted successfully"
   },
-
   "gradings": {
     "title": "Gradings",
     "description": "Manage grading levels for organizational structures.",
@@ -654,7 +732,6 @@
     "updated": "Grading updated successfully",
     "deleted": "Grading deleted successfully"
   },
-
   "salary_grades": {
     "title": "Salary Grades",
     "description": "Manage salary grading levels for position and payroll structures.",
@@ -673,7 +750,6 @@
     "updated": "Salary grade updated successfully",
     "deleted": "Salary grade deleted successfully"
   },
-
   "ters": {
     "title": "TER (Tarif Efektif Rata-rata)",
     "description": "Manage effective average tax rates for PPh21 calculation.",
@@ -691,7 +767,6 @@
     "updated": "TER updated successfully",
     "deleted": "TER deleted successfully"
   },
-
   "ptkps": {
     "title": "PTKP",
     "description": "Manage non-taxable income thresholds.",
@@ -708,7 +783,6 @@
     "updated": "PTKP updated successfully",
     "deleted": "PTKP deleted successfully"
   },
-
   "time": {
     "just_now": "Just now",
     "minutes_ago": "{n} minutes ago",

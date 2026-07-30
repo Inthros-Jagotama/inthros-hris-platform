@@ -2,7 +2,10 @@ package employee
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -37,8 +40,9 @@ func (h *Handler) Create(c *gin.Context) {
 func (h *Handler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	search := c.Query("search")
 
-	resp, err := h.service.List(c.Request.Context(), page, perPage)
+	resp, err := h.service.List(c.Request.Context(), page, perPage, search)
 	if err != nil {
 			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -79,6 +83,74 @@ func (h *Handler) Delete(c *gin.Context) {
 	if err := h.service.Delete(c.Request.Context(), c.Param("id")); err != nil {
 			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// PUT /api/v1/tenant/employees/:id/photo — Upload profile picture
+func (h *Handler) UploadPhoto(c *gin.Context) {
+	employeeID := c.Param("id")
+
+	file, err := c.FormFile("photo")
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "Photo file is required")
+		return
+	}
+
+	// Validate file type (only images)
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" && ext != ".webp" {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "Only image files (jpg, jpeg, png, gif, webp) are allowed")
+		return
+	}
+
+	// Max 2MB
+	if file.Size > 2*1024*1024 {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "File size must be less than 2MB")
+		return
+	}
+
+	// Build filename: employee_id + ext
+	filename := employeeID + ext
+	uploadDir := "uploads/employees"
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		httputil.InternalError(c, "Failed to create upload directory")
+		return
+	}
+
+	destPath := uploadDir + "/" + filename
+	if err := c.SaveUploadedFile(file, destPath); err != nil {
+		httputil.InternalError(c, "Failed to save uploaded file")
+		return
+	}
+
+	// Update employee profile_picture in database
+	photoURL := "/" + destPath
+	if err := h.service.UpdatePhoto(c.Request.Context(), employeeID, photoURL); err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	httputil.SuccessJSON(c, gin.H{"profile_picture": photoURL})
+}
+
+// DELETE /api/v1/tenant/employees/:id/photo — Delete profile picture
+func (h *Handler) DeletePhoto(c *gin.Context) {
+	employeeID := c.Param("id")
+
+	if err := h.service.DeletePhoto(c.Request.Context(), employeeID); err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	// Also delete file from disk
+	// Walk known extensions to find and delete the file
+	for _, ext := range []string{".jpg", ".jpeg", ".png", ".gif", ".webp"} {
+		filePath := "uploads/employees/" + employeeID + ext
+		if err := os.Remove(filePath); err == nil {
+			break
+		}
 	}
 
 	httputil.DeletedJSON(c, "success.deleted")

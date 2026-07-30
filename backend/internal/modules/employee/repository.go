@@ -63,7 +63,7 @@ func (r *Repository) FindEmployeeByEmployeeID(ctx context.Context, employeeID st
 	return &emp, nil
 }
 
-func (r *Repository) FindAllEmployees(ctx context.Context, page, perPage int) ([]Employee, int64, error) {
+func (r *Repository) FindAllEmployees(ctx context.Context, page, perPage int, search string) ([]Employee, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -72,6 +72,17 @@ func (r *Repository) FindAllEmployees(ctx context.Context, page, perPage int) ([
 	var total int64
 
 	query := db.Model(&Employee{})
+
+	// Apply search filter
+	if search != "" {
+		like := "%" + search + "%"
+		query = query.Where(
+			db.Where("name LIKE ?", like).
+				Or("employee_id LIKE ?", like).
+				Or("nik LIKE ?", like),
+		)
+	}
+
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}

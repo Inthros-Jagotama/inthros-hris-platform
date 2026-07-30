@@ -24,6 +24,20 @@
         <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ t('organization.title') }}</span>
       </template>
 
+      <!-- Breadcrumb: Employees > New/Edit Employee -->
+      <template v-else-if="showEmployeeBreadcrumb">
+        <Button
+          text
+          size="small"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          @click="goBackToEmployees"
+        >
+          {{ t('nav.employees') }}
+        </Button>
+        <i class="pi pi-chevron-right text-xs text-gray-300"></i>
+        <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ route.meta?.titleKey ? t(route.meta.titleKey) : '' }}</span>
+      </template>
+
       <!-- Normal page title -->
       <template v-else>
         <i class="pi pi-chevron-right text-sm text-gray-300"></i>
@@ -125,8 +139,17 @@ const showOrgBreadcrumb = computed(() => {
   return route.name === 'Organizations' && route.query?.summary_id
 })
 
+/** Show breadcrumb when in Employee Form pages */
+const showEmployeeBreadcrumb = computed(() => {
+  return ['EmployeeNew', 'EmployeeEdit'].includes(route.name)
+})
+
 function goBackToSummary() {
   router.push('/organization-summary')
+}
+
+function goBackToEmployees() {
+  router.push('/employees')
 }
 
 const userMenuItems = computed(() => [

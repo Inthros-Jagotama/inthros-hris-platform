@@ -45,6 +45,9 @@ func Setup(cfg Config, authMiddleware, tenantMiddleware, rbacMiddleware gin.Hand
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
+	// Serve uploaded files (profile pictures, etc.)
+	r.Static("/uploads", "./uploads")
+
 	// Platform routes (no tenant context)
 	platformGroup := r.Group("/api/v1/platform")
 	{

@@ -12,6 +12,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		emps.GET("", handler.List)
 		emps.GET("/:id", handler.GetByID)
 		emps.PUT("/:id", handler.Update)
+		emps.PUT("/:id/photo", handler.UploadPhoto)
+		emps.DELETE("/:id/photo", handler.DeletePhoto)
 		emps.DELETE("/:id", handler.Delete)
 
 		// Addresses

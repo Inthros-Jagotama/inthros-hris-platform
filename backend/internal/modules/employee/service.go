@@ -119,7 +119,7 @@ func (s *Service) GetByID(ctx context.Context, id string) (*EmployeeResponse, er
 	return &response, nil
 }
 
-func (s *Service) List(ctx context.Context, page, perPage int) (*ListResponse, error) {
+func (s *Service) List(ctx context.Context, page, perPage int, search string) (*ListResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
@@ -127,7 +127,7 @@ func (s *Service) List(ctx context.Context, page, perPage int) (*ListResponse, e
 		perPage = defaultPerPage
 	}
 
-	employees, total, err := s.repo.FindAllEmployees(ctx, page, perPage)
+	employees, total, err := s.repo.FindAllEmployees(ctx, page, perPage, search)
 	if err != nil {
 		return nil, err
 	}
@@ -235,6 +235,38 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("invalid employee id: %w", err)
 	}
 	return s.repo.DeleteEmployee(ctx, uid)
+}
+
+func (s *Service) UpdatePhoto(ctx context.Context, id, photoURL string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid employee id: %w", err)
+	}
+
+	emp, err := s.repo.FindEmployeeByID(ctx, uid)
+	if err != nil {
+		return err
+	}
+	emp.ProfilePicture = &photoURL
+	emp.UpdatedBy = authctx.GetUserID(ctx)
+
+	return s.repo.UpdateEmployee(ctx, emp)
+}
+
+func (s *Service) DeletePhoto(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid employee id: %w", err)
+	}
+
+	emp, err := s.repo.FindEmployeeByID(ctx, uid)
+	if err != nil {
+		return err
+	}
+	emp.ProfilePicture = nil
+	emp.UpdatedBy = authctx.GetUserID(ctx)
+
+	return s.repo.UpdateEmployee(ctx, emp)
 }
 
 // =========================================================================

@@ -47,6 +47,18 @@ const routes = [
         component: () => import('@/views/modules/Employees.vue'),
         meta: { title: 'Employees', titleKey: 'employee.title', descKey: 'employee.description', icon: 'pi pi-users', module: 'employee' }
       },
+      {
+        path: 'employees/new',
+        name: 'EmployeeNew',
+        component: () => import('@/views/modules/EmployeeForm.vue'),
+        meta: { title: 'New Employee', titleKey: 'employee.new', descKey: 'employee.description', icon: 'pi pi-user-plus', module: 'employee', backRoute: '/employees', backLabelKey: 'nav.employees' }
+      },
+      {
+        path: 'employees/:id/edit',
+        name: 'EmployeeEdit',
+        component: () => import('@/views/modules/EmployeeForm.vue'),
+        meta: { title: 'Edit Employee', titleKey: 'employee.edit', descKey: 'employee.description', icon: 'pi pi-user-edit', module: 'employee', backRoute: '/employees', backLabelKey: 'nav.employees' }
+      },
       // Job Management
       {
         path: 'job-management',

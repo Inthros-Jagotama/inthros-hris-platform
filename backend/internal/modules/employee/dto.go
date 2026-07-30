@@ -251,6 +251,7 @@ type EmployeeResponse struct {
 	EmployeeID      string     `json:"employee_id"`
 	NIK             string     `json:"nik,omitempty"`
 	Name            string     `json:"name"`
+	MotherName      string     `json:"mother_name,omitempty"`
 	Gender          string     `json:"gender,omitempty"`
 	POB             string     `json:"pob,omitempty"`
 	DOB             string     `json:"dob,omitempty"`
@@ -258,6 +259,7 @@ type EmployeeResponse struct {
 	Email           string     `json:"email,omitempty"`
 	ReligionID      string     `json:"religion_id,omitempty"`
 	MaritalStatusID string     `json:"marital_status_id,omitempty"`
+	ProfilePicture  string     `json:"profile_picture,omitempty"`
 	Status          string     `json:"status"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
@@ -463,6 +465,12 @@ func (e *Employee) ToResponse() EmployeeResponse {
 	}
 	if e.MaritalStatusID != nil {
 		r.MaritalStatusID = e.MaritalStatusID.String()
+	}
+	if e.MotherName != nil {
+		r.MotherName = *e.MotherName
+	}
+	if e.ProfilePicture != nil {
+		r.ProfilePicture = *e.ProfilePicture
 	}
 
 	// Sub-modules

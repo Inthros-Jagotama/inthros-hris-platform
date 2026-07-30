@@ -3,7 +3,6 @@
     "description": "Indonesian locale for HRIS Tenant",
     "lang": "id"
   },
-
   "nav": {
     "app_title": "HRIS Platform",
     "tenant_label": "Tenant: {name}",
@@ -32,7 +31,6 @@
     "settings": "Pengaturan",
     "profile": "Profil"
   },
-
   "common": {
     "search": "Cari...",
     "filter": "Filter",
@@ -50,6 +48,7 @@
     "view": "Lihat",
     "details": "Detail",
     "back": "Kembali",
+    "next": "Berikutnya",
     "loading": "Memuat...",
     "no_data": "Tidak ada data",
     "select": "Pilih",
@@ -57,13 +56,15 @@
     "status": "Status",
     "name": "Nama",
     "description": "Deskripsi",
-    "items": "item"
+    "items": "item",
+    "aspect_ratio": "Rasio",
+    "custom": "Kustom",
+    "apply": "Terapkan",
+    "reset": "Atur Ulang"
   },
-
   "form": {
     "required": "Field ini wajib diisi"
   },
-
   "common_status": {
     "active": "Aktif",
     "inactive": "Nonaktif",
@@ -78,7 +79,6 @@
     "cancelled": "Dibatalkan",
     "expired": "Kadaluwarsa"
   },
-
   "message": {
     "success": "Berhasil",
     "error": "Gagal",
@@ -91,7 +91,6 @@
     "updated": "Berhasil diperbarui",
     "deleted": "Berhasil dihapus"
   },
-
   "dashboard": {
     "title": "Dasbor",
     "description": "Ikhtisar real-time operasi HR, KPI, dan akses cepat ke modul.",
@@ -123,7 +122,6 @@
     "workforce_intel": "Intel Tenaga Kerja",
     "career_intel": "Intel Karir"
   },
-
   "org_summary": {
     "title": "Ringkasan Organisasi",
     "description": "Kelola surat keputusan (SK) pendirian organisasi dan ringkasan struktur.",
@@ -151,7 +149,6 @@
     "updated": "Ringkasan berhasil diubah",
     "deleted": "Ringkasan berhasil dihapus"
   },
-
   "organization": {
     "title": "Organisasi",
     "description": "Kelola struktur organisasi, posisi, dan grup jabatan.",
@@ -192,7 +189,6 @@
     "updated": "Organisasi berhasil diperbarui",
     "deleted": "Organisasi berhasil dihapus"
   },
-
   "zones": {
     "title": "Wilayah",
     "description": "Kelola zona dan wilayah geografis untuk struktur organisasi.",
@@ -211,10 +207,99 @@
     "updated": "Wilayah berhasil diperbarui",
     "deleted": "Wilayah berhasil dihapus"
   },
-
   "employee": {
     "title": "Karyawan",
     "description": "Kelola data dan catatan karyawan.",
+    "saved": "Data karyawan berhasil disimpan",
+    "mother_name": "Nama Ibu",
+    "mother_name_placeholder": "Masukkan nama ibu",
+    "pob": "Tempat Lahir",
+    "pob_placeholder": "Mis: Jakarta",
+    "dob": "Tanggal Lahir",
+    "dob_placeholder": "Pilih tanggal lahir",
+    "religion": "Agama",
+    "select_religion": "Pilih agama...",
+    "marital_status": "Status Pernikahan",
+    "select_marital_status": "Pilih status pernikahan...",
+    "address_type": "Tipe Alamat",
+    "select_address_type": "Pilih tipe...",
+    "address_main": "Alamat Utama",
+    "address_domicile": "Domisili",
+    "address": "Alamat",
+    "address_placeholder": "Masukkan alamat",
+    "province": "Provinsi",
+    "select_province": "Pilih provinsi...",
+    "regency": "Kabupaten/Kota",
+    "select_regency": "Pilih kabupaten...",
+    "district": "Kecamatan",
+    "select_district": "Pilih kecamatan...",
+    "village": "Desa/Kelurahan",
+    "select_village": "Pilih desa...",
+    "postal_code": "Kode Pos",
+    "postal_code_placeholder": "Mis: 12345",
+    "no_addresses": "Belum ada alamat ditambahkan",
+    "contact_name": "Nama Kontak",
+    "contact_name_placeholder": "Masukkan nama kontak",
+    "contact_phone": "No. Telepon",
+    "select_relationship": "Pilih hubungan...",
+    "no_contacts": "Belum ada kontak darurat ditambahkan",
+    "no_family": "Belum ada anggota keluarga ditambahkan",
+    "education_level": "Jenjang Pendidikan",
+    "select_education": "Pilih jenjang...",
+    "school_name": "Nama Institusi",
+    "school_name_placeholder": "Mis: Universitas Indonesia",
+    "major": "Jurusan",
+    "major_placeholder": "Mis: Ilmu Komputer",
+    "graduation_year": "Tahun Lulus",
+    "graduation_year_placeholder": "Mis: 2020",
+    "no_education": "Belum ada riwayat pendidikan ditambahkan",
+    "company": "Perusahaan",
+    "company_placeholder": "Mis: PT ABC",
+    "position": "Posisi",
+    "position_placeholder": "Mis: Manajer",
+    "start_year": "Tahun Mulai",
+    "end_year": "Tahun Selesai",
+    "year_placeholder": "Mis: 2020",
+    "no_experience": "Belum ada pengalaman kerja ditambahkan",
+    "document_name": "Nama Dokumen",
+    "document_name_placeholder": "Mis: KTP",
+    "document_file": "Path File",
+    "document_file_placeholder": "Mis: uploads/ktp.pdf",
+    "note": "Catatan",
+    "note_placeholder": "Catatan tambahan",
+    "no_documents": "Belum ada dokumen ditambahkan",
+    "insurance_category": "Kategori",
+    "select_insurance_category": "Pilih kategori...",
+    "insurance_number": "No. Peserta",
+    "insurance_number_placeholder": "Mis: 0001234567890",
+    "insurance_name": "Nama Asuransi",
+    "insurance_name_placeholder": "Mis: BPJS Kesehatan",
+    "insurance_type": "Tipe",
+    "insurance_type_placeholder": "Mis: Mandiri",
+    "no_insurance": "Belum ada asuransi ditambahkan",
+    "organization": "Organisasi",
+    "select_organization": "Pilih organisasi...",
+    "employment_status": "Status Kepegawaian",
+    "select_employment_status": "Pilih status...",
+    "decision_letter": "No. SK",
+    "decision_letter_placeholder": "Mis: SK-2024/001",
+    "decision_letter_date": "Tanggal SK",
+    "effective_date": "Tanggal Mulai",
+    "effective_end_date": "Tanggal Berakhir",
+    "date_placeholder": "Pilih tanggal",
+    "no_employment": "Belum ada riwayat pekerjaan ditambahkan",
+    "save_personal": "Simpan Data Pribadi",
+    "save_step": "Simpan",
+    "personal_first": "Silakan simpan Data Pribadi terlebih dahulu",
+    "no_new_items": "Tidak ada data baru untuk disimpan",
+    "profile_photo": "Foto Profil",
+    "change_photo": "Ganti foto",
+    "photo_hint": "JPG, PNG, GIF atau WebP. Maks 2MB.",
+    "uploading": "Mengunggah...",
+    "photo_saved": "Foto tersimpan",
+    "photo_uploaded": "Foto berhasil diunggah",
+    "photo_too_large": "Ukuran file harus kurang dari 2MB",
+    "photo_invalid_type": "Hanya file gambar (JPG, PNG, GIF, WebP) yang diizinkan",
     "wizard_step_personal": "Data Pribadi",
     "wizard_step_address": "Alamat",
     "wizard_step_contact": "Kontak Darurat",
@@ -233,10 +318,32 @@
     "tab_documents": "Dokumen",
     "tab_insurance": "Asuransi",
     "tab_employment": "Pekerjaan",
+    "employee_id": "ID Karyawan",
+    "nik": "NIK",
+    "gender": "Jenis Kelamin",
+    "gender_m": "Laki-laki",
+    "gender_f": "Perempuan",
+    "phone": "Telepon",
+    "email": "Email",
+    "new": "Karyawan Baru",
+    "edit": "Ubah Karyawan",
+    "employee_id_placeholder": "Mis: EMP-001",
+    "nik_placeholder": "Masukkan NIK",
+    "select_gender": "Pilih jenis kelamin...",
+    "phone_placeholder": "Masukkan nomor telepon",
+    "email_placeholder": "Masukkan email",
     "empty_title": "Belum ada karyawan terdaftar",
-    "search": "Cari karyawan..."
+    "search": "Cari karyawan...",
+    "confirm_delete": "Hapus karyawan \"{name}\"?",
+    "confirm_delete_title": "Hapus Karyawan",
+    "created": "Karyawan berhasil dibuat",
+    "updated": "Karyawan berhasil diperbarui",
+    "deleted": "Karyawan berhasil dihapus",
+    "remove_photo": "Hapus foto",
+    "confirm_remove_photo": "Hapus foto profil ini?",
+    "photo_removed": "Foto profil berhasil dihapus",
+    "crop_photo": "Potong Foto"
   },
-
   "attendance": {
     "title": "Absensi",
     "description": "Kelola absensi, shift, dan lembur.",
@@ -248,7 +355,6 @@
     "overtime": "Lembur",
     "locations": "Lokasi"
   },
-
   "leave": {
     "title": "Cuti",
     "description": "Kelola tipe cuti, permohonan, dan saldo cuti.",
@@ -257,7 +363,6 @@
     "balances": "Saldo Cuti",
     "accrual_policies": "Kebijakan Akrual"
   },
-
   "payroll": {
     "title": "Penggajian",
     "description": "Kelola penggajian, komponen, dan profil karyawan.",
@@ -269,7 +374,6 @@
     "pph21": "Pengaturan PPh21",
     "payslips": "Slip Gaji"
   },
-
   "performance": {
     "title": "Kinerja",
     "description": "Kelola evaluasi kinerja, target KPI/OKR.",
@@ -278,7 +382,6 @@
     "templates": "Template",
     "evaluations": "Evaluasi"
   },
-
   "recruitment": {
     "title": "Rekrutmen",
     "description": "Kelola lowongan, kandidat, dan onboarding.",
@@ -288,7 +391,6 @@
     "interviews": "Wawancara",
     "onboarding": "Onboarding"
   },
-
   "training": {
     "title": "Pelatihan",
     "description": "Kelola kursus, sesi, dan sertifikasi pelatihan.",
@@ -299,21 +401,18 @@
     "evaluations": "Evaluasi",
     "certificates": "Sertifikat"
   },
-
   "reimbursement": {
     "title": "Reimbursemen",
     "description": "Kelola tipe dan permohonan reimbursemen.",
     "types": "Tipe Reimbursemen",
     "requests": "Permohonan"
   },
-
   "employee_movement": {
     "title": "Mutasi Karyawan",
     "description": "Kelola mutasi dan kontrak karyawan.",
     "movements": "Mutasi",
     "contracts": "Kontrak"
   },
-
   "approval": {
     "title": "Persetujuan",
     "description": "Kelola alur persetujuan dan tugas tertunda.",
@@ -321,7 +420,6 @@
     "my_tasks": "Tugas Saya",
     "history": "Riwayat"
   },
-
   "job_management": {
     "title": "Manajemen Jabatan",
     "description": "Kelola jabatan, tanggung jawab, dan scoring.",
@@ -333,7 +431,6 @@
     "scores": "Skor Jabatan",
     "competency_groups": "Grup Kompetensi"
   },
-
   "competency": {
     "title": "Kompetensi",
     "description": "Kelola kompetensi, nilai, dan scoring.",
@@ -342,7 +439,6 @@
     "events": "Event Kompetensi",
     "scores": "Skor Kompetensi"
   },
-
   "workforce_intel": {
     "title": "Intel Tenaga Kerja",
     "description": "Analitik, perencanaan, dan wawasan tenaga kerja strategis.",
@@ -353,7 +449,6 @@
     "executive": "Dasbor Eksekutif",
     "scenarios": "Perencanaan Skenario"
   },
-
   "career_intel": {
     "title": "Intel Karir",
     "description": "Pemetaan bakat, jalur karir, dan rencana suksesi.",
@@ -362,7 +457,6 @@
     "paths": "Jalur Karir",
     "succession": "Rencana Suksesi"
   },
-
   "packages": {
     "title": "Paket Langganan",
     "description": "Jelajahi dan kelola paket langganan Anda.",
@@ -378,7 +472,6 @@
     "confirm_subscribe": "Langganan paket ini?",
     "confirm_unsubscribe": "Berhenti berlangganan paket ini? Modul mungkin dinonaktifkan."
   },
-
   "profile": {
     "title": "Profil",
     "description": "Kelola pengaturan akun dan kata sandi Anda.",
@@ -396,7 +489,6 @@
     "status": "Status",
     "last_login": "Terakhir Masuk"
   },
-
   "auth": {
     "title": "HRIS Platform",
     "version": "HRIS Platform v1.0",
@@ -413,7 +505,6 @@
       "logout": "Keluar"
     }
   },
-
   "settings": {
     "title": "Pengaturan",
     "description": "Kelola area administratif, zona, dan data regional untuk organisasi.",
@@ -435,7 +526,6 @@
     "ters": "TER (Tarif Efektif)",
     "ptkps": "PTKP"
   },
-
   "provinces": {
     "title": "Provinsi",
     "description": "Kelola provinsi di dalam negara.",
@@ -451,7 +541,6 @@
     "updated": "Provinsi berhasil diperbarui",
     "deleted": "Provinsi berhasil dihapus"
   },
-
   "regencies": {
     "title": "Kabupaten/Kota",
     "description": "Kelola kabupaten/kota di dalam setiap provinsi.",
@@ -469,7 +558,6 @@
     "updated": "Kabupaten berhasil diperbarui",
     "deleted": "Kabupaten berhasil dihapus"
   },
-
   "districts": {
     "title": "Kecamatan",
     "description": "Kelola kecamatan di dalam setiap kabupaten.",
@@ -487,7 +575,6 @@
     "updated": "Kecamatan berhasil diperbarui",
     "deleted": "Kecamatan berhasil dihapus"
   },
-
   "villages": {
     "title": "Desa/Kelurahan",
     "description": "Kelola desa/kelurahan di dalam setiap kecamatan.",
@@ -505,7 +592,6 @@
     "updated": "Desa berhasil diperbarui",
     "deleted": "Desa berhasil dihapus"
   },
-
   "educations": {
     "title": "Pendidikan",
     "description": "Kelola tingkat pendidikan.",
@@ -522,7 +608,6 @@
     "updated": "Pendidikan berhasil diperbarui",
     "deleted": "Pendidikan berhasil dihapus"
   },
-
   "religions": {
     "title": "Agama",
     "description": "Kelola agama.",
@@ -539,7 +624,6 @@
     "updated": "Agama berhasil diperbarui",
     "deleted": "Agama berhasil dihapus"
   },
-
   "marital_status": {
     "title": "Status Pernikahan",
     "description": "Kelola status pernikahan.",
@@ -556,7 +640,6 @@
     "updated": "Status pernikahan berhasil diperbarui",
     "deleted": "Status pernikahan berhasil dihapus"
   },
-
   "relationship_types": {
     "title": "Tipe Hubungan",
     "description": "Kelola tipe hubungan untuk kontak darurat dan keluarga karyawan.",
@@ -572,7 +655,6 @@
     "updated": "Tipe hubungan berhasil diperbarui",
     "deleted": "Tipe hubungan berhasil dihapus"
   },
-
   "employment_statuses": {
     "title": "Status Kepegawaian",
     "description": "Kelola status kepegawaian untuk kontrak karyawan.",
@@ -588,7 +670,6 @@
     "updated": "Status kepegawaian berhasil diperbarui",
     "deleted": "Status kepegawaian berhasil dihapus"
   },
-
   "banks": {
     "title": "Bank",
     "description": "Kelola daftar bank untuk profil penggajian karyawan.",
@@ -604,7 +685,6 @@
     "updated": "Bank berhasil diperbarui",
     "deleted": "Bank berhasil dihapus"
   },
-
   "nationalities": {
     "title": "Kebangsaan",
     "description": "Kelola kebangsaan untuk profil karyawan.",
@@ -620,7 +700,6 @@
     "updated": "Kebangsaan berhasil diperbarui",
     "deleted": "Kebangsaan berhasil dihapus"
   },
-
   "job_families": {
     "title": "Grup Jabatan",
     "description": "Kelola grup jabatan untuk struktur organisasi.",
@@ -637,7 +716,6 @@
     "updated": "Grup jabatan berhasil diperbarui",
     "deleted": "Grup jabatan berhasil dihapus"
   },
-
   "gradings": {
     "title": "Grading",
     "description": "Kelola level grading untuk struktur organisasi.",
@@ -654,7 +732,6 @@
     "updated": "Grading berhasil diperbarui",
     "deleted": "Grading berhasil dihapus"
   },
-
   "salary_grades": {
     "title": "Grade Gaji",
     "description": "Kelola grade gaji untuk struktur jabatan dan penggajian.",
@@ -673,7 +750,6 @@
     "updated": "Grade gaji berhasil diperbarui",
     "deleted": "Grade gaji berhasil dihapus"
   },
-
   "ters": {
     "title": "TER (Tarif Efektif Rata-rata)",
     "description": "Kelola tarif efektif rata-rata untuk perhitungan PPh21.",
@@ -691,7 +767,6 @@
     "updated": "TER berhasil diperbarui",
     "deleted": "TER berhasil dihapus"
   },
-
   "ptkps": {
     "title": "PTKP",
     "description": "Kelola besaran penghasilan tidak kena pajak.",
@@ -708,7 +783,6 @@
     "updated": "PTKP berhasil diperbarui",
     "deleted": "PTKP berhasil dihapus"
   },
-
   "time": {
     "just_now": "Baru saja",
     "minutes_ago": "{n} menit yang lalu",
