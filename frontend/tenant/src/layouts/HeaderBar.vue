@@ -38,6 +38,20 @@
         <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ route.meta?.titleKey ? t(route.meta.titleKey) : '' }}</span>
       </template>
 
+      <!-- Breadcrumb: Job Management > Manage Job Data -->
+      <template v-else-if="showJobManagementBreadcrumb">
+        <Button
+          text
+          size="small"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          @click="goBackToJobManagement"
+        >
+          {{ t('nav.job_management') }}
+        </Button>
+        <i class="pi pi-chevron-right text-xs text-gray-300"></i>
+        <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ t('job_management.manage') }}</span>
+      </template>
+
       <!-- Normal page title -->
       <template v-else>
         <i class="pi pi-chevron-right text-sm text-gray-300"></i>
@@ -144,12 +158,21 @@ const showEmployeeBreadcrumb = computed(() => {
   return ['EmployeeNew', 'EmployeeEdit'].includes(route.name)
 })
 
+/** Show breadcrumb when in Job Management Form page */
+const showJobManagementBreadcrumb = computed(() => {
+  return route.name === 'JobManagementForm'
+})
+
 function goBackToSummary() {
   router.push('/organization-summary')
 }
 
 function goBackToEmployees() {
   router.push('/employees')
+}
+
+function goBackToJobManagement() {
+  router.push('/job-management')
 }
 
 const userMenuItems = computed(() => [

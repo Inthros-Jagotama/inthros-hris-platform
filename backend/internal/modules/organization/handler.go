@@ -51,6 +51,7 @@ func (h *Handler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	summaryID := c.Query("summary_id")
+	activeOnly := c.Query("active_only") == "true"
 
 	// If tree=true, return tree structure
 	if c.Query("tree") == "true" {
@@ -64,7 +65,7 @@ func (h *Handler) List(c *gin.Context) {
 	}
 
 	// Default: paginated flat list
-	resp, err := h.service.List(c.Request.Context(), page, perPage, summaryID)
+	resp, err := h.service.List(c.Request.Context(), page, perPage, summaryID, activeOnly)
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return

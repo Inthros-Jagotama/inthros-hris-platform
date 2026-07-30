@@ -64,7 +64,19 @@ const routes = [
         path: 'job-management',
         name: 'JobManagement',
         component: () => import('@/views/modules/JobManagement.vue'),
-        meta: { title: 'Job Management', titleKey: 'job_management.title', descKey: 'job_management.description', icon: 'pi pi-briefcase', module: 'job-management' }
+        meta: { title: 'Job Management', titleKey: 'job_management.title', descKey: 'job_management.description', icon: 'pi pi-briefcase', module: 'jobmanagement' }
+      },
+      {
+        path: 'job-management/values',
+        name: 'JobValues',
+        component: () => import('@/views/modules/JobValuesForm.vue'),
+        meta: { title: 'Job Values', titleKey: 'job_management.values', descKey: 'job_values.description', icon: 'pi pi-sliders-h', module: 'jobmanagement', backRoute: '/job-management', backLabelKey: 'nav.job_management' }
+      },
+      {
+        path: 'job-management/form',
+        name: 'JobManagementForm',
+        component: () => import('@/views/modules/job/JobManagementForm.vue'),
+        meta: { title: 'Manage Job Data', titleKey: 'job_management.manage', descKey: 'job_management.manage_description', icon: 'pi pi-briefcase', module: 'jobmanagement', backRoute: '/job-management', backLabelKey: 'nav.job_management' }
       },
       // Competency Management
       {

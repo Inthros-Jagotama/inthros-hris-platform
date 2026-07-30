@@ -290,7 +290,7 @@
 | — Settings: Insurances | 🟢 Easy | 1 reference CRUD (Code, Name, SortOrder) — Backend + Frontend + OpenAPI | ✅ **Done** |
 | — Settings: TER & PTKP | 🟢 Easy | 2 tax reference CRUDs (TER: Group, BrutoMin, BrutoMax, Rate; PTKP: Name, Group, Amount) | ✅ **Done** |
 | — Organization Management | 🟡 Medium | TreeTable view, CRUD with parent selection, dark mode, bilingual (Positions CRUD ⏸️ postponed) | ✅ **Done** |
-| — Employee Management (Wizard) | 🔴 Complex | Multi-step form (9 steps) | 🔴 TODO |
+| — Employee Management (Wizard) | 🔴 Complex | Multi-step form (8/9 steps done — Step 9 Employment + Detail Page ⏸️ postponed) | ✅ **8/9 Steps Done — Remaining Postponed** |
 | E2E Testing (Playwright) | 🟡 Medium | Phase 5 | ⬜ Planned |
 | Performance Optimization | 🟢 High | Phase 5 | ⬜ Planned |
 | CI/CD Pipeline | 🟡 Medium | Phase 5 | ⬜ Planned |

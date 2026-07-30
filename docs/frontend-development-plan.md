@@ -339,7 +339,7 @@ frontend/
 - [x] **Locale keys:** 20+ keys `organization.*` EN/ID
 - [ ] **Positions CRUD** — ⏸️ **Postponed**
 
-### C.9. Employee Management 🟡 (In Progress — 8/9 Steps ✅)
+### C.9. Employee Management ✅ (8/9 Steps — Sisanya ⏸️ Postponed)
 **Backend:** 34+ endpoints (29 CRUD + photo upload/delete + documents upload)
 - [x] **DataTable employees** — List with search, pagination, sorting
 - [x] **Create/Edit Employee** — Two-column layout (nav sidebar + form content)
@@ -351,8 +351,8 @@ frontend/
   - [x] Step 6: **Work Experience** (`ExperienceForm.vue`) — **DataTable + Dialog pattern** — edit inline
   - [x] Step 7: **Documents** (`DocumentForm.vue`) — **DataTable + Dialog + File Upload** — multipart FormData upload (POST/PUT /documents/upload), file validation (PDF/DOC/XLSX/JPG/PNG max 10MB), download link in table
   - [x] Step 8: **Insurance (BPJS)** (`InsuranceForm.vue`) — **DataTable + Dialog pattern** — category Tag (BPJS Kesehatan/Ketenagakerjaan/Non BPJS), edit inline
-  - [ ] Step 9: **Employment Record** (`EmploymentForm.vue`) — ⏸️ **TODO**
-- [ ] **Employee Detail Page** — Tab: Profile, Addresses, Contacts, Family, Education, Experience, Documents, Insurance, Employment
+  - [ ] Step 9: **Employment Record** (`EmploymentForm.vue`) — ⏸️ **Postponed**
+- [ ] **Employee Detail Page** — Tab view — ⏸️ **Postponed**
 
 **Key Features:**
 - ✅ Step persistence via URL query param (`?step=N`) — survives page refresh

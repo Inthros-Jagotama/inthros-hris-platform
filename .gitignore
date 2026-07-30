@@ -42,7 +42,7 @@ tmp/
 temp/
 
 #
-inthros-web
+#inthros-web
 
 # Dependencies
 frontend/platform-admin/node_modules

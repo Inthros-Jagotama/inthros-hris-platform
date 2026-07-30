@@ -71,8 +71,8 @@ func (r *Repository) FindTree(ctx context.Context, summaryID string) ([]Organiza
 	return roots, nil
 }
 
-// FindAll returns paginated organizations, optionally filtered by summary_id.
-func (r *Repository) FindAll(ctx context.Context, page, perPage int, summaryID string) ([]Organization, int64, error) {
+// FindAll returns paginated organizations, optionally filtered by summary_id and active_only.
+func (r *Repository) FindAll(ctx context.Context, page, perPage int, summaryID string, activeOnly bool) ([]Organization, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -83,6 +83,11 @@ func (r *Repository) FindAll(ctx context.Context, page, perPage int, summaryID s
 	query := db.Model(&Organization{})
 	if summaryID != "" {
 		query = query.Where("organization_summary_id = ?", summaryID)
+	}
+	if activeOnly {
+		// Hanya tampilkan organisasi yang memiliki summary dengan status 'active'
+		query = query.Joins("JOIN organization_summaries ON organization_summaries.id = organizations.organization_summary_id").
+			Where("organization_summaries.status = ?", "active")
 	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
