@@ -90,6 +90,7 @@ func (m *empModule) Migrate(db *gorm.DB) error {
 		&EmployeeExperience{},
 		&EmployeeDocument{},
 		&EmployeeInsurance{},
+		&EmployeeBankAccount{},
 		&Employment{},
 	)
 }

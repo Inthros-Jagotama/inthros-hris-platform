@@ -175,6 +175,22 @@ type UpdateEmploymentRequest struct {
 }
 
 // =========================================================================
+// Request DTOs — Bank Profile
+// =========================================================================
+
+type CreateBankRequest struct {
+	BankID        *string `json:"bank_id"`
+	AccountNumber string  `json:"account_number" binding:"required,max=50"`
+	AccountName   string  `json:"account_name" binding:"required,max=255"`
+}
+
+type UpdateBankRequest struct {
+	BankID        *string `json:"bank_id"`
+	AccountNumber *string `json:"account_number" binding:"omitempty,max=50"`
+	AccountName   *string `json:"account_name" binding:"omitempty,max=255"`
+}
+
+// =========================================================================
 // Response DTOs
 // =========================================================================
 
@@ -280,6 +296,7 @@ type EmployeeResponse struct {
 	Experiences      []ExperienceResponse     `json:"experiences,omitempty"`
 	Documents        []DocumentResponse       `json:"documents,omitempty"`
 	Insurances       []InsuranceResponse      `json:"insurances,omitempty"`
+	Banks            []BankResponse           `json:"banks,omitempty"`
 	Employments      []EmploymentResponse     `json:"employments,omitempty"`
 }
 
@@ -402,6 +419,31 @@ func toDocumentResponse(d *EmployeeDocument) DocumentResponse {
 		r.Note = *d.Note
 	}
 	return r
+}
+
+// =========================================================================
+// Bank Response converters
+// =========================================================================
+
+func toBankResponse(b *EmployeeBankAccount) BankResponse {
+	r := BankResponse{
+		ID:            b.ID.String(),
+		AccountNumber: b.AccountNumber,
+		AccountName:   b.AccountName,
+	}
+	if b.BankID != nil {
+		r.BankID = b.BankID.String()
+	}
+	return r
+}
+
+// =========================================================================
+
+type BankResponse struct {
+	ID            string `json:"id"`
+	BankID        string `json:"bank_id,omitempty"`
+	AccountNumber string `json:"account_number"`
+	AccountName   string `json:"account_name"`
 }
 
 func toInsuranceResponse(i *EmployeeInsurance) InsuranceResponse {
@@ -540,6 +582,12 @@ func (e *Employee) ToResponse() EmployeeResponse {
 		r.Insurances = make([]InsuranceResponse, 0, len(e.Insurances))
 		for _, ins := range e.Insurances {
 			r.Insurances = append(r.Insurances, toInsuranceResponse(&ins))
+		}
+	}
+	if len(e.Banks) > 0 {
+		r.Banks = make([]BankResponse, 0, len(e.Banks))
+		for _, b := range e.Banks {
+			r.Banks = append(r.Banks, toBankResponse(&b))
 		}
 	}
 	if len(e.Employments) > 0 {

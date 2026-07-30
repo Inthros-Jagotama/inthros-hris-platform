@@ -204,7 +204,28 @@ CREATE TABLE IF NOT EXISTS employee_insurances (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
--- 3.9 Employments (Riwayat Jabatan)
+-- 3.9 Employee Bank Profiles
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS employee_bank_accounts (
+    id              CHAR(36) PRIMARY KEY,
+    employee_id     CHAR(36) NULL,
+    bank_id         CHAR(36) NULL,
+    account_number  VARCHAR(50) NOT NULL,
+    account_name    VARCHAR(255) NOT NULL,
+    created_by      CHAR(36) NULL,
+    updated_by      CHAR(36) NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_empbank_employee (employee_id),
+    INDEX idx_empbank_bank (bank_id),
+
+    CONSTRAINT fk_empbank_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+    -- FK ke banks(id) ditambahkan di migration terpisah setelah 011_settings.sql
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
+-- 3.10 Employments (Riwayat Jabatan)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS employments (
     id                       CHAR(36) PRIMARY KEY,

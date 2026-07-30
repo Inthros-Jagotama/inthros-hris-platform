@@ -1,5 +1,6 @@
 -- Down Migration: 003_employee
 DROP TABLE IF EXISTS employments;
+DROP TABLE IF EXISTS employee_bank_accounts;
 DROP TABLE IF EXISTS employee_insurances;
 DROP TABLE IF EXISTS employee_documents;
 DROP TABLE IF EXISTS employee_experiences;

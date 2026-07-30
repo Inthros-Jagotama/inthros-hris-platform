@@ -53,6 +53,11 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		emps.PUT("/:id/insurances/:insuranceId", handler.UpdateInsurance)
 		emps.DELETE("/:id/insurances/:insuranceId", handler.DeleteInsurance)
 
+		// Banks
+		emps.POST("/:id/banks", handler.CreateBank)
+		emps.PUT("/:id/banks/:bankId", handler.UpdateBank)
+		emps.DELETE("/:id/banks/:bankId", handler.DeleteBank)
+
 		// Employments
 		emps.POST("/:id/employments", handler.CreateEmployment)
 		emps.PUT("/:id/employments/:employmentId", handler.UpdateEmployment)

@@ -5,6 +5,8 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/inthros/hris-platform/internal/modules/setting"
 )
 
 // Employee merepresentasikan data inti karyawan.
@@ -43,8 +45,9 @@ type Employee struct {
 	Educations        []EmployeeEducation  `gorm:"foreignKey:EmployeeID" json:"educations,omitempty"`
 	Experiences       []EmployeeExperience `gorm:"foreignKey:EmployeeID" json:"experiences,omitempty"`
 	Documents         []EmployeeDocument   `gorm:"foreignKey:EmployeeID" json:"documents,omitempty"`
-	Insurances        []EmployeeInsurance  `gorm:"foreignKey:EmployeeID" json:"insurances,omitempty"`
-	Employments       []Employment         `gorm:"foreignKey:EmployeeID" json:"employments,omitempty"`
+	Insurances       []EmployeeInsurance  `gorm:"foreignKey:EmployeeID" json:"insurances,omitempty"`
+	Banks            []EmployeeBankAccount `gorm:"foreignKey:EmployeeID" json:"banks,omitempty"`
+	Employments      []Employment         `gorm:"foreignKey:EmployeeID" json:"employments,omitempty"`
 }
 
 func (Employee) TableName() string {
@@ -232,6 +235,33 @@ func (EmployeeInsurance) TableName() string {
 func (i *EmployeeInsurance) BeforeCreate(tx *gorm.DB) error {
 	if i.ID == uuid.Nil {
 		i.ID = uuid.New()
+	}
+	return nil
+}
+
+// EmployeeBankAccount menyimpan data rekening bank karyawan (terpisah dari Payroll).
+type EmployeeBankAccount struct {
+	ID            uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID    *uuid.UUID `gorm:"type:char(36);index" json:"employee_id,omitempty"`
+	BankID        *uuid.UUID `gorm:"type:char(36);index" json:"bank_id,omitempty"`
+	AccountNumber string     `gorm:"type:varchar(50);not null" json:"account_number"`
+	AccountName   string     `gorm:"type:varchar(255);not null" json:"account_name"`
+	CreatedBy     *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
+	UpdatedBy     *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+
+	// Relasi ke Bank (settings module)
+	Bank *setting.Bank `gorm:"foreignKey:BankID" json:"-"`
+}
+
+func (EmployeeBankAccount) TableName() string {
+	return "employee_bank_accounts"
+}
+
+func (b *EmployeeBankAccount) BeforeCreate(tx *gorm.DB) error {
+	if b.ID == uuid.Nil {
+		b.ID = uuid.New()
 	}
 	return nil
 }

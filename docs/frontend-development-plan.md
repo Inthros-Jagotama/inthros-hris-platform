@@ -1,7 +1,7 @@
 # Frontend Development Plan — HRIS Platform
 
 **Generated:** 27 July 2026
-**Last Updated:** 28 July 2026 (16 Settings CRUD views — 14 original + TER + PTKP)
+**Last Updated:** 30 July 2026 (Employee Form: 8/9 steps completed — Personal, Address, Contact, Family, Education, Experience, Documents w/ upload, Insurance)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios
 
 ---
@@ -290,8 +290,8 @@ frontend/
 | 19 | `settings/PtkpsView.vue` | Same |
 | 20 | `settings/GradingsView.vue` | Remove duplicate `handleDelete` + leftover old code fragment (wrong API path `/gradings/` → `/settings/gradings/`) |
 
-### C.7. Setting Module — All 16 Reference CRUDs ✅ (BARU - Done)
-**Backend:** `backend/internal/modules/setting/` — packages for zones, provinces, regencies, districts, villages, educations, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades, ters, ptkps + 5 legacy endpoints
+### C.7. Setting Module — All 17 Reference CRUDs ✅ (BARU - Done)
+**Backend:** `backend/internal/modules/setting/` — packages for zones, provinces, regencies, districts, villages, educations, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades, ters, ptkps, insurances + 5 legacy endpoints
 - [x] **Zones CRUD** — Code, Name, Region, IsActive, SortOrder
 - [x] **Provinces CRUD** — Code, Name, SortOrder
 - [x] **Regencies CRUD** — Code, Name, ProvinceID, SortOrder
@@ -308,6 +308,7 @@ frontend/
 - [x] **SalaryGrades CRUD** — Code, Name, Grade, MinSalary, MaxSalary, SortOrder
 - [x] **TER CRUD** — Group, BrutoMin, BrutoMax, Rate, SortOrder
 - [x] **PTKP CRUD** — Name, Group, PTKP Amount, SortOrder
+- [x] **Insurances CRUD** — Code, Name, SortOrder — Backend: model + repo + service + handler + routes + module; Frontend: InsurancesView.vue + route + sidebar + locale keys (EN/ID); OpenAPI: 5 endpoints injected + report regenerated (364 paths, 673 endpoints, 429 schemas)
 
 **Frontend — Pattern Companies.vue (applied to all 16 views):**
 - [x] **Search bar** (IconField + InputText) — client-side filter by code/name
@@ -338,23 +339,31 @@ frontend/
 - [x] **Locale keys:** 20+ keys `organization.*` EN/ID
 - [ ] **Positions CRUD** — ⏸️ **Postponed**
 
-### C.9. Employee Management 🔴 (BARU)
-**Backend:** 29 endpoints
-- [ ] DataTable employees (with search, filter by department/status)
-- [ ] Create Employee Wizard (multi-step form)
-  - Step 1: Personal Data
-  - Step 2: Address (MAIN/DOMICILE)
-  - Step 3: Emergency Contact
-  - Step 4: Family
-  - Step 5: Education
-  - Step 6: Work Experience
-  - Step 7: Documents
-  - Step 8: Insurance (BPJS)
-  - Step 9: Employment Record
-- [ ] Employee Detail Page (tab view per sub-module)
-  - Tab: Profile, Addresses, Contacts, Family, Education, Experience, Documents, Insurance, Employment
-- [ ] Edit per sub-module (inline dialog)
-- [ ] Delete with confirmation
+### C.9. Employee Management 🟡 (In Progress — 8/9 Steps ✅)
+**Backend:** 34+ endpoints (29 CRUD + photo upload/delete + documents upload)
+- [x] **DataTable employees** — List with search, pagination, sorting
+- [x] **Create/Edit Employee** — Two-column layout (nav sidebar + form content)
+  - [x] Step 1: **Personal Data** (`PersonalForm.vue`) — Photo upload with crop/resize, nationality type (WNI/WNA) conditional fields (NPWP, Passport, FamilyID), IG & LinkedIn social media fields, RadioLabel for gender
+  - [x] Step 2: **Address** (`AddressForm.vue`) — Village autocomplete with cascading (province/regency/district auto-fill), type RadioLabel (MAIN/DOMICILE), inline delete with ConfirmDeleteDialog
+  - [x] Step 3: **Emergency Contact** (`ContactForm.vue`) — Relationship type SelectLabel, delete with ConfirmDeleteDialog
+  - [x] Step 4: **Family** (`FamilyForm.vue`) — **DataTable + Dialog pattern** — category Tag, edit inline
+  - [x] Step 5: **Education** (`EducationForm.vue`) — **DataTable + Dialog pattern** — education Tag, edit inline
+  - [x] Step 6: **Work Experience** (`ExperienceForm.vue`) — **DataTable + Dialog pattern** — edit inline
+  - [x] Step 7: **Documents** (`DocumentForm.vue`) — **DataTable + Dialog + File Upload** — multipart FormData upload (POST/PUT /documents/upload), file validation (PDF/DOC/XLSX/JPG/PNG max 10MB), download link in table
+  - [x] Step 8: **Insurance (BPJS)** (`InsuranceForm.vue`) — **DataTable + Dialog pattern** — category Tag (BPJS Kesehatan/Ketenagakerjaan/Non BPJS), edit inline
+  - [ ] Step 9: **Employment Record** (`EmploymentForm.vue`) — ⏸️ **TODO**
+- [ ] **Employee Detail Page** — Tab: Profile, Addresses, Contacts, Family, Education, Experience, Documents, Insurance, Employment
+
+**Key Features:**
+- ✅ Step persistence via URL query param (`?step=N`) — survives page refresh
+- ✅ Personal data auto-saves → redirects to edit mode (employeeId preserved)
+- ✅ All forms use **DataTable + Dialog + Edit** pattern (Family, Education, Experience, Documents, Insurance)
+- ✅ **Document file upload** — file picker + FormData + validation + download link
+- ✅ **Photo upload** — crop/resize with cropper.js, multipart upload
+- ✅ **Village autocomplete** — cascading province/regency/district auto-fill
+- ✅ **ConfirmDeleteDialog** — consistent pattern across all forms
+- ✅ **Bilingual + dark mode** — all labels, tooltips, toasts
+- ✅ **FormRow/TextInput/SelectLabel** — reusable components
 
 ### C.10. Job Management 🔴 (BARU)
 **Backend:** 88 endpoints (18 sub-entities)
@@ -866,7 +875,7 @@ Response handler → toast.show("Berhasil dibuat")
 |:--------:|---------|:------------:|:------:|
 | P0 | Organization Management (Tree + CRUD) | 🟡 Medium | ✅ Done |
 | P0 | Setting Module — All 16 Reference CRUDs (incl. TER & PTKP) | 🟡 Medium | ✅ Done |
-| P0 | Employee Management (Wizard) | 🔴 Complex | 🔴 TODO |
+| P0 | Employee Management (Wizard) | 🔴 Complex | 🟡 8/9 Steps ✅ |
 | P1 | Leave & Attendance | 🟡 Medium | 🔴 TODO |
 | P1 | Payroll (read-only payslip) | 🟡 Medium | 🔴 TODO |
 | P2 | Job Management | 🔴 Complex | 🔴 TODO |

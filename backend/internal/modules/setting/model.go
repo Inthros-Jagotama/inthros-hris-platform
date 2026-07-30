@@ -239,6 +239,23 @@ func (g *Grading) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+// ── Insurance ──
+type Insurance struct {
+	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	Code      string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_insurance_code" json:"code"`
+	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
+	SortOrder int            `gorm:"default:0" json:"sort_order"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+}
+
+func (Insurance) TableName() string { return "insurances" }
+func (ins *Insurance) BeforeCreate(tx *gorm.DB) error {
+	if ins.ID == uuid.Nil { ins.ID = uuid.New() }
+	return nil
+}
+
 // ── SalaryGrade ──
 type SalaryGrade struct {
 	ID          uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`

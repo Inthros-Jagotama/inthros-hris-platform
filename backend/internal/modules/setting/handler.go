@@ -643,6 +643,44 @@ func (h *Handler) DeleteGrading(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+// ── Insurance Handlers ──
+func (h *Handler) CreateInsurance(c *gin.Context) {
+	var req CreateInsuranceRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.CreateInsurance(c.Request.Context(), req)
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+func (h *Handler) ListInsurances(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	resp, err := h.service.ListInsurances(c.Request.Context(), page, perPage)
+	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	c.JSON(http.StatusOK, resp)
+}
+func (h *Handler) GetInsuranceByID(c *gin.Context) {
+	resp, err := h.service.GetInsuranceByID(c.Request.Context(), c.Param("id"))
+	if err != nil { c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}}); return }
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) UpdateInsurance(c *gin.Context) {
+	var req UpdateInsuranceRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.UpdateInsurance(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) DeleteInsurance(c *gin.Context) {
+	if err := h.service.DeleteInsurance(c.Request.Context(), c.Param("id")); err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
 // ── SalaryGrade Handlers ──
 func (h *Handler) CreateSalaryGrade(c *gin.Context) {
 	var req CreateSalaryGradeRequest

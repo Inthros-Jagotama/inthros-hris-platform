@@ -71,6 +71,7 @@ func (m *settingModule) Info() module.ModuleInfo {
 			"setting.salary_grade.view", "setting.salary_grade.create", "setting.salary_grade.update", "setting.salary_grade.delete",
 			"setting.ter.view", "setting.ter.create", "setting.ter.update", "setting.ter.delete",
 			"setting.ptkp.view", "setting.ptkp.create", "setting.ptkp.update", "setting.ptkp.delete",
+			"setting.insurance.view", "setting.insurance.create", "setting.insurance.update", "setting.insurance.delete",
 		},
 		Menus: []module.Menu{
 			{
@@ -95,6 +96,7 @@ func (m *settingModule) Info() module.ModuleInfo {
 					{Name: "Salary Grades", Icon: "chart-bar", Route: "/admin/settings/salary-grades"},
 					{Name: "TER (Tarif Efektif)", Icon: "calculator", Route: "/admin/settings/ters"},
 					{Name: "PTKP", Icon: "receipt", Route: "/admin/settings/ptkps"},
+					{Name: "Insurances", Icon: "shield", Route: "/admin/settings/insurances"},
 				},
 			},
 		},
@@ -105,8 +107,7 @@ func (m *settingModule) RegisterRoutes(rg *gin.RouterGroup) {
 	RegisterRoutes(rg, m.handler)
 }
 
-func (m *settingModule) Migrate(db *gorm.DB) error {
-	return db.AutoMigrate(&Zone{}, &Province{}, &Regency{}, &District{}, &Village{}, &Education{}, &Religion{}, &MaritalStatus{}, &RelationshipType{}, &EmploymentStatus{}, &Bank{}, &Nationality{}, &JobFamily{}, &Grading{}, &SalaryGrade{}, &TER{}, &PTKP{})
+func (m *settingModule) Migrate(db *gorm.DB) error {		return db.AutoMigrate(&Zone{}, &Province{}, &Regency{}, &District{}, &Village{}, &Education{}, &Religion{}, &MaritalStatus{}, &RelationshipType{}, &EmploymentStatus{}, &Bank{}, &Nationality{}, &JobFamily{}, &Grading{}, &SalaryGrade{}, &TER{}, &PTKP{}, &Insurance{})
 }
 
 func (m *settingModule) Seed(db *gorm.DB) error {

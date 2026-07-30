@@ -385,7 +385,23 @@
     "edit_document": "Ubah Dokumen",
     "new_document": "Tambah Dokumen",
     "confirm_delete_document": "Hapus dokumen ini? Tindakan ini tidak dapat dibatalkan.",
-    "choose_file": "Pilih Berkas"
+    "choose_file": "Pilih Berkas",
+    "edit_insurance": "Ubah Asuransi",
+    "new_insurance": "Tambah Asuransi",
+    "confirm_delete_insurance": "Hapus data asuransi ini? Tindakan ini tidak dapat dibatalkan.",
+    "wizard_step_bank": "Profil Bank",
+    "tab_bank": "Profil Bank",
+    "bank_description": "Kelola rekening bank karyawan untuk pembayaran gaji.",
+    "bank_name": "Bank",
+    "select_bank": "Pilih bank...",
+    "bank_account_number": "No. Rekening",
+    "bank_account_placeholder": "Masukkan nomor rekening",
+    "bank_account_name": "Atas Nama",
+    "bank_account_name_placeholder": "Masukkan nama pemilik rekening",
+    "no_bank": "Belum ada rekening bank ditambahkan",
+    "edit_bank": "Ubah Rekening Bank",
+    "new_bank": "Tambah Rekening Bank",
+    "confirm_delete_bank": "Hapus rekening bank ini? Tindakan ini tidak dapat dibatalkan."
   },
   "attendance": {
     "title": "Absensi",
@@ -567,7 +583,8 @@
     "gradings": "Grading",
     "salary_grades": "Grade Gaji",
     "ters": "TER (Tarif Efektif)",
-    "ptkps": "PTKP"
+    "ptkps": "PTKP",
+    "insurances": "Asuransi"
   },
   "provinces": {
     "title": "Provinsi",
@@ -825,6 +842,21 @@
     "created": "PTKP berhasil dibuat",
     "updated": "PTKP berhasil diperbarui",
     "deleted": "PTKP berhasil dihapus"
+  },
+  "insurances": {
+    "title": "Asuransi",
+    "description": "Kelola jenis asuransi untuk profil BPJS dan asuransi karyawan.",
+    "new": "Asuransi Baru",
+    "edit": "Ubah Asuransi",
+    "code": "Kode",
+    "name": "Nama Asuransi",
+    "sort_order": "Urutan",
+    "empty_title": "Belum ada asuransi dibuat",
+    "confirm_delete": "Hapus asuransi \"{name}\"?",
+    "confirm_delete_title": "Hapus Asuransi",
+    "created": "Asuransi berhasil dibuat",
+    "updated": "Asuransi berhasil diperbarui",
+    "deleted": "Asuransi berhasil dihapus"
   },
   "time": {
     "just_now": "Baru saja",

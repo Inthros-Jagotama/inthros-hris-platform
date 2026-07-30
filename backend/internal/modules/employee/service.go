@@ -850,6 +850,75 @@ func (s *Service) DeleteInsurance(ctx context.Context, employeeID, insuranceID s
 }
 
 // =========================================================================
+// Sub-module CRUD: Banks
+// =========================================================================
+
+func (s *Service) CreateBank(ctx context.Context, employeeID string, req CreateBankRequest) (*BankResponse, error) {
+	empUID, err := uuid.Parse(employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee id: %w", err)
+	}
+
+	bank := &EmployeeBankAccount{
+		EmployeeID:    &empUID,
+		AccountNumber: req.AccountNumber,
+		AccountName:   req.AccountName,
+	}
+	if req.BankID != nil && *req.BankID != "" {
+		id, _ := uuid.Parse(*req.BankID)
+		bank.BankID = &id
+	}
+	bank.CreatedBy = authctx.GetUserID(ctx)
+	bank.UpdatedBy = bank.CreatedBy
+
+	if err := s.repo.CreateBank(ctx, bank); err != nil {
+		return nil, err
+	}
+
+	response := toBankResponse(bank)
+	return &response, nil
+}
+
+func (s *Service) UpdateBank(ctx context.Context, employeeID, bankID string, req UpdateBankRequest) (*BankResponse, error) {
+	bankUID, err := uuid.Parse(bankID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid bank id: %w", err)
+	}
+
+	bank, err := s.repo.FindBankByID(ctx, bankUID)
+	if err != nil {
+		return nil, err
+	}
+	bank.UpdatedBy = authctx.GetUserID(ctx)
+
+	if req.BankID != nil && *req.BankID != "" {
+		id, _ := uuid.Parse(*req.BankID)
+		bank.BankID = &id
+	}
+	if req.AccountNumber != nil {
+		bank.AccountNumber = *req.AccountNumber
+	}
+	if req.AccountName != nil {
+		bank.AccountName = *req.AccountName
+	}
+
+	if err := s.repo.UpdateBank(ctx, bank); err != nil {
+		return nil, err
+	}
+
+	response := toBankResponse(bank)
+	return &response, nil
+}
+
+func (s *Service) DeleteBank(ctx context.Context, employeeID, bankID string) error {
+	bankUID, err := uuid.Parse(bankID)
+	if err != nil {
+		return fmt.Errorf("invalid bank id: %w", err)
+	}
+	return s.repo.DeleteBank(ctx, bankUID)
+}
+
+// =========================================================================
 // Sub-module CRUD: Employments
 // =========================================================================
 

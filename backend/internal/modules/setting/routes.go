@@ -160,5 +160,14 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			ptkps.PUT("/:id", handler.UpdatePTKP)
 			ptkps.DELETE("/:id", handler.DeletePTKP)
 		}
+		// Insurance
+		insurances := settings.Group("/insurances")
+		{
+			insurances.POST("", handler.CreateInsurance)
+			insurances.GET("", handler.ListInsurances)
+			insurances.GET("/:id", handler.GetInsuranceByID)
+			insurances.PUT("/:id", handler.UpdateInsurance)
+			insurances.DELETE("/:id", handler.DeleteInsurance)
+		}
 	}
 }

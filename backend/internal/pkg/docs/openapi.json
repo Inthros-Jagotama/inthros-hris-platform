@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "HRIS Platform API",
-    "description": "API untuk HRIS Platform Enterprise â€” modular monolith dengan multi-tenant architecture. Mendukung PostgreSQL dan MySQL.\n\n## Response Format\n\nSemua endpoint mengembalikan response dengan format standar berikut: \n\n### Success Response\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"message\": \"Created successfully\"\n}\n```\n\n### Error Response\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"Resource tidak ditemukan\"\n  }\n}\n```\n\n### Validation Error Response\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Validasi gagal\",\n    \"fields\": {\n      \"email\": [\"Format email tidak valid\"],\n      \"nik\": [\"Format NIK harus 16 digit angka\"]\n    }\n  }\n}\n```\n\n### Paginated Response\n```json\n{\n  \"data\": [...],\n  \"pagination\": {\n    \"page\": 1,\n    \"per_page\": 20,\n    \"total\": 100,\n    \"total_pages\": 5\n  }\n}\n```\n\n## Bilingual Support (Bahasa Indonesia & English)\n\nAPI mendukung dua bahasa untuk pesan response.\n\n- **English** (default): Jika header `Accept-Language` tidak disertakan atau bernilai selain `id`\n- **Bahasa Indonesia**: Kirim header `Accept-Language: id`\n\nHeader ini memengaruhi semua pesan response, termasuk:\n- Pesan sukses (created, updated, deleted)\n- Pesan error (not found, internal error)\n- Pesan validasi (field-level errors)\n\n## Custom Validators\n\nEndpoint tenant mendukung validasi untuk format data Indonesia berikut:\n\n| Tag | Format | Contoh | Keterangan |\n|-----|--------|--------|------------|\n| `nik` | 16 digit angka | `3273010101900001` | NIK KTP |\n| `npwp` | 15-16 digit angka | `0123456789012345` | NPWP |\n| `npwp_format` | XX.XXX.XXX.X-XXX.XXX | `01.234.567.8-901.234` | NPWP terformat |\n| `kk` | 16 digit angka | `1234567890123456` | Kartu Keluarga |\n| `phone_id` | +628/08xx (7-11 digit) | `08123456789` | No. Telepon Indonesia |\n| `postal_code` | 5 digit angka | `12345` | Kode Pos |\n| `date_id` | YYYY-MM-DD | `2026-12-31` | Tanggal |\n| `passport` | 1 huruf + 8 angka | `A12345678` | Passport |\n| `sim` | 12 digit angka | `123456789012` | SIM |\n| `no_rekening` | 8-20 digit angka | `1234567890` | No. Rekening Bank |\n\n## Authentication\n\nSemua endpoint tenant (prefixed `/api/v1/tenant`) memerlukan JWT Bearer Token:\n```\nAuthorization: Bearer <access_token>\n```\n\nUntuk mendapatkan token, login via platform endpoint.\n\n## RBAC (Role-Based Access Control)\n\nPlatform menggunakan RBAC dengan 2 role:\n\n| Role | Akses |\n|------|-------|\n| **super_admin** | Akses penuh ke semua resource platform |\n| **company_admin** | Akses view-only ke company, user, license miliknya sendiri |\n\nEndpoint yang memerlukan proteksi akan mengembalikan **403 Forbidden** jika role tidak memiliki permission yang sesuai.\n\n### Permission Format\n\nSetiap endpoint memiliki permission requirement dalam format `resource.action`:\n```\ncompany.view, company.create, company.update, company.delete\ncompany.suspend, company.activate, company.terminate, company.backup, company.restore\nuser.view, user.create, user.update\nmodule.view, module.create, module.update, module.activate, module.deactivate\nlicense.view, license.create, license.update\nmonitoring.view\nemployee.address.create, employee.address.update, employee.address.delete\nemployee.contact.create, employee.contact.update, employee.contact.delete\nemployee.family.create, employee.family.update, employee.family.delete\nemployee.education.create, employee.education.update, employee.education.delete\nemployee.experience.create, employee.experience.update, employee.experience.delete\nemployee.document.create, employee.document.update, employee.document.delete\nemployee.insurance.create, employee.insurance.update, employee.insurance.delete\nemployee.employment.create, employee.employment.update, employee.employment.delete\n```\n\norganization.view, organization.create, organization.update, organization.delete\ncompetency.view, competency.create, competency.update, competency.delete\nemployeemovement.view, employeemovement.create, employeemovement.update, employeemovement.delete, employeemovement.approve, employeemovement.execute\n\napproval.view, approval.create, approval.update, approval.delete, approval.approve\n\npayroll.salary-component.view, payroll.salary-component.create, payroll.salary-component.update, payroll.salary-component.delete\npayroll.period.view, payroll.period.create, payroll.period.update\npayroll.bpjs-setting.view, payroll.bpjs-setting.create, payroll.bpjs-setting.update, payroll.bpjs-setting.delete\npayroll.bpjs-rate-component.view, payroll.bpjs-rate-component.create, payroll.bpjs-rate-component.update, payroll.bpjs-rate-component.delete\npayroll.pph21-setting.view, payroll.pph21-setting.create, payroll.pph21-setting.update, payroll.pph21-setting.delete\npayroll.pph21-ptkp-rate.view, payroll.pph21-ptkp-rate.create\npayroll.pph21-tax-bracket.view, payroll.pph21-tax-bracket.create\npayroll.run.view, payroll.run.create, payroll.run.update\npayroll.employee-profile.view, payroll.employee-profile.create, payroll.employee-profile.delete\npayroll.employee-bank.view, payroll.employee-bank.create, payroll.employee-bank.update, payroll.employee-bank.delete\npayroll.employee-bpjs.view, payroll.employee-bpjs.create, payroll.employee-bpjs.update, payroll.employee-bpjs.delete\npayroll.employee-tax.view, payroll.employee-tax.create, payroll.employee-tax.update, payroll.employee-tax.delete\n\nleave.view, leave.create, leave.update, leave.delete\n\nreimbursement.view, reimbursement.create, reimbursement.update, reimbursement.delete, reimbursement.approve\n\nworkforce.view\n\n",
+    "description": "API untuk HRIS Platform Enterprise \u00e2\u20ac\u201d modular monolith dengan multi-tenant architecture. Mendukung PostgreSQL dan MySQL.\n\n## Response Format\n\nSemua endpoint mengembalikan response dengan format standar berikut: \n\n### Success Response\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"message\": \"Created successfully\"\n}\n```\n\n### Error Response\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"Resource tidak ditemukan\"\n  }\n}\n```\n\n### Validation Error Response\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Validasi gagal\",\n    \"fields\": {\n      \"email\": [\"Format email tidak valid\"],\n      \"nik\": [\"Format NIK harus 16 digit angka\"]\n    }\n  }\n}\n```\n\n### Paginated Response\n```json\n{\n  \"data\": [...],\n  \"pagination\": {\n    \"page\": 1,\n    \"per_page\": 20,\n    \"total\": 100,\n    \"total_pages\": 5\n  }\n}\n```\n\n## Bilingual Support (Bahasa Indonesia & English)\n\nAPI mendukung dua bahasa untuk pesan response.\n\n- **English** (default): Jika header `Accept-Language` tidak disertakan atau bernilai selain `id`\n- **Bahasa Indonesia**: Kirim header `Accept-Language: id`\n\nHeader ini memengaruhi semua pesan response, termasuk:\n- Pesan sukses (created, updated, deleted)\n- Pesan error (not found, internal error)\n- Pesan validasi (field-level errors)\n\n## Custom Validators\n\nEndpoint tenant mendukung validasi untuk format data Indonesia berikut:\n\n| Tag | Format | Contoh | Keterangan |\n|-----|--------|--------|------------|\n| `nik` | 16 digit angka | `3273010101900001` | NIK KTP |\n| `npwp` | 15-16 digit angka | `0123456789012345` | NPWP |\n| `npwp_format` | XX.XXX.XXX.X-XXX.XXX | `01.234.567.8-901.234` | NPWP terformat |\n| `kk` | 16 digit angka | `1234567890123456` | Kartu Keluarga |\n| `phone_id` | +628/08xx (7-11 digit) | `08123456789` | No. Telepon Indonesia |\n| `postal_code` | 5 digit angka | `12345` | Kode Pos |\n| `date_id` | YYYY-MM-DD | `2026-12-31` | Tanggal |\n| `passport` | 1 huruf + 8 angka | `A12345678` | Passport |\n| `sim` | 12 digit angka | `123456789012` | SIM |\n| `no_rekening` | 8-20 digit angka | `1234567890` | No. Rekening Bank |\n\n## Authentication\n\nSemua endpoint tenant (prefixed `/api/v1/tenant`) memerlukan JWT Bearer Token:\n```\nAuthorization: Bearer <access_token>\n```\n\nUntuk mendapatkan token, login via platform endpoint.\n\n## RBAC (Role-Based Access Control)\n\nPlatform menggunakan RBAC dengan 2 role:\n\n| Role | Akses |\n|------|-------|\n| **super_admin** | Akses penuh ke semua resource platform |\n| **company_admin** | Akses view-only ke company, user, license miliknya sendiri |\n\nEndpoint yang memerlukan proteksi akan mengembalikan **403 Forbidden** jika role tidak memiliki permission yang sesuai.\n\n### Permission Format\n\nSetiap endpoint memiliki permission requirement dalam format `resource.action`:\n```\ncompany.view, company.create, company.update, company.delete\ncompany.suspend, company.activate, company.terminate, company.backup, company.restore\nuser.view, user.create, user.update\nmodule.view, module.create, module.update, module.activate, module.deactivate\nlicense.view, license.create, license.update\nmonitoring.view\nemployee.address.create, employee.address.update, employee.address.delete\nemployee.contact.create, employee.contact.update, employee.contact.delete\nemployee.family.create, employee.family.update, employee.family.delete\nemployee.education.create, employee.education.update, employee.education.delete\nemployee.experience.create, employee.experience.update, employee.experience.delete\nemployee.document.create, employee.document.update, employee.document.delete\nemployee.insurance.create, employee.insurance.update, employee.insurance.delete\nemployee.employment.create, employee.employment.update, employee.employment.delete\n```\n\norganization.view, organization.create, organization.update, organization.delete\ncompetency.view, competency.create, competency.update, competency.delete\nemployeemovement.view, employeemovement.create, employeemovement.update, employeemovement.delete, employeemovement.approve, employeemovement.execute\n\napproval.view, approval.create, approval.update, approval.delete, approval.approve\n\npayroll.salary-component.view, payroll.salary-component.create, payroll.salary-component.update, payroll.salary-component.delete\npayroll.period.view, payroll.period.create, payroll.period.update\npayroll.bpjs-setting.view, payroll.bpjs-setting.create, payroll.bpjs-setting.update, payroll.bpjs-setting.delete\npayroll.bpjs-rate-component.view, payroll.bpjs-rate-component.create, payroll.bpjs-rate-component.update, payroll.bpjs-rate-component.delete\npayroll.pph21-setting.view, payroll.pph21-setting.create, payroll.pph21-setting.update, payroll.pph21-setting.delete\npayroll.pph21-ptkp-rate.view, payroll.pph21-ptkp-rate.create\npayroll.pph21-tax-bracket.view, payroll.pph21-tax-bracket.create\npayroll.run.view, payroll.run.create, payroll.run.update\npayroll.employee-profile.view, payroll.employee-profile.create, payroll.employee-profile.delete\npayroll.employee-bank.view, payroll.employee-bank.create, payroll.employee-bank.update, payroll.employee-bank.delete\npayroll.employee-bpjs.view, payroll.employee-bpjs.create, payroll.employee-bpjs.update, payroll.employee-bpjs.delete\npayroll.employee-tax.view, payroll.employee-tax.create, payroll.employee-tax.update, payroll.employee-tax.delete\n\nleave.view, leave.create, leave.update, leave.delete\n\nreimbursement.view, reimbursement.create, reimbursement.update, reimbursement.delete, reimbursement.approve\n\nworkforce.view\n\n",
     "version": "1.6.3",
     "contact": {
       "name": "HRIS Platform Team",
@@ -42,7 +42,7 @@
     },
     {
       "name": "Platform: Packages",
-      "description": "Package management â€” bundle tenant modules with pricing, dependency validation, and publishing"
+      "description": "Package management \u00e2\u20ac\u201d bundle tenant modules with pricing, dependency validation, and publishing"
     },
     {
       "name": "Platform: Monitoring",
@@ -94,7 +94,7 @@
     },
     {
       "name": "Tenant: Recruitment & Onboarding (ATS)",
-      "description": "Recruitment & Onboarding (ATS) â€” job requisitions, candidate management, applications, interviews, and employee onboarding workflows"
+      "description": "Recruitment & Onboarding (ATS) \u00e2\u20ac\u201d job requisitions, candidate management, applications, interviews, and employee onboarding workflows"
     },
     {
       "name": "Tenant: Approval Engine",
@@ -106,7 +106,7 @@
     },
     {
       "name": "Tenant: Performance Management",
-      "description": "Performance Management â€” BSC (Balanced Scorecard) based KPI and performance evaluation module. Includes performance periods, BSC perspectives, KPI templates and indicators, employee evaluations, and individual performance targets with full status workflow (DRAFT->PLAN_SUBMITTED->PLAN_APPROVED->ACTUAL_SUBMITTED->ACTUAL_APPROVED->COMPLETED)."
+      "description": "Performance Management \u00e2\u20ac\u201d BSC (Balanced Scorecard) based KPI and performance evaluation module. Includes performance periods, BSC perspectives, KPI templates and indicators, employee evaluations, and individual performance targets with full status workflow (DRAFT->PLAN_SUBMITTED->PLAN_APPROVED->ACTUAL_SUBMITTED->ACTUAL_APPROVED->COMPLETED)."
     },
     {
       "name": "Tenant: Training & Development Management",
@@ -114,11 +114,11 @@
     },
     {
       "name": "Tenant: Workforce Intelligence & Strategic Planning",
-      "description": "Workforce Intelligence & Strategic Workforce Planning â€” strategic analytics layer for headcount planning, forecasting, gap analysis, KPI monitoring, workforce analytics (headcount, attendance, leave, overtime, payroll, performance, learning, recruitment, movement), capacity planning, cost analytics, risk monitoring, executive dashboards, scenario simulation, organization health scoring, and people analytics (training-vs-performance, overtime-vs-productivity, etc.). Read-only analytics module aggregating data from all operational HR modules."
+      "description": "Workforce Intelligence & Strategic Workforce Planning \u00e2\u20ac\u201d strategic analytics layer for headcount planning, forecasting, gap analysis, KPI monitoring, workforce analytics (headcount, attendance, leave, overtime, payroll, performance, learning, recruitment, movement), capacity planning, cost analytics, risk monitoring, executive dashboards, scenario simulation, organization health scoring, and people analytics (training-vs-performance, overtime-vs-productivity, etc.). Read-only analytics module aggregating data from all operational HR modules."
     },
     {
       "name": "Tenant: Career Intelligence",
-      "description": "Career Intelligence & Talent Management â€” strategic talent analytics for 9-box talent mapping, career interests tracking, career path gap analysis, and succession planning. Provides talent review data to identify high-potential employees, plan career development, and ensure leadership pipeline readiness."
+      "description": "Career Intelligence & Talent Management \u00e2\u20ac\u201d strategic talent analytics for 9-box talent mapping, career interests tracking, career path gap analysis, and succession planning. Provides talent review data to identify high-potential employees, plan career development, and ensure leadership pipeline readiness."
     },
     {
       "name": "Tenant: Settings",
@@ -324,19 +324,17 @@
       }
     },
     "/api/v1/platform/users/{id}": {
-      "get": {
+      "delete": {
         "tags": [
           "Platform: Users"
         ],
-        "summary": "Get platform user by ID",
-        "operationId": "getUser",
-        "x-rbac": {
-          "permission": "user.view",
-          "roles": [
-            "super_admin",
-            "company_admin"
-          ]
-        },
+        "summary": "Delete platform user",
+        "operationId": "deletePlatformUser",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
@@ -350,61 +348,19 @@
         ],
         "responses": {
           "200": {
-            "description": "User details"
+            "description": "User soft-deleted"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden: super_admin cannot be deleted"
           },
           "404": {
             "description": "User not found"
-          }
-        },
-        "description": "Get detailed information about a specific platform user including company_name, assigned company, role, and account status."
-      },
-      "put": {
-        "tags": [
-          "Platform: Users"
-        ],
-        "summary": "Update platform user",
-        "operationId": "updateUser",
-        "x-rbac": {
-          "permission": "user.update",
-          "roles": [
-            "super_admin"
-          ]
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateUserRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "User updated"
           },
-          "403": {
-            "description": "Forbidden: hanya super_admin yang dapat update user"
-          },
-          "404": {
-            "description": "User not found"
+          "401": {
+            "description": "Unauthorized"
           }
         },
-        "description": "Update a platform user's profile information such as name, email, or role assignment. Cannot change the user's company association."
+        "description": "Soft-delete a platform user account. Super admin users cannot be deleted."
       }
     },
     "/api/v1/platform/companies": {
@@ -591,7 +547,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Company soft deleted â€” connection deactivated"
+            "description": "Company soft deleted \u00e2\u20ac\u201d connection deactivated"
           },
           "403": {
             "description": "Forbidden: hanya super_admin"
@@ -632,7 +588,7 @@
             "description": "Forbidden: hanya super_admin"
           }
         },
-        "description": "Suspend a company tenant â€” deactivates the database connection, clears cached connections, and sets the company status to 'suspended'. All tenant API access is blocked until reactivated."
+        "description": "Suspend a company tenant \u00e2\u20ac\u201d deactivates the database connection, clears cached connections, and sets the company status to 'suspended'. All tenant API access is blocked until reactivated."
       }
     },
     "/api/v1/platform/companies/{id}/activate": {
@@ -696,7 +652,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Company terminated â€” database dropped and connection removed"
+            "description": "Company terminated \u00e2\u20ac\u201d database dropped and connection removed"
           },
           "403": {
             "description": "Forbidden: hanya super_admin"
@@ -1330,7 +1286,7 @@
             "description": "Package slug already exists"
           }
         },
-        "description": "Create a new package that bundles tenant modules with pricing. Validates module dependencies before creation â€” all required dependencies (depends_on) must be included in the package."
+        "description": "Create a new package that bundles tenant modules with pricing. Validates module dependencies before creation \u00e2\u20ac\u201d all required dependencies (depends_on) must be included in the package."
       }
     },
     "/api/v1/platform/packages/{id}": {
@@ -1488,7 +1444,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Package published â€” status=published, is_public=true"
+            "description": "Package published \u00e2\u20ac\u201d status=published, is_public=true"
           },
           "400": {
             "description": "Validation error: no modules or missing dependencies"
@@ -1529,7 +1485,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Package unpublished â€” status=draft"
+            "description": "Package unpublished \u00e2\u20ac\u201d status=draft"
           },
           "403": {
             "description": "Forbidden: only super_admin"
@@ -12493,7 +12449,7 @@
         },
         "responses": {
           "201": {
-            "description": "Role created â€” enforcer reloaded automatically"
+            "description": "Role created \u00e2\u20ac\u201d enforcer reloaded automatically"
           },
           "400": {
             "description": "Validation error"
@@ -12586,7 +12542,7 @@
         },
         "responses": {
           "200": {
-            "description": "Role updated â€” enforcer reloaded automatically"
+            "description": "Role updated \u00e2\u20ac\u201d enforcer reloaded automatically"
           },
           "400": {
             "description": "Validation error"
@@ -12627,7 +12583,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Role deleted â€” enforcer reloaded automatically"
+            "description": "Role deleted \u00e2\u20ac\u201d enforcer reloaded automatically"
           },
           "400": {
             "description": "Cannot delete system role or role not found"
@@ -12792,7 +12748,7 @@
         },
         "responses": {
           "200": {
-            "description": "Permission assigned â€” enforcer reloaded automatically"
+            "description": "Permission assigned \u00e2\u20ac\u201d enforcer reloaded automatically"
           },
           "400": {
             "description": "Invalid role/permission ID or duplicate assignment"
@@ -12844,7 +12800,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Permission revoked â€” enforcer reloaded automatically"
+            "description": "Permission revoked \u00e2\u20ac\u201d enforcer reloaded automatically"
           },
           "400": {
             "description": "Invalid role/permission ID"
@@ -14629,7 +14585,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           }
         },
         "requestBody": {
@@ -14770,7 +14726,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -14837,7 +14793,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           }
         },
         "requestBody": {
@@ -14968,7 +14924,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -15035,7 +14991,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           }
         },
         "requestBody": {
@@ -15216,7 +15172,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -15255,7 +15211,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           }
         },
         "requestBody": {
@@ -15397,7 +15353,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -15464,7 +15420,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           }
         },
         "requestBody": {
@@ -15560,7 +15516,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -15627,7 +15583,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           }
         },
         "requestBody": {
@@ -15758,7 +15714,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -15825,7 +15781,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           }
         },
         "requestBody": {
@@ -15872,7 +15828,7 @@
             }
           },
           "400": {
-            "description": "Bad request â€” validation error"
+            "description": "Bad request \u00e2\u20ac\u201d validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -17645,7 +17601,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "Restore the entire organization structure from a version snapshot. This operation atomically: (1) hard-deletes all current organizations, (2) recreates all organizations from the snapshot preserving original UUIDs for parent-child FK integrity. The restored version is automatically archived. Use with caution â€” this operation permanently replaces the current tree."
+        "description": "Restore the entire organization structure from a version snapshot. This operation atomically: (1) hard-deletes all current organizations, (2) recreates all organizations from the snapshot preserving original UUIDs for parent-child FK integrity. The restored version is automatically archived. Use with caution \u00e2\u20ac\u201d this operation permanently replaces the current tree."
       }
     },
     "/api/v1/tenant/organizations/clone": {
@@ -20277,7 +20233,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success â€” list of items",
+            "description": "Success \u00e2\u20ac\u201d list of items",
             "content": {
               "application/json": {
                 "schema": {
@@ -20352,7 +20308,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success â€” list of items",
+            "description": "Success \u00e2\u20ac\u201d list of items",
             "content": {
               "application/json": {
                 "schema": {
@@ -20499,7 +20455,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success â€” list of items",
+            "description": "Success \u00e2\u20ac\u201d list of items",
             "content": {
               "application/json": {
                 "schema": {
@@ -20538,7 +20494,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success â€” list of items",
+            "description": "Success \u00e2\u20ac\u201d list of items",
             "content": {
               "application/json": {
                 "schema": {
@@ -26279,7 +26235,7 @@
             "description": "Unauthorized"
           }
         },
-        "description": "Create a new organization summary record. Requires code, decree_no, and decree_date. Optional status (default: inactive). Only ONE summary can have status=active at a time — if you try to create with status=active while another active summary exists, the API returns a validation error."
+        "description": "Create a new organization summary record. Requires code, decree_no, and decree_date. Optional status (default: inactive). Only ONE summary can have status=active at a time \u2014 if you try to create with status=active while another active summary exists, the API returns a validation error."
       },
       "get": {
         "tags": [
@@ -26494,7 +26450,7 @@
             "description": "Unauthorized"
           }
         },
-        "description": "Update an existing organization summary's code, decree_no, decree_date, or status. Only ONE summary can have status=active at a time — setting status=active when another summary is already active will return a validation error."
+        "description": "Update an existing organization summary's code, decree_no, decree_date, or status. Only ONE summary can have status=active at a time \u2014 setting status=active when another summary is already active will return a validation error."
       },
       "delete": {
         "tags": [
@@ -26539,7 +26495,7 @@
             }
           },
           "409": {
-            "description": "Conflict — summary has organizations attached"
+            "description": "Conflict \u2014 summary has organizations attached"
           },
           "404": {
             "description": "Not found"
@@ -26549,6 +26505,1139 @@
           }
         },
         "description": "Soft-delete an organization summary. Cannot delete if organizations are still attached to this summary."
+      }
+    },
+    "/api/v1/tenant/employees/{id}/photo": {
+      "put": {
+        "tags": [
+          "Tenant: Employees"
+        ],
+        "summary": "Upload employee profile photo",
+        "operationId": "uploadEmployeePhoto",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "photo": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Photo file (JPG, PNG, GIF, WebP, max 2MB)"
+                  }
+                },
+                "required": [
+                  "photo"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Photo uploaded successfully"
+          },
+          "400": {
+            "description": "Validation error \u2014 invalid file type or size"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Upload a profile photo for an employee. Accepts JPG, PNG, GIF, WebP files up to 2MB. The photo is stored on the server and the employee's profile_picture field is updated."
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Employees"
+        ],
+        "summary": "Delete employee profile photo",
+        "operationId": "deleteEmployeePhoto",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Photo deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Employee not found"
+          }
+        },
+        "description": "Remove the profile photo from an employee. Deletes the file from the server and clears the profile_picture field."
+      }
+    },
+    "/api/v1/tenant/employees/{id}/documents/upload": {
+      "post": {
+        "tags": [
+          "Tenant: Employees"
+        ],
+        "summary": "Upload a document file for employee",
+        "operationId": "uploadEmployeeDocument",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Document name"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Document file (PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT, max 10MB)"
+                  },
+                  "note": {
+                    "type": "string",
+                    "description": "Optional note"
+                  }
+                },
+                "required": [
+                  "name",
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Upload a document file for an employee. Creates a document record with the uploaded file path. Supports PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT files up to 10MB."
+      }
+    },
+    "/api/v1/tenant/employees/{id}/documents/{documentId}/upload": {
+      "put": {
+        "tags": [
+          "Tenant: Employees"
+        ],
+        "summary": "Replace document file",
+        "operationId": "replaceEmployeeDocument",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Document name"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "New document file (optional \u2014 if omitted, only metadata is updated)"
+                  },
+                  "note": {
+                    "type": "string",
+                    "description": "Optional note"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "description": "Replace a document file or update document metadata. If a file is provided, it replaces the existing file on disk. If no file is provided, only name/note fields are updated via JSON."
+      }
+    },
+    "/api/v1/tenant/settings/gradings": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "List all Gradings",
+        "operationId": "settingGradingList",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of Gradings"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Retrieve a paginated list of Gradings (job grading levels)."
+      },
+      "post": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Create a new grading",
+        "operationId": "settingGradingCreate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code",
+                  "name"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "sort_order": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Grading created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Create a new grading record (job grading level)."
+      }
+    },
+    "/api/v1/tenant/settings/gradings/{id}": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Get grading by ID",
+        "operationId": "settingGradingGet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Grading details"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Get detailed information about a specific grading by its ID."
+      },
+      "put": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Update grading",
+        "operationId": "settingGradingUpdate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "sort_order": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Grading updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Update a grading record's code, name, or sort order."
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Delete grading",
+        "operationId": "settingGradingDelete",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Grading deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "description": "Soft-delete a grading record."
+      }
+    },
+    "/api/v1/tenant/settings/villages/search": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Search villages by name",
+        "operationId": "searchVillages",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search query for village name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results with hierarchy"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Search villages by name for autocomplete. Returns matching villages with their province, regency, and district hierarchy names."
+      }
+    },
+    "/api/v1/tenant/settings/villages/{id}/detail": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Get village detail with hierarchy",
+        "operationId": "getVillageDetail",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Village code (10 chars)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Village with district/regency/province names"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Get a village by its code including the full hierarchy: village name, district name, regency name, and province name."
+      }
+    },
+    "/api/v1/tenant/settings/provinces/{id}/regencies": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "List regencies by province",
+        "operationId": "listRegenciesByProvince",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Province ID (code)"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of regencies"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Retrieve a list of regencies/cities within a specific province for cascading dropdown selection."
+      }
+    },
+    "/api/v1/tenant/settings/regencies/{id}/districts": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "List districts by regency",
+        "operationId": "listDistrictsByRegency",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Regency ID (code)"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of districts"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Retrieve a list of districts within a specific regency for cascading dropdown selection."
+      }
+    },
+    "/api/v1/tenant/settings/districts/{id}/villages": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "List villages by district",
+        "operationId": "listVillagesByDistrict",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "District ID (code)"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of villages"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Retrieve a list of villages within a specific district for cascading dropdown selection."
+      }
+    },
+    "/api/v1/platform/users/{id}/password": {
+      "put": {
+        "tags": [
+          "Platform: Users"
+        ],
+        "summary": "Change user password",
+        "operationId": "changeUserPassword",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "current_password",
+                  "new_password",
+                  "confirm_password"
+                ],
+                "properties": {
+                  "current_password": {
+                    "type": "string",
+                    "description": "Current password"
+                  },
+                  "new_password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "description": "New password (min 6 characters)"
+                  },
+                  "confirm_password": {
+                    "type": "string",
+                    "description": "Confirm new password"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully"
+          },
+          "400": {
+            "description": "Validation error \u2014 current password wrong or passwords don't match"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "description": "Change a user's password. Requires current password verification, new password (min 6 characters), and confirmation."
+      }
+    },
+    "/api/v1/tenant/employees/{id}/banks": {
+      "post": {
+        "tags": [
+          "Tenant: Employees"
+        ],
+        "summary": "Create employee bank account",
+        "operationId": "createEmployeeBank",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBankAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Bank account created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankAccountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Create a new bank account record for an employee. References a Bank from settings/banks."
+      }
+    },
+    "/api/v1/tenant/employees/{id}/banks/{bankId}": {
+      "put": {
+        "tags": [
+          "Tenant: Employees"
+        ],
+        "summary": "Update employee bank account",
+        "operationId": "updateEmployeeBank",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "bankId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBankAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bank account updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankAccountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Bank account not found"
+          }
+        },
+        "description": "Update an existing employee bank account record."
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Employees"
+        ],
+        "summary": "Delete employee bank account",
+        "operationId": "deleteEmployeeBank",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "bankId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bank account deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Bank account not found"
+          }
+        },
+        "description": "Delete an employee bank account record."
+      }
+    },
+    "/api/v1/tenant/settings/insurances": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "List all Insurances",
+        "operationId": "settingInsuranceList",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of Insurance entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/InsuranceResponse"
+                      }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "total_pages": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Retrieve a paginated list of Insurance types (reference data for employee insurance)."
+      },
+      "post": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Create a new insurance type",
+        "operationId": "settingInsuranceCreate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInsuranceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Insurance type created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsuranceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Duplicate code"
+          }
+        },
+        "description": "Create a new insurance type entry (e.g. BPJS Kesehatan, BPJS Ketenagakerjaan, etc.)."
+      }
+    },
+    "/api/v1/tenant/settings/insurances/{id}": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Get insurance type by ID",
+        "operationId": "settingInsuranceGet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Insurance type details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsuranceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Get detailed information about a specific insurance type by its ID."
+      },
+      "put": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Update insurance type",
+        "operationId": "settingInsuranceUpdate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInsuranceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Insurance type updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsuranceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Duplicate code"
+          }
+        },
+        "description": "Update an existing insurance type's code, name, or sort order."
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Delete insurance type",
+        "operationId": "settingInsuranceDelete",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Insurance type deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "description": "Soft-delete an insurance type record."
       }
     }
   },
@@ -40971,6 +42060,70 @@
               "inactive"
             ],
             "description": "Status ringkasan. Hanya SATU summary yang boleh berstatus active dalam satu waktu."
+          }
+        }
+      },
+      "CreateBankAccountRequest": {
+        "type": "object",
+        "required": [
+          "account_number",
+          "account_name"
+        ],
+        "properties": {
+          "bank_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Bank ID from settings"
+          },
+          "account_number": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "Bank account number"
+          },
+          "account_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Account holder name"
+          }
+        }
+      },
+      "UpdateBankAccountRequest": {
+        "type": "object",
+        "properties": {
+          "bank_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Bank ID from settings"
+          },
+          "account_number": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "Bank account number"
+          },
+          "account_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Account holder name"
+          }
+        }
+      },
+      "BankAccountResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bank_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Bank ID from settings"
+          },
+          "account_number": {
+            "type": "string"
+          },
+          "account_name": {
+            "type": "string"
           }
         }
       }

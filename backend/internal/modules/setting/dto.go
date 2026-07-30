@@ -494,6 +494,37 @@ func (sg *SalaryGrade) ToResponse() SalaryGradeResponse {
 	return SalaryGradeResponse{ID: sg.ID.String(), Code: sg.Code, Name: sg.Name, Description: sg.Description, MinAmount: sg.MinAmount, MaxAmount: sg.MaxAmount, SortOrder: sg.SortOrder, CreatedAt: sg.CreatedAt, UpdatedAt: sg.UpdatedAt}
 }
 
+// ── Insurance DTOs ──
+type CreateInsuranceRequest struct {
+	Code      string `json:"code" binding:"required,max=20"`
+	Name      string `json:"name" binding:"required,max=255"`
+	SortOrder int    `json:"sort_order,omitempty"`
+}
+type UpdateInsuranceRequest struct {
+	Code      *string `json:"code,omitempty" binding:"omitempty,max=20"`
+	Name      *string `json:"name,omitempty" binding:"omitempty,max=255"`
+	SortOrder *int    `json:"sort_order,omitempty"`
+}
+type InsuranceResponse struct {
+	ID        string    `json:"id"`
+	Code      string    `json:"code"`
+	Name      string    `json:"name"`
+	SortOrder int       `json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+func (ins *Insurance) ToResponse() InsuranceResponse {
+	return InsuranceResponse{ID: ins.ID.String(), Code: ins.Code, Name: ins.Name, SortOrder: ins.SortOrder, CreatedAt: ins.CreatedAt, UpdatedAt: ins.UpdatedAt}
+}
+type InsurancePaginatedResponse struct {
+	Success    bool                `json:"success"`
+	Data       []InsuranceResponse `json:"data"`
+	Page       int                 `json:"page"`
+	PerPage    int                 `json:"per_page"`
+	Total      int64               `json:"total"`
+	TotalPages int                 `json:"total_pages"`
+}
+
 // ── Paginated Responses ──
 type JobFamilyPaginatedResponse struct {
 	Success    bool                `json:"success"`

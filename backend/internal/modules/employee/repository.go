@@ -44,7 +44,7 @@ func (r *Repository) FindEmployeeByID(ctx context.Context, id uuid.UUID) (*Emplo
 	q := db.Preload("Addresses").Preload("EmergencyContacts").
 		Preload("Families").Preload("Educations").
 		Preload("Experiences").Preload("Documents").
-		Preload("Insurances").Preload("Employments")
+		Preload("Insurances").Preload("Banks").Preload("Employments")
 	if err := q.First(&emp, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("employee not found: %w", err)
 	}
@@ -389,6 +389,46 @@ func (r *Repository) DeleteInsurance(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	return db.Where("id = ?", id).Delete(&EmployeeInsurance{}).Error
+}
+
+// =========================================================================
+// Banks
+// =========================================================================
+
+func (r *Repository) CreateBank(ctx context.Context, bank *EmployeeBankAccount) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(bank).Error
+}
+
+func (r *Repository) FindBankByID(ctx context.Context, id uuid.UUID) (*EmployeeBankAccount, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var bank EmployeeBankAccount
+	if err := db.First(&bank, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("bank not found: %w", err)
+	}
+	return &bank, nil
+}
+
+func (r *Repository) UpdateBank(ctx context.Context, bank *EmployeeBankAccount) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(bank).Error
+}
+
+func (r *Repository) DeleteBank(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Where("id = ?", id).Delete(&EmployeeBankAccount{}).Error
 }
 
 // =========================================================================

@@ -385,7 +385,23 @@
     "edit_document": "Edit Document",
     "new_document": "Add Document",
     "confirm_delete_document": "Delete this document? This action cannot be undone.",
-    "choose_file": "Choose File"
+    "choose_file": "Choose File",
+    "edit_insurance": "Edit Insurance",
+    "new_insurance": "Add Insurance",
+    "confirm_delete_insurance": "Delete this insurance record? This action cannot be undone.",
+    "wizard_step_bank": "Bank Profile",
+    "tab_bank": "Bank Profile",
+    "bank_description": "Manage employee bank accounts for payroll disbursement.",
+    "bank_name": "Bank",
+    "select_bank": "Select bank...",
+    "bank_account_number": "Account Number",
+    "bank_account_placeholder": "Enter account number",
+    "bank_account_name": "Account Name",
+    "bank_account_name_placeholder": "Enter account holder name",
+    "no_bank": "No bank accounts added yet",
+    "edit_bank": "Edit Bank Account",
+    "new_bank": "Add Bank Account",
+    "confirm_delete_bank": "Delete this bank account? This action cannot be undone."
   },
   "attendance": {
     "title": "Attendance",
@@ -567,7 +583,8 @@
     "gradings": "Gradings",
     "salary_grades": "Salary Grades",
     "ters": "TER (Tarif Efektif)",
-    "ptkps": "PTKP"
+    "ptkps": "PTKP",
+    "insurances": "Insurances"
   },
   "provinces": {
     "title": "Provinces",
@@ -825,6 +842,21 @@
     "created": "PTKP created successfully",
     "updated": "PTKP updated successfully",
     "deleted": "PTKP deleted successfully"
+  },
+  "insurances": {
+    "title": "Insurances",
+    "description": "Manage insurance types for employee BPJS and other insurance profiles.",
+    "new": "New Insurance",
+    "edit": "Edit Insurance",
+    "code": "Code",
+    "name": "Insurance Name",
+    "sort_order": "Sort Order",
+    "empty_title": "No insurances created yet",
+    "confirm_delete": "Delete insurance \"{name}\"?",
+    "confirm_delete_title": "Delete Insurance",
+    "created": "Insurance created successfully",
+    "updated": "Insurance updated successfully",
+    "deleted": "Insurance deleted successfully"
   },
   "time": {
     "just_now": "Just now",

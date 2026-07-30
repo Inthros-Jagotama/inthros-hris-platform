@@ -177,6 +177,7 @@ const menuGroups = computed(() => [
       { label: t('settings.job_families'), icon: 'pi pi-briefcase', command: () => router.push('/settings/job-families'), moduleSlug: 'setting' },
       { label: t('settings.gradings'), icon: 'pi pi-chart-bar', command: () => router.push('/settings/gradings'), moduleSlug: 'setting' },
       { label: t('settings.salary_grades'), icon: 'pi pi-chart-bar', command: () => router.push('/settings/salary-grades'), moduleSlug: 'setting' },
+      { label: t('settings.insurances'), icon: 'pi pi-shield', command: () => router.push('/settings/insurances'), moduleSlug: 'setting' },
       { label: t('settings.ters'), icon: 'pi pi-calculator', command: () => router.push('/settings/ters'), moduleSlug: 'setting' },
       { label: t('settings.ptkps'), icon: 'pi pi-receipt', command: () => router.push('/settings/ptkps'), moduleSlug: 'setting' }
     ]

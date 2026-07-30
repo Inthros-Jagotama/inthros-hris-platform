@@ -9,18 +9,18 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tenant Modules** | **16** complete (15 business + Settings with 16 reference CRUDs) |
+| **Tenant Modules** | **16** complete (15 business + Settings with 17 reference CRUDs) |
 | **Platform Modules** | **6** complete + **2** shared packages |
 | **Total Go Files** | **224+** (155 source + 69 test) |
 | **Total GORM Entities** | **121** (116 tenant + 5 platform) |
 | **Total Test Functions** | **~1004+** |
-| **Total OpenAPI Endpoints** | **651** |
-| **Total OpenAPI Schemas** | **426** |
+| **Total OpenAPI Endpoints** | **673** |
+| **Total OpenAPI Schemas** | **429** |
 | **Total OpenAPI Tags** | **27** |
 | **Module Type Filter** | ✅ **3 endpoints** (`/modules`, `/packages`, `/public/packages`) |
 | **Bilingual Support** | ✅ **EN/ID** — Backend 80+ message pairs + Frontend 200+ locale keys, middleware auto-detect, field validation errors |
 | **Frontend Phase 1** | ✅ **9/9 Platform Admin pages** — 100% complete with bilingual support |
-| **Frontend Tenant (Phase 2)** | ✅ **19+ views** — Dashboard, Login, Profile, Organization, 16 Settings CRUDs |
+| **Frontend Tenant (Phase 2)** | ✅ **20+ views** — Dashboard, Login, Profile, Organization, 17 Settings CRUDs |
 | **Frontend Components** | **34+** (11 views, 9 form components, 3 composables, 2 utils, stores, services) |
 | **Frontend Build** | ✅ **Clean** — zero warnings |
 | **Migration Files** | **36 per dialect** (18 up + 18 down) |
@@ -80,8 +80,8 @@
 | 13 | Training & Development | 7 | 31 | 35 | ✅ Complete | 26 Jul 2026 |
 | 14 | **Workforce Intelligence & Strategic Planning** | **7** | **108** | **68** | ✅ Complete | **25 Jul 2026** |
 | 15 | **Career Intelligence & Talent Management** | **4** | **65** | **19** | ✅ Complete | **26 Jul 2026** |
-| 16 | **Settings (Master Data)** | **16** | **—** | **80** | ✅ Complete | **27 Jul 2026** |
-| | **TOTAL** | **132** | **850** | **579** | **16/16 (100%)** | |
+| 16 | **Settings (Master Data)** | **17** | **—** | **85** | ✅ Complete | **27 Jul 2026** |
+| | **TOTAL** | **133** | **850** | **584** | **16/16 (100%)** | |
 
 ### Platform Modules (6/6 — 100% Complete ✅)
 
@@ -141,13 +141,13 @@
 | Document | Description | Status |
 |----------|-------------|:------:|
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
-| `ARCHITECTURE_DESIGN_v1.6_Updated.md` | Architecture design, module status, priority matrix | ✅ v15 updated (Org Summary CRUD + 6 endpoints) |
-| `docs/openapi-report.md` | OpenAPI comprehensive report (v15) | ✅ v15 — 651 endpoints, 426 schemas, 27 tags |
+| `ARCHITECTURE_DESIGN_v1.6_Updated.md` | Architecture design, module status, priority matrix | ✅ v16 updated (15 missing endpoints injected) |
+| `docs/openapi-report.md` | OpenAPI comprehensive report (v17) | ✅ v17 — 673 endpoints, 429 schemas, 27 tags |
 | `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ Updated with Settings module (130 entities, 550 service methods, 1029 tests) |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
 | `docs/PROJECT_COMPLETION_DASHBOARD.md` | **This document** | ✅ **Updated — Phase 1 Frontend added** |
-| `docs/frontend-development-plan.md` | Frontend Phase 1-4 development plan | ✅ **Phase 1 all 9 modules + Tenant 16 Settings CRUDs completed** |
+| `docs/frontend-development-plan.md` | Frontend Phase 1-4 development plan | ✅ **Phase 1 all 9 modules + Tenant 17 Settings CRUDs completed** |
 | `docs/Phase-1-Completion-Report.md` | Phase 1 Frontend completion summary | ✅ **NEW — for presentation** |
 
 ---
@@ -186,8 +186,8 @@
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 651 endpoints |
-| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 673 endpoints |
+| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 673 endpoints |
 | **RBAC Engine** | ✅ **Active** | 4 default roles, **74+ permissions (14 resources)**, auto-reload |
 | **Cache (Redis)** | 🔶 **Optional** | Redis required for distributed mode |
 | **Docker Compose** | ✅ **Ready** | PostgreSQL, Redis, API, Asynqmon |
@@ -282,11 +282,12 @@
 | Task | Priority | Notes | Status |
 |------|:--------:|-------|:------:|
 | **Frontend Phase 1 — Platform Admin** | 🟢 High | 9 pages: Login, Dashboard, Companies, Users, Modules, Licenses, Packages, Monitoring, RBAC | ✅ **Done (26 Jul 2026)** |
-| Frontend Phase 2 — Tenant Module Views | 🟡 Medium | Organization, Employee, Leave, Payroll, Attendance, dll. | ✅ **Partial (16 Settings CRUD views + Organization done)** |
+| Frontend Phase 2 — Tenant Module Views | 🟡 Medium | Organization, Employee, Leave, Payroll, Attendance, dll. | ✅ **Partial (17 Settings CRUD views + Organization done)** |
 | — Settings: Zones, Provinces, Regencies, Districts, Villages | 🟢 Easy | 5 geographic entities with parent-child hierarchy | ✅ **Done** |
 | — Settings: Educations, Religions, MaritalStatuses, RelationshipTypes | 🟢 Easy | 4 simple reference CRUDs | ✅ **Done** |
 | — Settings: Banks, EmploymentStatuses, Nationalities | 🟢 Easy | 3 simple reference CRUDs | ✅ **Done** |
 | — Settings: JobFamilies, SalaryGrades | 🟢 Easy | 2 reference CRUDs (SalaryGrades: Grade, MinSalary, MaxSalary) | ✅ **Done** |
+| — Settings: Insurances | 🟢 Easy | 1 reference CRUD (Code, Name, SortOrder) — Backend + Frontend + OpenAPI | ✅ **Done** |
 | — Settings: TER & PTKP | 🟢 Easy | 2 tax reference CRUDs (TER: Group, BrutoMin, BrutoMax, Rate; PTKP: Name, Group, Amount) | ✅ **Done** |
 | — Organization Management | 🟡 Medium | TreeTable view, CRUD with parent selection, dark mode, bilingual (Positions CRUD ⏸️ postponed) | ✅ **Done** |
 | — Employee Management (Wizard) | 🔴 Complex | Multi-step form (9 steps) | 🔴 TODO |
@@ -302,7 +303,7 @@
 |----------|------|
 | Main README | `./README.md` |
 | Architecture Design | `./ARCHITECTURE_DESIGN_v1.6_Updated.md` |
-| OpenAPI Report (v15) | `./docs/openapi-report.md` |
+| OpenAPI Report (v17) | `./docs/openapi-report.md` |
 | Go Module Architecture Report | `./docs/go-module-architecture-report.md` |
 | Platform Architecture Design | `./docs/platform-architecture-design.md` |
 | Blueprint vs Existing Analysis | `./docs/analisis-blueprint-vs-existing.md` |

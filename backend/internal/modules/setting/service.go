@@ -927,6 +927,57 @@ func (s *Service) ListPTKPs(ctx context.Context, page, perPage int) (*PTKPPagina
 	if int(total)%perPage > 0 { totalPages++ }
 	return &PTKPPaginatedResponse{Success: true, Data: responses, Page: page, PerPage: perPage, Total: total, TotalPages: totalPages}, nil
 }
+
+// ── Insurance CRUD ──
+func (s *Service) CreateInsurance(ctx context.Context, req CreateInsuranceRequest) (*InsuranceResponse, error) {
+	ins := &Insurance{Code: req.Code, Name: req.Name, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &Insurance{}, req.Code, "insurances"); err != nil { return nil, err }
+	if err := s.repo.CreateInsurance(ctx, ins); err != nil { return nil, err }
+	s.logger.Info("Insurance created", zap.String("id", ins.ID.String()), zap.String("code", ins.Code))
+	resp := ins.ToResponse()
+	return &resp, nil
+}
+func (s *Service) GetInsuranceByID(ctx context.Context, id string) (*InsuranceResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
+	ins, err := s.repo.FindInsuranceByID(ctx, uid)
+	if err != nil { return nil, err }
+	resp := ins.ToResponse()
+	return &resp, nil
+}
+func (s *Service) ListInsurances(ctx context.Context, page, perPage int) (*InsurancePaginatedResponse, error) {
+	if page < 1 { page = defaultPage }
+	if perPage < 1 { perPage = defaultPerPage }
+	if perPage > maxPerPage { perPage = maxPerPage }
+	list, total, err := s.repo.FindAllInsurances(ctx, page, perPage)
+	if err != nil { return nil, err }
+	responses := make([]InsuranceResponse, len(list))
+	for i, ins := range list { responses[i] = ins.ToResponse() }
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 { totalPages++ }
+	return &InsurancePaginatedResponse{Success: true, Data: responses, Page: page, PerPage: perPage, Total: total, TotalPages: totalPages}, nil
+}
+func (s *Service) UpdateInsurance(ctx context.Context, id string, req UpdateInsuranceRequest) (*InsuranceResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
+	ins, err := s.repo.FindInsuranceByID(ctx, uid)
+	if err != nil { return nil, err }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &Insurance{}, *req.Code, ins.ID, "insurances"); err != nil { return nil, err }
+		ins.Code = *req.Code
+	}
+	if req.Name != nil { ins.Name = *req.Name }
+	if req.SortOrder != nil { ins.SortOrder = *req.SortOrder }
+	if err := s.repo.UpdateInsurance(ctx, ins); err != nil { return nil, err }
+	resp := ins.ToResponse()
+	return &resp, nil
+}
+func (s *Service) DeleteInsurance(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil { return fmt.Errorf("invalid id: %w", err) }
+	return s.repo.DeleteInsurance(ctx, uid)
+}
+
 func (s *Service) UpdatePTKP(ctx context.Context, id string, req UpdatePTKPRequest) (*PTKPResponse, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }

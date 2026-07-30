@@ -583,6 +583,45 @@ func (h *Handler) DeleteInsurance(c *gin.Context) {
 }
 
 // =========================================================================
+// Sub-module Handlers: Banks
+// =========================================================================
+
+func (h *Handler) CreateBank(c *gin.Context) {
+	employeeID := c.Param("id")
+	var req CreateBankRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.CreateBank(c.Request.Context(), employeeID, req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) UpdateBank(c *gin.Context) {
+	var req UpdateBankRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdateBank(c.Request.Context(), c.Param("id"), c.Param("bankId"), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteBank(c *gin.Context) {
+	if err := h.service.DeleteBank(c.Request.Context(), c.Param("id"), c.Param("bankId")); err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
 // Sub-module Handlers: Employments
 // =========================================================================
 

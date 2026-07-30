@@ -3,18 +3,18 @@
 
 **Generated:** 30 July 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 349
-**Total Endpoints (methods):** 651
-**Total Schemas:** 426
+**Total Paths:** 364
+**Total Endpoints (methods):** 673
+**Total Schemas:** 429
 **Total Tags:** 27
 
 ## Coverage Summary
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 651/651 | 100% |
-| Endpoints with `description` | 651/651 | 100% |
-| Endpoints with `operationId` | 651/651 | 100% |
+| Endpoints with `summary` | 673/673 | 100% |
+| Endpoints with `description` | 673/673 | 100% |
+| Endpoints with `operationId` | 673/673 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -105,16 +105,16 @@ Tenant endpoints support validation for Indonesian data formats:
 
 | # | Tag | Endpoints | Paths |
 |---|---|---|---|
-| 1 | Tenant: Job Management | 88 | 36 |
-| 2 | Tenant: Settings | 80 | 32 |
+| 1 | Tenant: Settings | 95 | 41 |
+| 2 | Tenant: Job Management | 88 | 36 |
 | 3 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
 | 4 | Tenant: Payroll & Compensation Engine | 53 | 26 |
-| 5 | Tenant: Competency Management | 36 | 15 |
-| 6 | Tenant: Training & Development Management | 35 | 15 |
-| 7 | Tenant: Performance Management | 34 | 17 |
-| 8 | Tenant: Recruitment & Onboarding (ATS) | 33 | 16 |
-| 9 | Tenant: Time & Attendance | 30 | 15 |
-| 10 | Tenant: Employees | 29 | 18 |
+| 5 | Tenant: Employees | 36 | 23 |
+| 6 | Tenant: Competency Management | 36 | 15 |
+| 7 | Tenant: Training & Development Management | 35 | 15 |
+| 8 | Tenant: Performance Management | 34 | 17 |
+| 9 | Tenant: Recruitment & Onboarding (ATS) | 33 | 16 |
+| 10 | Tenant: Time & Attendance | 30 | 15 |
 | 11 | Tenant: Leave & Time Off | 23 | 12 |
 | 12 | Tenant: Career Intelligence | 19 | 10 |
 | 13 | Tenant: Organizations | 18 | 11 |
@@ -127,14 +127,117 @@ Tenant endpoints support validation for Indonesian data formats:
 | 20 | Platform: Modules | 7 | 5 |
 | 21 | Platform: Monitoring | 5 | 5 |
 | 22 | Health | 4 | 4 |
-| 23 | Platform: Users | 4 | 2 |
+| 23 | Platform: Users | 4 | 3 |
 | 24 | Platform: Licenses | 4 | 2 |
 | 25 | Tenant: Packages | 4 | 4 |
 | 26 | Platform: Auth | 2 | 2 |
 | 27 | Tenant: Approval Engine | 1 | 1 |
-| | **TOTAL** | **651** | **349** |
+| | **TOTAL** | **673** | **364** |
 
 ## 2. Module Detail
+
+### Tenant: Settings
+**Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data.
+**Endpoints:** 95 | **Paths:** 41
+**Methods:** DELETE=18 GET=41 POST=18 PUT=18
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/settings/banks` | List all Banks | Retrieve a paginated list of Banks. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/banks` | Create a new bank | Create a new banks record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/banks/{id}` | Get bank by ID | Get detailed information about a specific bank by its ID. |
+| `PUT` | `/api/v1/tenant/settings/banks/{id}` | Update bank | Update a bank record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/banks/{id}` | Delete bank | Soft-delete a bank record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/districts` | List all Districts | Retrieve a paginated list of Districts. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/districts` | Create a new district | Create a new districts record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/districts/{id}` | Get district by ID | Get detailed information about a specific district by its ID. |
+| `PUT` | `/api/v1/tenant/settings/districts/{id}` | Update district | Update a district record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/districts/{id}` | Delete district | Soft-delete a district record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/districts/{id}/villages` | List villages by district | Retrieve a list of villages within a specific district for cascading dropdown selection. |
+| `GET` | `/api/v1/tenant/settings/educations` | List all Educations | Retrieve a paginated list of Educations. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/educations` | Create a new education | Create a new educations record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/educations/{id}` | Get education by ID | Get detailed information about a specific education by its ID. |
+| `PUT` | `/api/v1/tenant/settings/educations/{id}` | Update education | Update a education record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/educations/{id}` | Delete education | Soft-delete a education record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/employment-statuses` | List all Employment Statuses | Retrieve a paginated list of Employment Statuses. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/employment-statuses` | Create a new employmentstatus | Create a new employment statuses record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/employment-statuses/{id}` | Get employmentstatus by ID | Get detailed information about a specific employmentstatus by its ID. |
+| `PUT` | `/api/v1/tenant/settings/employment-statuses/{id}` | Update employmentstatus | Update a employmentstatus record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/employment-statuses/{id}` | Delete employmentstatus | Soft-delete a employmentstatus record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/gradings` | List all Gradings | Retrieve a paginated list of Gradings (job grading levels). |
+| `POST` | `/api/v1/tenant/settings/gradings` | Create a new grading | Create a new grading record (job grading level). |
+| `GET` | `/api/v1/tenant/settings/gradings/{id}` | Get grading by ID | Get detailed information about a specific grading by its ID. |
+| `PUT` | `/api/v1/tenant/settings/gradings/{id}` | Update grading | Update a grading record's code, name, or sort order. |
+| `DELETE` | `/api/v1/tenant/settings/gradings/{id}` | Delete grading | Soft-delete a grading record. |
+| `GET` | `/api/v1/tenant/settings/insurances` | List all Insurances | Retrieve a paginated list of Insurance types (reference data for employee insurance). |
+| `POST` | `/api/v1/tenant/settings/insurances` | Create a new insurance type | Create a new insurance type entry (e.g. BPJS Kesehatan, BPJS Ketenagakerjaan, etc.). |
+| `GET` | `/api/v1/tenant/settings/insurances/{id}` | Get insurance type by ID | Get detailed information about a specific insurance type by its ID. |
+| `PUT` | `/api/v1/tenant/settings/insurances/{id}` | Update insurance type | Update an existing insurance type's code, name, or sort order. |
+| `DELETE` | `/api/v1/tenant/settings/insurances/{id}` | Delete insurance type | Soft-delete an insurance type record. |
+| `GET` | `/api/v1/tenant/settings/job-families` | List all Job Families | Retrieve a paginated list of Job Families. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/job-families` | Create a new jobfamily | Create a new job families record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/job-families/{id}` | Get jobfamily by ID | Get detailed information about a specific jobfamily by its ID. |
+| `PUT` | `/api/v1/tenant/settings/job-families/{id}` | Update jobfamily | Update a jobfamily record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/job-families/{id}` | Delete jobfamily | Soft-delete a jobfamily record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/marital-statuses` | List all Marital Statuses | Retrieve a paginated list of Marital Statuses. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/marital-statuses` | Create a new maritalstatus | Create a new marital statuses record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/marital-statuses/{id}` | Get maritalstatus by ID | Get detailed information about a specific maritalstatus by its ID. |
+| `PUT` | `/api/v1/tenant/settings/marital-statuses/{id}` | Update maritalstatus | Update a maritalstatus record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/marital-statuses/{id}` | Delete maritalstatus | Soft-delete a maritalstatus record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/nationalities` | List all Nationalities | Retrieve a paginated list of Nationalities. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/nationalities` | Create a new nationality | Create a new nationalities record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/nationalities/{id}` | Get nationality by ID | Get detailed information about a specific nationality by its ID. |
+| `PUT` | `/api/v1/tenant/settings/nationalities/{id}` | Update nationality | Update a nationality record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/nationalities/{id}` | Delete nationality | Soft-delete a nationality record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/provinces` | List all Provinces | Retrieve a paginated list of Provinces. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/provinces` | Create a new province | Create a new provinces record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/provinces/{id}` | Get province by ID | Get detailed information about a specific province by its ID. |
+| `PUT` | `/api/v1/tenant/settings/provinces/{id}` | Update province | Update a province record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/provinces/{id}` | Delete province | Soft-delete a province record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/provinces/{id}/regencies` | List regencies by province | Retrieve a list of regencies/cities within a specific province for cascading dropdown selection. |
+| `GET` | `/api/v1/tenant/settings/ptkps` | List all PTKPs | Retrieve a paginated list of Penghasilan Tidak Kena Pajak (PTKP) records. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/ptkps` | Create a new PTKP | Create a new PTKP record with name, amount, and group. |
+| `GET` | `/api/v1/tenant/settings/ptkps/{id}` | Get PTKP by ID | Get detailed information about a specific PTKP record by its ID. |
+| `PUT` | `/api/v1/tenant/settings/ptkps/{id}` | Update PTKP | Update a PTKP record's name, amount, or group. |
+| `DELETE` | `/api/v1/tenant/settings/ptkps/{id}` | Delete PTKP | Delete a PTKP record. |
+| `GET` | `/api/v1/tenant/settings/regencies` | List all Regencies | Retrieve a paginated list of Regencies. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/regencies` | Create a new regency | Create a new regencies record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/regencies/{id}` | Get regency by ID | Get detailed information about a specific regency by its ID. |
+| `PUT` | `/api/v1/tenant/settings/regencies/{id}` | Update regency | Update a regency record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/regencies/{id}` | Delete regency | Soft-delete a regency record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/regencies/{id}/districts` | List districts by regency | Retrieve a list of districts within a specific regency for cascading dropdown selection. |
+| `GET` | `/api/v1/tenant/settings/relationship-types` | List all Relationship Types | Retrieve a paginated list of Relationship Types. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/relationship-types` | Create a new relationshiptype | Create a new relationship types record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/relationship-types/{id}` | Get relationshiptype by ID | Get detailed information about a specific relationshiptype by its ID. |
+| `PUT` | `/api/v1/tenant/settings/relationship-types/{id}` | Update relationshiptype | Update a relationshiptype record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/relationship-types/{id}` | Delete relationshiptype | Soft-delete a relationshiptype record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/religions` | List all Religions | Retrieve a paginated list of Religions. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/religions` | Create a new religion | Create a new religions record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/religions/{id}` | Get religion by ID | Get detailed information about a specific religion by its ID. |
+| `PUT` | `/api/v1/tenant/settings/religions/{id}` | Update religion | Update a religion record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/religions/{id}` | Delete religion | Soft-delete a religion record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/salary-grades` | List all Salary Grades | Retrieve a paginated list of Salary Grades. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/salary-grades` | Create a new salarygrade | Create a new salary grades record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/salary-grades/{id}` | Get salarygrade by ID | Get detailed information about a specific salarygrade by its ID. |
+| `PUT` | `/api/v1/tenant/settings/salary-grades/{id}` | Update salarygrade | Update a salarygrade record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/salary-grades/{id}` | Delete salarygrade | Soft-delete a salarygrade record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/ters` | List all TERs | Retrieve a paginated list of Tarif Efektif Rata-rata (TER) records used for PPh21 calculation. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/ters` | Create a new TER | Create a new TER record with group, bruto range, and rate. |
+| `GET` | `/api/v1/tenant/settings/ters/{id}` | Get TER by ID | Get detailed information about a specific TER record by its ID. |
+| `PUT` | `/api/v1/tenant/settings/ters/{id}` | Update TER | Update a TER record's group, bruto range, or rate. |
+| `DELETE` | `/api/v1/tenant/settings/ters/{id}` | Delete TER | Delete a TER record. |
+| `GET` | `/api/v1/tenant/settings/villages` | List all Villages | Retrieve a paginated list of Villages. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/villages` | Create a new village | Create a new villages record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/villages/search` | Search villages by name | Search villages by name for autocomplete. Returns matching villages with their province, regency, and district hierarchy names. |
+| `GET` | `/api/v1/tenant/settings/villages/{id}` | Get village by ID | Get detailed information about a specific village by its ID. |
+| `PUT` | `/api/v1/tenant/settings/villages/{id}` | Update village | Update a village record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/villages/{id}` | Delete village | Soft-delete a village record. Sets the deleted_at timestamp and hides it from standard queries. |
+| `GET` | `/api/v1/tenant/settings/villages/{id}/detail` | Get village detail with hierarchy | Get a village by its code including the full hierarchy: village name, district name, regency name, and province name. |
+| `GET` | `/api/v1/tenant/settings/zones` | List all Zones | Retrieve a paginated list of Zones. Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/zones` | Create a new zone | Create a new zones record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/zones/{id}` | Get zone by ID | Get detailed information about a specific zone by its ID. |
+| `PUT` | `/api/v1/tenant/settings/zones/{id}` | Update zone | Update a zone record's details including code, name, and other attributes. |
+| `DELETE` | `/api/v1/tenant/settings/zones/{id}` | Delete zone | Soft-delete a zone record. Sets the deleted_at timestamp and hides it from standard queries. |
 
 ### Tenant: Job Management
 **Description:** Job analysis management including titles, values, objectives, responsibilities, competencies, and scoring
@@ -231,94 +334,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/job-management/working-risks/{id}` | Get working risk by ID | Retrieve a paginated list of job management resources. |
 | `PUT` | `/api/v1/tenant/job-management/working-risks/{id}` | Update working risk | Update an existing working risks record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `DELETE` | `/api/v1/tenant/job-management/working-risks/{id}` | Delete working risk | Delete a working risks record by its unique ID. This action may be reversible depending on system configuration. |
-
-### Tenant: Settings
-**Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data.
-**Endpoints:** 80 | **Paths:** 32
-**Methods:** DELETE=16 GET=32 POST=16 PUT=16
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/tenant/settings/banks` | List all Banks | Retrieve a paginated list of Banks. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/banks` | Create a new bank | Create a new banks record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/banks/{id}` | Get bank by ID | Get detailed information about a specific bank by its ID. |
-| `PUT` | `/api/v1/tenant/settings/banks/{id}` | Update bank | Update a bank record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/banks/{id}` | Delete bank | Soft-delete a bank record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/districts` | List all Districts | Retrieve a paginated list of Districts. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/districts` | Create a new district | Create a new districts record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/districts/{id}` | Get district by ID | Get detailed information about a specific district by its ID. |
-| `PUT` | `/api/v1/tenant/settings/districts/{id}` | Update district | Update a district record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/districts/{id}` | Delete district | Soft-delete a district record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/educations` | List all Educations | Retrieve a paginated list of Educations. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/educations` | Create a new education | Create a new educations record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/educations/{id}` | Get education by ID | Get detailed information about a specific education by its ID. |
-| `PUT` | `/api/v1/tenant/settings/educations/{id}` | Update education | Update a education record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/educations/{id}` | Delete education | Soft-delete a education record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/employment-statuses` | List all Employment Statuses | Retrieve a paginated list of Employment Statuses. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/employment-statuses` | Create a new employmentstatus | Create a new employment statuses record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/employment-statuses/{id}` | Get employmentstatus by ID | Get detailed information about a specific employmentstatus by its ID. |
-| `PUT` | `/api/v1/tenant/settings/employment-statuses/{id}` | Update employmentstatus | Update a employmentstatus record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/employment-statuses/{id}` | Delete employmentstatus | Soft-delete a employmentstatus record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/job-families` | List all Job Families | Retrieve a paginated list of Job Families. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/job-families` | Create a new jobfamily | Create a new job families record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/job-families/{id}` | Get jobfamily by ID | Get detailed information about a specific jobfamily by its ID. |
-| `PUT` | `/api/v1/tenant/settings/job-families/{id}` | Update jobfamily | Update a jobfamily record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/job-families/{id}` | Delete jobfamily | Soft-delete a jobfamily record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/marital-statuses` | List all Marital Statuses | Retrieve a paginated list of Marital Statuses. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/marital-statuses` | Create a new maritalstatus | Create a new marital statuses record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/marital-statuses/{id}` | Get maritalstatus by ID | Get detailed information about a specific maritalstatus by its ID. |
-| `PUT` | `/api/v1/tenant/settings/marital-statuses/{id}` | Update maritalstatus | Update a maritalstatus record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/marital-statuses/{id}` | Delete maritalstatus | Soft-delete a maritalstatus record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/nationalities` | List all Nationalities | Retrieve a paginated list of Nationalities. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/nationalities` | Create a new nationality | Create a new nationalities record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/nationalities/{id}` | Get nationality by ID | Get detailed information about a specific nationality by its ID. |
-| `PUT` | `/api/v1/tenant/settings/nationalities/{id}` | Update nationality | Update a nationality record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/nationalities/{id}` | Delete nationality | Soft-delete a nationality record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/provinces` | List all Provinces | Retrieve a paginated list of Provinces. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/provinces` | Create a new province | Create a new provinces record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/provinces/{id}` | Get province by ID | Get detailed information about a specific province by its ID. |
-| `PUT` | `/api/v1/tenant/settings/provinces/{id}` | Update province | Update a province record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/provinces/{id}` | Delete province | Soft-delete a province record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/ptkps` | List all PTKPs | Retrieve a paginated list of Penghasilan Tidak Kena Pajak (PTKP) records. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/ptkps` | Create a new PTKP | Create a new PTKP record with name, amount, and group. |
-| `GET` | `/api/v1/tenant/settings/ptkps/{id}` | Get PTKP by ID | Get detailed information about a specific PTKP record by its ID. |
-| `PUT` | `/api/v1/tenant/settings/ptkps/{id}` | Update PTKP | Update a PTKP record's name, amount, or group. |
-| `DELETE` | `/api/v1/tenant/settings/ptkps/{id}` | Delete PTKP | Delete a PTKP record. |
-| `GET` | `/api/v1/tenant/settings/regencies` | List all Regencies | Retrieve a paginated list of Regencies. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/regencies` | Create a new regency | Create a new regencies record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/regencies/{id}` | Get regency by ID | Get detailed information about a specific regency by its ID. |
-| `PUT` | `/api/v1/tenant/settings/regencies/{id}` | Update regency | Update a regency record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/regencies/{id}` | Delete regency | Soft-delete a regency record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/relationship-types` | List all Relationship Types | Retrieve a paginated list of Relationship Types. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/relationship-types` | Create a new relationshiptype | Create a new relationship types record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/relationship-types/{id}` | Get relationshiptype by ID | Get detailed information about a specific relationshiptype by its ID. |
-| `PUT` | `/api/v1/tenant/settings/relationship-types/{id}` | Update relationshiptype | Update a relationshiptype record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/relationship-types/{id}` | Delete relationshiptype | Soft-delete a relationshiptype record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/religions` | List all Religions | Retrieve a paginated list of Religions. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/religions` | Create a new religion | Create a new religions record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/religions/{id}` | Get religion by ID | Get detailed information about a specific religion by its ID. |
-| `PUT` | `/api/v1/tenant/settings/religions/{id}` | Update religion | Update a religion record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/religions/{id}` | Delete religion | Soft-delete a religion record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/salary-grades` | List all Salary Grades | Retrieve a paginated list of Salary Grades. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/salary-grades` | Create a new salarygrade | Create a new salary grades record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/salary-grades/{id}` | Get salarygrade by ID | Get detailed information about a specific salarygrade by its ID. |
-| `PUT` | `/api/v1/tenant/settings/salary-grades/{id}` | Update salarygrade | Update a salarygrade record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/salary-grades/{id}` | Delete salarygrade | Soft-delete a salarygrade record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/ters` | List all TERs | Retrieve a paginated list of Tarif Efektif Rata-rata (TER) records used for PPh21 calculation. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/ters` | Create a new TER | Create a new TER record with group, bruto range, and rate. |
-| `GET` | `/api/v1/tenant/settings/ters/{id}` | Get TER by ID | Get detailed information about a specific TER record by its ID. |
-| `PUT` | `/api/v1/tenant/settings/ters/{id}` | Update TER | Update a TER record's group, bruto range, or rate. |
-| `DELETE` | `/api/v1/tenant/settings/ters/{id}` | Delete TER | Delete a TER record. |
-| `GET` | `/api/v1/tenant/settings/villages` | List all Villages | Retrieve a paginated list of Villages. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/villages` | Create a new village | Create a new villages record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/villages/{id}` | Get village by ID | Get detailed information about a specific village by its ID. |
-| `PUT` | `/api/v1/tenant/settings/villages/{id}` | Update village | Update a village record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/villages/{id}` | Delete village | Soft-delete a village record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/zones` | List all Zones | Retrieve a paginated list of Zones. Supports pagination parameters. |
-| `POST` | `/api/v1/tenant/settings/zones` | Create a new zone | Create a new zones record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/settings/zones/{id}` | Get zone by ID | Get detailed information about a specific zone by its ID. |
-| `PUT` | `/api/v1/tenant/settings/zones/{id}` | Update zone | Update a zone record's details including code, name, and other attributes. |
-| `DELETE` | `/api/v1/tenant/settings/zones/{id}` | Delete zone | Soft-delete a zone record. Sets the deleted_at timestamp and hides it from standard queries. |
 
 ### Tenant: Workforce Intelligence & Strategic Planning
 **Description:** Workforce Intelligence & Strategic Workforce Planning â€” strategic analytics layer for headcount planning, forecasting, gap analysis, KPI monitoring, workforce analytics (headcount, attendance, leave, overtime, payroll, performance, learning, recruitment, movement), capacity planning, cost analytics, risk monitoring, executive dashboards, scenario simulation, organization health scoring, and people analytics (training-vs-performance, overtime-vs-productivity, etc.). Read-only analytics module aggregating data from all operational HR modules.
@@ -455,6 +470,50 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/payroll/salary-components/{id}` | Get salary component by ID | Retrieve a paginated list of salary components records. Supports filtering, sorting, and pagination parameters. |
 | `PUT` | `/api/v1/tenant/payroll/salary-components/{id}` | Update salary component | Update an existing salary components record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `DELETE` | `/api/v1/tenant/payroll/salary-components/{id}` | Delete salary component | Delete a salary components record by its unique ID. This action may be reversible depending on system configuration. |
+
+### Tenant: Employees
+**Description:** Employee management with 8 sub-modules (addresses, emergency contacts, families, educations, experiences, documents, insurances, employments)
+**Endpoints:** 36 | **Paths:** 23
+**Methods:** DELETE=11 GET=2 POST=11 PUT=12
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/employees` | List employees with pagination | Retrieve a paginated list of employees records. Supports filtering, sorting, and pagination parameters. |
+| `POST` | `/api/v1/tenant/employees` | Create a new employee | Create a new employees record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/employees/{id}` | Get employee by ID with all sub-modules | Retrieve a paginated list of employees records. Supports filtering, sorting, and pagination parameters. |
+| `PUT` | `/api/v1/tenant/employees/{id}` | Update employee | Update an existing employees record by its unique ID. Accepts partial updates; only provided fields will be modified. |
+| `DELETE` | `/api/v1/tenant/employees/{id}` | Delete employee (hard delete) | Delete a employees record by its unique ID. This action may be reversible depending on system configuration. |
+| `POST` | `/api/v1/tenant/employees/{id}/addresses` | Add employee address | Add a new address for an employee. Supports address types: MAIN (primary residence) and DOMICILE (current stay). Includes full address, RT/RW, subd... |
+| `PUT` | `/api/v1/tenant/employees/{id}/addresses/{addressId}` | Update employee address | Update an existing employee address record. Can modify address type, full address details, RT/RW, administrative region, postal code, or coordinates. |
+| `DELETE` | `/api/v1/tenant/employees/{id}/addresses/{addressId}` | Delete employee address | Remove an employee's address record from the system. |
+| `POST` | `/api/v1/tenant/employees/{id}/banks` | Create employee bank account | Create a new bank account record for an employee. References a Bank from settings/banks. |
+| `PUT` | `/api/v1/tenant/employees/{id}/banks/{bankId}` | Update employee bank account | Update an existing employee bank account record. |
+| `DELETE` | `/api/v1/tenant/employees/{id}/banks/{bankId}` | Delete employee bank account | Delete an employee bank account record. |
+| `POST` | `/api/v1/tenant/employees/{id}/documents` | Upload employee document | Upload and attach a document to an employee's profile. Supports document types such as ID card (KTP), NPWP, BPJS, diplomas, certificates, and other... |
+| `POST` | `/api/v1/tenant/employees/{id}/documents/upload` | Upload a document file for employee | Upload a document file for an employee. Creates a document record with the uploaded file path. Supports PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, T... |
+| `PUT` | `/api/v1/tenant/employees/{id}/documents/{documentId}` | Update document metadata | Update an employee document's metadata such as document name, type, or description. |
+| `DELETE` | `/api/v1/tenant/employees/{id}/documents/{documentId}` | Delete employee document | Remove a document from the employee's profile. |
+| `PUT` | `/api/v1/tenant/employees/{id}/documents/{documentId}/upload` | Replace document file | Replace a document file or update document metadata. If a file is provided, it replaces the existing file on disk. If no file is provided, only nam... |
+| `POST` | `/api/v1/tenant/employees/{id}/educations` | Add education record | Add an educational background record for an employee. Includes education level, institution name, major/field of study, graduation year, GPA, and d... |
+| `PUT` | `/api/v1/tenant/employees/{id}/educations/{educationId}` | Update education record | Update an employee's educational background record including institution, degree, graduation date, and academic achievements. |
+| `DELETE` | `/api/v1/tenant/employees/{id}/educations/{educationId}` | Delete education record | Remove an educational background record from the employee's profile. |
+| `POST` | `/api/v1/tenant/employees/{id}/emergency-contacts` | Add emergency contact | Register an emergency contact person for an employee. Includes name, relationship, phone number, and alternative contact information. |
+| `PUT` | `/api/v1/tenant/employees/{id}/emergency-contacts/{contactId}` | Update emergency contact | Update an employee's emergency contact details such as name, relationship, or phone number. |
+| `DELETE` | `/api/v1/tenant/employees/{id}/emergency-contacts/{contactId}` | Delete emergency contact | Remove an emergency contact record from the employee's profile. |
+| `POST` | `/api/v1/tenant/employees/{id}/employments` | Add employment record | Add an employment assignment for an employee. Associates the employee with an organization unit, position, employment status, and includes decision... |
+| `PUT` | `/api/v1/tenant/employees/{id}/employments/{employmentId}` | Update employment record | Update an employee's employment assignment including organization, position, status, and decision letter information. |
+| `DELETE` | `/api/v1/tenant/employees/{id}/employments/{employmentId}` | Delete employment record | Remove an employment assignment from the employee's profile. |
+| `POST` | `/api/v1/tenant/employees/{id}/experiences` | Add work experience | Add a work experience record for an employee. Includes company name, position, start and end dates, job description, and reason for leaving. |
+| `PUT` | `/api/v1/tenant/employees/{id}/experiences/{experienceId}` | Update work experience | Update an employee's work experience record including company, position, employment period, and responsibilities. |
+| `DELETE` | `/api/v1/tenant/employees/{id}/experiences/{experienceId}` | Delete work experience | Remove a work experience record from the employee's profile. |
+| `POST` | `/api/v1/tenant/employees/{id}/families` | Add family member | Add a family member record for an employee. Includes name, relationship (spouse, child, parent, sibling), date of birth, occupation, and dependency... |
+| `PUT` | `/api/v1/tenant/employees/{id}/families/{familyId}` | Update family member | Update an employee's family member details including relationship, personal information, and tax dependency status. |
+| `DELETE` | `/api/v1/tenant/employees/{id}/families/{familyId}` | Delete family member | Remove a family member record from the employee's profile. |
+| `POST` | `/api/v1/tenant/employees/{id}/insurances` | Add insurance (BPJS) | Register an insurance record for an employee. Typically used for BPJS Kesehatan (health) and BPJS Ketenagakerjaan (employment) social security prog... |
+| `PUT` | `/api/v1/tenant/employees/{id}/insurances/{insuranceId}` | Update insurance record | Update an employee's insurance record including BPJS participation number, coverage type, and contribution details. |
+| `DELETE` | `/api/v1/tenant/employees/{id}/insurances/{insuranceId}` | Delete insurance record | Remove an insurance record from the employee's profile. |
+| `PUT` | `/api/v1/tenant/employees/{id}/photo` | Upload employee profile photo | Upload a profile photo for an employee. Accepts JPG, PNG, GIF, WebP files up to 2MB. The photo is stored on the server and the employee's profile_p... |
+| `DELETE` | `/api/v1/tenant/employees/{id}/photo` | Delete employee profile photo | Remove the profile photo from an employee. Deletes the file from the server and clears the profile_picture field. |
 
 ### Tenant: Competency Management
 **Description:** Competency management including master competencies, values, events, targets, scores, and score details
@@ -663,43 +722,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/attendance/shifts/{id}` | Get shift by ID | Get details of a specific attendance record. |
 | `PUT` | `/api/v1/tenant/attendance/shifts/{id}` | Update a shift | Update an attendance record. |
 | `DELETE` | `/api/v1/tenant/attendance/shifts/{id}` | Delete a shift | Remove an attendance record. |
-
-### Tenant: Employees
-**Description:** Employee management with 8 sub-modules (addresses, emergency contacts, families, educations, experiences, documents, insurances, employments)
-**Endpoints:** 29 | **Paths:** 18
-**Methods:** DELETE=9 GET=2 POST=9 PUT=9
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/tenant/employees` | List employees with pagination | Retrieve a paginated list of employees records. Supports filtering, sorting, and pagination parameters. |
-| `POST` | `/api/v1/tenant/employees` | Create a new employee | Create a new employees record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/employees/{id}` | Get employee by ID with all sub-modules | Retrieve a paginated list of employees records. Supports filtering, sorting, and pagination parameters. |
-| `PUT` | `/api/v1/tenant/employees/{id}` | Update employee | Update an existing employees record by its unique ID. Accepts partial updates; only provided fields will be modified. |
-| `DELETE` | `/api/v1/tenant/employees/{id}` | Delete employee (hard delete) | Delete a employees record by its unique ID. This action may be reversible depending on system configuration. |
-| `POST` | `/api/v1/tenant/employees/{id}/addresses` | Add employee address | Add a new address for an employee. Supports address types: MAIN (primary residence) and DOMICILE (current stay). Includes full address, RT/RW, subd... |
-| `PUT` | `/api/v1/tenant/employees/{id}/addresses/{addressId}` | Update employee address | Update an existing employee address record. Can modify address type, full address details, RT/RW, administrative region, postal code, or coordinates. |
-| `DELETE` | `/api/v1/tenant/employees/{id}/addresses/{addressId}` | Delete employee address | Remove an employee's address record from the system. |
-| `POST` | `/api/v1/tenant/employees/{id}/documents` | Upload employee document | Upload and attach a document to an employee's profile. Supports document types such as ID card (KTP), NPWP, BPJS, diplomas, certificates, and other... |
-| `PUT` | `/api/v1/tenant/employees/{id}/documents/{documentId}` | Update document metadata | Update an employee document's metadata such as document name, type, or description. |
-| `DELETE` | `/api/v1/tenant/employees/{id}/documents/{documentId}` | Delete employee document | Remove a document from the employee's profile. |
-| `POST` | `/api/v1/tenant/employees/{id}/educations` | Add education record | Add an educational background record for an employee. Includes education level, institution name, major/field of study, graduation year, GPA, and d... |
-| `PUT` | `/api/v1/tenant/employees/{id}/educations/{educationId}` | Update education record | Update an employee's educational background record including institution, degree, graduation date, and academic achievements. |
-| `DELETE` | `/api/v1/tenant/employees/{id}/educations/{educationId}` | Delete education record | Remove an educational background record from the employee's profile. |
-| `POST` | `/api/v1/tenant/employees/{id}/emergency-contacts` | Add emergency contact | Register an emergency contact person for an employee. Includes name, relationship, phone number, and alternative contact information. |
-| `PUT` | `/api/v1/tenant/employees/{id}/emergency-contacts/{contactId}` | Update emergency contact | Update an employee's emergency contact details such as name, relationship, or phone number. |
-| `DELETE` | `/api/v1/tenant/employees/{id}/emergency-contacts/{contactId}` | Delete emergency contact | Remove an emergency contact record from the employee's profile. |
-| `POST` | `/api/v1/tenant/employees/{id}/employments` | Add employment record | Add an employment assignment for an employee. Associates the employee with an organization unit, position, employment status, and includes decision... |
-| `PUT` | `/api/v1/tenant/employees/{id}/employments/{employmentId}` | Update employment record | Update an employee's employment assignment including organization, position, status, and decision letter information. |
-| `DELETE` | `/api/v1/tenant/employees/{id}/employments/{employmentId}` | Delete employment record | Remove an employment assignment from the employee's profile. |
-| `POST` | `/api/v1/tenant/employees/{id}/experiences` | Add work experience | Add a work experience record for an employee. Includes company name, position, start and end dates, job description, and reason for leaving. |
-| `PUT` | `/api/v1/tenant/employees/{id}/experiences/{experienceId}` | Update work experience | Update an employee's work experience record including company, position, employment period, and responsibilities. |
-| `DELETE` | `/api/v1/tenant/employees/{id}/experiences/{experienceId}` | Delete work experience | Remove a work experience record from the employee's profile. |
-| `POST` | `/api/v1/tenant/employees/{id}/families` | Add family member | Add a family member record for an employee. Includes name, relationship (spouse, child, parent, sibling), date of birth, occupation, and dependency... |
-| `PUT` | `/api/v1/tenant/employees/{id}/families/{familyId}` | Update family member | Update an employee's family member details including relationship, personal information, and tax dependency status. |
-| `DELETE` | `/api/v1/tenant/employees/{id}/families/{familyId}` | Delete family member | Remove a family member record from the employee's profile. |
-| `POST` | `/api/v1/tenant/employees/{id}/insurances` | Add insurance (BPJS) | Register an insurance record for an employee. Typically used for BPJS Kesehatan (health) and BPJS Ketenagakerjaan (employment) social security prog... |
-| `PUT` | `/api/v1/tenant/employees/{id}/insurances/{insuranceId}` | Update insurance record | Update an employee's insurance record including BPJS participation number, coverage type, and contribution details. |
-| `DELETE` | `/api/v1/tenant/employees/{id}/insurances/{insuranceId}` | Delete insurance record | Remove an insurance record from the employee's profile. |
 
 ### Tenant: Leave & Time Off
 **Description:** Leave and time off management including leave types, accrual policies, leave reasons, leave requests, leave request details, and employee leave balances
@@ -949,15 +971,15 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Platform: Users
 **Description:** Platform user management
-**Endpoints:** 4 | **Paths:** 2
-**Methods:** GET=2 POST=1 PUT=1
+**Endpoints:** 4 | **Paths:** 3
+**Methods:** DELETE=1 GET=1 POST=1 PUT=1
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
 | `GET` | `/api/v1/platform/users` | List all platform users | Retrieve a paginated list of platform user accounts. Now includes company_name field. Supports filtering by company, role, and search term. |
 | `POST` | `/api/v1/platform/users` | Create a new platform user | Register a new platform user account. Assigns the user to a company with a specific role (super_admin or company_admin). The user will receive acce... |
-| `GET` | `/api/v1/platform/users/{id}` | Get platform user by ID | Get detailed information about a specific platform user including company_name, assigned company, role, and account status. |
-| `PUT` | `/api/v1/platform/users/{id}` | Update platform user | Update a platform user's profile information such as name, email, or role assignment. Cannot change the user's company association. |
+| `DELETE` | `/api/v1/platform/users/{id}` | Delete platform user | Soft-delete a platform user account. Super admin users cannot be deleted. |
+| `PUT` | `/api/v1/platform/users/{id}/password` | Change user password | Change a user's password. Requires current password verification, new password (min 6 characters), and confirmation. |
 
 ### Platform: Licenses
 **Description:** License management for companies

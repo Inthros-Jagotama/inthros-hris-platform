@@ -439,3 +439,20 @@ func (r *Repository) DeletePTKP(ctx context.Context, id uuid.UUID) error {
 	if err != nil { return err }
 	return db.Delete(&PTKP{}, "id = ?", id).Error
 }
+
+// ── Insurance ──
+func (r *Repository) CreateInsurance(ctx context.Context, ins *Insurance) error { return r.create(ctx, ins) }
+func (r *Repository) FindInsuranceByID(ctx context.Context, id uuid.UUID) (*Insurance, error) {
+	var ins Insurance
+	if err := r.findByID(ctx, &ins, id, "insurances"); err != nil {
+		return nil, fmt.Errorf("insurance not found: %w", err)
+	}
+	return &ins, nil
+}
+func (r *Repository) FindAllInsurances(ctx context.Context, page, perPage int) ([]Insurance, int64, error) {
+	var list []Insurance
+	total, err := r.findAll(ctx, &list, "insurances", page, perPage, "sort_order ASC, code ASC")
+	return list, total, err
+}
+func (r *Repository) UpdateInsurance(ctx context.Context, ins *Insurance) error { return r.update(ctx, ins) }
+func (r *Repository) DeleteInsurance(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &Insurance{}, id) }

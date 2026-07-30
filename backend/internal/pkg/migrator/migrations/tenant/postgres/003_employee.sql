@@ -225,7 +225,29 @@ CREATE TABLE IF NOT EXISTS employee_insurances (
 CREATE INDEX IF NOT EXISTS idx_empins_employee ON employee_insurances (employee_id);
 
 -- ---------------------------------------------------------------------------
--- 3.9 Employments (Riwayat Jabatan)
+-- 3.9 Employee Bank Profiles
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS employee_bank_accounts (
+    id              CHAR(36) PRIMARY KEY,
+    employee_id     CHAR(36) NULL,
+    bank_id         CHAR(36) NULL,
+    account_number  VARCHAR(50) NOT NULL,
+    account_name    VARCHAR(255) NOT NULL,
+    created_by      CHAR(36) NULL,
+    updated_by      CHAR(36) NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_empbank_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+    -- FK ke banks(id) ditambahkan di migration terpisah setelah 011_settings.sql
+);
+
+CREATE INDEX IF NOT EXISTS idx_empbank_employee ON employee_bank_profiles (employee_id);
+
+CREATE INDEX IF NOT EXISTS idx_empbank_bank ON employee_bank_profiles (bank_id);
+
+-- ---------------------------------------------------------------------------
+-- 3.10 Employments (Riwayat Jabatan)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS employments (
     id                       CHAR(36) PRIMARY KEY,
