@@ -342,7 +342,16 @@
     "remove_photo": "Remove photo",
     "confirm_remove_photo": "Remove this profile photo?",
     "photo_removed": "Profile photo removed successfully",
-    "crop_photo": "Crop Photo"
+    "crop_photo": "Crop Photo",
+    "address_description": "Manage employee addresses including main and domicile addresses.",
+    "contact_description": "Manage emergency contacts for quick reach in urgent situations.",
+    "family_description": "Manage family members information for benefits and emergency purposes.",
+    "education_description": "Manage educational background including degrees, majors, and graduation years.",
+    "experience_description": "Manage work history including previous companies, positions, and tenure.",
+    "document_description": "Manage employee documents such as ID cards, certificates, and contracts.",
+    "insurance_description": "Manage BPJS and other insurance memberships for the employee.",
+    "employment_description": "Manage employment records including decrees, effective dates, and assignments.",
+    "search_village": "Search village..."
   },
   "attendance": {
     "title": "Attendance",

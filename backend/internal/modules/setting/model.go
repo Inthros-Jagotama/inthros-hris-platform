@@ -48,6 +48,7 @@ type Regency struct {
 	Code       string         `gorm:"type:varchar(10);not null;uniqueIndex:idx_regency_code" json:"code"`
 	Name       string         `gorm:"type:varchar(255);not null" json:"name"`
 	ProvinceID string         `gorm:"type:char(2);not null;index:idx_regency_province" json:"province_id"`
+	Province   *Province      `gorm:"foreignKey:ProvinceID;references:ID" json:"-"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
@@ -61,6 +62,7 @@ type District struct {
 	Code      string         `gorm:"type:varchar(15);not null;uniqueIndex:idx_district_code" json:"code"`
 	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
 	RegencyID string         `gorm:"type:char(4);not null;index:idx_district_regency" json:"regency_id"`
+	Regency   *Regency       `gorm:"foreignKey:RegencyID;references:ID" json:"-"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
@@ -74,6 +76,7 @@ type Village struct {
 	Code       string         `gorm:"type:varchar(15);not null;uniqueIndex:idx_village_code" json:"code"`
 	Name       string         `gorm:"type:varchar(255);not null" json:"name"`
 	DistrictID string         `gorm:"type:char(6);not null;index:idx_village_district" json:"district_id"`
+	District   *District      `gorm:"foreignKey:DistrictID;references:ID" json:"-"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`

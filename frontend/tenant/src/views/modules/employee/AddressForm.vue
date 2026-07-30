@@ -1,8 +1,11 @@
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('employee.tab_addresses') }}</h3>
-      <Button icon="pi pi-plus" size="small" text severity="secondary" :label="t('common.add')" @click="addItem" />
+      <div>
+        <h3 class="text-medium font-semibold text-gray-700 dark:text-gray-300">{{ t('employee.tab_addresses') }}</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('employee.address_description') }}</p>
+      </div>
+      <Button icon="pi pi-plus" size="small" severity="primary" :label="t('common.add')" @click="addItem" />
     </div>
     <template v-if="items.length === 0">
       <div class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
@@ -29,7 +32,19 @@
           <SelectLabel v-model="item.district_id" :options="districtOptions" optionLabel="label" optionValue="value" :placeholder="t('employee.select_district')" filter :class="{'p-invalid':errs?.[idx]?.district_id}" :showClear="true" />
         </FormRow>
         <FormRow :label="t('employee.village')" :errors="errs?.[idx]?.village_id">
-          <SelectLabel v-model="item.village_id" :options="villageOptions" optionLabel="label" optionValue="value" :placeholder="t('employee.select_village')" filter :class="{'p-invalid':errs?.[idx]?.village_id}" :showClear="true" />
+          <AutoComplete
+            :model-value="getVillageDisplay(item)"
+            :suggestions="villageSuggestions[idx] || []"
+            @complete="onVillageSearch($event, idx)"
+            @item-select="onVillageSelect($event, idx)"
+            optionLabel="label"
+            :placeholder="t('employee.search_village')"
+            :class="{'p-invalid':errs?.[idx]?.village_id}"
+            size="small"
+            class="w-full"
+            forceSelection
+            :dropdown="true"
+          />
         </FormRow>
         <FormRow :label="t('employee.postal_code')" :errors="errs?.[idx]?.postal_code">
           <TextInput v-model="item.postal_code" maxlength="5" :placeholder="t('employee.postal_code_placeholder')" :class="{'p-invalid':errs?.[idx]?.postal_code}" />
@@ -46,7 +61,9 @@
 </template>
 <script setup>
 import { useI18n } from '@/composables/useI18n'
+import { ref, reactive } from 'vue'
 import Button from 'primevue/button'
+import AutoComplete from 'primevue/autocomplete'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
@@ -59,9 +76,48 @@ const props = defineProps({
   regencyOptions: { type: Array, default: () => [] },
   districtOptions: { type: Array, default: () => [] },
   villageOptions: { type: Array, default: () => [] },
-  saving: { type: Boolean, default: false }
+  saving: { type: Boolean, default: false },
+  onSearchVillage: { type: Function, default: null }
 })
 const emit = defineEmits(['update:items', 'save'])
+
+const villageSuggestions = reactive({})
+
+function getVillageDisplay(item) {
+  return item._villageLabel || ''
+}
+
+async function onVillageSearch(event, idx) {
+  const query = event.query?.trim() || ''
+  if (!query || query.length < 1) { villageSuggestions[idx] = []; return }
+  if (!props.onSearchVillage) return
+  try {
+    const results = await props.onSearchVillage(query)
+    villageSuggestions[idx] = (results || []).map(r => ({
+      label: `${r.name}`,
+      sublabel: `${r.district_name ? 'Kec. '+r.district_name : ''}${r.regency_name ? ', Kab. '+r.regency_name : ''}${r.province_name ? ', '+r.province_name : ''}`,
+      id: r.id,
+      district_id: r.district_id,
+      regency_id: r.regency_id,
+      province_id: r.province_id
+    }))
+  } catch { villageSuggestions[idx] = [] }
+}
+
+function onVillageSelect(event, idx) {
+  const sel = event.value
+  const items = [...props.items]
+  items[idx] = {
+    ...items[idx],
+    village_id: sel.id,
+    province_id: sel.province_id || items[idx].province_id,
+    regency_id: sel.regency_id || items[idx].regency_id,
+    district_id: sel.district_id || items[idx].district_id,
+    _villageLabel: `${sel.label} ${sel.sublabel ? '- '+sel.sublabel : ''}`
+  }
+  emit('update:items', items)
+}
+
 function addItem() {
   const next = [...props.items, { type: '', address: '', province_id: '', regency_id: '', district_id: '', village_id: '', postal_code: '' }]
   emit('update:items', next)

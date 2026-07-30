@@ -224,6 +224,12 @@ func (h *Handler) DeleteVillage(c *gin.Context) {
 	if err := h.service.DeleteVillage(c.Request.Context(), c.Param("id")); err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
 	httputil.DeletedJSON(c, "success.deleted")
 }
+func (h *Handler) SearchVillages(c *gin.Context) {
+	query := c.Query("q")
+	resp, err := h.service.SearchVillages(c.Request.Context(), query)
+	if err != nil { httputil.InternalError(c, err.Error()); return }
+	c.JSON(http.StatusOK, resp)
+}
 
 // ── Education Handlers ──
 func (h *Handler) CreateEducation(c *gin.Context) {

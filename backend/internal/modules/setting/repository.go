@@ -209,6 +209,15 @@ func (r *Repository) FindVillagesByDistrict(ctx context.Context, districtID stri
 }
 func (r *Repository) UpdateVillage(ctx context.Context, v *Village) error { return r.update(ctx, v) }
 func (r *Repository) DeleteVillage(ctx context.Context, id string) error { return r.softDelete(ctx, &Village{}, id) }
+func (r *Repository) SearchVillages(ctx context.Context, query string, limit int) ([]Village, error) {
+	db, err := r.getDB(ctx)
+	if err != nil { return nil, err }
+	var villages []Village
+	if err := db.Where("name LIKE ?", "%"+query+"%").Preload("District.Regency.Province").Limit(limit).Find(&villages).Error; err != nil {
+		return nil, err
+	}
+	return villages, nil
+}
 
 // ── Education ──
 func (r *Repository) CreateEducation(ctx context.Context, e *Education) error { return r.create(ctx, e) }

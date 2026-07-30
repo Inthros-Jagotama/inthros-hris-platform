@@ -342,7 +342,16 @@
     "remove_photo": "Hapus foto",
     "confirm_remove_photo": "Hapus foto profil ini?",
     "photo_removed": "Foto profil berhasil dihapus",
-    "crop_photo": "Potong Foto"
+    "crop_photo": "Potong Foto",
+    "address_description": "Kelola alamat karyawan termasuk alamat utama dan domisili.",
+    "contact_description": "Kelola kontak darurat untuk dihubungi dalam situasi mendesak.",
+    "family_description": "Kelola informasi anggota keluarga untuk keperluan tunjangan dan darurat.",
+    "education_description": "Kelola latar belakang pendidikan termasuk gelar, jurusan, dan tahun lulus.",
+    "experience_description": "Kelola riwayat pekerjaan termasuk perusahaan sebelumnya, jabatan, dan masa kerja.",
+    "document_description": "Kelola dokumen karyawan seperti KTP, ijazah, sertifikat, dan kontrak.",
+    "insurance_description": "Kelola keanggotaan BPJS dan asuransi lainnya untuk karyawan.",
+    "employment_description": "Kelola riwayat jabatan termasuk SK, tanggal efektif, dan penempatan.",
+    "search_village": "Cari desa/kelurahan..."
   },
   "attendance": {
     "title": "Absensi",

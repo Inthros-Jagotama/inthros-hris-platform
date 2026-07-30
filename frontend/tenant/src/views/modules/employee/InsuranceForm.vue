@@ -1,8 +1,11 @@
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('employee.tab_insurance') }}</h3>
-      <Button icon="pi pi-plus" size="small" text severity="secondary" :label="t('common.add')" @click="addItem" />
+      <div>
+        <h3 class="text-medium font-semibold text-gray-700 dark:text-gray-300">{{ t('employee.tab_insurance') }}</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('employee.insurance_description') }}</p>
+      </div>
+      <Button icon="pi pi-plus" size="small" severity="primary" :label="t('common.add')" @click="addItem" />
     </div>
     <template v-if="items.length === 0">
       <div class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">

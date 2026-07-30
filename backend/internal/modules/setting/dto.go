@@ -120,6 +120,25 @@ func (v *Village) ToResponse() VillageResponse {
 	return VillageResponse{ID: v.ID, Code: v.Code, Name: v.Name, DistrictID: v.DistrictID, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
 }
 
+// VillageSearchResponse — digunakan untuk AutoComplete desa dengan info parent region
+type VillageSearchResponse struct {
+	ID           string `json:"id"`
+	Code         string `json:"code"`
+	Name         string `json:"name"`
+	DistrictID   string `json:"district_id"`
+	DistrictName string `json:"district_name"`
+	RegencyID    string `json:"regency_id"`
+	RegencyName  string `json:"regency_name"`
+	ProvinceID   string `json:"province_id"`
+	ProvinceName string `json:"province_name"`
+}
+
+// VillageSearchListResponse — wrapper untuk search results
+type VillageSearchListResponse struct {
+	Success bool                   `json:"success"`
+	Data    []VillageSearchResponse `json:"data"`
+}
+
 // ── Education DTOs ──
 type CreateEducationRequest struct {
 	Code      string `json:"code" binding:"required,max=20"`

@@ -38,7 +38,7 @@
       <div class="flex-1 min-w-0">
         <PersonalForm v-if="activeStep === 0" :form="form" :errors="stepErrors" :gender-options="genderOptions" :religion-options="religionOptions" :marital-status-options="maritalStatusOptions" :saving="stepLoading" :disabled="isEdit" :employee-id="employeeId" :photo-url="profilePicture" @save="savePersonalData" @update:photo="profilePicture = $event" />
 
-        <AddressForm v-else-if="activeStep === 1" :items="addresses" :errs="addrErrors" :address-type-options="addressTypeOptions" :province-options="provinceOptions" :regency-options="regencyOptions" :district-options="districtOptions" :village-options="villageOptions" :saving="stepLoading" @update:items="addresses = $event" @save="() => saveStep(1)" />
+        <AddressForm v-else-if="activeStep === 1" :items="addresses" :errs="addrErrors" :address-type-options="addressTypeOptions" :province-options="provinceOptions" :regency-options="regencyOptions" :district-options="districtOptions" :village-options="villageOptions" :saving="stepLoading" :on-search-village="searchVillages" @update:items="addresses = $event" @save="() => saveStep(1)" />
 
         <ContactForm v-else-if="activeStep === 2" :items="contacts" :errs="contactErrors" :relationship-type-options="relationshipTypeOptions" :saving="stepLoading" @update:items="contacts = $event" @save="() => saveStep(2)" />
 
@@ -208,6 +208,29 @@ async function loadRefData() {
   organizationOptions.value = orgList
 }
 
+// ── Village AutoComplete search ──
+async function searchVillages(query) {
+  try {
+    const res = await api.get(`/api/v1/tenant/settings/villages/search?q=${encodeURIComponent(query)}`)
+    return res.data?.data || []
+  } catch { return [] }
+}
+
+// ── Load village labels for existing addresses (edit mode) ──
+async function loadExistingVillageLabels(addressList) {
+  for (const addr of addressList) {
+    if (addr.village_id && !addr._villageLabel) {
+      try {
+        const res = await api.get(`/api/v1/tenant/settings/villages/search?q=${encodeURIComponent(addr.village_id)}`)
+        const found = (res.data?.data || []).find(v => v.id === addr.village_id)
+        if (found) {
+          addr._villageLabel = `${found.name} - ${found.district_name ? 'Kec. '+found.district_name : ''}${found.regency_name ? ', Kab. '+found.regency_name : ''}`
+        }
+      } catch { /* ignore */ }
+    }
+  }
+}
+
 // ── Cascading options for addresses ──
 const regencyCache = ref({})
 const districtCache = ref({})
@@ -340,7 +363,17 @@ async function loadEmployee() {
   profilePicture.value = data.profile_picture || ''
   stepSaved[0] = true
   const markSaved = item => { item._saved = true }
-  if (data.addresses) { addresses.value = data.addresses.map(a => { const item = { type: a.type || '', address: a.address || '', province_id: a.province_id || '', regency_id: a.regency_id || '', district_id: a.district_id || '', village_id: a.village_id || '', postal_code: a.postal_code || '' }; markSaved(item); return item }); if (addresses.value.length > 0) stepSaved[1] = true; watchAddresses(addresses.value) }
+  if (data.addresses) {
+    addresses.value = data.addresses.map(a => {
+      const item = { type: a.type || '', address: a.address || '', province_id: a.province_id || '', regency_id: a.regency_id || '', district_id: a.district_id || '', village_id: a.village_id || '', postal_code: a.postal_code || '', _villageLabel: a.village_label || '' }
+      markSaved(item)
+      return item
+    })
+    if (addresses.value.length > 0) stepSaved[1] = true
+    watchAddresses(addresses.value)
+    // Load village labels for existing villages
+    loadExistingVillageLabels(addresses.value)
+  }
   if (data.emergency_contacts) { contacts.value = data.emergency_contacts.map(c => { const item = { name: c.name || '', relationship_type_id: c.relationship_type_id || '', phone_number: c.phone_number || '', address: c.address || '' }; markSaved(item); return item }); if (contacts.value.length > 0) stepSaved[2] = true }
   if (data.families) { families.value = data.families.map(f => { const item = { nik: f.nik || '', name: f.name || '', dob: f.dob || '', relationship_type_id: f.relationship_type_id || '', education_id: f.education_id || '' }; markSaved(item); return item }); if (families.value.length > 0) stepSaved[3] = true }
   if (data.educations) { educations.value = data.educations.map(e => { const item = { education_id: e.education_id || '', name: e.name || '', major: e.major || '', graduation_year: e.graduation_year ? String(e.graduation_year) : '' }; markSaved(item); return item }); if (educations.value.length > 0) stepSaved[4] = true }

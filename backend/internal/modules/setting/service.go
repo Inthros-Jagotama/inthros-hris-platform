@@ -292,6 +292,36 @@ func (s *Service) UpdateVillage(ctx context.Context, id string, req UpdateVillag
 func (s *Service) DeleteVillage(ctx context.Context, id string) error {
 	return s.repo.DeleteVillage(ctx, id)
 }
+func (s *Service) SearchVillages(ctx context.Context, query string) (*VillageSearchListResponse, error) {
+	if query == "" {
+		return &VillageSearchListResponse{Success: true, Data: []VillageSearchResponse{}}, nil
+	}
+	limit := 20
+	villages, err := s.repo.SearchVillages(ctx, query, limit)
+	if err != nil { return nil, err }
+	responses := make([]VillageSearchResponse, len(villages))
+	for i, v := range villages {
+		r := VillageSearchResponse{
+			ID:           v.ID,
+			Code:         v.Code,
+			Name:         v.Name,
+			DistrictID:   v.DistrictID,
+		}
+		if v.District != nil {
+			r.DistrictName = v.District.Name
+			if v.District.Regency != nil {
+				r.RegencyID = v.District.Regency.ID
+				r.RegencyName = v.District.Regency.Name
+				if v.District.Regency.Province != nil {
+					r.ProvinceID = v.District.Regency.Province.ID
+					r.ProvinceName = v.District.Regency.Province.Name
+				}
+			}
+		}
+		responses[i] = r
+	}
+	return &VillageSearchListResponse{Success: true, Data: responses}, nil
+}
 
 // ── Education CRUD ──
 func (s *Service) CreateEducation(ctx context.Context, req CreateEducationRequest) (*EducationResponse, error) {
