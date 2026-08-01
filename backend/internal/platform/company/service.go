@@ -425,7 +425,56 @@ func (s *Service) GetByID(id string) (*CompanyResponse, error) {
 		}
 	}
 
+	// Include lisensi aktif (untuk halaman Detail Perusahaan tenant FE).
+	// Dilakukan di sini agar GetByID konsisten: response selalu memuat
+	// license_info bila company punya lisensi active.
+	if lic, err := s.repo.FindActiveLicenseByCompanyID(uid); err == nil {
+		response.LicenseInfo = &LicenseInfo{
+			ID:           lic.ID.String(),
+			LicenseKey:   lic.LicenseKey,
+			PlanType:     lic.PlanType,
+			PackageID:    uuidPtrToStr(lic.PackageID),
+			PackageName:  lic.PackageName,
+			StartDate:    lic.StartDate,
+			EndDate:      lic.EndDate,
+			MaxEmployees: lic.MaxEmployees,
+			EmployeeTotal: s.countTenantEmployees(uid),
+		}
+	}
+
 	return &response, nil
+}
+
+// countTenantEmployees menghitung jumlah employee aktif di tenant database
+// (tabel employees). Best-effort: bila tenant DB tidak tersedia / query gagal,
+// mengembalikan 0 tanpa menggagalkan request GetByID.
+func (s *Service) countTenantEmployees(companyID uuid.UUID) int64 {
+	tdb, err := s.dbManager.TenantDB(companyID.String())
+	if err != nil {
+		s.logger.Warn("Failed to connect to tenant DB for employee count",
+			zap.String("company_id", companyID.String()),
+			zap.Error(err),
+		)
+		return 0
+	}
+
+	var total int64
+	if err := tdb.Table("employees").Count(&total).Error; err != nil {
+		s.logger.Warn("Failed to count tenant employees",
+			zap.String("company_id", companyID.String()),
+			zap.Error(err),
+		)
+		return 0
+	}
+	return total
+}
+
+// uuidPtrToStr mengonversi *uuid.UUID menjadi string (kosong bila nil).
+func uuidPtrToStr(u *uuid.UUID) string {
+	if u == nil {
+		return ""
+	}
+	return u.String()
 }
 
 // List mengembalikan daftar company dengan pagination.
@@ -538,6 +587,50 @@ func (s *Service) Update(id string, req UpdateCompanyRequest) (*CompanyResponse,
 	if err := s.repo.Update(company); err != nil {
 		return nil, err
 	}
+
+	response := company.ToResponse()
+	return &response, nil
+}
+
+// UpdateCurrent memperbarui info perusahaan dari sisi tenant (self-service).
+// Hanya field yang boleh diubah tenant: email, phone, address, npwp, nib.
+// Name/subdomain/domain dikelola platform admin (Update).
+func (s *Service) UpdateCurrent(id string, req UpdateCurrentCompanyRequest) (*CompanyResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid company id: %w", err)
+	}
+
+	company, err := s.repo.FindByID(uid)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update fields if provided (empty string = hapus field jadi NULL)
+	if req.Email != nil {
+		company.Email = emptyToNil(req.Email)
+	}
+	if req.Phone != nil {
+		company.Phone = emptyToNil(req.Phone)
+	}
+	if req.Address != nil {
+		company.Address = emptyToNil(req.Address)
+	}
+	if req.NPWP != nil {
+		company.NPWP = emptyToNil(req.NPWP)
+	}
+	if req.NIB != nil {
+		company.NIB = emptyToNil(req.NIB)
+	}
+
+	if err := s.repo.Update(company); err != nil {
+		return nil, err
+	}
+
+	s.logger.Info("Company info updated by tenant",
+		zap.String("company_id", company.ID.String()),
+		zap.String("name", company.Name),
+	)
 
 	response := company.ToResponse()
 	return &response, nil

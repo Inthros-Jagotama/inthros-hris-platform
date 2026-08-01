@@ -1,7 +1,9 @@
 package company
 
 import (
+	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -58,6 +60,70 @@ func (h *Handler) GetByID(c *gin.Context) {
 	}
 
 	httputil.SuccessJSON(c, response)
+}
+
+// GetCurrent menangani GET /api/v1/tenant/companies/me
+// Endpoint self-service tenant: mengembalikan detail company aktif dari
+// konteks tenant (company_id di-set oleh middleware TenantResolver/TenantRequired).
+// Terdaftar di tenantPkgGroup (tanpa RBAC) karena ini data company milik user sendiri.
+func (h *Handler) GetCurrent(c *gin.Context) {
+	companyID := c.GetString("company_id")
+	if companyID == "" {
+		httputil.Unauthorized(c, "Company ID is required")
+		return
+	}
+
+	response, err := h.service.GetByID(companyID)
+	if err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+
+	httputil.SuccessJSON(c, response)
+}
+
+// UpdateCurrent menangani PUT /api/v1/tenant/companies/me
+// Edit self-service info perusahaan oleh tenant (email, phone, address, npwp, nib).
+// Terdaftar di tenantPkgGroup (tanpa RBAC middleware), jadi pembatasan role
+// dilakukan di handler ini — hanya role admin yang boleh mengubah profil
+// perusahaan; role Employee/manager view-only (konsisten dengan kebijakan).
+func (h *Handler) UpdateCurrent(c *gin.Context) {
+	companyID := c.GetString("company_id")
+	if companyID == "" {
+		httputil.Unauthorized(c, "Company ID is required")
+		return
+	}
+
+	// Gate akses: hanya role dengan hak administratif yang boleh edit.
+	// Nilai role: platform (super_admin, company_admin) atau tenant (Admin).
+	if !isCompanyEditor(c.GetString("role")) {
+		httputil.ErrorRaw(c, http.StatusForbidden, "FORBIDDEN", "You don't have permission to perform this action")
+		return
+	}
+
+	var req UpdateCurrentCompanyRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+
+	response, err := h.service.UpdateCurrent(companyID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	httputil.UpdatedJSON(c, response, "company.updated")
+}
+
+// isCompanyEditor menentukan apakah role boleh mengubah profil perusahaan.
+// case-insensitive untuk mengakomodasi role tenant ("Admin") dan platform.
+func isCompanyEditor(role string) bool {
+	switch strings.ToLower(strings.TrimSpace(role)) {
+	case "super_admin", "company_admin", "admin":
+		return true
+	default:
+		return false
+	}
 }
 
 // List menangani GET /api/v1/platform/companies

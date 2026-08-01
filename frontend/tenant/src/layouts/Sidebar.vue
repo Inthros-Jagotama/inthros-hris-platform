@@ -113,12 +113,17 @@
       </div>
     </nav>
 
-    <!-- Bottom Section: Company Name -->
+    <!-- Bottom Section: Company Name → klik buka halaman Detail Perusahaan -->
     <div class="border-t border-gray-200 dark:border-gray-700 p-3 shrink-0">
-      <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-        <i class="pi pi-circle-fill text-emerald-400 text-[6px]"></i>
-        <span class="truncate" :title="companyLabel">{{ companyLabel }}</span>
-      </div>
+      <button
+        type="button"
+        class="flex items-center gap-2 w-full text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors rounded-md px-1 py-0.5"
+        :title="companyLabel"
+        @click="router.push('/company')"
+      >
+        <i class="pi pi-building text-emerald-400 text-xs"></i>
+        <span class="truncate">{{ companyLabel }}</span>
+      </button>
     </div>
   </aside>
 </template>

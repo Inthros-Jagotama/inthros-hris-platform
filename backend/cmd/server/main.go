@@ -670,6 +670,18 @@ func main() {
 	}
 	tenantPkgGroup.Use(middleware.TenantRequired())
 	{
+		// Self-service company detail endpoint (dipakai halaman Detail Perusahaan FE tenant).
+		// Terdaftar di tenantPkgGroup (tanpa RBAC/license guard) karena data company
+		// milik user sendiri — pola sama dengan /company-modules & /packages.
+		for _, reg := range platformModules {
+			if mod, ok := reg.Module.(interface{ PublicHandler() *company.Handler }); ok {
+				tenantPkgGroup.GET("/companies/me", mod.PublicHandler().GetCurrent)
+				tenantPkgGroup.PUT("/companies/me", mod.PublicHandler().UpdateCurrent)
+				l.Info("Registered tenant self-service company endpoints (GET/PUT /companies/me)")
+				break
+			}
+		}
+
 		// Endpoint untuk mendapatkan daftar module aktif company (digunakan frontend tenant untuk menu filtering)
 		tenantPkgGroup.GET("/company-modules", func(c *gin.Context) {
 			companyID := middleware.GetCompanyID(c)

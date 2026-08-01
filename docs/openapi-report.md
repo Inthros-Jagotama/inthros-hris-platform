@@ -3,18 +3,18 @@
 
 **Generated:** 01 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 368
-**Total Endpoints (methods):** 677
-**Total Schemas:** 433
-**Total Tags:** 27
+**Total Paths:** 369
+**Total Endpoints (methods):** 679
+**Total Schemas:** 435
+**Total Tags:** 28
 
 ## Coverage Summary
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 677/677 | 100% |
-| Endpoints with `description` | 677/677 | 100% |
-| Endpoints with `operationId` | 677/677 | 100% |
+| Endpoints with `summary` | 679/679 | 100% |
+| Endpoints with `description` | 679/679 | 100% |
+| Endpoints with `operationId` | 679/679 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -132,9 +132,10 @@ Tenant endpoints support validation for Indonesian data formats:
 | 25 | Tenant: Packages | 4 | 4 |
 | 26 | Platform: Auth | 2 | 2 |
 | 27 | Tenant Auth | 2 | 2 |
-| 28 | Tenant: Approval Engine | 1 | 1 |
-| 29 | Public | 1 | 1 |
-| | **TOTAL** | **677** | **368** |
+| 28 | Tenant: Company | 2 | 1 |
+| 29 | Tenant: Approval Engine | 1 | 1 |
+| 30 | Public | 1 | 1 |
+| | **TOTAL** | **679** | **369** |
 
 ## 2. Module Detail
 
@@ -902,8 +903,6 @@ Tenant endpoints support validation for Indonesian data formats:
 **Endpoints:** 10 | **Paths:** 6
 **Methods:** DELETE=3 GET=3 POST=3 PUT=1
 
-> **Fix (01 Aug 2026):** Permission catalog kini lengkap — **24 resource / 98 permissions** (sebelumnya 18/74). `authz/rbac.go` (`defaultResources()` + `loadDefaultPolicies()` + `seedDefaults()`) menambahkan 6 resource: `performance`, `recruitment`, `reimbursement`, `training`, `workforceintelligence`, `careerintelligence` (masing-masing view/create/update/delete) — konsisten dengan tenant RBAC seed & `singularize()`. Sebelumnya resource ini tidak pernah di-seed ke `rbac_permissions` sehingga tidak muncul di menu RBAC platform-admin. Setelah restart, permission baru auto-assign ke super_admin; role lain di-toggle manual via UI. Endpoint `GET /platform/rbac/permissions` kini mengembalikan 98 permission.
-
 | Method | Path | Summary | Description |
 |---|---|---|---|
 | `GET` | `/api/v1/platform/rbac/permissions` | List all permissions (resource + action) | Retrieve all available permissions in the system. Permissions are defined as resource.action pairs (e.g., company.create, user.view). |
@@ -1028,6 +1027,16 @@ Tenant endpoints support validation for Indonesian data formats:
 |---|---|---|---|
 | `POST` | `/api/v1/tenant/auth/login` | Tenant user login (employee or company admin) | Public login for tenant users (employees) stored in the tenant DB, with fallback to platform users (company_admin) bound to the company. Company id... |
 | `POST` | `/api/v1/tenant/auth/refresh` | Refresh tenant access token | Public endpoint to exchange a refresh token for a new access token. |
+
+### Tenant: Company
+**Description:** Self-service company endpoints for the authenticated tenant user
+**Endpoints:** 2 | **Paths:** 1
+**Methods:** GET=1 PUT=1
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/companies/me` | Get current company detail | Retrieve the profile of the company the authenticated tenant user belongs to. Company is resolved from the tenant context (X-Tenant-ID / JWT claims). |
+| `PUT` | `/api/v1/tenant/companies/me` | Update current company information | Update the tenant's own company profile (email, phone, address, NPWP, NIB). Company is resolved from the tenant context; name/subdomain/domain are ... |
 
 ### Tenant: Approval Engine
 **Endpoints:** 1 | **Paths:** 1

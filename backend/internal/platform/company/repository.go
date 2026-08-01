@@ -128,3 +128,23 @@ func (r *Repository) FindTenantConnectionByCompanyID(companyID uuid.UUID) (*Tena
 	}
 	return &conn, nil
 }
+
+// FindActiveLicenseByCompanyID mencari lisensi aktif company (tabel licenses,
+// cross-module query ke platform DB). Dipakai untuk mengisi LicenseInfo pada
+// response company detail (GetByID) — tanpa ketergantungan ke license module.
+func (r *Repository) FindActiveLicenseByCompanyID(companyID uuid.UUID) (*LicenseRef, error) {
+	var l LicenseRef
+	// LEFT JOIN packages: fallback nama package saat licenses.package_name kosong
+	// (lisensi legacy / dibuat tanpa nama package) — user wajib lihat nama package.
+	if err := r.db.Table("licenses").
+		Select("licenses.id, licenses.license_key, licenses.plan_type, licenses.package_id, " +
+			"COALESCE(NULLIF(licenses.package_name, ''), packages.name, '') AS package_name, " +
+			"licenses.start_date, licenses.end_date, licenses.max_employees").
+		Joins("LEFT JOIN packages ON packages.id = licenses.package_id").
+		Where("licenses.company_id = ? AND licenses.status = ?", companyID, "active").
+		Order("licenses.created_at DESC").
+		First(&l).Error; err != nil {
+		return nil, fmt.Errorf("active license not found for company: %w", err)
+	}
+	return &l, nil
+}

@@ -44,6 +44,18 @@ type UpdateCompanyRequest struct {
 	Phone     *string `json:"phone" binding:"omitempty,max=20"`
 }
 
+// UpdateCurrentCompanyRequest — body untuk edit info perusahaan dari sisi tenant
+// (self-service, PUT /api/v1/tenant/companies/me). Hanya field yang boleh diubah
+// tenant: email, phone, address, npwp, nib. Name/subdomain/domain dikelola
+// platform admin (PUT /api/v1/platform/companies/:id).
+type UpdateCurrentCompanyRequest struct {
+	Email   *string `json:"email" binding:"omitempty,email"`
+	Phone   *string `json:"phone" binding:"omitempty,max=20"`
+	Address *string `json:"address"`
+	NPWP    *string `json:"npwp" binding:"omitempty,len=16"`
+	NIB     *string `json:"nib" binding:"omitempty,max=25"`
+}
+
 // CompanyResponse DTO untuk response company.
 type CompanyResponse struct {
 	ID               string            `json:"id"`
@@ -77,10 +89,15 @@ type ResolveCompanyResponse struct {
 
 // LicenseInfo menampilkan informasi lisensi yang dibuat saat signup.
 type LicenseInfo struct {
-	ID         string `json:"id"`
-	LicenseKey string `json:"license_key"`
-	PlanType   string `json:"plan_type"`
-	PackageID  string `json:"package_id,omitempty"`
+	ID           string    `json:"id"`
+	LicenseKey   string    `json:"license_key"`
+	PlanType     string    `json:"plan_type"`
+	PackageID    string    `json:"package_id,omitempty"`
+	PackageName  string    `json:"package_name,omitempty"`
+	StartDate    time.Time `json:"start_date,omitempty"`
+	EndDate      time.Time `json:"end_date,omitempty"`
+	MaxEmployees int       `json:"max_employees"`
+	EmployeeTotal int64    `json:"employee_total"`
 }
 
 // ProvisioningInfo menampilkan status provisioning tenant database.

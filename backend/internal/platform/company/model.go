@@ -16,6 +16,19 @@ const (
 	CompanyStatusTerminated CompanyStatus = "terminated"
 )
 
+// LicenseRef — subset tabel licenses (cross-module query) untuk mengisi
+// LicenseInfo pada response company detail tanpa dependensi ke license module.
+type LicenseRef struct {
+	ID           uuid.UUID  `gorm:"column:id"`
+	LicenseKey   string     `gorm:"column:license_key"`
+	PlanType     string     `gorm:"column:plan_type"`
+	PackageID    *uuid.UUID `gorm:"column:package_id"`
+	PackageName  string     `gorm:"column:package_name"`
+	StartDate    time.Time  `gorm:"column:start_date"`
+	EndDate      time.Time  `gorm:"column:end_date"`
+	MaxEmployees int        `gorm:"column:max_employees"`
+}
+
 // Company merepresentasikan perusahaan/tenant di platform database.
 type Company struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`

@@ -26,6 +26,13 @@ const routes = [
         component: () => import('@/views/Profile.vue'),
         meta: { title: 'Profile', titleKey: 'profile.title', descKey: 'profile.description', icon: 'pi pi-user' }
       },
+      // Company Profile (detail perusahaan)
+      {
+        path: 'company',
+        name: 'CompanyDetail',
+        component: () => import('@/views/CompanyDetail.vue'),
+        meta: { title: 'Company Profile', titleKey: 'company_detail.title', descKey: 'company_detail.description', icon: 'pi pi-building' }
+      },
       {
         path: 'dashboard',
         name: 'Dashboard',

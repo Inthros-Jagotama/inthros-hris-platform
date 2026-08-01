@@ -200,6 +200,7 @@ function goBackToSettings() {
 
 const userMenuItems = computed(() => [
   { label: t('auth.login.profile'), icon: 'pi pi-user', command: () => router.push('/profile') },
+  { label: t('company_detail.title'), icon: 'pi pi-building', command: () => router.push('/company') },
   { separator: true },
   { label: t('auth.login.logout'), icon: 'pi pi-sign-out', command: () => emit('logout') }
 ])

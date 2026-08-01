@@ -53,6 +53,36 @@ func setupTestEnv() *testEnv {
 }
 
 // =========================================================================
+// Unit Tests — isCompanyEditor (authz gate untuk PUT /tenant/companies/me)
+// =========================================================================
+
+func TestIsCompanyEditor(t *testing.T) {
+	tests := []struct {
+		name string
+		role string
+		want bool
+	}{
+		{"platform super_admin", "super_admin", true},
+		{"platform company_admin", "company_admin", true},
+		{"tenant admin (capitalized)", "Admin", true},
+		{"tenant admin lowercase", "admin", true},
+		{"whitespace + mixed case", "  Company_Admin ", true},
+		{"tenant employee", "Employee", false},
+		{"platform employee", "employee", false},
+		{"manager", "manager", false},
+		{"unknown role", "ceo", false},
+		{"empty role (fail-closed)", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isCompanyEditor(tt.role); got != tt.want {
+				t.Errorf("isCompanyEditor(%q) = %v, want %v", tt.role, got, tt.want)
+			}
+		})
+	}
+}
+
+// =========================================================================
 // Handler Tests — Rotate Credentials Endpoint
 // =========================================================================
 
