@@ -3,7 +3,6 @@
     "description": "Indonesian locale for HRIS Platform Admin",
     "lang": "id"
   },
-
   "nav": {
     "platform_admin": "Admin Platform",
     "dashboard": "Dasbor",
@@ -15,7 +14,6 @@
     "monitoring": "Pemantauan",
     "rbac": "RBAC"
   },
-
   "common": {
     "search": "Cari...",
     "filter": "Filter",
@@ -49,7 +47,6 @@
     "password": "Kata Sandi",
     "auto_generated": "Otomatis dari nama"
   },
-
   "common_status": {
     "active": "Aktif",
     "inactive": "Nonaktif",
@@ -69,7 +66,6 @@
     "yes": "Ya",
     "no": "Tidak"
   },
-
   "message": {
     "success": "Berhasil",
     "error": "Gagal",
@@ -83,7 +79,6 @@
     "updated": "Berhasil diperbarui",
     "deleted": "Berhasil dihapus"
   },
-
   "profile": {
     "title": "Profil",
     "description": "Kelola pengaturan akun Anda",
@@ -99,7 +94,6 @@
     "status": "Status",
     "last_login": "Terakhir Masuk"
   },
-
   "auth": {
     "login": {
       "title": "Masuk",
@@ -125,7 +119,6 @@
     "title": "HRIS Admin Platform",
     "version": "HRIS Platform v1.6.3 — Enterprise Edition"
   },
-
   "dashboard": {
     "title": "Dasbor",
     "description": "Ikhtisar platform & statistik real-time",
@@ -159,7 +152,6 @@
     "light_mode": "Mode Terang",
     "dark_mode": "Mode Gelap"
   },
-
   "companies": {
     "title": "Perusahaan",
     "description": "Kelola perusahaan tenant & siklus hidupnya",
@@ -224,7 +216,6 @@
     "package": "Paket",
     "admin_role": "Peran"
   },
-
   "users": {
     "title": "Pengguna",
     "description": "Kelola akun admin platform",
@@ -250,7 +241,6 @@
     "confirm_bulk_delete_title": "Hapus Pengguna Terpilih",
     "confirm_bulk_delete_message": "Hapus {count} pengguna terpilih? Tindakan ini tidak dapat dibatalkan."
   },
-
   "modules": {
     "title": "Modul",
     "description": "Manajemen modul, termasuk instalasi dan uninstallasi modul.",
@@ -272,7 +262,6 @@
     "filter_tenant": "Tenant",
     "depends_on": "Bergantung Pada"
   },
-
   "rbac": {
     "title": "Manajemen RBAC",
     "description": "Kelola peran, izin, dan kontrol akses.",
@@ -291,7 +280,6 @@
     "no_permissions": "Tidak ada izin tersedia.",
     "role_slug": "Slug"
   },
-
   "licenses": {
     "title": "Lisensi",
     "description": "Kelola lisensi perangkat lunak untuk perusahaan tenant.",
@@ -310,6 +298,7 @@
     "empty_title": "Belum ada lisensi diterbitkan",
     "empty_hint": "Klik \"Lisensi Baru\" untuk menerbitkan lisensi pertama.",
     "plan_trial": "Uji Coba",
+    "plan_subscription": "Langganan",
     "plan_basic": "Dasar",
     "plan_professional": "Profesional",
     "plan_enterprise": "Enterprise",
@@ -324,7 +313,6 @@
     "confirm_delete_message": "Hapus lisensi untuk perusahaan \"{name}\"? Semua modul paket akan dinonaktifkan untuk perusahaan ini.",
     "tooltip_delete": "Hapus lisensi ini — menonaktifkan semua modul paket"
   },
-
   "seed_data": {
     "title": "Status Data Seed",
     "description": "Kelengkapan data master di database tenant",
@@ -346,7 +334,6 @@
     "tables": "tabel",
     "records": "record"
   },
-
   "monitoring": {
     "title": "Pemantauan",
     "description": "Kesehatan platform, konektivitas database & status tenant.",
@@ -369,7 +356,6 @@
     "collecting_data": "Mengumpulkan data...",
     "utilization": "penggunaan"
   },
-
   "packages": {
     "title": "Paket",
     "description": "Kelola paket modul dengan harga dan dependensi.",
@@ -403,7 +389,6 @@
     "tooltip_validate": "Periksa apakah semua dependensi modul terpenuhi",
     "tooltip_delete": "Hapus paket ini (soft-delete)"
   },
-
   "form": {
     "required": "Field ini wajib diisi",
     "invalid_email": "Format email tidak valid",
@@ -411,7 +396,6 @@
     "max_length": "Maksimal {n} karakter",
     "select_option": "Pilih opsi"
   },
-
   "table": {
     "empty": "Tidak ada data",
     "page": "Halaman",
@@ -421,7 +405,6 @@
     "sort_asc": "Urutkan naik",
     "sort_desc": "Urutkan turun"
   },
-
   "error": {
     "validation_failed": "Validasi gagal",
     "network_error": "Kesalahan jaringan. Silakan periksa koneksi Anda.",
@@ -430,7 +413,6 @@
     "forbidden": "Akses ditolak",
     "server_error": "Terjadi kesalahan pada server"
   },
-
   "time": {
     "just_now": "Baru saja",
     "minutes_ago": "{n} menit yang lalu",

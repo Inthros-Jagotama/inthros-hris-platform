@@ -221,7 +221,10 @@ func Load(configPath string) (*Config, error) {
 func (c *DatabaseConfig) PlatformDSN() string {
 	switch driver.Parse(c.Driver) {
 	case driver.MySQL:
-		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		// multiStatements=true diperlukan agar migrator bisa menjalankan file SQL
+		// yang berisi multiple statements (CREATE TABLE + CREATE INDEX, INSERT, dll)
+		// dalam satu eksekusi — sama seperti buildDSN() untuk tenant DB.
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&multiStatements=true",
 			c.PlatformUser, c.PlatformPassword,
 			c.PlatformHost, c.PlatformPort,
 			c.PlatformDB,
@@ -241,7 +244,7 @@ func (c *DatabaseConfig) PlatformDSN() string {
 func (c *DatabaseConfig) TenantDSN(dbName, dbUser, dbPassword string) string {
 	switch driver.Parse(c.Driver) {
 	case driver.MySQL:
-		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&multiStatements=true",
 			dbUser, dbPassword,
 			c.TenantHost, c.TenantPort,
 			dbName,
@@ -261,7 +264,7 @@ func (c *DatabaseConfig) TenantDSN(dbName, dbUser, dbPassword string) string {
 func (c *DatabaseConfig) SuperuserDSN() string {
 	switch driver.Parse(c.Driver) {
 	case driver.MySQL:
-		return fmt.Sprintf("%s:%s@tcp(%s:%d)/?charset=utf8mb4&parseTime=True&loc=Local",
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/?charset=utf8mb4&parseTime=True&loc=Local&multiStatements=true",
 			c.TenantSuperUser, c.TenantSuperPass,
 			c.TenantHost, c.TenantPort,
 		)

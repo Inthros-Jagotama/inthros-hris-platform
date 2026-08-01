@@ -73,6 +73,8 @@ func (s *Service) CreateLicense(req CreateLicenseRequest) (*LicenseResponse, err
 		switch req.PlanType {
 		case "trial":
 			maxEmployees = 10
+		case "subscription":
+			maxEmployees = 0 // unlimited
 		case "basic":
 			maxEmployees = 50
 		case "pro":
@@ -87,6 +89,8 @@ func (s *Service) CreateLicense(req CreateLicenseRequest) (*LicenseResponse, err
 		switch req.PlanType {
 		case "trial":
 			maxModules = 3
+		case "subscription":
+			maxModules = 0 // unlimited
 		case "basic":
 			maxModules = 8
 		case "pro":

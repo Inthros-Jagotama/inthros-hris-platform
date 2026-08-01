@@ -124,39 +124,25 @@
 
     <!-- Create/Edit Dialog -->
     <Dialog v-model:visible="dialogVisible" :header="isEditing ? t('licenses.edit_license') : t('licenses.new_license')" modal :style="{ width: '540px' }">
-      <div class="space-y-4">
-        <div class="grid grid-cols-2 gap-x-4 gap-y-3">
-          <div class="col-span-2">
-            <FormRow :label="t('licenses.company')" :errors="errors?.company_id" :required="true">
-              <SelectLabel v-model="form.company_id" :options="companies" optionLabel="name" optionValue="id" :placeholder="t('licenses.select_company')" :class="{ 'p-invalid': errors?.company_id }" />
-            </FormRow>
-          </div>
-          <div>
-            <FormRow :label="t('licenses.plan_type')" :errors="errors?.plan_type" :required="true">
-              <SelectLabel v-model="form.plan_type" :options="planOptions" optionLabel="label" optionValue="value" :placeholder="t('licenses.select_plan')" :class="{ 'p-invalid': errors?.plan_type }" />
-            </FormRow>
-          </div>
-          <div>
-            <FormRow :label="t('licenses.package')" :errors="errors?.package_id">
-              <SelectLabel v-model="form.package_id" :options="packageOptions" optionLabel="label" optionValue="value" :placeholder="t('licenses.select_package')" showClear :class="{ 'p-invalid': errors?.package_id }" :filter="false" />
-            </FormRow>
-          </div>
-          <div>
-            <FormRow :label="t('licenses.start_date')" :errors="errors?.start_date">
-              <DateInput v-model="form.start_date" showClear :class="{ 'p-invalid': errors?.start_date }" />
-            </FormRow>
-          </div>
-          <div>
-            <FormRow :label="t('licenses.end_date')" :errors="errors?.end_date">
-              <DateInput v-model="form.end_date" showClear :class="{ 'p-invalid': errors?.end_date }" />
-            </FormRow>
-          </div>
-          <div>
-            <FormRow :label="t('licenses.max_employees')" :errors="errors?.max_employees" :required="true">
-              <InputNumber v-model="form.max_employees" class="!w-full" inputClass="!w-full !text-sm" :min="1" :class="{ 'p-invalid': errors?.max_employees }" />
-            </FormRow>
-          </div>
-        </div>
+      <div class="space-y-3">
+        <FormRow :label="t('licenses.company')" :errors="errors?.company_id" :required="true">
+          <SelectLabel v-model="form.company_id" :options="companies" optionLabel="name" optionValue="id" :placeholder="t('licenses.select_company')" :class="{ 'p-invalid': errors?.company_id }" />
+        </FormRow>
+        <FormRow :label="t('licenses.plan_type')" :errors="errors?.plan_type" :required="true">
+          <SelectLabel v-model="form.plan_type" :options="planOptions" optionLabel="label" optionValue="value" :placeholder="t('licenses.select_plan')" :class="{ 'p-invalid': errors?.plan_type }" />
+        </FormRow>
+        <FormRow :label="t('licenses.package')" :errors="errors?.package_id">
+          <SelectLabel v-model="form.package_id" :options="packageOptions" optionLabel="label" optionValue="value" :placeholder="t('licenses.select_package')" showClear :class="{ 'p-invalid': errors?.package_id }" :filter="false" />
+        </FormRow>
+        <FormRow :label="t('licenses.start_date')" :errors="errors?.start_date">
+          <DateInput v-model="form.start_date" showClear :class="{ 'p-invalid': errors?.start_date }" />
+        </FormRow>
+        <FormRow :label="t('licenses.end_date')" :errors="errors?.end_date">
+          <DateInput v-model="form.end_date" showClear :class="{ 'p-invalid': errors?.end_date }" />
+        </FormRow>
+        <FormRow :label="t('licenses.max_employees')" :errors="errors?.max_employees" :required="true">
+          <InputNumber v-model="form.max_employees" class="!w-full" inputClass="!w-full !text-sm" :min="1" :class="{ 'p-invalid': errors?.max_employees }" />
+        </FormRow>
       </div>
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible = false" />
@@ -231,9 +217,7 @@ const skeletonColumns = [
 // Plan options
 const planOptions = computed(() => [
   { label: t('licenses.plan_trial'), value: 'trial' },
-  { label: t('licenses.plan_basic'), value: 'basic' },
-  { label: t('licenses.plan_professional'), value: 'pro' },
-  { label: t('licenses.plan_enterprise'), value: 'enterprise' }
+  { label: t('licenses.plan_subscription'), value: 'subscription' }
 ])
 
 // Status filter chips
@@ -326,6 +310,7 @@ function planSeverity(plan) {
     case 'enterprise': return 'danger'
     case 'professional': return 'warn'
     case 'basic': return 'info'
+    case 'subscription': return 'info'
     default: return 'success'
   }
 }

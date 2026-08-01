@@ -75,19 +75,15 @@
           <FormRow :label="t('packages.package_name')" :errors="errors?.name" :required="true">
             <TextInput v-model="form.name" autofocus :class="{ 'p-invalid': errors?.name }" />
           </FormRow>
-          
-          <div class="grid grid-cols-2 gap-3">
-            <FormRow :label="t('packages.slug')" :errors="errors?.slug" :required="true">
-              <div class="relative slug-wrapper" :class="{ 'slug-highlight': slugHighlighted }">
-                <TextInput v-model="form.slug" :class="{ 'p-invalid': errors?.slug }" @input="slugManuallyEdited = true" />
-                <i v-if="!slugManuallyEdited && form.name" class="pi pi-sync text-[10px] absolute right-2 top-1/2 -translate-y-1/2 transition-colors duration-300" :class="slugHighlighted ? 'text-indigo-400' : 'text-gray-300'" v-tooltip.left="'Auto-generated from name'"></i>
-              </div>
-            </FormRow>
-            <FormRow :label="t('packages.price')" :errors="errors?.price" :required="true">
-              <InputNumber v-model="form.price" :min="0" :step="10000" inputClass="!w-full !text-sm" class="!w-full" :class="{ 'p-invalid': errors?.price }" />
-            </FormRow>
-          </div>
-          
+          <FormRow :label="t('packages.slug')" :errors="errors?.slug" :required="true">
+            <div class="relative slug-wrapper" :class="{ 'slug-highlight': slugHighlighted }">
+              <TextInput v-model="form.slug" :class="{ 'p-invalid': errors?.slug }" @input="slugManuallyEdited = true" />
+              <i v-if="!slugManuallyEdited && form.name" class="pi pi-sync text-[10px] absolute right-2 top-1/2 -translate-y-1/2 transition-colors duration-300" :class="slugHighlighted ? 'text-indigo-400' : 'text-gray-300'" v-tooltip.left="'Auto-generated from name'"></i>
+            </div>
+          </FormRow>
+          <FormRow :label="t('packages.price')" :errors="errors?.price" :required="true">
+            <InputNumber v-model="form.price" :min="0" :step="10000" inputClass="!w-full !text-sm" class="!w-full" :class="{ 'p-invalid': errors?.price }" />
+          </FormRow>
           <FormRow :label="t('common.description')" :errors="errors?.description">
             <TextInput v-model="form.description" textarea :rows="4" :class="{ 'p-invalid': errors?.description }" />
           </FormRow>

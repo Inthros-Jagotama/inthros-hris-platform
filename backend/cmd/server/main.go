@@ -99,7 +99,7 @@ type licenseCreatorAdapter struct {
 func (a *licenseCreatorAdapter) CreateFromPackage(companyID, packageID string) (licenseID, licenseKey, planType string, err error) {
 	resp, err := a.licenseSvc.CreateLicense(license.CreateLicenseRequest{
 		CompanyID: companyID,
-		PlanType:  "pro",
+		PlanType:  "subscription",
 		StartDate: time.Now().Format("2006-01-02"),
 		EndDate:   time.Now().AddDate(1, 0, 0).Format("2006-01-02"),
 		PackageID: packageID,

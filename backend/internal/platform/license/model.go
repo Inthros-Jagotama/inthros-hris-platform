@@ -11,7 +11,10 @@ import (
 type LicensePlanType string
 
 const (
-	PlanTrial      LicensePlanType = "trial"
+	PlanTrial       LicensePlanType = "trial"
+	PlanSubscription LicensePlanType = "subscription"
+	// PlanBasic/PlanPro/PlanEnterprise dipertahankan untuk backward compatibility
+	// data lama yang masih memakai nilai tersebut.
 	PlanBasic      LicensePlanType = "basic"
 	PlanPro        LicensePlanType = "pro"
 	PlanEnterprise LicensePlanType = "enterprise"

@@ -1150,7 +1150,7 @@
             "description": "Forbidden: hanya super_admin"
           }
         },
-        "description": "Issue a new software license to a company tenant. Specifies the plan type (trial, basic, professional, enterprise), start date, end date, and seat count. If a package_id is provided, all modules included in the package will be auto-activated for the company."
+        "description": "Issue a new software license to a company tenant. Specifies the plan type (trial, subscription), start date, end date, and seat count. If a package_id is provided, all modules included in the package will be auto-activated for the company."
       }
     },
     "/api/v1/platform/licenses/{id}": {
@@ -2181,7 +2181,7 @@
                         },
                         "plan_type": {
                           "type": "string",
-                          "example": "pro"
+                          "example": "subscription"
                         },
                         "package_id": {
                           "type": "string",
@@ -27992,9 +27992,7 @@
             "type": "string",
             "enum": [
               "trial",
-              "basic",
-              "pro",
-              "enterprise"
+              "subscription"
             ]
           },
           "max_employees": {
@@ -28029,9 +28027,7 @@
             "type": "string",
             "enum": [
               "trial",
-              "basic",
-              "pro",
-              "enterprise"
+              "subscription"
             ]
           },
           "max_employees": {

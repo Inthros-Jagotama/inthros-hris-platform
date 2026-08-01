@@ -198,6 +198,7 @@ function planSeverity(plan) {
     case 'enterprise': return 'danger'
     case 'professional': return 'warn'
     case 'basic': return 'info'
+    case 'subscription': return 'info'
     case 'trial': return 'success'
     default: return 'info'
   }

@@ -121,29 +121,19 @@
             <i class="pi pi-building text-indigo-400 text-sm"></i>
             {{ t('companies.new_company') }}
           </h3>
-          <div class="space-y-2">
-            <div>
-              <FormRow label="Company Name" :errors="errors?.name" :required="true">
-                  <TextInput v-model="form.name" autofocus :class="{ 'p-invalid': errors?.name }" />
-              </FormRow>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <FormRow label="Email" :errors="errors?.email" :required="true">
-                    <TextInput v-model="form.email" autofocus :class="{ 'p-invalid': errors?.email }" />
-                </FormRow>
-              </div>
-              <div>
-                <FormRow label="Phone" :errors="errors?.phone" :required="true">
-                    <TextInput v-model="form.phone" autofocus :class="{ 'p-invalid': errors?.phone }" />
-                </FormRow>
-              </div>
-            </div>
-            <div>
-              <FormRow label="Address" :errors="errors?.address" :required="true">
-                  <TextInput v-model="form.address" autofocus :class="{ 'p-invalid': errors?.address }" />
-              </FormRow> 
-            </div>
+          <div class="space-y-3">
+            <FormRow :label="t('companies.company_name')" :errors="errors?.name" :required="true">
+              <TextInput v-model="form.name" autofocus :class="{ 'p-invalid': errors?.name }" />
+            </FormRow>
+            <FormRow :label="t('companies.email')" :errors="errors?.email" :required="true">
+              <TextInput v-model="form.email" autofocus :class="{ 'p-invalid': errors?.email }" />
+            </FormRow>
+            <FormRow :label="t('companies.phone')" :errors="errors?.phone" :required="true">
+              <TextInput v-model="form.phone" autofocus :class="{ 'p-invalid': errors?.phone }" />
+            </FormRow>
+            <FormRow :label="t('companies.address')" :errors="errors?.address" :required="true">
+              <TextInput v-model="form.address" autofocus :class="{ 'p-invalid': errors?.address }" />
+            </FormRow>
           </div>
         </div>
 
@@ -155,22 +145,16 @@
             {{ t('companies.admin_section_title') }}
           </h3>
           <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ t('companies.admin_section_hint') }}</p>
-          <div>
-            <FormRow label="Admin Name" :errors="errors?.admin_name" :required="true">
-                <TextInput v-model="form.admin_name" autofocus :class="{ 'p-invalid': errors?.admin_name }" />
-            </FormRow> 
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <FormRow label="Admin Email" :errors="errors?.admin_email" :required="true">
-                  <TextInput v-model="form.admin_email" autofocus :class="{ 'p-invalid': errors?.admin_email }" />
-              </FormRow> 
-            </div>
-            <div>
-              <FormRow label="Password" :errors="errors?.admin_password" :required="true">
-                  <PasswordInput v-model="form.admin_password" autofocus :class="{ 'p-invalid': errors?.admin_password }" />
-              </FormRow> 
-            </div>
+          <div class="space-y-3">
+            <FormRow :label="t('companies.admin_name')" :errors="errors?.admin_name" :required="true">
+              <TextInput v-model="form.admin_name" autofocus :class="{ 'p-invalid': errors?.admin_name }" />
+            </FormRow>
+            <FormRow :label="t('companies.admin_email')" :errors="errors?.admin_email" :required="true">
+              <TextInput v-model="form.admin_email" autofocus :class="{ 'p-invalid': errors?.admin_email }" />
+            </FormRow>
+            <FormRow :label="t('companies.admin_password')" :errors="errors?.admin_password" :required="true">
+              <PasswordInput v-model="form.admin_password" autofocus :class="{ 'p-invalid': errors?.admin_password }" />
+            </FormRow>
           </div>
         </div>
       </div>
@@ -279,6 +263,7 @@ function planSeverity(plan) {
     case 'enterprise': return 'danger'
     case 'professional': return 'warn'
     case 'basic': return 'info'
+    case 'subscription': return 'info'
     case 'trial': return 'success'
     default: return 'info'
   }

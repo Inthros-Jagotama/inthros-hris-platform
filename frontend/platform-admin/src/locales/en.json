@@ -3,7 +3,6 @@
     "description": "English locale for HRIS Platform Admin",
     "lang": "en"
   },
-
   "nav": {
     "platform_admin": "Platform Admin",
     "dashboard": "Dashboard",
@@ -15,7 +14,6 @@
     "monitoring": "Monitoring",
     "rbac": "RBAC"
   },
-
   "common": {
     "search": "Search...",
     "filter": "Filter",
@@ -49,7 +47,6 @@
     "password": "Password",
     "auto_generated": "Auto-generated from name"
   },
-
   "common_status": {
     "active": "Active",
     "inactive": "Inactive",
@@ -69,7 +66,6 @@
     "yes": "Yes",
     "no": "No"
   },
-
   "message": {
     "success": "Success",
     "error": "Error",
@@ -83,7 +79,6 @@
     "updated": "Updated successfully",
     "deleted": "Deleted successfully"
   },
-
   "profile": {
     "title": "Profile",
     "description": "Manage your account settings",
@@ -99,7 +94,6 @@
     "status": "Status",
     "last_login": "Last Login"
   },
-
   "auth": {
     "login": {
       "title": "Sign In",
@@ -125,7 +119,6 @@
     "title": "HRIS Platform Admin",
     "version": "HRIS Platform v1.6.3 — Enterprise Edition"
   },
-
   "dashboard": {
     "title": "Dashboard",
     "description": "Platform overview & real-time statistics",
@@ -159,7 +152,6 @@
     "light_mode": "Light Mode",
     "dark_mode": "Dark Mode"
   },
-
   "companies": {
     "title": "Companies",
     "description": "Manage tenant companies & their lifecycle",
@@ -224,7 +216,6 @@
     "package": "Package",
     "admin_role": "Role"
   },
-
   "users": {
     "title": "Users",
     "description": "Manage platform admin accounts",
@@ -250,7 +241,6 @@
     "confirm_bulk_delete_title": "Delete Selected Users",
     "confirm_bulk_delete_message": "Delete {count} selected user(s)? This cannot be undone."
   },
-
   "modules": {
     "title": "Modules",
     "description": "Module management, including module installation and uninstallation.",
@@ -272,7 +262,6 @@
     "filter_tenant": "Tenant",
     "depends_on": "Depends On"
   },
-
   "rbac": {
     "title": "RBAC Management",
     "description": "Manage roles, permissions, and access control.",
@@ -291,7 +280,6 @@
     "no_permissions": "No permissions available.",
     "role_slug": "Slug"
   },
-
   "licenses": {
     "title": "Licenses",
     "description": "Manage software licenses for tenant companies.",
@@ -310,6 +298,7 @@
     "empty_title": "No licenses issued yet",
     "empty_hint": "Click \"New License\" to issue the first license.",
     "plan_trial": "Trial",
+    "plan_subscription": "Subscription",
     "plan_basic": "Basic",
     "plan_professional": "Professional",
     "plan_enterprise": "Enterprise",
@@ -324,7 +313,6 @@
     "confirm_delete_message": "Delete license for company \"{name}\"? All package modules will be deactivated for this company.",
     "tooltip_delete": "Delete this license — deactivates all package modules"
   },
-
   "seed_data": {
     "title": "Seed Data Status",
     "description": "Seed data completeness for tenant databases",
@@ -346,7 +334,6 @@
     "tables": "tables",
     "records": "records"
   },
-
   "monitoring": {
     "title": "Monitoring",
     "description": "Platform health, database connectivity & tenant status.",
@@ -369,7 +356,6 @@
     "collecting_data": "Collecting data...",
     "utilization": "utilization"
   },
-
   "packages": {
     "title": "Packages",
     "description": "Manage module packages with pricing and dependencies.",
@@ -378,7 +364,7 @@
     "package_name": "Package Name",
     "slug": "Slug",
     "price": "Price",
-    "description": "Description",
+    "desc": "Description",
     "sort_order": "Sort Order",
     "status": "Status",
     "module_count": "Module Count",
@@ -403,7 +389,6 @@
     "tooltip_validate": "Check if all module dependencies are satisfied",
     "tooltip_delete": "Soft-delete this package"
   },
-
   "form": {
     "required": "This field is required",
     "invalid_email": "Invalid email format",
@@ -411,7 +396,6 @@
     "max_length": "Maximum {n} characters",
     "select_option": "Select an option"
   },
-
   "table": {
     "empty": "No records found",
     "page": "Page",
@@ -421,7 +405,6 @@
     "sort_asc": "Sort ascending",
     "sort_desc": "Sort descending"
   },
-
   "error": {
     "validation_failed": "Validation failed",
     "network_error": "Network error. Please check your connection.",
@@ -430,7 +413,6 @@
     "forbidden": "Access denied",
     "server_error": "Internal server error"
   },
-
   "time": {
     "just_now": "Just now",
     "minutes_ago": "{n} minutes ago",
