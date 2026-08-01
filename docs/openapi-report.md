@@ -3,18 +3,18 @@
 
 **Generated:** 01 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 369
-**Total Endpoints (methods):** 679
-**Total Schemas:** 435
-**Total Tags:** 28
+**Total Paths:** 371
+**Total Endpoints (methods):** 684
+**Total Schemas:** 439
+**Total Tags:** 30
 
 ## Coverage Summary
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 679/679 | 100% |
-| Endpoints with `description` | 679/679 | 100% |
-| Endpoints with `operationId` | 679/679 | 100% |
+| Endpoints with `summary` | 684/684 | 100% |
+| Endpoints with `description` | 684/684 | 100% |
+| Endpoints with `operationId` | 684/684 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -105,7 +105,7 @@ Tenant endpoints support validation for Indonesian data formats:
 
 | # | Tag | Endpoints | Paths |
 |---|---|---|---|
-| 1 | Tenant: Settings | 95 | 41 |
+| 1 | Tenant: Settings | 100 | 43 |
 | 2 | Tenant: Job Management | 88 | 36 |
 | 3 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
 | 4 | Tenant: Payroll & Compensation Engine | 53 | 26 |
@@ -135,14 +135,14 @@ Tenant endpoints support validation for Indonesian data formats:
 | 28 | Tenant: Company | 2 | 1 |
 | 29 | Tenant: Approval Engine | 1 | 1 |
 | 30 | Public | 1 | 1 |
-| | **TOTAL** | **679** | **369** |
+| | **TOTAL** | **684** | **371** |
 
 ## 2. Module Detail
 
 ### Tenant: Settings
-**Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data.
-**Endpoints:** 95 | **Paths:** 41
-**Methods:** DELETE=18 GET=41 POST=18 PUT=18
+**Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data, education majors.
+**Endpoints:** 100 | **Paths:** 43
+**Methods:** DELETE=19 GET=43 POST=19 PUT=19
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -157,6 +157,11 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/settings/districts/{id}` | Update district | Update a district record's details including code, name, and other attributes. |
 | `DELETE` | `/api/v1/tenant/settings/districts/{id}` | Delete district | Soft-delete a district record. Sets the deleted_at timestamp and hides it from standard queries. |
 | `GET` | `/api/v1/tenant/settings/districts/{id}/villages` | List villages by district | Retrieve a list of villages within a specific district for cascading dropdown selection. |
+| `GET` | `/api/v1/tenant/settings/education-majors` | List all Education Majors | Retrieve a paginated list of education majors (fields of study). Supports pagination parameters. |
+| `POST` | `/api/v1/tenant/settings/education-majors` | Create a new education major | Create a new education major record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/settings/education-majors/{id}` | Get education major by ID | Get detailed information about a specific education major by its ID. |
+| `PUT` | `/api/v1/tenant/settings/education-majors/{id}` | Update education major | Update an education major record's details including code, name, and sort order. |
+| `DELETE` | `/api/v1/tenant/settings/education-majors/{id}` | Delete education major | Soft-delete an education major record. Sets the deleted_at timestamp and hides it from standard queries. |
 | `GET` | `/api/v1/tenant/settings/educations` | List all Educations | Retrieve a paginated list of Educations. Supports pagination parameters. |
 | `POST` | `/api/v1/tenant/settings/educations` | Create a new education | Create a new educations record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/settings/educations/{id}` | Get education by ID | Get detailed information about a specific education by its ID. |
@@ -1020,6 +1025,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/platform/refresh` | Refresh access token | Exchange a valid refresh token for a new access token. Use this endpoint to maintain session continuity without requiring the user to re-login. |
 
 ### Tenant Auth
+**Description:** Tenant authentication (login, refresh token)
 **Endpoints:** 2 | **Paths:** 2
 **Methods:** POST=2
 
@@ -1047,6 +1053,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/tenant/approval/instances/{id}` | Cancel approval instance | Create a new instances record. Validates required fields and returns the created resource with its assigned ID. |
 
 ### Public
+**Description:** Public endpoints — no authentication required
 **Endpoints:** 1 | **Paths:** 1
 **Methods:** GET=1
 

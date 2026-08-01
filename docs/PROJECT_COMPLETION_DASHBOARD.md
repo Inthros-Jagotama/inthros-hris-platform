@@ -9,18 +9,18 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tenant Modules** | **16** complete (15 business + Settings with 17 reference CRUDs) |
+| **Tenant Modules** | **16** complete (15 business + Settings with 18 reference CRUDs) |
 | **Platform Modules** | **6** complete + **2** shared packages |
 | **Total Go Files** | **224+** (155 source + 69 test) |
 | **Total GORM Entities** | **121** (116 tenant + 5 platform) |
 | **Total Test Functions** | **~1004+** |
-| **Total OpenAPI Endpoints** | **677** |
-| **Total OpenAPI Schemas** | **433** |
-| **Total OpenAPI Tags** | **27** |
+| **Total OpenAPI Endpoints** | **684** |
+| **Total OpenAPI Schemas** | **439** |
+| **Total OpenAPI Tags** | **30** |
 | **Module Type Filter** | ✅ **3 endpoints** (`/modules`, `/packages`, `/public/packages`) |
 | **Bilingual Support** | ✅ **EN/ID** — Backend 80+ message pairs + Frontend 200+ locale keys, middleware auto-detect, field validation errors |
 | **Frontend Phase 1** | ✅ **9/9 Platform Admin pages** — 100% complete with bilingual support |
-| **Frontend Tenant (Phase 2)** | ✅ **20+ views** — Dashboard, Login, Profile, Organization, 17 Settings CRUDs |
+| **Frontend Tenant (Phase 2)** | ✅ **20+ views** — Dashboard, Login, Profile, Organization, 18 Settings CRUDs |
 | **Frontend Components** | **35+** (11 views, 10 form/action components, 3 composables, 2 utils, stores, services) |
 | **Frontend Build** | ✅ **Clean** — zero warnings |
 | **Migration Files** | **44 per dialect** (22 up + 22 down) |
@@ -142,12 +142,12 @@
 |----------|-------------|:------:|
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
 | `ARCHITECTURE_DESIGN_v1.6_Updated.md` | Architecture design, module status, priority matrix | ✅ v16 updated (15 missing endpoints injected) |
-| `docs/openapi-report.md` | OpenAPI comprehensive report (v15) | ✅ v15 — 677 endpoints, 433 schemas, 27 tags |
+| `docs/openapi-report.md` | OpenAPI comprehensive report (v15) | ✅ v15 — 684 endpoints, 439 schemas, 30 tags |
 | `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ Updated with Settings module (130 entities, 550 service methods, 1029 tests) |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
 | `docs/PROJECT_COMPLETION_DASHBOARD.md` | **This document** | ✅ **Updated — Phase 1 Frontend added** |
-| `docs/frontend-development-plan.md` | Frontend Phase 1-4 development plan | ✅ **Phase 1 all 9 modules + Tenant 17 Settings CRUDs completed** |
+| `docs/frontend-development-plan.md` | Frontend Phase 1-4 development plan | ✅ **Phase 1 all 9 modules + Tenant 18 Settings CRUDs completed** |
 | `docs/Phase-1-Completion-Report.md` | Phase 1 Frontend completion summary | ✅ **NEW — for presentation** |
 | **TenantResolver Middleware (SaaS auto-detect)** | ✅ **Done (01 Aug 2026)** | `middleware.TenantResolver` — auto-determine company dari Host header/X-Tenant-ID untuk `/api/v1/tenant/**` (JWT menang → X-Tenant-ID UUID → X-Forwarded-Host → Host) + set response header `X-Tenant-ID`. FE tenant: state `company` di auth store disinkronkan otomatis dari response header (api.js interceptor kirim & baca `X-Tenant-ID`), company opsional di login. 7 unit test. Changelog ARCH v20 |
 | **RBAC Permissions Lengkap (24 resource)** | ✅ **Done (01 Aug 2026)** | `authz/rbac.go` — `defaultResources()` + `loadDefaultPolicies()` + `seedDefaults()` kini mencakup **24 resource / 98 permissions** (sebelumnya 18/74): +`performance`, `recruitment`, `reimbursement`, `training`, `workforceintelligence`, `careerintelligence` (4 action tiap resource) — konsisten dengan tenant RBAC seed & `singularize()` map. Fix: resource tsb sebelumnya tidak pernah di-seed ke `rbac_permissions` → tidak muncul di menu RBAC platform-admin. Auto-assign saat restart hanya ke super_admin; role lain di-toggle manual via UI RBAC. +Rbac.vue sortOrder +6 resource. |
@@ -190,8 +190,8 @@
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 677 endpoints |
-| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 677 endpoints |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 684 endpoints |
+| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 684 endpoints |
 | **RBAC Engine** | ✅ **Active** | 4 default roles, **98 permissions (24 resources)**, auto-reload |
 | **On-Premise License Engine** | ✅ **Ready** | `internal/pkg/onpremise/` — RSA `.lic` (expires_at, allowed_modules, max_employees); CLI `licensectl` (gen-key/gen-lic); mode `on_premise` via `HRIS_LICENSE_DEPLOYMENT_MODE` (dormant di mode saas default); lister alternatif PlatformLicenseMiddleware. **`max_employees` di-enforce di `Service.Create()` → 403 `QUOTA_EXCEEDED`** (toast bilingual FE `employee.quota_exceeded`) |
 | **Quota Audit (no bypass)** | ✅ **Audited** | Kuota terpusat di `Service.Create()` — satu-satunya pembuat Employee master. Payroll profiles / onboarding / employee-shift / sub-record TIDAK membuat Employee master (tidak perlu kuota). Frontend hanya 1 caller (`EmployeeForm.savePersonalData`). Jalur masa depan (batch import) otomatis kena kuota. *(Audit 31 Jul 2026)* |
@@ -289,9 +289,10 @@
 | Task | Priority | Notes | Status |
 |------|:--------:|-------|:------:|
 | **Frontend Phase 1 — Platform Admin** | 🟢 High | 9 pages: Login, Dashboard, Companies, Users, Modules, Licenses, Packages, Monitoring, RBAC | ✅ **Done (26 Jul 2026)** |
-| Frontend Phase 2 — Tenant Module Views | 🟡 Medium | Organization, Employee, Leave, Payroll, Attendance, dll. | ✅ **Partial (17 Settings CRUD views + Organization done)** |
+| Frontend Phase 2 — Tenant Module Views | 🟡 Medium | Organization, Employee, Leave, Payroll, Attendance, dll. | ✅ **Partial (18 Settings CRUD views + Organization done)** |
 | — Settings: Zones, Provinces, Regencies, Districts, Villages | 🟢 Easy | 5 geographic entities with parent-child hierarchy | ✅ **Done** |
 | — Settings: Educations, Religions, MaritalStatuses, RelationshipTypes | 🟢 Easy | 4 simple reference CRUDs | ✅ **Done** |
+| — Settings: Education Majors | 🟢 Easy | 1 reference CRUD — **seeder `seedEducationMajors` pakai kode 3 digit (001–020)**, 20 jurusan, UUID deterministik + idempotent (024_education_majors.sql) | ✅ **Done (1 Aug 2026)** |
 | — Settings: Banks, EmploymentStatuses, Nationalities | 🟢 Easy | 3 simple reference CRUDs | ✅ **Done** |
 | — Settings: JobFamilies, SalaryGrades | 🟢 Easy | 2 reference CRUDs (SalaryGrades: Grade, MinSalary, MaxSalary) | ✅ **Done** |
 | — Settings: Insurances | 🟢 Easy | 1 reference CRUD (Code, Name, SortOrder) — Backend + Frontend + OpenAPI | ✅ **Done** |

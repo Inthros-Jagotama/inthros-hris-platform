@@ -275,6 +275,44 @@ func (h *Handler) DeleteEducation(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+// ── EducationMajor Handlers ──
+func (h *Handler) CreateEducationMajor(c *gin.Context) {
+	var req CreateEducationMajorRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.CreateEducationMajor(c.Request.Context(), req)
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+func (h *Handler) ListEducationMajors(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	resp, err := h.service.ListEducationMajors(c.Request.Context(), page, perPage)
+	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	c.JSON(http.StatusOK, resp)
+}
+func (h *Handler) GetEducationMajorByID(c *gin.Context) {
+	resp, err := h.service.GetEducationMajorByID(c.Request.Context(), c.Param("id"))
+	if err != nil { c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}}); return }
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) UpdateEducationMajor(c *gin.Context) {
+	var req UpdateEducationMajorRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.UpdateEducationMajor(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) DeleteEducationMajor(c *gin.Context) {
+	if err := h.service.DeleteEducationMajor(c.Request.Context(), c.Param("id")); err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
 // ── Religion Handlers ──
 func (h *Handler) CreateReligion(c *gin.Context) {
 	var req CreateReligionRequest

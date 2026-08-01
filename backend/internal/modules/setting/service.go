@@ -396,6 +396,56 @@ func (s *Service) DeleteEducation(ctx context.Context, id string) error {
 	return s.repo.DeleteEducation(ctx, uid)
 }
 
+// ── EducationMajor CRUD ──
+func (s *Service) CreateEducationMajor(ctx context.Context, req CreateEducationMajorRequest) (*EducationMajorResponse, error) {
+	em := &EducationMajor{Code: req.Code, Name: req.Name, SortOrder: req.SortOrder}
+	if err := s.validateUniqueCode(ctx, &EducationMajor{}, req.Code, "education_majors"); err != nil { return nil, err }
+	if err := s.repo.CreateEducationMajor(ctx, em); err != nil { return nil, err }
+	s.logger.Info("EducationMajor created", zap.String("id", em.ID.String()), zap.String("code", em.Code))
+	resp := em.ToResponse()
+	return &resp, nil
+}
+func (s *Service) GetEducationMajorByID(ctx context.Context, id string) (*EducationMajorResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
+	em, err := s.repo.FindEducationMajorByID(ctx, uid)
+	if err != nil { return nil, err }
+	resp := em.ToResponse()
+	return &resp, nil
+}
+func (s *Service) ListEducationMajors(ctx context.Context, page, perPage int) (*EducationMajorPaginatedResponse, error) {
+	if page < 1 { page = defaultPage }
+	if perPage < 1 { perPage = defaultPerPage }
+	if perPage > maxPerPage { perPage = maxPerPage }
+	list, total, err := s.repo.FindAllEducationMajors(ctx, page, perPage)
+	if err != nil { return nil, err }
+	responses := make([]EducationMajorResponse, len(list))
+	for i, em := range list { responses[i] = em.ToResponse() }
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 { totalPages++ }
+	return &EducationMajorPaginatedResponse{Success: true, Data: responses, Page: page, PerPage: perPage, Total: total, TotalPages: totalPages}, nil
+}
+func (s *Service) UpdateEducationMajor(ctx context.Context, id string, req UpdateEducationMajorRequest) (*EducationMajorResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
+	em, err := s.repo.FindEducationMajorByID(ctx, uid)
+	if err != nil { return nil, err }
+	if req.Code != nil {
+		if err := s.validateUniqueCodeExcludeSelf(ctx, &EducationMajor{}, *req.Code, em.ID, "education_majors"); err != nil { return nil, err }
+		em.Code = *req.Code
+	}
+	if req.Name != nil { em.Name = *req.Name }
+	if req.SortOrder != nil { em.SortOrder = *req.SortOrder }
+	if err := s.repo.UpdateEducationMajor(ctx, em); err != nil { return nil, err }
+	resp := em.ToResponse()
+	return &resp, nil
+}
+func (s *Service) DeleteEducationMajor(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil { return fmt.Errorf("invalid id: %w", err) }
+	return s.repo.DeleteEducationMajor(ctx, uid)
+}
+
 // ── Religion CRUD ──
 func (s *Service) CreateReligion(ctx context.Context, req CreateReligionRequest) (*ReligionResponse, error) {
 	rel := &Religion{Code: req.Code, Name: req.Name, SortOrder: req.SortOrder}

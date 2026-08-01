@@ -60,6 +60,7 @@ func (m *settingModule) Info() module.ModuleInfo {
 			"setting.district.view", "setting.district.create", "setting.district.update", "setting.district.delete",
 			"setting.village.view", "setting.village.create", "setting.village.update", "setting.village.delete",
 			"setting.education.view", "setting.education.create", "setting.education.update", "setting.education.delete",
+			"setting.education_major.view", "setting.education_major.create", "setting.education_major.update", "setting.education_major.delete",
 			"setting.religion.view", "setting.religion.create", "setting.religion.update", "setting.religion.delete",
 			"setting.marital_status.view", "setting.marital_status.create", "setting.marital_status.update", "setting.marital_status.delete",
 			"setting.relationship_type.view", "setting.relationship_type.create", "setting.relationship_type.update", "setting.relationship_type.delete",
@@ -85,6 +86,7 @@ func (m *settingModule) Info() module.ModuleInfo {
 					{Name: "Districts", Icon: "map", Route: "/admin/settings/districts"},
 					{Name: "Villages", Icon: "map", Route: "/admin/settings/villages"},
 					{Name: "Educations", Icon: "graduation-cap", Route: "/admin/settings/educations"},
+					{Name: "Education Majors", Icon: "graduation-cap", Route: "/admin/settings/education-majors"},
 					{Name: "Religions", Icon: "globe", Route: "/admin/settings/religions"},
 					{Name: "Marital Status", Icon: "heart", Route: "/admin/settings/marital-statuses"},
 					{Name: "Relationship Types", Icon: "users", Route: "/admin/settings/relationship-types"},
@@ -107,7 +109,7 @@ func (m *settingModule) RegisterRoutes(rg *gin.RouterGroup) {
 	RegisterRoutes(rg, m.handler)
 }
 
-func (m *settingModule) Migrate(db *gorm.DB) error {		return db.AutoMigrate(&Zone{}, &Province{}, &Regency{}, &District{}, &Village{}, &Education{}, &Religion{}, &MaritalStatus{}, &RelationshipType{}, &EmploymentStatus{}, &Bank{}, &Nationality{}, &JobFamily{}, &Grading{}, &SalaryGrade{}, &TER{}, &PTKP{}, &Insurance{})
+func (m *settingModule) Migrate(db *gorm.DB) error {		return db.AutoMigrate(&Zone{}, &Province{}, &Regency{}, &District{}, &Village{}, &Education{}, &EducationMajor{}, &Religion{}, &MaritalStatus{}, &RelationshipType{}, &EmploymentStatus{}, &Bank{}, &Nationality{}, &JobFamily{}, &Grading{}, &SalaryGrade{}, &TER{}, &PTKP{}, &Insurance{})
 }
 
 func (m *settingModule) Seed(db *gorm.DB) error {

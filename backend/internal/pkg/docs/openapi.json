@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "HRIS Platform API",
-    "description": "API untuk HRIS Platform Enterprise \u00e2\u20ac\u201d modular monolith dengan multi-tenant architecture. Mendukung PostgreSQL dan MySQL.\n\n## Response Format\n\nSemua endpoint mengembalikan response dengan format standar berikut: \n\n### Success Response\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"message\": \"Created successfully\"\n}\n```\n\n### Error Response\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"Resource tidak ditemukan\"\n  }\n}\n```\n\n### Validation Error Response\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Validasi gagal\",\n    \"fields\": {\n      \"email\": [\"Format email tidak valid\"],\n      \"nik\": [\"Format NIK harus 16 digit angka\"]\n    }\n  }\n}\n```\n\n### Paginated Response\n```json\n{\n  \"data\": [...],\n  \"pagination\": {\n    \"page\": 1,\n    \"per_page\": 20,\n    \"total\": 100,\n    \"total_pages\": 5\n  }\n}\n```\n\n## Bilingual Support (Bahasa Indonesia & English)\n\nAPI mendukung dua bahasa untuk pesan response.\n\n- **English** (default): Jika header `Accept-Language` tidak disertakan atau bernilai selain `id`\n- **Bahasa Indonesia**: Kirim header `Accept-Language: id`\n\nHeader ini memengaruhi semua pesan response, termasuk:\n- Pesan sukses (created, updated, deleted)\n- Pesan error (not found, internal error)\n- Pesan validasi (field-level errors)\n\n## Custom Validators\n\nEndpoint tenant mendukung validasi untuk format data Indonesia berikut:\n\n| Tag | Format | Contoh | Keterangan |\n|-----|--------|--------|------------|\n| `nik` | 16 digit angka | `3273010101900001` | NIK KTP |\n| `npwp` | 15-16 digit angka | `0123456789012345` | NPWP |\n| `npwp_format` | XX.XXX.XXX.X-XXX.XXX | `01.234.567.8-901.234` | NPWP terformat |\n| `kk` | 16 digit angka | `1234567890123456` | Kartu Keluarga |\n| `phone_id` | +628/08xx (7-11 digit) | `08123456789` | No. Telepon Indonesia |\n| `postal_code` | 5 digit angka | `12345` | Kode Pos |\n| `date_id` | YYYY-MM-DD | `2026-12-31` | Tanggal |\n| `passport` | 1 huruf + 8 angka | `A12345678` | Passport |\n| `sim` | 12 digit angka | `123456789012` | SIM |\n| `no_rekening` | 8-20 digit angka | `1234567890` | No. Rekening Bank |\n\n## Authentication\n\nSemua endpoint tenant (prefixed `/api/v1/tenant`) memerlukan JWT Bearer Token:\n```\nAuthorization: Bearer <access_token>\n```\n\nUntuk mendapatkan token, login via platform endpoint.\n\n## RBAC (Role-Based Access Control)\n\nPlatform menggunakan RBAC dengan 2 role:\n\n| Role | Akses |\n|------|-------|\n| **super_admin** | Akses penuh ke semua resource platform |\n| **company_admin** | Akses view-only ke company, user, license miliknya sendiri |\n\nEndpoint yang memerlukan proteksi akan mengembalikan **403 Forbidden** jika role tidak memiliki permission yang sesuai.\n\n### Permission Format\n\nSetiap endpoint memiliki permission requirement dalam format `resource.action`:\n```\ncompany.view, company.create, company.update, company.delete\ncompany.suspend, company.activate, company.terminate, company.backup, company.restore\nuser.view, user.create, user.update\nmodule.view, module.create, module.update, module.activate, module.deactivate\nlicense.view, license.create, license.update\nmonitoring.view\nemployee.address.create, employee.address.update, employee.address.delete\nemployee.contact.create, employee.contact.update, employee.contact.delete\nemployee.family.create, employee.family.update, employee.family.delete\nemployee.education.create, employee.education.update, employee.education.delete\nemployee.experience.create, employee.experience.update, employee.experience.delete\nemployee.document.create, employee.document.update, employee.document.delete\nemployee.insurance.create, employee.insurance.update, employee.insurance.delete\nemployee.employment.create, employee.employment.update, employee.employment.delete\n```\n\norganization.view, organization.create, organization.update, organization.delete\ncompetency.view, competency.create, competency.update, competency.delete\nemployeemovement.view, employeemovement.create, employeemovement.update, employeemovement.delete, employeemovement.approve, employeemovement.execute\n\napproval.view, approval.create, approval.update, approval.delete, approval.approve\n\npayroll.salary-component.view, payroll.salary-component.create, payroll.salary-component.update, payroll.salary-component.delete\npayroll.period.view, payroll.period.create, payroll.period.update\npayroll.bpjs-setting.view, payroll.bpjs-setting.create, payroll.bpjs-setting.update, payroll.bpjs-setting.delete\npayroll.bpjs-rate-component.view, payroll.bpjs-rate-component.create, payroll.bpjs-rate-component.update, payroll.bpjs-rate-component.delete\npayroll.pph21-setting.view, payroll.pph21-setting.create, payroll.pph21-setting.update, payroll.pph21-setting.delete\npayroll.pph21-ptkp-rate.view, payroll.pph21-ptkp-rate.create\npayroll.pph21-tax-bracket.view, payroll.pph21-tax-bracket.create\npayroll.run.view, payroll.run.create, payroll.run.update\npayroll.employee-profile.view, payroll.employee-profile.create, payroll.employee-profile.delete\npayroll.employee-bank.view, payroll.employee-bank.create, payroll.employee-bank.update, payroll.employee-bank.delete\npayroll.employee-bpjs.view, payroll.employee-bpjs.create, payroll.employee-bpjs.update, payroll.employee-bpjs.delete\npayroll.employee-tax.view, payroll.employee-tax.create, payroll.employee-tax.update, payroll.employee-tax.delete\n\nleave.view, leave.create, leave.update, leave.delete\n\nreimbursement.view, reimbursement.create, reimbursement.update, reimbursement.delete, reimbursement.approve\n\nworkforce.view\n\n",
+    "description": "API untuk HRIS Platform Enterprise â€” modular monolith dengan multi-tenant architecture. Mendukung PostgreSQL dan MySQL.\n\n## Response Format\n\nSemua endpoint mengembalikan response dengan format standar berikut: \n\n### Success Response\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"message\": \"Created successfully\"\n}\n```\n\n### Error Response\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"Resource tidak ditemukan\"\n  }\n}\n```\n\n### Validation Error Response\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Validasi gagal\",\n    \"fields\": {\n      \"email\": [\"Format email tidak valid\"],\n      \"nik\": [\"Format NIK harus 16 digit angka\"]\n    }\n  }\n}\n```\n\n### Paginated Response\n```json\n{\n  \"data\": [...],\n  \"pagination\": {\n    \"page\": 1,\n    \"per_page\": 20,\n    \"total\": 100,\n    \"total_pages\": 5\n  }\n}\n```\n\n## Bilingual Support (Bahasa Indonesia & English)\n\nAPI mendukung dua bahasa untuk pesan response.\n\n- **English** (default): Jika header `Accept-Language` tidak disertakan atau bernilai selain `id`\n- **Bahasa Indonesia**: Kirim header `Accept-Language: id`\n\nHeader ini memengaruhi semua pesan response, termasuk:\n- Pesan sukses (created, updated, deleted)\n- Pesan error (not found, internal error)\n- Pesan validasi (field-level errors)\n\n## Custom Validators\n\nEndpoint tenant mendukung validasi untuk format data Indonesia berikut:\n\n| Tag | Format | Contoh | Keterangan |\n|-----|--------|--------|------------|\n| `nik` | 16 digit angka | `3273010101900001` | NIK KTP |\n| `npwp` | 15-16 digit angka | `0123456789012345` | NPWP |\n| `npwp_format` | XX.XXX.XXX.X-XXX.XXX | `01.234.567.8-901.234` | NPWP terformat |\n| `kk` | 16 digit angka | `1234567890123456` | Kartu Keluarga |\n| `phone_id` | +628/08xx (7-11 digit) | `08123456789` | No. Telepon Indonesia |\n| `postal_code` | 5 digit angka | `12345` | Kode Pos |\n| `date_id` | YYYY-MM-DD | `2026-12-31` | Tanggal |\n| `passport` | 1 huruf + 8 angka | `A12345678` | Passport |\n| `sim` | 12 digit angka | `123456789012` | SIM |\n| `no_rekening` | 8-20 digit angka | `1234567890` | No. Rekening Bank |\n\n## Authentication\n\nSemua endpoint tenant (prefixed `/api/v1/tenant`) memerlukan JWT Bearer Token:\n```\nAuthorization: Bearer <access_token>\n```\n\nUntuk mendapatkan token, login via platform endpoint.\n\n## RBAC (Role-Based Access Control)\n\nPlatform menggunakan RBAC dengan 2 role:\n\n| Role | Akses |\n|------|-------|\n| **super_admin** | Akses penuh ke semua resource platform |\n| **company_admin** | Akses view-only ke company, user, license miliknya sendiri |\n\nEndpoint yang memerlukan proteksi akan mengembalikan **403 Forbidden** jika role tidak memiliki permission yang sesuai.\n\n### Permission Format\n\nSetiap endpoint memiliki permission requirement dalam format `resource.action`:\n```\ncompany.view, company.create, company.update, company.delete\ncompany.suspend, company.activate, company.terminate, company.backup, company.restore\nuser.view, user.create, user.update\nmodule.view, module.create, module.update, module.activate, module.deactivate\nlicense.view, license.create, license.update\nmonitoring.view\nemployee.address.create, employee.address.update, employee.address.delete\nemployee.contact.create, employee.contact.update, employee.contact.delete\nemployee.family.create, employee.family.update, employee.family.delete\nemployee.education.create, employee.education.update, employee.education.delete\nemployee.experience.create, employee.experience.update, employee.experience.delete\nemployee.document.create, employee.document.update, employee.document.delete\nemployee.insurance.create, employee.insurance.update, employee.insurance.delete\nemployee.employment.create, employee.employment.update, employee.employment.delete\n```\n\norganization.view, organization.create, organization.update, organization.delete\ncompetency.view, competency.create, competency.update, competency.delete\nemployeemovement.view, employeemovement.create, employeemovement.update, employeemovement.delete, employeemovement.approve, employeemovement.execute\n\napproval.view, approval.create, approval.update, approval.delete, approval.approve\n\npayroll.salary-component.view, payroll.salary-component.create, payroll.salary-component.update, payroll.salary-component.delete\npayroll.period.view, payroll.period.create, payroll.period.update\npayroll.bpjs-setting.view, payroll.bpjs-setting.create, payroll.bpjs-setting.update, payroll.bpjs-setting.delete\npayroll.bpjs-rate-component.view, payroll.bpjs-rate-component.create, payroll.bpjs-rate-component.update, payroll.bpjs-rate-component.delete\npayroll.pph21-setting.view, payroll.pph21-setting.create, payroll.pph21-setting.update, payroll.pph21-setting.delete\npayroll.pph21-ptkp-rate.view, payroll.pph21-ptkp-rate.create\npayroll.pph21-tax-bracket.view, payroll.pph21-tax-bracket.create\npayroll.run.view, payroll.run.create, payroll.run.update\npayroll.employee-profile.view, payroll.employee-profile.create, payroll.employee-profile.delete\npayroll.employee-bank.view, payroll.employee-bank.create, payroll.employee-bank.update, payroll.employee-bank.delete\npayroll.employee-bpjs.view, payroll.employee-bpjs.create, payroll.employee-bpjs.update, payroll.employee-bpjs.delete\npayroll.employee-tax.view, payroll.employee-tax.create, payroll.employee-tax.update, payroll.employee-tax.delete\n\nleave.view, leave.create, leave.update, leave.delete\n\nreimbursement.view, reimbursement.create, reimbursement.update, reimbursement.delete, reimbursement.approve\n\nworkforce.view\n\n",
     "version": "1.6.3",
     "contact": {
       "name": "HRIS Platform Team",
@@ -42,7 +42,7 @@
     },
     {
       "name": "Platform: Packages",
-      "description": "Package management \u00e2\u20ac\u201d bundle tenant modules with pricing, dependency validation, and publishing"
+      "description": "Package management â€” bundle tenant modules with pricing, dependency validation, and publishing"
     },
     {
       "name": "Platform: Monitoring",
@@ -94,7 +94,7 @@
     },
     {
       "name": "Tenant: Recruitment & Onboarding (ATS)",
-      "description": "Recruitment & Onboarding (ATS) \u00e2\u20ac\u201d job requisitions, candidate management, applications, interviews, and employee onboarding workflows"
+      "description": "Recruitment & Onboarding (ATS) â€” job requisitions, candidate management, applications, interviews, and employee onboarding workflows"
     },
     {
       "name": "Tenant: Approval Engine",
@@ -106,7 +106,7 @@
     },
     {
       "name": "Tenant: Performance Management",
-      "description": "Performance Management \u00e2\u20ac\u201d BSC (Balanced Scorecard) based KPI and performance evaluation module. Includes performance periods, BSC perspectives, KPI templates and indicators, employee evaluations, and individual performance targets with full status workflow (DRAFT->PLAN_SUBMITTED->PLAN_APPROVED->ACTUAL_SUBMITTED->ACTUAL_APPROVED->COMPLETED)."
+      "description": "Performance Management â€” BSC (Balanced Scorecard) based KPI and performance evaluation module. Includes performance periods, BSC perspectives, KPI templates and indicators, employee evaluations, and individual performance targets with full status workflow (DRAFT->PLAN_SUBMITTED->PLAN_APPROVED->ACTUAL_SUBMITTED->ACTUAL_APPROVED->COMPLETED)."
     },
     {
       "name": "Tenant: Training & Development Management",
@@ -114,19 +114,27 @@
     },
     {
       "name": "Tenant: Workforce Intelligence & Strategic Planning",
-      "description": "Workforce Intelligence & Strategic Workforce Planning \u00e2\u20ac\u201d strategic analytics layer for headcount planning, forecasting, gap analysis, KPI monitoring, workforce analytics (headcount, attendance, leave, overtime, payroll, performance, learning, recruitment, movement), capacity planning, cost analytics, risk monitoring, executive dashboards, scenario simulation, organization health scoring, and people analytics (training-vs-performance, overtime-vs-productivity, etc.). Read-only analytics module aggregating data from all operational HR modules."
+      "description": "Workforce Intelligence & Strategic Workforce Planning â€” strategic analytics layer for headcount planning, forecasting, gap analysis, KPI monitoring, workforce analytics (headcount, attendance, leave, overtime, payroll, performance, learning, recruitment, movement), capacity planning, cost analytics, risk monitoring, executive dashboards, scenario simulation, organization health scoring, and people analytics (training-vs-performance, overtime-vs-productivity, etc.). Read-only analytics module aggregating data from all operational HR modules."
     },
     {
       "name": "Tenant: Career Intelligence",
-      "description": "Career Intelligence & Talent Management \u00e2\u20ac\u201d strategic talent analytics for 9-box talent mapping, career interests tracking, career path gap analysis, and succession planning. Provides talent review data to identify high-potential employees, plan career development, and ensure leadership pipeline readiness."
+      "description": "Career Intelligence & Talent Management â€” strategic talent analytics for 9-box talent mapping, career interests tracking, career path gap analysis, and succession planning. Provides talent review data to identify high-potential employees, plan career development, and ensure leadership pipeline readiness."
     },
     {
       "name": "Tenant: Settings",
-      "description": "Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data."
+      "description": "Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data, education majors."
     },
     {
       "name": "Tenant: Company",
       "description": "Self-service company endpoints for the authenticated tenant user"
+    },
+    {
+      "name": "Tenant Auth",
+      "description": "Tenant authentication (login, refresh token)"
+    },
+    {
+      "name": "Public",
+      "description": "Public endpoints — no authentication required"
     }
   ],
   "paths": {
@@ -551,7 +559,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Company soft deleted \u00e2\u20ac\u201d connection deactivated"
+            "description": "Company soft deleted â€” connection deactivated"
           },
           "403": {
             "description": "Forbidden: hanya super_admin"
@@ -592,7 +600,7 @@
             "description": "Forbidden: hanya super_admin"
           }
         },
-        "description": "Suspend a company tenant \u00e2\u20ac\u201d deactivates the database connection, clears cached connections, and sets the company status to 'suspended'. All tenant API access is blocked until reactivated."
+        "description": "Suspend a company tenant â€” deactivates the database connection, clears cached connections, and sets the company status to 'suspended'. All tenant API access is blocked until reactivated."
       }
     },
     "/api/v1/platform/companies/{id}/activate": {
@@ -656,7 +664,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Company terminated \u00e2\u20ac\u201d database dropped and connection removed"
+            "description": "Company terminated â€” database dropped and connection removed"
           },
           "403": {
             "description": "Forbidden: hanya super_admin"
@@ -1341,7 +1349,7 @@
             "description": "Package slug already exists"
           }
         },
-        "description": "Create a new package that bundles tenant modules with pricing. Validates module dependencies before creation \u00e2\u20ac\u201d all required dependencies (depends_on) must be included in the package."
+        "description": "Create a new package that bundles tenant modules with pricing. Validates module dependencies before creation â€” all required dependencies (depends_on) must be included in the package."
       }
     },
     "/api/v1/platform/packages/{id}": {
@@ -1499,7 +1507,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Package published \u00e2\u20ac\u201d status=published, is_public=true"
+            "description": "Package published â€” status=published, is_public=true"
           },
           "400": {
             "description": "Validation error: no modules or missing dependencies"
@@ -1540,7 +1548,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Package unpublished \u00e2\u20ac\u201d status=draft"
+            "description": "Package unpublished â€” status=draft"
           },
           "403": {
             "description": "Forbidden: only super_admin"
@@ -12504,7 +12512,7 @@
         },
         "responses": {
           "201": {
-            "description": "Role created \u00e2\u20ac\u201d enforcer reloaded automatically"
+            "description": "Role created â€” enforcer reloaded automatically"
           },
           "400": {
             "description": "Validation error"
@@ -12597,7 +12605,7 @@
         },
         "responses": {
           "200": {
-            "description": "Role updated \u00e2\u20ac\u201d enforcer reloaded automatically"
+            "description": "Role updated â€” enforcer reloaded automatically"
           },
           "400": {
             "description": "Validation error"
@@ -12638,7 +12646,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Role deleted \u00e2\u20ac\u201d enforcer reloaded automatically"
+            "description": "Role deleted â€” enforcer reloaded automatically"
           },
           "400": {
             "description": "Cannot delete system role or role not found"
@@ -12803,7 +12811,7 @@
         },
         "responses": {
           "200": {
-            "description": "Permission assigned \u00e2\u20ac\u201d enforcer reloaded automatically"
+            "description": "Permission assigned â€” enforcer reloaded automatically"
           },
           "400": {
             "description": "Invalid role/permission ID or duplicate assignment"
@@ -12855,7 +12863,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Permission revoked \u00e2\u20ac\u201d enforcer reloaded automatically"
+            "description": "Permission revoked â€” enforcer reloaded automatically"
           },
           "400": {
             "description": "Invalid role/permission ID"
@@ -14640,7 +14648,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           }
         },
         "requestBody": {
@@ -14781,7 +14789,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -14848,7 +14856,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           }
         },
         "requestBody": {
@@ -14979,7 +14987,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -15046,7 +15054,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           }
         },
         "requestBody": {
@@ -15227,7 +15235,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -15266,7 +15274,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           }
         },
         "requestBody": {
@@ -15408,7 +15416,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -15475,7 +15483,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           }
         },
         "requestBody": {
@@ -15571,7 +15579,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -15638,7 +15646,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           }
         },
         "requestBody": {
@@ -15769,7 +15777,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -15836,7 +15844,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           }
         },
         "requestBody": {
@@ -15883,7 +15891,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u00e2\u20ac\u201d validation error"
+            "description": "Bad request â€” validation error"
           },
           "404": {
             "description": "Resource not found"
@@ -17656,7 +17664,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "Restore the entire organization structure from a version snapshot. This operation atomically: (1) hard-deletes all current organizations, (2) recreates all organizations from the snapshot preserving original UUIDs for parent-child FK integrity. The restored version is automatically archived. Use with caution \u00e2\u20ac\u201d this operation permanently replaces the current tree."
+        "description": "Restore the entire organization structure from a version snapshot. This operation atomically: (1) hard-deletes all current organizations, (2) recreates all organizations from the snapshot preserving original UUIDs for parent-child FK integrity. The restored version is automatically archived. Use with caution â€” this operation permanently replaces the current tree."
       }
     },
     "/api/v1/tenant/organizations/clone": {
@@ -20288,7 +20296,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success \u00e2\u20ac\u201d list of items",
+            "description": "Success â€” list of items",
             "content": {
               "application/json": {
                 "schema": {
@@ -20363,7 +20371,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success \u00e2\u20ac\u201d list of items",
+            "description": "Success â€” list of items",
             "content": {
               "application/json": {
                 "schema": {
@@ -20510,7 +20518,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success \u00e2\u20ac\u201d list of items",
+            "description": "Success â€” list of items",
             "content": {
               "application/json": {
                 "schema": {
@@ -20549,7 +20557,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success \u00e2\u20ac\u201d list of items",
+            "description": "Success â€” list of items",
             "content": {
               "application/json": {
                 "schema": {
@@ -26290,7 +26298,7 @@
             "description": "Unauthorized"
           }
         },
-        "description": "Create a new organization summary record. Requires code, decree_no, and decree_date. Optional status (default: inactive). Only ONE summary can have status=active at a time \u2014 if you try to create with status=active while another active summary exists, the API returns a validation error."
+        "description": "Create a new organization summary record. Requires code, decree_no, and decree_date. Optional status (default: inactive). Only ONE summary can have status=active at a time — if you try to create with status=active while another active summary exists, the API returns a validation error."
       },
       "get": {
         "tags": [
@@ -26505,7 +26513,7 @@
             "description": "Unauthorized"
           }
         },
-        "description": "Update an existing organization summary's code, decree_no, decree_date, or status. Only ONE summary can have status=active at a time \u2014 setting status=active when another summary is already active will return a validation error."
+        "description": "Update an existing organization summary's code, decree_no, decree_date, or status. Only ONE summary can have status=active at a time — setting status=active when another summary is already active will return a validation error."
       },
       "delete": {
         "tags": [
@@ -26550,7 +26558,7 @@
             }
           },
           "409": {
-            "description": "Conflict \u2014 summary has organizations attached"
+            "description": "Conflict — summary has organizations attached"
           },
           "404": {
             "description": "Not found"
@@ -26610,7 +26618,7 @@
             "description": "Photo uploaded successfully"
           },
           "400": {
-            "description": "Validation error \u2014 invalid file type or size"
+            "description": "Validation error — invalid file type or size"
           },
           "401": {
             "description": "Unauthorized"
@@ -26765,7 +26773,7 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "New document file (optional \u2014 if omitted, only metadata is updated)"
+                    "description": "New document file (optional — if omitted, only metadata is updated)"
                   },
                   "note": {
                     "type": "string",
@@ -27268,7 +27276,7 @@
             "description": "Password changed successfully"
           },
           "400": {
-            "description": "Validation error \u2014 current password wrong or passwords don't match"
+            "description": "Validation error — current password wrong or passwords don't match"
           },
           "401": {
             "description": "Unauthorized"
@@ -27959,6 +27967,229 @@
           }
         },
         "description": "Update the tenant's own company profile (email, phone, address, NPWP, NIB). Company is resolved from the tenant context; name/subdomain/domain are managed by platform admin."
+      }
+    },
+    "/api/v1/tenant/settings/education-majors": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "List all Education Majors",
+        "operationId": "settingEducationMajorList",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of Education Majors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EducationMajorPaginatedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized: missing or invalid JWT"
+          }
+        },
+        "description": "Retrieve a paginated list of education majors (fields of study). Supports pagination parameters."
+      },
+      "post": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Create a new education major",
+        "operationId": "settingEducationMajorCreate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEducationMajorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Education major created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EducationMajorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized: missing or invalid JWT"
+          }
+        },
+        "description": "Create a new education major record. Validates required fields and returns the created resource with its assigned ID."
+      }
+    },
+    "/api/v1/tenant/settings/education-majors/{id}": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Get education major by ID",
+        "operationId": "settingEducationMajorGet",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Education major details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EducationMajorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Education major not found"
+          }
+        },
+        "description": "Get detailed information about a specific education major by its ID."
+      },
+      "put": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Update education major",
+        "operationId": "settingEducationMajorUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEducationMajorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Education major updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EducationMajorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Education major not found"
+          }
+        },
+        "description": "Update an education major record's details including code, name, and sort order."
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Delete education major",
+        "operationId": "settingEducationMajorDelete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Education major deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Education major not found"
+          }
+        },
+        "description": "Soft-delete an education major record. Sets the deleted_at timestamp and hides it from standard queries."
       }
     }
   },
@@ -42713,6 +42944,94 @@
             "type": "string",
             "maxLength": 25,
             "nullable": true
+          }
+        }
+      },
+      "EducationMajorResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EducationMajorPaginatedResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EducationMajorResponse"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "total_pages": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateEducationMajorRequest": {
+        "type": "object",
+        "required": [
+          "code",
+          "name"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "sort_order": {
+            "type": "integer"
+          }
+        }
+      },
+      "UpdateEducationMajorRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "sort_order": {
+            "type": "integer"
           }
         }
       }

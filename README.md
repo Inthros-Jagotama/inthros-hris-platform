@@ -172,7 +172,7 @@ hris-platform/
 │   │   │   ├── training/            #   Training & Development (7 entities, 35 endpoints, 31 tests)
 │   │   │   ├── careerintelligence/   #   Career Intelligence & Talent Management (4 entities, 19 endpoints, 65 tests)
 │   │   │   ├── workforceintelligence/#   Workforce Intelligence & Strategic Planning (analytics layer)│   │   │   ├── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints)
-│   │   │   └── setting/              #   Settings — 16 reference CRUDs (Zones, Provinces, Regencies, Districts, Villages, Educations, Religions, MaritalStatuses, RelationshipTypes, Banks, EmploymentStatuses, Nationalities, JobFamilies, SalaryGrades, TER, PTKP)
+│   │   │   └── setting/              #   Settings — 18 reference CRUDs (Zones, Provinces, Regencies, Districts, Villages, Educations, Education Majors, Religions, MaritalStatuses, RelationshipTypes, Banks, EmploymentStatuses, Nationalities, JobFamilies, SalaryGrades, TER, PTKP, Insurances)
 │   │   └── pkg/                      # Shared Kernel│       │   ├── config/               # Viper configuration loader
 │       │   ├── database/             # Multi-tenant DB manager
 │       │   ├── driver/               # Shared DB driver type
@@ -874,6 +874,7 @@ Semua endpoint settings berada di `/api/v1/tenant/settings/`. Masing-masing enti
 | Districts | `/settings/districts` | Code, Name, RegencyID (parent) | `CHAR(6)` — BPS code | `DistrictsView.vue` |
 | Villages | `/settings/villages` | Code, Name, DistrictID (parent) | `CHAR(10)` — BPS code | `VillagesView.vue` |
 | Educations | `/settings/educations` | Code, Name, SortOrder | `UUID` | `EducationsView.vue` |
+| Education Majors | `/settings/education-majors` | Code, Name, SortOrder | `UUID` | `EducationMajorsView.vue` |
 | Religions | `/settings/religions` | Code, Name, SortOrder | `UUID` | `ReligionsView.vue` |
 | Marital Statuses | `/settings/marital-statuses` | Code, Name, SortOrder | `UUID` | `MaritalStatusesView.vue` |
 | Relationship Types | `/settings/relationship-types` | Code, Name, SortOrder | `UUID` | `RelationshipTypesView.vue` |
@@ -884,6 +885,7 @@ Semua endpoint settings berada di `/api/v1/tenant/settings/`. Masing-masing enti
 | Salary Grades | `/settings/salary-grades` | Code, Name, Grade, MinSalary, MaxSalary, SortOrder | `UUID` | `SalaryGradesView.vue` |
 | Ters | `/settings/ters` | Group, BrutoMin, BrutoMax, Rate, SortOrder | `UUID` | `TersView.vue` |
 | Ptkps | `/settings/ptkps` | Status, DependentCount, Amount, SortOrder | `UUID` | `PtkpsView.vue` |
+| Insurances | `/settings/insurances` | Code, Name, SortOrder | `UUID` | `InsurancesView.vue` |
 
 > **Query parameters:** Semua endpoint GET mendukung `?page=&per_page=&search=&sort_by=&sort_order=` — standar server-side pagination & sorting. Untuk zona, ada tambahan `?active_only=true`.
 
@@ -1532,6 +1534,8 @@ POST /api/v1/platform/companies
 | `020_add_passport_to_employees.sql` | Add passport column to employees (idempotent) |
 | `021_insurances.sql` | Insurance master (BPJS Kesehatan, BPJS Ketenagakerjaan, dll) |
 | `022_users.sql` | Users table (Level 2 Tenant RBAC) |
+| `023_user_accounts.sql` | Employee user accounts (login access for employees) |
+| `024_education_majors.sql` | Education majors master (jurusan pendidikan) |
 
 > **Catatan:** Total 149 tabel termasuk `schema_migrations` (148 tabel tenant + schema_migrations, auto-created oleh migrator engine).
 
@@ -1710,7 +1714,7 @@ POST /api/v1/platform/companies
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
 | ✅ | Project completion dashboard (14 modules, 1004+ tests, 148 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
-| ✅ | OpenAPI comprehensive report (677 endpoints, 433 schemas, 27 tags) | `docs/openapi-report.md` |
+| ✅ | OpenAPI comprehensive report (684 endpoints, 439 schemas, 30 tags) | `docs/openapi-report.md` |
 | ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
@@ -1804,7 +1808,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**677+ endpoints**, 433 schemas, 27 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**684 endpoints**, 439 schemas, 30 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 
@@ -2001,7 +2005,7 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 |---|---|
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap |
 | [`docs/PROJECT_COMPLETION_DASHBOARD.md`](docs/PROJECT_COMPLETION_DASHBOARD.md) | **NEW** — Project completion dashboard (14 modules, 939+ tests, 139 tables) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v16 — 665 endpoints, 426 schemas, 27 tags) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v15 — 684 endpoints, 439 schemas, 30 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | **NEW** — Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
 | [`docs/analisis-blueprint-vs-existing.md`](docs/analisis-blueprint-vs-existing.md) | Analisis blueprint vs existing Laravel app |

@@ -245,6 +245,23 @@ func (r *Repository) FindAllEducations(ctx context.Context, page, perPage int) (
 func (r *Repository) UpdateEducation(ctx context.Context, e *Education) error { return r.update(ctx, e) }
 func (r *Repository) DeleteEducation(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &Education{}, id) }
 
+// ── EducationMajor ──
+func (r *Repository) CreateEducationMajor(ctx context.Context, em *EducationMajor) error { return r.create(ctx, em) }
+func (r *Repository) FindEducationMajorByID(ctx context.Context, id uuid.UUID) (*EducationMajor, error) {
+	var em EducationMajor
+	if err := r.findByID(ctx, &em, id, "education_majors"); err != nil {
+		return nil, fmt.Errorf("education major not found: %w", err)
+	}
+	return &em, nil
+}
+func (r *Repository) FindAllEducationMajors(ctx context.Context, page, perPage int) ([]EducationMajor, int64, error) {
+	var list []EducationMajor
+	total, err := r.findAll(ctx, &list, "education_majors", page, perPage, "sort_order ASC, code ASC")
+	return list, total, err
+}
+func (r *Repository) UpdateEducationMajor(ctx context.Context, em *EducationMajor) error { return r.update(ctx, em) }
+func (r *Repository) DeleteEducationMajor(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &EducationMajor{}, id) }
+
 // ── Religion ──
 func (r *Repository) CreateReligion(ctx context.Context, rel *Religion) error { return r.create(ctx, rel) }
 func (r *Repository) FindReligionByID(ctx context.Context, id uuid.UUID) (*Religion, error) {

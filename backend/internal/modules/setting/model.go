@@ -101,6 +101,23 @@ func (e *Education) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+// ── EducationMajor (jurusan pendidikan) ──
+type EducationMajor struct {
+	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	Code      string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_education_major_code" json:"code"`
+	Name      string         `gorm:"type:varchar(200);not null" json:"name"`
+	SortOrder int            `gorm:"default:0" json:"sort_order"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+}
+
+func (EducationMajor) TableName() string { return "education_majors" }
+func (em *EducationMajor) BeforeCreate(tx *gorm.DB) error {
+	if em.ID == uuid.Nil { em.ID = uuid.New() }
+	return nil
+}
+
 // ── Religion ──
 type Religion struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`

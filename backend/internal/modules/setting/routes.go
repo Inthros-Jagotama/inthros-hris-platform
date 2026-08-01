@@ -61,6 +61,15 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			educations.PUT("/:id", handler.UpdateEducation)
 			educations.DELETE("/:id", handler.DeleteEducation)
 		}
+		// EducationMajor (jurusan pendidikan)
+		educationMajors := settings.Group("/education-majors")
+		{
+			educationMajors.POST("", handler.CreateEducationMajor)
+			educationMajors.GET("", handler.ListEducationMajors)
+			educationMajors.GET("/:id", handler.GetEducationMajorByID)
+			educationMajors.PUT("/:id", handler.UpdateEducationMajor)
+			educationMajors.DELETE("/:id", handler.DeleteEducationMajor)
+		}
 		// Religion
 		religions := settings.Group("/religions")
 		{

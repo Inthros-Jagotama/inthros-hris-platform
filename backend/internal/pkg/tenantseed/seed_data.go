@@ -50,6 +50,7 @@ func SeedTenantMasterData(tenantDB *gorm.DB, l *zap.Logger) error {
 	}{
 		{"religions", seedReligions},
 		{"educations", seedEducations},
+		{"education_majors", seedEducationMajors},
 		{"marital_statuses", seedMaritalStatuses},
 		{"relationship_types", seedRelationshipTypes},
 		{"employment_statuses", seedEmploymentStatuses},
@@ -167,6 +168,34 @@ func seedEducations(db *gorm.DB) (int, int, error) {
 		{"id": codeToUUID("education", "S3"), "code": "S3", "name": "Strata 3", "sort_order": 12, "created_at": time.Now(), "updated_at": time.Now()},
 	}
 	return batchInsert(db, "educations", data, 50)
+}
+
+// ── Education Majors (jurusan pendidikan) ──
+// Schema (migration 024_education_majors): id, code, name, sort_order, timestamps, deleted_at
+func seedEducationMajors(db *gorm.DB) (int, int, error) {
+	data := []map[string]interface{}{
+		{"id": codeToUUID("education_major", "001"), "code": "001", "name": "Teknik Informatika", "sort_order": 1, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "002"), "code": "002", "name": "Sistem Informasi", "sort_order": 2, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "003"), "code": "003", "name": "Teknik Komputer", "sort_order": 3, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "004"), "code": "004", "name": "Akuntansi", "sort_order": 4, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "005"), "code": "005", "name": "Manajemen", "sort_order": 5, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "006"), "code": "006", "name": "Ekonomi Pembangunan", "sort_order": 6, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "007"), "code": "007", "name": "Teknik Mesin", "sort_order": 7, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "008"), "code": "008", "name": "Teknik Elektro", "sort_order": 8, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "009"), "code": "009", "name": "Teknik Sipil", "sort_order": 9, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "010"), "code": "010", "name": "Arsitektur", "sort_order": 10, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "011"), "code": "011", "name": "Ilmu Hukum", "sort_order": 11, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "012"), "code": "012", "name": "Psikologi", "sort_order": 12, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "013"), "code": "013", "name": "Ilmu Komunikasi", "sort_order": 13, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "014"), "code": "014", "name": "Kedokteran", "sort_order": 14, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "015"), "code": "015", "name": "Keperawatan", "sort_order": 15, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "016"), "code": "016", "name": "Farmasi", "sort_order": 16, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "017"), "code": "017", "name": "Ilmu Pendidikan", "sort_order": 17, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "018"), "code": "018", "name": "Sastra Inggris", "sort_order": 18, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "019"), "code": "019", "name": "Pariwisata", "sort_order": 19, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("education_major", "020"), "code": "020", "name": "Bisnis Digital", "sort_order": 20, "created_at": time.Now(), "updated_at": time.Now()},
+	}
+	return batchInsert(db, "education_majors", data, 50)
 }
 
 // ── Marital Statuses ──

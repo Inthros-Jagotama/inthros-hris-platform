@@ -1,7 +1,7 @@
 # Frontend Development Plan — HRIS Platform
 
 **Generated:** 27 July 2026
-**Last Updated:** 31 July 2026 (Employee Form: 8/9 steps completed — Personal, Address, Contact, Family, Education, Experience, Documents w/ upload, Insurance; Platform Admin: CompanyActions.vue reusable component)
+**Last Updated:** 1 August 2026 (Education Major setting + seeder — kode 3 digit 001–020; Employee Form: 8/9 steps completed; Platform Admin: CompanyActions.vue reusable component)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios
 
 ---
@@ -294,15 +294,15 @@ frontend/
 | 19 | `settings/PtkpsView.vue` | Same |
 | 20 | `settings/GradingsView.vue` | Remove duplicate `handleDelete` + leftover old code fragment (wrong API path `/gradings/` → `/settings/gradings/`) |
 
-### C.7. Setting Module — All 17 Reference CRUDs ✅ (BARU - Done)
-**Backend:** `backend/internal/modules/setting/` — packages for zones, provinces, regencies, districts, villages, educations, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades, ters, ptkps, insurances + 5 legacy endpoints
+### C.7. Setting Module — All 18 Reference CRUDs ✅ (BARU - Done)
+**Backend:** `backend/internal/modules/setting/` — packages for zones, provinces, regencies, districts, villages, educations, education_majors, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades, ters, ptkps, insurances + 5 legacy endpoints
 - [x] **Zones CRUD** — Code, Name, Region, IsActive, SortOrder
 - [x] **Provinces CRUD** — Code, Name, SortOrder
 - [x] **Regencies CRUD** — Code, Name, ProvinceID, SortOrder
 - [x] **Districts CRUD** — Code, Name, RegencyID, SortOrder
 - [x] **Villages CRUD** — Code, Name, DistrictID, SortOrder
 - [x] **Educations CRUD** — Code, Name, SortOrder
-- [x] **Religions CRUD** — Code, Name, SortOrder
+- [x] **Education Majors CRUD** — Code, Name, SortOrder — Backend: model + repo + service + handler + routes + module; Frontend: EducationMajorsView.vue + route + SettingsIndex card + locale keys (EN/ID); OpenAPI: 5 endpoints injected + report regenerated (371 paths, 684 endpoints, 439 schemas); **Seeder: `seedEducationMajors` pakai kode 3 digit (001–020)** — UUID deterministik per kode, idempotent (20 jurusan)
 - [x] **MaritalStatuses CRUD** — Code, Name, SortOrder
 - [x] **RelationshipTypes CRUD** — Code, Name, SortOrder
 - [x] **Banks CRUD** — Code, Name, SortOrder
@@ -312,9 +312,9 @@ frontend/
 - [x] **SalaryGrades CRUD** — Code, Name, Grade, MinSalary, MaxSalary, SortOrder
 - [x] **TER CRUD** — Group, BrutoMin, BrutoMax, Rate, SortOrder
 - [x] **PTKP CRUD** — Name, Group, PTKP Amount, SortOrder
-- [x] **Insurances CRUD** — Code, Name, SortOrder — Backend: model + repo + service + handler + routes + module; Frontend: InsurancesView.vue + route + sidebar + locale keys (EN/ID); OpenAPI: 5 endpoints injected + report regenerated (365 paths, 674 endpoints, 431 schemas)
+- [x] **Insurances CRUD** — Code, Name, SortOrder — Backend: model + repo + service + handler + routes + module; Frontend: InsurancesView.vue + route + sidebar + locale keys (EN/ID); OpenAPI: 5 endpoints injected + report regenerated (371 paths, 684 endpoints, 439 schemas)
 
-**Frontend — Pattern Companies.vue (applied to all 16 views):**
+**Frontend — Pattern Companies.vue (applied to all 18 views):**
 - [x] **Search bar** (IconField + InputText) — client-side filter by code/name
 - [x] **DataTable** — `p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden` styling
 - [x] **SkeletonTable** — Proper `skeletonColumns` array config (not just column count)
@@ -878,7 +878,7 @@ Response handler → toast.show("Berhasil dibuat")
 | Priority | Feature | Kompleksitas | Status |
 |:--------:|---------|:------------:|:------:|
 | P0 | Organization Management (Tree + CRUD) | 🟡 Medium | ✅ Done |
-| P0 | Setting Module — All 16 Reference CRUDs (incl. TER & PTKP) | 🟡 Medium | ✅ Done |
+| P0 | Setting Module — All 18 Reference CRUDs (incl. TER & PTKP) | 🟡 Medium | ✅ Done |
 | P0 | Employee Management (Wizard) | 🔴 Complex | 🟡 8/9 Steps ✅ |
 | P1 | Leave & Attendance | 🟡 Medium | 🔴 TODO |
 | P1 | Payroll (read-only payslip) | 🟡 Medium | 🔴 TODO |

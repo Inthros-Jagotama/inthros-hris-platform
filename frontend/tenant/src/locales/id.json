@@ -739,6 +739,7 @@
     "districts": "Kecamatan",
     "villages": "Desa/Kelurahan",
     "educations": "Pendidikan",
+    "education_majors": "Jurusan Pendidikan",
     "religions": "Agama",
     "marital_statuses": "Status Pernikahan",
     "relationship_types": "Tipe Hubungan",
@@ -838,6 +839,22 @@
     "created": "Pendidikan berhasil dibuat",
     "updated": "Pendidikan berhasil diperbarui",
     "deleted": "Pendidikan berhasil dihapus"
+  },
+  "education_majors": {
+    "title": "Jurusan Pendidikan",
+    "description": "Kelola jurusan pendidikan (bidang studi).",
+    "new_education_major": "Jurusan Baru",
+    "edit_education_major": "Ubah Jurusan",
+    "code": "Kode",
+    "name": "Nama Jurusan",
+    "sort_order": "Urutan",
+    "search": "Cari jurusan pendidikan...",
+    "empty_title": "Belum ada jurusan dibuat",
+    "confirm_delete": "Hapus jurusan \"{name}\"?",
+    "confirm_delete_title": "Hapus Jurusan",
+    "created": "Jurusan berhasil dibuat",
+    "updated": "Jurusan berhasil diperbarui",
+    "deleted": "Jurusan berhasil dihapus"
   },
   "religions": {
     "title": "Agama",

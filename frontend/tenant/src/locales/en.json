@@ -739,6 +739,7 @@
     "districts": "Districts",
     "villages": "Villages",
     "educations": "Educations",
+    "education_majors": "Education Majors",
     "religions": "Religions",
     "marital_statuses": "Marital Statuses",
     "relationship_types": "Relationship Types",
@@ -838,6 +839,22 @@
     "created": "Education created successfully",
     "updated": "Education updated successfully",
     "deleted": "Education deleted successfully"
+  },
+  "education_majors": {
+    "title": "Education Majors",
+    "description": "Manage education majors (fields of study).",
+    "new_education_major": "New Education Major",
+    "edit_education_major": "Edit Education Major",
+    "code": "Code",
+    "name": "Major Name",
+    "sort_order": "Sort Order",
+    "search": "Search education majors...",
+    "empty_title": "No education majors created yet",
+    "confirm_delete": "Delete education major \"{name}\"?",
+    "confirm_delete_title": "Delete Education Major",
+    "created": "Education major created successfully",
+    "updated": "Education major updated successfully",
+    "deleted": "Education major deleted successfully"
   },
   "religions": {
     "title": "Religions",

@@ -72,6 +72,7 @@ const groups = computed(() => [
     labelKey: 'settings.group_hr',
     items: [
       { path: '/settings/educations', icon: 'pi pi-graduation-cap', titleKey: 'settings.educations', descKey: 'educations.description', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+      { path: '/settings/education-majors', icon: 'pi pi-graduation-cap', titleKey: 'settings.education_majors', descKey: 'education_majors.description', tint: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' },
       { path: '/settings/religions', icon: 'pi pi-globe', titleKey: 'settings.religions', descKey: 'religions.description', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400' },
       { path: '/settings/marital-statuses', icon: 'pi pi-heart', titleKey: 'settings.marital_statuses', descKey: 'marital_status.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' },
       { path: '/settings/relationship-types', icon: 'pi pi-users', titleKey: 'settings.relationship_types', descKey: 'relationship_types.description', tint: 'bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400' },

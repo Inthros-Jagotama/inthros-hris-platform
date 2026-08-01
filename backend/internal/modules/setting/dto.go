@@ -162,6 +162,37 @@ func (e *Education) ToResponse() EducationResponse {
 	return EducationResponse{ID: e.ID.String(), Code: e.Code, Name: e.Name, SortOrder: e.SortOrder, CreatedAt: e.CreatedAt, UpdatedAt: e.UpdatedAt}
 }
 
+// ── EducationMajor DTOs ──
+type CreateEducationMajorRequest struct {
+	Code      string `json:"code" binding:"required,max=20"`
+	Name      string `json:"name" binding:"required,max=200"`
+	SortOrder int    `json:"sort_order,omitempty"`
+}
+type UpdateEducationMajorRequest struct {
+	Code      *string `json:"code,omitempty" binding:"omitempty,max=20"`
+	Name      *string `json:"name,omitempty" binding:"omitempty,max=200"`
+	SortOrder *int    `json:"sort_order,omitempty"`
+}
+type EducationMajorResponse struct {
+	ID        string    `json:"id"`
+	Code      string    `json:"code"`
+	Name      string    `json:"name"`
+	SortOrder int       `json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+func (em *EducationMajor) ToResponse() EducationMajorResponse {
+	return EducationMajorResponse{ID: em.ID.String(), Code: em.Code, Name: em.Name, SortOrder: em.SortOrder, CreatedAt: em.CreatedAt, UpdatedAt: em.UpdatedAt}
+}
+type EducationMajorPaginatedResponse struct {
+	Success    bool                      `json:"success"`
+	Data       []EducationMajorResponse  `json:"data"`
+	Page       int                       `json:"page"`
+	PerPage    int                       `json:"per_page"`
+	Total      int64                     `json:"total"`
+	TotalPages int                       `json:"total_pages"`
+}
+
 // ── Religion DTOs ──
 type CreateReligionRequest struct {
 	Code      string `json:"code" binding:"required,max=20"`
