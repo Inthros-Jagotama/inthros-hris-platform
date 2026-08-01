@@ -178,5 +178,14 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			insurances.PUT("/:id", handler.UpdateInsurance)
 			insurances.DELETE("/:id", handler.DeleteInsurance)
 		}
+		// Company Holidays
+		companyHolidays := settings.Group("/company-holidays")
+		{
+			companyHolidays.POST("", handler.CreateCompanyHoliday)
+			companyHolidays.GET("", handler.ListCompanyHolidays)
+			companyHolidays.GET("/:id", handler.GetCompanyHolidayByID)
+			companyHolidays.PUT("/:id", handler.UpdateCompanyHoliday)
+			companyHolidays.DELETE("/:id", handler.DeleteCompanyHoliday)
+		}
 	}
 }

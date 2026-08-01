@@ -88,6 +88,26 @@ func (r *Repository) findByCodeExcludeSelf(ctx context.Context, model interface{
 	return count > 0, nil
 }
 
+func (r *Repository) findByHolidayDate(ctx context.Context, date string) (bool, error) {
+	db, err := r.getDB(ctx)
+	if err != nil { return false, err }
+	var count int64
+	if err := db.Model(&CompanyHoliday{}).Where("holiday_date = ?", date).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *Repository) findByHolidayDateExcludeSelf(ctx context.Context, date string, id uuid.UUID) (bool, error) {
+	db, err := r.getDB(ctx)
+	if err != nil { return false, err }
+	var count int64
+	if err := db.Model(&CompanyHoliday{}).Where("holiday_date = ? AND id != ?", date, id).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 // ── Zone ──
 func (r *Repository) CreateZone(ctx context.Context, zone *Zone) error { return r.create(ctx, zone) }
 func (r *Repository) FindZoneByID(ctx context.Context, id uuid.UUID) (*Zone, error) {
@@ -473,3 +493,36 @@ func (r *Repository) FindAllInsurances(ctx context.Context, page, perPage int) (
 }
 func (r *Repository) UpdateInsurance(ctx context.Context, ins *Insurance) error { return r.update(ctx, ins) }
 func (r *Repository) DeleteInsurance(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &Insurance{}, id) }
+
+// ── CompanyHoliday ──
+// Catatan: tabel company_holidays tidak memiliki kolom updated_at/deleted_at,
+// sehingga Update memakai db.Save tanpa updated_at dan Delete adalah hard delete
+// (tanpa soft delete) agar baris yang dihapus benar-benar hilang.
+func (r *Repository) CreateCompanyHoliday(ctx context.Context, ch *CompanyHoliday) error { return r.create(ctx, ch) }
+func (r *Repository) FindCompanyHolidayByID(ctx context.Context, id uuid.UUID) (*CompanyHoliday, error) {
+	var ch CompanyHoliday
+	if err := r.findByID(ctx, &ch, id, "company_holidays"); err != nil {
+		return nil, fmt.Errorf("company holiday not found: %w", err)
+	}
+	return &ch, nil
+}
+func (r *Repository) FindAllCompanyHolidays(ctx context.Context, page, perPage int) ([]CompanyHoliday, int64, error) {
+	var list []CompanyHoliday
+	total, err := r.findAll(ctx, &list, "company_holidays", page, perPage, "holiday_date ASC")
+	return list, total, err
+}
+func (r *Repository) UpdateCompanyHoliday(ctx context.Context, ch *CompanyHoliday) error {
+	db, err := r.getDB(ctx)
+	if err != nil { return err }
+	return db.Model(&CompanyHoliday{}).Where("id = ?", ch.ID).Updates(map[string]interface{}{
+		"holiday_date": ch.HolidayDate,
+		"name":         ch.Name,
+		"description":  ch.Description,
+		"is_active":    ch.IsActive,
+	}).Error
+}
+func (r *Repository) DeleteCompanyHoliday(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil { return err }
+	return db.Unscoped().Where("id = ?", id).Delete(&CompanyHoliday{}).Error
+}

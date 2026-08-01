@@ -755,7 +755,8 @@
     "group_hr": "Referensi HR",
     "group_payroll": "Payroll & Pajak",
     "rbac": "Roles & Permissions",
-    "group_access": "Kontrol Akses"
+    "group_access": "Kontrol Akses",
+    "company_holidays": "Hari Libur Perusahaan"
   },
   "provinces": {
     "title": "Provinsi",
@@ -1104,5 +1105,23 @@
     "confirm_delete": "Hapus role \"{name}\"? User yang terikat role ini harus dipindahkan dulu.",
     "duplicate_role": "Role \"{name}\" sudah ada",
     "system_role": "Role \"{name}\" adalah role sistem dan tidak dapat diubah"
+  },
+  "company_holidays": {
+    "title": "Hari Libur Perusahaan",
+    "description": "Kelola tanggal hari libur perusahaan untuk perhitungan kehadiran dan cuti.",
+    "new": "Libur Baru",
+    "edit": "Ubah Libur",
+    "holiday_date": "Tanggal",
+    "holiday_date_placeholder": "Pilih tanggal",
+    "name": "Nama Libur",
+    "is_active": "Aktif",
+    "empty_title": "Belum ada hari libur perusahaan",
+    "confirm_delete_title": "Hapus Hari Libur",
+    "confirm_delete": "Hapus hari libur \"{name}\"?",
+    "created": "Hari libur perusahaan berhasil dibuat",
+    "updated": "Hari libur perusahaan berhasil diperbarui",
+    "deleted": "Hari libur perusahaan berhasil dihapus",
+    "desc": "Keterangan",
+    "desc_placeholder": "Keterangan (opsional)"
   }
 }

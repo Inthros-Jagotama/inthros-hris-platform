@@ -719,6 +719,44 @@ func (h *Handler) DeleteInsurance(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+// ── CompanyHoliday Handlers ──
+func (h *Handler) CreateCompanyHoliday(c *gin.Context) {
+	var req CreateCompanyHolidayRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.CreateCompanyHoliday(c.Request.Context(), req)
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+func (h *Handler) ListCompanyHolidays(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	resp, err := h.service.ListCompanyHolidays(c.Request.Context(), page, perPage)
+	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	c.JSON(http.StatusOK, resp)
+}
+func (h *Handler) GetCompanyHolidayByID(c *gin.Context) {
+	resp, err := h.service.GetCompanyHolidayByID(c.Request.Context(), c.Param("id"))
+	if err != nil { c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}}); return }
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) UpdateCompanyHoliday(c *gin.Context) {
+	var req UpdateCompanyHolidayRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.UpdateCompanyHoliday(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) DeleteCompanyHoliday(c *gin.Context) {
+	if err := h.service.DeleteCompanyHoliday(c.Request.Context(), c.Param("id")); err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
 // ── SalaryGrade Handlers ──
 func (h *Handler) CreateSalaryGrade(c *gin.Context) {
 	var req CreateSalaryGradeRequest

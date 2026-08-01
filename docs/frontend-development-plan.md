@@ -294,8 +294,8 @@ frontend/
 | 19 | `settings/PtkpsView.vue` | Same |
 | 20 | `settings/GradingsView.vue` | Remove duplicate `handleDelete` + leftover old code fragment (wrong API path `/gradings/` → `/settings/gradings/`) |
 
-### C.7. Setting Module — All 18 Reference CRUDs ✅ (BARU - Done)
-**Backend:** `backend/internal/modules/setting/` — packages for zones, provinces, regencies, districts, villages, educations, education_majors, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades, ters, ptkps, insurances + 5 legacy endpoints
+### C.7. Setting Module — All 19 Reference CRUDs ✅ (BARU - Done)
+**Backend:** `backend/internal/modules/setting/` — packages for zones, provinces, regencies, districts, villages, educations, education_majors, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades, ters, ptkps, insurances, company_holidays + 5 legacy endpoints
 - [x] **Zones CRUD** — Code, Name, Region, IsActive, SortOrder
 - [x] **Provinces CRUD** — Code, Name, SortOrder
 - [x] **Regencies CRUD** — Code, Name, ProvinceID, SortOrder
@@ -313,8 +313,9 @@ frontend/
 - [x] **TER CRUD** — Group, BrutoMin, BrutoMax, Rate, SortOrder
 - [x] **PTKP CRUD** — Name, Group, PTKP Amount, SortOrder
 - [x] **Insurances CRUD** — Code, Name, SortOrder — Backend: model + repo + service + handler + routes + module; Frontend: InsurancesView.vue + route + sidebar + locale keys (EN/ID); OpenAPI: 5 endpoints injected + report regenerated (371 paths, 684 endpoints, 439 schemas)
+- [x] **Company Holidays CRUD** — HolidayDate (unique), Name, Description, IsActive — Backend: model + repo + service + handler + routes + module (permissions `setting.company_holiday.*`); Frontend: CompanyHolidaysView.vue + route + SettingsIndex card + locale keys (EN/ID); OpenAPI: 5 endpoints + 3 schemas injected (373 paths, 689 endpoints, 442 schemas). **Catatan:** tabel `company_holidays` TANPA kolom updated_at/deleted_at → Update pakai `Updates(map)`, Delete hard-delete (`Unscoped`); model `IsActive` sengaja tanpa tag `default:true` (gotcha GORM false→true). **Fix bilingual:** label field description pakai key `desc`/`desc_placeholder` terpisah dari page description
 
-**Frontend — Pattern Companies.vue (applied to all 18 views):**
+**Frontend — Pattern Companies.vue (applied to all 19 views):**
 - [x] **Search bar** (IconField + InputText) — client-side filter by code/name
 - [x] **DataTable** — `p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden` styling
 - [x] **SkeletonTable** — Proper `skeletonColumns` array config (not just column count)
@@ -881,7 +882,7 @@ Response handler → toast.show("Berhasil dibuat")
 | Priority | Feature | Kompleksitas | Status |
 |:--------:|---------|:------------:|:------:|
 | P0 | Organization Management (Tree + CRUD) | 🟡 Medium | ✅ Done |
-| P0 | Setting Module — All 18 Reference CRUDs (incl. TER & PTKP) | 🟡 Medium | ✅ Done |
+| P0 | Setting Module — All 19 Reference CRUDs (incl. TER & PTKP & Company Holidays) | 🟡 Medium | ✅ Done |
 | P0 | Employee Management (Wizard) | 🔴 Complex | 🟡 8/9 Steps ✅ |
 | P1 | Leave & Attendance | 🟡 Medium | 🔴 TODO |
 | P1 | Payroll (read-only payslip) | 🟡 Medium | 🔴 TODO |

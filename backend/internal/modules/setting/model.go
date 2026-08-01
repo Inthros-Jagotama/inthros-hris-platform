@@ -273,6 +273,26 @@ func (ins *Insurance) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+// ── CompanyHoliday (Hari Libur Perusahaan) ──
+// Tabel company_holidays hanya memiliki kolom: id, holiday_date, name,
+// description, is_active, created_at (tanpa updated_at / deleted_at).
+// Catatan: IsActive sengaja TANPA tag `default:true` (berbeda dari Zone) karena
+// GORM akan mengubah false → true untuk field zero-value bertag default.
+type CompanyHoliday struct {
+	ID          uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	HolidayDate string    `gorm:"type:date;not null;uniqueIndex:uk_company_holiday" json:"holiday_date"`
+	Name        string    `gorm:"type:varchar(200);not null" json:"name"`
+	Description string    `gorm:"type:text" json:"description,omitempty"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+func (CompanyHoliday) TableName() string { return "company_holidays" }
+func (ch *CompanyHoliday) BeforeCreate(tx *gorm.DB) error {
+	if ch.ID == uuid.Nil { ch.ID = uuid.New() }
+	return nil
+}
+
 // ── SalaryGrade ──
 type SalaryGrade struct {
 	ID          uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`

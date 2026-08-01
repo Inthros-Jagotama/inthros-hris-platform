@@ -755,7 +755,8 @@
     "group_hr": "HR Reference",
     "group_payroll": "Payroll & Tax",
     "rbac": "Roles & Permissions",
-    "group_access": "Access Control"
+    "group_access": "Access Control",
+    "company_holidays": "Company Holidays"
   },
   "provinces": {
     "title": "Provinces",
@@ -1104,5 +1105,23 @@
     "confirm_delete": "Delete role \"{name}\"? Users assigned to this role must be reassigned first.",
     "duplicate_role": "Role \"{name}\" already exists",
     "system_role": "Role \"{name}\" is a system role and cannot be modified"
+  },
+  "company_holidays": {
+    "title": "Company Holidays",
+    "description": "Manage company holiday dates used for attendance and leave calculations.",
+    "new": "New Holiday",
+    "edit": "Edit Holiday",
+    "holiday_date": "Date",
+    "holiday_date_placeholder": "Select date",
+    "name": "Holiday Name",
+    "is_active": "Active",
+    "empty_title": "No company holidays created yet",
+    "confirm_delete_title": "Delete Holiday",
+    "confirm_delete": "Delete holiday \"{name}\"?",
+    "created": "Company holiday created successfully",
+    "updated": "Company holiday updated successfully",
+    "deleted": "Company holiday deleted successfully",
+    "desc": "Desc",
+    "desc_placeholder": "Desc (optional)"
   }
 }

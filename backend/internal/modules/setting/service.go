@@ -1028,6 +1028,72 @@ func (s *Service) DeleteInsurance(ctx context.Context, id string) error {
 	return s.repo.DeleteInsurance(ctx, uid)
 }
 
+// ── CompanyHoliday CRUD ──
+func (s *Service) CreateCompanyHoliday(ctx context.Context, req CreateCompanyHolidayRequest) (*CompanyHolidayResponse, error) {
+	isActive := true
+	if req.IsActive != nil { isActive = *req.IsActive }
+	ch := &CompanyHoliday{HolidayDate: req.HolidayDate, Name: req.Name, Description: req.Description, IsActive: isActive}
+	if err := s.validateUniqueHolidayDate(ctx, req.HolidayDate); err != nil { return nil, err }
+	if err := s.repo.CreateCompanyHoliday(ctx, ch); err != nil { return nil, err }
+	s.logger.Info("Company holiday created", zap.String("id", ch.ID.String()), zap.String("holiday_date", ch.HolidayDate))
+	resp := ch.ToResponse()
+	return &resp, nil
+}
+func (s *Service) GetCompanyHolidayByID(ctx context.Context, id string) (*CompanyHolidayResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
+	ch, err := s.repo.FindCompanyHolidayByID(ctx, uid)
+	if err != nil { return nil, err }
+	resp := ch.ToResponse()
+	return &resp, nil
+}
+func (s *Service) ListCompanyHolidays(ctx context.Context, page, perPage int) (*CompanyHolidayPaginatedResponse, error) {
+	if page < 1 { page = defaultPage }
+	if perPage < 1 { perPage = defaultPerPage }
+	if perPage > maxPerPage { perPage = maxPerPage }
+	list, total, err := s.repo.FindAllCompanyHolidays(ctx, page, perPage)
+	if err != nil { return nil, err }
+	responses := make([]CompanyHolidayResponse, len(list))
+	for i, ch := range list { responses[i] = ch.ToResponse() }
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 { totalPages++ }
+	return &CompanyHolidayPaginatedResponse{Success: true, Data: responses, Page: page, PerPage: perPage, Total: total, TotalPages: totalPages}, nil
+}
+func (s *Service) UpdateCompanyHoliday(ctx context.Context, id string, req UpdateCompanyHolidayRequest) (*CompanyHolidayResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
+	ch, err := s.repo.FindCompanyHolidayByID(ctx, uid)
+	if err != nil { return nil, err }
+	if req.HolidayDate != nil {
+		if err := s.validateUniqueHolidayDateExcludeSelf(ctx, *req.HolidayDate, uid); err != nil { return nil, err }
+		ch.HolidayDate = *req.HolidayDate
+	}
+	if req.Name != nil { ch.Name = *req.Name }
+	if req.Description != nil { ch.Description = *req.Description }
+	if req.IsActive != nil { ch.IsActive = *req.IsActive }
+	if err := s.repo.UpdateCompanyHoliday(ctx, ch); err != nil { return nil, err }
+	resp := ch.ToResponse()
+	return &resp, nil
+}
+func (s *Service) DeleteCompanyHoliday(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil { return fmt.Errorf("invalid id: %w", err) }
+	return s.repo.DeleteCompanyHoliday(ctx, uid)
+}
+
+func (s *Service) validateUniqueHolidayDate(ctx context.Context, date string) error {
+	exists, err := s.repo.findByHolidayDate(ctx, date)
+	if err != nil { return err }
+	if exists { return &DuplicateCodeError{Table: "company_holidays", Code: date} }
+	return nil
+}
+func (s *Service) validateUniqueHolidayDateExcludeSelf(ctx context.Context, date string, id uuid.UUID) error {
+	exists, err := s.repo.findByHolidayDateExcludeSelf(ctx, date, id)
+	if err != nil { return err }
+	if exists { return &DuplicateCodeError{Table: "company_holidays", Code: date} }
+	return nil
+}
+
 func (s *Service) UpdatePTKP(ctx context.Context, id string, req UpdatePTKPRequest) (*PTKPResponse, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }

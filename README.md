@@ -172,7 +172,7 @@ hris-platform/
 │   │   │   ├── training/            #   Training & Development (7 entities, 35 endpoints, 31 tests)
 │   │   │   ├── careerintelligence/   #   Career Intelligence & Talent Management (4 entities, 19 endpoints, 65 tests)
 │   │   │   ├── workforceintelligence/#   Workforce Intelligence & Strategic Planning (analytics layer)│   │   │   ├── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints)
-│   │   │   └── setting/              #   Settings — 18 reference CRUDs (Zones, Provinces, Regencies, Districts, Villages, Educations, Education Majors, Religions, MaritalStatuses, RelationshipTypes, Banks, EmploymentStatuses, Nationalities, JobFamilies, SalaryGrades, TER, PTKP, Insurances)
+│   │   │   └── setting/              #   Settings — 19 reference CRUDs (Zones, Provinces, Regencies, Districts, Villages, Educations, Education Majors, Religions, MaritalStatuses, RelationshipTypes, Banks, EmploymentStatuses, Nationalities, JobFamilies, SalaryGrades, TER, PTKP, Insurances, Company Holidays)
 │   │   └── pkg/                      # Shared Kernel│       │   ├── config/               # Viper configuration loader
 │       │   ├── database/             # Multi-tenant DB manager
 │       │   ├── driver/               # Shared DB driver type
@@ -886,6 +886,7 @@ Semua endpoint settings berada di `/api/v1/tenant/settings/`. Masing-masing enti
 | Ters | `/settings/ters` | Group, BrutoMin, BrutoMax, Rate, SortOrder | `UUID` | `TersView.vue` |
 | Ptkps | `/settings/ptkps` | Status, DependentCount, Amount, SortOrder | `UUID` | `PtkpsView.vue` |
 | Insurances | `/settings/insurances` | Code, Name, SortOrder | `UUID` | `InsurancesView.vue` |
+| Company Holidays | `/settings/company-holidays` | HolidayDate (unique), Name, Description, IsActive | `UUID` | `CompanyHolidaysView.vue` |
 
 > **Query parameters:** Semua endpoint GET mendukung `?page=&per_page=&search=&sort_by=&sort_order=` — standar server-side pagination & sorting. Untuk zona, ada tambahan `?active_only=true`.
 
@@ -1714,7 +1715,7 @@ POST /api/v1/platform/companies
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
 | ✅ | Project completion dashboard (14 modules, 1004+ tests, 148 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
-| ✅ | OpenAPI comprehensive report (684 endpoints, 439 schemas, 30 tags) | `docs/openapi-report.md` |
+| ✅ | OpenAPI comprehensive report (689 endpoints, 442 schemas, 30 tags) | `docs/openapi-report.md` |
 | ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
@@ -1808,7 +1809,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**684 endpoints**, 439 schemas, 30 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**689 endpoints**, 442 schemas, 30 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 
@@ -2005,7 +2006,7 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 |---|---|
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap |
 | [`docs/PROJECT_COMPLETION_DASHBOARD.md`](docs/PROJECT_COMPLETION_DASHBOARD.md) | **NEW** — Project completion dashboard (14 modules, 939+ tests, 139 tables) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v15 — 684 endpoints, 439 schemas, 30 tags) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v16 — 689 endpoints, 442 schemas, 30 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | **NEW** — Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
 | [`docs/analisis-blueprint-vs-existing.md`](docs/analisis-blueprint-vs-existing.md) | Analisis blueprint vs existing Laravel app |

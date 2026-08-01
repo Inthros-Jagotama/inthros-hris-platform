@@ -28191,6 +28191,224 @@
         },
         "description": "Soft-delete an education major record. Sets the deleted_at timestamp and hides it from standard queries."
       }
+    },
+    "/api/v1/tenant/settings/company-holidays": {
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "List all Company Holidays",
+        "operationId": "settingCompanyHolidayList",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of Company Holiday entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "": "#/components/schemas/CompanyHolidayResponse"
+                      }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "total_pages": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Retrieve a paginated list of company holidays (reference data for attendance/leave)."
+      },
+      "post": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Create a new company holiday",
+        "operationId": "settingCompanyHolidayCreate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "": "#/components/schemas/CreateCompanyHolidayRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Company holiday created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/CompanyHolidayResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Duplicate holiday date"
+          }
+        },
+        "description": "Create a new company holiday entry (e.g. Tahun Baru, Idul Fitri, etc.)."
+      }
+    },
+    "/api/v1/tenant/settings/company-holidays/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Get a company holiday by ID",
+        "operationId": "settingCompanyHolidayGet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company holiday detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/CompanyHolidayResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Update a company holiday",
+        "operationId": "settingCompanyHolidayUpdate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "": "#/components/schemas/UpdateCompanyHolidayRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Company holiday updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/CompanyHolidayResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Duplicate holiday date"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "summary": "Delete a company holiday",
+        "operationId": "settingCompanyHolidayDelete",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company holiday deleted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -43026,6 +43244,81 @@
           },
           "sort_order": {
             "type": "integer"
+          }
+        }
+      },
+      "CreateCompanyHolidayRequest": {
+        "type": "object",
+        "required": [
+          "holiday_date",
+          "name"
+        ],
+        "properties": {
+          "holiday_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Tanggal libur (YYYY-MM-DD) — harus unik"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "UpdateCompanyHolidayRequest": {
+        "type": "object",
+        "properties": {
+          "holiday_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "CompanyHolidayResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "holiday_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

@@ -556,6 +556,39 @@ type InsurancePaginatedResponse struct {
 	TotalPages int                 `json:"total_pages"`
 }
 
+// ── CompanyHoliday DTOs ──
+type CreateCompanyHolidayRequest struct {
+	HolidayDate string `json:"holiday_date" binding:"required"` // format: YYYY-MM-DD
+	Name        string `json:"name" binding:"required,max=200"`
+	Description string `json:"description,omitempty"`
+	IsActive    *bool  `json:"is_active,omitempty"`
+}
+type UpdateCompanyHolidayRequest struct {
+	HolidayDate *string `json:"holiday_date,omitempty"`
+	Name        *string `json:"name,omitempty" binding:"omitempty,max=200"`
+	Description *string `json:"description,omitempty"`
+	IsActive    *bool   `json:"is_active,omitempty"`
+}
+type CompanyHolidayResponse struct {
+	ID          string    `json:"id"`
+	HolidayDate string    `json:"holiday_date"`
+	Name        string    `json:"name"`
+	Description string    `json:"description,omitempty"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+func (ch *CompanyHoliday) ToResponse() CompanyHolidayResponse {
+	return CompanyHolidayResponse{ID: ch.ID.String(), HolidayDate: ch.HolidayDate, Name: ch.Name, Description: ch.Description, IsActive: ch.IsActive, CreatedAt: ch.CreatedAt}
+}
+type CompanyHolidayPaginatedResponse struct {
+	Success    bool                      `json:"success"`
+	Data       []CompanyHolidayResponse  `json:"data"`
+	Page       int                       `json:"page"`
+	PerPage    int                       `json:"per_page"`
+	Total      int64                     `json:"total"`
+	TotalPages int                       `json:"total_pages"`
+}
+
 // ── Paginated Responses ──
 type JobFamilyPaginatedResponse struct {
 	Success    bool                `json:"success"`

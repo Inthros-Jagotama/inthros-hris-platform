@@ -90,6 +90,7 @@ const groups = computed(() => [
       { path: '/settings/gradings', icon: 'pi pi-chart-bar', titleKey: 'settings.gradings', descKey: 'gradings.description', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
       { path: '/settings/salary-grades', icon: 'pi pi-chart-bar', titleKey: 'settings.salary_grades', descKey: 'salary_grades.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
       { path: '/settings/insurances', icon: 'pi pi-shield', titleKey: 'settings.insurances', descKey: 'insurances.description', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+      { path: '/settings/company-holidays', icon: 'pi pi-calendar', titleKey: 'settings.company_holidays', descKey: 'company_holidays.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' },
       { path: '/settings/ters', icon: 'pi pi-calculator', titleKey: 'settings.ters', descKey: 'ters.description', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
       { path: '/settings/ptkps', icon: 'pi pi-receipt', titleKey: 'settings.ptkps', descKey: 'ptkps.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' }
     ]
