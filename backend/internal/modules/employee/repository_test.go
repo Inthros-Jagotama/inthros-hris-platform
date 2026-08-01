@@ -483,26 +483,26 @@ func TestRepository_InsuranceCRUD(t *testing.T) {
 
 	emp := createTestEmployee(ctx, repo)
 
+	insID := uuid.New()
 	ins := &EmployeeInsurance{
-		EmployeeID: &emp.ID,
-		Number:     "BPJS001",
-		Name:       "BPJS Kesehatan",
-		Category:   strPtr("BPJS"),
+		EmployeeID:  &emp.ID,
+		InsuranceID: &insID,
+		Number:      "BPJS001",
 	}
 	if err := repo.CreateInsurance(ctx, ins); err != nil {
 		t.Fatalf("CreateInsurance failed: %v", err)
 	}
 
 	found, _ := repo.FindInsuranceByID(ctx, ins.ID)
-	if found.Name != "BPJS Kesehatan" {
-		t.Errorf("expected name 'BPJS Kesehatan', got '%s'", found.Name)
+	if found.Number != "BPJS001" {
+		t.Errorf("expected number 'BPJS001', got '%s'", found.Number)
 	}
 
-	found.Name = "BPJS Ketenagakerjaan"
+	found.Number = "BPJS002"
 	repo.UpdateInsurance(ctx, found)
 	updated, _ := repo.FindInsuranceByID(ctx, ins.ID)
-	if updated.Name != "BPJS Ketenagakerjaan" {
-		t.Errorf("expected name 'BPJS Ketenagakerjaan', got '%s'", updated.Name)
+	if updated.Number != "BPJS002" {
+		t.Errorf("expected number 'BPJS002', got '%s'", updated.Number)
 	}
 
 	repo.DeleteInsurance(ctx, ins.ID)

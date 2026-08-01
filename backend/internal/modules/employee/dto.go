@@ -101,17 +101,19 @@ type UpdateFamilyRequest struct {
 }
 
 type CreateEducationRequest struct {
-	EducationID *string `json:"education_id"`
-	Name        string  `json:"name" binding:"required,max=255"`
-	Major       *string `json:"major"`
-	GradYear    *int    `json:"graduation_year"`
+	EducationID      *string `json:"education_id"`
+	EducationMajorID *string `json:"education_major_id"`
+	Name             string  `json:"name" binding:"required,max=255"`
+	Major            *string `json:"major"`
+	GradYear         *int    `json:"graduation_year"`
 }
 
 type UpdateEducationRequest struct {
-	EducationID *string `json:"education_id"`
-	Name        *string `json:"name" binding:"omitempty,max=255"`
-	Major       *string `json:"major"`
-	GradYear    *int    `json:"graduation_year"`
+	EducationID      *string `json:"education_id"`
+	EducationMajorID *string `json:"education_major_id"`
+	Name             *string `json:"name" binding:"omitempty,max=255"`
+	Major            *string `json:"major"`
+	GradYear         *int    `json:"graduation_year"`
 }
 
 type CreateExperienceRequest struct {
@@ -141,17 +143,15 @@ type UpdateDocumentRequest struct {
 }
 
 type CreateInsuranceRequest struct {
-	Category *string `json:"category" binding:"omitempty,oneof='BPJS' 'Non BPJS'"`
-	Number   string  `json:"number" binding:"required,max=100"`
-	Name     string  `json:"name" binding:"required,max=100"`
-	Type     *string `json:"type"`
+	InsuranceID *string `json:"insurance_id"`
+	Number      string  `json:"number" binding:"required,max=100"`
+	Type        *string `json:"type"`
 }
 
 type UpdateInsuranceRequest struct {
-	Category *string `json:"category" binding:"omitempty,oneof='BPJS' 'Non BPJS'"`
-	Number   *string `json:"number" binding:"omitempty,max=100"`
-	Name     *string `json:"name" binding:"omitempty,max=100"`
-	Type     *string `json:"type"`
+	InsuranceID *string `json:"insurance_id"`
+	Number      *string `json:"number" binding:"omitempty,max=100"`
+	Type        *string `json:"type"`
 }
 
 type CreateEmploymentRequest struct {
@@ -223,11 +223,13 @@ type FamilyResponse struct {
 }
 
 type EducationResponse struct {
-	ID         string `json:"id"`
-	EducationID string `json:"education_id,omitempty"`
-	Name       string `json:"name"`
-	Major      string `json:"major,omitempty"`
-	GradYear   int    `json:"graduation_year,omitempty"`
+	ID                string `json:"id"`
+	EducationID       string `json:"education_id,omitempty"`
+	EducationMajorID  string `json:"education_major_id,omitempty"`
+	MajorName         string `json:"major_name,omitempty"`
+	Name              string `json:"name"`
+	Major             string `json:"major,omitempty"`
+	GradYear          int    `json:"graduation_year,omitempty"`
 }
 
 type ExperienceResponse struct {
@@ -246,11 +248,11 @@ type DocumentResponse struct {
 }
 
 type InsuranceResponse struct {
-	ID       string `json:"id"`
-	Category string `json:"category,omitempty"`
-	Number   string `json:"number"`
-	Name     string `json:"name"`
-	Type     string `json:"type,omitempty"`
+	ID            string `json:"id"`
+	InsuranceID   string `json:"insurance_id,omitempty"`
+	InsuranceName string `json:"insurance_name,omitempty"`
+	Number        string `json:"number"`
+	Type          string `json:"type,omitempty"`
 }
 
 type EmploymentResponse struct {
@@ -383,6 +385,12 @@ func toEducationResponse(e *EmployeeEducation) EducationResponse {
 	if e.EducationID != nil {
 		r.EducationID = e.EducationID.String()
 	}
+	if e.EducationMajorID != nil {
+		r.EducationMajorID = e.EducationMajorID.String()
+	}
+	if e.EducationMajor != nil {
+		r.MajorName = e.EducationMajor.Name
+	}
 	if e.Major != nil {
 		r.Major = *e.Major
 	}
@@ -450,10 +458,12 @@ func toInsuranceResponse(i *EmployeeInsurance) InsuranceResponse {
 	r := InsuranceResponse{
 		ID:     i.ID.String(),
 		Number: i.Number,
-		Name:   i.Name,
 	}
-	if i.Category != nil {
-		r.Category = *i.Category
+	if i.InsuranceID != nil {
+		r.InsuranceID = i.InsuranceID.String()
+	}
+	if i.Insurance != nil {
+		r.InsuranceName = i.Insurance.Name
 	}
 	if i.Type != nil {
 		r.Type = *i.Type

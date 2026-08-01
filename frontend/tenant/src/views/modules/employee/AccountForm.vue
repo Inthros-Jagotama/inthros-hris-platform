@@ -7,8 +7,25 @@
       </div>
     </div>
 
+    <!-- Loading skeleton → endpoint status akun sedang dimuat -->
+    <div v-if="statusLoading" class="border border-gray-200 dark:border-gray-700 rounded-lg p-5 max-w-xl">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+        <div class="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+      </div>
+      <div class="space-y-3">
+        <div class="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        <div class="h-9 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        <div class="h-9 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        <div class="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        <div class="flex justify-end pt-2">
+          <div class="h-8 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- No account yet — create form -->
-    <div v-if="!account" class="border border-gray-200 dark:border-gray-700 rounded-lg p-5 max-w-xl">
+    <div v-else-if="!account" class="border border-gray-200 dark:border-gray-700 rounded-lg p-5 max-w-xl">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ t('employee.account_no_account') }}</p>
       <div class="space-y-3">
         <FormRow :label="t('employee.account_email')" required :errors="errors?.email">
@@ -24,7 +41,7 @@
     </div>
 
     <!-- Account exists — status card -->
-    <div v-else class="border border-gray-200 dark:border-gray-700 rounded-lg p-5 max-w-xl">
+    <div v-else-if="account" class="border border-gray-200 dark:border-gray-700 rounded-lg p-5 max-w-xl">
       <div class="flex items-center gap-2 mb-4">
         <i class="pi pi-check-circle text-emerald-500 text-lg"></i>
         <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ account.email }}</span>
@@ -76,12 +93,14 @@ const emit = defineEmits(['save'])
 // Default email dari data personal employee (bisa diubah admin).
 const email = ref(props.employeeEmail || '')
 const account = ref(null)
+const statusLoading = ref(false)
 const loading = ref(false)
 const resending = ref(false)
 const errors = ref({})
 
 async function loadStatus() {
   if (!props.employeeId) return
+  statusLoading.value = true
   try {
     const res = await api.get(`/api/v1/tenant/user-accounts/employees/${props.employeeId}`)
     account.value = res.data?.data || null
@@ -89,6 +108,8 @@ async function loadStatus() {
     if (account.value) emit('save')
   } catch {
     account.value = null // 404 → belum ada akun
+  } finally {
+    statusLoading.value = false
   }
 }
 

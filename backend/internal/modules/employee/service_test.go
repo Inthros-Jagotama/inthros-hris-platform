@@ -453,14 +453,13 @@ func TestService_CreateInsurance(t *testing.T) {
 
 	ins, err := svc.CreateInsurance(ctx, emp.ID, CreateInsuranceRequest{
 		Number: "BPJS001",
-		Name:   "BPJS Kesehatan",
 	})
 	if err != nil {
 		t.Fatalf("CreateInsurance failed: %v", err)
 	}
 
-	if ins.Name != "BPJS Kesehatan" {
-		t.Errorf("expected name 'BPJS Kesehatan', got '%s'", ins.Name)
+	if ins.Number != "BPJS001" {
+		t.Errorf("expected number 'BPJS001', got '%s'", ins.Number)
 	}
 }
 

@@ -42,9 +42,9 @@ func (r *Repository) FindEmployeeByID(ctx context.Context, id uuid.UUID) (*Emplo
 	}
 	var emp Employee
 	q := db.Preload("Addresses").Preload("EmergencyContacts").
-		Preload("Families").Preload("Educations").
+		Preload("Families").Preload("Educations.EducationMajor").
 		Preload("Experiences").Preload("Documents").
-		Preload("Insurances").Preload("Banks").Preload("Employments")
+		Preload("Insurances.Insurance").Preload("Banks").Preload("Employments")
 	if err := q.First(&emp, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("employee not found: %w", err)
 	}

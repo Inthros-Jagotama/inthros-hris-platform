@@ -51,6 +51,7 @@ func SeedTenantMasterData(tenantDB *gorm.DB, l *zap.Logger) error {
 		{"religions", seedReligions},
 		{"educations", seedEducations},
 		{"education_majors", seedEducationMajors},
+		{"insurances", seedInsurances},
 		{"marital_statuses", seedMaritalStatuses},
 		{"relationship_types", seedRelationshipTypes},
 		{"employment_statuses", seedEmploymentStatuses},
@@ -196,6 +197,16 @@ func seedEducationMajors(db *gorm.DB) (int, int, error) {
 		{"id": codeToUUID("education_major", "020"), "code": "020", "name": "Bisnis Digital", "sort_order": 20, "created_at": time.Now(), "updated_at": time.Now()},
 	}
 	return batchInsert(db, "education_majors", data, 50)
+}
+
+// ── Insurances (asuransi) ──
+// Schema (migration 021_insurances): id, code, name, sort_order, timestamps, deleted_at
+func seedInsurances(db *gorm.DB) (int, int, error) {
+	data := []map[string]interface{}{
+		{"id": codeToUUID("insurance", "01"), "code": "01", "name": "BPJS Kesehatan", "sort_order": 1, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("insurance", "02"), "code": "02", "name": "BPJS Ketenagakerjaan", "sort_order": 2, "created_at": time.Now(), "updated_at": time.Now()},
+	}
+	return batchInsert(db, "insurances", data, 50)
 }
 
 // ── Marital Statuses ──

@@ -16,20 +16,15 @@
           <p class="text-sm font-medium">{{ t('employee.no_insurance') }}</p>
         </div>
       </template>
-      <Column field="category" :header="t('employee.insurance_category')" sortable>
+      <Column field="insurance_name" :header="t('employee.insurance')" sortable>
         <template #body="{data}">
-          <Tag v-if="data.category" :value="data.category" :severity="getCategorySeverity(data.category)" class="!text-xs !px-2 !py-0.5" />
+          <Tag v-if="getInsuranceLabel(data)" :value="getInsuranceLabel(data)" :severity="getInsuranceSeverity(getInsuranceLabel(data))" class="!text-xs !px-2 !py-0.5" />
           <span v-else class="text-gray-400">-</span>
         </template>
       </Column>
       <Column field="number" :header="t('employee.insurance_number')" sortable>
         <template #body="{data}">
           <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.number }}</span>
-        </template>
-      </Column>
-      <Column field="name" :header="t('employee.insurance_name')" sortable>
-        <template #body="{data}">
-          <span class="text-gray-600 dark:text-gray-400">{{ data.name }}</span>
         </template>
       </Column>
       <Column field="type" :header="t('employee.insurance_type')">
@@ -50,14 +45,11 @@
     <!-- Add/Edit Dialog -->
     <Dialog v-model:visible="dialogVisible" :header="isEditing ? t('employee.edit_insurance') : t('employee.new_insurance')" modal :style="{ width: '520px' }" :closable="true" @hide="resetForm">
       <div class="grid grid-cols-1 gap-3 py-2">
-        <FormRow :label="t('employee.insurance_category')" :errors="errors?.category">
-          <SelectLabel v-model="form.category" :options="insuranceCategoryOptions" optionLabel="label" optionValue="value" :placeholder="t('employee.select_insurance_category')" :class="{'p-invalid':errors?.category}" :showClear="true" />
+        <FormRow :label="t('employee.insurance')" :errors="errors?.insurance_id">
+          <SelectLabel v-model="form.insurance_id" :options="insuranceOptions" optionLabel="label" optionValue="value" :placeholder="t('employee.select_insurance')" :class="{'p-invalid':errors?.insurance_id}" :showClear="true" />
         </FormRow>
         <FormRow :label="t('employee.insurance_number')" required :errors="errors?.number">
           <TextInput v-model="form.number" maxlength="100" :placeholder="t('employee.insurance_number_placeholder')" :class="{'p-invalid':errors?.number}" />
-        </FormRow>
-        <FormRow :label="t('employee.insurance_name')" required :errors="errors?.name">
-          <TextInput v-model="form.name" maxlength="100" :placeholder="t('employee.insurance_name_placeholder')" :class="{'p-invalid':errors?.name}" />
         </FormRow>
         <FormRow :label="t('employee.insurance_type')" :errors="errors?.type">
           <TextInput v-model="form.type" maxlength="100" :placeholder="t('employee.insurance_type_placeholder')" :class="{'p-invalid':errors?.type}" />
@@ -105,15 +97,24 @@ const toast = useToast()
 const props = defineProps({
   items: { type: Array, required: true },
   errs: { type: Array, default: () => [] },
-  insuranceCategoryOptions: { type: Array, default: () => [] },
+  insuranceOptions: { type: Array, default: () => [] },
   saving: { type: Boolean, default: false },
   employeeId: { type: String, default: '' }
 })
 const emit = defineEmits(['update:items', 'save'])
 
-function getCategorySeverity(category) {
-  if (!category) return 'info'
-  if (category.includes('BPJS')) return 'success'
+function getInsuranceLabel(data) {
+  if (data.insurance_name) return data.insurance_name
+  if (data.insurance_id && props.insuranceOptions.length) {
+    const opt = props.insuranceOptions.find(o => o.value === data.insurance_id)
+    if (opt) return opt.label
+  }
+  return ''
+}
+
+function getInsuranceSeverity(name) {
+  if (!name) return 'info'
+  if (name.includes('BPJS')) return 'success'
   return 'warn'
 }
 
@@ -123,14 +124,14 @@ const editingId = ref(null)
 const editingIdx = ref(null)
 const saving = ref(false)
 const errors = ref({})
-const form = ref({ category: '', number: '', name: '', type: '' })
+const form = ref({ insurance_id: '', number: '', type: '' })
 const isEditing = computed(() => editingId.value !== null)
 
 function openDialog() {
   editingId.value = null
   editingIdx.value = null
   errors.value = {}
-  form.value = { category: '', number: '', name: '', type: '' }
+  form.value = { insurance_id: '', number: '', type: '' }
   dialogVisible.value = true
 }
 
@@ -139,16 +140,15 @@ function openEditDialog(item, idx) {
   editingIdx.value = idx
   errors.value = {}
   form.value = {
-    category: item.category || '',
+    insurance_id: item.insurance_id || '',
     number: item.number || '',
-    name: item.name || '',
     type: item.type || ''
   }
   dialogVisible.value = true
 }
 
 function resetForm() {
-  form.value = { category: '', number: '', name: '', type: '' }
+  form.value = { insurance_id: '', number: '', type: '' }
   editingId.value = null
   editingIdx.value = null
   errors.value = {}
@@ -157,13 +157,11 @@ function resetForm() {
 async function handleSave() {
   errors.value = {}
   if (!form.value.number?.trim()) { errors.value = { number: [t('form.required')] }; return }
-  if (!form.value.name?.trim()) { errors.value = { name: [t('form.required')] }; return }
   saving.value = true
   try {
     const payload = {
-      category: form.value.category || null,
+      insurance_id: form.value.insurance_id || null,
       number: form.value.number,
-      name: form.value.name,
       type: form.value.type || null
     }
     const updated = [...props.items]

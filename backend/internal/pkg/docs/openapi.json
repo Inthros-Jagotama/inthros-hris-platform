@@ -29031,6 +29031,11 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "major_name": {
+            "type": "string",
+            "description": "Nama jurusan pendidikan (dari education_majors)",
+            "example": "Teknik Informatika"
           }
         }
       },
@@ -29080,17 +29085,21 @@
             "type": "string",
             "format": "uuid"
           },
-          "category": {
-            "type": "string"
-          },
           "number": {
-            "type": "string"
-          },
-          "name": {
             "type": "string"
           },
           "type": {
             "type": "string"
+          },
+          "insurance_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID asuransi dari tabel insurances"
+          },
+          "insurance_name": {
+            "type": "string",
+            "description": "Nama asuransi (dari insurances)",
+            "example": "BPJS Kesehatan"
           }
         }
       },
@@ -29420,54 +29429,39 @@
       "CreateInsuranceRequest": {
         "type": "object",
         "required": [
-          "number",
-          "name"
+          "number"
         ],
         "properties": {
-          "category": {
-            "type": "string",
-            "enum": [
-              "BPJS",
-              "Non BPJS"
-            ],
-            "nullable": true
-          },
           "number": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "name": {
             "type": "string",
             "maxLength": 100
           },
           "type": {
             "type": "string",
             "nullable": true
+          },
+          "insurance_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID asuransi dari tabel insurances (nullable)"
           }
         }
       },
       "UpdateInsuranceRequest": {
         "type": "object",
         "properties": {
-          "category": {
-            "type": "string",
-            "enum": [
-              "BPJS",
-              "Non BPJS"
-            ],
-            "nullable": true
-          },
           "number": {
-            "type": "string",
-            "nullable": true
-          },
-          "name": {
             "type": "string",
             "nullable": true
           },
           "type": {
             "type": "string",
             "nullable": true
+          },
+          "insurance_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID asuransi dari tabel insurances (nullable)"
           }
         }
       },

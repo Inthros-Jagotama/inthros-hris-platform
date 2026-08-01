@@ -142,16 +142,20 @@ func (f *EmployeeFamily) BeforeCreate(tx *gorm.DB) error {
 
 // EmployeeEducation menyimpan riwayat pendidikan karyawan.
 type EmployeeEducation struct {
-	ID          uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
-	EmployeeID  *uuid.UUID `gorm:"type:char(36);index" json:"employee_id,omitempty"`
-	EducationID *uuid.UUID `gorm:"type:char(36);index" json:"education_id,omitempty"`
-	Name        string     `gorm:"type:varchar(255);not null" json:"name"`
-	Major       *string    `gorm:"type:varchar(255)" json:"major,omitempty"`
-	GradYear    *int       `gorm:"column:graduation_year;type:year" json:"graduation_year,omitempty"`
-	CreatedBy   *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
-	UpdatedBy   *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID               uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID       *uuid.UUID `gorm:"type:char(36);index" json:"employee_id,omitempty"`
+	EducationID      *uuid.UUID `gorm:"type:char(36);index" json:"education_id,omitempty"`
+	EducationMajorID *uuid.UUID `gorm:"type:char(36);index" json:"education_major_id,omitempty"`
+	Name             string     `gorm:"type:varchar(255);not null" json:"name"`
+	Major            *string    `gorm:"type:varchar(255)" json:"major,omitempty"`
+	GradYear         *int       `gorm:"column:graduation_year;type:year" json:"graduation_year,omitempty"`
+	CreatedBy        *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
+	UpdatedBy        *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+
+	// Relasi ke EducationMajor (settings module)
+	EducationMajor *setting.EducationMajor `gorm:"foreignKey:EducationMajorID" json:"-"`
 }
 
 func (EmployeeEducation) TableName() string {
@@ -216,16 +220,18 @@ func (d *EmployeeDocument) BeforeCreate(tx *gorm.DB) error {
 
 // EmployeeInsurance menyimpan data asuransi karyawan.
 type EmployeeInsurance struct {
-	ID         uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
-	EmployeeID *uuid.UUID `gorm:"type:char(36);index" json:"employee_id,omitempty"`
-	Category   *string    `gorm:"type:varchar(20)" json:"category,omitempty"`
-	Number     string     `gorm:"type:varchar(100);not null" json:"number"`
-	Name       string     `gorm:"type:varchar(100);not null" json:"name"`
-	Type       *string    `gorm:"type:varchar(100)" json:"type,omitempty"`
-	CreatedBy  *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
-	UpdatedBy  *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
-	CreatedAt  time.Time  `json:"created_at"`
-	UpdatedAt  time.Time  `json:"updated_at"`
+	ID          uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID  *uuid.UUID `gorm:"type:char(36);index" json:"employee_id,omitempty"`
+	InsuranceID *uuid.UUID `gorm:"type:char(36);index" json:"insurance_id,omitempty"`
+	Number      string     `gorm:"type:varchar(100);not null" json:"number"`
+	Type        *string    `gorm:"type:varchar(100)" json:"type,omitempty"`
+	CreatedBy   *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
+	UpdatedBy   *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+
+	// Relasi ke Insurance (settings module)
+	Insurance *setting.Insurance `gorm:"foreignKey:InsuranceID" json:"-"`
 }
 
 func (EmployeeInsurance) TableName() string {

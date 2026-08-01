@@ -151,6 +151,7 @@
 | `docs/Phase-1-Completion-Report.md` | Phase 1 Frontend completion summary | ✅ **NEW — for presentation** |
 | **TenantResolver Middleware (SaaS auto-detect)** | ✅ **Done (01 Aug 2026)** | `middleware.TenantResolver` — auto-determine company dari Host header/X-Tenant-ID untuk `/api/v1/tenant/**` (JWT menang → X-Tenant-ID UUID → X-Forwarded-Host → Host) + set response header `X-Tenant-ID`. FE tenant: state `company` di auth store disinkronkan otomatis dari response header (api.js interceptor kirim & baca `X-Tenant-ID`), company opsional di login. 7 unit test. Changelog ARCH v20 |
 | **RBAC Permissions Lengkap (24 resource)** | ✅ **Done (01 Aug 2026)** | `authz/rbac.go` — `defaultResources()` + `loadDefaultPolicies()` + `seedDefaults()` kini mencakup **24 resource / 98 permissions** (sebelumnya 18/74): +`performance`, `recruitment`, `reimbursement`, `training`, `workforceintelligence`, `careerintelligence` (4 action tiap resource) — konsisten dengan tenant RBAC seed & `singularize()` map. Fix: resource tsb sebelumnya tidak pernah di-seed ke `rbac_permissions` → tidak muncul di menu RBAC platform-admin. Auto-assign saat restart hanya ke super_admin; role lain di-toggle manual via UI RBAC. +Rbac.vue sortOrder +6 resource. |
+| **Rename BankProfileForm → BankAccountForm** | ✅ **Done (01 Aug 2026)** | FE tenant — komponen `employee/BankProfileForm.vue` di-rename jadi `BankAccountForm.vue` (import + tag `<BankAccountForm>` di `EmployeeForm.vue` step 9), label 'Bank Profile' → 'Bank Account' (locale `wizard_step_bank`/`tab_bank`) — konsistensi penamaan dengan label baru |
 
 ---
 
@@ -295,7 +296,7 @@
 | — Settings: Education Majors | 🟢 Easy | 1 reference CRUD — **seeder `seedEducationMajors` pakai kode 3 digit (001–020)**, 20 jurusan, UUID deterministik + idempotent (024_education_majors.sql) | ✅ **Done (1 Aug 2026)** |
 | — Settings: Banks, EmploymentStatuses, Nationalities | 🟢 Easy | 3 simple reference CRUDs | ✅ **Done** |
 | — Settings: JobFamilies, SalaryGrades | 🟢 Easy | 2 reference CRUDs (SalaryGrades: Grade, MinSalary, MaxSalary) | ✅ **Done** |
-| — Settings: Insurances | 🟢 Easy | 1 reference CRUD (Code, Name, SortOrder) — Backend + Frontend + OpenAPI | ✅ **Done** |
+| — Settings: Insurances | 🟢 Easy | 1 reference CRUD (Code, Name, SortOrder) — Backend + Frontend + OpenAPI + **seeder kode 2 digit (01 BPJS Kesehatan, 02 BPJS Ketenagakerjaan)** | ✅ **Done** |
 | — Settings: TER & PTKP | 🟢 Easy | 2 tax reference CRUDs (TER: Group, BrutoMin, BrutoMax, Rate; PTKP: Name, Group, Amount) | ✅ **Done** |
 | — Organization Management | 🟡 Medium | TreeTable view, CRUD with parent selection, dark mode, bilingual (Positions CRUD ⏸️ postponed) | ✅ **Done** |
 | — Employee Management (Wizard) | 🔴 Complex | Multi-step form (8/9 steps done — Step 9 Employment + Detail Page ⏸️ postponed) | ✅ **8/9 Steps Done — Remaining Postponed** |

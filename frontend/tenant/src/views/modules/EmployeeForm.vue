@@ -44,15 +44,15 @@
 
         <FamilyForm v-else-if="activeStep === 3" :items="families" :errs="famErrors" :relationship-type-options="relationshipTypeOptions" :education-options="educationOptions" :saving="stepLoading" :employee-id="employeeId" @update:items="families = $event" @save="() => saveStep(3)" />
 
-        <EducationForm v-else-if="activeStep === 4" :items="educations" :errs="eduErrors" :education-options="educationOptions" :saving="stepLoading" :employee-id="employeeId" @update:items="educations = $event" @save="() => saveStep(4)" />
+        <EducationForm v-else-if="activeStep === 4" :items="educations" :errs="eduErrors" :education-options="educationOptions" :major-options="majorOptions" :saving="stepLoading" :employee-id="employeeId" @update:items="educations = $event" @save="() => saveStep(4)" />
 
         <ExperienceForm v-else-if="activeStep === 5" :items="experiences" :errs="expErrors" :saving="stepLoading" :employee-id="employeeId" @update:items="experiences = $event" @save="() => saveStep(5)" />
 
         <DocumentForm v-else-if="activeStep === 6" :items="documents" :errs="docErrors" :saving="stepLoading" :employee-id="employeeId" @update:items="documents = $event" @save="() => saveStep(6)" />
 
-        <InsuranceForm v-else-if="activeStep === 7" :items="insurances" :errs="insErrors" :insurance-category-options="insuranceCategoryOptions" :saving="stepLoading" :employee-id="employeeId" @update:items="insurances = $event" @save="() => saveStep(7)" />
+        <InsuranceForm v-else-if="activeStep === 7" :items="insurances" :errs="insErrors" :insurance-options="insuranceOptions" :saving="stepLoading" :employee-id="employeeId" @update:items="insurances = $event" @save="() => saveStep(7)" />
 
-        <BankProfileForm v-else-if="activeStep === 8" :items="banks" :errs="bankErrors" :bank-options="bankOptions" :saving="stepLoading" :employee-id="employeeId" @update:items="banks = $event" @save="() => saveStep(8)" />
+        <BankAccountForm v-else-if="activeStep === 8" :items="banks" :errs="bankErrors" :bank-options="bankOptions" :saving="stepLoading" :employee-id="employeeId" @update:items="banks = $event" @save="() => saveStep(8)" />
 
         <EmploymentForm v-else-if="activeStep === 9" :items="employments" :errs="empErrors" :organization-options="organizationOptions" :employment-status-options="employmentStatusOptions" :saving="stepLoading" @update:items="employments = $event" @save="() => saveStep(9)" />
 
@@ -80,7 +80,7 @@ import EducationForm from './employee/EducationForm.vue'
 import ExperienceForm from './employee/ExperienceForm.vue'
 import DocumentForm from './employee/DocumentForm.vue'
 import InsuranceForm from './employee/InsuranceForm.vue'
-import BankProfileForm from './employee/BankProfileForm.vue'
+import BankAccountForm from './employee/BankAccountForm.vue'
 import EmploymentForm from './employee/EmploymentForm.vue'
 import AccountForm from './employee/AccountForm.vue'
 
@@ -187,15 +187,14 @@ const genderOptions = computed(() => [
 const addressTypeOptions = computed(() => [
   { label: t('employee.address_main'), value: 'MAIN' }, { label: t('employee.address_domicile'), value: 'DOMICILE' }
 ])
-const insuranceCategoryOptions = computed(() => [
-  { label: 'BPJS Kesehatan', value: 'BPJS Kesehatan' }, { label: 'BPJS Ketenagakerjaan', value: 'BPJS Ketenagakerjaan' }, { label: 'Non BPJS', value: 'Non BPJS' }
-])
+const insuranceOptions = ref([])
 
 const religionOptions = ref([])
 const maritalStatusOptions = ref([])
 const nationalityOptions = ref([])
 const relationshipTypeOptions = ref([])
 const educationOptions = ref([])
+const majorOptions = ref([])
 const employmentStatusOptions = ref([])
 const bankOptions = ref([])
 const provinceOptions = ref([])
@@ -205,25 +204,29 @@ const districtOptions = ref([])
 const villageOptions = ref([])
 
 async function loadRefData() {
-  const [relRes, msRes, natRes, rtRes, eduRes, esRes, bankRes, provRes, orgRes] = await Promise.all([
+  const [relRes, msRes, natRes, rtRes, eduRes, majorRes, esRes, bankRes, provRes, orgRes, insRes] = await Promise.all([
     api.get('/api/v1/tenant/settings/religions?per_page=100'),
     api.get('/api/v1/tenant/settings/marital-statuses?per_page=100'),
     api.get('/api/v1/tenant/settings/nationalities?per_page=250'),
     api.get('/api/v1/tenant/settings/relationship-types?per_page=100'),
     api.get('/api/v1/tenant/settings/educations?per_page=100'),
+    api.get('/api/v1/tenant/settings/education-majors?per_page=200'),
     api.get('/api/v1/tenant/settings/employment-statuses?per_page=100'),
     api.get('/api/v1/tenant/settings/banks?per_page=200'),
     api.get('/api/v1/tenant/settings/provinces?per_page=100'),
-    api.get('/api/v1/tenant/organizations?tree=true')
+    api.get('/api/v1/tenant/organizations?tree=true'),
+    api.get('/api/v1/tenant/settings/insurances?per_page=100')
   ])
   religionOptions.value = (relRes.data?.data || []).map(r => ({ label: r.name, value: r.id }))
   maritalStatusOptions.value = (msRes.data?.data || []).map(m => ({ label: m.name, value: m.id }))
   nationalityOptions.value = (natRes.data?.data || []).map(n => ({ label: `${n.code} - ${n.name}`, value: n.code }))
   relationshipTypeOptions.value = (rtRes.data?.data || []).map(r => ({ label: r.name, value: r.id }))
   educationOptions.value = (eduRes.data?.data || []).map(e => ({ label: e.name, value: e.id }))
+  majorOptions.value = (majorRes.data?.data || []).map(m => ({ label: m.name, value: m.id }))
   employmentStatusOptions.value = (esRes.data?.data || []).map(e => ({ label: e.name, value: e.id }))
-  bankOptions.value = (bankRes.data?.data || []).map(b => ({ label: `${b.name} - ${b.code || ''}`, value: b.id }))
+  bankOptions.value = (bankRes.data?.data || []).map(b => ({ label: b.name || '', value: b.id }))
   provinceOptions.value = (provRes.data?.data || []).map(p => ({ label: `${p.code} - ${p.name}`, value: p.code }))
+  insuranceOptions.value = (insRes.data?.data || []).map(ins => ({ label: ins.name || '', value: ins.id }))
   const orgList = []
   function flattenOrgTree(nodes, depth) {
     if (!nodes) return
@@ -340,10 +343,10 @@ async function saveStep(stepIndex) {
       1: { items: addresses.value, ep: 'addresses', build: a => (!a.type || !a.address) ? null : { type: a.type, address: a.address, province_id: a.province_id || null, regency_id: a.regency_id || null, district_id: a.district_id || null, village_id: a.village_id || null, postal_code: a.postal_code || null } },
       2: { items: contacts.value, ep: 'emergency-contacts', build: c => (!c.name || !c.phone_number) ? null : { name: c.name, phone_number: c.phone_number, relationship_type_id: c.relationship_type_id || null, address: c.address || null } },
       3: { items: families.value, ep: 'families', build: f => (!f.name) ? null : { nik: f.nik || null, name: f.name, dob: f.dob || null, relationship_type_id: f.relationship_type_id || null, education_id: f.education_id || null } },
-      4: { items: educations.value, ep: 'educations', build: e => (!e.name) ? null : { education_id: e.education_id || null, name: e.name, major: e.major || null, graduation_year: e.graduation_year ? parseInt(e.graduation_year) : null } },
+      4: { items: educations.value, ep: 'educations', build: e => (!e.name) ? null : { education_id: e.education_id || null, education_major_id: e.education_major_id || null, name: e.name, major: e.major || null, graduation_year: e.graduation_year ? parseInt(e.graduation_year) : null } },
       5: { items: experiences.value, ep: 'experiences', build: x => (!x.company) ? null : { company: x.company, position: x.position || null, start_year: x.start_year ? parseInt(x.start_year) : null, end_year: x.end_year ? parseInt(x.end_year) : null } },
       6: { items: documents.value, ep: 'documents', build: d => (!d.name || !d.file) ? null : { name: d.name, file: d.file, note: d.note || null } },
-      7: { items: insurances.value, ep: 'insurances', build: i => (!i.number || !i.name) ? null : { category: i.category || null, number: i.number, name: i.name, type: i.type || null } },
+      7: { items: insurances.value, ep: 'insurances', build: i => (!i.number) ? null : { insurance_id: i.insurance_id || null, number: i.number, type: i.type || null } },
       8: { items: banks.value, ep: 'banks', build: b => (!b.account_number || !b.account_name) ? null : { bank_id: b.bank_id || null, account_number: b.account_number, account_name: b.account_name } },
       9: { items: employments.value, ep: 'employments', build: em => (!em.decision_letter_number || !em.decision_letter_date || !em.effective_date) ? null : { organization_id: em.organization_id || null, employment_status_id: em.employment_status_id || null, decision_letter_number: em.decision_letter_number, decision_letter_date: em.decision_letter_date, effective_date: em.effective_date, effective_end_date: em.effective_end_date || null } }
     }
@@ -411,10 +414,10 @@ async function loadEmployee() {
   }
   if (data.emergency_contacts) { contacts.value = data.emergency_contacts.map(c => { const item = { name: c.name || '', relationship_type_id: c.relationship_type_id || '', phone_number: c.phone_number || '', address: c.address || '', _id: c.id || '' }; markSaved(item); return item }); if (contacts.value.length > 0) stepSaved[2] = true }
   if (data.families) { families.value = data.families.map(f => { const item = { nik: f.nik || '', name: f.name || '', dob: f.dob || '', relationship_type_id: f.relationship_type_id || '', education_id: f.education_id || '', _id: f.id || '' }; markSaved(item); return item }); if (families.value.length > 0) stepSaved[3] = true }
-  if (data.educations) { educations.value = data.educations.map(e => { const item = { education_id: e.education_id || '', name: e.name || '', major: e.major || '', graduation_year: e.graduation_year ? String(e.graduation_year) : '', _id: e.id || '' }; markSaved(item); return item }); if (educations.value.length > 0) stepSaved[4] = true }
+  if (data.educations) { educations.value = data.educations.map(e => { const item = { education_id: e.education_id || '', education_major_id: e.education_major_id || '', name: e.name || '', major: e.major || '', graduation_year: e.graduation_year ? String(e.graduation_year) : '', _id: e.id || '' }; markSaved(item); return item }); if (educations.value.length > 0) stepSaved[4] = true }
   if (data.experiences) { experiences.value = data.experiences.map(x => { const item = { company: x.company || '', position: x.position || '', start_year: x.start_year ? String(x.start_year) : '', end_year: x.end_year ? String(x.end_year) : '', _id: x.id || '' }; markSaved(item); return item }); if (experiences.value.length > 0) stepSaved[5] = true }
   if (data.documents) { documents.value = data.documents.map(d => { const item = { name: d.name || '', file: d.file || '', note: d.note || '', _id: d.id || '' }; markSaved(item); return item }); if (documents.value.length > 0) stepSaved[6] = true }
-  if (data.insurances) { insurances.value = data.insurances.map(i => { const item = { category: i.category || '', number: i.number || '', name: i.name || '', type: i.type || '', _id: i.id || '' }; markSaved(item); return item }); if (insurances.value.length > 0) stepSaved[7] = true }
+  if (data.insurances) { insurances.value = data.insurances.map(i => { const item = { insurance_id: i.insurance_id || '', insurance_name: i.insurance_name || '', number: i.number || '', type: i.type || '', _id: i.id || '' }; markSaved(item); return item }); if (insurances.value.length > 0) stepSaved[7] = true }
   if (data.banks) { banks.value = data.banks.map(b => { const item = { bank_id: b.bank_id || '', account_number: b.account_number || '', account_name: b.account_name || '', _id: b.id || '' }; markSaved(item); return item }); if (banks.value.length > 0) stepSaved[8] = true }
   if (data.employments) { employments.value = data.employments.map(em => { const item = { organization_id: em.organization_id || '', employment_status_id: em.employment_status_id || '', decision_letter_number: em.decision_letter_number || '', decision_letter_date: em.decision_letter_date || '', effective_date: em.effective_date || '', effective_end_date: em.effective_end_date || '' }; markSaved(item); return item }); if (employments.value.length > 0) stepSaved[9] = true }
 }

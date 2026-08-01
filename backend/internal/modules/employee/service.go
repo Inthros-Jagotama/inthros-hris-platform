@@ -581,6 +581,10 @@ func (s *Service) CreateEducation(ctx context.Context, employeeID string, req Cr
 		id, _ := uuid.Parse(*req.EducationID)
 		edu.EducationID = &id
 	}
+	if req.EducationMajorID != nil && *req.EducationMajorID != "" {
+		id, _ := uuid.Parse(*req.EducationMajorID)
+		edu.EducationMajorID = &id
+	}
 	if req.Major != nil {
 		edu.Major = req.Major
 	}
@@ -616,6 +620,13 @@ func (s *Service) UpdateEducation(ctx context.Context, employeeID, educationID s
 	if req.EducationID != nil && *req.EducationID != "" {
 		id, _ := uuid.Parse(*req.EducationID)
 		edu.EducationID = &id
+	}
+	if req.EducationMajorID != nil {
+		if *req.EducationMajorID == "" {
+			edu.EducationMajorID = nil
+		} else if id, err := uuid.Parse(*req.EducationMajorID); err == nil {
+			edu.EducationMajorID = &id
+		}
 	}
 	if req.Major != nil {
 		edu.Major = req.Major
@@ -826,10 +837,11 @@ func (s *Service) CreateInsurance(ctx context.Context, employeeID string, req Cr
 	ins := &EmployeeInsurance{
 		EmployeeID: &empUID,
 		Number:     req.Number,
-		Name:       req.Name,
 	}
-	if req.Category != nil {
-		ins.Category = req.Category
+	if req.InsuranceID != nil && *req.InsuranceID != "" {
+		if id, err := uuid.Parse(*req.InsuranceID); err == nil {
+			ins.InsuranceID = &id
+		}
 	}
 	if req.Type != nil {
 		ins.Type = req.Type
@@ -860,11 +872,12 @@ func (s *Service) UpdateInsurance(ctx context.Context, employeeID, insuranceID s
 	if req.Number != nil {
 		ins.Number = *req.Number
 	}
-	if req.Name != nil {
-		ins.Name = *req.Name
-	}
-	if req.Category != nil {
-		ins.Category = req.Category
+	if req.InsuranceID != nil {
+		if *req.InsuranceID == "" {
+			ins.InsuranceID = nil
+		} else if id, err := uuid.Parse(*req.InsuranceID); err == nil {
+			ins.InsuranceID = &id
+		}
 	}
 	if req.Type != nil {
 		ins.Type = req.Type

@@ -354,14 +354,17 @@ frontend/
   - [x] Step 5: **Education** (`EducationForm.vue`) — **DataTable + Dialog pattern** — education Tag, edit inline
   - [x] Step 6: **Work Experience** (`ExperienceForm.vue`) — **DataTable + Dialog pattern** — edit inline
   - [x] Step 7: **Documents** (`DocumentForm.vue`) — **DataTable + Dialog + File Upload** — multipart FormData upload (POST/PUT /documents/upload), file validation (PDF/DOC/XLSX/JPG/PNG max 10MB), download link in table
-  - [x] Step 8: **Insurance (BPJS)** (`InsuranceForm.vue`) — **DataTable + Dialog pattern** — category Tag (BPJS Kesehatan/Ketenagakerjaan/Non BPJS), edit inline
-  - [ ] Step 9: **Employment Record** (`EmploymentForm.vue`) — ⏸️ **Postponed**
+  - [x] Step 8: **Insurance (BPJS)** (`InsuranceForm.vue`) — **DataTable + Dialog pattern** — insurance_id SelectLabel (options dari `/settings/insurances`, label **tanpa kode**), edit inline. Refactor: field `category` → `insurance_id` (relasi ke `insurances`, migration 026/027 + FK `fk_empins_insurance`), kolom `name` dihapus (migration 028) — nama tampil dari relasi via `insurance_name` (preload `Insurances.Insurance`), fallback `getInsuranceLabel()`
+  - [x] Step 9: **Bank Account** (`BankAccountForm.vue` — ex-`BankProfileForm.vue`) — **DataTable + Dialog pattern** — bank SelectLabel (options dari `/settings/banks`, label **tanpa kode**), edit inline. **Rename komponen**: `BankProfileForm.vue` → `BankAccountForm.vue` (import & tag `<BankAccountForm>` di `EmployeeForm.vue` diupdate), label 'Bank Profile' → 'Bank Account' (locale `wizard_step_bank`/`tab_bank`)
+  - [ ] Step 10: **Employment Record** (`EmploymentForm.vue`) — ⏸️ **Postponed**
 - [ ] **Employee Detail Page** — Tab view — ⏸️ **Postponed**
 
 **Key Features:**
 - ✅ Step persistence via URL query param (`?step=N`) — survives page refresh
 - ✅ Personal data auto-saves → redirects to edit mode (employeeId preserved)
 - ✅ All forms use **DataTable + Dialog + Edit** pattern (Family, Education, Experience, Documents, Insurance)
+- ✅ **Insurance options label tanpa kode** — dropdown asuransi (EmployeeForm `insuranceOptions`) hanya menampilkan nama (mis. "BPJS Kesehatan", bukan "BPJS Kesehatan (01)")
+- ✅ **Bank Account rename** — komponen `BankProfileForm.vue` di-rename jadi `BankAccountForm.vue` + label 'Bank Profile' → 'Bank Account' (locale `wizard_step_bank`/`tab_bank`) — konsisten dengan penamaan label baru
 - ✅ **Document file upload** — file picker + FormData + validation + download link
 - ✅ **Photo upload** — crop/resize with cropper.js, multipart upload
 - ✅ **Village autocomplete** — cascading province/regency/district auto-fill

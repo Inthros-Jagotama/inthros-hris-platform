@@ -28,7 +28,7 @@
       </Column>
       <Column field="major" :header="t('employee.major')">
         <template #body="{data}">
-          <span class="text-gray-600 dark:text-gray-400">{{ data.major || '-' }}</span>
+          <span class="text-gray-600 dark:text-gray-400">{{ data.major_name || getMajorLabel(data.education_major_id) || data.major || '-' }}</span>
         </template>
       </Column>
       <Column field="graduation_year" :header="t('employee.graduation_year')" style="width:110px">
@@ -55,8 +55,8 @@
         <FormRow :label="t('employee.school_name')" required :errors="errors?.name">
           <TextInput v-model="form.name" maxlength="255" :placeholder="t('employee.school_name_placeholder')" :class="{'p-invalid':errors?.name}" />
         </FormRow>
-        <FormRow :label="t('employee.major')" :errors="errors?.major">
-          <TextInput v-model="form.major" maxlength="255" :placeholder="t('employee.major_placeholder')" :class="{'p-invalid':errors?.major}" />
+        <FormRow :label="t('employee.major')" :errors="errors?.education_major_id">
+          <SelectLabel v-model="form.education_major_id" :options="majorOptions" optionLabel="label" optionValue="value" :placeholder="t('employee.select_major')" :class="{'p-invalid':errors?.education_major_id}" :showClear="true" />
         </FormRow>
         <FormRow :label="t('employee.graduation_year')" :errors="errors?.graduation_year">
           <TextInput v-model="form.graduation_year" maxlength="4" :placeholder="t('employee.graduation_year_placeholder')" :class="{'p-invalid':errors?.graduation_year}" />
@@ -105,6 +105,7 @@ const props = defineProps({
   items: { type: Array, required: true },
   errs: { type: Array, default: () => [] },
   educationOptions: { type: Array, default: () => [] },
+  majorOptions: { type: Array, default: () => [] },
   saving: { type: Boolean, default: false },
   employeeId: { type: String, default: '' }
 })
@@ -117,20 +118,26 @@ function getEduLabel(id) {
   return opt ? opt.label : id
 }
 
+function getMajorLabel(id) {
+  if (!id) return ''
+  const opt = props.majorOptions.find(o => o.value === id)
+  return opt ? opt.label : ''
+}
+
 // ── Dialog state ──
 const dialogVisible = ref(false)
 const editingId = ref(null)
 const editingIdx = ref(null)
 const saving = ref(false)
 const errors = ref({})
-const form = ref({ education_id: '', name: '', major: '', graduation_year: '' })
+const form = ref({ education_id: '', education_major_id: '', name: '', major: '', graduation_year: '' })
 const isEditing = computed(() => editingId.value !== null)
 
 function openDialog() {
   editingId.value = null
   editingIdx.value = null
   errors.value = {}
-  form.value = { education_id: '', name: '', major: '', graduation_year: '' }
+  form.value = { education_id: '', education_major_id: '', name: '', major: '', graduation_year: '' }
   dialogVisible.value = true
 }
 
@@ -140,6 +147,7 @@ function openEditDialog(item, idx) {
   errors.value = {}
   form.value = {
     education_id: item.education_id || '',
+    education_major_id: item.education_major_id || '',
     name: item.name || '',
     major: item.major || '',
     graduation_year: item.graduation_year ? String(item.graduation_year) : ''
@@ -148,7 +156,7 @@ function openEditDialog(item, idx) {
 }
 
 function resetForm() {
-  form.value = { education_id: '', name: '', major: '', graduation_year: '' }
+  form.value = { education_id: '', education_major_id: '', name: '', major: '', graduation_year: '' }
   editingId.value = null
   editingIdx.value = null
   errors.value = {}
@@ -161,6 +169,7 @@ async function handleSave() {
   try {
     const payload = {
       education_id: form.value.education_id || null,
+      education_major_id: form.value.education_major_id || null,
       name: form.value.name,
       major: form.value.major || null,
       graduation_year: form.value.graduation_year ? parseInt(form.value.graduation_year) : null
