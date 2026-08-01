@@ -1122,6 +1122,10 @@
     "updated": "Hari libur perusahaan berhasil diperbarui",
     "deleted": "Hari libur perusahaan berhasil dihapus",
     "desc": "Keterangan",
-    "desc_placeholder": "Keterangan (opsional)"
+    "desc_placeholder": "Keterangan (opsional)",
+    "view_table": "Tabel",
+    "view_calendar": "Kalender",
+    "calendar_legend": "Libur Bulan Ini",
+    "calendar_empty_month": "Tidak ada libur pada bulan ini"
   }
 }

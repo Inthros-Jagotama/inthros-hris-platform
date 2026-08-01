@@ -1122,6 +1122,10 @@
     "updated": "Company holiday updated successfully",
     "deleted": "Company holiday deleted successfully",
     "desc": "Desc",
-    "desc_placeholder": "Desc (optional)"
+    "desc_placeholder": "Desc (optional)",
+    "view_table": "Table",
+    "view_calendar": "Calendar",
+    "calendar_legend": "Holidays This Month",
+    "calendar_empty_month": "No holidays in this month"
   }
 }
