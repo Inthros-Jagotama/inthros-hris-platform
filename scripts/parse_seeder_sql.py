@@ -13,7 +13,9 @@ import sys
 import time
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUTPUT_DIR = os.path.join(BASE_DIR, "backend", "migrations", "seeders")
+# File SQL hasil generate di-embed ke binary via //go:embed seeddata
+# di package internal/pkg/tenantseed (SeedTenantMasterData → seedFromEmbeddedSQL).
+OUTPUT_DIR = os.path.join(BASE_DIR, "backend", "internal", "pkg", "tenantseed", "seeddata")
 
 
 def find_all_insert_calls(content):

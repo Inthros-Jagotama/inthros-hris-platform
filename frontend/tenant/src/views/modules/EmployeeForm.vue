@@ -65,7 +65,7 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
-import { getValidationErrors } from '@/services/responseHandler'
+import { getValidationErrors, getErrorCode } from '@/services/responseHandler'
 import api from '@/services/api'
 
 import Tag from 'primevue/tag'
@@ -308,6 +308,9 @@ async function savePersonalData() {
   } catch (e) {
     const fe = getValidationErrors(e)
     if (Object.keys(fe).length > 0) { stepErrors.value = fe }
+    else if (getErrorCode(e) === 'QUOTA_EXCEEDED') {
+      toast.add({ severity: 'error', summary: t('message.error'), detail: t('employee.quota_exceeded'), life: 5000 })
+    }
     else { toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 }) }
   } finally { stepLoading.value = false }
 }

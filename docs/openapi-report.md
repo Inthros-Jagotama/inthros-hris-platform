@@ -1,20 +1,20 @@
 = HRIS Platform — OpenAPI Comprehensive Report (v15) =
 
 
-**Generated:** 30 July 2026
+**Generated:** 31 July 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 364
-**Total Endpoints (methods):** 673
-**Total Schemas:** 429
+**Total Paths:** 365
+**Total Endpoints (methods):** 674
+**Total Schemas:** 431
 **Total Tags:** 27
 
 ## Coverage Summary
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 673/673 | 100% |
-| Endpoints with `description` | 673/673 | 100% |
-| Endpoints with `operationId` | 673/673 | 100% |
+| Endpoints with `summary` | 674/674 | 100% |
+| Endpoints with `description` | 674/674 | 100% |
+| Endpoints with `operationId` | 674/674 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -121,7 +121,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | 14 | Tenant: Employee Movement & Career Management | 15 | 9 |
 | 15 | Tenant: Approval | 15 | 9 |
 | 16 | Tenant: Reimbursement & Claim | 15 | 7 |
-| 17 | Platform: Companies | 10 | 7 |
+| 17 | Platform: Companies | 11 | 8 |
 | 18 | Platform: RBAC Management | 10 | 6 |
 | 19 | Platform: Packages | 9 | 6 |
 | 20 | Platform: Modules | 7 | 5 |
@@ -132,7 +132,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | 25 | Tenant: Packages | 4 | 4 |
 | 26 | Platform: Auth | 2 | 2 |
 | 27 | Tenant: Approval Engine | 1 | 1 |
-| | **TOTAL** | **673** | **364** |
+| | **TOTAL** | **674** | **365** |
 
 ## 2. Module Detail
 
@@ -878,8 +878,8 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Platform: Companies
 **Description:** Company/Tenant management
-**Endpoints:** 10 | **Paths:** 7
-**Methods:** DELETE=1 GET=2 POST=6 PUT=1
+**Endpoints:** 11 | **Paths:** 8
+**Methods:** DELETE=1 GET=2 POST=7 PUT=1
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -893,6 +893,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/platform/companies/{id}/restore` | Trigger tenant restore (Phase 2) | Restore a company tenant's database from a previously created backup. Requires a valid backup reference. |
 | `POST` | `/api/v1/platform/companies/{id}/suspend` | Suspend a company/tenant (deactivate connection) | Suspend a company tenant â€” deactivates the database connection, clears cached connections, and sets the company status to 'suspended'. All tenant... |
 | `POST` | `/api/v1/platform/companies/{id}/terminate` | Terminate a company/tenant (drop database + remove connection) | Permanently terminate a company tenant. This drops the tenant database entirely, removes the connection record, and sets the company status to 'ter... |
+| `POST` | `/api/v1/platform/companies/{id}/rotate-credentials` | Rotate tenant DB credentials (ALTER USER + update encrypted connection) | Rotate the tenant database credentials for a company. Runs ALTER USER on the DB server (dialect-aware), updates tenant_connections with the new password (encrypted AES-256-GCM), and closes cached connections so the tenant reconnects with fresh credentials. If new_password is omitted, the backend auto-generates a strong password (24 chars) and returns it once in the response. |
 
 ### Platform: RBAC Management
 **Description:** Role-based access control management for roles, permissions, and role-permission assignments

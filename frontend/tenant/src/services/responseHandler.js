@@ -45,6 +45,10 @@ export function getStatus(error) {
   return error?.response?.status || 0
 }
 
+export function getErrorCode(error) {
+  return error?.response?.data?.error?.code || error?.error?.code || ''
+}
+
 export function isValidationError(error) {
   return getStatus(error) === 422 || error?.response?.data?.error?.code === 'VALIDATION_ERROR'
 }

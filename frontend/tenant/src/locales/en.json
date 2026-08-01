@@ -214,6 +214,7 @@
     "title": "Employees",
     "description": "Manage employee data and records.",
     "saved": "Employee data saved successfully",
+    "quota_exceeded": "Employee quota reached. Contact your administrator to increase the license limit.",
     "mother_name": "Mother's Name",
     "mother_name_placeholder": "Enter mother's name",
     "pob": "Place of Birth",

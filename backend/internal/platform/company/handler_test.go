@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -35,18 +36,106 @@ func setupTestEnv() *testEnv {
 	rg := r.Group("/api/v1/platform")
 	{
 		companies := rg.Group("/companies")
-		{
-			companies.POST("/:id/terminate", handler.Terminate)
-			companies.POST("/", handler.Create)
-			companies.GET("/:id", handler.GetByID)
+			{
+				companies.POST("/:id/terminate", handler.Terminate)
+				companies.POST("/:id/rotate-credentials", handler.RotateCredentials)
+				companies.POST("/", handler.Create)
+				companies.GET("/:id", handler.GetByID)
+			}
 		}
-	}
 
 	return &testEnv{
 		router:  r,
 		db:      db,
 		fakeTM:  fakeTM,
 		cleanup: func() { cleanup(); logger.Sync() },
+	}
+}
+
+// =========================================================================
+// Handler Tests — Rotate Credentials Endpoint
+// =========================================================================
+
+func TestHandler_RotateCredentials_Success(t *testing.T) {
+	env := setupTestEnv()
+	defer env.cleanup()
+
+	company := createTestCompany(env.db, "Rotate Handler")
+
+	var rotatedPassword string
+	env.fakeTM.RotateTenantCredFunc = func(companyID, newPassword string) error {
+		rotatedPassword = newPassword
+		return nil
+	}
+
+	body := `{"new_password":"handler-pass-123"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/platform/companies/"+company.ID.String()+"/rotate-credentials",
+		strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	env.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	if rotatedPassword != "handler-pass-123" {
+		t.Errorf("expected rotated password 'handler-pass-123', got %q", rotatedPassword)
+	}
+
+	var resp struct {
+		Success bool `json:"success"`
+		Data    struct {
+			CompanyID string `json:"company_id"`
+			Rotated   bool   `json:"rotated"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+	if !resp.Success || !resp.Data.Rotated {
+		t.Errorf("expected success+rotated, got %+v", resp)
+	}
+}
+
+func TestHandler_RotateCredentials_InvalidBody(t *testing.T) {
+	env := setupTestEnv()
+	defer env.cleanup()
+
+	company := createTestCompany(env.db, "Rotate Bad Body")
+
+	// new_password terlalu pendek (< 8) → validasi gagal
+	body := `{"new_password":"short"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/platform/companies/"+company.ID.String()+"/rotate-credentials",
+		strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	env.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for short password, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_RotateCredentials_Terminated(t *testing.T) {
+	env := setupTestEnv()
+	defer env.cleanup()
+
+	company := createTestCompany(env.db, "Rotate Term Handler")
+	company.Status = CompanyStatusTerminated
+	if err := env.db.Save(company).Error; err != nil {
+		t.Fatalf("failed to save company: %v", err)
+	}
+
+	body := `{"new_password":"handler-pass-123"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/platform/companies/"+company.ID.String()+"/rotate-credentials",
+		strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	env.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409 for terminated company, got %d: %s", w.Code, w.Body.String())
 	}
 }
 

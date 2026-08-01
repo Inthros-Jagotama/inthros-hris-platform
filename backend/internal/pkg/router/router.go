@@ -19,7 +19,7 @@ type Config struct {
 //
 // Platform modules: /api/v1/platform/*
 // Tenant modules:   /api/v1/tenant/*
-func Setup(cfg Config, authMiddleware, tenantMiddleware, rbacMiddleware gin.HandlerFunc,
+func Setup(cfg Config, authMiddleware, tenantMiddleware, licenseMiddleware, rbacMiddleware gin.HandlerFunc,
 	corsMiddleware gin.HandlerFunc, loggerMiddleware gin.HandlerFunc,
 	recoveryMiddleware gin.HandlerFunc,
 	platformModules []module.ModuleRegistration,
@@ -56,10 +56,15 @@ func Setup(cfg Config, authMiddleware, tenantMiddleware, rbacMiddleware gin.Hand
 		}
 	}
 
-	// Tenant routes (with auth + tenant + RBAC middleware)
+	// Tenant routes (with auth + tenant + license + RBAC middleware)
+	// Order: AuthJWT → TenantRequired → LicenseMiddleware (guard lisensi modul)
+	// → RBAC. LicenseMiddleware boleh nil (di-skip) bila tidak digunakan.
 	tenantGroup := r.Group("/api/v1/tenant")
 	tenantGroup.Use(authMiddleware)
 	tenantGroup.Use(tenantMiddleware)
+	if licenseMiddleware != nil {
+		tenantGroup.Use(licenseMiddleware)
+	}
 	tenantGroup.Use(rbacMiddleware)
 	{
 		for _, reg := range tenantModules {

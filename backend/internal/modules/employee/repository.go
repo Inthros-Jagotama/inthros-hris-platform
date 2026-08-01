@@ -63,6 +63,19 @@ func (r *Repository) FindEmployeeByEmployeeID(ctx context.Context, employeeID st
 	return &emp, nil
 }
 
+// CountEmployees menghitung jumlah total employee (untuk kuota on-premise).
+func (r *Repository) CountEmployees(ctx context.Context) (int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var total int64
+	if err := db.Model(&Employee{}).Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
 func (r *Repository) FindAllEmployees(ctx context.Context, page, perPage int, search string) ([]Employee, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {

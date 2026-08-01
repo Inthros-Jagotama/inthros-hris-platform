@@ -19,10 +19,42 @@ const (
 type Service struct {
 	repo   *Repository
 	logger *zap.Logger
+	quota  EmployeeQuotaChecker // nil = unlimited (mode saas)
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// SetQuotaChecker menginjeksi batas kuota employee (mode on-premise).
+// Dipanggil dari main.go saat lisensi on-premise dimuat.
+func (s *Service) SetQuotaChecker(qc EmployeeQuotaChecker) {
+	s.quota = qc
+}
+
+// checkQuota menolak pembuatan employee jika jumlah saat ini sudah mencapai
+// batas maksimal lisensi on-premise. Tanpa checker (mode saas) → selalu lolos.
+//
+// Catatan: check-then-insert tidak atomik — dua request konkuren bisa lolos
+// bersamaan dan melebihi batas sebanyak 1. Diterima untuk MVP; untuk
+// enforcement ketat perlu transaksi/kunci di level DB.
+func (s *Service) checkQuota(ctx context.Context) error {
+	if s.quota == nil {
+		return nil
+	}
+	max := s.quota.MaxEmployees()
+	if max <= 0 {
+		return nil // unlimited
+	}
+
+	count, err := s.repo.CountEmployees(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to count employees for quota check: %w", err)
+	}
+	if count >= int64(max) {
+		return ErrQuotaExceeded
+	}
+	return nil
 }
 
 // =========================================================================
@@ -30,6 +62,11 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 // =========================================================================
 
 func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*EmployeeResponse, error) {
+	// Enforce kuota max_employees (on-premise) sebelum membuat record baru.
+	if err := s.checkQuota(ctx); err != nil {
+		return nil, err
+	}
+
 	emp := &Employee{
 		EmployeeID: req.EmployeeID,
 		Name:       req.Name,

@@ -14,18 +14,18 @@
 | **Total Go Files** | **224+** (155 source + 69 test) |
 | **Total GORM Entities** | **121** (116 tenant + 5 platform) |
 | **Total Test Functions** | **~1004+** |
-| **Total OpenAPI Endpoints** | **673** |
-| **Total OpenAPI Schemas** | **429** |
+| **Total OpenAPI Endpoints** | **674** |
+| **Total OpenAPI Schemas** | **431** |
 | **Total OpenAPI Tags** | **27** |
 | **Module Type Filter** | ✅ **3 endpoints** (`/modules`, `/packages`, `/public/packages`) |
 | **Bilingual Support** | ✅ **EN/ID** — Backend 80+ message pairs + Frontend 200+ locale keys, middleware auto-detect, field validation errors |
 | **Frontend Phase 1** | ✅ **9/9 Platform Admin pages** — 100% complete with bilingual support |
 | **Frontend Tenant (Phase 2)** | ✅ **20+ views** — Dashboard, Login, Profile, Organization, 17 Settings CRUDs |
-| **Frontend Components** | **34+** (11 views, 9 form components, 3 composables, 2 utils, stores, services) |
+| **Frontend Components** | **35+** (11 views, 10 form/action components, 3 composables, 2 utils, stores, services) |
 | **Frontend Build** | ✅ **Clean** — zero warnings |
-| **Migration Files** | **36 per dialect** (18 up + 18 down) |
+| **Migration Files** | **44 per dialect** (22 up + 22 down) |
 | **Database Drivers** | PostgreSQL & MySQL |
-| **Total Tenant Tables** | **143** (+ schema_migrations = 144) |
+| **Total Tenant Tables** | **148** (+ schema_migrations = 149) |
 
 ---
 
@@ -156,13 +156,14 @@
 
 | Item | Count | Details |
 |------|:----:|---------|
-| **Tenant migration files (MySQL)** | **36** (18 up + 18 down) | `001_master_data` → `018_career_intelligence` |
-| **Tenant migration files (Postgres)** | **36** (18 up + 18 down) | Same as MySQL, dialect-adapted |
-| **Platform migration files** | **13** | Platform DDL + seeders |
-| **Total tenant tables** | **143** | Across all 18 migrations |
-| **Total with schema_migrations** | **144** | Auto-included by migrator engine |
+| **Tenant migration files (MySQL)** | **44** (22 up + 22 down) | `001_master_data` → `022_users` |
+| **Tenant migration files (Postgres)** | **44** (22 up + 22 down) | Same as MySQL, dialect-adapted |
+| **Platform migration files** | **8 DDL** (+6 down = 14) | Platform: 001–006, 007 RBAC, 012; seeders terpisah (2 file) |
+| **Total tenant tables** | **148** | Across all 22 migrations |
+| **Total with schema_migrations** | **149** | Auto-included by migrator engine |
 | **Database drivers** | **2** | PostgreSQL 16+ & MySQL 8+ |
-| **Migration engine** | ✅ | SQL-based, embedded, transaction-safe |
+| **Migration engine** | ✅ | SQL-based, embedded, transaction-safe. Terbaru: `021_insurances` (tabel insurances resmi, sebelumnya AutoMigrate) + `022_users` (Level 2 Tenant RBAC identity) |
+| **Tenant RBAC Seeder** | ✅ | `tenantseed.SeedTenantRBAC()` — auto-seed 64 permissions (16 resource × 4 action) + default roles Admin (full) & Employee (view-only) saat provisioning via CLI (`handleProvision`/`seed-data`) **dan API** (`company.Service.provisionTenant`); idempotent |
 
 ### Tenant Table Distribution
 
@@ -172,12 +173,13 @@
 | **Job Management** | 20 | **Master Data** | 12 |
 | **Attendance** | 10 | **Competency** | 7 |
 | **Performance** | 7 | **Recruitment** | 7 |
-| **Training & Dev** | 7 | **Settings & Permissions** | 7 |
+| **Training & Dev** | 7 | **Settings & Permissions** | 9 |
 | **Leave** | 6 | **Approval** | 5 |
 | **Organization** | 5 | **BPJS (seeded)** | 2 (1 setting + 13 rates) |
 | **System** | 1 | **Tax** | 1 |
 | **Employee Movement** | 2 | **Workforce Intelligence** | 7 |
 | **Career Intelligence** | 4 | | |
+| | | **Total (incl. 021 insurances, 022 users)** | **145** |
 
 ---
 
@@ -186,9 +188,11 @@
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 673 endpoints |
-| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 673 endpoints |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 674 endpoints |
+| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 674 endpoints |
 | **RBAC Engine** | ✅ **Active** | 4 default roles, **74+ permissions (14 resources)**, auto-reload |
+| **On-Premise License Engine** | ✅ **Ready** | `internal/pkg/onpremise/` — RSA `.lic` (expires_at, allowed_modules, max_employees); CLI `licensectl` (gen-key/gen-lic); mode `on_premise` via `HRIS_LICENSE_DEPLOYMENT_MODE` (dormant di mode saas default); lister alternatif PlatformLicenseMiddleware. **`max_employees` di-enforce di `Service.Create()` → 403 `QUOTA_EXCEEDED`** (toast bilingual FE `employee.quota_exceeded`) |
+| **Quota Audit (no bypass)** | ✅ **Audited** | Kuota terpusat di `Service.Create()` — satu-satunya pembuat Employee master. Payroll profiles / onboarding / employee-shift / sub-record TIDAK membuat Employee master (tidak perlu kuota). Frontend hanya 1 caller (`EmployeeForm.savePersonalData`). Jalur masa depan (batch import) otomatis kena kuota. *(Audit 31 Jul 2026)* |
 | **Cache (Redis)** | 🔶 **Optional** | Redis required for distributed mode |
 | **Docker Compose** | ✅ **Ready** | PostgreSQL, Redis, API, Asynqmon |
 | **Dockerfile** | ✅ **Multi-stage** | Optimized Go build |
@@ -221,7 +225,7 @@
 |-------|---------|-------------|:------:|
 | B.1 | Login | JWT auth, bilingual form, validation error per field | ✅ |
 | B.2 | Dashboard | KPI cards (6), bar chart, system health, real-time polling 30s | ✅ |
-| B.3 | Companies | Filter by status/package/search, license inline, provisioning progress | ✅ |
+| B.3 | Companies | Filter by status/package/search, license inline, provisioning progress, **Company Detail page + Rotate Credentials + CompanyActions.vue reusable** | ✅ |
 | B.4 | Users | Filter by role, search, bulk actions (delete, change role), super_admin protection | ✅ |
 | B.5 | Modules | Filter `?module_type=`, filter chips, depends_on tooltip, auto-slug | ✅ |
 | B.6 | Licenses | Package integration, filter by package, copy key, expiry warnings | ✅ |
@@ -254,6 +258,7 @@
 | **useI18n / useNotification** | All views (bilingual text + toast) |
 | **SkeletonTable / SkeletonCard** | All tenant views (loading skeleton) |
 | **ConfirmDeleteDialog** | **20+ tenant views** — Custom dialog yang tetap terbuka selama API call, error tampil inline (menggantikan PrimeVue ConfirmDialog) |
+| **CompanyActions** | **Platform Admin Companies (list & detail)** — Komponen reusable untuk Edit/Suspend/Activate/Terminate/Rotate + ConfirmDialog + Edit dialog + rotate password dialog (sekali lihat + copy); `mode="icons"` di list, `mode="buttons"` di header detail; emit `updated` → parent reload; tombol disembunyikan untuk company `terminated` |
 | **formatDate.js** | **Utility** — Bilingual date formatting: `formatDate(value, locale)` → "30 July 2026" (EN) / "30 Juli 2026" (ID); `formatDateShort()` → "30/07/2026" |
 | **primevueLocale.js** | **Utility** — PrimeVue locale configs EN/ID untuk DatePicker (nama bulan/hari bilingual, first day of week, tombol "Today"/"Hari Ini") |
 | **DateInput bilingual** | **OrganizationSummary** — Calendar popup menampilkan nama bulan/hari sesuai bahasa aktif; bug fix: raw string `item.decree_date || null` (ganti `new Date(... + 'T00:00:00')`) |
@@ -302,6 +307,7 @@
 | Document | Path |
 |----------|------|
 | Main README | `./README.md` |
+| Deployment Guide (SaaS & On-Premise) | `./docs/deployment-guide.md` |
 | Architecture Design | `./ARCHITECTURE_DESIGN_v1.6_Updated.md` |
 | OpenAPI Report (v17) | `./docs/openapi-report.md` |
 | Go Module Architecture Report | `./docs/go-module-architecture-report.md` |

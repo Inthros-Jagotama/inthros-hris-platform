@@ -23,6 +23,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler, authMW, rbacMW gin.Ha
 			companies.POST("/:id/suspend", handler.Suspend)
 			companies.POST("/:id/activate", handler.Activate)
 			companies.POST("/:id/terminate", handler.Terminate)
+			companies.POST("/:id/rotate-credentials", handler.RotateCredentials)
 			companies.POST("/:id/backup", handler.Backup)
 			companies.POST("/:id/restore", handler.Restore)
 		}

@@ -12,7 +12,7 @@
         </span>
       </div>
       <div class="flex items-center gap-2">
-        <Button :label="t('common.add')" icon="pi pi-plus" size="small" @click="goToNew()" />
+        <Button v-if="hasPermission('employee.create')" :label="t('common.add')" icon="pi pi-plus" size="small" @click="goToNew()" />
       </div>
     </div>
 
@@ -77,8 +77,8 @@
       <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right">
         <template #body="{data}">
           <div class="flex items-center gap-1">
-            <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="goToEdit(data)" />
-            <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" />
+            <Button v-if="hasPermission('employee.update')" icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="goToEdit(data)" />
+            <Button v-if="hasPermission('employee.delete')" icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" />
           </div>
         </template>
       </Column>
@@ -102,6 +102,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/stores/auth'
 import api from '@/services/api'
 
 import DataTable from 'primevue/datatable'
@@ -117,6 +118,7 @@ import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 const router = useRouter()
 const { t } = useI18n()
 const toast = useToast()
+const { hasPermission } = useAuth()
 
 // ── Data ──
 const items = ref([])

@@ -1,0 +1,1 @@
+function e(e){if(!e)return{};let t=e.response?.data||e,n=t?.error?.errors||t?.error?.fields||{},r={};for(let[e,t]of Object.entries(n))r[e]=Array.isArray(t)?t.join(`, `):String(t);return r}function t(e){return e?.response?.data?.error?.code||e?.error?.code||``}export{e as n,t};

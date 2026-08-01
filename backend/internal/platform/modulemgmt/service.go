@@ -1,19 +1,23 @@
 package modulemgmt
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
+	"github.com/inthros/hris-platform/internal/pkg/cache"
 	"github.com/inthros/hris-platform/internal/pkg/database"
+	"github.com/inthros/hris-platform/internal/pkg/middleware"
 )
 
 // Service untuk business logic Module Management.
 type Service struct {
-	repo      *Repository
-	dbManager *database.Manager
-	logger    *zap.Logger
+	repo         *Repository
+	dbManager    *database.Manager
+	logger       *zap.Logger
+	cacheManager *cache.Cache
 }
 
 // NewService membuat Service baru.
@@ -22,6 +26,26 @@ func NewService(repo *Repository, dbManager *database.Manager, logger *zap.Logge
 		repo:      repo,
 		dbManager: dbManager,
 		logger:    logger,
+	}
+}
+
+// SetCacheManager menginjeksi cache manager untuk invalidasi license cache
+// saat modul diaktifkan/dinonaktifkan. Dipanggil dari main.go setelah cache siap.
+func (s *Service) SetCacheManager(cm *cache.Cache) {
+	s.cacheManager = cm
+}
+
+// invalidateLicenseCache menghapus license cache PlatformLicenseMiddleware
+// untuk company agar perubahan modul langsung berlaku (tanpa menunggu TTL).
+func (s *Service) invalidateLicenseCache(companyID string) {
+	if s.cacheManager == nil {
+		return
+	}
+	if err := s.cacheManager.Invalidate(context.Background(), middleware.LicenseCacheKey(companyID)); err != nil {
+		s.logger.Warn("Failed to invalidate license cache",
+			zap.String("company_id", companyID),
+			zap.Error(err),
+		)
 	}
 }
 
@@ -161,6 +185,8 @@ func (s *Service) ActivateModule(moduleID, companyID string) (*CompanyModuleResp
 		return nil, err
 	}
 
+	s.invalidateLicenseCache(companyID)
+
 	s.logger.Info("Module activated for company",
 		zap.String("module_id", moduleID),
 		zap.String("module_name", module.Name),
@@ -196,6 +222,8 @@ func (s *Service) DeactivateModule(moduleID, companyID string) (*CompanyModuleRe
 	if err != nil {
 		return nil, err
 	}
+
+	s.invalidateLicenseCache(companyID)
 
 	s.logger.Info("Module deactivated for company",
 		zap.String("module_id", moduleID),

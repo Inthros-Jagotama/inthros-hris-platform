@@ -42,6 +42,18 @@ const routes = [
         }
       },
       {
+        path: 'companies/:id',
+        name: 'CompanyDetail',
+        component: () => import('@/views/CompanyDetail.vue'),
+        meta: {
+          title: 'Company Details',
+          titleKey: 'companies.detail_title',
+          descKey: 'companies.detail_description',
+          icon: 'pi pi-building',
+          description: 'Company details & lifecycle'
+        }
+      },
+      {
         path: 'users',
         name: 'Users',
         component: () => import('@/views/Users.vue'),

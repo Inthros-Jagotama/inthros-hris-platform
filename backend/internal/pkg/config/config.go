@@ -23,6 +23,7 @@ type Config struct {
 	Logger   LoggerConfig   `mapstructure:"logger"`
 	OTEL     OTELConfig     `mapstructure:"otel"`
 	CORS     CORSConfig     `mapstructure:"cors"`
+	License  LicenseConfig  `mapstructure:"license"`
 }
 
 // Catatan: Kunci enkripsi AES-256-GCM dibaca langsung dari environment variable
@@ -34,6 +35,19 @@ type ServerConfig struct {
 	Mode         string `mapstructure:"mode"` // debug, release, test
 	ReadTimeout  int    `mapstructure:"read_timeout"`
 	WriteTimeout int    `mapstructure:"write_timeout"`
+}
+
+// LicenseConfig untuk mesin lisensi (SaaS vs On-Premise).
+// DeploymentMode: "saas" (default, lisensi modul via company_modules DB) atau
+// "on_premise" (lisensi via file .lic RSA — DEPLOYMENT_MODE / HRIS_LICENSE_DEPLOYMENT_MODE).
+type LicenseConfig struct {
+	// DeploymentMode: "saas" atau "on_premise". Bisa di-override
+	// via env HRIS_LICENSE_DEPLOYMENT_MODE (setara DEPLOYMENT_MODE).
+	DeploymentMode string `mapstructure:"deployment_mode"`
+	// LicenseFile: path ke file .lic (wajib saat on_premise).
+	LicenseFile string `mapstructure:"license_file"`
+	// PublicKeyFile: path ke RSA public key PEM (wajib saat on_premise).
+	PublicKeyFile string `mapstructure:"public_key_file"`
 }
 
 type DatabaseConfig struct {
@@ -166,6 +180,10 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("otel.enabled", false)
 	v.SetDefault("otel.service_name", "hris-platform")
 	v.SetDefault("otel.sample_rate", 0.1)
+
+	v.SetDefault("license.deployment_mode", "saas")
+	v.SetDefault("license.license_file", "license.lic")
+	v.SetDefault("license.public_key_file", "license_public.pem")
 
 	v.SetDefault("cors.allowed_origins", []string{"*"})
 	v.SetDefault("cors.allowed_methods", []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})

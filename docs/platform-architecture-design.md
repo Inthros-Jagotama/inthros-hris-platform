@@ -219,9 +219,9 @@ hris-platform/                          # Root monorepo
 │               ├── migrator.go         # Core: Up(), Down(), DownTo()
 │               ├── embed.go            # //go:embed migrations/
 │               └── migrations/
-│                   ├── platform/       # Platform DDL (6 files)
-│                   ├── seeders/        # Seed data (1 file)
-│                   └── tenant/         # Tenant template (empty)
+│                   ├── platform/       # Platform DDL (8 files)
+│                   ├── seeders/        # Seed data (2 file — 001 + down)
+│                   └── tenant/         # Tenant migrations (44 file/dialect — mysql & postgres)
 │   ├── docker/
 │   │   ├── Dockerfile
 │   │   └── docker-compose.yml
@@ -420,9 +420,10 @@ Handler (routes/handler.go)
 | **Down Rollback** (`migrator.Down()` / `migrator.DownTo()`) | Rollback migration via file `.down.sql` — reverse operation DDL/DML |
 
 **Migration Strategy:**
-- Platform DB migrations: `internal/pkg/migrator/migrations/platform/` (6 files)
-- Seed data: `internal/pkg/migrator/migrations/seeders/` (1 file)
-- Tenant DB template migrations: `internal/pkg/migrator/migrations/tenant/` (future)
+- Platform DB migrations: `internal/pkg/migrator/migrations/platform/` (8 files)
+- Seed data: `internal/pkg/migrator/migrations/seeders/` (2 file — `001_seed_super_admin.sql` + down)
+- Tenant bulk seed: `internal/pkg/tenantseed/seeddata/` (2 embedded SQL — districts & villages), di-embed via `//go:embed seeddata` sehingga CWD-independent
+- Tenant DB template migrations: `internal/pkg/migrator/migrations/tenant/` (44 file per dialect — 22 up + 22 down, mysql & postgres)
 - Eksekusi di startup: [SQL Migrator → AutoMigrate → SQL Seeders → Module Seeders]
 
 **File Convention:**
@@ -869,7 +870,7 @@ POST /api/v1/platform/companies
    ├── c. Buat database tenant (CREATE DATABASE IF NOT EXISTS)
    ├── d. Simpan TenantConnection ke platform DB (ID = companyID)
    ├── e. Connect ke tenant DB via GORM
-   └── f. Jalankan 11 tenant SQL migrations (106 tables)
+   └── f. Jalankan 22 tenant SQL migrations (148 tables)
 5. Jika provisioning berhasil → company status: active
 6. Jika provisioning gagal → company status: suspended (data tetap tersimpan)
 ```
@@ -991,7 +992,7 @@ func (m *Manager) ProvisionTenant(companyID, dbName, dbUser, dbPassword, driverT
 
 ### 5.4 Tenant Migration Files
 
-Sebanyak **11 file SQL migration** di-embed ke binary dan dieksekusi berurutan:
+Sebanyak **22 file SQL migration** di-embed ke binary dan dieksekusi berurutan:
 
 | File | Isi |
 |------|-----|
@@ -999,13 +1000,24 @@ Sebanyak **11 file SQL migration** di-embed ke binary dan dieksekusi berurutan:
 | `002_organization.sql` | Organization structure, zones, job families, positions |
 | `003_employee.sql` | Employees, employments, families, educations, documents |
 | `004_attendance.sql` | Attendance settings, shifts, events, overtime |
-| `005_leave.sql` | Leave types, requests, accrual policies |
+| `005_leave.sql` | Leave types, requests, accrual policies, company holidays |
 | `006_payroll_structure.sql` | Salary components, grades, payroll periods |
-| `007_approval.sql` | Approval flows, steps, instances, tasks |
+| `007_payroll_run.sql` | Payroll run, run items, run employees, payslips |
 | `008_competency.sql` | Competencies, values, events, scores + FK dari migration 002 |
 | `009_job_management.sql` | Job titling, values, objectives, responsibilities |
-| `010_permissions.sql` | Roles, permissions, model_has_roles/ permissions |
-| `011_pph21.sql` | PPh21 settings, tax brackets, PTKP rates |
+| `010_approval.sql` | Approval flows, steps, instances, tasks |
+| `011_settings.sql` | Settings & RBAC: features, roles, permissions, holidays, document templates |
+| `012_employee_movement.sql` | Employee movements & contracts |
+| `013_reimbursement.sql` | Reimbursement types, requests, items |
+| `014_performance.sql` | Performance periods, perspectives, templates, indicators, evaluations, targets |
+| `015_recruitment.sql` | Job requisitions, candidates, applications, interviews, onboarding tasks |
+| `016_training.sql` | Training categories, courses, sessions, participants, materials, evaluations, certificates |
+| `017_workforce_intelligence.sql` | Workforce planning headcounts, forecasts, KPIs, analytics cache, scenarios, risk indicators, health scores |
+| `018_career_intelligence.sql` | Career talent maps (9-box grid), career interests, career paths, succession plans |
+| `019_fix_org_unique.sql` | Composite unique (organization_summary_id, full_code) |
+| `020_add_passport_to_employees.sql` | Add passport column to employees (idempotent) |
+| `021_insurances.sql` | Insurance master (BPJS Kesehatan, BPJS Ketenagakerjaan, dll) |
+| `022_users.sql` | Users table (Level 2 Tenant RBAC) |
 
 **Catatan penting:**
 - Migration 008 menambahkan FK `fk_jfc_competency` via `ALTER TABLE` ke tabel `job_family_competencies` (dibuat di migration 002)
@@ -1041,8 +1053,8 @@ Body: {"name": "Final Provision Test", "email": "final@test.com", "phone": "0217
 | Company status | ✅ **active** | Company ter-create dengan status active (bukan suspended) |
 | Tenant database | ✅ Created | `hris_final-provision-test` ter-create di MySQL |
 | Tenant connection | ✅ Saved | Record di `hris_platform.tenant_connections` tersimpan |
-| Migrations | ✅ **11 files** | Semua migration sukses: 001 → 011 |
-| Total tables | ✅ **106 tables** | Semua tabel ter-create sesuai migration files |
+| Migrations | ✅ **22 files** | Semua migration sukses: 001 → 022 |
+| Total tables | ✅ **148 tables** | Semua tabel ter-create sesuai migration files |
 | Server log | ✅ Clean | Tidak ada error — "Migrations completed", "Tenant provisioning completed successfully" |
 
 #### API Test Response
@@ -1069,7 +1081,7 @@ graph LR
     C -->|Error: Access denied| D[Fix: root credentials]
     D -->|Error: multiStatements| E[Fix: multiStatements=true]
     E -->|Error: FK dependency| F[Fix: FK di 008 ALTER TABLE]
-    F -->|✅ SUCCESS| G[Company active, 106 tables]
+    F -->|✅ SUCCESS| G[Company active, 148 tables]
 ```
 
 ---
@@ -1080,7 +1092,7 @@ graph LR
 
 | Method | Endpoint | Deskripsi |
 |---|---|---|
-| `POST` | `/api/v1/platform/companies` | Create company + provision tenant DB (106 tables) |
+| `POST` | `/api/v1/platform/companies` | Create company + provision tenant DB (148 tables) |
 | `GET` | `/api/v1/platform/companies` | List all companies |
 | `GET` | `/api/v1/platform/companies/:id` | Get company detail |
 | `PUT` | `/api/v1/platform/companies/:id` | Update company info |
@@ -1117,7 +1129,7 @@ Setiap company/tenant memiliki lifecycle yang dikelola melalui endpoint tenant m
 
 | Action | HTTP Method | Endpoint | DB Cleanup |
 |--------|------------|----------|------------|
-| **Provision** | `POST` | `/companies` | ✅ Create DB + migrate (106 tables) |
+| **Provision** | `POST` | `/companies` | ✅ Create DB + migrate (148 tables) |
 | **Suspend** | `POST` | `/companies/:id/suspend` | ✅ Deactivate connection + clear cache |
 | **Activate** | `POST` | `/companies/:id/activate` | ✅ Reactivate connection + clear cache |
 | **Soft Delete** | `DELETE` | `/companies/:id` | ✅ Deactivate connection |
@@ -2129,7 +2141,7 @@ PgBouncer (opsional): mode=transaction  pool=10/tenant  max_client=500
 
 **Masalah:** Penggunaan eksekusi file `.sql` mentah memerlukan penanganan khusus jika sistem mendukung dual-driver (PostgreSQL & MySQL) karena perbedaan sintaksis DDL (seperti `UUID` vs `VARCHAR/CHAR(36)`).
 
-**Status:** ✅ **Sudah diimplementasikan** — Direktori migrasi dipisah: `migrations/tenant/mysql/` (22 file MySQL-optimized) dan `migrations/tenant/postgres/` (22 file PostgreSQL-optimized). Go code menggunakan `TenantRootPath(driver)` untuk memilih dialect yang sesuai secara otomatis saat tenant provisioning.
+**Status:** ✅ **Sudah diimplementasikan** — Direktori migrasi dipisah: `internal/pkg/migrator/migrations/tenant/mysql/` (44 file MySQL-optimized) dan `internal/pkg/migrator/migrations/tenant/postgres/` (44 file PostgreSQL-optimized). Go code menggunakan `TenantRootPath(driver)` untuk memilih dialect yang sesuai secara otomatis saat tenant provisioning. (File migrasi di-embed ke binary via `//go:embed migrations` — direktori filesystem `backend/migrations/` sudah dihapus; satu-satunya sumber adalah embed tree.)
 
 ### 16.5 Sinkronisasi Cache Terdistribusi ✅ Done
 

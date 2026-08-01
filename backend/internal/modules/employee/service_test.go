@@ -2,6 +2,7 @@ package employee
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -19,6 +20,116 @@ func newTestService() (*Service, func()) {
 	logger, _ := zap.NewDevelopment()
 	svc := NewService(repo, logger)
 	return svc, func() { cleanup(); logger.Sync() }
+}
+
+// =========================================================================
+// Quota Tests (max_employees on-premise enforcement)
+// =========================================================================
+
+// fakeQuotaChecker adalah implementasi test dari EmployeeQuotaChecker.
+type fakeQuotaChecker struct {
+	max int
+}
+
+func (f fakeQuotaChecker) MaxEmployees() int { return f.max }
+
+// TestService_Create_QuotaUnlimitedSaaS — tanpa checker (mode saas) → selalu lolos.
+func TestService_Create_QuotaUnlimitedSaaS(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	// 25 employee — jauh di atas batas umum, tapi saas tanpa quota → semua berhasil
+	for i := 0; i < 25; i++ {
+		_, err := svc.Create(ctx, CreateEmployeeRequest{
+			EmployeeID: fmt.Sprintf("QUOTA-SAAS-%03d", i),
+			Name:       fmt.Sprintf("Quota SaaS %d", i),
+		})
+		if err != nil {
+			t.Fatalf("create #%d failed: %v", i, err)
+		}
+	}
+}
+
+// TestService_Create_QuotaMaxZero — max <= 0 berarti unlimited.
+func TestService_Create_QuotaMaxZero(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetQuotaChecker(fakeQuotaChecker{max: 0})
+	ctx := context.Background()
+
+	for i := 0; i < 5; i++ {
+		_, err := svc.Create(ctx, CreateEmployeeRequest{
+			EmployeeID: fmt.Sprintf("QUOTA-ZERO-%03d", i),
+			Name:       fmt.Sprintf("Quota Zero %d", i),
+		})
+		if err != nil {
+			t.Fatalf("create #%d failed: %v", i, err)
+		}
+	}
+}
+
+// TestService_Create_QuotaBelowLimit — jumlah < max → berhasil.
+func TestService_Create_QuotaBelowLimit(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetQuotaChecker(fakeQuotaChecker{max: 5})
+	ctx := context.Background()
+
+	for i := 0; i < 4; i++ {
+		_, err := svc.Create(ctx, CreateEmployeeRequest{
+			EmployeeID: fmt.Sprintf("QUOTA-BELOW-%03d", i),
+			Name:       fmt.Sprintf("Quota Below %d", i),
+		})
+		if err != nil {
+			t.Fatalf("create #%d failed: %v", i, err)
+		}
+	}
+}
+
+// TestService_Create_QuotaAtLimit — saat count == max, pembuatan berikutnya ditolak.
+func TestService_Create_QuotaAtLimit(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetQuotaChecker(fakeQuotaChecker{max: 3})
+	ctx := context.Background()
+
+	// Isi sampai batas (3)
+	for i := 0; i < 3; i++ {
+		_, err := svc.Create(ctx, CreateEmployeeRequest{
+			EmployeeID: fmt.Sprintf("QUOTA-AT-%03d", i),
+			Name:       fmt.Sprintf("Quota At %d", i),
+		})
+		if err != nil {
+			t.Fatalf("create #%d failed: %v", i, err)
+		}
+	}
+
+	// Ke-4 ditolak
+	_, err := svc.Create(ctx, CreateEmployeeRequest{
+		EmployeeID: "QUOTA-AT-004",
+		Name:       "Quota At 4",
+	})
+	if !errors.Is(err, ErrQuotaExceeded) {
+		t.Fatalf("expected ErrQuotaExceeded, got: %v", err)
+	}
+}
+
+// TestService_Create_QuotaExceeded — count sudah melebihi max → langsung ditolak
+// bahkan untuk data employee yang berbeda (count diperhitungkan global).
+func TestService_Create_QuotaExceeded(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetQuotaChecker(fakeQuotaChecker{max: 2})
+	ctx := context.Background()
+
+	svc.Create(ctx, CreateEmployeeRequest{EmployeeID: "QUOTA-EX-001", Name: "Ex 1"})
+	svc.Create(ctx, CreateEmployeeRequest{EmployeeID: "QUOTA-EX-002", Name: "Ex 2"})
+
+	_, err := svc.Create(ctx, CreateEmployeeRequest{EmployeeID: "QUOTA-EX-003", Name: "Ex 3"})
+	if !errors.Is(err, ErrQuotaExceeded) {
+		t.Fatalf("expected ErrQuotaExceeded, got: %v", err)
+	}
 }
 
 func TestService_CreateEmployee_DefaultStatus(t *testing.T) {
@@ -131,7 +242,7 @@ func TestService_List_DefaultPagination(t *testing.T) {
 	}
 
 	// Test with invalid params (should use defaults)
-	resp, err := svc.List(ctx, 0, 0)
+	resp, err := svc.List(ctx, 0, 0, "")
 	if err != nil {
 		t.Fatalf("List failed: %v", err)
 	}

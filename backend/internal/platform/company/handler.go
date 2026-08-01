@@ -130,6 +130,24 @@ func (h *Handler) Terminate(c *gin.Context) {
 	httputil.UpdatedJSON(c, response, "company.terminated")
 }
 
+// RotateCredentials menangani POST /api/v1/platform/companies/:id/rotate-credentials
+func (h *Handler) RotateCredentials(c *gin.Context) {
+	id := c.Param("id")
+
+	var req RotateCredentialsRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+
+	response, err := h.service.RotateCredentials(id, req.NewPassword)
+	if err != nil {
+		httputil.ErrorRaw(c, 409, "ROTATE_FAILED", err.Error())
+		return
+	}
+
+	httputil.SuccessJSON(c, response)
+}
+
 // Backup menangani POST /api/v1/platform/companies/:id/backup
 func (h *Handler) Backup(c *gin.Context) {
 	id := c.Param("id")

@@ -123,7 +123,7 @@ defineEmits(['toggle'])
 
 const router = useRouter()
 const route = useRoute()
-const { state: authState } = useAuth()
+const { state: authState, hasPermission } = useAuth()
 const activeMod = useActiveModules()
 const { t } = useI18n()
 const companyName = ref('')
@@ -150,40 +150,41 @@ const companyLabel = computed(() => {
   return 'HRIS Platform'
 })
 
-// ── Helper: filter items based on active modules ──
+// ── Helper: filter items based on active modules (Level 1) + permission (Level 2) ──
 function filterByModule(items) {
   return items.filter(item => {
-    if (!item.moduleSlug) return true
-    return activeMod.hasModule(item.moduleSlug)
+    if (item.moduleSlug && !activeMod.hasModule(item.moduleSlug)) return false
+    if (item.permission && !hasPermission(item.permission)) return false
+    return true
   })
 }
 
 // ── Core HR items (flat, not dropdown) ──
 const coreHRItems = computed(() => {
   return filterByModule([
-    { key: 'organization', label: t('nav.organization'), icon: 'pi pi-sitemap', command: () => router.push('/organization-summary'), path: '/organization-summary', moduleSlug: 'organization' },
-    { key: 'employees', label: t('nav.employees'), icon: 'pi pi-users', command: () => router.push('/employees'), path: '/employees', moduleSlug: 'employee' },
-    { key: 'job_management', label: t('nav.job_management'), icon: 'pi pi-briefcase', command: () => router.push('/job-management'), path: '/job-management', moduleSlug: 'jobmanagement' }
+    { key: 'organization', label: t('nav.organization'), icon: 'pi pi-sitemap', command: () => router.push('/organization-summary'), path: '/organization-summary', moduleSlug: 'organization', permission: 'organization.view' },
+    { key: 'employees', label: t('nav.employees'), icon: 'pi pi-users', command: () => router.push('/employees'), path: '/employees', moduleSlug: 'employee', permission: 'employee.view' },
+    { key: 'job_management', label: t('nav.job_management'), icon: 'pi pi-briefcase', command: () => router.push('/job-management'), path: '/job-management', moduleSlug: 'jobmanagement', permission: 'jobmanagement.view' }
   ])
 })
 
 // ── Talent items (flat, not dropdown) ──
 const talentItems = computed(() => {
   return filterByModule([
-    { key: 'competency', label: t('nav.competency'), icon: 'pi pi-star', command: () => router.push('/competencies'), path: '/competencies', moduleSlug: 'competency' },
-    { key: 'performance', label: t('nav.performance'), icon: 'pi pi-chart-line', command: () => router.push('/performance'), path: '/performance', moduleSlug: 'performance' },
-    { key: 'training', label: t('nav.training'), icon: 'pi pi-book', command: () => router.push('/training'), path: '/training', moduleSlug: 'training' },
-    { key: 'recruitment', label: t('nav.recruitment'), icon: 'pi pi-user-plus', command: () => router.push('/recruitment'), path: '/recruitment', moduleSlug: 'recruitment' }
+    { key: 'competency', label: t('nav.competency'), icon: 'pi pi-star', command: () => router.push('/competencies'), path: '/competencies', moduleSlug: 'competency', permission: 'competency.view' },
+    { key: 'performance', label: t('nav.performance'), icon: 'pi pi-chart-line', command: () => router.push('/performance'), path: '/performance', moduleSlug: 'performance', permission: 'performance.view' },
+    { key: 'training', label: t('nav.training'), icon: 'pi pi-book', command: () => router.push('/training'), path: '/training', moduleSlug: 'training', permission: 'training.view' },
+    { key: 'recruitment', label: t('nav.recruitment'), icon: 'pi pi-user-plus', command: () => router.push('/recruitment'), path: '/recruitment', moduleSlug: 'recruitment', permission: 'recruitment.view' }
   ])
 })
 
 // ── Operations items (flat, not dropdown) ──
 const operationsItems = computed(() => {
   return filterByModule([
-    { key: 'attendance', label: t('nav.attendance'), icon: 'pi pi-clock', command: () => router.push('/attendance'), path: '/attendance', moduleSlug: 'attendance' },
-    { key: 'leave', label: t('nav.leave'), icon: 'pi pi-calendar', command: () => router.push('/leave'), path: '/leave', moduleSlug: 'leave' },
-    { key: 'movement', label: t('nav.movement'), icon: 'pi pi-arrows-alt', command: () => router.push('/employee-movements'), path: '/employee-movements', moduleSlug: 'employeemovement' },
-    { key: 'approval', label: t('nav.approval'), icon: 'pi pi-check-square', command: () => router.push('/approvals'), path: '/approvals', moduleSlug: 'approval' }
+    { key: 'attendance', label: t('nav.attendance'), icon: 'pi pi-clock', command: () => router.push('/attendance'), path: '/attendance', moduleSlug: 'attendance', permission: 'attendance.view' },
+    { key: 'leave', label: t('nav.leave'), icon: 'pi pi-calendar', command: () => router.push('/leave'), path: '/leave', moduleSlug: 'leave', permission: 'leave.view' },
+    { key: 'movement', label: t('nav.movement'), icon: 'pi pi-arrows-alt', command: () => router.push('/employee-movements'), path: '/employee-movements', moduleSlug: 'employeemovement', permission: 'employeemovement.view' },
+    { key: 'approval', label: t('nav.approval'), icon: 'pi pi-check-square', command: () => router.push('/approvals'), path: '/approvals', moduleSlug: 'approval', permission: 'approval.view' }
   ])
 })
 
@@ -195,8 +196,8 @@ const panelGroups = computed(() => [
     label: t('nav.finance'),
     icon: 'pi pi-dollar',
     items: [
-      { label: t('nav.payroll'), icon: 'pi pi-dollar', command: () => router.push('/payroll'), moduleSlug: 'payroll' },
-      { label: t('nav.reimbursement'), icon: 'pi pi-credit-card', command: () => router.push('/reimbursements'), moduleSlug: 'reimbursement' }
+      { label: t('nav.payroll'), icon: 'pi pi-dollar', command: () => router.push('/payroll'), moduleSlug: 'payroll', permission: 'payroll.view' },
+      { label: t('nav.reimbursement'), icon: 'pi pi-credit-card', command: () => router.push('/reimbursements'), moduleSlug: 'reimbursement', permission: 'reimbursement.view' }
     ]
   },
   // Strategic
@@ -205,8 +206,8 @@ const panelGroups = computed(() => [
     label: t('nav.strategic'),
     icon: 'pi pi-chart-bar',
     items: [
-      { label: t('nav.workforce_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/workforce-intelligence'), moduleSlug: 'workforce-intelligence' },
-      { label: t('nav.career_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/career-intelligence'), moduleSlug: 'career-intelligence' }
+      { label: t('nav.workforce_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/workforce-intelligence'), moduleSlug: 'workforce-intelligence', permission: 'workforceintelligence.view' },
+      { label: t('nav.career_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/career-intelligence'), moduleSlug: 'career-intelligence', permission: 'careerintelligence.view' }
     ]
   },
   // Settings
@@ -215,24 +216,24 @@ const panelGroups = computed(() => [
     label: t('nav.settings'),
     icon: 'pi pi-cog',
     items: [
-      { label: t('settings.zones'), icon: 'pi pi-map-marker', command: () => router.push('/settings/zones'), moduleSlug: 'setting' },
-      { label: t('settings.provinces'), icon: 'pi pi-globe', command: () => router.push('/settings/provinces'), moduleSlug: 'setting' },
-      { label: t('settings.regencies'), icon: 'pi pi-map', command: () => router.push('/settings/regencies'), moduleSlug: 'setting' },
-      { label: t('settings.districts'), icon: 'pi pi-building', command: () => router.push('/settings/districts'), moduleSlug: 'setting' },
-      { label: t('settings.villages'), icon: 'pi pi-home', command: () => router.push('/settings/villages'), moduleSlug: 'setting' },
-      { label: t('settings.educations'), icon: 'pi pi-graduation-cap', command: () => router.push('/settings/educations'), moduleSlug: 'setting' },
-      { label: t('settings.religions'), icon: 'pi pi-globe', command: () => router.push('/settings/religions'), moduleSlug: 'setting' },
-      { label: t('settings.marital_statuses'), icon: 'pi pi-heart', command: () => router.push('/settings/marital-statuses'), moduleSlug: 'setting' },
-      { label: t('settings.relationship_types'), icon: 'pi pi-users', command: () => router.push('/settings/relationship-types'), moduleSlug: 'setting' },
-      { label: t('settings.banks'), icon: 'pi pi-building', command: () => router.push('/settings/banks'), moduleSlug: 'setting' },
-      { label: t('settings.employment_statuses'), icon: 'pi pi-briefcase', command: () => router.push('/settings/employment-statuses'), moduleSlug: 'setting' },
-      { label: t('settings.nationalities'), icon: 'pi pi-globe', command: () => router.push('/settings/nationalities'), moduleSlug: 'setting' },
-      { label: t('settings.job_families'), icon: 'pi pi-briefcase', command: () => router.push('/settings/job-families'), moduleSlug: 'setting' },
-      { label: t('settings.gradings'), icon: 'pi pi-chart-bar', command: () => router.push('/settings/gradings'), moduleSlug: 'setting' },
-      { label: t('settings.salary_grades'), icon: 'pi pi-chart-bar', command: () => router.push('/settings/salary-grades'), moduleSlug: 'setting' },
-      { label: t('settings.insurances'), icon: 'pi pi-shield', command: () => router.push('/settings/insurances'), moduleSlug: 'setting' },
-      { label: t('settings.ters'), icon: 'pi pi-calculator', command: () => router.push('/settings/ters'), moduleSlug: 'setting' },
-      { label: t('settings.ptkps'), icon: 'pi pi-receipt', command: () => router.push('/settings/ptkps'), moduleSlug: 'setting' }
+      { label: t('settings.zones'), icon: 'pi pi-map-marker', command: () => router.push('/settings/zones'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.provinces'), icon: 'pi pi-globe', command: () => router.push('/settings/provinces'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.regencies'), icon: 'pi pi-map', command: () => router.push('/settings/regencies'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.districts'), icon: 'pi pi-building', command: () => router.push('/settings/districts'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.villages'), icon: 'pi pi-home', command: () => router.push('/settings/villages'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.educations'), icon: 'pi pi-graduation-cap', command: () => router.push('/settings/educations'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.religions'), icon: 'pi pi-globe', command: () => router.push('/settings/religions'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.marital_statuses'), icon: 'pi pi-heart', command: () => router.push('/settings/marital-statuses'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.relationship_types'), icon: 'pi pi-users', command: () => router.push('/settings/relationship-types'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.banks'), icon: 'pi pi-building', command: () => router.push('/settings/banks'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.employment_statuses'), icon: 'pi pi-briefcase', command: () => router.push('/settings/employment-statuses'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.nationalities'), icon: 'pi pi-globe', command: () => router.push('/settings/nationalities'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.job_families'), icon: 'pi pi-briefcase', command: () => router.push('/settings/job-families'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.gradings'), icon: 'pi pi-chart-bar', command: () => router.push('/settings/gradings'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.salary_grades'), icon: 'pi pi-chart-bar', command: () => router.push('/settings/salary-grades'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.insurances'), icon: 'pi pi-shield', command: () => router.push('/settings/insurances'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.ters'), icon: 'pi pi-calculator', command: () => router.push('/settings/ters'), moduleSlug: 'setting', permission: 'setting.view' },
+      { label: t('settings.ptkps'), icon: 'pi pi-receipt', command: () => router.push('/settings/ptkps'), moduleSlug: 'setting', permission: 'setting.view' }
     ]
   }
 ])
@@ -269,16 +270,16 @@ const topLevelMenuItems = computed(() => {
     items.push({ ...item, key: 'Operations-' + item.key })
   })
 
-  // Finance
-  if (activeMod.hasModule('payroll') || activeMod.hasModule('reimbursement')) {
+  // Finance — hanya jika ada modul aktif DAN user punya permission view
+  if ((activeMod.hasModule('payroll') && hasPermission('payroll.view')) || (activeMod.hasModule('reimbursement') && hasPermission('reimbursement.view'))) {
     items.push({ key: 'Finance', label: t('nav.finance'), path: '/payroll', icon: 'pi pi-dollar', command: () => router.push('/payroll') })
   }
   // Strategic
-  if (activeMod.hasModule('workforce-intelligence') || activeMod.hasModule('career-intelligence')) {
+  if ((activeMod.hasModule('workforce-intelligence') && hasPermission('workforceintelligence.view')) || (activeMod.hasModule('career-intelligence') && hasPermission('careerintelligence.view'))) {
     items.push({ key: 'Strategic', label: t('nav.strategic'), path: '/workforce-intelligence', icon: 'pi pi-chart-bar', command: () => router.push('/workforce-intelligence') })
   }
   // Settings
-  if (activeMod.hasModule('setting')) {
+  if (activeMod.hasModule('setting') && hasPermission('setting.view')) {
     items.push({ key: 'Settings', label: t('nav.settings'), path: '/settings/zones', icon: 'pi pi-cog', command: () => router.push('/settings/zones') })
   }
   

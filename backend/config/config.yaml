@@ -8,6 +8,13 @@ server:
   read_timeout: 30
   write_timeout: 30
 
+# Mesin lisensi: "saas" (default) atau "on_premise" (via file .lic RSA)
+# Override via env: HRIS_LICENSE_DEPLOYMENT_MODE / HRIS_LICENSE_LICENSE_FILE / HRIS_LICENSE_PUBLIC_KEY_FILE
+license:
+  deployment_mode: "saas"          # saas | on_premise
+  license_file: "license.lic"      # path file .lic (wajib saat on_premise)
+  public_key_file: "license_public.pem"  # path RSA public key PEM (wajib saat on_premise)
+
 database:
   # Driver database: "postgres" atau "mysql"
   driver: "mysql"

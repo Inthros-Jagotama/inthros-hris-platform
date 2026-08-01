@@ -80,6 +80,12 @@ func (m *empModule) RegisterRoutes(rg *gin.RouterGroup) {
 	RegisterRoutes(rg, m.handler)
 }
 
+// SetQuotaChecker menginjeksi batas kuota employee (mode on-premise).
+// Dipanggil dari main.go via type assertion saat lisensi .lic dimuat.
+func (m *empModule) SetQuotaChecker(qc EmployeeQuotaChecker) {
+	m.handler.service.SetQuotaChecker(qc)
+}
+
 func (m *empModule) Migrate(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&Employee{},

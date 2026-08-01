@@ -20,6 +20,7 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/database"
 	"github.com/inthros/hris-platform/internal/pkg/logger"
 	"github.com/inthros/hris-platform/internal/pkg/migrator"
+	"github.com/inthros/hris-platform/internal/pkg/tenantseed"
 	"go.uber.org/zap"
 )
 
@@ -105,10 +106,13 @@ func main() {
 			if err != nil {
 				l.Fatal("Failed to connect to tenant database", zap.Error(err))
 			}
-			if err := seedTenantMasterData(tenantDB, l); err != nil {
+			if err := tenantseed.SeedTenantMasterData(tenantDB, l); err != nil {
 				l.Fatal("Failed to seed tenant master data", zap.Error(err))
 			}
-			l.Info("Tenant master data seeding completed", zap.String("company_id", *seedCompanyID))
+			if err := tenantseed.SeedTenantRBAC(tenantDB, l); err != nil {
+				l.Fatal("Failed to seed tenant RBAC defaults", zap.Error(err))
+			}
+			l.Info("Tenant master data & RBAC seeding completed", zap.String("company_id", *seedCompanyID))
 		} else {
 			l.Info("No company specified. Use --company=<id> to seed a specific tenant.")
 			l.Info("Example: installer --config=./config/config.yaml seed-data --company=<uuid>")
@@ -135,7 +139,7 @@ func printUsage() {
 	fmt.Println("  migrate            Run pending tenant migrations for an existing company")
 	fmt.Println("  encrypt-passwords  Encrypt legacy plaintext passwords in tenant_connections")
 	fmt.Println("  seed-modules       Register all platform & tenant modules into database")
-	fmt.Println("  seed-data          Seed master reference data into a tenant DB")
+	fmt.Println("  seed-data          Seed master reference data + RBAC defaults into a tenant DB")
 	fmt.Println("")
 	fmt.Println("Environment:")
 	fmt.Println("  HRIS_ENCRYPTION_KEY    Required for encrypt-passwords (32-byte hex, 64 chars)")
@@ -182,8 +186,13 @@ func handleProvision(l *zap.Logger, dbManager *database.Manager, companyID, dbNa
 
 	// 5. Seed master reference data (religions, educations, provinces, districts, villages, etc.)
 	l.Info("Seeding tenant master data...")
-	if err := seedTenantMasterData(tenantDB, l); err != nil {
+	if err := tenantseed.SeedTenantMasterData(tenantDB, l); err != nil {
 		l.Fatal("Failed to seed tenant master data", zap.Error(err))
+	}
+
+	// 6. Seed default tenant RBAC (roles Admin/Employee + permissions)
+	if err := tenantseed.SeedTenantRBAC(tenantDB, l); err != nil {
+		l.Fatal("Failed to seed tenant RBAC defaults", zap.Error(err))
 	}
 
 	l.Info("Tenant provisioning completed successfully",

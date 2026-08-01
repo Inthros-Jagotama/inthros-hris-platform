@@ -71,13 +71,13 @@ Management.
 -   settings
 
 Catatan: - Tidak menggunakan company_id pada tabel bisnis tenant. -
-Semua tenant memiliki struktur database yang sama (106 tables).
+Semua tenant memiliki struktur database yang sama (148 tables).
 
 ## 5. Tenant Provisioning Engine
 
 Saat company dibuat: 1. Validasi lisensi. 2. Membuat database. 3.
 Membuat database user. 4. Menyimpan koneksi tenant. 5. Menjalankan core
-migration (11 files → 106 tables). 6. Menjalankan migration modul aktif.
+migration (22 files → 148 tables). 6. Menjalankan migration modul aktif.
 7. Menjalankan seeder. 8. Membuat Super Admin. 9. Mengaktifkan modul. 10.
 Audit log. 11. Health check tenant.
 
@@ -88,8 +88,8 @@ Audit log. 11. Health check tenant.
 | Company status | ✅ active | API mengembalikan `status: "active"` |
 | Tenant database | ✅ Created | Database tenant ter-create di MySQL |
 | Tenant connection | ✅ Saved | Record di `tenant_connections` tersimpan |
-| Migrations | ✅ 11 files | 001 → 011 sukses semua |
-| Total tables | ✅ 106 tables | Setiap migrasi menciptakan tabel sesuai DDL |
+| Migrations | ✅ 22 files | 001 → 022 sukses semua |
+| Total tables | ✅ 148 tables | Setiap migrasi menciptakan tabel sesuai DDL |
 
 ## 6. Gap Analysis & Technical Recommendations
 

@@ -24,6 +24,7 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/logger"
 	"github.com/inthros/hris-platform/internal/pkg/middleware"
 	"github.com/inthros/hris-platform/internal/pkg/module"
+	"github.com/inthros/hris-platform/internal/pkg/onpremise"
 	"github.com/inthros/hris-platform/internal/pkg/router"
 	"github.com/inthros/hris-platform/internal/pkg/docs"
 	"github.com/inthros/hris-platform/internal/pkg/migrator"
@@ -164,6 +165,75 @@ func (a *packageModuleAdapter) DeactivatePackageModules(packageID, companyID str
 	return deactivated, nil
 }
 
+// companyModuleListerAdapter membungkus modulemgmt.Service agar memenuhi
+// interface middleware.CompanyModuleLister — hanya slug modul yang Enabled
+// yang dikembalikan (sumber data untuk PlatformLicenseMiddleware mode SaaS).
+type companyModuleListerAdapter struct {
+	svc *modulemgmt.Service
+}
+
+// EnabledModuleSlugs mengembalikan daftar slug modul aktif untuk company.
+func (a companyModuleListerAdapter) EnabledModuleSlugs(companyID string) ([]string, error) {
+	mods, err := a.svc.ListCompanyModules(companyID)
+	if err != nil {
+		return nil, err
+	}
+
+	var slugs []string
+	for _, m := range mods {
+		if m.Enabled {
+			slugs = append(slugs, m.ModuleSlug)
+		}
+	}
+	return slugs, nil
+}
+
+// onPremiseLister mengimplementasikan middleware.CompanyModuleLister untuk mode
+// On-Premise: daftar modul yang diizinkan diambil dari file .lic RSA
+// (berlaku untuk semua company pada deployment tunggal tersebut).
+type onPremiseLister struct {
+	lic *onpremise.License
+}
+
+// EnabledModuleSlugs mengembalikan allowed_modules dari lisensi on-premise.
+func (o onPremiseLister) EnabledModuleSlugs(companyID string) ([]string, error) {
+	return o.lic.AllowedModules, nil
+}
+
+// onPremiseQuotaChecker mengimplementasikan employee.EmployeeQuotaChecker untuk
+// mode on-premise — batas max_employees diambil dari file .lic RSA.
+type onPremiseQuotaChecker struct {
+	lic *onpremise.License
+}
+
+// MaxEmployees mengembalikan batas jumlah employee dari lisensi.
+// Nilai <= 0 berarti tanpa batas (unlimited).
+func (o onPremiseQuotaChecker) MaxEmployees() int {
+	if o.lic == nil {
+		return 0
+	}
+	return o.lic.MaxEmployees
+}
+
+// newEmployeeModule membuat employee module. Bila mode on-premise aktif
+// (lic != nil), quota checker max_employees di-injeksi ke employee service
+// agar pembuatan employee ditolak saat batas tercapai.
+func newEmployeeModule(dbManager *database.Manager, l *zap.Logger, lic *onpremise.License) module.Module {
+	m := employee.NewModule(dbManager, l)
+	if lic != nil {
+		if setter, ok := m.(interface {
+			SetQuotaChecker(employee.EmployeeQuotaChecker)
+		}); ok {
+			setter.SetQuotaChecker(onPremiseQuotaChecker{lic: lic})
+		} else {
+			// Fail-loud: jika module tidak mengimplementasikan setter,
+			// kuota tidak ter-enforce secara senyap (hindari misconfig).
+			l.Warn("Employee module does not implement SetQuotaChecker — quota enforcement disabled")
+		}
+	}
+	return m
+}
+
 func main() {
 	configPath := flag.String("config", "", "Path to configuration file")
 	migrateDown := flag.Bool("migrate-down", false, "Rollback all applied migrations and exit")
@@ -267,6 +337,9 @@ func main() {
 	// dengan subscribe flow untuk auto-activate modules dari package.
 	modulemgmtRepo := modulemgmt.NewRepository(dbManager.PlatformDB())
 	modulemgmtSvc := modulemgmt.NewService(modulemgmtRepo, dbManager, l)
+	// Injeksi cache manager untuk invalidasi license cache saat modul
+	// diaktifkan/dinonaktifkan (PlatformLicenseMiddleware membaca dari cache ini).
+	modulemgmtSvc.SetCacheManager(cacheManager)
 
 	// PackageModuleAdapter — license service akan auto-activate modules
 	// saat license dibuat/diupdate dengan package.
@@ -335,6 +408,31 @@ func main() {
 		approvalSvc: approvalSvc,
 	}
 
+	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
+	// modules, agar employee module dapat menerima quota checker max_employees
+	// dari file .lic. Pada mode saas, licenseLister memakai company_modules DB.
+	var onPremiseLic *onpremise.License
+	var licenseLister middleware.CompanyModuleLister
+	if cfg.License.DeploymentMode == onpremise.ModeOnPremise {
+		pubKey, err := os.ReadFile(cfg.License.PublicKeyFile)
+		if err != nil {
+			l.Fatal("On-premise public key not found", zap.String("path", cfg.License.PublicKeyFile), zap.Error(err))
+		}
+		lic, err := onpremise.ReadLicenseFile(cfg.License.LicenseFile, string(pubKey))
+		if err != nil {
+			l.Fatal("On-premise license invalid", zap.String("path", cfg.License.LicenseFile), zap.Error(err))
+		}
+		onPremiseLic = lic
+		licenseLister = onPremiseLister{lic: lic}
+		l.Info("On-premise license loaded",
+			zap.String("company", lic.CompanyName),
+			zap.Time("expires_at", lic.ExpiresAt),
+			zap.Int("max_employees", lic.MaxEmployees),
+		)
+	} else {
+		licenseLister = companyModuleListerAdapter{svc: modulemgmtSvc}
+	}
+
 	// 6c. Register tenant modules (ordered by priority & dependency)
 	tenantModules = append(tenantModules,
 		module.ModuleRegistration{
@@ -343,7 +441,7 @@ func main() {
 			Priority: 1,
 		},
 		module.ModuleRegistration{
-			Module:   employee.NewModule(dbManager, l),
+			Module:   newEmployeeModule(dbManager, l, onPremiseLic),
 			TargetDB: module.TargetTenant,
 			Priority: 2,
 		},
@@ -486,10 +584,21 @@ func main() {
 	}
 
 	// 11. Setup router and middleware
+	// PlatformLicenseMiddleware: guard lisensi modul tenant (validasi via Redis cache).
+	// Diletakkan setelah TenantRequired agar company_id tersedia, dan sebelum RBAC agar
+	// error lisensi tampil lebih dulu.
+	//
+	// licenseLister sudah di-inisialisasi sebelum registrasi tenant modules
+	// (bagian 6b-2) — sumber lisensi bergantung pada DeploymentMode:
+	//   - saas (default): company_modules dari platform DB (modulemgmt service)
+	//   - on_premise: file .lic RSA (expires_at, allowed_modules, max_employees)
+	licenseMW := middleware.LicenseMiddleware(cacheManager, licenseLister, l)
+
 	r := router.Setup(
 		router.Config{Mode: cfg.Server.Mode},
 		middleware.AuthJWT(authManager, l),
 		middleware.TenantRequired(),
+		licenseMW,
 		rbacMW,
 		middleware.CORS(middleware.CORSConfig{
 			AllowedOrigins:   cfg.CORS.AllowedOrigins,
@@ -568,6 +677,15 @@ func main() {
 				return
 			}
 
+			// Invalidate license cache agar PlatformLicenseMiddleware langsung
+			// mengenali modul baru setelah subscribe.
+			if err := cacheManager.Invalidate(c.Request.Context(), middleware.LicenseCacheKey(companyID)); err != nil {
+				l.Warn("Failed to invalidate license cache after subscribe",
+					zap.String("company_id", companyID),
+					zap.Error(err),
+				)
+			}
+
 			// Modules sudah auto-activated oleh license service via PackageModuleManager.
 			// Ambil daftar nama module dari package untuk response.
 			var activatedModules []string
@@ -600,6 +718,14 @@ func main() {
 			if _, err := pkgModuleMgr.DeactivatePackageModules(packageID, companyID); err != nil {
 				l.Warn("Failed to deactivate package modules during unsubscribe",
 					zap.String("package_id", packageID),
+					zap.String("company_id", companyID),
+					zap.Error(err),
+				)
+			}
+
+			// Invalidate license cache agar modul nonaktif langsung diblokir middleware.
+			if err := cacheManager.Invalidate(c.Request.Context(), middleware.LicenseCacheKey(companyID)); err != nil {
+				l.Warn("Failed to invalidate license cache after unsubscribe",
 					zap.String("company_id", companyID),
 					zap.Error(err),
 				)

@@ -106,7 +106,7 @@ func TestRepository_FindAllEmployees_Pagination(t *testing.T) {
 	}
 
 	// Test page 1 with per_page 2
-	emps, total, err := repo.FindAllEmployees(ctx, 1, 2)
+	emps, total, err := repo.FindAllEmployees(ctx, 1, 2, "")
 	if err != nil {
 		t.Fatalf("FindAllEmployees failed: %v", err)
 	}

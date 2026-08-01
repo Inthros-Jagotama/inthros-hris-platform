@@ -22,6 +22,7 @@ Modular monolith backend untuk platform HRIS enterprise dengan arsitektur multi-
 - [Module SDK](#module-sdk)
 - [Database Migration](#database-migration)
 - [Tenant Provisioning](#tenant-provisioning-end-to-end-verified-)
+- [Deployment (SaaS & On-Premise)](#deployment-saas-on-premise)
 - [Roadmap](#roadmap)
 - [Dokumentasi Lainnya](#dokumentasi-lainnya)
 
@@ -102,7 +103,7 @@ Berdasarkan tinjauan arsitektur teknis, berikut area kritis yang harus diterapka
 
 ### 4. Penanganan Dialek SQL Migrasi ✅
 - **Masalah:** Eksekusi file `.sql` mentah bermasalah untuk dual-driver (PostgreSQL vs MySQL) karena perbedaan sintaksis DDL.
-- **Status:** ✅ **Sudah diimplementasikan** — Migrasi dipisah per dialect: `migrations/tenant/mysql/` (30 file) dan `migrations/tenant/postgres/` (30 file). Go code menggunakan `TenantRootPath(driver)` untuk seleksi otomatis saat provisioning.
+- **Status:** ✅ **Sudah diimplementasikan** — Migrasi dipisah per dialect: `internal/pkg/migrator/migrations/tenant/mysql/` (44 file) dan `internal/pkg/migrator/migrations/tenant/postgres/` (44 file). Go code menggunakan `TenantRootPath(driver)` untuk seleksi otomatis saat provisioning. (File migrasi di-embed ke binary via `//go:embed migrations` — direktori filesystem `backend/migrations/` sudah dihapus; satu-satunya sumber adalah embed tree `internal/pkg/migrator/migrations/`.)
 
 ### 5. Sinkronisasi Cache Terdistribusi ✅
 - **Masalah:** Pembaruan *Feature Flags* atau *Permissions* di Redis perlu dikonsumsi konsisten oleh semua instance server.
@@ -190,9 +191,9 @@ hris-platform/
 │               ├── migrator.go       #  Core: Up(), Down(), DownTo()
 │               ├── embed.go          #  //go:embed migrations/
 │               └── migrations/
-│                   ├── platform/     #  Platform DDL (6 files)
-│                   ├── seeders/      #  Seed data (1 file)
-│                   └── tenant/       #  Tenant migrations (30 file per dialect — mysql & postgres)
+│                   ├── platform/     #  Platform DDL (8 files)
+│                   ├── seeders/      #  Seed data (2 file — 001 + down)
+│                   └── tenant/       #  Tenant migrations (44 file per dialect — mysql & postgres)
 │   ├── docker/
 │   │   └── Dockerfile
 │   ├── .env.example                  # Environment template
@@ -487,7 +488,7 @@ Semua perubahan role/permission akan otomatis me-reload enforcer (`Service.Sync(
 
 | Action | Company Status | Tenant Connection | Tenant Database |
 |--------|---------------|-------------------|-----------------|
-| `Create` | `active` | `is_active = true` | ✅ Created + migrated (120 tables) |
+| `Create` | `active` | `is_active = true` | ✅ Created + migrated (148 tables) |
 | `Suspend` | `suspended` | `is_active = false` + cache cleared | ✅ Data preserved |
 | `Activate` | `active` | `is_active = true` + cache cleared | ✅ Reconnected |
 | `Soft Delete` | (hidden via `deleted_at`) | `is_active = false` + cache cleared | ✅ Data preserved |
@@ -1150,8 +1151,8 @@ Berikut data master yang di-seed ke setiap tenant baru (dan bisa di-re-seed untu
 |-------|:-------:|:-------:|:-----------:|
 | `provinces` | **38** | `CHAR(2)` — BPS code (e.g. `11`) | Kemendagri |
 | `regencies` | **188** | `CHAR(4)` — BPS code (e.g. `1101`) | Kemendagri |
-| `districts` | **7.230** | `CHAR(6)` — BPS code (e.g. `110101`) | SQL bulk file (`002_seed_districts.sql`) |
-| `villages` | **83.441** | `CHAR(10)` — BPS code (e.g. `1101012001`) | SQL bulk file (`003_seed_villages.sql`) |
+| `districts` | **7.230** | `CHAR(6)` — BPS code (e.g. `110101`) | Embedded SQL (`tenantseed/seeddata/002_seed_districts.sql`) |
+| `villages` | **83.441** | `CHAR(10)` — BPS code (e.g. `1101012001`) | Embedded SQL (`tenantseed/seeddata/003_seed_villages.sql`) |
 
 > ℹ️ **ID = Code:** Tabel wilayah menggunakan kode BPS (Badan Pusat Statistik) sebagai primary key, bukan UUID. Hal ini karena data wilayah merupakan referensi tetap yang di-seed dari dataset Kemendagri — foreign keys (`province_id`, `regency_id`, `district_id`) menggunakan kode BPS parent yang sesuai.
 
@@ -1183,7 +1184,7 @@ go run ./cmd/installer provision --company=<uuid> --config=./config/config.yaml
 Ini akan:
 1. Create database `hris_tenant_<uuid[:8]>`
 2. Save TenantConnection
-3. Jalankan 143+ migration
+3. Jalankan 145+ migration
 4. ✅ **Auto-seed semua data master** (~90.948 records)
 
 #### 2. Seed Data ke Tenant Existing
@@ -1470,9 +1471,10 @@ CREATE TABLE schema_migrations (
 
 ### Migration Files
 
-- `internal/pkg/migrator/migrations/platform/` — 7 platform DDL files (termasuk RBAC roles, permissions, role_permissions)
-- `internal/pkg/migrator/migrations/seeders/` — 1 seeder file
-- `internal/pkg/migrator/migrations/tenant/` — Tenant migrations (30 file per dialect — mysql & postgres)
+- `internal/pkg/migrator/migrations/platform/` — 8 platform DDL files (001–006 + RBAC + 012, termasuk roles, permissions, role_permissions)
+- `internal/pkg/migrator/migrations/seeders/` — 2 file (1 seeder `001_seed_super_admin.sql` + down)
+- `internal/pkg/tenantseed/seeddata/` — 2 embedded bulk SQL files (tenant: districts & villages), di-embed via `//go:embed seeddata` → CWD-independent
+- `internal/pkg/migrator/migrations/tenant/` — Tenant migrations (44 file per dialect — mysql & postgres)
 
 ### Transaction Safety
 
@@ -1504,7 +1506,7 @@ POST /api/v1/platform/companies
 6. Jika provisioning gagal → company status: suspended (data tetap tersimpan)
 ```
 
-### Tenant Migration Files (18 files → 143 tables)
+### Tenant Migration Files (22 files → 148 tables)
 
 | File | Isi |
 |------|-----|
@@ -1514,11 +1516,11 @@ POST /api/v1/platform/companies
 | `004_attendance.sql` | Attendance settings, shifts, events, overtime |
 | `005_leave.sql` | Leave types, requests, accrual policies, company holidays |
 | `006_payroll_structure.sql` | Salary components, grades, payroll periods |
-| `007_approval.sql` | Approval flows, steps, instances, tasks |
+| `007_payroll_run.sql` | Payroll run, run items, run employees, payslips |
 | `008_competency.sql` | Competencies, values, events, scores + FK dari migration 002 |
 | `009_job_management.sql` | Job titling, values, objectives, responsibilities |
-| `010_permissions.sql` | Roles, permissions, model_has_roles/ permissions |
-| `011_pph21.sql` | PPh21 settings, tax brackets, PTKP rates |
+| `010_approval.sql` | Approval flows, steps, instances, tasks |
+| `011_settings.sql` | Settings & RBAC: features, roles, permissions, holidays, document templates |
 | `012_employee_movement.sql` | Employee movements & contracts |
 | `013_reimbursement.sql` | Reimbursement types, requests, items |
 | `014_performance.sql` | Performance periods, perspectives, templates, indicators, evaluations, targets |
@@ -1526,10 +1528,14 @@ POST /api/v1/platform/companies
 | `016_training.sql` | Training categories, courses, sessions, participants, materials, evaluations, certificates |
 | `017_workforce_intelligence.sql` | Workforce planning headcounts, forecasts, KPIs, analytics cache, scenarios, risk indicators, health scores |
 | `018_career_intelligence.sql` | Career talent maps (9-box grid), career interests, career paths, succession plans |
+| `019_fix_org_unique.sql` | Composite unique (organization_summary_id, full_code) |
+| `020_add_passport_to_employees.sql` | Add passport column to employees (idempotent) |
+| `021_insurances.sql` | Insurance master (BPJS Kesehatan, BPJS Ketenagakerjaan, dll) |
+| `022_users.sql` | Users table (Level 2 Tenant RBAC) |
 
-> **Catatan:** Total 143 tabel termasuk `schema_migrations` (auto-created oleh migrator engine).
+> **Catatan:** Total 149 tabel termasuk `schema_migrations` (148 tabel tenant + schema_migrations, auto-created oleh migrator engine).
 
-### Daftar Lengkap 134 Tabel Tenant
+### Daftar Lengkap 148 Tabel Tenant (+ schema_migrations = 149)
 
 **Approval (5):**
 `approval_actions`, `approval_flow_steps`, `approval_flows`, `approval_instances`, `approval_tasks`
@@ -1539,17 +1545,17 @@ POST /api/v1/platform/companies
 `attendance_employee_shifts`, `attendance_events`, `attendance_exempt_positions`,
 `attendance_face_captures`, `attendance_locations`, `attendance_overtime_requests`, `attendance_sessions`
 
-**BPJS (2):**
-`bpjs_rate_components`, `bpjs_settings`
+**BPJS (3):**
+`bpjs_rate_components`, `bpjs_settings`, `insurances`
 
 **Competency (7):**
 `competence_values`, `competencies`, `competency_event_targets`, `competency_events`,
 `competency_score_details`, `competency_scores`, `competency_values`
 
-**Employee (14):**
-`emergency_contacts`, `employee_addresses`, `employee_bank_profiles`, `employee_bpjs_profiles`,
-`employee_documents`, `employee_educations`, `employee_experiences`, `employee_families`,
-`employee_insurances`, `employee_leave_balances`, `employee_payroll_profiles`, `employee_tax_profiles`,
+**Employee (17):**
+`emergency_contacts`, `employee_addresses`, `employee_bank_accounts`, `employee_bank_profiles`, `employee_bpjs_profiles`,
+`employee_contracts`, `employee_documents`, `employee_educations`, `employee_experiences`, `employee_families`,
+`employee_insurances`, `employee_leave_balances`, `employee_movements`, `employee_payroll_profiles`, `employee_tax_profiles`,
 `employees`, `employments`
 
 **Job Management (20):**
@@ -1564,22 +1570,26 @@ POST /api/v1/platform/companies
 **Leave (6):**
 `company_holidays`, `leave_accrual_policies`, `leave_reasons`, `leave_request_details`, `leave_requests`, `leave_types`
 
-**Master Data (12):**
-`countries`, `districts`, `document_templates`, `educations`, `employment_statuses`,
-`gradings`, `marital_statuses`, `provinces`, `regencies`, `relationship_types`, `religions`, `villages`
+**Master Data (14):**
+`banks`, `countries`, `districts`, `document_templates`, `educations`, `employment_statuses`,
+`gradings`, `marital_statuses`, `nationalities`, `provinces`, `regencies`, `relationship_types`, `religions`, `villages`
 
 **Organization (5):**
 `organization_levels`, `organization_summaries`, `organizations`, `positions`, `zones`
 
-**Payroll (16):**
+**Payroll (17):**
 `payroll_payslips`, `payroll_periods`, `payroll_profile_change_logs`, `payroll_run_employees`,
 `payroll_run_items`, `payroll_runs`, `pph21_calculation_logs`, `pph21_ptkp_rates`,
 `pph21_settings`, `pph21_tax_brackets`, `ptkps`, `salary_change_logs`,
-`salary_components`, `salary_employee_adjustments`, `salary_employee_components`, `salary_grade_components`
+`salary_components`, `salary_employee_adjustments`, `salary_employee_components`, `salary_grade_components`,
+`salary_grades`
 
 **Performance (7):**
 `performance_periods`, `performance_perspectives`, `performance_templates`, `performance_indicators`,
 `performance_evaluations`, `performance_evaluation_details`, `performance_targets`
+
+**Reimbursement (3):**
+`reimbursement_items`, `reimbursement_requests`, `reimbursement_types`
 
 **Recruitment (7):**
 `job_requisitions`, `candidates`, `job_applications`, `interviews`,
@@ -1597,9 +1607,9 @@ POST /api/v1/platform/companies
 `training_categories`, `training_courses`, `training_sessions`, `training_participants`,
 `training_materials`, `training_evaluations`, `training_certificates`
 
-**Settings & Permissions (7):**
+**Settings & Permissions (8):**
 `feature_permission`, `features`, `model_has_permissions`, `model_has_roles`,
-`permissions`, `role_has_permissions`, `roles`
+`permissions`, `role_has_permissions`, `roles`, `users`
 
 **System (1):**
 `schema_migrations`
@@ -1618,8 +1628,8 @@ POST /api/v1/platform/companies
 | Company status | ✅ **active** | API mengembalikan `status: "active"` |
 | Tenant database | ✅ Created | `hris_final-provision-test` |
 | Tenant connection | ✅ Saved | Record di `tenant_connections` tersimpan |
-| Migrations | ✅ **18 files** | 001 → 018 sukses semua |
-| Total tables | ✅ **143 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
+| Migrations | ✅ **22 files** | 001 → 022 sukses semua |
+| Total tables | ✅ **148 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
 | Server log | ✅ Clean | "Tenant provisioning completed successfully" |
 
 #### API Test Response
@@ -1699,8 +1709,8 @@ POST /api/v1/platform/companies
 |---|------|------|
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
-| ✅ | Project completion dashboard (14 modules, 1004+ tests, 143 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
-| ✅ | OpenAPI comprehensive report (665 endpoints, 426 schemas, 27 tags) | `docs/openapi-report.md` |
+| ✅ | Project completion dashboard (14 modules, 1004+ tests, 148 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
+| ✅ | OpenAPI comprehensive report (674 endpoints, 431 schemas, 27 tags) | `docs/openapi-report.md` |
 | ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
@@ -1794,7 +1804,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**665+ endpoints**, 426 schemas, 27 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**674+ endpoints**, 431 schemas, 27 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 
@@ -1840,10 +1850,10 @@ gorm.io/gorm v1.30.0                      # ORM
 | # | Item | Detail |
 |---|------|--------|
 | ✅ | Provisioning Engine | Database creation + TenantConnection save |
-| ✅ | Tenant SQL Migrations | 15 migration files → 120 tables |
+| ✅ | Tenant SQL Migrations | 22 migration files → 148 tables |
 | ✅ | Multi-statement MySQL support | `multiStatements=true` di DSN |
 | ✅ | Error handling / graceful failure | Company status = `suspended` jika provisioning gagal |
-| ✅ | End-to-end test | Company active ✅, 120 tables ✅, MySQL |
+| ✅ | End-to-end test | Company active ✅, 148 tables ✅, MySQL |
 
 ### ✅ Tenant Lifecycle Management
 
@@ -1909,6 +1919,37 @@ $ go build ./...  # ✅ Berhasil
 
 ---
 
+## 🚀 Deployment (SaaS & On-Premise)
+
+Platform mendukung **dua mode distribusi** dengan binary yang sama (`cmd/server`) — perbedaan hanya pada konfigurasi `license.deployment_mode`:
+
+| Mode | `deployment_mode` | Lisensi Modul | Batas Employee |
+|---|---|---|---|
+| **Subscription SaaS** (multi-tenant) | `saas` (default) | Per-company via `company_modules` DB + package subscribe | Unlimited |
+| **On-Premise** (dedicated) | `on_premise` | File `.lic` RSA (`allowed_modules`) | `max_employees` di-enforce → 403 `QUOTA_EXCEEDED` |
+
+Ringkasan cepat:
+
+```bash
+# SaaS (default) — jalankan server
+./bin/server --config ./config/config.yaml
+
+# On-Premise — vendor generate lisensi, klien deploy
+cd backend && go run ./cmd/licensectl gen-key --out private.pem --pub public.pem
+go run ./cmd/licensectl gen-lic --priv private.pem --out license.lic \
+  --company-id <uuid> --company "PT X" --expires 2027-12-31 \
+  --modules organization,employee,payroll --max-employees 500
+
+export HRIS_LICENSE_DEPLOYMENT_MODE=on_premise
+export HRIS_LICENSE_LICENSE_FILE=/etc/hris/license.lic
+export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
+./bin/server --config ./config/config.yaml
+```
+
+> 📖 **Dokumentasi lengkap**: [`docs/deployment-guide.md`](docs/deployment-guide.md) — arsitektur kedua mode, langkah instalasi SaaS & on-premise, perbandingan, production checklist, dan troubleshooting.
+
+---
+
 ## 🗺️ Roadmap
 
 ### Phase 1: Foundation ✅
@@ -1944,7 +1985,7 @@ $ go build ./...  # ✅ Berhasil
 ### Production Readiness 🎯
 - ✅ AES-256-GCM encryption untuk kredensial tenant DB (`internal/pkg/crypto/`, CLI `encrypt-passwords`)
 - ✅ **Connection Pool optimization** (Platform: 10/5/1jam, Tenant: 10/3/30mnt/5mnt idle→close, PoolStats(), PgBouncer support)
-- ✅ SQL dialect separation (PostgreSQL vs MySQL migrations) — 30 file per dialect (15 up + 15 down), auto-select via `TenantRootPath(driver)`
+- ✅ SQL dialect separation (PostgreSQL vs MySQL migrations) — 44 file per dialect (22 up + 22 down), auto-select via `TenantRootPath(driver)`
 - ✅ Redis Pub/Sub untuk distributed cache invalidation (`internal/pkg/cache/` — two-tier + Pub/Sub)
 - ⬜ Frontend Implementation (Vue 3 + PrimeVue)
 
@@ -1962,6 +2003,7 @@ $ go build ./...  # ✅ Berhasil
 | [`docs/PROJECT_COMPLETION_DASHBOARD.md`](docs/PROJECT_COMPLETION_DASHBOARD.md) | **NEW** — Project completion dashboard (14 modules, 939+ tests, 139 tables) |
 | [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v16 — 665 endpoints, 426 schemas, 27 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
+| [`docs/deployment-guide.md`](docs/deployment-guide.md) | **NEW** — Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
 | [`docs/analisis-blueprint-vs-existing.md`](docs/analisis-blueprint-vs-existing.md) | Analisis blueprint vs existing Laravel app |
 | [`backend/.env.example`](backend/.env.example) | Template environment variables |
 | [`backend/Makefile`](backend/Makefile) | Build & development commands |

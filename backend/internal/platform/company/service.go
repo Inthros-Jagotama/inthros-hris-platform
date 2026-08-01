@@ -1,6 +1,7 @@
 package company
 
 import (
+	"crypto/rand"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/inthros/hris-platform/internal/pkg/database"
 	"github.com/inthros/hris-platform/internal/pkg/migrator"
+	"github.com/inthros/hris-platform/internal/pkg/tenantseed"
 )
 
 // UserCreator mendefinisikan interface untuk membuat platform user
@@ -38,6 +40,7 @@ type TenantManager interface {
 	DropTenantDB(companyID string) error
 	RemoveTenantConnection(companyID string) error
 	ActivateTenantConnection(companyID string) error
+	RotateTenantCredentials(companyID, newPassword string) error
 }
 
 // Service untuk business logic Company.
@@ -208,11 +211,82 @@ func (s *Service) provisionTenant(company *Company) error {
 		return fmt.Errorf("tenant migration failed: %w", err)
 	}
 
+	// 6. Seed master reference data + default RBAC (sama seperti CLI handleProvision)
+	s.logger.Info("Seeding tenant master data...")
+	if err := tenantseed.SeedTenantMasterData(tenantDB, s.logger); err != nil {
+		return fmt.Errorf("tenant master data seeding failed: %w", err)
+	}
+
+	s.logger.Info("Seeding tenant RBAC defaults...")
+	if err := tenantseed.SeedTenantRBAC(tenantDB, s.logger); err != nil {
+		return fmt.Errorf("tenant RBAC seeding failed: %w", err)
+	}
+
 	s.logger.Info("Tenant provisioning completed successfully",
 		zap.String("db_name", dbName),
 	)
 
 	return nil
+}
+
+// RotateCredentials merotasi kredensial DB tenant: ALTER USER di server DB
+// + update tenant_connections (tersimpan terenkripsi AES-256-GCM).
+// Jika newPassword kosong, backend meng-generate password acak kuat.
+func (s *Service) RotateCredentials(id, newPassword string) (*RotateCredentialsResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid company id: %w", err)
+	}
+
+	company, err := s.repo.FindByID(uid)
+	if err != nil {
+		return nil, err
+	}
+
+	if company.Status == CompanyStatusTerminated {
+		return nil, fmt.Errorf("cannot rotate credentials for terminated company")
+	}
+
+	generated := false
+	if newPassword == "" {
+		newPassword, err = generateStrongPassword(24)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate new password: %w", err)
+		}
+		generated = true
+	}
+
+	if err := s.dbManager.RotateTenantCredentials(company.ID.String(), newPassword); err != nil {
+		return nil, err
+	}
+
+	s.logger.Info("Tenant DB credentials rotated",
+		zap.String("company_id", company.ID.String()),
+		zap.Bool("auto_generated", generated),
+	)
+
+	resp := &RotateCredentialsResponse{
+		CompanyID: company.ID.String(),
+		Rotated:   true,
+	}
+	if generated {
+		resp.NewPassword = newPassword
+	}
+	return resp, nil
+}
+
+// generateStrongPassword membuat password acak kuat (karakter alfanumerik +
+// simbol aman untuk SQL string literal — tanpa quote/backslash).
+func generateStrongPassword(length int) (string, error) {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*-_=+"
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	for i := range b {
+		b[i] = charset[int(b[i])%len(charset)]
+	}
+	return string(b), nil
 }
 
 // MigrateTenantDB menjalankan migration pada tenant database yang sudah ada.

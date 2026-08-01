@@ -102,20 +102,18 @@
           <span class="text-gray-500 dark:text-gray-400">{{ data.createdAt || '-' }}</span>
         </template>
       </Column>
-      <Column :header="t('common.actions')" :style="{ width: '160px' }">
+      <Column :header="t('common.actions')" :style="{ width: '220px' }">
         <template #body="{ data }">
           <div class="flex items-center gap-1">
-            <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openEdit(data)" />
-            <Button v-if="data.status === 'active'" icon="pi pi-pause-circle" size="small" text severity="warning" v-tooltip.left="t('companies.action_suspend')" @click="confirmSuspend(data)" />
-            <Button v-if="data.status === 'suspended'" icon="pi pi-play-circle" size="small" text severity="info" v-tooltip.left="t('companies.action_activate')" @click="confirmActivate(data)" />
-            <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('companies.action_terminate')" @click="confirmTerminate(data)" />
+            <Button icon="pi pi-eye" size="small" text severity="secondary" v-tooltip.left="t('companies.view_detail')" @click="openDetail(data)" />
+            <CompanyActions :company="data" mode="icons" @updated="loadData" />
           </div>
         </template>
       </Column>
     </DataTable>
 
-    <!-- Create/Edit Dialog -->
-    <Dialog v-model:visible="dialogVisible" :header="isEditing ? t('companies.edit_company') : t('companies.new_company')" modal :style="{ width: '620px' }" :closable="true">
+    <!-- Create Dialog (edit dipindah ke komponen CompanyActions) -->
+    <Dialog v-model:visible="dialogVisible" :header="t('companies.new_company')" modal :style="{ width: '620px' }" :closable="true">
       <div class="space-y-4">
         <!-- Company Info -->
         <div>
@@ -149,21 +147,8 @@
           </div>
         </div>
 
-        <!-- Current License Info (edit only) -->
-        <div v-if="isEditing && editingLicense">
-          <div class="border-t border-gray-200 dark:border-gray-700 my-3"></div>
-          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-1.5">
-            <i class="pi pi-id-card text-indigo-400 text-sm"></i>
-            {{ t('companies.license_section') }}
-          </h3>
-          <div class="flex items-center gap-3 text-sm">
-            <Tag :value="editingLicense.plan_type" :severity="planSeverity(editingLicense.plan_type)" class="!text-xs" />
-            <span class="text-gray-500 dark:text-gray-400">{{ t('companies.license_key_label') }}: {{ editingLicense.license_key?.substring(0, 12) }}...</span>
-          </div>
-        </div>
-
-        <!-- Admin User (only for create) -->
-        <div v-if="!isEditing">
+        <!-- Admin User -->
+        <div>
           <div class="border-t border-gray-200 dark:border-gray-700 my-3"></div>
           <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-1.5">
             <i class="pi pi-user text-indigo-400 text-sm"></i>
@@ -193,18 +178,9 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 ml-auto">
             <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible = false" />
-            <Button :label="isEditing ? t('common.update') : t('common.create')" size="small" :loading="saving" :disabled="saving" @click="saveCompany" />
+            <Button :label="t('common.create')" size="small" :loading="saving" :disabled="saving" @click="saveCompany" />
           </div>
         </div>
-      </template>
-    </Dialog>
-
-    <!-- Confirm Dialog (suspend/activate/terminate) -->
-    <Dialog v-model:visible="confirmVisible" :header="confirmTitle" modal :style="{ width: '400px' }">
-      <p class="text-xs text-gray-600 dark:text-gray-300">{{ confirmMessage }}</p>
-      <template #footer>
-        <Button :label="t('common.cancel')" severity="secondary" text size="small" @click="confirmVisible = false" />
-        <Button :label="confirmActionLabel" :severity="confirmSeverity" size="small" :loading="confirming" :disabled="confirming" @click="executeConfirm" />
       </template>
     </Dialog>
   </div>
@@ -212,6 +188,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import api from '@/services/api'
@@ -229,8 +206,10 @@ import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
 import SkeletonTable from '@/components/SkeletonTable.vue'
+import CompanyActions from '@/components/CompanyActions.vue'
 
 const toast = useToast()
+const router = useRouter()
 const { t } = useI18n()
 
 // Data
@@ -241,22 +220,9 @@ const packageFilter = ref(null)
 const packages = ref([])
 const loading = ref(true)
 const dialogVisible = ref(false)
-const isEditing = ref(false)
-const editingId = ref(null)
-const confirmVisible = ref(false)
-const confirmAction = ref(null)
-const confirmTarget = ref(null)
 const saving = ref(false)
-const confirming = ref(false)
 const form = ref({ name: '', email: '', phone: '', address: '', admin_name: '', admin_email: '', admin_password: '' })
 const errors = ref({})
-
-const statusOptions = computed(() => [
-  { label: t('companies.all_status'), value: null },
-  { label: t('common_status.active'), value: 'active' },
-  { label: t('common_status.suspended'), value: 'suspended' },
-  { label: t('common_status.terminated'), value: 'terminated' }
-])
 
 // Package options untuk filter dropdown
 const packageOptions = computed(() => {
@@ -283,7 +249,7 @@ const skeletonColumns = [
   { type: 'tag', width: 'w-14', headerWidth: 'w-20' },
   { type: 'tag', width: 'w-14', headerWidth: 'w-14' },
   { type: 'text', width: 'w-16', headerWidth: 'w-16' },
-  { type: 'icons', count: 3, headerWidth: 'w-16' }
+  { type: 'icons', count: 5, headerWidth: 'w-16' }
 ]
 
 const filteredCompanies = computed(() => {
@@ -317,13 +283,6 @@ function planSeverity(plan) {
     default: return 'info'
   }
 }
-
-// License info untuk company yang sedang diedit
-const editingLicense = computed(() => {
-  if (!editingId.value) return null
-  const company = companies.value.find(c => c.id === editingId.value)
-  return company?.license_info || null
-})
 
 // Load
 async function loadData() {
@@ -375,18 +334,12 @@ function provisionTooltip(company) {
   return tip
 }
 
-function openCreate() {
-  isEditing.value = false
-  editingId.value = null
-  form.value = { name: '', email: '', phone: '', address: '', admin_name: '', admin_email: '', admin_password: '' }
-  errors.value = {}
-  dialogVisible.value = true
+function openDetail(company) {
+  router.push(`/companies/${company.id}`)
 }
 
-function openEdit(company) {
-  isEditing.value = true
-  editingId.value = company.id
-  form.value = { name: company.name, email: company.email, phone: company.phone, address: company.address, admin_name: '', admin_email: '', admin_password: '' }
+function openCreate() {
+  form.value = { name: '', email: '', phone: '', address: '', admin_name: '', admin_email: '', admin_password: '' }
   errors.value = {}
   dialogVisible.value = true
 }
@@ -394,22 +347,17 @@ function openEdit(company) {
 async function saveCompany() {
   saving.value = true
   try {
-    if (isEditing.value) {
-      await api.put(`/api/v1/platform/companies/${editingId.value}`, form.value)
-      toast.add({ severity: 'success', summary: t('message.updated'), detail: t('companies.title'), life: 2000 })
+    const res = await api.post('/api/v1/platform/companies', form.value)
+    const admin = res.data?.data?.admin_user
+    if (admin) {
+      toast.add({
+        severity: 'success',
+        summary: t('message.created'),
+        detail: `${t('companies.title')}: ${admin.name} (${admin.email})`,
+        life: 5000
+      })
     } else {
-      const res = await api.post('/api/v1/platform/companies', form.value)
-      const admin = res.data?.data?.admin_user
-      if (admin) {
-        toast.add({
-          severity: 'success',
-          summary: t('message.created'),
-          detail: `${t('companies.title')}: ${admin.name} (${admin.email})`,
-          life: 5000
-        })
-      } else {
-        toast.add({ severity: 'success', summary: t('message.created'), detail: t('companies.title'), life: 2000 })
-      }
+      toast.add({ severity: 'success', summary: t('message.created'), detail: t('companies.title'), life: 2000 })
     }
     dialogVisible.value = false
     await loadData()
@@ -420,57 +368,6 @@ async function saveCompany() {
     }
   } finally {
     saving.value = false
-  }
-}
-
-// Confirm actions
-const confirmTitle = computed(() => {
-  switch (confirmAction.value) {
-    case 'suspend': return t('companies.confirm_suspend_title')
-    case 'activate': return t('companies.confirm_activate_title')
-    case 'terminate': return t('companies.confirm_terminate_title')
-    default: return ''
-  }
-})
-const confirmMessage = computed(() => {
-  if (!confirmTarget.value) return ''
-  const name = confirmTarget.value.name
-  switch (confirmAction.value) {
-    case 'suspend': return t('companies.confirm_suspend_message', { name })
-    case 'activate': return t('companies.confirm_activate_message', { name })
-    case 'terminate': return t('companies.confirm_terminate_message', { name })
-    default: return ''
-  }
-})
-const confirmActionLabel = computed(() => {
-  switch (confirmAction.value) {
-    case 'suspend': return t('companies.action_suspend')
-    case 'activate': return t('companies.action_activate')
-    case 'terminate': return t('companies.action_terminate')
-    default: return ''
-  }
-})
-const confirmSeverity = computed(() => {
-  return confirmAction.value === 'terminate' ? 'danger' : 'warn'
-})
-
-function confirmSuspend(company) { confirmAction.value = 'suspend'; confirmTarget.value = company; confirmVisible.value = true }
-function confirmActivate(company) { confirmAction.value = 'activate'; confirmTarget.value = company; confirmVisible.value = true }
-function confirmTerminate(company) { confirmAction.value = 'terminate'; confirmTarget.value = company; confirmVisible.value = true }
-
-async function executeConfirm() {
-  if (!confirmTarget.value || !confirmAction.value) return
-  confirming.value = true
-  const id = confirmTarget.value.id
-  try {
-    await api.post(`/api/v1/platform/companies/${id}/${confirmAction.value}`)
-    toast.add({ severity: 'success', summary: t('message.success'), detail: `${t('companies.title')} ${confirmAction.value}ed`, life: 2000 })
-    confirmVisible.value = false
-    await loadData()
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 3000 })
-  } finally {
-    confirming.value = false
   }
 }
 </script>

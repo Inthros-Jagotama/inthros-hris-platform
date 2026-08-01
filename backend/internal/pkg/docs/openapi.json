@@ -664,6 +664,57 @@
         "description": "Permanently terminate a company tenant. This drops the tenant database entirely, removes the connection record, and sets the company status to 'terminated'. This action cannot be undone."
       }
     },
+    "/api/v1/platform/companies/{id}/rotate-credentials": {
+      "post": {
+        "tags": [
+          "Platform: Companies"
+        ],
+        "summary": "Rotate tenant DB credentials (ALTER USER + update encrypted connection)",
+        "operationId": "rotateCompanyCredentials",
+        "x-rbac": {
+          "permission": "company.update",
+          "roles": [
+            "super_admin"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "": "#/components/schemas/RotateCredentialsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Credentials rotated -- response includes new_password only if auto-generated"
+          },
+          "400": {
+            "description": "Validation error (new_password min 8 / max 128)"
+          },
+          "403": {
+            "description": "Forbidden: hanya super_admin"
+          },
+          "409": {
+            "description": "Conflict: ROTATE_FAILED (terminated company, invalid password chars, DB error)"
+          }
+        },
+        "description": "Rotate the tenant database credentials for a company. Runs ALTER USER on the DB server (dialect-aware), updates tenant_connections with the new password (encrypted AES-256-GCM), and closes cached connections so the tenant reconnects with fresh credentials. If new_password is omitted, the backend auto-generates a strong password (24 chars) and returns it once in the response. Requires a dedicated (non-superuser) tenant DB user in production; rotation of the root/superuser account is discouraged."
+      }
+    },
     "/api/v1/platform/companies/{id}/backup": {
       "post": {
         "tags": [
@@ -27828,6 +27879,34 @@
           "phone": {
             "type": "string",
             "maxLength": 20
+          }
+        }
+      },
+      "RotateCredentialsRequest": {
+        "type": "object",
+        "properties": {
+          "new_password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
+            "description": "Optional new password. If omitted, the backend generates a strong password (24 chars) and returns it once in the response. Password must not contain single-quote or backslash characters (SQL literal safety)."
+          }
+        }
+      },
+      "RotateCredentialsResponse": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rotated": {
+            "type": "boolean",
+            "example": true
+          },
+          "new_password": {
+            "type": "string",
+            "description": "Only present when the backend auto-generated the password"
           }
         }
       },

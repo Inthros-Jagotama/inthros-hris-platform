@@ -1,7 +1,7 @@
 # Frontend Development Plan — HRIS Platform
 
 **Generated:** 27 July 2026
-**Last Updated:** 30 July 2026 (Employee Form: 8/9 steps completed — Personal, Address, Contact, Family, Education, Experience, Documents w/ upload, Insurance)
+**Last Updated:** 31 July 2026 (Employee Form: 8/9 steps completed — Personal, Address, Contact, Family, Education, Experience, Documents w/ upload, Insurance; Platform Admin: CompanyActions.vue reusable component)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios
 
 ---
@@ -73,6 +73,10 @@ frontend/
 - [x] **Search by name/slug/phone/address** — client-side filter
 - [x] **License info inline** — kolom plan_type dengan severity badge + edit dialog
 - [x] **Tenant provisioning progress** — Backend: ProvisioningInfo DTO + repository methods + service update; Frontend: DB column dengan Tag status (Provisioned/Deactivated/Not Provisioned) + tooltip bilingual
+- [x] **Company Detail Page** — `views/CompanyDetail.vue` (route `/companies/:id`): header card (nama, slug, status Tag) + 4 section cards (Basic Info, License, Database & Provisioning, Admin User) + tombol navigasi balik; tombol eye di list untuk masuk ke detail
+- [x] **Rotate Credentials** — tombol (pi-key) di list & detail → ConfirmDialog → `POST /companies/:id/rotate-credentials` → dialog password auto-generated sekali lihat (readonly InputText + copy + warning amber); tampil hanya jika company provisioned & bukan terminated
+- [x] **CompanyActions.vue (reusable)** — `components/CompanyActions.vue` mengelola Edit/Suspend/Activate/Terminate/Rotate + ConfirmDialog + edit dialog + rotate password dialog; dipakai di **list** (`mode="icons"`) & **detail** (`mode="buttons"`); emit `updated` → parent reload; tombol Edit/Suspend/Activate/Terminate disembunyikan untuk company `terminated` (konsisten list & detail)
+- [x] **Edit Company** — dialog FormRow/TextInput (name/email/phone/address) + info lisensi saat ini, validasi field-error via `getValidationErrors`, `PUT /companies/:id`
 
 ### B.4. Users Page ✅ (Existing - Enhanced)
 - [x] DataTable daftar platform users
@@ -308,7 +312,7 @@ frontend/
 - [x] **SalaryGrades CRUD** — Code, Name, Grade, MinSalary, MaxSalary, SortOrder
 - [x] **TER CRUD** — Group, BrutoMin, BrutoMax, Rate, SortOrder
 - [x] **PTKP CRUD** — Name, Group, PTKP Amount, SortOrder
-- [x] **Insurances CRUD** — Code, Name, SortOrder — Backend: model + repo + service + handler + routes + module; Frontend: InsurancesView.vue + route + sidebar + locale keys (EN/ID); OpenAPI: 5 endpoints injected + report regenerated (364 paths, 673 endpoints, 429 schemas)
+- [x] **Insurances CRUD** — Code, Name, SortOrder — Backend: model + repo + service + handler + routes + module; Frontend: InsurancesView.vue + route + sidebar + locale keys (EN/ID); OpenAPI: 5 endpoints injected + report regenerated (365 paths, 674 endpoints, 431 schemas)
 
 **Frontend — Pattern Companies.vue (applied to all 16 views):**
 - [x] **Search bar** (IconField + InputText) — client-side filter by code/name

@@ -1,6 +1,7 @@
 package employee
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,7 +33,13 @@ func (h *Handler) Create(c *gin.Context) {
 
 	resp, err := h.service.Create(c.Request.Context(), req)
 	if err != nil {
-			httputil.InternalError(c, err.Error())
+		// Kuota employee on-premise tercapai → 403 dengan kode khusus,
+		// bukan 500 agar client bisa menangkap error bisnis ini.
+		if errors.Is(err, ErrQuotaExceeded) {
+			httputil.ErrorRaw(c, http.StatusForbidden, "QUOTA_EXCEEDED", err.Error())
+			return
+		}
+		httputil.InternalError(c, err.Error())
 		return
 	}
 

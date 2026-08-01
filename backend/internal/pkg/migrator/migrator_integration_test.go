@@ -36,7 +36,7 @@ var expectedPlatformTables = []string{
 }
 
 // expectedTenantKeyTables adalah tabel kunci yang harus ada setelah tenant migrations.
-// Dipilih dari berbagai migration (001-011) untuk memastikan semuanya tereksekusi.
+// Dipilih dari berbagai migration (001-022) untuk memastikan semuanya tereksekusi.
 // Nama tabel diambil dari file SQL yang sebenarnya.
 var expectedTenantKeyTables = []string{
 	"religions",              // 001_master_data
@@ -50,6 +50,8 @@ var expectedTenantKeyTables = []string{
 	"job_management_titles",  // 009_job_management
 	"approval_flows",         // 010_approval
 	"permissions",            // 011_settings
+	"insurances",             // 021_insurances
+	"users",                  // 022_users
 }
 
 // =========================================================================

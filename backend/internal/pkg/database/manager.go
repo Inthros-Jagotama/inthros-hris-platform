@@ -15,6 +15,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -490,6 +491,116 @@ func (m *Manager) DropTenantDB(companyID string) error {
 	m.logger.Info("Tenant database dropped",
 		zap.String("company_id", companyID),
 		zap.String("db_name", conn.DBName),
+	)
+	return nil
+}
+
+// RotateTenantCredentials merotasi password user tenant database.
+//
+// Langkah:
+//  1. Ambil TenantConnection (host/port/dbname/username) dari platform DB
+//  2. Connect sebagai superuser (tanpa database spesifik)
+//  3. ALTER USER dengan password baru (dialect-aware: MySQL / PostgreSQL)
+//  4. Update tenant_connections.password — terenkripsi AES-256-GCM
+//  5. Tutup koneksi tenant yang di-cache agar reconnect memakai kredensial baru
+//
+// Catatan: untuk MySQL, user tenant harus terdaftar dengan host '%'
+// (contoh: 'hris_x'@'%') agar ALTER USER berhasil.
+func (m *Manager) RotateTenantCredentials(companyID, newPassword string) error {
+	conn, err := m.FindTenantConnection(companyID)
+	if err != nil {
+		return fmt.Errorf("cannot find tenant connection: %w", err)
+	}
+	if conn.Username == "" {
+		return fmt.Errorf("tenant connection has no username configured")
+	}
+	if newPassword == "" {
+		return fmt.Errorf("new password cannot be empty")
+	}
+	// Amankan string literal SQL: tolak karakter yang bisa memecah quote.
+	// (kutip tunggal dan backslash — escape lintas-dialect MySQL/PostgreSQL
+	// tidak seragam, jadi mencegah lebih aman daripada men-escape)
+	if strings.ContainsAny(newPassword, "'\\") {
+		return fmt.Errorf("new password contains characters not allowed (single quote or backslash)")
+	}
+	// Rotasi merubah password user tenant di server DB. Jika tenant memakai
+	// akun superuser (root — default development), rotasi akan memutus koneksi
+	// superuser lain yang dipakai provisioning/drop. Log warning sebagai pengingat.
+	if conn.Username == m.cfg.TenantSuperUser || conn.Username == "root" {
+		m.logger.Warn("Rotating credentials for a superuser account — pastikan ini disengaja",
+			zap.String("company_id", companyID),
+			zap.String("username", conn.Username),
+		)
+	}
+
+	driverType := conn.Driver
+	if driverType == "" {
+		driverType = string(m.driver)
+	}
+
+	// Build superuser DSN (tanpa database spesifik)
+	var superDSN string
+	switch driver.Parse(driverType) {
+	case driver.MySQL:
+		superDSN = fmt.Sprintf("%s:%s@tcp(%s:%d)/?charset=utf8mb4&parseTime=True&loc=Local",
+			m.cfg.TenantSuperUser, m.cfg.TenantSuperPass,
+			m.cfg.TenantHost, m.cfg.TenantPort,
+		)
+	default: // postgres
+		superDSN = fmt.Sprintf(
+			"host=%s port=%d user=%s password=%s dbname=postgres sslmode=%s",
+			m.cfg.TenantHost, m.cfg.TenantPort,
+			m.cfg.TenantSuperUser, m.cfg.TenantSuperPass,
+			m.cfg.TenantSSLMode,
+		)
+	}
+
+	superDB, err := openGORM(driverType, superDSN, m.cfg.LogLevel)
+	if err != nil {
+		return fmt.Errorf("failed to connect as superuser: %w", err)
+	}
+	defer func() {
+		if sqlDB, err := superDB.DB(); err == nil {
+			sqlDB.Close()
+		}
+	}()
+
+	// ALTER USER sesuai dialect
+	switch driver.Parse(driverType) {
+	case driver.MySQL:
+		if err := superDB.Exec(fmt.Sprintf(
+			"ALTER USER '%s'@'%%' IDENTIFIED BY '%s'",
+			conn.Username, newPassword,
+		)).Error; err != nil {
+			return fmt.Errorf("failed to rotate MySQL user password: %w", err)
+		}
+	default: // postgres
+		if err := superDB.Exec(fmt.Sprintf(
+			"ALTER USER \"%s\" WITH PASSWORD '%s'",
+			conn.Username, newPassword,
+		)).Error; err != nil {
+			return fmt.Errorf("failed to rotate PostgreSQL user password: %w", err)
+		}
+	}
+
+	// Update kredensial tersimpan — enkripsi AES-256-GCM sebelum disimpan
+	encrypted, err := crypto.EncryptString(newPassword)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt rotated tenant password: %w", err)
+	}
+	if err := m.platformDB.Table("tenant_connections").
+		Where("company_id = ?", companyID).
+		Update("password", encrypted).Error; err != nil {
+		return fmt.Errorf("failed to update tenant connection password: %w", err)
+	}
+
+	// Tutup koneksi cache agar reconnect memakai password baru
+	m.CloseTenantConnection(companyID)
+
+	m.logger.Info("Tenant DB credentials rotated",
+		zap.String("company_id", companyID),
+		zap.String("db_name", conn.DBName),
+		zap.String("username", conn.Username),
 	)
 	return nil
 }

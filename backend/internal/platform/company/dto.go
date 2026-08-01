@@ -16,6 +16,20 @@ type CreateCompanyRequest struct {
 	PackageID    string  `json:"package_id,omitempty"`
 }
 
+// RotateCredentialsRequest DTO untuk rotasi kredensial DB tenant.
+// NewPassword opsional — jika kosong, backend meng-generate password acak kuat.
+type RotateCredentialsRequest struct {
+	NewPassword string `json:"new_password,omitempty" binding:"omitempty,min=8,max=128"`
+}
+
+// RotateCredentialsResponse DTO untuk response rotasi kredensial.
+// NewPassword dikembalikan hanya jika auto-generated oleh backend.
+type RotateCredentialsResponse struct {
+	CompanyID   string `json:"company_id"`
+	Rotated     bool   `json:"rotated"`
+	NewPassword string `json:"new_password,omitempty"`
+}
+
 // UpdateCompanyRequest DTO untuk update company.
 type UpdateCompanyRequest struct {
 	Name    *string `json:"name" binding:"omitempty,min=3,max=255"`

@@ -23,6 +23,7 @@ type FakeTenantManager struct {
 	ActivateTenantFunc    func(companyID string) error
 	SaveTenantConnFunc    func(conn *database.TenantConnection) error
 	TenantDBFunc          func(companyID string) (*gorm.DB, error)
+	RotateTenantCredFunc  func(companyID, newPassword string) error
 }
 
 func (f *FakeTenantManager) Driver() string {
@@ -83,6 +84,13 @@ func (f *FakeTenantManager) RemoveTenantConnection(companyID string) error {
 func (f *FakeTenantManager) ActivateTenantConnection(companyID string) error {
 	if f.ActivateTenantFunc != nil {
 		return f.ActivateTenantFunc(companyID)
+	}
+	return nil
+}
+
+func (f *FakeTenantManager) RotateTenantCredentials(companyID, newPassword string) error {
+	if f.RotateTenantCredFunc != nil {
+		return f.RotateTenantCredFunc(companyID, newPassword)
 	}
 	return nil
 }

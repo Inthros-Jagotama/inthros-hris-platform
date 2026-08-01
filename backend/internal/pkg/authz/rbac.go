@@ -633,6 +633,8 @@ func singularize(s string) string {
 		"competencies":               "competency",
 		"job-management":             "jobmanagement",
 		"employee-movements":         "employeemovement",
+		"workforce-intelligence":     "workforceintelligence",
+		"career-intelligence":        "careerintelligence",
 		"settings":                    "setting",
 	}
 	if singular, ok := irregular[s]; ok {
