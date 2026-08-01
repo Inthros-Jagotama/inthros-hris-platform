@@ -3,6 +3,7 @@ package company
 import (
 	"crypto/rand"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/gosimple/slug"
@@ -74,15 +75,30 @@ func (s *Service) Create(req CreateCompanyRequest) (*CompanyResponse, error) {
 		companySlug = fmt.Sprintf("%s-%s", companySlug, uuid.New().String()[:8])
 	}
 
+	// Cek duplikasi subdomain/domain — beri error ramah sebelum insert
+	// (unique index di DB tetap jadi pengaman terakhir).
+	if req.Subdomain != nil && *req.Subdomain != "" {
+		if existing, _ := s.repo.FindBySubdomain(*req.Subdomain); existing != nil {
+			return nil, fmt.Errorf("subdomain %s is already used by another company", *req.Subdomain)
+		}
+	}
+	if req.Domain != nil && *req.Domain != "" {
+		if existing, _ := s.repo.FindByDomain(*req.Domain); existing != nil {
+			return nil, fmt.Errorf("domain %s is already used by another company", *req.Domain)
+		}
+	}
+
 	company := &Company{
-		Name:    req.Name,
-		Slug:    companySlug,
-		NPWP:    req.NPWP,
-		NIB:     req.NIB,
-		Address: req.Address,
-		Email:   req.Email,
-		Phone:   req.Phone,
-		Status:  CompanyStatusActive,
+		Name:      req.Name,
+		Slug:      companySlug,
+		Subdomain: emptyToNil(req.Subdomain),
+		Domain:    emptyToNil(req.Domain),
+		NPWP:      req.NPWP,
+		NIB:       req.NIB,
+		Address:   req.Address,
+		Email:     req.Email,
+		Phone:     req.Phone,
+		Status:    CompanyStatusActive,
 	}
 
 	if err := s.repo.Create(company); err != nil {
@@ -300,6 +316,91 @@ func (s *Service) MigrateTenantDB(companyID string, db *gorm.DB) error {
 	return nil
 }
 
+// ResolveByHost menentukan company dari hostname/subdomain yang dipakai
+// mengakses aplikasi (mode SaaS — tiap company punya URL sendiri).
+// Prioritas: 1) domain penuh (hris.pt-inthros.com), 2) subdomain (pt-inthros-jago-utama).
+// Hanya mengembalikan company dengan status active.
+func (s *Service) ResolveByHost(host string) (*ResolveCompanyResponse, error) {
+	if host == "" {
+		return nil, fmt.Errorf("host is required")
+	}
+
+	// Normalisasi host: lowercase + buang port (mis. localhost:5174 → localhost)
+	// agar cocok dengan nilai domain/subdomain yang tersimpan tanpa port.
+	normalized := strings.ToLower(strings.TrimSpace(host))
+	if i := strings.LastIndex(normalized, ":"); i > 0 && strings.IndexByte(normalized, ']') < 0 && isAllDigits(normalized[i+1:]) {
+		normalized = normalized[:i]
+	}
+	normalized = strings.TrimSuffix(normalized, ".")
+
+	// 1. Coba cocokkan domain penuh.
+	if c, err := s.repo.FindByDomain(normalized); err == nil {
+		if c.Status != CompanyStatusActive {
+			return nil, fmt.Errorf("company is not active")
+		}
+		resp := c.ToResolveResponse()
+		return &resp, nil
+	}
+
+	// 2. Coba subdomain (label pertama hostname, mis. pt-inthros-jago-utama).
+	if sub := subdomainFromHost(normalized); sub != "" {
+		if c, err := s.repo.FindBySubdomain(sub); err == nil {
+			if c.Status != CompanyStatusActive {
+				return nil, fmt.Errorf("company is not active")
+			}
+			resp := c.ToResolveResponse()
+			return &resp, nil
+		}
+	}
+
+	return nil, fmt.Errorf("company not found for host: %s", host)
+}
+
+// subdomainFromHost mengekstrak label pertama dari hostname.
+// localhost / IP (127.0.0.1) tidak dianggap subdomain → mengembalikan "".
+func subdomainFromHost(host string) string {
+	h := strings.TrimSpace(host)
+	// Hilangkan port bila ada (mis. localhost:5174).
+	if i := strings.LastIndex(h, ":"); i > 0 && strings.IndexByte(h, ']') < 0 {
+		// hanya jika setelah titik dua berupa digit (port)
+		if isAllDigits(h[i+1:]) {
+			h = h[:i]
+		}
+	}
+	// Hilangkan trailing dot.
+	h = strings.TrimSuffix(h, ".")
+	parts := strings.Split(h, ".")
+	if len(parts) < 2 {
+		return "" // localhost / IP saja → bukan subdomain
+	}
+	first := parts[0]
+	if first == "localhost" || first == "www" || isAllDigits(first) {
+		return ""
+	}
+	return first
+}
+
+// emptyToNil mengubah pointer string kosong menjadi nil (NULL di DB).
+// Mencegah bentrok unique index saat field opsional dikirim sebagai "" dari FE.
+func emptyToNil(s *string) *string {
+	if s != nil && *s == "" {
+		return nil
+	}
+	return s
+}
+
+func isAllDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 // GetByID mengembalikan company berdasarkan ID.
 func (s *Service) GetByID(id string) (*CompanyResponse, error) {
 	uid, err := uuid.Parse(id)
@@ -395,9 +496,28 @@ func (s *Service) Update(id string, req UpdateCompanyRequest) (*CompanyResponse,
 		return nil, err
 	}
 
+	// Cek duplikasi subdomain/domain terhadap company LAIN sebelum update.
+	if req.Subdomain != nil && *req.Subdomain != "" {
+		if existing, _ := s.repo.FindBySubdomain(*req.Subdomain); existing != nil && existing.ID != uid {
+			return nil, fmt.Errorf("subdomain %s is already used by another company", *req.Subdomain)
+		}
+	}
+	if req.Domain != nil && *req.Domain != "" {
+		if existing, _ := s.repo.FindByDomain(*req.Domain); existing != nil && existing.ID != uid {
+			return nil, fmt.Errorf("domain %s is already used by another company", *req.Domain)
+		}
+	}
+
 	// Update fields if provided
 	if req.Name != nil {
 		company.Name = *req.Name
+	}
+	// emptyToNil: string kosong = hapus field jadi NULL, hindari bentrok unique index ''
+	if req.Subdomain != nil {
+		company.Subdomain = emptyToNil(req.Subdomain)
+	}
+	if req.Domain != nil {
+		company.Domain = emptyToNil(req.Domain)
 	}
 	if req.NPWP != nil {
 		company.NPWP = req.NPWP

@@ -43,6 +43,24 @@ func (r *Repository) FindBySlug(slug string) (*Company, error) {
 	return &company, nil
 }
 
+// FindBySubdomain mencari company berdasarkan subdomain (mis. pt-inthros-jago-utama).
+func (r *Repository) FindBySubdomain(subdomain string) (*Company, error) {
+	var company Company
+	if err := r.db.Where("subdomain = ?", subdomain).First(&company).Error; err != nil {
+		return nil, fmt.Errorf("company not found by subdomain: %w", err)
+	}
+	return &company, nil
+}
+
+// FindByDomain mencari company berdasarkan domain penuh (mis. hris.pt-inthros.com).
+func (r *Repository) FindByDomain(domain string) (*Company, error) {
+	var company Company
+	if err := r.db.Where("domain = ?", domain).First(&company).Error; err != nil {
+		return nil, fmt.Errorf("company not found by domain: %w", err)
+	}
+	return &company, nil
+}
+
 // FindAll mengembalikan semua company dengan pagination.
 // Gunakan query chain terpisah untuk Count dan Find untuk
 // menghindari GORM v2 issue di mana Count() (terminal operation)

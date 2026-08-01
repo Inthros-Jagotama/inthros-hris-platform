@@ -26,7 +26,10 @@
               <i class="pi pi-building text-2xl"></i>
             </div>
             <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('auth.title') }}</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('auth.login.subtitle') }}</p>
+            <!-- Subtitle: tampilkan nama company bila terdeteksi (auto-detect URL/env) -->
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {{ companyLabel || companySlug ? t('auth.login.subtitle_with_company', { company: companyLabel || companySlug }) : t('auth.login.subtitle') }}
+            </p>
           </div>
           <!-- Login Form -->
           <form @submit.prevent="handleLogin" class="space-y-4">
@@ -82,11 +85,12 @@
   </div>
 </template>
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/stores/auth'
 import { useLanguage } from '@/stores/language'
 import { useI18n } from '@/composables/useI18n'
+import api from '@/services/api'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -96,11 +100,70 @@ const router = useRouter()
 const { login } = useAuth()
 const langStore = useLanguage()
 const { t } = useI18n()
+const companySlug = ref('')
+const companyId = ref('')
+const companyLabel = ref('') // nama company hasil resolve (opsional)
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
+
+// updateDocumentTitle: set judul tab browser — tampilkan nama company bila
+// terdeteksi (resolve URL/env), fallback ke judul default aplikasi.
+function updateDocumentTitle() {
+  const company = companyLabel.value || companySlug.value
+  document.title = company ? `${company} | ${t('auth.title')}` : t('auth.title')
+}
+
+// subdomainFromHost mengekstrak label pertama hostname (mis. pt-inthros-jago-utama.localhost)
+function subdomainFromHost() {
+  const host = window.location.hostname || ''
+  const parts = host.split('.').filter(Boolean)
+  if (parts.length < 2) return '' // localhost / IP saja
+  const first = parts[0]
+  if (first === 'localhost' || first === 'www' || /^\d+$/.test(first)) return ''
+  return first
+}
+
+// detectCompany: isi company dari env (dev) atau resolve dari subdomain URL (SaaS).
+async function detectCompany() {
+  // 1. Env (development): VITE_COMPANY_ID / VITE_COMPANY_SLUG
+  const envId = import.meta.env.VITE_COMPANY_ID || ''
+  const envSlug = import.meta.env.VITE_COMPANY_SLUG || ''
+  if (envId || envSlug) {
+    companyId.value = envId
+    companySlug.value = envSlug
+    updateDocumentTitle()
+    return
+  }
+
+  // 2. Subdomain URL (mode SaaS): coba resolve via endpoint publik
+  const sub = subdomainFromHost()
+  if (!sub) {
+    updateDocumentTitle() // normalisasi title default (tanpa company)
+    return
+  }
+  try {
+    const res = await api.get('/api/v1/public/companies/resolve', {
+      params: { host: window.location.host }
+    })
+    const data = res.data?.data
+    if (data) {
+      companyId.value = data.id
+      companySlug.value = data.slug
+      companyLabel.value = data.name
+    }
+  } catch {
+    // Fallback: gunakan label subdomain sebagai company slug
+    companySlug.value = sub
+  }
+  updateDocumentTitle()
+}
+
+onMounted(detectCompany)
+
 async function handleLogin() {
+  // Company opsional — backend auto-resolve dari Host header (mode SaaS).
   if (!email.value || !password.value) {
     error.value = t('auth.login.validation_required')
     return
@@ -108,7 +171,7 @@ async function handleLogin() {
   loading.value = true
   error.value = ''
   try {
-    await login(email.value, password.value)
+    await login(email.value, password.value, companySlug.value.trim(), companyId.value.trim(), companyLabel.value)
     router.push('/dashboard')
   } catch (e) {
     error.value = e.response?.data?.error?.message

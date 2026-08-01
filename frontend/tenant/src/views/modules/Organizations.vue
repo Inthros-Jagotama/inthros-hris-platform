@@ -345,7 +345,7 @@ const expandedRows = ref({})
 // Reference data for dropdowns
 const zones = ref([])
 const jobFamilies = ref([])
-const salaryGrades = ref([])
+const gradings = ref([])
 const refLoading = ref(false)
 const dialogVisible = ref(false)
 const isEditing = ref(false)
@@ -405,16 +405,16 @@ function flattenTree(nodes) {
 // Computed options for reference dropdowns
 const zoneOptions = computed(() => zones.value.map(z => ({ id: z.id, label: `${z.code} — ${z.name}` })))
 const jobFamilyOptions = computed(() => jobFamilies.value.map(jf => ({ id: jf.id, label: `${jf.code} — ${jf.name}` })))
-const gradingOptions = computed(() => salaryGrades.value.map(sg => ({ id: sg.id, label: `${sg.code} — ${sg.name}` })))
+const gradingOptions = computed(() => gradings.value.map(g => ({ id: g.id, label: `${g.code} — ${g.name}` })))
 
 
-// Load reference data (zones, job families, salary grades) from setting module
+// Load reference data (zones, job families, gradings) from setting module
 async function loadRefData() {
   refLoading.value = true
   const promises = [
     api.get('/api/v1/tenant/settings/zones?per_page=200').then(r => { zones.value = r.data?.data || [] }).catch(() => { zones.value = [] }),
     api.get('/api/v1/tenant/settings/job-families?per_page=200').then(r => { jobFamilies.value = r.data?.data || [] }).catch(() => { jobFamilies.value = [] }),
-    api.get('/api/v1/tenant/settings/salary-grades?per_page=200').then(r => { salaryGrades.value = r.data?.data || [] }).catch(() => { salaryGrades.value = [] })
+    api.get('/api/v1/tenant/settings/gradings?per_page=200').then(r => { gradings.value = r.data?.data || [] }).catch(() => { gradings.value = [] })
   ]
   await Promise.all(promises)
   refLoading.value = false

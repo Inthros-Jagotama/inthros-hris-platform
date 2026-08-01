@@ -4,16 +4,18 @@ import "time"
 
 // CreateCompanyRequest DTO untuk create company.
 type CreateCompanyRequest struct {
-	Name         string  `json:"name" binding:"required,min=3,max=255"`
-	NPWP         *string `json:"npwp" binding:"omitempty,len=16"`
-	NIB          *string `json:"nib" binding:"omitempty,max=25"`
-	Address      *string `json:"address"`
-	Email        *string `json:"email" binding:"omitempty,email"`
-	Phone        *string `json:"phone" binding:"omitempty,max=20"`
-	AdminName    string  `json:"admin_name" binding:"required,min=1"`
-	AdminEmail   string  `json:"admin_email" binding:"required,email"`
+	Name          string  `json:"name" binding:"required,min=3,max=255"`
+	Subdomain     *string `json:"subdomain,omitempty" binding:"omitempty,min=2,max=100"`
+	Domain        *string `json:"domain,omitempty" binding:"omitempty,max=255"`
+	NPWP          *string `json:"npwp" binding:"omitempty,len=16"`
+	NIB           *string `json:"nib" binding:"omitempty,max=25"`
+	Address       *string `json:"address"`
+	Email         *string `json:"email" binding:"omitempty,email"`
+	Phone         *string `json:"phone" binding:"omitempty,max=20"`
+	AdminName     string  `json:"admin_name" binding:"required,min=1"`
+	AdminEmail    string  `json:"admin_email" binding:"required,email"`
 	AdminPassword string  `json:"admin_password" binding:"required,min=6"`
-	PackageID    string  `json:"package_id,omitempty"`
+	PackageID     string  `json:"package_id,omitempty"`
 }
 
 // RotateCredentialsRequest DTO untuk rotasi kredensial DB tenant.
@@ -32,12 +34,14 @@ type RotateCredentialsResponse struct {
 
 // UpdateCompanyRequest DTO untuk update company.
 type UpdateCompanyRequest struct {
-	Name    *string `json:"name" binding:"omitempty,min=3,max=255"`
-	NPWP    *string `json:"npwp" binding:"omitempty,len=16"`
-	NIB     *string `json:"nib" binding:"omitempty,max=25"`
-	Address *string `json:"address"`
-	Email   *string `json:"email" binding:"omitempty,email"`
-	Phone   *string `json:"phone" binding:"omitempty,max=20"`
+	Name      *string `json:"name" binding:"omitempty,min=3,max=255"`
+	Subdomain *string `json:"subdomain,omitempty" binding:"omitempty,min=2,max=100"`
+	Domain    *string `json:"domain,omitempty" binding:"omitempty,max=255"`
+	NPWP      *string `json:"npwp" binding:"omitempty,len=16"`
+	NIB       *string `json:"nib" binding:"omitempty,max=25"`
+	Address   *string `json:"address"`
+	Email     *string `json:"email" binding:"omitempty,email"`
+	Phone     *string `json:"phone" binding:"omitempty,max=20"`
 }
 
 // CompanyResponse DTO untuk response company.
@@ -45,6 +49,8 @@ type CompanyResponse struct {
 	ID               string            `json:"id"`
 	Name             string            `json:"name"`
 	Slug             string            `json:"slug"`
+	Subdomain        *string           `json:"subdomain,omitempty"`
+	Domain           *string           `json:"domain,omitempty"`
 	NPWP             *string           `json:"npwp,omitempty"`
 	NIB              *string           `json:"nib,omitempty"`
 	Address          *string           `json:"address,omitempty"`
@@ -56,6 +62,17 @@ type CompanyResponse struct {
 	ProvisioningInfo *ProvisioningInfo `json:"provisioning_info,omitempty"`
 	CreatedAt        time.Time         `json:"created_at"`
 	UpdatedAt        time.Time         `json:"updated_at"`
+}
+
+// ResolveCompanyResponse — subset info company untuk endpoint publik
+// resolve by hostname/subdomain (dipakai tenant FE sebelum login).
+type ResolveCompanyResponse struct {
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	Slug      string  `json:"slug"`
+	Subdomain *string `json:"subdomain,omitempty"`
+	Domain    *string `json:"domain,omitempty"`
+	Status    string  `json:"status"`
 }
 
 // LicenseInfo menampilkan informasi lisensi yang dibuat saat signup.
@@ -98,6 +115,8 @@ func (c *Company) ToResponse() CompanyResponse {
 		ID:        c.ID.String(),
 		Name:      c.Name,
 		Slug:      c.Slug,
+		Subdomain: c.Subdomain,
+		Domain:    c.Domain,
 		NPWP:      c.NPWP,
 		NIB:       c.NIB,
 		Address:   c.Address,
@@ -106,5 +125,17 @@ func (c *Company) ToResponse() CompanyResponse {
 		Status:    string(c.Status),
 		CreatedAt: c.CreatedAt,
 		UpdatedAt: c.UpdatedAt,
+	}
+}
+
+// ToResolveResponse mengonversi Company ke ResolveCompanyResponse (publik).
+func (c *Company) ToResolveResponse() ResolveCompanyResponse {
+	return ResolveCompanyResponse{
+		ID:        c.ID.String(),
+		Name:      c.Name,
+		Slug:      c.Slug,
+		Subdomain: c.Subdomain,
+		Domain:    c.Domain,
+		Status:    string(c.Status),
 	}
 }

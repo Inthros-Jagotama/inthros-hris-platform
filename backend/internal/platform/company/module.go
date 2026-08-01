@@ -45,6 +45,25 @@ func (m *companyModule) SetRBACMiddleware(mw gin.HandlerFunc) {
 	m.rbacMW = mw
 }
 
+// PublicHandler diekspos agar main.go bisa mendaftarkan route publik
+// (resolve company by hostname/subdomain) di luar middleware auth.
+func (m *companyModule) PublicHandler() *Handler {
+	return m.handler
+}
+
+// ResolveByHost menentukan company_id dari hostname/subdomain URL.
+// Memenuhi interface middleware.HostCompanyResolver untuk dipakai
+// TenantResolver middleware (auto-detect tenant dari Host header, mode SaaS).
+// Catatan: berbeda dengan Service.ResolveByHost yang mengembalikan struct —
+// method module ini mengembalikan hanya company_id (string).
+func (m *companyModule) ResolveByHost(host string) (string, error) {
+	resp, err := m.handler.service.ResolveByHost(host)
+	if err != nil {
+		return "", err
+	}
+	return resp.ID, nil
+}
+
 func (m *companyModule) Info() module.ModuleInfo {
 	return module.ModuleInfo{
 		Name:        ModuleName,

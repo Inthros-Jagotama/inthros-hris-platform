@@ -240,7 +240,9 @@ const groupedPermissions = computed(() => {
   // Sort: rbac → company → user → module → license → ... alphabetically
   const sortOrder = ['rbac', 'company', 'user', 'module', 'license', 'monitoring', 'package',
     'organization', 'employee', 'attendance', 'leave', 'payroll',
-    'competency', 'jobmanagement', 'employeemovement', 'approval']
+    'competency', 'jobmanagement', 'employeemovement', 'approval',
+    'performance', 'recruitment', 'reimbursement', 'training',
+    'workforceintelligence', 'careerintelligence', 'setting', 'useraccount']
   
   perms.forEach(p => {
     if (!groups[p.resource]) {

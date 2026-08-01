@@ -4,6 +4,7 @@ import api from '@/services/api'
 const TOKEN_KEY = 'tenant_token'
 const REFRESH_KEY = 'tenant_refresh'
 const USER_KEY = 'tenant_user'
+const COMPANY_KEY = 'tenant_company'
 
 // decodeJwtPayload mendekode payload JWT (base64url) tanpa dependency eksternal.
 // Mengembalikan objek claims, atau null jika token tidak valid.
@@ -38,6 +39,9 @@ const state = reactive({
   accessToken: localStorage.getItem(TOKEN_KEY) || null,
   refreshToken: localStorage.getItem(REFRESH_KEY) || null,
   permissions: extractPermissions(localStorage.getItem(TOKEN_KEY) || null),
+  // company: { id, slug, name } — di-sync otomatis dari response header X-Tenant-ID
+  // (backend TenantResolver) sehingga state company selalu sinkron tanpa isi manual.
+  company: JSON.parse(localStorage.getItem(COMPANY_KEY) || 'null'),
   isAuthenticated: !!localStorage.getItem(TOKEN_KEY)
 })
 
@@ -49,8 +53,38 @@ export function useAuth() {
     api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
   }
 
-  async function login(email, password) {
-    const res = await api.post('/api/v1/platform/login', { email, password })
+  // setCompany memperbarui state company + persist ke localStorage.
+  // Dipanggil dari: login (response X-Tenant-ID), api.js response interceptor
+  // (agar selalu sinkron), dan resolve subdomain (prefill sebelum login).
+  function setCompany(company) {
+    if (!company || !company.id) return
+    state.company = {
+      ...(state.company || {}),
+      ...company
+    }
+    localStorage.setItem(COMPANY_KEY, JSON.stringify(state.company))
+    // Backend TenantResolver membaca header X-Tenant-ID bila ada — kirim agar
+    // konsisten meski Host tidak ter-resolve (mis. dev tanpa subdomain).
+    if (state.company.id) {
+      api.defaults.headers.common['X-Tenant-ID'] = state.company.id
+    }
+  }
+
+  async function login(email, password, companySlug, companyId, companyName) {
+    // Tenant login: user tenant (employee) login. Company diidentifikasi via
+    // company_slug/company_id (opsional) — backend juga bisa auto-resolve dari
+    // Host header (mode SaaS, tiap company punya URL sendiri), sehingga FE tidak
+    // wajib mengirim company manual.
+    const payload = {
+      email,
+      password
+    }
+    if (companyId) {
+      payload.company_id = companyId
+    } else if (companySlug) {
+      payload.company_slug = companySlug
+    }
+    const res = await api.post('/api/v1/tenant/auth/login', payload)
     const data = res.data?.data || res.data
     // Backend returns snake_case: access_token, refresh_token
     const {
@@ -64,12 +98,27 @@ export function useAuth() {
     state.isAuthenticated = true
     localStorage.setItem(REFRESH_KEY, refreshToken)
     localStorage.setItem(USER_KEY, JSON.stringify(user))
+
+    // Sync company dari response header X-Tenant-ID (di-set backend TenantResolver).
+    // Fallback: user?.company_id (selalu ada di TenantLoginResponse) — dipakai saat
+    // response header tidak ada (mis. dev tanpa subdomain, company dikirim manual/env).
+    const resolvedId = res.headers?.['x-tenant-id'] || user?.company_id || companyId || ''
+    if (resolvedId) {
+      // Jika id berubah (login ke company lain), slug/name lama di-reset agar
+      // tidak menampilkan company yang salah (id adalah sumber kebenaran).
+      const companyChanged = state.company?.id && state.company.id !== resolvedId
+      setCompany({
+        id: resolvedId,
+        slug: companySlug || (companyChanged ? '' : state.company?.slug) || '',
+        name: companyName || user?.company_name || (companyChanged ? '' : state.company?.name) || ''
+      })
+    }
     return user
   }
 
   async function refreshToken() {
     if (!state.refreshToken) throw new Error('No refresh token')
-    const res = await api.post('/api/v1/platform/refresh', {
+    const res = await api.post('/api/v1/tenant/auth/refresh', {
       refresh_token: state.refreshToken
     })
     const data = res.data?.data || res.data
@@ -82,11 +131,14 @@ export function useAuth() {
     state.accessToken = null
     state.refreshToken = null
     state.permissions = []
+    state.company = null
     state.isAuthenticated = false
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(REFRESH_KEY)
     localStorage.removeItem(USER_KEY)
+    localStorage.removeItem(COMPANY_KEY)
     delete api.defaults.headers.common['Authorization']
+    delete api.defaults.headers.common['X-Tenant-ID']
   }
 
   // hasPermission — filter Level 2 (Dynamic Menu Rendering):
@@ -115,5 +167,5 @@ export function useAuth() {
 
   initAuth()
 
-  return { state, login, refreshToken, logout, hasPermission }
+  return { state, login, refreshToken, logout, hasPermission, setCompany }
 }

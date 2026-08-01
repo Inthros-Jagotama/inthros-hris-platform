@@ -19,7 +19,7 @@
           </div>
           <div>
             <label class="block text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">{{ t('profile.company') }}</label>
-            <span class="text-sm text-gray-700 dark:text-gray-200">{{ user?.company_name || '—' }}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{{ auth.company?.name || user?.company_name || '—' }}</span>
           </div>
           <div>
             <label class="block text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">{{ t('profile.status') }}</label>
@@ -36,8 +36,8 @@
         </div>
       </template>
     </Card>
-    <!-- Change Password Card -->
-    <Card>
+    <!-- Change Password Card (platform user only — employees use the email setup-password link) -->
+    <Card v-if="isPlatformUser">
       <template #title>
         <div class="flex items-center gap-2">
           <i class="pi pi-lock text-emerald-500"></i>
@@ -133,12 +133,16 @@ const { t } = useI18n()
 const user = ref(auth.user)
 const submitting = ref(false)
 const errors = ref({})
-// Fetch enriched user data from API (includes company_name, proper last_login)
+// Endpoint /api/v1/platform/users hanya berlaku utk platform user
+// (company_admin/super_admin). Untuk login employee, data sudah tersedia dari
+// response login (auth.user + company_name) — skip fetch agar tidak gagal.
+const isPlatformUser = computed(() => ['company_admin', 'super_admin', 'admin'].includes(auth.user?.role))
 onMounted(async () => {
+  if (!isPlatformUser.value) return
   try {
     const res = await api.get(`/api/v1/platform/users/${auth.user.id}`)
     const data = res.data?.data || res.data
-    user.value = data
+    user.value = { ...auth.user, ...data }
   } catch {
     // Fallback to auth store data if API fails
     user.value = auth.user

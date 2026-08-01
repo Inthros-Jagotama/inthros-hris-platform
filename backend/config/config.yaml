@@ -61,6 +61,18 @@ database:
   tenant_conn_max_lifetime_ms: 1800000   # Per tenant: 30 menit
   tenant_conn_max_idle_time_ms: 300000   # Per tenant: 5 menit idle → close
 
+smtp:
+  # SMTP untuk mengirim email transaksional (mis. link set-password employee).
+  # Default mengarah ke Mailpit lokal (development): SMTP localhost:1025,
+  # UI web http://localhost:8025. Untuk production ganti ke SMTP relay
+  # (mis. Resend/SES/Mailgun) + isi username/password.
+  host: "localhost"
+  port: 1025
+  username: ""
+  password: ""
+  from: "no-reply@hris.local"
+  frontend_base_url: "http://localhost:5173"
+
 redis:
   host: "localhost"
   port: 6379

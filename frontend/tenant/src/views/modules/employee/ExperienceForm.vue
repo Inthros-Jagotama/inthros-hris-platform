@@ -172,6 +172,7 @@ async function handleSave() {
       toast.add({ severity: 'success', summary: t('message.success'), detail: t('employee.saved'), life: 2000 })
     }
     emit('update:items', updated)
+    emit('save')
     dialogVisible.value = false
   } catch (e) {
     const fe = getValidationErrors(e)

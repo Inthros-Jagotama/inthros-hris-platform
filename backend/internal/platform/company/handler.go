@@ -18,6 +18,19 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// ResolveByHost menangani GET /api/v1/public/companies/resolve?host=...
+// Endpoint publik (tanpa auth) untuk menentukan company dari hostname/subdomain
+// URL aplikasi. Dipakai tenant FE sebelum login untuk prefill company.
+func (h *Handler) ResolveByHost(c *gin.Context) {
+	host := c.Query("host")
+	resp, err := h.service.ResolveByHost(host)
+	if err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 // Create menangani POST /api/v1/platform/companies
 func (h *Handler) Create(c *gin.Context) {
 	var req CreateCompanyRequest

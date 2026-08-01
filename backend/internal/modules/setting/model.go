@@ -88,7 +88,7 @@ func (Village) TableName() string { return "villages" }
 type Education struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	Code      string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_education_code" json:"code"`
-	Name      string         `gorm:"column:education;type:varchar(200);not null" json:"name"`
+	Name      string         `gorm:"type:varchar(200);not null" json:"name"`
 	SortOrder int            `gorm:"default:0" json:"sort_order"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -105,7 +105,7 @@ func (e *Education) BeforeCreate(tx *gorm.DB) error {
 type Religion struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	Code      string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_religion_code" json:"code"`
-	Name      string         `gorm:"column:religion;type:varchar(200);not null" json:"name"`
+	Name      string         `gorm:"type:varchar(200);not null" json:"name"`
 	SortOrder int            `gorm:"default:0" json:"sort_order"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -122,7 +122,7 @@ func (r *Religion) BeforeCreate(tx *gorm.DB) error {
 type MaritalStatus struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	Code      string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_marital_status_code" json:"code"`
-	Name      string         `gorm:"column:marital_status;type:varchar(100);not null" json:"name"`
+	Name      string         `gorm:"type:varchar(100);not null" json:"name"`
 	SortOrder int            `gorm:"default:0" json:"sort_order"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`

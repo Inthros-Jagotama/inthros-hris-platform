@@ -481,6 +481,10 @@ func TestResourceFromPath_TenantPaths(t *testing.T) {
 		{"/api/v1/tenant/settings/zones", "setting"},
 		{"/api/v1/tenant/settings/banks", "setting"},
 		{"/api/v1/tenant/settings/educations", "setting"},
+		// User account routes → resource "useraccount"
+		{"/api/v1/tenant/user-accounts", "useraccount"},
+		{"/api/v1/tenant/user-accounts/employees/123", "useraccount"},
+		{"/api/v1/tenant/user-accounts/employees/123/resend", "useraccount"},
 	}
 
 	for _, tt := range tests {
@@ -559,6 +563,7 @@ func TestSingularize(t *testing.T) {
 		{"attendances", "attendance"},
 		{"competencies", "competency"},
 		{"job-management", "jobmanagement"},
+		{"user-accounts", "useraccount"},
 		// Settings (irregular)
 		{"settings", "setting"},
 		// -ies → -y

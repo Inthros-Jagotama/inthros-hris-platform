@@ -21,19 +21,17 @@
     </DataTable>
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('gradings.edit') : t('gradings.new')" modal :style="{ width: '520px' }" :closable="true" @hide="resetForm">
       <div class="space-y-3">
-          <div class="grid grid-cols-4 gap-3 items-start">
-            <FormRow :label="t('gradings.code')" required :errors="errors?.code">
-              <TextInput v-model="form.code" maxlength="20" autofocus :placeholder="t('gradings.code')" :class="{'p-invalid':errors?.code}" />
-            </FormRow>
-            <FormRow :label="t('gradings.sort_order')" :errors="errors?.sort_order">
-              <InputNumber v-model="form.sort_order" class="!w-full" :min="0" size="small" />
-            </FormRow>
-          </div>
+          <FormRow :label="t('gradings.code')" required :errors="errors?.code">
+            <TextInput v-model="form.code" maxlength="20" autofocus :placeholder="t('gradings.code')" :class="{'p-invalid':errors?.code}" />
+          </FormRow>
           <FormRow :label="t('gradings.name')" required :errors="errors?.name">
             <TextInput v-model="form.name" maxlength="255" :placeholder="t('gradings.name')" :class="{'p-invalid':errors?.name}" />
           </FormRow>
           <FormRow :label="t('gradings.desc')" :errors="errors?.description">
             <TextInput v-model="form.description" textarea rows="2" :placeholder="t('gradings.desc')" />
+          </FormRow>
+          <FormRow :label="t('gradings.sort_order')" :errors="errors?.sort_order">
+            <InputNumber v-model="form.sort_order" class="!w-full" :min="0" size="small" />
           </FormRow>
       </div>
       <template #footer><div class="flex items-center justify-between"><div class="flex items-center gap-2 ml-auto"><Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible=false" /><Button :label="editing ? t('common.update') : t('common.save')" size="small" :loading="saving" :disabled="saving" @click="handleSave" /></div></div></template>

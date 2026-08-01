@@ -63,7 +63,9 @@
     "aspect_ratio": "Aspect Ratio",
     "custom": "Custom",
     "apply": "Apply",
-    "reset": "Reset"
+    "reset": "Reset",
+    "email": "Email",
+    "clear": "Clear"
   },
   "form": {
     "required": "This field is required"
@@ -405,7 +407,27 @@
     "no_bank": "No bank accounts added yet",
     "edit_bank": "Edit Bank Account",
     "new_bank": "Add Bank Account",
-    "confirm_delete_bank": "Delete this bank account? This action cannot be undone."
+    "confirm_delete_bank": "Delete this bank account? This action cannot be undone.",
+    "wizard_step_account": "Account",
+    "tab_account": "Account",
+    "account_description": "Create the employee's login account. A setup link is sent to the email to create a password.",
+    "account_email": "Account Email",
+    "account_email_placeholder": "Enter email for login account",
+    "account_email_required": "Account email is required",
+    "account_email_from_data": "from employee data",
+    "account_create": "Create Account & Send Link",
+    "account_created": "Login account created successfully",
+    "account_resend": "Resend Setup Email",
+    "account_resended": "Setup email resent successfully",
+    "account_user_id": "User ID",
+    "account_role": "Role",
+    "account_password_set": "Password set",
+    "account_password_not_set": "Password not set yet",
+    "account_setup_link": "Setup link",
+    "account_no_account": "This employee does not have a login account yet.",
+    "account_email_in_use": "This email is already registered as a user",
+    "account_already_exists": "An account already exists for this employee",
+    "account_status_not_found": "No account found for this employee"
   },
   "attendance": {
     "title": "Attendance",
@@ -485,7 +507,7 @@
   },
   "job_management": {
     "title": "Job Management",
-    "description": "Manage job titles, responsibilities, and scoring.",
+    "description": "Description",
     "landing_description": "Select an active organization summary to manage its job structure.",
     "manage_description": "Complete job analysis and scoring for a selected position.",
     "titles": "Job Titles",
@@ -543,7 +565,6 @@
     "main_task": "Main Task",
     "outputs": "Outputs / Deliverables",
     "success_indicators": "Success Indicators",
-    "description": "Description",
     "activity_type": "Activity Type",
     "environment_risk": "Environment Risk",
     "hazard_risk": "Hazard Risk",
@@ -630,17 +651,33 @@
     "status": "Status",
     "last_login": "Last Login"
   },
+  "set_password": {
+    "title": "Set Your Password",
+    "description": "Create a new password for your HRIS account.",
+    "new_password": "New Password",
+    "new_password_placeholder": "Enter new password (min. 8 characters)",
+    "confirm_password": "Confirm New Password",
+    "confirm_password_placeholder": "Re-enter new password",
+    "button": "Set Password",
+    "invalid_link": "Invalid or expired setup link",
+    "password_mismatch": "Passwords do not match",
+    "password_min": "Password must be at least 8 characters",
+    "success": "Password set successfully",
+    "success_hint": "Your password has been set. You can now sign in with your email and new password.",
+    "go_to_login": "Go to Sign In",
+    "missing_token": "Missing or invalid setup link. Please request a new one."
+  },
   "auth": {
     "title": "HRIS Platform",
     "version": "HRIS Platform v1.0",
-    "login": {
-      "email": "Email",
+    "login": {    "email": "Email",
       "password": "Password",
       "email_placeholder": "Enter your email",
       "password_placeholder": "Enter your password",
-      "button": "Sign In",
-      "subtitle": "Sign in to your account",
-      "validation_required": "Please enter email and password",
+    "button": "Sign In",
+    "subtitle": "Sign in to your account",
+    "subtitle_with_company": "Sign in to {company}",
+    "validation_required": "Please enter email and password",
       "invalid_credentials": "Invalid email or password",
       "profile": "Profile",
       "logout": "Logout"
@@ -648,7 +685,8 @@
   },
   "settings": {
     "title": "Settings",
-    "description": "Manage administrative areas, zones, and regional data for the organization.",
+    "description": "Manage reference data and configuration for your organization.",
+    "no_results": "No settings found matching your search.",
     "zones": "Zones",
     "provinces": "Provinces",
     "regencies": "Regencies",
@@ -666,7 +704,12 @@
     "salary_grades": "Salary Grades",
     "ters": "TER (Tarif Efektif)",
     "ptkps": "PTKP",
-    "insurances": "Insurances"
+    "insurances": "Insurances",
+    "group_geography": "Geography",
+    "group_hr": "HR Reference",
+    "group_payroll": "Payroll & Tax",
+    "rbac": "Roles & Permissions",
+    "group_access": "Access Control"
   },
   "provinces": {
     "title": "Provinces",
@@ -969,5 +1012,35 @@
     "this_month": "This Month",
     "this_quarter": "This Quarter",
     "this_year": "This Year"
+  },
+  "rbac": {
+    "title": "Roles & Permissions",
+    "description": "Manage roles, permissions, and user-role assignments for your organization.",
+    "tab_roles": "Roles",
+    "tab_users": "Users",
+    "new_role": "New Role",
+    "edit_role": "Edit Role",
+    "role_name": "Role Name",
+    "roles": "Roles",
+    "system": "System",
+    "default": "Default",
+    "users_count": "Users",
+    "permissions_count": "Permissions",
+    "is_default": "Default role",
+    "assign_permissions": "Assign permissions",
+    "assign_roles": "Assign roles",
+    "select_roles": "Select roles...",
+    "empty_roles": "No roles created yet",
+    "empty_users": "No users found",
+    "empty_permissions": "No permissions available",
+    "role_created": "Role created successfully",
+    "role_updated": "Role updated successfully",
+    "role_deleted": "Role deleted successfully",
+    "permissions_updated": "Permissions updated successfully",
+    "user_roles_updated": "User roles updated successfully",
+    "confirm_delete_title": "Delete Role",
+    "confirm_delete": "Delete role \"{name}\"? Users assigned to this role must be reassigned first.",
+    "duplicate_role": "Role \"{name}\" already exists",
+    "system_role": "Role \"{name}\" is a system role and cannot be modified"
   }
 }

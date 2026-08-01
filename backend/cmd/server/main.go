@@ -23,6 +23,7 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/database"
 	"github.com/inthros/hris-platform/internal/pkg/logger"
 	"github.com/inthros/hris-platform/internal/pkg/middleware"
+	"github.com/inthros/hris-platform/internal/pkg/mailer"
 	"github.com/inthros/hris-platform/internal/pkg/module"
 	"github.com/inthros/hris-platform/internal/pkg/onpremise"
 	"github.com/inthros/hris-platform/internal/pkg/router"
@@ -59,6 +60,8 @@ import (
 	"github.com/inthros/hris-platform/internal/modules/workforceintelligence"
 	"github.com/inthros/hris-platform/internal/modules/careerintelligence"
 	"github.com/inthros/hris-platform/internal/modules/setting"
+	"github.com/inthros/hris-platform/internal/modules/rbac"
+	"github.com/inthros/hris-platform/internal/modules/useraccount"
 )
 
 // =============================================================================
@@ -303,6 +306,16 @@ func main() {
 		return
 	}
 
+	// 4b. Initialize SMTP mailer (untuk link set-password employee via email)
+	mailerSvc := mailer.New(mailer.Config{
+		Host:            cfg.SMTP.Host,
+		Port:            cfg.SMTP.Port,
+		Username:        cfg.SMTP.Username,
+		Password:        cfg.SMTP.Password,
+		From:            cfg.SMTP.From,
+		FrontendBaseURL: cfg.SMTP.FrontendBaseURL,
+	})
+
 	// 5. Initialize JWT auth manager
 	authManager := auth.NewManager(auth.Config{
 		Secret:          cfg.JWT.Secret,
@@ -515,6 +528,16 @@ func main() {
 			TargetDB: module.TargetTenant,
 			Priority: 16,
 		},
+		module.ModuleRegistration{
+			Module:   rbac.NewModule(dbManager, l),
+			TargetDB: module.TargetTenant,
+			Priority: 17,
+		},
+		module.ModuleRegistration{
+			Module:   useraccount.NewModule(dbManager, authManager, mailerSvc, l),
+			TargetDB: module.TargetTenant,
+			Priority: 18,
+		},
 	)
 
 	// 7. Run SQL file migrations for platform modules
@@ -594,9 +617,24 @@ func main() {
 	//   - on_premise: file .lic RSA (expires_at, allowed_modules, max_employees)
 	licenseMW := middleware.LicenseMiddleware(cacheManager, licenseLister, l)
 
+	// TenantResolver middleware: auto-detect tenant (company) dari Host header /
+	// X-Tenant-ID saat mengakses /api/v1/tenant/** (mode SaaS — tiap company punya
+	// URL/subdomain sendiri), sehingga FE tidak perlu mengirim company_slug/company_id
+	// manual. Company module mengekspos ResolveByHost untuk memenuhi interface
+	// middleware.HostCompanyResolver. JWT claims (company_id) tetap menang.
+	var tenantResolver gin.HandlerFunc
+	for _, reg := range platformModules {
+		if mod, ok := reg.Module.(interface{ ResolveByHost(string) (string, error) }); ok {
+			tenantResolver = middleware.TenantResolver(mod, l.Named("tenant-resolver"))
+			l.Info("TenantResolver middleware wired (auto-detect company from Host)")
+			break
+		}
+	}
+
 	r := router.Setup(
 		router.Config{Mode: cfg.Server.Mode},
 		middleware.AuthJWT(authManager, l),
+		tenantResolver,
 		middleware.TenantRequired(),
 		licenseMW,
 		rbacMW,
@@ -627,6 +665,9 @@ func main() {
 	// published packages and subscribe (upgrade/downgrade) their company license.
 	tenantPkgGroup := r.Group("/api/v1/tenant")
 	tenantPkgGroup.Use(authMW)
+	if tenantResolver != nil {
+		tenantPkgGroup.Use(tenantResolver)
+	}
 	tenantPkgGroup.Use(middleware.TenantRequired())
 	{
 		// Endpoint untuk mendapatkan daftar module aktif company (digunakan frontend tenant untuk menu filtering)
@@ -756,6 +797,42 @@ func main() {
 
 	// Register public packages endpoint (no auth)
 	r.GET("/api/v1/public/packages", pkgHandler.ListPublishedPackages)
+
+	// Register public company resolve endpoint (no auth) —
+	// menentukan company dari hostname/subdomain URL aplikasi (mode SaaS).
+	// Dipakai tenant FE sebelum login untuk prefill company.
+	for _, reg := range platformModules {
+		if mod, ok := reg.Module.(interface{ PublicHandler() *company.Handler }); ok {
+			r.GET("/api/v1/public/companies/resolve", mod.PublicHandler().ResolveByHost)
+			l.Info("Registered public company resolve endpoint")
+			break
+		}
+	}
+
+	// Register public employee account setup endpoint (no auth) —
+	// tujuan link email untuk set password akun login.
+	// Path: POST /api/v1/public/account/setup-password
+	//
+	// Register juga tenant auth publik (login & refresh) di /api/v1/tenant/auth —
+	// user tenant (employee) login via company_slug, di luar middleware auth.
+	for _, reg := range tenantModules {
+		if mod, ok := reg.Module.(interface{ PublicHandler() *useraccount.Handler }); ok {
+			publicGroup := r.Group("/api/v1/public/account")
+			publicGroup.POST("/setup-password", mod.PublicHandler().SetPassword)
+			l.Info("Registered public account setup endpoint")
+
+			tenantAuth := r.Group("/api/v1/tenant/auth")
+			// TenantResolver juga dipasang di login agar FE bisa login tanpa
+			// mengirim company_slug/company_id — tenant di-resolve dari Host.
+			if tenantResolver != nil {
+				tenantAuth.Use(tenantResolver)
+			}
+			tenantAuth.POST("/login", mod.PublicHandler().Login)
+			tenantAuth.POST("/refresh", mod.PublicHandler().Refresh)
+			l.Info("Registered public tenant auth endpoints (login/refresh)")
+			break
+		}
+	}
 
 	// Register Scalar API Documentation
 	r.GET("/docs", docs.ScalarUIHandler())

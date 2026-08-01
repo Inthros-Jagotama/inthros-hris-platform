@@ -24,6 +24,7 @@ type Config struct {
 	OTEL     OTELConfig     `mapstructure:"otel"`
 	CORS     CORSConfig     `mapstructure:"cors"`
 	License  LicenseConfig  `mapstructure:"license"`
+	SMTP     SMTPConfig     `mapstructure:"smtp"`
 }
 
 // Catatan: Kunci enkripsi AES-256-GCM dibaca langsung dari environment variable
@@ -118,6 +119,17 @@ type OTELConfig struct {
 	SampleRate        float64 `mapstructure:"sample_rate"`
 }
 
+// SMTPConfig untuk pengiriman email (mis. link set-password employee).
+// Host/Port default mengarah ke Mailpit lokal (localhost:1025).
+type SMTPConfig struct {
+	Host            string `mapstructure:"host"`
+	Port            int    `mapstructure:"port"`
+	Username        string `mapstructure:"username"`
+	Password        string `mapstructure:"password"`
+	From            string `mapstructure:"from"`
+	FrontendBaseURL string `mapstructure:"frontend_base_url"`
+}
+
 type CORSConfig struct {
 	AllowedOrigins   []string `mapstructure:"allowed_origins"`
 	AllowedMethods   []string `mapstructure:"allowed_methods"`
@@ -184,6 +196,13 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("license.deployment_mode", "saas")
 	v.SetDefault("license.license_file", "license.lic")
 	v.SetDefault("license.public_key_file", "license_public.pem")
+
+	v.SetDefault("smtp.host", "localhost")
+	v.SetDefault("smtp.port", 1025) // Mailpit default SMTP port
+	v.SetDefault("smtp.username", "")
+	v.SetDefault("smtp.password", "")
+	v.SetDefault("smtp.from", "no-reply@hris.local")
+	v.SetDefault("smtp.frontend_base_url", "http://localhost:5173")
 
 	v.SetDefault("cors.allowed_origins", []string{"*"})
 	v.SetDefault("cors.allowed_methods", []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})

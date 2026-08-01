@@ -3,7 +3,238 @@ package company
 import (
 	"fmt"
 	"testing"
+
+	"github.com/inthros/hris-platform/internal/pkg/database"
 )
+
+// =========================================================================
+// subdomainFromHost Tests
+// =========================================================================
+
+func TestSubdomainFromHost(t *testing.T) {
+	cases := []struct {
+		host     string
+		expected string
+	}{
+		{"pt-inthros-jago-utama.localhost", "pt-inthros-jago-utama"},
+		{"pt-inthros-jago-utama.localhost:5174", "pt-inthros-jago-utama"},
+		{"localhost", ""},
+		{"localhost:5174", ""},
+		{"127.0.0.1", ""},
+		{"127.0.0.1:5174", ""},
+		{"hris.pt-inthros.com", "hris"},
+		{"www.pt-inthros.com", ""}, // www diabaikan
+		{"pt-inthros.com", "pt-inthros"},
+	}
+	for _, tc := range cases {
+		got := subdomainFromHost(tc.host)
+		if got != tc.expected {
+			t.Errorf("subdomainFromHost(%q) = %q, want %q", tc.host, got, tc.expected)
+		}
+	}
+}
+
+// =========================================================================
+// ResolveByHost Service Tests
+// =========================================================================
+
+func TestService_ResolveByHost_ByDomain(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	company := createTestCompany(svc.repo.db, "Resolve Domain")
+	domain := "hris.pt-inthros.com"
+	company.Domain = &domain
+	if err := svc.repo.Update(company); err != nil {
+		t.Fatalf("Update failed: %v", err)
+	}
+
+	resp, err := svc.ResolveByHost(domain)
+	if err != nil {
+		t.Fatalf("ResolveByHost by domain failed: %v", err)
+	}
+	if resp.ID != company.ID.String() {
+		t.Errorf("expected company ID %s, got %s", company.ID.String(), resp.ID)
+	}
+	if resp.Domain == nil || *resp.Domain != domain {
+		t.Errorf("expected domain %q in response", domain)
+	}
+}
+
+func TestService_ResolveByHost_BySubdomain(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	company := createTestCompany(svc.repo.db, "Resolve Subdomain")
+	sub := "pt-inthros-jago-utama"
+	company.Subdomain = &sub
+	if err := svc.repo.Update(company); err != nil {
+		t.Fatalf("Update failed: %v", err)
+	}
+
+	// Host penuh (subdomain + base) → cocok via subdomain.
+	resp, err := svc.ResolveByHost(sub + ".localhost")
+	if err != nil {
+		t.Fatalf("ResolveByHost by subdomain failed: %v", err)
+	}
+	if resp.ID != company.ID.String() {
+		t.Errorf("expected company ID %s, got %s", company.ID.String(), resp.ID)
+	}
+}
+
+func TestService_ResolveByHost_NonActive_Rejected(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	company := createTestCompany(svc.repo.db, "Resolve Inactive")
+	company.Status = CompanyStatusSuspended
+	sub := "inactive-sub"
+	company.Subdomain = &sub
+	if err := svc.repo.Update(company); err != nil {
+		t.Fatalf("Update failed: %v", err)
+	}
+
+	if _, err := svc.ResolveByHost(sub + ".localhost"); err == nil {
+		t.Fatal("expected error for non-active company, got nil")
+	}
+}
+
+func TestService_ResolveByHost_NotFound(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	if _, err := svc.ResolveByHost("unknown.localhost"); err == nil {
+		t.Fatal("expected error for unknown host, got nil")
+	}
+}
+
+func TestService_ResolveByHost_EmptyHost(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	if _, err := svc.ResolveByHost(""); err == nil {
+		t.Fatal("expected error for empty host, got nil")
+	}
+}
+
+// =========================================================================
+// emptyToNil Tests
+// =========================================================================
+
+func TestEmptyToNil(t *testing.T) {
+	// nil → nil
+	if got := emptyToNil(nil); got != nil {
+		t.Errorf("emptyToNil(nil) = %q, want nil", *got)
+	}
+
+	// "" → nil (hindari bentrok unique index '')
+	empty := ""
+	if got := emptyToNil(&empty); got != nil {
+		t.Errorf("emptyToNil(\"\") = %q, want nil", *got)
+	}
+
+	// "abc" → pointer "abc" (tidak berubah)
+	val := "abc"
+	if got := emptyToNil(&val); got == nil || *got != "abc" {
+		t.Errorf("emptyToNil(\"abc\") = %v, want pointer to \"abc\"", got)
+	}
+}
+
+func TestService_Create_EmptySubdomainStoredAsNil(t *testing.T) {
+	svc, fakeTM, cleanup := newTestService()
+	defer cleanup()
+
+	// Skip provisioning — cukup verifikasi penyimpanan company.
+	fakeTM.ProvisionTenantFunc = func(companyID, dbName, dbUser, dbPassword, driverType string) (*database.TenantConnection, error) {
+		return nil, fmt.Errorf("skip provisioning for test")
+	}
+
+	empty := ""
+	resp, err := svc.Create(CreateCompanyRequest{
+		Name:          "PT Alpha",
+		Subdomain:     &empty,
+		AdminName:     "Admin A",
+		AdminEmail:    "admin.a@alpha.com",
+		AdminPassword: "secret123",
+	})
+	if err != nil {
+		t.Fatalf("Create #1 failed: %v", err)
+	}
+	if resp.Subdomain != nil {
+		t.Errorf("expected subdomain nil (NULL), got %q", *resp.Subdomain)
+	}
+
+	// Company kedua dengan subdomain kosong juga harus sukses —
+	// bukti tidak ada bentrok unique index '' (regresi potensial tanpa emptyToNil).
+	if _, err := svc.Create(CreateCompanyRequest{
+		Name:          "PT Beta",
+		Subdomain:     &empty,
+		AdminName:     "Admin B",
+		AdminEmail:    "admin.b@beta.com",
+		AdminPassword: "secret123",
+	}); err != nil {
+		t.Fatalf("Create #2 with empty subdomain failed (unique '' conflict?): %v", err)
+	}
+}
+
+func TestService_Update_EmptySubdomainClearsToNil(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	company := createTestCompany(svc.repo.db, "Update Clear Sub")
+	sub := "old-sub"
+	company.Subdomain = &sub
+	if err := svc.repo.Update(company); err != nil {
+		t.Fatalf("Update setup failed: %v", err)
+	}
+
+	empty := ""
+	resp, err := svc.Update(company.ID.String(), UpdateCompanyRequest{Subdomain: &empty})
+	if err != nil {
+		t.Fatalf("Update failed: %v", err)
+	}
+	if resp.Subdomain != nil {
+		t.Errorf("expected subdomain cleared to nil, got %q", *resp.Subdomain)
+	}
+
+	// Verifikasi di DB.
+	updated, err := svc.repo.FindByID(company.ID)
+	if err != nil {
+		t.Fatalf("FindByID failed: %v", err)
+	}
+	if updated.Subdomain != nil {
+		t.Errorf("expected subdomain NULL in DB, got %q", *updated.Subdomain)
+	}
+}
+
+func TestService_Create_DuplicateSubdomain_Rejected(t *testing.T) {
+	svc, fakeTM, cleanup := newTestService()
+	defer cleanup()
+	fakeTM.ProvisionTenantFunc = func(companyID, dbName, dbUser, dbPassword, driverType string) (*database.TenantConnection, error) {
+		return nil, fmt.Errorf("skip provisioning for test")
+	}
+
+	sub := "pt-satu"
+	if _, err := svc.Create(CreateCompanyRequest{
+		Name:          "PT Satu",
+		Subdomain:     &sub,
+		AdminName:     "Admin 1",
+		AdminEmail:    "admin1@satu.com",
+		AdminPassword: "secret123",
+	}); err != nil {
+		t.Fatalf("Create #1 failed: %v", err)
+	}
+
+	if _, err := svc.Create(CreateCompanyRequest{
+		Name:          "PT Dua",
+		Subdomain:     &sub,
+		AdminName:     "Admin 2",
+		AdminEmail:    "admin2@dua.com",
+		AdminPassword: "secret123",
+	}); err == nil {
+		t.Fatal("expected duplicate subdomain rejected, got nil")
+	}
+}
 
 // =========================================================================
 // Rotate Credentials Service Tests

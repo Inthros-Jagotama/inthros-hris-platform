@@ -130,6 +130,13 @@ func (e *Enforcer) loadDefaultPolicies() {
 	e.AddPolicy(RoleCompanyAdmin, "employeemovement", "*")
 	e.AddPolicy(RoleCompanyAdmin, "approval", "*")
 	e.AddPolicy(RoleCompanyAdmin, "setting", "*")
+	e.AddPolicy(RoleCompanyAdmin, "useraccount", "*")
+	e.AddPolicy(RoleCompanyAdmin, "performance", "*")
+	e.AddPolicy(RoleCompanyAdmin, "recruitment", "*")
+	e.AddPolicy(RoleCompanyAdmin, "reimbursement", "*")
+	e.AddPolicy(RoleCompanyAdmin, "training", "*")
+	e.AddPolicy(RoleCompanyAdmin, "workforceintelligence", "*")
+	e.AddPolicy(RoleCompanyAdmin, "careerintelligence", "*")
 
 	// Manager: view/create/update (no delete)
 	e.AddPolicy(RoleManager, "organization", "view,create,update")
@@ -142,6 +149,12 @@ func (e *Enforcer) loadDefaultPolicies() {
 	e.AddPolicy(RoleManager, "employeemovement", "view,create,update")
 	e.AddPolicy(RoleManager, "setting", "view,create,update")
 	e.AddPolicy(RoleManager, "approval", "view,create,update")
+	e.AddPolicy(RoleManager, "performance", "view,create,update")
+	e.AddPolicy(RoleManager, "recruitment", "view,create,update")
+	e.AddPolicy(RoleManager, "reimbursement", "view,create,update")
+	e.AddPolicy(RoleManager, "training", "view,create,update")
+	e.AddPolicy(RoleManager, "workforceintelligence", "view,create,update")
+	e.AddPolicy(RoleManager, "careerintelligence", "view,create,update")
 
 	// Employee: view-only
 	e.AddPolicy(RoleEmployee, "organization", "view")
@@ -152,6 +165,12 @@ func (e *Enforcer) loadDefaultPolicies() {
 	e.AddPolicy(RoleEmployee, "employeemovement", "view")
 	e.AddPolicy(RoleEmployee, "payroll", "view")
 	e.AddPolicy(RoleEmployee, "setting", "view")
+	e.AddPolicy(RoleEmployee, "performance", "view")
+	e.AddPolicy(RoleEmployee, "recruitment", "view")
+	e.AddPolicy(RoleEmployee, "reimbursement", "view")
+	e.AddPolicy(RoleEmployee, "training", "view")
+	e.AddPolicy(RoleEmployee, "workforceintelligence", "view")
+	e.AddPolicy(RoleEmployee, "careerintelligence", "view")
 }
 
 // Reload menyegarkan semua policies dari database.
@@ -362,20 +381,27 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 
 	// Company Admin: platform view-only + tenant full
 	companyAdminPerms := map[string][]string{
-		"company":          {"view"},
-		"user":             {"view"},
-		"license":          {"view"},
-		"package":          {"view"},
-		"organization":     {"*"},
-		"employee":         {"*"},
-		"attendance":       {"*"},
-		"leave":            {"*"},
-		"payroll":          {"*"},
-		"competency":       {"*"},
-		"jobmanagement":    {"*"},
-		"employeemovement": {"*"},
-		"approval":         {"*"},
-		"setting":          {"*"},
+		"company":             {"view"},
+		"user":                {"view"},
+		"license":             {"view"},
+		"package":             {"view"},
+		"organization":        {"*"},
+		"employee":            {"*"},
+		"attendance":          {"*"},
+		"leave":               {"*"},
+		"payroll":             {"*"},
+		"competency":          {"*"},
+		"jobmanagement":       {"*"},
+		"employeemovement":    {"*"},
+		"approval":            {"*"},
+		"setting":             {"*"},
+		"useraccount":         {"*"},
+		"performance":         {"*"},
+		"recruitment":         {"*"},
+		"reimbursement":       {"*"},
+		"training":            {"*"},
+		"workforceintelligence": {"*"},
+		"careerintelligence":  {"*"},
 	}
 	if err := addPerms(companyAdminUUID, companyAdminPerms); err != nil {
 		return err
@@ -383,16 +409,22 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 
 	// Manager: view/create/update (no delete)
 	managerPerms := map[string][]string{
-		"organization":     {"view", "create", "update"},
-		"employee":         {"view", "create", "update"},
-		"attendance":       {"view"},
-		"leave":            {"view", "create"},
-		"payroll":          {"view", "create", "update"},
-		"competency":       {"view", "create", "update"},
-		"jobmanagement":    {"view", "create", "update"},
-		"employeemovement": {"view", "create", "update"},
-		"approval":         {"view", "create", "update"},
-		"setting":          {"view", "create", "update"},
+		"organization":        {"view", "create", "update"},
+		"employee":            {"view", "create", "update"},
+		"attendance":          {"view"},
+		"leave":               {"view", "create"},
+		"payroll":             {"view", "create", "update"},
+		"competency":          {"view", "create", "update"},
+		"jobmanagement":       {"view", "create", "update"},
+		"employeemovement":    {"view", "create", "update"},
+		"approval":            {"view", "create", "update"},
+		"setting":             {"view", "create", "update"},
+		"performance":         {"view", "create", "update"},
+		"recruitment":         {"view", "create", "update"},
+		"reimbursement":       {"view", "create", "update"},
+		"training":            {"view", "create", "update"},
+		"workforceintelligence": {"view", "create", "update"},
+		"careerintelligence":  {"view", "create", "update"},
 	}
 	if err := addPerms(managerUUID, managerPerms); err != nil {
 		return err
@@ -400,14 +432,20 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 
 	// Employee: view-only
 	employeePerms := map[string][]string{
-		"organization":     {"view"},
-		"employee":         {"view"},
-		"attendance":       {"view"},
-		"leave":            {"view"},
-		"payroll":          {"view"},
-		"competency":       {"view"},
-		"employeemovement": {"view"},
-		"setting":          {"view"},
+		"organization":        {"view"},
+		"employee":            {"view"},
+		"attendance":          {"view"},
+		"leave":               {"view"},
+		"payroll":             {"view"},
+		"competency":          {"view"},
+		"employeemovement":    {"view"},
+		"setting":             {"view"},
+		"performance":         {"view"},
+		"recruitment":         {"view"},
+		"reimbursement":       {"view"},
+		"training":            {"view"},
+		"workforceintelligence": {"view"},
+		"careerintelligence":  {"view"},
 	}
 	if err := addPerms(employeeUUID, employeePerms); err != nil {
 		return err
@@ -421,6 +459,7 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 func defaultResources() []defaultPerm {
 	return []defaultPerm{
 		{"rbac", []string{"view", "create", "update", "delete"}},
+		{"useraccount", []string{"view", "create", "update", "delete"}},
 		{"company", []string{"view", "create", "update", "delete", "suspend", "activate", "terminate", "backup", "restore"}},
 		{"user", []string{"view", "create", "update"}},
 		{"module", []string{"view", "create", "update", "activate", "deactivate"}},
@@ -437,6 +476,12 @@ func defaultResources() []defaultPerm {
 		{"employeemovement", []string{"view", "create", "update", "delete"}},
 		{"approval", []string{"view", "create", "update", "delete"}},
 		{"setting", []string{"view", "create", "update", "delete"}},
+		{"performance", []string{"view", "create", "update", "delete"}},
+		{"recruitment", []string{"view", "create", "update", "delete"}},
+		{"reimbursement", []string{"view", "create", "update", "delete"}},
+		{"training", []string{"view", "create", "update", "delete"}},
+		{"workforceintelligence", []string{"view", "create", "update", "delete"}},
+		{"careerintelligence", []string{"view", "create", "update", "delete"}},
 	}
 }
 
@@ -636,6 +681,7 @@ func singularize(s string) string {
 		"workforce-intelligence":     "workforceintelligence",
 		"career-intelligence":        "careerintelligence",
 		"settings":                    "setting",
+		"user-accounts":               "useraccount",
 	}
 	if singular, ok := irregular[s]; ok {
 		return singular

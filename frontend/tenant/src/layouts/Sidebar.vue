@@ -75,6 +75,24 @@
         </div>
       </div>
 
+      <!-- Settings Section Title — masuk ke halaman index (card sub-menu) -->
+      <div v-if="settingsItems.length > 0" class="pt-2">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          <i class="pi pi-cog" style="font-size:0.7rem"></i>
+          <span>{{ t('nav.settings') }}</span>
+        </div>
+        <div
+          v-for="item in settingsItems"
+          :key="item.key || item.label"
+          class="ml-2 flex items-center gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
+          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+          @click="item.command()"
+        >
+          <i :class="item.icon" class="text-xs"></i>
+          <span>{{ item.label }}</span>
+        </div>
+      </div>
+
       <!-- Other groups as PanelMenu -->
       <div class="pt-1">
         <PanelMenu :model="panelMenuItems" class="border-none !bg-transparent" />
@@ -128,24 +146,33 @@ const activeMod = useActiveModules()
 const { t } = useI18n()
 const companyName = ref('')
 
-// Fetch enriched user data (includes company_name)
+// Fetch enriched user data (includes company_name).
+// Catatan: endpoint /api/v1/platform/users hanya berlaku utk platform user
+// (company_admin/super_admin) — utk login employee, nama company sudah
+// tersedia dari response login (user.company_name) dan disimpan di
+// authState.company.name, jadi fetch platform di-skip bila sudah terisi.
 onMounted(async () => {
   if (!authState.user?.id) return
-  try {
-    const res = await api.get(`/api/v1/platform/users/${authState.user.id}`)
-    const data = res.data?.data || res.data
-    companyName.value = data?.company_name || ''
-  } catch {
-    // Silently fail — fallback to login data
+  if (!authState.company?.name) {
+    try {
+      const res = await api.get(`/api/v1/platform/users/${authState.user.id}`)
+      const data = res.data?.data || res.data
+      companyName.value = data?.company_name || ''
+    } catch {
+      // Silently fail — fallback to login data
+    }
   }
 
   // Fetch active modules
   await activeMod.fetchActiveModules()
 })
 
-// Company label for bottom section
+// Company label for bottom section — prioritas: state company (sync dari
+// X-Tenant-ID header) → enriched user data → fallback.
 const companyLabel = computed(() => {
+  if (authState.company?.name) return authState.company.name
   if (companyName.value) return companyName.value
+  if (authState.company?.id) return 'Company'
   if (authState.user?.company_id) return 'Company'
   return 'HRIS Platform'
 })
@@ -186,10 +213,15 @@ const operationsItems = computed(() => {
     { key: 'movement', label: t('nav.movement'), icon: 'pi pi-arrows-alt', command: () => router.push('/employee-movements'), path: '/employee-movements', moduleSlug: 'employeemovement', permission: 'employeemovement.view' },
     { key: 'approval', label: t('nav.approval'), icon: 'pi pi-check-square', command: () => router.push('/approvals'), path: '/approvals', moduleSlug: 'approval', permission: 'approval.view' }
   ])
-})
+})  // ── Settings items (flat, masuk ke halaman index card) ──
+  const settingsItems = computed(() => {
+    return filterByModule([
+      { key: 'settings', label: t('nav.settings'), icon: 'pi pi-cog', command: () => router.push('/settings'), path: '/settings', moduleSlug: 'setting', permission: 'setting.view' }
+    ])
+  })
 
-// ── Panel menu groups for other sections ──
-const panelGroups = computed(() => [
+  // ── Panel menu groups for other sections ──
+  const panelGroups = computed(() => [
   // Finance
   {
     key: 'finance',
@@ -209,45 +241,17 @@ const panelGroups = computed(() => [
       { label: t('nav.workforce_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/workforce-intelligence'), moduleSlug: 'workforce-intelligence', permission: 'workforceintelligence.view' },
       { label: t('nav.career_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/career-intelligence'), moduleSlug: 'career-intelligence', permission: 'careerintelligence.view' }
     ]
-  },
-  // Settings
-  {
-    key: 'settings',
-    label: t('nav.settings'),
-    icon: 'pi pi-cog',
-    items: [
-      { label: t('settings.zones'), icon: 'pi pi-map-marker', command: () => router.push('/settings/zones'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.provinces'), icon: 'pi pi-globe', command: () => router.push('/settings/provinces'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.regencies'), icon: 'pi pi-map', command: () => router.push('/settings/regencies'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.districts'), icon: 'pi pi-building', command: () => router.push('/settings/districts'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.villages'), icon: 'pi pi-home', command: () => router.push('/settings/villages'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.educations'), icon: 'pi pi-graduation-cap', command: () => router.push('/settings/educations'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.religions'), icon: 'pi pi-globe', command: () => router.push('/settings/religions'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.marital_statuses'), icon: 'pi pi-heart', command: () => router.push('/settings/marital-statuses'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.relationship_types'), icon: 'pi pi-users', command: () => router.push('/settings/relationship-types'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.banks'), icon: 'pi pi-building', command: () => router.push('/settings/banks'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.employment_statuses'), icon: 'pi pi-briefcase', command: () => router.push('/settings/employment-statuses'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.nationalities'), icon: 'pi pi-globe', command: () => router.push('/settings/nationalities'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.job_families'), icon: 'pi pi-briefcase', command: () => router.push('/settings/job-families'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.gradings'), icon: 'pi pi-chart-bar', command: () => router.push('/settings/gradings'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.salary_grades'), icon: 'pi pi-chart-bar', command: () => router.push('/settings/salary-grades'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.insurances'), icon: 'pi pi-shield', command: () => router.push('/settings/insurances'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.ters'), icon: 'pi pi-calculator', command: () => router.push('/settings/ters'), moduleSlug: 'setting', permission: 'setting.view' },
-      { label: t('settings.ptkps'), icon: 'pi pi-receipt', command: () => router.push('/settings/ptkps'), moduleSlug: 'setting', permission: 'setting.view' }
-    ]
   }
-])
-
-// ── Filtered PanelMenu items — only show visible groups ──
-const panelMenuItems = computed(() => {
-  return panelGroups.value
-    .map(group => {
-      const visibleItems = filterByModule(group.items)
-      if (visibleItems.length === 0) return null
-      return { ...group, items: visibleItems }
-    })
-    .filter(Boolean)
-})
+])  // ── Filtered PanelMenu items — only show visible groups (Settings sudah flat section) ──
+  const panelMenuItems = computed(() => {
+    return panelGroups.value
+      .map(group => {
+        const visibleItems = filterByModule(group.items)
+        if (visibleItems.length === 0) return null
+        return { ...group, items: visibleItems }
+      })
+      .filter(Boolean)
+  })
 
 // ── Flatten top-level items for collapsed sidebar ──
 const topLevelMenuItems = computed(() => {
@@ -280,7 +284,7 @@ const topLevelMenuItems = computed(() => {
   }
   // Settings
   if (activeMod.hasModule('setting') && hasPermission('setting.view')) {
-    items.push({ key: 'Settings', label: t('nav.settings'), path: '/settings/zones', icon: 'pi pi-cog', command: () => router.push('/settings/zones') })
+    items.push({ key: 'Settings', label: t('nav.settings'), path: '/settings', icon: 'pi pi-cog', command: () => router.push('/settings') })
   }
   
   return items

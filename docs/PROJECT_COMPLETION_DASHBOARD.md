@@ -14,8 +14,8 @@
 | **Total Go Files** | **224+** (155 source + 69 test) |
 | **Total GORM Entities** | **121** (116 tenant + 5 platform) |
 | **Total Test Functions** | **~1004+** |
-| **Total OpenAPI Endpoints** | **674** |
-| **Total OpenAPI Schemas** | **431** |
+| **Total OpenAPI Endpoints** | **677** |
+| **Total OpenAPI Schemas** | **433** |
 | **Total OpenAPI Tags** | **27** |
 | **Module Type Filter** | ✅ **3 endpoints** (`/modules`, `/packages`, `/public/packages`) |
 | **Bilingual Support** | ✅ **EN/ID** — Backend 80+ message pairs + Frontend 200+ locale keys, middleware auto-detect, field validation errors |
@@ -99,7 +99,7 @@
 
 | # | Package | Tests | Description |
 |---|---------|:-----:|-------------|
-| 1 | `internal/pkg/authz/` (RBAC) | **134** | Database-backed RBAC with 4 default roles, **74+ permissions (14 resources)**, auto-reload, **31 assertions for setting resource** (V/C/U/D per role, ResourceFromPath, singularize) |
+| 1 | `internal/pkg/authz/` (RBAC) | **134** | Database-backed RBAC with 4 default roles, **98 permissions (24 resources)**, auto-reload, **31 assertions for setting resource** (V/C/U/D per role, ResourceFromPath, singularize) |
 | 2 | `internal/pkg/cache/` | **51** | Two-tier distributed cache (local sync.Map + Redis) + Pub/Sub invalidation |
 | 3 | `internal/pkg/config/` | — | Viper configuration loader (YAML + .env + env vars) |
 | 4 | `internal/pkg/database/` | — | Multi-tenant DB connection manager with caching |
@@ -114,7 +114,7 @@
 
 | Module | Tests | % of Total | Key Test Areas |
 |--------|:-----:|:----------:|----------------|
-| **Shared: authz (RBAC)** | **134** | 14.6% | Enforcer DB loading, repository, service, handler — 14 resources, 74+ permissions, **setting resource test coverage** (31 assertions across 7 test functions) |
+| **Shared: authz (RBAC)** | **134** | 14.6% | Enforcer DB loading, repository, service, handler — 24 resources, 98 permissions, **setting resource test coverage** (31 assertions across 7 test functions) |
 | **Attendance** | **88** | 9.6% | Repository (37), service (25), handler (21) |
 | **Recruitment (ATS)** | **75** | 8.2% | Repository (27), service (23), handler (16) |
 | **Job Management** | **67** | 7.3% | Repository, service, handler |
@@ -142,13 +142,15 @@
 |----------|-------------|:------:|
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
 | `ARCHITECTURE_DESIGN_v1.6_Updated.md` | Architecture design, module status, priority matrix | ✅ v16 updated (15 missing endpoints injected) |
-| `docs/openapi-report.md` | OpenAPI comprehensive report (v17) | ✅ v17 — 673 endpoints, 429 schemas, 27 tags |
+| `docs/openapi-report.md` | OpenAPI comprehensive report (v15) | ✅ v15 — 677 endpoints, 433 schemas, 27 tags |
 | `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ Updated with Settings module (130 entities, 550 service methods, 1029 tests) |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
 | `docs/PROJECT_COMPLETION_DASHBOARD.md` | **This document** | ✅ **Updated — Phase 1 Frontend added** |
 | `docs/frontend-development-plan.md` | Frontend Phase 1-4 development plan | ✅ **Phase 1 all 9 modules + Tenant 17 Settings CRUDs completed** |
 | `docs/Phase-1-Completion-Report.md` | Phase 1 Frontend completion summary | ✅ **NEW — for presentation** |
+| **TenantResolver Middleware (SaaS auto-detect)** | ✅ **Done (01 Aug 2026)** | `middleware.TenantResolver` — auto-determine company dari Host header/X-Tenant-ID untuk `/api/v1/tenant/**` (JWT menang → X-Tenant-ID UUID → X-Forwarded-Host → Host) + set response header `X-Tenant-ID`. FE tenant: state `company` di auth store disinkronkan otomatis dari response header (api.js interceptor kirim & baca `X-Tenant-ID`), company opsional di login. 7 unit test. Changelog ARCH v20 |
+| **RBAC Permissions Lengkap (24 resource)** | ✅ **Done (01 Aug 2026)** | `authz/rbac.go` — `defaultResources()` + `loadDefaultPolicies()` + `seedDefaults()` kini mencakup **24 resource / 98 permissions** (sebelumnya 18/74): +`performance`, `recruitment`, `reimbursement`, `training`, `workforceintelligence`, `careerintelligence` (4 action tiap resource) — konsisten dengan tenant RBAC seed & `singularize()` map. Fix: resource tsb sebelumnya tidak pernah di-seed ke `rbac_permissions` → tidak muncul di menu RBAC platform-admin. Auto-assign saat restart hanya ke super_admin; role lain di-toggle manual via UI RBAC. +Rbac.vue sortOrder +6 resource. |
 
 ---
 
@@ -163,7 +165,7 @@
 | **Total with schema_migrations** | **149** | Auto-included by migrator engine |
 | **Database drivers** | **2** | PostgreSQL 16+ & MySQL 8+ |
 | **Migration engine** | ✅ | SQL-based, embedded, transaction-safe. Terbaru: `021_insurances` (tabel insurances resmi, sebelumnya AutoMigrate) + `022_users` (Level 2 Tenant RBAC identity) |
-| **Tenant RBAC Seeder** | ✅ | `tenantseed.SeedTenantRBAC()` — auto-seed 64 permissions (16 resource × 4 action) + default roles Admin (full) & Employee (view-only) saat provisioning via CLI (`handleProvision`/`seed-data`) **dan API** (`company.Service.provisionTenant`); idempotent |
+| **Tenant RBAC Seeder** | ✅ | `tenantseed.SeedTenantRBAC()` — auto-seed 68 permissions (17 resource × 4 action) + default roles Admin (full) & Employee (view-only) saat provisioning via CLI (`handleProvision`/`seed-data`) **dan API** (`company.Service.provisionTenant`); idempotent |
 
 ### Tenant Table Distribution
 
@@ -188,9 +190,9 @@
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 674 endpoints |
-| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 674 endpoints |
-| **RBAC Engine** | ✅ **Active** | 4 default roles, **74+ permissions (14 resources)**, auto-reload |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 677 endpoints |
+| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 677 endpoints |
+| **RBAC Engine** | ✅ **Active** | 4 default roles, **98 permissions (24 resources)**, auto-reload |
 | **On-Premise License Engine** | ✅ **Ready** | `internal/pkg/onpremise/` — RSA `.lic` (expires_at, allowed_modules, max_employees); CLI `licensectl` (gen-key/gen-lic); mode `on_premise` via `HRIS_LICENSE_DEPLOYMENT_MODE` (dormant di mode saas default); lister alternatif PlatformLicenseMiddleware. **`max_employees` di-enforce di `Service.Create()` → 403 `QUOTA_EXCEEDED`** (toast bilingual FE `employee.quota_exceeded`) |
 | **Quota Audit (no bypass)** | ✅ **Audited** | Kuota terpusat di `Service.Create()` — satu-satunya pembuat Employee master. Payroll profiles / onboarding / employee-shift / sub-record TIDAK membuat Employee master (tidak perlu kuota). Frontend hanya 1 caller (`EmployeeForm.savePersonalData`). Jalur masa depan (batch import) otomatis kena kuota. *(Audit 31 Jul 2026)* |
 | **Cache (Redis)** | 🔶 **Optional** | Redis required for distributed mode |
@@ -309,7 +311,7 @@
 | Main README | `./README.md` |
 | Deployment Guide (SaaS & On-Premise) | `./docs/deployment-guide.md` |
 | Architecture Design | `./ARCHITECTURE_DESIGN_v1.6_Updated.md` |
-| OpenAPI Report (v17) | `./docs/openapi-report.md` |
+| OpenAPI Report (v15) | `./docs/openapi-report.md` |
 | Go Module Architecture Report | `./docs/go-module-architecture-report.md` |
 | Platform Architecture Design | `./docs/platform-architecture-design.md` |
 | Blueprint vs Existing Analysis | `./docs/analisis-blueprint-vs-existing.md` |

@@ -19,7 +19,11 @@ type Config struct {
 //
 // Platform modules: /api/v1/platform/*
 // Tenant modules:   /api/v1/tenant/*
-func Setup(cfg Config, authMiddleware, tenantMiddleware, licenseMiddleware, rbacMiddleware gin.HandlerFunc,
+//
+// tenantResolverMiddleware bersifat opsional (boleh nil): meng-resolve
+// company dari Host header / X-Tenant-ID (mode SaaS) sebelum TenantRequired.
+// Bila nil, tenant hanya bisa diidentifikasi dari JWT claims.
+func Setup(cfg Config, authMiddleware, tenantResolverMiddleware, tenantMiddleware, licenseMiddleware, rbacMiddleware gin.HandlerFunc,
 	corsMiddleware gin.HandlerFunc, loggerMiddleware gin.HandlerFunc,
 	recoveryMiddleware gin.HandlerFunc,
 	platformModules []module.ModuleRegistration,
@@ -57,10 +61,14 @@ func Setup(cfg Config, authMiddleware, tenantMiddleware, licenseMiddleware, rbac
 	}
 
 	// Tenant routes (with auth + tenant + license + RBAC middleware)
-	// Order: AuthJWT → TenantRequired → LicenseMiddleware (guard lisensi modul)
-	// → RBAC. LicenseMiddleware boleh nil (di-skip) bila tidak digunakan.
+	// Order: AuthJWT → TenantResolver (opsional) → TenantRequired →
+	// LicenseMiddleware (guard lisensi modul) → RBAC.
+	// LicenseMiddleware boleh nil (di-skip) bila tidak digunakan.
 	tenantGroup := r.Group("/api/v1/tenant")
 	tenantGroup.Use(authMiddleware)
+	if tenantResolverMiddleware != nil {
+		tenantGroup.Use(tenantResolverMiddleware)
+	}
 	tenantGroup.Use(tenantMiddleware)
 	if licenseMiddleware != nil {
 		tenantGroup.Use(licenseMiddleware)

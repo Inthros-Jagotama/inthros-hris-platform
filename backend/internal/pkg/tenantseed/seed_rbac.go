@@ -47,6 +47,7 @@ func tenantRBACResources() []tenantRBACResource {
 		{"workforceintelligence", []string{"view", "create", "update", "delete"}},
 		{"careerintelligence", []string{"view", "create", "update", "delete"}},
 		{"setting", []string{"view", "create", "update", "delete"}},
+		{"rbac", []string{"view", "create", "update", "delete"}},
 	}
 }
 

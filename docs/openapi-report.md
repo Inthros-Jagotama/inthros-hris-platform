@@ -1,20 +1,20 @@
 = HRIS Platform — OpenAPI Comprehensive Report (v15) =
 
 
-**Generated:** 31 July 2026
+**Generated:** 01 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 365
-**Total Endpoints (methods):** 674
-**Total Schemas:** 431
+**Total Paths:** 368
+**Total Endpoints (methods):** 677
+**Total Schemas:** 433
 **Total Tags:** 27
 
 ## Coverage Summary
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 674/674 | 100% |
-| Endpoints with `description` | 674/674 | 100% |
-| Endpoints with `operationId` | 674/674 | 100% |
+| Endpoints with `summary` | 677/677 | 100% |
+| Endpoints with `description` | 677/677 | 100% |
+| Endpoints with `operationId` | 677/677 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -131,8 +131,10 @@ Tenant endpoints support validation for Indonesian data formats:
 | 24 | Platform: Licenses | 4 | 2 |
 | 25 | Tenant: Packages | 4 | 4 |
 | 26 | Platform: Auth | 2 | 2 |
-| 27 | Tenant: Approval Engine | 1 | 1 |
-| | **TOTAL** | **674** | **365** |
+| 27 | Tenant Auth | 2 | 2 |
+| 28 | Tenant: Approval Engine | 1 | 1 |
+| 29 | Public | 1 | 1 |
+| | **TOTAL** | **677** | **368** |
 
 ## 2. Module Detail
 
@@ -891,14 +893,16 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/platform/companies/{id}/activate` | Activate a company/tenant (reactivate connection) | Reactivate a previously suspended company tenant. Re-establishes the database connection and sets the company status back to 'active'. All tenant A... |
 | `POST` | `/api/v1/platform/companies/{id}/backup` | Trigger tenant backup (Phase 2) | Trigger an on-demand database backup for the specified company tenant. The backup is stored according to the platform's backup configuration. |
 | `POST` | `/api/v1/platform/companies/{id}/restore` | Trigger tenant restore (Phase 2) | Restore a company tenant's database from a previously created backup. Requires a valid backup reference. |
+| `POST` | `/api/v1/platform/companies/{id}/rotate-credentials` | Rotate tenant DB credentials (ALTER USER + update encrypted connection) | Rotate the tenant database credentials for a company. Runs ALTER USER on the DB server (dialect-aware), updates tenant_connections with the new pas... |
 | `POST` | `/api/v1/platform/companies/{id}/suspend` | Suspend a company/tenant (deactivate connection) | Suspend a company tenant â€” deactivates the database connection, clears cached connections, and sets the company status to 'suspended'. All tenant... |
 | `POST` | `/api/v1/platform/companies/{id}/terminate` | Terminate a company/tenant (drop database + remove connection) | Permanently terminate a company tenant. This drops the tenant database entirely, removes the connection record, and sets the company status to 'ter... |
-| `POST` | `/api/v1/platform/companies/{id}/rotate-credentials` | Rotate tenant DB credentials (ALTER USER + update encrypted connection) | Rotate the tenant database credentials for a company. Runs ALTER USER on the DB server (dialect-aware), updates tenant_connections with the new password (encrypted AES-256-GCM), and closes cached connections so the tenant reconnects with fresh credentials. If new_password is omitted, the backend auto-generates a strong password (24 chars) and returns it once in the response. |
 
 ### Platform: RBAC Management
 **Description:** Role-based access control management for roles, permissions, and role-permission assignments
 **Endpoints:** 10 | **Paths:** 6
 **Methods:** DELETE=3 GET=3 POST=3 PUT=1
+
+> **Fix (01 Aug 2026):** Permission catalog kini lengkap — **24 resource / 98 permissions** (sebelumnya 18/74). `authz/rbac.go` (`defaultResources()` + `loadDefaultPolicies()` + `seedDefaults()`) menambahkan 6 resource: `performance`, `recruitment`, `reimbursement`, `training`, `workforceintelligence`, `careerintelligence` (masing-masing view/create/update/delete) — konsisten dengan tenant RBAC seed & `singularize()`. Sebelumnya resource ini tidak pernah di-seed ke `rbac_permissions` sehingga tidak muncul di menu RBAC platform-admin. Setelah restart, permission baru auto-assign ke super_admin; role lain di-toggle manual via UI. Endpoint `GET /platform/rbac/permissions` kini mengembalikan 98 permission.
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -990,7 +994,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | Method | Path | Summary | Description |
 |---|---|---|---|
 | `GET` | `/api/v1/platform/licenses` | List all licenses | Retrieve a paginated list of all license records. Licenses define the plan type, feature entitlements, and validity period for each company tenant. |
-| `POST` | `/api/v1/platform/licenses` | Create a new license for company | Issue a new software license to a company tenant. Specifies the plan type (trial, basic, professional, enterprise), start date, end date, and seat ... |
+| `POST` | `/api/v1/platform/licenses` | Create a new license for company | Issue a new software license to a company tenant. Specifies the plan type (trial, subscription), start date, end date, and seat count. If a package... |
 | `GET` | `/api/v1/platform/licenses/{id}` | Get license by ID | Get detailed information about a specific license including plan type, validity period, seat usage, and feature entitlements. |
 | `PUT` | `/api/v1/platform/licenses/{id}` | Update license | Update license terms including plan upgrade/downgrade, extension of validity period, seat count adjustments, or license status changes. |
 
@@ -1016,6 +1020,15 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/platform/login` | Platform admin login | Authenticate a platform admin user with email and password credentials. Returns a JWT access token (short-lived) and a refresh token (long-lived) f... |
 | `POST` | `/api/v1/platform/refresh` | Refresh access token | Exchange a valid refresh token for a new access token. Use this endpoint to maintain session continuity without requiring the user to re-login. |
 
+### Tenant Auth
+**Endpoints:** 2 | **Paths:** 2
+**Methods:** POST=2
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/tenant/auth/login` | Tenant user login (employee or company admin) | Public login for tenant users (employees) stored in the tenant DB, with fallback to platform users (company_admin) bound to the company. Company id... |
+| `POST` | `/api/v1/tenant/auth/refresh` | Refresh tenant access token | Public endpoint to exchange a refresh token for a new access token. |
+
 ### Tenant: Approval Engine
 **Endpoints:** 1 | **Paths:** 1
 **Methods:** POST=1
@@ -1023,3 +1036,11 @@ Tenant endpoints support validation for Indonesian data formats:
 | Method | Path | Summary | Description |
 |---|---|---|---|
 | `POST` | `/api/v1/tenant/approval/instances/{id}` | Cancel approval instance | Create a new instances record. Validates required fields and returns the created resource with its assigned ID. |
+
+### Public
+**Endpoints:** 1 | **Paths:** 1
+**Methods:** GET=1
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/public/companies/resolve` | Resolve company by hostname/subdomain | Public endpoint (no auth) to determine the company from the app URL hostname/subdomain (SaaS mode). Returns company id/name/slug/subdomain/domain/s... |

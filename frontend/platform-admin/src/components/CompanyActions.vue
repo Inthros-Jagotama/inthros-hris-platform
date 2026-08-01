@@ -29,6 +29,14 @@
           <TextInput v-model="form.name" autofocus :class="{ 'p-invalid': errors?.name }" />
         </FormRow>
         <div class="grid grid-cols-2 gap-3">
+          <FormRow :label="t('companies.subdomain')" :errors="errors?.subdomain">
+            <TextInput v-model="form.subdomain" :placeholder="t('companies.subdomain_placeholder')" :class="{ 'p-invalid': errors?.subdomain }" />
+          </FormRow>
+          <FormRow :label="t('companies.domain')" :errors="errors?.domain">
+            <TextInput v-model="form.domain" :placeholder="t('companies.domain_placeholder')" :class="{ 'p-invalid': errors?.domain }" />
+          </FormRow>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
           <FormRow :label="t('companies.email')" :errors="errors?.email">
             <TextInput v-model="form.email" :class="{ 'p-invalid': errors?.email }" />
           </FormRow>
@@ -121,7 +129,7 @@ const passwordDialogVisible = ref(false)
 const rotatedPassword = ref('')
 const editDialogVisible = ref(false)
 const saving = ref(false)
-const form = ref({ name: '', email: '', phone: '', address: '' })
+const form = ref({ name: '', subdomain: '', domain: '', email: '', phone: '', address: '' })
 const errors = ref({})
 
 const canEdit = computed(() => props.company.status !== 'terminated')
@@ -218,6 +226,8 @@ async function copyRotatedPassword() {
 function openEdit() {
   form.value = {
     name: props.company.name || '',
+    subdomain: props.company.subdomain || '',
+    domain: props.company.domain || '',
     email: props.company.email || '',
     phone: props.company.phone || '',
     address: props.company.address || ''

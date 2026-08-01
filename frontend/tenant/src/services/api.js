@@ -8,7 +8,7 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-// Request interceptor — auto-attach language header + auth token
+// Request interceptor — auto-attach language header + auth token + X-Tenant-ID
 api.interceptors.request.use((config) => {
   const { state } = useLanguage()
   config.headers['Accept-Language'] = state.lang
@@ -17,12 +17,26 @@ api.interceptors.request.use((config) => {
   if (authState.accessToken) {
     config.headers['Authorization'] = `Bearer ${authState.accessToken}`
   }
+  // Backend TenantResolver membaca header X-Tenant-ID bila ada — kirim agar
+  // company selalu sinkron meski Host tidak ter-resolve (mis. dev tanpa subdomain).
+  if (authState.company?.id) {
+    config.headers['X-Tenant-ID'] = authState.company.id
+  }
   return config
 })
 
-// Response interceptor — auto-refresh on 401
+// Response interceptor — sync company dari X-Tenant-ID header + auto-refresh on 401
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Backend TenantResolver meng-set response header X-Tenant-ID (company_id)
+    // pada semua response /api/v1/tenant/** — sync ke store agar selalu aktual.
+    const tenantId = res.headers?.['x-tenant-id']
+    if (tenantId) {
+      const { setCompany } = useAuth()
+      setCompany({ id: tenantId })
+    }
+    return res
+  },
   async (err) => {
     const original = err.config
     if (err.response?.status === 401 && !original._retry) {

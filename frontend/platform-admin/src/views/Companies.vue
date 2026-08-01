@@ -125,6 +125,12 @@
             <FormRow :label="t('companies.company_name')" :errors="errors?.name" :required="true">
               <TextInput v-model="form.name" autofocus :class="{ 'p-invalid': errors?.name }" />
             </FormRow>
+            <FormRow :label="t('companies.subdomain')" :errors="errors?.subdomain">
+              <TextInput v-model="form.subdomain" :placeholder="t('companies.subdomain_placeholder')" :class="{ 'p-invalid': errors?.subdomain }" />
+            </FormRow>
+            <FormRow :label="t('companies.domain')" :errors="errors?.domain">
+              <TextInput v-model="form.domain" :placeholder="t('companies.domain_placeholder')" :class="{ 'p-invalid': errors?.domain }" />
+            </FormRow>
             <FormRow :label="t('companies.email')" :errors="errors?.email" :required="true">
               <TextInput v-model="form.email" autofocus :class="{ 'p-invalid': errors?.email }" />
             </FormRow>
@@ -205,7 +211,7 @@ const packages = ref([])
 const loading = ref(true)
 const dialogVisible = ref(false)
 const saving = ref(false)
-const form = ref({ name: '', email: '', phone: '', address: '', admin_name: '', admin_email: '', admin_password: '' })
+const form = ref({ name: '', subdomain: '', domain: '', email: '', phone: '', address: '', admin_name: '', admin_email: '', admin_password: '' })
 const errors = ref({})
 
 // Package options untuk filter dropdown
@@ -324,7 +330,7 @@ function openDetail(company) {
 }
 
 function openCreate() {
-  form.value = { name: '', email: '', phone: '', address: '', admin_name: '', admin_email: '', admin_password: '' }
+  form.value = { name: '', subdomain: '', domain: '', email: '', phone: '', address: '', admin_name: '', admin_email: '', admin_password: '' }
   errors.value = {}
   dialogVisible.value = true
 }

@@ -55,6 +55,8 @@
         <BankProfileForm v-else-if="activeStep === 8" :items="banks" :errs="bankErrors" :bank-options="bankOptions" :saving="stepLoading" :employee-id="employeeId" @update:items="banks = $event" @save="() => saveStep(8)" />
 
         <EmploymentForm v-else-if="activeStep === 9" :items="employments" :errs="empErrors" :organization-options="organizationOptions" :employment-status-options="employmentStatusOptions" :saving="stepLoading" @update:items="employments = $event" @save="() => saveStep(9)" />
+
+        <AccountForm v-else-if="activeStep === 10" :employee-id="employeeId" :employee-email="form.email" @save="markAccountSaved" />
       </div>
     </div>
   </div>
@@ -80,6 +82,7 @@ import DocumentForm from './employee/DocumentForm.vue'
 import InsuranceForm from './employee/InsuranceForm.vue'
 import BankProfileForm from './employee/BankProfileForm.vue'
 import EmploymentForm from './employee/EmploymentForm.vue'
+import AccountForm from './employee/AccountForm.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -94,7 +97,7 @@ const pageLoading = ref(true)
 const savedEmployeeId = ref(null)
 const profilePicture = ref('')
 
-const stepSaved = reactive(Array(10).fill(false))
+const stepSaved = reactive(Array(11).fill(false))
 const personalDataSaved = computed(() => stepSaved[0])
 
 const steps = [
@@ -107,7 +110,8 @@ const steps = [
   { labelKey: 'employee.wizard_step_documents' },
   { labelKey: 'employee.wizard_step_insurance' },
   { labelKey: 'employee.wizard_step_bank' },
-  { labelKey: 'employee.wizard_step_employment' }
+  { labelKey: 'employee.wizard_step_employment' },
+  { labelKey: 'employee.wizard_step_account' }
 ]
 
 // ── Form Data ──
@@ -136,6 +140,12 @@ const empErrors = ref([])
 
 // ── Nav helpers ──
 function isStepEnabled(i) { return i === 0 || !!personalDataSaved.value }
+
+// Step Akun (10) bukan item list — ditandai saved langsung setelah akun dibuat
+// atau email dikirim ulang (AccountForm emit('save')).
+function markAccountSaved() {
+  stepSaved[10] = true
+}
 function selectStep(i) {
   if (isStepEnabled(i)) {
     activeStep.value = i
@@ -321,8 +331,9 @@ async function saveStep(stepIndex) {
   stepLoading.value = true
   const empId = employeeId.value
 
-  // Map stepIndex to error refs — clear errors for this step      const errorRefs = [null, addrErrors, contactErrors, famErrors, eduErrors, expErrors, docErrors, insErrors, bankErrors, empErrors]
-      if (errorRefs[stepIndex]) errorRefs[stepIndex].value = []
+  // Map stepIndex to error refs — clear errors for this step
+  const errorRefs = [null, addrErrors, contactErrors, famErrors, eduErrors, expErrors, docErrors, insErrors, bankErrors, empErrors]
+  if (errorRefs[stepIndex]) errorRefs[stepIndex].value = []
 
   try {
     const stepConfigs = {
@@ -367,9 +378,10 @@ async function saveStep(stepIndex) {
       toast.add({ severity: 'success', summary: t('message.success'), detail: t('employee.saved'), life: 2000 })
     } else {
       const hasErrors = errorRefs[stepIndex] && errorRefs[stepIndex].value.some(e => e && Object.keys(e).length > 0)
-      if (!hasErrors) {
-        toast.add({ severity: 'info', summary: t('employee.no_new_items'), life: 2000 })
-      }
+      if (hasErrors) return
+      // All items were already saved (e.g. saved directly from the add/edit dialog) → mark the step as saved so the navigation indicator updates immediately
+      if (cfg.items.length > 0) stepSaved[stepIndex] = true
+      else toast.add({ severity: 'info', summary: t('employee.no_new_items'), life: 2000 })
     }
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })

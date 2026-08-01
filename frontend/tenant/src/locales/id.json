@@ -63,7 +63,9 @@
     "aspect_ratio": "Rasio",
     "custom": "Kustom",
     "apply": "Terapkan",
-    "reset": "Atur Ulang"
+    "reset": "Atur Ulang",
+    "email": "Email",
+    "clear": "Bersihkan"
   },
   "form": {
     "required": "Field ini wajib diisi"
@@ -405,7 +407,27 @@
     "no_bank": "Belum ada rekening bank ditambahkan",
     "edit_bank": "Ubah Rekening Bank",
     "new_bank": "Tambah Rekening Bank",
-    "confirm_delete_bank": "Hapus rekening bank ini? Tindakan ini tidak dapat dibatalkan."
+    "confirm_delete_bank": "Hapus rekening bank ini? Tindakan ini tidak dapat dibatalkan.",
+    "wizard_step_account": "Akun",
+    "tab_account": "Akun",
+    "account_description": "Buat akun login karyawan. Link pengaturan dikirim ke email untuk membuat password.",
+    "account_email": "Email Akun",
+    "account_email_placeholder": "Masukkan email untuk akun login",
+    "account_email_required": "Email akun wajib diisi",
+    "account_email_from_data": "dari data employee",
+    "account_create": "Buat Akun & Kirim Link",
+    "account_created": "Akun login berhasil dibuat",
+    "account_resend": "Kirim Ulang Email",
+    "account_resended": "Email pengaturan berhasil dikirim ulang",
+    "account_user_id": "ID Pengguna",
+    "account_role": "Peran",
+    "account_password_set": "Password sudah diatur",
+    "account_password_not_set": "Password belum diatur",
+    "account_setup_link": "Link pengaturan",
+    "account_no_account": "Karyawan ini belum memiliki akun login.",
+    "account_email_in_use": "Email ini sudah terdaftar sebagai pengguna",
+    "account_already_exists": "Akun untuk karyawan ini sudah ada",
+    "account_status_not_found": "Tidak ada akun untuk karyawan ini"
   },
   "attendance": {
     "title": "Absensi",
@@ -485,7 +507,7 @@
   },
   "job_management": {
     "title": "Manajemen Jabatan",
-    "description": "Kelola jenis jabatan, tanggung jawab, dan penilaian.",
+    "description": "Deskripsi",
     "landing_description": "Pilih organisasi aktif untuk mengelola data jabatan.",
     "manage_description": "Analisis dan penilaian jabatan lengkap untuk posisi terpilih.",
     "titles": "Jenis Jabatan",
@@ -543,7 +565,6 @@
     "main_task": "Tugas Utama",
     "outputs": "Keluaran/Hasil",
     "success_indicators": "Indikator Keberhasilan",
-    "description": "Deskripsi",
     "activity_type": "Tipe Aktivitas",
     "environment_risk": "Risiko Lingkungan",
     "hazard_risk": "Risiko Bahaya",
@@ -630,17 +651,33 @@
     "status": "Status",
     "last_login": "Terakhir Masuk"
   },
+  "set_password": {
+    "title": "Atur Password Anda",
+    "description": "Buat password baru untuk akun HRIS Anda.",
+    "new_password": "Password Baru",
+    "new_password_placeholder": "Masukkan password baru (min. 8 karakter)",
+    "confirm_password": "Konfirmasi Password Baru",
+    "confirm_password_placeholder": "Ulangi password baru",
+    "button": "Atur Password",
+    "invalid_link": "Link pengaturan tidak valid atau sudah kedaluwarsa",
+    "password_mismatch": "Password tidak sama",
+    "password_min": "Password minimal 8 karakter",
+    "success": "Password berhasil diatur",
+    "success_hint": "Password Anda telah diatur. Anda kini dapat masuk dengan email dan password baru.",
+    "go_to_login": "Ke Halaman Masuk",
+    "missing_token": "Link pengaturan tidak valid. Silakan minta link baru."
+  },
   "auth": {
     "title": "HRIS Platform",
     "version": "HRIS Platform v1.0",
-    "login": {
-      "email": "Email",
+    "login": {    "email": "Email",
       "password": "Kata Sandi",
       "email_placeholder": "Masukkan email Anda",
       "password_placeholder": "Masukkan kata sandi Anda",
-      "button": "Masuk",
-      "subtitle": "Masuk ke akun Anda",
-      "validation_required": "Silakan masukkan email dan kata sandi",
+    "button": "Masuk",
+    "subtitle": "Masuk ke akun Anda",
+    "subtitle_with_company": "Masuk ke {company}",
+    "validation_required": "Silakan masukkan email dan kata sandi",
       "invalid_credentials": "Email atau kata sandi salah",
       "profile": "Profil",
       "logout": "Keluar"
@@ -648,7 +685,8 @@
   },
   "settings": {
     "title": "Pengaturan",
-    "description": "Kelola area administratif, zona, dan data regional untuk organisasi.",
+    "description": "Kelola data referensi dan konfigurasi untuk organisasi Anda.",
+    "no_results": "Tidak ada pengaturan yang cocok dengan pencarian Anda.",
     "zones": "Wilayah",
     "provinces": "Provinsi",
     "regencies": "Kabupaten/Kota",
@@ -666,7 +704,12 @@
     "salary_grades": "Grade Gaji",
     "ters": "TER (Tarif Efektif)",
     "ptkps": "PTKP",
-    "insurances": "Asuransi"
+    "insurances": "Asuransi",
+    "group_geography": "Geografi",
+    "group_hr": "Referensi HR",
+    "group_payroll": "Payroll & Pajak",
+    "rbac": "Roles & Permissions",
+    "group_access": "Kontrol Akses"
   },
   "provinces": {
     "title": "Provinsi",
@@ -969,5 +1012,35 @@
     "this_month": "Bulan Ini",
     "this_quarter": "Kuartal Ini",
     "this_year": "Tahun Ini"
+  },
+  "rbac": {
+    "title": "Roles & Permissions",
+    "description": "Kelola roles, permissions, dan penugasan role ke user untuk organisasi Anda.",
+    "tab_roles": "Roles",
+    "tab_users": "Users",
+    "new_role": "Role Baru",
+    "edit_role": "Ubah Role",
+    "role_name": "Nama Role",
+    "roles": "Roles",
+    "system": "Sistem",
+    "default": "Default",
+    "users_count": "Users",
+    "permissions_count": "Permissions",
+    "is_default": "Role default",
+    "assign_permissions": "Atur permissions",
+    "assign_roles": "Atur roles",
+    "select_roles": "Pilih roles...",
+    "empty_roles": "Belum ada roles dibuat",
+    "empty_users": "Tidak ada user ditemukan",
+    "empty_permissions": "Tidak ada permissions tersedia",
+    "role_created": "Role berhasil dibuat",
+    "role_updated": "Role berhasil diperbarui",
+    "role_deleted": "Role berhasil dihapus",
+    "permissions_updated": "Permissions berhasil diperbarui",
+    "user_roles_updated": "Roles user berhasil diperbarui",
+    "confirm_delete_title": "Hapus Role",
+    "confirm_delete": "Hapus role \"{name}\"? User yang terikat role ini harus dipindahkan dulu.",
+    "duplicate_role": "Role \"{name}\" sudah ada",
+    "system_role": "Role \"{name}\" adalah role sistem dan tidak dapat diubah"
   }
 }

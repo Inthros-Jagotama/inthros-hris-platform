@@ -9,6 +9,12 @@ const routes = [
     meta: { guest: true }
   },
   {
+    path: '/set-password',
+    name: 'SetPassword',
+    component: () => import('@/views/SetPassword.vue'),
+    meta: { guest: true }
+  },
+  {
     path: '/',
     component: () => import('@/layouts/AppLayout.vue'),
     redirect: '/dashboard',
@@ -162,8 +168,8 @@ const routes = [
         component: () => import('@/views/modules/CareerIntelligence.vue'),
         meta: { title: 'Career Intel', titleKey: 'career_intel.title', descKey: 'career_intel.description', icon: 'pi pi-road', module: 'career-intelligence' }
       },
-      // Settings — redirect to zones as default
-      { path: 'settings', redirect: '/settings/zones' },
+      // Settings — index page menampilkan card sub-menu settings
+      { path: 'settings', name: 'SettingsIndex', component: () => import('@/views/settings/SettingsIndex.vue'), meta: { title: 'Settings', titleKey: 'settings.title', descKey: 'settings.description', icon: 'pi pi-cog', module: 'setting' } },
       { path: 'settings/zones', name: 'SettingsZones', component: () => import('@/views/settings/ZonesView.vue'), meta: { title: 'Zones', titleKey: 'zones.title', descKey: 'zones.description', icon: 'pi pi-map-marker', module: 'setting' } },
       { path: 'settings/provinces', name: 'SettingsProvinces', component: () => import('@/views/settings/ProvincesView.vue'), meta: { title: 'Provinces', titleKey: 'provinces.title', descKey: 'provinces.description', icon: 'pi pi-globe', module: 'setting' } },
       { path: 'settings/regencies', name: 'SettingsRegencies', component: () => import('@/views/settings/RegenciesView.vue'), meta: { title: 'Regencies', titleKey: 'regencies.title', descKey: 'regencies.description', icon: 'pi pi-map', module: 'setting' } },
@@ -181,7 +187,8 @@ const routes = [
       { path: 'settings/salary-grades', name: 'SettingsSalaryGrades', component: () => import('@/views/settings/SalaryGradesView.vue'), meta: { title: 'Salary Grades', titleKey: 'salary_grades.title', descKey: 'salary_grades.description', icon: 'pi pi-chart-bar', module: 'setting' } },
       { path: 'settings/insurances', name: 'SettingsInsurances', component: () => import('@/views/settings/InsurancesView.vue'), meta: { title: 'Insurances', titleKey: 'insurances.title', descKey: 'insurances.description', icon: 'pi pi-shield', module: 'setting' } },
       { path: 'settings/ters', name: 'SettingsTERs', component: () => import('@/views/settings/TersView.vue'), meta: { title: 'TER', titleKey: 'ters.title', descKey: 'ters.description', icon: 'pi pi-calculator', module: 'setting' } },
-      { path: 'settings/ptkps', name: 'SettingsPTKPs', component: () => import('@/views/settings/PtkpsView.vue'), meta: { title: 'PTKP', titleKey: 'ptkps.title', descKey: 'ptkps.description', icon: 'pi pi-receipt', module: 'setting' } }
+      { path: 'settings/ptkps', name: 'SettingsPTKPs', component: () => import('@/views/settings/PtkpsView.vue'), meta: { title: 'PTKP', titleKey: 'ptkps.title', descKey: 'ptkps.description', icon: 'pi pi-receipt', module: 'setting' } },
+      { path: 'settings/rbac', name: 'SettingsRbac', component: () => import('@/views/settings/RolesPermissions.vue'), meta: { title: 'RBAC', titleKey: 'rbac.title', descKey: 'rbac.description', icon: 'pi pi-shield', module: 'setting' } }
     ]
   }
 ]

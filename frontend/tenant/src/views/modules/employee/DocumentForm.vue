@@ -253,6 +253,7 @@ async function handleSave() {
     }
 
     emit('update:items', updated)
+    emit('save')
     dialogVisible.value = false
   } catch (e) {
     const fe = getValidationErrors(e)

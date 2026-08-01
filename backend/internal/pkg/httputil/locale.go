@@ -527,6 +527,22 @@ var localeMessages = map[string]map[Lang]string{
 		LangEN: "Permission revoked from role",
 		LangID: "Izin berhasil dicabut dari peran",
 	},
+	"rbac.permissions_updated": {
+		LangEN: "Permissions updated successfully",
+		LangID: "Permissions berhasil diperbarui",
+	},
+	"rbac.user_roles_updated": {
+		LangEN: "User roles updated successfully",
+		LangID: "Roles user berhasil diperbarui",
+	},
+	"rbac.duplicate_role": {
+		LangEN: "Role '%s' already exists",
+		LangID: "Role '%s' sudah ada",
+	},
+	"rbac.system_role": {
+		LangEN: "Role '%s' is a system role and cannot be modified",
+		LangID: "Role '%s' adalah role sistem dan tidak dapat diubah",
+	},
 
 	"address.deleted": {
 		LangEN: "Address deleted",

@@ -52,6 +52,20 @@
         <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ t('job_management.manage') }}</span>
       </template>
 
+      <!-- Breadcrumb: Settings > sub-setting (kembali ke index card) -->
+      <template v-else-if="showSettingsBreadcrumb">
+        <Button
+          text
+          size="small"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          @click="goBackToSettings"
+        >
+          {{ t('nav.settings') }}
+        </Button>
+        <i class="pi pi-chevron-right text-xs text-gray-300"></i>
+        <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ route.meta?.titleKey ? t(route.meta.titleKey) : (route.meta?.title || '') }}</span>
+      </template>
+
       <!-- Normal page title -->
       <template v-else>
         <i class="pi pi-chevron-right text-sm text-gray-300"></i>
@@ -163,6 +177,11 @@ const showJobManagementBreadcrumb = computed(() => {
   return route.name === 'JobManagementForm'
 })
 
+/** Show breadcrumb when on a sub-setting page (not the Settings index itself) */
+const showSettingsBreadcrumb = computed(() => {
+  return route.name?.startsWith('Settings') && route.name !== 'SettingsIndex'
+})
+
 function goBackToSummary() {
   router.push('/organization-summary')
 }
@@ -173,6 +192,10 @@ function goBackToEmployees() {
 
 function goBackToJobManagement() {
   router.push('/job-management')
+}
+
+function goBackToSettings() {
+  router.push('/settings')
 }
 
 const userMenuItems = computed(() => [
