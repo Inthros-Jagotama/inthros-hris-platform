@@ -35,7 +35,7 @@
           @click="loadTree()"
           :loading="loading"
         />
-        <div class="flex items-center gap-1 ml-2 pl-2 border-l border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-1 border border-gray-200 dark:border-gray-700 rounded-lg p-0.5 bg-white dark:bg-gray-800">
           <Button
             :label="t('organization.table_view')"
             icon="pi pi-table"
@@ -52,6 +52,14 @@
             size="small"
             @click="viewMode = 'chart'"
           />
+          <Button
+            :label="t('organization.tree_view')"
+            icon="pi pi-share-alt"
+            :severity="viewMode === 'tree' ? 'primary' : 'secondary'"
+            :outlined="viewMode !== 'tree'"
+            size="small"
+            @click="viewMode = 'tree'"
+          />
         </div>
       </div>
     </div>
@@ -67,181 +75,15 @@
         </div>
       </div>
 
-      <!-- DataTable with drilldown -->
-      <DataTable v-if="!loading"
-        :value="searchQuery ? filteredOrgs : rootOrgs"
+      <OrgTreeTable
+        v-else
+        :nodes="filteredOrgs"
         v-model:expandedRows="expandedRows"
-        dataKey="id"
-        class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
-        stripedRows
-        responsiveLayout="scroll"
-      >
-        <template #empty>
-          <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
-            <i class="pi pi-sitemap text-3xl mb-2 opacity-50"></i>
-            <p class="text-sm font-medium">{{ t('organization.empty_title') }}</p>
-            <p class="text-sm mt-1">{{ t('organization.empty_tree') }}</p>
-          </div>
-        </template>
-        <Column :expander="true" style="width: 40px" />
-        <Column field="nomenclature" :header="t('organization.nomenclature')">
-          <template #body="{ data }">
-            <div class="flex items-center gap-2">
-              <i class="pi pi-folder-open text-amber-500 text-xs"></i>
-              <span class="font-medium text-gray-800 dark:text-gray-100">{{ data.nomenclature }}</span>
-              <Tag
-                v-if="data.children?.length"
-                :value="data.children.length"
-                severity="info"
-                class="!text-[10px] !px-1 !py-0 !min-w-[1.1rem]"
-                rounded
-              />
-            </div>
-          </template>
-        </Column>
-        <Column field="code" :header="t('organization.code')" style="width: 120px">
-          <template #body="{ data }">
-            <Tag :value="data.code" severity="info" class="!text-xs" />
-          </template>
-        </Column>
-        <Column field="full_code" :header="t('organization.full_code')" style="width: 160px">
-          <template #body="{ data }">
-            <span class="text-gray-500 dark:text-gray-400 text-xs font-mono">{{ data.full_code }}</span>
-          </template>
-        </Column>
-        <Column field="level" :header="t('organization.level')" style="width: 80px">
-          <template #body="{ data }">
-            <span class="text-gray-500 dark:text-gray-400">{{ data.level }}</span>
-          </template>
-        </Column>
-        <Column field="sort_order" :header="t('organization.sort_order')" style="width: 80px">
-          <template #body="{ data }">
-            <span class="text-gray-500 dark:text-gray-400">{{ data.sort_order }}</span>
-          </template>
-        </Column>
-        <Column :header="t('common.actions')" style="width: 130px" frozen alignFrozen="right">
-          <template #body="{ data }">
-            <div class="flex items-center gap-1">
-              <Button icon="pi pi-plus" v-tooltip.top="t('organization.add_child')" severity="secondary" text size="small" class="!p-1" @click="openCreate(data)" />
-              <Button icon="pi pi-pencil" v-tooltip.top="t('common.edit')" severity="secondary" text size="small" class="!p-1" @click="openEdit(data)" />
-              <Button icon="pi pi-trash" v-tooltip.top="t('common.delete')" severity="danger" text size="small" class="!p-1" @click="confirmDelete(data)" />
-            </div>
-          </template>
-        </Column>
-
-        <!-- Root expansion slot (PrimeVue 4 — at DataTable level) -->
-        <template #expansion="{ data }">
-          <div v-if="data.children?.length" class="pl-6 pr-2 py-1">
-            <DataTable
-              :value="data.children"
-              v-model:expandedRows="expandedRows"
-              dataKey="id"
-              class="!text-xs !border-0 !shadow-none"
-              stripedRows
-              responsiveLayout="scroll"
-            >
-              <Column :expander="true" style="width: 40px" />
-              <Column field="nomenclature">
-                <template #body="{ data: child }">
-                  <div class="flex items-center gap-2">
-                    <i class="pi pi-folder-open text-amber-500 text-xs"></i>
-                    <span class="font-medium text-gray-800 dark:text-gray-100">{{ child.nomenclature }}</span>
-                    <Tag
-                      v-if="child.children?.length"
-                      :value="child.children.length"
-                      severity="info"
-                      class="!text-[10px] !px-1 !py-0 !min-w-[1.1rem]"
-                      rounded
-                    />
-                  </div>
-                </template>
-              </Column>
-              <Column field="code" :header="t('organization.code')" style="width: 120px">
-                <template #body="{ data: child }">
-                  <Tag :value="child.code" severity="info" class="!text-xs" />
-                </template>
-              </Column>
-              <Column field="full_code" :header="t('organization.full_code')" style="width: 160px">
-                <template #body="{ data: child }">
-                  <span class="text-gray-500 dark:text-gray-400 text-xs font-mono">{{ child.full_code }}</span>
-                </template>
-              </Column>
-              <Column field="level" :header="t('organization.level')" style="width: 80px">
-                <template #body="{ data: child }">
-                  <span class="text-gray-500 dark:text-gray-400">{{ child.level }}</span>
-                </template>
-              </Column>
-              <Column field="sort_order" :header="t('organization.sort_order')" style="width: 80px">
-                <template #body="{ data: child }">
-                  <span class="text-gray-500 dark:text-gray-400">{{ child.sort_order }}</span>
-                </template>
-              </Column>
-              <Column :header="t('common.actions')" style="width: 120px" frozen alignFrozen="right">
-                <template #body="{ data: child }">
-                  <div class="flex items-center gap-1">
-                    <Button icon="pi pi-plus" v-tooltip.top="t('organization.add_child')" severity="secondary" text size="small" class="!p-1" @click="openCreate(child)" />
-                    <Button icon="pi pi-pencil" v-tooltip.top="t('common.edit')" severity="secondary" text size="small" class="!p-1" @click="openEdit(child)" />
-                    <Button icon="pi pi-trash" v-tooltip.top="t('common.delete')" severity="danger" text size="small" class="!p-1" @click="confirmDelete(child)" />
-                  </div>
-                </template>
-              </Column>
-              <!-- Child expansion slot (PrimeVue 4 — at DataTable level) -->
-              <template #expansion="{ data: child }">
-                <div v-if="child.children?.length" class="pl-6 pr-2 py-1">
-                  <DataTable
-                    :value="child.children"
-                    v-model:expandedRows="expandedRows"
-                    dataKey="id"
-                    class="!text-xs !border-0 !shadow-none"
-                    stripedRows
-                    responsiveLayout="scroll"
-                  >
-                    <Column :expander="true" style="width: 40px" />
-                    <Column field="nomenclature">
-                      <template #body="{ data: grandchild }">
-                        <div class="flex items-center gap-2">
-                          <i class="pi pi-folder-open text-amber-500 text-xs"></i>
-                          <span class="font-medium text-gray-800 dark:text-gray-100">{{ grandchild.nomenclature }}</span>
-                        </div>
-                      </template>
-                    </Column>
-                    <Column field="code" :header="t('organization.code')" style="width: 120px">
-                      <template #body="{ data: grandchild }">
-                        <Tag :value="grandchild.code" severity="info" class="!text-xs" />
-                      </template>
-                    </Column>
-                    <Column field="full_code" :header="t('organization.full_code')" style="width: 160px">
-                      <template #body="{ data: grandchild }">
-                        <span class="text-gray-500 dark:text-gray-400 text-xs font-mono">{{ grandchild.full_code }}</span>
-                      </template>
-                    </Column>
-                    <Column field="sort_order" :header="t('organization.sort_order')" style="width: 80px">
-                      <span class="text-gray-500 dark:text-gray-400">{{ grandchild.sort_order }}</span>
-                    </Column>
-                    <Column :header="t('common.actions')" style="width: 120px" frozen alignFrozen="right">
-                      <template #body="{ data: grandchild }">
-                        <div class="flex items-center gap-1">
-                          <Button icon="pi pi-plus" v-tooltip.top="t('organization.add_child')" severity="secondary" text size="small" class="!p-1" @click="openCreate(grandchild)" />
-                          <Button icon="pi pi-pencil" v-tooltip.top="t('common.edit')" severity="secondary" text size="small" class="!p-1" @click="openEdit(grandchild)" />
-                          <Button icon="pi pi-trash" v-tooltip.top="t('common.delete')" severity="danger" text size="small" class="!p-1" @click="confirmDelete(grandchild)" />
-                        </div>
-                      </template>
-                    </Column>
-                  </DataTable>
-                </div>
-                <div v-else class="pl-6 pr-2 py-2 text-xs text-gray-400 italic">
-                  {{ t('organization.no_children') }}
-                </div>
-              </template>
-            </DataTable>
-          </div>
-          <div v-else class="pl-6 pr-2 py-2 text-xs text-gray-400 italic">
-            {{ t('organization.no_children') }}
-          </div>
-        </template>
-      </DataTable>
+        @add-child="openCreate"
+        @edit="openEdit"
+        @delete="confirmDelete"
+      />
     </div>
-
     <!-- Organization Chart View (v-if agar chart init dgn dimensi benar) -->
     <div v-if="viewMode === 'chart'" class="">
       <Skeleton v-if="loading" width="100%" height="400px" class="rounded-lg" />
@@ -251,6 +93,34 @@
         :loading="loading"
         @node-click="handleChartNodeClick"
       />
+    </div>
+
+    <!-- Organization Tree View (drag & drop untuk pindah parent) -->
+    <div v-if="viewMode === 'tree'" class="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+        <i class="pi pi-share-alt text-xs"></i>
+        <span>{{ t('organization.move_hint') }}</span>
+      </div>
+      <Skeleton v-if="loading" width="100%" height="300px" class="rounded-none" />
+      <Tree
+        v-else
+        v-model:expandedKeys="expandedKeys"
+        :value="treeNodes"
+        :draggable-nodes="!moving"
+        :droppable-nodes="!moving"
+        validate-drop
+        class="!text-sm !border-0 !shadow-none !p-4"
+        @node-drop="onNodeDrop"
+      >
+        <template #default="{ node }">
+          <div class="flex items-center gap-2 py-0.5 select-none">
+            <i :class="node.children?.length ? 'pi pi-folder-open text-amber-500 text-xs' : 'pi pi-file text-gray-400 text-xs'"></i>
+            <span class="font-medium text-gray-800 dark:text-gray-100">{{ node.data.nomenclature }}</span>
+            <Tag :value="node.data.code" severity="info" class="!text-[10px] !px-1 !py-0" />
+            <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{{ node.data.full_code }}</span>
+          </div>
+        </template>
+      </Tree>
     </div>
 
     <!-- Organization: Create / Edit Dialog -->
@@ -263,10 +133,9 @@
       @hide="resetForm"
     >
       <div class="space-y-4">
-        <div v-if="form.parent_id" class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-md px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
-          <i class="pi pi-arrow-right mr-1"></i>
-          {{ t('organization.parent') }}: <strong>{{ parentLabel }}</strong>
-        </div>
+        <FormRow :label="t('organization.parent')">
+          <SelectLabel v-model="form.parent_id" :options="parentOptions" option-value="id" option-label="label" :placeholder="t('organization.select_parent')" :showClear="false" />
+        </FormRow>
         <FormRow :label="t('organization.code')" required :errors="errors?.code">
             <TextInput v-model="form.code" :class="{ 'p-invalid': errors?.code }" maxlength="10" :placeholder="t('organization.code')" />
           </FormRow>
@@ -307,14 +176,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
 import api from '@/services/api'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
@@ -323,11 +190,13 @@ import IconField from 'primevue/iconfield'
 import InputNumber from 'primevue/inputnumber'
 import Tag from 'primevue/tag'
 import Skeleton from 'primevue/skeleton'
+import Tree from 'primevue/tree'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
 import OrgChartView from './OrgChartView.vue'
+import OrgTreeTable from './OrgTreeTable.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -337,6 +206,7 @@ const summaryID = computed(() => route.query.summary_id || '')
 const viewMode = ref('table')
 const loading = ref(false)
 const saving = ref(false)
+const moving = ref(false)
 const rootOrgs = ref([])
 const searchQuery = ref('')
 const expandedRows = ref({})
@@ -401,6 +271,116 @@ function flattenTree(nodes) {
   return result
 }
 
+// ── Tree view helpers (drag & drop) ──
+function toTreeNodes(orgs) {
+  return (orgs || []).map(org => ({
+    key: org.id,
+    label: org.nomenclature,
+    data: org,
+    children: org.children?.length ? toTreeNodes(org.children) : undefined
+  }))
+}
+
+// Tree nodes (dari filteredOrgs agar search juga berlaku di view ini)
+const treeNodes = computed(() => toTreeNodes(filteredOrgs.value))
+
+// Cari node org di tree (berdasarkan id)
+function findTreeNode(nodes, id) {
+  for (const n of nodes || []) {
+    if (n.id === id) return n
+    const found = findTreeNode(n.children, id)
+    if (found) return found
+  }
+  return null
+}
+
+// Kumpulkan semua id descendant dari sebuah node tree
+function collectDescendantIds(node) {
+  const ids = []
+  node.children?.forEach(child => {
+    ids.push(child.id)
+    ids.push(...collectDescendantIds(child))
+  })
+  return ids
+}
+
+// Apakah targetId merupakan descendant (keturunan) dari orgId?
+function isDescendantOf(orgId, targetId) {
+  const node = findTreeNode(rootOrgs.value, orgId)
+  if (!node) return false
+  return collectDescendantIds(node).includes(targetId)
+}
+
+// Expanded keys Tree view — root di-expand default saat pertama dibuka
+const expandedKeys = ref({})
+function seedExpandedKeys() {
+  const keys = {}
+  rootOrgs.value.forEach(root => { keys[root.id] = true })
+  expandedKeys.value = keys
+}
+watch(viewMode, (mode) => {
+  if (mode === 'tree' && Object.keys(expandedKeys.value).length === 0 && rootOrgs.value.length) {
+    seedExpandedKeys()
+  }
+})
+
+// Handler drop pada Tree (PrimeVue 4.5.5): payload = { dragNode, dropNode, dropPosition, accept }.
+// - dropPosition 0  → drop ON node → parent baru = dropNode
+// - dropPosition ±1 → drop sebelum/sesudah node → sibling → parent baru = parent dropNode
+// - dropNode null    → drop di root → parent baru = null (root)
+// validate-drop aktif: tree tidak berubah sampai accept() dipanggil, jadi drop ilegal otomatis batal.
+async function onNodeDrop(event) {
+  if (moving.value) return
+  if (!event.accept) return // event lanjutan setelah accept() dipanggil — abaikan
+  const dragged = event.dragNode
+  const dropNode = event.dropNode
+  const pos = event.dropPosition ?? 0
+
+  let newParentId = null
+  if (dropNode) {
+    newParentId = pos === 0 ? dropNode.data.id : (dropNode.data.parent_id || null)
+  }
+
+  // Guard: dilarang meletakkan node ke dirinya sendiri / ke bawah keturunannya.
+  // accept() tetap dipanggil untuk me-reset state drag internal PrimeVue,
+  // lalu loadTree() segera mengembalikan tampilan ke data server.
+  if (newParentId === dragged.data.id || (newParentId && isDescendantOf(dragged.data.id, newParentId))) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: t('organization.cannot_move_into_descendant'), life: 4000 })
+    event.accept()
+    await loadTree()
+    return
+  }
+  // Parent tidak berubah → settle drop + reload (urutan sibling tak dikelola via drag)
+  if (newParentId === (dragged.data.parent_id || null)) {
+    event.accept()
+    await loadTree()
+    return
+  }
+  // Terima perubahan visual, lalu simpan ke server
+  event.accept()
+  await moveOrg(dragged.data.id, newParentId)
+}
+
+// Pindahkan organisasi ke parent baru (null/'' = root)
+async function moveOrg(id, parentId) {
+  moving.value = true
+  try {
+    await api.put(`/api/v1/tenant/organizations/${id}`, { parent_id: parentId || '' })
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('organization.moved'), life: 3000 })
+    await loadTree()
+  } catch (e) {
+    toast.add({
+      severity: 'error',
+      summary: t('message.error'),
+      detail: e.response?.data?.error?.message || t('message.operation_failed'),
+      life: 4000
+    })
+    await loadTree()
+  } finally {
+    moving.value = false
+  }
+}
+
 // Computed options for reference dropdowns
 const zoneOptions = computed(() => zones.value.map(z => ({ id: z.id, label: `${z.code} — ${z.name}` })))
 const jobFamilyOptions = computed(() => jobFamilies.value.map(jf => ({ id: jf.id, label: `${jf.code} — ${jf.name}` })))
@@ -443,13 +423,19 @@ async function loadTree() {
 // Flat list of all orgs from tree (for dropdowns)
 const flatAllOrgs = computed(() => flattenTree(rootOrgs.value))
 
-// Parent options for select dropdown
+// Parent options for select dropdown (exclude self + descendants saat edit)
 const parentOptions = computed(() => {
   const options = [
     { id: null, label: t('organization.no_parent') }
   ]
+  const excluded = new Set()
+  if (isEditing.value && editingId.value) {
+    excluded.add(editingId.value)
+    const node = findTreeNode(rootOrgs.value, editingId.value)
+    if (node) collectDescendantIds(node).forEach(id => excluded.add(id))
+  }
   flatAllOrgs.value.forEach(org => {
-    if (!isEditing.value || org.id !== editingId.value) {
+    if (!excluded.has(org.id)) {
       options.push({
         id: org.id,
         label: `${org.full_code} — ${org.nomenclature}`
@@ -457,13 +443,6 @@ const parentOptions = computed(() => {
     }
   })
   return options
-})
-
-// Parent label for dialog header
-const parentLabel = computed(() => {
-  if (!form.value.parent_id) return t('organization.no_parent')
-  const parent = flatAllOrgs.value.find(o => o.id === form.value.parent_id)
-  return parent ? `${parent.full_code} — ${parent.nomenclature}` : ''
 })
 
 // Open create dialog
@@ -537,6 +516,7 @@ async function handleSave() {
       await api.put(`/api/v1/tenant/organizations/${editingId.value}`, {
         code: form.value.code,
         nomenclature: form.value.nomenclature,
+        parent_id: form.value.parent_id || '',
         zone_id: form.value.zone_id || null,
         job_family_id: form.value.job_family_id || null,
         grading_id: form.value.grading_id || null,
@@ -547,7 +527,7 @@ async function handleSave() {
       await api.post('/api/v1/tenant/organizations', {
         code: form.value.code,
         nomenclature: form.value.nomenclature,
-        parent_id: form.value.parent_id,
+        parent_id: form.value.parent_id || '',
         zone_id: form.value.zone_id || null,
         job_family_id: form.value.job_family_id || null,
         grading_id: form.value.grading_id || null,
@@ -611,24 +591,3 @@ onMounted(async () => {
   await Promise.all([loadTree(), loadRefData()])
 })
 </script>
-
-<style scoped>
-:deep(.p-datatable-wrapper) {
-  max-height: calc(100vh - 260px);
-}
-:deep(.p-datatable .p-datatable-tbody > tr) {
-  transition: background 0.15s ease;
-}
-:deep(.p-datatable .p-datatable-tbody > tr:hover) {
-  background: #f0fdf4 !important;
-}
-:deep(.p-dark .p-datatable .p-datatable-tbody > tr:hover) {
-  background: rgba(16, 185, 129, 0.08) !important;
-}
-:deep(.p-datatable .p-datatable-tbody > tr.p-row-expanded) {
-  background: #f0fdf4 !important;
-}
-:deep(.p-dark .p-datatable .p-datatable-tbody > tr.p-row-expanded) {
-  background: rgba(16, 185, 129, 0.08) !important;
-}
-</style>

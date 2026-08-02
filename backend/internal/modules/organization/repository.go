@@ -3,6 +3,8 @@ package organization
 import (
 	"context"
 	"fmt"
+	"sort"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -37,38 +39,95 @@ func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*Organization,
 		return nil, err
 	}
 	var org Organization
-	if err := db.Preload("Parent").First(&org, "id = ?", id).Error; err != nil {
+	// Catatan: sengaja TIDAK Preload("Parent") — tidak ada pemanggil yang membaca
+	// asosiasi Parent dari FindByID (hanya field skalar org itu sendiri yang dipakai).
+	// Preload asosiasi BelongsTo yang basi bisa membuat GORM Save menimpa ParentID
+	// dengan ID asosiasi lama (lihat service.Update).
+	if err := db.First(&org, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("organization not found: %w", err)
 	}
 	return &org, nil
 }
 
 // FindTree returns root organizations (parent_id IS NULL), optionally filtered by summary_id.
+// Tree dibangun in-memory dari daftar datar organisasi (diurutkan full_code ASC agar
+// parent selalu muncul sebelum anak) sehingga kedalaman tree TIDAK TERBATAS — tidak
+// lagi tergantung kedalaman preload GORM (sebelumnya hanya 3 level).
+// Setiap level anak diurutkan berdasarkan sort_order lalu full_code.
 func (r *Repository) FindTree(ctx context.Context, summaryID string) ([]Organization, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var roots []Organization
-	query := db.Where("parent_id IS NULL")
+
+	var orgs []Organization
+	query := db.Model(&Organization{})
 	if summaryID != "" {
 		query = query.Where("organization_summary_id = ?", summaryID)
 	}
-	if err := query.
-		Preload("Children", func(db *gorm.DB) *gorm.DB {
-			return db.Order("sort_order ASC")
-		}).
-		Preload("Children.Children", func(db *gorm.DB) *gorm.DB {
-			return db.Order("sort_order ASC")
-		}).
-		Preload("Children.Children.Children", func(db *gorm.DB) *gorm.DB {
-			return db.Order("sort_order ASC")
-		}).
-		Order("sort_order ASC").
-		Find(&roots).Error; err != nil {
-		return nil, fmt.Errorf("failed to load organization tree: %w", err)
+	if err := query.Order("full_code ASC").Find(&orgs).Error; err != nil {
+		return nil, fmt.Errorf("failed to load organizations: %w", err)
+	}
+
+	// Mapping id → node (pointer ke elemen slice orgs) untuk penempelan anak.
+	// Penting: penempelan dilakukan IN-PLACE pada elemen slice orgs; root baru
+	// disalin SETELAH itu agar Children-nya ikut terbawa (bukan snapshot kosong).
+	byID := make(map[uuid.UUID]*Organization, len(orgs))
+	for i := range orgs {
+		byID[orgs[i].ID] = &orgs[i]
+	}
+
+	// Tempelkan anak ke parent — proses dari node terdalam (urutan full_code
+	// terbalik) agar saat sebuah node disalin ke Children parent-nya, seluruh
+	// Children-nya sudah terpasang (menghindari snapshot Children kosong pada
+	// rantai bertingkat). Parent yang tidak ditemukan (data tidak konsisten)
+	// membuat node diabaikan — konsisten dengan perilaku lama.
+	for i := len(orgs) - 1; i >= 0; i-- {
+		o := &orgs[i]
+		if o.ParentID != nil {
+			if parent, ok := byID[*o.ParentID]; ok {
+				parent.Children = append(parent.Children, *o)
+			}
+		}
+	}
+
+	// Root = parent_id IS NULL (anak sudah terpasang in-place pada elemen orgs).
+	var roots []Organization
+	for i := range orgs {
+		o := &orgs[i]
+		if o.ParentID == nil {
+			roots = append(roots, *o)
+		}
+	}
+
+	// Urutkan setiap level (sibling) berdasarkan sort_order lalu full_code —
+	// diperlukan karena reverse-append menghasilkan urutan sibling terbalik.
+	sortOrgsBySortOrder(roots)
+	for i := range roots {
+		sortChildrenRecursive(&roots[i])
 	}
 	return roots, nil
+}
+
+// sortOrgsBySortOrder mengurutkan slice organisasi berdasarkan sort_order lalu full_code.
+func sortOrgsBySortOrder(orgs []Organization) {
+	sort.SliceStable(orgs, func(i, j int) bool {
+		if orgs[i].SortOrder != orgs[j].SortOrder {
+			return orgs[i].SortOrder < orgs[j].SortOrder
+		}
+		return orgs[i].FullCode < orgs[j].FullCode
+	})
+}
+
+// sortChildrenRecursive mengurutkan children setiap node hingga semua kedalaman.
+func sortChildrenRecursive(node *Organization) {
+	if len(node.Children) == 0 {
+		return
+	}
+	sortOrgsBySortOrder(node.Children)
+	for i := range node.Children {
+		sortChildrenRecursive(&node.Children[i])
+	}
 }
 
 // FindAll returns paginated organizations, optionally filtered by summary_id and active_only.
@@ -101,12 +160,103 @@ func (r *Repository) FindAll(ctx context.Context, page, perPage int, summaryID s
 	return orgs, total, nil
 }
 
-func (r *Repository) Update(ctx context.Context, org *Organization) error {
+// UpdateWithDescendants meng-update organisasi beserta seluruh descendants-nya dalam
+// satu transaksi. Jika full_code berubah (mis. karena field code diubah atau parent
+// dipindahkan), semua keturunan ikut di-update prefix-nya (termasuk yang soft-deleted
+// via Unscoped) agar full_code tetap merupakan chain kode dari root (parent full_code
+// + code), dan level-nya disesuaikan dengan selisih kedalaman (delta).
+// Mengembalikan jumlah descendant yang di-update.
+func (r *Repository) UpdateWithDescendants(ctx context.Context, org *Organization, oldFullCode string, oldLevel int) (int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return db.Save(org).Error
+
+	needsPropagation := oldFullCode != "" && oldFullCode != org.FullCode && org.OrganizationSummaryID != nil
+
+	// Pre-check: full_code terpanjang di antara descendants tidak boleh melebihi
+	// varchar(50) setelah prefix diganti (jika tidak, error DB 500 yang tidak jelas).
+	if needsPropagation {
+		var maxLen int
+		row := db.Model(&Organization{}).Unscoped().
+			Select("COALESCE(MAX(LENGTH(full_code)), 0)").
+			Where("organization_summary_id = ? AND id <> ? AND SUBSTR(full_code, 1, LENGTH(?)) = ?",
+				org.OrganizationSummaryID, org.ID, oldFullCode, oldFullCode).
+			Row()
+		if err := row.Scan(&maxLen); err != nil {
+			return 0, err
+		}
+		if newMax := maxLen - len(oldFullCode) + len(org.FullCode); newMax > 50 {
+			return 0, fmt.Errorf("generated full_code for a descendant exceeds maximum length of 50 characters")
+		}
+	}
+
+	// Pre-check: tidak ada full_code descendant yang setelah dipropagasi bentrok
+	// dengan organisasi lain dalam summary yang sama (mencegah 500/duplikat).
+	if needsPropagation {
+		var descCodes []string
+		if err := db.Model(&Organization{}).Unscoped().
+			Where("organization_summary_id = ? AND id <> ? AND SUBSTR(full_code, 1, LENGTH(?)) = ?",
+				org.OrganizationSummaryID, org.ID, oldFullCode, oldFullCode).
+			Pluck("full_code", &descCodes).Error; err != nil {
+			return 0, err
+		}
+		if len(descCodes) > 0 {
+			newCodes := make([]string, len(descCodes))
+			for i, c := range descCodes {
+				newCodes[i] = org.FullCode + c[len(oldFullCode):]
+			}
+			var collision int64
+			if err := db.Model(&Organization{}).Unscoped().
+				Where("organization_summary_id = ? AND full_code IN ?", org.OrganizationSummaryID, newCodes).
+				Count(&collision).Error; err != nil {
+				return 0, err
+			}
+			if collision > 0 {
+				return 0, fmt.Errorf("moving organization would create a duplicate full_code for one of its descendants")
+			}
+		}
+	}
+
+	// Selisih kedalaman: dipakai untuk menggeser level seluruh descendants
+	// (mis. pindah parent: anak naik/turun level mengikuti org).
+	levelDelta := org.Level - oldLevel
+
+	var affected int64
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(org).Error; err != nil {
+			return err
+		}
+
+		// Recalculate full_code untuk seluruh subtree bila prefix berubah.
+		// full_code = chain kode dari root, jadi semua record dengan prefix
+		// oldFullCode adalah descendant organisasi ini (dalam summary yang sama).
+		if needsPropagation {
+			// Ekspresi concat menyesuaikan dialect DB (MySQL: CONCAT, SQLite: ||).
+			replaceExpr := "CONCAT(?, SUBSTRING(full_code, LENGTH(?) + 1))"
+			if tx.Dialector.Name() == "sqlite" {
+				replaceExpr = "? || SUBSTR(full_code, LENGTH(?) + 1)"
+			}
+			updates := map[string]interface{}{
+				"full_code":  gorm.Expr(replaceExpr, org.FullCode, oldFullCode),
+				"updated_at": time.Now(),
+			}
+			// Level hanya digeser bila kedalaman berubah (hindari write tak perlu).
+			if levelDelta != 0 {
+				updates["level"] = gorm.Expr("level + ?", levelDelta)
+			}
+			res := tx.Model(&Organization{}).Unscoped().
+				Where("organization_summary_id = ? AND id <> ? AND SUBSTR(full_code, 1, LENGTH(?)) = ?",
+					org.OrganizationSummaryID, org.ID, oldFullCode, oldFullCode).
+				Updates(updates)
+			if res.Error != nil {
+				return res.Error
+			}
+			affected = res.RowsAffected
+		}
+		return nil
+	})
+	return affected, err
 }
 
 func (r *Repository) SoftDelete(ctx context.Context, id uuid.UUID) error {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -228,17 +229,76 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateOrganizationR
 	// Capture old values before update
 	oldValues := captureOrgValues(org)
 	oldJSON, _ := toJSONString(oldValues)
+	// Simpan full_code & level lama untuk propagasi ke descendants jika berubah.
+	oldFullCode := org.FullCode
+	oldLevel := org.Level
+
+	codeChanged := req.Code != nil
+	parentChanged := false
+	var newParent *Organization
+
+	// ── Pindah parent (opsional) ──
+	if req.ParentID != nil {
+		newParentID := *req.ParentID
+		if newParentID == "" {
+			// Pindah ke root (parent dihapus)
+			if org.ParentID != nil {
+				org.ParentID = nil
+				org.Level = 0
+				parentChanged = true
+			}
+		} else {
+			parentUUID, err := uuid.Parse(newParentID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid parent_id: %w", err)
+			}
+			if parentUUID == org.ID {
+				return nil, fmt.Errorf("parent cannot be the organization itself")
+			}
+			parent, err := s.repo.FindByID(ctx, parentUUID)
+			if err != nil {
+				return nil, fmt.Errorf("parent not found: %w", err)
+			}
+			// Parent harus dalam organization summary yang sama.
+			if org.OrganizationSummaryID == nil || parent.OrganizationSummaryID == nil ||
+				*parent.OrganizationSummaryID != *org.OrganizationSummaryID {
+				return nil, fmt.Errorf("parent must be in the same organization summary")
+			}
+			// Anti-cycle: parent tidak boleh berada di bawah organisasi ini.
+			if strings.HasPrefix(parent.FullCode, org.FullCode) {
+				return nil, fmt.Errorf("cannot move organization under one of its own descendants")
+			}
+			if org.ParentID == nil || *org.ParentID != parentUUID {
+				org.ParentID = &parentUUID
+				org.Level = parent.Level + 1
+				parentChanged = true
+				newParent = parent
+			}
+		}
+	}
 
 	if req.Code != nil {
 		org.Code = *req.Code
-		// Recalculate full_code if code changed
+	}
+
+	// Recalculate full_code (dan level) jika code atau parent berubah.
+	// full_code = parent full_code + code (chain kode dari root).
+	// Parent baru sudah diambil di blok validasi; reuse untuk hindari query ganda.
+	if codeChanged || parentChanged {
 		if org.ParentID != nil {
-			parent, err := s.repo.FindByID(ctx, *org.ParentID)
-			if err == nil {
-				org.FullCode = parent.FullCode + org.Code
+			parent := newParent
+			if parent == nil || parent.ID != *org.ParentID {
+				p, err := s.repo.FindByID(ctx, *org.ParentID)
+				if err != nil {
+					return nil, fmt.Errorf("parent not found: %w", err)
+				}
+				parent = p
 			}
+			org.FullCode = parent.FullCode + org.Code
+			org.Level = parent.Level + 1
 		} else {
 			org.FullCode = org.Code
+			org.Level = 0
 		}
 	}
 	if req.Nomenclature != nil {
@@ -291,8 +351,23 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateOrganizationR
 		}
 	}
 
-	if err := s.repo.Update(ctx, org); err != nil {
+	// GORM gotcha: org.Parent (asosiasi BelongsTo yang ikut ter-preload di FindByID)
+	// masih berisi parent LAMA. tx.Save() akan memproses asosiasi tersebut dan
+	// menimpa ParentID dengan ID asosiasi — akibatnya pindah parent tidak tersimpan
+	// padahal full_code sudah terhitung ulang. Kosongkan asosiasi agar field
+	// ParentID eksplisit yang disimpan ke database.
+	org.Parent = nil
+
+	// Update organisasi + propagasi full_code & level baru ke seluruh descendants (transaksi).
+	descAffected, err := s.repo.UpdateWithDescendants(ctx, org, oldFullCode, oldLevel)
+	if err != nil {
 		return nil, err
+	}
+	if descAffected > 0 {
+		s.logger.Info("Organization descendants full_code updated",
+			zap.String("id", org.ID.String()),
+			zap.Int64("descendants", descAffected),
+		)
 	}
 
 	// Capture new values after update
