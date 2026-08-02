@@ -103,7 +103,7 @@ Berdasarkan tinjauan arsitektur teknis, berikut area kritis yang harus diterapka
 
 ### 4. Penanganan Dialek SQL Migrasi ✅
 - **Masalah:** Eksekusi file `.sql` mentah bermasalah untuk dual-driver (PostgreSQL vs MySQL) karena perbedaan sintaksis DDL.
-- **Status:** ✅ **Sudah diimplementasikan** — Migrasi dipisah per dialect: `internal/pkg/migrator/migrations/tenant/mysql/` (44 file) dan `internal/pkg/migrator/migrations/tenant/postgres/` (44 file). Go code menggunakan `TenantRootPath(driver)` untuk seleksi otomatis saat provisioning. (File migrasi di-embed ke binary via `//go:embed migrations` — direktori filesystem `backend/migrations/` sudah dihapus; satu-satunya sumber adalah embed tree `internal/pkg/migrator/migrations/`.)
+- **Status:** ✅ **Sudah diimplementasikan** — Migrasi dipisah per dialect: `internal/pkg/migrator/migrations/tenant/mysql/` (86 file) dan `internal/pkg/migrator/migrations/tenant/postgres/` (86 file). Go code menggunakan `TenantRootPath(driver)` untuk seleksi otomatis saat provisioning. (File migrasi di-embed ke binary via `//go:embed migrations` — direktori filesystem `backend/migrations/` sudah dihapus; satu-satunya sumber adalah embed tree `internal/pkg/migrator/migrations/`.)
 
 ### 5. Sinkronisasi Cache Terdistribusi ✅
 - **Masalah:** Pembaruan *Feature Flags* atau *Permissions* di Redis perlu dikonsumsi konsisten oleh semua instance server.
@@ -193,7 +193,7 @@ hris-platform/
 │               └── migrations/
 │                   ├── platform/     #  Platform DDL (8 files)
 │                   ├── seeders/      #  Seed data (2 file — 001 + down)
-│                   └── tenant/       #  Tenant migrations (44 file per dialect — mysql & postgres)
+│                   └── tenant/       #  Tenant migrations (86 file per dialect — mysql & postgres)
 │   ├── docker/
 │   │   └── Dockerfile
 │   ├── .env.example                  # Environment template
@@ -1477,7 +1477,7 @@ CREATE TABLE schema_migrations (
 - `internal/pkg/migrator/migrations/platform/` — 8 platform DDL files (001–006 + RBAC + 012, termasuk roles, permissions, role_permissions)
 - `internal/pkg/migrator/migrations/seeders/` — 2 file (1 seeder `001_seed_super_admin.sql` + down)
 - `internal/pkg/tenantseed/seeddata/` — 2 embedded bulk SQL files (tenant: districts & villages), di-embed via `//go:embed seeddata` → CWD-independent
-- `internal/pkg/migrator/migrations/tenant/` — Tenant migrations (44 file per dialect — mysql & postgres)
+- `internal/pkg/migrator/migrations/tenant/` — Tenant migrations (86 file per dialect — mysql & postgres)
 
 ### Transaction Safety
 
@@ -1855,7 +1855,7 @@ gorm.io/gorm v1.30.0                      # ORM
 | # | Item | Detail |
 |---|------|--------|
 | ✅ | Provisioning Engine | Database creation + TenantConnection save |
-| ✅ | Tenant SQL Migrations | 22 migration files → 148 tables |
+| ✅ | Tenant SQL Migrations | 86 migration files → 148+ tables |
 | ✅ | Multi-statement MySQL support | `multiStatements=true` di DSN |
 | ✅ | Error handling / graceful failure | Company status = `suspended` jika provisioning gagal |
 | ✅ | End-to-end test | Company active ✅, 148 tables ✅, MySQL |
@@ -1990,7 +1990,7 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 ### Production Readiness 🎯
 - ✅ AES-256-GCM encryption untuk kredensial tenant DB (`internal/pkg/crypto/`, CLI `encrypt-passwords`)
 - ✅ **Connection Pool optimization** (Platform: 10/5/1jam, Tenant: 10/3/30mnt/5mnt idle→close, PoolStats(), PgBouncer support)
-- ✅ SQL dialect separation (PostgreSQL vs MySQL migrations) — 44 file per dialect (22 up + 22 down), auto-select via `TenantRootPath(driver)`
+- ✅ SQL dialect separation (PostgreSQL vs MySQL migrations) — 84 file per dialect (42 up + 42 down), auto-select via `TenantRootPath(driver)`
 - ✅ Redis Pub/Sub untuk distributed cache invalidation (`internal/pkg/cache/` — two-tier + Pub/Sub)
 - ⬜ Frontend Implementation (Vue 3 + PrimeVue)
 

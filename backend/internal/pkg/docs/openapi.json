@@ -3920,7 +3920,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "Filter job values by type (education, experience, environment, hazard, relationship, frequency, asset, authority, cash, impact). Kosongkan untuk semua tipe.",
+            "description": "Filter job values by type (education, experience, activity, communicating_influencing_skill, thinking_environment, thinking_chalenge, kecerdasan, innovation_creativity, self_confidence, flexibility, tenacity, continuous_learning, competency_based_human_resources_management, competency_development, people_development, career_management, hr_assessment, recruitement_selection, job_analysis_evaluation, organizational_development, human_resources_information_system, workload_analysis, performance_apraisal, remuneration_manajemen, reward_punisment_management, health_safety_environment, hubungan_industrial, budgeting, integrity, achievement_orientation, building_partnership, planning_organizing, leadership, developing_others, environment, risk, relationship, frequency, asset, asset_authority, authority, authority_unauthorized, cash, impact, impact_unauthorized, subordinate). Kosongkan untuk semua tipe.",
             "schema": {
               "type": "string",
               "example": "education"

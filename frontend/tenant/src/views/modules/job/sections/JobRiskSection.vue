@@ -11,7 +11,7 @@
       <FormRow :label="t('organization.nomenclature')" required :errors="errors?.nomenclature"><TextInput v-model="form.nomenclature" maxlength="50" :class="{'p-invalid':errors?.nomenclature}" /></FormRow>
       <FormRow :label="t('organization.full_code')" required :errors="errors?.full_code"><TextInput v-model="form.full_code" maxlength="20" :class="{'p-invalid':errors?.full_code}" /></FormRow>
       <FormRow :label="t('job_management.environment_risk')" :errors="errors?.job_management_value_environment_id"><SelectLabel v-model="form.job_management_value_environment_id" :options="envOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear /></FormRow>
-      <FormRow :label="t('job_management.hazard_risk')" :errors="errors?.job_management_value_hazard_id"><SelectLabel v-model="form.job_management_value_hazard_id" :options="hazardOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear /></FormRow>
+      <FormRow :label="t('job_management.risk')" :errors="errors?.job_management_value_hazard_id"><SelectLabel v-model="form.job_management_value_hazard_id" :options="hazardOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear /></FormRow>
     </DialogForm>
     <ConfirmDeleteDialog v-model:visible="deleteVisible" :loading="deleting" :error-msg="deleteError" @confirm="handleDelete" @cancel="deleteVisible=false" />
   </div>
@@ -27,7 +27,7 @@ const { t } = useI18n(); const toast = useToast(); const apiBase = '/api/v1/tena
 const items=ref([]); const loading=ref(false); const total=ref(0); const dialogVisible=ref(false); const editing=ref(false); const editId=ref('')
 const saving=ref(false); const errors=ref({}); const deleteVisible=ref(false); const deleting=ref(false); const deleteError=ref(''); const deleteTarget=ref(null)
 const form=ref({ nomenclature:'', full_code:'', job_management_value_environment_id:'', job_management_value_hazard_id:'' })
-const envOptions=computed(()=>props.jobValueMap?.environment||[]); const hazardOptions=computed(()=>props.jobValueMap?.hazard||[])
+const envOptions=computed(()=>props.jobValueMap?.environment||[]); const hazardOptions=computed(()=>props.jobValueMap?.risk||[])
 const cols=computed(()=>[{field:'nomenclature',header:t('organization.nomenclature')},{field:'full_code',header:t('organization.full_code')}])
 async function loadData(page,perPage){ loading.value=true; try{ const r=await api.get(apiBase,{params:{page,per_page:perPage,organization_id:props.orgId}}); items.value=r.data?.data||[]; total.value=r.data?.total||0 }catch(e){ toast.add({severity:'error',detail:e.response?.data?.error?.message||t('message.failed_to_load'),life:4000}) }finally{ loading.value=false } }
 function openCreate(){ editing.value=false; editId.value=''; form.value={nomenclature:'',full_code:'',job_management_value_environment_id:'',job_management_value_hazard_id:''}; errors.value={}; dialogVisible.value=true }

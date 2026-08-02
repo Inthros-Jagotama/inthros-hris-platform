@@ -82,8 +82,14 @@ const routes = [
       {
         path: 'job-management/values',
         name: 'JobValues',
-        component: () => import('@/views/modules/JobValuesForm.vue'),
+        component: () => import('@/views/modules/JobValuesIndex.vue'),
         meta: { title: 'Job Values', titleKey: 'job_management.values', descKey: 'job_values.description', icon: 'pi pi-sliders-h', module: 'jobmanagement' }
+      },
+      {
+        path: 'job-management/values/:type',
+        name: 'JobValuesType',
+        component: () => import('@/views/modules/JobValuesForm.vue'),
+        meta: { title: 'Job Value Type', titleKey: 'job_management.values', descKey: 'job_values.description', icon: 'pi pi-sliders-h', module: 'jobmanagement' }
       },
       {
         path: 'job-management/form',

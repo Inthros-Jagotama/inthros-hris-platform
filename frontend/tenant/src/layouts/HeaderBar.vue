@@ -52,6 +52,20 @@
         <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ t('job_management.manage') }}</span>
       </template>
 
+      <!-- Breadcrumb: Job Values > type (kembali ke index card) -->
+      <template v-else-if="showJobValuesBreadcrumb">
+        <Button
+          text
+          size="small"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          @click="goBackToJobValues"
+        >
+          {{ t('nav.job_values_mapping') }}
+        </Button>
+        <i class="pi pi-chevron-right text-xs text-gray-300"></i>
+        <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ jobValueTypeLabel }}</span>
+      </template>
+
       <!-- Breadcrumb: Settings > sub-setting (kembali ke index card) -->
       <template v-else-if="showSettingsBreadcrumb">
         <Button
@@ -147,6 +161,7 @@ import { useLanguage } from '@/stores/language'
 import { useTheme } from '@/stores/theme'
 import { useAuth } from '@/stores/auth'
 import { useI18n } from '@/composables/useI18n'
+import { jobValueTypeLabel as jobValueTypeLabelFn } from '@/utils/jobValues'
 import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
 import Badge from 'primevue/badge'
@@ -177,6 +192,14 @@ const showJobManagementBreadcrumb = computed(() => {
   return route.name === 'JobManagementForm'
 })
 
+/** Show breadcrumb when on a Job Values type page (back to index card) */
+const showJobValuesBreadcrumb = computed(() => {
+  return route.name === 'JobValuesType'
+})
+
+// Label tipe utk breadcrumb — dari util bersama (bilingual + fallback)
+const jobValueTypeLabel = computed(() => jobValueTypeLabelFn(t, route.params.type))
+
 /** Show breadcrumb when on a sub-setting page (not the Settings index itself) */
 const showSettingsBreadcrumb = computed(() => {
   return route.name?.startsWith('Settings') && route.name !== 'SettingsIndex'
@@ -192,6 +215,10 @@ function goBackToEmployees() {
 
 function goBackToJobManagement() {
   router.push('/job-management')
+}
+
+function goBackToJobValues() {
+  router.push('/job-management/values')
 }
 
 function goBackToSettings() {

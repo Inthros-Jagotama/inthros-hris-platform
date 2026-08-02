@@ -221,7 +221,7 @@ hris-platform/                          # Root monorepo
 │               └── migrations/
 │                   ├── platform/       # Platform DDL (8 files)
 │                   ├── seeders/        # Seed data (2 file — 001 + down)
-│                   └── tenant/         # Tenant migrations (44 file/dialect — mysql & postgres)
+│                   └── tenant/         # Tenant migrations (86 file/dialect — mysql & postgres)
 │   ├── docker/
 │   │   ├── Dockerfile
 │   │   └── docker-compose.yml
@@ -423,7 +423,7 @@ Handler (routes/handler.go)
 - Platform DB migrations: `internal/pkg/migrator/migrations/platform/` (8 files)
 - Seed data: `internal/pkg/migrator/migrations/seeders/` (2 file — `001_seed_super_admin.sql` + down)
 - Tenant bulk seed: `internal/pkg/tenantseed/seeddata/` (2 embedded SQL — districts & villages), di-embed via `//go:embed seeddata` sehingga CWD-independent
-- Tenant DB template migrations: `internal/pkg/migrator/migrations/tenant/` (44 file per dialect — 22 up + 22 down, mysql & postgres)
+- Tenant DB template migrations: `internal/pkg/migrator/migrations/tenant/` (86 file per dialect — 43 up + 43 down, mysql & postgres)
 - Eksekusi di startup: [SQL Migrator → AutoMigrate → SQL Seeders → Module Seeders]
 
 **File Convention:**
@@ -2141,7 +2141,7 @@ PgBouncer (opsional): mode=transaction  pool=10/tenant  max_client=500
 
 **Masalah:** Penggunaan eksekusi file `.sql` mentah memerlukan penanganan khusus jika sistem mendukung dual-driver (PostgreSQL & MySQL) karena perbedaan sintaksis DDL (seperti `UUID` vs `VARCHAR/CHAR(36)`).
 
-**Status:** ✅ **Sudah diimplementasikan** — Direktori migrasi dipisah: `internal/pkg/migrator/migrations/tenant/mysql/` (44 file MySQL-optimized) dan `internal/pkg/migrator/migrations/tenant/postgres/` (44 file PostgreSQL-optimized). Go code menggunakan `TenantRootPath(driver)` untuk memilih dialect yang sesuai secara otomatis saat tenant provisioning. (File migrasi di-embed ke binary via `//go:embed migrations` — direktori filesystem `backend/migrations/` sudah dihapus; satu-satunya sumber adalah embed tree.)
+**Status:** ✅ **Sudah diimplementasikan** — Direktori migrasi dipisah: `internal/pkg/migrator/migrations/tenant/mysql/` (86 file MySQL-optimized) dan `internal/pkg/migrator/migrations/tenant/postgres/` (86 file PostgreSQL-optimized). Go code menggunakan `TenantRootPath(driver)` untuk memilih dialect yang sesuai secara otomatis saat tenant provisioning. (File migrasi di-embed ke binary via `//go:embed migrations` — direktori filesystem `backend/migrations/` sudah dihapus; satu-satunya sumber adalah embed tree.)
 
 ### 16.5 Sinkronisasi Cache Terdistribusi ✅ Done
 

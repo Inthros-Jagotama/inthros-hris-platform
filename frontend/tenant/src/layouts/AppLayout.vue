@@ -29,6 +29,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/stores/auth'
 import { useActiveModules } from '@/stores/activeModules'
 import { useI18n } from '@/composables/useI18n'
+import { jobValueTypeLabel, jobValueTypeDesc } from '@/utils/jobValues'
 import Sidebar from './Sidebar.vue'
 import HeaderBar from './HeaderBar.vue'
 
@@ -47,14 +48,18 @@ onMounted(() => {
 /**
  * Bilingual page title & description via route.meta.title / meta.description.
  * Falls back to hardcoded English meta.title / meta.description if no key.
+ * Kasus khusus: halaman tipe Job Value (JobValuesType) — title = label tipe,
+ * desc = deskripsi tipe (job_values.type_desc.*).
  */
 const pageTitle = computed(() => {
+  if (route.name === 'JobValuesType') return jobValueTypeLabel(t, route.params?.type)
   const key = route.meta?.titleKey
   if (key) return t(key)
   return route.meta?.title || ''
 })
 
 const pageDescription = computed(() => {
+  if (route.name === 'JobValuesType') return jobValueTypeDesc(t, route.params?.type)
   const key = route.meta?.descKey
   if (key) {
     const desc = t(key)

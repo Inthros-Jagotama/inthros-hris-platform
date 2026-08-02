@@ -1,7 +1,7 @@
 # Frontend Development Plan — HRIS Platform
 
 **Generated:** 27 July 2026
-**Last Updated:** 2 August 2026 (Organization Tree drag & drop fix — PrimeVue 4.5.5 API; Employee Form: 8/9 steps completed; Platform Admin: CompanyActions.vue reusable component)
+**Last Updated:** 2 August 2026 (Organization Tree drag & drop fix — PrimeVue 4.5.5 API; Employee Form: 8/9 steps completed; Platform Admin: CompanyActions.vue reusable component; Job Values icon fix — PrimeIcons 8.0.0)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios
 
 ---
@@ -379,7 +379,8 @@ frontend/
 **Backend:** 88 endpoints (18 sub-entities)
 - [ ] Tab layout per sub-entity
 - [ ] Job Titles CRUD + Title Subs
-- [ ] Job Values CRUD
+- ✅ **Job Values CRUD + Mapping (type: education, experience, subordinate, activity, environment, risk, relationship, frequency, asset, authority, cash, impact)** — halaman Job Value Mapping (`JobValuesForm.vue` + `JobValueSection.vue`) dengan nav per-tipe (left sidebar), filter `?type=` server-side, CRUD dialog, seed data via migration 033-035 (activity 5 level, subordinate 5 level, authority 8 level)
+- ✅ **Icon fix PrimeIcons 8.0.0** — `JobValuesIndex.vue` memakai 4 ikon yang TIDAK ada di PrimeIcons 8.0.0 → ikon tidak render (kosong): `pi-brain` (Lingkungan Berpikir + Kecerdasan) → `pi-wave-pulse` / `pi-microchip`; `pi-puzzle` (Tantangan Berpikir) → `pi-flag`; `pi-target` (Achievement Orientation) → `pi-bullseye`; `pi-handshake` (Building Partnership) → `pi-link`. Audit semua 37 ikon unik di JobValuesIndex — tidak ada lagi yang missing. Build ✅ + browser test ✅ (7 grup render, 0 console errors)
 - [ ] Job Objectives CRUD
 - [ ] Job Identifications CRUD
 - [ ] Responsibilities CRUD

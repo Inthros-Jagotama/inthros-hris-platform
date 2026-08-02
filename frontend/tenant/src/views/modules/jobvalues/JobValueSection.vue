@@ -1,11 +1,7 @@
 <template>
   <div class="space-y-4">
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-4">
-      <div>
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ typeLabel(type) }}</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_values.description') }}</p>
-      </div>
+    <!-- Header — title/desc dipindah ke page title layout (AppLayout) -->
+    <div class="flex items-center justify-end mb-4">
       <Button :label="t('common.create')" icon="pi pi-plus" size="small" @click="openCreateDialog()" />
     </div>
 
@@ -112,6 +108,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
+import { jobValueTypeLabel } from '@/utils/jobValues'
 import api from '@/services/api'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -172,24 +169,8 @@ async function loadEducations() {
   }
 }
 
-// Fallback label lokal bila key locale belum ada (t() bisa return key string saat missing)
-const TYPE_LABEL_FALLBACK = {
-  education: 'Education',
-  experience: 'Experience',
-  environment: 'Environment',
-  hazard: 'Hazard',
-  relationship: 'Relationship',
-  frequency: 'Frequency',
-  asset: 'Asset',
-  authority: 'Authority',
-  cash: 'Cash',
-  impact: 'Impact'
-}
-
 function typeLabel(value) {
-  const label = t(`job_values.types.${value}`)
-  if (label && !label.startsWith('job_values.types.')) return label
-  return TYPE_LABEL_FALLBACK[value] || value
+  return jobValueTypeLabel(t, value)
 }
 
 const skeletonColumns = [
