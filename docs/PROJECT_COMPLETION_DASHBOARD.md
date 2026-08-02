@@ -14,8 +14,8 @@
 | **Total Go Files** | **224+** (155 source + 69 test) |
 | **Total GORM Entities** | **121** (116 tenant + 5 platform) |
 | **Total Test Functions** | **~1004+** |
-| **Total OpenAPI Endpoints** | **684** |
-| **Total OpenAPI Schemas** | **439** |
+| **Total OpenAPI Endpoints** | **690** |
+| **Total OpenAPI Schemas** | **442** |
 | **Total OpenAPI Tags** | **30** |
 | **Module Type Filter** | ✅ **3 endpoints** (`/modules`, `/packages`, `/public/packages`) |
 | **Bilingual Support** | ✅ **EN/ID** — Backend 80+ message pairs + Frontend 200+ locale keys, middleware auto-detect, field validation errors |
@@ -142,7 +142,7 @@
 |----------|-------------|:------:|
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
 | `ARCHITECTURE_DESIGN_v1.6_Updated.md` | Architecture design, module status, priority matrix | ✅ v16 updated (15 missing endpoints injected) |
-| `docs/openapi-report.md` | OpenAPI comprehensive report (v15) | ✅ v15 — 684 endpoints, 439 schemas, 30 tags |
+| `docs/openapi-report.md` | OpenAPI comprehensive report (v17) | ✅ v17 — 690 endpoints, 442 schemas, 30 tags |
 | `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ Updated with Settings module (130 entities, 550 service methods, 1029 tests) |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
@@ -154,6 +154,7 @@
 | **Rename BankProfileForm → BankAccountForm** | ✅ **Done (01 Aug 2026)** | FE tenant — komponen `employee/BankProfileForm.vue` di-rename jadi `BankAccountForm.vue` (import + tag `<BankAccountForm>` di `EmployeeForm.vue` step 9), label 'Bank Profile' → 'Bank Account' (locale `wizard_step_bank`/`tab_bank`) — konsistensi penamaan dengan label baru |
 | **Company Holidays CRUD (Settings)** | ✅ **Done (01 Aug 2026)** | `company_holidays` (Hari Libur Perusahaan) — Backend: model/repo/service/handler/routes/module + permissions `setting.company_holiday.*`; OpenAPI +5 endpoints +3 schemas (373 paths, 689 endpoints, 442 schemas, report v16); FE: CompanyHolidaysView.vue (DateInput + ToggleSwitch + ConfirmDeleteDialog) + route + SettingsIndex card + locale EN/ID. **Catatan:** tabel tanpa updated_at/deleted_at → Update `Updates(map)` + Delete hard-delete; model IsActive tanpa tag `default:true` (gotcha GORM); fix bilingual: label field pakai key `desc` terpisah dari page description |
 | **Company Holidays — Calendar View + Badge Fix** | ✅ **Done (01 Aug 2026)** | FE tenant CompanyHolidaysView.vue — Toggle Table/Calendar + DatePicker inline (primevue ^4.5.5) + slot `#date` badge rose penuh di tanggal libur + panel legend bulan berjalan + klik tanggal → edit (ada libur) / tambah dgn tanggal terisi (belum ada); `viewYear/viewMonth` sinkron via `@month-change`/`@year-change`. **Bug fix:** slot `#date` v4 menerima object `{day, month 0-indexed, year}` (bukan Date) → `date.day` + `toDateKey()` dual-mode (fix `date.getDate is not a function`); normalisasi `normDateKey()` (`slice(0,10)`) di `holidayMap`/`monthHolidays` agar badge muncul apa pun format `holiday_date` dari API |
+| **Org Tree drag & drop (pindah parent)** | ✅ **Done (02 Aug 2026)** | FE tenant `modules/Organizations.vue` mode Tree — PrimeVue Tree `:draggable-nodes`/`:droppable-nodes`/`validate-drop` + `@node-drop` (`dragNode`/`dropNode`/`dropPosition`/`accept`); parent baru dari `dropPosition` (0 → dropNode; ±1 → parent dropNode; dropNode null → root); guard anti-siklus self/descendant (toast + reload, tanpa ghost state); `PUT /organizations/:id { parent_id }` + reload; `moving` ref sebagai guard concurrency. **Bug fix:** kode lama pakai props `draggable`/`droppable` + `event.node`/`event.dropIndex` yang TIDAK ada di PrimeVue 4.5.5 (API asli: `draggableNodes`/`droppableNodes`/`validateDrop` + `dragNode`/`dropPosition`/`accept`) → drag tidak pernah aktif. Build FE ✅ (tenant dev :5174) |
 
 ---
 
@@ -193,8 +194,8 @@
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 684 endpoints |
-| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 684 endpoints |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 690 endpoints |
+| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 690 endpoints |
 | **RBAC Engine** | ✅ **Active** | 4 default roles, **98 permissions (24 resources)**, auto-reload |
 | **On-Premise License Engine** | ✅ **Ready** | `internal/pkg/onpremise/` — RSA `.lic` (expires_at, allowed_modules, max_employees); CLI `licensectl` (gen-key/gen-lic); mode `on_premise` via `HRIS_LICENSE_DEPLOYMENT_MODE` (dormant di mode saas default); lister alternatif PlatformLicenseMiddleware. **`max_employees` di-enforce di `Service.Create()` → 403 `QUOTA_EXCEEDED`** (toast bilingual FE `employee.quota_exceeded`) |
 | **Quota Audit (no bypass)** | ✅ **Audited** | Kuota terpusat di `Service.Create()` — satu-satunya pembuat Employee master. Payroll profiles / onboarding / employee-shift / sub-record TIDAK membuat Employee master (tidak perlu kuota). Frontend hanya 1 caller (`EmployeeForm.savePersonalData`). Jalur masa depan (batch import) otomatis kena kuota. *(Audit 31 Jul 2026)* |
@@ -301,7 +302,7 @@
 | — Settings: Insurances | 🟢 Easy | 1 reference CRUD (Code, Name, SortOrder) — Backend + Frontend + OpenAPI + **seeder kode 2 digit (01 BPJS Kesehatan, 02 BPJS Ketenagakerjaan)** | ✅ **Done** |
 | — Settings: Company Holidays | 🟢 Easy | 1 reference CRUD (HolidayDate unique, Name, Description, IsActive) — Backend + Frontend (CompanyHolidaysView.vue) + OpenAPI (report v16, 373 paths) | ✅ **Done (1 Aug 2026)** |
 | — Settings: TER & PTKP | 🟢 Easy | 2 tax reference CRUDs (TER: Group, BrutoMin, BrutoMax, Rate; PTKP: Name, Group, Amount) | ✅ **Done** |
-| — Organization Management | 🟡 Medium | TreeTable view, CRUD with parent selection, dark mode, bilingual (Positions CRUD ⏸️ postponed) | ✅ **Done** |
+| — Organization Management | 🟡 Medium | TreeTable view (semua level), CRUD with parent selection, **Tree view drag & drop (pindah parent)**, dark mode, bilingual (Positions CRUD ⏸️ postponed) | ✅ **Done** |
 | — Employee Management (Wizard) | 🔴 Complex | Multi-step form (8/9 steps done — Step 9 Employment + Detail Page ⏸️ postponed) | ✅ **8/9 Steps Done — Remaining Postponed** |
 | E2E Testing (Playwright) | 🟡 Medium | Phase 5 | ⬜ Planned |
 | Performance Optimization | 🟢 High | Phase 5 | ⬜ Planned |

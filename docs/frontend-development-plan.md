@@ -1,7 +1,7 @@
 # Frontend Development Plan — HRIS Platform
 
 **Generated:** 27 July 2026
-**Last Updated:** 1 August 2026 (Education Major setting + seeder — kode 3 digit 001–020; Employee Form: 8/9 steps completed; Platform Admin: CompanyActions.vue reusable component)
+**Last Updated:** 2 August 2026 (Organization Tree drag & drop fix — PrimeVue 4.5.5 API; Employee Form: 8/9 steps completed; Platform Admin: CompanyActions.vue reusable component)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios
 
 ---
@@ -334,11 +334,12 @@ frontend/
 
 ### C.8. Organization Management ✅ (BARU - Done)
 **Backend:** 12 endpoints
-- [x] **TreeTable view** — Organization hierarchy dengan PrimeVue TreeTable
+- [x] **TreeTable view** — Organization hierarchy dengan PrimeVue TreeTable (semua level, dinamis — recursive `OrgTreeTable.vue`)
 - [x] **CRUD organization** — Dialog create (dengan parent selection), edit, delete
 - [x] **Organization Tree** — Hierarki parent-child, expandable, striped rows
 - [x] **Create with parent** — Otomatis set parent_id + parent label banner
-- [x] **Edit** — Pre-filled form, parent tidak bisa diubah
+- [x] **Edit** — Pre-filled form, parent bisa diubah (dropdown parent di dialog + eksklusi self/descendant)
+- [x] **Tree view drag & drop (pindah parent)** — `views/modules/Organizations.vue` mode Tree: PrimeVue Tree `:draggable-nodes`/`:droppable-nodes`/`validate-drop` + `@node-drop` (`dragNode`/`dropNode`/`dropPosition`/`accept`); parent baru dari `dropPosition` (0 = drop ON node → parent = dropNode; ±1 = drop sebelum/sesudah → sibling → parent = parent dropNode; dropNode null = root); guard anti-siklus (self/descendant → toast error + `accept()` + reload); parent sama → settle + reload; parent beda → `accept()` + `PUT /organizations/:id { parent_id }` + toast sukses + reload; `moving` ref guard concurrency (drag dinonaktifkan selama proses). **Bug fix:** kode lama pakai props `:draggable`/`droppable` + `event.node`/`event.dropIndex` — tidak ada di PrimeVue 4.5.5 (API asli: `draggableNodes`/`droppableNodes`/`validateDrop` + `dragNode`/`dropPosition`/`accept`), sehingga drag tidak pernah aktif
 - [x] **Delete** — ConfirmDialog bilingual (warning: child nodes juga terhapus)
 - [x] **Skeleton loading** — 5 row skeleton saat loading
 - [x] **Bilingual + dark mode** — t() locale keys + dark: classes

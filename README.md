@@ -1056,6 +1056,7 @@ Platform Admin frontend dibangun dengan **Vue 3 + PrimeVue 4 + Tailwind CSS 4** 
 - 📦 **Shared Components** — FormRow, TextInput, SelectLabel, ToggleSwitch, DatePicker, TextArea, dll reusable
 - 📅 **Bilingual Date Formatting** — `formatDate(value, locale)` → "30 July 2026" (EN) / "30 Juli 2026" (ID)
 - 🗓️ **PrimeVue DatePicker Locale** — Calendar popup menampilkan nama bulan/hari sesuai bahasa aktif + tombol "Today"/"Hari Ini"
+- 🌳 **Organization Tree drag & drop** — Pindah parent organisasi via drag & drop di Tree view (`Organizations.vue`): PrimeVue Tree `draggable-nodes`/`droppable-nodes`/`validate-drop` + `@node-drop` (`dragNode`/`dropNode`/`dropPosition`/`accept`), guard anti-siklus (self/descendant), lalu `PUT /organizations/:id { parent_id }`; parent juga bisa diganti via dropdown di dialog edit
 - 🔗 **Axios Interceptors** — Auto JWT + Accept-Language header + 401 auto-refresh
 
 ### Halaman
