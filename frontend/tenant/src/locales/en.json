@@ -529,6 +529,8 @@
     "op_authorities": "Operational Authorities",
     "authorities": "Authorities",
     "education_experience": "Education & Experience",
+    "group_education": "Education",
+    "group_experience": "Experience",
     "relationships": "Work Relationships",
     "subordinate_controls": "Subordinate Controls",
     "assets": "Assets",

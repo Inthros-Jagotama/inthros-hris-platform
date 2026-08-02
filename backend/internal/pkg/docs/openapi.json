@@ -30184,10 +30184,10 @@
             "nullable": true,
             "description": "FK ke job_families (Bidang Pekerjaan)"
           },
-          "experience_range": {
+          "experience_id": {
             "type": "string",
             "nullable": true,
-            "description": "Pengalaman Kerja (0-2 Tahun, 3-5 Tahun, ...)"
+            "description": "ID pengalaman kerja dari job_management_values (type=experience)"
           }
         }
       },
@@ -30222,10 +30222,10 @@
             "nullable": true,
             "description": "FK ke job_families (Bidang Pekerjaan). Kirim string kosong untuk mengosongkan."
           },
-          "experience_range": {
+          "experience_id": {
             "type": "string",
             "nullable": true,
-            "description": "Pengalaman Kerja (0-2 Tahun, 3-5 Tahun, ...)"
+            "description": "ID pengalaman kerja dari job_management_values (type=experience)"
           }
         }
       },

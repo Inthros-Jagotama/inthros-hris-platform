@@ -126,18 +126,18 @@ type CreateJobEducationExperienceRequest struct {
 	Nomenclature      string  `json:"nomenclature" binding:"required,max=50"`
 	FullCode          string  `json:"full_code" binding:"required,max=20"`
 	EducationID       *string `json:"education_id"`
+	ExperienceID      *string `json:"experience_id"`
 	EducationMajorID  *string `json:"education_major_id"`
 	JobFamilyID       *string `json:"job_family_id"`
-	ExperienceRange   *string `json:"experience_range"`
 }
 
 type UpdateJobEducationExperienceRequest struct {
 	Nomenclature     *string `json:"nomenclature" binding:"omitempty,max=50"`
 	FullCode         *string `json:"full_code" binding:"omitempty,max=20"`
 	EducationID      *string `json:"education_id"`
+	ExperienceID     *string `json:"experience_id"`
 	EducationMajorID *string `json:"education_major_id"`
 	JobFamilyID      *string `json:"job_family_id"`
-	ExperienceRange  *string `json:"experience_range"`
 }
 
 // =========================================================================
@@ -412,11 +412,12 @@ type JobEducationExperienceResponse struct {
 	FullCode           string    `json:"full_code"`
 	EducationID        string    `json:"education_id,omitempty"`
 	EducationName      string    `json:"education_name,omitempty"`
+	ExperienceID       string    `json:"experience_id,omitempty"`
+	ExperienceName     string    `json:"experience_name,omitempty"`
 	EducationMajorID   string    `json:"education_major_id,omitempty"`
 	EducationMajorName string    `json:"education_major_name,omitempty"`
 	JobFamilyID        string    `json:"job_family_id,omitempty"`
 	JobFamilyName      string    `json:"job_family_name,omitempty"`
-	ExperienceRange    string    `json:"experience_range,omitempty"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 }
@@ -697,8 +698,16 @@ func toJobEducationExperienceResponse(e *JobEducationExperience) JobEducationExp
 	if e.EducationID != nil {
 		r.EducationID = e.EducationID.String()
 	}
-	if e.Education != nil {
-		r.EducationName = e.Education.Name
+	// Education → job_management_values (type=education); nama tampil dari Descriptions
+	if e.Education != nil && e.Education.Descriptions != nil {
+		r.EducationName = *e.Education.Descriptions
+	}
+	if e.ExperienceID != nil {
+		r.ExperienceID = e.ExperienceID.String()
+	}
+	// Experience → job_management_values (type=experience); nama tampil dari Descriptions
+	if e.Experience != nil && e.Experience.Descriptions != nil {
+		r.ExperienceName = *e.Experience.Descriptions
 	}
 	if e.EducationMajorID != nil {
 		r.EducationMajorID = e.EducationMajorID.String()
@@ -711,9 +720,6 @@ func toJobEducationExperienceResponse(e *JobEducationExperience) JobEducationExp
 	}
 	if e.JobFamily != nil {
 		r.JobFamilyName = e.JobFamily.Name
-	}
-	if e.ExperienceRange != nil {
-		r.ExperienceRange = *e.ExperienceRange
 	}
 	return r
 }

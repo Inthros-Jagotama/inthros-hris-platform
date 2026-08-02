@@ -167,11 +167,10 @@ func (r *JobResponsibility) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 // 9.7 Job Management Education Experiences (Pendidikan & Pengalaman)
 // =========================================================================
-// Terkait ke master module setting:
-//   EducationID      → educations.id       (Pendidikan: SMA, D3, S1, ...)
-//   EducationMajorID → education_majors.id (Jurusan)
-//   JobFamilyID      → job_families.id     (Bidang Pekerjaan)
-//   ExperienceRange  → string hardcoded dropdown FE (Pengalaman Kerja: 0-2, 3-5, ...)
+// Terkait ke master module setting:	//   EducationID      → job_management_values.id (type=education) — Pendidikan
+	//   ExperienceID     → job_management_values.id (type=experience) — Pengalaman Kerja
+	//   EducationMajorID → education_majors.id (Jurusan)
+	//   JobFamilyID      → job_families.id     (Bidang Pekerjaan)
 type JobEducationExperience struct {
 	ID               uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
 	OrganizationID   *uuid.UUID `gorm:"type:char(36);index" json:"organization_id,omitempty"`
@@ -180,14 +179,17 @@ type JobEducationExperience struct {
 	EducationID      *uuid.UUID `gorm:"type:char(36);index" json:"education_id,omitempty"`
 	EducationMajorID *uuid.UUID `gorm:"type:char(36);index" json:"education_major_id,omitempty"`
 	JobFamilyID      *uuid.UUID `gorm:"type:char(36);index" json:"job_family_id,omitempty"`
-	ExperienceRange  *string    `gorm:"type:varchar(50)" json:"experience_range,omitempty"`
+	ExperienceID     *uuid.UUID `gorm:"type:char(36);index" json:"experience_id,omitempty"`
 	CreatedBy        *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
 	UpdatedBy        *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
 
-	// Relasi ke master (settings module) untuk menampilkan nama
-	Education      *setting.Education      `gorm:"foreignKey:EducationID" json:"-"`
+	// Relasi untuk menampilkan nama:
+	//   Education / Experience → job_management_values (di-preload dengan scope type)
+	//   EducationMajor / JobFamily → master settings
+	Education      *JobValue              `gorm:"foreignKey:EducationID" json:"-"`
+	Experience     *JobValue              `gorm:"foreignKey:ExperienceID" json:"-"`
 	EducationMajor *setting.EducationMajor `gorm:"foreignKey:EducationMajorID" json:"-"`
 	JobFamily      *setting.JobFamily      `gorm:"foreignKey:JobFamilyID" json:"-"`
 }

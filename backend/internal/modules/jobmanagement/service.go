@@ -704,6 +704,10 @@ func (s *Service) CreateJobEducationExperience(ctx context.Context, req CreateJo
 		id, _ := uuid.Parse(*req.EducationID)
 		e.EducationID = &id
 	}
+	if req.ExperienceID != nil && *req.ExperienceID != "" {
+		id, _ := uuid.Parse(*req.ExperienceID)
+		e.ExperienceID = &id
+	}
 	if req.EducationMajorID != nil && *req.EducationMajorID != "" {
 		id, _ := uuid.Parse(*req.EducationMajorID)
 		e.EducationMajorID = &id
@@ -712,16 +716,13 @@ func (s *Service) CreateJobEducationExperience(ctx context.Context, req CreateJo
 		id, _ := uuid.Parse(*req.JobFamilyID)
 		e.JobFamilyID = &id
 	}
-	if req.ExperienceRange != nil && *req.ExperienceRange != "" {
-		e.ExperienceRange = req.ExperienceRange
-	}
 	e.CreatedBy = authctx.GetUserID(ctx)
 	e.UpdatedBy = e.CreatedBy
 	if err := s.repo.CreateJobEducationExperience(ctx, e); err != nil {
 		return nil, err
 	}
 	// Re-fetch with relations loaded so response includes master names
-	// (Education, EducationMajor, JobFamily) — create does not Preload them.
+	// (Education, Experience, EducationMajor, JobFamily) — create does not Preload them.
 	if fetched, err := s.repo.FindJobEducationExperienceByID(ctx, e.ID); err == nil {
 		e = fetched
 	}
@@ -793,6 +794,13 @@ func (s *Service) UpdateJobEducationExperience(ctx context.Context, id string, r
 			e.EducationID = &id
 		}
 	}
+	if req.ExperienceID != nil {
+		if *req.ExperienceID == "" {
+			e.ExperienceID = nil
+		} else if id, err := uuid.Parse(*req.ExperienceID); err == nil {
+			e.ExperienceID = &id
+		}
+	}
 	if req.EducationMajorID != nil {
 		if *req.EducationMajorID == "" {
 			e.EducationMajorID = nil
@@ -805,13 +813,6 @@ func (s *Service) UpdateJobEducationExperience(ctx context.Context, id string, r
 			e.JobFamilyID = nil
 		} else if id, err := uuid.Parse(*req.JobFamilyID); err == nil {
 			e.JobFamilyID = &id
-		}
-	}
-	if req.ExperienceRange != nil {
-		if *req.ExperienceRange == "" {
-			e.ExperienceRange = nil
-		} else {
-			e.ExperienceRange = req.ExperienceRange
 		}
 	}
 	if err := s.repo.UpdateJobEducationExperience(ctx, e); err != nil {

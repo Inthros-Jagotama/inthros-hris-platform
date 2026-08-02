@@ -398,7 +398,8 @@ func (r *Repository) FindJobEducationExperienceByID(ctx context.Context, id uuid
 		return nil, err
 	}
 	var e JobEducationExperience
-	if err := db.Preload("Education").Preload("EducationMajor").Preload("JobFamily").First(&e, "id = ?", id).Error; err != nil {
+	// Education / Experience → job_management_values dengan scope type
+	if err := db.Preload("Education", "type = ?", "education").Preload("Experience", "type = ?", "experience").Preload("EducationMajor").Preload("JobFamily").First(&e, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("job education experience not found: %w", err)
 	}
 	return &e, nil
@@ -419,7 +420,7 @@ func (r *Repository) FindAllJobEducationExperiences(ctx context.Context, page, p
 		return nil, 0, err
 	}
 	offset := (page - 1) * perPage
-	if err := query.Preload("Education").Preload("EducationMajor").Preload("JobFamily").Offset(offset).Limit(perPage).Order("full_code ASC").Find(&experiences).Error; err != nil {
+	if err := query.Preload("Education", "type = ?", "education").Preload("Experience", "type = ?", "experience").Preload("EducationMajor").Preload("JobFamily").Offset(offset).Limit(perPage).Order("full_code ASC").Find(&experiences).Error; err != nil {
 		return nil, 0, err
 	}
 	return experiences, total, nil

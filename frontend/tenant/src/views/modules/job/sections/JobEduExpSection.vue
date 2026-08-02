@@ -14,59 +14,83 @@
         <TextInput :model-value="orgCode" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
       </FormRow>
 
-      <!-- Editable selects (relasi ke master module setting) -->
-      <FormRow :label="t('job_management.education_level')" :errors="errors?.education_id">
-        <Select
-          v-model="form.education_id"
-          :options="eduOptions"
-          option-label="label"
-          option-value="value"
-          :placeholder="t('common.select')"
-          class="w-full"
-          size="small"
-          showClear
-          :invalid="!!errors.education_id"
-        />
-      </FormRow>
-      <FormRow :label="t('job_management.education_major')" :errors="errors?.education_major_id">
-        <Select
-          v-model="form.education_major_id"
-          :options="majorOptions"
-          option-label="label"
-          option-value="value"
-          :placeholder="t('common.select')"
-          class="w-full"
-          size="small"
-          showClear
-          :invalid="!!errors.education_major_id"
-        />
-      </FormRow>
-      <FormRow :label="t('job_management.job_family')" :errors="errors?.job_family_id">
-        <Select
-          v-model="form.job_family_id"
-          :options="jobFamilyOptions"
-          option-label="label"
-          option-value="value"
-          :placeholder="t('common.select')"
-          class="w-full"
-          size="small"
-          showClear
-          :invalid="!!errors.job_family_id"
-        />
-      </FormRow>
-      <FormRow :label="t('job_management.experience_range')" :errors="errors?.experience_range">
-        <Select
-          v-model="form.experience_range"
-          :options="expOptions"
-          option-label="label"
-          option-value="value"
-          :placeholder="t('common.select')"
-          class="w-full"
-          size="small"
-          showClear
-          :invalid="!!errors.experience_range"
-        />
-      </FormRow>
+      <!-- ── Group 1: Pendidikan (Education) ── -->
+      <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <i class="pi pi-graduation-cap text-sm"></i>
+          </div>
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('job_management.group_education') }}</h3>
+          <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+        </div>
+        <div class="space-y-4">
+          <FormRow :label="t('job_management.education_level')" :errors="errors?.education_id">
+            <Select
+              v-model="form.education_id"
+              :options="eduOptions"
+              option-label="label"
+              option-value="value"
+              :placeholder="t('common.select')"
+              class="w-full"
+              size="small"
+              showClear
+              :invalid="!!errors.education_id"
+            />
+          </FormRow>
+          <FormRow :label="t('job_management.education_major')" :errors="errors?.education_major_id">
+            <Select
+              v-model="form.education_major_id"
+              :options="majorOptions"
+              option-label="label"
+              option-value="value"
+              :placeholder="t('common.select')"
+              class="w-full"
+              size="small"
+              showClear
+              :invalid="!!errors.education_major_id"
+            />
+          </FormRow>
+        </div>
+      </div>
+
+      <!-- ── Group 2: Pengalaman (Experience) ── -->
+      <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400">
+            <i class="pi pi-briefcase text-sm"></i>
+          </div>
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('job_management.group_experience') }}</h3>
+          <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+        </div>
+        <div class="space-y-4">
+          <FormRow :label="t('job_management.experience_range')" :errors="errors?.experience_id">
+            <Select
+              v-model="form.experience_id"
+              :options="expOptions"
+              option-label="label"
+              option-value="value"
+              :placeholder="t('common.select')"
+              class="w-full"
+              size="small"
+              showClear
+              :invalid="!!errors.experience_id"
+            />
+          </FormRow>
+          <FormRow :label="t('job_management.job_family')" :errors="errors?.job_family_id">
+            <Select
+              v-model="form.job_family_id"
+              :options="jobFamilyOptions"
+              option-label="label"
+              option-value="value"
+              :placeholder="t('common.select')"
+              class="w-full"
+              size="small"
+              showClear
+              :invalid="!!errors.job_family_id"
+            />
+          </FormRow>
+        </div>
+      </div>
 
       <!-- Error display -->
       <div v-if="errorMsg" class="text-sm text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
@@ -135,33 +159,31 @@ const form = ref({
   education_id: '',
   education_major_id: '',
   job_family_id: '',
-  experience_range: ''
+  experience_id: ''
 })
 
 const apiBase = '/api/v1/tenant/job-management/education-experiences'
 
-// Pengalaman Kerja — hardcoded dropdown (mengikuti seeder Laravel)
-const expOptions = [
-  { label: '0-2 Tahun', value: '0-2 Tahun' },
-  { label: '3-5 Tahun', value: '3-5 Tahun' },
-  { label: '6-8 Tahun', value: '6-8 Tahun' },
-  { label: '9-11 Tahun', value: '9-11 Tahun' },
-  { label: '> 12 Tahun', value: '> 12 Tahun' }
-]
-
+const expOptions = ref([])
 const eduOptions = ref([])
 const majorOptions = ref([])
 const jobFamilyOptions = ref([])
 
-// Muat master dari module setting (educations, education-majors, job-families)
+// Muat master: Pendidikan & Pengalaman dari job_management_values (type=education/experience),
+// jurusan & bidang pekerjaan dari module setting (education-majors, job-families)
 async function loadMaster() {
   try {
-    const [eduRes, majorRes, jfRes] = await Promise.all([
-      api.get('/api/v1/tenant/settings/educations?per_page=100'),
+    const [eduRes, expRes, majorRes, jfRes] = await Promise.all([
+      api.get('/api/v1/tenant/job-management/values', { params: { type: 'education', per_page: 100 } }),
+      api.get('/api/v1/tenant/job-management/values', { params: { type: 'experience', per_page: 100 } }),
       api.get('/api/v1/tenant/settings/education-majors?per_page=200'),
       api.get('/api/v1/tenant/settings/job-families?per_page=100')
     ])
-    eduOptions.value = (eduRes.data?.data || []).map(e => ({ label: `${e.code} - ${e.name}`, value: e.id }))
+    // Pendidikan diambil dari tabel job_management_values type=education
+    // (level 1-5: Sekolah Menengah Pertama → Strata 3) — id = job_management_values.id
+    eduOptions.value = (eduRes.data?.data || []).map(e => ({ label: e.descriptions, value: e.id }))
+    // Pengalaman Kerja dari job_management_values type=experience (0-2, 3-5, ... Tahun)
+    expOptions.value = (expRes.data?.data || []).map(x => ({ label: x.descriptions, value: x.id }))
     majorOptions.value = (majorRes.data?.data || []).map(m => ({ label: `${m.code} - ${m.name}`, value: m.id }))
     jobFamilyOptions.value = (jfRes.data?.data || []).map(j => ({ label: `${j.code} - ${j.name}`, value: j.id }))
   } catch { /* ignore */ }
@@ -178,7 +200,7 @@ async function loadData() {
       form.value.education_id = item.education_id || ''
       form.value.education_major_id = item.education_major_id || ''
       form.value.job_family_id = item.job_family_id || ''
-      form.value.experience_range = item.experience_range || ''
+      form.value.experience_id = item.experience_id || ''
     }
   } catch {
     // No existing record
@@ -197,7 +219,7 @@ async function handleSave() {
       education_id: form.value.education_id || null,
       education_major_id: form.value.education_major_id || null,
       job_family_id: form.value.job_family_id || null,
-      experience_range: form.value.experience_range || null,
+      experience_id: form.value.experience_id || null,
       organization_id: props.orgId
     }
 
@@ -207,7 +229,7 @@ async function handleSave() {
         education_id: form.value.education_id || '',
         education_major_id: form.value.education_major_id || '',
         job_family_id: form.value.job_family_id || '',
-        experience_range: form.value.experience_range || ''
+        experience_id: form.value.experience_id || ''
       })
     } else {
       const res = await api.post(apiBase, payload)
@@ -240,7 +262,7 @@ async function handleDelete() {
     form.value.education_id = ''
     form.value.education_major_id = ''
     form.value.job_family_id = ''
-    form.value.experience_range = ''
+    form.value.experience_id = ''
     emit('saved')
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.deleted'), life: 2000 })
   } catch (err) {

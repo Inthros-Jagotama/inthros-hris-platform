@@ -529,6 +529,8 @@
     "op_authorities": "Kewenangan Operasional",
     "authorities": "Kewenangan",
     "education_experience": "Pendidikan & Pengalaman",
+    "group_education": "Pendidikan",
+    "group_experience": "Pengalaman",
     "relationships": "Hubungan Kerja",
     "subordinate_controls": "Bawahan Dikendalikan",
     "assets": "Aset",
