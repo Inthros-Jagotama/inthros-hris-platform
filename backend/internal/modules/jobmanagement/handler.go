@@ -160,7 +160,7 @@ func (h *Handler) GetJobValueByID(c *gin.Context) {
 func (h *Handler) ListJobValues(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobValues(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobValues(c.Request.Context(), page, perPage, c.Query("type"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -392,7 +392,7 @@ func (h *Handler) GetJobEducationExperienceByID(c *gin.Context) {
 func (h *Handler) ListJobEducationExperiences(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobEducationExperiences(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobEducationExperiences(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return

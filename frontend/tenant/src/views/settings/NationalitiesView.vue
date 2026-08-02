@@ -2,7 +2,11 @@
   <div class="space-y-1">
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <div class="flex items-center gap-2">
-        <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500">
+        <IconField>
+          <InputIcon class="pi pi-search" />
+          <InputText v-model="searchQuery" :placeholder="t('common.search')" size="small" class="!pl-8 !text-sm !py-1.5 !w-64" @input="onSearchInput" />
+        </IconField>
+        <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
           {{ totalRecords }} {{ t('common.items') }}
         </span>
       </div>
@@ -44,6 +48,8 @@ import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 const { t } = useI18n(); const toast = useToast(); const items = ref([]); const loading = ref(false)
 const totalRecords = ref(0); const currentPage = ref(1); const perPage = ref(15)
+const searchQuery = ref('')
+let searchTimer = null
 const dialogVisible = ref(false); const editing = ref(false); const editingId = ref(null); const saving = ref(false); const errors = ref({})
 const deleteDialogVisible = ref(false)
 const deleting = ref(false)
@@ -55,9 +61,10 @@ const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 async function loadData() {
   loading.value = true
   try {
-    const res = await api.get('/api/v1/tenant/settings/nationalities', {
-      params: { page: currentPage.value, per_page: perPage.value }
-    })
+    const params = { page: currentPage.value, per_page: perPage.value }
+    const q = searchQuery.value?.trim()
+    if (q) params.search = q
+    const res = await api.get('/api/v1/tenant/settings/nationalities', { params })
     const body = res.data
     items.value = body?.data || []
     totalRecords.value = body?.total || 0
@@ -72,6 +79,13 @@ function onPage(event) {
   currentPage.value = event.page + 1
   perPage.value = event.rows
   loadData()
+}
+function onSearchInput() {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadData()
+  }, 400)
 }
 function openDialog(item) { editing.value=!!item; editingId.value=item?.id||null; errors.value={}; form.value={code:item?.code||'',name:item?.name||'',sort_order:item?.sort_order||0}; dialogVisible.value=true }
 function resetForm() { form.value={code:'',name:'',sort_order:0}; errors.value={}; editing.value=false; editingId.value=null }

@@ -140,7 +140,6 @@ func (h *Handler) SeedDataStatus(c *gin.Context) {
 		{"banks", "reference", "Banks"},
 		{"nationalities", "reference", "Nationalities"},
 		{"job_families", "reference", "Job Families"},
-		{"countries", "reference", "Countries"},
 		{"provinces", "region", "Provinces"},
 		{"regencies", "region", "Regencies"},
 		{"districts", "region", "Districts"},

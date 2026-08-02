@@ -330,6 +330,29 @@ func (t *TER) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+// ── Competency (kompetensi) ──
+// Tabel competencies (berbagi dengan module competency): id, name, field,
+// cluster, definition, created_by, updated_by, timestamps.
+// TIDAK ada kolom code / sort_order / deleted_at → validasi duplikat pakai name,
+// dan Delete adalah hard delete.
+type Competency struct {
+	ID         uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	Name       string     `gorm:"type:varchar(255);not null;index" json:"name"`
+	Field      *string    `gorm:"type:varchar(255)" json:"field,omitempty"`
+	Cluster    *string    `gorm:"type:varchar(255)" json:"cluster,omitempty"`
+	Definition *string    `gorm:"type:text" json:"definition,omitempty"`
+	CreatedBy  *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
+	UpdatedBy  *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+}
+
+func (Competency) TableName() string { return "competencies" }
+func (c *Competency) BeforeCreate(tx *gorm.DB) error {
+	if c.ID == uuid.Nil { c.ID = uuid.New() }
+	return nil
+}
+
 // ── PTKP (Penghasilan Tidak Kena Pajak) ──
 type PTKP struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`

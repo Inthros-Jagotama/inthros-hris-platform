@@ -267,7 +267,7 @@ func TestRepository_FindAllJobValues_Pagination(t *testing.T) {
 		repo.CreateJobValue(ctx, v)
 	}
 
-	values, total, err := repo.FindAllJobValues(ctx, 1, 3)
+	values, total, err := repo.FindAllJobValues(ctx, 1, 3, "")
 	if err != nil {
 		t.Fatalf("FindAllJobValues failed: %v", err)
 	}
@@ -455,7 +455,7 @@ func TestRepository_JobEducationExperienceCRUD(t *testing.T) {
 	repo.UpdateJobEducationExperience(ctx, found)
 
 	// List
-	all, total, _ := repo.FindAllJobEducationExperiences(ctx, 1, 20)
+	all, total, _ := repo.FindAllJobEducationExperiences(ctx, 1, 20, nil)
 	if total != 1 || len(all) != 1 {
 		t.Errorf("expected 1, got total=%d len=%d", total, len(all))
 	}

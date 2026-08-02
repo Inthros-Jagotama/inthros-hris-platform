@@ -52,13 +52,13 @@ func SeedTenantMasterData(tenantDB *gorm.DB, l *zap.Logger) error {
 		{"educations", seedEducations},
 		{"education_majors", seedEducationMajors},
 		{"insurances", seedInsurances},
+		{"competencies", seedCompetencies},
 		{"marital_statuses", seedMaritalStatuses},
 		{"relationship_types", seedRelationshipTypes},
 		{"employment_statuses", seedEmploymentStatuses},
 		{"banks", seedBanks},
 		{"nationalities", seedNationalities},
 		{"job_families", seedJobFamilies},
-		{"countries", seedCountriesTenant},
 		{"provinces", seedProvinces},
 		{"regencies", seedRegencies},
 		{"districts", seedDistrictsFromSQL},
@@ -285,33 +285,6 @@ func seedBanks(db *gorm.DB) (int, int, error) {
 	}
 	return batchInsert(db, "banks", data, 50)
 }
-
-// ── Nationalities ──
-// Schema: id(char(36) PK), code, name, sort_order, timestamps
-func seedNationalities(db *gorm.DB) (int, int, error) {
-	data := []map[string]interface{}{
-		{"id": codeToUUID("nationality", "ID"), "code": "ID", "name": "Indonesia", "sort_order": 1, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "MY"), "code": "MY", "name": "Malaysia", "sort_order": 2, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "SG"), "code": "SG", "name": "Singapore", "sort_order": 3, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "JP"), "code": "JP", "name": "Japan", "sort_order": 4, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "KR"), "code": "KR", "name": "South Korea", "sort_order": 5, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "CN"), "code": "CN", "name": "China", "sort_order": 6, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "US"), "code": "US", "name": "United States", "sort_order": 7, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "GB"), "code": "GB", "name": "United Kingdom", "sort_order": 8, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "AU"), "code": "AU", "name": "Australia", "sort_order": 9, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "NL"), "code": "NL", "name": "Netherlands", "sort_order": 10, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "DE"), "code": "DE", "name": "Germany", "sort_order": 11, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "FR"), "code": "FR", "name": "France", "sort_order": 12, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "SA"), "code": "SA", "name": "Saudi Arabia", "sort_order": 13, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "IN"), "code": "IN", "name": "India", "sort_order": 14, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "PH"), "code": "PH", "name": "Philippines", "sort_order": 15, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "TH"), "code": "TH", "name": "Thailand", "sort_order": 16, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "VN"), "code": "VN", "name": "Vietnam", "sort_order": 17, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("nationality", "LNY"), "code": "LNY", "name": "Lainnya / Other", "sort_order": 99, "created_at": time.Now(), "updated_at": time.Now()},
-	}
-	return batchInsert(db, "nationalities", data, 50)
-}
-
 // ── Job Families ──
 // Schema: id(char(36) PK), code, name, description(text NULL), sort_order, timestamps
 func seedJobFamilies(db *gorm.DB) (int, int, error) {
@@ -334,58 +307,6 @@ func seedJobFamilies(db *gorm.DB) (int, int, error) {
 	}
 	return batchInsert(db, "job_families", data, 50)
 }
-
-// ── Countries (tenant) ──
-// Schema: id(char(2) PK), code(varchar(2) UNIQUE), name, timestamps
-func seedCountriesTenant(db *gorm.DB) (int, int, error) {
-	data := []map[string]interface{}{
-		{"id": "ID", "code": "ID", "name": "Indonesia", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "MY", "code": "MY", "name": "Malaysia", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "SG", "code": "SG", "name": "Singapore", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "US", "code": "US", "name": "United States", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "GB", "code": "GB", "name": "United Kingdom", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "JP", "code": "JP", "name": "Japan", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "CN", "code": "CN", "name": "China", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "KR", "code": "KR", "name": "South Korea", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "AU", "code": "AU", "name": "Australia", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "NL", "code": "NL", "name": "Netherlands", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "DE", "code": "DE", "name": "Germany", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "FR", "code": "FR", "name": "France", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "SA", "code": "SA", "name": "Saudi Arabia", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "IN", "code": "IN", "name": "India", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "PH", "code": "PH", "name": "Philippines", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "TH", "code": "TH", "name": "Thailand", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "VN", "code": "VN", "name": "Vietnam", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "AF", "code": "AF", "name": "Afghanistan", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "AL", "code": "AL", "name": "Albania", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "DZ", "code": "DZ", "name": "Algeria", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "AR", "code": "AR", "name": "Argentina", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "AT", "code": "AT", "name": "Austria", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "BD", "code": "BD", "name": "Bangladesh", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "BE", "code": "BE", "name": "Belgium", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "BR", "code": "BR", "name": "Brazil", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "BN", "code": "BN", "name": "Brunei Darussalam", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "KH", "code": "KH", "name": "Cambodia", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "CA", "code": "CA", "name": "Canada", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "DK", "code": "DK", "name": "Denmark", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "EG", "code": "EG", "name": "Egypt", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "HK", "code": "HK", "name": "Hong Kong", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "IT", "code": "IT", "name": "Italy", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "LA", "code": "LA", "name": "Lao PDR", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "MO", "code": "MO", "name": "Macau", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "MV", "code": "MV", "name": "Maldives", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "MM", "code": "MM", "name": "Myanmar", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "NZ", "code": "NZ", "name": "New Zealand", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "PK", "code": "PK", "name": "Pakistan", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "RU", "code": "RU", "name": "Russian Federation", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "CH", "code": "CH", "name": "Switzerland", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "TW", "code": "TW", "name": "Taiwan", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "TR", "code": "TR", "name": "Turkey", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": "AE", "code": "AE", "name": "United Arab Emirates", "created_at": time.Now(), "updated_at": time.Now()},
-	}
-	return batchInsert(db, "countries", data, 50)
-}
-
 // ── Provinces ──
 // Schema: id(char(2) PK - kode Kemendagri), code(varchar(10)), name(varchar(100)), timestamps, deleted_at
 func seedProvinces(db *gorm.DB) (int, int, error) {

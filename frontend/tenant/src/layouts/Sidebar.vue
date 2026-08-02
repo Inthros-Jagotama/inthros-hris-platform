@@ -27,16 +27,36 @@
           <i class="pi pi-building" style="font-size:0.7rem"></i>
           <span>{{ t('nav.core_hr') }}</span>
         </div>
-        <div
-          v-for="item in coreHRItems"
-          :key="item.key || item.label"
-          class="ml-2 flex items-center gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
-          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
-          @click="item.command()"
-        >
-          <i :class="item.icon" class="text-xs"></i>
-          <span>{{ item.label }}</span>
-        </div>
+        <template v-for="item in coreHRItems" :key="item.key || item.label">
+          <div
+            class="ml-2 flex items-center justify-between gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
+            :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+            @click="item.children?.length ? toggleMenu(item.key) : item.command()"
+          >
+            <div class="flex items-center gap-2 min-w-0">
+              <i :class="item.icon" class="text-xs"></i>
+              <span class="truncate">{{ item.label }}</span>
+            </div>
+            <i
+              v-if="item.children?.length"
+              class="pi text-[11px] transition-transform duration-150"
+              :class="isMenuOpen(item) ? 'pi-chevron-down' : 'pi-chevron-right'"
+            ></i>
+          </div>
+          <!-- Dropdown children -->
+          <template v-if="item.children?.length && isMenuOpen(item)">
+            <div
+              v-for="child in item.children"
+              :key="child.key || child.label"
+              class="ml-6 flex items-center gap-2 px-2.5 py-1.5 text-[13px] rounded-md cursor-pointer transition-colors"
+              :class="isItemActive(child) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-500 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+              @click="child.command()"
+            >
+              <i :class="child.icon" class="text-[11px]"></i>
+              <span>{{ child.label }}</span>
+            </div>
+          </template>
+        </template>
       </div>
 
       <!-- Talent Section Title -->
@@ -191,12 +211,55 @@ function filterByModule(items) {
   })
 }
 
+// ── Dropdown state untuk item menu yang punya children (mis. Job Management) ──
+const openMenus = ref({})
+
+function toggleMenu(key) {
+  openMenus.value[key] = !openMenus.value[key]
+}
+
+function isMenuOpen(item) {
+  if (!item?.children?.length) return false
+  // Auto-open jika salah satu child sedang aktif (mis. sedang di /job-management/values)
+  if (item.children.some(c => isItemActive(c))) return true
+  return !!openMenus.value[item.key]
+}
+
 // ── Core HR items (flat, not dropdown) ──
 const coreHRItems = computed(() => {
   return filterByModule([
     { key: 'organization', label: t('nav.organization'), icon: 'pi pi-sitemap', command: () => router.push('/organization-summary'), path: '/organization-summary', moduleSlug: 'organization', permission: 'organization.view' },
     { key: 'employees', label: t('nav.employees'), icon: 'pi pi-users', command: () => router.push('/employees'), path: '/employees', moduleSlug: 'employee', permission: 'employee.view' },
-    { key: 'job_management', label: t('nav.job_management'), icon: 'pi pi-briefcase', command: () => router.push('/job-management'), path: '/job-management', moduleSlug: 'jobmanagement', permission: 'jobmanagement.view' }
+    {
+      key: 'job_management',
+      label: t('nav.job_management'),
+      icon: 'pi pi-briefcase',
+      command: () => router.push('/job-management'),
+      moduleSlug: 'jobmanagement',
+      permission: 'jobmanagement.view',
+      children: [
+        {
+          key: 'job_values_mapping',
+          label: t('nav.job_values_mapping'),
+          icon: 'pi pi-sliders-h',
+          command: () => router.push('/job-management/values'),
+          path: '/job-management/values',
+          moduleSlug: 'jobmanagement',
+          permission: 'jobmanagement.view'
+        },
+        {
+          key: 'job_management_main',
+          label: t('nav.job_management'),
+          icon: 'pi pi-briefcase',
+          command: () => router.push('/job-management'),
+          path: '/job-management',
+          // Jangan ter-highlight saat berada di sub-halaman Job Value Mapping
+          excludePaths: ['/job-management/values'],
+          moduleSlug: 'jobmanagement',
+          permission: 'jobmanagement.view'
+        }
+      ]
+    }
   ])
 })
 
@@ -266,7 +329,15 @@ const topLevelMenuItems = computed(() => {
   
   // Core HR items
   coreHRItems.value.forEach(item => {
-    items.push({ ...item, key: 'CoreHR-' + item.key })
+    // Item yang punya children adalah pure toggle di expanded mode — di collapsed
+    // cukup push children (navigasi parent sudah diwakili child, hindari ikon duplikat).
+    if (item.children?.length) {
+      item.children.forEach(child => {
+        items.push({ ...child, key: 'CoreHR-' + (child.key || child.label) })
+      })
+    } else {
+      items.push({ ...item, key: 'CoreHR-' + item.key })
+    }
   })
   
   // Talent items
@@ -296,13 +367,22 @@ const topLevelMenuItems = computed(() => {
 })
 
 // ── Active state check ──
+// excludePaths: daftar path yang TIDAK boleh memicu highlight item ini
+// (mis. child 'Job Management' tidak boleh aktif saat di /job-management/values).
+function isExcludedPath(item) {
+  if (!item.excludePaths?.length) return false
+  return item.excludePaths.some(p => route.path === p || route.path.startsWith(p + '/') || route.path.startsWith(p + '?'))
+}
+
 function isActive(item) {
   if (!item.path) return false
+  if (isExcludedPath(item)) return false
   return route.path.startsWith(item.path)
 }
 
 function isItemActive(item) {
   if (!item.path) return false
+  if (isExcludedPath(item)) return false
   // Exact match or starts with path
   if (route.path === item.path) return true
   return route.path.startsWith(item.path + '/') || route.path.startsWith(item.path + '?')

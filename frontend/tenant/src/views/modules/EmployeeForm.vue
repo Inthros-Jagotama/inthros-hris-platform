@@ -219,7 +219,7 @@ async function loadRefData() {
   ])
   religionOptions.value = (relRes.data?.data || []).map(r => ({ label: r.name, value: r.id }))
   maritalStatusOptions.value = (msRes.data?.data || []).map(m => ({ label: m.name, value: m.id }))
-  nationalityOptions.value = (natRes.data?.data || []).map(n => ({ label: `${n.code} - ${n.name}`, value: n.code }))
+  nationalityOptions.value = (natRes.data?.data || []).map(n => ({ label: n.name, value: n.code }))
   relationshipTypeOptions.value = (rtRes.data?.data || []).map(r => ({ label: r.name, value: r.id }))
   educationOptions.value = (eduRes.data?.data || []).map(e => ({ label: e.name, value: e.id }))
   majorOptions.value = (majorRes.data?.data || []).map(m => ({ label: m.name, value: m.id }))

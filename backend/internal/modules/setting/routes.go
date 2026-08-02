@@ -187,5 +187,14 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			companyHolidays.PUT("/:id", handler.UpdateCompanyHoliday)
 			companyHolidays.DELETE("/:id", handler.DeleteCompanyHoliday)
 		}
+		// Competencies
+		competencies := settings.Group("/competencies")
+		{
+			competencies.POST("", handler.CreateCompetency)
+			competencies.GET("", handler.ListCompetencies)
+			competencies.GET("/:id", handler.GetCompetencyByID)
+			competencies.PUT("/:id", handler.UpdateCompetency)
+			competencies.DELETE("/:id", handler.DeleteCompetency)
+		}
 	}
 }

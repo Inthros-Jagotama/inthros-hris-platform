@@ -39,6 +39,9 @@ func setupTestDB() (*gorm.DB, func()) {
 		&SalaryGrade{},
 		&TER{},
 		&PTKP{},
+		&Insurance{},
+		&CompanyHoliday{},
+		&Competency{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
 	}

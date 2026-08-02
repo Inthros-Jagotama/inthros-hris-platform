@@ -334,7 +334,6 @@ const toast = useToast()
 const route = useRoute()
 
 const summaryID = computed(() => route.query.summary_id || '')
-
 const viewMode = ref('table')
 const loading = ref(false)
 const saving = ref(false)
@@ -500,7 +499,8 @@ function openEdit(org) {
     zone_id: org.zone_id || null,
     job_family_id: org.job_family_id || null,
     grading_id: org.grading_id || null,
-    sort_order: org.sort_order || 0
+    sort_order: org.sort_order || 0,
+    organization_summary_id: summaryID.value
   }
   dialogVisible.value = true
 }

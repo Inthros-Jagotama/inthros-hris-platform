@@ -45,10 +45,14 @@ CREATE TABLE IF NOT EXISTS job_management_values (
     descriptions                   TEXT NULL,
     note                           TEXT NULL,
     sort                           INT NULL,
+    ref_id                         CHAR(36) NULL,
+    ref_type                       VARCHAR(100) NULL,
     created_by                     CHAR(36) NULL,
     updated_by                     CHAR(36) NULL,
     created_at                     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at                     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at                     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_jmv_ref (ref_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------

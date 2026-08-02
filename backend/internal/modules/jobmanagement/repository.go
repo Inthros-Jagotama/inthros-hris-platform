@@ -157,7 +157,7 @@ func (r *Repository) FindJobValueByID(ctx context.Context, id uuid.UUID) (*JobVa
 	return &v, nil
 }
 
-func (r *Repository) FindAllJobValues(ctx context.Context, page, perPage int) ([]JobValue, int64, error) {
+func (r *Repository) FindAllJobValues(ctx context.Context, page, perPage int, valueType string) ([]JobValue, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -165,6 +165,9 @@ func (r *Repository) FindAllJobValues(ctx context.Context, page, perPage int) ([
 	var values []JobValue
 	var total int64
 	query := db.Model(&JobValue{})
+	if valueType != "" {
+		query = query.Where("type = ?", valueType)
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -395,13 +398,13 @@ func (r *Repository) FindJobEducationExperienceByID(ctx context.Context, id uuid
 		return nil, err
 	}
 	var e JobEducationExperience
-	if err := db.First(&e, "id = ?", id).Error; err != nil {
+	if err := db.Preload("Education").Preload("EducationMajor").Preload("JobFamily").First(&e, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("job education experience not found: %w", err)
 	}
 	return &e, nil
 }
 
-func (r *Repository) FindAllJobEducationExperiences(ctx context.Context, page, perPage int) ([]JobEducationExperience, int64, error) {
+func (r *Repository) FindAllJobEducationExperiences(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobEducationExperience, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -409,11 +412,14 @@ func (r *Repository) FindAllJobEducationExperiences(ctx context.Context, page, p
 	var experiences []JobEducationExperience
 	var total int64
 	query := db.Model(&JobEducationExperience{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("full_code ASC").Find(&experiences).Error; err != nil {
+	if err := query.Preload("Education").Preload("EducationMajor").Preload("JobFamily").Offset(offset).Limit(perPage).Order("full_code ASC").Find(&experiences).Error; err != nil {
 		return nil, 0, err
 	}
 	return experiences, total, nil

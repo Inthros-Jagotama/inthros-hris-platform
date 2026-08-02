@@ -262,6 +262,16 @@ func (s *Service) CreateJobValue(ctx context.Context, req CreateJobValueRequest)
 	if req.Sort != nil {
 		v.Sort = req.Sort
 	}
+	if req.RefID != nil && *req.RefID != "" {
+		refID, err := uuid.Parse(*req.RefID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid ref_id: %w", err)
+		}
+		v.RefID = &refID
+	}
+	if req.RefType != nil && *req.RefType != "" {
+		v.RefType = req.RefType
+	}
 	v.CreatedBy = authctx.GetUserID(ctx)
 	v.UpdatedBy = v.CreatedBy
 	if err := s.repo.CreateJobValue(ctx, v); err != nil {
@@ -284,14 +294,14 @@ func (s *Service) GetJobValueByID(ctx context.Context, id string) (*JobValueResp
 	return &r, nil
 }
 
-func (s *Service) ListJobValues(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobValues(ctx context.Context, page, perPage int, valueType string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	values, total, err := s.repo.FindAllJobValues(ctx, page, perPage)
+	values, total, err := s.repo.FindAllJobValues(ctx, page, perPage, valueType)
 	if err != nil {
 		return nil, err
 	}
@@ -337,6 +347,20 @@ func (s *Service) UpdateJobValue(ctx context.Context, id string, req UpdateJobVa
 	}
 	if req.Sort != nil {
 		v.Sort = req.Sort
+	}
+	if req.RefID != nil {
+		if *req.RefID == "" {
+			v.RefID = nil
+		} else {
+			refID, err := uuid.Parse(*req.RefID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid ref_id: %w", err)
+			}
+			v.RefID = &refID
+		}
+	}
+	if req.RefType != nil {
+		v.RefType = req.RefType
 	}
 	if err := s.repo.UpdateJobValue(ctx, v); err != nil {
 		return nil, err
@@ -676,18 +700,30 @@ func (s *Service) CreateJobEducationExperience(ctx context.Context, req CreateJo
 	}
 	orgID, _ := uuid.Parse(req.OrganizationID)
 	e.OrganizationID = &orgID
-	if req.JobManagementValueEducationID != nil && *req.JobManagementValueEducationID != "" {
-		id, _ := uuid.Parse(*req.JobManagementValueEducationID)
-		e.JobManagementValueEducationID = &id
+	if req.EducationID != nil && *req.EducationID != "" {
+		id, _ := uuid.Parse(*req.EducationID)
+		e.EducationID = &id
 	}
-	if req.JobManagementValueExperienceID != nil && *req.JobManagementValueExperienceID != "" {
-		id, _ := uuid.Parse(*req.JobManagementValueExperienceID)
-		e.JobManagementValueExperienceID = &id
+	if req.EducationMajorID != nil && *req.EducationMajorID != "" {
+		id, _ := uuid.Parse(*req.EducationMajorID)
+		e.EducationMajorID = &id
+	}
+	if req.JobFamilyID != nil && *req.JobFamilyID != "" {
+		id, _ := uuid.Parse(*req.JobFamilyID)
+		e.JobFamilyID = &id
+	}
+	if req.ExperienceRange != nil && *req.ExperienceRange != "" {
+		e.ExperienceRange = req.ExperienceRange
 	}
 	e.CreatedBy = authctx.GetUserID(ctx)
 	e.UpdatedBy = e.CreatedBy
 	if err := s.repo.CreateJobEducationExperience(ctx, e); err != nil {
 		return nil, err
+	}
+	// Re-fetch with relations loaded so response includes master names
+	// (Education, EducationMajor, JobFamily) — create does not Preload them.
+	if fetched, err := s.repo.FindJobEducationExperienceByID(ctx, e.ID); err == nil {
+		e = fetched
 	}
 	r := toJobEducationExperienceResponse(e)
 	return &r, nil
@@ -706,14 +742,20 @@ func (s *Service) GetJobEducationExperienceByID(ctx context.Context, id string) 
 	return &r, nil
 }
 
-func (s *Service) ListJobEducationExperiences(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobEducationExperiences(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	experiences, total, err := s.repo.FindAllJobEducationExperiences(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	experiences, total, err := s.repo.FindAllJobEducationExperiences(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -744,13 +786,33 @@ func (s *Service) UpdateJobEducationExperience(ctx context.Context, id string, r
 	if req.FullCode != nil {
 		e.FullCode = *req.FullCode
 	}
-	if req.JobManagementValueEducationID != nil && *req.JobManagementValueEducationID != "" {
-		id, _ := uuid.Parse(*req.JobManagementValueEducationID)
-		e.JobManagementValueEducationID = &id
+	if req.EducationID != nil {
+		if *req.EducationID == "" {
+			e.EducationID = nil
+		} else if id, err := uuid.Parse(*req.EducationID); err == nil {
+			e.EducationID = &id
+		}
 	}
-	if req.JobManagementValueExperienceID != nil && *req.JobManagementValueExperienceID != "" {
-		id, _ := uuid.Parse(*req.JobManagementValueExperienceID)
-		e.JobManagementValueExperienceID = &id
+	if req.EducationMajorID != nil {
+		if *req.EducationMajorID == "" {
+			e.EducationMajorID = nil
+		} else if id, err := uuid.Parse(*req.EducationMajorID); err == nil {
+			e.EducationMajorID = &id
+		}
+	}
+	if req.JobFamilyID != nil {
+		if *req.JobFamilyID == "" {
+			e.JobFamilyID = nil
+		} else if id, err := uuid.Parse(*req.JobFamilyID); err == nil {
+			e.JobFamilyID = &id
+		}
+	}
+	if req.ExperienceRange != nil {
+		if *req.ExperienceRange == "" {
+			e.ExperienceRange = nil
+		} else {
+			e.ExperienceRange = req.ExperienceRange
+		}
 	}
 	if err := s.repo.UpdateJobEducationExperience(ctx, e); err != nil {
 		return nil, err

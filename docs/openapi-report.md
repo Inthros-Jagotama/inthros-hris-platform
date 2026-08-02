@@ -1,10 +1,10 @@
-= HRIS Platform — OpenAPI Comprehensive Report (v16) =
+= HRIS Platform — OpenAPI Comprehensive Report (v17) =
 
 
-**Generated:** 01 August 2026
+**Generated:** 02 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 373
-**Total Endpoints (methods):** 689
+**Total Paths:** 374
+**Total Endpoints (methods):** 690
 **Total Schemas:** 442
 **Total Tags:** 30
 
@@ -12,9 +12,9 @@
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 689/689 | 100% |
-| Endpoints with `description` | 689/689 | 100% |
-| Endpoints with `operationId` | 689/689 | 100% |
+| Endpoints with `summary` | 690/690 | 100% |
+| Endpoints with `description` | 690/690 | 100% |
+| Endpoints with `operationId` | 690/690 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -105,7 +105,7 @@ Tenant endpoints support validation for Indonesian data formats:
 
 | # | Tag | Endpoints | Paths |
 |---|---|---|---|
-| 1 | Tenant: Settings | 105 | 45 |
+| 1 | Tenant: Settings | 106 | 46 |
 | 2 | Tenant: Job Management | 88 | 36 |
 | 3 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
 | 4 | Tenant: Payroll & Compensation Engine | 53 | 26 |
@@ -135,12 +135,12 @@ Tenant endpoints support validation for Indonesian data formats:
 | 28 | Tenant: Company | 2 | 1 |
 | 29 | Tenant: Approval Engine | 1 | 1 |
 | 30 | Public | 1 | 1 |
-| | **TOTAL** | **689** | **373** |
+| | **TOTAL** | **690** | **374** |
 
 ## 2. Module Detail
 
 ### Tenant: Settings
-**Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data, education majors.
+**Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, competencies, job families, and salary grades. CRUD operations for all tenant reference data, education majors.
 **Endpoints:** 105 | **Paths:** 45
 **Methods:** DELETE=20 GET=45 POST=20 PUT=20
 
@@ -156,6 +156,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/settings/company-holidays/{id}` | Get a company holiday by ID |  |
 | `PUT` | `/api/v1/tenant/settings/company-holidays/{id}` | Update a company holiday |  |
 | `DELETE` | `/api/v1/tenant/settings/company-holidays/{id}` | Delete a company holiday |  |
+| `GET` | `/api/v1/tenant/settings/competencies` | List all Competencies | List competency master data with pagination and optional search filter (matches name, field, cluster, or definition). |
 | `GET` | `/api/v1/tenant/settings/districts` | List all Districts | Retrieve a paginated list of Districts. Supports pagination parameters. |
 | `POST` | `/api/v1/tenant/settings/districts` | Create a new district | Create a new districts record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/settings/districts/{id}` | Get district by ID | Get detailed information about a specific district by its ID. |

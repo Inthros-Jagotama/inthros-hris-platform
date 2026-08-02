@@ -3,6 +3,7 @@ package setting
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -613,11 +614,11 @@ func (s *Service) GetNationalityByID(ctx context.Context, id string) (*Nationali
 	resp := n.ToResponse()
 	return &resp, nil
 }
-func (s *Service) ListNationalities(ctx context.Context, page, perPage int) (*NationalityPaginatedResponse, error) {
+func (s *Service) ListNationalities(ctx context.Context, page, perPage int, search string) (*NationalityPaginatedResponse, error) {
 	if page < 1 { page = defaultPage }
 	if perPage < 1 { perPage = defaultPerPage }
 	if perPage > maxPerPage { perPage = maxPerPage }
-	list, total, err := s.repo.FindAllNationalities(ctx, page, perPage)
+	list, total, err := s.repo.FindAllNationalities(ctx, page, perPage, search)
 	if err != nil { return nil, err }
 	responses := make([]NationalityResponse, len(list))
 	for i, n := range list { responses[i] = n.ToResponse() }
@@ -1081,6 +1082,28 @@ func (s *Service) DeleteCompanyHoliday(ctx context.Context, id string) error {
 	return s.repo.DeleteCompanyHoliday(ctx, uid)
 }
 
+func (s *Service) validateUniqueName(ctx context.Context, model interface{}, name string, table string) error {
+	exists, err := s.repo.findByName(ctx, model, name, table)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return &DuplicateCodeError{Table: table, Code: name}
+	}
+	return nil
+}
+
+func (s *Service) validateUniqueNameExcludeSelf(ctx context.Context, model interface{}, name string, id interface{}, table string) error {
+	exists, err := s.repo.findByNameExcludeSelf(ctx, model, name, id, table)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return &DuplicateCodeError{Table: table, Code: name}
+	}
+	return nil
+}
+
 func (s *Service) validateUniqueHolidayDate(ctx context.Context, date string) error {
 	exists, err := s.repo.findByHolidayDate(ctx, date)
 	if err != nil { return err }
@@ -1092,6 +1115,60 @@ func (s *Service) validateUniqueHolidayDateExcludeSelf(ctx context.Context, date
 	if err != nil { return err }
 	if exists { return &DuplicateCodeError{Table: "company_holidays", Code: date} }
 	return nil
+}
+
+// ── Competency CRUD ──
+func (s *Service) CreateCompetency(ctx context.Context, req CreateCompetencyRequest) (*CompetencyResponse, error) {
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, fmt.Errorf("name is required")
+	}
+	c := &Competency{Name: req.Name, Field: req.Field, Cluster: req.Cluster, Definition: req.Definition}
+	if err := s.validateUniqueName(ctx, &Competency{}, req.Name, "competencies"); err != nil { return nil, err }
+	if err := s.repo.CreateCompetency(ctx, c); err != nil { return nil, err }
+	s.logger.Info("Competency created", zap.String("id", c.ID.String()), zap.String("name", c.Name))
+	resp := c.ToResponse()
+	return &resp, nil
+}
+func (s *Service) GetCompetencyByID(ctx context.Context, id string) (*CompetencyResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
+	c, err := s.repo.FindCompetencyByID(ctx, uid)
+	if err != nil { return nil, err }
+	resp := c.ToResponse()
+	return &resp, nil
+}
+func (s *Service) ListCompetencies(ctx context.Context, page, perPage int, search string) (*CompetencyPaginatedResponse, error) {
+	if page < 1 { page = defaultPage }
+	if perPage < 1 { perPage = defaultPerPage }
+	if perPage > maxPerPage { perPage = maxPerPage }
+	list, total, err := s.repo.FindAllCompetencies(ctx, page, perPage, search)
+	if err != nil { return nil, err }
+	responses := make([]CompetencyResponse, len(list))
+	for i, c := range list { responses[i] = c.ToResponse() }
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 { totalPages++ }
+	return &CompetencyPaginatedResponse{Success: true, Data: responses, Page: page, PerPage: perPage, Total: total, TotalPages: totalPages}, nil
+}
+func (s *Service) UpdateCompetency(ctx context.Context, id string, req UpdateCompetencyRequest) (*CompetencyResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
+	c, err := s.repo.FindCompetencyByID(ctx, uid)
+	if err != nil { return nil, err }
+	if req.Name != nil {
+		if err := s.validateUniqueNameExcludeSelf(ctx, &Competency{}, *req.Name, c.ID, "competencies"); err != nil { return nil, err }
+		c.Name = *req.Name
+	}
+	if req.Field != nil { c.Field = req.Field }
+	if req.Cluster != nil { c.Cluster = req.Cluster }
+	if req.Definition != nil { c.Definition = req.Definition }
+	if err := s.repo.UpdateCompetency(ctx, c); err != nil { return nil, err }
+	resp := c.ToResponse()
+	return &resp, nil
+}
+func (s *Service) DeleteCompetency(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil { return fmt.Errorf("invalid id: %w", err) }
+	return s.repo.DeleteCompetency(ctx, uid)
 }
 
 func (s *Service) UpdatePTKP(ctx context.Context, id string, req UpdatePTKPRequest) (*PTKPResponse, error) {

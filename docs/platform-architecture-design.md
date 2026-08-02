@@ -612,9 +612,9 @@ Setiap tenant database memiliki struktur yang identik. Berikut daftar lengkap **
 **Leave (5):**
 - `leave_accrual_policies`, `leave_reasons`, `leave_request_details`, `leave_requests`, `leave_types`
 
-**Master Data (12):**
-- `countries`, `districts`, `document_templates`, `educations`, `employment_statuses`
-- `gradings`, `marital_statuses`, `provinces`, `regencies`, `relationship_types`, `religions`
+**Master Data (11):**
+- `districts`, `document_templates`, `educations`, `employment_statuses`
+- `gradings`, `marital_statuses`, `nationalities`, `provinces`, `regencies`, `relationship_types`, `religions`
 - `villages`
 
 **Organization (5):**
@@ -996,7 +996,7 @@ Sebanyak **22 file SQL migration** di-embed ke binary dan dieksekusi berurutan:
 
 | File | Isi |
 |------|-----|
-| `001_master_data.sql` | Master tables (religions, educations, countries, provinces, dll) |
+| `001_master_data.sql` | Master tables (religions, educations, provinces, dll) |
 | `002_organization.sql` | Organization structure, zones, job families, positions |
 | `003_employee.sql` | Employees, employments, families, educations, documents |
 | `004_attendance.sql` | Attendance settings, shifts, events, overtime |

@@ -83,7 +83,7 @@ const routes = [
         path: 'job-management/values',
         name: 'JobValues',
         component: () => import('@/views/modules/JobValuesForm.vue'),
-        meta: { title: 'Job Values', titleKey: 'job_management.values', descKey: 'job_values.description', icon: 'pi pi-sliders-h', module: 'jobmanagement', backRoute: '/job-management', backLabelKey: 'nav.job_management' }
+        meta: { title: 'Job Values', titleKey: 'job_management.values', descKey: 'job_values.description', icon: 'pi pi-sliders-h', module: 'jobmanagement' }
       },
       {
         path: 'job-management/form',
@@ -195,6 +195,7 @@ const routes = [
       { path: 'settings/salary-grades', name: 'SettingsSalaryGrades', component: () => import('@/views/settings/SalaryGradesView.vue'), meta: { title: 'Salary Grades', titleKey: 'salary_grades.title', descKey: 'salary_grades.description', icon: 'pi pi-chart-bar', module: 'setting' } },
       { path: 'settings/insurances', name: 'SettingsInsurances', component: () => import('@/views/settings/InsurancesView.vue'), meta: { title: 'Insurances', titleKey: 'insurances.title', descKey: 'insurances.description', icon: 'pi pi-shield', module: 'setting' } },
       { path: 'settings/company-holidays', name: 'SettingsCompanyHolidays', component: () => import('@/views/settings/CompanyHolidaysView.vue'), meta: { title: 'Company Holidays', titleKey: 'company_holidays.title', descKey: 'company_holidays.description', icon: 'pi pi-calendar', module: 'setting' } },
+      { path: 'settings/competencies', name: 'SettingsCompetencies', component: () => import('@/views/settings/CompetenciesView.vue'), meta: { title: 'Competencies', titleKey: 'competencies.title', descKey: 'competencies.description', icon: 'pi pi-star', module: 'setting' } },
       { path: 'settings/ters', name: 'SettingsTERs', component: () => import('@/views/settings/TersView.vue'), meta: { title: 'TER', titleKey: 'ters.title', descKey: 'ters.description', icon: 'pi pi-calculator', module: 'setting' } },
       { path: 'settings/ptkps', name: 'SettingsPTKPs', component: () => import('@/views/settings/PtkpsView.vue'), meta: { title: 'PTKP', titleKey: 'ptkps.title', descKey: 'ptkps.description', icon: 'pi pi-receipt', module: 'setting' } },
       { path: 'settings/rbac', name: 'SettingsRbac', component: () => import('@/views/settings/RolesPermissions.vue'), meta: { title: 'RBAC', titleKey: 'rbac.title', descKey: 'rbac.description', icon: 'pi pi-shield', module: 'setting' } }

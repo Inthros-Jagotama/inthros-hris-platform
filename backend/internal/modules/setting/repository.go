@@ -88,6 +88,28 @@ func (r *Repository) findByCodeExcludeSelf(ctx context.Context, model interface{
 	return count > 0, nil
 }
 
+// findByName mengecek apakah record dengan nama tertentu sudah ada.
+// Dipakai validasi duplikat untuk entitas tanpa kolom code (mis. competencies).
+func (r *Repository) findByName(ctx context.Context, model interface{}, name string, table string) (bool, error) {
+	db, err := r.getDB(ctx)
+	if err != nil { return false, err }
+	var count int64
+	if err := db.Model(model).Where("name = ?", name).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *Repository) findByNameExcludeSelf(ctx context.Context, model interface{}, name string, id interface{}, table string) (bool, error) {
+	db, err := r.getDB(ctx)
+	if err != nil { return false, err }
+	var count int64
+	if err := db.Model(model).Where("name = ? AND id != ?", name, id).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func (r *Repository) findByHolidayDate(ctx context.Context, date string) (bool, error) {
 	db, err := r.getDB(ctx)
 	if err != nil { return false, err }
@@ -376,10 +398,22 @@ func (r *Repository) FindNationalityByID(ctx context.Context, id uuid.UUID) (*Na
 	}
 	return &n, nil
 }
-func (r *Repository) FindAllNationalities(ctx context.Context, page, perPage int) ([]Nationality, int64, error) {
+func (r *Repository) FindAllNationalities(ctx context.Context, page, perPage int, search string) ([]Nationality, int64, error) {
 	var list []Nationality
-	total, err := r.findAll(ctx, &list, "nationalities", page, perPage, "sort_order ASC, code ASC")
-	return list, total, err
+	db, err := r.getDB(ctx)
+	if err != nil { return nil, 0, err }
+	query := db.Model(&Nationality{})
+	if search != "" {
+		like := "%" + search + "%"
+		query = query.Where("name LIKE ?", like).Or("code LIKE ?", like)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil { return nil, 0, err }
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("sort_order ASC, code ASC").Find(&list).Error; err != nil {
+		return nil, 0, err
+	}
+	return list, total, nil
 }
 func (r *Repository) UpdateNationality(ctx context.Context, n *Nationality) error { return r.update(ctx, n) }
 func (r *Repository) DeleteNationality(ctx context.Context, id uuid.UUID) error { return r.softDelete(ctx, &Nationality{}, id) }
@@ -498,6 +532,52 @@ func (r *Repository) DeleteInsurance(ctx context.Context, id uuid.UUID) error { 
 // Catatan: tabel company_holidays tidak memiliki kolom updated_at/deleted_at,
 // sehingga Update memakai db.Save tanpa updated_at dan Delete adalah hard delete
 // (tanpa soft delete) agar baris yang dihapus benar-benar hilang.
+// ── Competency ──
+// Tabel competencies tanpa deleted_at → Delete adalah hard delete (Unscoped).
+func (r *Repository) CreateCompetency(ctx context.Context, c *Competency) error { return r.create(ctx, c) }
+func (r *Repository) FindCompetencyByID(ctx context.Context, id uuid.UUID) (*Competency, error) {
+	var c Competency
+	if err := r.findByID(ctx, &c, id, "competencies"); err != nil {
+		return nil, fmt.Errorf("competency not found: %w", err)
+	}
+	return &c, nil
+}
+func (r *Repository) FindAllCompetencies(ctx context.Context, page, perPage int, search string) ([]Competency, int64, error) {
+	var list []Competency
+	db, err := r.getDB(ctx)
+	if err != nil { return nil, 0, err }
+	query := db.Model(&Competency{})
+	if search != "" {
+		like := "%" + search + "%"
+		query = query.Where("name LIKE ?", like).
+			Or("field LIKE ?", like).
+			Or("cluster LIKE ?", like).
+			Or("definition LIKE ?", like)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil { return nil, 0, err }
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("name ASC").Find(&list).Error; err != nil {
+		return nil, 0, err
+	}
+	return list, total, nil
+}
+func (r *Repository) UpdateCompetency(ctx context.Context, c *Competency) error {
+	db, err := r.getDB(ctx)
+	if err != nil { return err }
+	return db.Model(&Competency{}).Where("id = ?", c.ID).Updates(map[string]interface{}{
+		"name":       c.Name,
+		"field":      c.Field,
+		"cluster":    c.Cluster,
+		"definition": c.Definition,
+	}).Error
+}
+func (r *Repository) DeleteCompetency(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil { return err }
+	return db.Unscoped().Where("id = ?", id).Delete(&Competency{}).Error
+}
+
 func (r *Repository) CreateCompanyHoliday(ctx context.Context, ch *CompanyHoliday) error { return r.create(ctx, ch) }
 func (r *Repository) FindCompanyHolidayByID(ctx context.Context, id uuid.UUID) (*CompanyHoliday, error) {
 	var ch CompanyHoliday

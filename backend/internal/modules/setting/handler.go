@@ -29,6 +29,45 @@ func handleDupErr(c *gin.Context, err error) bool {
 	return false
 }
 
+// ── Competency Handlers ──
+func (h *Handler) CreateCompetency(c *gin.Context) {
+	var req CreateCompetencyRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.CreateCompetency(c.Request.Context(), req)
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.InternalError(c, err.Error()); return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+func (h *Handler) ListCompetencies(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	search := c.DefaultQuery("search", "")
+	resp, err := h.service.ListCompetencies(c.Request.Context(), page, perPage, search)
+	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	c.JSON(http.StatusOK, resp)
+}
+func (h *Handler) GetCompetencyByID(c *gin.Context) {
+	resp, err := h.service.GetCompetencyByID(c.Request.Context(), c.Param("id"))
+	if err != nil { c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}}); return }
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) UpdateCompetency(c *gin.Context) {
+	var req UpdateCompetencyRequest
+	if !httputil.BindAndValidate(c, &req) { return }
+	resp, err := h.service.UpdateCompetency(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		if handleDupErr(c, err) { return }
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+func (h *Handler) DeleteCompetency(c *gin.Context) {
+	if err := h.service.DeleteCompetency(c.Request.Context(), c.Param("id")); err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
 // ── Zone Handlers ──
 func (h *Handler) CreateZone(c *gin.Context) {
 	var req CreateZoneRequest
@@ -517,7 +556,8 @@ func (h *Handler) CreateNationality(c *gin.Context) {
 func (h *Handler) ListNationalities(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListNationalities(c.Request.Context(), page, perPage)
+	search := c.DefaultQuery("search", "")
+	resp, err := h.service.ListNationalities(c.Request.Context(), page, perPage, search)
 	if err != nil { httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error()); return }
 	c.JSON(http.StatusOK, resp)
 }

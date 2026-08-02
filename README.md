@@ -1144,9 +1144,8 @@ Berikut data master yang di-seed ke setiap tenant baru (dan bisa di-re-seed untu
 | `relationship_types` | 10 | Suami, Istri, Anak, Orang Tua, dll |
 | `employment_statuses` | 6 | Tetap, Kontrak, Magang, Harian Lepas, Outsourcing, Pensiunan |
 | `banks` | 25 | Bank Mandiri, BCA, BNI, BRI, BSI, dll |
-| `nationalities` | 18 | Indonesia, Malaysia, Singapore, dll |
+| `nationalities` | 241 | Afghanistan, Albania, dll (ISO 3166-1 alpha-2) |
 | `job_families` | 15 | Finance, HR, IT, Marketing, Sales, dll |
-| `countries` | 43 | ID, MY, SG, US, GB, JP, CN, dll |
 
 #### Data Wilayah Indonesia (Bulk)
 
@@ -1513,7 +1512,7 @@ POST /api/v1/platform/companies
 
 | File | Isi |
 |------|-----|
-| `001_master_data.sql` | Master tables (religions, educations, countries, provinces, dll) |
+| `001_master_data.sql` | Master tables (religions, educations, provinces, dll) |
 | `002_organization.sql` | Organization structure, zones, job families, positions |
 | `003_employee.sql` | Employees, employments, families, educations, documents |
 | `004_attendance.sql` | Attendance settings, shifts, events, overtime |
@@ -1575,8 +1574,8 @@ POST /api/v1/platform/companies
 **Leave (6):**
 `company_holidays`, `leave_accrual_policies`, `leave_reasons`, `leave_request_details`, `leave_requests`, `leave_types`
 
-**Master Data (14):**
-`banks`, `countries`, `districts`, `document_templates`, `educations`, `employment_statuses`,
+**Master Data (13):**
+`banks`, `districts`, `document_templates`, `educations`, `employment_statuses`,
 `gradings`, `marital_statuses`, `nationalities`, `provinces`, `regencies`, `relationship_types`, `religions`, `villages`
 
 **Organization (5):**
@@ -1715,7 +1714,7 @@ POST /api/v1/platform/companies
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
 | ✅ | Project completion dashboard (14 modules, 1004+ tests, 148 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
-| ✅ | OpenAPI comprehensive report (689 endpoints, 442 schemas, 30 tags) | `docs/openapi-report.md` |
+| ✅ | OpenAPI comprehensive report (690 endpoints, 442 schemas, 30 tags) | `docs/openapi-report.md` |
 | ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
@@ -1809,7 +1808,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**689 endpoints**, 442 schemas, 30 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**690 endpoints**, 442 schemas, 30 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 
@@ -2006,7 +2005,7 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 |---|---|
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap |
 | [`docs/PROJECT_COMPLETION_DASHBOARD.md`](docs/PROJECT_COMPLETION_DASHBOARD.md) | **NEW** — Project completion dashboard (14 modules, 939+ tests, 139 tables) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v16 — 689 endpoints, 442 schemas, 30 tags) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v17 — 690 endpoints, 442 schemas, 30 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | **NEW** — Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
 | [`docs/analisis-blueprint-vs-existing.md`](docs/analisis-blueprint-vs-existing.md) | Analisis blueprint vs existing Laravel app |

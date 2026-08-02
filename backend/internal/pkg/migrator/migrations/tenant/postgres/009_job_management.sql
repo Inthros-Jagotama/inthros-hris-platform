@@ -45,11 +45,15 @@ CREATE TABLE IF NOT EXISTS job_management_values (
     descriptions                   TEXT NULL,
     note                           TEXT NULL,
     sort                           INT NULL,
+    ref_id                         CHAR(36) NULL,
+    ref_type                       VARCHAR(100) NULL,
     created_by                     CHAR(36) NULL,
     updated_by                     CHAR(36) NULL,
     created_at                     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at                     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_jmv_ref ON job_management_values (ref_id);
 
 -- ---------------------------------------------------------------------------
 -- 9.4 Job Management Objectives (Tujuan Jabatan)

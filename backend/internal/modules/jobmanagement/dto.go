@@ -46,6 +46,8 @@ type CreateJobValueRequest struct {
 	Descriptions            string  `json:"descriptions"`
 	Note                    string  `json:"note"`
 	Sort                    *int    `json:"sort"`
+	RefID                   *string `json:"ref_id"`
+	RefType                 *string `json:"ref_type"`
 }
 
 type UpdateJobValueRequest struct {
@@ -54,6 +56,8 @@ type UpdateJobValueRequest struct {
 	Descriptions *string `json:"descriptions"`
 	Note         *string `json:"note"`
 	Sort         *int    `json:"sort"`
+	RefID        *string `json:"ref_id"`
+	RefType      *string `json:"ref_type"`
 }
 
 // =========================================================================
@@ -118,18 +122,22 @@ type UpdateJobResponsibilityRequest struct {
 // =========================================================================
 
 type CreateJobEducationExperienceRequest struct {
-	OrganizationID                 string  `json:"organization_id" binding:"required"`
-	Nomenclature                   string  `json:"nomenclature" binding:"required,max=50"`
-	FullCode                       string  `json:"full_code" binding:"required,max=20"`
-	JobManagementValueEducationID  *string `json:"job_management_value_education_id"`
-	JobManagementValueExperienceID *string `json:"job_management_value_experience_id"`
+	OrganizationID    string  `json:"organization_id" binding:"required"`
+	Nomenclature      string  `json:"nomenclature" binding:"required,max=50"`
+	FullCode          string  `json:"full_code" binding:"required,max=20"`
+	EducationID       *string `json:"education_id"`
+	EducationMajorID  *string `json:"education_major_id"`
+	JobFamilyID       *string `json:"job_family_id"`
+	ExperienceRange   *string `json:"experience_range"`
 }
 
 type UpdateJobEducationExperienceRequest struct {
-	Nomenclature                   *string `json:"nomenclature" binding:"omitempty,max=50"`
-	FullCode                       *string `json:"full_code" binding:"omitempty,max=20"`
-	JobManagementValueEducationID  *string `json:"job_management_value_education_id"`
-	JobManagementValueExperienceID *string `json:"job_management_value_experience_id"`
+	Nomenclature     *string `json:"nomenclature" binding:"omitempty,max=50"`
+	FullCode         *string `json:"full_code" binding:"omitempty,max=20"`
+	EducationID      *string `json:"education_id"`
+	EducationMajorID *string `json:"education_major_id"`
+	JobFamilyID      *string `json:"job_family_id"`
+	ExperienceRange  *string `json:"experience_range"`
 }
 
 // =========================================================================
@@ -358,6 +366,8 @@ type JobValueResponse struct {
 	Descriptions               string    `json:"descriptions,omitempty"`
 	Note                       string    `json:"note,omitempty"`
 	Sort                       int       `json:"sort,omitempty"`
+	RefID                      string    `json:"ref_id,omitempty"`
+	RefType                    string    `json:"ref_type,omitempty"`
 	CreatedAt                  time.Time `json:"created_at"`
 	UpdatedAt                  time.Time `json:"updated_at"`
 }
@@ -396,14 +406,19 @@ type JobResponsibilityResponse struct {
 }
 
 type JobEducationExperienceResponse struct {
-	ID                              string    `json:"id"`
-	OrganizationID                  string    `json:"organization_id,omitempty"`
-	Nomenclature                    string    `json:"nomenclature"`
-	FullCode                        string    `json:"full_code"`
-	JobManagementValueEducationID   string    `json:"job_management_value_education_id,omitempty"`
-	JobManagementValueExperienceID  string    `json:"job_management_value_experience_id,omitempty"`
-	CreatedAt                       time.Time `json:"created_at"`
-	UpdatedAt                       time.Time `json:"updated_at"`
+	ID                 string    `json:"id"`
+	OrganizationID     string    `json:"organization_id,omitempty"`
+	Nomenclature       string    `json:"nomenclature"`
+	FullCode           string    `json:"full_code"`
+	EducationID        string    `json:"education_id,omitempty"`
+	EducationName      string    `json:"education_name,omitempty"`
+	EducationMajorID   string    `json:"education_major_id,omitempty"`
+	EducationMajorName string    `json:"education_major_name,omitempty"`
+	JobFamilyID        string    `json:"job_family_id,omitempty"`
+	JobFamilyName      string    `json:"job_family_name,omitempty"`
+	ExperienceRange    string    `json:"experience_range,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 type JobHRAuthorityResponse struct {
@@ -601,6 +616,12 @@ func toJobValueResponse(v *JobValue) JobValueResponse {
 	if v.Sort != nil {
 		r.Sort = *v.Sort
 	}
+	if v.RefID != nil {
+		r.RefID = v.RefID.String()
+	}
+	if v.RefType != nil {
+		r.RefType = *v.RefType
+	}
 	return r
 }
 
@@ -673,11 +694,26 @@ func toJobEducationExperienceResponse(e *JobEducationExperience) JobEducationExp
 	if e.OrganizationID != nil {
 		r.OrganizationID = e.OrganizationID.String()
 	}
-	if e.JobManagementValueEducationID != nil {
-		r.JobManagementValueEducationID = e.JobManagementValueEducationID.String()
+	if e.EducationID != nil {
+		r.EducationID = e.EducationID.String()
 	}
-	if e.JobManagementValueExperienceID != nil {
-		r.JobManagementValueExperienceID = e.JobManagementValueExperienceID.String()
+	if e.Education != nil {
+		r.EducationName = e.Education.Name
+	}
+	if e.EducationMajorID != nil {
+		r.EducationMajorID = e.EducationMajorID.String()
+	}
+	if e.EducationMajor != nil {
+		r.EducationMajorName = e.EducationMajor.Name
+	}
+	if e.JobFamilyID != nil {
+		r.JobFamilyID = e.JobFamilyID.String()
+	}
+	if e.JobFamily != nil {
+		r.JobFamilyName = e.JobFamily.Name
+	}
+	if e.ExperienceRange != nil {
+		r.ExperienceRange = *e.ExperienceRange
 	}
 	return r
 }

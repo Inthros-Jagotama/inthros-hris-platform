@@ -639,6 +639,41 @@ type TERPaginatedResponse struct {
 	TotalPages int           `json:"total_pages"`
 }
 
+// ── Competency DTOs ──
+// Tabel competencies tidak punya kolom code → validasi duplikat berdasarkan name.
+type CreateCompetencyRequest struct {
+	Name       string  `json:"name" binding:"required,max=255"`
+	Field      *string `json:"field,omitempty" binding:"omitempty,max=255"`
+	Cluster    *string `json:"cluster,omitempty" binding:"omitempty,max=255"`
+	Definition *string `json:"definition,omitempty"`
+}
+type UpdateCompetencyRequest struct {
+	Name       *string `json:"name,omitempty" binding:"omitempty,max=255"`
+	Field      *string `json:"field,omitempty" binding:"omitempty,max=255"`
+	Cluster    *string `json:"cluster,omitempty" binding:"omitempty,max=255"`
+	Definition *string `json:"definition,omitempty"`
+}
+type CompetencyResponse struct {
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	Field      *string   `json:"field,omitempty"`
+	Cluster    *string   `json:"cluster,omitempty"`
+	Definition *string   `json:"definition,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+func (c *Competency) ToResponse() CompetencyResponse {
+	return CompetencyResponse{ID: c.ID.String(), Name: c.Name, Field: c.Field, Cluster: c.Cluster, Definition: c.Definition, CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt}
+}
+type CompetencyPaginatedResponse struct {
+	Success    bool                  `json:"success"`
+	Data       []CompetencyResponse  `json:"data"`
+	Page       int                   `json:"page"`
+	PerPage    int                   `json:"per_page"`
+	Total      int64                 `json:"total"`
+	TotalPages int                   `json:"total_pages"`
+}
+
 // ── PTKP DTOs ──
 type CreatePTKPRequest struct {
 	Name  string `json:"name" binding:"required,max=255"`
