@@ -33,22 +33,22 @@
           </div>
         </template>
       </Column>
-      <Column field="code" :header="depth === 0 ? t('organization.code') : ''" style="width: 120px">
+      <Column field="code" :header="t('organization.code')" style="width: 120px">
         <template #body="{ data }">
           <Tag :value="data.code" severity="info" class="!text-xs" />
         </template>
       </Column>
-      <Column field="full_code" :header="depth === 0 ? t('organization.full_code') : ''" style="width: 160px">
+      <Column field="full_code" :header="t('organization.full_code')" style="width: 160px">
         <template #body="{ data }">
           <span class="text-gray-500 dark:text-gray-400 text-xs font-mono">{{ data.full_code }}</span>
         </template>
       </Column>
-      <Column field="level" :header="depth === 0 ? t('organization.level') : ''" style="width: 80px">
+      <Column field="level" :header="t('organization.level')" style="width: 80px">
         <template #body="{ data }">
           <span class="text-gray-500 dark:text-gray-400">{{ data.level }}</span>
         </template>
       </Column>
-      <Column field="sort_order" :header="depth === 0 ? t('organization.sort_order') : ''" style="width: 80px">
+      <Column field="sort_order" :header="t('organization.sort_order')" style="width: 80px">
         <template #body="{ data }">
           <span class="text-gray-500 dark:text-gray-400">{{ data.sort_order }}</span>
         </template>
@@ -65,7 +65,7 @@
 
       <!-- Expansion rekursif: komponen memanggil dirinya sendiri untuk semua level -->
       <template #expansion="{ data }">
-        <div v-if="data.children?.length" class="pl-6 pr-2 py-1">
+        <div v-if="data.children?.length" class="pl-0 pr-0 py-1">
           <OrgTreeTable
             :nodes="data.children"
             v-model:expandedRows="expandedRows"
@@ -117,5 +117,13 @@ const { t } = useI18n()
 }
 :deep(.p-dark .p-datatable .p-datatable-tbody > tr.p-row-expanded) {
   background: rgba(16, 185, 129, 0.08) !important;
+}
+:deep([data-pc-section="rowexpansioncell"]) {
+  padding-right: 0px !important;
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+}
+:deep([data-pc-section="rowexpansioncell"] thead) {
+  display: none;
 }
 </style>

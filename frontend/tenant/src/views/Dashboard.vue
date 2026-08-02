@@ -1,11 +1,7 @@
 <template>
   <div class="space-y-4">
     <!-- Page Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('dashboard.title') }}</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ t('dashboard.welcome') }}</p>
-      </div>
+    <div class="flex items-center justify-end">
       <div class="flex items-center gap-2">
         <SelectButton
           v-model="periodFilter"
