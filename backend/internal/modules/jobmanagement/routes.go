@@ -118,6 +118,13 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		relationships.GET("/:id", handler.GetJobRelationshipByID)
 		relationships.PUT("/:id", handler.UpdateJobRelationship)
 		relationships.DELETE("/:id", handler.DeleteJobRelationship)
+
+		// Nested Job Relationship Details (9.12b)
+		relationships.POST("/:id/details", handler.CreateJobRelationshipDetail)
+		relationships.GET("/:id/details", handler.ListJobRelationshipDetails)
+		relationships.GET("/:id/details/:detailId", handler.GetJobRelationshipDetailByID)
+		relationships.PUT("/:id/details/:detailId", handler.UpdateJobRelationshipDetail)
+		relationships.DELETE("/:id/details/:detailId", handler.DeleteJobRelationshipDetail)
 	}
 
 	// Job Subordinate Controls (9.13)

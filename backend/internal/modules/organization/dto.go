@@ -26,6 +26,7 @@ type OrganizationResponse struct {
 	Code                 string     `json:"code"`
 	FullCode             string     `json:"full_code"`
 	Nomenclature         string     `json:"nomenclature"`
+	OrganizationSummaryID string    `json:"organization_summary_id,omitempty"`
 	ParentID             *string    `json:"parent_id,omitempty"`
 	ZoneID               *string    `json:"zone_id,omitempty"`
 	JobFamilyID          *string    `json:"job_family_id,omitempty"`
@@ -49,6 +50,9 @@ func (o *Organization) ToResponse() OrganizationResponse {
 		UpdatedAt:   o.UpdatedAt,
 	}
 
+	if o.OrganizationSummaryID != nil {
+		resp.OrganizationSummaryID = o.OrganizationSummaryID.String()
+	}
 	if o.ParentID != nil {
 		pid := o.ParentID.String()
 		resp.ParentID = &pid

@@ -455,6 +455,70 @@ func TestService_CreateJobHRAuthority(t *testing.T) {
 }
 
 // =========================================================================
+// Job Financial Service Tests (9.15)
+// =========================================================================
+
+func TestService_UpdateJobFinancial_ClearsFieldsWhenUnauthorized(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	orgID := createTestOrgID()
+	cashID := uuid.New().String()
+	authID := uuid.New().String()
+	impactID := uuid.New().String()
+
+	// Simpan dengan is_authorized=true + level kas, kewenangan, dampak
+	created, err := svc.CreateJobFinancial(ctx, CreateJobFinancialRequest{
+		OrganizationID:              orgID,
+		Nomenclature:                "Keuangan",
+		FullCode:                    "FIN-001",
+		IsAuthorized:                true,
+		JobManagementValueCashID:    &cashID,
+		JobManagementValueAuthorityID: &authID,
+		JobManagementValueImpactID:  &impactID,
+	})
+	if err != nil {
+		t.Fatalf("CreateJobFinancial failed: %v", err)
+	}
+
+	// Set is_authorized=false dengan field dikosongkan ("") — harus benar-benar clear,
+	// bukan mempertahankan nilai lama (regresi: data tidak sesuai saat toggle ke 0)
+	falseVal := false
+	empty := ""
+	updated, err := svc.UpdateJobFinancial(ctx, created.ID, UpdateJobFinancialRequest{
+		IsAuthorized:                &falseVal,
+		JobManagementValueCashID:    &empty,
+		JobManagementValueAuthorityID: &empty,
+		JobManagementValueImpactID:  &empty,
+	})
+	if err != nil {
+		t.Fatalf("UpdateJobFinancial failed: %v", err)
+	}
+	if updated.IsAuthorized != false {
+		t.Errorf("expected IsAuthorized false, got %v", updated.IsAuthorized)
+	}
+	if updated.JobManagementValueCashID != "" {
+		t.Errorf("expected cash cleared, got %q", updated.JobManagementValueCashID)
+	}
+	if updated.JobManagementValueAuthorityID != "" {
+		t.Errorf("expected authority cleared, got %q", updated.JobManagementValueAuthorityID)
+	}
+	if updated.JobManagementValueImpactID != "" {
+		t.Errorf("expected impact cleared, got %q", updated.JobManagementValueImpactID)
+	}
+
+	// Verifikasi dari DB juga benar-benar nil
+	fetched, err := svc.GetJobFinancialByID(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("GetJobFinancialByID failed: %v", err)
+	}
+	if fetched.JobManagementValueCashID != "" {
+		t.Errorf("expected cash nil in db, got %q", fetched.JobManagementValueCashID)
+	}
+}
+
+// =========================================================================
 // Job Score Service Tests (9.17)
 // =========================================================================
 

@@ -5,117 +5,118 @@
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.education_experience_description') }}</p>
     </div>
 
-    <div class="max-w-2xl space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-      <!-- Read-only from org data -->
-      <FormRow :label="t('organization.nomenclature')">
-        <TextInput :model-value="orgName" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-      </FormRow>
-      <FormRow :label="t('organization.full_code')">
-        <TextInput :model-value="orgCode" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-      </FormRow>
+    <div class="max-w-2xl">
+      <!-- Skeleton while loading education & experience data -->
+      <SkeletonCard v-if="loading" type="detail" :count="1" :rows="6" cols="grid-cols-1" padding="p-5" />
 
-      <!-- ── Group 1: Pendidikan (Education) ── -->
-      <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-        <div class="flex items-center gap-2 mb-3">
-          <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <i class="pi pi-graduation-cap text-sm"></i>
+      <div v-else class="space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+        <!-- Read-only from org data -->
+        <FormRow :label="t('organization.nomenclature')">
+          <TextInput :model-value="orgName" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
+        </FormRow>
+        <FormRow :label="t('organization.full_code')">
+          <TextInput :model-value="orgCode" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
+        </FormRow>
+
+        <!-- ── Group 1: Pendidikan (Education) ── -->
+        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <i class="pi pi-graduation-cap text-sm"></i>
+            </div>
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('job_management.group_education') }}</h3>
+            <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
           </div>
-          <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('job_management.group_education') }}</h3>
-          <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
-        </div>
-        <div class="space-y-4">
-          <FormRow :label="t('job_management.education_level')" :errors="errors?.education_id">
-            <Select
-              v-model="form.education_id"
-              :options="eduOptions"
-              option-label="label"
-              option-value="value"
-              :placeholder="t('common.select')"
-              class="w-full"
-              size="small"
-              showClear
-              :invalid="!!errors.education_id"
-            />
-          </FormRow>
-          <FormRow :label="t('job_management.education_major')" :errors="errors?.education_major_id">
-            <Select
-              v-model="form.education_major_id"
-              :options="majorOptions"
-              option-label="label"
-              option-value="value"
-              :placeholder="t('common.select')"
-              class="w-full"
-              size="small"
-              showClear
-              :invalid="!!errors.education_major_id"
-            />
-          </FormRow>
-        </div>
-      </div>
-
-      <!-- ── Group 2: Pengalaman (Experience) ── -->
-      <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-        <div class="flex items-center gap-2 mb-3">
-          <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400">
-            <i class="pi pi-briefcase text-sm"></i>
+          <div class="space-y-4">
+            <FormRow :label="t('job_management.education_level')" :errors="errors?.education_id">
+              <SelectLabel
+                v-model="form.education_id"
+                :options="eduOptions"
+                :placeholder="t('job_values.select_education')"
+                :class="{ 'p-invalid': errors?.education_id }"
+              />
+            </FormRow>
+            <FormRow :label="t('job_management.education_major')" :errors="errors?.education_major_id">
+              <MultiSelect
+                v-model="form.education_major_id"
+                :options="majorOptions"
+                option-label="label"
+                option-value="value"
+                :placeholder="t('common.select')"
+                class="w-full"
+                size="small"
+                filter
+                showClear
+                display="chip"
+                :maxSelectedLabels="2"
+                :invalid="!!errors.education_major_id"
+              />
+            </FormRow>
           </div>
-          <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('job_management.group_experience') }}</h3>
-          <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
         </div>
-        <div class="space-y-4">
-          <FormRow :label="t('job_management.experience_range')" :errors="errors?.experience_id">
-            <Select
-              v-model="form.experience_id"
-              :options="expOptions"
-              option-label="label"
-              option-value="value"
-              :placeholder="t('common.select')"
-              class="w-full"
-              size="small"
-              showClear
-              :invalid="!!errors.experience_id"
-            />
-          </FormRow>
-          <FormRow :label="t('job_management.job_family')" :errors="errors?.job_family_id">
-            <Select
-              v-model="form.job_family_id"
-              :options="jobFamilyOptions"
-              option-label="label"
-              option-value="value"
-              :placeholder="t('common.select')"
-              class="w-full"
-              size="small"
-              showClear
-              :invalid="!!errors.job_family_id"
-            />
-          </FormRow>
+
+        <!-- ── Group 2: Pengalaman (Experience) ── -->
+        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400">
+              <i class="pi pi-briefcase text-sm"></i>
+            </div>
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('job_management.group_experience') }}</h3>
+            <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+          </div>
+          <div class="space-y-4">
+            <FormRow :label="t('job_management.experience_range')" :errors="errors?.experience_id">
+              <SelectLabel
+                v-model="form.experience_id"
+                :options="expOptions"
+                :placeholder="t('common.select')"
+                :class="{ 'p-invalid': errors?.experience_id }"
+              />
+            </FormRow>
+            <FormRow :label="t('job_management.job_family')" :errors="errors?.job_family_id">
+              <MultiSelect
+                v-model="form.job_family_id"
+                :options="jobFamilyOptions"
+                option-label="label"
+                option-value="value"
+                :placeholder="t('common.select')"
+                class="w-full"
+                size="small"
+                filter
+                showClear
+                display="chip"
+                :maxSelectedLabels="2"
+                :invalid="!!errors.job_family_id"
+              />
+            </FormRow>
+          </div>
         </div>
-      </div>
 
-      <!-- Error display -->
-      <div v-if="errorMsg" class="text-sm text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
-        {{ errorMsg }}
-      </div>
+        <!-- Error display -->
+        <div v-if="errorMsg" class="text-sm text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+          {{ errorMsg }}
+        </div>
 
-      <!-- Actions -->
-      <div class="flex justify-end gap-2 pt-2">
-        <Button
-          v-if="existingId"
-          :label="t('common.delete')"
-          icon="pi pi-trash"
-          severity="danger"
-          size="small"
-          outlined
-          @click="deleteVisible = true"
-        />
-        <Button
-          :label="existingId ? t('common.update') : t('common.save')"
-          icon="pi pi-check"
-          size="small"
-          :loading="saving"
-          :disabled="saving"
-          @click="handleSave"
-        />
+        <!-- Actions -->
+        <div class="flex justify-end gap-2 pt-2">
+          <Button
+            v-if="existingId"
+            :label="t('common.delete')"
+            icon="pi pi-trash"
+            severity="danger"
+            size="small"
+            outlined
+            @click="deleteVisible = true"
+          />
+          <Button
+            :label="existingId ? t('common.update') : t('common.save')"
+            icon="pi pi-check"
+            size="small"
+            :loading="saving"
+            :disabled="saving"
+            @click="handleSave"
+          />
+        </div>
       </div>
     </div>
 
@@ -130,10 +131,12 @@ import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
 import api from '@/services/api'
 import Button from 'primevue/button'
-import Select from 'primevue/select'
+import MultiSelect from 'primevue/multiselect'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
+import SkeletonCard from '@/components/SkeletonCard.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+import SelectLabel from '@/components/SelectLabel.vue'
 
 const emit = defineEmits(['saved'])
 
@@ -149,6 +152,7 @@ const { t } = useI18n()
 const toast = useToast()
 
 const saving = ref(false)
+const loading = ref(true)
 const deleting = ref(false)
 const errorMsg = ref('')
 const errors = ref({})
@@ -157,8 +161,8 @@ const deleteVisible = ref(false)
 const deleteError = ref('')
 const form = ref({
   education_id: '',
-  education_major_id: '',
-  job_family_id: '',
+  education_major_id: [],
+  job_family_id: [],
   experience_id: ''
 })
 
@@ -198,8 +202,8 @@ async function loadData() {
       const item = list[0]
       existingId.value = item.id
       form.value.education_id = item.education_id || ''
-      form.value.education_major_id = item.education_major_id || ''
-      form.value.job_family_id = item.job_family_id || ''
+      form.value.education_major_id = Array.isArray(item.education_major_id) ? item.education_major_id : []
+      form.value.job_family_id = Array.isArray(item.job_family_id) ? item.job_family_id : []
       form.value.experience_id = item.experience_id || ''
     }
   } catch {
@@ -217,18 +221,18 @@ async function handleSave() {
       nomenclature: props.orgName || '',
       full_code: props.orgCode || '',
       education_id: form.value.education_id || null,
-      education_major_id: form.value.education_major_id || null,
-      job_family_id: form.value.job_family_id || null,
+      education_major_id: form.value.education_major_id || [],
+      job_family_id: form.value.job_family_id || [],
       experience_id: form.value.experience_id || null,
       organization_id: props.orgId
     }
 
     if (existingId.value) {
-      // Kirim string kosong ('') agar backend bisa mengosongkan field saat clear
+      // Array kosong ([]) agar backend mengosongkan jurusan/bidang pekerjaan saat clear
       await api.put(`${apiBase}/${existingId.value}`, {
         education_id: form.value.education_id || '',
-        education_major_id: form.value.education_major_id || '',
-        job_family_id: form.value.job_family_id || '',
+        education_major_id: form.value.education_major_id || [],
+        job_family_id: form.value.job_family_id || [],
         experience_id: form.value.experience_id || ''
       })
     } else {
@@ -260,8 +264,8 @@ async function handleDelete() {
     deleteVisible.value = false
     existingId.value = ''
     form.value.education_id = ''
-    form.value.education_major_id = ''
-    form.value.job_family_id = ''
+    form.value.education_major_id = []
+    form.value.job_family_id = []
     form.value.experience_id = ''
     emit('saved')
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.deleted'), life: 2000 })
@@ -273,6 +277,11 @@ async function handleDelete() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadMaster(), loadData()])
+  try {
+    await Promise.all([loadMaster(), loadData()])
+  } finally {
+    // Skeleton ditutup setelah master options & record data selesai dimuat
+    loading.value = false
+  }
 })
 </script>

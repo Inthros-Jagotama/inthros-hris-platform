@@ -13,11 +13,13 @@ CREATE TABLE IF NOT EXISTS performance_periods (
     start_date  DATE         NULL,
     end_date    DATE         NULL,
     status      VARCHAR(20)  NOT NULL DEFAULT 'active',
-    created_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_perf_period_code (period_code),
-    INDEX idx_perf_period_year (year)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_perf_period_code ON performance_periods (period_code);
+
+CREATE INDEX IF NOT EXISTS idx_perf_period_year ON performance_periods (year);
 
 -- =========================================================================
 -- Performance Perspectives (Perspektif BSC: Financial, Customer, Internal, L&G)
@@ -27,9 +29,9 @@ CREATE TABLE IF NOT EXISTS performance_perspectives (
     name        VARCHAR(100) NOT NULL,
     description TEXT         NULL,
     sort_order  SMALLINT     NOT NULL DEFAULT 0,
-    created_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
 -- =========================================================================
 -- Performance Templates (Template BSC per organisasi/posisi)
@@ -40,10 +42,11 @@ CREATE TABLE IF NOT EXISTS performance_templates (
     name            VARCHAR(200) NOT NULL,
     description     TEXT         NULL,
     status          VARCHAR(20)  NOT NULL DEFAULT 'DRAFT',
-    created_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_perf_tmpl_org (organization_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_perf_tmpl_org ON performance_templates (organization_id);
 
 -- =========================================================================
 -- Performance Indicators (Indikator KPI — linked to template)
@@ -59,11 +62,13 @@ CREATE TABLE IF NOT EXISTS performance_indicators (
     target_value              DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     unit_of_measurement       VARCHAR(50)  NULL,
     sort_order                SMALLINT     NOT NULL DEFAULT 0,
-    created_at                TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at                TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_perf_ind_tmpl (performance_template_id),
-    INDEX idx_perf_ind_persp (perspective_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_perf_ind_tmpl ON performance_indicators (performance_template_id);
+
+CREATE INDEX IF NOT EXISTS idx_perf_ind_persp ON performance_indicators (perspective_id);
 
 -- =========================================================================
 -- Performance Evaluations (Evaluasi kinerja karyawan)
@@ -82,14 +87,19 @@ CREATE TABLE IF NOT EXISTS performance_evaluations (
     actual_submitted_at BIGINT       NULL DEFAULT 0,
     actual_approved_at  BIGINT       NULL DEFAULT 0,
     notes               TEXT         NULL,
-    created_at          TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at          TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_perf_eval_emp (employee_id),
-    INDEX idx_perf_eval_org (organization_id),
-    INDEX idx_perf_eval_period (period_id),
-    INDEX idx_perf_eval_tmpl (template_id),
-    INDEX idx_perf_eval_sup (supervisor_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_perf_eval_emp ON performance_evaluations (employee_id);
+
+CREATE INDEX IF NOT EXISTS idx_perf_eval_org ON performance_evaluations (organization_id);
+
+CREATE INDEX IF NOT EXISTS idx_perf_eval_period ON performance_evaluations (period_id);
+
+CREATE INDEX IF NOT EXISTS idx_perf_eval_tmpl ON performance_evaluations (template_id);
+
+CREATE INDEX IF NOT EXISTS idx_perf_eval_sup ON performance_evaluations (supervisor_id);
 
 -- =========================================================================
 -- Performance Evaluation Details (Detail grup BSC dalam evaluasi)
@@ -102,10 +112,11 @@ CREATE TABLE IF NOT EXISTS performance_evaluation_details (
     weight                      DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     score                       DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     description                 VARCHAR(255) NULL,
-    created_at                  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at                  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_perf_detail_eval (performance_evaluation_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at                  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at                  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_perf_detail_eval ON performance_evaluation_details (performance_evaluation_id);
 
 -- =========================================================================
 -- Performance Targets (Target KPI individual — nilai target vs aktual)
@@ -120,8 +131,10 @@ CREATE TABLE IF NOT EXISTS performance_targets (
     achievement_percentage      DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     weight                      DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     score                       DECIMAL(5,2) NOT NULL DEFAULT 0.00,
-    created_at                  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at                  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_perf_tgt_eval (performance_evaluation_id),
-    INDEX idx_perf_tgt_ind (indicator_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at                  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at                  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_perf_tgt_eval ON performance_targets (performance_evaluation_id);
+
+CREATE INDEX IF NOT EXISTS idx_perf_tgt_ind ON performance_targets (indicator_id);

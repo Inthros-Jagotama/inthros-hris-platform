@@ -5,46 +5,51 @@
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.identification_description') }}</p>
     </div>
 
-    <div class="max-w-2xl space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-      <!-- Read-only from org data -->
-      <FormRow :label="t('organization.nomenclature')">
-        <TextInput :model-value="orgName" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-      </FormRow>
-      <FormRow :label="t('organization.full_code')">
-        <TextInput :model-value="orgCode" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-      </FormRow>
-      <FormRow :label="t('organization.job_family')">
-        <TextInput :model-value="jobFamilyLabel" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-      </FormRow>
+    <div class="max-w-2xl">
+      <!-- Skeleton while loading identification data -->
+      <SkeletonCard v-if="loading" type="detail" :count="1" :rows="4" cols="grid-cols-1" padding="p-5" />
 
-      <!-- Editable grading at the bottom -->
-      <FormRow :label="t('organization.grading')">
-        <Select
-          v-model="form.grading_id"
-          :options="gradingOptions"
-          option-label="label"
-          option-value="value"
-          :placeholder="t('organization.select_grading')"
-          class="w-full"
-          size="small"
-          :invalid="!!errors.grading_id"
-        />
-      </FormRow>
+      <div v-else class="space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+        <!-- Read-only from org data -->
+        <FormRow :label="t('organization.nomenclature')">
+          <TextInput :model-value="orgName" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
+        </FormRow>
+        <FormRow :label="t('organization.full_code')">
+          <TextInput :model-value="orgCode" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
+        </FormRow>
+        <FormRow :label="t('organization.job_family')">
+          <TextInput :model-value="jobFamilyLabel" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
+        </FormRow>
 
-      <!-- Error display -->
-      <div v-if="errorMsg" class="text-sm text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
-        {{ errorMsg }}
-      </div>
-      <!-- Save button -->
-      <div class="flex justify-end pt-2">
-        <Button
-          :label="t('common.save')"
-          icon="pi pi-check"
-          size="small"
-          :loading="saving"
-          :disabled="!form.grading_id"
-          @click="handleSave"
-        />
+        <!-- Editable grading at the bottom -->
+        <FormRow :label="t('organization.grading')">
+          <Select
+            v-model="form.grading_id"
+            :options="gradingOptions"
+            option-label="label"
+            option-value="value"
+            :placeholder="t('organization.select_grading')"
+            class="w-full"
+            size="small"
+            :invalid="!!errors.grading_id"
+          />
+        </FormRow>
+
+        <!-- Error display -->
+        <div v-if="errorMsg" class="text-sm text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+          {{ errorMsg }}
+        </div>
+        <!-- Save button -->
+        <div class="flex justify-end pt-2">
+          <Button
+            :label="t('common.save')"
+            icon="pi pi-check"
+            size="small"
+            :loading="saving"
+            :disabled="!form.grading_id"
+            @click="handleSave"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -58,6 +63,7 @@ import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
+import SkeletonCard from '@/components/SkeletonCard.vue'
 import api from '@/services/api'
 
 const emit = defineEmits(['saved'])
@@ -76,6 +82,7 @@ const { t } = useI18n()
 const toast = useToast()
 
 const saving = ref(false)
+const loading = ref(true)
 const errorMsg = ref('')
 const errors = ref({})
 const existingId = ref('')
@@ -104,7 +111,10 @@ function getValidationErrors(err) {
 }
 
 async function loadData() {
-  if (!props.orgId) return
+  if (!props.orgId) {
+    loading.value = false
+    return
+  }
   try {
     const res = await api.get(apiBase, { params: { organization_id: props.orgId, per_page: 1 } })
     const list = res.data?.data || []
@@ -119,6 +129,8 @@ async function loadData() {
   } catch {
     // No existing record
     form.value.grading_id = props.orgGradingId || ''
+  } finally {
+    loading.value = false
   }
 }
 

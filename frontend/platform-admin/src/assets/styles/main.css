@@ -25,6 +25,21 @@
   --p-select-padding-x: 0.75rem;
 }
 
+/* ── Select: teks panjang tidak melebihi lebar input, wrap ke bawah ── */
+.p-select .p-select-label {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.25rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* Opsi di dropdown panel (di-teleport ke body, jadi perlu global) */
+.p-select-option .p-select-option-label {
+  white-space: normal;
+  word-break: break-word;
+}
+
 /* ── Thin Scrollbar ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

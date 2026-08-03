@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS rbac_permissions (
     is_system   SMALLINT NOT NULL DEFAULT 0,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    UNIQUE KEY uq_rbac_permission (resource, action)
+    CONSTRAINT uq_rbac_permission UNIQUE (resource, action)
 );
 
 CREATE INDEX idx_rbac_permissions_resource ON rbac_permissions (resource);

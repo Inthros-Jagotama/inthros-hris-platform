@@ -137,9 +137,9 @@ Alur otomatis: buat company → buat tenant DB → jalankan migrasi tenant → *
 
 **B. Via CLI installer:**
 ```bash
-./bin/installer --config ./config/config.yaml provision --company=<company_id>
-./bin/installer --config ./config/config.yaml seed-data --company=<company_id>   # jika perlu seed ulang
-./bin/installer --config ./config/config.yaml seed-modules                        # daftarkan module ke platform
+./bin/installer provision --company=<company_id> --config ./config/config.yaml
+./bin/installer seed-data --company=<company_id> --config ./config/config.yaml   # jika perlu seed ulang
+./bin/installer seed-modules --config ./config/config.yaml                        # daftarkan module ke platform
 ```
 
 ### 3.4 Aktivasi Modul per Tenant
@@ -353,7 +353,7 @@ Jika endpoint tidak tersedia (versi lama) atau hanya ingin rotasi satu akun DB:
 
 - **Migrasi legacy plaintext**: jika ada kredensial tersimpan plaintext (sebelum fitur enkripsi):
   ```bash
-  HRIS_ENCRYPTION_KEY=<64-char-hex> ./bin/installer --config ./config/config.yaml encrypt-passwords
+  HRIS_ENCRYPTION_KEY=<64-char-hex> ./bin/installer encrypt-passwords --config ./config/config.yaml
   ```
   Idempotent — mendeteksi `LooksEncrypted` dan melewatkan yang sudah terenkripsi dengan kunci sama.
 - **⚠️ Jangan rotasi akun superuser/root**: `company.Service.Create` memakai `root` untuk development — merotasi root akan memutus provisioning & drop tenant selanjutnya. Rotasi API hanya cocok untuk **dedicated DB user per tenant** (praktik terbaik production).
@@ -428,10 +428,10 @@ On-premise = satu tenant. Buat database tenant + jalankan migrasi + seed sekali 
 
 ```bash
 # 1) Buat company & tenant DB via API super_admin (atau via installer)
-./bin/installer --config ./config/config.yaml provision --company=<company_id>
+./bin/installer provision --company=<company_id> --config ./config/config.yaml
 
 # 2) Seed master data + RBAC (sekali saat setup)
-./bin/installer --config ./config/config.yaml seed-data --company=<company_id>
+./bin/installer seed-data --company=<company_id> --config ./config/config.yaml
 ```
 
 > Untuk keperluan audit, seed idempotent — aman dijalankan ulang.

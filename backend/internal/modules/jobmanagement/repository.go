@@ -389,7 +389,30 @@ func (r *Repository) CreateJobEducationExperience(ctx context.Context, e *JobEdu
 	if err != nil {
 		return err
 	}
-	return db.Create(e).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		// Simpan entity utama dulu (tanpa relasi pivot)
+		if err := tx.Omit("Majors", "JobFamilies").Create(e).Error; err != nil {
+			return err
+		}
+		// Simpan relasi pivot jurusan & bidang pekerjaan
+		for i := range e.Majors {
+			e.Majors[i].JobEducationExperienceID = e.ID
+		}
+		for i := range e.JobFamilies {
+			e.JobFamilies[i].JobEducationExperienceID = e.ID
+		}
+		if len(e.Majors) > 0 {
+			if err := tx.Create(&e.Majors).Error; err != nil {
+				return err
+			}
+		}
+		if len(e.JobFamilies) > 0 {
+			if err := tx.Create(&e.JobFamilies).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r *Repository) FindJobEducationExperienceByID(ctx context.Context, id uuid.UUID) (*JobEducationExperience, error) {
@@ -399,7 +422,7 @@ func (r *Repository) FindJobEducationExperienceByID(ctx context.Context, id uuid
 	}
 	var e JobEducationExperience
 	// Education / Experience → job_management_values dengan scope type
-	if err := db.Preload("Education", "type = ?", "education").Preload("Experience", "type = ?", "experience").Preload("EducationMajor").Preload("JobFamily").First(&e, "id = ?", id).Error; err != nil {
+	if err := db.Preload("Education", "type = ?", "education").Preload("Experience", "type = ?", "experience").Preload("Majors").Preload("JobFamilies").First(&e, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("job education experience not found: %w", err)
 	}
 	return &e, nil
@@ -420,7 +443,7 @@ func (r *Repository) FindAllJobEducationExperiences(ctx context.Context, page, p
 		return nil, 0, err
 	}
 	offset := (page - 1) * perPage
-	if err := query.Preload("Education", "type = ?", "education").Preload("Experience", "type = ?", "experience").Preload("EducationMajor").Preload("JobFamily").Offset(offset).Limit(perPage).Order("full_code ASC").Find(&experiences).Error; err != nil {
+	if err := query.Preload("Education", "type = ?", "education").Preload("Experience", "type = ?", "experience").Preload("Majors").Preload("JobFamilies").Offset(offset).Limit(perPage).Order("full_code ASC").Find(&experiences).Error; err != nil {
 		return nil, 0, err
 	}
 	return experiences, total, nil
@@ -431,7 +454,33 @@ func (r *Repository) UpdateJobEducationExperience(ctx context.Context, e *JobEdu
 	if err != nil {
 		return err
 	}
-	return db.Save(e).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		// Hapus relasi pivot lama, lalu simpan ulang sesuai request
+		if err := tx.Where("job_management_education_experience_id = ?", e.ID.String()).Delete(&JobManagementMajor{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("job_management_education_experience_id = ?", e.ID.String()).Delete(&JobManagementJobFamily{}).Error; err != nil {
+			return err
+		}
+		for i := range e.Majors {
+			e.Majors[i].JobEducationExperienceID = e.ID
+		}
+		for i := range e.JobFamilies {
+			e.JobFamilies[i].JobEducationExperienceID = e.ID
+		}
+		if len(e.Majors) > 0 {
+			if err := tx.Create(&e.Majors).Error; err != nil {
+				return err
+			}
+		}
+		if len(e.JobFamilies) > 0 {
+			if err := tx.Create(&e.JobFamilies).Error; err != nil {
+				return err
+			}
+		}
+		// Update entity utama (tanpa menyentuh relasi pivot)
+		return tx.Omit("Majors", "JobFamilies").Save(e).Error
+	})
 }
 
 func (r *Repository) DeleteJobEducationExperience(ctx context.Context, id uuid.UUID) error {
@@ -439,7 +488,16 @@ func (r *Repository) DeleteJobEducationExperience(ctx context.Context, id uuid.U
 	if err != nil {
 		return err
 	}
-	return db.Where("id = ?", id).Delete(&JobEducationExperience{}).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		// Hapus relasi pivot dulu (atau biarkan ON DELETE CASCADE di DB)
+		if err := tx.Where("job_management_education_experience_id = ?", id.String()).Delete(&JobManagementMajor{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("job_management_education_experience_id = ?", id.String()).Delete(&JobManagementJobFamily{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("id = ?", id).Delete(&JobEducationExperience{}).Error
+	})
 }
 
 // =========================================================================
@@ -730,6 +788,63 @@ func (r *Repository) DeleteJobRelationship(ctx context.Context, id uuid.UUID) er
 		return err
 	}
 	return db.Where("id = ?", id).Delete(&JobRelationship{}).Error
+}
+
+// =========================================================================
+// Job Relationship Details (9.12b)
+// =========================================================================
+
+func (r *Repository) CreateJobRelationshipDetail(ctx context.Context, d *JobManagementRelationshipDetail) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	// Omit Organization (hanya representasi minimal untuk preload) agar GORM
+	// tidak ikut menulis/membuat ulang baris di tabel organizations.
+	return db.Omit("Organization").Create(d).Error
+}
+
+func (r *Repository) FindJobRelationshipDetailByID(ctx context.Context, id uuid.UUID) (*JobManagementRelationshipDetail, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var d JobManagementRelationshipDetail
+	if err := db.Preload("Organization").First(&d, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("job relationship detail not found: %w", err)
+	}
+	return &d, nil
+}
+
+func (r *Repository) FindAllJobRelationshipDetails(ctx context.Context, relationshipID uuid.UUID) ([]JobManagementRelationshipDetail, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var details []JobManagementRelationshipDetail
+	if err := db.Preload("Organization").Where("job_management_relationship_id = ?", relationshipID.String()).Order("created_at ASC").Find(&details).Error; err != nil {
+		return nil, err
+	}
+	return details, nil
+}
+
+func (r *Repository) UpdateJobRelationshipDetail(ctx context.Context, d *JobManagementRelationshipDetail) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	// Omit Organization — field ini hanya representasi minimal (OrganizationRef) hasil
+	// preload untuk menampilkan nama org. db.Save() tanpa Omit akan ikut meng-update
+	// tabel organizations dan memicu error MySQL 1364 (kolom code tanpa default).
+	return db.Omit("Organization").Save(d).Error
+}
+
+func (r *Repository) DeleteJobRelationshipDetail(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Where("id = ?", id).Delete(&JobManagementRelationshipDetail{}).Error
 }
 
 // =========================================================================

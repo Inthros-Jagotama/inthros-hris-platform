@@ -53,6 +53,21 @@
   font-size: 0.8125rem;
 }
 
+/* ── Select: teks panjang tidak melebihi lebar input, wrap ke bawah ── */
+.p-select .p-select-label {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.25rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* Opsi di dropdown panel (di-teleport ke body, jadi perlu global) */
+.p-select-option .p-select-option-label {
+  white-space: normal;
+  word-break: break-word;
+}
+
 .p-button.p-button-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.8125rem;

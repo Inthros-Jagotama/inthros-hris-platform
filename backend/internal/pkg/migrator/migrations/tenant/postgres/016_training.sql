@@ -12,11 +12,12 @@ CREATE TABLE IF NOT EXISTS training_categories (
     name        VARCHAR(150) NOT NULL,
     description VARCHAR(500) NULL,
     is_active   BOOLEAN      NOT NULL DEFAULT TRUE,
-    deleted_at  TIMESTAMP(6) NULL DEFAULT NULL,
-    created_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    UNIQUE INDEX idx_trn_cat_code (code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    deleted_at  TIMESTAMP,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trn_cat_code ON training_categories (code);
 
 -- =========================================================================
 -- Training Courses (Master Data Kursus)
@@ -33,12 +34,14 @@ CREATE TABLE IF NOT EXISTS training_courses (
     is_certified    BOOLEAN      NOT NULL DEFAULT FALSE,
     external_vendor VARCHAR(200) NULL,
     is_active       BOOLEAN      NOT NULL DEFAULT TRUE,
-    deleted_at      TIMESTAMP(6) NULL DEFAULT NULL,
-    created_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    UNIQUE INDEX idx_trn_course_code (code),
-    INDEX idx_trn_course_cat (category_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    deleted_at      TIMESTAMP,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trn_course_code ON training_courses (code);
+
+CREATE INDEX IF NOT EXISTS idx_trn_course_cat ON training_courses (category_id);
 
 -- =========================================================================
 -- Training Sessions (Sesi/Kelas Pelatihan)
@@ -53,12 +56,14 @@ CREATE TABLE IF NOT EXISTS training_sessions (
     end_date      DATE         NOT NULL,
     max_quota     INT          NOT NULL DEFAULT 30,
     status        VARCHAR(20)  NOT NULL DEFAULT 'SCHEDULED',
-    deleted_at    TIMESTAMP(6) NULL DEFAULT NULL,
-    created_at    TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at    TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_trn_sess_course (course_id),
-    INDEX idx_trn_sess_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    deleted_at    TIMESTAMP,
+    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_trn_sess_course ON training_sessions (course_id);
+
+CREATE INDEX IF NOT EXISTS idx_trn_sess_status ON training_sessions (status);
 
 -- =========================================================================
 -- Training Participants (Peserta Pelatihan)
@@ -70,12 +75,14 @@ CREATE TABLE IF NOT EXISTS training_participants (
     attendance_status  VARCHAR(20)  NOT NULL DEFAULT 'PRESENT',
     score              DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     completed_at       DATE         NULL,
-    deleted_at         TIMESTAMP(6) NULL DEFAULT NULL,
-    created_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_trn_part_sess (session_id),
-    INDEX idx_trn_part_emp (employee_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    deleted_at         TIMESTAMP,
+    created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_trn_part_sess ON training_participants (session_id);
+
+CREATE INDEX IF NOT EXISTS idx_trn_part_emp ON training_participants (employee_id);
 
 -- =========================================================================
 -- Training Materials (Materi Pelatihan)
@@ -87,11 +94,12 @@ CREATE TABLE IF NOT EXISTS training_materials (
     file_url   TEXT         NULL,
     file_type  VARCHAR(50)  NULL,
     sort_order SMALLINT     NOT NULL DEFAULT 0,
-    deleted_at TIMESTAMP(6) NULL DEFAULT NULL,
-    created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_trn_mat_sess (session_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    deleted_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_trn_mat_sess ON training_materials (session_id);
 
 -- =========================================================================
 -- Training Evaluations (Evaluasi Pelatihan)
@@ -102,12 +110,14 @@ CREATE TABLE IF NOT EXISTS training_evaluations (
     employee_id CHAR(36)     NOT NULL,
     rating      SMALLINT     NOT NULL,
     feedback    TEXT         NULL,
-    deleted_at  TIMESTAMP(6) NULL DEFAULT NULL,
-    created_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_trn_eval_sess (session_id),
-    INDEX idx_trn_eval_emp (employee_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    deleted_at  TIMESTAMP,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_trn_eval_sess ON training_evaluations (session_id);
+
+CREATE INDEX IF NOT EXISTS idx_trn_eval_emp ON training_evaluations (employee_id);
 
 -- =========================================================================
 -- Training Certificates (Sertifikat Pelatihan)
@@ -118,9 +128,11 @@ CREATE TABLE IF NOT EXISTS training_certificates (
     certificate_no VARCHAR(50)  NOT NULL,
     issued_date    DATE         NOT NULL,
     expiry_date    DATE         NULL,
-    deleted_at     TIMESTAMP(6) NULL DEFAULT NULL,
-    created_at     TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at     TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    UNIQUE INDEX idx_trn_cert_no (certificate_no),
-    INDEX idx_trn_cert_part (participant_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    deleted_at     TIMESTAMP,
+    created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trn_cert_no ON training_certificates (certificate_no);
+
+CREATE INDEX IF NOT EXISTS idx_trn_cert_part ON training_certificates (participant_id);

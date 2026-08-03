@@ -242,9 +242,9 @@ CREATE TABLE IF NOT EXISTS employee_bank_accounts (
     -- FK ke banks(id) ditambahkan di migration terpisah setelah 011_settings.sql
 );
 
-CREATE INDEX IF NOT EXISTS idx_empbank_employee ON employee_bank_profiles (employee_id);
+CREATE INDEX IF NOT EXISTS idx_empbank_employee ON employee_bank_accounts (employee_id);
 
-CREATE INDEX IF NOT EXISTS idx_empbank_bank ON employee_bank_profiles (bank_id);
+CREATE INDEX IF NOT EXISTS idx_empbank_bank ON employee_bank_accounts (bank_id);
 
 -- ---------------------------------------------------------------------------
 -- 3.10 Employments (Riwayat Jabatan)

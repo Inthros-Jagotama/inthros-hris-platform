@@ -24,10 +24,11 @@ CREATE TABLE IF NOT EXISTS job_requisitions (
     approved_by       CHAR(36)     NULL,
     target_start_date DATE         NULL,
     closed_at         BIGINT       NULL DEFAULT 0,
-    created_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_req_org (organization_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_req_org ON job_requisitions (organization_id);
 
 -- =========================================================================
 -- Candidates (Kandidat Pelamar)
@@ -46,10 +47,11 @@ CREATE TABLE IF NOT EXISTS candidates (
     linkedin_url    TEXT         NULL,
     source          VARCHAR(50)  NOT NULL DEFAULT 'direct',
     notes           TEXT         NULL,
-    created_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    UNIQUE INDEX idx_cand_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cand_email ON candidates (email);
 
 -- =========================================================================
 -- Job Applications (Lamaran Pekerjaan)
@@ -68,12 +70,15 @@ CREATE TABLE IF NOT EXISTS job_applications (
     withdrawn_at      BIGINT       NULL DEFAULT 0,
     rejection_reason  TEXT         NULL,
     notes             TEXT         NULL,
-    created_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_app_req (requisition_id),
-    INDEX idx_app_cand (candidate_id),
-    INDEX idx_app_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_app_req ON job_applications (requisition_id);
+
+CREATE INDEX IF NOT EXISTS idx_app_cand ON job_applications (candidate_id);
+
+CREATE INDEX IF NOT EXISTS idx_app_status ON job_applications (status);
 
 -- =========================================================================
 -- Interviews (Wawancara)
@@ -91,10 +96,11 @@ CREATE TABLE IF NOT EXISTS interviews (
     score             DECIMAL(5,2) NULL,
     feedback          TEXT         NULL,
     completed_at      BIGINT       NULL DEFAULT 0,
-    created_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_int_app (application_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_int_app ON interviews (application_id);
 
 -- =========================================================================
 -- Onboarding Task Templates (Template Tugas Onboarding)
@@ -107,9 +113,9 @@ CREATE TABLE IF NOT EXISTS onboarding_task_templates (
     day_offset    INT          NOT NULL DEFAULT 0,
     assigned_role VARCHAR(50)  NULL,
     is_mandatory  BOOLEAN      NOT NULL DEFAULT TRUE,
-    created_at    TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at    TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
 -- =========================================================================
 -- Employee Onboardings (Onboarding Karyawan Baru)
@@ -123,11 +129,13 @@ CREATE TABLE IF NOT EXISTS employee_onboardings (
     buddy_id        CHAR(36)     NULL,
     completed_at    BIGINT       NULL DEFAULT 0,
     notes           TEXT         NULL,
-    created_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_onb_emp (employee_id),
-    INDEX idx_onb_app (application_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_onb_emp ON employee_onboardings (employee_id);
+
+CREATE INDEX IF NOT EXISTS idx_onb_app ON employee_onboardings (application_id);
 
 -- =========================================================================
 -- Onboarding Task Items (Tugas spesifik dalam onboarding)
@@ -143,7 +151,8 @@ CREATE TABLE IF NOT EXISTS onboarding_task_items (
     is_completed            BOOLEAN      NOT NULL DEFAULT FALSE,
     completed_at            BIGINT       NULL DEFAULT 0,
     notes                   TEXT         NULL,
-    created_at              TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at              TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_onb_task_item (employee_onboarding_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_onb_task_item ON onboarding_task_items (employee_onboarding_id);

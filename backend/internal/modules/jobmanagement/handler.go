@@ -712,6 +712,62 @@ func (h *Handler) DeleteJobRelationship(c *gin.Context) {
 }
 
 // =========================================================================
+// Job Relationship Details (9.12b)
+// =========================================================================
+
+func (h *Handler) CreateJobRelationshipDetail(c *gin.Context) {
+	var req CreateJobRelationshipDetailRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.CreateJobRelationshipDetail(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) GetJobRelationshipDetailByID(c *gin.Context) {
+	resp, err := h.service.GetJobRelationshipDetailByID(c.Request.Context(), c.Param("detailId"))
+	if err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ListJobRelationshipDetails(c *gin.Context) {
+	resp, err := h.service.ListJobRelationshipDetails(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateJobRelationshipDetail(c *gin.Context) {
+	var req UpdateJobRelationshipDetailRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdateJobRelationshipDetail(c.Request.Context(), c.Param("detailId"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteJobRelationshipDetail(c *gin.Context) {
+	if err := h.service.DeleteJobRelationshipDetail(c.Request.Context(), c.Param("detailId")); err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
 // Job Subordinate Controls (9.13)
 // =========================================================================
 

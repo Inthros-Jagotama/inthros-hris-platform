@@ -13,11 +13,13 @@ CREATE TABLE IF NOT EXISTS workforce_planning_headcounts (
     planned_hc        INT          NOT NULL DEFAULT 0,
     actual_hc         INT          NOT NULL DEFAULT 0,
     snapshot_date     DATE         NOT NULL,
-    created_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_wf_plan_period (period),
-    INDEX idx_wf_plan_org (organization_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_wf_plan_period ON workforce_planning_headcounts (period);
+
+CREATE INDEX IF NOT EXISTS idx_wf_plan_org ON workforce_planning_headcounts (organization_id);
 
 -- =========================================================================
 -- Workforce Forecasts (Forecast Headcount Demand/Supply/Hiring)
@@ -30,12 +32,15 @@ CREATE TABLE IF NOT EXISTS workforce_forecasts (
     headcount         INT          NOT NULL DEFAULT 0,
     confidence_level  DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     parameters        JSON         NULL,
-    created_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    INDEX idx_wf_forecast_period (period),
-    INDEX idx_wf_forecast_org (organization_id),
-    INDEX idx_wf_forecast_type (forecast_type)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_wf_forecast_period ON workforce_forecasts (period);
+
+CREATE INDEX IF NOT EXISTS idx_wf_forecast_org ON workforce_forecasts (organization_id);
+
+CREATE INDEX IF NOT EXISTS idx_wf_forecast_type ON workforce_forecasts (forecast_type);
 
 -- =========================================================================
 -- Workforce KPIs (Pre-computed KPI Snapshots)
@@ -51,10 +56,12 @@ CREATE TABLE IF NOT EXISTS workforce_kpis (
     dimension       VARCHAR(30)   NOT NULL DEFAULT 'COMPANY',
     dimension_id    CHAR(36)      NULL,
     snapshot_at     DATE          NOT NULL,
-    created_at      TIMESTAMP(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    INDEX idx_wf_kpi_period (period),
-    INDEX idx_wf_kpi_code (kpi_code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_wf_kpi_period ON workforce_kpis (period);
+
+CREATE INDEX IF NOT EXISTS idx_wf_kpi_code ON workforce_kpis (kpi_code);
 
 -- =========================================================================
 -- Workforce Analytics Cache (Pre-computed Analytics Cache)
@@ -65,13 +72,16 @@ CREATE TABLE IF NOT EXISTS workforce_analytics_cache (
     cache_type      VARCHAR(50)   NOT NULL,
     data            JSON          NOT NULL,
     period          CHAR(7)       NULL,
-    expires_at      TIMESTAMP(6)  NULL,
-    created_at      TIMESTAMP(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at      TIMESTAMP(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    UNIQUE INDEX idx_wf_cache_key (cache_key),
-    INDEX idx_wf_cache_type (cache_type),
-    INDEX idx_wf_cache_period (period)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    expires_at      TIMESTAMP     NULL,
+    created_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_wf_cache_key ON workforce_analytics_cache (cache_key);
+
+CREATE INDEX IF NOT EXISTS idx_wf_cache_type ON workforce_analytics_cache (cache_type);
+
+CREATE INDEX IF NOT EXISTS idx_wf_cache_period ON workforce_analytics_cache (period);
 
 -- =========================================================================
 -- Workforce Scenarios (Saved Simulation Scenarios)
@@ -85,12 +95,14 @@ CREATE TABLE IF NOT EXISTS workforce_scenarios (
     results         JSON          NULL,
     status          VARCHAR(20)   NOT NULL DEFAULT 'DRAFT',
     created_by      CHAR(36)      NULL,
-    created_at      TIMESTAMP(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at      TIMESTAMP(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    deleted_at      TIMESTAMP(6)  NULL DEFAULT NULL,
-    INDEX idx_wf_scenario_type (scenario_type),
-    INDEX idx_wf_scenario_deleted_at (deleted_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at      TIMESTAMP     NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_wf_scenario_type ON workforce_scenarios (scenario_type);
+
+CREATE INDEX IF NOT EXISTS idx_wf_scenario_deleted_at ON workforce_scenarios (deleted_at);
 
 -- =========================================================================
 -- Workforce Risk Indicators (Risk Monitoring Records)
@@ -106,10 +118,12 @@ CREATE TABLE IF NOT EXISTS workforce_risk_indicators (
     department_id   CHAR(36)      NULL,
     recommendation  TEXT          NULL,
     snapshot_at     DATE          NOT NULL,
-    created_at      TIMESTAMP(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    INDEX idx_wf_risk_period (period),
-    INDEX idx_wf_risk_code (risk_code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_wf_risk_period ON workforce_risk_indicators (period);
+
+CREATE INDEX IF NOT EXISTS idx_wf_risk_code ON workforce_risk_indicators (risk_code);
 
 -- =========================================================================
 -- Workforce Health Scores (Organization Health Composite)
@@ -127,7 +141,9 @@ CREATE TABLE IF NOT EXISTS workforce_health_scores (
     stability_ratio     DECIMAL(5,2)  NULL,
     components          JSON          NULL,
     snapshot_at         DATE          NOT NULL,
-    created_at          TIMESTAMP(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    INDEX idx_wf_health_period (period),
-    INDEX idx_wf_health_org (organization_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_wf_health_period ON workforce_health_scores (period);
+
+CREATE INDEX IF NOT EXISTS idx_wf_health_org ON workforce_health_scores (organization_id);

@@ -708,13 +708,27 @@ func (s *Service) CreateJobEducationExperience(ctx context.Context, req CreateJo
 		id, _ := uuid.Parse(*req.ExperienceID)
 		e.ExperienceID = &id
 	}
-	if req.EducationMajorID != nil && *req.EducationMajorID != "" {
-		id, _ := uuid.Parse(*req.EducationMajorID)
-		e.EducationMajorID = &id
+	// Jurusan (multiple) → pivot job_management_majors
+	for _, majorID := range req.EducationMajorID {
+		if majorID == "" {
+			continue
+		}
+		id, err := uuid.Parse(majorID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid education_major_id: %w", err)
+		}
+		e.Majors = append(e.Majors, JobManagementMajor{EducationMajorID: id})
 	}
-	if req.JobFamilyID != nil && *req.JobFamilyID != "" {
-		id, _ := uuid.Parse(*req.JobFamilyID)
-		e.JobFamilyID = &id
+	// Bidang Pekerjaan (multiple) → pivot job_management_job_family
+	for _, familyID := range req.JobFamilyID {
+		if familyID == "" {
+			continue
+		}
+		id, err := uuid.Parse(familyID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid job_family_id: %w", err)
+		}
+		e.JobFamilies = append(e.JobFamilies, JobManagementJobFamily{JobFamilyID: id})
 	}
 	e.CreatedBy = authctx.GetUserID(ctx)
 	e.UpdatedBy = e.CreatedBy
@@ -722,7 +736,7 @@ func (s *Service) CreateJobEducationExperience(ctx context.Context, req CreateJo
 		return nil, err
 	}
 	// Re-fetch with relations loaded so response includes master names
-	// (Education, Experience, EducationMajor, JobFamily) — create does not Preload them.
+	// (Education, Experience, Majors, JobFamilies) — create does not Preload them.
 	if fetched, err := s.repo.FindJobEducationExperienceByID(ctx, e.ID); err == nil {
 		e = fetched
 	}
@@ -801,22 +815,39 @@ func (s *Service) UpdateJobEducationExperience(ctx context.Context, id string, r
 			e.ExperienceID = &id
 		}
 	}
+	// Jurusan (multiple) — array kosong = hapus semua; nil = biarkan
 	if req.EducationMajorID != nil {
-		if *req.EducationMajorID == "" {
-			e.EducationMajorID = nil
-		} else if id, err := uuid.Parse(*req.EducationMajorID); err == nil {
-			e.EducationMajorID = &id
+		e.Majors = nil
+		for _, majorID := range req.EducationMajorID {
+			if majorID == "" {
+				continue
+			}
+			id, err := uuid.Parse(majorID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid education_major_id: %w", err)
+			}
+			e.Majors = append(e.Majors, JobManagementMajor{EducationMajorID: id})
 		}
 	}
+	// Bidang Pekerjaan (multiple) — array kosong = hapus semua; nil = biarkan
 	if req.JobFamilyID != nil {
-		if *req.JobFamilyID == "" {
-			e.JobFamilyID = nil
-		} else if id, err := uuid.Parse(*req.JobFamilyID); err == nil {
-			e.JobFamilyID = &id
+		e.JobFamilies = nil
+		for _, familyID := range req.JobFamilyID {
+			if familyID == "" {
+				continue
+			}
+			id, err := uuid.Parse(familyID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid job_family_id: %w", err)
+			}
+			e.JobFamilies = append(e.JobFamilies, JobManagementJobFamily{JobFamilyID: id})
 		}
 	}
 	if err := s.repo.UpdateJobEducationExperience(ctx, e); err != nil {
 		return nil, err
+	}
+	if fetched, err := s.repo.FindJobEducationExperienceByID(ctx, e.ID); err == nil {
+		e = fetched
 	}
 	r := toJobEducationExperienceResponse(e)
 	return &r, nil
@@ -1313,6 +1344,115 @@ func (s *Service) DeleteJobRelationship(ctx context.Context, id string) error {
 }
 
 // =========================================================================
+// Job Relationship Details (9.12b)
+// =========================================================================
+
+func (s *Service) CreateJobRelationshipDetail(ctx context.Context, relationshipID string, req CreateJobRelationshipDetailRequest) (*JobRelationshipDetailResponse, error) {
+	relUID, err := uuid.Parse(relationshipID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid relationship id: %w", err)
+	}
+	d := &JobManagementRelationshipDetail{
+		JobManagementRelationshipID: relUID,
+	}
+	if req.OrganizationID != nil && *req.OrganizationID != "" {
+		id, err := uuid.Parse(*req.OrganizationID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid organization_id: %w", err)
+		}
+		d.OrganizationID = &id
+	}
+	if req.Activity != nil && *req.Activity != "" {
+		d.Activity = req.Activity
+	}
+	d.CreatedBy = authctx.GetUserID(ctx)
+	d.UpdatedBy = d.CreatedBy
+	if err := s.repo.CreateJobRelationshipDetail(ctx, d); err != nil {
+		return nil, err
+	}
+	if fetched, err := s.repo.FindJobRelationshipDetailByID(ctx, d.ID); err == nil {
+		d = fetched
+	}
+	r := toJobRelationshipDetailResponse(d)
+	return &r, nil
+}
+
+func (s *Service) GetJobRelationshipDetailByID(ctx context.Context, id string) (*JobRelationshipDetailResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	d, err := s.repo.FindJobRelationshipDetailByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	r := toJobRelationshipDetailResponse(d)
+	return &r, nil
+}
+
+func (s *Service) ListJobRelationshipDetails(ctx context.Context, relationshipID string) ([]JobRelationshipDetailResponse, error) {
+	relUID, err := uuid.Parse(relationshipID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid relationship id: %w", err)
+	}
+	details, err := s.repo.FindAllJobRelationshipDetails(ctx, relUID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]JobRelationshipDetailResponse, 0, len(details))
+	for _, d := range details {
+		responses = append(responses, toJobRelationshipDetailResponse(&d))
+	}
+	return responses, nil
+}
+
+func (s *Service) UpdateJobRelationshipDetail(ctx context.Context, id string, req UpdateJobRelationshipDetailRequest) (*JobRelationshipDetailResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	d, err := s.repo.FindJobRelationshipDetailByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	d.UpdatedBy = authctx.GetUserID(ctx)
+	if req.OrganizationID != nil {
+		if *req.OrganizationID == "" {
+			d.OrganizationID = nil
+		} else {
+			orgID, err := uuid.Parse(*req.OrganizationID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid organization_id: %w", err)
+			}
+			d.OrganizationID = &orgID
+		}
+	}
+	if req.Activity != nil {
+		if *req.Activity == "" {
+			d.Activity = nil
+		} else {
+			d.Activity = req.Activity
+		}
+	}
+	if err := s.repo.UpdateJobRelationshipDetail(ctx, d); err != nil {
+		return nil, err
+	}
+	if fetched, err := s.repo.FindJobRelationshipDetailByID(ctx, d.ID); err == nil {
+			d = fetched
+	}
+	r := toJobRelationshipDetailResponse(d)
+	return &r, nil
+}
+
+func (s *Service) DeleteJobRelationshipDetail(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteJobRelationshipDetail(ctx, uid)
+}
+
+// =========================================================================
 // Job Subordinate Controls (9.13)
 // =========================================================================
 
@@ -1595,17 +1735,27 @@ func (s *Service) UpdateJobFinancial(ctx context.Context, id string, req UpdateJ
 	if req.IsAuthorized != nil {
 		f.IsAuthorized = *req.IsAuthorized
 	}
-	if req.JobManagementValueCashID != nil && *req.JobManagementValueCashID != "" {
-		id, _ := uuid.Parse(*req.JobManagementValueCashID)
-		f.JobManagementValueCashID = &id
+	// String kosong ("") = clear field; nil = biarkan nilai lama.
+	if req.JobManagementValueCashID != nil {
+		if *req.JobManagementValueCashID == "" {
+			f.JobManagementValueCashID = nil
+		} else if id, err := uuid.Parse(*req.JobManagementValueCashID); err == nil {
+			f.JobManagementValueCashID = &id
+		}
 	}
-	if req.JobManagementValueAuthorityID != nil && *req.JobManagementValueAuthorityID != "" {
-		id, _ := uuid.Parse(*req.JobManagementValueAuthorityID)
-		f.JobManagementValueAuthorityID = &id
+	if req.JobManagementValueAuthorityID != nil {
+		if *req.JobManagementValueAuthorityID == "" {
+			f.JobManagementValueAuthorityID = nil
+		} else if id, err := uuid.Parse(*req.JobManagementValueAuthorityID); err == nil {
+			f.JobManagementValueAuthorityID = &id
+		}
 	}
-	if req.JobManagementValueImpactID != nil && *req.JobManagementValueImpactID != "" {
-		id, _ := uuid.Parse(*req.JobManagementValueImpactID)
-		f.JobManagementValueImpactID = &id
+	if req.JobManagementValueImpactID != nil {
+		if *req.JobManagementValueImpactID == "" {
+			f.JobManagementValueImpactID = nil
+		} else if id, err := uuid.Parse(*req.JobManagementValueImpactID); err == nil {
+			f.JobManagementValueImpactID = &id
+		}
 	}
 	if err := s.repo.UpdateJobFinancial(ctx, f); err != nil {
 		return nil, err

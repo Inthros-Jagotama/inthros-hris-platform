@@ -1,40 +1,282 @@
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between">
-      <div><h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.financials') }}</h2><p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.financial_description') }}</p></div>
-      <Button :label="t('common.create')" icon="pi pi-plus" size="small" @click="openCreate()" />
+    <div>
+      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.financials') }}</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.financial_description') }}</p>
     </div>
-    <DataTableSection :items="items" :loading="loading" :total="total" :columns="cols" entity="financials" :org-id="orgId" :on-load="loadData" @edit="openEdit" @delete="confirmDelete">
-      <template #empty><div class="flex flex-col items-center justify-center py-10 text-gray-400"><i class="pi pi-money-bill text-3xl mb-2 opacity-50"></i><p class="text-sm font-medium">{{ t('job_management.empty_financials') }}</p></div></template>
-    </DataTableSection>
-    <DialogForm v-model:visible="dialogVisible" :title="editing ? t('common.edit') : t('common.create')" :saving="saving" :errors="errors" @save="handleSave" @cancel="dialogVisible=false">
-      <FormRow :label="t('organization.nomenclature')" required :errors="errors?.nomenclature"><TextInput v-model="form.nomenclature" maxlength="50" :class="{'p-invalid':errors?.nomenclature}" /></FormRow>
-      <FormRow :label="t('organization.full_code')" required :errors="errors?.full_code"><TextInput v-model="form.full_code" maxlength="20" :class="{'p-invalid':errors?.full_code}" /></FormRow>
-      <FormRow :label="t('job_management.is_authorized')" class="md:col-span-2"><ToggleSwitch v-model="form.is_authorized" /></FormRow>
-      <FormRow :label="t('job_management.cash_level')" :errors="errors?.job_management_value_cash_id"><SelectLabel v-model="form.job_management_value_cash_id" :options="cashOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear /></FormRow>
-      <FormRow :label="t('job_management.authority_level')" :errors="errors?.job_management_value_authority_id"><SelectLabel v-model="form.job_management_value_authority_id" :options="authOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear /></FormRow>
-      <FormRow :label="t('job_management.impact_level')" :errors="errors?.job_management_value_impact_id"><SelectLabel v-model="form.job_management_value_impact_id" :options="impactOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear /></FormRow>
-    </DialogForm>
+
+    <div>
+      <!-- Skeleton while loading financial data -->
+      <SkeletonCard v-if="loading" type="detail" :count="1" :rows="4" cols="grid-cols-1" padding="p-5" />
+
+      <div v-else class="space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+        <!-- Has Financial Authority — deskripsi kiri, switch kanan -->
+        <div class="flex items-center justify-between gap-4 bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('job_management.is_authorized') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('job_management.is_authorized_description') }}</p>
+          </div>
+          <ToggleSwitch v-model="form.is_authorized" />
+        </div>
+
+        <!-- Editable financial fields — satu kolom -->
+        <div class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <!-- Level Kas hanya muncul jika Memiliki Wewenang Keuangan aktif -->
+          <FormRow v-if="form.is_authorized" :label="t('job_management.cash_level')" :errors="errors?.job_management_value_cash_id">
+            <SelectLabel
+              v-model="form.job_management_value_cash_id"
+              :options="cashOptions"
+              option-label="label"
+              option-value="value"
+              :placeholder="t('common.select')"
+              :class="{ 'p-invalid': errors?.job_management_value_cash_id }"
+              showClear
+            />
+          </FormRow>
+          <FormRow :label="t('job_management.authority_level')" :errors="errors?.job_management_value_authority_id">
+            <SelectLabel
+              v-model="form.job_management_value_authority_id"
+              :options="currentAuthOptions"
+              option-label="label"
+              option-value="value"
+              :placeholder="t('common.select')"
+              :class="{ 'p-invalid': errors?.job_management_value_authority_id }"
+              showClear
+            />
+          </FormRow>
+          <FormRow :label="t('job_management.impact_level')" :errors="errors?.job_management_value_impact_id">
+            <SelectLabel
+              v-model="form.job_management_value_impact_id"
+              :options="currentImpactOptions"
+              option-label="label"
+              option-value="value"
+              :placeholder="t('common.select')"
+              :class="{ 'p-invalid': errors?.job_management_value_impact_id }"
+              showClear
+            />
+          </FormRow>
+        </div>
+
+        <!-- Error display -->
+        <div v-if="errorMsg" class="text-sm text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+          {{ errorMsg }}
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-2 pt-2">
+          <Button
+            v-if="existingId"
+            :label="t('common.delete')"
+            icon="pi pi-trash"
+            severity="danger"
+            size="small"
+            outlined
+            @click="deleteVisible = true"
+          />
+          <Button
+            :label="existingId ? t('common.update') : t('common.save')"
+            icon="pi pi-check"
+            size="small"
+            :loading="saving"
+            :disabled="saving"
+            @click="handleSave"
+          />
+        </div>
+      </div>
+    </div>
+
     <ConfirmDeleteDialog v-model:visible="deleteVisible" :loading="deleting" :error-msg="deleteError" @confirm="handleDelete" @cancel="deleteVisible=false" />
   </div>
 </template>
+
 <script setup>
-import { ref, computed } from 'vue'
-import { useI18n } from '@/composables/useI18n'; import { useToast } from 'primevue/usetoast'; import { getValidationErrors } from '@/services/responseHandler'
-import api from '@/services/api'; import Button from 'primevue/button'; import ToggleSwitch from 'primevue/toggleswitch'
-import FormRow from '@/components/FormRow.vue'; import TextInput from '@/components/TextInput.vue'; import SelectLabel from '@/components/SelectLabel.vue'
-import DataTableSection from './DataTableSection.vue'; import DialogForm from './DialogForm.vue'; import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
-const props = defineProps({ orgId: String, jobValueMap: Object }); const emit = defineEmits(['saved'])
-const { t } = useI18n(); const toast = useToast(); const apiBase = '/api/v1/tenant/job-management/financials'
-const items=ref([]); const loading=ref(false); const total=ref(0); const dialogVisible=ref(false); const editing=ref(false); const editId=ref('')
-const saving=ref(false); const errors=ref({}); const deleteVisible=ref(false); const deleting=ref(false); const deleteError=ref(''); const deleteTarget=ref(null)
-const form=ref({ nomenclature:'', full_code:'', is_authorized:false, job_management_value_cash_id:'', job_management_value_authority_id:'', job_management_value_impact_id:'' })
-const cashOptions=computed(()=>props.jobValueMap?.cash||[]); const authOptions=computed(()=>props.jobValueMap?.authority||[]); const impactOptions=computed(()=>props.jobValueMap?.impact||[])
-const cols=computed(()=>[{field:'nomenclature',header:t('organization.nomenclature')},{field:'full_code',header:t('organization.full_code')},{field:'is_authorized',header:t('job_management.is_authorized')}])
-async function loadData(page,perPage){ loading.value=true; try{ const r=await api.get(apiBase,{params:{page,per_page:perPage,organization_id:props.orgId}}); items.value=r.data?.data||[]; total.value=r.data?.total||0 }catch(e){ toast.add({severity:'error',detail:e.response?.data?.error?.message||t('message.failed_to_load'),life:4000}) }finally{ loading.value=false } }
-function openCreate(){ editing.value=false; editId.value=''; form.value={nomenclature:'',full_code:'',is_authorized:false,job_management_value_cash_id:'',job_management_value_authority_id:'',job_management_value_impact_id:''}; errors.value={}; dialogVisible.value=true }
-function openEdit(d){ editing.value=true; editId.value=d.id; form.value={nomenclature:d.nomenclature||'',full_code:d.full_code||'',is_authorized:!!d.is_authorized,job_management_value_cash_id:d.job_management_value_cash_id||'',job_management_value_authority_id:d.job_management_value_authority_id||'',job_management_value_impact_id:d.job_management_value_impact_id||''}; errors.value={}; dialogVisible.value=true }
-async function handleSave(){ saving.value=true; errors.value={}; try{ const p={...form.value,organization_id:props.orgId}; if(editing.value) await api.put(`${apiBase}/${editId.value}`,p); else await api.post(apiBase,p); dialogVisible.value=false; emit('saved'); toast.add({severity:'success',detail:t('message.saved'),life:2000}); loadData(1,15) }catch(e){ const fe=getValidationErrors(e); if(Object.keys(fe).length) errors.value=fe; else toast.add({severity:'error',detail:e.response?.data?.error?.message||t('message.operation_failed'),life:4000}) }finally{ saving.value=false } }
-function confirmDelete(d){ deleteTarget.value=d; deleteError.value=''; deleteVisible.value=true }
-async function handleDelete(){ if(!deleteTarget.value) return; deleting.value=true; deleteError.value=''; try{ await api.delete(`${apiBase}/${deleteTarget.value.id}`); deleteVisible.value=false; emit('saved'); toast.add({severity:'success',detail:t('message.deleted'),life:2000}); loadData(1,15) }catch(e){ deleteError.value=e.response?.data?.error?.message||t('message.operation_failed') }finally{ deleting.value=false } }
+import { ref, computed, watch, onMounted } from 'vue'
+import { useToast } from 'primevue/usetoast'
+import { useI18n } from '@/composables/useI18n'
+import { getValidationErrors } from '@/services/responseHandler'
+import api from '@/services/api'
+import Button from 'primevue/button'
+import ToggleSwitch from 'primevue/toggleswitch'
+import FormRow from '@/components/FormRow.vue'
+import SelectLabel from '@/components/SelectLabel.vue'
+import SkeletonCard from '@/components/SkeletonCard.vue'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+
+const emit = defineEmits(['saved'])
+
+const props = defineProps({
+  orgId: String,
+  orgName: { type: String, default: '' },
+  orgCode: { type: String, default: '' },
+  // Dideklarasikan agar tidak jadi fallthrough attr (parent masih pass untuk section lain)
+  jobValueMap: { type: Object, default: () => ({}) }
+})
+
+const { t } = useI18n()
+const toast = useToast()
+
+const saving = ref(false)
+const loading = ref(true)
+const errorMsg = ref('')
+const errors = ref({})
+const existingId = ref('')
+const deleteVisible = ref(false)
+const deleting = ref(false)
+const deleteError = ref('')
+
+const form = ref({
+  is_authorized: false,
+  job_management_value_cash_id: '',
+  job_management_value_authority_id: '',
+  job_management_value_impact_id: ''
+})
+
+const apiBase = '/api/v1/tenant/job-management/financials'
+
+// Dua set opsi per field — dipilih berdasarkan status is_authorized
+const cashOptions = ref([])
+const authOptions = ref([])            // type=authority
+const authUnauthorizedOptions = ref([]) // type=authority_unauthorized
+const impactOptions = ref([])           // type=impact
+const impactUnauthorizedOptions = ref([]) // type=impact_unauthorized
+
+const currentAuthOptions = computed(() =>
+  form.value.is_authorized ? authOptions.value : authUnauthorizedOptions.value
+)
+const currentImpactOptions = computed(() =>
+  form.value.is_authorized ? impactOptions.value : impactUnauthorizedOptions.value
+)
+
+// Muat opsi dari job_management_values:
+//   is_authorized=true  → cash, authority, impact
+//   is_authorized=false → authority_unauthorized, impact_unauthorized (Level Kas disembunyikan)
+async function loadOptions() {
+  try {
+    const [cashRes, authRes, authUnauthRes, impactRes, impactUnauthRes] = await Promise.all([
+      api.get('/api/v1/tenant/job-management/values', { params: { type: 'cash', per_page: 100 } }),
+      api.get('/api/v1/tenant/job-management/values', { params: { type: 'authority', per_page: 100 } }),
+      api.get('/api/v1/tenant/job-management/values', { params: { type: 'authority_unauthorized', per_page: 100 } }),
+      api.get('/api/v1/tenant/job-management/values', { params: { type: 'impact', per_page: 100 } }),
+      api.get('/api/v1/tenant/job-management/values', { params: { type: 'impact_unauthorized', per_page: 100 } })
+    ])
+    cashOptions.value = (cashRes.data?.data || []).map(v => ({ label: v.descriptions, value: v.id }))
+    authOptions.value = (authRes.data?.data || []).map(v => ({ label: v.descriptions, value: v.id }))
+    authUnauthorizedOptions.value = (authUnauthRes.data?.data || []).map(v => ({ label: v.descriptions, value: v.id }))
+    impactOptions.value = (impactRes.data?.data || []).map(v => ({ label: v.descriptions, value: v.id }))
+    impactUnauthorizedOptions.value = (impactUnauthRes.data?.data || []).map(v => ({ label: v.descriptions, value: v.id }))
+  } catch { /* ignore */ }
+}
+
+// Guard: saat loadData mengisi form dari DB, watch tidak boleh mereset field.
+let hydrating = false
+
+// Saat status wewenang berubah (oleh user), kosongkan field yang tidak relevan:
+//   - Level Kas hanya valid jika is_authorized
+//   - Level Kewenangan & Dampak berganti set opsi (authority → authority_unauthorized, dst)
+// flush: 'sync' PENTING — dengan flush default ('pre') callback berjalan setelah blok
+// loadData selesai (hydrating sudah false) sehingga field hasil DB ikut ter-reset.
+watch(() => form.value.is_authorized, (val, oldVal) => {
+  if (hydrating || val === oldVal) return
+  form.value.job_management_value_cash_id = ''
+  form.value.job_management_value_authority_id = ''
+  form.value.job_management_value_impact_id = ''
+}, { flush: 'sync' })
+
+async function loadData() {
+  if (!props.orgId) {
+    loading.value = false
+    return
+  }
+  try {
+    const res = await api.get(apiBase, { params: { organization_id: props.orgId, per_page: 1 } })
+    const list = res.data?.data || []
+    if (list.length > 0) {
+      const item = list[0]
+      hydrating = true
+      existingId.value = item.id
+      form.value.is_authorized = !!item.is_authorized
+      form.value.job_management_value_cash_id = item.job_management_value_cash_id || ''
+      form.value.job_management_value_authority_id = item.job_management_value_authority_id || ''
+      form.value.job_management_value_impact_id = item.job_management_value_impact_id || ''
+      hydrating = false
+    }
+  } catch {
+    // No existing record
+  }
+}
+
+async function handleSave() {
+  errorMsg.value = ''
+  errors.value = {}
+
+  saving.value = true
+  try {
+    // Level Kas hanya dikirim jika Memiliki Wewenang Keuangan aktif
+    const isAuthorized = !!form.value.is_authorized
+    const payload = {
+      nomenclature: props.orgName || '',
+      full_code: props.orgCode || '',
+      is_authorized: isAuthorized,
+      job_management_value_cash_id: isAuthorized ? (form.value.job_management_value_cash_id || null) : null,
+      job_management_value_authority_id: form.value.job_management_value_authority_id || null,
+      job_management_value_impact_id: form.value.job_management_value_impact_id || null,
+      organization_id: props.orgId
+    }
+
+    if (existingId.value) {
+      await api.put(`${apiBase}/${existingId.value}`, {
+        is_authorized: isAuthorized,
+        job_management_value_cash_id: isAuthorized ? (form.value.job_management_value_cash_id || '') : '',
+        job_management_value_authority_id: form.value.job_management_value_authority_id || '',
+        job_management_value_impact_id: form.value.job_management_value_impact_id || ''
+      })
+    } else {
+      const res = await api.post(apiBase, payload)
+      existingId.value = res.data?.data?.id || ''
+    }
+
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('common.saved'), life: 2000 })
+    emit('saved')
+  } catch (err) {
+    const ve = getValidationErrors(err)
+    if (Object.keys(ve).length > 0) {
+      errors.value = ve
+      errorMsg.value = Object.values(ve).join(', ')
+    } else {
+      errorMsg.value = err?.response?.data?.error?.message || err.message || t('message.operation_failed')
+    }
+  } finally {
+    saving.value = false
+  }
+}
+
+async function handleDelete() {
+  if (!existingId.value) return
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await api.delete(`${apiBase}/${existingId.value}`)
+    deleteVisible.value = false
+    existingId.value = ''
+    form.value.is_authorized = false
+    form.value.job_management_value_cash_id = ''
+    form.value.job_management_value_authority_id = ''
+    form.value.job_management_value_impact_id = ''
+    emit('saved')
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.deleted'), life: 2000 })
+  } catch (err) {
+    deleteError.value = err?.response?.data?.error?.message || t('message.operation_failed')
+  } finally {
+    deleting.value = false
+  }
+}
+
+onMounted(async () => {
+  try {
+    await Promise.all([loadOptions(), loadData()])
+  } finally {
+    // Skeleton ditutup setelah master options & record data selesai dimuat
+    loading.value = false
+  }
+})
 </script>

@@ -41,6 +41,7 @@
           :org-id="orgId"
           :org-name="orgName"
           :org-code="orgCode"
+          :org-summary-id="orgSummaryId"
           :org-grading-id="orgGradingId"
           :org-job-family-id="orgJobFamilyId"
           :grading-options="gradingOptions"
@@ -92,6 +93,7 @@ const sectionSaved = ref(Array(15).fill(false))
 
 const orgName = ref('')
 const orgCode = ref('')
+const orgSummaryId = ref('')
 const orgGradingId = ref('')
 const orgJobFamilyId = ref('')
 const gradingOptions = ref([])
@@ -105,15 +107,15 @@ const sections = [
   { labelKey: 'job_management.objectives', icon: 'pi pi-bullseye', comp: JobObjectiveSection },
   { labelKey: 'job_management.responsibilities_title', icon: 'pi pi-list-check', comp: JobResponsibilitySection },
   { labelKey: 'job_management.education_experience', icon: 'pi pi-graduation-cap', comp: JobEduExpSection },
-  { labelKey: 'job_management.hr_authorities', icon: 'pi pi-users', comp: JobHRAuthoritySection },
-  { labelKey: 'job_management.op_authorities', icon: 'pi pi-cog', comp: JobOpAuthoritySection },
+  { labelKey: 'job_management.potency_competencies', icon: 'pi pi-star', comp: JobPotencySection },
+  { labelKey: 'job_management.financials', icon: 'pi pi-money-bill', comp: JobFinancialSection },
+  { labelKey: 'job_management.assets', icon: 'pi pi-box', comp: JobAssetSection },
+  { labelKey: 'job_management.subordinate_controls', icon: 'pi pi-sitemap', comp: JobSubordinateSection },
+  { labelKey: 'job_management.relationships', icon: 'pi pi-share-alt', comp: JobRelationshipSection },
   { labelKey: 'job_management.activities', icon: 'pi pi-bolt', comp: JobActivitySection },
   { labelKey: 'job_management.risks', icon: 'pi pi-exclamation-triangle', comp: JobRiskSection },
-  { labelKey: 'job_management.relationships', icon: 'pi pi-share-alt', comp: JobRelationshipSection },
-  { labelKey: 'job_management.subordinate_controls', icon: 'pi pi-sitemap', comp: JobSubordinateSection },
-  { labelKey: 'job_management.assets', icon: 'pi pi-box', comp: JobAssetSection },
-  { labelKey: 'job_management.financials', icon: 'pi pi-money-bill', comp: JobFinancialSection },
-  { labelKey: 'job_management.potency_competencies', icon: 'pi pi-star', comp: JobPotencySection },
+  { labelKey: 'job_management.hr_authorities', icon: 'pi pi-users', comp: JobHRAuthoritySection },
+  { labelKey: 'job_management.op_authorities', icon: 'pi pi-cog', comp: JobOpAuthoritySection },
   { labelKey: 'job_management.competency_groups', icon: 'pi pi-chart-pie', comp: JobCompetencyGroupSection },
   { labelKey: 'job_management.scores', icon: 'pi pi-calculator', comp: JobScoreSection },
 ]
@@ -162,6 +164,7 @@ async function loadOrgInfo() {
     if (data) {
       orgName.value = data.nomenclature || ''
       orgCode.value = data.full_code || data.code || ''
+      orgSummaryId.value = data.organization_summary_id || ''
       orgGradingId.value = data.grading_id || ''
       orgJobFamilyId.value = data.job_family_id || ''
     }
@@ -190,7 +193,7 @@ async function loadRefData() {
       map[v.type].push({ label: `Lv.${v.level} — ${v.descriptions || ''}`, value: v.id, level: v.level })
     })
     jobValueMap.value = map
-    competencyOptions.value = (compRes.data?.data || []).map(c => ({ label: c.name || c.code, value: c.id }))
+    competencyOptions.value = (compRes.data?.data || []).map(c => ({ label: c.name || c.code, value: c.id, field: c.field || '', definition: c.definition || '' }))
   } catch { /* ignore */ }
 }
 

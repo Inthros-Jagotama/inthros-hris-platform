@@ -167,31 +167,30 @@ func (r *JobResponsibility) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 // 9.7 Job Management Education Experiences (Pendidikan & Pengalaman)
 // =========================================================================
-// Terkait ke master module setting:	//   EducationID      → job_management_values.id (type=education) — Pendidikan
-	//   ExperienceID     → job_management_values.id (type=experience) — Pengalaman Kerja
-	//   EducationMajorID → education_majors.id (Jurusan)
-	//   JobFamilyID      → job_families.id     (Bidang Pekerjaan)
+// Terkait ke master module setting:
+//   EducationID   → job_management_values.id (type=education) — Pendidikan
+//   ExperienceID  → job_management_values.id (type=experience) — Pengalaman Kerja
+//   Jurusan        → many-to-many via job_management_majors (education_majors.id)
+//   Bidang Pekerjaan → many-to-many via job_management_job_family (job_families.id)
 type JobEducationExperience struct {
-	ID               uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
-	OrganizationID   *uuid.UUID `gorm:"type:char(36);index" json:"organization_id,omitempty"`
-	Nomenclature     string     `gorm:"type:varchar(50);not null" json:"nomenclature"`
-	FullCode         string     `gorm:"type:varchar(20);not null" json:"full_code"`
-	EducationID      *uuid.UUID `gorm:"type:char(36);index" json:"education_id,omitempty"`
-	EducationMajorID *uuid.UUID `gorm:"type:char(36);index" json:"education_major_id,omitempty"`
-	JobFamilyID      *uuid.UUID `gorm:"type:char(36);index" json:"job_family_id,omitempty"`
-	ExperienceID     *uuid.UUID `gorm:"type:char(36);index" json:"experience_id,omitempty"`
-	CreatedBy        *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
-	UpdatedBy        *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
+	ID             uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	OrganizationID *uuid.UUID `gorm:"type:char(36);index" json:"organization_id,omitempty"`
+	Nomenclature   string     `gorm:"type:varchar(50);not null" json:"nomenclature"`
+	FullCode       string     `gorm:"type:varchar(20);not null" json:"full_code"`
+	EducationID    *uuid.UUID `gorm:"type:char(36);index" json:"education_id,omitempty"`
+	ExperienceID   *uuid.UUID `gorm:"type:char(36);index" json:"experience_id,omitempty"`
+	CreatedBy      *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
+	UpdatedBy      *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 
 	// Relasi untuk menampilkan nama:
 	//   Education / Experience → job_management_values (di-preload dengan scope type)
-	//   EducationMajor / JobFamily → master settings
-	Education      *JobValue              `gorm:"foreignKey:EducationID" json:"-"`
-	Experience     *JobValue              `gorm:"foreignKey:ExperienceID" json:"-"`
-	EducationMajor *setting.EducationMajor `gorm:"foreignKey:EducationMajorID" json:"-"`
-	JobFamily      *setting.JobFamily      `gorm:"foreignKey:JobFamilyID" json:"-"`
+	//   Jurusan & Bidang Pekerjaan → tabel pivot (multiple select)
+	Education  *JobValue                 `gorm:"foreignKey:EducationID" json:"-"`
+	Experience *JobValue                 `gorm:"foreignKey:ExperienceID" json:"-"`
+	Majors     []JobManagementMajor      `gorm:"foreignKey:JobEducationExperienceID" json:"majors,omitempty"`
+	JobFamilies []JobManagementJobFamily `gorm:"foreignKey:JobEducationExperienceID" json:"job_families,omitempty"`
 }
 
 func (JobEducationExperience) TableName() string { return "job_management_education_experiences" }
@@ -199,6 +198,48 @@ func (JobEducationExperience) TableName() string { return "job_management_educat
 func (e *JobEducationExperience) BeforeCreate(tx *gorm.DB) error {
 	if e.ID == uuid.Nil {
 		e.ID = uuid.New()
+	}
+	return nil
+}
+
+// JobManagementMajor — pivot table relasi job_management_education_experiences
+// dengan master jurusan (education_majors). Satu record boleh punya banyak jurusan.
+type JobManagementMajor struct {
+	ID                           uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	JobEducationExperienceID     uuid.UUID  `gorm:"column:job_management_education_experience_id;type:char(36);not null;index" json:"job_management_education_experience_id,omitempty"`
+	EducationMajorID             uuid.UUID  `gorm:"type:char(36);not null;index" json:"education_major_id,omitempty"`
+	CreatedAt                    time.Time  `json:"created_at"`
+	UpdatedAt                    time.Time  `json:"updated_at"`
+
+	EducationMajor *setting.EducationMajor `gorm:"foreignKey:EducationMajorID" json:"-"`
+}
+
+func (JobManagementMajor) TableName() string { return "job_management_majors" }
+
+func (m *JobManagementMajor) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil {
+		m.ID = uuid.New()
+	}
+	return nil
+}
+
+// JobManagementJobFamily — pivot table relasi job_management_education_experiences
+// dengan master bidang pekerjaan (job_families). Satu record boleh punya banyak bidang pekerjaan.
+type JobManagementJobFamily struct {
+	ID                           uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	JobEducationExperienceID     uuid.UUID  `gorm:"column:job_management_education_experience_id;type:char(36);not null;index" json:"job_management_education_experience_id,omitempty"`
+	JobFamilyID                  uuid.UUID  `gorm:"type:char(36);not null;index" json:"job_family_id,omitempty"`
+	CreatedAt                    time.Time  `json:"created_at"`
+	UpdatedAt                    time.Time  `json:"updated_at"`
+
+	JobFamily *setting.JobFamily `gorm:"foreignKey:JobFamilyID" json:"-"`
+}
+
+func (JobManagementJobFamily) TableName() string { return "job_management_job_family" }
+
+func (jf *JobManagementJobFamily) BeforeCreate(tx *gorm.DB) error {
+	if jf.ID == uuid.Nil {
+		jf.ID = uuid.New()
 	}
 	return nil
 }
@@ -324,6 +365,47 @@ func (r *JobRelationship) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+// =========================================================================
+// 9.12b Job Management Relationship Details (Detail Hubungan Kerja)
+// =========================================================================
+// Rincian aktivitas per job_management_relationships.
+//   organization_id → organizations.id (organisasi dengan summary yang sama —
+//                     bagian dari "Hubungan Kerja")
+//   activity        → deskripsi "Aktivitas Hubungan Dalam Rangka" (Ruang Lingkup)
+type JobManagementRelationshipDetail struct {
+	ID                        uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	JobManagementRelationshipID uuid.UUID `gorm:"column:job_management_relationship_id;type:char(36);not null;index" json:"job_management_relationship_id,omitempty"`
+	OrganizationID            *uuid.UUID `gorm:"type:char(36);index" json:"organization_id,omitempty"`
+	Activity                  *string    `gorm:"type:text" json:"activity,omitempty"`
+	CreatedBy                 *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
+	UpdatedBy                 *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
+	CreatedAt                 time.Time  `json:"created_at"`
+	UpdatedAt                 time.Time  `json:"updated_at"`
+
+	// Relasi untuk menampilkan nama organisasi pada detail
+	Organization *OrganizationRef `gorm:"foreignKey:OrganizationID" json:"-"`
+}
+
+func (JobManagementRelationshipDetail) TableName() string { return "job_management_relationship_details" }
+
+func (d *JobManagementRelationshipDetail) BeforeCreate(tx *gorm.DB) error {
+	if d.ID == uuid.Nil {
+		d.ID = uuid.New()
+	}
+	return nil
+}
+
+// OrganizationRef — representasi minimal organisasi untuk keperluan relasi detail
+// (menggunakan tabel organizations tanpa menimbulkan circular import).
+type OrganizationRef struct {
+	ID           string         `gorm:"column:id;type:char(36);primaryKey" json:"id"`
+	Nomenclature string         `gorm:"column:nomenclature;type:varchar(255)" json:"nomenclature,omitempty"`
+	FullCode     string         `gorm:"column:full_code;type:varchar(50)" json:"full_code,omitempty"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+}
+
+func (OrganizationRef) TableName() string { return "organizations" }
 
 // =========================================================================
 // 9.13 Job Management Subordinate Controls (Bawahan yang Dikendalikan)

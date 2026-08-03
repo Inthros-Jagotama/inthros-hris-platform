@@ -25,27 +25,108 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "", "Path to configuration file")
-
-	provisionCmd := flag.NewFlagSet("provision", flag.ExitOnError)
-	provisionCmd.String("config", "", "Path to configuration file")
-	companyID := provisionCmd.String("company", "", "Company ID to provision")
-	dbName := provisionCmd.String("db-name", "", "Tenant database name (optional, generated from company slug if empty)")
-
 	if len(os.Args) < 2 {
 		printUsage()
 		os.Exit(1)
 	}
 
-	// Load config for all commands
-	cfg, err := config.Load(*configPath)
+	cmd := os.Args[1]
+	args := os.Args[2:]
+
+	// Setiap subcommand memuat konfigurasi sendiri setelah parsing flag-nya,
+	// sehingga flag --config bisa diberikan per subcommand:
+	//   installer migrate --company=<id> --config=./config/config.yaml
+	// Jika --config tidak diberikan, config.Load() mencari file config di
+	// direktori saat ini dan ./config (mis. ./config/config.yaml saat
+	// dijalankan dari folder backend).
+	switch cmd {
+	case "provision":
+		fs := flag.NewFlagSet("provision", flag.ExitOnError)
+		cfgPath := fs.String("config", "", "Path to configuration file")
+		companyID := fs.String("company", "", "Company ID to provision")
+		dbName := fs.String("db-name", "", "Tenant database name (optional, generated from company slug if empty)")
+		fs.Parse(args)
+
+		l, dbManager := initApp(*cfgPath)
+		defer l.Sync()
+		defer dbManager.CloseAll()
+		handleProvision(l, dbManager, *companyID, *dbName)
+
+	case "migrate":
+		fs := flag.NewFlagSet("migrate", flag.ExitOnError)
+		cfgPath := fs.String("config", "", "Path to configuration file")
+		companyID := fs.String("company", "", "Company ID to migrate")
+		fs.Parse(args)
+
+		l, dbManager := initApp(*cfgPath)
+		defer l.Sync()
+		defer dbManager.CloseAll()
+		handleTenantMigrate(l, dbManager, *companyID)
+
+	case "encrypt-passwords":
+		fs := flag.NewFlagSet("encrypt-passwords", flag.ExitOnError)
+		cfgPath := fs.String("config", "", "Path to configuration file")
+		fs.Parse(args)
+
+		l, dbManager := initApp(*cfgPath)
+		defer l.Sync()
+		defer dbManager.CloseAll()
+		handleEncryptPasswords(l, dbManager)
+
+	case "seed-modules":
+		fs := flag.NewFlagSet("seed-modules", flag.ExitOnError)
+		cfgPath := fs.String("config", "", "Path to configuration file")
+		fs.Parse(args)
+
+		l, dbManager := initApp(*cfgPath)
+		defer l.Sync()
+		defer dbManager.CloseAll()
+		handleSeedModules(l, dbManager)
+
+	case "seed-data":
+		fs := flag.NewFlagSet("seed-data", flag.ExitOnError)
+		cfgPath := fs.String("config", "", "Path to configuration file")
+		seedCompanyID := fs.String("company", "", "Company ID to seed tenant master data (optional)")
+		fs.Parse(args)
+
+		l, dbManager := initApp(*cfgPath)
+		defer l.Sync()
+		defer dbManager.CloseAll()
+		if *seedCompanyID != "" {
+			// Seed ke tenant database
+			tenantDB, err := dbManager.TenantDB(*seedCompanyID)
+			if err != nil {
+				l.Fatal("Failed to connect to tenant database", zap.Error(err))
+			}
+			if err := tenantseed.SeedTenantMasterData(tenantDB, l); err != nil {
+				l.Fatal("Failed to seed tenant master data", zap.Error(err))
+			}
+			if err := tenantseed.SeedTenantRBAC(tenantDB, l); err != nil {
+				l.Fatal("Failed to seed tenant RBAC defaults", zap.Error(err))
+			}
+			l.Info("Tenant master data & RBAC seeding completed", zap.String("company_id", *seedCompanyID))
+		} else {
+			l.Info("No company specified. Use --company=<id> to seed a specific tenant.")
+			l.Info("Example: installer seed-data --company=<uuid> --config=./config/config.yaml")
+		}
+
+	default:
+		printUsage()
+		os.Exit(1)
+	}
+}
+
+// initApp memuat konfigurasi, logger, dan database manager untuk satu subcommand.
+// configPath kosong → config.Load() mencari file config di direktori saat ini
+// dan ./config (mis. ./config/config.yaml saat dijalankan dari folder backend).
+func initApp(configPath string) (*zap.Logger, *database.Manager) {
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
 	// Init logger
 	l := logger.New(cfg.Logger.Level, cfg.Logger.Format, "hris-installer")
-	defer l.Sync()
 
 	// Init database manager
 	dbManager, err := database.NewManager(&database.Config{
@@ -73,66 +154,19 @@ func main() {
 	if err != nil {
 		l.Fatal("Failed to initialize database manager", zap.Error(err))
 	}
-	defer dbManager.CloseAll()
 
-	switch os.Args[1] {
-	case "provision":
-		provisionCmd.Parse(os.Args[2:])
-		handleProvision(l, dbManager, *companyID, *dbName)
-
-	case "migrate":
-		if len(os.Args) < 3 {
-			log.Fatal("Usage: installer migrate --company=<id>")
-		}
-		migrateCmd := flag.NewFlagSet("migrate", flag.ExitOnError)
-		migrateCompanyID := migrateCmd.String("company", "", "Company ID to migrate")
-		migrateCmd.Parse(os.Args[2:])
-		handleTenantMigrate(l, dbManager, *migrateCompanyID)
-
-	case "encrypt-passwords":
-		handleEncryptPasswords(l, dbManager)
-
-	case "seed-modules":
-		handleSeedModules(l, dbManager)
-
-	case "seed-data":
-		seedCmd := flag.NewFlagSet("seed-data", flag.ExitOnError)
-		seedCmd.String("config", "", "Path to configuration file")
-		seedCompanyID := seedCmd.String("company", "", "Company ID to seed tenant master data (optional)")
-		seedCmd.Parse(os.Args[2:])
-		if *seedCompanyID != "" {
-			// Seed ke tenant database
-			tenantDB, err := dbManager.TenantDB(*seedCompanyID)
-			if err != nil {
-				l.Fatal("Failed to connect to tenant database", zap.Error(err))
-			}
-			if err := tenantseed.SeedTenantMasterData(tenantDB, l); err != nil {
-				l.Fatal("Failed to seed tenant master data", zap.Error(err))
-			}
-			if err := tenantseed.SeedTenantRBAC(tenantDB, l); err != nil {
-				l.Fatal("Failed to seed tenant RBAC defaults", zap.Error(err))
-			}
-			l.Info("Tenant master data & RBAC seeding completed", zap.String("company_id", *seedCompanyID))
-		} else {
-			l.Info("No company specified. Use --company=<id> to seed a specific tenant.")
-			l.Info("Example: installer --config=./config/config.yaml seed-data --company=<uuid>")
-		}
-
-	default:
-		printUsage()
-		os.Exit(1)
-	}
+	return l, dbManager
 }
 
 func printUsage() {
 	fmt.Println("HRIS Platform CLI Installer")
 	fmt.Println("")
 	fmt.Println("Usage:")
-	fmt.Println("  installer [--config=<path>] provision --company=<id> [--db-name=<name>]")
-	fmt.Println("  installer [--config=<path>] migrate --company=<id>")
-	fmt.Println("  installer [--config=<path>] encrypt-passwords")
-	fmt.Println("  installer [--config=<path>] seed-modules")
-	fmt.Println("  installer [--config=<path>] seed-data --company=<id>")
+	fmt.Println("  installer provision --company=<id> [--db-name=<name>] [--config=<path>]")
+	fmt.Println("  installer migrate --company=<id> [--config=<path>]")
+	fmt.Println("  installer encrypt-passwords [--config=<path>]")
+	fmt.Println("  installer seed-modules [--config=<path>]")
+	fmt.Println("  installer seed-data [--company=<id>] [--config=<path>]")
 	fmt.Println("")
 	fmt.Println("Commands:")
 	fmt.Println("  provision          Provision a new tenant (create database + run migrations + seed data)")

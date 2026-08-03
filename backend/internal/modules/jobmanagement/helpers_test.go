@@ -27,17 +27,23 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&JobIdentification{},
 		&JobResponsibility{},
 		&JobEducationExperience{},
+		&JobManagementMajor{},
+		&JobManagementJobFamily{},
 		&JobHRAuthority{},
 		&JobOperationalAuthority{},
 		&JobWorkingActivity{},
 		&JobWorkingRisk{},
 		&JobRelationship{},
+		&JobManagementRelationshipDetail{},
 		&JobSubordinateControl{},
 		&JobAsset{},
 		&JobFinancial{},
 		&JobPotencyCompetency{},
 		&JobScore{},
 		&JobCompetencyGroup{},
+		// Tabel organizations minimal agar Preload("Organization") pada
+		// JobManagementRelationshipDetail teruji (organizations asli di migrasi tenant).
+		&OrganizationRef{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
 	}

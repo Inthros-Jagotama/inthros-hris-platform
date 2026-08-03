@@ -15,13 +15,16 @@ CREATE TABLE IF NOT EXISTS career_talent_maps (
     notes             TEXT         NULL,
     assessor_id       CHAR(36)     NULL,
     assessed_at       DATE         NOT NULL,
-    created_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    deleted_at        TIMESTAMP(6) NULL DEFAULT NULL,
-    INDEX idx_ctm_employee (employee_id),
-    INDEX idx_ctm_period (period),
-    INDEX idx_ctm_deleted_at (deleted_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at        TIMESTAMP NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ctm_employee ON career_talent_maps (employee_id);
+
+CREATE INDEX IF NOT EXISTS idx_ctm_period ON career_talent_maps (period);
+
+CREATE INDEX IF NOT EXISTS idx_ctm_deleted_at ON career_talent_maps (deleted_at);
 
 -- =========================================================================
 -- Career Interests (Employee Career Aspirations)
@@ -36,12 +39,14 @@ CREATE TABLE IF NOT EXISTS career_interests (
     readiness_level   VARCHAR(20)  NULL,
     is_active         BOOLEAN      NOT NULL DEFAULT TRUE,
     recorded_at       DATE         NOT NULL,
-    created_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    deleted_at        TIMESTAMP(6) NULL DEFAULT NULL,
-    INDEX idx_ci_employee (employee_id),
-    INDEX idx_ci_deleted_at (deleted_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at        TIMESTAMP NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ci_employee ON career_interests (employee_id);
+
+CREATE INDEX IF NOT EXISTS idx_ci_deleted_at ON career_interests (deleted_at);
 
 -- =========================================================================
 -- Career Paths (Career Progression Routes)
@@ -56,13 +61,16 @@ CREATE TABLE IF NOT EXISTS career_paths (
     competencies      TEXT         NULL,
     certifications    TEXT         NULL,
     is_active         BOOLEAN      NOT NULL DEFAULT TRUE,
-    created_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    deleted_at        TIMESTAMP(6) NULL DEFAULT NULL,
-    INDEX idx_cp_source (source_title_id),
-    INDEX idx_cp_target (target_title_id),
-    INDEX idx_cp_deleted_at (deleted_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at        TIMESTAMP NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cp_source ON career_paths (source_title_id);
+
+CREATE INDEX IF NOT EXISTS idx_cp_target ON career_paths (target_title_id);
+
+CREATE INDEX IF NOT EXISTS idx_cp_deleted_at ON career_paths (deleted_at);
 
 -- =========================================================================
 -- Career Succession Plans (Succession Planning for Key Positions)
@@ -77,10 +85,13 @@ CREATE TABLE IF NOT EXISTS career_succession_plans (
     development_plan  TEXT         NULL,
     notes             TEXT         NULL,
     status            VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
-    created_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    deleted_at        TIMESTAMP(6) NULL DEFAULT NULL,
-    INDEX idx_csp_position (position_id),
-    INDEX idx_csp_successor (successor_id),
-    INDEX idx_csp_deleted_at (deleted_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at        TIMESTAMP NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_csp_position ON career_succession_plans (position_id);
+
+CREATE INDEX IF NOT EXISTS idx_csp_successor ON career_succession_plans (successor_id);
+
+CREATE INDEX IF NOT EXISTS idx_csp_deleted_at ON career_succession_plans (deleted_at);

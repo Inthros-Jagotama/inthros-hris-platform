@@ -122,22 +122,22 @@ type UpdateJobResponsibilityRequest struct {
 // =========================================================================
 
 type CreateJobEducationExperienceRequest struct {
-	OrganizationID    string  `json:"organization_id" binding:"required"`
-	Nomenclature      string  `json:"nomenclature" binding:"required,max=50"`
-	FullCode          string  `json:"full_code" binding:"required,max=20"`
-	EducationID       *string `json:"education_id"`
-	ExperienceID      *string `json:"experience_id"`
-	EducationMajorID  *string `json:"education_major_id"`
-	JobFamilyID       *string `json:"job_family_id"`
+	OrganizationID   string   `json:"organization_id" binding:"required"`
+	Nomenclature     string   `json:"nomenclature" binding:"required,max=50"`
+	FullCode         string   `json:"full_code" binding:"required,max=20"`
+	EducationID      *string  `json:"education_id"`
+	ExperienceID     *string  `json:"experience_id"`
+	EducationMajorID []string `json:"education_major_id"`
+	JobFamilyID      []string `json:"job_family_id"`
 }
 
 type UpdateJobEducationExperienceRequest struct {
-	Nomenclature     *string `json:"nomenclature" binding:"omitempty,max=50"`
-	FullCode         *string `json:"full_code" binding:"omitempty,max=20"`
-	EducationID      *string `json:"education_id"`
-	ExperienceID     *string `json:"experience_id"`
-	EducationMajorID *string `json:"education_major_id"`
-	JobFamilyID      *string `json:"job_family_id"`
+	Nomenclature     *string  `json:"nomenclature" binding:"omitempty,max=50"`
+	FullCode         *string  `json:"full_code" binding:"omitempty,max=20"`
+	EducationID      *string  `json:"education_id"`
+	ExperienceID     *string  `json:"experience_id"`
+	EducationMajorID []string `json:"education_major_id"`
+	JobFamilyID      []string `json:"job_family_id"`
 }
 
 // =========================================================================
@@ -227,6 +227,20 @@ type UpdateJobRelationshipRequest struct {
 	FullCode                        *string `json:"full_code" binding:"omitempty,max=20"`
 	JobManagementValueRelationshipID *string `json:"job_management_value_relationship_id"`
 	JobManagementValueFrequencyID   *string `json:"job_management_value_frequency_id"`
+}
+
+// =========================================================================
+// Request DTOs — Job Relationship Details
+// =========================================================================
+
+type CreateJobRelationshipDetailRequest struct {
+	OrganizationID *string `json:"organization_id"`
+	Activity       *string `json:"activity"`
+}
+
+type UpdateJobRelationshipDetailRequest struct {
+	OrganizationID *string `json:"organization_id"`
+	Activity       *string `json:"activity"`
 }
 
 // =========================================================================
@@ -406,20 +420,18 @@ type JobResponsibilityResponse struct {
 }
 
 type JobEducationExperienceResponse struct {
-	ID                 string    `json:"id"`
-	OrganizationID     string    `json:"organization_id,omitempty"`
-	Nomenclature       string    `json:"nomenclature"`
-	FullCode           string    `json:"full_code"`
-	EducationID        string    `json:"education_id,omitempty"`
-	EducationName      string    `json:"education_name,omitempty"`
-	ExperienceID       string    `json:"experience_id,omitempty"`
-	ExperienceName     string    `json:"experience_name,omitempty"`
-	EducationMajorID   string    `json:"education_major_id,omitempty"`
-	EducationMajorName string    `json:"education_major_name,omitempty"`
-	JobFamilyID        string    `json:"job_family_id,omitempty"`
-	JobFamilyName      string    `json:"job_family_name,omitempty"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	ID               string    `json:"id"`
+	OrganizationID   string    `json:"organization_id,omitempty"`
+	Nomenclature     string    `json:"nomenclature"`
+	FullCode         string    `json:"full_code"`
+	EducationID      string    `json:"education_id,omitempty"`
+	EducationName    string    `json:"education_name,omitempty"`
+	ExperienceID     string    `json:"experience_id,omitempty"`
+	ExperienceName   string    `json:"experience_name,omitempty"`
+	EducationMajorID []string  `json:"education_major_id,omitempty"`
+	JobFamilyID      []string  `json:"job_family_id,omitempty"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 type JobHRAuthorityResponse struct {
@@ -482,6 +494,17 @@ type JobSubordinateControlResponse struct {
 	JobManagementValueID string   `json:"job_management_value_id,omitempty"`
 	CreatedAt           time.Time `json:"created_at"`
 	UpdatedAt           time.Time `json:"updated_at"`
+}
+
+type JobRelationshipDetailResponse struct {
+	ID                         string    `json:"id"`
+	JobManagementRelationshipID string   `json:"job_management_relationship_id,omitempty"`
+	OrganizationID             string    `json:"organization_id,omitempty"`
+	OrganizationName           string    `json:"organization_name,omitempty"`
+	OrganizationCode           string    `json:"organization_code,omitempty"`
+	Activity                   string    `json:"activity,omitempty"`
+	CreatedAt                  time.Time `json:"created_at"`
+	UpdatedAt                  time.Time `json:"updated_at"`
 }
 
 type JobAssetResponse struct {
@@ -709,17 +732,21 @@ func toJobEducationExperienceResponse(e *JobEducationExperience) JobEducationExp
 	if e.Experience != nil && e.Experience.Descriptions != nil {
 		r.ExperienceName = *e.Experience.Descriptions
 	}
-	if e.EducationMajorID != nil {
-		r.EducationMajorID = e.EducationMajorID.String()
+	// Jurusan (multiple) — via pivot job_management_majors
+	if len(e.Majors) > 0 {
+		ids := make([]string, 0, len(e.Majors))
+		for _, m := range e.Majors {
+			ids = append(ids, m.EducationMajorID.String())
+		}
+		r.EducationMajorID = ids
 	}
-	if e.EducationMajor != nil {
-		r.EducationMajorName = e.EducationMajor.Name
-	}
-	if e.JobFamilyID != nil {
-		r.JobFamilyID = e.JobFamilyID.String()
-	}
-	if e.JobFamily != nil {
-		r.JobFamilyName = e.JobFamily.Name
+	// Bidang Pekerjaan (multiple) — via pivot job_management_job_family
+	if len(e.JobFamilies) > 0 {
+		ids := make([]string, 0, len(e.JobFamilies))
+		for _, jf := range e.JobFamilies {
+			ids = append(ids, jf.JobFamilyID.String())
+		}
+		r.JobFamilyID = ids
 	}
 	return r
 }
@@ -813,6 +840,26 @@ func toJobRelationshipResponse(r *JobRelationship) JobRelationshipResponse {
 		resp.JobManagementValueFrequencyID = r.JobManagementValueFrequencyID.String()
 	}
 	return resp
+}
+
+func toJobRelationshipDetailResponse(d *JobManagementRelationshipDetail) JobRelationshipDetailResponse {
+	r := JobRelationshipDetailResponse{
+		ID:                         d.ID.String(),
+		JobManagementRelationshipID: d.JobManagementRelationshipID.String(),
+		CreatedAt:                  d.CreatedAt,
+		UpdatedAt:                  d.UpdatedAt,
+	}
+	if d.OrganizationID != nil {
+		r.OrganizationID = d.OrganizationID.String()
+	}
+	if d.Activity != nil {
+		r.Activity = *d.Activity
+	}
+	if d.Organization != nil {
+		r.OrganizationName = d.Organization.Nomenclature
+		r.OrganizationCode = d.Organization.FullCode
+	}
+	return r
 }
 
 func toJobSubordinateControlResponse(c *JobSubordinateControl) JobSubordinateControlResponse {

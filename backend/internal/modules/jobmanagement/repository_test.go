@@ -438,21 +438,61 @@ func TestRepository_JobEducationExperienceCRUD(t *testing.T) {
 	repo := NewRepository(dbResolver)
 	ctx := context.Background()
 
+	major1 := uuid.New()
+	major2 := uuid.New()
+	family1 := uuid.New()
+
 	e := &JobEducationExperience{
 		Nomenclature: "S1 Minimum",
 		FullCode:     "EDU-001",
+		Majors: []JobManagementMajor{
+			{EducationMajorID: major1},
+			{EducationMajorID: major2},
+		},
+		JobFamilies: []JobManagementJobFamily{
+			{JobFamilyID: family1},
+		},
 	}
 	if err := repo.CreateJobEducationExperience(ctx, e); err != nil {
 		t.Fatalf("CreateJobEducationExperience failed: %v", err)
 	}
 
-	found, _ := repo.FindJobEducationExperienceByID(ctx, e.ID)
+	found, err := repo.FindJobEducationExperienceByID(ctx, e.ID)
+	if err != nil {
+		t.Fatalf("FindJobEducationExperienceByID failed: %v", err)
+	}
 	if found.Nomenclature != "S1 Minimum" {
 		t.Errorf("expected 'S1 Minimum', got '%s'", found.Nomenclature)
 	}
+	// Pivot jurusan & bidang pekerjaan tersimpan
+	if len(found.Majors) != 2 {
+		t.Errorf("expected 2 majors, got %d", len(found.Majors))
+	}
+	if len(found.JobFamilies) != 1 {
+		t.Errorf("expected 1 job family, got %d", len(found.JobFamilies))
+	}
 
+	// Update: ganti daftar jurusan & bidang pekerjaan (hapus + simpan ulang)
 	found.Nomenclature = "S2 Minimum"
-	repo.UpdateJobEducationExperience(ctx, found)
+	found.Majors = []JobManagementMajor{{EducationMajorID: major2}}
+	found.JobFamilies = nil
+	if err := repo.UpdateJobEducationExperience(ctx, found); err != nil {
+		t.Fatalf("UpdateJobEducationExperience failed: %v", err)
+	}
+
+	updated, err := repo.FindJobEducationExperienceByID(ctx, e.ID)
+	if err != nil {
+		t.Fatalf("FindJobEducationExperienceByID (after update) failed: %v", err)
+	}
+	if updated.Nomenclature != "S2 Minimum" {
+		t.Errorf("expected 'S2 Minimum', got '%s'", updated.Nomenclature)
+	}
+	if len(updated.Majors) != 1 || updated.Majors[0].EducationMajorID != major2 {
+		t.Errorf("expected 1 major (major2), got %d", len(updated.Majors))
+	}
+	if len(updated.JobFamilies) != 0 {
+		t.Errorf("expected 0 job families after clear, got %d", len(updated.JobFamilies))
+	}
 
 	// List
 	all, total, _ := repo.FindAllJobEducationExperiences(ctx, 1, 20, nil)
@@ -460,10 +500,20 @@ func TestRepository_JobEducationExperienceCRUD(t *testing.T) {
 		t.Errorf("expected 1, got total=%d len=%d", total, len(all))
 	}
 
-	repo.DeleteJobEducationExperience(ctx, e.ID)
-	_, err := repo.FindJobEducationExperienceByID(ctx, e.ID)
+	// Delete: relasi pivot ikut terhapus
+	if err := repo.DeleteJobEducationExperience(ctx, e.ID); err != nil {
+		t.Fatalf("DeleteJobEducationExperience failed: %v", err)
+	}
+	_, err = repo.FindJobEducationExperienceByID(ctx, e.ID)
 	if err == nil {
 		t.Fatal("expected error after deletion")
+	}
+
+	var orphanCount int64
+	db, _ := dbResolver(ctx)
+	db.Model(&JobManagementMajor{}).Where("job_management_education_experience_id = ?", e.ID.String()).Count(&orphanCount)
+	if orphanCount != 0 {
+		t.Errorf("expected 0 orphan majors after delete, got %d", orphanCount)
 	}
 }
 
@@ -655,6 +705,117 @@ func TestRepository_JobRelationshipCRUD(t *testing.T) {
 	_, err := repo.FindJobRelationshipByID(ctx, r.ID)
 	if err == nil {
 		t.Fatal("expected error after deletion")
+	}
+}
+
+// =========================================================================
+// Job Relationship Detail CRUD Tests (9.12b)
+// =========================================================================
+
+func TestRepository_JobRelationshipDetailCRUD(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	rel := &JobRelationship{
+		Nomenclature: "Internal Coordination",
+		FullCode:     "REL-001",
+	}
+	if err := repo.CreateJobRelationship(ctx, rel); err != nil {
+		t.Fatalf("CreateJobRelationship failed: %v", err)
+	}
+
+	// Row organisasi nyata agar Preload("Organization") & organization_name teruji
+	orgID := uuid.New()
+	org := &OrganizationRef{
+		ID:           orgID.String(),
+		Nomenclature: "Divisi Keuangan",
+		FullCode:     "ORG-FIN-001",
+	}
+	if err := db.Create(org).Error; err != nil {
+		t.Fatalf("create test organization failed: %v", err)
+	}
+
+	// Create dua detail
+	d1 := &JobManagementRelationshipDetail{
+		JobManagementRelationshipID: rel.ID,
+		OrganizationID:             &orgID,
+		Activity:                   strPtr("Koordinasi dengan Divisi Keuangan"),
+	}
+	if err := repo.CreateJobRelationshipDetail(ctx, d1); err != nil {
+		t.Fatalf("CreateJobRelationshipDetail failed: %v", err)
+	}
+	d2 := &JobManagementRelationshipDetail{
+		JobManagementRelationshipID: rel.ID,
+		Activity:                   strPtr("Pelaporan ke Direksi"),
+	}
+	if err := repo.CreateJobRelationshipDetail(ctx, d2); err != nil {
+		t.Fatalf("CreateJobRelationshipDetail (2) failed: %v", err)
+	}
+	if d1.ID == uuid.Nil || d2.ID == uuid.Nil {
+		t.Error("expected detail IDs to be generated")
+	}
+
+	// List by relationship
+	details, err := repo.FindAllJobRelationshipDetails(ctx, rel.ID)
+	if err != nil {
+		t.Fatalf("FindAllJobRelationshipDetails failed: %v", err)
+	}
+	if len(details) != 2 {
+		t.Errorf("expected 2 details, got %d", len(details))
+	}
+
+	// Find by ID
+	found, err := repo.FindJobRelationshipDetailByID(ctx, d1.ID)
+	if err != nil {
+		t.Fatalf("FindJobRelationshipDetailByID failed: %v", err)
+	}
+	if found.Activity == nil || *found.Activity != "Koordinasi dengan Divisi Keuangan" {
+		t.Errorf("unexpected activity: %v", found.Activity)
+	}
+	if found.OrganizationID == nil || *found.OrganizationID != orgID {
+		t.Errorf("expected organization_id %s, got %v", orgID, found.OrganizationID)
+	}
+	// Preload Organization → nama & kode organisasi tersedia
+	if found.Organization == nil || found.Organization.Nomenclature != "Divisi Keuangan" {
+		t.Errorf("expected preloaded organization name 'Divisi Keuangan', got %+v", found.Organization)
+	}
+
+	// Update
+	newActivity := "Koordinasi dengan Divisi SDM"
+	found.Activity = &newActivity
+	if err := repo.UpdateJobRelationshipDetail(ctx, found); err != nil {
+		t.Fatalf("UpdateJobRelationshipDetail failed: %v", err)
+	}
+	updated, _ := repo.FindJobRelationshipDetailByID(ctx, d1.ID)
+	if updated.Activity == nil || *updated.Activity != "Koordinasi dengan Divisi SDM" {
+		t.Errorf("expected updated activity, got %v", updated.Activity)
+	}
+	// Update tidak boleh merusak/menimpa relasi Organization (regresi: error MySQL
+	// 1364 'code doesn't have a default value' saat GORM ikut menyimpan OrganizationRef)
+	if updated.Organization == nil || updated.Organization.Nomenclature != "Divisi Keuangan" {
+		t.Errorf("expected organization intact after update, got %+v", updated.Organization)
+	}
+	// Baris organizations tidak boleh berubah/tetap ada satu
+	var orgCount int64
+	db.Model(&OrganizationRef{}).Where("id = ?", orgID.String()).Count(&orgCount)
+	if orgCount != 1 {
+		t.Errorf("expected organization row untouched, got count %d", orgCount)
+	}
+
+	// Delete
+	if err := repo.DeleteJobRelationshipDetail(ctx, d1.ID); err != nil {
+		t.Fatalf("DeleteJobRelationshipDetail failed: %v", err)
+	}
+	_, err = repo.FindJobRelationshipDetailByID(ctx, d1.ID)
+	if err == nil {
+		t.Fatal("expected error after deletion")
+	}
+
+	remaining, _ := repo.FindAllJobRelationshipDetails(ctx, rel.ID)
+	if len(remaining) != 1 {
+		t.Errorf("expected 1 remaining detail, got %d", len(remaining))
 	}
 }
 
