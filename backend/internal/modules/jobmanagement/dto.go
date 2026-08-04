@@ -42,8 +42,10 @@ type UpdateJobTitleSubRequest struct {
 type CreateJobValueRequest struct {
 	JobManagementTitleSubID *string `json:"job_management_title_sub_id"`
 	Type                    string  `json:"type" binding:"required"`
+	TypeGroup               *string `json:"type_group"`
 	Level                   *int    `json:"level"`
 	Descriptions            string  `json:"descriptions"`
+	DescriptionGroup        *string `json:"description_group"`
 	Note                    string  `json:"note"`
 	Sort                    *int    `json:"sort"`
 	RefID                   *string `json:"ref_id"`
@@ -51,13 +53,15 @@ type CreateJobValueRequest struct {
 }
 
 type UpdateJobValueRequest struct {
-	Type         *string `json:"type" binding:"omitempty"`
-	Level        *int    `json:"level"`
-	Descriptions *string `json:"descriptions"`
-	Note         *string `json:"note"`
-	Sort         *int    `json:"sort"`
-	RefID        *string `json:"ref_id"`
-	RefType      *string `json:"ref_type"`
+	Type             *string `json:"type" binding:"omitempty"`
+	TypeGroup        *string `json:"type_group"`
+	Level            *int    `json:"level"`
+	Descriptions     *string `json:"descriptions"`
+	DescriptionGroup *string `json:"description_group"`
+	Note             *string `json:"note"`
+	Sort             *int    `json:"sort"`
+	RefID            *string `json:"ref_id"`
+	RefType          *string `json:"ref_type"`
 }
 
 // =========================================================================
@@ -376,8 +380,10 @@ type JobValueResponse struct {
 	JobManagementTitleSubID    string    `json:"job_management_title_sub_id,omitempty"`
 	JobManagementTitleSubName  string    `json:"job_management_title_sub_name,omitempty"`
 	Type                       string    `json:"type"`
+	TypeGroup                  string    `json:"type_group,omitempty"`
 	Level                      int       `json:"level,omitempty"`
 	Descriptions               string    `json:"descriptions,omitempty"`
+	DescriptionGroup           string    `json:"description_group,omitempty"`
 	Note                       string    `json:"note,omitempty"`
 	Sort                       int       `json:"sort,omitempty"`
 	RefID                      string    `json:"ref_id,omitempty"`
@@ -550,6 +556,8 @@ type JobScoreResponse struct {
 	Components               string     `json:"components,omitempty"`
 	SubComponentPoints       string     `json:"sub_component_points,omitempty"`
 	CalculatedAt             *time.Time `json:"calculated_at,omitempty"`
+	IsComplete               bool       `json:"is_complete"`
+	CompletedAt              *time.Time `json:"completed_at,omitempty"`
 	CreatedAt                time.Time  `json:"created_at"`
 	UpdatedAt                time.Time  `json:"updated_at"`
 }
@@ -615,6 +623,42 @@ func toJobTitleSubResponse(s *JobTitleSub) JobTitleSubResponse {
 	return r
 }
 
+// =========================================================================
+// Response DTOs — Job Values Tree (grouped by type_group)
+// =========================================================================
+
+// JobValueTreeOption — option level dalam satu tipe (level + deskripsi)
+type JobValueTreeOption struct {
+	ID           string `json:"id"`
+	Level        int    `json:"level,omitempty"`
+	Descriptions string `json:"descriptions,omitempty"`
+}
+
+// JobValueTreeType — satu tipe dalam grup (label = description_group)
+type JobValueTreeType struct {
+	Type             string               `json:"type"`
+	DescriptionGroup string               `json:"description_group"`
+	Options          []JobValueTreeOption `json:"options"`
+}
+
+// JobValueTreeGroup — satu group (type_group) berisi daftar tipe.
+// DescriptionGroup bersifat per-tipe (mis. 'Kecerdasan', 'Innovation & Creativity');
+// label group (DescriptionGroup) di sini hanyalah fallback dari tipe pertama.
+type JobValueTreeGroup struct {
+	TypeGroup        string             `json:"type_group"`
+	DescriptionGroup string             `json:"description_group"`
+	Types            []JobValueTreeType `json:"types"`
+}
+
+// JobValueTreeResponse — respons endpoint tree
+// Group diurutkan secara konsisten (pendidikan → pengalaman → psychological →
+// technical → managerial → communication → problem_solving → financial → asset →
+// sisanya), tipe diurutkan berdasarkan description_group.
+type JobValueTreeResponse struct {
+	Success bool                `json:"success"`
+	Data    []JobValueTreeGroup `json:"data"`
+}
+
 func toJobValueResponse(v *JobValue) JobValueResponse {
 	r := JobValueResponse{
 		ID:        v.ID.String(),
@@ -628,11 +672,17 @@ func toJobValueResponse(v *JobValue) JobValueResponse {
 	if v.JobManagementTitleSubName != nil {
 		r.JobManagementTitleSubName = *v.JobManagementTitleSubName
 	}
+	if v.TypeGroup != nil {
+		r.TypeGroup = *v.TypeGroup
+	}
 	if v.Level != nil {
 		r.Level = *v.Level
 	}
 	if v.Descriptions != nil {
 		r.Descriptions = *v.Descriptions
+	}
+	if v.DescriptionGroup != nil {
+		r.DescriptionGroup = *v.DescriptionGroup
 	}
 	if v.Note != nil {
 		r.Note = *v.Note
@@ -951,6 +1001,8 @@ func toJobScoreResponse(s *JobScore) JobScoreResponse {
 		JobValueWithoutFinancial: s.JobValueWithoutFinancial,
 		HasFinancialAuthority:    s.HasFinancialAuthority,
 		CalculatedAt:             s.CalculatedAt,
+		IsComplete:               s.IsComplete,
+		CompletedAt:              s.CompletedAt,
 		CreatedAt:                s.CreatedAt,
 		UpdatedAt:                s.UpdatedAt,
 	}

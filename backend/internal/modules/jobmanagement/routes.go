@@ -25,6 +25,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 	{
 		values.POST("", handler.CreateJobValue)
 		values.GET("", handler.ListJobValues)
+		values.GET("/tree", handler.ListJobValuesTree)
 		values.GET("/:id", handler.GetJobValueByID)
 		values.PUT("/:id", handler.UpdateJobValue)
 		values.DELETE("/:id", handler.DeleteJobValue)

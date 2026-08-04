@@ -24,6 +24,11 @@
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
           <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{{ t('job_management.has_financial_authority') }}</div>
           <Tag :value="score.has_financial_authority ? t('common.yes') : t('common.no')" :severity="score.has_financial_authority ? 'success' : 'danger'" class="!text-xs" />
+          <!-- Badge status kelengkapan skor (is_complete & completed_at dari API) -->
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <Tag :value="score.is_complete ? t('job_management.score_complete') : t('job_management.score_incomplete')" :severity="score.is_complete ? 'success' : 'warning'" :icon="score.is_complete ? 'pi pi-check-circle' : 'pi pi-exclamation-triangle'" class="!text-xs" />
+            <span v-if="score.is_complete && score.completed_at" class="text-[10px] text-gray-400">{{ t('job_management.completed_at') }}: {{ score.completed_at }}</span>
+          </div>
           <div v-if="score.calculated_at" class="text-[10px] text-gray-400 mt-2">{{ t('job_management.calculated_at') }}: {{ score.calculated_at }}</div>
         </div>
       </div>
@@ -70,15 +75,17 @@ const props = defineProps({ orgId: String })
 const emit = defineEmits(['saved'])
 const { t } = useI18n()
 const toast = useToast()
-const apiBase = '/api/v1/tenant/job-management/scores'
+const apiBase = '/api/v1/tenant/job-management/scores/org'
 
 const loading = ref(false)
 const calculating = ref(false)
 const score = ref(null)
 
 const parsedComponents = computed(() => {
-  if (!score.value?.components) return null
-  try { return JSON.parse(score.value.components) }
+  // breakdown menampilkan sub_component_points (flat map poin per komponen),
+  // dihitung server-side oleh Calculator (components = rincian nested).
+  if (!score.value?.sub_component_points) return null
+  try { return JSON.parse(score.value.sub_component_points) }
   catch { return null }
 })
 

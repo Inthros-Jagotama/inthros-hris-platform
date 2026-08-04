@@ -2,7 +2,10 @@ package jobmanagement
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"sort"
+	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -28,10 +31,11 @@ type PaginatedResponse struct {
 type Service struct {
 	repo   *Repository
 	logger *zap.Logger
+	calc   *Calculator
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
-	return &Service{repo: repo, logger: logger}
+	return &Service{repo: repo, logger: logger, calc: NewCalculator(repo)}
 }
 
 // =========================================================================
@@ -250,11 +254,17 @@ func (s *Service) CreateJobValue(ctx context.Context, req CreateJobValueRequest)
 			v.JobManagementTitleSubName = sub.Name
 		}
 	}
+	if req.TypeGroup != nil && *req.TypeGroup != "" {
+		v.TypeGroup = req.TypeGroup
+	}
 	if req.Level != nil {
 		v.Level = req.Level
 	}
 	if req.Descriptions != "" {
 		v.Descriptions = &req.Descriptions
+	}
+	if req.DescriptionGroup != nil && *req.DescriptionGroup != "" {
+		v.DescriptionGroup = req.DescriptionGroup
 	}
 	if req.Note != "" {
 		v.Note = &req.Note
@@ -292,6 +302,100 @@ func (s *Service) GetJobValueByID(ctx context.Context, id string) (*JobValueResp
 	}
 	r := toJobValueResponse(v)
 	return &r, nil
+}
+
+// ListJobValuesTree mengembalikan tree job management values:
+// type_group → daftar tipe (label = description_group) → options per tipe
+// (level + deskripsi). Filter type_group dilakukan di sisi FE.
+func (s *Service) ListJobValuesTree(ctx context.Context) (*JobValueTreeResponse, error) {
+	values, err := s.repo.FindAllJobValuesForTree(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Urutan tampilan grup tetap (konsisten dengan seed legacy)
+	groupOrder := []string{
+		"education", "experience",
+		"psychological", "technical", "managerial",
+		"communication", "problem_solving",
+		"financial", "asset",
+		"subordinate", "activity", "environment", "risk", "relationship", "frequency",
+	}
+	groupRank := map[string]int{}
+	for i, g := range groupOrder {
+		groupRank[g] = i
+	}
+
+	groupIdx := map[string]int{}         // type_group -> index di data
+	typeIdx := map[string]map[string]int{} // type_group -> type -> index dalam group
+	var data []JobValueTreeGroup
+
+	for i := range values {
+		v := &values[i]
+		if v.TypeGroup == nil || *v.TypeGroup == "" {
+			continue // value tanpa type_group tidak masuk tree
+		}
+		tg := *v.TypeGroup
+		gi, ok := groupIdx[tg]
+		if !ok {
+			gi = len(data)
+			groupIdx[tg] = gi
+			data = append(data, JobValueTreeGroup{TypeGroup: tg, Types: []JobValueTreeType{}})
+			typeIdx[tg] = map[string]int{}
+		}
+		ti, ok := typeIdx[tg][v.Type]
+		if !ok {
+			ti = len(data[gi].Types)
+			typeIdx[tg][v.Type] = ti
+			desc := ""
+			if v.DescriptionGroup != nil {
+				desc = *v.DescriptionGroup
+			}
+			data[gi].Types = append(data[gi].Types, JobValueTreeType{
+				Type:             v.Type,
+				DescriptionGroup: desc,
+				Options:          []JobValueTreeOption{},
+			})
+		}
+		opt := JobValueTreeOption{ID: v.ID.String()}
+		if v.Level != nil {
+			opt.Level = *v.Level
+		}
+		if v.Descriptions != nil {
+			opt.Descriptions = *v.Descriptions
+		}
+		data[gi].Types[ti].Options = append(data[gi].Types[ti].Options, opt)
+	}
+
+	// Sortir grup sesuai urutan tetap (group tidak dikenal di akhir, alfabetis)
+	sort.Slice(data, func(a, b int) bool {
+		ra, oka := groupRank[data[a].TypeGroup]
+		rb, okb := groupRank[data[b].TypeGroup]
+		if !oka {
+			ra = 999
+		}
+		if !okb {
+			rb = 999
+		}
+		if ra != rb {
+			return ra < rb
+		}
+		return data[a].TypeGroup < data[b].TypeGroup
+	})
+	// Sortir tipe dalam group (label description_group lalu type) dan isi label grup
+	for gi := range data {
+		if len(data[gi].Types) > 0 {
+			data[gi].DescriptionGroup = data[gi].Types[0].DescriptionGroup
+		}
+		sort.Slice(data[gi].Types, func(a, b int) bool {
+			if data[gi].Types[a].DescriptionGroup != data[gi].Types[b].DescriptionGroup {
+				return data[gi].Types[a].DescriptionGroup < data[gi].Types[b].DescriptionGroup
+			}
+			return data[gi].Types[a].Type < data[gi].Types[b].Type
+		})
+	}
+
+	return &JobValueTreeResponse{Success: true, Data: data}, nil
 }
 
 func (s *Service) ListJobValues(ctx context.Context, page, perPage int, valueType string) (*PaginatedResponse, error) {
@@ -336,11 +440,17 @@ func (s *Service) UpdateJobValue(ctx context.Context, id string, req UpdateJobVa
 	if req.Type != nil {
 		v.Type = *req.Type
 	}
+	if req.TypeGroup != nil {
+		v.TypeGroup = req.TypeGroup
+	}
 	if req.Level != nil {
 		v.Level = req.Level
 	}
 	if req.Descriptions != nil {
 		v.Descriptions = req.Descriptions
+	}
+	if req.DescriptionGroup != nil {
+		v.DescriptionGroup = req.DescriptionGroup
 	}
 	if req.Note != nil {
 		v.Note = req.Note
@@ -735,6 +845,7 @@ func (s *Service) CreateJobEducationExperience(ctx context.Context, req CreateJo
 	if err := s.repo.CreateJobEducationExperience(ctx, e); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, e.OrganizationID)
 	// Re-fetch with relations loaded so response includes master names
 	// (Education, Experience, Majors, JobFamilies) — create does not Preload them.
 	if fetched, err := s.repo.FindJobEducationExperienceByID(ctx, e.ID); err == nil {
@@ -846,6 +957,7 @@ func (s *Service) UpdateJobEducationExperience(ctx context.Context, id string, r
 	if err := s.repo.UpdateJobEducationExperience(ctx, e); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, e.OrganizationID)
 	if fetched, err := s.repo.FindJobEducationExperienceByID(ctx, e.ID); err == nil {
 		e = fetched
 	}
@@ -857,6 +969,9 @@ func (s *Service) DeleteJobEducationExperience(ctx context.Context, id string) e
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("invalid id: %w", err)
+	}
+	if rec, err := s.repo.FindJobEducationExperienceByID(ctx, uid); err == nil {
+		defer s.recalculateScore(ctx, rec.OrganizationID)
 	}
 	return s.repo.DeleteJobEducationExperience(ctx, uid)
 }
@@ -1065,6 +1180,7 @@ func (s *Service) CreateJobWorkingActivity(ctx context.Context, req CreateJobWor
 	if err := s.repo.CreateJobWorkingActivity(ctx, a); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, a.OrganizationID)
 	r := toJobWorkingActivityResponse(a)
 	return &r, nil
 }
@@ -1127,6 +1243,7 @@ func (s *Service) UpdateJobWorkingActivity(ctx context.Context, id string, req U
 	if err := s.repo.UpdateJobWorkingActivity(ctx, a); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, a.OrganizationID)
 	r := toJobWorkingActivityResponse(a)
 	return &r, nil
 }
@@ -1135,6 +1252,9 @@ func (s *Service) DeleteJobWorkingActivity(ctx context.Context, id string) error
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("invalid id: %w", err)
+	}
+	if rec, err := s.repo.FindJobWorkingActivityByID(ctx, uid); err == nil {
+		defer s.recalculateScore(ctx, rec.OrganizationID)
 	}
 	return s.repo.DeleteJobWorkingActivity(ctx, uid)
 }
@@ -1156,13 +1276,14 @@ func (s *Service) CreateJobWorkingRisk(ctx context.Context, req CreateJobWorking
 	}
 	if req.JobManagementValueHazardID != nil && *req.JobManagementValueHazardID != "" {
 		id, _ := uuid.Parse(*req.JobManagementValueHazardID)
-	r.JobManagementValueHazardID = &id
+		r.JobManagementValueHazardID = &id
 	}
 	r.CreatedBy = authctx.GetUserID(ctx)
 	r.UpdatedBy = r.CreatedBy
 	if err := s.repo.CreateJobWorkingRisk(ctx, r); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, r.OrganizationID)
 	resp := toJobWorkingRiskResponse(r)
 	return &resp, nil
 }
@@ -1229,6 +1350,7 @@ func (s *Service) UpdateJobWorkingRisk(ctx context.Context, id string, req Updat
 	if err := s.repo.UpdateJobWorkingRisk(ctx, r); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, r.OrganizationID)
 	resp := toJobWorkingRiskResponse(r)
 	return &resp, nil
 }
@@ -1237,6 +1359,9 @@ func (s *Service) DeleteJobWorkingRisk(ctx context.Context, id string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("invalid id: %w", err)
+	}
+	if rec, err := s.repo.FindJobWorkingRiskByID(ctx, uid); err == nil {
+		defer s.recalculateScore(ctx, rec.OrganizationID)
 	}
 	return s.repo.DeleteJobWorkingRisk(ctx, uid)
 }
@@ -1258,13 +1383,14 @@ func (s *Service) CreateJobRelationship(ctx context.Context, req CreateJobRelati
 	}
 	if req.JobManagementValueFrequencyID != nil && *req.JobManagementValueFrequencyID != "" {
 		id, _ := uuid.Parse(*req.JobManagementValueFrequencyID)
-	r.JobManagementValueFrequencyID = &id
+		r.JobManagementValueFrequencyID = &id
 	}
 	r.CreatedBy = authctx.GetUserID(ctx)
 	r.UpdatedBy = r.CreatedBy
 	if err := s.repo.CreateJobRelationship(ctx, r); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, r.OrganizationID)
 	resp := toJobRelationshipResponse(r)
 	return &resp, nil
 }
@@ -1331,6 +1457,7 @@ func (s *Service) UpdateJobRelationship(ctx context.Context, id string, req Upda
 	if err := s.repo.UpdateJobRelationship(ctx, r); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, r.OrganizationID)
 	resp := toJobRelationshipResponse(r)
 	return &resp, nil
 }
@@ -1339,6 +1466,9 @@ func (s *Service) DeleteJobRelationship(ctx context.Context, id string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("invalid id: %w", err)
+	}
+	if rec, err := s.repo.FindJobRelationshipByID(ctx, uid); err == nil {
+		defer s.recalculateScore(ctx, rec.OrganizationID)
 	}
 	return s.repo.DeleteJobRelationship(ctx, uid)
 }
@@ -1438,7 +1568,7 @@ func (s *Service) UpdateJobRelationshipDetail(ctx context.Context, id string, re
 		return nil, err
 	}
 	if fetched, err := s.repo.FindJobRelationshipDetailByID(ctx, d.ID); err == nil {
-			d = fetched
+		d = fetched
 	}
 	r := toJobRelationshipDetailResponse(d)
 	return &r, nil
@@ -1472,6 +1602,7 @@ func (s *Service) CreateJobSubordinateControl(ctx context.Context, req CreateJob
 	if err := s.repo.CreateJobSubordinateControl(ctx, c); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, c.OrganizationID)
 	r := toJobSubordinateControlResponse(c)
 	return &r, nil
 }
@@ -1534,6 +1665,7 @@ func (s *Service) UpdateJobSubordinateControl(ctx context.Context, id string, re
 	if err := s.repo.UpdateJobSubordinateControl(ctx, c); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, c.OrganizationID)
 	r := toJobSubordinateControlResponse(c)
 	return &r, nil
 }
@@ -1542,6 +1674,9 @@ func (s *Service) DeleteJobSubordinateControl(ctx context.Context, id string) er
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("invalid id: %w", err)
+	}
+	if rec, err := s.repo.FindJobSubordinateControlByID(ctx, uid); err == nil {
+		defer s.recalculateScore(ctx, rec.OrganizationID)
 	}
 	return s.repo.DeleteJobSubordinateControl(ctx, uid)
 }
@@ -1570,6 +1705,7 @@ func (s *Service) CreateJobAsset(ctx context.Context, req CreateJobAssetRequest)
 	if err := s.repo.CreateJobAsset(ctx, a); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, a.OrganizationID)
 	r := toJobAssetResponse(a)
 	return &r, nil
 }
@@ -1636,6 +1772,7 @@ func (s *Service) UpdateJobAsset(ctx context.Context, id string, req UpdateJobAs
 	if err := s.repo.UpdateJobAsset(ctx, a); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, a.OrganizationID)
 	r := toJobAssetResponse(a)
 	return &r, nil
 }
@@ -1644,6 +1781,9 @@ func (s *Service) DeleteJobAsset(ctx context.Context, id string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("invalid id: %w", err)
+	}
+	if rec, err := s.repo.FindJobAssetByID(ctx, uid); err == nil {
+		defer s.recalculateScore(ctx, rec.OrganizationID)
 	}
 	return s.repo.DeleteJobAsset(ctx, uid)
 }
@@ -1677,6 +1817,7 @@ func (s *Service) CreateJobFinancial(ctx context.Context, req CreateJobFinancial
 	if err := s.repo.CreateJobFinancial(ctx, f); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, f.OrganizationID)
 	r := toJobFinancialResponse(f)
 	return &r, nil
 }
@@ -1760,6 +1901,7 @@ func (s *Service) UpdateJobFinancial(ctx context.Context, id string, req UpdateJ
 	if err := s.repo.UpdateJobFinancial(ctx, f); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, f.OrganizationID)
 	r := toJobFinancialResponse(f)
 	return &r, nil
 }
@@ -1768,6 +1910,9 @@ func (s *Service) DeleteJobFinancial(ctx context.Context, id string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("invalid id: %w", err)
+	}
+	if rec, err := s.repo.FindJobFinancialByID(ctx, uid); err == nil {
+		defer s.recalculateScore(ctx, rec.OrganizationID)
 	}
 	return s.repo.DeleteJobFinancial(ctx, uid)
 }
@@ -1796,6 +1941,7 @@ func (s *Service) CreateJobPotencyCompetency(ctx context.Context, req CreateJobP
 	if err := s.repo.CreateJobPotencyCompetency(ctx, c); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, c.OrganizationID)
 	r := toJobPotencyCompetencyResponse(c)
 	return &r, nil
 }
@@ -1859,6 +2005,7 @@ func (s *Service) UpdateJobPotencyCompetency(ctx context.Context, id string, req
 	if err := s.repo.UpdateJobPotencyCompetency(ctx, c); err != nil {
 		return nil, err
 	}
+	s.recalculateScore(ctx, c.OrganizationID)
 	r := toJobPotencyCompetencyResponse(c)
 	return &r, nil
 }
@@ -1868,7 +2015,27 @@ func (s *Service) DeleteJobPotencyCompetency(ctx context.Context, id string) err
 	if err != nil {
 		return fmt.Errorf("invalid id: %w", err)
 	}
+	if rec, err := s.repo.FindJobPotencyCompetencyByID(ctx, uid); err == nil {
+		defer s.recalculateScore(ctx, rec.OrganizationID)
+	}
 	return s.repo.DeleteJobPotencyCompetency(ctx, uid)
+}
+
+// recalculateScore menghitung ulang skor jabatan organisasi setelah sebuah
+// section (yang memengaruhi skor) disimpan/diubah/dihapus. Kegagalan menghitung
+// TIDAK menggagalkan operasi utama section — cukup dicatat di log.
+//
+// Catatan perf: frontend menyimpan beberapa baris potency dengan request
+// per-baris (saveCardRows), sehingga satu klik save bisa memicu beberapa kali
+// recalc — tradeoff yang diterima untuk CRUD admin skala kecil.
+func (s *Service) recalculateScore(ctx context.Context, orgID *uuid.UUID) {
+	if orgID == nil || *orgID == uuid.Nil {
+		return
+	}
+	if _, err := s.RecalculateJobScore(ctx, orgID.String()); err != nil && s.logger != nil {
+		s.logger.Warn("recalculate job score after section save failed",
+			zap.String("organization_id", orgID.String()), zap.Error(err))
+	}
 }
 
 // =========================================================================
@@ -1879,6 +2046,12 @@ func (s *Service) UpsertJobScore(ctx context.Context, orgID string, req UpdateJo
 	uid, err := uuid.Parse(orgID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid organization_id: %w", err)
+	}
+	// Kontrak recalculate: body kosong (semua field nil — mis. { components: null }
+	// dari tombol "Recalculate" di JobScoreSection) → hitung ulang server-side.
+	if req.JobValueWithFinancial == nil && req.JobValueWithoutFinancial == nil &&
+		req.HasFinancialAuthority == nil && req.Components == nil && req.SubComponentPoints == nil {
+		return s.RecalculateJobScore(ctx, orgID)
 	}
 	score := &JobScore{
 		OrganizationID: &uid,
@@ -1897,6 +2070,16 @@ func (s *Service) UpsertJobScore(ctx context.Context, orgID string, req UpdateJo
 	}
 	if req.SubComponentPoints != nil {
 		score.SubComponentPoints = req.SubComponentPoints
+		// Jalur manual: turunkan is_complete/completed_at dari sub_component_points
+		// yang dikirim (bila valid) — konsisten dengan legacy yang selalu menghitungnya.
+		var sub subComponentPoints
+		if err := json.Unmarshal([]byte(*req.SubComponentPoints), &sub); err == nil {
+			score.IsComplete = isResultComplete(sub)
+			if score.IsComplete {
+				now := time.Now()
+				score.CompletedAt = &now
+			}
+		}
 	}
 	if err := s.repo.UpsertJobScore(ctx, score); err != nil {
 		return nil, err
@@ -1916,6 +2099,90 @@ func (s *Service) GetJobScoreByOrganization(ctx context.Context, orgID string) (
 	}
 	r := toJobScoreResponse(score)
 	return &r, nil
+}
+
+// RecalculateJobScore menghitung ulang skor jabatan dari data section
+// (menggunakan Calculator) lalu menyimpannya ke job_management_scores.
+func (s *Service) RecalculateJobScore(ctx context.Context, orgID string) (*JobScoreResponse, error) {
+	uid, err := uuid.Parse(orgID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid organization_id: %w", err)
+	}
+	result, err := s.calc.CalculateForOrganization(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	score, err := s.scoreFromResult(uid, result)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.repo.UpsertJobScore(ctx, score); err != nil {
+		return nil, err
+	}
+	r := toJobScoreResponse(score)
+	return &r, nil
+}
+
+// RecalculateJobScores menghitung ulang skor untuk banyak organisasi sekaligus
+// (re-kalkulasi massal, mis. saat seed/migrasi data — seperti legacy
+// calculateForOrganizationIds).
+func (s *Service) RecalculateJobScores(ctx context.Context, orgIDs []string) (map[string]*JobScoreResponse, error) {
+	ids := make([]uuid.UUID, 0, len(orgIDs))
+	for _, o := range orgIDs {
+		id, err := uuid.Parse(o)
+		if err != nil {
+			return nil, fmt.Errorf("invalid organization_id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	results, err := s.calc.CalculateForOrganizationIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	responses := make(map[string]*JobScoreResponse, len(results))
+	for orgID, result := range results {
+		score, err := s.scoreFromResult(orgID, result)
+		if err != nil {
+			return nil, err
+		}
+		if err := s.repo.UpsertJobScore(ctx, score); err != nil {
+			return nil, err
+		}
+		r := toJobScoreResponse(score)
+		responses[orgID.String()] = &r
+	}
+	return responses, nil
+}
+
+// scoreFromResult membungkus hasil kalkulasi menjadi model JobScore siap simpan.
+func (s *Service) scoreFromResult(orgID uuid.UUID, result *JobScoreResult) (*JobScore, error) {
+	componentsJSON, err := json.Marshal(result.Components)
+	if err != nil {
+		return nil, fmt.Errorf("marshal components: %w", err)
+	}
+	subJSON, err := json.Marshal(result.SubComponents)
+	if err != nil {
+		return nil, fmt.Errorf("marshal sub_component_points: %w", err)
+	}
+	componentsStr := string(componentsJSON)
+	subStr := string(subJSON)
+	now := time.Now()
+	// completed_at diisi hanya jika skor lengkap (sama seperti legacy persistResults)
+	var completedAt *time.Time
+	if result.IsComplete {
+		completedAt = &now
+	}
+	return &JobScore{
+		OrganizationID:           &orgID,
+		JobValueWithFinancial:    result.Totals.WithFinancial,
+		JobValueWithoutFinancial: result.Totals.WithoutFinancial,
+		HasFinancialAuthority:    result.HasFinancialAuthority,
+		Components:               &componentsStr,
+		SubComponentPoints:       &subStr,
+		CalculatedAt:             &now,
+		IsComplete:               result.IsComplete,
+		CompletedAt:              completedAt,
+	}, nil
 }
 
 func (s *Service) ListJobScores(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {

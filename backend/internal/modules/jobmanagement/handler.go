@@ -157,6 +157,16 @@ func (h *Handler) GetJobValueByID(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+// ListJobValuesTree — tree data job management values (type_group → type → options)
+func (h *Handler) ListJobValuesTree(c *gin.Context) {
+	resp, err := h.service.ListJobValuesTree(c.Request.Context())
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
 func (h *Handler) ListJobValues(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))

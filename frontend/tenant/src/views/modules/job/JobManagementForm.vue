@@ -175,8 +175,8 @@ async function loadRefData() {
   try {
     const [gradingRes, valuesRes, compRes, jfRes] = await Promise.all([
       api.get('/api/v1/tenant/settings/gradings?per_page=100'),
-      api.get('/api/v1/tenant/job-management/values?per_page=200'),
-      api.get('/api/v1/tenant/competencies?per_page=200').catch(() => ({ data: { data: [] } })),
+      api.get('/api/v1/tenant/job-management/values?per_page=500'),
+      api.get('/api/v1/tenant/competency/competencies?per_page=200').catch(() => ({ data: { data: [] } })),
       api.get('/api/v1/tenant/settings/job-families?per_page=100')
     ])
     gradingOptions.value = (gradingRes.data?.data || []).map(g => ({ label: `${g.code} - ${g.name}`, value: g.id }))
@@ -190,7 +190,14 @@ async function loadRefData() {
     const map = {}
     vals.forEach(v => {
       if (!map[v.type]) map[v.type] = []
-      map[v.type].push({ label: `Lv.${v.level} — ${v.descriptions || ''}`, value: v.id, level: v.level })
+      map[v.type].push({
+        label: `Lv.${v.level} — ${v.descriptions || ''}`,
+        value: v.id,
+        level: v.level,
+        descriptions: v.descriptions || '',
+        type_group: v.type_group || '',
+        description_group: v.description_group || ''
+      })
     })
     jobValueMap.value = map
     competencyOptions.value = (compRes.data?.data || []).map(c => ({ label: c.name || c.code, value: c.id, field: c.field || '', definition: c.definition || '' }))

@@ -9,13 +9,16 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
+	"github.com/inthros/hris-platform/internal/modules/jobmanagement"
 	"github.com/inthros/hris-platform/internal/pkg/config"
 	"github.com/inthros/hris-platform/internal/pkg/database"
 	"github.com/inthros/hris-platform/internal/pkg/logger"
@@ -62,6 +65,17 @@ func main() {
 		defer l.Sync()
 		defer dbManager.CloseAll()
 		handleTenantMigrate(l, dbManager, *companyID)
+
+	case "recalc-scores":
+		fs := flag.NewFlagSet("recalc-scores", flag.ExitOnError)
+		cfgPath := fs.String("config", "", "Path to configuration file")
+		companyID := fs.String("company", "", "Company ID to recalculate job scores")
+		fs.Parse(args)
+
+		l, dbManager := initApp(*cfgPath)
+		defer l.Sync()
+		defer dbManager.CloseAll()
+		handleRecalcScores(l, dbManager, *companyID)
 
 	case "encrypt-passwords":
 		fs := flag.NewFlagSet("encrypt-passwords", flag.ExitOnError)
@@ -164,6 +178,7 @@ func printUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("  installer provision --company=<id> [--db-name=<name>] [--config=<path>]")
 	fmt.Println("  installer migrate --company=<id> [--config=<path>]")
+	fmt.Println("  installer recalc-scores --company=<id> [--config=<path>]")
 	fmt.Println("  installer encrypt-passwords [--config=<path>]")
 	fmt.Println("  installer seed-modules [--config=<path>]")
 	fmt.Println("  installer seed-data [--company=<id>] [--config=<path>]")
@@ -171,6 +186,7 @@ func printUsage() {
 	fmt.Println("Commands:")
 	fmt.Println("  provision          Provision a new tenant (create database + run migrations + seed data)")
 	fmt.Println("  migrate            Run pending tenant migrations for an existing company")
+	fmt.Println("  recalc-scores      Recalculate job management scores for all organizations with section data")
 	fmt.Println("  encrypt-passwords  Encrypt legacy plaintext passwords in tenant_connections")
 	fmt.Println("  seed-modules       Register all platform & tenant modules into database")
 	fmt.Println("  seed-data          Seed master reference data + RBAC defaults into a tenant DB")
@@ -276,6 +292,68 @@ func handleTenantMigrate(l *zap.Logger, dbManager *database.Manager, companyID s
 	}
 
 	l.Info("Tenant migration completed successfully")
+}
+
+// handleRecalcScores menghitung ulang skor jabatan (job management score)
+// untuk SEMUA organisasi yang memiliki data section di tenant — mengisi kolom
+// job_value_with_financial/without_financial, is_complete, dan completed_at.
+func handleRecalcScores(l *zap.Logger, dbManager *database.Manager, companyID string) {
+	if companyID == "" {
+		log.Fatal("company is required")
+	}
+
+	l.Info("Recalculating job scores for organizations with section data",
+		zap.String("company_id", companyID),
+	)
+
+	tenantDB, err := dbManager.TenantDB(companyID)
+	if err != nil {
+		l.Fatal("Failed to connect to tenant database", zap.Error(err))
+	}
+
+	// Kumpulkan organisasi yang memiliki data section yang memengaruhi skor
+	// (pendidikan, kompetensi potensi, keuangan, aset, bawahan, hubungan,
+	// aktivitas, risiko).
+	const orgQuery = `
+		SELECT organization_id FROM job_management_education_experiences WHERE organization_id IS NOT NULL
+		UNION SELECT organization_id FROM job_management_potency_competencies WHERE organization_id IS NOT NULL
+		UNION SELECT organization_id FROM job_management_financials WHERE organization_id IS NOT NULL
+		UNION SELECT organization_id FROM job_management_assets WHERE organization_id IS NOT NULL
+		UNION SELECT organization_id FROM job_management_subordinate_controls WHERE organization_id IS NOT NULL
+		UNION SELECT organization_id FROM job_management_relationships WHERE organization_id IS NOT NULL
+		UNION SELECT organization_id FROM job_management_working_activities WHERE organization_id IS NOT NULL
+		UNION SELECT organization_id FROM job_management_working_risks WHERE organization_id IS NOT NULL
+	`
+	var orgIDs []string
+	if err := tenantDB.Raw(orgQuery).Scan(&orgIDs).Error; err != nil {
+		l.Fatal("Failed to query organizations with section data", zap.Error(err))
+	}
+	if len(orgIDs) == 0 {
+		l.Info("No organizations with job management section data found — nothing to recalculate")
+		return
+	}
+	l.Info("Organizations found", zap.Int("count", len(orgIDs)))
+
+	repo := jobmanagement.NewRepository(func(ctx context.Context) (*gorm.DB, error) {
+		return tenantDB, nil
+	})
+	svc := jobmanagement.NewService(repo, l)
+
+	responses, err := svc.RecalculateJobScores(context.Background(), orgIDs)
+	if err != nil {
+		l.Fatal("Failed to recalculate job scores", zap.Error(err))
+	}
+
+	l.Info("Job scores recalculated", zap.Int("organizations", len(responses)))
+	for orgID, resp := range responses {
+		l.Info("Score result",
+			zap.String("organization_id", orgID),
+			zap.Uint64("job_value_with_financial", resp.JobValueWithFinancial),
+			zap.Uint64("job_value_without_financial", resp.JobValueWithoutFinancial),
+			zap.Bool("has_financial_authority", resp.HasFinancialAuthority),
+			zap.Bool("is_complete", resp.IsComplete),
+		)
+	}
 }
 
 // moduleDef untuk data modul yang akan di-seed.

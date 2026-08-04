@@ -178,6 +178,22 @@ func (r *Repository) FindAllJobValues(ctx context.Context, page, perPage int, va
 	return values, total, nil
 }
 
+// FindAllJobValuesForTree memuat SEMUA job_management_values (tanpa pagination)
+// untuk membangun tree type_group → type → options di service.
+func (r *Repository) FindAllJobValuesForTree(ctx context.Context) ([]JobValue, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var values []JobValue
+	if err := db.Model(&JobValue{}).
+		Order("type ASC, sort ASC, created_at DESC").
+		Find(&values).Error; err != nil {
+		return nil, err
+	}
+	return values, nil
+}
+
 func (r *Repository) FindJobValuesByType(ctx context.Context, valueType string) ([]JobValue, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {

@@ -68,8 +68,10 @@ type JobValue struct {
 	JobManagementTitleSubID *uuid.UUID `gorm:"type:char(36);index" json:"job_management_title_sub_id,omitempty"`
 	JobManagementTitleSubName *string  `gorm:"type:varchar(100)" json:"job_management_title_sub_name,omitempty"`
 	Type                    string     `gorm:"type:varchar(255);not null" json:"type"`
+	TypeGroup               *string    `gorm:"type:varchar(255)" json:"type_group,omitempty"`
 	Level                   *int       `gorm:"type:int" json:"level,omitempty"`
 	Descriptions            *string    `gorm:"type:text" json:"descriptions,omitempty"`
+	DescriptionGroup        *string    `gorm:"type:text" json:"description_group,omitempty"`
 	Note                    *string    `gorm:"type:text" json:"note,omitempty"`
 	Sort                    *int       `gorm:"type:int" json:"sort,omitempty"`
 	RefID                   *uuid.UUID `gorm:"type:char(36);index" json:"ref_id,omitempty"`
@@ -519,6 +521,8 @@ type JobScore struct {
 	Components             *string         `gorm:"type:json" json:"components,omitempty"`
 	SubComponentPoints     *string         `gorm:"type:json" json:"sub_component_points,omitempty"`
 	CalculatedAt           *time.Time      `json:"calculated_at,omitempty"`
+	IsComplete             bool            `gorm:"type:tinyint(1);not null;default:0" json:"is_complete"`
+	CompletedAt            *time.Time      `json:"completed_at,omitempty"`
 	CreatedAt              time.Time       `json:"created_at"`
 	UpdatedAt              time.Time       `json:"updated_at"`
 }
