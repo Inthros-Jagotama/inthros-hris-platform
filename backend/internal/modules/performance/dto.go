@@ -67,22 +67,31 @@ type PerformancePerspectiveResponse struct {
 
 type CreatePerformanceTemplateRequest struct {
 	OrganizationID string  `json:"organization_id" binding:"required"`
+	PeriodID       *string `json:"period_id"`
 	Name           string  `json:"name" binding:"required,max=200"`
 	Description    *string `json:"description"`
+	EffectiveDate  *string `json:"effective_date"`
+	ExpiredDate    *string `json:"expired_date"`
 }
 
 type UpdatePerformanceTemplateRequest struct {
-	Name        *string `json:"name" binding:"omitempty,max=200"`
-	Description *string `json:"description"`
-	Status      *string `json:"status" binding:"omitempty,oneof=DRAFT PUBLISHED ARCHIVED"`
+	PeriodID      *string `json:"period_id"`
+	Name          *string `json:"name" binding:"omitempty,max=200"`
+	Description   *string `json:"description"`
+	Status        *string `json:"status" binding:"omitempty,oneof=DRAFT PUBLISHED ARCHIVED"`
+	EffectiveDate *string `json:"effective_date"`
+	ExpiredDate   *string `json:"expired_date"`
 }
 
 type PerformanceTemplateResponse struct {
 	ID             string    `json:"id"`
 	OrganizationID string    `json:"organization_id"`
+	PeriodID       string    `json:"period_id,omitempty"`
 	Name           string    `json:"name"`
 	Description    string    `json:"description,omitempty"`
 	Status         string    `json:"status"`
+	EffectiveDate  string    `json:"effective_date,omitempty"`
+	ExpiredDate    string    `json:"expired_date,omitempty"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }
@@ -93,23 +102,35 @@ type PerformanceTemplateResponse struct {
 
 type CreatePerformanceIndicatorRequest struct {
 	PerformanceTemplateID string   `json:"performance_template_id" binding:"required"`
-	PerspectiveID        string   `json:"perspective_id" binding:"required"`
-	IndicatorType        string   `json:"indicator_type" binding:"required,oneof=MAXIMIZATION MINIMIZATION"`
-	Title                string   `json:"title" binding:"required,max=255"`
-	Description          *string  `json:"description"`
-	Weight               float64  `json:"weight"`
-	TargetValue          float64  `json:"target_value"`
-	UnitOfMeasurement    *string  `json:"unit_of_measurement" binding:"omitempty,max=50"`
-	SortOrder            *int     `json:"sort_order"`
+	PerspectiveID         string   `json:"perspective_id" binding:"required"`
+	Code                  *string  `json:"code" binding:"omitempty,max=50"`
+	IndicatorType         string   `json:"indicator_type" binding:"required,oneof=MAXIMIZATION MINIMIZATION"`
+	Title                 string   `json:"title" binding:"required,max=255"`
+	Description           *string  `json:"description"`
+	Weight                float64  `json:"weight"`
+	TargetValue           float64  `json:"target_value"`
+	UnitOfMeasurement     *string  `json:"unit_of_measurement" binding:"omitempty,max=50"`
+	FormulaType           *string  `json:"formula_type" binding:"omitempty,oneof=MANUAL HIGHER_BETTER LOWER_BETTER RANGE"`
+	MinimumScore          *float64 `json:"minimum_score"`
+	MaximumScore          *float64 `json:"maximum_score"`
+	TargetType            *string  `json:"target_type" binding:"omitempty,oneof=NUMBER CURRENCY PERCENTAGE DURATION BOOLEAN"`
+	IsRequired            *bool    `json:"is_required"`
+	SortOrder             *int     `json:"sort_order"`
 }
 
 type UpdatePerformanceIndicatorRequest struct {
+	Code              *string  `json:"code" binding:"omitempty,max=50"`
 	IndicatorType     *string  `json:"indicator_type" binding:"omitempty,oneof=MAXIMIZATION MINIMIZATION"`
 	Title             *string  `json:"title" binding:"omitempty,max=255"`
 	Description       *string  `json:"description"`
 	Weight            *float64 `json:"weight"`
 	TargetValue       *float64 `json:"target_value"`
 	UnitOfMeasurement *string  `json:"unit_of_measurement" binding:"omitempty,max=50"`
+	FormulaType       *string  `json:"formula_type" binding:"omitempty,oneof=MANUAL HIGHER_BETTER LOWER_BETTER RANGE"`
+	MinimumScore      *float64 `json:"minimum_score"`
+	MaximumScore      *float64 `json:"maximum_score"`
+	TargetType        *string  `json:"target_type" binding:"omitempty,oneof=NUMBER CURRENCY PERCENTAGE DURATION BOOLEAN"`
+	IsRequired        *bool    `json:"is_required"`
 	SortOrder         *int     `json:"sort_order"`
 }
 
@@ -117,12 +138,18 @@ type PerformanceIndicatorResponse struct {
 	ID                    string    `json:"id"`
 	PerformanceTemplateID string    `json:"performance_template_id"`
 	PerspectiveID         string    `json:"perspective_id"`
+	Code                  string    `json:"code,omitempty"`
 	IndicatorType         string    `json:"indicator_type"`
 	Title                 string    `json:"title"`
 	Description           string    `json:"description,omitempty"`
 	Weight                float64   `json:"weight"`
 	TargetValue           float64   `json:"target_value"`
 	UnitOfMeasurement     string    `json:"unit_of_measurement,omitempty"`
+	FormulaType           string    `json:"formula_type"`
+	MinimumScore          float64   `json:"minimum_score"`
+	MaximumScore          float64   `json:"maximum_score"`
+	TargetType            string    `json:"target_type"`
+	IsRequired            bool      `json:"is_required"`
 	SortOrder             int       `json:"sort_order"`
 	CreatedAt             time.Time `json:"created_at"`
 	UpdatedAt             time.Time `json:"updated_at"`
@@ -152,17 +179,20 @@ type UpdateEvaluationStatusRequest struct {
 }
 
 type PerformanceEvaluationResponse struct {
-	ID              string    `json:"id"`
-	EmployeeID      string    `json:"employee_id"`
-	OrganizationID  string    `json:"organization_id"`
-	PeriodID        string    `json:"period_id"`
-	TemplateID      string    `json:"template_id"`
-	SupervisorID    string    `json:"supervisor_id,omitempty"`
-	FinalScore      float64   `json:"final_score"`
-	Status          string    `json:"status"`
-	Notes           string    `json:"notes,omitempty"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID             string    `json:"id"`
+	EmployeeID     string    `json:"employee_id"`
+	OrganizationID string    `json:"organization_id"`
+	PeriodID       string    `json:"period_id"`
+	TemplateID     string    `json:"template_id"`
+	SupervisorID   string    `json:"supervisor_id,omitempty"`
+	FinalScore     float64   `json:"final_score"`
+	RatingID       string    `json:"rating_id,omitempty"`
+	Status         string    `json:"status"`
+	SubmittedAt    string    `json:"submitted_at,omitempty"`
+	ApprovedAt     string    `json:"approved_at,omitempty"`
+	Notes          string    `json:"notes,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // =========================================================================
@@ -171,30 +201,46 @@ type PerformanceEvaluationResponse struct {
 
 type CreateEvaluationDetailRequest struct {
 	PerformanceEvaluationID string  `json:"performance_evaluation_id" binding:"required"`
-	PerspectiveID          string  `json:"perspective_id" binding:"required"`
-	AchievementPercentage  float64 `json:"achievement_percentage"`
-	Weight                 float64 `json:"weight"`
-	Score                  float64 `json:"score"`
-	Description            *string `json:"description"`
+	PerspectiveID           string  `json:"perspective_id" binding:"required"`
+	IndicatorID             *string `json:"indicator_id"`
+	IndicatorName           *string `json:"indicator_name"`
+	AchievementPercentage   float64 `json:"achievement_percentage"`
+	Weight                  float64 `json:"weight"`
+	Target                  float64 `json:"target"`
+	Actual                  float64 `json:"actual"`
+	Achievement             float64 `json:"achievement"`
+	Score                   float64 `json:"score"`
+	Description             *string `json:"description"`
+	Remarks                 *string `json:"remarks"`
 }
 
 type UpdateEvaluationDetailRequest struct {
 	AchievementPercentage *float64 `json:"achievement_percentage"`
 	Weight                *float64 `json:"weight"`
+	Target                *float64 `json:"target"`
+	Actual                *float64 `json:"actual"`
+	Achievement           *float64 `json:"achievement"`
 	Score                 *float64 `json:"score"`
 	Description           *string  `json:"description"`
+	Remarks               *string  `json:"remarks"`
 }
 
 type EvaluationDetailResponse struct {
 	ID                      string    `json:"id"`
 	PerformanceEvaluationID string    `json:"performance_evaluation_id"`
-	PerspectiveID          string    `json:"perspective_id"`
-	AchievementPercentage  float64   `json:"achievement_percentage"`
-	Weight                 float64   `json:"weight"`
-	Score                  float64   `json:"score"`
-	Description            string    `json:"description,omitempty"`
-	CreatedAt              time.Time `json:"created_at"`
-	UpdatedAt              time.Time `json:"updated_at"`
+	PerspectiveID           string    `json:"perspective_id"`
+	IndicatorID             string    `json:"indicator_id,omitempty"`
+	IndicatorName           string    `json:"indicator_name,omitempty"`
+	AchievementPercentage   float64   `json:"achievement_percentage"`
+	Weight                  float64   `json:"weight"`
+	Target                  float64   `json:"target"`
+	Actual                  float64   `json:"actual"`
+	Achievement             float64   `json:"achievement"`
+	Score                   float64   `json:"score"`
+	Description             string    `json:"description,omitempty"`
+	Remarks                 string    `json:"remarks,omitempty"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
 }
 
 // =========================================================================
@@ -242,4 +288,247 @@ type PaginatedResponse struct {
 	PerPage    int         `json:"per_page"`
 	Total      int64       `json:"total"`
 	TotalPages int         `json:"total_pages"`
+}
+
+// =========================================================================
+// Performance Progress DTOs
+// =========================================================================
+
+type CreatePerformanceProgressRequest struct {
+	EvaluationDetailID string  `json:"evaluation_detail_id" binding:"required"`
+	ProgressDate       string  `json:"progress_date" binding:"required"`
+	ActualValue        float64 `json:"actual_value"`
+	Achievement        float64 `json:"achievement"`
+	Notes              *string `json:"notes"`
+	CreatedBy          string  `json:"created_by" binding:"required"`
+}
+
+type UpdatePerformanceProgressRequest struct {
+	ProgressDate *string  `json:"progress_date"`
+	ActualValue  *float64 `json:"actual_value"`
+	Achievement  *float64 `json:"achievement"`
+	Notes        *string  `json:"notes"`
+}
+
+type PerformanceProgressResponse struct {
+	ID                 string    `json:"id"`
+	EvaluationDetailID string    `json:"evaluation_detail_id"`
+	ProgressDate       string    `json:"progress_date"`
+	ActualValue        float64   `json:"actual_value"`
+	Achievement        float64   `json:"achievement"`
+	Notes              string    `json:"notes,omitempty"`
+	CreatedBy          string    `json:"created_by"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Performance Comment DTOs
+// =========================================================================
+
+type CreatePerformanceCommentRequest struct {
+	EvaluationID string `json:"evaluation_id" binding:"required"`
+	EmployeeID   string `json:"employee_id" binding:"required"`
+	Comment      string `json:"comment" binding:"required"`
+	CreatedBy    string `json:"created_by" binding:"required"`
+}
+
+type UpdatePerformanceCommentRequest struct {
+	Comment *string `json:"comment"`
+}
+
+type PerformanceCommentResponse struct {
+	ID           string    `json:"id"`
+	EvaluationID string    `json:"evaluation_id"`
+	EmployeeID   string    `json:"employee_id"`
+	Comment      string    `json:"comment"`
+	CreatedBy    string    `json:"created_by"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Performance Attachment DTOs
+// =========================================================================
+
+type CreatePerformanceAttachmentRequest struct {
+	EvaluationDetailID string  `json:"evaluation_detail_id" binding:"required"`
+	FilePath           string  `json:"file_path" binding:"required,max=500"`
+	FileName           string  `json:"file_name" binding:"required,max=255"`
+	FileType           *string `json:"file_type" binding:"omitempty,max=100"`
+	FileSize           *int64  `json:"file_size"`
+	Description        *string `json:"description"`
+	UploadedBy         string  `json:"uploaded_by" binding:"required"`
+}
+
+type UpdatePerformanceAttachmentRequest struct {
+	Description *string `json:"description"`
+}
+
+type PerformanceAttachmentResponse struct {
+	ID                 string    `json:"id"`
+	EvaluationDetailID string    `json:"evaluation_detail_id"`
+	FilePath           string    `json:"file_path"`
+	FileName           string    `json:"file_name"`
+	FileType           string    `json:"file_type,omitempty"`
+	FileSize           int64     `json:"file_size,omitempty"`
+	Description        string    `json:"description,omitempty"`
+	UploadedBy         string    `json:"uploaded_by"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Performance Rating DTOs
+// =========================================================================
+
+type CreatePerformanceRatingRequest struct {
+	Code        string  `json:"code" binding:"required,max=20"`
+	Name        string  `json:"name" binding:"required,max=100"`
+	MinScore    float64 `json:"min_score" binding:"required"`
+	MaxScore    float64 `json:"max_score" binding:"required"`
+	Color       *string `json:"color" binding:"omitempty,max=20"`
+	Description *string `json:"description"`
+	SortOrder   *int    `json:"sort_order"`
+}
+
+type UpdatePerformanceRatingRequest struct {
+	Code        *string  `json:"code" binding:"omitempty,max=20"`
+	Name        *string  `json:"name" binding:"omitempty,max=100"`
+	MinScore    *float64 `json:"min_score"`
+	MaxScore    *float64 `json:"max_score"`
+	Color       *string  `json:"color" binding:"omitempty,max=20"`
+	Description *string  `json:"description"`
+	SortOrder   *int     `json:"sort_order"`
+}
+
+type PerformanceRatingResponse struct {
+	ID          string    `json:"id"`
+	Code        string    `json:"code"`
+	Name        string    `json:"name"`
+	MinScore    float64   `json:"min_score"`
+	MaxScore    float64   `json:"max_score"`
+	Color       string    `json:"color,omitempty"`
+	Description string    `json:"description,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Performance Indicator Formula DTOs
+// =========================================================================
+
+type CreatePerformanceIndicatorFormulaRequest struct {
+	Code        string  `json:"code" binding:"required,max=50"`
+	Name        string  `json:"name" binding:"required,max=100"`
+	FormulaType string  `json:"formula_type" binding:"required,max=30"`
+	Expression  *string `json:"expression"`
+	Description *string `json:"description"`
+	SortOrder   *int    `json:"sort_order"`
+}
+
+type UpdatePerformanceIndicatorFormulaRequest struct {
+	Code        *string `json:"code" binding:"omitempty,max=50"`
+	Name        *string `json:"name" binding:"omitempty,max=100"`
+	FormulaType *string `json:"formula_type" binding:"omitempty,max=30"`
+	Expression  *string `json:"expression"`
+	Description *string `json:"description"`
+	SortOrder   *int    `json:"sort_order"`
+}
+
+type PerformanceIndicatorFormulaResponse struct {
+	ID          string    `json:"id"`
+	Code        string    `json:"code"`
+	Name        string    `json:"name"`
+	FormulaType string    `json:"formula_type"`
+	Expression  string    `json:"expression,omitempty"`
+	Description string    `json:"description,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Performance Log DTOs (Read-only)
+// =========================================================================
+
+type PerformanceLogResponse struct {
+	ID           string    `json:"id"`
+	EvaluationID string    `json:"evaluation_id,omitempty"`
+	EntityType   string    `json:"entity_type"`
+	EntityID     string    `json:"entity_id"`
+	Action       string    `json:"action"`
+	OldValues    string    `json:"old_values,omitempty"`
+	NewValues    string    `json:"new_values,omitempty"`
+	CreatedBy    string    `json:"created_by"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// =========================================================================
+// Phase 3 - Business Process DTOs
+// =========================================================================
+
+// CreateEvaluationWithSnapshotRequest creates evaluation and snapshots KPIs from template
+type CreateEvaluationWithSnapshotRequest struct {
+	EmployeeID     string  `json:"employee_id" binding:"required"`
+	OrganizationID string  `json:"organization_id" binding:"required"`
+	PeriodID       string  `json:"period_id" binding:"required"`
+	TemplateID     string  `json:"template_id" binding:"required"`
+	SupervisorID   *string `json:"supervisor_id"`
+	Notes          *string `json:"notes"`
+}
+
+// UpdateEvaluationActualRequest updates actual values for evaluation detail
+type UpdateEvaluationActualRequest struct {
+	Actual  float64 `json:"actual" binding:"required"`
+	Remarks *string `json:"remarks"`
+}
+
+// BulkUpdateEvaluationActualRequest updates multiple evaluation details
+type BulkUpdateEvaluationActualRequest struct {
+	Details []BulkUpdateDetailItem `json:"details" binding:"required,dive"`
+}
+
+type BulkUpdateDetailItem struct {
+	DetailID string  `json:"detail_id" binding:"required"`
+	Actual   float64 `json:"actual"`
+	Remarks  *string `json:"remarks"`
+}
+
+// EvaluationWithDetailsResponse returns evaluation with all details
+type EvaluationWithDetailsResponse struct {
+	ID             string                     `json:"id"`
+	EmployeeID     string                     `json:"employee_id"`
+	OrganizationID string                     `json:"organization_id"`
+	PeriodID       string                     `json:"period_id"`
+	TemplateID     string                     `json:"template_id"`
+	SupervisorID   string                     `json:"supervisor_id,omitempty"`
+	FinalScore     float64                    `json:"final_score"`
+	RatingID       string                     `json:"rating_id,omitempty"`
+	RatingName     string                     `json:"rating_name,omitempty"`
+	RatingColor    string                     `json:"rating_color,omitempty"`
+	Status         string                     `json:"status"`
+	SubmittedAt    string                     `json:"submitted_at,omitempty"`
+	ApprovedAt     string                     `json:"approved_at,omitempty"`
+	Notes          string                     `json:"notes,omitempty"`
+	CreatedAt      time.Time                  `json:"created_at"`
+	UpdatedAt      time.Time                  `json:"updated_at"`
+	Details        []EvaluationDetailResponse `json:"details"`
+}
+
+// ProgressSummaryResponse returns progress summary for an evaluation
+type ProgressSummaryResponse struct {
+	EvaluationID      string  `json:"evaluation_id"`
+	TotalIndicators   int     `json:"total_indicators"`
+	CompletedCount    int     `json:"completed_count"`
+	InProgressCount   int     `json:"in_progress_count"`
+	NotStartedCount   int     `json:"not_started_count"`
+	OverallProgress   float64 `json:"overall_progress"`
+	AverageAchievement float64 `json:"average_achievement"`
+}
+
+// CalculateScoreRequest for recalculating scores
+type CalculateScoreRequest struct {
+	EvaluationID string `json:"evaluation_id" binding:"required"`
 }

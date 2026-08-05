@@ -4,16 +4,21 @@
 # make run         - Run server locally
 # make test        - Run all tests
 # make lint        - Run linter
+# make check-openapi - Verify all registered endpoints are documented in openapi.json
+# make docs        - Run check-openapi + regenerate docs/openapi-report.md
 # make docker      - Build Docker image
 # make clean       - Clean build artifacts
 # make migrate     - Run platform migrations
 # make seed        - Run seeders
 # make coverage    - Run tests with coverage
 
-.PHONY: build build-installer run run-hot test test-verbose test-short test-pkg test-employee test-organization test-cache test-cache-quick test-cache-integration test-cache-error bench-cache bench-cache-compare coverage cover-view cover-func lint vet migrate seed seed-modules docker docker-compose-up docker-compose-down tidy clean help
+.PHONY: build build-installer run run-hot test test-verbose test-short test-pkg test-employee test-organization test-cache test-cache-quick test-cache-integration test-cache-error bench-cache bench-cache-compare coverage cover-view cover-func lint vet check-openapi docs migrate seed seed-modules docker docker-compose-up docker-compose-down tidy clean help
 
 BUILD_DIR := ./bin
 BINARY := $(BUILD_DIR)/server
+
+# Python interpreter for docs tooling (prefer python3, fallback to python)
+PYTHON := $(shell command -v python3 2>/dev/null || command -v python 2>/dev/null)
 
 # ============ Build ============
 
@@ -117,6 +122,19 @@ vet:
 	@echo "Running go vet..."
 	@go vet ./...
 
+# ============ API Documentation ============
+
+check-openapi:
+	@echo "Checking OpenAPI docs coverage against registered routes..."
+	@test -n "$(PYTHON)" || { echo "ERROR: python3/python required to run this check"; exit 1; }
+	@"$(PYTHON)" ../scripts/check_missing_openapi.py
+	@echo "OpenAPI check passed: all registered endpoints are documented."
+
+docs: check-openapi
+	@echo "Regenerating OpenAPI report..."
+	@cd .. && "$(PYTHON)" scripts/generate_openapi_report.py
+	@echo "OpenAPI report regenerated: docs/openapi-report.md"
+
 # ============ Database ============
 
 migrate:
@@ -189,6 +207,10 @@ help:
 	@echo "=== Lint ==="
 	@echo "lint           - Run linter (golangci-lint)"
 	@echo "vet            - Run go vet"
+	@echo ""
+	@echo "=== API Documentation ==="
+	@echo "check-openapi  - Verify all registered endpoints are documented in openapi.json"
+	@echo "docs           - Run check-openapi + regenerate docs/openapi-report.md"
 	@echo ""
 	@echo "=== Database ==="
 	@echo "migrate        - Run platform migrations"

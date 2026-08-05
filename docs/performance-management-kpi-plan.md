@@ -366,46 +366,172 @@ Completed
 
 ---
 
-# Final Database Structure
+---
 
-```text
-performance_periods
+# Phase 6 - Master Data & Seeder
 
-performance_perspectives
+Beberapa tabel merupakan **master data** yang direkomendasikan menggunakan Seeder agar implementasi HRIS lebih cepat, konsisten, dan mudah dipelihara.
 
-performance_templates
+## Seeder Overview
 
-performance_indicators
+| Table | Seeder | Required | Description |
+|--------|:------:|:--------:|-------------|
+| performance_periods | ❌ | No | Data transaksi, dibuat setiap periode |
+| performance_perspectives | ✅ | Yes | Master Balanced Scorecard Perspective |
+| performance_templates | ❌ | No | Berbeda setiap Organization |
+| performance_indicators | ❌ | No | Dibuat sesuai kebutuhan KPI |
+| performance_evaluations | ❌ | No | Data transaksi |
+| performance_evaluation_details | ❌ | No | Data transaksi |
+| performance_progress | ❌ | No | Data transaksi |
+| performance_comments | ❌ | No | Data transaksi |
+| performance_attachments | ❌ | No | Data transaksi |
+| performance_ratings | ✅ | Yes | Master Rating Performance |
+| performance_indicator_formulas | ✅ | Yes | Master Formula KPI |
+| performance_logs | ❌ | No | Audit Trail |
 
-performance_evaluations
+---
 
-performance_evaluation_details
+## Performance Perspectives Seeder
 
-performance_progress
+Digunakan apabila perusahaan menerapkan Balanced Scorecard.
 
-performance_comments
+| Code | Name | Sort Order |
+|------|------|-----------:|
+| FIN | Financial | 1 |
+| CUS | Customer | 2 |
+| INT | Internal Process | 3 |
+| LRN | Learning & Growth | 4 |
 
-performance_attachments
+---
 
-performance_ratings
+## Performance Ratings Seeder
 
-performance_indicator_formulas
+Master rating berdasarkan nilai akhir KPI.
 
-performance_logs
-```
+| Code | Name | Min Score | Max Score | Color |
+|------|------|----------:|----------:|--------|
+| OUT | Outstanding | 95.00 | 100.00 | success |
+| EXC | Excellent | 85.00 | 94.99 | primary |
+| GOO | Good | 75.00 | 84.99 | info |
+| FAI | Fair | 60.00 | 74.99 | warning |
+| POO | Poor | 0.00 | 59.99 | danger |
+
+---
+
+## Performance Indicator Formulas Seeder
+
+Formula standar yang dapat digunakan pada setiap KPI.
+
+| Code | Name | Description |
+|------|------|-------------|
+| MANUAL | Manual Score | Nilai diinput manual oleh reviewer |
+| HIGHER | Higher Better | Semakin tinggi nilai semakin baik |
+| LOWER | Lower Better | Semakin rendah nilai semakin baik |
+| RANGE | Range Score | Nilai berdasarkan rentang tertentu |
+| BOOLEAN | Boolean | Ya/Tidak |
+| PERCENTAGE | Percentage | Nilai berupa persentase |
+
+---
+
+# Optional Master Data
+
+Untuk fleksibilitas jangka panjang, beberapa field yang saat ini menggunakan Enum dapat dipisahkan menjadi Master Data.
+
+## performance_target_types
+
+| Code | Name |
+|------|------|
+| NUMBER | Number |
+| PERCENTAGE | Percentage |
+| CURRENCY | Currency |
+| BOOLEAN | Boolean |
+| DURATION | Duration |
+| SCORE | Score |
+
+---
+
+## performance_units
+
+| Code | Name |
+|------|------|
+| PERCENT | Percent (%) |
+| IDR | Indonesian Rupiah |
+| USD | US Dollar |
+| DAY | Day |
+| HOUR | Hour |
+| MINUTE | Minute |
+| PERSON | Person |
+| UNIT | Unit |
+| CASE | Case |
+| ITEM | Item |
+
+---
+
+## performance_statuses
+
+Apabila status tidak menggunakan Enum.
+
+| Code | Name |
+|------|------|
+| DRAFT | Draft |
+| SUBMITTED | Submitted |
+| REVIEW | Under Review |
+| APPROVED | Approved |
+| COMPLETED | Completed |
+| CANCELLED | Cancelled |
+
+---
+
+## performance_period_types
+
+Digunakan apabila perusahaan mendukung berbagai jenis periode penilaian.
+
+| Code | Name |
+|------|------|
+| MONTHLY | Monthly |
+| QUARTERLY | Quarterly |
+| SEMESTER | Semester |
+| YEARLY | Yearly |
+
+---
+
+# Seeder Structure
+
+struktur dan penamaan ikuti pola yang sudah ada
+
+---
+
+# Seeder Priority
+
+## Mandatory
+
+- PerformancePerspectiveSeeder
+- PerformanceRatingSeeder
+- PerformanceIndicatorFormulaSeeder
+
+## Recommended
+
+- PerformanceUnitSeeder
+
+## Optional
+
+- PerformanceTargetTypeSeeder
+- PerformanceStatusSeeder
+- PerformancePeriodTypeSeeder
 
 ---
 
 # Design Principles
 
-- Semua Primary Key menggunakan UUID
-- Semua Foreign Key menggunakan UUID
-- Organization = Position = 1 Employee
-- Tidak menggunakan Assignment KPI
-- KPI mengikuti Organization
-- Snapshot KPI saat evaluasi
-- Histori KPI tidak berubah walaupun Template berubah
-- Soft Delete menggunakan deleted_at
-- Mendukung Audit Trail
-- Siap diintegrasikan dengan Competency Management, Career Path, Succession Planning, Talent Management, dan Workforce Management
-````
+- Seluruh Primary Key menggunakan UUID.
+- Seluruh Foreign Key menggunakan UUID.
+- Organization = Position = 1 Employee.
+- KPI mengikuti Organization.
+- Tidak menggunakan Assignment KPI.
+- Evaluation menggunakan Snapshot KPI.
+- Histori KPI tidak berubah walaupun Template berubah.
+- Mendukung Soft Delete.
+- Mendukung Audit Trail.
+- Mendukung Progress Monitoring.
+- Master Data menggunakan Seeder agar implementasi lebih cepat dan konsisten.
+- Siap diintegrasikan dengan Competency Management, Career Path, Succession Planning, Talent Management, Bonus Management, dan Performance Improvement Plan (PIP).

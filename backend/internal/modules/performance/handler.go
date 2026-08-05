@@ -470,3 +470,473 @@ func parsePagination(c *gin.Context) (int, int) {
 	}
 	return page, perPage
 }
+
+// =========================================================================
+// Performance Progress
+// =========================================================================
+
+func (h *Handler) CreatePerformanceProgress(c *gin.Context) {
+	var req CreatePerformanceProgressRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreatePerformanceProgress(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListPerformanceProgressByDetailID(c *gin.Context) {
+	detailID := c.Param("id")
+	items, err := h.svc.ListPerformanceProgressByDetailID(c.Request.Context(), detailID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": items})
+}
+
+func (h *Handler) GetPerformanceProgressByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetPerformanceProgressByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance progress not found"}})
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdatePerformanceProgress(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdatePerformanceProgressRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdatePerformanceProgress(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeletePerformanceProgress(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeletePerformanceProgress(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Performance Comments
+// =========================================================================
+
+func (h *Handler) CreatePerformanceComment(c *gin.Context) {
+	var req CreatePerformanceCommentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreatePerformanceComment(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListPerformanceCommentsByEvaluationID(c *gin.Context) {
+	evalID := c.Param("id")
+	items, err := h.svc.ListPerformanceCommentsByEvaluationID(c.Request.Context(), evalID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": items})
+}
+
+func (h *Handler) GetPerformanceCommentByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetPerformanceCommentByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance comment not found"}})
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdatePerformanceComment(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdatePerformanceCommentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdatePerformanceComment(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeletePerformanceComment(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeletePerformanceComment(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Performance Attachments
+// =========================================================================
+
+func (h *Handler) CreatePerformanceAttachment(c *gin.Context) {
+	var req CreatePerformanceAttachmentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreatePerformanceAttachment(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListPerformanceAttachmentsByDetailID(c *gin.Context) {
+	detailID := c.Param("id")
+	items, err := h.svc.ListPerformanceAttachmentsByDetailID(c.Request.Context(), detailID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": items})
+}
+
+func (h *Handler) GetPerformanceAttachmentByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetPerformanceAttachmentByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance attachment not found"}})
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdatePerformanceAttachment(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdatePerformanceAttachmentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdatePerformanceAttachment(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeletePerformanceAttachment(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeletePerformanceAttachment(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Performance Ratings
+// =========================================================================
+
+func (h *Handler) CreatePerformanceRating(c *gin.Context) {
+	var req CreatePerformanceRatingRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreatePerformanceRating(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListPerformanceRatings(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	resp, err := h.svc.ListPerformanceRatings(c.Request.Context(), page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetPerformanceRatingByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetPerformanceRatingByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance rating not found"}})
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdatePerformanceRating(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdatePerformanceRatingRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdatePerformanceRating(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeletePerformanceRating(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeletePerformanceRating(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Performance Indicator Formulas
+// =========================================================================
+
+func (h *Handler) CreatePerformanceIndicatorFormula(c *gin.Context) {
+	var req CreatePerformanceIndicatorFormulaRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreatePerformanceIndicatorFormula(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListPerformanceIndicatorFormulas(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	resp, err := h.svc.ListPerformanceIndicatorFormulas(c.Request.Context(), page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetPerformanceIndicatorFormulaByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetPerformanceIndicatorFormulaByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance indicator formula not found"}})
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdatePerformanceIndicatorFormula(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdatePerformanceIndicatorFormulaRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdatePerformanceIndicatorFormula(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeletePerformanceIndicatorFormula(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeletePerformanceIndicatorFormula(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Performance Logs (Read-only)
+// =========================================================================
+
+func (h *Handler) ListPerformanceLogs(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	resp, err := h.svc.ListPerformanceLogs(c.Request.Context(), page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) ListPerformanceLogsByEvaluationID(c *gin.Context) {
+	evalID := c.Param("id")
+	page, perPage := parsePagination(c)
+	resp, err := h.svc.ListPerformanceLogsByEvaluationID(c.Request.Context(), evalID, page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetPerformanceLogByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetPerformanceLogByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance log not found"}})
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// =========================================================================
+// Phase 3 - Business Process Handlers
+// =========================================================================
+
+// CreateEvaluationWithSnapshot creates evaluation and snapshots KPIs from template
+func (h *Handler) CreateEvaluationWithSnapshot(c *gin.Context) {
+	var req CreateEvaluationWithSnapshotRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateEvaluationWithSnapshot(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+// GetEvaluationWithDetails returns evaluation with all details
+func (h *Handler) GetEvaluationWithDetails(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetEvaluationWithDetails(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Evaluation not found"}})
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// UpdateEvaluationActual updates actual value with auto calculation
+func (h *Handler) UpdateEvaluationActual(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateEvaluationActualRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateEvaluationActual(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// BulkUpdateEvaluationActuals updates multiple details with auto calculation
+func (h *Handler) BulkUpdateEvaluationActuals(c *gin.Context) {
+	var req BulkUpdateEvaluationActualRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.BulkUpdateEvaluationActuals(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// RecalculateEvaluationScore recalculates final score and rating
+func (h *Handler) RecalculateEvaluationScore(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.RecalculateEvaluationScore(c.Request.Context(), id); err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	// Return updated evaluation
+	resp, err := h.svc.GetEvaluationWithDetails(c.Request.Context(), id)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetEvaluationProgressSummary returns progress summary
+func (h *Handler) GetEvaluationProgressSummary(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetEvaluationProgressSummary(c.Request.Context(), id)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// SubmitEvaluation changes status to SUBMITTED
+func (h *Handler) SubmitEvaluation(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.SubmitEvaluation(c.Request.Context(), id)
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// ApproveEvaluation changes status to APPROVED
+func (h *Handler) ApproveEvaluation(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.ApproveEvaluation(c.Request.Context(), id)
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// RejectEvaluation changes status back to DRAFT
+func (h *Handler) RejectEvaluation(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		Notes *string `json:"notes"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// Notes is optional, so ignore binding error
+	}
+	resp, err := h.svc.RejectEvaluation(c.Request.Context(), id, req.Notes)
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// CompleteEvaluation changes status to COMPLETED
+func (h *Handler) CompleteEvaluation(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.CompleteEvaluation(c.Request.Context(), id)
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}

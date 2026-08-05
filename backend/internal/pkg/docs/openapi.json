@@ -135,6 +135,14 @@
     {
       "name": "Public",
       "description": "Public endpoints — no authentication required"
+    },
+    {
+      "name": "Tenant: RBAC Management",
+      "description": "Tenant RBAC role & permission management"
+    },
+    {
+      "name": "Tenant: User Accounts",
+      "description": "Employee login account management"
     }
   ],
   "paths": {
@@ -373,6 +381,100 @@
           }
         },
         "description": "Soft-delete a platform user account. Super admin users cannot be deleted."
+      },
+      "get": {
+        "operationId": "getPlatformUser",
+        "summary": "Get platform user by ID",
+        "description": "Ambil detail platform user berdasarkan ID.",
+        "tags": [
+          "Platform: Users"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updatePlatformUser",
+        "summary": "Update platform user",
+        "description": "Perbarui nama/email/role/status platform user.",
+        "tags": [
+          "Platform: Users"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/platform/companies": {
@@ -1244,6 +1346,41 @@
           }
         },
         "description": "Update license terms including plan upgrade/downgrade, extension of validity period, seat count adjustments, or license status changes."
+      },
+      "delete": {
+        "operationId": "deleteLicense",
+        "summary": "Delete license",
+        "description": "Hapus lisensi perusahaan.",
+        "tags": [
+          "Platform: Licenses"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "License deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/public/packages": {
@@ -7750,26 +7887,6 @@
           }
         },
         "description": "Create a new competency resource."
-      },
-      "get": {
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompetencyPaginatedResponse"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Retrieve a list of score details records.",
-        "description": "Retrieve a paginated list of score details records. Supports filtering, sorting, and pagination parameters.",
-        "operationId": "listCompetencyScoreDetails",
-        "tags": [
-          "Tenant: Competency Management"
-        ]
       }
     },
     "/api/v1/tenant/competency/score-details/{id}": {
@@ -10256,45 +10373,6 @@
           }
         },
         "description": "Retrieve a paginated list of approval resources."
-      },
-      "post": {
-        "tags": [
-          "Tenant: Approval Engine"
-        ],
-        "summary": "Cancel approval instance",
-        "operationId": "cancelApprovalInstance",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalInstanceResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found"
-          }
-        },
-        "description": "Create a new instances record. Validates required fields and returns the created resource with its assigned ID."
       }
     },
     "/api/v1/tenant/approval/instances/{id}/actions": {
@@ -11550,133 +11628,6 @@
         "description": "Create a new pph21 ptkp rates record. Validates required fields and returns the created resource with its assigned ID."
       }
     },
-    "/api/v1/tenant/payroll/pph21-ptkp-rates/{id}": {
-      "get": {
-        "tags": [
-          "Tenant: Payroll & Compensation Engine"
-        ],
-        "summary": "Get PPh21 PTKP rate by ID",
-        "operationId": "getPph21PtkpRate",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "PTKP rate details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Pph21PtkpRateResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "PTKP rate not found"
-          }
-        },
-        "description": "Get detailed information about a specific PPh21 PTKP rate record by its ID."
-      },
-      "put": {
-        "tags": [
-          "Tenant: Payroll & Compensation Engine"
-        ],
-        "summary": "Update PPh21 PTKP rate",
-        "operationId": "updatePph21PtkpRate",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePph21PtkpRateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "PTKP rate updated"
-          },
-          "400": {
-            "description": "Validation error"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "PTKP rate not found"
-          }
-        },
-        "description": "Update a PPh21 PTKP rate record."
-      },
-      "delete": {
-        "tags": [
-          "Tenant: Payroll & Compensation Engine"
-        ],
-        "summary": "Delete PPh21 PTKP rate",
-        "operationId": "deletePph21PtkpRate",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "PTKP rate deleted"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "PTKP rate not found"
-          }
-        },
-        "description": "Delete a PPh21 PTKP rate record."
-      }
-    },
     "/api/v1/tenant/payroll/pph21-settings": {
       "get": {
         "tags": [
@@ -11930,133 +11881,6 @@
           }
         },
         "description": "Create a new pph21 tax brackets record. Validates required fields and returns the created resource with its assigned ID."
-      }
-    },
-    "/api/v1/tenant/payroll/pph21-tax-brackets/{id}": {
-      "get": {
-        "tags": [
-          "Tenant: Payroll & Compensation Engine"
-        ],
-        "summary": "Get PPh21 tax bracket by ID",
-        "operationId": "getPph21TaxBracket",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Tax bracket details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Pph21TaxBracketResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "Tax bracket not found"
-          }
-        },
-        "description": "Get detailed information about a specific PPh21 tax bracket record by its ID."
-      },
-      "put": {
-        "tags": [
-          "Tenant: Payroll & Compensation Engine"
-        ],
-        "summary": "Update PPh21 tax bracket",
-        "operationId": "updatePph21TaxBracket",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePph21TaxBracketRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Tax bracket updated"
-          },
-          "400": {
-            "description": "Validation error"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "Tax bracket not found"
-          }
-        },
-        "description": "Update a PPh21 tax bracket record."
-      },
-      "delete": {
-        "tags": [
-          "Tenant: Payroll & Compensation Engine"
-        ],
-        "summary": "Delete PPh21 tax bracket",
-        "operationId": "deletePph21TaxBracket",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Tax bracket deleted"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "Tax bracket not found"
-          }
-        },
-        "description": "Delete a PPh21 tax bracket record."
       }
     },
     "/api/v1/tenant/payroll/runs": {
@@ -22453,35 +22277,6 @@
           }
         },
         "description": "Define a career path between two position titles. Specifies the path type (PROMOTION/LATERAL/DEMOTION/CROSSFUNCTIONAL), typical tenure, requirements, and required competencies."
-      },
-      "delete": {
-        "tags": [
-          "Tenant: Career Intelligence"
-        ],
-        "summary": "Delete career path",
-        "operationId": "ciDeleteCareerPath",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Career path deleted"
-          }
-        },
-        "description": "Soft-delete a career path definition."
       }
     },
     "/api/v1/tenant/career-intelligence/paths/gap-analysis": {
@@ -25224,6 +25019,45 @@
           }
         },
         "description": "List competency master data with pagination and optional search filter (matches name, field, cluster, or definition)."
+      },
+      "post": {
+        "operationId": "createSettingCompetency",
+        "summary": "Create setting competency",
+        "description": "Buat data kompetensi di master data settings.",
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompetencyResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompetencyRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/tenant/settings/employment-statuses": {
@@ -27189,132 +27023,6 @@
         "description": "Get a village by its code including the full hierarchy: village name, district name, regency name, and province name."
       }
     },
-    "/api/v1/tenant/settings/provinces/{id}/regencies": {
-      "get": {
-        "tags": [
-          "Tenant: Settings"
-        ],
-        "summary": "List regencies by province",
-        "operationId": "listRegenciesByProvince",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Province ID (code)"
-          },
-          {
-            "name": "per_page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "default": 200
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of regencies"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "description": "Retrieve a list of regencies/cities within a specific province for cascading dropdown selection."
-      }
-    },
-    "/api/v1/tenant/settings/regencies/{id}/districts": {
-      "get": {
-        "tags": [
-          "Tenant: Settings"
-        ],
-        "summary": "List districts by regency",
-        "operationId": "listDistrictsByRegency",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Regency ID (code)"
-          },
-          {
-            "name": "per_page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "default": 200
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of districts"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "description": "Retrieve a list of districts within a specific regency for cascading dropdown selection."
-      }
-    },
-    "/api/v1/tenant/settings/districts/{id}/villages": {
-      "get": {
-        "tags": [
-          "Tenant: Settings"
-        ],
-        "summary": "List villages by district",
-        "operationId": "listVillagesByDistrict",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "District ID (code)"
-          },
-          {
-            "name": "per_page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "default": 200
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of villages"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "description": "Retrieve a list of villages within a specific district for cascading dropdown selection."
-      }
-    },
     "/api/v1/platform/users/{id}/password": {
       "put": {
         "tags": [
@@ -28899,6 +28607,1919 @@
           }
         },
         "description": "Hapus satu detail hubungan kerja."
+      }
+    },
+    "/api/v1/tenant/performance/progress": {
+      "post": {
+        "operationId": "createPerformanceProgress",
+        "summary": "Create performance progress",
+        "description": "Catat progres realisasi KPI untuk satu evaluation detail (nilai aktual per tanggal).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceProgressResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePerformanceProgressRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/performance/evaluation-details/{id}/progress": {
+      "get": {
+        "operationId": "listPerformanceProgressByDetailID",
+        "summary": "List progress by evaluation detail",
+        "description": "Ambil semua progres KPI yang tercatat untuk evaluation detail tertentu.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of performance progress entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PerformanceProgressResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/progress/{id}": {
+      "get": {
+        "operationId": "getPerformanceProgress",
+        "summary": "Get performance progress by ID",
+        "description": "Ambil satu catatan progres KPI berdasarkan ID.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceProgressResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updatePerformanceProgress",
+        "summary": "Update performance progress",
+        "description": "Perbarui tanggal, nilai aktual, achievement, atau catatan progres KPI.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceProgressResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePerformanceProgressRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePerformanceProgress",
+        "summary": "Delete performance progress",
+        "description": "Hapus satu catatan progres KPI.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Progress deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/comments": {
+      "post": {
+        "operationId": "createPerformanceComment",
+        "summary": "Create performance comment",
+        "description": "Tambahkan komentar/review pada sebuah performance evaluation.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceCommentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePerformanceCommentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/performance/evaluations/{id}/comments": {
+      "get": {
+        "operationId": "listPerformanceCommentsByEvaluationID",
+        "summary": "List comments by evaluation",
+        "description": "Ambil semua komentar pada sebuah performance evaluation.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of performance comments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PerformanceCommentResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/comments/{id}": {
+      "get": {
+        "operationId": "getPerformanceComment",
+        "summary": "Get performance comment by ID",
+        "description": "Ambil satu komentar performance berdasarkan ID.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceCommentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updatePerformanceComment",
+        "summary": "Update performance comment",
+        "description": "Perbarui isi komentar performance.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceCommentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePerformanceCommentRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePerformanceComment",
+        "summary": "Delete performance comment",
+        "description": "Hapus satu komentar performance.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comment deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/attachments": {
+      "post": {
+        "operationId": "createPerformanceAttachment",
+        "summary": "Create performance attachment",
+        "description": "Lampirkan file bukti/dokumen pendukung pada evaluation detail.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceAttachmentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePerformanceAttachmentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/performance/evaluation-details/{id}/attachments": {
+      "get": {
+        "operationId": "listPerformanceAttachmentsByDetailID",
+        "summary": "List attachments by evaluation detail",
+        "description": "Ambil semua lampiran pada evaluation detail tertentu.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of performance attachments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PerformanceAttachmentResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/attachments/{id}": {
+      "get": {
+        "operationId": "getPerformanceAttachment",
+        "summary": "Get performance attachment by ID",
+        "description": "Ambil satu lampiran performance berdasarkan ID.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceAttachmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updatePerformanceAttachment",
+        "summary": "Update performance attachment",
+        "description": "Perbarui deskripsi lampiran performance.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceAttachmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePerformanceAttachmentRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePerformanceAttachment",
+        "summary": "Delete performance attachment",
+        "description": "Hapus satu lampiran performance.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attachment deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/ratings": {
+      "post": {
+        "operationId": "createPerformanceRating",
+        "summary": "Create performance rating",
+        "description": "Buat skala rating penilaian (mis. A=90-100, B=80-89) untuk konversi skor akhir.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceRatingResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePerformanceRatingRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listPerformanceRatings",
+        "summary": "List performance ratings",
+        "description": "Ambil daftar rating skala penilaian dengan pagination.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of resources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformancePaginatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/ratings/{id}": {
+      "get": {
+        "operationId": "getPerformanceRating",
+        "summary": "Get performance rating by ID",
+        "description": "Ambil satu rating skala penilaian.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceRatingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updatePerformanceRating",
+        "summary": "Update performance rating",
+        "description": "Perbarui rating skala penilaian.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceRatingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePerformanceRatingRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePerformanceRating",
+        "summary": "Delete performance rating",
+        "description": "Hapus satu rating skala penilaian.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rating deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/indicator-formulas": {
+      "post": {
+        "operationId": "createPerformanceIndicatorFormula",
+        "summary": "Create indicator formula",
+        "description": "Buat formula kalkulasi skor KPI (MANUAL/HIGHER_BETTER/LOWER_BETTER/RANGE).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceIndicatorFormulaResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePerformanceIndicatorFormulaRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listPerformanceIndicatorFormulas",
+        "summary": "List indicator formulas",
+        "description": "Ambil daftar formula kalkulasi skor KPI dengan pagination.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of resources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformancePaginatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/indicator-formulas/{id}": {
+      "get": {
+        "operationId": "getPerformanceIndicatorFormula",
+        "summary": "Get indicator formula by ID",
+        "description": "Ambil satu formula kalkulasi skor KPI.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceIndicatorFormulaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updatePerformanceIndicatorFormula",
+        "summary": "Update indicator formula",
+        "description": "Perbarui formula kalkulasi skor KPI.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceIndicatorFormulaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePerformanceIndicatorFormulaRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePerformanceIndicatorFormula",
+        "summary": "Delete indicator formula",
+        "description": "Hapus satu formula kalkulasi skor KPI.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Formula deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/logs": {
+      "get": {
+        "operationId": "listPerformanceLogs",
+        "summary": "List performance audit logs",
+        "description": "Ambil daftar audit trail perubahan data performance dengan pagination.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of resources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformancePaginatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/evaluations/{id}/logs": {
+      "get": {
+        "operationId": "listPerformanceLogsByEvaluationID",
+        "summary": "List audit logs by evaluation",
+        "description": "Ambil audit trail perubahan pada sebuah performance evaluation.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of resources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformancePaginatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/logs/{id}": {
+      "get": {
+        "operationId": "getPerformanceLog",
+        "summary": "Get performance log by ID",
+        "description": "Ambil satu audit trail berdasarkan ID.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceLogResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/rbac/roles": {
+      "get": {
+        "operationId": "listTenantRbacRoles",
+        "summary": "List tenant RBAC roles",
+        "description": "Ambil daftar role RBAC tenant beserta permission-nya.",
+        "tags": [
+          "Tenant: RBAC Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tenant RBAC roles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TenantRoleResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createTenantRbacRole",
+        "summary": "Create tenant RBAC role",
+        "description": "Buat role RBAC tenant baru.",
+        "tags": [
+          "Tenant: RBAC Management"
+        ],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantRoleResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTenantRoleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/rbac/roles/{id}": {
+      "put": {
+        "operationId": "updateTenantRbacRole",
+        "summary": "Update tenant RBAC role",
+        "description": "Perbarui nama/deskripsi role RBAC tenant.",
+        "tags": [
+          "Tenant: RBAC Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantRoleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTenantRoleRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTenantRbacRole",
+        "summary": "Delete tenant RBAC role",
+        "description": "Hapus role RBAC tenant (role system tidak dapat dihapus).",
+        "tags": [
+          "Tenant: RBAC Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Role deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/rbac/permissions": {
+      "get": {
+        "operationId": "listTenantRbacPermissions",
+        "summary": "List tenant RBAC permissions",
+        "description": "Ambil daftar permission RBAC tenant.",
+        "tags": [
+          "Tenant: RBAC Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tenant RBAC permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TenantPermissionResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/rbac/roles/{id}/permissions": {
+      "put": {
+        "operationId": "assignTenantRolePermissions",
+        "summary": "Assign permissions to tenant role",
+        "description": "Ganti (replace) daftar permission milik role RBAC tenant.",
+        "tags": [
+          "Tenant: RBAC Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Permissions updated"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TenantAssignPermissionsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/rbac/users": {
+      "get": {
+        "operationId": "listTenantRbacUsers",
+        "summary": "List tenant RBAC users",
+        "description": "Ambil daftar user tenant beserta role-nya.",
+        "tags": [
+          "Tenant: RBAC Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tenant RBAC users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TenantUserResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/rbac/users/{id}/roles": {
+      "put": {
+        "operationId": "assignTenantUserRoles",
+        "summary": "Assign roles to tenant user",
+        "description": "Ganti (replace) daftar role milik user tenant.",
+        "tags": [
+          "Tenant: RBAC Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User roles updated"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TenantAssignUserRolesRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/settings/competencies/{id}": {
+      "get": {
+        "operationId": "getSettingCompetency",
+        "summary": "Get setting competency by ID",
+        "description": "Ambil satu data kompetensi di settings.",
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompetencyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updateSettingCompetency",
+        "summary": "Update setting competency",
+        "description": "Perbarui data kompetensi di settings.",
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompetencyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompetencyRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSettingCompetency",
+        "summary": "Delete setting competency",
+        "description": "Hapus data kompetensi di settings.",
+        "tags": [
+          "Tenant: Settings"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Competency deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/user-accounts/employees/{employeeId}": {
+      "get": {
+        "operationId": "getUserAccountStatus",
+        "summary": "Get employee account status",
+        "description": "Ambil status akun login employee (email, password_set, setup token).",
+        "tags": [
+          "Tenant: User Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createUserAccount",
+        "summary": "Create employee account",
+        "description": "Buat akun login employee (kirim email setup password).",
+        "tags": [
+          "Tenant: User Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/user-accounts/employees/{employeeId}/resend": {
+      "post": {
+        "operationId": "resendSetupEmail",
+        "summary": "Resend account setup email",
+        "description": "Kirim ulang email link setup password akun employee.",
+        "tags": [
+          "Tenant: User Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Setup email resent"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/career-intelligence/paths/{id}": {
+      "delete": {
+        "operationId": "deleteCareerPath",
+        "summary": "Delete career path",
+        "description": "Hapus satu jalur karier (career path).",
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Career path deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/public/account/setup-password": {
+      "post": {
+        "operationId": "publicSetPassword",
+        "summary": "Set account password via email link",
+        "description": "Atur password akun login employee melalui link email (tanpa autentikasi).",
+        "tags": [
+          "Public"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Password set successfully"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordRequest"
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -43270,32 +44891,6 @@
           }
         }
       },
-      "UpdatePph21PtkpRateRequest": {
-        "type": "object",
-        "properties": {
-          "ptkp": {
-            "type": "integer"
-          },
-          "description": {
-            "type": "string"
-          }
-        }
-      },
-      "UpdatePph21TaxBracketRequest": {
-        "type": "object",
-        "properties": {
-          "min_income": {
-            "type": "number"
-          },
-          "max_income": {
-            "type": "number"
-          },
-          "rate": {
-            "type": "number",
-            "format": "float"
-          }
-        }
-      },
       "OrganizationSummaryResponse": {
         "type": "object",
         "properties": {
@@ -43856,6 +45451,775 @@
             "type": "boolean"
           },
           "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreatePerformanceProgressRequest": {
+        "type": "object",
+        "required": [
+          "evaluation_detail_id",
+          "progress_date",
+          "created_by"
+        ],
+        "properties": {
+          "evaluation_detail_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "progress_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-08-01"
+          },
+          "actual_value": {
+            "type": "number",
+            "example": 12.5
+          },
+          "achievement": {
+            "type": "number",
+            "example": 96.15
+          },
+          "notes": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "UpdatePerformanceProgressRequest": {
+        "type": "object",
+        "properties": {
+          "progress_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "actual_value": {
+            "type": "number"
+          },
+          "achievement": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "PerformanceProgressResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evaluation_detail_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "progress_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "actual_value": {
+            "type": "number"
+          },
+          "achievement": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreatePerformanceCommentRequest": {
+        "type": "object",
+        "required": [
+          "evaluation_id",
+          "employee_id",
+          "comment",
+          "created_by"
+        ],
+        "properties": {
+          "evaluation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "UpdatePerformanceCommentRequest": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string"
+          }
+        }
+      },
+      "PerformanceCommentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evaluation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreatePerformanceAttachmentRequest": {
+        "type": "object",
+        "required": [
+          "evaluation_detail_id",
+          "file_path",
+          "file_name",
+          "uploaded_by"
+        ],
+        "properties": {
+          "evaluation_detail_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "file_path": {
+            "type": "string",
+            "example": "/uploads/evidence/xxx.pdf"
+          },
+          "file_name": {
+            "type": "string",
+            "example": "bukti-pencapaian.pdf"
+          },
+          "file_type": {
+            "type": "string",
+            "example": "application/pdf"
+          },
+          "file_size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "description": {
+            "type": "string"
+          },
+          "uploaded_by": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "UpdatePerformanceAttachmentRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "PerformanceAttachmentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evaluation_detail_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "file_path": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "file_type": {
+            "type": "string"
+          },
+          "file_size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "description": {
+            "type": "string"
+          },
+          "uploaded_by": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreatePerformanceRatingRequest": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "min_score",
+          "max_score"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "A"
+          },
+          "name": {
+            "type": "string",
+            "example": "Excellent"
+          },
+          "min_score": {
+            "type": "number",
+            "example": 90
+          },
+          "max_score": {
+            "type": "number",
+            "example": 100
+          },
+          "color": {
+            "type": "string",
+            "example": "#22c55e"
+          },
+          "description": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "UpdatePerformanceRatingRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "min_score": {
+            "type": "number"
+          },
+          "max_score": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer"
+          }
+        }
+      },
+      "PerformanceRatingResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "min_score": {
+            "type": "number"
+          },
+          "max_score": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreatePerformanceIndicatorFormulaRequest": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "formula_type"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "HB"
+          },
+          "name": {
+            "type": "string",
+            "example": "Higher is Better"
+          },
+          "formula_type": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "HIGHER_BETTER",
+              "LOWER_BETTER",
+              "RANGE"
+            ]
+          },
+          "expression": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "UpdatePerformanceIndicatorFormulaRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "formula_type": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "HIGHER_BETTER",
+              "LOWER_BETTER",
+              "RANGE"
+            ]
+          },
+          "expression": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer"
+          }
+        }
+      },
+      "PerformanceIndicatorFormulaResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "formula_type": {
+            "type": "string"
+          },
+          "expression": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PerformanceLogResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evaluation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entity_type": {
+            "type": "string",
+            "example": "evaluation"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "example": "UPDATE"
+          },
+          "old_values": {
+            "type": "string"
+          },
+          "new_values": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateTenantRoleRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string"
+          },
+          "is_default": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "UpdateTenantRoleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string"
+          },
+          "is_default": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TenantRoleResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "guard_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "is_system": {
+            "type": "boolean"
+          },
+          "user_count": {
+            "type": "integer"
+          },
+          "permission_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TenantPermissionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "guard_name": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          }
+        }
+      },
+      "TenantAssignPermissionsRequest": {
+        "type": "object",
+        "required": [
+          "permission_ids"
+        ],
+        "properties": {
+          "permission_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "TenantUserResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "role_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "role_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TenantAssignUserRolesRequest": {
+        "type": "object",
+        "required": [
+          "role_ids"
+        ],
+        "properties": {
+          "role_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "CreateAccountRequest": {
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255
+          }
+        }
+      },
+      "AccountResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "company_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role_name": {
+            "type": "string"
+          },
+          "setup_token": {
+            "type": "string"
+          },
+          "setup_token_expires": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "password_set": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SetPasswordRequest": {
+        "type": "object",
+        "required": [
+          "token",
+          "new_password"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Setup token dari email link"
+          },
+          "new_password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 72
+          }
+        }
+      },
+      "PlatformUserResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "super_admin",
+              "company_admin"
+            ]
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "company_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "company_name": {
+            "type": "string"
+          },
+          "last_login": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
             "type": "string",
             "format": "date-time"
           }

@@ -1,20 +1,20 @@
 = HRIS Platform — OpenAPI Comprehensive Report (v17) =
 
 
-**Generated:** 05 August 2026
+**Generated:** 06 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 378
-**Total Endpoints (methods):** 698
-**Total Schemas:** 442
-**Total Tags:** 30
+**Total Paths:** 400
+**Total Endpoints (methods):** 734
+**Total Schemas:** 467
+**Total Tags:** 32
 
 ## Coverage Summary
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 698/698 | 100% |
-| Endpoints with `description` | 698/698 | 100% |
-| Endpoints with `operationId` | 698/698 | 100% |
+| Endpoints with `summary` | 734/734 | 100% |
+| Endpoints with `description` | 734/734 | 100% |
+| Endpoints with `operationId` | 734/734 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -105,18 +105,18 @@ Tenant endpoints support validation for Indonesian data formats:
 
 | # | Tag | Endpoints | Paths |
 |---|---|---|---|
-| 1 | Tenant: Settings | 106 | 46 |
+| 1 | Tenant: Settings | 107 | 44 |
 | 2 | Tenant: Job Management | 96 | 40 |
 | 3 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
-| 4 | Tenant: Payroll & Compensation Engine | 53 | 26 |
-| 5 | Tenant: Employees | 36 | 23 |
-| 6 | Tenant: Competency Management | 36 | 15 |
-| 7 | Tenant: Training & Development Management | 35 | 15 |
-| 8 | Tenant: Performance Management | 34 | 17 |
+| 4 | Tenant: Performance Management | 62 | 33 |
+| 5 | Tenant: Payroll & Compensation Engine | 47 | 24 |
+| 6 | Tenant: Employees | 36 | 23 |
+| 7 | Tenant: Competency Management | 35 | 15 |
+| 8 | Tenant: Training & Development Management | 35 | 15 |
 | 9 | Tenant: Recruitment & Onboarding (ATS) | 33 | 16 |
 | 10 | Tenant: Time & Attendance | 30 | 15 |
 | 11 | Tenant: Leave & Time Off | 23 | 12 |
-| 12 | Tenant: Career Intelligence | 19 | 10 |
+| 12 | Tenant: Career Intelligence | 19 | 11 |
 | 13 | Tenant: Organizations | 18 | 11 |
 | 14 | Tenant: Employee Movement & Career Management | 15 | 9 |
 | 15 | Tenant: Approval | 15 | 9 |
@@ -124,25 +124,26 @@ Tenant endpoints support validation for Indonesian data formats:
 | 17 | Platform: Companies | 11 | 8 |
 | 18 | Platform: RBAC Management | 10 | 6 |
 | 19 | Platform: Packages | 9 | 6 |
-| 20 | Platform: Modules | 7 | 5 |
-| 21 | Platform: Monitoring | 5 | 5 |
-| 22 | Health | 4 | 4 |
-| 23 | Platform: Users | 4 | 3 |
-| 24 | Platform: Licenses | 4 | 2 |
-| 25 | Tenant: Packages | 4 | 4 |
-| 26 | Platform: Auth | 2 | 2 |
-| 27 | Tenant Auth | 2 | 2 |
-| 28 | Tenant: Company | 2 | 1 |
-| 29 | Tenant: Approval Engine | 1 | 1 |
-| 30 | Public | 1 | 1 |
-| | **TOTAL** | **698** | **378** |
+| 20 | Tenant: RBAC Management | 8 | 6 |
+| 21 | Platform: Modules | 7 | 5 |
+| 22 | Platform: Users | 6 | 3 |
+| 23 | Platform: Licenses | 5 | 2 |
+| 24 | Platform: Monitoring | 5 | 5 |
+| 25 | Health | 4 | 4 |
+| 26 | Tenant: Packages | 4 | 4 |
+| 27 | Tenant: User Accounts | 3 | 2 |
+| 28 | Platform: Auth | 2 | 2 |
+| 29 | Public | 2 | 2 |
+| 30 | Tenant Auth | 2 | 2 |
+| 31 | Tenant: Company | 2 | 1 |
+| | **TOTAL** | **734** | **400** |
 
 ## 2. Module Detail
 
 ### Tenant: Settings
 **Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data, education majors.
-**Endpoints:** 106 | **Paths:** 46
-**Methods:** DELETE=20 GET=46 POST=20 PUT=20
+**Endpoints:** 107 | **Paths:** 44
+**Methods:** DELETE=21 GET=44 POST=21 PUT=21
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -157,12 +158,15 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/settings/company-holidays/{id}` | Update a company holiday |  |
 | `DELETE` | `/api/v1/tenant/settings/company-holidays/{id}` | Delete a company holiday |  |
 | `GET` | `/api/v1/tenant/settings/competencies` | List all Competencies | List competency master data with pagination and optional search filter (matches name, field, cluster, or definition). |
+| `POST` | `/api/v1/tenant/settings/competencies` | Create setting competency | Buat data kompetensi di master data settings. |
+| `GET` | `/api/v1/tenant/settings/competencies/{id}` | Get setting competency by ID | Ambil satu data kompetensi di settings. |
+| `PUT` | `/api/v1/tenant/settings/competencies/{id}` | Update setting competency | Perbarui data kompetensi di settings. |
+| `DELETE` | `/api/v1/tenant/settings/competencies/{id}` | Delete setting competency | Hapus data kompetensi di settings. |
 | `GET` | `/api/v1/tenant/settings/districts` | List all Districts | Retrieve a paginated list of Districts. Supports pagination parameters. |
 | `POST` | `/api/v1/tenant/settings/districts` | Create a new district | Create a new districts record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/settings/districts/{id}` | Get district by ID | Get detailed information about a specific district by its ID. |
 | `PUT` | `/api/v1/tenant/settings/districts/{id}` | Update district | Update a district record's details including code, name, and other attributes. |
 | `DELETE` | `/api/v1/tenant/settings/districts/{id}` | Delete district | Soft-delete a district record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/districts/{id}/villages` | List villages by district | Retrieve a list of villages within a specific district for cascading dropdown selection. |
 | `GET` | `/api/v1/tenant/settings/education-majors` | List all Education Majors | Retrieve a paginated list of education majors (fields of study). Supports pagination parameters. |
 | `POST` | `/api/v1/tenant/settings/education-majors` | Create a new education major | Create a new education major record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/settings/education-majors/{id}` | Get education major by ID | Get detailed information about a specific education major by its ID. |
@@ -208,7 +212,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/settings/provinces/{id}` | Get province by ID | Get detailed information about a specific province by its ID. |
 | `PUT` | `/api/v1/tenant/settings/provinces/{id}` | Update province | Update a province record's details including code, name, and other attributes. |
 | `DELETE` | `/api/v1/tenant/settings/provinces/{id}` | Delete province | Soft-delete a province record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/provinces/{id}/regencies` | List regencies by province | Retrieve a list of regencies/cities within a specific province for cascading dropdown selection. |
 | `GET` | `/api/v1/tenant/settings/ptkps` | List all PTKPs | Retrieve a paginated list of Penghasilan Tidak Kena Pajak (PTKP) records. Supports pagination parameters. |
 | `POST` | `/api/v1/tenant/settings/ptkps` | Create a new PTKP | Create a new PTKP record with name, amount, and group. |
 | `GET` | `/api/v1/tenant/settings/ptkps/{id}` | Get PTKP by ID | Get detailed information about a specific PTKP record by its ID. |
@@ -219,7 +222,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/settings/regencies/{id}` | Get regency by ID | Get detailed information about a specific regency by its ID. |
 | `PUT` | `/api/v1/tenant/settings/regencies/{id}` | Update regency | Update a regency record's details including code, name, and other attributes. |
 | `DELETE` | `/api/v1/tenant/settings/regencies/{id}` | Delete regency | Soft-delete a regency record. Sets the deleted_at timestamp and hides it from standard queries. |
-| `GET` | `/api/v1/tenant/settings/regencies/{id}/districts` | List districts by regency | Retrieve a list of districts within a specific regency for cascading dropdown selection. |
 | `GET` | `/api/v1/tenant/settings/relationship-types` | List all Relationship Types | Retrieve a paginated list of Relationship Types. Supports pagination parameters. |
 | `POST` | `/api/v1/tenant/settings/relationship-types` | Create a new relationshiptype | Create a new relationship types record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/settings/relationship-types/{id}` | Get relationshiptype by ID | Get detailed information about a specific relationshiptype by its ID. |
@@ -433,9 +435,79 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}/clone` | Clone scenario | Clone an existing scenario as a new DRAFT scenario. Useful for creating variations of a simulation without affecting the original. |
 | `POST` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}/run` | Run scenario simulation | Execute a scenario simulation. Runs the scenario's parameters through the simulation engine and stores results in the scenario record. |
 
+### Tenant: Performance Management
+**Description:** Performance Management â€” BSC (Balanced Scorecard) based KPI and performance evaluation module. Includes performance periods, BSC perspectives, KPI templates and indicators, employee evaluations, and individual performance targets with full status workflow (DRAFT->PLAN_SUBMITTED->PLAN_APPROVED->ACTUAL_SUBMITTED->ACTUAL_APPROVED->COMPLETED).
+**Endpoints:** 62 | **Paths:** 33
+**Methods:** DELETE=12 GET=25 POST=12 PUT=13
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/tenant/performance/attachments` | Create performance attachment | Lampirkan file bukti/dokumen pendukung pada evaluation detail. |
+| `GET` | `/api/v1/tenant/performance/attachments/{id}` | Get performance attachment by ID | Ambil satu lampiran performance berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/performance/attachments/{id}` | Update performance attachment | Perbarui deskripsi lampiran performance. |
+| `DELETE` | `/api/v1/tenant/performance/attachments/{id}` | Delete performance attachment | Hapus satu lampiran performance. |
+| `POST` | `/api/v1/tenant/performance/comments` | Create performance comment | Tambahkan komentar/review pada sebuah performance evaluation. |
+| `GET` | `/api/v1/tenant/performance/comments/{id}` | Get performance comment by ID | Ambil satu komentar performance berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/performance/comments/{id}` | Update performance comment | Perbarui isi komentar performance. |
+| `DELETE` | `/api/v1/tenant/performance/comments/{id}` | Delete performance comment | Hapus satu komentar performance. |
+| `POST` | `/api/v1/tenant/performance/evaluation-details` | Create evaluation detail | Add a BSC perspective detail to a performance evaluation, including achievement percentage, weight, and score for that perspective. |
+| `PUT` | `/api/v1/tenant/performance/evaluation-details/{id}` | Update evaluation detail | Update a BSC perspective detail's achievement percentage, weight, score, or description. |
+| `DELETE` | `/api/v1/tenant/performance/evaluation-details/{id}` | Delete evaluation detail | Permanently delete a BSC perspective detail from the evaluation. |
+| `GET` | `/api/v1/tenant/performance/evaluation-details/{id}/attachments` | List attachments by evaluation detail | Ambil semua lampiran pada evaluation detail tertentu. |
+| `GET` | `/api/v1/tenant/performance/evaluation-details/{id}/progress` | List progress by evaluation detail | Ambil semua progres KPI yang tercatat untuk evaluation detail tertentu. |
+| `POST` | `/api/v1/tenant/performance/evaluations` | Create performance evaluation | Start a new performance evaluation for an employee. Links the employee to a performance period and KPI template for assessment. |
+| `GET` | `/api/v1/tenant/performance/evaluations` | List performance evaluations | Retrieve a paginated list of performance evaluations, optionally filtered by employee, organization, period, or status. |
+| `GET` | `/api/v1/tenant/performance/evaluations/{id}` | Get performance evaluation by ID | Retrieve detailed information about a specific performance evaluation, including its status, scores, and linked targets. |
+| `PUT` | `/api/v1/tenant/performance/evaluations/{id}` | Update performance evaluation | Update evaluation metadata such as supervisor assignment or notes. Only provided fields will be updated. |
+| `DELETE` | `/api/v1/tenant/performance/evaluations/{id}` | Delete performance evaluation | Permanently delete a performance evaluation. Only evaluations in DRAFT status can be deleted. |
+| `GET` | `/api/v1/tenant/performance/evaluations/{id}/comments` | List comments by evaluation | Ambil semua komentar pada sebuah performance evaluation. |
+| `GET` | `/api/v1/tenant/performance/evaluations/{id}/details` | List evaluation details by evaluation ID | Retrieve all BSC perspective detail records for a specific performance evaluation, showing achievement per perspective. |
+| `GET` | `/api/v1/tenant/performance/evaluations/{id}/logs` | List audit logs by evaluation | Ambil audit trail perubahan pada sebuah performance evaluation. |
+| `PUT` | `/api/v1/tenant/performance/evaluations/{id}/status` | Update evaluation status | Transition a performance evaluation through its workflow: DRAFT -> PLAN_SUBMITTED -> PLAN_APPROVED -> ACTUAL_SUBMITTED -> ACTUAL_APPROVED -> COMPLE... |
+| `GET` | `/api/v1/tenant/performance/evaluations/{id}/targets` | List performance targets by evaluation ID | Retrieve all KPI targets for a specific performance evaluation, showing planned vs actual achievement for each indicator. |
+| `POST` | `/api/v1/tenant/performance/indicator-formulas` | Create indicator formula | Buat formula kalkulasi skor KPI (MANUAL/HIGHER_BETTER/LOWER_BETTER/RANGE). |
+| `GET` | `/api/v1/tenant/performance/indicator-formulas` | List indicator formulas | Ambil daftar formula kalkulasi skor KPI dengan pagination. |
+| `GET` | `/api/v1/tenant/performance/indicator-formulas/{id}` | Get indicator formula by ID | Ambil satu formula kalkulasi skor KPI. |
+| `PUT` | `/api/v1/tenant/performance/indicator-formulas/{id}` | Update indicator formula | Perbarui formula kalkulasi skor KPI. |
+| `DELETE` | `/api/v1/tenant/performance/indicator-formulas/{id}` | Delete indicator formula | Hapus satu formula kalkulasi skor KPI. |
+| `POST` | `/api/v1/tenant/performance/indicators` | Create KPI indicator | Create a new KPI indicator linked to a template and BSC perspective. Defines target value, weight, and measurement unit. |
+| `GET` | `/api/v1/tenant/performance/indicators` | List KPI indicators | Retrieve a paginated list of KPI indicators, optionally filtered by template or perspective. |
+| `GET` | `/api/v1/tenant/performance/indicators/{id}` | Get KPI indicator by ID | Retrieve a specific KPI indicator by its unique ID, including target value and measurement settings. |
+| `PUT` | `/api/v1/tenant/performance/indicators/{id}` | Update KPI indicator | Update a KPI indicator's title, weight, target value, or measurement unit. Only provided fields will be updated. |
+| `DELETE` | `/api/v1/tenant/performance/indicators/{id}` | Delete KPI indicator | Permanently delete a KPI indicator from its template. |
+| `GET` | `/api/v1/tenant/performance/logs` | List performance audit logs | Ambil daftar audit trail perubahan data performance dengan pagination. |
+| `GET` | `/api/v1/tenant/performance/logs/{id}` | Get performance log by ID | Ambil satu audit trail berdasarkan ID. |
+| `POST` | `/api/v1/tenant/performance/periods` | Create performance period | Create a new performance evaluation period (e.g. Q1 2026). Period type must be one of: MONTHLY, QUARTERLY, SEMESTER, ANNUAL. |
+| `GET` | `/api/v1/tenant/performance/periods` | List performance periods | Retrieve a paginated list of performance periods, optionally filtered by year or status. |
+| `GET` | `/api/v1/tenant/performance/periods/{id}` | Get performance period by ID | Retrieve detailed information about a specific performance period by its unique UUID. |
+| `PUT` | `/api/v1/tenant/performance/periods/{id}` | Update performance period | Update an existing performance period's details. Only provided fields will be updated. |
+| `DELETE` | `/api/v1/tenant/performance/periods/{id}` | Delete performance period | Permanently delete a performance period by its unique ID. |
+| `POST` | `/api/v1/tenant/performance/perspectives` | Create BSC perspective | Create a new Balanced Scorecard perspective (e.g. Financial, Customer, Internal Process, Learning & Growth). |
+| `GET` | `/api/v1/tenant/performance/perspectives` | List BSC perspectives | Retrieve a paginated list of BSC perspectives used in performance templates. Ordered by sort_order by default. |
+| `GET` | `/api/v1/tenant/performance/perspectives/{id}` | Get BSC perspective by ID | Retrieve a specific BSC perspective by its unique ID. |
+| `PUT` | `/api/v1/tenant/performance/perspectives/{id}` | Update BSC perspective | Update a BSC perspective's name, description, or sort order. Only provided fields will be updated. |
+| `DELETE` | `/api/v1/tenant/performance/perspectives/{id}` | Delete BSC perspective | Permanently delete a BSC perspective from the system. |
+| `POST` | `/api/v1/tenant/performance/progress` | Create performance progress | Catat progres realisasi KPI untuk satu evaluation detail (nilai aktual per tanggal). |
+| `GET` | `/api/v1/tenant/performance/progress/{id}` | Get performance progress by ID | Ambil satu catatan progres KPI berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/performance/progress/{id}` | Update performance progress | Perbarui tanggal, nilai aktual, achievement, atau catatan progres KPI. |
+| `DELETE` | `/api/v1/tenant/performance/progress/{id}` | Delete performance progress | Hapus satu catatan progres KPI. |
+| `POST` | `/api/v1/tenant/performance/ratings` | Create performance rating | Buat skala rating penilaian (mis. A=90-100, B=80-89) untuk konversi skor akhir. |
+| `GET` | `/api/v1/tenant/performance/ratings` | List performance ratings | Ambil daftar rating skala penilaian dengan pagination. |
+| `GET` | `/api/v1/tenant/performance/ratings/{id}` | Get performance rating by ID | Ambil satu rating skala penilaian. |
+| `PUT` | `/api/v1/tenant/performance/ratings/{id}` | Update performance rating | Perbarui rating skala penilaian. |
+| `DELETE` | `/api/v1/tenant/performance/ratings/{id}` | Delete performance rating | Hapus satu rating skala penilaian. |
+| `POST` | `/api/v1/tenant/performance/targets` | Create performance target | Add an individual KPI target to a performance evaluation, setting the target value and weight for measurement. |
+| `PUT` | `/api/v1/tenant/performance/targets/{id}` | Update performance target | Update a KPI target's planned value, actual achievement, or weight. Setting actual_value triggers automatic achievement percentage calculation. |
+| `DELETE` | `/api/v1/tenant/performance/targets/{id}` | Delete performance target | Permanently delete a KPI target from the evaluation. |
+| `POST` | `/api/v1/tenant/performance/templates` | Create KPI template | Create a new KPI template for an organization. Templates define the structure of performance evaluations including indicators from BSC perspectives. |
+| `GET` | `/api/v1/tenant/performance/templates` | List KPI templates | Retrieve a paginated list of KPI templates, optionally filtered by organization. |
+| `GET` | `/api/v1/tenant/performance/templates/{id}` | Get KPI template by ID | Retrieve a specific KPI template by its unique ID, including associated indicators. |
+| `PUT` | `/api/v1/tenant/performance/templates/{id}` | Update KPI template | Update a KPI template's name, description, or status. Status can be transitioned between DRAFT, PUBLISHED, and ARCHIVED. |
+| `DELETE` | `/api/v1/tenant/performance/templates/{id}` | Delete KPI template | Permanently delete a KPI template. Indicators linked to this template may also be removed. |
+
 ### Tenant: Payroll & Compensation Engine
-**Endpoints:** 53 | **Paths:** 26
-**Methods:** DELETE=10 GET=20 POST=12 PUT=11
+**Endpoints:** 47 | **Paths:** 24
+**Methods:** DELETE=8 GET=18 POST=12 PUT=9
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -469,9 +541,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/payroll/periods/{id}` | Update payroll period | Update an existing periods record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `GET` | `/api/v1/tenant/payroll/pph21-ptkp-rates` | List PPh21 PTKP rates | Retrieve a paginated list of pph21 ptkp rates records. Supports filtering, sorting, and pagination parameters. |
 | `POST` | `/api/v1/tenant/payroll/pph21-ptkp-rates` | Create PPh21 PTKP rate | Create a new pph21 ptkp rates record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/payroll/pph21-ptkp-rates/{id}` | Get PPh21 PTKP rate by ID | Get detailed information about a specific PPh21 PTKP rate record by its ID. |
-| `PUT` | `/api/v1/tenant/payroll/pph21-ptkp-rates/{id}` | Update PPh21 PTKP rate | Update a PPh21 PTKP rate record. |
-| `DELETE` | `/api/v1/tenant/payroll/pph21-ptkp-rates/{id}` | Delete PPh21 PTKP rate | Delete a PPh21 PTKP rate record. |
 | `GET` | `/api/v1/tenant/payroll/pph21-settings` | List PPh21 settings | Retrieve a paginated list of pph21 settings records. Supports filtering, sorting, and pagination parameters. |
 | `POST` | `/api/v1/tenant/payroll/pph21-settings` | Create PPh21 setting | Create a new pph21 settings record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/payroll/pph21-settings/{id}` | Get PPh21 setting by ID | Retrieve a paginated list of pph21 settings records. Supports filtering, sorting, and pagination parameters. |
@@ -479,9 +548,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `DELETE` | `/api/v1/tenant/payroll/pph21-settings/{id}` | Delete PPh21 setting | Delete a pph21 settings record by its unique ID. This action may be reversible depending on system configuration. |
 | `GET` | `/api/v1/tenant/payroll/pph21-tax-brackets` | List PPh21 tax brackets | Retrieve a paginated list of pph21 tax brackets records. Supports filtering, sorting, and pagination parameters. |
 | `POST` | `/api/v1/tenant/payroll/pph21-tax-brackets` | Create PPh21 tax bracket | Create a new pph21 tax brackets record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/payroll/pph21-tax-brackets/{id}` | Get PPh21 tax bracket by ID | Get detailed information about a specific PPh21 tax bracket record by its ID. |
-| `PUT` | `/api/v1/tenant/payroll/pph21-tax-brackets/{id}` | Update PPh21 tax bracket | Update a PPh21 tax bracket record. |
-| `DELETE` | `/api/v1/tenant/payroll/pph21-tax-brackets/{id}` | Delete PPh21 tax bracket | Delete a PPh21 tax bracket record. |
 | `GET` | `/api/v1/tenant/payroll/runs` | List payroll runs | Retrieve a paginated list of runs records. Supports filtering, sorting, and pagination parameters. |
 | `POST` | `/api/v1/tenant/payroll/runs` | Create payroll run | Create a new runs record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/payroll/runs/{id}` | Get payroll run by ID | Retrieve a paginated list of runs records. Supports filtering, sorting, and pagination parameters. |
@@ -539,8 +605,8 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Tenant: Competency Management
 **Description:** Competency management including master competencies, values, events, targets, scores, and score details
-**Endpoints:** 36 | **Paths:** 15
-**Methods:** DELETE=7 GET=15 POST=7 PUT=7
+**Endpoints:** 35 | **Paths:** 15
+**Methods:** DELETE=7 GET=14 POST=7 PUT=7
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -565,7 +631,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/competency/events/{id}` | Update competency event | Update an existing events record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `DELETE` | `/api/v1/tenant/competency/events/{id}` | Delete competency event | Delete a events record by its unique ID. This action may be reversible depending on system configuration. |
 | `POST` | `/api/v1/tenant/competency/score-details` | Create score detail | Create a new competency resource. |
-| `GET` | `/api/v1/tenant/competency/score-details` | Retrieve a list of score details records. | Retrieve a paginated list of score details records. Supports filtering, sorting, and pagination parameters. |
 | `GET` | `/api/v1/tenant/competency/score-details/{id}` | Get score detail by ID | Retrieve a paginated list of competency resources. |
 | `PUT` | `/api/v1/tenant/competency/score-details/{id}` | Update score detail | Update an existing score details record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `DELETE` | `/api/v1/tenant/competency/score-details/{id}` | Delete score detail | Delete a score details record by its unique ID. This action may be reversible depending on system configuration. |
@@ -623,48 +688,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/trainings/sessions/{id}` | Update training session | Update an existing training session's schedule, trainer, location, or quota. |
 | `DELETE` | `/api/v1/tenant/trainings/sessions/{id}` | Delete training session | Soft-delete a training session. Participants are not automatically removed. |
 | `PUT` | `/api/v1/tenant/trainings/sessions/{id}/status` | Update training session status | Transition a training session through its lifecycle: SCHEDULED -> IN_PROGRESS -> COMPLETED or CANCELLED. Status changes affect participant registra... |
-
-### Tenant: Performance Management
-**Description:** Performance Management â€” BSC (Balanced Scorecard) based KPI and performance evaluation module. Includes performance periods, BSC perspectives, KPI templates and indicators, employee evaluations, and individual performance targets with full status workflow (DRAFT->PLAN_SUBMITTED->PLAN_APPROVED->ACTUAL_SUBMITTED->ACTUAL_APPROVED->COMPLETED).
-**Endpoints:** 34 | **Paths:** 17
-**Methods:** DELETE=7 GET=12 POST=7 PUT=8
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/tenant/performance/evaluation-details` | Create evaluation detail | Add a BSC perspective detail to a performance evaluation, including achievement percentage, weight, and score for that perspective. |
-| `PUT` | `/api/v1/tenant/performance/evaluation-details/{id}` | Update evaluation detail | Update a BSC perspective detail's achievement percentage, weight, score, or description. |
-| `DELETE` | `/api/v1/tenant/performance/evaluation-details/{id}` | Delete evaluation detail | Permanently delete a BSC perspective detail from the evaluation. |
-| `POST` | `/api/v1/tenant/performance/evaluations` | Create performance evaluation | Start a new performance evaluation for an employee. Links the employee to a performance period and KPI template for assessment. |
-| `GET` | `/api/v1/tenant/performance/evaluations` | List performance evaluations | Retrieve a paginated list of performance evaluations, optionally filtered by employee, organization, period, or status. |
-| `GET` | `/api/v1/tenant/performance/evaluations/{id}` | Get performance evaluation by ID | Retrieve detailed information about a specific performance evaluation, including its status, scores, and linked targets. |
-| `PUT` | `/api/v1/tenant/performance/evaluations/{id}` | Update performance evaluation | Update evaluation metadata such as supervisor assignment or notes. Only provided fields will be updated. |
-| `DELETE` | `/api/v1/tenant/performance/evaluations/{id}` | Delete performance evaluation | Permanently delete a performance evaluation. Only evaluations in DRAFT status can be deleted. |
-| `GET` | `/api/v1/tenant/performance/evaluations/{id}/details` | List evaluation details by evaluation ID | Retrieve all BSC perspective detail records for a specific performance evaluation, showing achievement per perspective. |
-| `PUT` | `/api/v1/tenant/performance/evaluations/{id}/status` | Update evaluation status | Transition a performance evaluation through its workflow: DRAFT -> PLAN_SUBMITTED -> PLAN_APPROVED -> ACTUAL_SUBMITTED -> ACTUAL_APPROVED -> COMPLE... |
-| `GET` | `/api/v1/tenant/performance/evaluations/{id}/targets` | List performance targets by evaluation ID | Retrieve all KPI targets for a specific performance evaluation, showing planned vs actual achievement for each indicator. |
-| `POST` | `/api/v1/tenant/performance/indicators` | Create KPI indicator | Create a new KPI indicator linked to a template and BSC perspective. Defines target value, weight, and measurement unit. |
-| `GET` | `/api/v1/tenant/performance/indicators` | List KPI indicators | Retrieve a paginated list of KPI indicators, optionally filtered by template or perspective. |
-| `GET` | `/api/v1/tenant/performance/indicators/{id}` | Get KPI indicator by ID | Retrieve a specific KPI indicator by its unique ID, including target value and measurement settings. |
-| `PUT` | `/api/v1/tenant/performance/indicators/{id}` | Update KPI indicator | Update a KPI indicator's title, weight, target value, or measurement unit. Only provided fields will be updated. |
-| `DELETE` | `/api/v1/tenant/performance/indicators/{id}` | Delete KPI indicator | Permanently delete a KPI indicator from its template. |
-| `POST` | `/api/v1/tenant/performance/periods` | Create performance period | Create a new performance evaluation period (e.g. Q1 2026). Period type must be one of: MONTHLY, QUARTERLY, SEMESTER, ANNUAL. |
-| `GET` | `/api/v1/tenant/performance/periods` | List performance periods | Retrieve a paginated list of performance periods, optionally filtered by year or status. |
-| `GET` | `/api/v1/tenant/performance/periods/{id}` | Get performance period by ID | Retrieve detailed information about a specific performance period by its unique UUID. |
-| `PUT` | `/api/v1/tenant/performance/periods/{id}` | Update performance period | Update an existing performance period's details. Only provided fields will be updated. |
-| `DELETE` | `/api/v1/tenant/performance/periods/{id}` | Delete performance period | Permanently delete a performance period by its unique ID. |
-| `POST` | `/api/v1/tenant/performance/perspectives` | Create BSC perspective | Create a new Balanced Scorecard perspective (e.g. Financial, Customer, Internal Process, Learning & Growth). |
-| `GET` | `/api/v1/tenant/performance/perspectives` | List BSC perspectives | Retrieve a paginated list of BSC perspectives used in performance templates. Ordered by sort_order by default. |
-| `GET` | `/api/v1/tenant/performance/perspectives/{id}` | Get BSC perspective by ID | Retrieve a specific BSC perspective by its unique ID. |
-| `PUT` | `/api/v1/tenant/performance/perspectives/{id}` | Update BSC perspective | Update a BSC perspective's name, description, or sort order. Only provided fields will be updated. |
-| `DELETE` | `/api/v1/tenant/performance/perspectives/{id}` | Delete BSC perspective | Permanently delete a BSC perspective from the system. |
-| `POST` | `/api/v1/tenant/performance/targets` | Create performance target | Add an individual KPI target to a performance evaluation, setting the target value and weight for measurement. |
-| `PUT` | `/api/v1/tenant/performance/targets/{id}` | Update performance target | Update a KPI target's planned value, actual achievement, or weight. Setting actual_value triggers automatic achievement percentage calculation. |
-| `DELETE` | `/api/v1/tenant/performance/targets/{id}` | Delete performance target | Permanently delete a KPI target from the evaluation. |
-| `POST` | `/api/v1/tenant/performance/templates` | Create KPI template | Create a new KPI template for an organization. Templates define the structure of performance evaluations including indicators from BSC perspectives. |
-| `GET` | `/api/v1/tenant/performance/templates` | List KPI templates | Retrieve a paginated list of KPI templates, optionally filtered by organization. |
-| `GET` | `/api/v1/tenant/performance/templates/{id}` | Get KPI template by ID | Retrieve a specific KPI template by its unique ID, including associated indicators. |
-| `PUT` | `/api/v1/tenant/performance/templates/{id}` | Update KPI template | Update a KPI template's name, description, or status. Status can be transitioned between DRAFT, PUBLISHED, and ARCHIVED. |
-| `DELETE` | `/api/v1/tenant/performance/templates/{id}` | Delete KPI template | Permanently delete a KPI template. Indicators linked to this template may also be removed. |
 
 ### Tenant: Recruitment & Onboarding (ATS)
 **Description:** Recruitment & Onboarding (ATS) â€” job requisitions, candidate management, applications, interviews, and employee onboarding workflows
@@ -778,7 +801,7 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Tenant: Career Intelligence
 **Description:** Career Intelligence & Talent Management â€” strategic talent analytics for 9-box talent mapping, career interests tracking, career path gap analysis, and succession planning. Provides talent review data to identify high-potential employees, plan career development, and ensure leadership pipeline readiness.
-**Endpoints:** 19 | **Paths:** 10
+**Endpoints:** 19 | **Paths:** 11
 **Methods:** DELETE=3 GET=10 POST=4 PUT=2
 
 | Method | Path | Summary | Description |
@@ -788,8 +811,8 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/career-intelligence/interests/employee/{employeeId}` | Get employee career interests | Get all active career interests for a specific employee. Used in talent review and career development planning. |
 | `GET` | `/api/v1/tenant/career-intelligence/paths` | List career paths | Retrieve a paginated list of defined career paths between position titles. Includes PROMOTION, LATERAL, DEMOTION, and CROSSFUNCTIONAL path types. |
 | `POST` | `/api/v1/tenant/career-intelligence/paths` | Create career path | Define a career path between two position titles. Specifies the path type (PROMOTION/LATERAL/DEMOTION/CROSSFUNCTIONAL), typical tenure, requirement... |
-| `DELETE` | `/api/v1/tenant/career-intelligence/paths` | Delete career path | Soft-delete a career path definition. |
 | `GET` | `/api/v1/tenant/career-intelligence/paths/gap-analysis` | Career gap analysis | Analyze the gap between an employee's current qualifications and the requirements of a target position title. Returns matched skills, total require... |
+| `DELETE` | `/api/v1/tenant/career-intelligence/paths/{id}` | Delete career path | Hapus satu jalur karier (career path). |
 | `GET` | `/api/v1/tenant/career-intelligence/successions` | List succession plans | Retrieve a paginated list of succession plans. Shows which positions have identified successors with readiness levels (READY_NOW, READY_1YR, READY_... |
 | `POST` | `/api/v1/tenant/career-intelligence/successions` | Create succession plan | Create a succession plan for a key position. Identifies a potential successor with readiness level, priority order, target date, and development plan. |
 | `GET` | `/api/v1/tenant/career-intelligence/successions/{id}` | Get succession plan by ID | Get detailed information about a specific succession plan including successor details, readiness level, and development plan. |
@@ -952,6 +975,22 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/platform/packages/{id}/validate` | Validate package module dependencies | Validate that all module dependencies within a package are fulfilled. Returns a detailed report showing each module's dependency status (resolved/u... |
 | `GET` | `/api/v1/public/packages` | List published packages (public) | Retrieve a list of published packages for public display. No authentication required. Returns package name, description, price, and included module... |
 
+### Tenant: RBAC Management
+**Description:** Tenant RBAC role & permission management
+**Endpoints:** 8 | **Paths:** 6
+**Methods:** DELETE=1 GET=3 POST=1 PUT=3
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/rbac/permissions` | List tenant RBAC permissions | Ambil daftar permission RBAC tenant. |
+| `GET` | `/api/v1/tenant/rbac/roles` | List tenant RBAC roles | Ambil daftar role RBAC tenant beserta permission-nya. |
+| `POST` | `/api/v1/tenant/rbac/roles` | Create tenant RBAC role | Buat role RBAC tenant baru. |
+| `PUT` | `/api/v1/tenant/rbac/roles/{id}` | Update tenant RBAC role | Perbarui nama/deskripsi role RBAC tenant. |
+| `DELETE` | `/api/v1/tenant/rbac/roles/{id}` | Delete tenant RBAC role | Hapus role RBAC tenant (role system tidak dapat dihapus). |
+| `PUT` | `/api/v1/tenant/rbac/roles/{id}/permissions` | Assign permissions to tenant role | Ganti (replace) daftar permission milik role RBAC tenant. |
+| `GET` | `/api/v1/tenant/rbac/users` | List tenant RBAC users | Ambil daftar user tenant beserta role-nya. |
+| `PUT` | `/api/v1/tenant/rbac/users/{id}/roles` | Assign roles to tenant user | Ganti (replace) daftar role milik user tenant. |
+
 ### Platform: Modules
 **Description:** Module registration and activation management
 **Endpoints:** 7 | **Paths:** 5
@@ -966,6 +1005,33 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/platform/modules/{id}/activate` | Activate module for a company | Activate a module for a specific company tenant. The module's features become available in that tenant's API and UI. |
 | `GET` | `/api/v1/platform/modules/{id}/companies` | List companies using this module | Retrieve a list of companies that have this module activated. Shows activation date and module-specific settings per company. |
 | `POST` | `/api/v1/platform/modules/{id}/deactivate` | Deactivate module for a company | Deactivate a module for a specific company tenant. The module's features are hidden from that tenant's API and UI. |
+
+### Platform: Users
+**Description:** Platform user management
+**Endpoints:** 6 | **Paths:** 3
+**Methods:** DELETE=1 GET=2 POST=1 PUT=2
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/platform/users` | List all platform users | Retrieve a paginated list of platform user accounts. Now includes company_name field. Supports filtering by company, role, and search term. |
+| `POST` | `/api/v1/platform/users` | Create a new platform user | Register a new platform user account. Assigns the user to a company with a specific role (super_admin or company_admin). The user will receive acce... |
+| `DELETE` | `/api/v1/platform/users/{id}` | Delete platform user | Soft-delete a platform user account. Super admin users cannot be deleted. |
+| `GET` | `/api/v1/platform/users/{id}` | Get platform user by ID | Ambil detail platform user berdasarkan ID. |
+| `PUT` | `/api/v1/platform/users/{id}` | Update platform user | Perbarui nama/email/role/status platform user. |
+| `PUT` | `/api/v1/platform/users/{id}/password` | Change user password | Change a user's password. Requires current password verification, new password (min 6 characters), and confirmation. |
+
+### Platform: Licenses
+**Description:** License management for companies
+**Endpoints:** 5 | **Paths:** 2
+**Methods:** DELETE=1 GET=2 POST=1 PUT=1
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/platform/licenses` | List all licenses | Retrieve a paginated list of all license records. Licenses define the plan type, feature entitlements, and validity period for each company tenant. |
+| `POST` | `/api/v1/platform/licenses` | Create a new license for company | Issue a new software license to a company tenant. Specifies the plan type (trial, subscription), start date, end date, and seat count. If a package... |
+| `GET` | `/api/v1/platform/licenses/{id}` | Get license by ID | Get detailed information about a specific license including plan type, validity period, seat usage, and feature entitlements. |
+| `PUT` | `/api/v1/platform/licenses/{id}` | Update license | Update license terms including plan upgrade/downgrade, extension of validity period, seat count adjustments, or license status changes. |
+| `DELETE` | `/api/v1/platform/licenses/{id}` | Delete license | Hapus lisensi perusahaan. |
 
 ### Platform: Monitoring
 **Description:** Platform and tenant health monitoring
@@ -992,30 +1058,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/openapi.json` | OpenAPI 3.0 Specification | Download the complete OpenAPI 3.0 specification as JSON. Compatible with tools like Postman, Insomnia, Swagger Editor, and client code generators. |
 | `GET` | `/readyz` | Readiness check | Readiness check endpoint for Kubernetes or container orchestration probes. Returns HTTP 200 when the server is ready to accept traffic. |
 
-### Platform: Users
-**Description:** Platform user management
-**Endpoints:** 4 | **Paths:** 3
-**Methods:** DELETE=1 GET=1 POST=1 PUT=1
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/platform/users` | List all platform users | Retrieve a paginated list of platform user accounts. Now includes company_name field. Supports filtering by company, role, and search term. |
-| `POST` | `/api/v1/platform/users` | Create a new platform user | Register a new platform user account. Assigns the user to a company with a specific role (super_admin or company_admin). The user will receive acce... |
-| `DELETE` | `/api/v1/platform/users/{id}` | Delete platform user | Soft-delete a platform user account. Super admin users cannot be deleted. |
-| `PUT` | `/api/v1/platform/users/{id}/password` | Change user password | Change a user's password. Requires current password verification, new password (min 6 characters), and confirmation. |
-
-### Platform: Licenses
-**Description:** License management for companies
-**Endpoints:** 4 | **Paths:** 2
-**Methods:** GET=2 POST=1 PUT=1
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/platform/licenses` | List all licenses | Retrieve a paginated list of all license records. Licenses define the plan type, feature entitlements, and validity period for each company tenant. |
-| `POST` | `/api/v1/platform/licenses` | Create a new license for company | Issue a new software license to a company tenant. Specifies the plan type (trial, subscription), start date, end date, and seat count. If a package... |
-| `GET` | `/api/v1/platform/licenses/{id}` | Get license by ID | Get detailed information about a specific license including plan type, validity period, seat usage, and feature entitlements. |
-| `PUT` | `/api/v1/platform/licenses/{id}` | Update license | Update license terms including plan upgrade/downgrade, extension of validity period, seat count adjustments, or license status changes. |
-
 ### Tenant: Packages
 **Description:** Published package browsing for authenticated tenant users
 **Endpoints:** 4 | **Paths:** 4
@@ -1028,6 +1070,17 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/tenant/packages/{id}/subscribe` | Subscribe to a package (create/renew license) | Subscribe the authenticated company to a published package. Creates a new license for the company associated with the specified package and auto-ac... |
 | `POST` | `/api/v1/tenant/packages/{id}/unsubscribe` | Unsubscribe from a package (deactivate modules + suspend license) | Unsubscribe the authenticated company from a package. Deactivates all modules included in the package and suspends the active license associated wi... |
 
+### Tenant: User Accounts
+**Description:** Employee login account management
+**Endpoints:** 3 | **Paths:** 2
+**Methods:** GET=1 POST=2
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/user-accounts/employees/{employeeId}` | Get employee account status | Ambil status akun login employee (email, password_set, setup token). |
+| `POST` | `/api/v1/tenant/user-accounts/employees/{employeeId}` | Create employee account | Buat akun login employee (kirim email setup password). |
+| `POST` | `/api/v1/tenant/user-accounts/employees/{employeeId}/resend` | Resend account setup email | Kirim ulang email link setup password akun employee. |
+
 ### Platform: Auth
 **Description:** Platform authentication (login, refresh token)
 **Endpoints:** 2 | **Paths:** 2
@@ -1037,6 +1090,16 @@ Tenant endpoints support validation for Indonesian data formats:
 |---|---|---|---|
 | `POST` | `/api/v1/platform/login` | Platform admin login | Authenticate a platform admin user with email and password credentials. Returns a JWT access token (short-lived) and a refresh token (long-lived) f... |
 | `POST` | `/api/v1/platform/refresh` | Refresh access token | Exchange a valid refresh token for a new access token. Use this endpoint to maintain session continuity without requiring the user to re-login. |
+
+### Public
+**Description:** Public endpoints — no authentication required
+**Endpoints:** 2 | **Paths:** 2
+**Methods:** GET=1 POST=1
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/public/account/setup-password` | Set account password via email link | Atur password akun login employee melalui link email (tanpa autentikasi). |
+| `GET` | `/api/v1/public/companies/resolve` | Resolve company by hostname/subdomain | Public endpoint (no auth) to determine the company from the app URL hostname/subdomain (SaaS mode). Returns company id/name/slug/subdomain/domain/s... |
 
 ### Tenant Auth
 **Description:** Tenant authentication (login, refresh token)
@@ -1057,20 +1120,3 @@ Tenant endpoints support validation for Indonesian data formats:
 |---|---|---|---|
 | `GET` | `/api/v1/tenant/companies/me` | Get current company detail | Retrieve the profile of the company the authenticated tenant user belongs to. Company is resolved from the tenant context (X-Tenant-ID / JWT claims). |
 | `PUT` | `/api/v1/tenant/companies/me` | Update current company information | Update the tenant's own company profile (email, phone, address, NPWP, NIB). Company is resolved from the tenant context; name/subdomain/domain are ... |
-
-### Tenant: Approval Engine
-**Endpoints:** 1 | **Paths:** 1
-**Methods:** POST=1
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/tenant/approval/instances/{id}` | Cancel approval instance | Create a new instances record. Validates required fields and returns the created resource with its assigned ID. |
-
-### Public
-**Description:** Public endpoints — no authentication required
-**Endpoints:** 1 | **Paths:** 1
-**Methods:** GET=1
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/public/companies/resolve` | Resolve company by hostname/subdomain | Public endpoint (no auth) to determine the company from the app URL hostname/subdomain (SaaS mode). Returns company id/name/slug/subdomain/domain/s... |

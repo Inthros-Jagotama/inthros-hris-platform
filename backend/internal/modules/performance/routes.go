@@ -53,5 +53,49 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		perf.GET("/evaluations/:id/targets", handler.ListPerformanceTargets)
 		perf.PUT("/targets/:id", handler.UpdatePerformanceTarget)
 		perf.DELETE("/targets/:id", handler.DeletePerformanceTarget)
+
+		// =====================================================================
+		// Phase 2 KPI Enhancement Routes
+		// =====================================================================
+
+		// Performance Progress (nested under evaluation-details)
+		perf.POST("/progress", handler.CreatePerformanceProgress)
+		perf.GET("/evaluation-details/:id/progress", handler.ListPerformanceProgressByDetailID)
+		perf.GET("/progress/:id", handler.GetPerformanceProgressByID)
+		perf.PUT("/progress/:id", handler.UpdatePerformanceProgress)
+		perf.DELETE("/progress/:id", handler.DeletePerformanceProgress)
+
+		// Performance Comments (nested under evaluations)
+		perf.POST("/comments", handler.CreatePerformanceComment)
+		perf.GET("/evaluations/:id/comments", handler.ListPerformanceCommentsByEvaluationID)
+		perf.GET("/comments/:id", handler.GetPerformanceCommentByID)
+		perf.PUT("/comments/:id", handler.UpdatePerformanceComment)
+		perf.DELETE("/comments/:id", handler.DeletePerformanceComment)
+
+		// Performance Attachments (nested under evaluation-details)
+		perf.POST("/attachments", handler.CreatePerformanceAttachment)
+		perf.GET("/evaluation-details/:id/attachments", handler.ListPerformanceAttachmentsByDetailID)
+		perf.GET("/attachments/:id", handler.GetPerformanceAttachmentByID)
+		perf.PUT("/attachments/:id", handler.UpdatePerformanceAttachment)
+		perf.DELETE("/attachments/:id", handler.DeletePerformanceAttachment)
+
+		// Performance Ratings (Master data)
+		perf.POST("/ratings", handler.CreatePerformanceRating)
+		perf.GET("/ratings", handler.ListPerformanceRatings)
+		perf.GET("/ratings/:id", handler.GetPerformanceRatingByID)
+		perf.PUT("/ratings/:id", handler.UpdatePerformanceRating)
+		perf.DELETE("/ratings/:id", handler.DeletePerformanceRating)
+
+		// Performance Indicator Formulas (Master data)
+		perf.POST("/indicator-formulas", handler.CreatePerformanceIndicatorFormula)
+		perf.GET("/indicator-formulas", handler.ListPerformanceIndicatorFormulas)
+		perf.GET("/indicator-formulas/:id", handler.GetPerformanceIndicatorFormulaByID)
+		perf.PUT("/indicator-formulas/:id", handler.UpdatePerformanceIndicatorFormula)
+		perf.DELETE("/indicator-formulas/:id", handler.DeletePerformanceIndicatorFormula)
+
+		// Performance Logs (Audit trail - Read only)
+		perf.GET("/logs", handler.ListPerformanceLogs)
+		perf.GET("/evaluations/:id/logs", handler.ListPerformanceLogsByEvaluationID)
+		perf.GET("/logs/:id", handler.GetPerformanceLogByID)
 	}
 }
