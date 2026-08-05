@@ -1,8 +1,9 @@
 -- Migration: 043_standardize_job_value_uuids
 -- Menstandarkan seluruh id di tabel job_management_values menjadi UUID v4 acak.
 --
--- Latar belakang: migration seed 033-042 memakai UUID tetap/serial (mis.
+-- Latar belakang: migration seed 033-041 memakai UUID tetap/serial (mis.
 -- aaaaaaaa-0001-4000-8000-000000000001) demi idempotensi WHERE NOT EXISTS.
+-- (Migration 042 sudah memakai UUID v4 asli sejak amend.)
 -- User meminta seluruh baris memakai UUID acak yang proper. Migration ini
 -- mengubah SEMUA id yang mengikuti pola tetap '-4000-8000-' menjadi UUID v4
 -- (MySQL: RANDOM_BYTES-based v4; Postgres: gen_random_uuid()) — berlaku untuk

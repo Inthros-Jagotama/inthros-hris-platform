@@ -1,5 +1,8 @@
 <template>
   <div class="space-y-4">
+    <!-- Mapping type ↔ cluster kompetensi (tipe yang memakai filter cluster: technical & managerial) -->
+    <JobValueClusterCard v-if="['technical', 'managerial'].includes(type)" :type="type" />
+
     <!-- Header — title/desc dipindah ke page title layout (AppLayout) -->
     <div class="flex items-center justify-end mb-4">
       <Button :label="t('common.create')" icon="pi pi-plus" size="small" @click="openCreateDialog()" />
@@ -115,6 +118,7 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import SkeletonTable from '@/components/SkeletonTable.vue'
+import JobValueClusterCard from './JobValueClusterCard.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
 import SelectLabel from '@/components/SelectLabel.vue'

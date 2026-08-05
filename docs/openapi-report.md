@@ -1,10 +1,10 @@
 = HRIS Platform — OpenAPI Comprehensive Report (v17) =
 
 
-**Generated:** 02 August 2026
+**Generated:** 05 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 374
-**Total Endpoints (methods):** 690
+**Total Paths:** 378
+**Total Endpoints (methods):** 698
 **Total Schemas:** 442
 **Total Tags:** 30
 
@@ -12,9 +12,9 @@
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 690/690 | 100% |
-| Endpoints with `description` | 690/690 | 100% |
-| Endpoints with `operationId` | 690/690 | 100% |
+| Endpoints with `summary` | 698/698 | 100% |
+| Endpoints with `description` | 698/698 | 100% |
+| Endpoints with `operationId` | 698/698 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -106,7 +106,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | # | Tag | Endpoints | Paths |
 |---|---|---|---|
 | 1 | Tenant: Settings | 106 | 46 |
-| 2 | Tenant: Job Management | 88 | 36 |
+| 2 | Tenant: Job Management | 96 | 40 |
 | 3 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
 | 4 | Tenant: Payroll & Compensation Engine | 53 | 26 |
 | 5 | Tenant: Employees | 36 | 23 |
@@ -135,14 +135,14 @@ Tenant endpoints support validation for Indonesian data formats:
 | 28 | Tenant: Company | 2 | 1 |
 | 29 | Tenant: Approval Engine | 1 | 1 |
 | 30 | Public | 1 | 1 |
-| | **TOTAL** | **690** | **374** |
+| | **TOTAL** | **698** | **378** |
 
 ## 2. Module Detail
 
 ### Tenant: Settings
-**Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, competencies, job families, and salary grades. CRUD operations for all tenant reference data, education majors.
-**Endpoints:** 105 | **Paths:** 45
-**Methods:** DELETE=20 GET=45 POST=20 PUT=20
+**Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data, education majors.
+**Endpoints:** 106 | **Paths:** 46
+**Methods:** DELETE=20 GET=46 POST=20 PUT=20
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -255,8 +255,8 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Tenant: Job Management
 **Description:** Job analysis management including titles, values, objectives, responsibilities, competencies, and scoring
-**Endpoints:** 88 | **Paths:** 36
-**Methods:** DELETE=17 GET=36 POST=17 PUT=18
+**Endpoints:** 96 | **Paths:** 40
+**Methods:** DELETE=18 GET=40 POST=18 PUT=20
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -310,6 +310,11 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/job-management/relationships/{id}` | Get relationship by ID | Retrieve a paginated list of job management resources. |
 | `PUT` | `/api/v1/tenant/job-management/relationships/{id}` | Update relationship | Update an existing relationships record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `DELETE` | `/api/v1/tenant/job-management/relationships/{id}` | Delete relationship | Delete a relationships record by its unique ID. This action may be reversible depending on system configuration. |
+| `GET` | `/api/v1/tenant/job-management/relationships/{id}/details` | List relationship details | Detail banyak-per-relationship (migration 048). |
+| `POST` | `/api/v1/tenant/job-management/relationships/{id}/details` | Create relationship detail | Tambah detail hubungan kerja (work relations + activity in connection). |
+| `GET` | `/api/v1/tenant/job-management/relationships/{id}/details/{detailId}` | Get relationship detail by ID | Ambil satu detail hubungan kerja. |
+| `PUT` | `/api/v1/tenant/job-management/relationships/{id}/details/{detailId}` | Update relationship detail | Update satu detail hubungan kerja. |
+| `DELETE` | `/api/v1/tenant/job-management/relationships/{id}/details/{detailId}` | Delete relationship detail | Hapus satu detail hubungan kerja. |
 | `GET` | `/api/v1/tenant/job-management/responsibilities` | List job responsibilities with pagination | Retrieve a paginated list of job management resources. |
 | `POST` | `/api/v1/tenant/job-management/responsibilities` | Create a new job responsibility | Create a new job management resource. |
 | `GET` | `/api/v1/tenant/job-management/responsibilities/{id}` | Get job responsibility by ID | Retrieve a paginated list of job management resources. |
@@ -317,7 +322,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | `DELETE` | `/api/v1/tenant/job-management/responsibilities/{id}` | Delete job responsibility | Delete a responsibilities record by its unique ID. This action may be reversible depending on system configuration. |
 | `GET` | `/api/v1/tenant/job-management/scores` | List job scores with pagination | Retrieve a paginated list of job management resources. |
 | `GET` | `/api/v1/tenant/job-management/scores/org/{orgId}` | Get job score by organization | Retrieve a paginated list of job management resources. |
-| `PUT` | `/api/v1/tenant/job-management/scores/org/{orgId}` | Upsert job score for organization | Update an existing {orgId} record by its unique ID. Accepts partial updates; only provided fields will be modified. |
+| `PUT` | `/api/v1/tenant/job-management/scores/org/{orgId}` | Upsert job score for organization | Hitung ulang skor otomatis (body kosong) lalu simpan. Menghasilkan components, sub_component_points, is_complete, completed_at. |
 | `GET` | `/api/v1/tenant/job-management/subordinate-controls` | List subordinate controls with pagination | Retrieve a paginated list of job management resources. |
 | `POST` | `/api/v1/tenant/job-management/subordinate-controls` | Create subordinate control | Create a new job management resource. |
 | `GET` | `/api/v1/tenant/job-management/subordinate-controls/{id}` | Get subordinate control by ID | Retrieve a paginated list of job management resources. |
@@ -333,8 +338,11 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/job-management/titles/{titleId}/subs/{subId}` | Get job title sub by ID | Retrieve a paginated list of job management resources. |
 | `PUT` | `/api/v1/tenant/job-management/titles/{titleId}/subs/{subId}` | Update job title sub | Update an existing {subId} record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `DELETE` | `/api/v1/tenant/job-management/titles/{titleId}/subs/{subId}` | Delete job title sub | Delete a {subId} record by its unique ID. This action may be reversible depending on system configuration. |
-| `GET` | `/api/v1/tenant/job-management/values` | List job values with pagination | Retrieve a paginated list of job management resources. |
+| `GET` | `/api/v1/tenant/job-management/values` | List job values with pagination | Retrieve a paginated list of job management resources, optionally filtered by type. |
 | `POST` | `/api/v1/tenant/job-management/values` | Create a new job value | Create a new job management resource. |
+| `GET` | `/api/v1/tenant/job-management/values/clusters/{type}` | List cluster mapping for job value type | Mapping tipe technical/managerial → cluster kompetensi dari tabel job_management_value_clusters. |
+| `PUT` | `/api/v1/tenant/job-management/values/clusters/{type}` | Update cluster mapping for job value type | Simpan mapping cluster untuk tipe tertentu (technical/managerial). |
+| `GET` | `/api/v1/tenant/job-management/values/tree` | Get job values tree | Mengembalikan hierarki type_group → daftar tipe (label = description_group) → options per tipe (level + deskripsi) dengan urutan grup tetap. Dipaka... |
 | `GET` | `/api/v1/tenant/job-management/values/{id}` | Get job value by ID | Retrieve a paginated list of job management resources. |
 | `PUT` | `/api/v1/tenant/job-management/values/{id}` | Update job value | Update an existing values record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `DELETE` | `/api/v1/tenant/job-management/values/{id}` | Delete job value | Delete a values record by its unique ID. This action may be reversible depending on system configuration. |
@@ -808,7 +816,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/organization-summaries/{id}` | Get organization summary by ID | Get detailed information about a specific organization summary by its ID. |
 | `PUT` | `/api/v1/tenant/organization-summaries/{id}` | Update organization summary | Update an existing organization summary's code, decree_no, decree_date, or status. Only ONE summary can have status=active at a time — setting stat... |
 | `DELETE` | `/api/v1/tenant/organization-summaries/{id}` | Delete organization summary | Soft-delete an organization summary. Cannot delete if organizations are still attached to this summary. |
-| `GET` | `/api/v1/tenant/organizations` | List organizations or get tree | Get detailed information about an organizational unit and its children. |
+| `GET` | `/api/v1/tenant/organizations` | List organizations or get tree | Get detailed information about an organizational unit and its children. Mendukung ?search= (filter code/full_code/nomenclature), ?summary_id=, ?act... |
 | `POST` | `/api/v1/tenant/organizations` | Create organization | Create a new organizations record. Validates required fields and returns the created resource with its assigned ID. |
 | `POST` | `/api/v1/tenant/organizations/clone` | Clone current organization tree to a draft version | Create a DRAFT version snapshot of the current organization tree for restructuring simulation. The clone preserves the complete tree structure in a... |
 | `GET` | `/api/v1/tenant/organizations/history` | List organization change history | Retrieve a paginated audit trail of all changes made to the organization structure. Supports filtering by specific organization ID. Each entry reco... |

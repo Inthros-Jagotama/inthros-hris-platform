@@ -1,11 +1,27 @@
 <template>
   <div class="space-y-1">
     <!-- Header -->
-    <div class="flex items-center justify-between gap-2 flex-wrap">
+    <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
       <div class="flex items-center gap-2">
         <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500">
           {{ totalRecords }} {{ t('common.items') }}
         </span>
+      </div>
+      <div class="relative w-64 max-w-full">
+        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500"></i>
+        <InputText
+          v-model="searchQuery"
+          :placeholder="t('job_management.search_positions')"
+          class="w-full !pl-8 !text-sm"
+          @input="onSearchInput"
+        />
+        <button
+          v-if="searchQuery"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs"
+          @click="clearSearch"
+        >
+          <i class="pi pi-times"></i>
+        </button>
       </div>
     </div>
 
@@ -33,22 +49,40 @@
           <p class="text-xs mt-1">{{ t('job_management.empty_hint') }}</p>
         </div>
       </template>
-      <Column field="code" :header="t('organization.code')" sortable style="width:100px">
-        <template #body="{data}"><Tag :value="data.code" severity="info" class="!text-xs !font-mono !px-1.5 !py-0.5" /></template>
-      </Column>
       <Column field="full_code" :header="t('organization.full_code')" sortable style="width:120px">
         <template #body="{data}"><span class="text-gray-500 dark:text-gray-400 font-mono text-xs">{{ data.full_code }}</span></template>
       </Column>
       <Column field="nomenclature" :header="t('organization.nomenclature')" sortable>
         <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.nomenclature }}</span></template>
       </Column>
-      <Column field="level" :header="t('organization.level')" sortable style="width:90px">
+      <Column :header="t('job_management.score')" style="width:110px" field="score">
         <template #body="{data}">
-          <Tag :value="'L' + data.level" severity="contrast" class="!text-xs !px-1.5 !py-0.5" />
+          <span v-if="data.score != null" class="text-emerald-600 dark:text-emerald-400 font-bold">{{ formatNumber(data.score) }}</span>
+          <span v-else class="text-gray-300 dark:text-gray-600">—</span>
         </template>
       </Column>
-      <Column field="sort_order" :header="t('organization.sort_order')" sortable style="width:100px">
-        <template #body="{data}"><span class="text-gray-500 dark:text-gray-400">{{ data.sort_order }}</span></template>
+      <Column :header="t('job_management.score_with_financial')" style="width:120px" field="score_has_financial">
+        <template #body="{data}">
+          <Tag
+            v-if="data.score_has_financial != null"
+            :value="data.score_has_financial ? t('common.yes') : t('common.no')"
+            :severity="data.score_has_financial ? 'success' : 'danger'"
+            class="!text-xs"
+          />
+          <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+        </template>
+      </Column>
+      <Column :header="t('job_management.score_complete_status')" style="width:130px" field="score_complete">
+        <template #body="{data}">
+          <Tag
+            v-if="data.score_complete != null"
+            :value="data.score_complete ? t('job_management.score_complete') : t('job_management.score_incomplete')"
+            :severity="data.score_complete ? 'success' : 'warning'"
+            :icon="data.score_complete ? 'pi pi-check-circle' : 'pi pi-exclamation-triangle'"
+            class="!text-xs"
+          />
+          <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+        </template>
       </Column>
       <Column :header="t('common.actions')" style="width:60px" frozen alignFrozen="right">
         <template #body="{data}">
@@ -76,6 +110,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import InputText from 'primevue/inputtext'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 
 const { t } = useI18n()
@@ -86,13 +121,15 @@ const loading = ref(false)
 const totalRecords = ref(0)
 const currentPage = ref(1)
 const perPage = ref(15)
+const searchQuery = ref('')
+let searchTimer = null
 
 const skeletonColumns = [
-  { type: 'tag', width: 'w-16', headerWidth: 'w-16' },
   { type: 'text', width: 'w-20', headerWidth: 'w-20' },
   { type: 'text', width: 'w-36', headerWidth: 'w-24' },
-  { type: 'tag', width: 'w-12', headerWidth: 'w-12' },
-  { type: 'text', width: 'w-12', headerWidth: 'w-16' },
+  { type: 'text', width: 'w-16', headerWidth: 'w-16' },
+  { type: 'text', width: 'w-20', headerWidth: 'w-20' },
+  { type: 'tag', width: 'w-20', headerWidth: 'w-20' },
   { type: 'icons', count: 1, headerWidth: 'w-16' }
 ]
 
@@ -102,12 +139,45 @@ async function loadData() {
   loading.value = true
   try {
     const res = await api.get('/api/v1/tenant/organizations', {
-      params: { page: currentPage.value, per_page: perPage.value, active_only: true }
+      params: {
+        page: currentPage.value,
+        per_page: perPage.value,
+        active_only: true,
+        search: searchQuery.value || undefined
+      }
     })
     const body = res.data
-    items.value = body?.data || []
+    const orgs = body?.data || []
+    items.value = orgs
     totalRecords.value = body?.total || 0
     if (body?.page) currentPage.value = body.page
+
+    // Ambil skor jabatan untuk semua organisasi (map by organization_id).
+    // Service membatasi per_page maks 100 → loop pagination sampai semua terambil.
+    const scores = []
+    let scorePage = 1
+    let scoreTotal = 0
+    let pageData = []
+    do {
+      const scoresRes = await api.get('/api/v1/tenant/job-management/scores', { params: { page: scorePage, per_page: 100 } }).catch(() => null)
+      pageData = scoresRes?.data?.data || []
+      scores.push(...pageData)
+      scoreTotal = scoresRes?.data?.total || scores.length
+      scorePage++
+    } while (scores.length < scoreTotal && pageData.length > 0)
+    const scoreMap = {}
+    scores.forEach(s => {
+      if (s.organization_id) scoreMap[s.organization_id] = s
+    })
+    items.value = orgs.map(o => {
+      const sc = scoreMap[o.id]
+      return {
+        ...o,
+        score: sc ? sc.job_value_without_financial : null,
+        score_has_financial: sc ? (sc.has_financial_authority ? 1 : 0) : null,
+        score_complete: sc ? sc.is_complete : null
+      }
+    })
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.failed_to_load'), life: 4000 })
   } finally {
@@ -115,9 +185,29 @@ async function loadData() {
   }
 }
 
+function formatNumber(n) {
+  if (n == null) return ''
+  return Number(n).toLocaleString?.('id-ID') ?? String(n)
+}
+
 function onPage(event) {
   currentPage.value = event.page + 1
   perPage.value = event.rows
+  loadData()
+}
+
+function onSearchInput() {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadData()
+  }, 350)
+}
+
+function clearSearch() {
+  searchQuery.value = ''
+  clearTimeout(searchTimer)
+  currentPage.value = 1
   loadData()
 }
 

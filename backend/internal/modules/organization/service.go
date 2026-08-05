@@ -156,8 +156,9 @@ func (s *Service) GetByID(ctx context.Context, id string) (*OrganizationResponse
 	return &response, nil
 }
 
-// List mengembalikan daftar organisasi dengan pagination, opsional filter summary_id dan active_only.
-func (s *Service) List(ctx context.Context, page, perPage int, summaryID string, activeOnly bool) (*PaginatedResponse, error) {
+// List mengembalikan daftar organisasi dengan pagination, opsional filter summary_id,
+// active_only, dan pencarian (search) pada code/full_code/nomenclature.
+func (s *Service) List(ctx context.Context, page, perPage int, summaryID string, activeOnly bool, search string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
@@ -165,7 +166,7 @@ func (s *Service) List(ctx context.Context, page, perPage int, summaryID string,
 		perPage = defaultPerPage
 	}
 
-	orgs, total, err := s.repo.FindAll(ctx, page, perPage, summaryID, activeOnly)
+	orgs, total, err := s.repo.FindAll(ctx, page, perPage, summaryID, activeOnly, search)
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,7 @@
 | competency | 7 | 35 | 36 | 35 | 35 | 60 |
 | employee | 9 | 29 | 39 | 29 | 29 | 35 |
 | employeemovement | 2 | 15 | 17 | 15 | 15 | 62 |
-| jobmanagement | 18 | 88 | 90 | 88 | 88 | 67 |
+| jobmanagement | 18 | 96 | 90 | 96 | 96 | 67 |
 | leave | 6 | 23 | 27 | 23 | 23 | 39 |
 | organization | 3 | 13 | 16 | 12 | 12 | 0 |
 | training | 7 | 35 | 38 | 35 | 35 | 31 |
@@ -401,7 +401,7 @@
 - `UpdateContract()`
 - `DeleteContract()`
 
-### jobmanagement.Service — 88 methods
+### jobmanagement.Service — 100 methods
 - `CreateJobTitle()`
 - `GetJobTitleByID()`
 - `ListJobTitles()`

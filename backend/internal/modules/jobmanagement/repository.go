@@ -223,6 +223,46 @@ func (r *Repository) DeleteJobValue(ctx context.Context, id uuid.UUID) error {
 }
 
 // =========================================================================
+// Job Value Clusters (9.3b) — mapping type ↔ cluster kompetensi
+// =========================================================================
+
+// FindJobValueClusters mengembalikan daftar cluster yang dipetakan ke sebuah tipe,
+// diurutkan alfabetis.
+func (r *Repository) FindJobValueClusters(ctx context.Context, valueType string) ([]JobManagementValueCluster, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var clusters []JobManagementValueCluster
+	if err := db.Where("type = ?", valueType).Order("cluster ASC").Find(&clusters).Error; err != nil {
+		return nil, err
+	}
+	return clusters, nil
+}
+
+// ReplaceJobValueClusters mengganti seluruh mapping untuk satu tipe dalam satu
+// transaksi (delete semua + create ulang). Array kosong = hapus semua mapping.
+func (r *Repository) ReplaceJobValueClusters(ctx context.Context, valueType string, clusters []string) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("type = ?", valueType).Delete(&JobManagementValueCluster{}).Error; err != nil {
+			return err
+		}
+		if len(clusters) == 0 {
+			return nil
+		}
+		records := make([]JobManagementValueCluster, 0, len(clusters))
+		for _, c := range clusters {
+			records = append(records, JobManagementValueCluster{Type: valueType, Cluster: c})
+		}
+		return tx.Create(&records).Error
+	})
+}
+
+// =========================================================================
 // Job Objectives (9.4)
 // =========================================================================
 
@@ -246,7 +286,7 @@ func (r *Repository) FindJobObjectiveByID(ctx context.Context, id uuid.UUID) (*J
 	return &o, nil
 }
 
-func (r *Repository) FindAllJobObjectives(ctx context.Context, page, perPage int) ([]JobObjective, int64, error) {
+func (r *Repository) FindAllJobObjectives(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobObjective, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -254,6 +294,9 @@ func (r *Repository) FindAllJobObjectives(ctx context.Context, page, perPage int
 	var objectives []JobObjective
 	var total int64
 	query := db.Model(&JobObjective{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -304,7 +347,7 @@ func (r *Repository) FindJobIdentificationByID(ctx context.Context, id uuid.UUID
 	return &i, nil
 }
 
-func (r *Repository) FindAllJobIdentifications(ctx context.Context, page, perPage int) ([]JobIdentification, int64, error) {
+func (r *Repository) FindAllJobIdentifications(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobIdentification, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -312,6 +355,9 @@ func (r *Repository) FindAllJobIdentifications(ctx context.Context, page, perPag
 	var ids []JobIdentification
 	var total int64
 	query := db.Model(&JobIdentification{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -362,7 +408,7 @@ func (r *Repository) FindJobResponsibilityByID(ctx context.Context, id uuid.UUID
 	return &resp, nil
 }
 
-func (r *Repository) FindAllJobResponsibilities(ctx context.Context, page, perPage int) ([]JobResponsibility, int64, error) {
+func (r *Repository) FindAllJobResponsibilities(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobResponsibility, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -370,6 +416,9 @@ func (r *Repository) FindAllJobResponsibilities(ctx context.Context, page, perPa
 	var responsibilities []JobResponsibility
 	var total int64
 	query := db.Model(&JobResponsibility{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -495,7 +544,11 @@ func (r *Repository) UpdateJobEducationExperience(ctx context.Context, e *JobEdu
 			}
 		}
 		// Update entity utama (tanpa menyentuh relasi pivot)
-		return tx.Omit("Majors", "JobFamilies").Save(e).Error
+		// Education/Experience wajib di-Omit: keduanya belongs-to yang di-Preload
+		// (FindJobEducationExperienceByID). Tanpa Omit, GORM akan mengembalikan FK
+		// (education_id/experience_id) ke nilai association lama saat Save, sehingga
+		// perubahan FK tidak pernah tersimpan.
+		return tx.Omit("Majors", "JobFamilies", "Education", "Experience").Save(e).Error
 	})
 }
 
@@ -540,7 +593,7 @@ func (r *Repository) FindJobHRAuthorityByID(ctx context.Context, id uuid.UUID) (
 	return &a, nil
 }
 
-func (r *Repository) FindAllJobHRAuthorities(ctx context.Context, page, perPage int) ([]JobHRAuthority, int64, error) {
+func (r *Repository) FindAllJobHRAuthorities(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobHRAuthority, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -548,6 +601,9 @@ func (r *Repository) FindAllJobHRAuthorities(ctx context.Context, page, perPage 
 	var authorities []JobHRAuthority
 	var total int64
 	query := db.Model(&JobHRAuthority{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -598,7 +654,7 @@ func (r *Repository) FindJobOperationalAuthorityByID(ctx context.Context, id uui
 	return &a, nil
 }
 
-func (r *Repository) FindAllJobOperationalAuthorities(ctx context.Context, page, perPage int) ([]JobOperationalAuthority, int64, error) {
+func (r *Repository) FindAllJobOperationalAuthorities(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobOperationalAuthority, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -606,6 +662,9 @@ func (r *Repository) FindAllJobOperationalAuthorities(ctx context.Context, page,
 	var authorities []JobOperationalAuthority
 	var total int64
 	query := db.Model(&JobOperationalAuthority{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -656,7 +715,7 @@ func (r *Repository) FindJobWorkingActivityByID(ctx context.Context, id uuid.UUI
 	return &a, nil
 }
 
-func (r *Repository) FindAllJobWorkingActivities(ctx context.Context, page, perPage int) ([]JobWorkingActivity, int64, error) {
+func (r *Repository) FindAllJobWorkingActivities(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobWorkingActivity, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -664,6 +723,9 @@ func (r *Repository) FindAllJobWorkingActivities(ctx context.Context, page, perP
 	var activities []JobWorkingActivity
 	var total int64
 	query := db.Model(&JobWorkingActivity{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -714,7 +776,7 @@ func (r *Repository) FindJobWorkingRiskByID(ctx context.Context, id uuid.UUID) (
 	return &risk, nil
 }
 
-func (r *Repository) FindAllJobWorkingRisks(ctx context.Context, page, perPage int) ([]JobWorkingRisk, int64, error) {
+func (r *Repository) FindAllJobWorkingRisks(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobWorkingRisk, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -722,6 +784,9 @@ func (r *Repository) FindAllJobWorkingRisks(ctx context.Context, page, perPage i
 	var risks []JobWorkingRisk
 	var total int64
 	query := db.Model(&JobWorkingRisk{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -772,7 +837,7 @@ func (r *Repository) FindJobRelationshipByID(ctx context.Context, id uuid.UUID) 
 	return &rel, nil
 }
 
-func (r *Repository) FindAllJobRelationships(ctx context.Context, page, perPage int) ([]JobRelationship, int64, error) {
+func (r *Repository) FindAllJobRelationships(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobRelationship, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -780,6 +845,9 @@ func (r *Repository) FindAllJobRelationships(ctx context.Context, page, perPage 
 	var relationships []JobRelationship
 	var total int64
 	query := db.Model(&JobRelationship{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -887,7 +955,7 @@ func (r *Repository) FindJobSubordinateControlByID(ctx context.Context, id uuid.
 	return &c, nil
 }
 
-func (r *Repository) FindAllJobSubordinateControls(ctx context.Context, page, perPage int) ([]JobSubordinateControl, int64, error) {
+func (r *Repository) FindAllJobSubordinateControls(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobSubordinateControl, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -895,6 +963,9 @@ func (r *Repository) FindAllJobSubordinateControls(ctx context.Context, page, pe
 	var controls []JobSubordinateControl
 	var total int64
 	query := db.Model(&JobSubordinateControl{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -945,7 +1016,7 @@ func (r *Repository) FindJobAssetByID(ctx context.Context, id uuid.UUID) (*JobAs
 	return &a, nil
 }
 
-func (r *Repository) FindAllJobAssets(ctx context.Context, page, perPage int) ([]JobAsset, int64, error) {
+func (r *Repository) FindAllJobAssets(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobAsset, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -953,6 +1024,9 @@ func (r *Repository) FindAllJobAssets(ctx context.Context, page, perPage int) ([
 	var assets []JobAsset
 	var total int64
 	query := db.Model(&JobAsset{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -1003,7 +1077,7 @@ func (r *Repository) FindJobFinancialByID(ctx context.Context, id uuid.UUID) (*J
 	return &f, nil
 }
 
-func (r *Repository) FindAllJobFinancials(ctx context.Context, page, perPage int) ([]JobFinancial, int64, error) {
+func (r *Repository) FindAllJobFinancials(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobFinancial, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -1011,6 +1085,9 @@ func (r *Repository) FindAllJobFinancials(ctx context.Context, page, perPage int
 	var financials []JobFinancial
 	var total int64
 	query := db.Model(&JobFinancial{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -1061,7 +1138,7 @@ func (r *Repository) FindJobPotencyCompetencyByID(ctx context.Context, id uuid.U
 	return &c, nil
 }
 
-func (r *Repository) FindAllJobPotencyCompetencies(ctx context.Context, page, perPage int) ([]JobPotencyCompetency, int64, error) {
+func (r *Repository) FindAllJobPotencyCompetencies(ctx context.Context, page, perPage int, orgID *uuid.UUID) ([]JobPotencyCompetency, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -1069,6 +1146,9 @@ func (r *Repository) FindAllJobPotencyCompetencies(ctx context.Context, page, pe
 	var competencies []JobPotencyCompetency
 	var total int64
 	query := db.Model(&JobPotencyCompetency{})
+	if orgID != nil {
+		query = query.Where("organization_id = ?", orgID.String())
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}

@@ -375,19 +375,27 @@ frontend/
 - ✅ **Bilingual + dark mode** — all labels, tooltips, toasts
 - ✅ **FormRow/TextInput/SelectLabel** — reusable components
 
-### C.10. Job Management 🔴 (BARU)
-**Backend:** 88 endpoints (18 sub-entities)
-- [ ] Tab layout per sub-entity
-- [ ] Job Titles CRUD + Title Subs
-- ✅ **Job Values CRUD + Mapping (type: education, experience, subordinate, activity, environment, risk, relationship, frequency, asset, authority, cash, impact)** — halaman Job Value Mapping (`JobValuesForm.vue` + `JobValueSection.vue`) dengan nav per-tipe (left sidebar), filter `?type=` server-side, CRUD dialog, seed data via migration 033-035 (activity 5 level, subordinate 5 level, authority 8 level)
-- ✅ **Icon fix PrimeIcons 8.0.0** — `JobValuesIndex.vue` memakai 4 ikon yang TIDAK ada di PrimeIcons 8.0.0 → ikon tidak render (kosong): `pi-brain` (Lingkungan Berpikir + Kecerdasan) → `pi-wave-pulse` / `pi-microchip`; `pi-puzzle` (Tantangan Berpikir) → `pi-flag`; `pi-target` (Achievement Orientation) → `pi-bullseye`; `pi-handshake` (Building Partnership) → `pi-link`. Audit semua 37 ikon unik di JobValuesIndex — tidak ada lagi yang missing. Build ✅ + browser test ✅ (7 grup render, 0 console errors)
-- [ ] Job Objectives CRUD
-- [ ] Job Identifications CRUD
-- [ ] Responsibilities CRUD
-- [ ] Working Activities CRUD
-- [ ] Working Risks CRUD
-- [ ] Job Scores (by organization)
-- [ ] Competency Groups CRUD
+### C.10. Job Management ✅ (SELESAI — Update 05 Agu 2026)
+**Backend:** 88+ endpoints (18 sub-entities)
+- ✅ **Form multi-section per-org** — `JobManagementForm.vue`: left-nav section (Identitas → Tujuan → Pendidikan & Pengalaman → Tanggung Jawab → Kewenangan SDM/Operasional/Keuangan → Aset → Bawahan → Hubungan Kerja → Aktivitas → Risiko → Kompetensi Potensi → Score) + sticky `JobScoreSummary.vue` (ringkasan skor selalu terlihat)
+- ✅ **Job Titles CRUD + Title Subs**
+- ✅ **Job Values CRUD + Mapping (type: education, experience, subordinate, activity, environment, risk, relationship, frequency, asset, authority, cash, impact)** — `JobValuesIndex.vue` + `JobValueSection.vue` (nav per-tipe, filter `?type=`, CRUD dialog, seed migration 033-050)
+- ✅ **Icon fix PrimeIcons 8.0.0** — 4 ikon tidak valid diganti (pi-wave-pulse/microchip/flag/bullseye/link), audit 37 ikon = 0 missing
+- ✅ **Tree endpoint** `GET /job-management/values/tree` — hierarki type_group → tipe (description_group) → options (level + deskripsi); dipakai form potensi
+- ✅ **Cluster mapping** `GET/PUT /job-management/values/clusters/:type` + migration 054 `job_management_value_clusters` — mapping tipe technical/managerial ke cluster kompetensi
+- ✅ **Job Objectives** — `JobObjectiveSection.vue`
+- ✅ **Job Identifications** — `JobIdentificationSection.vue` (skeleton saat load)
+- ✅ **Responsibilities** — `JobResponsibilitySection.vue`
+- ✅ **Education Experiences** — `JobEduExpSection.vue` (multiple major/job family + skeleton)
+- ✅ **HR/Operational Authorities** — `JobHRAuthoritySection.vue` / `JobOpAuthoritySection.vue`
+- ✅ **Working Activities/Risks** — `JobActivitySection.vue` / `JobRiskSection.vue` (langsung form, ambil option type activity/environment/risk)
+- ✅ **Relationships** — `JobRelationshipSection.vue` (scope/frequency + detail tabel per row, work relationship sebelum work activities)
+- ✅ **Subordinate Controls / Assets** — `JobSubordinateSection.vue` / `JobAssetSection.vue` (langsung form, option type subordinate/asset/asset_authority)
+- ✅ **Financials** — `JobFinancialSection.vue` (langsung form, switch wewenang keuangan, option authority/impact + variant unauthorized)
+- ✅ **Potency Competencies** — `JobPotencySection.vue`: 5 card self-contained (`PsychologicalPotencyCard`, `SkillPotencyCard`, `ProblemSolvingPotencyCard`, `TechnicalPotencyCard` + bobot %, `ManagerialPotencyCard` bobot = 100−technical) + composable `usePotencyLevels` + tabel bersama
+- ✅ **Job Scores** — `JobScoreSection.vue` breakdown dari field `components` (poin + skor per komponen, urut navigasi) + badge is_complete
+- ✅ **Daftar job management** — kolom Score / With Financial (Yes-No) / Status Complete + pencarian (search param `?search=` di API organizations), tanpa kolom code/order/level
+- ✅ **Recalc otomatis** — calculator.go di-hook ke Create/Update/Delete tiap section yang memengaruhi skor
 
 ### C.11. Competency Management 🔴 (BARU)
 **Backend:** 35 endpoints (7 entities)
@@ -889,7 +897,7 @@ Response handler → toast.show("Berhasil dibuat")
 | P0 | Employee Management (Wizard) | 🔴 Complex | 🟡 8/9 Steps ✅ |
 | P1 | Leave & Attendance | 🟡 Medium | 🔴 TODO |
 | P1 | Payroll (read-only payslip) | 🟡 Medium | 🔴 TODO |
-| P2 | Job Management | 🔴 Complex | 🔴 TODO |
+| P2 | Job Management | 🔴 Complex | ✅ **Done (05 Agu 2026)** |
 | P2 | Competency Management | 🔴 Complex | 🔴 TODO |
 
 ### Phase 4 — Tenant Advanced Modules — Estimasi: 4-6 minggu

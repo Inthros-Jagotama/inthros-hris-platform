@@ -178,6 +178,28 @@ func (h *Handler) ListJobValues(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+func (h *Handler) ListJobValueClusters(c *gin.Context) {
+	resp, err := h.service.ListJobValueClusters(c.Request.Context(), c.Param("type"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateJobValueClusters(c *gin.Context) {
+	var req UpdateJobValueClustersRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdateJobValueClusters(c.Request.Context(), c.Param("type"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) UpdateJobValue(c *gin.Context) {
 	var req UpdateJobValueRequest
 	if !httputil.BindAndValidate(c, &req) {
@@ -228,7 +250,7 @@ func (h *Handler) GetJobObjectiveByID(c *gin.Context) {
 func (h *Handler) ListJobObjectives(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobObjectives(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobObjectives(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -286,7 +308,7 @@ func (h *Handler) GetJobIdentificationByID(c *gin.Context) {
 func (h *Handler) ListJobIdentifications(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobIdentifications(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobIdentifications(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -344,7 +366,7 @@ func (h *Handler) GetJobResponsibilityByID(c *gin.Context) {
 func (h *Handler) ListJobResponsibilities(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobResponsibilities(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobResponsibilities(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -460,7 +482,7 @@ func (h *Handler) GetJobHRAuthorityByID(c *gin.Context) {
 func (h *Handler) ListJobHRAuthorities(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobHRAuthorities(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobHRAuthorities(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -518,7 +540,7 @@ func (h *Handler) GetJobOperationalAuthorityByID(c *gin.Context) {
 func (h *Handler) ListJobOperationalAuthorities(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobOperationalAuthorities(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobOperationalAuthorities(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -576,7 +598,7 @@ func (h *Handler) GetJobWorkingActivityByID(c *gin.Context) {
 func (h *Handler) ListJobWorkingActivities(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobWorkingActivities(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobWorkingActivities(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -634,7 +656,7 @@ func (h *Handler) GetJobWorkingRiskByID(c *gin.Context) {
 func (h *Handler) ListJobWorkingRisks(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobWorkingRisks(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobWorkingRisks(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -692,7 +714,7 @@ func (h *Handler) GetJobRelationshipByID(c *gin.Context) {
 func (h *Handler) ListJobRelationships(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobRelationships(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobRelationships(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -806,7 +828,7 @@ func (h *Handler) GetJobSubordinateControlByID(c *gin.Context) {
 func (h *Handler) ListJobSubordinateControls(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobSubordinateControls(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobSubordinateControls(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -864,7 +886,7 @@ func (h *Handler) GetJobAssetByID(c *gin.Context) {
 func (h *Handler) ListJobAssets(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobAssets(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobAssets(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -922,7 +944,7 @@ func (h *Handler) GetJobFinancialByID(c *gin.Context) {
 func (h *Handler) ListJobFinancials(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobFinancials(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobFinancials(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -980,7 +1002,7 @@ func (h *Handler) GetJobPotencyCompetencyByID(c *gin.Context) {
 func (h *Handler) ListJobPotencyCompetencies(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListJobPotencyCompetencies(c.Request.Context(), page, perPage)
+	resp, err := h.service.ListJobPotencyCompetencies(c.Request.Context(), page, perPage, c.Query("organization_id"))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return

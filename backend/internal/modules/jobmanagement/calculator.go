@@ -59,8 +59,12 @@ var psychologicalTypes = map[string]struct{}{
 	"continuous_learning":   {},
 }
 
-// technicalTypes — Kompetensi Technical (16 tipe, migration 042)
+// technicalTypes — Kompetensi Technical.
+// Migration 042 kini menyimpan nilai level dengan type literal 'technical'
+// (8 level) — kompetensi individual diambil dari tabel competencies.
+// Slug per kompetensi (16 tipe lama) tetap dikenali untuk tenant lama.
 var technicalTypes = map[string]struct{}{
+	"technical": {},
 	"competency_based_human_resources_management": {},
 	"competency_development":                      {},
 	"people_development":                          {},
@@ -79,8 +83,11 @@ var technicalTypes = map[string]struct{}{
 	"budgeting":                                   {},
 }
 
-// managerialTypes — Kompetensi Managerial (6 tipe, migration 042)
+// managerialTypes — Kompetensi Managerial.
+// Migration 042 kini menyimpan nilai level dengan type literal 'managerial'
+// (5 level). Slug per kompetensi (6 tipe lama) tetap dikenali untuk tenant lama.
 var managerialTypes = map[string]struct{}{
+	"managerial":              {},
 	"integrity":               {},
 	"achievement_orientation": {},
 	"building_partnership":    {},

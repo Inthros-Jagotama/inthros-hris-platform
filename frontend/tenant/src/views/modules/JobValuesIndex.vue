@@ -80,39 +80,12 @@ const groups = computed(() => [
     ]
   },
   {
-    key: 'technical',
+    key: 'competency',
     icon: 'pi pi-cog',
-    labelKey: 'job_values.group_technical',
+    labelKey: 'job_values.group_technical_managerial',
     items: [
-      { type: 'competency_based_human_resources_management', icon: 'pi pi-users', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-      { type: 'competency_development', icon: 'pi pi-chart-line', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
-      { type: 'people_development', icon: 'pi pi-user-plus', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400' },
-      { type: 'career_management', icon: 'pi pi-sitemap', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' },
-      { type: 'hr_assessment', icon: 'pi pi-clipboard', tint: 'bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400' },
-      { type: 'recruitement_selection', icon: 'pi pi-search', tint: 'bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400' },
-      { type: 'job_analysis_evaluation', icon: 'pi pi-briefcase', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' },
-      { type: 'organizational_development', icon: 'pi pi-building', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400' },
-      { type: 'human_resources_information_system', icon: 'pi pi-database', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-      { type: 'workload_analysis', icon: 'pi pi-chart-bar', tint: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' },
-      { type: 'performance_apraisal', icon: 'pi pi-verified', tint: 'bg-lime-50 dark:bg-lime-500/10 text-lime-600 dark:text-lime-400' },
-      { type: 'remuneration_manajemen', icon: 'pi pi-wallet', tint: 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400' },
-      { type: 'reward_punisment_management', icon: 'pi pi-gift', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-      { type: 'health_safety_environment', icon: 'pi pi-heart', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
-      { type: 'hubungan_industrial', icon: 'pi pi-comments', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
-      { type: 'budgeting', icon: 'pi pi-dollar', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400' }
-    ]
-  },
-  {
-    key: 'managerial',
-    icon: 'pi pi-briefcase',
-    labelKey: 'job_values.group_managerial',
-    items: [
-      { type: 'integrity', icon: 'pi pi-shield', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-      { type: 'achievement_orientation', icon: 'pi pi-bullseye', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
-      { type: 'building_partnership', icon: 'pi pi-link', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400' },
-      { type: 'planning_organizing', icon: 'pi pi-calendar', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' },
-      { type: 'leadership', icon: 'pi pi-star', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-      { type: 'developing_others', icon: 'pi pi-users', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' }
+      { type: 'technical', icon: 'pi pi-cog', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
+      { type: 'managerial', icon: 'pi pi-briefcase', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' }
     ]
   },
   {

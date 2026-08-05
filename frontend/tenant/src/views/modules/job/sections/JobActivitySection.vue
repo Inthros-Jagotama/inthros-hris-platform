@@ -10,13 +10,6 @@
       <SkeletonCard v-if="loading" type="detail" :count="1" :rows="3" cols="grid-cols-1" padding="p-5" />
 
       <div v-else class="space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-        <!-- Read-only from org data -->
-        <FormRow :label="t('organization.nomenclature')">
-          <TextInput :model-value="orgName" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-        </FormRow>
-        <FormRow :label="t('organization.full_code')">
-          <TextInput :model-value="orgCode" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-        </FormRow>
 
         <!-- Editable physical activity -->
         <FormRow :label="t('job_values.types.activity')" :errors="errors?.job_management_value_id">
@@ -110,7 +103,8 @@ const activityOptions = ref([])
 async function loadOptions() {
   try {
     const res = await api.get('/api/v1/tenant/job-management/values', { params: { type: 'activity', per_page: 100 } })
-    activityOptions.value = (res.data?.data || []).map(v => ({ label: v.descriptions, value: v.id }))
+    // Label menampilkan level (mis. 'Lv.1 — ...') untuk memudahkan identifikasi
+    activityOptions.value = (res.data?.data || []).map(v => ({ label: `Lv.${v.level} — ${v.descriptions}`, value: v.id }))
   } catch { /* ignore */ }
 }
 

@@ -334,7 +334,7 @@ func TestService_ListJobObjectives_Pagination(t *testing.T) {
 		})
 	}
 
-	resp, err := svc.ListJobObjectives(ctx, 1, 2)
+	resp, err := svc.ListJobObjectives(ctx, 1, 2, "")
 	if err != nil {
 		t.Fatalf("ListJobObjectives failed: %v", err)
 	}

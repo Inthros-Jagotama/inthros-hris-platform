@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -488,6 +489,47 @@ func (s *Service) DeleteJobValue(ctx context.Context, id string) error {
 }
 
 // =========================================================================
+// Job Value Clusters (9.3b) — mapping type ↔ cluster kompetensi
+// =========================================================================
+
+// ListJobValueClusters mengembalikan daftar cluster yang dipetakan ke sebuah tipe
+// nilai jabatan (mis. 'technical'), diurutkan alfabetis.
+func (s *Service) ListJobValueClusters(ctx context.Context, valueType string) (*JobValueClusterResponse, error) {
+	clusters, err := s.repo.FindJobValueClusters(ctx, valueType)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(clusters))
+	for _, c := range clusters {
+		names = append(names, c.Cluster)
+	}
+	return &JobValueClusterResponse{Type: valueType, Clusters: names}, nil
+}
+
+// UpdateJobValueClusters mengganti seluruh mapping cluster untuk satu tipe dalam
+// satu transaksi. Array kosong = hapus semua mapping (aksi valid, bukan error).
+func (s *Service) UpdateJobValueClusters(ctx context.Context, valueType string, req UpdateJobValueClustersRequest) (*JobValueClusterResponse, error) {
+	// Trim + dedupe; abaikan nilai kosong
+	seen := make(map[string]struct{}, len(req.Clusters))
+	clean := make([]string, 0, len(req.Clusters))
+	for _, c := range req.Clusters {
+		c = strings.TrimSpace(c)
+		if c == "" {
+			continue
+		}
+		if _, dup := seen[c]; dup {
+			continue
+		}
+		seen[c] = struct{}{}
+		clean = append(clean, c)
+	}
+	if err := s.repo.ReplaceJobValueClusters(ctx, valueType, clean); err != nil {
+		return nil, err
+	}
+	return &JobValueClusterResponse{Type: valueType, Clusters: clean}, nil
+}
+
+// =========================================================================
 // Management entities with shared CRUD pattern (9.4 - 9.15)
 // These all follow the same pattern: Create, GetByID, List, Update, Delete
 // with nomenclature + full_code + organization_id fields
@@ -532,14 +574,20 @@ func (s *Service) GetJobObjectiveByID(ctx context.Context, id string) (*JobObjec
 	return &r, nil
 }
 
-func (s *Service) ListJobObjectives(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobObjectives(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	objectives, total, err := s.repo.FindAllJobObjectives(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	objectives, total, err := s.repo.FindAllJobObjectives(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -629,14 +677,20 @@ func (s *Service) GetJobIdentificationByID(ctx context.Context, id string) (*Job
 	return &r, nil
 }
 
-func (s *Service) ListJobIdentifications(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobIdentifications(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	ids, total, err := s.repo.FindAllJobIdentifications(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	ids, total, err := s.repo.FindAllJobIdentifications(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -734,14 +788,20 @@ func (s *Service) GetJobResponsibilityByID(ctx context.Context, id string) (*Job
 	return &resp, nil
 }
 
-func (s *Service) ListJobResponsibilities(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobResponsibilities(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	responsibilities, total, err := s.repo.FindAllJobResponsibilities(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	responsibilities, total, err := s.repo.FindAllJobResponsibilities(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1012,14 +1072,20 @@ func (s *Service) GetJobHRAuthorityByID(ctx context.Context, id string) (*JobHRA
 	return &r, nil
 }
 
-func (s *Service) ListJobHRAuthorities(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobHRAuthorities(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	authorities, total, err := s.repo.FindAllJobHRAuthorities(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	authorities, total, err := s.repo.FindAllJobHRAuthorities(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1104,14 +1170,20 @@ func (s *Service) GetJobOperationalAuthorityByID(ctx context.Context, id string)
 	return &r, nil
 }
 
-func (s *Service) ListJobOperationalAuthorities(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobOperationalAuthorities(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	authorities, total, err := s.repo.FindAllJobOperationalAuthorities(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	authorities, total, err := s.repo.FindAllJobOperationalAuthorities(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1198,14 +1270,20 @@ func (s *Service) GetJobWorkingActivityByID(ctx context.Context, id string) (*Jo
 	return &r, nil
 }
 
-func (s *Service) ListJobWorkingActivities(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobWorkingActivities(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	activities, total, err := s.repo.FindAllJobWorkingActivities(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	activities, total, err := s.repo.FindAllJobWorkingActivities(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1301,14 +1379,20 @@ func (s *Service) GetJobWorkingRiskByID(ctx context.Context, id string) (*JobWor
 	return &resp, nil
 }
 
-func (s *Service) ListJobWorkingRisks(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobWorkingRisks(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	risks, total, err := s.repo.FindAllJobWorkingRisks(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	risks, total, err := s.repo.FindAllJobWorkingRisks(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1408,14 +1492,20 @@ func (s *Service) GetJobRelationshipByID(ctx context.Context, id string) (*JobRe
 	return &resp, nil
 }
 
-func (s *Service) ListJobRelationships(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobRelationships(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	relationships, total, err := s.repo.FindAllJobRelationships(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	relationships, total, err := s.repo.FindAllJobRelationships(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1620,14 +1710,20 @@ func (s *Service) GetJobSubordinateControlByID(ctx context.Context, id string) (
 	return &r, nil
 }
 
-func (s *Service) ListJobSubordinateControls(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobSubordinateControls(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	controls, total, err := s.repo.FindAllJobSubordinateControls(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	controls, total, err := s.repo.FindAllJobSubordinateControls(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1723,14 +1819,20 @@ func (s *Service) GetJobAssetByID(ctx context.Context, id string) (*JobAssetResp
 	return &r, nil
 }
 
-func (s *Service) ListJobAssets(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobAssets(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	assets, total, err := s.repo.FindAllJobAssets(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	assets, total, err := s.repo.FindAllJobAssets(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1835,14 +1937,20 @@ func (s *Service) GetJobFinancialByID(ctx context.Context, id string) (*JobFinan
 	return &r, nil
 }
 
-func (s *Service) ListJobFinancials(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobFinancials(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	financials, total, err := s.repo.FindAllJobFinancials(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	financials, total, err := s.repo.FindAllJobFinancials(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1959,14 +2067,20 @@ func (s *Service) GetJobPotencyCompetencyByID(ctx context.Context, id string) (*
 	return &r, nil
 }
 
-func (s *Service) ListJobPotencyCompetencies(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListJobPotencyCompetencies(ctx context.Context, page, perPage int, orgID string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	competencies, total, err := s.repo.FindAllJobPotencyCompetencies(ctx, page, perPage)
+	var orgUID *uuid.UUID
+	if orgID != "" {
+		if id, err := uuid.Parse(orgID); err == nil {
+			orgUID = &id
+		}
+	}
+	competencies, total, err := s.repo.FindAllJobPotencyCompetencies(ctx, page, perPage, orgUID)
 	if err != nil {
 		return nil, err
 	}

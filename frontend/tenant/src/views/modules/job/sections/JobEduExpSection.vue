@@ -10,16 +10,9 @@
       <SkeletonCard v-if="loading" type="detail" :count="1" :rows="6" cols="grid-cols-1" padding="p-5" />
 
       <div v-else class="space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-        <!-- Read-only from org data -->
-        <FormRow :label="t('organization.nomenclature')">
-          <TextInput :model-value="orgName" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-        </FormRow>
-        <FormRow :label="t('organization.full_code')">
-          <TextInput :model-value="orgCode" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-        </FormRow>
 
         <!-- ── Group 1: Pendidikan (Education) ── -->
-        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="pt-1">
           <div class="flex items-center gap-2 mb-3">
             <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <i class="pi pi-graduation-cap text-sm"></i>
@@ -185,9 +178,9 @@ async function loadMaster() {
     ])
     // Pendidikan diambil dari tabel job_management_values type=education
     // (level 1-5: Sekolah Menengah Pertama → Strata 3) — id = job_management_values.id
-    eduOptions.value = (eduRes.data?.data || []).map(e => ({ label: e.descriptions, value: e.id }))
+    eduOptions.value = (eduRes.data?.data || []).map(e => ({ label: `Lv.${e.level} — ${e.descriptions}`, value: e.id }))
     // Pengalaman Kerja dari job_management_values type=experience (0-2, 3-5, ... Tahun)
-    expOptions.value = (expRes.data?.data || []).map(x => ({ label: x.descriptions, value: x.id }))
+    expOptions.value = (expRes.data?.data || []).map(x => ({ label: `Lv.${x.level} — ${x.descriptions}`, value: x.id }))
     majorOptions.value = (majorRes.data?.data || []).map(m => ({ label: `${m.code} - ${m.name}`, value: m.id }))
     jobFamilyOptions.value = (jfRes.data?.data || []).map(j => ({ label: `${j.code} - ${j.name}`, value: j.id }))
   } catch { /* ignore */ }

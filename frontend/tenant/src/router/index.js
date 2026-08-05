@@ -77,7 +77,7 @@ const routes = [
         path: 'job-management',
         name: 'JobManagement',
         component: () => import('@/views/modules/JobManagement.vue'),
-        meta: { title: 'Job Management', titleKey: 'job_management.title', descKey: 'job_management.description', icon: 'pi pi-briefcase', module: 'jobmanagement' }
+        meta: { title: 'Job Management', titleKey: 'job_management.title', descKey: 'job_management.page_description', icon: 'pi pi-briefcase', module: 'jobmanagement' }
       },
       {
         path: 'job-management/values',

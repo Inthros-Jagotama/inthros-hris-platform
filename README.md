@@ -675,6 +675,9 @@ Authorization: Bearer <access_token>
 |---|---|---|
 | `GET` | `/job-management/values` | List job values |
 | `POST` | `/job-management/values` | Create job value |
+| `GET` | `/job-management/values/tree` | Get job values tree (type_group → types → level options) |
+| `GET` | `/job-management/values/clusters/:type` | List cluster mapping (`technical`/`managerial`) |
+| `PUT` | `/job-management/values/clusters/:type` | Update cluster mapping |
 | `GET` | `/job-management/values/:id` | Get job value |
 | `PUT` | `/job-management/values/:id` | Update job value |
 | `DELETE` | `/job-management/values/:id` | Delete job value |
@@ -759,6 +762,11 @@ Authorization: Bearer <access_token>
 | `GET` | `/job-management/relationships/:id` | Get job relationship |
 | `PUT` | `/job-management/relationships/:id` | Update job relationship |
 | `DELETE` | `/job-management/relationships/:id` | Delete job relationship |
+| `POST` | `/job-management/relationships/:id/details` | Create relationship detail |
+| `GET` | `/job-management/relationships/:id/details` | List relationship details |
+| `GET` | `/job-management/relationships/:id/details/:detailId` | Get relationship detail |
+| `PUT` | `/job-management/relationships/:id/details/:detailId` | Update relationship detail |
+| `DELETE` | `/job-management/relationships/:id/details/:detailId` | Delete relationship detail |
 
 **Job Management — Subordinate Controls (9.13)**
 | Method | Endpoint | Deskripsi |
@@ -801,7 +809,7 @@ Authorization: Bearer <access_token>
 |---|---|---|
 | `GET` | `/job-management/scores` | List all scores |
 | `GET` | `/job-management/scores/org/:orgId` | Get score by organization |
-| `PUT` | `/job-management/scores/org/:orgId` | Upsert score for organization |
+| `PUT` | `/job-management/scores/org/:orgId` | Upsert/recalculate score for organization (body kosong = hitung ulang otomatis) |
 
 **Job Management — Competency Groups (9.18)**
 | Method | Endpoint | Deskripsi |
@@ -1715,7 +1723,7 @@ POST /api/v1/platform/companies
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
 | ✅ | Project completion dashboard (14 modules, 1004+ tests, 148 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
-| ✅ | OpenAPI comprehensive report (690 endpoints, 442 schemas, 30 tags) | `docs/openapi-report.md` |
+| ✅ | OpenAPI comprehensive report (698 endpoints, 442 schemas, 30 tags) | `docs/openapi-report.md` |
 | ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
@@ -1809,7 +1817,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**690 endpoints**, 442 schemas, 30 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**698 endpoints**, 442 schemas, 30 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 
@@ -2006,7 +2014,7 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 |---|---|
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap |
 | [`docs/PROJECT_COMPLETION_DASHBOARD.md`](docs/PROJECT_COMPLETION_DASHBOARD.md) | **NEW** — Project completion dashboard (14 modules, 939+ tests, 139 tables) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v17 — 690 endpoints, 442 schemas, 30 tags) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v17 — 698 endpoints, 442 schemas, 30 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | **NEW** — Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
 | [`docs/analisis-blueprint-vs-existing.md`](docs/analisis-blueprint-vs-existing.md) | Analisis blueprint vs existing Laravel app |

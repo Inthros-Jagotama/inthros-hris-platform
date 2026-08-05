@@ -24,7 +24,9 @@ UPDATE job_management_values SET
         WHEN 'flexibility'           THEN 'psychological'
         WHEN 'tenacity'              THEN 'psychological'
         WHEN 'continuous_learning'   THEN 'psychological'
-        -- Kompetensi Technical (migration 042)
+        -- Kompetensi Technical (migration 042 — seed baru type literal)
+        WHEN 'technical' THEN 'technical'
+        -- Kompetensi Technical (migration 042 — seed lama slug per kompetensi)
         WHEN 'competency_based_human_resources_management' THEN 'technical'
         WHEN 'competency_development'                      THEN 'technical'
         WHEN 'people_development'                          THEN 'technical'
@@ -41,7 +43,9 @@ UPDATE job_management_values SET
         WHEN 'health_safety_environment'                   THEN 'technical'
         WHEN 'hubungan_industrial'                         THEN 'technical'
         WHEN 'budgeting'                                   THEN 'technical'
-        -- Kompetensi Managerial (migration 042)
+        -- Kompetensi Managerial (migration 042 — seed baru type literal)
+        WHEN 'managerial' THEN 'managerial'
+        -- Kompetensi Managerial (migration 042 — seed lama slug per kompetensi)
         WHEN 'integrity'               THEN 'managerial'
         WHEN 'achievement_orientation' THEN 'managerial'
         WHEN 'building_partnership'    THEN 'managerial'
@@ -82,6 +86,8 @@ UPDATE job_management_values SET
         WHEN 'flexibility'           THEN 'Flexibility'
         WHEN 'tenacity'              THEN 'Tenacity'
         WHEN 'continuous_learning'   THEN 'Continuous Learning'
+        -- Kompetensi Technical (migration 042 — seed baru type literal)
+        WHEN 'technical' THEN 'Kompetensi Technical'
         -- Kompetensi Technical (codeMap legacy)
         WHEN 'competency_based_human_resources_management' THEN 'Competency Based Human Resources Management'
         WHEN 'competency_development'                      THEN 'Competency Development'
@@ -99,6 +105,8 @@ UPDATE job_management_values SET
         WHEN 'health_safety_environment'                   THEN 'Health & Safety Environment'
         WHEN 'hubungan_industrial'                         THEN 'Hubungan Industrial'
         WHEN 'budgeting'                                   THEN 'Budgeting'
+        -- Kompetensi Managerial (migration 042 — seed baru type literal)
+        WHEN 'managerial' THEN 'Kompetensi Manajerial'
         -- Kompetensi Managerial (codeMap legacy)
         WHEN 'integrity'               THEN 'Integrity'
         WHEN 'achievement_orientation' THEN 'Achievement Orientation'
@@ -132,11 +140,13 @@ UPDATE job_management_values SET
 WHERE type IN (
     'education', 'experience',
     'kecerdasan', 'innovation_creativity', 'self_confidence', 'flexibility', 'tenacity', 'continuous_learning',
+    'technical',
     'competency_based_human_resources_management', 'competency_development', 'people_development',
     'career_management', 'hr_assessment', 'recruitement_selection', 'job_analysis_evaluation',
     'organizational_development', 'human_resources_information_system', 'workload_analysis',
     'performance_apraisal', 'remuneration_manajemen', 'reward_punisment_management',
     'health_safety_environment', 'hubungan_industrial', 'budgeting',
+    'managerial',
     'integrity', 'achievement_orientation', 'building_partnership', 'planning_organizing',
     'leadership', 'developing_others',
     'communicating_influencing_skill',

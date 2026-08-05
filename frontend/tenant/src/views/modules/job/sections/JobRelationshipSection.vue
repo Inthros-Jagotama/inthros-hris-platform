@@ -10,16 +10,9 @@
       <SkeletonCard v-if="loading" type="detail" :count="1" :rows="4" cols="grid-cols-1" padding="p-5" />
 
       <div v-else class="space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-        <!-- Read-only from org data -->
-        <FormRow :label="t('organization.nomenclature')">
-          <TextInput :model-value="orgName" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-        </FormRow>
-        <FormRow :label="t('organization.full_code')">
-          <TextInput :model-value="orgCode" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-        </FormRow>
 
         <!-- ── Group: Ruang Lingkup (Scope) — relation type & frequency ── -->
-        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="pt-1">
           <div class="flex items-center gap-2 mb-3">
             <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <i class="pi pi-compass text-sm"></i>
@@ -255,8 +248,9 @@ async function loadOptions() {
         ? api.get('/api/v1/tenant/organizations', { params: { summary_id: props.orgSummaryId, per_page: 100 } })
         : Promise.resolve({ data: { data: [] } })
     ])
-    relOptions.value = (relRes.data?.data || []).map(v => ({ label: v.descriptions, value: v.id }))
-    freqOptions.value = (freqRes.data?.data || []).map(v => ({ label: v.descriptions, value: v.id }))
+    // Label menampilkan level (mis. 'Lv.1 — ...') untuk memudahkan identifikasi
+    relOptions.value = (relRes.data?.data || []).map(v => ({ label: `Lv.${v.level} — ${v.descriptions}`, value: v.id }))
+    freqOptions.value = (freqRes.data?.data || []).map(v => ({ label: `Lv.${v.level} — ${v.descriptions}`, value: v.id }))
     // Organisasi se-summary, tanpa organisasi yang sedang dinilai (tidak boleh pilih diri sendiri)
     orgOptions.value = (orgRes.data?.data || [])
       .filter(o => o.id !== props.orgId)

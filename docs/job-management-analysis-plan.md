@@ -1,8 +1,12 @@
 # Job Management Module — Analisis & Rencana Implementasi Frontend
 
 **Generated:** 30 July 2026  
-**Updated:** 30 July 2026  
-**Source:** `backend/internal/modules/jobmanagement/` (Go) + analisis model scoring
+**Updated:** 05 August 2026  
+**Source:** `backend/internal/modules/jobmanagement/` (Go) + analisis model scoring  
+> **Update 05 Agu 2026:** scoring otomatis sudah diimplementasikan (lihat G.7), form per-org
+> `JobManagementForm.vue` selesai (multi-section dengan left-nav + sticky score summary),
+> Job Values + mapping cluster + tree endpoint selesai. Lihat juga
+> `docs/job-management-score-analysis.md` (status implementasi) & `PROJECT_COMPLETION_DASHBOARD.md`.
 
 ---
 
@@ -87,33 +91,33 @@ Route::prefix('job-management')
 | Navigasi ke Nilai Jabatan (Job Values) | ✅ **Done** |
 | Job Values CRUD form page | ✅ **Done** |
 
-### Phase 2: 🔴 Next — Complete Organization-based Sub-entities
+### Phase 2: ✅ DONE — Complete Organization-based Sub-entities
 Buat form lengkap per organisasi dengan multi-step/tab layout (seperti EmployeeForm):
 
 | No | Sub-entity | Backend Slug | Endpoint Group | Priority | Frontend View |
 |:--:|------------|:------------:|:--------------:|:--------:|:-------------:|
-| 1 | **Job Titles** | `titles` | `/job-management/titles` | 🟢 High | `JobTitlesForm.vue` |
-| 2 | **Job Values** | `values` | `/job-management/values` | ✅ **Done** | `JobValuesForm.vue` |
-| 3 | **Job Objectives** | `objectives` | `/job-management/objectives` | 🟢 High | `JobObjectivesForm.vue` |
-| 4 | **Job Identifications** | `identifications` | `/job-management/identifications` | 🟢 High | `JobIdentificationsForm.vue` |
-| 5 | **Responsibilities** | `responsibilities` | `/job-management/responsibilities` | 🟢 High | `JobResponsibilitiesForm.vue` |
-| 6 | **Education Experiences** | `education-experiences` | `/job-management/education-experiences` | 🟡 Medium | `JobEduExpForm.vue` |
-| 7 | **HR Authorities** | `hr-authorities` | `/job-management/hr-authorities` | 🟡 Medium | `JobHRAuthForm.vue` |
-| 8 | **Operational Authorities** | `operational-authorities` | `/job-management/operational-authorities` | 🟡 Medium | `JobOpAuthForm.vue` |
-| 9 | **Working Activities** | `working-activities` | `/job-management/working-activities` | 🟡 Medium | `JobActivitiesForm.vue` |
-| 10 | **Working Risks** | `working-risks` | `/job-management/working-risks` | 🟡 Medium | `JobRisksForm.vue` |
-| 11 | **Relationships** | `relationships` | `/job-management/relationships` | 🟡 Medium | `JobRelationshipsForm.vue` |
-| 12 | **Subordinate Controls** | `subordinate-controls` | `/job-management/subordinate-controls` | 🟡 Medium | `JobSubControlForm.vue` |
-| 13 | **Assets** | `assets` | `/job-management/assets` | 🟡 Medium | `JobAssetsForm.vue` |
-| 14 | **Financials** | `financials` | `/job-management/financials` | 🟡 Medium | `JobFinancialsForm.vue` |
-| 15 | **Potency Competencies** | `potency-competencies` | `/job-management/potency-competencies` | 🟡 Medium | `JobPotencyCompForm.vue` |
-| 16 | **Job Scores** | `scores` | `/job-management/scores` | 🟢 High | `JobScoresForm.vue` |
-| 17 | **Competency Groups** | `competency-groups` | `/job-management/competency-groups` | 🟡 Medium | `JobCompGroupsForm.vue` |
+| 1 | **Job Titles** | `titles` | `/job-management/titles` | 🟢 High | ✅ via JobManagementForm (tab global) |
+| 2 | **Job Values** | `values` | `/job-management/values` | ✅ **Done** | `JobValuesIndex.vue` + tree/clusters endpoint |
+| 3 | **Job Objectives** | `objectives` | `/job-management/objectives` | 🟢 High | ✅ `JobObjectiveSection.vue` |
+| 4 | **Job Identifications** | `identifications` | `/job-management/identifications` | 🟢 High | ✅ `JobIdentificationSection.vue` |
+| 5 | **Responsibilities** | `responsibilities` | `/job-management/responsibilities` | 🟢 High | ✅ `JobResponsibilitySection.vue` |
+| 6 | **Education Experiences** | `education-experiences` | `/job-management/education-experiences` | 🟡 Medium | ✅ `JobEduExpSection.vue` (multiple major/family) |
+| 7 | **HR Authorities** | `hr-authorities` | `/job-management/hr-authorities` | 🟡 Medium | ✅ `JobHRAuthoritySection.vue` |
+| 8 | **Operational Authorities** | `operational-authorities` | `/job-management/operational-authorities` | 🟡 Medium | ✅ `JobOpAuthoritySection.vue` |
+| 9 | **Working Activities** | `working-activities` | `/job-management/working-activities` | 🟡 Medium | ✅ `JobActivitySection.vue` (langsung form) |
+| 10 | **Working Risks** | `working-risks` | `/job-management/working-risks` | 🟡 Medium | ✅ `JobRiskSection.vue` (langsung form) |
+| 11 | **Relationships** | `relationships` | `/job-management/relationships` | 🟡 Medium | ✅ `JobRelationshipSection.vue` (scope/frequency + detail tabel) |
+| 12 | **Subordinate Controls** | `subordinate-controls` | `/job-management/subordinate-controls` | 🟡 Medium | ✅ `JobSubordinateSection.vue` (langsung form) |
+| 13 | **Assets** | `assets` | `/job-management/assets` | 🟡 Medium | ✅ `JobAssetSection.vue` (langsung form) |
+| 14 | **Financials** | `financials` | `/job-management/financials` | 🟡 Medium | ✅ `JobFinancialSection.vue` (langsung form, authority switch) |
+| 15 | **Potency Competencies** | `potency-competencies` | `/job-management/potency-competencies` | 🟡 Medium | ✅ `JobPotencySection.vue` (5 card + bobot) |
+| 16 | **Job Scores** | `scores` | `/job-management/scores` | 🟢 High | ✅ `JobScoreSection.vue` + `JobScoreSummary.vue` sticky |
+| 17 | **Competency Groups** | `competency-groups` | `/job-management/competency-groups` | 🟡 Medium | ✅ bobot di card Technical/Managerial |
 
-### Phase 3: 🔴 Dashboard & Reports
+### Phase 3: 🟡 Dashboard & Reports (sebagian)
 | Task | Priority | Status |
 |------|:--------:|:------:|
-| Jobs Management Dashboard (KPI: total orgs, titles, values, scores) | 🟡 Medium | ⬜ TODO |
+| Jobs Management Dashboard (KPI: total orgs, titles, values, scores) | 🟡 Medium | 🔶 Belum (score per-org tampil di daftar) |
 | Export PDF per organization | 🟢 Low | ⬜ TODO |
 | Export Excel per organization | 🟢 Low | ⬜ TODO |
 
@@ -179,7 +183,7 @@ Buat form lengkap per organisasi dengan multi-step/tab layout (seperti EmployeeF
 1. **Alur kerja Laravel lama:** User pilih organisasi → langsung ke halaman edit dengan 13 section PUT (identification, objective, working-activity, dll). Semua disimpan per section dengan PUT terpisah.
 2. **Alur Go backend saat ini:** Setiap entity punya CRUD mandiri (POST/GET/PUT/DELETE). Ini lebih fleksibel.
 3. **Frontend yang sudah ada:** Landing page ✅, Job Values CRUD ✅. Sisanya 16 entity belum ada frontend.
-4. **Backend sudah siap:** Semua entity sudah punya handler, service, repository, routes lengkap (88 endpoint).
+4. **Backend sudah siap:** Semua entity sudah punya handler, service, repository, routes lengkap (**96 endpoint** — +tree/clusters/details, 100 service methods).
 5. **Dashboard & Reports:** Tersedia di old app tapi belum ada di Go backend.
 
 ---
@@ -468,11 +472,15 @@ flowchart TD
     E -- Tidak --> B
 ```
 
-### G.7. Catatan Implementasi Backend Saat Ini
+### G.7. Catatan Implementasi Backend Saat Ini — UPDATE 05 Agu 2026
 
-1. **Job Score tidak otomatis** — Tidak ada trigger/event di backend yang otomatis menghitung ulang Job Score saat per-org entities berubah. Perhitungan harus dipicu manual via:
-   - Endpoint `PUT /job-management/scores/:orgId` (upsert manual)
-   - Atau frontend menghitung dan mengirim hasilnya
+1. ✅ **Job Score OTOMATIS** — `calculator.go` (port penuh `JobValueCalculator.php`) dihitung
+   ulang otomatis setiap section yang memengaruhi skor disimpan (hook `recalculateScore` di
+   Create/Update/Delete education-experiences, potency-competencies, financials, assets,
+   subordinate-controls, relationships, working-activities, working-risks) — hasil disimpan ke
+   `job_management_scores` termasuk `is_complete`/`completed_at` (migration 051).
+   Endpoint `PUT /job-management/scores/org/:orgId` tetap ada untuk recalculate manual
+   (body kosong = hitung ulang).
 
 2. **Components & SubComponentPoints** — Disimpan sebagai JSON string (`*string` dengan `gorm:"type:json"`). Frontend perlu menyusun JSON ini sebelum dikirim.
 

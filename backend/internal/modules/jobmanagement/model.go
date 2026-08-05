@@ -92,6 +92,29 @@ func (v *JobValue) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// 9.3b Job Management Value Clusters (Mapping type ↔ cluster kompetensi)
+// =========================================================================
+// Menyimpan daftar cluster kompetensi (dari tabel competencies) yang dipetakan
+// ke sebuah tipe nilai jabatan (mis. 'technical'). Dipakai card Kompetensi
+// Teknis sebagai filter cluster yang valid — diatur di halaman Mapping Job Value.
+type JobManagementValueCluster struct {
+	ID        uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	Type      string    `gorm:"type:varchar(255);not null;uniqueIndex:uk_jmvc_type_cluster" json:"type"`
+	Cluster   string    `gorm:"type:varchar(255);not null;uniqueIndex:uk_jmvc_type_cluster" json:"cluster"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (JobManagementValueCluster) TableName() string { return "job_management_value_clusters" }
+
+func (c *JobManagementValueCluster) BeforeCreate(tx *gorm.DB) error {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // 9.4 Job Management Objectives (Tujuan Jabatan)
 // =========================================================================
 type JobObjective struct {

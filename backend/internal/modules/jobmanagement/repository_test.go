@@ -413,7 +413,7 @@ func TestRepository_JobResponsibilityCRUD(t *testing.T) {
 	}
 
 	// Pagination test
-	foundAll, total, err := repo.FindAllJobResponsibilities(ctx, 1, 20)
+	foundAll, total, err := repo.FindAllJobResponsibilities(ctx, 1, 20, nil)
 	if err != nil {
 		t.Fatalf("FindAllJobResponsibilities failed: %v", err)
 	}
@@ -547,7 +547,7 @@ func TestRepository_JobHRAuthorityCRUD(t *testing.T) {
 	repo.UpdateJobHRAuthority(ctx, found)
 
 	// List
-	all, total, _ := repo.FindAllJobHRAuthorities(ctx, 1, 20)
+	all, total, _ := repo.FindAllJobHRAuthorities(ctx, 1, 20, nil)
 	if total != 1 || len(all) != 1 {
 		t.Errorf("expected 1, got total=%d len=%d", total, len(all))
 	}
@@ -588,7 +588,7 @@ func TestRepository_JobOperationalAuthorityCRUD(t *testing.T) {
 	repo.UpdateJobOperationalAuthority(ctx, found)
 
 	// List
-	all, total, _ := repo.FindAllJobOperationalAuthorities(ctx, 1, 20)
+	all, total, _ := repo.FindAllJobOperationalAuthorities(ctx, 1, 20, nil)
 	if total != 1 || len(all) != 1 {
 		t.Errorf("expected 1, got total=%d len=%d", total, len(all))
 	}
@@ -696,7 +696,7 @@ func TestRepository_JobRelationshipCRUD(t *testing.T) {
 		t.Errorf("expected 'External Coordination', got '%s'", updated.Nomenclature)
 	}
 
-	all, total, _ := repo.FindAllJobRelationships(ctx, 1, 20)
+	all, total, _ := repo.FindAllJobRelationships(ctx, 1, 20, nil)
 	if total != 1 || len(all) != 1 {
 		t.Errorf("expected 1, got total=%d len=%d", total, len(all))
 	}

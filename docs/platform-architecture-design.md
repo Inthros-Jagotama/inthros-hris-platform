@@ -423,7 +423,7 @@ Handler (routes/handler.go)
 - Platform DB migrations: `internal/pkg/migrator/migrations/platform/` (8 files)
 - Seed data: `internal/pkg/migrator/migrations/seeders/` (2 file — `001_seed_super_admin.sql` + down)
 - Tenant bulk seed: `internal/pkg/tenantseed/seeddata/` (2 embedded SQL — districts & villages), di-embed via `//go:embed seeddata` sehingga CWD-independent
-- Tenant DB template migrations: `internal/pkg/migrator/migrations/tenant/` (86 file per dialect — 43 up + 43 down, mysql & postgres)
+- Tenant DB template migrations: `internal/pkg/migrator/migrations/tenant/` (106 file per dialect — 53 up + 53 down, mysql & postgres)
 - Eksekusi di startup: [SQL Migrator → AutoMigrate → SQL Seeders → Module Seeders]
 
 **File Convention:**

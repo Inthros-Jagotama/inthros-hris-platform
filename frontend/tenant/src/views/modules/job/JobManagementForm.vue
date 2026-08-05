@@ -34,10 +34,33 @@
       </div>
 
       <!-- Right: Form Content -->
-      <div class="flex-1 min-w-0">
+      <div class="flex-1 min-w-0 space-y-4">
+        <!-- Ringkasan info jabatan + skor: sticky, selalu tampil di semua navigasi saat scroll -->
+        <div :key="`summary-${orgId}`" class="sticky top-0 z-10 bg-white dark:bg-gray-900 pt-1 pb-3">
+          <div class="flex flex-col md:flex-row gap-4">
+            <!-- Card info nama jabatan & full code -->
+            <div class="md:w-72 shrink-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+              <div class="flex items-center gap-2 mb-3">
+                <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <i class="pi pi-briefcase text-sm"></i>
+                </div>
+                <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ orgName || t('job_management.job_info_untitled') }}</h3>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">{{ t('organization.full_code') }}</span>
+                <span class="text-sm font-semibold text-gray-700 dark:text-gray-200 font-mono truncate">{{ orgCode || '-' }}</span>
+              </div>
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <JobScoreSummary ref="scoreSummaryRef" :org-id="orgId" />
+            </div>
+          </div>
+        </div>
+
         <component
           :is="currentSectionComp"
-          :key="activeSection"
+          :key="`${activeSection}-${orgId}`"
           :org-id="orgId"
           :org-name="orgName"
           :org-code="orgCode"
@@ -58,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
@@ -78,15 +101,17 @@ import JobSubordinateSection from './sections/JobSubordinateSection.vue'
 import JobAssetSection from './sections/JobAssetSection.vue'
 import JobFinancialSection from './sections/JobFinancialSection.vue'
 import JobPotencySection from './sections/JobPotencySection.vue'
-import JobCompetencyGroupSection from './sections/JobCompetencyGroupSection.vue'
 import JobScoreSection from './sections/JobScoreSection.vue'
+import JobScoreSummary from './sections/JobScoreSummary.vue'
 
 const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
 const toast = useToast()
 
-const orgId = route.query.org_id || ''
+// Reaktif: ketika org_id di query berubah (route yang sama tidak di-remount),
+// form harus reload data organisasi yang baru
+const orgId = computed(() => route.query.org_id || '')
 const activeSection = ref(0)
 const pageLoading = ref(true)
 const sectionSaved = ref(Array(15).fill(false))
@@ -101,6 +126,7 @@ const jobFamilyOptions = ref([])
 const jobValueOptions = ref([])
 const jobValueMap = ref({})
 const competencyOptions = ref([])
+const scoreSummaryRef = ref(null)
 
 const sections = [
   { labelKey: 'job_management.identifications', icon: 'pi pi-id-card', comp: JobIdentificationSection },
@@ -116,7 +142,6 @@ const sections = [
   { labelKey: 'job_management.risks', icon: 'pi pi-exclamation-triangle', comp: JobRiskSection },
   { labelKey: 'job_management.hr_authorities', icon: 'pi pi-users', comp: JobHRAuthoritySection },
   { labelKey: 'job_management.op_authorities', icon: 'pi pi-cog', comp: JobOpAuthoritySection },
-  { labelKey: 'job_management.competency_groups', icon: 'pi pi-chart-pie', comp: JobCompetencyGroupSection },
   { labelKey: 'job_management.scores', icon: 'pi pi-calculator', comp: JobScoreSection },
 ]
 
@@ -150,6 +175,8 @@ function selectSection(i) {
 
 function onSectionSaved(i) {
   if (typeof i === 'number') sectionSaved.value[i] = true
+  // Refresh ringkasan skor setelah section tersimpan (kalkulator otomatis berjalan di backend)
+  scoreSummaryRef.value?.refresh()
 }
 
 function goBack() {
@@ -157,9 +184,9 @@ function goBack() {
 }
 
 async function loadOrgInfo() {
-  if (!orgId) return
+  if (!orgId.value) return
   try {
-    const res = await api.get(`/api/v1/tenant/organizations/${orgId}`)
+    const res = await api.get(`/api/v1/tenant/organizations/${orgId.value}`)
     const data = res.data?.data
     if (data) {
       orgName.value = data.nomenclature || ''
@@ -203,6 +230,21 @@ async function loadRefData() {
     competencyOptions.value = (compRes.data?.data || []).map(c => ({ label: c.name || c.code, value: c.id, field: c.field || '', definition: c.definition || '' }))
   } catch { /* ignore */ }
 }
+
+// Saat organisasi diganti (query org_id berubah pada route yang sama, mis. via
+// tombol back/forward antar URL form), reset state agar tidak menampilkan data
+// organisasi sebelumnya. Section & ringkasan di-remount otomatis lewat :key yang
+// memuat orgId, sehingga masing-masing melakukan fetch ulang untuk org baru.
+watch(orgId, (newOrg, oldOrg) => {
+  if (newOrg === oldOrg) return
+  sectionSaved.value = Array(sections.length).fill(false)
+  orgName.value = ''
+  orgCode.value = ''
+  orgSummaryId.value = ''
+  orgGradingId.value = ''
+  orgJobFamilyId.value = ''
+  loadOrgInfo()
+})
 
 onMounted(async () => {
   try {

@@ -130,8 +130,8 @@ func sortChildrenRecursive(node *Organization) {
 	}
 }
 
-// FindAll returns paginated organizations, optionally filtered by summary_id and active_only.
-func (r *Repository) FindAll(ctx context.Context, page, perPage int, summaryID string, activeOnly bool) ([]Organization, int64, error) {
+// FindAll returns paginated organizations, optionally filtered by summary_id, active_only, and search.
+func (r *Repository) FindAll(ctx context.Context, page, perPage int, summaryID string, activeOnly bool, search string) ([]Organization, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -147,6 +147,13 @@ func (r *Repository) FindAll(ctx context.Context, page, perPage int, summaryID s
 		// Hanya tampilkan organisasi yang memiliki summary dengan status 'active'
 		query = query.Joins("JOIN organization_summaries ON organization_summaries.id = organizations.organization_summary_id").
 			Where("organization_summaries.status = ?", "active")
+	}
+	if search != "" {
+		like := "%" + search + "%"
+		// Group WHERE agar tidak merusak filter summary_id/active_only di atas.
+		// Prefix organizations. diperlukan karena JOIN organization_summaries
+		// juga memiliki kolom 'code' → tanpanya MySQL error 1052 ambiguous.
+		query = query.Where("(organizations.code LIKE ? OR organizations.full_code LIKE ? OR organizations.nomenclature LIKE ?)", like, like, like)
 	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err

@@ -2,6 +2,11 @@
 -- Mengembalikan id ke UUID tetap seed (033-042) dengan mencocokkan
 -- kombinasi unik (type, level, descriptions, sort) — aman karena
 -- kombinasi tsb unik untuk setiap row seed.
+--
+-- CATATAN: blok technical/managerial (44444444-...) di bawah hanya berlaku
+-- untuk tenant yang memakai 042 versi lama (158 row slugs). Seed 042 baru
+-- memakai type literal 'technical'/'managerial' dengan UUID v4 asli sehingga
+-- statement blok tersebut tidak menemukan kecocokan (no-op) — aman.
 
 UPDATE job_management_values SET id = 'aaaaaaaa-0001-4000-8000-000000000001' WHERE type = 'activity' AND level = 1 AND descriptions = 'Banyak duduk sedikit bergerak' AND id <> 'aaaaaaaa-0001-4000-8000-000000000001';
 UPDATE job_management_values SET id = 'aaaaaaaa-0002-4000-8000-000000000002' WHERE type = 'activity' AND level = 2 AND descriptions = 'Seimbang duduk dan berdiri' AND id <> 'aaaaaaaa-0002-4000-8000-000000000002';

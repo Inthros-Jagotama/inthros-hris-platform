@@ -392,6 +392,17 @@ type JobValueResponse struct {
 	UpdatedAt                  time.Time `json:"updated_at"`
 }
 
+// Request/Response DTOs — Job Value Clusters (mapping type ↔ cluster kompetensi)
+type UpdateJobValueClustersRequest struct {
+	// Tanpa binding:"required" — array kosong (menghapus seluruh mapping) adalah aksi valid.
+	Clusters []string `json:"clusters"`
+}
+
+type JobValueClusterResponse struct {
+	Type     string   `json:"type"`
+	Clusters []string `json:"clusters"`
+}
+
 type JobObjectiveResponse struct {
 	ID             string    `json:"id"`
 	OrganizationID string    `json:"organization_id,omitempty"`

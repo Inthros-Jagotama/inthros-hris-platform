@@ -8,6 +8,8 @@ defineProps({
     options: { type: Array, default: () => [] },
     optionLabel: { type: String, default: 'label' },
     optionValue: { type: String, default: 'value' },
+    optionGroupLabel: { type: String, default: '' },
+    optionGroupChildren: { type: String, default: '' },
     placeholder: { type: String, default: 'Pilih opsi...' },
     size: { type: String, default: 'small' },
     fluid: { type: Boolean, default: true },
@@ -34,6 +36,8 @@ defineExpose({ focus: () => { const el = selectRef.value?.$el?.querySelector('in
         :options="options"
         :optionLabel="optionLabel"
         :optionValue="optionValue"
+        :optionGroupLabel="optionGroupLabel || undefined"
+        :optionGroupChildren="optionGroupChildren || undefined"
         :placeholder="placeholder"
         :size="size"
         :fluid="fluid"
@@ -53,6 +57,8 @@ defineExpose({ focus: () => { const el = selectRef.value?.$el?.querySelector('in
         :options="options"
         :optionLabel="optionLabel"
         :optionValue="optionValue"
+        :optionGroupLabel="optionGroupLabel || undefined"
+        :optionGroupChildren="optionGroupChildren || undefined"
         :placeholder="placeholder"
         :size="size"
         :fluid="fluid"

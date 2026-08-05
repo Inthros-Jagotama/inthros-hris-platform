@@ -5,7 +5,11 @@
 > dengan implementasi backend Go saat ini (`backend/internal/modules/jobmanagement/`).
 >
 > Tanggal analisa: 04 Agustus 2026
-> Status: **Menunggu perintah lanjutan** (dokumen analisa saja, belum ada implementasi).
+> Status: ✅ **Implementasi selesai** (05 Agu 2026) — `calculator.go` sudah dibuat dan
+> terintegrasi (recalc otomatis tiap section disimpan, `is_complete`/`completed_at` dipersist,
+> breakdown skor ditampilkan dari field `components` di halaman score).
+> Keputusan user: **Communication & Influencing Skills level 1→1, 2→3, 3→6** (sudah sesuai
+> `MAP_COMMUNICATION`); **bobot (weight) TIDAK mengubah skor** — rumus legacy tetap dipakai.
 
 ---
 
@@ -418,38 +422,64 @@ type UpdateJobScoreRequest struct {
 
 ---
 
-## 7. Kondisi Implementasi Go Saat Ini
+## 7. Kondisi Implementasi Go Saat Ini (Update 05 Agu 2026)
 
-### 7.1 `Service.UpsertJobScore` (service.go ~1878)
+### 7.1 Mesin kalkulasi ✅ SUDAH ADA — `calculator.go`
 
-```go
-func (s *Service) UpsertJobScore(ctx context.Context, orgID string, req UpdateJobScoreRequest) (*JobScoreResponse, error) {
-    // hanya mengisi field dari request, tanpa kalkulasi
-    // lalu s.repo.UpsertJobScore(ctx, score)
-}
-```
+`internal/modules/jobmanagement/calculator.go` — port penuh dari `JobValueCalculator.php`:
 
-- **Belum ada kalkulasi otomatis.** Nilai diterima dari client apa adanya.
-- Endpoint: `PUT /api/v1/tenant/job-management/scores/org/:orgId` (routes.go).
-- Repository `UpsertJobScore` melakukan update-or-create per `organization_id`.
+- `NewCalculator(repo)` + `CalculateForOrganization(ctx, orgID)` — hitung 1 organisasi.
+- `CalculateForOrganizationIDs(ctx, ids)` — batch (mirip `calculateForOrganizationIds` legacy),
+  dipakai untuk re-kalkulasi massal.
+- `loadCalcData` — load batch semua data section per org (edu-exp, potency, financials, assets,
+  subordinates, relations, activities, risks) + semua `job_management_values` dalam 1 query.
+- `calculateForSingleOrganization` — agregasi → `JobScoreResult` (semua komponen + total skor +
+  `subComponentPoints` + `IsComplete`).
+- Mapping level→poin sebagai konstanta Go (MAP_DEFAULT, MAP_EXTENDED, MAP_LINEAR_5,
+  MAP_LINEAR_8, MAP_COMMUNICATION) + `mapPoints` fallback ke level tertinggi.
+- **`mapCommunication = {1:1, 2:3, 3:6}`** — sesuai keputusan user.
+- Perhitungan komponen: `calcEducationExperience`, `calcPotentials`, `calcCompetencies`,
+  `calcProblemSolving`, `calcFinancialAuthority`, `calcAssetAuthority`,
+  `calcSubordinateControl`, `calcWorkScope`, `calcWorkActivity`, `calcWorkRisk`.
+- **Bobot (`weight`) tidak dibaca** dalam rumus — sesuai keputusan user (rumus legacy tetap).
 
-### 7.2 Frontend `JobScoreSection.vue`
+### 7.2 Recalculate otomatis ✅ HOOK di tiap section
 
-- Menampilkan `job_value_with_financial`, `job_value_without_financial`,
-  `has_financial_authority`, `calculated_at`, dan breakdown `components`.
-- Tombol **"Recalculate"** memanggil `PUT` dengan body `{ components: null }` —
-  **namun karena backend belum menghitung, tombol ini tidak benar-benar menghitung ulang**.
-- Ada tombol "Refresh" untuk reload data.
+- `Service.RecalculateJobScore(ctx, orgID)` memanggil kalkulator → `scoreFromResult` →
+  `repo.UpsertJobScore`. (service.go ~2220)
+- `RecalculateJobScores(ctx, orgIDs)` — batch massal.
+- **Hook otomatis**: semua `CreateJobXxx` / `UpdateJobXxx` / `DeleteJobXxx` untuk section yang
+  memengaruhi skor (education-experiences, potency-competencies, financials, assets,
+  subordinate-controls, relationships, working-activities, working-risks) memanggil
+  `recalculateScore` setelah sukses — bukan hanya tombol recalculate.
+- Endpoint: `PUT /api/v1/tenant/job-management/scores/org/:orgId` tetap ada untuk recalculate
+  manual (body kosong = hitung ulang).
+
+### 7.3 `is_complete` / `completed_at` ✅ DIPERSIST
+
+`scoreFromResult` mengisi `IsComplete` + `CompletedAt` (hanya saat `is_complete = true`)
+ke kolom migration 051 (`is_complete` TINYINT/SMALLINT + `completed_at` TIMESTAMP NULL).
+`toJobScoreResponse` mengekspos keduanya ke API → dipakai badge di frontend.
+
+### 7.4 Frontend `JobScoreSection.vue` (Update 05 Agu 2026)
+
+- Menampilkan **breakdown komponen dari field `components`** (JSON nested dari DB), bukan lagi
+  flat `sub_component_points` — per komponen menampilkan poin (level → poin) + skor, urut
+  sesuai navigasi sub-form (Pendidikan & Pengalaman → Potensi → Kompetensi → Problem Solving →
+  Keuangan → Aset → Bawahan → Hubungan Kerja → Aktivitas → Risiko).
+- `competencies` memakai `base_score` agar tidak dobel hitung dengan potentials & problem_solving.
+- Footer total with/without financial. Badge `is_complete` (Lengkap/Belum Lengkap).
+- **Ringkasan skor sticky** di form utama (`JobScoreSummary.vue` di `JobManagementForm.vue`)
+  agar selalu terlihat saat berpindah navigasi.
 
 ---
 
 ## 8. Gap & Temuan Penting (Untuk Implementasi Go)
 
-### 8.1 Mesin kalkulasi belum ada di Go
-`UpsertJobScore` hanya persist data dari client. Untuk menyamai legacy, perlu:
-- Kalkulator Go (mis. `internal/modules/jobmanagement/calculator.go`) yang membaca semua data
-  section per `organization_id` (mirip `calculateForOrganizationIds`).
-- Dipanggil otomatis saat section disimpan **atau** diendpoint recalculate.
+### 8.1 Mesin kalkulasi ✅ SUDAH ADA di Go
+`calculator.go` (05 Agu 2026) — port penuh dari legacy, lihat 7.1. Dipanggil otomatis saat
+section disimpan (hook di Create/Update/Delete tiap section, lihat 7.2) **dan** di endpoint
+recalculate.
 
 ### 8.2 Perbedaan penamaan tipe `job_management_values` (legacy vs Go)
 
@@ -624,51 +654,63 @@ Relevan saat membuat migration seed ulang tipe yang kurang: perlu pola idempoten
 `job_management_scores.has_financial_authority` (hasil). Konsisten, tapi kalkulator wajib
 memetakan keduanya.
 
-### 8.8 Ringkasan Gap (checklist untuk implementasi)
+### 8.8 Ringkasan Gap (checklist untuk implementasi) — UPDATE 05 Agu 2026
 
-| # | Gap | Dampak | Solusi yang disarankan |
+| # | Gap | Dampak | Status |
 |---|---|---|---|
-| 1 | Mesin kalkulasi belum ada di Go (`UpsertJobScore` hanya persist) | Skor tidak pernah terhitung | Buat `calculator.go` (port PHP) |
-| 2 | Relasi GORM ke `job_management_values` **dan** ke `competencies`/`competency_values` tidak ada di model (7 entity + `JobPotencyCompetency`) | Kalkulator tidak bisa preload level | Tambah relasi + preload, atau join manual |
-| 3 | ~~Tipe data referensi belum ter-seed~~ ✅ **Sudah di-seed semua** (049: education/experience; 050: asset, cash, impact, environment, risk, relationship, frequency) | — | — |
-| 4 | Nama tipe Go = slug, bukan grup legacy (`Psychological`, `Technical`, `Managerial`, `Problem Solving & Decision Making`) | Filter `type == 'Psychological'` tidak jalan | Daftar tetap slug per kelompok di kalkulator |
-| 5 | ~~Kolom `is_complete` / `completed_at` tidak ada di Go (MySQL & PG)~~ ✅ **Selesai** | — | Migration **051** (MySQL & Postgres) + persist dari `JobScoreResult.IsComplete` |
-| 6 | Kecerdasan disimpan tanpa `competency_id` | Harus ikut rata-rata potensi | Hitung `kecerdasan` di potensi psikologi (8.3) |
-| 7 | `competency_values` vs `job_management_values` dua sumber level | Prioritas level ambigu | Definisikan urutan prioritas |
+| 1 | ~~Mesin kalkulasi belum ada di Go~~ | Skor tidak pernah terhitung | ✅ **Selesai** — `calculator.go` (7.1) |
+| 2 | ~~Relasi GORM ke `job_management_values`~~ | Kalkulator tidak bisa preload level | ✅ **Selesai** — kalkulator memakai join manual di `loadCalcData` (tanpa mengubah model) |
+| 3 | ~~Tipe data referensi belum ter-seed~~ | — | ✅ **Sudah di-seed semua** (049, 050, 052/053, 054) |
+| 4 | Nama tipe Go = slug, bukan grup legacy | Filter `type == 'Psychological'` tidak jalan | ✅ **Selesai** — daftar tetap slug + kolom `type_group`/`description_group` (052/053) + endpoint tree (lihat 8.9) |
+| 5 | ~~Kolom `is_complete` / `completed_at` tidak ada~~ | — | ✅ **Selesai** — migration **051** + persist `scoreFromResult` |
+| 6 | Kecerdasan disimpan tanpa `competency_id` | Harus ikut rata-rata potensi | ✅ **Selesai** — `calcPotentials` menghitung slug psikologi termasuk `kecerdasan` |
+| 7 | `competency_values` vs `job_management_values` dua sumber level | Prioritas level ambigu | ✅ **Selesai** — prioritas `job_management_value_id`, fallback ke competencies |
+
+### 8.9 Kolom `type_group` & `description_group` (migration 052/053) + cluster mapping (054) + tree endpoint
+
+- **052_job_management_values_type_group** (MySQL + Postgres, up/down): tambah kolom
+  `type_group` (VARCHAR) & `description_group` (VARCHAR) pada `job_management_values`.
+- **053_seed_job_value_type_group**: isi `type_group` & `description_group` untuk semua tipe
+  (contoh: `type_group=psychological`, `type=kecerdasan` → `description_group=Kecerdasan`;
+  tipe psikologi lain → label grupnya; technical/managerial → label kompetensi, dst.).
+  Idempotent by UUID, tersedia MySQL & Postgres.
+- **054_create_job_management_value_clusters**: tabel `job_management_value_clusters` untuk
+  memetakan tipe technical/managerial ke cluster kompetensi (setting di halaman mapping Job
+  Value — submenu Technical & Managerial memakai endpoint cluster di bawah).
+- **Endpoint tree**: `GET /api/v1/tenant/job-management/values/tree` — mengembalikan hierarki
+  `type_group → daftar tipe (label = description_group) → options per tipe (level + deskripsi)`
+  dengan urutan grup tetap (education, experience, psychological, technical, managerial,
+  communication, problem_solving, financial, asset, subordinate, activity, environment, risk,
+  relationship, frequency). Dipakai form potensi (filter type_group → multi-select tipe →
+  tabel isian per tipe).
+- **Endpoint cluster**: `GET/PUT /api/v1/tenant/job-management/values/clusters/:type` —
+  membaca/menyimpan mapping cluster (`technical`/`managerial`) → daftar kompetensi, dipakai
+  card Kompetensi Teknis/Manajerial (filter dari table `competencies` dengan cluster selain
+  Core/Manajerial, option dari `job_management_values` type `technical`/`managerial`).
 
 ---
 
-## 9. Rencana Implementasi yang Disarankan (Menunggu Konfirmasi)
+## 9. Rencana Implementasi yang Disarankan — ✅ SEMUA SELESAI (05 Agu 2026)
 
-1. **Buat `internal/modules/jobmanagement/calculator.go`** — port dari `JobValueCalculator.php`:
-   - Fungsi `CalculateForOrganization(ctx, orgID)` → mengembalikan komponen + total skor.
+1. ✅ **`internal/modules/jobmanagement/calculator.go`** — port dari `JobValueCalculator.php`:
+   - `CalculateForOrganization(ctx, orgID)` + `CalculateForOrganizationIDs(ctx, ids)` (batch).
    - Mapping level→poin (5 tabel) sebagai konstanta Go.
-   - Helper pengelompokan tipe psikologi / technical / managerial (daftar slug tetap, bukan
-     nama grup legacy — lihat 8.6/8.8 #4).
-2. **Siapkan akses data untuk kalkulator** — selesaikan gap 8.7.1, salah satu dari:
-   - (a) Tambah relasi GORM (`JobValue`, `Competency`, `CompetencyValue`) + `Preload` di
-     `JobPotencyCompetency`, `JobFinancial`, `JobAsset`, `JobWorkingRisk`, `JobRelationship`,
-     `JobSubordinateControl`, `JobWorkingActivity`; atau
-   - (b) Kalkulator query join manual ke `job_management_values` (lebih cepat, tanpa ubah model).
-3. **Integrasi**:
-   - **Definisikan kontrak recalculate** (gap desain): frontend saat ini mengirim
-     `PUT { components: null }`, yang di Go menjadi pointer `nil` — tidak bisa dibedakan dari
-     body kosong. Usulan: body kosong / flag `recalculate: true` = hitung ulang, atau hitung
-     otomatis tiap section disimpan (hook).
-   - Panggil kalkulator di `UpsertJobScore` saat client memicu recalculate
-     (atau otomatis setiap section disimpan via hook).
-   - Simpan hasil ke `JobScore` (`components`, `sub_component_points`, `calculated_at`).
-   - **Dukung batch** (seperti `calculateForOrganizationIds` legacy) untuk re-kalkulasi massal,
-     mis. saat seed/migrasi data atau update massal organisasi.
-4. ~~**Seed ulang data referensi**~~ ✅ **Selesai** — migration 049 (education/experience) &
-   050 (asset, cash, impact, environment, risk, relationship, frequency) sudah dibuat untuk
-   MySQL & Postgres (up/down, idempoten by UUID v4) — level & deskripsi dari seeder legacy
-   (lihat tabel 8.6).
-5. ~~**Migrasi (opsional)**: tambah kolom `is_complete` & `completed_at`~~ ✅ **Selesai** —
-   migration **051** (MySQL + Postgres, up/down) + persist dari `JobScoreResult.IsComplete`
-   (completed_at hanya saat is_complete).
-6. **Verifikasi data**: pastikan tipe-tipe yang belum ter-seed (8.2) tersedia di DB tenant
-   agar kalkulasi tidak menghasilkan 0.
+   - Helper pengelompokan tipe psikologi / technical / managerial (daftar slug tetap).
+2. ✅ **Akses data untuk kalkulator** — `loadCalcData` melakukan query join manual ke
+   `job_management_values` (tanpa mengubah model GORM).
+3. ✅ **Integrasi**:
+   - Hook recalculate otomatis di Create/Update/Delete tiap section yang memengaruhi skor
+     (`recalculateScore` → `RecalculateJobScore` → `UpsertJobScore`).
+   - Endpoint `PUT /scores/org/:orgId` tetap ada untuk recalculate manual (body kosong).
+   - Hasil disimpan ke `JobScore` (`components`, `sub_component_points`, `calculated_at`,
+     `is_complete`, `completed_at`).
+   - Batch `RecalculateJobScores(ctx, orgIDs)` untuk re-kalkulasi massal.
+4. ✅ **Seed data referensi** — migration 049, 050, 052/053 (type_group/description_group),
+   054 (clusters) untuk MySQL & Postgres.
+5. ✅ **Migrasi `is_complete` & `completed_at`** — migration 051 (MySQL + Postgres) + persist
+   dari `JobScoreResult.IsComplete` (completed_at hanya saat is_complete).
+6. ✅ **Verifikasi data** — tipe referensi tersedia di DB tenant; re-kalkulasi massal dijalankan
+   untuk organisasi yang punya data section.
 
 ---
 
@@ -701,5 +743,6 @@ without_financial = 0   (karena has_financial_authority = true)
 
 ---
 
-*Dokumen ini adalah hasil analisa dan siap dijadikan acuan implementasi. Menunggu perintah
-lanjutan dari user.*
+*Dokumen analisa ini sudah diimplementasikan penuh di Go (05 Agu 2026). Lihat juga
+`docs/PROJECT_COMPLETION_DASHBOARD.md` untuk changelog fitur dan `docs/openapi-report.md`
+untuk daftar endpoint lengkap.*

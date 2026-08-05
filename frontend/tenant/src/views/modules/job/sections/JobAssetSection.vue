@@ -10,13 +10,6 @@
       <SkeletonCard v-if="loading" type="detail" :count="1" :rows="4" cols="grid-cols-1" padding="p-5" />
 
       <div v-else class="space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-        <!-- Read-only from org data -->
-        <FormRow :label="t('organization.nomenclature')">
-          <TextInput :model-value="orgName" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-        </FormRow>
-        <FormRow :label="t('organization.full_code')">
-          <TextInput :model-value="orgCode" disabled class="!bg-gray-50 dark:!bg-gray-700 !cursor-not-allowed" />
-        </FormRow>
 
         <!-- Editable asset fields -->
         <FormRow :label="t('job_management.asset_type')" :errors="errors?.job_management_value_asset_id">
@@ -127,8 +120,9 @@ async function loadOptions() {
       api.get('/api/v1/tenant/job-management/values', { params: { type: 'asset', per_page: 100 } }),
       api.get('/api/v1/tenant/job-management/values', { params: { type: 'asset_authority', per_page: 100 } })
     ])
-    assetOptions.value = (assetRes.data?.data || []).map(v => ({ label: v.descriptions, value: v.id }))
-    authOptions.value = (authRes.data?.data || []).map(v => ({ label: v.descriptions, value: v.id }))
+    // Label menampilkan level (mis. 'Lv.1 — Laptop & Gadget') untuk memudahkan identifikasi
+    assetOptions.value = (assetRes.data?.data || []).map(v => ({ label: `Lv.${v.level} — ${v.descriptions}`, value: v.id }))
+    authOptions.value = (authRes.data?.data || []).map(v => ({ label: `Lv.${v.level} — ${v.descriptions}`, value: v.id }))
   } catch { /* ignore */ }
 }
 
