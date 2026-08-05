@@ -70,6 +70,10 @@ func SeedTenantMasterData(tenantDB *gorm.DB, l *zap.Logger) error {
 		{"ters", seedTERs},
 		{"bpjs_settings", seedBPJSSettings},
 		{"bpjs_rate_components", seedBPJSRateComponents},
+		// Performance Management (KPI) Master Data
+		{"performance_perspectives", seedPerformancePerspectives},
+		{"performance_ratings", seedPerformanceRatings},
+		{"performance_indicator_formulas", seedPerformanceIndicatorFormulas},
 	}
 
 	// Kumpulkan error per-tabel. Seeder TIDAK boleh gagal senyap: jika satu tabel
@@ -1126,4 +1130,47 @@ func seedRegencies(db *gorm.DB) (int, int, error) {
 		{"id": "3279", "code": "3279", "name": "KOTA BANJAR", "province_id": "32", "created_at": time.Now(), "updated_at": time.Now()},
 	}
 	return batchInsert(db, "regencies", data, 50)
+}
+
+// =============================================================================
+// Performance Management (KPI) Master Data Seeders
+// =============================================================================
+
+// ── Performance Perspectives (BSC Perspectives) ──
+// Schema: id(char(36) PK), name, description, sort_order, timestamps
+func seedPerformancePerspectives(db *gorm.DB) (int, int, error) {
+	data := []map[string]interface{}{
+		{"id": codeToUUID("perf_perspective", "FIN"), "name": "Financial", "description": "Perspektif keuangan - mengukur kinerja finansial dan profitabilitas", "sort_order": 1, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_perspective", "CUS"), "name": "Customer", "description": "Perspektif pelanggan - mengukur kepuasan dan loyalitas pelanggan", "sort_order": 2, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_perspective", "INT"), "name": "Internal Process", "description": "Perspektif proses internal - mengukur efisiensi dan efektivitas proses bisnis", "sort_order": 3, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_perspective", "LRN"), "name": "Learning & Growth", "description": "Perspektif pembelajaran dan pertumbuhan - mengukur pengembangan SDM dan inovasi", "sort_order": 4, "created_at": time.Now(), "updated_at": time.Now()},
+	}
+	return batchInsert(db, "performance_perspectives", data, 50)
+}
+
+// ── Performance Ratings ──
+// Schema: id(char(36) PK), code, name, min_score, max_score, color, description, sort_order, timestamps
+func seedPerformanceRatings(db *gorm.DB) (int, int, error) {
+	data := []map[string]interface{}{
+		{"id": codeToUUID("perf_rating", "OUT"), "code": "OUT", "name": "Outstanding", "min_score": 95.00, "max_score": 100.00, "color": "success", "description": "Kinerja luar biasa, melampaui target dengan signifikan", "sort_order": 1, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_rating", "EXC"), "code": "EXC", "name": "Excellent", "min_score": 85.00, "max_score": 94.99, "color": "primary", "description": "Kinerja sangat baik, melampaui target", "sort_order": 2, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_rating", "GOO"), "code": "GOO", "name": "Good", "min_score": 75.00, "max_score": 84.99, "color": "info", "description": "Kinerja baik, memenuhi target", "sort_order": 3, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_rating", "FAI"), "code": "FAI", "name": "Fair", "min_score": 60.00, "max_score": 74.99, "color": "warning", "description": "Kinerja cukup, mendekati target", "sort_order": 4, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_rating", "POO"), "code": "POO", "name": "Poor", "min_score": 0.00, "max_score": 59.99, "color": "danger", "description": "Kinerja kurang, di bawah target", "sort_order": 5, "created_at": time.Now(), "updated_at": time.Now()},
+	}
+	return batchInsert(db, "performance_ratings", data, 50)
+}
+
+// ── Performance Indicator Formulas ──
+// Schema: id(char(36) PK), code, name, formula_type, expression, description, sort_order, timestamps
+func seedPerformanceIndicatorFormulas(db *gorm.DB) (int, int, error) {
+	data := []map[string]interface{}{
+		{"id": codeToUUID("perf_formula", "MANUAL"), "code": "MANUAL", "name": "Manual Score", "formula_type": "MANUAL", "expression": nil, "description": "Nilai diinput manual oleh reviewer berdasarkan penilaian kualitatif", "sort_order": 1, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_formula", "HIGHER"), "code": "HIGHER", "name": "Higher Better", "formula_type": "HIGHER_BETTER", "expression": "(actual / target) * 100", "description": "Semakin tinggi nilai aktual semakin baik. Achievement = (Actual / Target) x 100", "sort_order": 2, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_formula", "LOWER"), "code": "LOWER", "name": "Lower Better", "formula_type": "LOWER_BETTER", "expression": "(target / actual) * 100", "description": "Semakin rendah nilai aktual semakin baik. Achievement = (Target / Actual) x 100", "sort_order": 3, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_formula", "RANGE"), "code": "RANGE", "name": "Range Score", "formula_type": "RANGE", "expression": nil, "description": "Nilai berdasarkan rentang tertentu yang telah ditentukan", "sort_order": 4, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_formula", "BOOLEAN"), "code": "BOOLEAN", "name": "Boolean", "formula_type": "BOOLEAN", "expression": "actual == 1 ? 100 : 0", "description": "Nilai Ya/Tidak. Ya = 100%, Tidak = 0%", "sort_order": 5, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("perf_formula", "PERCENTAGE"), "code": "PERCENTAGE", "name": "Percentage", "formula_type": "PERCENTAGE", "expression": "actual", "description": "Nilai langsung berupa persentase (0-100)", "sort_order": 6, "created_at": time.Now(), "updated_at": time.Now()},
+	}
+	return batchInsert(db, "performance_indicator_formulas", data, 50)
 }

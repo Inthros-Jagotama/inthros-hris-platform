@@ -1713,12 +1713,12 @@ func (s *Service) CreateEvaluationWithSnapshot(ctx context.Context, req CreateEv
 
 	// Create evaluation
 	eval := &PerformanceEvaluation{
-		EmployeeID:            empID,
-		OrganizationID:        orgID,
-		PerformancePeriodID:   periodID,
-		PerformanceTemplateID: templateID,
-		Status:                "DRAFT",
-		FinalScore:            0,
+		EmployeeID:     empID,
+		OrganizationID: orgID,
+		PeriodID:       periodID,
+		TemplateID:     templateID,
+		Status:         "DRAFT",
+		FinalScore:     0,
 	}
 	if req.SupervisorID != nil {
 		supID, err := uuid.Parse(*req.SupervisorID)
@@ -1735,7 +1735,7 @@ func (s *Service) CreateEvaluationWithSnapshot(ctx context.Context, req CreateEv
 	for _, ind := range indicators {
 		detail := PerformanceEvaluationDetail{
 			IndicatorID:   &ind.ID,
-			IndicatorName: &ind.Name,
+			IndicatorName: &ind.Title,
 			PerspectiveID: ind.PerspectiveID,
 			Weight:        ind.Weight,
 			Target:        ind.TargetValue,
@@ -1770,7 +1770,7 @@ func (s *Service) GetEvaluationWithDetails(ctx context.Context, evalID string) (
 		return nil, err
 	}
 
-	details, err := s.repo.ListEvaluationDetailsByEvaluationID(ctx, uid)
+	details, err := s.repo.ListEvaluationDetails(ctx, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -1779,8 +1779,8 @@ func (s *Service) GetEvaluationWithDetails(ctx context.Context, evalID string) (
 		ID:             eval.ID.String(),
 		EmployeeID:     eval.EmployeeID.String(),
 		OrganizationID: eval.OrganizationID.String(),
-		PeriodID:       eval.PerformancePeriodID.String(),
-		TemplateID:     eval.PerformanceTemplateID.String(),
+		PeriodID:       eval.PeriodID.String(),
+		TemplateID:     eval.TemplateID.String(),
 		FinalScore:     eval.FinalScore,
 		Status:         eval.Status,
 		CreatedAt:      eval.CreatedAt,
@@ -1989,7 +1989,7 @@ func (s *Service) SubmitEvaluation(ctx context.Context, evalID string) (*Perform
 	}
 
 	// Check if all details have actual values
-	details, err := s.repo.ListEvaluationDetailsByEvaluationID(ctx, uid)
+	details, err := s.repo.ListEvaluationDetails(ctx, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -2008,7 +2008,7 @@ func (s *Service) SubmitEvaluation(ctx context.Context, evalID string) (*Perform
 		return nil, err
 	}
 
-	return evalToResponse(eval), nil
+	return evaluationToResponse(eval), nil
 }
 
 // ApproveEvaluation changes status from SUBMITTED to APPROVED
@@ -2036,7 +2036,7 @@ func (s *Service) ApproveEvaluation(ctx context.Context, evalID string) (*Perfor
 		return nil, err
 	}
 
-	return evalToResponse(eval), nil
+	return evaluationToResponse(eval), nil
 }
 
 // RejectEvaluation changes status from SUBMITTED back to DRAFT for revision
@@ -2066,7 +2066,7 @@ func (s *Service) RejectEvaluation(ctx context.Context, evalID string, notes *st
 		return nil, err
 	}
 
-	return evalToResponse(eval), nil
+	return evaluationToResponse(eval), nil
 }
 
 // CompleteEvaluation changes status from APPROVED to COMPLETED
@@ -2092,5 +2092,484 @@ func (s *Service) CompleteEvaluation(ctx context.Context, evalID string) (*Perfo
 		return nil, err
 	}
 
-	return evalToResponse(eval), nil
+	return evaluationToResponse(eval), nil
+}
+
+// =========================================================================
+// Phase 4 - Dashboard Service Methods
+// =========================================================================
+
+// GetEmployeeDashboard returns dashboard data for an employee
+func (s *Service) GetEmployeeDashboard(ctx context.Context, employeeID string, periodID *string) (*EmployeeDashboardResponse, error) {
+	empID, err := uuid.Parse(employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee_id: %w", err)
+	}
+
+	resp := &EmployeeDashboardResponse{
+		EmployeeID:       employeeID,
+		KPIProgress:      []KPIProgressItem{},
+		RecentActivities: []ActivityItem{},
+	}
+
+	// Get active period or specified period
+	var period *PerformancePeriod
+	if periodID != nil && *periodID != "" {
+		pID, err := uuid.Parse(*periodID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid period_id: %w", err)
+		}
+		period, err = s.repo.FindPerformancePeriodByID(ctx, pID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		period, err = s.repo.GetActivePeriod(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if period != nil {
+		resp.CurrentPeriod = &PeriodSummary{
+			ID:         period.ID.String(),
+			PeriodCode: period.PeriodCode,
+			PeriodType: period.PeriodType,
+			Year:       period.Year,
+			Status:     period.Status,
+		}
+		if period.StartDate != nil {
+			resp.CurrentPeriod.StartDate = *period.StartDate
+		}
+		if period.EndDate != nil {
+			resp.CurrentPeriod.EndDate = *period.EndDate
+		}
+
+		// Get employee evaluation for this period
+		eval, err := s.repo.GetEmployeeEvaluation(ctx, empID, period.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if eval != nil {
+			resp.OrganizationID = eval.OrganizationID.String()
+
+			// Get evaluation details
+			details, err := s.repo.ListEvaluationDetails(ctx, eval.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			// Build evaluation summary
+			var completed, inProgress, notStarted int
+			for _, d := range details {
+				item := KPIProgressItem{
+					DetailID:    d.ID.String(),
+					Weight:      d.Weight,
+					Target:      d.Target,
+					Actual:      d.Actual,
+					Achievement: d.Achievement,
+					Score:       d.Score,
+				}
+				if d.IndicatorName != nil {
+					item.IndicatorName = *d.IndicatorName
+				}
+				item.PerspectiveID = d.PerspectiveID.String()
+
+				// Determine status
+				if d.Actual > 0 && d.Achievement >= 100 {
+					item.Status = "COMPLETED"
+					completed++
+				} else if d.Actual > 0 {
+					item.Status = "IN_PROGRESS"
+					inProgress++
+				} else {
+					item.Status = "NOT_STARTED"
+					notStarted++
+				}
+				resp.KPIProgress = append(resp.KPIProgress, item)
+			}
+
+			total := len(details)
+			progress := float64(0)
+			if total > 0 {
+				progress = float64(completed) / float64(total) * 100
+			}
+
+			evalSum := &EvaluationSummary{
+				ID:              eval.ID.String(),
+				Status:          eval.Status,
+				FinalScore:      eval.FinalScore,
+				TotalIndicators: total,
+				CompletedCount:  completed,
+				OverallProgress: progress,
+			}
+			if eval.RatingID != nil {
+				rating, _ := s.repo.FindPerformanceRatingByID(ctx, *eval.RatingID)
+				if rating != nil {
+					evalSum.RatingName = rating.Name
+					if rating.Color != nil {
+						evalSum.RatingColor = *rating.Color
+					}
+				}
+			}
+			if eval.SubmittedAt != nil {
+				evalSum.SubmittedAt = eval.SubmittedAt.Format("2006-01-02 15:04:05")
+			}
+			if eval.ApprovedAt != nil {
+				evalSum.ApprovedAt = eval.ApprovedAt.Format("2006-01-02 15:04:05")
+			}
+			resp.Evaluation = evalSum
+
+			// Get recent activities
+			logs, err := s.repo.GetRecentLogsByEvaluationID(ctx, eval.ID, 10)
+			if err == nil {
+				for _, l := range logs {
+					resp.RecentActivities = append(resp.RecentActivities, ActivityItem{
+						ID:          l.ID.String(),
+						Action:      l.Action,
+						Description: l.Action,
+						CreatedAt:   l.CreatedAt.Format("2006-01-02 15:04:05"),
+						CreatedBy:   l.CreatedBy.String(),
+					})
+				}
+			}
+		}
+	}
+
+	return resp, nil
+}
+
+// GetManagerDashboard returns dashboard data for a manager
+func (s *Service) GetManagerDashboard(ctx context.Context, managerID string, periodID *string) (*ManagerDashboardResponse, error) {
+	mgrID, err := uuid.Parse(managerID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid manager_id: %w", err)
+	}
+
+	resp := &ManagerDashboardResponse{
+		ManagerID:      managerID,
+		TeamMembers:    []TeamMemberKPI{},
+		PendingReviews: []PendingReviewItem{},
+		OverdueReviews: []OverdueReviewItem{},
+	}
+
+	// Get active period or specified period
+	var period *PerformancePeriod
+	var pID uuid.UUID
+	if periodID != nil && *periodID != "" {
+		pID, err = uuid.Parse(*periodID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid period_id: %w", err)
+		}
+		period, err = s.repo.FindPerformancePeriodByID(ctx, pID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		period, err = s.repo.GetActivePeriod(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if period != nil {
+			pID = period.ID
+		}
+	}
+
+	if period != nil {
+		resp.CurrentPeriod = &PeriodSummary{
+			ID:         period.ID.String(),
+			PeriodCode: period.PeriodCode,
+			PeriodType: period.PeriodType,
+			Year:       period.Year,
+			Status:     period.Status,
+		}
+		if period.StartDate != nil {
+			resp.CurrentPeriod.StartDate = *period.StartDate
+		}
+		if period.EndDate != nil {
+			resp.CurrentPeriod.EndDate = *period.EndDate
+		}
+	}
+
+	// Get team evaluations (supervised by this manager)
+	evaluations, err := s.repo.ListEvaluationsBySupervisor(ctx, mgrID, pID)
+	if err != nil {
+		return nil, err
+	}
+
+	var totalScore float64
+	var completedCount, inProgressCount, pendingCount int
+
+	for _, eval := range evaluations {
+		member := TeamMemberKPI{
+			EmployeeID:   eval.EmployeeID.String(),
+			EvaluationID: eval.ID.String(),
+			Status:       eval.Status,
+			FinalScore:   eval.FinalScore,
+		}
+
+		// Get details to calculate progress
+		details, _ := s.repo.ListEvaluationDetails(ctx, eval.ID)
+		var completed int
+		for _, d := range details {
+			if d.Actual > 0 {
+				completed++
+			}
+		}
+		if len(details) > 0 {
+			member.Progress = float64(completed) / float64(len(details)) * 100
+		}
+
+		// Get rating if available
+		if eval.RatingID != nil {
+			rating, _ := s.repo.FindPerformanceRatingByID(ctx, *eval.RatingID)
+			if rating != nil {
+				member.RatingName = rating.Name
+				if rating.Color != nil {
+					member.RatingColor = *rating.Color
+				}
+			}
+		}
+
+		resp.TeamMembers = append(resp.TeamMembers, member)
+
+		// Count stats
+		switch eval.Status {
+		case "COMPLETED", "APPROVED":
+			completedCount++
+			totalScore += eval.FinalScore
+		case "SUBMITTED":
+			inProgressCount++
+			// Add to pending reviews
+			daysPending := 0
+			if eval.SubmittedAt != nil {
+				daysPending = int(time.Since(*eval.SubmittedAt).Hours() / 24)
+			}
+			resp.PendingReviews = append(resp.PendingReviews, PendingReviewItem{
+				EvaluationID: eval.ID.String(),
+				EmployeeID:   eval.EmployeeID.String(),
+				SubmittedAt:  eval.SubmittedAt.Format("2006-01-02 15:04:05"),
+				DaysPending:  daysPending,
+			})
+		default:
+			pendingCount++
+		}
+	}
+
+	totalMembers := len(evaluations)
+	avgScore := float64(0)
+	if completedCount > 0 {
+		avgScore = totalScore / float64(completedCount)
+	}
+	overallProgress := float64(0)
+	if totalMembers > 0 {
+		overallProgress = float64(completedCount) / float64(totalMembers) * 100
+	}
+
+	resp.TeamSummary = TeamKPISummary{
+		TotalMembers:    totalMembers,
+		CompletedCount:  completedCount,
+		InProgressCount: inProgressCount,
+		PendingCount:    pendingCount,
+		AverageScore:    avgScore,
+		OverallProgress: overallProgress,
+	}
+
+	return resp, nil
+}
+
+// GetHRDashboard returns dashboard data for HR
+func (s *Service) GetHRDashboard(ctx context.Context, periodID *string) (*HRDashboardResponse, error) {
+	resp := &HRDashboardResponse{
+		RatingDistribution: []RatingDistributionItem{},
+		OrganizationStats:  []OrganizationStatsItem{},
+		TopPerformers:      []PerformerItem{},
+		BottomPerformers:   []PerformerItem{},
+		TrendData:          []TrendItem{},
+	}
+
+	// Get active period or specified period
+	var period *PerformancePeriod
+	var pID uuid.UUID
+	var err error
+	if periodID != nil && *periodID != "" {
+		pID, err = uuid.Parse(*periodID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid period_id: %w", err)
+		}
+		period, err = s.repo.FindPerformancePeriodByID(ctx, pID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		period, err = s.repo.GetActivePeriod(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if period != nil {
+			pID = period.ID
+		}
+	}
+
+	if period != nil {
+		resp.CurrentPeriod = &PeriodSummary{
+			ID:         period.ID.String(),
+			PeriodCode: period.PeriodCode,
+			PeriodType: period.PeriodType,
+			Year:       period.Year,
+			Status:     period.Status,
+		}
+		if period.StartDate != nil {
+			resp.CurrentPeriod.StartDate = *period.StartDate
+		}
+		if period.EndDate != nil {
+			resp.CurrentPeriod.EndDate = *period.EndDate
+		}
+	}
+
+	// Get completion stats
+	draft, submitted, approved, completed, err := s.repo.CountEvaluationsByStatus(ctx, pID)
+	if err != nil {
+		return nil, err
+	}
+	totalEmployees := int(draft + submitted + approved + completed)
+	completionRate := float64(0)
+	if totalEmployees > 0 {
+		completionRate = float64(approved+completed) / float64(totalEmployees) * 100
+	}
+
+	avgScore, avgAchievement, err := s.repo.GetAverageScoreByPeriod(ctx, pID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp.CompletionStats = CompletionStats{
+		TotalEmployees:     totalEmployees,
+		CompletedCount:     int(completed),
+		ApprovedCount:      int(approved),
+		SubmittedCount:     int(submitted),
+		DraftCount:         int(draft),
+		NotStartedCount:    0,
+		CompletionRate:     completionRate,
+		AverageScore:       avgScore,
+		AverageAchievement: avgAchievement,
+	}
+
+	// Get rating distribution
+	ratingDist, err := s.repo.GetRatingDistribution(ctx, pID)
+	if err == nil {
+		var totalRated int64
+		for _, rd := range ratingDist {
+			totalRated += rd.Count
+		}
+		for _, rd := range ratingDist {
+			rating, _ := s.repo.FindPerformanceRatingByID(ctx, rd.RatingID)
+			if rating != nil {
+				pct := float64(0)
+				if totalRated > 0 {
+					pct = float64(rd.Count) / float64(totalRated) * 100
+				}
+				resp.RatingDistribution = append(resp.RatingDistribution, RatingDistributionItem{
+					RatingID:   rating.ID.String(),
+					RatingCode: rating.Code,
+					RatingName: rating.Name,
+					Count:      int(rd.Count),
+					Percentage: pct,
+				})
+				if rating.Color != nil {
+					resp.RatingDistribution[len(resp.RatingDistribution)-1].RatingColor = *rating.Color
+				}
+			}
+		}
+	}
+
+	// Get organization stats
+	orgStats, err := s.repo.GetOrganizationStats(ctx, pID)
+	if err == nil {
+		for _, os := range orgStats {
+			rate := float64(0)
+			if os.TotalCount > 0 {
+				rate = float64(os.CompletedCount) / float64(os.TotalCount) * 100
+			}
+			resp.OrganizationStats = append(resp.OrganizationStats, OrganizationStatsItem{
+				OrganizationID: os.OrganizationID.String(),
+				TotalEmployees: int(os.TotalCount),
+				CompletedCount: int(os.CompletedCount),
+				AverageScore:   os.AvgScore,
+				CompletionRate: rate,
+			})
+		}
+	}
+
+	// Get top performers
+	topPerformers, err := s.repo.GetTopPerformers(ctx, pID, 10)
+	if err == nil {
+		for i, tp := range topPerformers {
+			item := PerformerItem{
+				Rank:           i + 1,
+				EmployeeID:     tp.EmployeeID.String(),
+				OrganizationID: tp.OrganizationID.String(),
+				FinalScore:     tp.FinalScore,
+			}
+			if tp.RatingID != nil {
+				rating, _ := s.repo.FindPerformanceRatingByID(ctx, *tp.RatingID)
+				if rating != nil {
+					item.RatingName = rating.Name
+					if rating.Color != nil {
+						item.RatingColor = *rating.Color
+					}
+				}
+			}
+			resp.TopPerformers = append(resp.TopPerformers, item)
+		}
+	}
+
+	// Get bottom performers
+	bottomPerformers, err := s.repo.GetBottomPerformers(ctx, pID, 10)
+	if err == nil {
+		for i, bp := range bottomPerformers {
+			item := PerformerItem{
+				Rank:           i + 1,
+				EmployeeID:     bp.EmployeeID.String(),
+				OrganizationID: bp.OrganizationID.String(),
+				FinalScore:     bp.FinalScore,
+			}
+			if bp.RatingID != nil {
+				rating, _ := s.repo.FindPerformanceRatingByID(ctx, *bp.RatingID)
+				if rating != nil {
+					item.RatingName = rating.Name
+					if rating.Color != nil {
+						item.RatingColor = *rating.Color
+					}
+				}
+			}
+			resp.BottomPerformers = append(resp.BottomPerformers, item)
+		}
+	}
+
+	// Get trend data
+	trends, err := s.repo.GetTrendData(ctx, 12)
+	if err == nil {
+		for _, t := range trends {
+			period, _ := s.repo.FindPerformancePeriodByID(ctx, t.PeriodID)
+			rate := float64(0)
+			if t.TotalCount > 0 {
+				rate = float64(t.CompletedCount) / float64(t.TotalCount) * 100
+			}
+			item := TrendItem{
+				PeriodID:       t.PeriodID.String(),
+				AverageScore:   t.AvgScore,
+				CompletionRate: rate,
+				TotalEmployees: int(t.TotalCount),
+			}
+			if period != nil {
+				item.PeriodCode = period.PeriodCode
+				item.Year = period.Year
+			}
+			resp.TrendData = append(resp.TrendData, item)
+		}
+	}
+
+	return resp, nil
 }

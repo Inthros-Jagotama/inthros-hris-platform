@@ -940,3 +940,67 @@ func (h *Handler) CompleteEvaluation(c *gin.Context) {
 	}
 	httputil.SuccessJSON(c, resp)
 }
+
+// =========================================================================
+// Phase 4 - Dashboard Handlers
+// =========================================================================
+
+// GetEmployeeDashboard returns dashboard data for an employee
+func (h *Handler) GetEmployeeDashboard(c *gin.Context) {
+	employeeID := c.Param("employee_id")
+	if employeeID == "" {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_PARAM", "employee_id is required")
+		return
+	}
+
+	periodID := c.Query("period_id")
+	var pID *string
+	if periodID != "" {
+		pID = &periodID
+	}
+
+	resp, err := h.svc.GetEmployeeDashboard(c.Request.Context(), employeeID, pID)
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusInternalServerError, "DASHBOARD_ERROR", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetManagerDashboard returns dashboard data for a manager
+func (h *Handler) GetManagerDashboard(c *gin.Context) {
+	managerID := c.Param("manager_id")
+	if managerID == "" {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_PARAM", "manager_id is required")
+		return
+	}
+
+	periodID := c.Query("period_id")
+	var pID *string
+	if periodID != "" {
+		pID = &periodID
+	}
+
+	resp, err := h.svc.GetManagerDashboard(c.Request.Context(), managerID, pID)
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusInternalServerError, "DASHBOARD_ERROR", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetHRDashboard returns dashboard data for HR
+func (h *Handler) GetHRDashboard(c *gin.Context) {
+	periodID := c.Query("period_id")
+	var pID *string
+	if periodID != "" {
+		pID = &periodID
+	}
+
+	resp, err := h.svc.GetHRDashboard(c.Request.Context(), pID)
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusInternalServerError, "DASHBOARD_ERROR", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}

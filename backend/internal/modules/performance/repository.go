@@ -1010,3 +1010,350 @@ func (r *Repository) GetLatestProgressByDetailID(ctx context.Context, detailID u
 	}
 	return &p, nil
 }
+
+// =========================================================================
+// Phase 4 - Dashboard Repository Methods
+// =========================================================================
+
+// GetActivePeriod returns the currently active performance period
+func (r *Repository) GetActivePeriod(ctx context.Context) (*PerformancePeriod, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var p PerformancePeriod
+	if err := db.WithContext(ctx).Where("status = ?", "active").
+		Order("year DESC, created_at DESC").
+		First(&p).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &p, nil
+}
+
+// GetEmployeeEvaluation returns evaluation for employee in a period
+func (r *Repository) GetEmployeeEvaluation(ctx context.Context, employeeID, periodID uuid.UUID) (*PerformanceEvaluation, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var e PerformanceEvaluation
+	if err := db.WithContext(ctx).
+		Where("employee_id = ? AND period_id = ?", employeeID, periodID).
+		First(&e).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &e, nil
+}
+
+// GetRecentLogsByEvaluationID returns recent activity logs for an evaluation
+func (r *Repository) GetRecentLogsByEvaluationID(ctx context.Context, evalID uuid.UUID, limit int) ([]PerformanceLog, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var logs []PerformanceLog
+	if err := db.WithContext(ctx).Where("evaluation_id = ?", evalID).
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&logs).Error; err != nil {
+		return nil, err
+	}
+	return logs, nil
+}
+
+// ListEvaluationsByOrganization returns all evaluations for an organization in a period
+func (r *Repository) ListEvaluationsByOrganization(ctx context.Context, orgID, periodID uuid.UUID) ([]PerformanceEvaluation, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []PerformanceEvaluation
+	query := db.WithContext(ctx).Where("organization_id = ?", orgID)
+	if periodID != uuid.Nil {
+		query = query.Where("period_id = ?", periodID)
+	}
+	if err := query.Order("created_at DESC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// ListEvaluationsBySupervisor returns all evaluations supervised by a manager
+func (r *Repository) ListEvaluationsBySupervisor(ctx context.Context, supervisorID, periodID uuid.UUID) ([]PerformanceEvaluation, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []PerformanceEvaluation
+	query := db.WithContext(ctx).Where("supervisor_id = ?", supervisorID)
+	if periodID != uuid.Nil {
+		query = query.Where("period_id = ?", periodID)
+	}
+	if err := query.Order("created_at DESC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// GetPendingReviews returns evaluations pending manager review (SUBMITTED status)
+func (r *Repository) GetPendingReviews(ctx context.Context, supervisorID, periodID uuid.UUID) ([]PerformanceEvaluation, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []PerformanceEvaluation
+	query := db.WithContext(ctx).Where("supervisor_id = ? AND status = ?", supervisorID, "SUBMITTED")
+	if periodID != uuid.Nil {
+		query = query.Where("period_id = ?", periodID)
+	}
+	if err := query.Order("submitted_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// CountEvaluationsByStatus counts evaluations by status for a period
+func (r *Repository) CountEvaluationsByStatus(ctx context.Context, periodID uuid.UUID) (draft, submitted, approved, completed int64, err error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+
+	query := db.WithContext(ctx).Model(&PerformanceEvaluation{})
+	if periodID != uuid.Nil {
+		query = query.Where("period_id = ?", periodID)
+	}
+
+	query.Where("status = ?", "DRAFT").Count(&draft)
+	query.Where("status = ?", "SUBMITTED").Count(&submitted)
+	query.Where("status = ?", "APPROVED").Count(&approved)
+	query.Where("status = ?", "COMPLETED").Count(&completed)
+
+	return draft, submitted, approved, completed, nil
+}
+
+// GetAverageScoreByPeriod returns average final score for a period
+func (r *Repository) GetAverageScoreByPeriod(ctx context.Context, periodID uuid.UUID) (avgScore float64, avgAchievement float64, err error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	type Result struct {
+		AvgScore       float64
+		AvgAchievement float64
+	}
+	var result Result
+
+	query := db.WithContext(ctx).Model(&PerformanceEvaluation{}).
+		Select("COALESCE(AVG(final_score), 0) as avg_score")
+	if periodID != uuid.Nil {
+		query = query.Where("period_id = ? AND status IN ?", periodID, []string{"APPROVED", "COMPLETED"})
+	} else {
+		query = query.Where("status IN ?", []string{"APPROVED", "COMPLETED"})
+	}
+	if err := query.Scan(&result).Error; err != nil {
+		return 0, 0, err
+	}
+
+	// Calculate average achievement from details
+	detailQuery := db.WithContext(ctx).Model(&PerformanceEvaluationDetail{}).
+		Select("COALESCE(AVG(achievement), 0) as avg_achievement").
+		Joins("JOIN performance_evaluations e ON e.id = performance_evaluation_details.performance_evaluation_id")
+	if periodID != uuid.Nil {
+		detailQuery = detailQuery.Where("e.period_id = ? AND e.status IN ?", periodID, []string{"APPROVED", "COMPLETED"})
+	} else {
+		detailQuery = detailQuery.Where("e.status IN ?", []string{"APPROVED", "COMPLETED"})
+	}
+	if err := detailQuery.Scan(&result.AvgAchievement).Error; err != nil {
+		return result.AvgScore, 0, err
+	}
+
+	return result.AvgScore, result.AvgAchievement, nil
+}
+
+// GetRatingDistribution returns count of evaluations per rating for a period
+func (r *Repository) GetRatingDistribution(ctx context.Context, periodID uuid.UUID) ([]struct {
+	RatingID uuid.UUID
+	Count    int64
+}, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	type RatingCount struct {
+		RatingID uuid.UUID
+		Count    int64
+	}
+	var results []RatingCount
+
+	query := db.WithContext(ctx).Model(&PerformanceEvaluation{}).
+		Select("rating_id, COUNT(*) as count").
+		Where("rating_id IS NOT NULL AND status IN ?", []string{"APPROVED", "COMPLETED"}).
+		Group("rating_id")
+	if periodID != uuid.Nil {
+		query = query.Where("period_id = ?", periodID)
+	}
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	// Convert to expected return type
+	var output []struct {
+		RatingID uuid.UUID
+		Count    int64
+	}
+	for _, r := range results {
+		output = append(output, struct {
+			RatingID uuid.UUID
+			Count    int64
+		}{r.RatingID, r.Count})
+	}
+	return output, nil
+}
+
+// GetOrganizationStats returns performance stats grouped by organization
+func (r *Repository) GetOrganizationStats(ctx context.Context, periodID uuid.UUID) ([]struct {
+	OrganizationID uuid.UUID
+	TotalCount     int64
+	CompletedCount int64
+	AvgScore       float64
+}, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	type OrgStats struct {
+		OrganizationID uuid.UUID
+		TotalCount     int64
+		CompletedCount int64
+		AvgScore       float64
+	}
+	var results []OrgStats
+
+	query := db.WithContext(ctx).Model(&PerformanceEvaluation{}).
+		Select(`organization_id,
+			COUNT(*) as total_count,
+			SUM(CASE WHEN status IN ('APPROVED', 'COMPLETED') THEN 1 ELSE 0 END) as completed_count,
+			COALESCE(AVG(CASE WHEN status IN ('APPROVED', 'COMPLETED') THEN final_score END), 0) as avg_score`).
+		Group("organization_id")
+	if periodID != uuid.Nil {
+		query = query.Where("period_id = ?", periodID)
+	}
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	var output []struct {
+		OrganizationID uuid.UUID
+		TotalCount     int64
+		CompletedCount int64
+		AvgScore       float64
+	}
+	for _, r := range results {
+		output = append(output, struct {
+			OrganizationID uuid.UUID
+			TotalCount     int64
+			CompletedCount int64
+			AvgScore       float64
+		}{r.OrganizationID, r.TotalCount, r.CompletedCount, r.AvgScore})
+	}
+	return output, nil
+}
+
+// GetTopPerformers returns top N performers for a period
+func (r *Repository) GetTopPerformers(ctx context.Context, periodID uuid.UUID, limit int) ([]PerformanceEvaluation, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var list []PerformanceEvaluation
+	query := db.WithContext(ctx).
+		Where("status IN ? AND final_score > 0", []string{"APPROVED", "COMPLETED"})
+	if periodID != uuid.Nil {
+		query = query.Where("period_id = ?", periodID)
+	}
+	if err := query.Order("final_score DESC").Limit(limit).Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// GetBottomPerformers returns bottom N performers for a period
+func (r *Repository) GetBottomPerformers(ctx context.Context, periodID uuid.UUID, limit int) ([]PerformanceEvaluation, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var list []PerformanceEvaluation
+	query := db.WithContext(ctx).
+		Where("status IN ? AND final_score > 0", []string{"APPROVED", "COMPLETED"})
+	if periodID != uuid.Nil {
+		query = query.Where("period_id = ?", periodID)
+	}
+	if err := query.Order("final_score ASC").Limit(limit).Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// GetTrendData returns performance trends across periods
+func (r *Repository) GetTrendData(ctx context.Context, limit int) ([]struct {
+	PeriodID     uuid.UUID
+	AvgScore     float64
+	TotalCount   int64
+	CompletedCount int64
+}, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	type TrendStats struct {
+		PeriodID       uuid.UUID
+		AvgScore       float64
+		TotalCount     int64
+		CompletedCount int64
+	}
+	var results []TrendStats
+
+	if err := db.WithContext(ctx).Model(&PerformanceEvaluation{}).
+		Select(`period_id,
+			COALESCE(AVG(CASE WHEN status IN ('APPROVED', 'COMPLETED') THEN final_score END), 0) as avg_score,
+			COUNT(*) as total_count,
+			SUM(CASE WHEN status IN ('APPROVED', 'COMPLETED') THEN 1 ELSE 0 END) as completed_count`).
+		Group("period_id").
+		Order("period_id DESC").
+		Limit(limit).
+		Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	var output []struct {
+		PeriodID       uuid.UUID
+		AvgScore       float64
+		TotalCount     int64
+		CompletedCount int64
+	}
+	for _, r := range results {
+		output = append(output, struct {
+			PeriodID       uuid.UUID
+			AvgScore       float64
+			TotalCount     int64
+			CompletedCount int64
+		}{r.PeriodID, r.AvgScore, r.TotalCount, r.CompletedCount})
+	}
+	return output, nil
+}

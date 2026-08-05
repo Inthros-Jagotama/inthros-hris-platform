@@ -532,3 +532,173 @@ type ProgressSummaryResponse struct {
 type CalculateScoreRequest struct {
 	EvaluationID string `json:"evaluation_id" binding:"required"`
 }
+
+// =========================================================================
+// Phase 4 - Dashboard DTOs
+// =========================================================================
+
+// EmployeeDashboardResponse - Dashboard untuk employee melihat KPI sendiri
+type EmployeeDashboardResponse struct {
+	EmployeeID       string                     `json:"employee_id"`
+	EmployeeName     string                     `json:"employee_name,omitempty"`
+	OrganizationID   string                     `json:"organization_id"`
+	OrganizationName string                     `json:"organization_name,omitempty"`
+	CurrentPeriod    *PeriodSummary             `json:"current_period,omitempty"`
+	Evaluation       *EvaluationSummary         `json:"evaluation,omitempty"`
+	KPIProgress      []KPIProgressItem          `json:"kpi_progress"`
+	RecentActivities []ActivityItem             `json:"recent_activities"`
+}
+
+type PeriodSummary struct {
+	ID         string `json:"id"`
+	PeriodCode string `json:"period_code"`
+	PeriodType string `json:"period_type"`
+	Year       int    `json:"year"`
+	StartDate  string `json:"start_date,omitempty"`
+	EndDate    string `json:"end_date,omitempty"`
+	Status     string `json:"status"`
+}
+
+type EvaluationSummary struct {
+	ID               string  `json:"id"`
+	Status           string  `json:"status"`
+	FinalScore       float64 `json:"final_score"`
+	RatingName       string  `json:"rating_name,omitempty"`
+	RatingColor      string  `json:"rating_color,omitempty"`
+	TotalIndicators  int     `json:"total_indicators"`
+	CompletedCount   int     `json:"completed_count"`
+	OverallProgress  float64 `json:"overall_progress"`
+	SubmittedAt      string  `json:"submitted_at,omitempty"`
+	ApprovedAt       string  `json:"approved_at,omitempty"`
+}
+
+type KPIProgressItem struct {
+	DetailID      string  `json:"detail_id"`
+	IndicatorName string  `json:"indicator_name"`
+	PerspectiveID string  `json:"perspective_id,omitempty"`
+	Weight        float64 `json:"weight"`
+	Target        float64 `json:"target"`
+	Actual        float64 `json:"actual"`
+	Achievement   float64 `json:"achievement"`
+	Score         float64 `json:"score"`
+	Status        string  `json:"status"` // NOT_STARTED, IN_PROGRESS, COMPLETED
+}
+
+type ActivityItem struct {
+	ID          string `json:"id"`
+	Action      string `json:"action"`
+	Description string `json:"description"`
+	CreatedAt   string `json:"created_at"`
+	CreatedBy   string `json:"created_by,omitempty"`
+}
+
+// ManagerDashboardResponse - Dashboard untuk manager melihat tim
+type ManagerDashboardResponse struct {
+	ManagerID        string                 `json:"manager_id"`
+	ManagerName      string                 `json:"manager_name,omitempty"`
+	OrganizationID   string                 `json:"organization_id"`
+	OrganizationName string                 `json:"organization_name,omitempty"`
+	CurrentPeriod    *PeriodSummary         `json:"current_period,omitempty"`
+	TeamSummary      TeamKPISummary         `json:"team_summary"`
+	TeamMembers      []TeamMemberKPI        `json:"team_members"`
+	PendingReviews   []PendingReviewItem    `json:"pending_reviews"`
+	OverdueReviews   []OverdueReviewItem    `json:"overdue_reviews"`
+}
+
+type TeamKPISummary struct {
+	TotalMembers     int     `json:"total_members"`
+	CompletedCount   int     `json:"completed_count"`
+	InProgressCount  int     `json:"in_progress_count"`
+	PendingCount     int     `json:"pending_count"`
+	AverageScore     float64 `json:"average_score"`
+	OverallProgress  float64 `json:"overall_progress"`
+}
+
+type TeamMemberKPI struct {
+	EmployeeID     string  `json:"employee_id"`
+	EmployeeName   string  `json:"employee_name,omitempty"`
+	EvaluationID   string  `json:"evaluation_id,omitempty"`
+	Status         string  `json:"status"`
+	FinalScore     float64 `json:"final_score"`
+	RatingName     string  `json:"rating_name,omitempty"`
+	RatingColor    string  `json:"rating_color,omitempty"`
+	Progress       float64 `json:"progress"`
+}
+
+type PendingReviewItem struct {
+	EvaluationID   string `json:"evaluation_id"`
+	EmployeeID     string `json:"employee_id"`
+	EmployeeName   string `json:"employee_name,omitempty"`
+	SubmittedAt    string `json:"submitted_at"`
+	DaysPending    int    `json:"days_pending"`
+}
+
+type OverdueReviewItem struct {
+	EvaluationID   string `json:"evaluation_id"`
+	EmployeeID     string `json:"employee_id"`
+	EmployeeName   string `json:"employee_name,omitempty"`
+	Status         string `json:"status"`
+	DaysOverdue    int    `json:"days_overdue"`
+}
+
+// HRDashboardResponse - Dashboard untuk HR melihat keseluruhan
+type HRDashboardResponse struct {
+	CurrentPeriod        *PeriodSummary            `json:"current_period,omitempty"`
+	CompletionStats      CompletionStats           `json:"completion_stats"`
+	RatingDistribution   []RatingDistributionItem  `json:"rating_distribution"`
+	OrganizationStats    []OrganizationStatsItem   `json:"organization_stats"`
+	TopPerformers        []PerformerItem           `json:"top_performers"`
+	BottomPerformers     []PerformerItem           `json:"bottom_performers"`
+	TrendData            []TrendItem               `json:"trend_data"`
+}
+
+type CompletionStats struct {
+	TotalEmployees     int     `json:"total_employees"`
+	CompletedCount     int     `json:"completed_count"`
+	ApprovedCount      int     `json:"approved_count"`
+	SubmittedCount     int     `json:"submitted_count"`
+	DraftCount         int     `json:"draft_count"`
+	NotStartedCount    int     `json:"not_started_count"`
+	CompletionRate     float64 `json:"completion_rate"`
+	AverageScore       float64 `json:"average_score"`
+	AverageAchievement float64 `json:"average_achievement"`
+}
+
+type RatingDistributionItem struct {
+	RatingID    string  `json:"rating_id"`
+	RatingCode  string  `json:"rating_code"`
+	RatingName  string  `json:"rating_name"`
+	RatingColor string  `json:"rating_color,omitempty"`
+	Count       int     `json:"count"`
+	Percentage  float64 `json:"percentage"`
+}
+
+type OrganizationStatsItem struct {
+	OrganizationID     string  `json:"organization_id"`
+	OrganizationName   string  `json:"organization_name,omitempty"`
+	TotalEmployees     int     `json:"total_employees"`
+	CompletedCount     int     `json:"completed_count"`
+	AverageScore       float64 `json:"average_score"`
+	AverageAchievement float64 `json:"average_achievement"`
+	CompletionRate     float64 `json:"completion_rate"`
+}
+
+type PerformerItem struct {
+	Rank             int     `json:"rank"`
+	EmployeeID       string  `json:"employee_id"`
+	EmployeeName     string  `json:"employee_name,omitempty"`
+	OrganizationID   string  `json:"organization_id"`
+	OrganizationName string  `json:"organization_name,omitempty"`
+	FinalScore       float64 `json:"final_score"`
+	RatingName       string  `json:"rating_name,omitempty"`
+	RatingColor      string  `json:"rating_color,omitempty"`
+}
+
+type TrendItem struct {
+	PeriodID       string  `json:"period_id"`
+	PeriodCode     string  `json:"period_code"`
+	Year           int     `json:"year"`
+	AverageScore   float64 `json:"average_score"`
+	CompletionRate float64 `json:"completion_rate"`
+	TotalEmployees int     `json:"total_employees"`
+}

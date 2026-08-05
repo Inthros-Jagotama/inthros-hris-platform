@@ -97,5 +97,40 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		perf.GET("/logs", handler.ListPerformanceLogs)
 		perf.GET("/evaluations/:id/logs", handler.ListPerformanceLogsByEvaluationID)
 		perf.GET("/logs/:id", handler.GetPerformanceLogByID)
+
+		// =====================================================================
+		// Phase 3 Business Process Routes
+		// =====================================================================
+
+		// Evaluation with KPI Snapshot
+		perf.POST("/evaluations/snapshot", handler.CreateEvaluationWithSnapshot)
+		perf.GET("/evaluations/:id/full", handler.GetEvaluationWithDetails)
+
+		// Evaluation Actuals Input
+		perf.PUT("/evaluation-details/:id/actual", handler.UpdateEvaluationActual)
+		perf.PUT("/evaluations/:id/actuals", handler.BulkUpdateEvaluationActuals)
+
+		// Score Calculation & Progress
+		perf.POST("/evaluations/:id/recalculate", handler.RecalculateEvaluationScore)
+		perf.GET("/evaluations/:id/progress-summary", handler.GetEvaluationProgressSummary)
+
+		// Workflow Status Transitions
+		perf.POST("/evaluations/:id/submit", handler.SubmitEvaluation)
+		perf.POST("/evaluations/:id/approve", handler.ApproveEvaluation)
+		perf.POST("/evaluations/:id/reject", handler.RejectEvaluation)
+		perf.POST("/evaluations/:id/complete", handler.CompleteEvaluation)
+
+		// =====================================================================
+		// Phase 4 Dashboard Routes
+		// =====================================================================
+
+		// Employee Dashboard
+		perf.GET("/dashboard/employee/:employee_id", handler.GetEmployeeDashboard)
+
+		// Manager Dashboard
+		perf.GET("/dashboard/manager/:manager_id", handler.GetManagerDashboard)
+
+		// HR Dashboard
+		perf.GET("/dashboard/hr", handler.GetHRDashboard)
 	}
 }
