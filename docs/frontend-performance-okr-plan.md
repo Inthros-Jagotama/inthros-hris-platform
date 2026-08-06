@@ -439,7 +439,7 @@ src/views/modules/performance/okr/
 
 | Phase | Status | Completion Date | Notes |
 |-------|--------|-----------------|-------|
-| Phase 1 - Routes & Navigation | ⏳ Pending | - | |
+| Phase 1 - Routes & Navigation | ✅ Completed | 2026-08-06 | Router, Sidebar, PerformanceIndex cards, locales (en/id) |
 | Phase 2 - OKR Templates | ⏳ Pending | - | |
 | Phase 3 - OKR Evaluation | ⏳ Pending | - | |
 | Phase 4 - Progress Check-in | ⏳ Pending | - | |
