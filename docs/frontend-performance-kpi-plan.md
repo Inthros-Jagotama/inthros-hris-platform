@@ -283,31 +283,50 @@ src/views/settings/
 
 ## Implementation Sequence
 
-### Phase 1: Settings (Master Data)
-1. Create `PerformancePeriodsView.vue` - CRUD periods
-2. Create `PerformancePerspectivesView.vue` - CRUD perspectives
-3. Create `PerformanceRatingsView.vue` - CRUD ratings
-4. Create `PerformanceFormulasView.vue` - CRUD formulas
-5. Update `SettingsIndex.vue` - Add performance group
-6. Update `router/index.js` - Add settings routes
-7. Update locales
+### Phase 1: Settings (Master Data) ✅ COMPLETED (2026-08-06)
+1. ✅ Create `PerformancePeriodsView.vue` - CRUD periods
+2. ✅ Create `PerformancePerspectivesView.vue` - CRUD perspectives
+3. ✅ Create `PerformanceRatingsView.vue` - CRUD ratings
+4. ✅ Create `PerformanceFormulasView.vue` - CRUD formulas
+5. ✅ Update `SettingsIndex.vue` - Add performance group
+6. ✅ Update `router/index.js` - Add settings routes
+7. ✅ Update locales
 
-### Phase 2: KPI Templates
-1. Create `PerformanceIndex.vue` - Module index with card menu
-2. Create `kpi/KPITemplates.vue` - List templates
-3. Create `kpi/KPITemplateForm.vue` - Form with indicators management
-4. Update `router/index.js` - Add template routes
+### Phase 2: KPI Templates ✅ COMPLETED (2026-08-06)
+1. ✅ Create `PerformanceIndex.vue` - Module index with card menu
+2. ✅ Create `kpi/KPITemplates.vue` - List templates
+3. ✅ Create `kpi/KPITemplateForm.vue` - Form with indicators management
+4. ✅ Create `kpi/KPIIndex.vue` - List evaluations with filters
+5. ✅ Update `router/index.js` - Add template routes
+6. ✅ Update locales (en/id)
 
-### Phase 3: KPI Evaluation
-1. Create `kpi/KPIIndex.vue` - List evaluations
-2. Create `kpi/KPIEvaluationForm.vue` - Multi-section form
-3. Create section components for evaluation
-4. Update `router/index.js` - Add evaluation routes
+### Phase 3: KPI Evaluation ✅ COMPLETED (2026-08-06)
+1. ✅ Create `kpi/KPIEvaluationDetail.vue` - View/edit evaluation with indicators
+2. ✅ Support actual value input for DRAFT status
+3. ✅ Workflow actions: Submit, Approve, Reject, Complete
+4. ✅ Recalculate score functionality
+5. ✅ Group indicators by BSC perspective
+6. ✅ Update `router/index.js` - Add evaluation routes
+7. ✅ Update locales (en/id)
 
-### Phase 4: Menu & Navigation
-1. Update `Sidebar.vue` - Add Performance submenu
-2. Test navigation flow
-3. Final locales update
+### Phase 4: Menu & Navigation ✅ COMPLETED (2026-08-06)
+1. ✅ Update `Sidebar.vue` - Add Performance submenu with dropdown
+2. ✅ Add KPI and Dashboard children menus
+3. ✅ Update locales for navigation (en/id)
+
+---
+
+## Completion Summary
+
+**All phases completed on: 2026-08-06**
+
+### Commits:
+- `3168580` - feat(fe): performance module settings - phase 1
+- `a3e63be` - feat(fe): performance KPI module - phase 2
+- `be14c07` - fix: rename duplicate description key in kpi locales
+- `7c3d0bc` - fix: rename duplicate description keys in performance settings locales
+- `d2225ae` - feat(fe): KPI evaluation detail view - phase 3
+- `24ecb55` - feat(fe): add Performance submenu in sidebar - phase 4
 
 ---
 
