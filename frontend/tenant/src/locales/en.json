@@ -72,7 +72,9 @@
     "apply": "Apply",
     "reset": "Reset",
     "email": "Email",
-    "clear": "Clear"
+    "clear": "Clear",
+    "date": "Date",
+    "notes": "Notes"
   },
   "form": {
     "required": "This field is required"
@@ -622,6 +624,7 @@
     "progress": "Progress",
     "check_in": "Check-in",
     "add_progress": "Add Progress",
+    "no_progress": "No progress entries yet",
     "recalculate": "Recalculate",
     "score_recalculated": "Score recalculated successfully.",
     "submit": "Submit",

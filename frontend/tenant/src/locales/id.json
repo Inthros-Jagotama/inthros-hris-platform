@@ -72,7 +72,9 @@
     "apply": "Terapkan",
     "reset": "Atur Ulang",
     "email": "Email",
-    "clear": "Bersihkan"
+    "clear": "Bersihkan",
+    "date": "Tanggal",
+    "notes": "Catatan"
   },
   "form": {
     "required": "Field ini wajib diisi"
@@ -622,6 +624,7 @@
     "progress": "Progress",
     "check_in": "Check-in",
     "add_progress": "Tambah Progress",
+    "no_progress": "Belum ada catatan progress",
     "recalculate": "Hitung Ulang",
     "score_recalculated": "Skor berhasil dihitung ulang.",
     "submit": "Ajukan",
