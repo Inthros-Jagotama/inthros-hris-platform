@@ -37,7 +37,7 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 	// OKR
 	okrRepo := NewOKRRepository()
 	okrSvc := NewOKRService(okrRepo)
-	okrHandler := NewOKRHandler(okrSvc)
+	okrHandler := NewOKRHandler(okrSvc, resolver)
 
 	return &perfModule{
 		handler:    handler,

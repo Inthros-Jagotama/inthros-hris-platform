@@ -12,27 +12,28 @@ import (
 )
 
 type OKRHandler struct {
-	service OKRService
+	service  OKRService
+	resolver TenantDBFunc
 }
 
-func NewOKRHandler(service OKRService) *OKRHandler {
-	return &OKRHandler{service: service}
+func NewOKRHandler(service OKRService, resolver TenantDBFunc) *OKRHandler {
+	return &OKRHandler{service: service, resolver: resolver}
 }
 
 func (h *OKRHandler) getTenantDB(c *gin.Context) *gorm.DB {
-	db, exists := c.Get("tenantDB")
-	if !exists {
+	db, err := h.resolver(c.Request.Context())
+	if err != nil {
 		return nil
 	}
-	return db.(*gorm.DB)
+	return db
 }
 
 func (h *OKRHandler) getUserID(c *gin.Context) uuid.UUID {
-	userIDStr, exists := c.Get("userID")
-	if !exists {
+	userIDStr := c.GetString("user_id")
+	if userIDStr == "" {
 		return uuid.Nil
 	}
-	userID, err := uuid.Parse(userIDStr.(string))
+	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		return uuid.Nil
 	}
