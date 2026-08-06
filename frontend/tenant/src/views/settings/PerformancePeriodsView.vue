@@ -50,27 +50,23 @@
       </Column>
     </DataTable>
 
-    <Dialog v-model:visible="dialogVisible" :header="editing ? t('performance_periods.edit') : t('performance_periods.new')" modal :style="{ width: '560px' }" :closable="true" @hide="resetForm">
+    <Dialog v-model:visible="dialogVisible" :header="editing ? t('performance_periods.edit') : t('performance_periods.new')" modal :style="{ width: '420px' }" :closable="true" @hide="resetForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-2 gap-4">
-          <FormRow :label="t('performance_periods.code')" required :errors="errors?.period_code">
-            <TextInput v-model="form.period_code" maxlength="10" autofocus :placeholder="t('performance_periods.code_placeholder')" :class="{'p-invalid':errors?.period_code}" />
-          </FormRow>
-          <FormRow :label="t('performance_periods.type')" required :errors="errors?.period_type">
-            <Select v-model="form.period_type" :options="periodTypes" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" :class="{'p-invalid':errors?.period_type}" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-3 gap-4">
-          <FormRow :label="t('performance_periods.year')" required :errors="errors?.year">
-            <InputNumber v-model="form.year" class="!w-full" :min="2020" :max="2100" size="small" />
-          </FormRow>
-          <FormRow :label="t('performance_periods.start_date')" :errors="errors?.start_date">
-            <DatePicker v-model="form.start_date" dateFormat="yy-mm-dd" :placeholder="t('common.select_date')" class="w-full" showIcon />
-          </FormRow>
-          <FormRow :label="t('performance_periods.end_date')" :errors="errors?.end_date">
-            <DatePicker v-model="form.end_date" dateFormat="yy-mm-dd" :placeholder="t('common.select_date')" class="w-full" showIcon />
-          </FormRow>
-        </div>
+        <FormRow :label="t('performance_periods.code')" required :errors="errors?.period_code">
+          <TextInput v-model="form.period_code" maxlength="10" autofocus :placeholder="t('performance_periods.code_placeholder')" :class="{'p-invalid':errors?.period_code}" />
+        </FormRow>
+        <FormRow :label="t('performance_periods.type')" required :errors="errors?.period_type">
+          <Select v-model="form.period_type" :options="periodTypes" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" :class="{'p-invalid':errors?.period_type}" />
+        </FormRow>
+        <FormRow :label="t('performance_periods.year')" required :errors="errors?.year">
+          <InputNumber v-model="form.year" class="!w-full" :min="2020" :max="2100" :useGrouping="false" :maxFractionDigits="0" size="small" />
+        </FormRow>
+        <FormRow :label="t('performance_periods.start_date')" :errors="errors?.start_date">
+          <DatePicker v-model="form.start_date" dateFormat="yy-mm-dd" :placeholder="t('common.select_date')" class="w-full" showIcon />
+        </FormRow>
+        <FormRow :label="t('performance_periods.end_date')" :errors="errors?.end_date">
+          <DatePicker v-model="form.end_date" dateFormat="yy-mm-dd" :placeholder="t('common.select_date')" class="w-full" showIcon />
+        </FormRow>
         <FormRow :label="t('performance_periods.status')" :errors="errors?.status">
           <Select v-model="form.status" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" />
         </FormRow>

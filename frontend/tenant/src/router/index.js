@@ -143,8 +143,38 @@ const routes = [
       {
         path: 'performance',
         name: 'Performance',
-        component: () => import('@/views/modules/Performance.vue'),
+        component: () => import('@/views/modules/performance/PerformanceIndex.vue'),
         meta: { title: 'Performance', titleKey: 'performance.title', descKey: 'performance.description', icon: 'pi pi-chart-line', module: 'performance' }
+      },
+      {
+        path: 'performance/kpi',
+        name: 'PerformanceKPI',
+        component: () => import('@/views/modules/performance/kpi/KPIIndex.vue'),
+        meta: { title: 'KPI', titleKey: 'kpi.title', descKey: 'kpi.description', icon: 'pi pi-chart-bar', module: 'performance' }
+      },
+      {
+        path: 'performance/kpi/templates',
+        name: 'KPITemplates',
+        component: () => import('@/views/modules/performance/kpi/KPITemplates.vue'),
+        meta: { title: 'KPI Templates', titleKey: 'kpi.templates', descKey: 'kpi.templates_desc', icon: 'pi pi-file', module: 'performance' }
+      },
+      {
+        path: 'performance/kpi/templates/new',
+        name: 'KPITemplateNew',
+        component: () => import('@/views/modules/performance/kpi/KPITemplateForm.vue'),
+        meta: { title: 'New Template', titleKey: 'kpi.template_new', descKey: 'kpi.template_desc', icon: 'pi pi-plus', module: 'performance', backRoute: '/performance/kpi/templates', backLabelKey: 'kpi.templates' }
+      },
+      {
+        path: 'performance/kpi/templates/:id/edit',
+        name: 'KPITemplateEdit',
+        component: () => import('@/views/modules/performance/kpi/KPITemplateForm.vue'),
+        meta: { title: 'Edit Template', titleKey: 'kpi.template_edit', descKey: 'kpi.template_desc', icon: 'pi pi-pencil', module: 'performance', backRoute: '/performance/kpi/templates', backLabelKey: 'kpi.templates' }
+      },
+      {
+        path: 'performance/kpi/periods',
+        name: 'KPIPeriods',
+        component: () => import('@/views/settings/PerformancePeriodsView.vue'),
+        meta: { title: 'Periods', titleKey: 'performance_periods.title', descKey: 'performance_periods.description', icon: 'pi pi-calendar', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title' }
       },
       // Recruitment & Onboarding
       {
@@ -205,7 +235,6 @@ const routes = [
       { path: 'settings/ters', name: 'SettingsTERs', component: () => import('@/views/settings/TersView.vue'), meta: { title: 'TER', titleKey: 'ters.title', descKey: 'ters.description', icon: 'pi pi-calculator', module: 'setting' } },
       { path: 'settings/ptkps', name: 'SettingsPTKPs', component: () => import('@/views/settings/PtkpsView.vue'), meta: { title: 'PTKP', titleKey: 'ptkps.title', descKey: 'ptkps.description', icon: 'pi pi-receipt', module: 'setting' } },
       // Performance Settings
-      { path: 'settings/performance-periods', name: 'SettingsPerformancePeriods', component: () => import('@/views/settings/PerformancePeriodsView.vue'), meta: { title: 'Performance Periods', titleKey: 'performance_periods.title', descKey: 'performance_periods.description', icon: 'pi pi-calendar', module: 'setting' } },
       { path: 'settings/performance-perspectives', name: 'SettingsPerformancePerspectives', component: () => import('@/views/settings/PerformancePerspectivesView.vue'), meta: { title: 'BSC Perspectives', titleKey: 'performance_perspectives.title', descKey: 'performance_perspectives.description', icon: 'pi pi-th-large', module: 'setting' } },
       { path: 'settings/performance-ratings', name: 'SettingsPerformanceRatings', component: () => import('@/views/settings/PerformanceRatingsView.vue'), meta: { title: 'Performance Ratings', titleKey: 'performance_ratings.title', descKey: 'performance_ratings.description', icon: 'pi pi-star', module: 'setting' } },
       { path: 'settings/performance-formulas', name: 'SettingsPerformanceFormulas', component: () => import('@/views/settings/PerformanceFormulasView.vue'), meta: { title: 'KPI Formulas', titleKey: 'performance_formulas.title', descKey: 'performance_formulas.description', icon: 'pi pi-calculator', module: 'setting' } },
