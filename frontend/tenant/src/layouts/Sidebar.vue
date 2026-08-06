@@ -235,14 +235,24 @@ function filterByModule(items) {
 const openMenus = ref({})
 
 function toggleMenu(key) {
+  // Jika belum pernah di-toggle manual, state saat ini didapat dari auto-open
+  // (child aktif). Toggle pertama harus membalik dari state efektif itu, bukan
+  // dari `undefined`, supaya menu dengan child aktif tetap bisa ditutup.
+  if (openMenus.value[key] === undefined) {
+    const item = allDropdownItems.value.find(i => i.key === key)
+    const autoOpen = !!item?.children?.some(c => isItemActive(c))
+    openMenus.value[key] = !autoOpen
+    return
+  }
   openMenus.value[key] = !openMenus.value[key]
 }
 
 function isMenuOpen(item) {
   if (!item?.children?.length) return false
+  // Jika user sudah pernah toggle manual, state itu yang menang.
+  if (openMenus.value[item.key] !== undefined) return openMenus.value[item.key]
   // Auto-open jika salah satu child sedang aktif (mis. sedang di /job-management/values)
-  if (item.children.some(c => isItemActive(c))) return true
-  return !!openMenus.value[item.key]
+  return item.children.some(c => isItemActive(c))
 }
 
 // ── Core HR items (flat, not dropdown) ──
@@ -338,7 +348,12 @@ const operationsItems = computed(() => {
     { key: 'movement', label: t('nav.movement'), icon: 'pi pi-arrows-alt', command: () => router.push('/employee-movements'), path: '/employee-movements', moduleSlug: 'employeemovement', permission: 'employeemovement.view' },
     { key: 'approval', label: t('nav.approval'), icon: 'pi pi-check-square', command: () => router.push('/approvals'), path: '/approvals', moduleSlug: 'approval', permission: 'approval.view' }
   ])
-})  // ── Settings items (flat, masuk ke halaman index card) ──
+})
+
+// ── Gabungan semua item dropdown (untuk lookup by key di toggleMenu) ──
+const allDropdownItems = computed(() => [...coreHRItems.value, ...talentItems.value])
+
+// ── Settings items (flat, masuk ke halaman index card) ──
   const settingsItems = computed(() => {
     return filterByModule([
       { key: 'settings', label: t('nav.settings'), icon: 'pi pi-cog', command: () => router.push('/settings'), path: '/settings', moduleSlug: 'setting', permission: 'setting.view' }
