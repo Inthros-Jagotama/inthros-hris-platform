@@ -207,7 +207,7 @@ async function loadData() {
     if (filterPeriod.value) params.period_id = filterPeriod.value
     if (filterStatus.value) params.status = filterStatus.value
 
-    const res = await api.get('/api/v1/tenant/performance/evaluations', { params })
+    const res = await api.get('/api/v1/tenant/performance/kpi/evaluations', { params })
     const body = res.data
     items.value = body?.data || []
     totalRecords.value = body?.total || 0
@@ -223,7 +223,7 @@ async function loadReferenceData() {
   try {
     const [periodRes, templateRes, empRes] = await Promise.all([
       api.get('/api/v1/tenant/performance/periods', { params: { per_page: 50 } }),
-      api.get('/api/v1/tenant/performance/templates', { params: { per_page: 100 } }),
+      api.get('/api/v1/tenant/performance/kpi/templates', { params: { per_page: 100 } }),
       api.get('/api/v1/tenant/employees', { params: { per_page: 200, status: 'active' } })
     ])
 
@@ -280,7 +280,7 @@ async function handleCreate() {
 
   creating.value = true
   try {
-    const res = await api.post('/api/v1/tenant/performance/evaluations/snapshot', {
+    const res = await api.post('/api/v1/tenant/performance/kpi/evaluations/snapshot', {
       employee_id: createForm.value.employee_id,
       template_id: createForm.value.template_id,
       period_id: createForm.value.period_id

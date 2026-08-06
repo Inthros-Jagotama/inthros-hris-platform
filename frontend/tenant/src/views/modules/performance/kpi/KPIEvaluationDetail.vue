@@ -213,7 +213,7 @@ function goBack() {
 async function loadEvaluation() {
   pageLoading.value = true
   try {
-    const res = await api.get(`/api/v1/tenant/performance/evaluations/${evaluationId.value}/full`)
+    const res = await api.get(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/full`)
     const data = res.data?.data || res.data
     evaluation.value = {
       id: data.id,
@@ -249,7 +249,7 @@ async function loadEvaluation() {
 
 async function updateActual(detail) {
   try {
-    await api.put(`/api/v1/tenant/performance/evaluation-details/${detail.id}/actual`, {
+    await api.put(`/api/v1/tenant/performance/kpi/evaluation-details/${detail.id}/actual`, {
       actual_value: detail.actual_value || 0
     })
     await recalculate()
@@ -261,7 +261,7 @@ async function updateActual(detail) {
 async function recalculate() {
   recalculating.value = true
   try {
-    await api.post(`/api/v1/tenant/performance/evaluations/${evaluationId.value}/recalculate`)
+    await api.post(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/recalculate`)
     await loadEvaluation()
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('kpi.score_recalculated'), life: 3000 })
   } catch (e) {
@@ -274,7 +274,7 @@ async function recalculate() {
 async function submitEvaluation() {
   submitting.value = true
   try {
-    await api.post(`/api/v1/tenant/performance/evaluations/${evaluationId.value}/submit`)
+    await api.post(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/submit`)
     await loadEvaluation()
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('kpi.evaluation_submitted'), life: 3000 })
   } catch (e) {
@@ -287,7 +287,7 @@ async function submitEvaluation() {
 async function approveEvaluation() {
   approving.value = true
   try {
-    await api.post(`/api/v1/tenant/performance/evaluations/${evaluationId.value}/approve`)
+    await api.post(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/approve`)
     await loadEvaluation()
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('kpi.evaluation_approved'), life: 3000 })
   } catch (e) {
@@ -300,7 +300,7 @@ async function approveEvaluation() {
 async function rejectEvaluation() {
   rejecting.value = true
   try {
-    await api.post(`/api/v1/tenant/performance/evaluations/${evaluationId.value}/reject`)
+    await api.post(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/reject`)
     await loadEvaluation()
     toast.add({ severity: 'warn', summary: t('message.success'), detail: t('kpi.evaluation_rejected'), life: 3000 })
   } catch (e) {
@@ -313,7 +313,7 @@ async function rejectEvaluation() {
 async function completeEvaluation() {
   completing.value = true
   try {
-    await api.post(`/api/v1/tenant/performance/evaluations/${evaluationId.value}/complete`)
+    await api.post(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/complete`)
     await loadEvaluation()
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('kpi.evaluation_completed'), life: 3000 })
   } catch (e) {

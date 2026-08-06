@@ -128,7 +128,7 @@ const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 async function loadData() {
   loading.value = true
   try {
-    const res = await api.get('/api/v1/tenant/performance/perspectives', {
+    const res = await api.get('/api/v1/tenant/performance/kpi/perspectives', {
       params: { page: currentPage.value, per_page: perPage.value }
     })
     const body = res.data
@@ -183,10 +183,10 @@ async function handleSave() {
     }
 
     if (editing.value) {
-      await api.put(`/api/v1/tenant/performance/perspectives/${editingId.value}`, payload)
+      await api.put(`/api/v1/tenant/performance/kpi/perspectives/${editingId.value}`, payload)
       toast.add({ severity: 'success', summary: t('message.success'), detail: t('performance_perspectives.updated'), life: 3000 })
     } else {
-      await api.post('/api/v1/tenant/performance/perspectives', payload)
+      await api.post('/api/v1/tenant/performance/kpi/perspectives', payload)
       toast.add({ severity: 'success', summary: t('message.success'), detail: t('performance_perspectives.created'), life: 3000 })
     }
     dialogVisible.value = false
@@ -213,7 +213,7 @@ async function handleDelete() {
   deleting.value = true
   deleteError.value = ''
   try {
-    await api.delete(`/api/v1/tenant/performance/perspectives/${deleteTarget.value.id}`)
+    await api.delete(`/api/v1/tenant/performance/kpi/perspectives/${deleteTarget.value.id}`)
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('performance_perspectives.deleted'), life: 3000 })
     deleteDialogVisible.value = false
     await loadData()

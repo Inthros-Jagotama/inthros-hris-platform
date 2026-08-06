@@ -171,7 +171,7 @@ function getStatusSeverity(status) {
 async function loadData() {
   loading.value = true
   try {
-    const res = await api.get('/api/v1/tenant/performance/templates', {
+    const res = await api.get('/api/v1/tenant/performance/kpi/templates', {
       params: {
         page: currentPage.value,
         per_page: perPage.value,
@@ -220,7 +220,7 @@ function editTemplate(item) {
 
 async function duplicateTemplate(item) {
   try {
-    const res = await api.post(`/api/v1/tenant/performance/templates/${item.id}/duplicate`)
+    const res = await api.post(`/api/v1/tenant/performance/kpi/templates/${item.id}/duplicate`)
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('kpi.template_duplicated'), life: 3000 })
     const newId = res.data?.data?.id || res.data?.id
     if (newId) {
@@ -243,7 +243,7 @@ async function handleDelete() {
   deleting.value = true
   deleteError.value = ''
   try {
-    await api.delete(`/api/v1/tenant/performance/templates/${deleteTarget.value.id}`)
+    await api.delete(`/api/v1/tenant/performance/kpi/templates/${deleteTarget.value.id}`)
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('kpi.template_deleted'), life: 3000 })
     deleteDialogVisible.value = false
     await loadData()

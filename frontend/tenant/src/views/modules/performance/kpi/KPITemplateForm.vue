@@ -198,7 +198,7 @@ async function loadReferenceData() {
     const [orgRes, periodRes, perspRes, formulaRes] = await Promise.all([
       api.get('/api/v1/tenant/organizations', { params: { per_page: 200, active_only: true } }),
       api.get('/api/v1/tenant/performance/periods', { params: { per_page: 50 } }),
-      api.get('/api/v1/tenant/performance/perspectives', { params: { per_page: 20 } }),
+      api.get('/api/v1/tenant/performance/kpi/perspectives', { params: { per_page: 20 } }),
       api.get('/api/v1/tenant/performance/indicator-formulas', { params: { per_page: 20 } })
     ])
 
@@ -240,7 +240,7 @@ async function loadTemplate() {
   if (!isEditing.value) return
 
   try {
-    const res = await api.get(`/api/v1/tenant/performance/templates/${templateId.value}`)
+    const res = await api.get(`/api/v1/tenant/performance/kpi/templates/${templateId.value}`)
     const data = res.data?.data || res.data
 
     form.value = {
@@ -252,7 +252,7 @@ async function loadTemplate() {
     }
 
     // Load indicators for this template
-    const indRes = await api.get('/api/v1/tenant/performance/indicators', {
+    const indRes = await api.get('/api/v1/tenant/performance/kpi/indicators', {
       params: { template_id: templateId.value, per_page: 100 }
     })
     indicators.value = (indRes.data?.data || []).map(ind => ({
@@ -301,9 +301,9 @@ async function handleSave() {
     let savedTemplateId = templateId.value
 
     if (isEditing.value) {
-      await api.put(`/api/v1/tenant/performance/templates/${templateId.value}`, payload)
+      await api.put(`/api/v1/tenant/performance/kpi/templates/${templateId.value}`, payload)
     } else {
-      const res = await api.post('/api/v1/tenant/performance/templates', payload)
+      const res = await api.post('/api/v1/tenant/performance/kpi/templates', payload)
       savedTemplateId = res.data?.data?.id || res.data?.id
     }
 
@@ -328,9 +328,9 @@ async function handleSave() {
       }
 
       if (ind.id) {
-        await api.put(`/api/v1/tenant/performance/indicators/${ind.id}`, indPayload)
+        await api.put(`/api/v1/tenant/performance/kpi/indicators/${ind.id}`, indPayload)
       } else {
-        await api.post('/api/v1/tenant/performance/indicators', indPayload)
+        await api.post('/api/v1/tenant/performance/kpi/indicators', indPayload)
       }
     }
 
