@@ -485,7 +485,7 @@
     "template_info": "Template Information",
     "organization": "Organization",
     "period": "Period",
-    "description": "Description",
+    "description_label": "Description",
     "description_placeholder": "Enter description (optional)",
     "status": "Status",
     "indicators": "Indicators",

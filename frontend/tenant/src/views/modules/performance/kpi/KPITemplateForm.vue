@@ -32,7 +32,7 @@
           </FormRow>
         </div>
         <div class="mt-4">
-          <FormRow :label="t('kpi.description')" :errors="errors?.description">
+          <FormRow :label="t('kpi.description_label')" :errors="errors?.description">
             <Textarea v-model="form.description" rows="2" :placeholder="t('kpi.description_placeholder')" class="w-full" />
           </FormRow>
         </div>

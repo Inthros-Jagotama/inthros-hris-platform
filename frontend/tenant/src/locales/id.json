@@ -485,7 +485,7 @@
     "template_info": "Informasi Template",
     "organization": "Organisasi",
     "period": "Periode",
-    "description": "Deskripsi",
+    "description_label": "Deskripsi",
     "description_placeholder": "Masukkan deskripsi (opsional)",
     "status": "Status",
     "indicators": "Indikator",
