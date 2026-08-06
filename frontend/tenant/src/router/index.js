@@ -182,6 +182,36 @@ const routes = [
         component: () => import('@/views/modules/performance/kpi/KPIEvaluationDetail.vue'),
         meta: { title: 'Evaluation Detail', titleKey: 'kpi.evaluation_detail', descKey: 'kpi.evaluation_detail_desc', icon: 'pi pi-chart-bar', module: 'performance', backRoute: '/performance/kpi', backLabelKey: 'kpi.evaluations' }
       },
+      {
+        path: 'performance/okr',
+        name: 'PerformanceOKR',
+        component: () => import('@/views/modules/performance/okr/OKRIndex.vue'),
+        meta: { title: 'OKR', titleKey: 'okr.title', descKey: 'okr.description', icon: 'pi pi-bullseye', module: 'performance' }
+      },
+      {
+        path: 'performance/okr/templates',
+        name: 'OKRTemplates',
+        component: () => import('@/views/modules/performance/okr/OKRTemplates.vue'),
+        meta: { title: 'OKR Templates', titleKey: 'okr.templates', descKey: 'okr.templates_desc', icon: 'pi pi-file', module: 'performance' }
+      },
+      {
+        path: 'performance/okr/templates/new',
+        name: 'OKRTemplateNew',
+        component: () => import('@/views/modules/performance/okr/OKRTemplateForm.vue'),
+        meta: { title: 'New Template', titleKey: 'okr.template_new', descKey: 'okr.template_desc', icon: 'pi pi-plus', module: 'performance', backRoute: '/performance/okr/templates', backLabelKey: 'okr.templates' }
+      },
+      {
+        path: 'performance/okr/templates/:id/edit',
+        name: 'OKRTemplateEdit',
+        component: () => import('@/views/modules/performance/okr/OKRTemplateForm.vue'),
+        meta: { title: 'Edit Template', titleKey: 'okr.template_edit', descKey: 'okr.template_desc', icon: 'pi pi-pencil', module: 'performance', backRoute: '/performance/okr/templates', backLabelKey: 'okr.templates' }
+      },
+      {
+        path: 'performance/okr/evaluation/:id',
+        name: 'OKREvaluationDetail',
+        component: () => import('@/views/modules/performance/okr/OKREvaluationDetail.vue'),
+        meta: { title: 'Evaluation Detail', titleKey: 'okr.evaluation_detail', descKey: 'okr.evaluation_detail_desc', icon: 'pi pi-bullseye', module: 'performance', backRoute: '/performance/okr', backLabelKey: 'okr.evaluations' }
+      },
       // Recruitment & Onboarding
       {
         path: 'recruitment',

@@ -122,6 +122,20 @@ const menuItems = computed(() => [
     titleKey: 'kpi.periods',
     descKey: 'kpi.periods_desc',
     tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400'
+  },
+  {
+    path: '/performance/okr',
+    icon: 'pi pi-bullseye',
+    titleKey: 'performance.okr_evaluations',
+    descKey: 'performance.okr_evaluations_desc',
+    tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'
+  },
+  {
+    path: '/performance/okr/templates',
+    icon: 'pi pi-file-edit',
+    titleKey: 'performance.okr_templates',
+    descKey: 'performance.okr_templates_desc',
+    tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
   }
 ])
 
@@ -132,7 +146,7 @@ function navigateTo(path) {
 async function loadStats() {
   statsLoading.value = true
   try {
-    const res = await api.get('/api/v1/tenant/performance/dashboard/hr')
+    const res = await api.get('/api/v1/tenant/performance/kpi/dashboard/hr')
     const data = res.data?.data || res.data
     if (data?.completion_stats) {
       stats.value = {

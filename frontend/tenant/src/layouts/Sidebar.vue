@@ -305,12 +305,21 @@ const talentItems = computed(() => {
           permission: 'performance.view'
         },
         {
+          key: 'performance_okr',
+          label: t('nav.okr'),
+          icon: 'pi pi-bullseye',
+          command: () => router.push('/performance/okr'),
+          path: '/performance/okr',
+          moduleSlug: 'performance',
+          permission: 'performance.view'
+        },
+        {
           key: 'performance_main',
           label: t('nav.performance_dashboard'),
           icon: 'pi pi-th-large',
           command: () => router.push('/performance'),
           path: '/performance',
-          excludePaths: ['/performance/kpi'],
+          excludePaths: ['/performance/kpi', '/performance/okr'],
           moduleSlug: 'performance',
           permission: 'performance.view'
         }
