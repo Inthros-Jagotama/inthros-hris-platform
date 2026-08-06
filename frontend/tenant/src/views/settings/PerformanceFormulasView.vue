@@ -78,7 +78,7 @@
           <TextInput v-model="form.expression" :placeholder="t('performance_formulas.expression_placeholder')" :class="{'p-invalid':errors?.expression}" />
           <small class="text-gray-400 dark:text-gray-500 text-xs mt-1 block">{{ t('performance_formulas.expression_hint') }}</small>
         </FormRow>
-        <FormRow :label="t('performance_formulas.description')" :errors="errors?.description">
+        <FormRow :label="t('performance_formulas.description_label')" :errors="errors?.description">
           <Textarea v-model="form.description" rows="2" :placeholder="t('performance_formulas.description_placeholder')" class="w-full" />
         </FormRow>
       </div>

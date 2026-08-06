@@ -25,7 +25,7 @@
           <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
         </template>
       </Column>
-      <Column field="description" :header="t('performance_perspectives.description')">
+      <Column field="description" :header="t('performance_perspectives.description_label')">
         <template #body="{data}">
           <span class="text-gray-500 dark:text-gray-400 text-xs line-clamp-2">{{ data.description || '-' }}</span>
         </template>
@@ -50,7 +50,7 @@
         <FormRow :label="t('performance_perspectives.name')" required :errors="errors?.name">
           <TextInput v-model="form.name" maxlength="100" autofocus :placeholder="t('performance_perspectives.name_placeholder')" :class="{'p-invalid':errors?.name}" />
         </FormRow>
-        <FormRow :label="t('performance_perspectives.description')" :errors="errors?.description">
+        <FormRow :label="t('performance_perspectives.description_label')" :errors="errors?.description">
           <Textarea v-model="form.description" rows="3" :placeholder="t('performance_perspectives.description_placeholder')" class="w-full" />
         </FormRow>
         <FormRow :label="t('performance_perspectives.sort_order')" :errors="errors?.sort_order">

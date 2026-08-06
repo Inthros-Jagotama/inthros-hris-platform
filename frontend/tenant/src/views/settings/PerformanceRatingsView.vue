@@ -96,7 +96,7 @@
             </template>
           </Select>
         </FormRow>
-        <FormRow :label="t('performance_ratings.description')" :errors="errors?.description">
+        <FormRow :label="t('performance_ratings.description_label')" :errors="errors?.description">
           <Textarea v-model="form.description" rows="2" :placeholder="t('performance_ratings.description_placeholder')" class="w-full" />
         </FormRow>
       </div>
