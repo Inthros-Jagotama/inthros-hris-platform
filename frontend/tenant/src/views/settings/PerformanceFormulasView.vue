@@ -56,27 +56,23 @@
       </Column>
     </DataTable>
 
-    <Dialog v-model:visible="dialogVisible" :header="editing ? t('performance_formulas.edit') : t('performance_formulas.new')" modal :style="{ width: '560px' }" :closable="true" @hide="resetForm">
+    <Dialog v-model:visible="dialogVisible" :header="editing ? t('performance_formulas.edit') : t('performance_formulas.new')" modal :style="{ width: '420px' }" :closable="true" @hide="resetForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-2 gap-4">
-          <FormRow :label="t('performance_formulas.code')" required :errors="errors?.code">
-            <TextInput v-model="form.code" maxlength="50" autofocus :placeholder="t('performance_formulas.code_placeholder')" :class="{'p-invalid':errors?.code}" />
-          </FormRow>
-          <FormRow :label="t('performance_formulas.name')" required :errors="errors?.name">
-            <TextInput v-model="form.name" maxlength="100" :placeholder="t('performance_formulas.name_placeholder')" :class="{'p-invalid':errors?.name}" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <FormRow :label="t('performance_formulas.formula_type')" required :errors="errors?.formula_type">
-            <Select v-model="form.formula_type" :options="formulaTypes" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" :class="{'p-invalid':errors?.formula_type}" />
-          </FormRow>
-          <FormRow :label="t('performance_formulas.sort_order')" :errors="errors?.sort_order">
-            <InputNumber v-model="form.sort_order" class="!w-full" :min="0" size="small" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('performance_formulas.code')" required :errors="errors?.code">
+          <TextInput v-model="form.code" maxlength="50" autofocus :placeholder="t('performance_formulas.code_placeholder')" :class="{'p-invalid':errors?.code}" />
+        </FormRow>
+        <FormRow :label="t('performance_formulas.name')" required :errors="errors?.name">
+          <TextInput v-model="form.name" maxlength="100" :placeholder="t('performance_formulas.name_placeholder')" :class="{'p-invalid':errors?.name}" />
+        </FormRow>
+        <FormRow :label="t('performance_formulas.formula_type')" required :errors="errors?.formula_type">
+          <Select v-model="form.formula_type" :options="formulaTypes" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" :class="{'p-invalid':errors?.formula_type}" />
+        </FormRow>
         <FormRow :label="t('performance_formulas.expression')" :errors="errors?.expression">
           <TextInput v-model="form.expression" :placeholder="t('performance_formulas.expression_placeholder')" :class="{'p-invalid':errors?.expression}" />
           <small class="text-gray-400 dark:text-gray-500 text-xs mt-1 block">{{ t('performance_formulas.expression_hint') }}</small>
+        </FormRow>
+        <FormRow :label="t('performance_formulas.sort_order')" :errors="errors?.sort_order">
+          <InputNumber v-model="form.sort_order" class="!w-full" :min="0" :useGrouping="false" :maxFractionDigits="0" size="small" />
         </FormRow>
         <FormRow :label="t('performance_formulas.description_label')" :errors="errors?.description">
           <Textarea v-model="form.description" rows="2" :placeholder="t('performance_formulas.description_placeholder')" class="w-full" />

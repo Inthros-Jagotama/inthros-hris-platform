@@ -176,6 +176,12 @@ const routes = [
         component: () => import('@/views/settings/PerformancePeriodsView.vue'),
         meta: { title: 'Periods', titleKey: 'performance_periods.title', descKey: 'performance_periods.description', icon: 'pi pi-calendar', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title' }
       },
+      {
+        path: 'performance/kpi/evaluation/:id',
+        name: 'KPIEvaluationDetail',
+        component: () => import('@/views/modules/performance/kpi/KPIEvaluationDetail.vue'),
+        meta: { title: 'Evaluation Detail', titleKey: 'kpi.evaluation_detail', descKey: 'kpi.evaluation_detail_desc', icon: 'pi pi-chart-bar', module: 'performance', backRoute: '/performance/kpi', backLabelKey: 'kpi.evaluations' }
+      },
       // Recruitment & Onboarding
       {
         path: 'recruitment',
