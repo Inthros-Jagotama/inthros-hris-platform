@@ -65,16 +65,36 @@
           <i class="pi pi-star" style="font-size:0.7rem"></i>
           <span>{{ t('nav.talent') }}</span>
         </div>
-        <div
-          v-for="item in talentItems"
-          :key="item.key || item.label"
-          class="ml-2 flex items-center gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
-          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
-          @click="item.command()"
-        >
-          <i :class="item.icon" class="text-xs"></i>
-          <span>{{ item.label }}</span>
-        </div>
+        <template v-for="item in talentItems" :key="item.key || item.label">
+          <div
+            class="ml-2 flex items-center justify-between gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
+            :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+            @click="item.children?.length ? toggleMenu(item.key) : item.command()"
+          >
+            <div class="flex items-center gap-2 min-w-0">
+              <i :class="item.icon" class="text-xs"></i>
+              <span class="truncate">{{ item.label }}</span>
+            </div>
+            <i
+              v-if="item.children?.length"
+              class="pi text-[11px] transition-transform duration-150"
+              :class="isMenuOpen(item) ? 'pi-chevron-down' : 'pi-chevron-right'"
+            ></i>
+          </div>
+          <!-- Dropdown children -->
+          <template v-if="item.children?.length && isMenuOpen(item)">
+            <div
+              v-for="child in item.children"
+              :key="child.key || child.label"
+              class="ml-6 flex items-center gap-2 px-2.5 py-1.5 text-[13px] rounded-md cursor-pointer transition-colors"
+              :class="isItemActive(child) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-500 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+              @click="child.command()"
+            >
+              <i :class="child.icon" class="text-[11px]"></i>
+              <span>{{ child.label }}</span>
+            </div>
+          </template>
+        </template>
       </div>
 
       <!-- Operations Section Title -->
@@ -263,11 +283,39 @@ const coreHRItems = computed(() => {
   ])
 })
 
-// ── Talent items (flat, not dropdown) ──
+// ── Talent items (with dropdown support) ──
 const talentItems = computed(() => {
   return filterByModule([
     { key: 'competency', label: t('nav.competency'), icon: 'pi pi-star', command: () => router.push('/competencies'), path: '/competencies', moduleSlug: 'competency', permission: 'competency.view' },
-    { key: 'performance', label: t('nav.performance'), icon: 'pi pi-chart-line', command: () => router.push('/performance'), path: '/performance', moduleSlug: 'performance', permission: 'performance.view' },
+    {
+      key: 'performance',
+      label: t('nav.performance'),
+      icon: 'pi pi-chart-line',
+      command: () => router.push('/performance'),
+      moduleSlug: 'performance',
+      permission: 'performance.view',
+      children: [
+        {
+          key: 'performance_kpi',
+          label: t('nav.kpi'),
+          icon: 'pi pi-chart-bar',
+          command: () => router.push('/performance/kpi'),
+          path: '/performance/kpi',
+          moduleSlug: 'performance',
+          permission: 'performance.view'
+        },
+        {
+          key: 'performance_main',
+          label: t('nav.performance_dashboard'),
+          icon: 'pi pi-th-large',
+          command: () => router.push('/performance'),
+          path: '/performance',
+          excludePaths: ['/performance/kpi'],
+          moduleSlug: 'performance',
+          permission: 'performance.view'
+        }
+      ]
+    },
     { key: 'training', label: t('nav.training'), icon: 'pi pi-book', command: () => router.push('/training'), path: '/training', moduleSlug: 'training', permission: 'training.view' },
     { key: 'recruitment', label: t('nav.recruitment'), icon: 'pi pi-user-plus', command: () => router.push('/recruitment'), path: '/recruitment', moduleSlug: 'recruitment', permission: 'recruitment.view' }
   ])

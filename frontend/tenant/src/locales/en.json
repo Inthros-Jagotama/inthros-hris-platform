@@ -15,6 +15,8 @@
     "talent": "Talent",
     "competency": "Competency",
     "performance": "Performance",
+    "performance_dashboard": "Dashboard",
+    "kpi": "KPI",
     "training": "Training",
     "recruitment": "Recruitment",
     "operations": "Operations",
