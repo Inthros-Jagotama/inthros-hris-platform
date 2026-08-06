@@ -47,3 +47,7 @@ temp/
 # Dependencies
 frontend/platform-admin/node_modules
 frontend/tenant/node_modules
+
+# === Python ===
+__pycache__/
+*.pyc

@@ -1,5 +1,8 @@
 # OKR Module Development Plan
 
+> 🔗 **Arsip dokumentasi:** [`docs/README.md`](../README.md) — dokumen ini adalah referensi historis dari modul yang sudah selesai diimplementasikan.
+
+
 ## Objective
 
 Membangun modul Objective & Key Results (OKR) yang terintegrasi dengan HRIS Platform.

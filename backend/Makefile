@@ -6,13 +6,15 @@
 # make lint        - Run linter
 # make check-openapi - Verify all registered endpoints are documented in openapi.json
 # make docs        - Run check-openapi + regenerate docs/openapi-report.md
+# make db-docs     - Regenerate docs/database-schema.md from SQL migrations
+# make check-db-docs - Verify docs/database-schema.md is in sync with migrations (no overwrite)
 # make docker      - Build Docker image
 # make clean       - Clean build artifacts
 # make migrate     - Run platform migrations
 # make seed        - Run seeders
 # make coverage    - Run tests with coverage
 
-.PHONY: build build-installer run run-hot test test-verbose test-short test-pkg test-employee test-organization test-cache test-cache-quick test-cache-integration test-cache-error bench-cache bench-cache-compare coverage cover-view cover-func lint vet check-openapi docs migrate seed seed-modules docker docker-compose-up docker-compose-down tidy clean help
+.PHONY: build build-installer run run-hot test test-verbose test-short test-pkg test-employee test-organization test-cache test-cache-quick test-cache-integration test-cache-error bench-cache bench-cache-compare coverage cover-view cover-func lint vet check-openapi docs db-docs check-db-docs migrate seed seed-modules docker docker-compose-up docker-compose-down tidy clean help
 
 BUILD_DIR := ./bin
 BINARY := $(BUILD_DIR)/server
@@ -135,6 +137,18 @@ docs: check-openapi
 	@cd .. && "$(PYTHON)" scripts/generate_openapi_report.py
 	@echo "OpenAPI report regenerated: docs/openapi-report.md"
 
+db-docs:
+	@echo "Regenerating database schema documentation..."
+	@test -n "$(PYTHON)" || { echo "ERROR: python3/python required to run this check"; exit 1; }
+	@cd .. && "$(PYTHON)" scripts/generate_database_schema_doc.py
+	@echo "Database schema doc regenerated: docs/database-schema.md"
+
+check-db-docs:
+	@echo "Checking database schema doc sync with SQL migrations..."
+	@test -n "$(PYTHON)" || { echo "ERROR: python3/python required to run this check"; exit 1; }
+	@cd .. && "$(PYTHON)" scripts/check_database_schema_doc.py
+	@echo "Database schema doc check passed: docs/database-schema.md is up to date."
+
 # ============ Database ============
 
 migrate:
@@ -211,6 +225,8 @@ help:
 	@echo "=== API Documentation ==="
 	@echo "check-openapi  - Verify all registered endpoints are documented in openapi.json"
 	@echo "docs           - Run check-openapi + regenerate docs/openapi-report.md"
+	@echo "db-docs        - Regenerate docs/database-schema.md from SQL migrations"
+	@echo "check-db-docs  - Verify docs/database-schema.md is in sync with migrations (no overwrite)"
 	@echo ""
 	@echo "=== Database ==="
 	@echo "migrate        - Run platform migrations"

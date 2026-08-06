@@ -1,5 +1,8 @@
 # Frontend Development Plan — HRIS Platform
 
+> 🔗 **Index dokumentasi:** [`docs/README.md`](README.md)  
+> **Terkait:** [`panduan-uiux-hris-enterprise.md`](panduan-uiux-hris-enterprise.md) · [`project-completion-dashboard.md`](project-completion-dashboard.md) · [`api/api-usage-guide.md`](api/api-usage-guide.md)
+
 **Generated:** 27 July 2026
 **Last Updated:** 2 August 2026 (Organization Tree drag & drop fix — PrimeVue 4.5.5 API; Employee Form: 8/9 steps completed; Platform Admin: CompanyActions.vue reusable component; Job Values icon fix — PrimeIcons 8.0.0)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios

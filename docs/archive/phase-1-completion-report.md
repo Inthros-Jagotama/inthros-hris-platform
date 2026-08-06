@@ -1,5 +1,8 @@
 # Phase 1 Completion Report — Platform Admin Frontend (MVP)
 
+> 🔗 **Arsip dokumentasi:** [`docs/README.md`](../README.md) — dokumen ini adalah referensi historis dari modul yang sudah selesai diimplementasikan.
+
+
 **Tanggal:** 26 Juli 2026  
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios  
 **Backend:** Go 1.22+ / Gin / GORM — Dual DB (PostgreSQL & MySQL)

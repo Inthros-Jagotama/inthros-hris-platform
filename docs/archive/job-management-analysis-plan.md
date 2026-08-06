@@ -1,12 +1,15 @@
 # Job Management Module — Analisis & Rencana Implementasi Frontend
 
+> 🔗 **Arsip dokumentasi:** [`docs/README.md`](../README.md) — dokumen ini adalah referensi historis dari modul yang sudah selesai diimplementasikan.
+
+
 **Generated:** 30 July 2026  
 **Updated:** 05 August 2026  
 **Source:** `backend/internal/modules/jobmanagement/` (Go) + analisis model scoring  
 > **Update 05 Agu 2026:** scoring otomatis sudah diimplementasikan (lihat G.7), form per-org
 > `JobManagementForm.vue` selesai (multi-section dengan left-nav + sticky score summary),
 > Job Values + mapping cluster + tree endpoint selesai. Lihat juga
-> `docs/job-management-score-analysis.md` (status implementasi) & `PROJECT_COMPLETION_DASHBOARD.md`.
+> `docs/job-management-score-analysis.md` (status implementasi) & `docs/project-completion-dashboard.md`.
 
 ---
 

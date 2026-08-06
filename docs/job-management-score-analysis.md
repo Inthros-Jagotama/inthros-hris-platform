@@ -1,5 +1,8 @@
 # Analisa Perhitungan Job Management Score
 
+> 🔗 **Index dokumentasi:** [`docs/README.md`](README.md)  
+> **Terkait:** [`analisis-blueprint-vs-existing.md`](analisis-blueprint-vs-existing.md) · [`platform-architecture-design.md`](platform-architecture-design.md)
+
 > **Dokumen hasil analisa** — mempelajari cara perhitungan *Job Management Score* dari
 > `docs/backlog/JobValueCalculator.php` (implementasi legacy PHP/Laravel) dan membandingkannya
 > dengan implementasi backend Go saat ini (`backend/internal/modules/jobmanagement/`).
@@ -744,5 +747,5 @@ without_financial = 0   (karena has_financial_authority = true)
 ---
 
 *Dokumen analisa ini sudah diimplementasikan penuh di Go (05 Agu 2026). Lihat juga
-`docs/PROJECT_COMPLETION_DASHBOARD.md` untuk changelog fitur dan `docs/openapi-report.md`
+`docs/project-completion-dashboard.md` untuk changelog fitur dan `docs/openapi-report.md`
 untuk daftar endpoint lengkap.*

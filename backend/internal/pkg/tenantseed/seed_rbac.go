@@ -12,7 +12,7 @@ import (
 // Seeder untuk Tenant RBAC (Level 2 — Users, Roles, Permissions)
 // =============================================================================
 //
-// Melengkapi checklist Phase 1 (ACHITECTURE_DESIGN_UPDATE_v1.7):
+// Melengkapi checklist Phase 1 (lihat docs/platform-architecture-design.md):
 //   - Auto-seed master data permissions bawaan sistem
 //   - Auto-seed default roles tenant (Admin, Employee)
 //

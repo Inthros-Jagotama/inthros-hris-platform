@@ -1,5 +1,8 @@
 # HRIS Platform — Deployment Guide
 
+> 🔗 **Index dokumentasi:** [`docs/README.md`](README.md)  
+> **Terkait:** [`platform-architecture-design.md`](platform-architecture-design.md) · [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`openapi-report.md`](openapi-report.md)
+
 Panduan lengkap deployment untuk **dua mode distribusi**:
 
 | Mode | Karakteristik | Lisensi Modul | Cocok Untuk |
@@ -521,7 +524,7 @@ Vendor membuat `.lic` baru dengan `--expires` lebih lama, klien mengganti file `
 | Licensectl CLI | `backend/cmd/licensectl/` |
 | Installer CLI | `backend/cmd/installer/` |
 | OpenAPI Report | `docs/openapi-report.md` |
-| Project Dashboard | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
+| Project Dashboard | `docs/project-completion-dashboard.md` |
 
 ---
 

@@ -51,6 +51,8 @@ lines.append(f"**Total Endpoints (methods):** {total_endpoints}")
 lines.append(f"**Total Schemas:** {total_schemas}")
 lines.append(f"**Total Tags:** {total_tags}")
 lines.append("")
+lines.append("> 🔗 **Index dokumentasi:** [`docs/README.md`](README.md) · **Terkait:** [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)")
+lines.append("")
 
 # Coverage summary
 lines.append("## Coverage Summary")

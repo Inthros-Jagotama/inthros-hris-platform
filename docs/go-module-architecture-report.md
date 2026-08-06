@@ -1,6 +1,8 @@
 ====================================================================================================
   HRIS PLATFORM — GO MODULE ARCHITECTURE REPORT
   Generated: 26 Jul 2026
+
+  Index dokumentasi: docs/README.md  |  Terkait: platform-architecture-design.md, openapi-report.md
 ====================================================================================================
 
 ## SECTION 1: TENANT MODULES (internal/modules/)

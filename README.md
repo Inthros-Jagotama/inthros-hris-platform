@@ -167,7 +167,7 @@ hris-platform/
 │   │   │   ├── approval/             #   Approval Engine (5 entities, 15 endpoints)
 │   │   │   ├── payroll/              #   Payroll & Compensation Engine (21 entities)
 │   │   │   ├── leave/                #   Leave & Time Off (6 entities, 21 endpoints)
-│   │   │   ├── performance/          #   Performance Management (7 entities, 34 endpoints, 55 tests)
+│   │   │   ├── performance/          #   Performance Management (15 entities, 117 endpoints, 55 tests)
 │   │   │   ├── recruitment/          #   Recruitment & Onboarding ATS (7 entities, 33 endpoints, 66 tests)
 │   │   │   ├── training/            #   Training & Development (7 entities, 35 endpoints, 31 tests)
 │   │   │   ├── careerintelligence/   #   Career Intelligence & Talent Management (4 entities, 19 endpoints, 65 tests)
@@ -204,8 +204,15 @@ hris-platform/
 ├── docker/
 │   └── docker-compose.yml            # Full infra compose
 └── docs/
-    ├── platform-architecture-design.md
-    └── analisis-blueprint-vs-existing.md
+    ├── api/
+    │   └── api-usage-guide.md        # Panduan penggunaan API (curl, auth, contoh)
+    ├── platform-architecture-design.md  # Dokumen arsitektur utama
+    ├── deployment-guide.md           # Panduan deployment SaaS & on-premise
+    ├── openapi-report.md             # Laporan OpenAPI (generated via make docs)
+    ├── panduan-uiux-hris-enterprise.md # Standar & prompt UI/UX
+    ├── frontend-development-plan.md  # Roadmap implementasi frontend
+    ├── ...                           # Lihat bagian "Dokumentasi Lainnya"
+    └── archive/                      # Plan/rencana modul yang sudah selesai
 ```
 
 ---
@@ -870,6 +877,76 @@ Authorization: Bearer <access_token>
 | `PUT` | `/reimbursements/requests/:requestId/items/:itemId` | Update a reimbursement item |
 | `DELETE` | `/reimbursements/requests/:requestId/items/:itemId` | Delete a reimbursement item |
 
+**Performance Management — KPI & OKR**
+
+Semua endpoint performance berada di `/api/v1/tenant/performance/` dan terbagi dalam **3 kelompok**: **Master Data** (dipakai bersama KPI & OKR), **KPI** (`/performance/kpi/*`, 58 endpoints), dan **OKR** (`/performance/okr/*`, 42 endpoints).
+
+**Master Data (dipakai KPI & OKR)**
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `POST` / `GET` | `/performance/periods` | Create / List performance periods (MONTHLY/QUARTERLY/SEMESTER/ANNUAL) |
+| `GET` / `PUT` / `DELETE` | `/performance/periods/:id` | Get / Update / Delete performance period |
+| `POST` / `GET` | `/performance/ratings` | Create / List rating scales (contoh: A=90-100) |
+| `GET` / `PUT` / `DELETE` | `/performance/ratings/:id` | Get / Update / Delete rating |
+| `POST` / `GET` | `/performance/indicator-formulas` | Create / List KPI score formulas (MANUAL/HIGHER_BETTER/LOWER_BETTER/RANGE) |
+| `GET` / `PUT` / `DELETE` | `/performance/indicator-formulas/:id` | Get / Update / Delete formula |
+| `GET` | `/performance/logs` | List performance audit logs |
+| `GET` | `/performance/logs/:id` | Get audit log by ID |
+
+**KPI — Balanced Scorecard (`/performance/kpi/*`)**
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `POST` / `GET` | `/performance/kpi/perspectives` | Create / List BSC perspectives |
+| `GET` / `PUT` / `DELETE` | `/performance/kpi/perspectives/:id` | Get / Update / Delete perspective |
+| `POST` / `GET` | `/performance/kpi/templates` | Create / List KPI templates |
+| `GET` / `PUT` / `DELETE` | `/performance/kpi/templates/:id` | Get / Update / Delete template |
+| `POST` / `GET` | `/performance/kpi/indicators` | Create / List KPI indicators |
+| `GET` / `PUT` / `DELETE` | `/performance/kpi/indicators/:id` | Get / Update / Delete indicator |
+| `POST` | `/performance/kpi/evaluations` | Create KPI evaluation |
+| `GET` | `/performance/kpi/evaluations` | List evaluations (filter employee/organization/period/status) |
+| `GET` / `PUT` / `DELETE` | `/performance/kpi/evaluations/:id` | Get / Update / Delete evaluation |
+| `POST` | `/performance/kpi/evaluations/snapshot` | Create evaluation + snapshot KPI dari template (nilai target terkunci) |
+| `GET` | `/performance/kpi/evaluations/:id/full` | Get evaluation lengkap (details, targets, comments, attachments) |
+| `PUT` | `/performance/kpi/evaluations/:id/status` | Update status workflow (DRAFT → PLAN_SUBMITTED → PLAN_APPROVED → ACTUAL_SUBMITTED → ACTUAL_APPROVED → COMPLETED) |
+| `POST` | `/performance/kpi/evaluations/:id/submit` | Submit evaluation |
+| `POST` | `/performance/kpi/evaluations/:id/approve` | Approve evaluation |
+| `POST` | `/performance/kpi/evaluations/:id/reject` | Reject evaluation |
+| `POST` | `/performance/kpi/evaluations/:id/complete` | Complete evaluation |
+| `POST` | `/performance/kpi/evaluations/:id/recalculate` | Recalculate score |
+| `PUT` | `/performance/kpi/evaluations/:id/actuals` | Bulk input actual values |
+| `POST` / `GET` | `/performance/kpi/targets` | Create / List KPI targets |
+| `POST` | `/performance/kpi/progress` | Catat progres realisasi KPI |
+| `POST` | `/performance/kpi/comments` | Tambah komentar/review |
+| `POST` | `/performance/kpi/attachments` | Lampirkan file bukti |
+| `GET` | `/performance/kpi/dashboard/employee/:employeeId` | Dashboard KPI employee |
+| `GET` | `/performance/kpi/dashboard/manager/:managerId` | Dashboard KPI manager |
+| `GET` | `/performance/kpi/dashboard/hr` | Dashboard KPI HR |
+
+**OKR — Objectives & Key Results (`/performance/okr/*`)**
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `POST` / `GET` | `/performance/okr/templates` | Create / List OKR templates |
+| `GET` / `PUT` / `DELETE` | `/performance/okr/templates/:id` | Get / Update / Delete template |
+| `POST` | `/performance/okr/templates/:id/duplicate` | Duplicate template (beserta objectives & key results) |
+| `POST` | `/performance/okr/objectives` | Create objective |
+| `GET` / `PUT` / `DELETE` | `/performance/okr/objectives/:id` | Get / Update / Delete objective |
+| `POST` | `/performance/okr/key-results` | Create key result (target, unit, formula, bobot) |
+| `GET` / `PUT` / `DELETE` | `/performance/okr/key-results/:id` | Get / Update / Delete key result |
+| `POST` / `GET` | `/performance/okr/evaluations` | Create (snapshot dari template) / List OKR evaluations |
+| `GET` / `PUT` / `DELETE` | `/performance/okr/evaluations/:id` | Get / Update / Delete evaluation |
+| `POST` | `/performance/okr/evaluations/:id/submit` | Submit (→ SUBMITTED) |
+| `POST` | `/performance/okr/evaluations/:id/approve` | Approve (→ APPROVED) |
+| `POST` | `/performance/okr/evaluations/:id/reject` | Reject (→ REJECTED) |
+| `POST` | `/performance/okr/evaluations/:id/complete` | Complete (→ COMPLETED) |
+| `POST` | `/performance/okr/evaluations/:id/recalculate` | Recalculate score |
+| `PUT` | `/performance/okr/evaluations/:id/actuals` | Bulk input actual values |
+| `POST` | `/performance/okr/progress` | Catat progres/check-in |
+| `POST` | `/performance/okr/comments` | Tambah komentar (mendukung reply) |
+| `POST` | `/performance/okr/attachments` | Lampirkan file bukti |
+| `GET` | `/performance/okr/dashboard/hr` | Dashboard OKR HR |
+
+> 🔍 Daftar lengkap 117 endpoint (17 master data + 58 KPI + 42 OKR) dengan skema request/response: lihat [`docs/openapi-report.md`](docs/openapi-report.md).
+
 **Settings — Master Data / Reference CRUD**
 
 Semua endpoint settings berada di `/api/v1/tenant/settings/`. Masing-masing entity memiliki 5 CRUD endpoint standar (`GET`, `POST`, `GET/:id`, `PUT/:id`, `DELETE/:id`):
@@ -1236,6 +1313,9 @@ go run ./cmd/installer encrypt-passwords --config=./config/config.yaml
 | `make seed` | Jalankan platform seeding (via server) |
 | `make migrate` | Jalankan platform migrations |
 | `make build-installer` | Build CLI installer binary (ke `bin/installer`) |
+| `make docs` | Verifikasi OpenAPI + regenerate `docs/openapi-report.md` |
+| `make db-docs` | Regenerate `docs/database-schema.md` dari migrasi SQL |
+| `make check-db-docs` | Verifikasi `docs/database-schema.md` sinkron dengan migrasi SQL postgres **&** mysql (tanpa menimpa) |
 
 > **Catatan:** `make seed` (server) berbeda dari `go run ./cmd/installer seed-data` (installer). Gunakan `make seed` untuk platform-level dan installer `seed-data --company=<uuid>` untuk tenant-level master data.
 
@@ -1266,6 +1346,9 @@ make test             # Run all tests
 make lint             # Run linter
 make vet              # Run go vet
 make coverage         # Run tests with coverage report
+make docs             # Verify OpenAPI + regenerate docs/openapi-report.md
+make db-docs          # Regenerate docs/database-schema.md from SQL migrations
+make check-db-docs    # Verify database-schema.md in sync with postgres & mysql migrations (no overwrite)
 make docker           # Build Docker image
 make tidy             # Tidy dependencies
 make clean            # Clean build artifacts
@@ -1696,7 +1779,7 @@ POST /api/v1/platform/companies
   - **BPJS Indonesia**: BPJS Settings & Rate Components (Kesehatan & Ketenagakerjaan)
   - **PPh21**: Settings, Tax Brackets, PTKP Rates, Calculation Logs
   - **Payroll Run** |
-| **Performance Management** | ✅ **Completed (31 Juli 2026)** | **7 GORM entities**: PerformancePeriod, PerformancePerspective, PerformanceTemplate, PerformanceIndicator, PerformanceEvaluation, PerformanceEvaluationDetail, PerformanceTarget. KPI & OKR framework dengan period-based evaluations. **55 unit tests** (14 repository + 24 service + 17 handler). **34 endpoints** — periods, perspectives, templates, indicators, evaluations (with status workflow & score details), targets. Full OpenAPI documentation dengan 253 schemas terintegrasi. |
+| **Performance Management** | ✅ **Completed (31 Juli 2026)** | **15 GORM entities** (7 KPI + 8 OKR): PerformancePeriod, PerformancePerspective, PerformanceTemplate, PerformanceIndicator, PerformanceEvaluation, PerformanceEvaluationDetail, PerformanceTarget, OKRTemplate, OKRObjective, OKRKeyResult, OKREvaluation, OKREvaluationDetail, OKRProgress, OKRComment, OKRAttachment. KPI (Balanced Scorecard) & OKR framework dengan period-based evaluations, status workflow (DRAFT → PLAN_SUBMITTED → PLAN_APPROVED → ACTUAL_SUBMITTED → ACTUAL_APPROVED → COMPLETED), dan dashboard per role (employee/manager/HR). **55 unit tests** (14 repository + 24 service + 17 handler). **117 endpoints** — 17 master data (periods, ratings, indicator-formulas, logs) + 58 KPI (`/performance/kpi/*`) + 42 OKR (`/performance/okr/*`). Full OpenAPI documentation terintegrasi. |
 | **Recruitment & Onboarding ATS** | ✅ **Completed (31 Juli 2026)** | **7 GORM entities**: Requisition, Candidate, Application, Interview, InterviewResult, OnboardingTask, OnboardingChecklist. End-to-end hiring pipeline: job req → candidate sourcing → application → interview → offer → onboarding. **66 unit tests** (27 repository + 23 service + 16 handler). **33 endpoints** across 7 resource groups. Full ATS workflow with status tracking (OPEN→IN_PROGRESS→FILLED→CANCELLED). |: Periods, Runs (dengan status workflow DRAFT→CALCULATED→REVIEWED→APPROVED→LOCKED), Run Employees, Items, Payslips
   - **OpenAPI**: **23 path groups** (~46 endpoints), 21 request schemas, 22 response schemas (total 153 schemas) — versi 1.6.0 |
 | **Time & Attendance** | ✅ **Completed (26 Juli 2026)** | **10 GORM entities**: Company Settings, Company Shifts, Employee Shifts, Locations (Geofence), Device Captures, Face Captures, Events (Check-in/out), Sessions (Daily Work), Overtime Requests, Exempt Positions. Full CRUD untuk 8 sub-entities. **83 unit tests** (37 repo + 25 service + 21 handler). **30 endpoints**. OpenAPI docs enhanced — versi 1.6.3 |
@@ -1722,8 +1805,8 @@ POST /api/v1/platform/companies
 |---|------|------|
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
-| ✅ | Project completion dashboard (14 modules, 1004+ tests, 148 tables) | `docs/PROJECT_COMPLETION_DASHBOARD.md` |
-| ✅ | OpenAPI comprehensive report (698 endpoints, 442 schemas, 30 tags) | `docs/openapi-report.md` |
+| ✅ | Project completion dashboard (14 modules, 1004+ tests, 148 tables) | `docs/project-completion-dashboard.md` |
+| ✅ | OpenAPI comprehensive report (789 endpoints, 442 paths, 490 schemas, 32 tags) | `docs/openapi-report.md` |
 | ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
@@ -1817,7 +1900,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**698 endpoints**, 442 schemas, 30 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**789 endpoints**, 442 paths, 490 schemas, 32 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 
@@ -2012,12 +2095,19 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 
 | Dokumen | Deskripsi |
 |---|---|
-| [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap |
-| [`docs/PROJECT_COMPLETION_DASHBOARD.md`](docs/PROJECT_COMPLETION_DASHBOARD.md) | **NEW** — Project completion dashboard (14 modules, 939+ tests, 139 tables) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v17 — 698 endpoints, 442 schemas, 30 tags) |
+| [`docs/README.md`](docs/README.md) | **Index pusat** seluruh dokumentasi (navigasi cepat ke semua dokumen) |
+| [`docs/api/api-usage-guide.md`](docs/api/api-usage-guide.md) | Panduan penggunaan API — menjalankan server, auth, format response, contoh curl, error codes |
+| [`docs/database-schema.md`](docs/database-schema.md) | Struktur database & ERD — Platform DB (11 tabel) + Tenant DB (166 tabel), relasi FK, konvensi kolom |
+| [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap (satu-satunya dokumen arsitektur) |
+| [`docs/deployment-guide.md`](docs/deployment-guide.md) | Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v17 — 789 endpoints, 442 paths, 490 schemas, 32 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
-| [`docs/deployment-guide.md`](docs/deployment-guide.md) | **NEW** — Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
+| [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (14 modules, 939+ tests, 139 tables) |
+| [`docs/panduan-uiux-hris-enterprise.md`](docs/panduan-uiux-hris-enterprise.md) | Standar UI/UX enterprise (modal-first, high-density, prompt AI, warna badge) |
+| [`docs/frontend-development-plan.md`](docs/frontend-development-plan.md) | Roadmap implementasi frontend Platform Admin & Tenant |
+| [`docs/job-management-score-analysis.md`](docs/job-management-score-analysis.md) | Analisa perhitungan Job Management Score (dirujuk `calculator.go`) |
 | [`docs/analisis-blueprint-vs-existing.md`](docs/analisis-blueprint-vs-existing.md) | Analisis blueprint vs existing Laravel app |
+| [`docs/archive/`](docs/archive/) | Arsip plan/rencana modul yang sudah selesai diimplementasikan (KPI, OKR, Job Management, Workforce Intelligence, dll.) |
 | [`backend/.env.example`](backend/.env.example) | Template environment variables |
 | [`backend/Makefile`](backend/Makefile) | Build & development commands |
 

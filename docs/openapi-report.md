@@ -3,18 +3,20 @@
 
 **Generated:** 06 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 400
-**Total Endpoints (methods):** 734
-**Total Schemas:** 467
+**Total Paths:** 442
+**Total Endpoints (methods):** 789
+**Total Schemas:** 490
 **Total Tags:** 32
+
+> 🔗 **Index dokumentasi:** [`docs/README.md`](README.md) · **Terkait:** [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)
 
 ## Coverage Summary
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 734/734 | 100% |
-| Endpoints with `description` | 734/734 | 100% |
-| Endpoints with `operationId` | 734/734 | 100% |
+| Endpoints with `summary` | 789/789 | 100% |
+| Endpoints with `description` | 789/789 | 100% |
+| Endpoints with `operationId` | 789/789 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -105,10 +107,10 @@ Tenant endpoints support validation for Indonesian data formats:
 
 | # | Tag | Endpoints | Paths |
 |---|---|---|---|
-| 1 | Tenant: Settings | 107 | 44 |
-| 2 | Tenant: Job Management | 96 | 40 |
-| 3 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
-| 4 | Tenant: Performance Management | 62 | 33 |
+| 1 | Tenant: Performance Management | 117 | 75 |
+| 2 | Tenant: Settings | 107 | 44 |
+| 3 | Tenant: Job Management | 96 | 40 |
+| 4 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
 | 5 | Tenant: Payroll & Compensation Engine | 47 | 24 |
 | 6 | Tenant: Employees | 36 | 23 |
 | 7 | Tenant: Competency Management | 35 | 15 |
@@ -136,9 +138,134 @@ Tenant endpoints support validation for Indonesian data formats:
 | 29 | Public | 2 | 2 |
 | 30 | Tenant Auth | 2 | 2 |
 | 31 | Tenant: Company | 2 | 1 |
-| | **TOTAL** | **734** | **400** |
+| | **TOTAL** | **789** | **442** |
 
 ## 2. Module Detail
+
+### Tenant: Performance Management
+**Description:** Performance Management â€” BSC (Balanced Scorecard) based KPI and performance evaluation module. Includes performance periods, BSC perspectives, KPI templates and indicators, employee evaluations, and individual performance targets with full status workflow (DRAFT->PLAN_SUBMITTED->PLAN_APPROVED->ACTUAL_SUBMITTED->ACTUAL_APPROVED->COMPLETED).
+**Endpoints:** 117 | **Paths:** 75
+**Methods:** DELETE=19 GET=44 POST=31 PUT=23
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/tenant/performance/indicator-formulas` | Create indicator formula | Buat formula kalkulasi skor KPI (MANUAL/HIGHER_BETTER/LOWER_BETTER/RANGE). |
+| `GET` | `/api/v1/tenant/performance/indicator-formulas` | List indicator formulas | Ambil daftar formula kalkulasi skor KPI dengan pagination. |
+| `GET` | `/api/v1/tenant/performance/indicator-formulas/{id}` | Get indicator formula by ID | Ambil satu formula kalkulasi skor KPI. |
+| `PUT` | `/api/v1/tenant/performance/indicator-formulas/{id}` | Update indicator formula | Perbarui formula kalkulasi skor KPI. |
+| `DELETE` | `/api/v1/tenant/performance/indicator-formulas/{id}` | Delete indicator formula | Hapus satu formula kalkulasi skor KPI. |
+| `POST` | `/api/v1/tenant/performance/kpi/attachments` | Create performance attachment | Lampirkan file bukti/dokumen pendukung pada evaluation detail. |
+| `GET` | `/api/v1/tenant/performance/kpi/attachments/{id}` | Get performance attachment by ID | Ambil satu lampiran performance berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/performance/kpi/attachments/{id}` | Update performance attachment | Perbarui deskripsi lampiran performance. |
+| `DELETE` | `/api/v1/tenant/performance/kpi/attachments/{id}` | Delete performance attachment | Hapus satu lampiran performance. |
+| `POST` | `/api/v1/tenant/performance/kpi/comments` | Create performance comment | Tambahkan komentar/review pada sebuah performance evaluation. |
+| `GET` | `/api/v1/tenant/performance/kpi/comments/{id}` | Get performance comment by ID | Ambil satu komentar performance berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/performance/kpi/comments/{id}` | Update performance comment | Perbarui isi komentar performance. |
+| `DELETE` | `/api/v1/tenant/performance/kpi/comments/{id}` | Delete performance comment | Hapus satu komentar performance. |
+| `GET` | `/api/v1/tenant/performance/kpi/dashboard/employee/{employee_id}` | Get KPI employee dashboard | Dashboard KPI untuk employee: daftar KPI, progress, achievement, dan skor evaluasi periode aktif. |
+| `GET` | `/api/v1/tenant/performance/kpi/dashboard/hr` | Get KPI HR dashboard | Dashboard KPI untuk HR: ringkasan evaluasi seluruh organisasi (total, status, skor rata-rata, distribusi). |
+| `GET` | `/api/v1/tenant/performance/kpi/dashboard/manager/{manager_id}` | Get KPI manager dashboard | Dashboard KPI untuk manager: ringkasan tim, anggota tim beserta skor & status KPI masing-masing. |
+| `POST` | `/api/v1/tenant/performance/kpi/evaluation-details` | Create evaluation detail | Add a BSC perspective detail to a performance evaluation, including achievement percentage, weight, and score for that perspective. |
+| `PUT` | `/api/v1/tenant/performance/kpi/evaluation-details/{id}` | Update evaluation detail | Update a BSC perspective detail's achievement percentage, weight, score, or description. |
+| `DELETE` | `/api/v1/tenant/performance/kpi/evaluation-details/{id}` | Delete evaluation detail | Permanently delete a BSC perspective detail from the evaluation. |
+| `PUT` | `/api/v1/tenant/performance/kpi/evaluation-details/{id}/actual` | Update KPI evaluation detail actual | Input nilai aktual (actual) untuk satu detail evaluasi — skor & achievement dihitung ulang. |
+| `GET` | `/api/v1/tenant/performance/kpi/evaluation-details/{id}/attachments` | List attachments by evaluation detail | Ambil semua lampiran pada evaluation detail tertentu. |
+| `GET` | `/api/v1/tenant/performance/kpi/evaluation-details/{id}/progress` | List progress by evaluation detail | Ambil semua progres KPI yang tercatat untuk evaluation detail tertentu. |
+| `POST` | `/api/v1/tenant/performance/kpi/evaluations` | Create performance evaluation | Start a new performance evaluation for an employee. Links the employee to a performance period and KPI template for assessment. |
+| `GET` | `/api/v1/tenant/performance/kpi/evaluations` | List performance evaluations | Retrieve a paginated list of performance evaluations, optionally filtered by employee, organization, period, or status. |
+| `POST` | `/api/v1/tenant/performance/kpi/evaluations/snapshot` | Create KPI evaluation with snapshot | Buat evaluasi KPI baru sekaligus snapshot KPI dari template ke evaluation details (nilai target terkunci). |
+| `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}` | Get performance evaluation by ID | Retrieve detailed information about a specific performance evaluation, including its status, scores, and linked targets. |
+| `PUT` | `/api/v1/tenant/performance/kpi/evaluations/{id}` | Update performance evaluation | Update evaluation metadata such as supervisor assignment or notes. Only provided fields will be updated. |
+| `DELETE` | `/api/v1/tenant/performance/kpi/evaluations/{id}` | Delete performance evaluation | Permanently delete a performance evaluation. Only evaluations in DRAFT status can be deleted. |
+| `PUT` | `/api/v1/tenant/performance/kpi/evaluations/{id}/actuals` | Bulk update KPI evaluation actuals | Input nilai aktual sekaligus untuk banyak evaluation detail dalam satu request. |
+| `POST` | `/api/v1/tenant/performance/kpi/evaluations/{id}/approve` | Approve KPI evaluation | Setujui evaluasi KPI (status → APPROVED). |
+| `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}/comments` | List comments by evaluation | Ambil semua komentar pada sebuah performance evaluation. |
+| `POST` | `/api/v1/tenant/performance/kpi/evaluations/{id}/complete` | Complete KPI evaluation | Selesaikan evaluasi KPI (status → COMPLETED) — hasil akhir terkunci. |
+| `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}/details` | List evaluation details by evaluation ID | Retrieve all BSC perspective detail records for a specific performance evaluation, showing achievement per perspective. |
+| `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}/full` | Get KPI evaluation with details | Ambil evaluasi KPI lengkap: detail perspektif, target, progress, komentar, dan lampiran. |
+| `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}/logs` | List audit logs by evaluation | Ambil audit trail perubahan pada sebuah performance evaluation. |
+| `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}/progress-summary` | Get KPI evaluation progress summary | Ringkasan progres realisasi KPI untuk sebuah evaluasi (nilai aktual terbaru & achievement per detail). |
+| `POST` | `/api/v1/tenant/performance/kpi/evaluations/{id}/recalculate` | Recalculate KPI evaluation score | Hitung ulang skor evaluasi KPI dari nilai aktual & formula tiap indikator, lalu simpan hasilnya. |
+| `POST` | `/api/v1/tenant/performance/kpi/evaluations/{id}/reject` | Reject KPI evaluation | Tolak evaluasi KPI (status → REJECTED) untuk direvisi. |
+| `PUT` | `/api/v1/tenant/performance/kpi/evaluations/{id}/status` | Update evaluation status | Transition a performance evaluation through its workflow: DRAFT -> PLAN_SUBMITTED -> PLAN_APPROVED -> ACTUAL_SUBMITTED -> ACTUAL_APPROVED -> COMPLE... |
+| `POST` | `/api/v1/tenant/performance/kpi/evaluations/{id}/submit` | Submit KPI evaluation | Ajukan evaluasi KPI (status → SUBMITTED) untuk direview atasan. |
+| `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}/targets` | List performance targets by evaluation ID | Retrieve all KPI targets for a specific performance evaluation, showing planned vs actual achievement for each indicator. |
+| `POST` | `/api/v1/tenant/performance/kpi/indicators` | Create KPI indicator | Create a new KPI indicator linked to a template and BSC perspective. Defines target value, weight, and measurement unit. |
+| `GET` | `/api/v1/tenant/performance/kpi/indicators` | List KPI indicators | Retrieve a paginated list of KPI indicators, optionally filtered by template or perspective. |
+| `GET` | `/api/v1/tenant/performance/kpi/indicators/{id}` | Get KPI indicator by ID | Retrieve a specific KPI indicator by its unique ID, including target value and measurement settings. |
+| `PUT` | `/api/v1/tenant/performance/kpi/indicators/{id}` | Update KPI indicator | Update a KPI indicator's title, weight, target value, or measurement unit. Only provided fields will be updated. |
+| `DELETE` | `/api/v1/tenant/performance/kpi/indicators/{id}` | Delete KPI indicator | Permanently delete a KPI indicator from its template. |
+| `POST` | `/api/v1/tenant/performance/kpi/perspectives` | Create BSC perspective | Create a new Balanced Scorecard perspective (e.g. Financial, Customer, Internal Process, Learning & Growth). |
+| `GET` | `/api/v1/tenant/performance/kpi/perspectives` | List BSC perspectives | Retrieve a paginated list of BSC perspectives used in performance templates. Ordered by sort_order by default. |
+| `GET` | `/api/v1/tenant/performance/kpi/perspectives/{id}` | Get BSC perspective by ID | Retrieve a specific BSC perspective by its unique ID. |
+| `PUT` | `/api/v1/tenant/performance/kpi/perspectives/{id}` | Update BSC perspective | Update a BSC perspective's name, description, or sort order. Only provided fields will be updated. |
+| `DELETE` | `/api/v1/tenant/performance/kpi/perspectives/{id}` | Delete BSC perspective | Permanently delete a BSC perspective from the system. |
+| `POST` | `/api/v1/tenant/performance/kpi/progress` | Create performance progress | Catat progres realisasi KPI untuk satu evaluation detail (nilai aktual per tanggal). |
+| `GET` | `/api/v1/tenant/performance/kpi/progress/{id}` | Get performance progress by ID | Ambil satu catatan progres KPI berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/performance/kpi/progress/{id}` | Update performance progress | Perbarui tanggal, nilai aktual, achievement, atau catatan progres KPI. |
+| `DELETE` | `/api/v1/tenant/performance/kpi/progress/{id}` | Delete performance progress | Hapus satu catatan progres KPI. |
+| `POST` | `/api/v1/tenant/performance/kpi/targets` | Create performance target | Add an individual KPI target to a performance evaluation, setting the target value and weight for measurement. |
+| `PUT` | `/api/v1/tenant/performance/kpi/targets/{id}` | Update performance target | Update a KPI target's planned value, actual achievement, or weight. Setting actual_value triggers automatic achievement percentage calculation. |
+| `DELETE` | `/api/v1/tenant/performance/kpi/targets/{id}` | Delete performance target | Permanently delete a KPI target from the evaluation. |
+| `POST` | `/api/v1/tenant/performance/kpi/templates` | Create KPI template | Create a new KPI template for an organization. Templates define the structure of performance evaluations including indicators from BSC perspectives. |
+| `GET` | `/api/v1/tenant/performance/kpi/templates` | List KPI templates | Retrieve a paginated list of KPI templates, optionally filtered by organization. |
+| `GET` | `/api/v1/tenant/performance/kpi/templates/{id}` | Get KPI template by ID | Retrieve a specific KPI template by its unique ID, including associated indicators. |
+| `PUT` | `/api/v1/tenant/performance/kpi/templates/{id}` | Update KPI template | Update a KPI template's name, description, or status. Status can be transitioned between DRAFT, PUBLISHED, and ARCHIVED. |
+| `DELETE` | `/api/v1/tenant/performance/kpi/templates/{id}` | Delete KPI template | Permanently delete a KPI template. Indicators linked to this template may also be removed. |
+| `GET` | `/api/v1/tenant/performance/logs` | List performance audit logs | Ambil daftar audit trail perubahan data performance dengan pagination. |
+| `GET` | `/api/v1/tenant/performance/logs/{id}` | Get performance log by ID | Ambil satu audit trail berdasarkan ID. |
+| `POST` | `/api/v1/tenant/performance/okr/attachments` | Create OKR attachment | Lampirkan file bukti/dokumen pendukung pada evaluation detail OKR. |
+| `DELETE` | `/api/v1/tenant/performance/okr/attachments/{id}` | Delete OKR attachment | Hapus satu lampiran OKR. |
+| `POST` | `/api/v1/tenant/performance/okr/comments` | Create OKR comment | Tambahkan komentar/review pada evaluasi OKR (mendukung reply via parent_id). |
+| `PUT` | `/api/v1/tenant/performance/okr/comments/{id}` | Update OKR comment | Perbarui isi komentar OKR. |
+| `DELETE` | `/api/v1/tenant/performance/okr/comments/{id}` | Delete OKR comment | Hapus komentar OKR. |
+| `GET` | `/api/v1/tenant/performance/okr/dashboard/hr` | Get OKR HR dashboard | Dashboard OKR untuk HR: total evaluasi, sebaran status, skor & achievement rata-rata, distribusi rating. |
+| `PUT` | `/api/v1/tenant/performance/okr/evaluation-details/{id}` | Update OKR evaluation detail actual | Input nilai aktual satu evaluation detail OKR. |
+| `GET` | `/api/v1/tenant/performance/okr/evaluation-details/{id}/attachments` | List OKR attachments by evaluation detail | Ambil daftar lampiran bukti pada satu evaluation detail OKR. |
+| `GET` | `/api/v1/tenant/performance/okr/evaluation-details/{id}/progress` | List OKR progress by evaluation detail | Ambil riwayat progres (check-in) untuk satu evaluation detail OKR. |
+| `POST` | `/api/v1/tenant/performance/okr/evaluations` | Create OKR evaluation with snapshot | Buat evaluasi OKR employee dari template (objective & key results di-snapshot ke evaluation details). |
+| `GET` | `/api/v1/tenant/performance/okr/evaluations` | List OKR evaluations | Ambil daftar evaluasi OKR dengan pagination, filter per employee/organisasi/periode/status. |
+| `GET` | `/api/v1/tenant/performance/okr/evaluations/{id}` | Get OKR evaluation by ID | Ambil detail evaluasi OKR termasuk details, skor, dan status workflow. |
+| `PUT` | `/api/v1/tenant/performance/okr/evaluations/{id}` | Update OKR evaluation | Perbarui status atau catatan reviewer evaluasi OKR. |
+| `DELETE` | `/api/v1/tenant/performance/okr/evaluations/{id}` | Delete OKR evaluation | Hapus evaluasi OKR (hanya status DRAFT). |
+| `PUT` | `/api/v1/tenant/performance/okr/evaluations/{id}/actuals` | Bulk update OKR evaluation actuals | Input nilai aktual sekaligus untuk banyak evaluation detail OKR. |
+| `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/approve` | Approve OKR evaluation | Setujui evaluasi OKR (status → APPROVED). |
+| `GET` | `/api/v1/tenant/performance/okr/evaluations/{id}/comments` | List OKR comments by evaluation | Ambil semua komentar (dengan replies) pada sebuah evaluasi OKR. |
+| `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/complete` | Complete OKR evaluation | Selesaikan evaluasi OKR (status → COMPLETED). |
+| `GET` | `/api/v1/tenant/performance/okr/evaluations/{id}/details` | Get OKR evaluation with details | Ambil evaluasi OKR lengkap dengan seluruh evaluation details. |
+| `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/recalculate` | Recalculate OKR evaluation score | Hitung ulang skor & achievement evaluasi OKR dari nilai aktual dan formula tiap key result. |
+| `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/reject` | Reject OKR evaluation | Tolak evaluasi OKR (status → REJECTED). |
+| `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/submit` | Submit OKR evaluation | Ajukan evaluasi OKR (status → SUBMITTED). |
+| `POST` | `/api/v1/tenant/performance/okr/key-results` | Create OKR key result | Buat key result terukur di dalam sebuah objective (target, unit, formula, bobot). |
+| `GET` | `/api/v1/tenant/performance/okr/key-results/{id}` | Get OKR key result by ID | Ambil detail key result OKR. |
+| `PUT` | `/api/v1/tenant/performance/okr/key-results/{id}` | Update OKR key result | Perbarui target, unit, formula, bobot, atau status key result. |
+| `DELETE` | `/api/v1/tenant/performance/okr/key-results/{id}` | Delete OKR key result | Hapus key result dari objective. |
+| `POST` | `/api/v1/tenant/performance/okr/objectives` | Create OKR objective | Buat objective baru di dalam sebuah template OKR. |
+| `GET` | `/api/v1/tenant/performance/okr/objectives/{id}` | Get OKR objective by ID | Ambil detail objective OKR beserta key results. |
+| `PUT` | `/api/v1/tenant/performance/okr/objectives/{id}` | Update OKR objective | Perbarui judul, deskripsi, bobot, atau urutan objective. |
+| `DELETE` | `/api/v1/tenant/performance/okr/objectives/{id}` | Delete OKR objective | Hapus objective beserta key results terkait. |
+| `GET` | `/api/v1/tenant/performance/okr/objectives/{id}/key-results` | List OKR key results by objective | Ambil daftar key results dalam sebuah objective (non-paginated). |
+| `POST` | `/api/v1/tenant/performance/okr/progress` | Create OKR progress | Catat progres (check-in) nilai aktual untuk satu evaluation detail OKR. |
+| `GET` | `/api/v1/tenant/performance/okr/progress/{id}` | Get OKR progress by ID | Ambil satu catatan progres OKR. |
+| `PUT` | `/api/v1/tenant/performance/okr/progress/{id}` | Update OKR progress | Perbarui tanggal, nilai aktual, atau catatan progres OKR. |
+| `DELETE` | `/api/v1/tenant/performance/okr/progress/{id}` | Delete OKR progress | Hapus satu catatan progres OKR. |
+| `POST` | `/api/v1/tenant/performance/okr/templates` | Create OKR template | Buat template OKR untuk sebuah organisasi & periode (dengan objective & key results). |
+| `GET` | `/api/v1/tenant/performance/okr/templates` | List OKR templates | Ambil daftar template OKR dengan pagination, filter per organisasi/periode. |
+| `GET` | `/api/v1/tenant/performance/okr/templates/{id}` | Get OKR template by ID | Ambil detail template OKR termasuk daftar objective & key results. |
+| `PUT` | `/api/v1/tenant/performance/okr/templates/{id}` | Update OKR template | Perbarui nama, periode, status, atau tanggal efektif template OKR. |
+| `DELETE` | `/api/v1/tenant/performance/okr/templates/{id}` | Delete OKR template | Hapus template OKR beserta objective & key results terkait. |
+| `POST` | `/api/v1/tenant/performance/okr/templates/{id}/duplicate` | Duplicate OKR template | Duplikat template OKR (beserta objective & key results) sebagai template baru. |
+| `GET` | `/api/v1/tenant/performance/okr/templates/{id}/objectives` | List OKR objectives by template | Ambil daftar objective dalam sebuah template OKR (non-paginated). |
+| `POST` | `/api/v1/tenant/performance/periods` | Create performance period | Create a new performance evaluation period (e.g. Q1 2026). Period type must be one of: MONTHLY, QUARTERLY, SEMESTER, ANNUAL. |
+| `GET` | `/api/v1/tenant/performance/periods` | List performance periods | Retrieve a paginated list of performance periods, optionally filtered by year or status. |
+| `GET` | `/api/v1/tenant/performance/periods/{id}` | Get performance period by ID | Retrieve detailed information about a specific performance period by its unique UUID. |
+| `PUT` | `/api/v1/tenant/performance/periods/{id}` | Update performance period | Update an existing performance period's details. Only provided fields will be updated. |
+| `DELETE` | `/api/v1/tenant/performance/periods/{id}` | Delete performance period | Permanently delete a performance period by its unique ID. |
+| `POST` | `/api/v1/tenant/performance/ratings` | Create performance rating | Buat skala rating penilaian (mis. A=90-100, B=80-89) untuk konversi skor akhir. |
+| `GET` | `/api/v1/tenant/performance/ratings` | List performance ratings | Ambil daftar rating skala penilaian dengan pagination. |
+| `GET` | `/api/v1/tenant/performance/ratings/{id}` | Get performance rating by ID | Ambil satu rating skala penilaian. |
+| `PUT` | `/api/v1/tenant/performance/ratings/{id}` | Update performance rating | Perbarui rating skala penilaian. |
+| `DELETE` | `/api/v1/tenant/performance/ratings/{id}` | Delete performance rating | Hapus satu rating skala penilaian. |
 
 ### Tenant: Settings
 **Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data, education majors.
@@ -434,76 +561,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `DELETE` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}` | Delete scenario | Soft-delete a scenario by ID. |
 | `POST` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}/clone` | Clone scenario | Clone an existing scenario as a new DRAFT scenario. Useful for creating variations of a simulation without affecting the original. |
 | `POST` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}/run` | Run scenario simulation | Execute a scenario simulation. Runs the scenario's parameters through the simulation engine and stores results in the scenario record. |
-
-### Tenant: Performance Management
-**Description:** Performance Management â€” BSC (Balanced Scorecard) based KPI and performance evaluation module. Includes performance periods, BSC perspectives, KPI templates and indicators, employee evaluations, and individual performance targets with full status workflow (DRAFT->PLAN_SUBMITTED->PLAN_APPROVED->ACTUAL_SUBMITTED->ACTUAL_APPROVED->COMPLETED).
-**Endpoints:** 62 | **Paths:** 33
-**Methods:** DELETE=12 GET=25 POST=12 PUT=13
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/tenant/performance/attachments` | Create performance attachment | Lampirkan file bukti/dokumen pendukung pada evaluation detail. |
-| `GET` | `/api/v1/tenant/performance/attachments/{id}` | Get performance attachment by ID | Ambil satu lampiran performance berdasarkan ID. |
-| `PUT` | `/api/v1/tenant/performance/attachments/{id}` | Update performance attachment | Perbarui deskripsi lampiran performance. |
-| `DELETE` | `/api/v1/tenant/performance/attachments/{id}` | Delete performance attachment | Hapus satu lampiran performance. |
-| `POST` | `/api/v1/tenant/performance/comments` | Create performance comment | Tambahkan komentar/review pada sebuah performance evaluation. |
-| `GET` | `/api/v1/tenant/performance/comments/{id}` | Get performance comment by ID | Ambil satu komentar performance berdasarkan ID. |
-| `PUT` | `/api/v1/tenant/performance/comments/{id}` | Update performance comment | Perbarui isi komentar performance. |
-| `DELETE` | `/api/v1/tenant/performance/comments/{id}` | Delete performance comment | Hapus satu komentar performance. |
-| `POST` | `/api/v1/tenant/performance/evaluation-details` | Create evaluation detail | Add a BSC perspective detail to a performance evaluation, including achievement percentage, weight, and score for that perspective. |
-| `PUT` | `/api/v1/tenant/performance/evaluation-details/{id}` | Update evaluation detail | Update a BSC perspective detail's achievement percentage, weight, score, or description. |
-| `DELETE` | `/api/v1/tenant/performance/evaluation-details/{id}` | Delete evaluation detail | Permanently delete a BSC perspective detail from the evaluation. |
-| `GET` | `/api/v1/tenant/performance/evaluation-details/{id}/attachments` | List attachments by evaluation detail | Ambil semua lampiran pada evaluation detail tertentu. |
-| `GET` | `/api/v1/tenant/performance/evaluation-details/{id}/progress` | List progress by evaluation detail | Ambil semua progres KPI yang tercatat untuk evaluation detail tertentu. |
-| `POST` | `/api/v1/tenant/performance/evaluations` | Create performance evaluation | Start a new performance evaluation for an employee. Links the employee to a performance period and KPI template for assessment. |
-| `GET` | `/api/v1/tenant/performance/evaluations` | List performance evaluations | Retrieve a paginated list of performance evaluations, optionally filtered by employee, organization, period, or status. |
-| `GET` | `/api/v1/tenant/performance/evaluations/{id}` | Get performance evaluation by ID | Retrieve detailed information about a specific performance evaluation, including its status, scores, and linked targets. |
-| `PUT` | `/api/v1/tenant/performance/evaluations/{id}` | Update performance evaluation | Update evaluation metadata such as supervisor assignment or notes. Only provided fields will be updated. |
-| `DELETE` | `/api/v1/tenant/performance/evaluations/{id}` | Delete performance evaluation | Permanently delete a performance evaluation. Only evaluations in DRAFT status can be deleted. |
-| `GET` | `/api/v1/tenant/performance/evaluations/{id}/comments` | List comments by evaluation | Ambil semua komentar pada sebuah performance evaluation. |
-| `GET` | `/api/v1/tenant/performance/evaluations/{id}/details` | List evaluation details by evaluation ID | Retrieve all BSC perspective detail records for a specific performance evaluation, showing achievement per perspective. |
-| `GET` | `/api/v1/tenant/performance/evaluations/{id}/logs` | List audit logs by evaluation | Ambil audit trail perubahan pada sebuah performance evaluation. |
-| `PUT` | `/api/v1/tenant/performance/evaluations/{id}/status` | Update evaluation status | Transition a performance evaluation through its workflow: DRAFT -> PLAN_SUBMITTED -> PLAN_APPROVED -> ACTUAL_SUBMITTED -> ACTUAL_APPROVED -> COMPLE... |
-| `GET` | `/api/v1/tenant/performance/evaluations/{id}/targets` | List performance targets by evaluation ID | Retrieve all KPI targets for a specific performance evaluation, showing planned vs actual achievement for each indicator. |
-| `POST` | `/api/v1/tenant/performance/indicator-formulas` | Create indicator formula | Buat formula kalkulasi skor KPI (MANUAL/HIGHER_BETTER/LOWER_BETTER/RANGE). |
-| `GET` | `/api/v1/tenant/performance/indicator-formulas` | List indicator formulas | Ambil daftar formula kalkulasi skor KPI dengan pagination. |
-| `GET` | `/api/v1/tenant/performance/indicator-formulas/{id}` | Get indicator formula by ID | Ambil satu formula kalkulasi skor KPI. |
-| `PUT` | `/api/v1/tenant/performance/indicator-formulas/{id}` | Update indicator formula | Perbarui formula kalkulasi skor KPI. |
-| `DELETE` | `/api/v1/tenant/performance/indicator-formulas/{id}` | Delete indicator formula | Hapus satu formula kalkulasi skor KPI. |
-| `POST` | `/api/v1/tenant/performance/indicators` | Create KPI indicator | Create a new KPI indicator linked to a template and BSC perspective. Defines target value, weight, and measurement unit. |
-| `GET` | `/api/v1/tenant/performance/indicators` | List KPI indicators | Retrieve a paginated list of KPI indicators, optionally filtered by template or perspective. |
-| `GET` | `/api/v1/tenant/performance/indicators/{id}` | Get KPI indicator by ID | Retrieve a specific KPI indicator by its unique ID, including target value and measurement settings. |
-| `PUT` | `/api/v1/tenant/performance/indicators/{id}` | Update KPI indicator | Update a KPI indicator's title, weight, target value, or measurement unit. Only provided fields will be updated. |
-| `DELETE` | `/api/v1/tenant/performance/indicators/{id}` | Delete KPI indicator | Permanently delete a KPI indicator from its template. |
-| `GET` | `/api/v1/tenant/performance/logs` | List performance audit logs | Ambil daftar audit trail perubahan data performance dengan pagination. |
-| `GET` | `/api/v1/tenant/performance/logs/{id}` | Get performance log by ID | Ambil satu audit trail berdasarkan ID. |
-| `POST` | `/api/v1/tenant/performance/periods` | Create performance period | Create a new performance evaluation period (e.g. Q1 2026). Period type must be one of: MONTHLY, QUARTERLY, SEMESTER, ANNUAL. |
-| `GET` | `/api/v1/tenant/performance/periods` | List performance periods | Retrieve a paginated list of performance periods, optionally filtered by year or status. |
-| `GET` | `/api/v1/tenant/performance/periods/{id}` | Get performance period by ID | Retrieve detailed information about a specific performance period by its unique UUID. |
-| `PUT` | `/api/v1/tenant/performance/periods/{id}` | Update performance period | Update an existing performance period's details. Only provided fields will be updated. |
-| `DELETE` | `/api/v1/tenant/performance/periods/{id}` | Delete performance period | Permanently delete a performance period by its unique ID. |
-| `POST` | `/api/v1/tenant/performance/perspectives` | Create BSC perspective | Create a new Balanced Scorecard perspective (e.g. Financial, Customer, Internal Process, Learning & Growth). |
-| `GET` | `/api/v1/tenant/performance/perspectives` | List BSC perspectives | Retrieve a paginated list of BSC perspectives used in performance templates. Ordered by sort_order by default. |
-| `GET` | `/api/v1/tenant/performance/perspectives/{id}` | Get BSC perspective by ID | Retrieve a specific BSC perspective by its unique ID. |
-| `PUT` | `/api/v1/tenant/performance/perspectives/{id}` | Update BSC perspective | Update a BSC perspective's name, description, or sort order. Only provided fields will be updated. |
-| `DELETE` | `/api/v1/tenant/performance/perspectives/{id}` | Delete BSC perspective | Permanently delete a BSC perspective from the system. |
-| `POST` | `/api/v1/tenant/performance/progress` | Create performance progress | Catat progres realisasi KPI untuk satu evaluation detail (nilai aktual per tanggal). |
-| `GET` | `/api/v1/tenant/performance/progress/{id}` | Get performance progress by ID | Ambil satu catatan progres KPI berdasarkan ID. |
-| `PUT` | `/api/v1/tenant/performance/progress/{id}` | Update performance progress | Perbarui tanggal, nilai aktual, achievement, atau catatan progres KPI. |
-| `DELETE` | `/api/v1/tenant/performance/progress/{id}` | Delete performance progress | Hapus satu catatan progres KPI. |
-| `POST` | `/api/v1/tenant/performance/ratings` | Create performance rating | Buat skala rating penilaian (mis. A=90-100, B=80-89) untuk konversi skor akhir. |
-| `GET` | `/api/v1/tenant/performance/ratings` | List performance ratings | Ambil daftar rating skala penilaian dengan pagination. |
-| `GET` | `/api/v1/tenant/performance/ratings/{id}` | Get performance rating by ID | Ambil satu rating skala penilaian. |
-| `PUT` | `/api/v1/tenant/performance/ratings/{id}` | Update performance rating | Perbarui rating skala penilaian. |
-| `DELETE` | `/api/v1/tenant/performance/ratings/{id}` | Delete performance rating | Hapus satu rating skala penilaian. |
-| `POST` | `/api/v1/tenant/performance/targets` | Create performance target | Add an individual KPI target to a performance evaluation, setting the target value and weight for measurement. |
-| `PUT` | `/api/v1/tenant/performance/targets/{id}` | Update performance target | Update a KPI target's planned value, actual achievement, or weight. Setting actual_value triggers automatic achievement percentage calculation. |
-| `DELETE` | `/api/v1/tenant/performance/targets/{id}` | Delete performance target | Permanently delete a KPI target from the evaluation. |
-| `POST` | `/api/v1/tenant/performance/templates` | Create KPI template | Create a new KPI template for an organization. Templates define the structure of performance evaluations including indicators from BSC perspectives. |
-| `GET` | `/api/v1/tenant/performance/templates` | List KPI templates | Retrieve a paginated list of KPI templates, optionally filtered by organization. |
-| `GET` | `/api/v1/tenant/performance/templates/{id}` | Get KPI template by ID | Retrieve a specific KPI template by its unique ID, including associated indicators. |
-| `PUT` | `/api/v1/tenant/performance/templates/{id}` | Update KPI template | Update a KPI template's name, description, or status. Status can be transitioned between DRAFT, PUBLISHED, and ARCHIVED. |
-| `DELETE` | `/api/v1/tenant/performance/templates/{id}` | Delete KPI template | Permanently delete a KPI template. Indicators linked to this template may also be removed. |
 
 ### Tenant: Payroll & Compensation Engine
 **Endpoints:** 47 | **Paths:** 24

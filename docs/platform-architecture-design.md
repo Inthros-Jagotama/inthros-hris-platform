@@ -1,5 +1,8 @@
 # Platform Architecture Design — HRIS Go Modular Monolith
 
+> 🔗 **Index dokumentasi:** [`docs/README.md`](README.md)  
+> **Terkait:** [`deployment-guide.md`](deployment-guide.md) · [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)
+
 **Dokumen:** Architecture Design Document (Step 3 - Blueprint Roadmap)
 **Tanggal:** 22 Juli 2026
 **Versi:** 1.6
@@ -2236,9 +2239,10 @@ Strategy: Strangler Fig Pattern
 
 ## Referensi
 
-- **Blueprint:** [`HRIS_Enterprise_Architecture_Blueprint_v3.md`](../HRIS_Enterprise_Architecture_Blueprint_v3.md)
-- **Analisis Existing:** [`analisis-blueprint-vs-existing.md`](./analisis-blueprint-vs-existing.md)
-- **Existing Codebase:** `inthros-web/`
+- **Index dokumentasi:** [`docs/README.md`](README.md)
+- **Analisis Existing:** [`analisis-blueprint-vs-existing.md`](analisis-blueprint-vs-existing.md)
+- **Deployment:** [`deployment-guide.md`](deployment-guide.md)
+- **Panduan API:** [`api/api-usage-guide.md`](api/api-usage-guide.md)
 
 ---
 

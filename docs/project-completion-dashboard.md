@@ -1,5 +1,8 @@
 # HRIS Platform — Project Completion Dashboard
 
+> 🔗 **Index dokumentasi:** [`docs/README.md`](README.md)  
+> **Terkait:** [`go-module-architecture-report.md`](go-module-architecture-report.md) · [`openapi-report.md`](openapi-report.md) · [`frontend-development-plan.md`](frontend-development-plan.md)
+
 **Generated:** 28 July 2026  
 **Server:** ✅ Running (`http://localhost:8080`) — Status: `ok`
 
@@ -141,14 +144,14 @@
 | Document | Description | Status |
 |----------|-------------|:------:|
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
-| `ARCHITECTURE_DESIGN_v1.6_Updated.md` | Architecture design, module status, priority matrix | ✅ v16 updated (15 missing endpoints injected) |
-| `docs/openapi-report.md` | OpenAPI comprehensive report (v17) | ✅ v17 — 698 endpoints, 442 schemas, 30 tags |
+| `docs/platform-architecture-design.md` | Architecture design (modular monolith, multi-tenant) | ✅ Complete |
+| `docs/openapi-report.md` | OpenAPI comprehensive report (v17) | ✅ v17 — 789 endpoints, 442 paths, 490 schemas, 32 tags |
 | `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ Updated with Settings module (130 entities, 550 service methods, 1029 tests) |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
-| `docs/PROJECT_COMPLETION_DASHBOARD.md` | **This document** | ✅ **Updated — Phase 1 Frontend added** |
+| `docs/project-completion-dashboard.md` | **This document** | ✅ **Updated — Phase 1 Frontend added** |
 | `docs/frontend-development-plan.md` | Frontend Phase 1-4 development plan | ✅ **Phase 1 all 9 modules + Tenant 19 Settings CRUDs completed** |
-| `docs/Phase-1-Completion-Report.md` | Phase 1 Frontend completion summary | ✅ **NEW — for presentation** |
+| `docs/archive/phase-1-completion-report.md` | Phase 1 Frontend completion summary | ✅ **NEW — for presentation** |
 | **TenantResolver Middleware (SaaS auto-detect)** | ✅ **Done (01 Aug 2026)** | `middleware.TenantResolver` — auto-determine company dari Host header/X-Tenant-ID untuk `/api/v1/tenant/**` (JWT menang → X-Tenant-ID UUID → X-Forwarded-Host → Host) + set response header `X-Tenant-ID`. FE tenant: state `company` di auth store disinkronkan otomatis dari response header (api.js interceptor kirim & baca `X-Tenant-ID`), company opsional di login. 7 unit test. Changelog ARCH v20 |
 | **RBAC Permissions Lengkap (24 resource)** | ✅ **Done (01 Aug 2026)** | `authz/rbac.go` — `defaultResources()` + `loadDefaultPolicies()` + `seedDefaults()` kini mencakup **24 resource / 98 permissions** (sebelumnya 18/74): +`performance`, `recruitment`, `reimbursement`, `training`, `workforceintelligence`, `careerintelligence` (4 action tiap resource) — konsisten dengan tenant RBAC seed & `singularize()` map. Fix: resource tsb sebelumnya tidak pernah di-seed ke `rbac_permissions` → tidak muncul di menu RBAC platform-admin. Auto-assign saat restart hanya ke super_admin; role lain di-toggle manual via UI RBAC. +Rbac.vue sortOrder +6 resource. |
 | **Rename BankProfileForm → BankAccountForm** | ✅ **Done (01 Aug 2026)** | FE tenant — komponen `employee/BankProfileForm.vue` di-rename jadi `BankAccountForm.vue` (import + tag `<BankAccountForm>` di `EmployeeForm.vue` step 9), label 'Bank Profile' → 'Bank Account' (locale `wizard_step_bank`/`tab_bank`) — konsistensi penamaan dengan label baru |
@@ -208,8 +211,8 @@
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 698 endpoints |
-| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 698 endpoints |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 789 endpoints |
+| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 789 endpoints |
 | **RBAC Engine** | ✅ **Active** | 4 default roles, **98 permissions (24 resources)**, auto-reload |
 | **On-Premise License Engine** | ✅ **Ready** | `internal/pkg/onpremise/` — RSA `.lic` (expires_at, allowed_modules, max_employees); CLI `licensectl` (gen-key/gen-lic); mode `on_premise` via `HRIS_LICENSE_DEPLOYMENT_MODE` (dormant di mode saas default); lister alternatif PlatformLicenseMiddleware. **`max_employees` di-enforce di `Service.Create()` → 403 `QUOTA_EXCEEDED`** (toast bilingual FE `employee.quota_exceeded`) |
 | **Quota Audit (no bypass)** | ✅ **Audited** | Kuota terpusat di `Service.Create()` — satu-satunya pembuat Employee master. Payroll profiles / onboarding / employee-shift / sub-record TIDAK membuat Employee master (tidak perlu kuota). Frontend hanya 1 caller (`EmployeeForm.savePersonalData`). Jalur masa depan (batch import) otomatis kena kuota. *(Audit 31 Jul 2026)* |
@@ -330,8 +333,8 @@
 |----------|------|
 | Main README | `./README.md` |
 | Deployment Guide (SaaS & On-Premise) | `./docs/deployment-guide.md` |
-| Architecture Design | `./ARCHITECTURE_DESIGN_v1.6_Updated.md` |
-| OpenAPI Report (v15) | `./docs/openapi-report.md` |
+| Architecture Design | `./docs/platform-architecture-design.md` |
+| OpenAPI Report | `./docs/openapi-report.md` |
 | Go Module Architecture Report | `./docs/go-module-architecture-report.md` |
 | Platform Architecture Design | `./docs/platform-architecture-design.md` |
 | Blueprint vs Existing Analysis | `./docs/analisis-blueprint-vs-existing.md` |

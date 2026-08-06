@@ -1,5 +1,8 @@
 # Workforce Intelligence & Strategic Workforce Planning — Module Design
 
+> 🔗 **Arsip dokumentasi:** [`docs/README.md`](../README.md) — dokumen ini adalah referensi historis dari modul yang sudah selesai diimplementasikan.
+
+
 **Document Version:** 1.0
 **Status:** Draft for Review
 **Module Slug:** `workforce-intelligence`
@@ -659,7 +662,7 @@ sequenceDiagram
 
 **Total endpoints: 68**
 
-> ✅ **Implementation Status:** All 68 endpoints registered in [`routes.go`](../backend/internal/modules/workforceintelligence/routes.go) — fully implemented with handler, service, and repository layers.
+> ✅ **Implementation Status:** All 68 endpoints registered in [`routes.go`](../../backend/internal/modules/workforceintelligence/routes.go) — fully implemented with handler, service, and repository layers.
 
 ---
 
@@ -908,8 +911,8 @@ sequenceDiagram
 
 | Document | Path |
 |----------|------|
-| Architecture Design | `./ARCHITECTURE_DESIGN_v1.6_Updated.md` |
-| Project Dashboard | `./docs/PROJECT_COMPLETION_DASHBOARD.md` |
+| Architecture Design | `./docs/platform-architecture-design.md` |
+| Project Dashboard | `./docs/project-completion-dashboard.md` |
 | OpenAPI Report | `./docs/openapi-report.md` |
 | Go Architecture Report | `./docs/go-module-architecture-report.md` |
 

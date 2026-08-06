@@ -3,6 +3,9 @@ Berikut versi yang sudah disesuaikan dengan standar **UUID sebagai Primary Key**
 ````markdown
 # KPI Module Development Plan
 
+> 🔗 **Arsip dokumentasi:** [`docs/README.md`](../README.md) — dokumen ini adalah referensi historis dari modul yang sudah selesai diimplementasikan.
+
+
 ## Objective
 
 Membangun modul Performance Management (KPI) yang:

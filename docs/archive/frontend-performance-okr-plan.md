@@ -1,5 +1,8 @@
 # Frontend Performance Management - OKR Module Implementation Plan
 
+> 🔗 **Arsip dokumentasi:** [`docs/README.md`](../README.md) — dokumen ini adalah referensi historis dari modul yang sudah selesai diimplementasikan.
+
+
 ## Overview
 
 Implementasi frontend untuk module Performance Management dengan sub-module OKR (Objective & Key Results). Mengikuti pola yang sudah ada pada module KPI.

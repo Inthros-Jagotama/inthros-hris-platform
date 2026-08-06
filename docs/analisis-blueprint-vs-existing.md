@@ -1,5 +1,8 @@
 # Analisis Perbandingan: HRIS Enterprise Architecture Blueprint v3 vs Existing Application (inthros-web)
 
+> 🔗 **Index dokumentasi:** [`docs/README.md`](README.md)  
+> **Terkait:** [`platform-architecture-design.md`](platform-architecture-design.md) · [`job-management-score-analysis.md`](job-management-score-analysis.md)
+
 **Dokumen:** Analisis Gap & Kesesuaian Arsitektur
 **Tanggal:** 24 Juli 2026
 **Versi:** 1.1
@@ -28,10 +31,12 @@
 
 Dokumen ini menganalisis kesesuaian antara **HRIS Enterprise Architecture Blueprint v3** (target arsitektur ideal) dengan **aplikasi existing inthros-web** yang sudah berjalan.
 
+> 📌 **Catatan:** File `HRIS_Enterprise_Architecture_Blueprint_v3.md` telah diarsipkan/dihapus dari repo; analisis ini tetap berlaku sebagai referensi historis migrasi dari aplikasi existing `inthros-web` ke arsitektur baru.
+
 Referensi utama analisis:
-- [`HRIS_Enterprise_Architecture_Blueprint_v3.md`](../HRIS_Enterprise_Architecture_Blueprint_v3.md)
-- [`AI_CODING_RULES.md`](../inthros-web/AI_CODING_RULES.md) — Standar coding project existing
-- Seluruh direktori [`inthros-web/`](../inthros-web/) — Source code aplikasi existing
+- **Arsitektur target:** [`platform-architecture-design.md`](platform-architecture-design.md) (pengganti Blueprint v3)
+- `AI_CODING_RULES.md` — Standar coding project existing (tersimpan di direktori kerja `docs/tmp/inthros-web/`, tidak di-track git)
+- Seluruh direktori `inthros-web/` — Source code aplikasi existing (referensi historis)
 
 ### Ringkasan Project (Existing inthros-web)
 
@@ -916,8 +921,8 @@ Backend Laravel tetap untuk existing modules. Module baru dan Platform Managemen
 ---
 
 **Dokumen ini disusun berdasarkan analisis:**
-- `HRIS_Enterprise_Architecture_Blueprint_v3.md` — Dokumen target arsitektur
-- `inthros-web/` — Kode sumber aplikasi existing
+- `HRIS_Enterprise_Architecture_Blueprint_v3.md` — Dokumen target arsitektur (telah diarsipkan; lihat [`platform-architecture-design.md`](platform-architecture-design.md) sebagai pengganti)
+- `inthros-web/` — Kode sumber aplikasi existing (referensi historis)
 - `AI_CODING_RULES.md` — Standar coding project
 
 Untuk pertanyaan atau diskusi lebih lanjut, silakan hubungi tim arsitektur.
