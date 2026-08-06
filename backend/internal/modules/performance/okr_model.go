@@ -1,4 +1,4 @@
-package okr
+package performance
 
 import (
 	"time"
@@ -8,38 +8,17 @@ import (
 )
 
 // =========================================================================
-// Reuse types from Performance module
+// OKR Evaluation Status
 // =========================================================================
 
-type FormulaType string
+type OKREvaluationStatus string
 
 const (
-	FormulaTypeManual       FormulaType = "MANUAL"
-	FormulaTypeHigherBetter FormulaType = "HIGHER_BETTER"
-	FormulaTypeLowerBetter  FormulaType = "LOWER_BETTER"
-	FormulaTypeRange        FormulaType = "RANGE"
-	FormulaTypeBoolean      FormulaType = "BOOLEAN"
-	FormulaTypePercentage   FormulaType = "PERCENTAGE"
-)
-
-type TargetType string
-
-const (
-	TargetTypeNumber     TargetType = "NUMBER"
-	TargetTypeCurrency   TargetType = "CURRENCY"
-	TargetTypePercentage TargetType = "PERCENTAGE"
-	TargetTypeDuration   TargetType = "DURATION"
-	TargetTypeBoolean    TargetType = "BOOLEAN"
-)
-
-type EvaluationStatus string
-
-const (
-	StatusDraft     EvaluationStatus = "DRAFT"
-	StatusSubmitted EvaluationStatus = "SUBMITTED"
-	StatusApproved  EvaluationStatus = "APPROVED"
-	StatusCompleted EvaluationStatus = "COMPLETED"
-	StatusRejected  EvaluationStatus = "REJECTED"
+	OKRStatusDraft     OKREvaluationStatus = "DRAFT"
+	OKRStatusSubmitted OKREvaluationStatus = "SUBMITTED"
+	OKRStatusApproved  OKREvaluationStatus = "APPROVED"
+	OKRStatusCompleted OKREvaluationStatus = "COMPLETED"
+	OKRStatusRejected  OKREvaluationStatus = "REJECTED"
 )
 
 // =========================================================================
@@ -126,7 +105,7 @@ type OKRKeyResult struct {
 	IsRequired   bool            `gorm:"type:boolean;not null;default:true" json:"is_required"`
 	CreatedAt    time.Time       `json:"created_at"`
 	UpdatedAt    time.Time       `json:"updated_at"`
-	DeletedAt    *gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	DeletedAt   *gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 func (OKRKeyResult) TableName() string {
@@ -145,22 +124,22 @@ func (k *OKRKeyResult) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type OKREvaluation struct {
-	ID             uuid.UUID        `gorm:"type:char(36);primaryKey" json:"id"`
-	EmployeeID     uuid.UUID        `gorm:"type:char(36);not null;index:idx_okr_eval_employee" json:"employee_id"`
-	OrganizationID uuid.UUID        `gorm:"type:char(36);not null;index:idx_okr_eval_org" json:"organization_id"`
-	PeriodID       uuid.UUID        `gorm:"type:char(36);not null;index:idx_okr_eval_period" json:"period_id"`
-	TemplateID     *uuid.UUID       `gorm:"type:char(36)" json:"template_id,omitempty"`
-	Status         EvaluationStatus `gorm:"type:varchar(20);not null;default:'DRAFT';index:idx_okr_eval_status" json:"status"`
-	SubmittedAt    *time.Time       `json:"submitted_at,omitempty"`
-	SubmittedBy    *uuid.UUID       `gorm:"type:char(36)" json:"submitted_by,omitempty"`
-	ApprovedAt     *time.Time       `json:"approved_at,omitempty"`
-	ApprovedBy     *uuid.UUID       `gorm:"type:char(36)" json:"approved_by,omitempty"`
-	FinalScore     float64          `gorm:"type:decimal(5,2);not null;default:0" json:"final_score"`
-	RatingID       *uuid.UUID       `gorm:"type:char(36)" json:"rating_id,omitempty"`
-	ReviewerNotes  *string          `gorm:"type:text" json:"reviewer_notes,omitempty"`
-	CreatedAt      time.Time        `json:"created_at"`
-	UpdatedAt      time.Time        `json:"updated_at"`
-	DeletedAt      *gorm.DeletedAt  `gorm:"index" json:"deleted_at,omitempty"`
+	ID             uuid.UUID           `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID     uuid.UUID           `gorm:"type:char(36);not null;index:idx_okr_eval_employee" json:"employee_id"`
+	OrganizationID uuid.UUID           `gorm:"type:char(36);not null;index:idx_okr_eval_org" json:"organization_id"`
+	PeriodID       uuid.UUID           `gorm:"type:char(36);not null;index:idx_okr_eval_period" json:"period_id"`
+	TemplateID     *uuid.UUID          `gorm:"type:char(36)" json:"template_id,omitempty"`
+	Status         OKREvaluationStatus `gorm:"type:varchar(20);not null;default:'DRAFT';index:idx_okr_eval_status" json:"status"`
+	SubmittedAt    *time.Time          `json:"submitted_at,omitempty"`
+	SubmittedBy    *uuid.UUID          `gorm:"type:char(36)" json:"submitted_by,omitempty"`
+	ApprovedAt     *time.Time          `json:"approved_at,omitempty"`
+	ApprovedBy     *uuid.UUID          `gorm:"type:char(36)" json:"approved_by,omitempty"`
+	FinalScore     float64             `gorm:"type:decimal(5,2);not null;default:0" json:"final_score"`
+	RatingID       *uuid.UUID          `gorm:"type:char(36)" json:"rating_id,omitempty"`
+	ReviewerNotes  *string             `gorm:"type:text" json:"reviewer_notes,omitempty"`
+	CreatedAt      time.Time           `json:"created_at"`
+	UpdatedAt      time.Time           `json:"updated_at"`
+	DeletedAt      *gorm.DeletedAt     `gorm:"index" json:"deleted_at,omitempty"`
 
 	// Relations
 	Details []OKREvaluationDetail `gorm:"foreignKey:EvaluationID" json:"details,omitempty"`

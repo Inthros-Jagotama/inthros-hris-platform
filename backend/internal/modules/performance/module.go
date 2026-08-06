@@ -34,15 +34,22 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 	svc := NewService(repo, logger)
 	handler := NewHandler(svc)
 
+	// OKR
+	okrRepo := NewOKRRepository()
+	okrSvc := NewOKRService(okrRepo)
+	okrHandler := NewOKRHandler(okrSvc)
+
 	return &perfModule{
-		handler: handler,
-		logger:  logger,
+		handler:    handler,
+		okrHandler: okrHandler,
+		logger:     logger,
 	}
 }
 
 type perfModule struct {
-	handler *Handler
-	logger  *zap.Logger
+	handler    *Handler
+	okrHandler *OKRHandler
+	logger     *zap.Logger
 }
 
 func (m *perfModule) Info() module.ModuleInfo {
@@ -79,10 +86,12 @@ func (m *perfModule) Info() module.ModuleInfo {
 
 func (m *perfModule) RegisterRoutes(rg *gin.RouterGroup) {
 	RegisterRoutes(rg, m.handler)
+	RegisterOKRRoutes(rg, m.okrHandler)
 }
 
 func (m *perfModule) Migrate(db *gorm.DB) error {
 	return db.AutoMigrate(
+		// KPI Models
 		&PerformancePeriod{},
 		&PerformancePerspective{},
 		&PerformanceTemplate{},
@@ -90,6 +99,15 @@ func (m *perfModule) Migrate(db *gorm.DB) error {
 		&PerformanceEvaluation{},
 		&PerformanceEvaluationDetail{},
 		&PerformanceTarget{},
+		// OKR Models
+		&OKRTemplate{},
+		&OKRObjective{},
+		&OKRKeyResult{},
+		&OKREvaluation{},
+		&OKREvaluationDetail{},
+		&OKRProgress{},
+		&OKRComment{},
+		&OKRAttachment{},
 	)
 }
 

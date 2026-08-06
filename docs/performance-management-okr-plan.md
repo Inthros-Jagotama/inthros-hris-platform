@@ -658,3 +658,50 @@ Modul OKR terintegrasi dengan:
 - Mendukung Audit Trail
 - Master Data menggunakan Seeder (reuse dari KPI)
 - Siap diintegrasikan dengan Performance Management, Competency Management, Career Path, Succession Planning, Talent Management, dan Bonus Management
+
+---
+
+# Implementation Status
+
+| Phase | Status | Completion Date | Notes |
+|-------|--------|-----------------|-------|
+| Phase 1 - Shared Master | ✅ Completed | - | Reuse dari KPI module |
+| Phase 2 - Database | ✅ Completed | 2026-08-05 | Migration 057_okr.sql, Models |
+| Phase 3 - Business Logic | ✅ Completed | 2026-08-06 | DTO, Repository, Service, Handler, Routes, Module |
+| Phase 4 - Dashboard | ✅ Completed | 2026-08-06 | HR Dashboard endpoint |
+| Phase 5 - Future Enhancement | ⏳ Pending | - | |
+| Phase 6 - Seeder | ✅ Completed | - | Reuse dari KPI (tidak perlu seeder baru) |
+
+## Module Integration
+
+OKR telah diintegrasikan ke dalam Performance module sebagai sub-module (2026-08-06).
+
+**Struktur:**
+```
+backend/internal/modules/performance/
+├── model.go              # KPI models
+├── dto.go                # KPI DTOs  
+├── repository.go         # KPI repository
+├── service.go            # KPI service
+├── handler.go            # KPI handlers
+├── okr_model.go          # OKR models (8 entities)
+├── okr_dto.go            # OKR DTOs
+├── okr_repository.go     # OKR repository (~40 methods)
+├── okr_service.go        # OKR service + workflow
+├── okr_handler.go        # OKR handlers
+├── routes.go             # KPI + OKR routes
+└── module.go             # Module init (KPI + OKR)
+```
+
+## API Endpoints
+
+**Shared Master:** `/performance/*`
+- `/performance/periods/*` - Periode evaluasi
+- `/performance/ratings/*` - Rating master
+- `/performance/indicator-formulas/*` - Formula master
+
+**KPI:** `/performance/kpi/*`
+- Templates, Indicators, Perspectives, Evaluations, Progress, Comments, Attachments, Dashboard
+
+**OKR:** `/performance/okr/*`
+- Templates, Objectives, Key Results, Evaluations, Progress, Comments, Attachments, Dashboard
