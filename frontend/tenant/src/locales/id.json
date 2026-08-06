@@ -556,7 +556,7 @@
     "evaluation_completed": "Evaluasi selesai."
   },
   "okr": {
-    "title": "Objective & Key Results",
+    "title": "Tujuan & Hasil Utama",
     "description": "Kelola evaluasi OKR.",
     "evaluations": "Evaluasi",
     "evaluations_desc": "Lihat dan kelola evaluasi OKR karyawan.",
@@ -621,7 +621,7 @@
     "evaluation_not_found": "Evaluasi tidak ditemukan",
     "final_score": "Skor Akhir",
     "achievement": "Pencapaian",
-    "progress": "Progress",
+    "progress": "Progres",
     "check_in": "Check-in",
     "add_progress": "Tambah Progress",
     "no_progress": "Belum ada catatan progress",
