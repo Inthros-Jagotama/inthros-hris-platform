@@ -204,6 +204,11 @@ const routes = [
       { path: 'settings/competencies', name: 'SettingsCompetencies', component: () => import('@/views/settings/CompetenciesView.vue'), meta: { title: 'Competencies', titleKey: 'competencies.title', descKey: 'competencies.description', icon: 'pi pi-star', module: 'setting' } },
       { path: 'settings/ters', name: 'SettingsTERs', component: () => import('@/views/settings/TersView.vue'), meta: { title: 'TER', titleKey: 'ters.title', descKey: 'ters.description', icon: 'pi pi-calculator', module: 'setting' } },
       { path: 'settings/ptkps', name: 'SettingsPTKPs', component: () => import('@/views/settings/PtkpsView.vue'), meta: { title: 'PTKP', titleKey: 'ptkps.title', descKey: 'ptkps.description', icon: 'pi pi-receipt', module: 'setting' } },
+      // Performance Settings
+      { path: 'settings/performance-periods', name: 'SettingsPerformancePeriods', component: () => import('@/views/settings/PerformancePeriodsView.vue'), meta: { title: 'Performance Periods', titleKey: 'performance_periods.title', descKey: 'performance_periods.description', icon: 'pi pi-calendar', module: 'setting' } },
+      { path: 'settings/performance-perspectives', name: 'SettingsPerformancePerspectives', component: () => import('@/views/settings/PerformancePerspectivesView.vue'), meta: { title: 'BSC Perspectives', titleKey: 'performance_perspectives.title', descKey: 'performance_perspectives.description', icon: 'pi pi-th-large', module: 'setting' } },
+      { path: 'settings/performance-ratings', name: 'SettingsPerformanceRatings', component: () => import('@/views/settings/PerformanceRatingsView.vue'), meta: { title: 'Performance Ratings', titleKey: 'performance_ratings.title', descKey: 'performance_ratings.description', icon: 'pi pi-star', module: 'setting' } },
+      { path: 'settings/performance-formulas', name: 'SettingsPerformanceFormulas', component: () => import('@/views/settings/PerformanceFormulasView.vue'), meta: { title: 'KPI Formulas', titleKey: 'performance_formulas.title', descKey: 'performance_formulas.description', icon: 'pi pi-calculator', module: 'setting' } },
       { path: 'settings/rbac', name: 'SettingsRbac', component: () => import('@/views/settings/RolesPermissions.vue'), meta: { title: 'RBAC', titleKey: 'rbac.title', descKey: 'rbac.description', icon: 'pi pi-shield', module: 'setting' } }
     ]
   }

@@ -83,6 +83,17 @@ const groups = computed(() => [
     ]
   },
   {
+    key: 'performance',
+    icon: 'pi pi-chart-line',
+    labelKey: 'settings.group_performance',
+    items: [
+      { path: '/settings/performance-periods', icon: 'pi pi-calendar', titleKey: 'settings.performance_periods', descKey: 'performance_periods.description', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+      { path: '/settings/performance-perspectives', icon: 'pi pi-th-large', titleKey: 'settings.performance_perspectives', descKey: 'performance_perspectives.description', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
+      { path: '/settings/performance-ratings', icon: 'pi pi-star', titleKey: 'settings.performance_ratings', descKey: 'performance_ratings.description', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+      { path: '/settings/performance-formulas', icon: 'pi pi-calculator', titleKey: 'settings.performance_formulas', descKey: 'performance_formulas.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' }
+    ]
+  },
+  {
     key: 'payroll_tax',
     icon: 'pi pi-calculator',
     labelKey: 'settings.group_payroll',
