@@ -1965,9 +1965,43 @@ func (s *Service) GetEvaluationWithDetails(ctx context.Context, evalID string) (
 	}
 	resp.PeriodCode = periodCodes[resp.PeriodID]
 
-	// Convert details
+	// Convert details, then enrich with perspective name and indicator
+	// unit_of_measurement/formula_type — none of these are snapshotted onto
+	// PerformanceEvaluationDetail itself, so the detail table would otherwise
+	// render blank perspective groups and blank units.
+	perspIDSet := make(map[uuid.UUID]struct{})
+	indicatorIDSet := make(map[uuid.UUID]struct{})
 	for _, d := range details {
-		resp.Details = append(resp.Details, *detailToResponse(&d))
+		perspIDSet[d.PerspectiveID] = struct{}{}
+		if d.IndicatorID != nil {
+			indicatorIDSet[*d.IndicatorID] = struct{}{}
+		}
+	}
+	perspIDs := make([]uuid.UUID, 0, len(perspIDSet))
+	for id := range perspIDSet {
+		perspIDs = append(perspIDs, id)
+	}
+	indicatorIDs := make([]uuid.UUID, 0, len(indicatorIDSet))
+	for id := range indicatorIDSet {
+		indicatorIDs = append(indicatorIDs, id)
+	}
+	perspNames, err := s.repo.GetPerspectiveNamesByIDs(ctx, perspIDs)
+	if err != nil {
+		return nil, err
+	}
+	indicatorMetas, err := s.repo.GetIndicatorMetaByIDs(ctx, indicatorIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, d := range details {
+		dr := detailToResponse(&d)
+		dr.PerspectiveName = perspNames[dr.PerspectiveID]
+		if meta, ok := indicatorMetas[dr.IndicatorID]; ok {
+			dr.UnitOfMeasurement = meta.UnitOfMeasurement
+			dr.FormulaType = meta.FormulaType
+		}
+		resp.Details = append(resp.Details, *dr)
 	}
 
 	return resp, nil

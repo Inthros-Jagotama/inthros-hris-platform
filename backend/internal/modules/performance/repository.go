@@ -226,6 +226,58 @@ func (r *Repository) GetOrganizationNamesByIDs(ctx context.Context, ids []uuid.U
 	return result, nil
 }
 
+// GetPerspectiveNamesByIDs mengambil nama untuk sekumpulan perspective ID.
+func (r *Repository) GetPerspectiveNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []PerformancePerspective
+	if err := db.WithContext(ctx).Where("id IN ?", ids).Find(&list).Error; err != nil {
+		return nil, err
+	}
+	for _, p := range list {
+		result[p.ID.String()] = p.Name
+	}
+	return result, nil
+}
+
+// indicatorMeta carries the indicator fields an evaluation detail row needs
+// for display but doesn't snapshot onto itself at creation time.
+type indicatorMeta struct {
+	UnitOfMeasurement string
+	FormulaType       string
+}
+
+// GetIndicatorMetaByIDs mengambil unit_of_measurement dan formula_type untuk
+// sekumpulan indicator ID.
+func (r *Repository) GetIndicatorMetaByIDs(ctx context.Context, ids []uuid.UUID) (map[string]indicatorMeta, error) {
+	result := make(map[string]indicatorMeta, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []PerformanceIndicator
+	if err := db.WithContext(ctx).Where("id IN ?", ids).Find(&list).Error; err != nil {
+		return nil, err
+	}
+	for _, i := range list {
+		unit := ""
+		if i.UnitOfMeasurement != nil {
+			unit = *i.UnitOfMeasurement
+		}
+		result[i.ID.String()] = indicatorMeta{UnitOfMeasurement: unit, FormulaType: i.FormulaType}
+	}
+	return result, nil
+}
+
 // GetEmployeeNamesByIDs mengambil nama karyawan untuk sekumpulan employee ID
 // via raw table query (tanpa import package employee, hindari circular dependency).
 func (r *Repository) GetEmployeeNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {

@@ -246,8 +246,11 @@ type EvaluationDetailResponse struct {
 	ID                      string    `json:"id"`
 	PerformanceEvaluationID string    `json:"performance_evaluation_id"`
 	PerspectiveID           string    `json:"perspective_id"`
+	PerspectiveName         string    `json:"perspective_name,omitempty"`
 	IndicatorID             string    `json:"indicator_id,omitempty"`
 	IndicatorName           string    `json:"indicator_name,omitempty"`
+	UnitOfMeasurement       string    `json:"unit_of_measurement,omitempty"`
+	FormulaType             string    `json:"formula_type,omitempty"`
 	AchievementPercentage   float64   `json:"achievement_percentage"`
 	Weight                  float64   `json:"weight"`
 	Target                  float64   `json:"target"`

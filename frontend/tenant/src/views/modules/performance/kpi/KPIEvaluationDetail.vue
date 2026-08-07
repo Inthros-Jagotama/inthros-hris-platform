@@ -288,12 +288,12 @@ async function loadEvaluation() {
     }
     details.value = (data.details || []).map(d => ({
       id: d.id,
-      indicator_title: d.indicator_title || d.indicator?.title,
-      indicator_description: d.indicator_description || d.indicator?.description,
+      indicator_title: d.indicator_name || d.indicator_title || d.indicator?.title,
+      indicator_description: d.description || d.indicator_description || d.indicator?.description,
       perspective_name: d.perspective_name || d.perspective?.name || 'Other',
       weight: d.weight,
-      target_value: d.target_value,
-      actual_value: d.actual_value,
+      target_value: d.target ?? d.target_value,
+      actual_value: d.actual ?? d.actual_value,
       achievement: d.achievement,
       score: d.score,
       unit_of_measurement: d.unit_of_measurement || d.indicator?.unit_of_measurement || '',
@@ -375,7 +375,7 @@ async function updateComponentScore(row) {
 async function updateActual(detail) {
   try {
     await api.put(`/api/v1/tenant/performance/kpi/evaluation-details/${detail.id}/actual`, {
-      actual_value: detail.actual_value || 0
+      actual: detail.actual_value || 0
     })
     await recalculate()
   } catch (e) {
