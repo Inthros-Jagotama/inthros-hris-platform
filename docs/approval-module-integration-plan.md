@@ -84,12 +84,27 @@ Platform sudah punya cukup data untuk ini **tanpa field baru di `Employee`**: ko
 
 **"Multiple level"** cukup direpresentasikan sebagai beberapa `ApprovalFlowStep` (step_order berurutan), masing-masing resolve dari Organization submitter yang sama dengan `hierarchy_level` masing-masing — reuse mekanisme step sequencing yang sudah ada, tidak perlu konsep baru.
 
+## Jenis Partisipasi Step (baru)
+
+Assignee pada satu step bisa dikonfigurasi sebagai salah satu dari:
+
+- **`APPROVER`** (default) — wajib approve/reject; memblok progres ke step berikutnya sampai resolve (perilaku existing, diatur `approval_mode`/`required_approvals`/`allow_reject` yang sudah ada)
+- **`WATCHER`** ("hanya mengetahui") — hanya diberi tahu/notifikasi soal instance; tidak perlu bertindak, tidak memblok progres, tidak punya kapabilitas approve/reject sama sekali
+
+Skema: `approval_flow_steps.participation_type ENUM('APPROVER','WATCHER') NOT NULL DEFAULT 'APPROVER'` (migration sama dengan perubahan hierarchy/organization di atas).
+
+Efek ke engine:
+- Logic resolusi `resolveStepAssignees` (SUPERVISOR/ORGANIZATION/BOTH/ROLE/USER) tidak berubah — participation type orthogonal terhadap *siapa* yang di-resolve, hanya mengubah *apa yang wajib dilakukan* orang itu
+- `CreateInstanceWithTasks`/logic step-advance di `approval/repository.go` dan `SubmitAction` di `approval/service.go`: task pada step `WATCHER` tetap dibuat (supaya watcher melihat instance di daftar task mereka) tapi tidak menghalangi pengecekan "apakah step ini selesai" — mis. auto-complete saat dibuat, atau step `WATCHER` dikecualikan sepenuhnya dari pengecekan step-done
+- `POST /approval/instances/:id/action` harus menolak percobaan approve/reject dari task yang statusnya `WATCHER`-only (403, bukan aksi valid untuk tipe partisipasi itu)
+
 ## Perubahan
 
 **`approval` module:**
 - `service.go` — implementasikan `resolveStepAssignees` sesuai tabel resolusi di atas (ganti stub `fmt.Errorf`). Perlu tahu Organization submitter saat ini — resolve dari `ApprovalInstance.CreatedBy` (user) → employee → `Employment.OrganizationID` yang aktif. `approval` tidak boleh import `employee` langsung (circular dependency, sama seperti alasan modul `performance` pakai raw query `db.Table("organizations")`) — pakai raw query ke tabel `employees`/`employments`/`organizations`.
 - **Item terbuka yang perlu dikonfirmasi saat implementasi**: bagaimana `employees` terhubung ke `platform_users`/`ApprovalInstance.CreatedBy` (belum ditemukan FK `user_id` langsung di `Employee` dari riset awal) — perlu untuk dari "siapa yang submit" ke "employee/organization mana". Pastikan join ini sebelum menulis `resolveStepAssignees`.
-- `dto.go` — `CreateStepRequest`/`UpdateStepRequest`: tambah `hierarchy_level *int` dan `organization_ids []string`, update binding `approver_type` jadi `oneof=SUPERVISOR ROLE USER ORGANIZATION BOTH`
+- `dto.go` — `CreateStepRequest`/`UpdateStepRequest`: tambah `hierarchy_level *int`, `organization_ids []string`, `participation_type *string` (binding `oneof=APPROVER WATCHER`); update binding `approver_type` jadi `oneof=SUPERVISOR ROLE USER ORGANIZATION BOTH`
+- step-completion query harus memperlakukan step `WATCHER` sebagai selalu-terpenuhi
 - `repository.go` — CRUD untuk `approval_flow_step_organizations` mengikuti CRUD step (create/update/delete step harus sinkron dengan daftar organization)
 
 ---
@@ -174,6 +189,7 @@ Untuk masing-masing `leave`, `reimbursement`, `employeemovement`, `attendance` (
 4. Tambah step kedua dengan `approver_type=ORGANIZATION` menunjuk 2 Organization eksplisit, `approval_mode=ALL` → pastikan 2 pending task dibuat dan keduanya wajib approve sebelum step selesai
 5. Tambah step dengan `approver_type=BOTH` → pastikan hasilnya gabungan approver dari hierarki + Organization eksplisit
 6. Pastikan membuat flow untuk module yang belum disubscribe tenant ditolak (validasi Phase 2)
+7. Tambah step `WATCHER` → pastikan assignee-nya muncul di daftar task mereka tapi instance tetap lanjut ke step berikutnya tanpa aksi mereka, dan pastikan mereka dapat 403 kalau mencoba approve/reject task tersebut
 
 ---
 
