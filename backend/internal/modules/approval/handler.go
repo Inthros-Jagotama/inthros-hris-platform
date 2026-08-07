@@ -50,6 +50,40 @@ func (h *Handler) CreateFlow(c *gin.Context) {
 }
 
 // GetFlowByID menangani GET /api/v1/tenant/approval/flows/:flowId
+// GetActiveFlowByModule resolves the active flow for a module (?module=xxx),
+// used by consumers that auto-resolve their flow instead of picking a
+// flow_id manually.
+func (h *Handler) GetActiveFlowByModule(c *gin.Context) {
+	module := c.Query("module")
+	if module == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INVALID_PARAM",
+				"message": "module query parameter is required",
+			},
+		})
+		return
+	}
+
+	response, err := h.service.GetActiveFlowByModule(c.Request.Context(), module)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "NOT_FOUND",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    response,
+	})
+}
+
 func (h *Handler) GetFlowByID(c *gin.Context) {
 	id := c.Param("flowId")
 

@@ -12,6 +12,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// =================================================================
 		approval.POST("/flows", handler.CreateFlow)
 		approval.GET("/flows", handler.ListFlows)
+		approval.GET("/active-flow", handler.GetActiveFlowByModule)
 		approval.GET("/flows/:flowId", handler.GetFlowByID)
 		approval.PUT("/flows/:flowId", handler.UpdateFlow)
 		approval.DELETE("/flows/:flowId", handler.DeleteFlow)

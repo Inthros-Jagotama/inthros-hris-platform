@@ -82,6 +82,14 @@ func (s *Service) SetModuleChecker(mc ModuleSubscriptionChecker) {
 // ListAvailableModules mengembalikan slug module yang aktif untuk tenant saat
 // ini (dari context) — dipakai frontend flow builder agar module picker hanya
 // menampilkan module yang benar-benar disubscribe, bukan free-text.
+// subscriptionModuleSubslots lists the extra approval-only module slugs a
+// real subscribed module unlocks for flow creation (the reverse of
+// subscriptionModuleAliases) — e.g. subscribing to "performance" also lets
+// HR configure flows for the two independent KPI approval checkpoints.
+var subscriptionModuleSubslots = map[string][]string{
+	"performance": {"performance_kpi_target", "performance_kpi_realization"},
+}
+
 func (s *Service) ListAvailableModules(ctx context.Context) ([]string, error) {
 	if s.moduleChecker == nil {
 		return nil, fmt.Errorf("module subscription checker is not configured")
@@ -90,11 +98,33 @@ func (s *Service) ListAvailableModules(ctx context.Context) ([]string, error) {
 	if companyID == "" {
 		return nil, fmt.Errorf("tenant context not found")
 	}
-	return s.moduleChecker.ListActiveModules(companyID)
+	active, err := s.moduleChecker.ListActiveModules(companyID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, 0, len(active))
+	result = append(result, active...)
+	for _, m := range active {
+		result = append(result, subscriptionModuleSubslots[m]...)
+	}
+	return result, nil
 }
 
 // ensureModuleSubscribed menolak operasi jika module belum disubscribe tenant.
 // No-op jika moduleChecker belum diwire (backward compatible / test-friendly).
+// subscriptionModuleAliases maps an approval "module" slug that doesn't
+// correspond 1:1 to a real subscribable module to the real module it should
+// be checked against. Needed for consumer modules that route more than one
+// independent approval checkpoint through the engine for the same document
+// (e.g. KPI target approval and realization approval are two separate
+// approval module slugs — performance_kpi_target/performance_kpi_realization
+// — so they can use different flows/approvers, but both belong to the single
+// "performance" subscription).
+var subscriptionModuleAliases = map[string]string{
+	"performance_kpi_target":      "performance",
+	"performance_kpi_realization": "performance",
+}
+
 func (s *Service) ensureModuleSubscribed(ctx context.Context, module string) error {
 	if s.moduleChecker == nil {
 		return nil
@@ -102,6 +132,9 @@ func (s *Service) ensureModuleSubscribed(ctx context.Context, module string) err
 	companyID := authctx.GetCompanyID(ctx)
 	if companyID == "" {
 		return fmt.Errorf("tenant context not found")
+	}
+	if alias, ok := subscriptionModuleAliases[module]; ok {
+		module = alias
 	}
 	active, err := s.moduleChecker.IsModuleActive(companyID, module)
 	if err != nil {
@@ -158,6 +191,18 @@ func (s *Service) GetFlowByID(ctx context.Context, id string) (*FlowResponse, er
 		return nil, err
 	}
 
+	response := flow.ToResponse()
+	return &response, nil
+}
+
+// GetActiveFlowByModule resolves the active flow for a module without the
+// caller picking a flow_id manually — used by consumer modules (via the
+// ApprovalEngine adapter) that want auto-resolution, e.g. KPI self-assessment.
+func (s *Service) GetActiveFlowByModule(ctx context.Context, module string) (*FlowResponse, error) {
+	flow, err := s.repo.FindActiveFlowByModule(ctx, module)
+	if err != nil {
+		return nil, err
+	}
 	response := flow.ToResponse()
 	return &response, nil
 }

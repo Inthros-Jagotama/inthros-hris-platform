@@ -98,6 +98,64 @@ func TestService_ListAvailableModules_Success(t *testing.T) {
 	}
 }
 
+func TestService_CreateFlow_KPISubModule_AllowedViaPerformanceSubscription(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("performance"))
+
+	resp, err := svc.CreateFlow(ctxAsCompany("company-1"), CreateFlowRequest{
+		Module: "performance_kpi_target",
+		Name:   "KPI Target Approval",
+	})
+	if err != nil {
+		t.Fatalf("expected CreateFlow to succeed for performance_kpi_target when 'performance' is subscribed, got: %v", err)
+	}
+	if resp.Module != "performance_kpi_target" {
+		t.Errorf("expected module 'performance_kpi_target', got '%s'", resp.Module)
+	}
+
+	if _, err := svc.CreateFlow(ctxAsCompany("company-1"), CreateFlowRequest{
+		Module: "performance_kpi_realization",
+		Name:   "KPI Realization Approval",
+	}); err != nil {
+		t.Fatalf("expected CreateFlow to succeed for performance_kpi_realization when 'performance' is subscribed, got: %v", err)
+	}
+}
+
+func TestService_CreateFlow_KPISubModule_RejectedWithoutPerformanceSubscription(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("leave"))
+
+	_, err := svc.CreateFlow(ctxAsCompany("company-1"), CreateFlowRequest{
+		Module: "performance_kpi_target",
+		Name:   "KPI Target Approval",
+	})
+	if err == nil {
+		t.Fatal("expected CreateFlow to reject performance_kpi_target when 'performance' is not subscribed")
+	}
+}
+
+func TestService_ListAvailableModules_IncludesKPISubModules(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("performance", "leave"))
+
+	modules, err := svc.ListAvailableModules(ctxAsCompany("company-1"))
+	if err != nil {
+		t.Fatalf("ListAvailableModules failed: %v", err)
+	}
+	found := map[string]bool{}
+	for _, m := range modules {
+		found[m] = true
+	}
+	for _, want := range []string{"performance", "leave", "performance_kpi_target", "performance_kpi_realization"} {
+		if !found[want] {
+			t.Errorf("expected available modules to include %q, got %v", want, modules)
+		}
+	}
+}
+
 func TestService_ListAvailableModules_NoChecker_Error(t *testing.T) {
 	svc, _, cleanup := newTestService()
 	defer cleanup()

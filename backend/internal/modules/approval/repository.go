@@ -65,6 +65,25 @@ func (r *Repository) FindFlowByIDWithSteps(ctx context.Context, id uuid.UUID) (*
 	return &flow, nil
 }
 
+// FindActiveFlowByModule resolves the flow a caller should use for a given
+// module without the caller having to pick a flow_id manually (mirrors how
+// leave/reimbursement/etc. still require an explicit flow_id — this is for
+// callers, like the KPI self-assessment two-phase submission, that want
+// auto-resolution instead). Picks the highest-version active flow if more
+// than one somehow exists for the module.
+func (r *Repository) FindActiveFlowByModule(ctx context.Context, module string) (*ApprovalFlow, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var flow ApprovalFlow
+	if err := db.Where("module = ? AND is_active = ? AND deleted_at IS NULL", module, true).
+		Order("version DESC").First(&flow).Error; err != nil {
+		return nil, fmt.Errorf("no active approval flow found for module %q: %w", module, err)
+	}
+	return &flow, nil
+}
+
 func (r *Repository) ListFlows(ctx context.Context, page, perPage int) ([]ApprovalFlow, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {

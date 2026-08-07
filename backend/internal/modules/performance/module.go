@@ -46,6 +46,24 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 	}
 }
 
+// NewModuleWithService mounts the performance module's routes using an
+// already-constructed Service, so callers (e.g. main.go) can register a
+// push-based approval status handler against it before it's wrapped.
+func NewModuleWithService(dbManager *database.Manager, logger *zap.Logger, svc *Service) module.Module {
+	resolver := NewTenantDBResolver(dbManager)
+	handler := NewHandler(svc)
+
+	okrRepo := NewOKRRepository()
+	okrSvc := NewOKRService(okrRepo)
+	okrHandler := NewOKRHandler(okrSvc, resolver)
+
+	return &perfModule{
+		handler:    handler,
+		okrHandler: okrHandler,
+		logger:     logger,
+	}
+}
+
 type perfModule struct {
 	handler    *Handler
 	okrHandler *OKRHandler

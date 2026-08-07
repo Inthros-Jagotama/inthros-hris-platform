@@ -182,7 +182,12 @@ type PerformanceEvaluation struct {
 	ApprovedAt        *time.Time `gorm:"type:timestamp" json:"approved_at,omitempty"`
 	TargetSubmittedAt *time.Time `gorm:"type:timestamp" json:"target_submitted_at,omitempty"`
 	TargetApprovedAt  *time.Time `gorm:"type:timestamp" json:"target_approved_at,omitempty"`
-	Notes             *string    `gorm:"type:text" json:"notes,omitempty"`
+	// TargetApprovalInstanceID/RealizationApprovalInstanceID reference the
+	// central approval module's ApprovalInstance for each phase, when a
+	// flow is configured (module_kpi_target / performance_kpi_realization).
+	TargetApprovalInstanceID      *uuid.UUID `gorm:"type:char(36);index:idx_perf_eval_target_approval" json:"target_approval_instance_id,omitempty"`
+	RealizationApprovalInstanceID *uuid.UUID `gorm:"type:char(36);index:idx_perf_eval_realization_approval" json:"realization_approval_instance_id,omitempty"`
+	Notes                         *string    `gorm:"type:text" json:"notes,omitempty"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
 

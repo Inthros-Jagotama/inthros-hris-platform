@@ -18,13 +18,40 @@ const (
 	maxPerPage     = 100
 )
 
+// ApprovalEngine abstracts the central approval module so KPI target and
+// realization submissions can be routed through it instead of the
+// module's own manual ApproveTarget/RejectTarget/ApproveEvaluation/
+// RejectEvaluation. Implemented via an adapter wrapping approval.Service in
+// main.go (same narrow-interface-plus-adapter pattern the other consumer
+// modules already use). GetActiveFlowIDForModule lets the flow be resolved
+// automatically instead of the caller picking a flow_id manually.
+type ApprovalEngine interface {
+	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
+	GetActiveFlowIDForModule(ctx context.Context, module string) (string, error)
+}
+
+const (
+	// ApprovalModuleKPITarget/KPIRealization are separate approval module
+	// slugs (not just "performance_kpi") because target approval and
+	// realization approval are two independent approval instances on the
+	// same evaluation, potentially configured with different flows/approvers.
+	ApprovalModuleKPITarget      = "performance_kpi_target"
+	ApprovalModuleKPIRealization = "performance_kpi_realization"
+)
+
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
+	repo           *Repository
+	logger         *zap.Logger
+	approvalEngine ApprovalEngine
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// SetApprovalEngine wires the central approval module into this service.
+func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
+	s.approvalEngine = ae
 }
 
 // =========================================================================
@@ -1318,6 +1345,12 @@ func evaluationToResponse(e *PerformanceEvaluation) *PerformanceEvaluationRespon
 	if e.TargetApprovedAt != nil {
 		r.TargetApprovedAt = e.TargetApprovedAt.Format(time.RFC3339)
 	}
+	if e.TargetApprovalInstanceID != nil {
+		r.TargetApprovalInstanceID = e.TargetApprovalInstanceID.String()
+	}
+	if e.RealizationApprovalInstanceID != nil {
+		r.RealizationApprovalInstanceID = e.RealizationApprovalInstanceID.String()
+	}
 	if e.Notes != nil {
 		r.Notes = *e.Notes
 	}
@@ -2155,6 +2188,12 @@ func (s *Service) GetEvaluationWithDetails(ctx context.Context, evalID string) (
 	if eval.TargetApprovedAt != nil {
 		resp.TargetApprovedAt = eval.TargetApprovedAt.Format("2006-01-02 15:04:05")
 	}
+	if eval.TargetApprovalInstanceID != nil {
+		resp.TargetApprovalInstanceID = eval.TargetApprovalInstanceID.String()
+	}
+	if eval.RealizationApprovalInstanceID != nil {
+		resp.RealizationApprovalInstanceID = eval.RealizationApprovalInstanceID.String()
+	}
 	if eval.Notes != nil {
 		resp.Notes = *eval.Notes
 	}
@@ -2484,11 +2523,62 @@ func (s *Service) SubmitTarget(ctx context.Context, evalID string) (*Performance
 	eval.Status = "TARGET_SUBMITTED"
 	eval.TargetSubmittedAt = &now
 
+	// Route through the central approval module when a flow is configured
+	// for this module; otherwise ApproveTarget/RejectTarget remain the
+	// manual fallback (same backward-compatible pattern payroll/leave use).
+	if s.approvalEngine != nil {
+		if flowID, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, ApprovalModuleKPITarget); err == nil {
+			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, ApprovalModuleKPITarget, eval.ID.String(), flowID)
+			if err != nil {
+				s.logger.Warn("Failed to create target approval instance, continuing without approval routing",
+					zap.String("evaluation_id", eval.ID.String()),
+					zap.Error(err),
+				)
+			} else if parsedInstanceID, err := uuid.Parse(instanceID); err == nil {
+				eval.TargetApprovalInstanceID = &parsedInstanceID
+			}
+		}
+	}
+
 	if err := s.repo.UpdatePerformanceEvaluation(ctx, eval); err != nil {
 		return nil, err
 	}
 
 	return evaluationToResponse(eval), nil
+}
+
+// HandleTargetApprovalStatusChange is invoked by the approval module's
+// push-based status callback when a target approval instance reaches a
+// final state, so the evaluation's own status updates itself.
+func (s *Service) HandleTargetApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	if eval.Status != "TARGET_SUBMITTED" {
+		return nil
+	}
+
+	now := time.Now()
+	switch status {
+	case "APPROVED":
+		eval.Status = "TARGET_APPROVED"
+		eval.TargetApprovedAt = &now
+	case "REJECTED", "CANCELLED":
+		eval.Status = "DRAFT"
+		eval.TargetSubmittedAt = nil
+		if note != "" {
+			eval.Notes = &note
+		}
+	default:
+		return nil
+	}
+
+	s.logger.Info("KPI evaluation target status updated via approval status handler",
+		zap.String("evaluation_id", eval.ID.String()),
+		zap.String("approval_status", status),
+	)
+	return s.repo.UpdatePerformanceEvaluation(ctx, eval)
 }
 
 // ApproveTarget changes status from TARGET_SUBMITTED to TARGET_APPROVED,
@@ -2582,11 +2672,65 @@ func (s *Service) SubmitEvaluation(ctx context.Context, evalID string) (*Perform
 	eval.Status = "SUBMITTED"
 	eval.SubmittedAt = &now
 
+	// Route through the central approval module when a flow is configured
+	// for this module; otherwise ApproveEvaluation/RejectEvaluation remain
+	// the manual fallback.
+	if s.approvalEngine != nil {
+		if flowID, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, ApprovalModuleKPIRealization); err == nil {
+			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, ApprovalModuleKPIRealization, eval.ID.String(), flowID)
+			if err != nil {
+				s.logger.Warn("Failed to create realization approval instance, continuing without approval routing",
+					zap.String("evaluation_id", eval.ID.String()),
+					zap.Error(err),
+				)
+			} else if parsedInstanceID, err := uuid.Parse(instanceID); err == nil {
+				eval.RealizationApprovalInstanceID = &parsedInstanceID
+			}
+		}
+	}
+
 	if err := s.repo.UpdatePerformanceEvaluation(ctx, eval); err != nil {
 		return nil, err
 	}
 
 	return evaluationToResponse(eval), nil
+}
+
+// HandleRealizationApprovalStatusChange is invoked by the approval module's
+// push-based status callback when a realization approval instance reaches
+// a final state, so the evaluation's own status updates itself.
+func (s *Service) HandleRealizationApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	if eval.Status != "SUBMITTED" {
+		return nil
+	}
+
+	now := time.Now()
+	switch status {
+	case "APPROVED":
+		eval.Status = "APPROVED"
+		eval.ApprovedAt = &now
+	case "REJECTED", "CANCELLED":
+		// Reverts to TARGET_APPROVED (not all the way to DRAFT) since the
+		// target was already approved separately — the employee only needs
+		// to revise their realization/actual values.
+		eval.Status = "TARGET_APPROVED"
+		eval.SubmittedAt = nil
+		if note != "" {
+			eval.Notes = &note
+		}
+	default:
+		return nil
+	}
+
+	s.logger.Info("KPI evaluation realization status updated via approval status handler",
+		zap.String("evaluation_id", eval.ID.String()),
+		zap.String("approval_status", status),
+	)
+	return s.repo.UpdatePerformanceEvaluation(ctx, eval)
 }
 
 // ApproveEvaluation changes status from SUBMITTED to APPROVED

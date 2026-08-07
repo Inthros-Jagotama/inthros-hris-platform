@@ -209,6 +209,8 @@ type PerformanceEvaluationResponse struct {
 	ApprovedAt     string    `json:"approved_at,omitempty"`
 	TargetSubmittedAt string `json:"target_submitted_at,omitempty"`
 	TargetApprovedAt  string `json:"target_approved_at,omitempty"`
+	TargetApprovalInstanceID      string `json:"target_approval_instance_id,omitempty"`
+	RealizationApprovalInstanceID string `json:"realization_approval_instance_id,omitempty"`
 	Notes          string    `json:"notes,omitempty"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
@@ -584,6 +586,8 @@ type EvaluationWithDetailsResponse struct {
 	ApprovedAt        string                     `json:"approved_at,omitempty"`
 	TargetSubmittedAt string                     `json:"target_submitted_at,omitempty"`
 	TargetApprovedAt  string                     `json:"target_approved_at,omitempty"`
+	TargetApprovalInstanceID      string         `json:"target_approval_instance_id,omitempty"`
+	RealizationApprovalInstanceID string         `json:"realization_approval_instance_id,omitempty"`
 	Notes             string                     `json:"notes,omitempty"`
 	CreatedAt         time.Time                  `json:"created_at"`
 	UpdatedAt         time.Time                  `json:"updated_at"`

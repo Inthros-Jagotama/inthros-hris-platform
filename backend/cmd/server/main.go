@@ -93,6 +93,17 @@ func (a *payrollApprovalAdapter) GetApprovalInstanceStatus(ctx context.Context, 
 	return resp.Status, nil
 }
 
+// GetActiveFlowIDForModule lets a consumer (e.g. KPI self-assessment) auto-
+// resolve which flow to use for a module instead of picking a flow_id
+// manually.
+func (a *payrollApprovalAdapter) GetActiveFlowIDForModule(ctx context.Context, module string) (string, error) {
+	resp, err := a.approvalSvc.GetActiveFlowByModule(ctx, module)
+	if err != nil {
+		return "", err
+	}
+	return resp.ID, nil
+}
+
 // licenseCreatorAdapter implements company.LicenseCreator using the license service.
 // Digunakan untuk auto-create license saat signup company dengan package.
 type licenseCreatorAdapter struct {
@@ -515,6 +526,22 @@ func main() {
 		return attendanceSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
 
+	// Construct the performance service up front (instead of inside
+	// performance.NewModule) so its two push-based approval status handlers
+	// (KPI target approval, KPI realization approval — two independent
+	// checkpoints on the same evaluation) can be registered with approvalSvc
+	// before the module is mounted.
+	performanceResolver := performance.NewTenantDBResolver(dbManager)
+	performanceRepo := performance.NewRepository(performanceResolver)
+	performanceSvc := performance.NewService(performanceRepo, l.Named("performance"))
+	performanceSvc.SetApprovalEngine(sharedApprovalEngine)
+	approvalSvc.RegisterStatusHandler(performance.ApprovalModuleKPITarget, func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return performanceSvc.HandleTargetApprovalStatusChange(ctx, documentID, string(status), note)
+	})
+	approvalSvc.RegisterStatusHandler(performance.ApprovalModuleKPIRealization, func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return performanceSvc.HandleRealizationApprovalStatusChange(ctx, documentID, string(status), note)
+	})
+
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees
 	// dari file .lic. Pada mode saas, licenseLister memakai company_modules DB.
@@ -588,7 +615,7 @@ func main() {
 			Priority: 9,
 		},
 		module.ModuleRegistration{
-			Module:   performance.NewModule(dbManager, l),
+			Module:   performance.NewModuleWithService(dbManager, l, performanceSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 10,
 		},
