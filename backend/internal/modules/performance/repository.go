@@ -198,6 +198,82 @@ func (r *Repository) ListPerformanceTemplates(ctx context.Context, orgID *uuid.U
 	return list, total, nil
 }
 
+// GetOrganizationNamesByIDs mengambil nomenclature organisasi untuk sekumpulan ID
+// via raw table query (tanpa import package organization, hindari circular dependency).
+func (r *Repository) GetOrganizationNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		ID           string
+		Nomenclature string
+	}
+	var rows []row
+	if err := db.WithContext(ctx).Table("organizations").
+		Select("id, nomenclature").
+		Where("id IN ?", ids).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, rrow := range rows {
+		result[rrow.ID] = rrow.Nomenclature
+	}
+	return result, nil
+}
+
+// GetPeriodCodesByIDs mengambil period_code untuk sekumpulan performance_periods ID.
+func (r *Repository) GetPeriodCodesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var periods []PerformancePeriod
+	if err := db.WithContext(ctx).Where("id IN ?", ids).Find(&periods).Error; err != nil {
+		return nil, err
+	}
+	for _, p := range periods {
+		result[p.ID.String()] = p.PeriodCode
+	}
+	return result, nil
+}
+
+// CountIndicatorsByTemplateIDs menghitung jumlah indicator per template (grouped).
+func (r *Repository) CountIndicatorsByTemplateIDs(ctx context.Context, ids []uuid.UUID) (map[string]int, error) {
+	result := make(map[string]int, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		PerformanceTemplateID string
+		Count                 int
+	}
+	var rows []row
+	if err := db.WithContext(ctx).Model(&PerformanceIndicator{}).
+		Select("performance_template_id, COUNT(*) as count").
+		Where("performance_template_id IN ?", ids).
+		Group("performance_template_id").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, rrow := range rows {
+		result[rrow.PerformanceTemplateID] = rrow.Count
+	}
+	return result, nil
+}
+
 func (r *Repository) UpdatePerformanceTemplate(ctx context.Context, t *PerformanceTemplate) error {
 	db, err := r.db(ctx)
 	if err != nil {

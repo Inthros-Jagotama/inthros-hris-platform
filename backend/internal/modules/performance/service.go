@@ -252,7 +252,68 @@ func (s *Service) GetPerformanceTemplateByID(ctx context.Context, id string) (*P
 	if err != nil {
 		return nil, err
 	}
-	return templateToResponse(t), nil
+	resp := templateToResponse(t)
+	if err := s.enrichTemplateResponses(ctx, []*PerformanceTemplateResponse{resp}); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// enrichTemplateResponses mengisi OrganizationName, PeriodCode, dan IndicatorCount
+// yang tidak tersedia di model PerformanceTemplate itu sendiri (butuh lookup lintas
+// tabel: organizations, performance_periods, performance_indicators).
+func (s *Service) enrichTemplateResponses(ctx context.Context, responses []*PerformanceTemplateResponse) error {
+	if len(responses) == 0 {
+		return nil
+	}
+
+	orgIDSet := make(map[uuid.UUID]struct{})
+	periodIDSet := make(map[uuid.UUID]struct{})
+	templateIDs := make([]uuid.UUID, 0, len(responses))
+	for _, r := range responses {
+		if r.OrganizationID != "" {
+			if id, err := uuid.Parse(r.OrganizationID); err == nil {
+				orgIDSet[id] = struct{}{}
+			}
+		}
+		if r.PeriodID != "" {
+			if id, err := uuid.Parse(r.PeriodID); err == nil {
+				periodIDSet[id] = struct{}{}
+			}
+		}
+		if id, err := uuid.Parse(r.ID); err == nil {
+			templateIDs = append(templateIDs, id)
+		}
+	}
+
+	orgIDs := make([]uuid.UUID, 0, len(orgIDSet))
+	for id := range orgIDSet {
+		orgIDs = append(orgIDs, id)
+	}
+	periodIDs := make([]uuid.UUID, 0, len(periodIDSet))
+	for id := range periodIDSet {
+		periodIDs = append(periodIDs, id)
+	}
+
+	orgNames, err := s.repo.GetOrganizationNamesByIDs(ctx, orgIDs)
+	if err != nil {
+		return err
+	}
+	periodCodes, err := s.repo.GetPeriodCodesByIDs(ctx, periodIDs)
+	if err != nil {
+		return err
+	}
+	indicatorCounts, err := s.repo.CountIndicatorsByTemplateIDs(ctx, templateIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, r := range responses {
+		r.OrganizationName = orgNames[r.OrganizationID]
+		r.PeriodCode = periodCodes[r.PeriodID]
+		r.IndicatorCount = indicatorCounts[r.ID]
+	}
+	return nil
 }
 
 func (s *Service) ListPerformanceTemplates(ctx context.Context, orgID *string, page, perPage int) (*PaginatedResponse, error) {
@@ -274,12 +335,19 @@ func (s *Service) ListPerformanceTemplates(ctx context.Context, orgID *string, p
 	if err != nil {
 		return nil, err
 	}
-	responses := make([]PerformanceTemplateResponse, 0, len(list))
+	responses := make([]*PerformanceTemplateResponse, 0, len(list))
 	for _, t := range list {
-		responses = append(responses, *templateToResponse(&t))
+		responses = append(responses, templateToResponse(&t))
+	}
+	if err := s.enrichTemplateResponses(ctx, responses); err != nil {
+		return nil, err
+	}
+	flat := make([]PerformanceTemplateResponse, 0, len(responses))
+	for _, r := range responses {
+		flat = append(flat, *r)
 	}
 	return &PaginatedResponse{
-		Success: true, Data: responses, Page: page, PerPage: perPage,
+		Success: true, Data: flat, Page: page, PerPage: perPage,
 		Total: total, TotalPages: calcTotalPages(total, perPage),
 	}, nil
 }

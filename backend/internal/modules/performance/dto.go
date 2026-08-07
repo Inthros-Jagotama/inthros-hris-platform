@@ -84,16 +84,19 @@ type UpdatePerformanceTemplateRequest struct {
 }
 
 type PerformanceTemplateResponse struct {
-	ID             string    `json:"id"`
-	OrganizationID string    `json:"organization_id"`
-	PeriodID       string    `json:"period_id,omitempty"`
-	Name           string    `json:"name"`
-	Description    string    `json:"description,omitempty"`
-	Status         string    `json:"status"`
-	EffectiveDate  string    `json:"effective_date,omitempty"`
-	ExpiredDate    string    `json:"expired_date,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID               string    `json:"id"`
+	OrganizationID   string    `json:"organization_id"`
+	OrganizationName string    `json:"organization_name,omitempty"`
+	PeriodID         string    `json:"period_id,omitempty"`
+	PeriodCode       string    `json:"period_code,omitempty"`
+	Name             string    `json:"name"`
+	Description      string    `json:"description,omitempty"`
+	Status           string    `json:"status"`
+	EffectiveDate    string    `json:"effective_date,omitempty"`
+	ExpiredDate      string    `json:"expired_date,omitempty"`
+	IndicatorCount   int       `json:"indicator_count"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 // =========================================================================
