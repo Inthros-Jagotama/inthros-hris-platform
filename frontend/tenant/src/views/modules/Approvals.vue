@@ -1,13 +1,13 @@
 <template>
   <div class="space-y-1">
     <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
-      <span v-if="pendingTotal > 0" class="text-xs text-gray-400 dark:text-gray-500">
-        {{ pendingTotal }} {{ t('common.items') }}
-      </span>
-      <div class="flex gap-2 items-center">
+      <div class="flex items-center gap-2">
+        <span v-if="pendingTotal > 0" class="text-xs text-gray-400 dark:text-gray-500">
+          {{ pendingTotal }} {{ t('common.items') }}
+        </span>
         <Button icon="pi pi-refresh" size="small" text severity="secondary" @click="loadPendingTasks" />
-        <Button :label="t('approval.flows')" icon="pi pi-sitemap" size="small" @click="router.push({ name: 'ApprovalFlows' })" />
       </div>
+      <Button :label="t('approval.flows')" icon="pi pi-sitemap" size="small" @click="router.push({ name: 'ApprovalFlows' })" />
     </div>
 
     <SkeletonTable v-if="tasksLoading" :columns="taskSkeletonColumns" :rows="6" />
