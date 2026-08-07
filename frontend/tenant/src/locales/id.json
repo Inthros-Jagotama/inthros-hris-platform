@@ -571,7 +571,21 @@
     "period_required": "Silakan pilih periode terlebih dahulu.",
     "start_self_assessment": "Isi Evaluasi",
     "continue_self_assessment": "Lanjutkan Evaluasi",
-    "existing_evaluation_found": "Anda sudah memiliki evaluasi untuk periode ini."
+    "existing_evaluation_found": "Anda sudah memiliki evaluasi untuk periode ini.",
+    "submit_target": "Ajukan Target",
+    "approve_target": "Setujui Target",
+    "reject_target": "Tolak Target",
+    "target_submitted": "Target berhasil diajukan untuk ditinjau.",
+    "target_approved": "Target disetujui.",
+    "target_rejected": "Target ditolak.",
+    "phase_hint_draft": "Isi target untuk setiap indikator, lalu ajukan untuk mendapat persetujuan atasan.",
+    "phase_hint_target_submitted": "Target sudah diajukan — menunggu persetujuan atasan.",
+    "phase_hint_target_approved": "Target telah disetujui. Isi nilai realisasi/aktual Anda, lalu ajukan untuk tinjauan akhir.",
+    "program_items": "Item Program",
+    "add_program_item": "Tambah Item Program",
+    "no_program_items": "Belum ada item program yang ditambahkan.",
+    "program_item_title": "Judul Program",
+    "program_item_title_placeholder": "cth. Perbaikan alur onboarding"
   },
   "okr": {
     "title": "Tujuan & Hasil Utama",

@@ -35,6 +35,12 @@
         </div>
       </div>
 
+      <!-- Phase hint -->
+      <div v-if="phaseHintKey" class="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-3 flex items-center gap-2">
+        <i class="pi pi-info-circle text-blue-500"></i>
+        <span class="text-xs text-blue-700 dark:text-blue-300">{{ t(phaseHintKey) }}</span>
+      </div>
+
       <!-- Indicators Table -->
       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
         <div class="flex items-center justify-between mb-4">
@@ -44,7 +50,7 @@
             <span class="text-xs font-normal text-gray-500">({{ details.length }})</span>
           </h3>
           <div class="flex items-center gap-2">
-            <Button v-if="canEdit" :label="t('kpi.recalculate')" icon="pi pi-refresh" size="small" outlined severity="secondary" :loading="recalculating" @click="recalculate" />
+            <Button v-if="canEditActual" :label="t('kpi.recalculate')" icon="pi pi-refresh" size="small" outlined severity="secondary" :loading="recalculating" @click="recalculate" />
           </div>
         </div>
 
@@ -71,16 +77,25 @@
             </template>
           </Column>
 
-          <Column field="target_value" :header="t('kpi.target')" style="width:100px">
+          <Column field="target_value" :header="t('kpi.target')" style="width:120px">
             <template #body="{data}">
-              <span class="text-gray-600 dark:text-gray-300 font-mono">{{ formatNumber(data.target_value) }} {{ data.unit_of_measurement }}</span>
+              <InputNumber
+                v-if="canEditTarget"
+                v-model="data.target_value"
+                :minFractionDigits="0"
+                :maxFractionDigits="2"
+                class="w-full !text-xs"
+                size="small"
+                @blur="updateTarget(data)"
+              />
+              <span v-else class="text-gray-600 dark:text-gray-300 font-mono">{{ formatNumber(data.target_value) }} {{ data.unit_of_measurement }}</span>
             </template>
           </Column>
 
           <Column field="actual_value" :header="t('kpi.actual')" style="width:120px">
             <template #body="{data}">
               <InputNumber
-                v-if="canEdit"
+                v-if="canEditActual"
                 v-model="data.actual_value"
                 :minFractionDigits="0"
                 :maxFractionDigits="2"
@@ -88,7 +103,8 @@
                 size="small"
                 @blur="updateActual(data)"
               />
-              <span v-else class="text-gray-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual_value) }}</span>
+              <span v-else-if="showActualColumn" class="text-gray-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual_value) }}</span>
+              <span v-else class="text-gray-300 dark:text-gray-600">—</span>
             </template>
           </Column>
 
@@ -110,6 +126,65 @@
         </DataTable>
       </div>
 
+      <!-- Program Items -->
+      <div v-if="showProgramSection" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <i class="pi pi-briefcase text-purple-500"></i>
+            {{ t('kpi.program_items') }}
+            <span class="text-xs font-normal text-gray-500">({{ programItems.length }})</span>
+          </h3>
+          <Button v-if="canEditTarget" :label="t('kpi.add_program_item')" icon="pi pi-plus" size="small" outlined @click="openProgramItemDialog" />
+        </div>
+
+        <p v-if="programItems.length === 0" class="text-xs text-gray-400 dark:text-gray-500 py-2">
+          {{ t('kpi.no_program_items') }}
+        </p>
+
+        <DataTable v-else :value="programItems" size="small" class="!text-sm p-datatable-sm" :rowHover="true">
+          <Column field="title" :header="t('kpi.program_item_title')" style="min-width:200px">
+            <template #body="{data}">
+              <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.title }}</span>
+            </template>
+          </Column>
+          <Column field="formula_type" :header="t('kpi.formula')" style="width:130px">
+            <template #body="{data}">
+              <Tag :value="data.formula_type" severity="secondary" class="!text-xs" />
+            </template>
+          </Column>
+          <Column field="target" :header="t('kpi.target')" style="width:100px">
+            <template #body="{data}">
+              <span class="text-gray-600 dark:text-gray-300 font-mono">{{ formatNumber(data.target) }}</span>
+            </template>
+          </Column>
+          <Column field="actual" :header="t('kpi.actual')" style="width:120px">
+            <template #body="{data}">
+              <InputNumber
+                v-if="canEditActual"
+                v-model="data.actual"
+                :minFractionDigits="0"
+                :maxFractionDigits="2"
+                class="w-full !text-xs"
+                size="small"
+                @blur="updateProgramItemActual(data)"
+              />
+              <span v-else-if="showActualColumn" class="text-gray-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual) }}</span>
+              <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+            </template>
+          </Column>
+          <Column field="score" :header="t('kpi.score')" style="width:80px">
+            <template #body="{data}">
+              <span class="font-mono font-bold" :class="getScoreClass(data.score)">{{ data.score?.toFixed(1) || '0.0' }}</span>
+            </template>
+          </Column>
+          <Column v-if="canEditTarget" style="width:50px">
+            <template #body="{data}">
+              <Button icon="pi pi-trash" size="small" text severity="danger" @click="removeProgramItem(data)" />
+            </template>
+          </Column>
+        </DataTable>
+      </div>
+
       <!-- Scoring Components Breakdown (Phase 5) -->
       <div v-if="components.length > 0 || hasScoringConfig" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
         <div class="flex items-center justify-between mb-4">
@@ -117,7 +192,7 @@
             <i class="pi pi-sliders-h text-indigo-500"></i>
             {{ t('performance_scoring.components') }}
           </h3>
-          <Button v-if="canEdit" :label="t('performance_scoring.calculate')" icon="pi pi-calculator" size="small" outlined severity="secondary" :loading="calculatingScoring" @click="calculateScoring" />
+          <Button v-if="canEditActual" :label="t('performance_scoring.calculate')" icon="pi pi-calculator" size="small" outlined severity="secondary" :loading="calculatingScoring" @click="calculateScoring" />
         </div>
 
         <p v-if="components.length === 0" class="text-xs text-gray-400 dark:text-gray-500 py-2">
@@ -133,7 +208,7 @@
           <Column field="score" :header="t('performance_scoring.raw_score')" style="width:120px">
             <template #body="{data}">
               <InputNumber
-                v-if="canEdit && isManualComponent(data)"
+                v-if="canEditActual && isManualComponent(data)"
                 v-model="data.score"
                 :min="0"
                 :max="100"
@@ -164,6 +239,13 @@
         <Button :label="t('common.back')" icon="pi pi-arrow-left" severity="secondary" outlined size="small" @click="goBack" />
         <div class="flex items-center gap-2">
           <template v-if="evaluation.status === 'DRAFT'">
+            <Button :label="t('kpi.submit_target')" icon="pi pi-send" size="small" :loading="submittingTarget" @click="submitTarget" />
+          </template>
+          <template v-else-if="evaluation.status === 'TARGET_SUBMITTED'">
+            <Button :label="t('kpi.reject_target')" icon="pi pi-times" severity="danger" outlined size="small" :loading="rejectingTarget" @click="rejectTarget" />
+            <Button :label="t('kpi.approve_target')" icon="pi pi-check" severity="success" size="small" :loading="approvingTarget" @click="approveTarget" />
+          </template>
+          <template v-else-if="evaluation.status === 'TARGET_APPROVED'">
             <Button :label="t('kpi.submit')" icon="pi pi-send" size="small" :loading="submitting" @click="submitEvaluation" />
           </template>
           <template v-else-if="evaluation.status === 'SUBMITTED'">
@@ -183,6 +265,27 @@
       <p class="text-sm font-medium">{{ t('kpi.evaluation_not_found') }}</p>
       <Button :label="t('common.back')" icon="pi pi-arrow-left" severity="secondary" outlined size="small" class="mt-4" @click="goBack" />
     </div>
+
+    <!-- Add Program Item Dialog -->
+    <Dialog v-model:visible="programItemDialogVisible" :header="t('kpi.add_program_item')" modal :style="{ width: '480px' }">
+      <div class="space-y-4">
+        <FormRow :label="t('kpi.program_item_title')" required :errors="programItemErrors?.title">
+          <TextInput v-model="programItemForm.title" maxlength="255" autofocus :placeholder="t('kpi.program_item_title_placeholder')" :class="{'p-invalid':programItemErrors?.title}" />
+        </FormRow>
+        <FormRow :label="t('kpi.target')" required :errors="programItemErrors?.target">
+          <InputNumber v-model="programItemForm.target" class="!w-full" :minFractionDigits="0" :maxFractionDigits="2" size="small" />
+        </FormRow>
+        <FormRow :label="t('kpi.formula')">
+          <Select v-model="programItemForm.formula_type" :options="formulaOptions" optionLabel="label" optionValue="value" class="w-full" />
+        </FormRow>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="programItemDialogVisible=false" />
+          <Button :label="t('common.save')" size="small" :loading="savingProgramItem" :disabled="savingProgramItem" @click="saveProgramItem" />
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -191,12 +294,17 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
+import { getValidationErrors } from '@/services/responseHandler'
 import api from '@/services/api'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputNumber from 'primevue/inputnumber'
+import Dialog from 'primevue/dialog'
+import Select from 'primevue/select'
+import FormRow from '@/components/FormRow.vue'
+import TextInput from '@/components/TextInput.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -207,6 +315,9 @@ const pageLoading = ref(true)
 const evaluation = ref(null)
 const details = ref([])
 const recalculating = ref(false)
+const submittingTarget = ref(false)
+const approvingTarget = ref(false)
+const rejectingTarget = ref(false)
 const submitting = ref(false)
 const approving = ref(false)
 const rejecting = ref(false)
@@ -217,12 +328,40 @@ const hasScoringConfig = ref(false)
 const calculatingScoring = ref(false)
 const componentCodeById = ref({})
 
+const programItems = ref([])
+const programEnabled = ref(false)
+const programItemDialogVisible = ref(false)
+const savingProgramItem = ref(false)
+const programItemErrors = ref({})
+const programItemForm = ref({ title: '', target: 0, formula_type: 'MANUAL' })
+
+const formulaOptions = [
+  { label: 'Higher Better', value: 'HIGHER_BETTER' },
+  { label: 'Lower Better', value: 'LOWER_BETTER' },
+  { label: 'Range', value: 'RANGE' },
+  { label: 'Manual', value: 'MANUAL' }
+]
+
 const evaluationId = computed(() => route.params.id)
-const canEdit = computed(() => evaluation.value?.status === 'DRAFT')
+// Two-phase gating: target editable only in DRAFT ("Ajukan Target"),
+// actual editable only once the target has been approved ("Ajukan Realisasi").
+const canEditTarget = computed(() => evaluation.value?.status === 'DRAFT')
+const canEditActual = computed(() => evaluation.value?.status === 'TARGET_APPROVED')
+const showActualColumn = computed(() => !['DRAFT', 'TARGET_SUBMITTED'].includes(evaluation.value?.status))
+const showProgramSection = computed(() => programEnabled.value || programItems.value.length > 0)
+
+const phaseHintKey = computed(() => {
+  switch (evaluation.value?.status) {
+    case 'DRAFT': return 'kpi.phase_hint_draft'
+    case 'TARGET_SUBMITTED': return 'kpi.phase_hint_target_submitted'
+    case 'TARGET_APPROVED': return 'kpi.phase_hint_target_approved'
+    default: return null
+  }
+})
 
 function isManualComponent(row) {
   const code = componentCodeById.value[row.component_id]
-  return code !== 'KPI' && code !== 'SUBORDINATE'
+  return code !== 'KPI' && code !== 'SUBORDINATE' && code !== 'PROGRAM'
 }
 
 function formatNumber(val) {
@@ -235,6 +374,8 @@ function getStatusSeverity(status) {
     case 'COMPLETED': return 'success'
     case 'APPROVED': return 'info'
     case 'SUBMITTED': return 'warn'
+    case 'TARGET_APPROVED': return 'info'
+    case 'TARGET_SUBMITTED': return 'warn'
     default: return 'secondary'
   }
 }
@@ -299,6 +440,7 @@ async function loadEvaluation() {
       unit_of_measurement: d.unit_of_measurement || d.indicator?.unit_of_measurement || '',
       formula_type: d.formula_type || d.indicator?.formula_type
     }))
+    programItems.value = (data.program_items || []).map(p => ({ ...p }))
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.failed_to_load'), life: 4000 })
     evaluation.value = null
@@ -336,13 +478,17 @@ async function loadMasterComponents() {
 async function checkScoringConfig() {
   if (!evaluation.value?.organization_id) {
     hasScoringConfig.value = false
+    programEnabled.value = false
     return
   }
   try {
     const res = await api.get(`/api/v1/tenant/performance/kpi/organizations/${evaluation.value.organization_id}/components`)
-    hasScoringConfig.value = (res.data?.data || []).some(c => c.is_enabled)
+    const orgComponents = res.data?.data || []
+    hasScoringConfig.value = orgComponents.some(c => c.is_enabled)
+    programEnabled.value = orgComponents.some(c => c.is_enabled && componentCodeById.value[c.component_id] === 'PROGRAM')
   } catch {
     hasScoringConfig.value = false
+    programEnabled.value = false
   }
 }
 
@@ -372,12 +518,81 @@ async function updateComponentScore(row) {
   }
 }
 
+async function updateTarget(detail) {
+  try {
+    await api.put(`/api/v1/tenant/performance/kpi/evaluation-details/${detail.id}/target`, {
+      target: detail.target_value || 0
+    })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  }
+}
+
 async function updateActual(detail) {
   try {
     await api.put(`/api/v1/tenant/performance/kpi/evaluation-details/${detail.id}/actual`, {
       actual: detail.actual_value || 0
     })
     await recalculate()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  }
+}
+
+function openProgramItemDialog() {
+  programItemForm.value = { title: '', target: 0, formula_type: 'MANUAL' }
+  programItemErrors.value = {}
+  programItemDialogVisible.value = true
+}
+
+async function saveProgramItem() {
+  programItemErrors.value = {}
+  if (!programItemForm.value.title?.trim()) {
+    programItemErrors.value = { title: [t('form.required')] }
+    return
+  }
+  if (!programItemForm.value.target) {
+    programItemErrors.value = { target: [t('form.required')] }
+    return
+  }
+
+  savingProgramItem.value = true
+  try {
+    await api.post('/api/v1/tenant/performance/kpi/program-items', {
+      performance_evaluation_id: evaluationId.value,
+      title: programItemForm.value.title,
+      target: programItemForm.value.target,
+      formula_type: programItemForm.value.formula_type
+    })
+    programItemDialogVisible.value = false
+    await loadEvaluation()
+  } catch (e) {
+    const fe = getValidationErrors(e)
+    if (Object.keys(fe).length > 0) {
+      programItemErrors.value = fe
+    } else {
+      toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+    }
+  } finally {
+    savingProgramItem.value = false
+  }
+}
+
+async function removeProgramItem(item) {
+  try {
+    await api.delete(`/api/v1/tenant/performance/kpi/program-items/${item.id}`)
+    await loadEvaluation()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  }
+}
+
+async function updateProgramItemActual(item) {
+  try {
+    await api.put(`/api/v1/tenant/performance/kpi/program-items/${item.id}/actual`, {
+      actual: item.actual || 0
+    })
+    await loadEvaluation()
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
   }
@@ -393,6 +608,45 @@ async function recalculate() {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
   } finally {
     recalculating.value = false
+  }
+}
+
+async function submitTarget() {
+  submittingTarget.value = true
+  try {
+    await api.post(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/submit-target`)
+    await loadEvaluation()
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('kpi.target_submitted'), life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    submittingTarget.value = false
+  }
+}
+
+async function approveTarget() {
+  approvingTarget.value = true
+  try {
+    await api.post(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/approve-target`)
+    await loadEvaluation()
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('kpi.target_approved'), life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    approvingTarget.value = false
+  }
+}
+
+async function rejectTarget() {
+  rejectingTarget.value = true
+  try {
+    await api.post(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/reject-target`)
+    await loadEvaluation()
+    toast.add({ severity: 'warn', summary: t('message.success'), detail: t('kpi.target_rejected'), life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    rejectingTarget.value = false
   }
 }
 

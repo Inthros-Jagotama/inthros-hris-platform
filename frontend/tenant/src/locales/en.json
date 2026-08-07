@@ -571,7 +571,21 @@
     "period_required": "Please select a period first.",
     "start_self_assessment": "Fill Evaluation",
     "continue_self_assessment": "Continue Evaluation",
-    "existing_evaluation_found": "You already have an evaluation for this period."
+    "existing_evaluation_found": "You already have an evaluation for this period.",
+    "submit_target": "Submit Target",
+    "approve_target": "Approve Target",
+    "reject_target": "Reject Target",
+    "target_submitted": "Target submitted for review.",
+    "target_approved": "Target approved.",
+    "target_rejected": "Target rejected.",
+    "phase_hint_draft": "Fill in your target for each indicator, then submit for your supervisor's approval.",
+    "phase_hint_target_submitted": "Target submitted — waiting for supervisor approval.",
+    "phase_hint_target_approved": "Target approved. Fill in your actual/realization values, then submit for final review.",
+    "program_items": "Program Items",
+    "add_program_item": "Add Program Item",
+    "no_program_items": "No program items added yet.",
+    "program_item_title": "Program Title",
+    "program_item_title_placeholder": "e.g. Improve onboarding flow"
   },
   "okr": {
     "title": "Objective & Key Results",
