@@ -130,6 +130,7 @@ type CreateLeaveRequest struct {
 	SupervisorID    *string `json:"supervisor_id"`
 	StartTime       *string `json:"start_time"`
 	EndTime         *string `json:"end_time"`
+	FlowID          *string `json:"flow_id"`
 }
 
 type UpdateLeaveRequestStatus struct {

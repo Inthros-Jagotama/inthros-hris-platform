@@ -16,13 +16,28 @@ const (
 	maxPerPage     = 100
 )
 
+// ApprovalEngine abstracts the central approval module so leave requests can
+// be routed through it instead of leave's own ad-hoc SupervisorID/HrID
+// fields. Implemented via an adapter wrapping approval.Service in main.go
+// (same narrow-interface-plus-adapter pattern payroll already uses).
+type ApprovalEngine interface {
+	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
+	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
+}
+
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
+	repo           *Repository
+	logger         *zap.Logger
+	approvalEngine ApprovalEngine
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// SetApprovalEngine wires the central approval module into this service.
+func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
+	s.approvalEngine = ae
 }
 
 // =========================================================================
@@ -417,6 +432,27 @@ func (s *Service) CreateLeaveRequest(ctx context.Context, req CreateLeaveRequest
 	if err := s.repo.CreateLeaveRequest(ctx, lr); err != nil {
 		return nil, err
 	}
+
+	// Route through the central approval module when a flow is selected,
+	// instead of relying on leave's own ad-hoc SupervisorID/HrID fields.
+	if s.approvalEngine != nil && req.FlowID != nil && *req.FlowID != "" {
+		instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "leave", lr.ID.String(), *req.FlowID)
+		if err != nil {
+			s.logger.Warn("Failed to create approval instance for leave request, continuing without approval",
+				zap.String("leave_request_id", lr.ID.String()),
+				zap.Error(err),
+			)
+		} else {
+			if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+				lr.ApprovalInstanceID = &parsedInstanceID
+			}
+			lr.Status = LeaveStatusPendingApproval
+			if err := s.repo.UpdateLeaveRequest(ctx, lr); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	s.logger.Info("Leave request created", zap.String("id", lr.ID.String()), zap.String("employee_id", lr.EmployeeID.String()))
 	return leaveRequestToResponse(lr), nil
 }
@@ -498,6 +534,43 @@ func (s *Service) UpdateLeaveRequestStatus(ctx context.Context, id, status, note
 		return nil, err
 	}
 	return leaveRequestToResponse(lr), nil
+}
+
+// HandleApprovalStatusChange is invoked by the approval module's push-based
+// status callback when a leave request's approval instance reaches a final
+// state, so the leave request's own status field updates itself.
+func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	lr, err := s.repo.FindLeaveRequestByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	if lr.Status != LeaveStatusPendingApproval {
+		return nil
+	}
+
+	now := time.Now()
+	switch status {
+	case "APPROVED":
+		lr.Status = LeaveStatusApprovedFinal
+		lr.ApprovedAt = &now
+	case "REJECTED":
+		lr.Status = LeaveStatusRejectedFinal
+		lr.RejectedAt = &now
+		if note != "" {
+			lr.SupervisorNote = &note
+		}
+	case "CANCELLED":
+		lr.Status = LeaveStatusCancelled
+		lr.CancelledAt = &now
+	default:
+		return nil
+	}
+
+	s.logger.Info("Leave request status updated via approval status handler",
+		zap.String("leave_request_id", lr.ID.String()),
+		zap.String("approval_status", status),
+	)
+	return s.repo.UpdateLeaveRequest(ctx, lr)
 }
 
 func (s *Service) DeleteLeaveRequest(ctx context.Context, id string) error {

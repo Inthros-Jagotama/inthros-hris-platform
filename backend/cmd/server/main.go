@@ -452,8 +452,10 @@ func main() {
 	approvalSvc := approval.NewService(approvalRepo, approvalLogger)
 	approvalSvc.SetModuleChecker(approvalModuleCheckerAdapter{svc: modulemgmtSvc})
 
-	// Create the ApprovalEngine adapter that the payroll module expects
-	payrollApprovalEngine := &payrollApprovalAdapter{
+	// Create the ApprovalEngine adapter shared by every consumer module
+	// (payroll, leave, ...) — structurally satisfies each module's own
+	// narrow ApprovalEngine interface since they all share the same method set.
+	sharedApprovalEngine := &payrollApprovalAdapter{
 		approvalSvc: approvalSvc,
 	}
 
@@ -463,9 +465,21 @@ func main() {
 	payrollResolver := payroll.NewTenantDBResolver(dbManager)
 	payrollRepo := payroll.NewRepository(payrollResolver)
 	payrollSvc := payroll.NewService(payrollRepo, l.Named("payroll"))
-	payrollSvc.SetApprovalEngine(payrollApprovalEngine)
+	payrollSvc.SetApprovalEngine(sharedApprovalEngine)
 	approvalSvc.RegisterStatusHandler("payroll", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return payrollSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
+	})
+
+	// Construct the leave service up front (instead of inside leave.NewModule)
+	// so its push-based approval status handler can be registered with
+	// approvalSvc before the module is mounted. Reuses the same generic
+	// approval adapter as payroll.
+	leaveResolver := leave.NewTenantDBResolver(dbManager)
+	leaveRepo := leave.NewRepository(leaveResolver)
+	leaveSvc := leave.NewService(leaveRepo, l.Named("leave"))
+	leaveSvc.SetApprovalEngine(sharedApprovalEngine)
+	approvalSvc.RegisterStatusHandler("leave", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return leaveSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
 
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
@@ -536,7 +550,7 @@ func main() {
 			Priority: 8,
 		},
 		module.ModuleRegistration{
-			Module:   leave.NewModule(dbManager, l),
+			Module:   leave.NewModuleWithService(l, leaveSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 9,
 		},
