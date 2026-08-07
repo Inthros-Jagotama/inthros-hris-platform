@@ -2524,19 +2524,24 @@ func (s *Service) SubmitTarget(ctx context.Context, evalID string) (*Performance
 	eval.TargetSubmittedAt = &now
 
 	// Route through the central approval module when a flow is configured
-	// for this module; otherwise ApproveTarget/RejectTarget remain the
-	// manual fallback (same backward-compatible pattern payroll/leave use).
+	// for this module; ApproveTarget/RejectTarget remain the manual
+	// fallback only when no flow is configured at all (same backward-
+	// compatible pattern payroll/leave use). If a flow IS configured but
+	// fails to resolve (e.g. the step's approver is vacant all the way up
+	// the hierarchy — a misconfiguration), the whole submission must fail
+	// rather than silently degrading to manual mode, otherwise the request
+	// goes through with nobody actually able to approve it.
 	if s.approvalEngine != nil {
 		if flowID, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, ApprovalModuleKPITarget); err == nil {
 			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, ApprovalModuleKPITarget, eval.ID.String(), flowID)
 			if err != nil {
-				s.logger.Warn("Failed to create target approval instance, continuing without approval routing",
-					zap.String("evaluation_id", eval.ID.String()),
-					zap.Error(err),
-				)
-			} else if parsedInstanceID, err := uuid.Parse(instanceID); err == nil {
-				eval.TargetApprovalInstanceID = &parsedInstanceID
+				return nil, fmt.Errorf("failed to route target for approval: %w", err)
 			}
+			parsedInstanceID, err := uuid.Parse(instanceID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid approval instance id returned: %w", err)
+			}
+			eval.TargetApprovalInstanceID = &parsedInstanceID
 		}
 	}
 
@@ -2673,19 +2678,21 @@ func (s *Service) SubmitEvaluation(ctx context.Context, evalID string) (*Perform
 	eval.SubmittedAt = &now
 
 	// Route through the central approval module when a flow is configured
-	// for this module; otherwise ApproveEvaluation/RejectEvaluation remain
-	// the manual fallback.
+	// for this module; ApproveEvaluation/RejectEvaluation remain the manual
+	// fallback only when no flow is configured at all. If a flow IS
+	// configured but fails to resolve, the whole submission must fail
+	// rather than silently degrading to manual mode (see SubmitTarget).
 	if s.approvalEngine != nil {
 		if flowID, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, ApprovalModuleKPIRealization); err == nil {
 			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, ApprovalModuleKPIRealization, eval.ID.String(), flowID)
 			if err != nil {
-				s.logger.Warn("Failed to create realization approval instance, continuing without approval routing",
-					zap.String("evaluation_id", eval.ID.String()),
-					zap.Error(err),
-				)
-			} else if parsedInstanceID, err := uuid.Parse(instanceID); err == nil {
-				eval.RealizationApprovalInstanceID = &parsedInstanceID
+				return nil, fmt.Errorf("failed to route realization for approval: %w", err)
 			}
+			parsedInstanceID, err := uuid.Parse(instanceID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid approval instance id returned: %w", err)
+			}
+			eval.RealizationApprovalInstanceID = &parsedInstanceID
 		}
 	}
 

@@ -11,6 +11,7 @@ import (
 // fakeApprovalEngine is a test double for ApprovalEngine.
 type fakeApprovalEngine struct {
 	flowIDByModule map[string]string
+	createErr      error
 	createCalls    []struct {
 		module     string
 		documentID string
@@ -24,6 +25,9 @@ func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module,
 		documentID string
 		flowID     string
 	}{module, documentID, flowID})
+	if f.createErr != nil {
+		return "", f.createErr
+	}
 	return uuid.New().String(), nil
 }
 
@@ -66,6 +70,42 @@ func TestService_SubmitTarget_RoutesThroughApprovalEngine(t *testing.T) {
 	}
 	if fake.createCalls[0].module != ApprovalModuleKPITarget || fake.createCalls[0].documentID != evalID {
 		t.Errorf("unexpected call params: %+v", fake.createCalls[0])
+	}
+}
+
+// TestService_SubmitTarget_FlowConfiguredButResolutionFails_HardFails
+// validates that when a flow IS configured for the module but resolving it
+// into an actual approval instance fails (e.g. the step's approver is
+// vacant), the whole submission is rejected — status stays DRAFT — instead
+// of silently degrading to the no-approval-instance manual fallback, which
+// would let the submission through with nobody able to approve it.
+func TestService_SubmitTarget_FlowConfiguredButResolutionFails_HardFails(t *testing.T) {
+	svc, _, cleanup := setupMyKPIContextTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	fake := &fakeApprovalEngine{
+		flowIDByModule: map[string]string{ApprovalModuleKPITarget: uuid.New().String()},
+		createErr:      fmt.Errorf("approval step resolved to zero approvers"),
+	}
+	svc.SetApprovalEngine(fake)
+
+	evalID := setupTwoPhaseEvaluation(t, svc)
+	full, _ := svc.GetEvaluationWithDetails(ctx, evalID)
+	if _, err := svc.UpdateEvaluationTarget(ctx, full.Details[0].ID, UpdateEvaluationTargetRequest{Target: 1000}); err != nil {
+		t.Fatalf("UpdateEvaluationTarget failed: %v", err)
+	}
+
+	if _, err := svc.SubmitTarget(ctx, evalID); err == nil {
+		t.Fatal("expected SubmitTarget to fail when the configured flow fails to resolve")
+	}
+
+	after, err := svc.GetEvaluationWithDetails(ctx, evalID)
+	if err != nil {
+		t.Fatalf("GetEvaluationWithDetails failed: %v", err)
+	}
+	if after.Status != "DRAFT" {
+		t.Errorf("expected status to remain DRAFT after a failed submission, got %s", after.Status)
 	}
 }
 
