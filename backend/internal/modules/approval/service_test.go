@@ -325,6 +325,35 @@ func TestService_CreateInstance_InactiveFlow_Error(t *testing.T) {
 	}
 }
 
+func TestService_CreateInstance_ZeroAssignees_Error(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	flow := createTestFlow(repo, "leave")
+	// ORGANIZATION step with no Organizations linked resolves to zero
+	// assignees — must not silently create an instance nobody can act on.
+	step := &ApprovalFlowStep{
+		FlowID:       flow.ID,
+		StepOrder:    1,
+		StepName:     "Unreachable Step",
+		ApproverType: ApproverTypeOrganization,
+		ApprovalMode: ApprovalModeAnyOne,
+		AllowReject:  true,
+	}
+	if err := repo.CreateStep(ctx(), step); err != nil {
+		t.Fatalf("failed to create step: %v", err)
+	}
+
+	_, err := svc.CreateInstance(ctx(), CreateInstanceRequest{
+		Module:     "leave",
+		DocumentID: uuidStr(),
+		FlowID:     flow.ID.String(),
+	})
+	if err == nil {
+		t.Fatal("expected error when the landed step resolves to zero assignees")
+	}
+}
+
 func TestService_GetInstanceByID_Success(t *testing.T) {
 	svc, repo, cleanup := newTestService()
 	defer cleanup()

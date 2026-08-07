@@ -536,6 +536,22 @@ func (s *Service) CreateInstance(ctx context.Context, req CreateInstanceRequest)
 	}
 	if landedStep != nil {
 		instance.CurrentStep = landedStep.StepOrder
+		// A step can resolve to zero assignees (e.g. SUPERVISOR with no
+		// parent org occupied, ORGANIZATION pointing at an org with no
+		// active employee, ROLE with nobody assigned) — landing on it
+		// regardless would silently create an instance nobody can ever
+		// see or act on. Fail loudly instead so the flow's approver
+		// configuration gets fixed rather than the submission going dark.
+		hasPendingTask := false
+		for _, t := range tasks {
+			if t.StepOrder == landedStep.StepOrder && t.Status == TaskStatusPending {
+				hasPendingTask = true
+				break
+			}
+		}
+		if !hasPendingTask {
+			return nil, fmt.Errorf("approval step %q (order %d) resolved to zero approvers — check the flow's approver_type/organization/role configuration for this step", landedStep.StepName, landedStep.StepOrder)
+		}
 	} else {
 		// Entire flow was WATCHER-only — nothing left to gate on.
 		instance.Status = InstanceStatusApproved
