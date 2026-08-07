@@ -473,19 +473,19 @@ frontend/
 - List template KPI kosong di kolom organization/period/indicator — backend belum enrich response (`2714612`)
 - OKR handler salah resolve tenant DB (gin context key yang tidak pernah di-set) — semua endpoint OKR 500 (`925a515`)
 
-### C.17a. Performance Scoring Configuration (KPI Phase 5) 🔴 (BARU — Backend Selesai, Frontend Pending)
-**Backend:** ✅ Selesai (07 Agu 2026) — `f343118`. Migration 058 + model/DTO/repository/service/handler/routes di modul `performance` yang sama. Detail: [`performance-management-kpi-plan.md`](performance-management-kpi-plan.md#phase-5---performance-scoring-configuration)
+### C.17a. Performance Scoring Configuration (KPI Phase 5) ✅ (Selesai — Update 07 Agu 2026)
+**Backend:** ✅ Selesai — `f343118`. Migration 058 + model/DTO/repository/service/handler/routes di modul `performance` yang sama. Detail: [`performance-management-kpi-plan.md`](performance-management-kpi-plan.md#phase-5---performance-scoring-configuration)
+**Frontend:** ✅ Selesai — `bc6e73a`
 
 Memungkinkan final score KPI per Organization dihitung dari kombinasi berbobot beberapa komponen (KPI, Work Program, Subordinate KPI, atau komponen custom) alih-alih KPI murni. Backward compatible — Organization tanpa konfigurasi tetap pakai perhitungan KPI lama.
 
-**Frontend — belum dikerjakan:**
-- [ ] **Settings — Performance Components** (`views/settings/PerformanceComponentsView.vue`) — CRUD master komponen (code, name, description, sort_order, is_active). Endpoint: `POST/GET/PUT/DELETE /performance/kpi/components`
-- [ ] **Organization Component Weight Config** — UI untuk assign komponen ke Organization + atur bobot (target: tab/section baru di halaman detail Organization, atau halaman tersendiri `Settings > Performance Scoring`). Endpoint: `POST /performance/kpi/organization-components` (upsert), `GET /performance/kpi/organizations/:organization_id/components`, `DELETE /performance/kpi/organization-components/:id`
-  - Validasi FE: total bobot komponen enabled harus 100% (server juga validasi saat kalkulasi, tapi FE sebaiknya cegah lebih awal)
-- [ ] **Evaluation Component Breakdown** — tambahkan section di `kpi/KPIEvaluationDetail.vue`: tabel breakdown skor per komponen (score, weight, weighted final_score), badge komponen mana yang auto-calculated (KPI/Subordinate) vs manual (Work Program)
-  - Input manual untuk komponen non-otomatis (mis. Work Program) — `PUT /performance/kpi/evaluations/:id/components/:component_id`
-  - Tombol "Calculate Scoring" — `POST /performance/kpi/evaluations/:id/calculate-scoring`, hanya tampil jika Organization evaluasi punya konfigurasi komponen (cek via endpoint organization-components)
-- [ ] Locale keys baru (`performance_components.*`, tambahan di `kpi.*` untuk breakdown komponen) EN/ID
+- [x] **Settings — Performance Components** (`views/settings/PerformanceComponentsView.vue`) — CRUD master komponen (code, name, description, sort_order, is_active toggle)
+- [x] **Settings — Performance Scoring** (`views/settings/PerformanceScoringConfigView.vue`) — pilih Organization → atur enabled/weight/sort_order per komponen, validasi FE total bobot enabled = 100% sebelum save, upsert via `POST /performance/kpi/organization-components`
+- [x] **Evaluation Component Breakdown** — section baru di `kpi/KPIEvaluationDetail.vue`: tabel breakdown skor per komponen (score, weight, weighted final_score); section hanya render kalau Organization evaluasi sudah dikonfigurasi atau komponen sudah pernah dihitung
+  - Input manual untuk komponen non-otomatis (mis. Work Program) via `PUT /performance/kpi/evaluations/:id/components/:component_id` — backend langsung mengembalikan breakdown ter-update (tidak perlu request kalkulasi terpisah)
+  - Tombol "Calculate Scoring" (khusus status DRAFT) — `POST /performance/kpi/evaluations/:id/calculate-scoring`
+- [x] Locale keys `performance_components.*`, `performance_scoring.*`, `settings.performance_components`/`performance_scoring` EN/ID
+- [ ] ⏸️ Belum ada UI untuk menampilkan indikator "Organization ini pakai Scoring Config" di `KPIIndex.vue`/`KPITemplates.vue` — cukup minor, bisa menyusul kalau dibutuhkan
 
 ### C.18. Recruitment & Onboarding (ATS) 🔴 (BARU)
 **Backend:** 33 endpoints
