@@ -169,16 +169,23 @@ func (s *Service) CreateStep(ctx context.Context, flowID string, req CreateStepR
 	}
 
 	step := &ApprovalFlowStep{
-		FlowID:       flowUUID,
-		StepOrder:    maxOrder + 1,
-		StepName:     req.StepName,
-		ApproverType: ApproverType(req.ApproverType),
-		ApprovalMode: ApprovalModeAnyOne,
-		AllowReject:  true,
+		FlowID:            flowUUID,
+		StepOrder:         maxOrder + 1,
+		StepName:          req.StepName,
+		ApproverType:      ApproverType(req.ApproverType),
+		ApprovalMode:      ApprovalModeAnyOne,
+		ParticipationType: ParticipationTypeApprover,
+		AllowReject:       true,
 	}
 
+	if req.HierarchyLevel != nil {
+		step.HierarchyLevel = req.HierarchyLevel
+	}
 	if req.ApprovalMode != "" {
 		step.ApprovalMode = ApprovalMode(req.ApprovalMode)
+	}
+	if req.ParticipationType != "" {
+		step.ParticipationType = ParticipationType(req.ParticipationType)
 	}
 	if req.RoleID != nil {
 		if uid, err := uuid.Parse(*req.RoleID); err == nil {
@@ -205,6 +212,18 @@ func (s *Service) CreateStep(ctx context.Context, flowID string, req CreateStepR
 
 	if err := s.repo.CreateStep(ctx, step); err != nil {
 		return nil, err
+	}
+
+	if orgIDs, err := parseUUIDs(req.OrganizationIDs); err != nil {
+		return nil, fmt.Errorf("invalid organization_ids: %w", err)
+	} else if len(orgIDs) > 0 {
+		if err := s.repo.ReplaceStepOrganizations(ctx, step.ID, orgIDs); err != nil {
+			return nil, err
+		}
+		step.Organizations = make([]ApprovalFlowStepOrganization, 0, len(orgIDs))
+		for _, id := range orgIDs {
+			step.Organizations = append(step.Organizations, ApprovalFlowStepOrganization{StepID: step.ID, OrganizationID: id})
+		}
 	}
 
 	response := step.ToResponse()
@@ -249,8 +268,14 @@ func (s *Service) UpdateStep(ctx context.Context, flowID, stepID string, req Upd
 	if req.ApproverType != nil {
 		step.ApproverType = ApproverType(*req.ApproverType)
 	}
+	if req.HierarchyLevel != nil {
+		step.HierarchyLevel = req.HierarchyLevel
+	}
 	if req.ApprovalMode != nil {
 		step.ApprovalMode = ApprovalMode(*req.ApprovalMode)
+	}
+	if req.ParticipationType != nil {
+		step.ParticipationType = ParticipationType(*req.ParticipationType)
 	}
 	if req.RoleID != nil {
 		if uid, err := uuid.Parse(*req.RoleID); err == nil {
@@ -277,6 +302,22 @@ func (s *Service) UpdateStep(ctx context.Context, flowID, stepID string, req Upd
 
 	if err := s.repo.UpdateStep(ctx, step); err != nil {
 		return nil, err
+	}
+
+	if req.OrganizationIDs != nil {
+		orgIDs, err := parseUUIDs(req.OrganizationIDs)
+		if err != nil {
+			return nil, fmt.Errorf("invalid organization_ids: %w", err)
+		}
+		if err := s.repo.ReplaceStepOrganizations(ctx, step.ID, orgIDs); err != nil {
+			return nil, err
+		}
+		step.Organizations = make([]ApprovalFlowStepOrganization, 0, len(orgIDs))
+		for _, id := range orgIDs {
+			step.Organizations = append(step.Organizations, ApprovalFlowStepOrganization{StepID: step.ID, OrganizationID: id})
+		}
+	} else if orgs, err := s.repo.ListStepOrganizations(ctx, step.ID); err == nil {
+		step.Organizations = orgs
 	}
 
 	response := step.ToResponse()
@@ -334,25 +375,23 @@ func (s *Service) CreateInstance(ctx context.Context, req CreateInstanceRequest)
 		DocumentID:  docUUID,
 		FlowID:      flowUUID,
 		Status:      InstanceStatusPending,
-		CurrentStep: 1,
+		CurrentStep: flow.Steps[0].StepOrder,
 	}
 	instance.CreatedBy = authctx.GetUserID(ctx)
 
-	// Create tasks for the first step
+	// Walk forward from the first step: WATCHER steps get their tasks
+	// auto-completed (informational only) and don't gate progression, so we
+	// land on the first real APPROVER step (or the end of the flow).
 	var tasks []ApprovalTask
-	firstStep := flow.Steps[0]
-	taskAssignees, err := s.resolveStepAssignees(firstStep)
+	landedStep, err := s.advanceThroughWatcherSteps(ctx, instance, flow.Steps, 0, &tasks)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve step assignees: %w", err)
+		return nil, err
 	}
-
-	for _, assignee := range taskAssignees {
-		tasks = append(tasks, ApprovalTask{
-			StepOrder:    firstStep.StepOrder,
-			AssigneeType: assignee.Type,
-			AssigneeID:   assignee.ID,
-			Status:       TaskStatusPending,
-		})
+	if landedStep != nil {
+		instance.CurrentStep = landedStep.StepOrder
+	} else {
+		// Entire flow was WATCHER-only — nothing left to gate on.
+		instance.Status = InstanceStatusApproved
 	}
 
 	if err := s.repo.CreateInstanceWithTasks(ctx, instance, tasks); err != nil {
@@ -562,46 +601,33 @@ func (s *Service) SubmitAction(ctx context.Context, instanceID string, userID st
 	}
 
 	if canProceed {
-		// Find next step
-		nextStep := 0
-		for _, step := range instance.Steps {
-			if step.StepOrder > currentStep {
-				nextStep = step.StepOrder
+		// Find current step's index, then walk forward — skipping WATCHER-only
+		// steps (auto-completed, non-blocking) — to the next real gate.
+		curIdx := -1
+		for i, step := range instance.Steps {
+			if step.StepOrder == currentStep {
+				curIdx = i
 				break
 			}
 		}
 
-		if nextStep > 0 {
-			// Create tasks for next step
-			var nextTasks []ApprovalTask
-			var nextStepDef ApprovalFlowStep
-			for _, step := range instance.Steps {
-				if step.StepOrder == nextStep {
-					nextStepDef = step
-					break
-				}
-			}
-
-			taskAssignees, err := s.resolveStepAssignees(nextStepDef)
+		var nextTasks []ApprovalTask
+		var landedStep *ApprovalFlowStep
+		if curIdx >= 0 {
+			landedStep, err = s.advanceThroughWatcherSteps(ctx, instance, instance.Steps, curIdx+1, &nextTasks)
 			if err != nil {
-				return nil, fmt.Errorf("failed to resolve next step assignees: %w", err)
+				return nil, err
 			}
+		}
 
-			for _, assignee := range taskAssignees {
-				nextTasks = append(nextTasks, ApprovalTask{
-					StepOrder:    nextStep,
-					AssigneeType: assignee.Type,
-					AssigneeID:   assignee.ID,
-					Status:       TaskStatusPending,
-				})
-			}
-
-			if err := s.repo.ApproveStep(ctx, instUUID, currentStep, nextStep, nextTasks); err != nil {
+		if landedStep != nil {
+			if err := s.repo.ApproveStep(ctx, instUUID, currentStep, landedStep.StepOrder, nextTasks); err != nil {
 				return nil, err
 			}
 		} else {
-			// No more steps, approve instance fully
-			if err := s.repo.ApproveStep(ctx, instUUID, currentStep, currentStep, nil); err != nil {
+			// No more real steps — approve instance fully. Any trailing
+			// WATCHER tasks are still persisted for visibility/audit.
+			if err := s.repo.ApproveStep(ctx, instUUID, currentStep, currentStep, nextTasks); err != nil {
 				return nil, err
 			}
 		}
@@ -668,7 +694,11 @@ type taskAssignee struct {
 	ID   uuid.UUID
 }
 
-func (s *Service) resolveStepAssignees(step ApprovalFlowStep) ([]taskAssignee, error) {
+// resolveStepAssignees resolve siapa saja yang harus (atau hanya perlu tahu,
+// untuk step WATCHER) menerima task pada sebuah step. USER/ROLE assignee type
+// tetap seperti semula; SUPERVISOR/ORGANIZATION/BOTH di-resolve berdasarkan
+// hierarki Organization submitter dan/atau Organization eksplisit milik step.
+func (s *Service) resolveStepAssignees(ctx context.Context, instance *ApprovalInstance, step ApprovalFlowStep) ([]taskAssignee, error) {
 	var assignees []taskAssignee
 
 	switch step.ApproverType {
@@ -687,10 +717,27 @@ func (s *Service) resolveStepAssignees(step ApprovalFlowStep) ([]taskAssignee, e
 			})
 		}
 	case ApproverTypeSupervisor:
-		// For supervisor, we need to resolve the employee's supervisor dynamically
-		// For now, this is a placeholder; actual resolution will be implemented
-		// when integrating with the Employee module
-		return nil, fmt.Errorf("SUPERVISOR approver type requires employee module integration")
+		supAssignees, err := s.resolveSupervisorAssignees(ctx, instance, step)
+		if err != nil {
+			return nil, err
+		}
+		assignees = append(assignees, supAssignees...)
+	case ApproverTypeOrganization:
+		orgAssignees, err := s.resolveOrganizationAssignees(ctx, step)
+		if err != nil {
+			return nil, err
+		}
+		assignees = append(assignees, orgAssignees...)
+	case ApproverTypeBoth:
+		supAssignees, err := s.resolveSupervisorAssignees(ctx, instance, step)
+		if err != nil {
+			return nil, err
+		}
+		orgAssignees, err := s.resolveOrganizationAssignees(ctx, step)
+		if err != nil {
+			return nil, err
+		}
+		assignees = dedupAssignees(append(supAssignees, orgAssignees...))
 	}
 
 	if len(assignees) == 0 {
@@ -698,4 +745,126 @@ func (s *Service) resolveStepAssignees(step ApprovalFlowStep) ([]taskAssignee, e
 	}
 
 	return assignees, nil
+}
+
+// resolveSupervisorAssignees walks up the submitter's Organization tree
+// `step.HierarchyLevel` times (default 1 = atasan langsung) and resolves to
+// the platform user(s) currently occupying that ancestor Organization.
+func (s *Service) resolveSupervisorAssignees(ctx context.Context, instance *ApprovalInstance, step ApprovalFlowStep) ([]taskAssignee, error) {
+	if instance.CreatedBy == nil {
+		return nil, fmt.Errorf("cannot resolve supervisor: instance has no submitter")
+	}
+
+	orgID, err := s.repo.GetSubmitterOrganizationID(ctx, *instance.CreatedBy)
+	if err != nil {
+		return nil, err
+	}
+	if orgID == nil {
+		return nil, fmt.Errorf("submitter's organization could not be resolved")
+	}
+
+	level := 1
+	if step.HierarchyLevel != nil && *step.HierarchyLevel > 0 {
+		level = *step.HierarchyLevel
+	}
+
+	target := *orgID
+	for i := 0; i < level; i++ {
+		parent, err := s.repo.GetOrganizationParentID(ctx, target)
+		if err != nil {
+			return nil, err
+		}
+		if parent == nil {
+			return nil, fmt.Errorf("no organization %d level(s) above the submitter", level)
+		}
+		target = *parent
+	}
+
+	userIDs, err := s.repo.GetUserIDsByOrganization(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+	assignees := make([]taskAssignee, 0, len(userIDs))
+	for _, uid := range userIDs {
+		assignees = append(assignees, taskAssignee{Type: "USER", ID: uid})
+	}
+	return assignees, nil
+}
+
+// resolveOrganizationAssignees resolves to the platform user(s) currently
+// occupying each Organization explicitly listed on the step.
+func (s *Service) resolveOrganizationAssignees(ctx context.Context, step ApprovalFlowStep) ([]taskAssignee, error) {
+	var assignees []taskAssignee
+	for _, o := range step.Organizations {
+		userIDs, err := s.repo.GetUserIDsByOrganization(ctx, o.OrganizationID)
+		if err != nil {
+			return nil, err
+		}
+		for _, uid := range userIDs {
+			assignees = append(assignees, taskAssignee{Type: "USER", ID: uid})
+		}
+	}
+	return assignees, nil
+}
+
+func dedupAssignees(in []taskAssignee) []taskAssignee {
+	seen := make(map[string]struct{}, len(in))
+	out := make([]taskAssignee, 0, len(in))
+	for _, a := range in {
+		key := a.Type + ":" + a.ID.String()
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, a)
+	}
+	return out
+}
+
+// advanceThroughWatcherSteps walks forward through steps[fromIndex:], resolving
+// assignees and appending tasks for each to tasksOut. WATCHER steps have their
+// tasks marked DONE immediately (informational only, they never block
+// progression) and the walk continues past them. Returns the first step it
+// lands on that actually gates progress (participation_type=APPROVER), or nil
+// if every remaining step was WATCHER-only.
+func (s *Service) advanceThroughWatcherSteps(ctx context.Context, instance *ApprovalInstance, steps []ApprovalFlowStep, fromIndex int, tasksOut *[]ApprovalTask) (*ApprovalFlowStep, error) {
+	for i := fromIndex; i < len(steps); i++ {
+		step := steps[i]
+
+		assignees, err := s.resolveStepAssignees(ctx, instance, step)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve assignees for step %q: %w", step.StepName, err)
+		}
+
+		status := TaskStatusPending
+		if step.ParticipationType == ParticipationTypeWatcher {
+			status = TaskStatusDone
+		}
+		for _, a := range assignees {
+			*tasksOut = append(*tasksOut, ApprovalTask{
+				StepOrder:    step.StepOrder,
+				AssigneeType: a.Type,
+				AssigneeID:   a.ID,
+				Status:       status,
+			})
+		}
+
+		if step.ParticipationType != ParticipationTypeWatcher {
+			landed := step
+			return &landed, nil
+		}
+	}
+	return nil, nil
+}
+
+func parseUUIDs(in []string) ([]uuid.UUID, error) {
+	out := make([]uuid.UUID, 0, len(in))
+	for _, str := range in {
+		id, err := uuid.Parse(str)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, nil
 }

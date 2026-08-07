@@ -21,11 +21,41 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 	if err := db.AutoMigrate(
 		&ApprovalFlow{},
 		&ApprovalFlowStep{},
+		&ApprovalFlowStepOrganization{},
 		&ApprovalInstance{},
 		&ApprovalAction{},
 		&ApprovalTask{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
+	}
+
+	// Raw tables owned by other modules (organization/employee/useraccount) that
+	// the org-hierarchy resolution queries directly via db.Table(...) — approval
+	// must not import those packages (circular dependency risk). Minimal schema
+	// covering only the columns the raw queries touch.
+	rawTables := []string{
+		`CREATE TABLE IF NOT EXISTS organizations (
+			id CHAR(36) PRIMARY KEY,
+			parent_id CHAR(36) NULL,
+			deleted_at TIMESTAMP NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS employments (
+			id CHAR(36) PRIMARY KEY,
+			employee_id CHAR(36) NOT NULL,
+			organization_id CHAR(36) NOT NULL,
+			effective_date DATE NOT NULL,
+			effective_end_date DATE NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS employee_accounts (
+			id CHAR(36) PRIMARY KEY,
+			employee_id CHAR(36) NOT NULL,
+			user_id CHAR(36) NOT NULL
+		)`,
+	}
+	for _, stmt := range rawTables {
+		if err := db.Exec(stmt).Error; err != nil {
+			panic(fmt.Sprintf("failed to create raw test table: %v", err))
+		}
 	}
 
 	dbResolver := func(ctx context.Context) (*gorm.DB, error) {
@@ -44,11 +74,19 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 
 // newTestService creates a Service with in-memory SQLite repository.
 func newTestService() (*Service, *Repository, func()) {
-	_, dbResolver, cleanup := setupTestDB()
+	svc, repo, _, cleanup := newTestServiceWithDB()
+	return svc, repo, cleanup
+}
+
+// newTestServiceWithDB is like newTestService but also exposes the underlying
+// *gorm.DB, needed by tests that seed raw organization/employment/employee_account
+// fixtures for org-hierarchy approver resolution.
+func newTestServiceWithDB() (*Service, *Repository, *gorm.DB, func()) {
+	db, dbResolver, cleanup := setupTestDB()
 	repo := NewRepository(dbResolver)
 	logger, _ := zap.NewDevelopment()
 	svc := NewService(repo, logger)
-	return svc, repo, func() {
+	return svc, repo, db, func() {
 		cleanup()
 		_ = logger.Sync()
 	}
@@ -135,6 +173,40 @@ func createTestTask(repo *Repository, instanceID uuid.UUID, stepOrder int, assig
 		panic(fmt.Sprintf("failed to create test task: %v", err))
 	}
 	return t
+}
+
+// seedOrganization inserts a minimal organizations row.
+func seedOrganization(db *gorm.DB, id uuid.UUID, parentID *uuid.UUID) {
+	if err := db.Exec("INSERT INTO organizations (id, parent_id) VALUES (?, ?)", id.String(), uuidPtrStr(parentID)).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed organization: %v", err))
+	}
+}
+
+// seedEmployment links an employee to an Organization as their current (open-ended) assignment.
+func seedEmployment(db *gorm.DB, employeeID, orgID uuid.UUID) {
+	if err := db.Exec(
+		"INSERT INTO employments (id, employee_id, organization_id, effective_date, effective_end_date) VALUES (?, ?, ?, ?, NULL)",
+		uuid.New().String(), employeeID.String(), orgID.String(), "2026-01-01",
+	).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed employment: %v", err))
+	}
+}
+
+// seedEmployeeAccount links an employee to their platform user login.
+func seedEmployeeAccount(db *gorm.DB, employeeID, userID uuid.UUID) {
+	if err := db.Exec(
+		"INSERT INTO employee_accounts (id, employee_id, user_id) VALUES (?, ?, ?)",
+		uuid.New().String(), employeeID.String(), userID.String(),
+	).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed employee account: %v", err))
+	}
+}
+
+func uuidPtrStr(id *uuid.UUID) interface{} {
+	if id == nil {
+		return nil
+	}
+	return id.String()
 }
 
 // uuidStr returns a UUID string for test use.

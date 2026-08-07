@@ -94,6 +94,7 @@ func (m *approvalModule) Migrate(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&ApprovalFlow{},
 		&ApprovalFlowStep{},
+		&ApprovalFlowStepOrganization{},
 		&ApprovalInstance{},
 		&ApprovalAction{},
 		&ApprovalTask{},

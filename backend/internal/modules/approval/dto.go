@@ -24,14 +24,14 @@ type UpdateFlowRequest struct {
 }
 
 type FlowResponse struct {
-	ID        string           `json:"id"`
-	Module    string           `json:"module"`
-	Name      string           `json:"name"`
-	Version   int              `json:"version"`
-	IsActive  bool             `json:"is_active"`
+	ID        string             `json:"id"`
+	Module    string             `json:"module"`
+	Name      string             `json:"name"`
+	Version   int                `json:"version"`
+	IsActive  bool               `json:"is_active"`
 	Steps     []FlowStepResponse `json:"steps,omitempty"`
-	CreatedAt time.Time        `json:"created_at"`
-	UpdatedAt time.Time        `json:"updated_at"`
+	CreatedAt time.Time          `json:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
 }
 
 // =========================================================================
@@ -39,42 +39,51 @@ type FlowResponse struct {
 // =========================================================================
 
 type CreateStepRequest struct {
-	StepName          string  `json:"step_name" binding:"required"`
-	ApproverType      string  `json:"approver_type" binding:"required,oneof=SUPERVISOR ROLE USER"`
-	RoleID            *string `json:"role_id" binding:"omitempty,uuid"`
-	ApproverUserID    *string `json:"approver_user_id" binding:"omitempty,uuid"`
-	ApprovalMode      string  `json:"approval_mode" binding:"omitempty,oneof=ANY_ONE ALL N_OF_M"`
-	RequiredApprovals *int    `json:"required_approvals"`
-	AllowReject       *bool   `json:"allow_reject"`
-	ConditionsJSON    *string `json:"conditions_json"`
-	SLAHours          *int    `json:"sla_hours"`
+	StepName          string   `json:"step_name" binding:"required"`
+	ApproverType      string   `json:"approver_type" binding:"required,oneof=SUPERVISOR ROLE USER ORGANIZATION BOTH"`
+	HierarchyLevel    *int     `json:"hierarchy_level"`
+	OrganizationIDs   []string `json:"organization_ids" binding:"omitempty,dive,uuid"`
+	RoleID            *string  `json:"role_id" binding:"omitempty,uuid"`
+	ApproverUserID    *string  `json:"approver_user_id" binding:"omitempty,uuid"`
+	ApprovalMode      string   `json:"approval_mode" binding:"omitempty,oneof=ANY_ONE ALL N_OF_M"`
+	ParticipationType string   `json:"participation_type" binding:"omitempty,oneof=APPROVER WATCHER"`
+	RequiredApprovals *int     `json:"required_approvals"`
+	AllowReject       *bool    `json:"allow_reject"`
+	ConditionsJSON    *string  `json:"conditions_json"`
+	SLAHours          *int     `json:"sla_hours"`
 }
 
 type UpdateStepRequest struct {
-	StepName          *string `json:"step_name"`
-	ApproverType      *string `json:"approver_type" binding:"omitempty,oneof=SUPERVISOR ROLE USER"`
-	RoleID            *string `json:"role_id" binding:"omitempty,uuid"`
-	ApproverUserID    *string `json:"approver_user_id" binding:"omitempty,uuid"`
-	ApprovalMode      *string `json:"approval_mode" binding:"omitempty,oneof=ANY_ONE ALL N_OF_M"`
-	RequiredApprovals *int    `json:"required_approvals"`
-	AllowReject       *bool   `json:"allow_reject"`
-	ConditionsJSON    *string `json:"conditions_json"`
-	SLAHours          *int    `json:"sla_hours"`
+	StepName          *string  `json:"step_name"`
+	ApproverType      *string  `json:"approver_type" binding:"omitempty,oneof=SUPERVISOR ROLE USER ORGANIZATION BOTH"`
+	HierarchyLevel    *int     `json:"hierarchy_level"`
+	OrganizationIDs   []string `json:"organization_ids" binding:"omitempty,dive,uuid"`
+	RoleID            *string  `json:"role_id" binding:"omitempty,uuid"`
+	ApproverUserID    *string  `json:"approver_user_id" binding:"omitempty,uuid"`
+	ApprovalMode      *string  `json:"approval_mode" binding:"omitempty,oneof=ANY_ONE ALL N_OF_M"`
+	ParticipationType *string  `json:"participation_type" binding:"omitempty,oneof=APPROVER WATCHER"`
+	RequiredApprovals *int     `json:"required_approvals"`
+	AllowReject       *bool    `json:"allow_reject"`
+	ConditionsJSON    *string  `json:"conditions_json"`
+	SLAHours          *int     `json:"sla_hours"`
 }
 
 type FlowStepResponse struct {
-	ID                string  `json:"id"`
-	FlowID            string  `json:"flow_id"`
-	StepOrder         int     `json:"step_order"`
-	StepName          string  `json:"step_name"`
-	ApproverType      string  `json:"approver_type"`
-	RoleID            *string `json:"role_id,omitempty"`
-	ApproverUserID    *string `json:"approver_user_id,omitempty"`
-	ApprovalMode      string  `json:"approval_mode"`
-	RequiredApprovals *int    `json:"required_approvals,omitempty"`
-	AllowReject       bool    `json:"allow_reject"`
-	ConditionsJSON    *string `json:"conditions_json,omitempty"`
-	SLAHours          *int    `json:"sla_hours,omitempty"`
+	ID                string    `json:"id"`
+	FlowID            string    `json:"flow_id"`
+	StepOrder         int       `json:"step_order"`
+	StepName          string    `json:"step_name"`
+	ApproverType      string    `json:"approver_type"`
+	HierarchyLevel    *int      `json:"hierarchy_level,omitempty"`
+	OrganizationIDs   []string  `json:"organization_ids,omitempty"`
+	RoleID            *string   `json:"role_id,omitempty"`
+	ApproverUserID    *string   `json:"approver_user_id,omitempty"`
+	ApprovalMode      string    `json:"approval_mode"`
+	ParticipationType string    `json:"participation_type"`
+	RequiredApprovals *int      `json:"required_approvals,omitempty"`
+	AllowReject       bool      `json:"allow_reject"`
+	ConditionsJSON    *string   `json:"conditions_json,omitempty"`
+	SLAHours          *int      `json:"sla_hours,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
 }
@@ -90,19 +99,19 @@ type CreateInstanceRequest struct {
 }
 
 type InstanceResponse struct {
-	ID          string              `json:"id"`
-	Module      string              `json:"module"`
-	DocumentID  string              `json:"document_id"`
-	FlowID      string              `json:"flow_id"`
-	FlowName    string              `json:"flow_name,omitempty"`
-	Status      string              `json:"status"`
-	CurrentStep int                 `json:"current_step"`
-	CreatedBy   *string             `json:"created_by,omitempty"`
-	Steps       []FlowStepResponse  `json:"steps,omitempty"`
-	Actions     []ActionResponse    `json:"actions,omitempty"`
-	Tasks       []TaskResponse      `json:"tasks,omitempty"`
-	CreatedAt   time.Time           `json:"created_at"`
-	UpdatedAt   time.Time           `json:"updated_at"`
+	ID          string             `json:"id"`
+	Module      string             `json:"module"`
+	DocumentID  string             `json:"document_id"`
+	FlowID      string             `json:"flow_id"`
+	FlowName    string             `json:"flow_name,omitempty"`
+	Status      string             `json:"status"`
+	CurrentStep int                `json:"current_step"`
+	CreatedBy   *string            `json:"created_by,omitempty"`
+	Steps       []FlowStepResponse `json:"steps,omitempty"`
+	Actions     []ActionResponse   `json:"actions,omitempty"`
+	Tasks       []TaskResponse     `json:"tasks,omitempty"`
+	CreatedAt   time.Time          `json:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at"`
 }
 
 // =========================================================================
@@ -176,15 +185,17 @@ func (f *ApprovalFlow) ToResponse() FlowResponse {
 
 func (s *ApprovalFlowStep) ToResponse() FlowStepResponse {
 	r := FlowStepResponse{
-		ID:           s.ID.String(),
-		FlowID:       s.FlowID.String(),
-		StepOrder:    s.StepOrder,
-		StepName:     s.StepName,
-		ApproverType: string(s.ApproverType),
-		ApprovalMode: string(s.ApprovalMode),
-		AllowReject:  s.AllowReject,
-		CreatedAt:    s.CreatedAt,
-		UpdatedAt:    s.UpdatedAt,
+		ID:                s.ID.String(),
+		FlowID:            s.FlowID.String(),
+		StepOrder:         s.StepOrder,
+		StepName:          s.StepName,
+		ApproverType:      string(s.ApproverType),
+		HierarchyLevel:    s.HierarchyLevel,
+		ApprovalMode:      string(s.ApprovalMode),
+		ParticipationType: string(s.ParticipationType),
+		AllowReject:       s.AllowReject,
+		CreatedAt:         s.CreatedAt,
+		UpdatedAt:         s.UpdatedAt,
 	}
 	if s.RoleID != nil {
 		id := s.RoleID.String()
@@ -202,6 +213,11 @@ func (s *ApprovalFlowStep) ToResponse() FlowStepResponse {
 	}
 	if s.SLAHours != nil {
 		r.SLAHours = s.SLAHours
+	}
+	if len(s.Organizations) > 0 {
+		for _, o := range s.Organizations {
+			r.OrganizationIDs = append(r.OrganizationIDs, o.OrganizationID.String())
+		}
 	}
 	return r
 }

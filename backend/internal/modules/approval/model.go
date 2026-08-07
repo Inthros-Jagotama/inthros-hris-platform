@@ -15,9 +15,20 @@ import (
 type ApproverType string
 
 const (
-	ApproverTypeSupervisor ApproverType = "SUPERVISOR"
-	ApproverTypeRole       ApproverType = "ROLE"
-	ApproverTypeUser       ApproverType = "USER"
+	ApproverTypeSupervisor   ApproverType = "SUPERVISOR"
+	ApproverTypeRole         ApproverType = "ROLE"
+	ApproverTypeUser         ApproverType = "USER"
+	ApproverTypeOrganization ApproverType = "ORGANIZATION"
+	ApproverTypeBoth         ApproverType = "BOTH"
+)
+
+// ParticipationType enum for a step's assignees: must they act (APPROVER),
+// or are they only informed and never block progression (WATCHER)?
+type ParticipationType string
+
+const (
+	ParticipationTypeApprover ParticipationType = "APPROVER"
+	ParticipationTypeWatcher  ParticipationType = "WATCHER"
 )
 
 // ApprovalMode enum for step approval mode.
@@ -91,25 +102,53 @@ func (f *ApprovalFlow) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type ApprovalFlowStep struct {
-	ID                uuid.UUID     `gorm:"type:char(36);primaryKey" json:"id"`
-	FlowID            uuid.UUID     `gorm:"type:char(36);not null;index:idx_approval_step_flow" json:"flow_id"`
-	StepOrder         int           `gorm:"type:int;not null" json:"step_order"`
-	StepName          string        `gorm:"type:varchar(100);not null" json:"step_name"`
-	ApproverType      ApproverType  `gorm:"type:varchar(255);not null" json:"approver_type"`
-	RoleID            *uuid.UUID    `gorm:"type:char(36);index:idx_approval_step_role" json:"role_id,omitempty"`
-	ApproverUserID    *uuid.UUID    `gorm:"type:char(36);index:idx_approval_step_user" json:"approver_user_id,omitempty"`
-	ApprovalMode      ApprovalMode  `gorm:"type:varchar(255);not null;default:ANY_ONE" json:"approval_mode"`
-	RequiredApprovals *int          `gorm:"type:int" json:"required_approvals,omitempty"`
-	AllowReject       bool          `gorm:"type:tinyint(1);default:1" json:"allow_reject"`
-	ConditionsJSON    *string       `gorm:"type:json" json:"conditions_json,omitempty"`
-	SLAHours          *int          `gorm:"type:int" json:"sla_hours,omitempty"`
-	DeletedAt         *time.Time    `gorm:"index:idx_approval_step_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt         time.Time     `json:"created_at"`
-	UpdatedAt         time.Time     `json:"updated_at"`
+	ID                uuid.UUID         `gorm:"type:char(36);primaryKey" json:"id"`
+	FlowID            uuid.UUID         `gorm:"type:char(36);not null;index:idx_approval_step_flow" json:"flow_id"`
+	StepOrder         int               `gorm:"type:int;not null" json:"step_order"`
+	StepName          string            `gorm:"type:varchar(100);not null" json:"step_name"`
+	ApproverType      ApproverType      `gorm:"type:varchar(255);not null" json:"approver_type"`
+	HierarchyLevel    *int              `gorm:"type:int;default:1" json:"hierarchy_level,omitempty"`
+	RoleID            *uuid.UUID        `gorm:"type:char(36);index:idx_approval_step_role" json:"role_id,omitempty"`
+	ApproverUserID    *uuid.UUID        `gorm:"type:char(36);index:idx_approval_step_user" json:"approver_user_id,omitempty"`
+	ApprovalMode      ApprovalMode      `gorm:"type:varchar(255);not null;default:ANY_ONE" json:"approval_mode"`
+	ParticipationType ParticipationType `gorm:"type:varchar(20);not null;default:APPROVER" json:"participation_type"`
+	RequiredApprovals *int              `gorm:"type:int" json:"required_approvals,omitempty"`
+	AllowReject       bool              `gorm:"type:tinyint(1);default:1" json:"allow_reject"`
+	ConditionsJSON    *string           `gorm:"type:json" json:"conditions_json,omitempty"`
+	SLAHours          *int              `gorm:"type:int" json:"sla_hours,omitempty"`
+	DeletedAt         *time.Time        `gorm:"index:idx_approval_step_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt         time.Time         `json:"created_at"`
+	UpdatedAt         time.Time         `json:"updated_at"`
+
+	// Relations (not stored)
+	Organizations []ApprovalFlowStepOrganization `gorm:"foreignKey:StepID" json:"organizations,omitempty"`
 }
 
 func (ApprovalFlowStep) TableName() string {
 	return "approval_flow_steps"
+}
+
+// =========================================================================
+// ApprovalFlowStepOrganization (Target Organization eksplisit untuk step
+// dengan approver_type ORGANIZATION/BOTH — satu step bisa punya banyak baris)
+// =========================================================================
+
+type ApprovalFlowStepOrganization struct {
+	ID             uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	StepID         uuid.UUID `gorm:"type:char(36);not null;index:idx_approval_step_org_step" json:"step_id"`
+	OrganizationID uuid.UUID `gorm:"type:char(36);not null;index:idx_approval_step_org_org" json:"organization_id"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+func (ApprovalFlowStepOrganization) TableName() string {
+	return "approval_flow_step_organizations"
+}
+
+func (o *ApprovalFlowStepOrganization) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == uuid.Nil {
+		o.ID = uuid.New()
+	}
+	return nil
 }
 
 func (s *ApprovalFlowStep) BeforeCreate(tx *gorm.DB) error {
@@ -124,22 +163,22 @@ func (s *ApprovalFlowStep) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type ApprovalInstance struct {
-	ID          uuid.UUID       `gorm:"type:char(36);primaryKey" json:"id"`
-	Module      string          `gorm:"type:varchar(50);not null" json:"module"`
-	DocumentID  uuid.UUID       `gorm:"type:char(36);not null" json:"document_id"`
-	FlowID      uuid.UUID       `gorm:"type:char(36);not null;index:idx_approval_instance_flow" json:"flow_id"`
-	Status      InstanceStatus  `gorm:"type:varchar(255);not null;default:PENDING" json:"status"`
-	CurrentStep int             `gorm:"type:int;default:1" json:"current_step"`
-	CreatedBy   *uuid.UUID      `gorm:"type:char(36);index:idx_approval_instance_creator" json:"created_by,omitempty"`
-	DeletedAt   *time.Time      `gorm:"index:idx_approval_instance_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
+	ID          uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	Module      string         `gorm:"type:varchar(50);not null" json:"module"`
+	DocumentID  uuid.UUID      `gorm:"type:char(36);not null" json:"document_id"`
+	FlowID      uuid.UUID      `gorm:"type:char(36);not null;index:idx_approval_instance_flow" json:"flow_id"`
+	Status      InstanceStatus `gorm:"type:varchar(255);not null;default:PENDING" json:"status"`
+	CurrentStep int            `gorm:"type:int;default:1" json:"current_step"`
+	CreatedBy   *uuid.UUID     `gorm:"type:char(36);index:idx_approval_instance_creator" json:"created_by,omitempty"`
+	DeletedAt   *time.Time     `gorm:"index:idx_approval_instance_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 
 	// Relations (not stored)
-	Flow   *ApprovalFlow   `gorm:"foreignKey:FlowID" json:"flow,omitempty"`
-	Steps  []ApprovalFlowStep `gorm:"-" json:"steps,omitempty"`
-	Actions []ApprovalAction `gorm:"foreignKey:InstanceID" json:"actions,omitempty"`
-	Tasks  []ApprovalTask  `gorm:"foreignKey:InstanceID" json:"tasks,omitempty"`
+	Flow    *ApprovalFlow      `gorm:"foreignKey:FlowID" json:"flow,omitempty"`
+	Steps   []ApprovalFlowStep `gorm:"-" json:"steps,omitempty"`
+	Actions []ApprovalAction   `gorm:"foreignKey:InstanceID" json:"actions,omitempty"`
+	Tasks   []ApprovalTask     `gorm:"foreignKey:InstanceID" json:"tasks,omitempty"`
 }
 
 func (ApprovalInstance) TableName() string {
@@ -158,13 +197,13 @@ func (i *ApprovalInstance) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type ApprovalAction struct {
-	ID          uuid.UUID           `gorm:"type:char(36);primaryKey" json:"id"`
-	InstanceID  uuid.UUID           `gorm:"type:char(36);not null;index:idx_approval_action_instance" json:"instance_id"`
-	StepOrder   int                 `gorm:"type:int;not null" json:"step_order"`
-	ActorUserID uuid.UUID           `gorm:"type:char(36);not null;index:idx_approval_action_actor" json:"actor_user_id"`
-	Action      ApprovalActionType  `gorm:"type:varchar(255);not null" json:"action"`
-	Note        *string             `gorm:"type:varchar(255)" json:"note,omitempty"`
-	CreatedAt   time.Time           `json:"created_at"`
+	ID          uuid.UUID          `gorm:"type:char(36);primaryKey" json:"id"`
+	InstanceID  uuid.UUID          `gorm:"type:char(36);not null;index:idx_approval_action_instance" json:"instance_id"`
+	StepOrder   int                `gorm:"type:int;not null" json:"step_order"`
+	ActorUserID uuid.UUID          `gorm:"type:char(36);not null;index:idx_approval_action_actor" json:"actor_user_id"`
+	Action      ApprovalActionType `gorm:"type:varchar(255);not null" json:"action"`
+	Note        *string            `gorm:"type:varchar(255)" json:"note,omitempty"`
+	CreatedAt   time.Time          `json:"created_at"`
 }
 
 func (ApprovalAction) TableName() string {

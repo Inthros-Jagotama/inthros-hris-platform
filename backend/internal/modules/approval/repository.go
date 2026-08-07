@@ -58,7 +58,8 @@ func (r *Repository) FindFlowByIDWithSteps(ctx context.Context, id uuid.UUID) (*
 	var flow ApprovalFlow
 	if err := db.Preload("Steps", func(db *gorm.DB) *gorm.DB {
 		return db.Where("deleted_at IS NULL").Order("step_order ASC")
-	}).Where("id = ? AND deleted_at IS NULL", id).First(&flow).Error; err != nil {
+	}).Preload("Steps.Organizations").
+		Where("id = ? AND deleted_at IS NULL", id).First(&flow).Error; err != nil {
 		return nil, fmt.Errorf("approval flow not found: %w", err)
 	}
 	return &flow, nil
@@ -161,7 +162,8 @@ func (r *Repository) ListStepsByFlowID(ctx context.Context, flowID uuid.UUID) ([
 		return nil, err
 	}
 	var steps []ApprovalFlowStep
-	if err := db.Where("flow_id = ? AND deleted_at IS NULL", flowID).
+	if err := db.Preload("Organizations").
+		Where("flow_id = ? AND deleted_at IS NULL", flowID).
 		Order("step_order ASC").Find(&steps).Error; err != nil {
 		return nil, fmt.Errorf("failed to list steps: %w", err)
 	}
@@ -526,10 +528,148 @@ func (r *Repository) ApproveStep(ctx context.Context, instanceID uuid.UUID, curr
 				}).Error; err != nil {
 				return fmt.Errorf("failed to approve instance: %w", err)
 			}
+
+			// Persist any trailing WATCHER-step tasks (already DONE, informational
+			// only) that were resolved while walking past the final gate.
+			for i := range nextTasks {
+				nextTasks[i].InstanceID = instanceID
+			}
+			if len(nextTasks) > 0 {
+				if err := tx.Create(&nextTasks).Error; err != nil {
+					return fmt.Errorf("failed to create trailing watcher tasks: %w", err)
+				}
+			}
 		}
 
 		return nil
 	})
+}
+
+// =========================================================================
+// Approval Flow Step Organizations
+// =========================================================================
+
+// ReplaceStepOrganizations mengganti seluruh target Organization untuk sebuah
+// step (dipakai saat create/update step dengan approver_type ORGANIZATION/BOTH).
+func (r *Repository) ReplaceStepOrganizations(ctx context.Context, stepID uuid.UUID, orgIDs []uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("step_id = ?", stepID).Delete(&ApprovalFlowStepOrganization{}).Error; err != nil {
+			return fmt.Errorf("failed to clear step organizations: %w", err)
+		}
+		if len(orgIDs) == 0 {
+			return nil
+		}
+		rows := make([]ApprovalFlowStepOrganization, 0, len(orgIDs))
+		for _, orgID := range orgIDs {
+			rows = append(rows, ApprovalFlowStepOrganization{StepID: stepID, OrganizationID: orgID})
+		}
+		if err := tx.Create(&rows).Error; err != nil {
+			return fmt.Errorf("failed to create step organizations: %w", err)
+		}
+		return nil
+	})
+}
+
+func (r *Repository) ListStepOrganizations(ctx context.Context, stepID uuid.UUID) ([]ApprovalFlowStepOrganization, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []ApprovalFlowStepOrganization
+	if err := db.Where("step_id = ?", stepID).Find(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to list step organizations: %w", err)
+	}
+	return rows, nil
+}
+
+// =========================================================================
+// Organization-hierarchy resolution (raw queries — approval must not import
+// the employee/organization packages directly, same reasoning the performance
+// module already applies for cross-module lookups)
+// =========================================================================
+
+// GetOrganizationParentID mengembalikan parent_id dari sebuah Organization (nil jika root/tidak ada).
+func (r *Repository) GetOrganizationParentID(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var parentIDStr *string
+	if err := db.Table("organizations").
+		Where("id = ? AND deleted_at IS NULL", orgID).
+		Select("parent_id").
+		Scan(&parentIDStr).Error; err != nil {
+		return nil, fmt.Errorf("failed to resolve parent organization: %w", err)
+	}
+	if parentIDStr == nil || *parentIDStr == "" {
+		return nil, nil
+	}
+	parentID, err := uuid.Parse(*parentIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid parent organization id: %w", err)
+	}
+	return &parentID, nil
+}
+
+// GetSubmitterOrganizationID resolve dari platform user (pembuat instance) ke
+// Organization tempat dia bekerja saat ini: user -> employee_accounts -> employee
+// -> employments (current) -> organization_id.
+func (r *Repository) GetSubmitterOrganizationID(ctx context.Context, userID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var orgIDStr *string
+	err = db.Table("employee_accounts AS ea").
+		Joins("JOIN employments AS emp ON emp.employee_id = ea.employee_id").
+		Where("ea.user_id = ? AND (emp.effective_end_date IS NULL)", userID).
+		Order("emp.effective_date DESC").
+		Limit(1).
+		Select("emp.organization_id").
+		Scan(&orgIDStr).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve submitter organization: %w", err)
+	}
+	if orgIDStr == nil || *orgIDStr == "" {
+		return nil, nil
+	}
+	orgID, err := uuid.Parse(*orgIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid organization id: %w", err)
+	}
+	return &orgID, nil
+}
+
+// GetUserIDsByOrganization mengembalikan platform user ID (bukan employee ID) dari
+// employee yang saat ini menempati sebuah Organization: organization_id -> employments
+// (current) -> employee_id -> employee_accounts -> user_id.
+func (r *Repository) GetUserIDsByOrganization(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var userIDStrs []string
+	err = db.Table("employments AS emp").
+		Joins("JOIN employee_accounts AS ea ON ea.employee_id = emp.employee_id").
+		Where("emp.organization_id = ? AND (emp.effective_end_date IS NULL)", orgID).
+		Distinct().
+		Pluck("ea.user_id", &userIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve organization assignees: %w", err)
+	}
+	userIDs := make([]uuid.UUID, 0, len(userIDStrs))
+	for _, s := range userIDStrs {
+		id, err := uuid.Parse(s)
+		if err != nil {
+			return nil, fmt.Errorf("invalid user id: %w", err)
+		}
+		userIDs = append(userIDs, id)
+	}
+	return userIDs, nil
 }
 
 // RejectInstance melakukan reject pada instance dan cancel semua pending tasks.
