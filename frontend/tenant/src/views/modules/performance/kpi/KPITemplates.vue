@@ -154,16 +154,16 @@ const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 
 function getStatusLabel(status) {
   switch (status) {
-    case 1: return 'Active'
-    case 2: return 'Inactive'
+    case 'PUBLISHED': return 'Published'
+    case 'ARCHIVED': return 'Archived'
     default: return 'Draft'
   }
 }
 
 function getStatusSeverity(status) {
   switch (status) {
-    case 1: return 'success'
-    case 2: return 'secondary'
+    case 'PUBLISHED': return 'success'
+    case 'ARCHIVED': return 'secondary'
     default: return 'warn'
   }
 }
