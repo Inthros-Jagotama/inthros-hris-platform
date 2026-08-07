@@ -156,6 +156,45 @@ func TestService_ListAvailableModules_IncludesKPISubModules(t *testing.T) {
 	}
 }
 
+// TestService_GetActiveFlowByModule_FallsBackToBaseModule validates that
+// if HR only configured a flow under the base "performance" module (not
+// the specific "performance_kpi_target"/"performance_kpi_realization"
+// sub-checkpoint slugs), that flow is used as a fallback instead of the
+// KPI submission silently skipping approval routing entirely.
+func TestService_GetActiveFlowByModule_FallsBackToBaseModule(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	flow := createTestFlow(repo, "performance")
+
+	resp, err := svc.GetActiveFlowByModule(ctxAsCompany("company-1"), "performance_kpi_target")
+	if err != nil {
+		t.Fatalf("expected fallback to the 'performance' flow, got error: %v", err)
+	}
+	if resp.ID != flow.ID.String() {
+		t.Errorf("expected fallback flow id %s, got %s", flow.ID, resp.ID)
+	}
+}
+
+// TestService_GetActiveFlowByModule_SpecificFlowTakesPriority validates
+// that once a dedicated flow exists for the specific sub-checkpoint slug,
+// it's used instead of the base module's flow.
+func TestService_GetActiveFlowByModule_SpecificFlowTakesPriority(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	createTestFlow(repo, "performance")
+	specific := createTestFlow(repo, "performance_kpi_target")
+
+	resp, err := svc.GetActiveFlowByModule(ctxAsCompany("company-1"), "performance_kpi_target")
+	if err != nil {
+		t.Fatalf("GetActiveFlowByModule failed: %v", err)
+	}
+	if resp.ID != specific.ID.String() {
+		t.Errorf("expected the specific flow %s to take priority, got %s", specific.ID, resp.ID)
+	}
+}
+
 func TestService_ListAvailableModules_NoChecker_Error(t *testing.T) {
 	svc, _, cleanup := newTestService()
 	defer cleanup()

@@ -201,6 +201,17 @@ func (s *Service) GetFlowByID(ctx context.Context, id string) (*FlowResponse, er
 func (s *Service) GetActiveFlowByModule(ctx context.Context, module string) (*FlowResponse, error) {
 	flow, err := s.repo.FindActiveFlowByModule(ctx, module)
 	if err != nil {
+		// Fall back to the base module's flow (e.g. "performance") when no
+		// flow exists for a sub-checkpoint slug (e.g.
+		// "performance_kpi_target") — HR configuring a single flow under
+		// the real module name should cover every checkpoint under it
+		// until a more specific flow is added later.
+		if alias, ok := subscriptionModuleAliases[module]; ok {
+			if flow2, err2 := s.repo.FindActiveFlowByModule(ctx, alias); err2 == nil {
+				response := flow2.ToResponse()
+				return &response, nil
+			}
+		}
 		return nil, err
 	}
 	response := flow.ToResponse()
