@@ -252,6 +252,7 @@
         <template v-if="stepForm.participation_type === 'APPROVER'">
           <FormRow :label="t('approval.approval_mode')">
             <Select v-model="stepForm.approval_mode" :options="approvalModeOptions" optionLabel="label" optionValue="value" class="w-full" />
+            <p class="text-xs text-gray-400 mt-1">{{ t(`approval.approval_mode_hint_${stepForm.approval_mode}`) }}</p>
           </FormRow>
           <FormRow v-if="stepForm.approval_mode === 'N_OF_M'" :label="t('approval.required_approvals')">
             <InputNumber v-model="stepForm.required_approvals" class="!w-full" :min="1" size="small" />
