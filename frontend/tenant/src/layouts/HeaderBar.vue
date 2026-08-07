@@ -80,6 +80,20 @@
         <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ route.meta?.titleKey ? t(route.meta.titleKey) : (route.meta?.title || '') }}</span>
       </template>
 
+      <!-- Breadcrumb: My Tasks > Approval Flows (kembali ke Tugas Saya) -->
+      <template v-else-if="showApprovalFlowsBreadcrumb">
+        <Button
+          text
+          size="small"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          @click="goBackToApprovals"
+        >
+          {{ t('approval.my_tasks') }}
+        </Button>
+        <i class="pi pi-chevron-right text-xs text-gray-300"></i>
+        <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ t('approval.flows') }}</span>
+      </template>
+
       <!-- Normal page title -->
       <template v-else>
         <i class="pi pi-chevron-right text-sm text-gray-300"></i>
@@ -205,6 +219,11 @@ const showSettingsBreadcrumb = computed(() => {
   return route.name?.startsWith('Settings') && route.name !== 'SettingsIndex'
 })
 
+/** Show breadcrumb when on the Approval Flows page (back to My Tasks) */
+const showApprovalFlowsBreadcrumb = computed(() => {
+  return route.name === 'ApprovalFlows'
+})
+
 function goBackToSummary() {
   router.push('/organization-summary')
 }
@@ -223,6 +242,10 @@ function goBackToJobValues() {
 
 function goBackToSettings() {
   router.push('/settings')
+}
+
+function goBackToApprovals() {
+  router.push('/approvals')
 }
 
 const userMenuItems = computed(() => [

@@ -125,6 +125,12 @@ const routes = [
         component: () => import('@/views/modules/Approvals.vue'),
         meta: { title: 'Approval', titleKey: 'approval.title', descKey: 'approval.description', icon: 'pi pi-check-square', module: 'approval' }
       },
+      {
+        path: 'approvals/flows',
+        name: 'ApprovalFlows',
+        component: () => import('@/views/modules/ApprovalFlows.vue'),
+        meta: { title: 'Approval Flows', titleKey: 'approval.flows', descKey: 'approval.description', icon: 'pi pi-sitemap', module: 'approval' }
+      },
       // Payroll
       {
         path: 'payroll',
