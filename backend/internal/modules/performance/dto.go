@@ -99,6 +99,18 @@ type PerformanceTemplateResponse struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
+// MyKPIContextResponse resolves the logged-in user to their current employee
+// record and Organization (posisi jabatan terakhir), plus the PUBLISHED
+// templates available for that Organization — used by the employee
+// self-assessment page to know whether it can offer "fill evaluation" at all.
+type MyKPIContextResponse struct {
+	HasPosition      bool                          `json:"has_position"`
+	EmployeeID       string                        `json:"employee_id,omitempty"`
+	OrganizationID   string                        `json:"organization_id,omitempty"`
+	OrganizationName string                        `json:"organization_name,omitempty"`
+	Templates        []PerformanceTemplateResponse `json:"templates"`
+}
+
 // =========================================================================
 // Performance Indicator DTOs
 // =========================================================================

@@ -226,6 +226,46 @@ func (r *Repository) GetOrganizationNamesByIDs(ctx context.Context, ids []uuid.U
 	return result, nil
 }
 
+// GetCurrentEmployeeContextByUserID resolve platform user (karyawan yang login)
+// ke employee_id dan Organization tempat dia bekerja saat ini (posisi jabatan
+// terakhir): user -> employee_accounts -> employee -> employments (current,
+// effective_end_date IS NULL) -> organization_id. Raw query terhadap tabel
+// employee_accounts/employments (bukan import package employee) untuk
+// menghindari circular dependency — pola yang sama dipakai approval module.
+func (r *Repository) GetCurrentEmployeeContextByUserID(ctx context.Context, userID uuid.UUID) (employeeID *uuid.UUID, organizationID *uuid.UUID, err error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	type row struct {
+		EmployeeID     string
+		OrganizationID string
+	}
+	var result row
+	dbErr := db.WithContext(ctx).Table("employee_accounts AS ea").
+		Joins("JOIN employments AS emp ON emp.employee_id = ea.employee_id").
+		Where("ea.user_id = ? AND emp.effective_end_date IS NULL", userID).
+		Order("emp.effective_date DESC").
+		Limit(1).
+		Select("ea.employee_id AS employee_id, emp.organization_id AS organization_id").
+		Scan(&result).Error
+	if dbErr != nil {
+		return nil, nil, fmt.Errorf("failed to resolve current employee context: %w", dbErr)
+	}
+	if result.EmployeeID == "" || result.OrganizationID == "" {
+		return nil, nil, nil
+	}
+	empID, err := uuid.Parse(result.EmployeeID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid employee id: %w", err)
+	}
+	orgID, err := uuid.Parse(result.OrganizationID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid organization id: %w", err)
+	}
+	return &empID, &orgID, nil
+}
+
 // GetPeriodCodesByIDs mengambil period_code untuk sekumpulan performance_periods ID.
 func (r *Repository) GetPeriodCodesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
 	result := make(map[string]string, len(ids))

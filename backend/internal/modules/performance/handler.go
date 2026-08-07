@@ -179,6 +179,15 @@ func (h *Handler) GetPerformanceTemplateByID(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+func (h *Handler) GetMyKPIContext(c *gin.Context) {
+	resp, err := h.svc.GetMyKPIContext(c.Request.Context())
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) UpdatePerformanceTemplate(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdatePerformanceTemplateRequest

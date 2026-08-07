@@ -45,6 +45,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			kpi.DELETE("/perspectives/:id", handler.DeletePerformancePerspective)
 
 			// Performance Templates (BSC Templates)
+			kpi.GET("/my-context", handler.GetMyKPIContext)
 			kpi.POST("/templates", handler.CreatePerformanceTemplate)
 			kpi.GET("/templates", handler.ListPerformanceTemplates)
 			kpi.GET("/templates/:id", handler.GetPerformanceTemplateByID)

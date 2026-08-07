@@ -8,6 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 const (
@@ -349,6 +351,59 @@ func (s *Service) ListPerformanceTemplates(ctx context.Context, orgID *string, p
 	return &PaginatedResponse{
 		Success: true, Data: flat, Page: page, PerPage: perPage,
 		Total: total, TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}
+
+// GetMyKPIContext resolves the logged-in user to their employee record and
+// current Organization (posisi jabatan terakhir), then returns the PUBLISHED
+// templates configured for that Organization. Self-assessment: an employee
+// can only start filling a KPI evaluation once a template exists for their
+// current position — this endpoint is what the self-assessment page checks
+// before offering the "fill evaluation" action.
+func (s *Service) GetMyKPIContext(ctx context.Context) (*MyKPIContextResponse, error) {
+	userID := authctx.GetUserID(ctx)
+	if userID == nil {
+		return nil, fmt.Errorf("user not authenticated")
+	}
+
+	empID, orgID, err := s.repo.GetCurrentEmployeeContextByUserID(ctx, *userID)
+	if err != nil {
+		return nil, err
+	}
+	if empID == nil || orgID == nil {
+		return &MyKPIContextResponse{HasPosition: false, Templates: []PerformanceTemplateResponse{}}, nil
+	}
+
+	list, _, err := s.repo.ListPerformanceTemplates(ctx, orgID, 1, maxPerPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]*PerformanceTemplateResponse, 0, len(list))
+	for _, t := range list {
+		if t.Status != "PUBLISHED" {
+			continue
+		}
+		responses = append(responses, templateToResponse(&t))
+	}
+	if err := s.enrichTemplateResponses(ctx, responses); err != nil {
+		return nil, err
+	}
+	templates := make([]PerformanceTemplateResponse, 0, len(responses))
+	for _, r := range responses {
+		templates = append(templates, *r)
+	}
+
+	orgNames, err := s.repo.GetOrganizationNamesByIDs(ctx, []uuid.UUID{*orgID})
+	if err != nil {
+		return nil, err
+	}
+
+	return &MyKPIContextResponse{
+		HasPosition:      true,
+		EmployeeID:       empID.String(),
+		OrganizationID:   orgID.String(),
+		OrganizationName: orgNames[orgID.String()],
+		Templates:        templates,
 	}, nil
 }
 
