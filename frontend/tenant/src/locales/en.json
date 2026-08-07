@@ -586,7 +586,8 @@
     "no_program_items": "No program items added yet.",
     "program_item_title": "Program Title",
     "program_item_title_placeholder": "e.g. Improve onboarding flow",
-    "program_weight_exceeds_100": "Total weight of program items cannot exceed 100%."
+    "program_weight_exceeds_100": "Total weight of program items cannot exceed 100%.",
+    "awaiting_central_approval": "Waiting for approval — check Approval > My Tasks."
   },
   "okr": {
     "title": "Objective & Key Results",

@@ -316,15 +316,25 @@
             <Button :label="t('kpi.submit_target')" icon="pi pi-send" size="small" :loading="submittingTarget" @click="submitTarget" />
           </template>
           <template v-else-if="evaluation.status === 'TARGET_SUBMITTED'">
-            <Button :label="t('kpi.reject_target')" icon="pi pi-times" severity="danger" outlined size="small" :loading="rejectingTarget" @click="rejectTarget" />
-            <Button :label="t('kpi.approve_target')" icon="pi pi-check" severity="success" size="small" :loading="approvingTarget" @click="approveTarget" />
+            <span v-if="evaluation.target_approval_instance_id" class="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+              <i class="pi pi-clock"></i> {{ t('kpi.awaiting_central_approval') }}
+            </span>
+            <template v-else>
+              <Button :label="t('kpi.reject_target')" icon="pi pi-times" severity="danger" outlined size="small" :loading="rejectingTarget" @click="rejectTarget" />
+              <Button :label="t('kpi.approve_target')" icon="pi pi-check" severity="success" size="small" :loading="approvingTarget" @click="approveTarget" />
+            </template>
           </template>
           <template v-else-if="evaluation.status === 'TARGET_APPROVED'">
             <Button :label="t('kpi.submit')" icon="pi pi-send" size="small" :loading="submitting" @click="submitEvaluation" />
           </template>
           <template v-else-if="evaluation.status === 'SUBMITTED'">
-            <Button :label="t('kpi.reject')" icon="pi pi-times" severity="danger" outlined size="small" :loading="rejecting" @click="rejectEvaluation" />
-            <Button :label="t('kpi.approve')" icon="pi pi-check" severity="success" size="small" :loading="approving" @click="approveEvaluation" />
+            <span v-if="evaluation.realization_approval_instance_id" class="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+              <i class="pi pi-clock"></i> {{ t('kpi.awaiting_central_approval') }}
+            </span>
+            <template v-else>
+              <Button :label="t('kpi.reject')" icon="pi pi-times" severity="danger" outlined size="small" :loading="rejecting" @click="rejectEvaluation" />
+              <Button :label="t('kpi.approve')" icon="pi pi-check" severity="success" size="small" :loading="approving" @click="approveEvaluation" />
+            </template>
           </template>
           <template v-else-if="evaluation.status === 'APPROVED'">
             <Button :label="t('kpi.complete')" icon="pi pi-check-circle" severity="success" size="small" :loading="completing" @click="completeEvaluation" />
@@ -507,7 +517,9 @@ async function loadEvaluation() {
       status: data.status,
       final_score: data.final_score,
       rating_name: data.rating_name || data.rating?.name,
-      rating_color: data.rating_color || data.rating?.color
+      rating_color: data.rating_color || data.rating?.color,
+      target_approval_instance_id: data.target_approval_instance_id || null,
+      realization_approval_instance_id: data.realization_approval_instance_id || null
     }
     details.value = (data.details || []).map(d => ({
       id: d.id,
