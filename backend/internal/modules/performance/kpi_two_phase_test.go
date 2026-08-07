@@ -254,6 +254,58 @@ func TestService_ProgramItems_CRUDAndStatusGating(t *testing.T) {
 	}
 }
 
+func TestService_ProgramItems_WeightCannotExceed100(t *testing.T) {
+	svc, _, cleanup := setupMyKPIContextTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	evalID := setupTwoPhaseEvaluation(t, svc)
+
+	first, err := svc.CreateProgramItem(ctx, CreateProgramItemRequest{
+		PerformanceEvaluationID: evalID,
+		Title:                   "First program",
+		Weight:                  70,
+		Target:                  10,
+	})
+	if err != nil {
+		t.Fatalf("CreateProgramItem failed: %v", err)
+	}
+
+	// A second item pushing the total past 100% must be rejected.
+	if _, err := svc.CreateProgramItem(ctx, CreateProgramItemRequest{
+		PerformanceEvaluationID: evalID,
+		Title:                   "Second program",
+		Weight:                  40,
+		Target:                  10,
+	}); err == nil {
+		t.Fatal("expected error creating program item that pushes total weight over 100%")
+	}
+
+	// Exactly reaching 100% is fine.
+	second, err := svc.CreateProgramItem(ctx, CreateProgramItemRequest{
+		PerformanceEvaluationID: evalID,
+		Title:                   "Second program",
+		Weight:                  30,
+		Target:                  10,
+	})
+	if err != nil {
+		t.Fatalf("expected CreateProgramItem to succeed at exactly 100%% total: %v", err)
+	}
+
+	// Editing an existing item's weight past the cap is also rejected.
+	if _, err := svc.UpdateProgramItemTarget(ctx, second.ID, UpdateProgramItemTargetRequest{Weight: float64Ptr(31)}); err == nil {
+		t.Fatal("expected error editing weight past the 100% cap")
+	}
+
+	// But re-saving the same weight (no-op) or reducing it is fine.
+	if _, err := svc.UpdateProgramItemTarget(ctx, second.ID, UpdateProgramItemTargetRequest{Weight: float64Ptr(30)}); err != nil {
+		t.Fatalf("expected no-op weight update to succeed: %v", err)
+	}
+	if _, err := svc.UpdateProgramItemTarget(ctx, first.ID, UpdateProgramItemTargetRequest{Weight: float64Ptr(60)}); err != nil {
+		t.Fatalf("expected reducing weight to succeed: %v", err)
+	}
+}
+
 func TestService_CreateProgramItem_RequiresDraftStatus(t *testing.T) {
 	svc, _, cleanup := setupMyKPIContextTestDB(t)
 	defer cleanup()

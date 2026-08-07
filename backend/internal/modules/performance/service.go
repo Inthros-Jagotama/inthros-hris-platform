@@ -953,6 +953,14 @@ func (s *Service) CreateProgramItem(ctx context.Context, req CreateProgramItemRe
 		return nil, err
 	}
 
+	existingWeight := 0.0
+	for _, it := range existing {
+		existingWeight += it.Weight
+	}
+	if existingWeight+req.Weight > 100 {
+		return nil, fmt.Errorf("total weight of program items cannot exceed 100%%, currently at %.2f%%", existingWeight)
+	}
+
 	formulaType := req.FormulaType
 	if formulaType == "" {
 		formulaType = "MANUAL"
@@ -1003,6 +1011,22 @@ func (s *Service) UpdateProgramItemTarget(ctx context.Context, id string, req Up
 	}
 	if eval.Status != "DRAFT" {
 		return nil, fmt.Errorf("program item target can only be edited while the evaluation is in DRAFT status, current: %s", eval.Status)
+	}
+
+	if req.Weight != nil && *req.Weight != p.Weight {
+		others, err := s.repo.ListProgramItemsByEvaluationID(ctx, p.PerformanceEvaluationID)
+		if err != nil {
+			return nil, err
+		}
+		otherWeight := 0.0
+		for _, it := range others {
+			if it.ID != p.ID {
+				otherWeight += it.Weight
+			}
+		}
+		if otherWeight+*req.Weight > 100 {
+			return nil, fmt.Errorf("total weight of program items cannot exceed 100%%, other items already total %.2f%%", otherWeight)
+		}
 	}
 
 	if req.Title != nil {

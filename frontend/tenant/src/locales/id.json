@@ -585,7 +585,8 @@
     "add_program_item": "Tambah Item Program",
     "no_program_items": "Belum ada item program yang ditambahkan.",
     "program_item_title": "Judul Program",
-    "program_item_title_placeholder": "cth. Perbaikan alur onboarding"
+    "program_item_title_placeholder": "cth. Perbaikan alur onboarding",
+    "program_weight_exceeds_100": "Total bobot item program tidak boleh lebih dari 100%."
   },
   "okr": {
     "title": "Tujuan & Hasil Utama",

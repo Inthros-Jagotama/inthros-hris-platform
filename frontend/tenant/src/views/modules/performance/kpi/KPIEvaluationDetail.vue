@@ -97,10 +97,8 @@
               <InputText
                 v-if="canEditTarget"
                 v-model="data.unit_of_measurement"
-                :placeholder="t('kpi.unit_placeholder')"
                 class="w-full !text-xs"
                 size="small"
-                maxlength="50"
                 @blur="updateTarget(data)"
               />
               <span v-else class="text-gray-500 dark:text-gray-400 text-xs">{{ data.unit_of_measurement || '-' }}</span>
@@ -149,7 +147,12 @@
             {{ t('kpi.program_items') }}
             <span class="text-xs font-normal text-gray-500">({{ programItems.length }})</span>
           </h3>
-          <Button v-if="canEditTarget" :label="t('kpi.add_program_item')" icon="pi pi-plus" size="small" outlined @click="openProgramItemDialog" />
+          <div class="flex items-center gap-3">
+            <span v-if="canEditTarget && programItems.length > 0" class="text-xs" :class="programItemsTotalWeight > 100 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'">
+              {{ t('kpi.total_weight') }}: {{ programItemsTotalWeight.toFixed(2) }}% / 100%
+            </span>
+            <Button v-if="canEditTarget" :label="t('kpi.add_program_item')" icon="pi pi-plus" size="small" outlined @click="openProgramItemDialog" />
+          </div>
         </div>
 
         <p v-if="programItems.length === 0" class="text-xs text-gray-400 dark:text-gray-500 py-2">
@@ -159,22 +162,73 @@
         <DataTable v-else :value="programItems" size="small" class="!text-sm p-datatable-sm" :rowHover="true">
           <Column field="title" :header="t('kpi.program_item_title')" style="min-width:200px">
             <template #body="{data}">
-              <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.title }}</span>
+              <InputText
+                v-if="canEditTarget"
+                v-model="data.title"
+                class="w-full !text-xs"
+                size="small"
+                @blur="updateProgramItemTarget(data)"
+              />
+              <span v-else class="text-gray-800 dark:text-gray-100 font-medium">{{ data.title }}</span>
             </template>
           </Column>
-          <Column field="formula_type" :header="t('kpi.formula')" style="width:130px">
+          <Column field="formula_type" :header="t('kpi.formula')" style="width:150px">
             <template #body="{data}">
-              <Tag :value="data.formula_type" severity="secondary" class="!text-xs" />
+              <Select
+                v-if="canEditTarget"
+                v-model="data.formula_type"
+                :options="formulaOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full !text-xs"
+                size="small"
+                @change="updateProgramItemTarget(data)"
+              />
+              <Tag v-else :value="data.formula_type" severity="secondary" class="!text-xs" />
             </template>
           </Column>
-          <Column field="weight" :header="t('kpi.weight')" style="width:80px">
+          <Column field="weight" :header="t('kpi.weight')" style="width:110px">
             <template #body="{data}">
-              <span class="text-gray-600 dark:text-gray-300 font-mono">{{ data.weight?.toFixed(1) || '0.0' }}%</span>
+              <InputNumber
+                v-if="canEditTarget"
+                v-model="data.weight"
+                :min="0"
+                :max="100"
+                :minFractionDigits="0"
+                :maxFractionDigits="2"
+                suffix="%"
+                class="w-full !text-xs"
+                size="small"
+                @blur="updateProgramItemTarget(data)"
+              />
+              <span v-else class="text-gray-600 dark:text-gray-300 font-mono">{{ data.weight?.toFixed(1) || '0.0' }}%</span>
             </template>
           </Column>
           <Column field="target" :header="t('kpi.target')" style="width:120px">
             <template #body="{data}">
-              <span class="text-gray-600 dark:text-gray-300 font-mono">{{ formatNumber(data.target) }} {{ data.unit_of_measurement }}</span>
+              <InputNumber
+                v-if="canEditTarget"
+                v-model="data.target"
+                :minFractionDigits="0"
+                :maxFractionDigits="2"
+                class="w-full !text-xs"
+                size="small"
+                @blur="updateProgramItemTarget(data)"
+              />
+              <span v-else class="text-gray-600 dark:text-gray-300 font-mono">{{ formatNumber(data.target) }} {{ data.unit_of_measurement }}</span>
+            </template>
+          </Column>
+          <Column field="unit_of_measurement" :header="t('kpi.unit')" style="width:100px">
+            <template #body="{data}">
+              <InputText
+                v-if="canEditTarget"
+                v-model="data.unit_of_measurement"
+                class="w-full !text-xs"
+                size="small"
+                maxlength="50"
+                @blur="updateProgramItemTarget(data)"
+              />
+              <span v-else class="text-gray-500 dark:text-gray-400 text-xs">{{ data.unit_of_measurement || '-' }}</span>
             </template>
           </Column>
           <Column field="actual" :header="t('kpi.actual')" style="width:120px">
@@ -295,14 +349,12 @@
         <FormRow :label="t('kpi.weight')" required :errors="programItemErrors?.weight">
           <InputNumber v-model="programItemForm.weight" class="!w-full" :min="0" :max="100" :minFractionDigits="0" :maxFractionDigits="2" suffix="%" size="small" />
         </FormRow>
-        <div class="grid grid-cols-2 gap-4">
-          <FormRow :label="t('kpi.target')" required :errors="programItemErrors?.target">
-            <InputNumber v-model="programItemForm.target" class="!w-full" :minFractionDigits="0" :maxFractionDigits="2" size="small" />
-          </FormRow>
-          <FormRow :label="t('kpi.unit')">
-            <TextInput v-model="programItemForm.unit_of_measurement" maxlength="50" :placeholder="t('kpi.unit_placeholder')" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('kpi.target')" required :errors="programItemErrors?.target">
+          <InputNumber v-model="programItemForm.target" class="!w-full" :minFractionDigits="0" :maxFractionDigits="2" size="small" />
+        </FormRow>
+        <FormRow :label="t('kpi.unit')">
+          <TextInput v-model="programItemForm.unit_of_measurement" />
+        </FormRow>
         <FormRow :label="t('kpi.formula')">
           <Select v-model="programItemForm.formula_type" :options="formulaOptions" optionLabel="label" optionValue="value" class="w-full" />
         </FormRow>
@@ -378,6 +430,7 @@ const canEditTarget = computed(() => evaluation.value?.status === 'DRAFT')
 const canEditActual = computed(() => evaluation.value?.status === 'TARGET_APPROVED')
 const showActualColumn = computed(() => !['DRAFT', 'TARGET_SUBMITTED'].includes(evaluation.value?.status))
 const showProgramSection = computed(() => programEnabled.value || programItems.value.length > 0)
+const programItemsTotalWeight = computed(() => programItems.value.reduce((sum, p) => sum + (p.weight || 0), 0))
 
 const phaseHintKey = computed(() => {
   switch (evaluation.value?.status) {
@@ -469,7 +522,7 @@ async function loadEvaluation() {
       unit_of_measurement: d.unit_of_measurement || d.indicator?.unit_of_measurement || '',
       formula_type: d.formula_type || d.indicator?.formula_type
     }))
-    programItems.value = (data.program_items || []).map(p => ({ ...p }))
+    programItems.value = (data.program_items || []).map(p => ({ ...p, _savedWeight: p.weight || 0 }))
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.failed_to_load'), life: 4000 })
     evaluation.value = null
@@ -589,6 +642,10 @@ async function saveProgramItem() {
     programItemErrors.value = { target: [t('form.required')] }
     return
   }
+  if (programItemsTotalWeight.value + programItemForm.value.weight > 100) {
+    programItemErrors.value = { weight: [t('kpi.program_weight_exceeds_100')] }
+    return
+  }
 
   savingProgramItem.value = true
   try {
@@ -618,6 +675,26 @@ async function removeProgramItem(item) {
   try {
     await api.delete(`/api/v1/tenant/performance/kpi/program-items/${item.id}`)
     await loadEvaluation()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  }
+}
+
+async function updateProgramItemTarget(item) {
+  if (programItemsTotalWeight.value > 100) {
+    toast.add({ severity: 'warn', summary: t('message.warning'), detail: t('kpi.program_weight_exceeds_100'), life: 4000 })
+    item.weight = item._savedWeight ?? 0
+    return
+  }
+  try {
+    await api.put(`/api/v1/tenant/performance/kpi/program-items/${item.id}/target`, {
+      title: item.title,
+      weight: item.weight || 0,
+      unit_of_measurement: item.unit_of_measurement || null,
+      target: item.target || 0,
+      formula_type: item.formula_type
+    })
+    item._savedWeight = item.weight
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
   }
