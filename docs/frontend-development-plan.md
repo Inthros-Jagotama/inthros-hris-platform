@@ -4,7 +4,7 @@
 > **Terkait:** [`panduan-uiux-hris-enterprise.md`](panduan-uiux-hris-enterprise.md) · [`project-completion-dashboard.md`](project-completion-dashboard.md) · [`api/api-usage-guide.md`](api/api-usage-guide.md)
 
 **Generated:** 27 July 2026
-**Last Updated:** 2 August 2026 (Organization Tree drag & drop fix — PrimeVue 4.5.5 API; Employee Form: 8/9 steps completed; Platform Admin: CompanyActions.vue reusable component; Job Values icon fix — PrimeIcons 8.0.0)
+**Last Updated:** 7 August 2026 (Performance Management KPI + OKR marked done; added Performance Scoring Configuration — KPI Phase 5 — frontend plan, backend already shipped)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios
 
 ---
@@ -450,13 +450,42 @@ frontend/
 - [ ] Leave Requests (create, approve, reject)
 - [ ] Leave Balances per employee
 
-### C.17. Performance Management 🔴 (BARU)
-**Backend:** 34 endpoints
-- [ ] Performance Periods CRUD
-- [ ] Perspectives CRUD
-- [ ] Templates CRUD
-- [ ] Evaluations (with details)
-- [ ] KPI/OKR Targets
+### C.17. Performance Management ✅ (KPI Phase 1-4 & OKR Phase 1-4 Selesai — Update 07 Agu 2026)
+**Backend:** module `performance` — sub-modul KPI (`/performance/kpi/*`) + OKR (`/performance/okr/*`), shared master di `/performance/*` (periods, ratings, indicator-formulas, logs). Detail lengkap: [`performance-management-kpi-plan.md`](performance-management-kpi-plan.md) · [`archive/performance-management-okr-plan.md`](archive/performance-management-okr-plan.md) · [`frontend-performance-kpi-plan.md`](frontend-performance-kpi-plan.md) · [`archive/frontend-performance-okr-plan.md`](archive/frontend-performance-okr-plan.md)
+
+**KPI Sub-module ✅ Done**
+- [x] `PerformanceIndex.vue` — dashboard index dengan card menu (KPI Evaluations, KPI Templates, OKR Evaluations, OKR Templates) + quick stats dari HR dashboard
+- [x] Settings — Periods, Perspectives, Ratings, Formulas CRUD (`views/settings/Performance*View.vue`)
+- [x] `kpi/KPITemplates.vue` + `KPITemplateForm.vue` — list & form template dengan indicators inline (perspective, weight, target, formula), validasi total bobot 100%
+- [x] `kpi/KPIIndex.vue` — list evaluasi (filter period/status) + create dialog (snapshot dari template)
+- [x] `kpi/KPIEvaluationDetail.vue` — detail evaluasi grouped by perspective, input actual (saat DRAFT), recalculate, workflow submit/approve/reject/complete
+- [x] Sidebar dropdown Performance (KPI + OKR + Dashboard, collapsible dengan child aktif — fix Agu 2026)
+
+**OKR Sub-module ✅ Done**
+- [x] `okr/OKRTemplates.vue` + `OKRTemplateForm.vue` — list & form template dengan Objectives → Key Results nested, validasi bobot 100% di kedua level
+- [x] `okr/OKRIndex.vue` — list evaluasi + create dialog
+- [x] `okr/OKREvaluationDetail.vue` — detail evaluasi grouped per Objective, input actual per Key Result, progress check-in dialog (history + tambah), recalculate, workflow submit/approve/reject/complete
+
+**Known gaps / bugs sudah diperbaiki (referensi commit):**
+- Endpoint FE disesuaikan ke prefix `/performance/kpi/*` setelah backend direstrukturisasi jadi sub-modul (`b0aedcc`)
+- Status dropdown template KPI (enum string `DRAFT/PUBLISHED/ARCHIVED`, bukan numerik) (`a159dd2`)
+- Indicator KPI gagal tersimpan karena `indicator_type` invalid (`6c0a74f`)
+- List template KPI kosong di kolom organization/period/indicator — backend belum enrich response (`2714612`)
+- OKR handler salah resolve tenant DB (gin context key yang tidak pernah di-set) — semua endpoint OKR 500 (`925a515`)
+
+### C.17a. Performance Scoring Configuration (KPI Phase 5) 🔴 (BARU — Backend Selesai, Frontend Pending)
+**Backend:** ✅ Selesai (07 Agu 2026) — `f343118`. Migration 058 + model/DTO/repository/service/handler/routes di modul `performance` yang sama. Detail: [`performance-management-kpi-plan.md`](performance-management-kpi-plan.md#phase-5---performance-scoring-configuration)
+
+Memungkinkan final score KPI per Organization dihitung dari kombinasi berbobot beberapa komponen (KPI, Work Program, Subordinate KPI, atau komponen custom) alih-alih KPI murni. Backward compatible — Organization tanpa konfigurasi tetap pakai perhitungan KPI lama.
+
+**Frontend — belum dikerjakan:**
+- [ ] **Settings — Performance Components** (`views/settings/PerformanceComponentsView.vue`) — CRUD master komponen (code, name, description, sort_order, is_active). Endpoint: `POST/GET/PUT/DELETE /performance/kpi/components`
+- [ ] **Organization Component Weight Config** — UI untuk assign komponen ke Organization + atur bobot (target: tab/section baru di halaman detail Organization, atau halaman tersendiri `Settings > Performance Scoring`). Endpoint: `POST /performance/kpi/organization-components` (upsert), `GET /performance/kpi/organizations/:organization_id/components`, `DELETE /performance/kpi/organization-components/:id`
+  - Validasi FE: total bobot komponen enabled harus 100% (server juga validasi saat kalkulasi, tapi FE sebaiknya cegah lebih awal)
+- [ ] **Evaluation Component Breakdown** — tambahkan section di `kpi/KPIEvaluationDetail.vue`: tabel breakdown skor per komponen (score, weight, weighted final_score), badge komponen mana yang auto-calculated (KPI/Subordinate) vs manual (Work Program)
+  - Input manual untuk komponen non-otomatis (mis. Work Program) — `PUT /performance/kpi/evaluations/:id/components/:component_id`
+  - Tombol "Calculate Scoring" — `POST /performance/kpi/evaluations/:id/calculate-scoring`, hanya tampil jika Organization evaluasi punya konfigurasi komponen (cek via endpoint organization-components)
+- [ ] Locale keys baru (`performance_components.*`, tambahan di `kpi.*` untuk breakdown komponen) EN/ID
 
 ### C.18. Recruitment & Onboarding (ATS) 🔴 (BARU)
 **Backend:** 33 endpoints
@@ -906,7 +935,8 @@ Response handler → toast.show("Berhasil dibuat")
 ### Phase 4 — Tenant Advanced Modules — Estimasi: 4-6 minggu
 | Priority | Feature | Kompleksitas | Status |
 |:--------:|---------|:------------:|:------:|
-| P1 | Performance Management | 🔴 Complex | 🔴 TODO |
+| P1 | Performance Management (KPI + OKR) | 🔴 Complex | ✅ **Done (07 Agu 2026)** |
+| P1 | Performance Scoring Configuration (KPI Phase 5 FE) | 🟡 Medium | 🔴 TODO — backend selesai |
 | P1 | Recruitment (ATS Pipeline) | 🔴 Complex | 🔴 TODO |
 | P2 | Approval Engine (Flow Builder) | 🔴 Complex | 🔴 TODO |
 | P2 | Employee Movement (Workflow) | 🟡 Medium | 🔴 TODO |
