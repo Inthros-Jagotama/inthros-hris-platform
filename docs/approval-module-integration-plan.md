@@ -197,7 +197,7 @@ Untuk masing-masing `leave`, `reimbursement`, `employeemovement`, `attendance` (
 
 | Phase | Status | Completion Date | Notes |
 |-------|--------|-----------------|-------|
-| Phase 1 - Approver Resolution Berbasis Hierarki Organisasi | ⏳ Pending | - | |
+| Phase 1 - Approver Resolution Berbasis Hierarki Organisasi | ✅ Completed | 2026-08-07 | `0cf7163` — migration 059, model/dto/repository/service, 5 test baru |
 | Phase 2 - Module-Subscription Awareness | ⏳ Pending | - | |
 | Phase 3 - Push-Based Status Sync | ⏳ Pending | - | |
 | Phase 4 - Migrasi 4 Module Ad-hoc | ⏳ Pending | - | |
