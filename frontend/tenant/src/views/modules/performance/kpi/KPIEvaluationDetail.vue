@@ -110,6 +110,55 @@
         </DataTable>
       </div>
 
+      <!-- Scoring Components Breakdown (Phase 5) -->
+      <div v-if="components.length > 0 || hasScoringConfig" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <i class="pi pi-sliders-h text-indigo-500"></i>
+            {{ t('performance_scoring.components') }}
+          </h3>
+          <Button v-if="canEdit" :label="t('performance_scoring.calculate')" icon="pi pi-calculator" size="small" outlined severity="secondary" :loading="calculatingScoring" @click="calculateScoring" />
+        </div>
+
+        <p v-if="components.length === 0" class="text-xs text-gray-400 dark:text-gray-500 py-2">
+          {{ t('performance_scoring.not_calculated_yet') }}
+        </p>
+
+        <DataTable v-else :value="components" size="small" class="!text-sm p-datatable-sm" :rowHover="true">
+          <Column field="component_name" :header="t('performance_components.name')" style="min-width:160px">
+            <template #body="{data}">
+              <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.component_name }}</span>
+            </template>
+          </Column>
+          <Column field="score" :header="t('performance_scoring.raw_score')" style="width:120px">
+            <template #body="{data}">
+              <InputNumber
+                v-if="canEdit && isManualComponent(data)"
+                v-model="data.score"
+                :min="0"
+                :max="100"
+                :minFractionDigits="0"
+                :maxFractionDigits="2"
+                class="w-full !text-xs"
+                size="small"
+                @blur="updateComponentScore(data)"
+              />
+              <span v-else class="text-gray-600 dark:text-gray-300 font-mono">{{ data.score?.toFixed(1) ?? '0.0' }}</span>
+            </template>
+          </Column>
+          <Column field="weight" :header="t('okr.weight')" style="width:100px">
+            <template #body="{data}">
+              <span class="text-gray-600 dark:text-gray-300 font-mono">{{ data.weight?.toFixed(1) ?? '0.0' }}%</span>
+            </template>
+          </Column>
+          <Column field="final_score" :header="t('performance_scoring.weighted_score')" style="width:120px">
+            <template #body="{data}">
+              <span class="font-mono font-bold" :class="getScoreClass(data.final_score)">{{ data.final_score?.toFixed(1) ?? '0.0' }}</span>
+            </template>
+          </Column>
+        </DataTable>
+      </div>
+
       <!-- Actions -->
       <div class="flex items-center justify-between">
         <Button :label="t('common.back')" icon="pi pi-arrow-left" severity="secondary" outlined size="small" @click="goBack" />
@@ -163,8 +212,18 @@ const approving = ref(false)
 const rejecting = ref(false)
 const completing = ref(false)
 
+const components = ref([])
+const hasScoringConfig = ref(false)
+const calculatingScoring = ref(false)
+const componentCodeById = ref({})
+
 const evaluationId = computed(() => route.params.id)
 const canEdit = computed(() => evaluation.value?.status === 'DRAFT')
+
+function isManualComponent(row) {
+  const code = componentCodeById.value[row.component_id]
+  return code !== 'KPI' && code !== 'SUBORDINATE'
+}
 
 function formatNumber(val) {
   if (val == null) return '-'
@@ -218,6 +277,7 @@ async function loadEvaluation() {
     evaluation.value = {
       id: data.id,
       employee_id: data.employee_id,
+      organization_id: data.organization_id,
       employee_name: data.employee_name || data.employee?.full_name || '-',
       organization_name: data.organization_name || data.organization?.name || '-',
       period_code: data.period_code || data.period?.period_code || '-',
@@ -244,6 +304,71 @@ async function loadEvaluation() {
     evaluation.value = null
   } finally {
     pageLoading.value = false
+  }
+
+  if (evaluation.value) {
+    await Promise.all([loadComponents(), loadMasterComponents(), checkScoringConfig()])
+  }
+}
+
+async function loadComponents() {
+  try {
+    const res = await api.get(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/components`)
+    components.value = res.data?.data || []
+  } catch {
+    components.value = []
+  }
+}
+
+async function loadMasterComponents() {
+  try {
+    const res = await api.get('/api/v1/tenant/performance/kpi/components', { params: { per_page: 100 } })
+    const map = {}
+    for (const c of res.data?.data || []) {
+      map[c.id] = c.code
+    }
+    componentCodeById.value = map
+  } catch {
+    componentCodeById.value = {}
+  }
+}
+
+async function checkScoringConfig() {
+  if (!evaluation.value?.organization_id) {
+    hasScoringConfig.value = false
+    return
+  }
+  try {
+    const res = await api.get(`/api/v1/tenant/performance/kpi/organizations/${evaluation.value.organization_id}/components`)
+    hasScoringConfig.value = (res.data?.data || []).some(c => c.is_enabled)
+  } catch {
+    hasScoringConfig.value = false
+  }
+}
+
+async function calculateScoring() {
+  calculatingScoring.value = true
+  try {
+    const res = await api.post(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/calculate-scoring`)
+    components.value = res.data?.data || []
+    await loadEvaluation()
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('performance_scoring.calculated'), life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    calculatingScoring.value = false
+  }
+}
+
+async function updateComponentScore(row) {
+  try {
+    const res = await api.put(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/components/${row.component_id}`, {
+      score: row.score || 0
+    })
+    components.value = res.data?.data || components.value
+    await loadEvaluation()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
   }
 }
 

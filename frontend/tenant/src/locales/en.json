@@ -1014,7 +1014,9 @@
     "performance_periods": "Performance Periods",
     "performance_perspectives": "BSC Perspectives",
     "performance_ratings": "Performance Ratings",
-    "performance_formulas": "KPI Formulas"
+    "performance_formulas": "KPI Formulas",
+    "performance_components": "Performance Components",
+    "performance_scoring": "Performance Scoring"
   },
   "provinces": {
     "title": "Provinces",
@@ -1599,5 +1601,41 @@
     "created": "Formula created successfully",
     "updated": "Formula updated successfully",
     "deleted": "Formula deleted successfully"
+  },
+  "performance_components": {
+    "title": "Performance Components",
+    "description": "Master components used to build a weighted final score (KPI, Work Program, Subordinate KPI, etc).",
+    "new": "New Component",
+    "edit": "Edit Component",
+    "code": "Code",
+    "code_placeholder": "e.g. WORK_PROGRAM",
+    "name": "Name",
+    "name_placeholder": "e.g. Work Program",
+    "description_label": "Description",
+    "description_placeholder": "Describe this component",
+    "sort_order": "Order",
+    "empty_title": "No components created yet",
+    "delete_title": "Delete Component",
+    "delete_message": "Delete component \"{name}\"? This action cannot be undone.",
+    "created": "Component created successfully",
+    "updated": "Component updated successfully",
+    "deleted": "Component deleted successfully"
+  },
+  "performance_scoring": {
+    "title": "Performance Scoring",
+    "description": "Configure component weights per Organization for weighted final score calculation.",
+    "organization": "Organization",
+    "select_organization": "Select an organization",
+    "select_organization_hint": "Select an Organization to configure its performance scoring components.",
+    "components": "Scoring Components",
+    "enabled": "Enabled",
+    "no_master_components": "No active components available. Create one in Performance Components settings first.",
+    "weight_must_100": "Total weight of enabled components must equal 100%.",
+    "saved": "Scoring configuration saved successfully",
+    "calculate": "Calculate Scoring",
+    "calculated": "Scoring calculated successfully",
+    "not_calculated_yet": "Scoring has not been calculated yet. Click \"Calculate Scoring\" to compute it.",
+    "raw_score": "Score",
+    "weighted_score": "Weighted"
   }
 }

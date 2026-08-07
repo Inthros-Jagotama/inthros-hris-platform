@@ -89,7 +89,9 @@ const groups = computed(() => [
     items: [
       { path: '/settings/performance-perspectives', icon: 'pi pi-th-large', titleKey: 'settings.performance_perspectives', descKey: 'performance_perspectives.description', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
       { path: '/settings/performance-ratings', icon: 'pi pi-star', titleKey: 'settings.performance_ratings', descKey: 'performance_ratings.description', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-      { path: '/settings/performance-formulas', icon: 'pi pi-calculator', titleKey: 'settings.performance_formulas', descKey: 'performance_formulas.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' }
+      { path: '/settings/performance-formulas', icon: 'pi pi-calculator', titleKey: 'settings.performance_formulas', descKey: 'performance_formulas.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' },
+      { path: '/settings/performance-components', icon: 'pi pi-sliders-h', titleKey: 'settings.performance_components', descKey: 'performance_components.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' },
+      { path: '/settings/performance-scoring', icon: 'pi pi-percentage', titleKey: 'settings.performance_scoring', descKey: 'performance_scoring.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' }
     ]
   },
   {

@@ -1014,7 +1014,9 @@
     "performance_periods": "Periode Penilaian",
     "performance_perspectives": "Perspektif BSC",
     "performance_ratings": "Rating Kinerja",
-    "performance_formulas": "Formula KPI"
+    "performance_formulas": "Formula KPI",
+    "performance_components": "Komponen Penilaian",
+    "performance_scoring": "Bobot Penilaian Kinerja"
   },
   "provinces": {
     "title": "Provinsi",
@@ -1599,5 +1601,41 @@
     "created": "Formula berhasil dibuat",
     "updated": "Formula berhasil diperbarui",
     "deleted": "Formula berhasil dihapus"
+  },
+  "performance_components": {
+    "title": "Komponen Penilaian",
+    "description": "Master komponen untuk perhitungan skor akhir berbobot (KPI, Work Program, Subordinate KPI, dll).",
+    "new": "Komponen Baru",
+    "edit": "Ubah Komponen",
+    "code": "Kode",
+    "code_placeholder": "cth. WORK_PROGRAM",
+    "name": "Nama",
+    "name_placeholder": "cth. Work Program",
+    "description_label": "Deskripsi",
+    "description_placeholder": "Jelaskan komponen ini",
+    "sort_order": "Urutan",
+    "empty_title": "Belum ada komponen",
+    "delete_title": "Hapus Komponen",
+    "delete_message": "Hapus komponen \"{name}\"? Tindakan ini tidak dapat dibatalkan.",
+    "created": "Komponen berhasil dibuat",
+    "updated": "Komponen berhasil diperbarui",
+    "deleted": "Komponen berhasil dihapus"
+  },
+  "performance_scoring": {
+    "title": "Bobot Penilaian Kinerja",
+    "description": "Konfigurasi bobot komponen per Organization untuk perhitungan skor akhir berbobot.",
+    "organization": "Organisasi",
+    "select_organization": "Pilih organisasi",
+    "select_organization_hint": "Pilih Organization untuk mengatur komponen penilaian kinerjanya.",
+    "components": "Komponen Penilaian",
+    "enabled": "Aktif",
+    "no_master_components": "Belum ada komponen aktif. Buat dulu di pengaturan Komponen Penilaian.",
+    "weight_must_100": "Total bobot komponen yang aktif harus 100%.",
+    "saved": "Konfigurasi penilaian berhasil disimpan",
+    "calculate": "Hitung Skor",
+    "calculated": "Skor berhasil dihitung",
+    "not_calculated_yet": "Skor belum dihitung. Klik \"Hitung Skor\" untuk menghitungnya.",
+    "raw_score": "Skor",
+    "weighted_score": "Berbobot"
   }
 }
