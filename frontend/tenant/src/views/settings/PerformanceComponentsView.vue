@@ -64,17 +64,15 @@
         <FormRow :label="t('performance_components.description_label')" :errors="errors?.description">
           <Textarea v-model="form.description" rows="2" :placeholder="t('performance_components.description_placeholder')" class="w-full" />
         </FormRow>
-        <div class="grid grid-cols-2 gap-4">
-          <FormRow :label="t('performance_components.sort_order')" :errors="errors?.sort_order">
-            <InputNumber v-model="form.sort_order" class="!w-full" :min="0" size="small" />
-          </FormRow>
-          <FormRow :label="t('common.status')">
-            <div class="flex items-center h-full pt-1">
-              <ToggleSwitch v-model="form.is_active" />
-              <span class="ml-2 text-sm text-gray-600 dark:text-gray-300">{{ form.is_active ? t('common_status.active') : t('common_status.inactive') }}</span>
-            </div>
-          </FormRow>
-        </div>
+        <FormRow :label="t('performance_components.sort_order')" :errors="errors?.sort_order">
+          <InputNumber v-model="form.sort_order" class="!w-full" :min="0" size="small" />
+        </FormRow>
+        <FormRow :label="t('common.status')">
+          <div class="flex items-center h-full pt-1">
+            <ToggleSwitch v-model="form.is_active" />
+            <span class="ml-2 text-sm text-gray-600 dark:text-gray-300">{{ form.is_active ? t('common_status.active') : t('common_status.inactive') }}</span>
+          </div>
+        </FormRow>
       </div>
       <template #footer>
         <div class="flex items-center justify-end gap-2">
