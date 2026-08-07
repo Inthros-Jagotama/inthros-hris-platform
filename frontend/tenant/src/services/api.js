@@ -39,10 +39,22 @@ api.interceptors.response.use(
   },
   async (err) => {
     const original = err.config
-    if (err.response?.status === 401 && !original._retry) {
+    const isRefreshCall = original?.url?.includes('/auth/refresh')
+
+    if (err.response?.status === 401) {
+      const { refreshToken, logout } = useAuth()
+
+      // Endpoint refresh sendiri ditolak (refresh token expired/invalid), atau
+      // request ini sudah pernah retry sekali — jangan coba refresh lagi
+      // (hindari infinite loop), langsung logout.
+      if (isRefreshCall || original._retry) {
+        logout()
+        window.location.href = '/login'
+        return Promise.reject(err)
+      }
+
       original._retry = true
       try {
-        const { refreshToken, logout } = useAuth()
         await refreshToken()
         original.headers['Authorization'] = `Bearer ${localStorage.getItem('tenant_token')}`
         return api(original)
