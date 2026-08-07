@@ -32927,6 +32927,526 @@
           }
         ]
       }
+    },
+    "/api/v1/tenant/performance/kpi/components": {
+      "post": {
+        "operationId": "createKpiComponent",
+        "summary": "Create performance component",
+        "description": "Buat komponen scoring KPI (master data) — mis. KPI Target, Competency, Work Program.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceComponentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePerformanceComponentRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listKpiComponents",
+        "summary": "List performance components",
+        "description": "Ambil daftar komponen scoring KPI dengan pagination.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of resources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformancePaginatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/kpi/components/{id}": {
+      "get": {
+        "operationId": "getKpiComponentByID",
+        "summary": "Get performance component by ID",
+        "description": "Ambil detail satu komponen scoring KPI.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceComponentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updateKpiComponent",
+        "summary": "Update performance component",
+        "description": "Perbarui kode, nama, deskripsi, urutan, atau status aktif komponen scoring.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceComponentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePerformanceComponentRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteKpiComponent",
+        "summary": "Delete performance component",
+        "description": "Hapus komponen scoring KPI.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Performance component deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/kpi/organization-components": {
+      "post": {
+        "operationId": "upsertOrganizationComponent",
+        "summary": "Upsert organization component weight",
+        "description": "Atur/upsert konfigurasi bobot komponen scoring untuk sebuah organisasi (enable/disable, weight, sort order).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationComponentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertOrganizationComponentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/performance/kpi/organizations/{organization_id}/components": {
+      "get": {
+        "operationId": "listOrganizationComponents",
+        "summary": "List organization components",
+        "description": "Ambil daftar komponen scoring yang diaktifkan untuk sebuah organisasi beserta bobotnya.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "organization_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of organization components",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrganizationComponentResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/kpi/organization-components/{id}": {
+      "delete": {
+        "operationId": "deleteOrganizationComponent",
+        "summary": "Delete organization component",
+        "description": "Hapus konfigurasi komponen scoring dari organisasi.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization component deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/kpi/evaluations/{id}/components": {
+      "get": {
+        "operationId": "listEvaluationComponents",
+        "summary": "List evaluation component scores",
+        "description": "Ambil skor per komponen untuk sebuah evaluasi KPI (hasil scoring engine).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of evaluation component scores",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PerformanceEvaluationComponentResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/kpi/evaluations/{id}/calculate-scoring": {
+      "post": {
+        "operationId": "calculateEvaluationComponentScoring",
+        "summary": "Calculate evaluation component scoring",
+        "description": "Jalankan scoring engine: hitung skor tiap komponen dari data terkait (KPI, competency, dll) lalu simpan hasilnya.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calculated component scores",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PerformanceEvaluationComponentResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/kpi/evaluations/{id}/components/{component_id}": {
+      "put": {
+        "operationId": "updateEvaluationComponentScore",
+        "summary": "Update evaluation component score",
+        "description": "Isi skor komponen secara manual (mis. Work Program yang tidak bisa dihitung otomatis — wajib diisi reviewer).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "component_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceEvaluationComponentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEvaluationComponentScoreRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -49481,6 +50001,201 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "CreatePerformanceComponentRequest": {
+        "type": "object",
+        "required": [
+          "code",
+          "name"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "UpdatePerformanceComponentRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PerformanceComponentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpsertOrganizationComponentRequest": {
+        "type": "object",
+        "required": [
+          "organization_id",
+          "component_id"
+        ],
+        "properties": {
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "component_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "weight": {
+            "type": "number",
+            "example": 30
+          },
+          "is_enabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "sort_order": {
+            "type": "integer"
+          }
+        }
+      },
+      "OrganizationComponentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "component_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "component_code": {
+            "type": "string"
+          },
+          "component_name": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number"
+          },
+          "is_enabled": {
+            "type": "boolean"
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PerformanceEvaluationComponentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evaluation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "component_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "component_name": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "weight": {
+            "type": "number"
+          },
+          "final_score": {
+            "type": "number"
+          },
+          "calculated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpdateEvaluationComponentScoreRequest": {
+        "type": "object",
+        "required": [
+          "score"
+        ],
+        "properties": {
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
           }
         }
       }

@@ -5,7 +5,7 @@
 
 Panduan praktis **cara menggunakan API** HRIS Platform: dari menjalankan server, autentikasi, format request/response, sampai contoh pemanggilan end-to-end (curl).
 
-> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 789 endpoint + skema, lihat:
+> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 800 endpoint + skema, lihat:
 > - [`docs/openapi-report.md`](../openapi-report.md) — laporan komprehensif per modul
 > - `backend/internal/pkg/docs/openapi.json` — OpenAPI 3.0 spec (sumber kebenaran)
 
@@ -115,7 +115,7 @@ Setelah server jalan, dokumentasi API tersedia di:
 |---|---|
 | `http://localhost:8080/docs` | **Scalar UI** — explore & try endpoint langsung dari browser |
 | `http://localhost:8080/openapi.json` | OpenAPI 3.0 spec mentah (JSON) |
-| `docs/openapi-report.md` | Laporan markdown statis (789 endpoint, 442 paths, 490 schemas, 32 tag) |
+| `docs/openapi-report.md` | Laporan markdown statis (800 endpoint, 450 paths, 497 schemas, 32 tag) |
 
 ---
 
@@ -657,10 +657,10 @@ curl "http://localhost:8080/api/v1/tenant/performance/okr/dashboard/hr?period_id
 
 ### 8.4 Contoh Penggunaan KPI (BSC) — End-to-End
 
-Alur lengkap pengelolaan **KPI (Balanced Scorecard)** dari perspektif sampai dashboard. Semua endpoint berada di `/api/v1/tenant/performance/kpi/*` dan memerlukan `Authorization: Bearer <tenant_token>`.
+Alur lengkap pengelolaan **KPI (Balanced Scorecard)** dari perspektif sampai dashboard & scoring komponen. Semua endpoint berada di `/api/v1/tenant/performance/kpi/*` dan memerlukan `Authorization: Bearer <tenant_token>`.
 
 ```
-Perspektif BSC → Template KPI → Indikator → Evaluasi (snapshot) → Input Actual → Workflow → Dashboard
+Perspektif BSC → Template KPI → Indikator → Evaluasi (snapshot) → Input Actual → Workflow → Dashboard → Scoring Komponen
 ```
 
 > **Prasyarat:** `TENANT_TOKEN` dari login tenant (lihat Step 3 di 8.1), serta UUID `organization_id`, `period_id` (performance period), dan `employee_id` yang sudah ada.
@@ -845,6 +845,58 @@ curl "http://localhost:8080/api/v1/tenant/performance/kpi/dashboard/hr?period_id
   -H "Authorization: Bearer $TENANT_TOKEN"
 ```
 
+**Step 9 — Konfigurasi komponen scoring (Phase 5):**
+
+Komponen scoring memecah nilai evaluasi menjadi beberapa komponen (mis. `KPI Target`, `Competency`, `Work Program`) dengan bobot yang bisa diatur per organisasi, lalu dihitung oleh scoring engine.
+
+```bash
+# 1) Buat komponen scoring (master data)
+curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/components \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "KPI_TARGET",
+    "name": "KPI Target",
+    "description": "Skor dari pencapaian target indikator KPI",
+    "sort_order": 1,
+    "is_active": true
+  }'
+# → ulangi untuk "Competency", "Work Program" — catat UUID tiap komponen
+
+# 2) Aktifkan komponen + set bobot untuk organisasi (upsert, otomatis menambah/mengupdate)
+curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/organization-components \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "organization_id": "<org-uuid>",
+    "component_id": "<component-uuid>",
+    "weight": 70,
+    "is_enabled": true,
+    "sort_order": 1
+  }'
+
+# 3) Cek daftar komponen aktif + bobot untuk organisasi
+curl "http://localhost:8080/api/v1/tenant/performance/kpi/organizations/<org-uuid>/components" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+
+# 4) Jalankan scoring engine — hitung skor tiap komponen dari data terkait lalu simpan
+curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/evaluations/<evaluation-uuid>/calculate-scoring \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+
+# 5) Lihat skor per komponen hasil scoring engine
+curl "http://localhost:8080/api/v1/tenant/performance/kpi/evaluations/<evaluation-uuid>/components" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+
+# 6) Isi skor manual untuk komponen yang tidak bisa dihitung otomatis
+#    (mis. Work Program — wajib diisi reviewer; score berkisar 0-100)
+curl -X PUT http://localhost:8080/api/v1/tenant/performance/kpi/evaluations/<evaluation-uuid>/components/<component-uuid> \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "score": 85 }'
+```
+
+> 💡 `weight` antar komponen per organisasi menentukan proporsi kontribusi tiap komponen ke nilai akhir evaluasi.
+
 **Catatan tambahan KPI:**
 
 | Endpoint | Deskripsi |
@@ -855,6 +907,9 @@ curl "http://localhost:8080/api/v1/tenant/performance/kpi/dashboard/hr?period_id
 | `POST /api/v1/tenant/performance/kpi/attachments` | Lampirkan file bukti ke evaluation detail |
 | `GET /api/v1/tenant/performance/kpi/evaluations/:id/full` | Detail evaluasi lengkap (details, targets, comments, attachments) |
 | `GET /api/v1/tenant/performance/kpi/evaluations/:id/progress-summary` | Ringkasan progres keseluruhan evaluasi |
+| `POST /api/v1/tenant/performance/kpi/components` | Master data komponen scoring (Phase 5) |
+| `POST /api/v1/tenant/performance/kpi/organization-components` | Set bobot/aktifkan komponen per organisasi (upsert) |
+| `POST /api/v1/tenant/performance/kpi/evaluations/:id/calculate-scoring` | Jalankan scoring engine (hitung skor per komponen) |
 
 > 💡 Status evaluasi KPI (BSC): `DRAFT` → `PLAN_SUBMITTED` → `PLAN_APPROVED` → `ACTUAL_SUBMITTED` → `ACTUAL_APPROVED` → `COMPLETED`. Berbeda dari OKR yang satu-tahap (`DRAFT → SUBMITTED → APPROVED → COMPLETED`) — KPI mewajibkan persetujuan rencana **dan** realisasi secara terpisah.
 

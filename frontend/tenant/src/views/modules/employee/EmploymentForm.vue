@@ -14,7 +14,6 @@
       </div>
     </template>
     <div v-for="(item, idx) in items" :key="idx" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3 relative">
-      <Button icon="pi pi-trash" severity="danger" text size="small" class="absolute top-2 right-2" @click="removeItem(idx)" v-tooltip.left="t('common.delete')" />
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <FormRow :label="t('employee.organization')" :errors="errs?.[idx]?.organization_id">
           <SelectLabel v-model="item.organization_id" :options="organizationOptions" optionLabel="label" optionValue="value" :placeholder="t('employee.select_organization')" filter :class="{'p-invalid':errs?.[idx]?.organization_id}" :showClear="true" />
@@ -35,8 +34,11 @@
           <DateInput v-model="item.effective_end_date" :placeholder="t('employee.date_placeholder')" :class="{'p-invalid':errs?.[idx]?.effective_end_date}" />
         </FormRow>
       </div>
-      <div v-if="item._saved" class="flex items-center gap-1 text-emerald-500 text-xs">
-        <i class="pi pi-check-circle"></i><span>{{ t('employee.saved') }}</span>
+      <div v-if="item._saved" class="justify-between flex items-center mt-2">
+        <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+          <i class="pi pi-check-circle"></i><span>{{ t('employee.saved') }}</span>
+        </div>
+        <Button icon="pi pi-trash" severity="danger" size="small" class="absolute top-2 right-2" @click="removeItem(idx)" v-tooltip.left="t('common.delete')" :label="t('common.delete')" />
       </div>
     </div>
     <div v-if="items.length > 0" class="flex justify-end pt-2">

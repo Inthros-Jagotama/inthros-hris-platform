@@ -9,8 +9,10 @@ Script ini menyinkronkan openapi.json dengan routes.go:
    `/performance/kpi/*` (operationId di-rename: Performance → Kpi).
 2. KPI BARU — tambahkan endpoint KPI yang belum terdokumentasi (dashboard,
    workflow submit/approve/reject/complete, recalculate, snapshot, dll).
-3. OKR BARU — tambahkan seluruh endpoint sub-modul OKR + schemas.
-4. HAPUS PHANTOM — hapus path lama yang sudah dipindah (tidak lagi terdaftar
+3. KPI COMPONENTS (Phase 5) — tambahkan endpoint components,
+   organization-components, dan scoring engine + schemas.
+4. OKR BARU — tambahkan seluruh endpoint sub-modul OKR + schemas.
+5. HAPUS PHANTOM — hapus path lama yang sudah dipindah (tidak lagi terdaftar
    di routes.go).
 
 Usage:
@@ -132,6 +134,8 @@ for p in list(paths.keys()):
     suffix = p[len("/api/v1/tenant/performance/"):]
     if suffix in KEEP_SUFFIXES:
         continue  # masih valid, jangan dipindah
+    if suffix.startswith(("kpi/", "okr/")):
+        continue  # sudah ber-prefix (struktur baru), jangan dipindah lagi
     phantom_paths.append(p)
 
 for old in phantom_paths:
@@ -256,7 +260,75 @@ add_path(f"{B}/evaluations/{{id}}/actuals", {
 })
 
 # =========================================================================
-# 3. OKR BARU — seluruh endpoint sub-modul OKR
+# 3. KPI COMPONENTS (Phase 5 — Scoring Configuration)
+# =========================================================================
+
+# --- Performance Components (master data) ---
+add_path(f"{B}/components", {
+    "post": op("createKpiComponent", "Create performance component",
+               "Buat komponen scoring KPI (master data) — mis. KPI Target, Competency, Work Program.",
+               TAG, request_body=content("CreatePerformanceComponentRequest"),
+               responses=responses_created("PerformanceComponentResponse")),
+    "get": op("listKpiComponents", "List performance components",
+              "Ambil daftar komponen scoring KPI dengan pagination.",
+              TAG, parameters=[qparam("page", {"type": "integer", "example": 1}), qparam("per_page", {"type": "integer", "example": 20})],
+              responses=responses_list("PerformancePaginatedResponse")),
+})
+add_path(f"{B}/components/{{id}}", {
+    "get": op("getKpiComponentByID", "Get performance component by ID",
+              "Ambil detail satu komponen scoring KPI.",
+              TAG, parameters=[param("id")], responses=responses_ok("PerformanceComponentResponse")),
+    "put": op("updateKpiComponent", "Update performance component",
+              "Perbarui kode, nama, deskripsi, urutan, atau status aktif komponen scoring.",
+              TAG, parameters=[param("id")], request_body=content("UpdatePerformanceComponentRequest"),
+              responses=responses_ok("PerformanceComponentResponse")),
+    "delete": op("deleteKpiComponent", "Delete performance component",
+                 "Hapus komponen scoring KPI.",
+                 TAG, parameters=[param("id")], responses=responses_plain("Performance component deleted")),
+})
+
+# --- Organization component weight configuration ---
+add_path(f"{B}/organization-components", {
+    "post": op("upsertOrganizationComponent", "Upsert organization component weight",
+               "Atur/upsert konfigurasi bobot komponen scoring untuk sebuah organisasi (enable/disable, weight, sort order).",
+               TAG, request_body=content("UpsertOrganizationComponentRequest"),
+               responses=responses_created("OrganizationComponentResponse")),
+})
+add_path(f"{B}/organizations/{{organization_id}}/components", {
+    "get": op("listOrganizationComponents", "List organization components",
+              "Ambil daftar komponen scoring yang diaktifkan untuk sebuah organisasi beserta bobotnya.",
+              TAG, parameters=[param("organization_id")],
+              responses=responses_array("OrganizationComponentResponse", "List of organization components")),
+})
+add_path(f"{B}/organization-components/{{id}}", {
+    "delete": op("deleteOrganizationComponent", "Delete organization component",
+                 "Hapus konfigurasi komponen scoring dari organisasi.",
+                 TAG, parameters=[param("id")], responses=responses_plain("Organization component deleted")),
+})
+
+# --- Evaluation scoring engine ---
+add_path(f"{B}/evaluations/{{id}}/components", {
+    "get": op("listEvaluationComponents", "List evaluation component scores",
+              "Ambil skor per komponen untuk sebuah evaluasi KPI (hasil scoring engine).",
+              TAG, parameters=[param("id")],
+              responses=responses_array("PerformanceEvaluationComponentResponse", "List of evaluation component scores")),
+})
+add_path(f"{B}/evaluations/{{id}}/calculate-scoring", {
+    "post": op("calculateEvaluationComponentScoring", "Calculate evaluation component scoring",
+               "Jalankan scoring engine: hitung skor tiap komponen dari data terkait (KPI, competency, dll) lalu simpan hasilnya.",
+               TAG, parameters=[param("id")],
+               responses=responses_array("PerformanceEvaluationComponentResponse", "Calculated component scores")),
+})
+add_path(f"{B}/evaluations/{{id}}/components/{{component_id}}", {
+    "put": op("updateEvaluationComponentScore", "Update evaluation component score",
+              "Isi skor komponen secara manual (mis. Work Program yang tidak bisa dihitung otomatis — wajib diisi reviewer).",
+              TAG, parameters=[param("id"), param("component_id")],
+              request_body=content("UpdateEvaluationComponentScoreRequest"),
+              responses=responses_ok("PerformanceEvaluationComponentResponse")),
+})
+
+# =========================================================================
+# 4. OKR BARU — seluruh endpoint sub-modul OKR
 # =========================================================================
 O = "/api/v1/tenant/performance/okr"
 
@@ -473,9 +545,87 @@ add_path(f"{O}/dashboard/hr", {
 })
 
 # =========================================================================
-# 4. Schemas OKR
+# 5. Schemas (KPI Components + OKR)
 # =========================================================================
 new_schemas = {
+    # --- Performance Component (Phase 5) ---
+    "CreatePerformanceComponentRequest": {
+        "type": "object", "required": ["code", "name"],
+        "properties": {
+            "code": {"type": "string", "maxLength": 50},
+            "name": {"type": "string", "maxLength": 100},
+            "description": {"type": "string"},
+            "sort_order": {"type": "integer"},
+            "is_active": {"type": "boolean", "example": True},
+        },
+    },
+    "UpdatePerformanceComponentRequest": {
+        "type": "object",
+        "properties": {
+            "code": {"type": "string", "maxLength": 50},
+            "name": {"type": "string", "maxLength": 100},
+            "description": {"type": "string"},
+            "sort_order": {"type": "integer"},
+            "is_active": {"type": "boolean"},
+        },
+    },
+    "PerformanceComponentResponse": {
+        "type": "object",
+        "properties": {
+            "id": {"type": "string", "format": "uuid"},
+            "code": {"type": "string"},
+            "name": {"type": "string"},
+            "description": {"type": "string"},
+            "sort_order": {"type": "integer"},
+            "is_active": {"type": "boolean"},
+            "created_at": {"type": "string", "format": "date-time"},
+            "updated_at": {"type": "string", "format": "date-time"},
+        },
+    },
+    "UpsertOrganizationComponentRequest": {
+        "type": "object", "required": ["organization_id", "component_id"],
+        "properties": {
+            "organization_id": {"type": "string", "format": "uuid"},
+            "component_id": {"type": "string", "format": "uuid"},
+            "weight": {"type": "number", "example": 30},
+            "is_enabled": {"type": "boolean", "example": True},
+            "sort_order": {"type": "integer"},
+        },
+    },
+    "OrganizationComponentResponse": {
+        "type": "object",
+        "properties": {
+            "id": {"type": "string", "format": "uuid"},
+            "organization_id": {"type": "string", "format": "uuid"},
+            "component_id": {"type": "string", "format": "uuid"},
+            "component_code": {"type": "string"},
+            "component_name": {"type": "string"},
+            "weight": {"type": "number"},
+            "is_enabled": {"type": "boolean"},
+            "sort_order": {"type": "integer"},
+            "created_at": {"type": "string", "format": "date-time"},
+            "updated_at": {"type": "string", "format": "date-time"},
+        },
+    },
+    "PerformanceEvaluationComponentResponse": {
+        "type": "object",
+        "properties": {
+            "id": {"type": "string", "format": "uuid"},
+            "evaluation_id": {"type": "string", "format": "uuid"},
+            "component_id": {"type": "string", "format": "uuid"},
+            "component_name": {"type": "string"},
+            "score": {"type": "number"},
+            "weight": {"type": "number"},
+            "final_score": {"type": "number"},
+            "calculated_at": {"type": "string", "format": "date-time"},
+        },
+    },
+    "UpdateEvaluationComponentScoreRequest": {
+        "type": "object", "required": ["score"],
+        "properties": {
+            "score": {"type": "number", "minimum": 0, "maximum": 100},
+        },
+    },
     # --- OKR Template ---
     "CreateOKRTemplateRequest": {
         "type": "object", "required": ["organization_id", "name"],

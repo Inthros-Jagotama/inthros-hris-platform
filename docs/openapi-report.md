@@ -1,11 +1,11 @@
-= HRIS Platform — OpenAPI Comprehensive Report (v17) =
+= HRIS Platform — OpenAPI Comprehensive Report (v18) =
 
 
-**Generated:** 06 August 2026
+**Generated:** 07 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 442
-**Total Endpoints (methods):** 789
-**Total Schemas:** 490
+**Total Paths:** 450
+**Total Endpoints (methods):** 800
+**Total Schemas:** 497
 **Total Tags:** 32
 
 > 🔗 **Index dokumentasi:** [`docs/README.md`](README.md) · **Terkait:** [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)
@@ -14,9 +14,9 @@
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 789/789 | 100% |
-| Endpoints with `description` | 789/789 | 100% |
-| Endpoints with `operationId` | 789/789 | 100% |
+| Endpoints with `summary` | 800/800 | 100% |
+| Endpoints with `description` | 800/800 | 100% |
+| Endpoints with `operationId` | 800/800 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -107,7 +107,7 @@ Tenant endpoints support validation for Indonesian data formats:
 
 | # | Tag | Endpoints | Paths |
 |---|---|---|---|
-| 1 | Tenant: Performance Management | 117 | 75 |
+| 1 | Tenant: Performance Management | 128 | 83 |
 | 2 | Tenant: Settings | 107 | 44 |
 | 3 | Tenant: Job Management | 96 | 40 |
 | 4 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
@@ -138,14 +138,14 @@ Tenant endpoints support validation for Indonesian data formats:
 | 29 | Public | 2 | 2 |
 | 30 | Tenant Auth | 2 | 2 |
 | 31 | Tenant: Company | 2 | 1 |
-| | **TOTAL** | **789** | **442** |
+| | **TOTAL** | **800** | **450** |
 
 ## 2. Module Detail
 
 ### Tenant: Performance Management
 **Description:** Performance Management â€” BSC (Balanced Scorecard) based KPI and performance evaluation module. Includes performance periods, BSC perspectives, KPI templates and indicators, employee evaluations, and individual performance targets with full status workflow (DRAFT->PLAN_SUBMITTED->PLAN_APPROVED->ACTUAL_SUBMITTED->ACTUAL_APPROVED->COMPLETED).
-**Endpoints:** 117 | **Paths:** 75
-**Methods:** DELETE=19 GET=44 POST=31 PUT=23
+**Endpoints:** 128 | **Paths:** 83
+**Methods:** DELETE=21 GET=48 POST=34 PUT=25
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -162,6 +162,11 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/performance/kpi/comments/{id}` | Get performance comment by ID | Ambil satu komentar performance berdasarkan ID. |
 | `PUT` | `/api/v1/tenant/performance/kpi/comments/{id}` | Update performance comment | Perbarui isi komentar performance. |
 | `DELETE` | `/api/v1/tenant/performance/kpi/comments/{id}` | Delete performance comment | Hapus satu komentar performance. |
+| `POST` | `/api/v1/tenant/performance/kpi/components` | Create performance component | Buat komponen scoring KPI (master data) — mis. KPI Target, Competency, Work Program. |
+| `GET` | `/api/v1/tenant/performance/kpi/components` | List performance components | Ambil daftar komponen scoring KPI dengan pagination. |
+| `GET` | `/api/v1/tenant/performance/kpi/components/{id}` | Get performance component by ID | Ambil detail satu komponen scoring KPI. |
+| `PUT` | `/api/v1/tenant/performance/kpi/components/{id}` | Update performance component | Perbarui kode, nama, deskripsi, urutan, atau status aktif komponen scoring. |
+| `DELETE` | `/api/v1/tenant/performance/kpi/components/{id}` | Delete performance component | Hapus komponen scoring KPI. |
 | `GET` | `/api/v1/tenant/performance/kpi/dashboard/employee/{employee_id}` | Get KPI employee dashboard | Dashboard KPI untuk employee: daftar KPI, progress, achievement, dan skor evaluasi periode aktif. |
 | `GET` | `/api/v1/tenant/performance/kpi/dashboard/hr` | Get KPI HR dashboard | Dashboard KPI untuk HR: ringkasan evaluasi seluruh organisasi (total, status, skor rata-rata, distribusi). |
 | `GET` | `/api/v1/tenant/performance/kpi/dashboard/manager/{manager_id}` | Get KPI manager dashboard | Dashboard KPI untuk manager: ringkasan tim, anggota tim beserta skor & status KPI masing-masing. |
@@ -179,8 +184,11 @@ Tenant endpoints support validation for Indonesian data formats:
 | `DELETE` | `/api/v1/tenant/performance/kpi/evaluations/{id}` | Delete performance evaluation | Permanently delete a performance evaluation. Only evaluations in DRAFT status can be deleted. |
 | `PUT` | `/api/v1/tenant/performance/kpi/evaluations/{id}/actuals` | Bulk update KPI evaluation actuals | Input nilai aktual sekaligus untuk banyak evaluation detail dalam satu request. |
 | `POST` | `/api/v1/tenant/performance/kpi/evaluations/{id}/approve` | Approve KPI evaluation | Setujui evaluasi KPI (status → APPROVED). |
+| `POST` | `/api/v1/tenant/performance/kpi/evaluations/{id}/calculate-scoring` | Calculate evaluation component scoring | Jalankan scoring engine: hitung skor tiap komponen dari data terkait (KPI, competency, dll) lalu simpan hasilnya. |
 | `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}/comments` | List comments by evaluation | Ambil semua komentar pada sebuah performance evaluation. |
 | `POST` | `/api/v1/tenant/performance/kpi/evaluations/{id}/complete` | Complete KPI evaluation | Selesaikan evaluasi KPI (status → COMPLETED) — hasil akhir terkunci. |
+| `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}/components` | List evaluation component scores | Ambil skor per komponen untuk sebuah evaluasi KPI (hasil scoring engine). |
+| `PUT` | `/api/v1/tenant/performance/kpi/evaluations/{id}/components/{component_id}` | Update evaluation component score | Isi skor komponen secara manual (mis. Work Program yang tidak bisa dihitung otomatis — wajib diisi reviewer). |
 | `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}/details` | List evaluation details by evaluation ID | Retrieve all BSC perspective detail records for a specific performance evaluation, showing achievement per perspective. |
 | `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}/full` | Get KPI evaluation with details | Ambil evaluasi KPI lengkap: detail perspektif, target, progress, komentar, dan lampiran. |
 | `GET` | `/api/v1/tenant/performance/kpi/evaluations/{id}/logs` | List audit logs by evaluation | Ambil audit trail perubahan pada sebuah performance evaluation. |
@@ -195,6 +203,9 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/performance/kpi/indicators/{id}` | Get KPI indicator by ID | Retrieve a specific KPI indicator by its unique ID, including target value and measurement settings. |
 | `PUT` | `/api/v1/tenant/performance/kpi/indicators/{id}` | Update KPI indicator | Update a KPI indicator's title, weight, target value, or measurement unit. Only provided fields will be updated. |
 | `DELETE` | `/api/v1/tenant/performance/kpi/indicators/{id}` | Delete KPI indicator | Permanently delete a KPI indicator from its template. |
+| `POST` | `/api/v1/tenant/performance/kpi/organization-components` | Upsert organization component weight | Atur/upsert konfigurasi bobot komponen scoring untuk sebuah organisasi (enable/disable, weight, sort order). |
+| `DELETE` | `/api/v1/tenant/performance/kpi/organization-components/{id}` | Delete organization component | Hapus konfigurasi komponen scoring dari organisasi. |
+| `GET` | `/api/v1/tenant/performance/kpi/organizations/{organization_id}/components` | List organization components | Ambil daftar komponen scoring yang diaktifkan untuk sebuah organisasi beserta bobotnya. |
 | `POST` | `/api/v1/tenant/performance/kpi/perspectives` | Create BSC perspective | Create a new Balanced Scorecard perspective (e.g. Financial, Customer, Internal Process, Learning & Growth). |
 | `GET` | `/api/v1/tenant/performance/kpi/perspectives` | List BSC perspectives | Retrieve a paginated list of BSC perspectives used in performance templates. Ordered by sort_order by default. |
 | `GET` | `/api/v1/tenant/performance/kpi/perspectives/{id}` | Get BSC perspective by ID | Retrieve a specific BSC perspective by its unique ID. |
