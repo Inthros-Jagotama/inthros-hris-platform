@@ -1884,9 +1884,13 @@ func (r *Repository) GetDescendantOrganizations(ctx context.Context, rootID uuid
 	return descendants, nil
 }
 
-// GetAverageFinalScore menghitung rata-rata final_score evaluasi (status APPROVED/
-// COMPLETED) milik sekumpulan Organization pada satu periode — dipakai untuk
-// komponen Subordinate KPI.
+// GetAverageFinalScore menghitung rata-rata final_score atas SELURUH
+// Organization dalam orgIDs untuk satu periode — dipakai untuk komponen
+// Subordinate KPI. Setiap Organization dalam orgIDs selalu ikut sebagai
+// pembagi rata-rata: yang evaluasinya sudah COMPLETED memakai final_score
+// aktualnya, sedangkan yang belum COMPLETED ATAU belum pernah membuat
+// evaluasi/target sama sekali dihitung sebagai skor 0 (bukan dikecualikan
+// dari rata-rata).
 func (r *Repository) GetAverageFinalScore(ctx context.Context, orgIDs []uuid.UUID, periodID uuid.UUID) (float64, error) {
 	if len(orgIDs) == 0 {
 		return 0, nil
@@ -1895,12 +1899,189 @@ func (r *Repository) GetAverageFinalScore(ctx context.Context, orgIDs []uuid.UUI
 	if err != nil {
 		return 0, err
 	}
-	var avg float64
+	var completed []struct {
+		OrganizationID uuid.UUID
+		FinalScore     float64
+	}
 	if err := db.WithContext(ctx).Model(&PerformanceEvaluation{}).
-		Where("organization_id IN ? AND period_id = ? AND status IN ?", orgIDs, periodID, []string{"APPROVED", "COMPLETED"}).
-		Select("COALESCE(AVG(final_score), 0)").
-		Scan(&avg).Error; err != nil {
+		Select("organization_id, final_score").
+		Where("organization_id IN ? AND period_id = ? AND status = ?", orgIDs, periodID, "COMPLETED").
+		Find(&completed).Error; err != nil {
 		return 0, err
 	}
-	return avg, nil
+
+	scoreByOrg := make(map[uuid.UUID]float64, len(completed))
+	for _, c := range completed {
+		scoreByOrg[c.OrganizationID] = c.FinalScore
+	}
+
+	var sum float64
+	for _, id := range orgIDs {
+		sum += scoreByOrg[id] // 0 kalau belum COMPLETED atau belum pernah membuat evaluasi
+	}
+	return sum / float64(len(orgIDs)), nil
+}
+
+// IsOrganizationOccupied memeriksa apakah sebuah Organization sedang punya
+// employment aktif (posisi terisi) — dipakai walk-up hierarki untuk melompati
+// Organization yang vakan.
+func (r *Repository) IsOrganizationOccupied(ctx context.Context, orgID uuid.UUID) (bool, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return false, err
+	}
+	var count int64
+	if err := db.WithContext(ctx).Table("employments").
+		Where("organization_id = ? AND effective_end_date IS NULL", orgID).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// GetOrganizationParentID mengambil parent_id sebuah Organization (nil jika
+// sudah di akar hierarki).
+func (r *Repository) GetOrganizationParentID(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var parentID *string
+	if err := db.WithContext(ctx).Table("organizations").
+		Where("id = ? AND deleted_at IS NULL", orgID).
+		Pluck("parent_id", &parentID).Error; err != nil {
+		return nil, err
+	}
+	if parentID == nil || *parentID == "" {
+		return nil, nil
+	}
+	pid, err := uuid.Parse(*parentID)
+	if err != nil {
+		return nil, err
+	}
+	return &pid, nil
+}
+
+// ResolveEffectiveSupervisorOrgID berjalan naik dari orgID melalui parent_id,
+// melompati Organization yang vakan (tidak ada employment aktif), sampai
+// menemukan Organization terisi terdekat — atau nil jika mentok ke akar
+// hierarki tanpa menemukan satupun yang terisi. Sama seperti pola walk-up
+// resolveSupervisorAssignees di modul approval.
+func (r *Repository) ResolveEffectiveSupervisorOrgID(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error) {
+	target := orgID
+	for {
+		parent, err := r.GetOrganizationParentID(ctx, target)
+		if err != nil {
+			return nil, err
+		}
+		if parent == nil {
+			return nil, nil
+		}
+		occupied, err := r.IsOrganizationOccupied(ctx, *parent)
+		if err != nil {
+			return nil, err
+		}
+		if occupied {
+			return parent, nil
+		}
+		target = *parent
+	}
+}
+
+// GetEffectiveChildOrganizationIDs mengembalikan ID seluruh Organization yang
+// "bawahan efektif" dari orgID untuk perhitungan komponen Subordinate KPI:
+// anak langsung yang terisi, ditambah — bila sebuah anak langsung vakan —
+// bawahan efektif di bawah anak vakan tersebut (jalan terus turun melompati
+// setiap Organization vakan sampai ketemu yang terisi). Ini pasangan simetris
+// dari ResolveEffectiveSupervisorOrgID (walk-up), hanya arahnya turun.
+func (r *Repository) GetEffectiveChildOrganizationIDs(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {
+	var effective []uuid.UUID
+	frontier := []uuid.UUID{orgID}
+
+	for len(frontier) > 0 {
+		var nextFrontier []uuid.UUID
+		for _, parent := range frontier {
+			children, err := r.GetChildOrganizationIDs(ctx, parent)
+			if err != nil {
+				return nil, err
+			}
+			for _, child := range children {
+				occupied, err := r.IsOrganizationOccupied(ctx, child)
+				if err != nil {
+					return nil, err
+				}
+				if occupied {
+					effective = append(effective, child)
+					continue
+				}
+				nextFrontier = append(nextFrontier, child)
+			}
+		}
+		frontier = nextFrontier
+	}
+
+	return effective, nil
+}
+
+// FindEvaluationByOrgAndPeriod mencari PerformanceEvaluation milik sebuah
+// Organization pada satu periode tertentu — dipakai saat propagasi skor
+// Subordinate ke atasan efektif (via ResolveEffectiveSupervisorOrgID).
+func (r *Repository) FindEvaluationByOrgAndPeriod(ctx context.Context, orgID, periodID uuid.UUID) (*PerformanceEvaluation, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var eval PerformanceEvaluation
+	if err := db.WithContext(ctx).
+		Where("organization_id = ? AND period_id = ?", orgID, periodID).
+		Order("created_at DESC").
+		First(&eval).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &eval, nil
+}
+
+// ListEvaluationsByPeriodID mengambil seluruh PerformanceEvaluation pada satu
+// periode — dipakai batch recalculation skor seluruh periode.
+func (r *Repository) ListEvaluationsByPeriodID(ctx context.Context, periodID uuid.UUID) ([]PerformanceEvaluation, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []PerformanceEvaluation
+	if err := db.WithContext(ctx).
+		Where("period_id = ?", periodID).
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// GetOrganizationParentMap mengambil seluruh pasangan (id -> parent_id)
+// Organization aktif dalam satu query — dipakai untuk menghitung kedalaman
+// hierarki secara in-memory saat menentukan urutan proses bottom-up pada
+// batch recalculation skor periode.
+func (r *Repository) GetOrganizationParentMap(ctx context.Context) (map[uuid.UUID]*uuid.UUID, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []struct {
+		ID       uuid.UUID
+		ParentID *uuid.UUID
+	}
+	if err := db.WithContext(ctx).Table("organizations").
+		Select("id, parent_id").
+		Where("deleted_at IS NULL").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	result := make(map[uuid.UUID]*uuid.UUID, len(rows))
+	for _, row := range rows {
+		result[row.ID] = row.ParentID
+	}
+	return result, nil
 }

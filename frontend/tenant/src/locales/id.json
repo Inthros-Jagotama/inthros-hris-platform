@@ -1630,7 +1630,10 @@
     "delete_message": "Hapus periode \"{name}\"? Tindakan ini tidak dapat dibatalkan.",
     "created": "Periode penilaian berhasil dibuat",
     "updated": "Periode penilaian berhasil diperbarui",
-    "deleted": "Periode penilaian berhasil dihapus"
+    "deleted": "Periode penilaian berhasil dihapus",
+    "recalculate_scoring": "Hitung Ulang Skor",
+    "recalculate_scoring_confirm": "Hitung ulang skor seluruh evaluasi pada periode \"{code}\"? Perhitungan dilakukan dari bawah ke atas hierarki organisasi — gunakan setelah periode ini berakhir.",
+    "recalculate_scoring_done": "Berhasil menghitung ulang {processed} dari {total} evaluasi."
   },
   "performance_perspectives": {
     "title": "Perspektif BSC",

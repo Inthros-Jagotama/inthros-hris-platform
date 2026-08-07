@@ -834,6 +834,13 @@ type OrganizationOptionResponse struct {
 	Name string `json:"name"`
 }
 
+type RecalculatePeriodScoringResponse struct {
+	PeriodID  string `json:"period_id"`
+	Total     int    `json:"total"`
+	Processed int    `json:"processed"`
+	Failed    int    `json:"failed"`
+}
+
 type OrganizationComponentResponse struct {
 	ID             string    `json:"id"`
 	OrganizationID string    `json:"organization_id"`

@@ -40,9 +40,10 @@
           <Tag :value="data.status" :severity="getStatusSeverity(data.status)" class="!text-xs" />
         </template>
       </Column>
-      <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right">
+      <Column :header="t('common.actions')" style="width:140px" frozen alignFrozen="right">
         <template #body="{data}">
           <div class="flex items-center gap-1">
+            <Button icon="pi pi-calculator" size="small" text severity="info" v-tooltip.left="t('performance_periods.recalculate_scoring')" @click="confirmRecalculate(data)" />
             <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openDialog(data)" />
             <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" />
           </div>
@@ -87,6 +88,18 @@
       :error="deleteError"
       @confirm="handleDelete"
     />
+
+    <ConfirmActionDialog
+      v-model:visible="recalculateDialogVisible"
+      :title="t('performance_periods.recalculate_scoring')"
+      :message="t('performance_periods.recalculate_scoring_confirm', { code: recalculateTarget?.period_code })"
+      :loading="recalculating"
+      icon="pi pi-calculator"
+      severity="info"
+      :confirm-label="t('performance_periods.recalculate_scoring')"
+      :cancel-label="t('common.cancel')"
+      @confirm="handleRecalculate"
+    />
   </div>
 </template>
 
@@ -106,11 +119,15 @@ import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 
 const { t } = useI18n()
 const toast = useToast()
+const recalculateDialogVisible = ref(false)
+const recalculating = ref(false)
+const recalculateTarget = ref(null)
 const items = ref([])
 const loading = ref(false)
 const totalRecords = ref(0)
@@ -271,6 +288,30 @@ async function handleSave() {
     }
   } finally {
     saving.value = false
+  }
+}
+
+function confirmRecalculate(item) {
+  recalculateTarget.value = item
+  recalculateDialogVisible.value = true
+}
+
+async function handleRecalculate() {
+  recalculating.value = true
+  try {
+    const res = await api.post(`/api/v1/tenant/performance/kpi/periods/${recalculateTarget.value.id}/recalculate-scoring`)
+    const body = res.data?.data || res.data
+    recalculateDialogVisible.value = false
+    toast.add({
+      severity: 'success',
+      summary: t('message.success'),
+      detail: t('performance_periods.recalculate_scoring_done', { processed: body?.processed ?? 0, total: body?.total ?? 0 }),
+      life: 4000
+    })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    recalculating.value = false
   }
 }
 

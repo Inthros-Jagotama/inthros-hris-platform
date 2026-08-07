@@ -199,6 +199,16 @@ func (h *Handler) ListTemplateOrganizationScope(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+func (h *Handler) RecalculatePeriodScoring(c *gin.Context) {
+	periodID := c.Param("period_id")
+	resp, err := h.svc.RecalculatePeriodScoring(c.Request.Context(), periodID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) UpdatePerformanceTemplate(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdatePerformanceTemplateRequest

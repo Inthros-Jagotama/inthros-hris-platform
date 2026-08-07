@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -2905,7 +2906,133 @@ func (s *Service) CompleteEvaluation(ctx context.Context, evalID string) (*Perfo
 		return nil, err
 	}
 
+	// Propagate: this Organization's score is now eligible to count toward
+	// its effective supervisor's Subordinate KPI component. Recalculate up
+	// the chain (skipping vacant Organizations) all the way to the top.
+	// Best-effort — a hiccup recalculating an ancestor's score must not
+	// block this employee's own completion.
+	if err := s.propagateSubordinateScoreUpward(ctx, eval.OrganizationID, eval.PeriodID); err != nil {
+		s.logger.Warn("failed to propagate subordinate score upward after evaluation completion",
+			zap.String("evaluation_id", eval.ID.String()),
+			zap.String("organization_id", eval.OrganizationID.String()),
+			zap.Error(err),
+		)
+	}
+
 	return evaluationToResponse(eval), nil
+}
+
+// propagateSubordinateScoreUpward walks up the effective supervisor chain
+// from orgID (skipping vacant Organizations — see ResolveEffectiveSupervisorOrgID)
+// and recalculates each ancestor's component scoring (including its
+// Subordinate component, which now reflects this newly-COMPLETED evaluation),
+// continuing until the top of the hierarchy or an ancestor with no evaluation
+// for this period is reached.
+func (s *Service) propagateSubordinateScoreUpward(ctx context.Context, orgID uuid.UUID, periodID uuid.UUID) error {
+	current := orgID
+	for {
+		supervisorOrgID, err := s.repo.ResolveEffectiveSupervisorOrgID(ctx, current)
+		if err != nil {
+			return err
+		}
+		if supervisorOrgID == nil {
+			return nil
+		}
+
+		supEval, err := s.repo.FindEvaluationByOrgAndPeriod(ctx, *supervisorOrgID, periodID)
+		if err != nil {
+			return err
+		}
+		if supEval == nil {
+			return nil
+		}
+
+		if _, err := s.CalculateEvaluationComponentScoring(ctx, supEval.ID.String()); err != nil {
+			return err
+		}
+
+		current = *supervisorOrgID
+	}
+}
+
+// RecalculatePeriodScoring menghitung ulang skor SELURUH evaluasi dalam satu
+// periode sekaligus — dipakai ketika periode penilaian sudah berakhir (semua
+// target/aktual seharusnya sudah final) untuk memastikan skor Subordinate
+// setiap atasan benar-benar mencerminkan skor bawahannya yang terbaru, alih-
+// alih hanya ter-update reaktif satu-per-satu tiap kali sebuah evaluasi
+// di-complete (lihat propagateSubordinateScoreUpward).
+//
+// Metode hitung: dari bawah ke atas hierarki Organization — evaluasi pada
+// Organization yang paling dalam (paling jauh dari akar) dihitung lebih
+// dulu, baru naik bertahap ke atas, sehingga saat giliran sebuah
+// Organization dihitung, seluruh bawahan efektifnya (lihat
+// GetEffectiveChildOrganizationIDs) sudah punya final_score final untuk
+// periode ini.
+func (s *Service) RecalculatePeriodScoring(ctx context.Context, periodID string) (*RecalculatePeriodScoringResponse, error) {
+	pid, err := uuid.Parse(periodID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid period_id: %w", err)
+	}
+
+	evaluations, err := s.repo.ListEvaluationsByPeriodID(ctx, pid)
+	if err != nil {
+		return nil, err
+	}
+	result := &RecalculatePeriodScoringResponse{PeriodID: periodID, Total: len(evaluations)}
+	if len(evaluations) == 0 {
+		return result, nil
+	}
+
+	parentMap, err := s.repo.GetOrganizationParentMap(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	depthCache := make(map[uuid.UUID]int, len(parentMap))
+	depthOf := func(orgID uuid.UUID) int {
+		visited := make(map[uuid.UUID]bool)
+		depth := 0
+		current := orgID
+		for {
+			if d, ok := depthCache[current]; ok {
+				depth += d
+				break
+			}
+			if visited[current] {
+				// Corrupt/cyclic parent_id chain — bail out rather than loop forever.
+				break
+			}
+			visited[current] = true
+			parent, ok := parentMap[current]
+			if !ok || parent == nil {
+				break
+			}
+			depth++
+			current = *parent
+		}
+		depthCache[orgID] = depth
+		return depth
+	}
+
+	// Urutkan dari kedalaman terbesar (paling bawah) ke terkecil (paling atas).
+	sort.SliceStable(evaluations, func(i, j int) bool {
+		return depthOf(evaluations[i].OrganizationID) > depthOf(evaluations[j].OrganizationID)
+	})
+
+	for _, eval := range evaluations {
+		if _, err := s.CalculateEvaluationComponentScoring(ctx, eval.ID.String()); err != nil {
+			result.Failed++
+			s.logger.Warn("failed to recalculate evaluation during period-wide scoring recalculation",
+				zap.String("evaluation_id", eval.ID.String()),
+				zap.String("organization_id", eval.OrganizationID.String()),
+				zap.Error(err),
+			)
+			continue
+		}
+		result.Processed++
+	}
+
+	return result, nil
 }
 
 // =========================================================================
@@ -3750,10 +3877,18 @@ func (s *Service) CalculateEvaluationComponentScoring(ctx context.Context, evalI
 				score += it.Score
 			}
 		case ComponentCodeSubordinate:
-			childIDs, err := s.repo.GetChildOrganizationIDs(ctx, eval.OrganizationID)
+			// Anak langsung yang vakan dilompati — bawahan efektifnya adalah
+			// posisi terisi terdekat di bawah anak vakan tersebut (lihat
+			// GetEffectiveChildOrganizationIDs), sepasang dengan walk-up
+			// ResolveEffectiveSupervisorOrgID yang dipakai saat propagasi.
+			childIDs, err := s.repo.GetEffectiveChildOrganizationIDs(ctx, eval.OrganizationID)
 			if err != nil {
 				return nil, err
 			}
+			// Setiap bawahan efektif ikut jadi pembagi rata-rata: yang sudah
+			// COMPLETED memakai final_score-nya, yang belum COMPLETED (atau
+			// belum pernah membuat target/evaluasi sama sekali walau
+			// posisinya terisi karyawan) dihitung 0 — bukan dikecualikan.
 			score, err = s.repo.GetAverageFinalScore(ctx, childIDs, eval.PeriodID)
 			if err != nil {
 				return nil, err

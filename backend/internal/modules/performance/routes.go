@@ -159,6 +159,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			// Evaluation Scoring Engine
 			kpi.GET("/evaluations/:id/components", handler.ListEvaluationComponents)
 			kpi.POST("/evaluations/:id/calculate-scoring", handler.CalculateEvaluationComponentScoring)
+			kpi.POST("/periods/:period_id/recalculate-scoring", handler.RecalculatePeriodScoring)
 			kpi.PUT("/evaluations/:id/components/:component_id", handler.UpdateEvaluationComponentScore)
 		}
 	}

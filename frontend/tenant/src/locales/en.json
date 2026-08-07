@@ -1630,7 +1630,10 @@
     "delete_message": "Delete period \"{name}\"? This action cannot be undone.",
     "created": "Performance period created successfully",
     "updated": "Performance period updated successfully",
-    "deleted": "Performance period deleted successfully"
+    "deleted": "Performance period deleted successfully",
+    "recalculate_scoring": "Recalculate Scoring",
+    "recalculate_scoring_confirm": "Recalculate scoring for all evaluations in period \"{code}\"? This computes bottom-up across the organization hierarchy — use this once the period has ended.",
+    "recalculate_scoring_done": "Recalculated {processed} of {total} evaluations."
   },
   "performance_perspectives": {
     "title": "BSC Perspectives",
