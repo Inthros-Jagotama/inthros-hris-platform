@@ -347,6 +347,36 @@ func (r *Repository) GetCurrentEmployeeContextByUserID(ctx context.Context, user
 }
 
 // GetPeriodCodesByIDs mengambil period_code untuk sekumpulan performance_periods ID.
+// ratingMeta carries the rating fields a list row needs for display.
+type ratingMeta struct {
+	Name  string
+	Color string
+}
+
+// GetRatingsByIDs mengambil name+color untuk sekumpulan rating ID.
+func (r *Repository) GetRatingsByIDs(ctx context.Context, ids []uuid.UUID) (map[string]ratingMeta, error) {
+	result := make(map[string]ratingMeta, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var ratings []PerformanceRating
+	if err := db.WithContext(ctx).Where("id IN ?", ids).Find(&ratings).Error; err != nil {
+		return nil, err
+	}
+	for _, rt := range ratings {
+		color := ""
+		if rt.Color != nil {
+			color = *rt.Color
+		}
+		result[rt.ID.String()] = ratingMeta{Name: rt.Name, Color: color}
+	}
+	return result, nil
+}
+
 func (r *Repository) GetPeriodCodesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
 	result := make(map[string]string, len(ids))
 	if len(ids) == 0 {

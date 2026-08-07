@@ -729,9 +729,59 @@ func (s *Service) ListPerformanceEvaluations(ctx context.Context, employeeID, pe
 	if err != nil {
 		return nil, err
 	}
+
+	// Batch-enrich employee/organization/period/rating names — the raw
+	// evaluation rows only carry IDs, and the KPI management list needs the
+	// display names for its Employee/Organization/Period/Rating columns.
+	empIDSet := make(map[uuid.UUID]struct{}, len(list))
+	orgIDSet := make(map[uuid.UUID]struct{}, len(list))
+	periodIDSet := make(map[uuid.UUID]struct{}, len(list))
+	ratingIDSet := make(map[uuid.UUID]struct{}, len(list))
+	for _, e := range list {
+		empIDSet[e.EmployeeID] = struct{}{}
+		orgIDSet[e.OrganizationID] = struct{}{}
+		periodIDSet[e.PeriodID] = struct{}{}
+		if e.RatingID != nil {
+			ratingIDSet[*e.RatingID] = struct{}{}
+		}
+	}
+	toSlice := func(set map[uuid.UUID]struct{}) []uuid.UUID {
+		out := make([]uuid.UUID, 0, len(set))
+		for id := range set {
+			out = append(out, id)
+		}
+		return out
+	}
+	empNames, err := s.repo.GetEmployeeNamesByIDs(ctx, toSlice(empIDSet))
+	if err != nil {
+		return nil, err
+	}
+	orgNames, err := s.repo.GetOrganizationNamesByIDs(ctx, toSlice(orgIDSet))
+	if err != nil {
+		return nil, err
+	}
+	periodCodes, err := s.repo.GetPeriodCodesByIDs(ctx, toSlice(periodIDSet))
+	if err != nil {
+		return nil, err
+	}
+	ratings, err := s.repo.GetRatingsByIDs(ctx, toSlice(ratingIDSet))
+	if err != nil {
+		return nil, err
+	}
+
 	responses := make([]PerformanceEvaluationResponse, 0, len(list))
 	for _, e := range list {
-		responses = append(responses, *evaluationToResponse(&e))
+		r := evaluationToResponse(&e)
+		r.EmployeeName = empNames[r.EmployeeID]
+		r.OrganizationName = orgNames[r.OrganizationID]
+		r.PeriodCode = periodCodes[r.PeriodID]
+		if r.RatingID != "" {
+			if rt, ok := ratings[r.RatingID]; ok {
+				r.RatingName = rt.Name
+				r.RatingColor = rt.Color
+			}
+		}
+		responses = append(responses, *r)
 	}
 	return &PaginatedResponse{
 		Success: true, Data: responses, Page: page, PerPage: perPage,

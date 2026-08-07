@@ -7,6 +7,75 @@ import (
 	"github.com/google/uuid"
 )
 
+func TestService_ListPerformanceEvaluations_EnrichesNames(t *testing.T) {
+	svc, dbResolver, cleanup := setupMyKPIContextTestDB(t)
+	defer cleanup()
+
+	db, err := dbResolver(context.Background())
+	if err != nil {
+		t.Fatalf("failed to get db: %v", err)
+	}
+
+	employeeID := uuid.New()
+	orgID := uuid.New()
+	if err := db.Exec("INSERT INTO employees (id, name) VALUES (?, ?)", employeeID.String(), "John Smith").Error; err != nil {
+		t.Fatalf("failed to seed employee: %v", err)
+	}
+	if err := db.Exec("INSERT INTO organizations (id, nomenclature) VALUES (?, ?)", orgID.String(), "Sales Manager").Error; err != nil {
+		t.Fatalf("failed to seed organization: %v", err)
+	}
+
+	period := &PerformancePeriod{PeriodCode: "2026-Q2", PeriodType: "QUARTERLY", Year: 2026}
+	if err := db.Create(period).Error; err != nil {
+		t.Fatalf("failed to seed period: %v", err)
+	}
+	tmpl := &PerformanceTemplate{OrganizationID: orgID, Name: "Tmpl", Status: "PUBLISHED"}
+	if err := db.Create(tmpl).Error; err != nil {
+		t.Fatalf("failed to seed template: %v", err)
+	}
+	color := "green"
+	rating := &PerformanceRating{Code: "A", Name: "Excellent", MinScore: 90, MaxScore: 100, Color: &color}
+	if err := db.Create(rating).Error; err != nil {
+		t.Fatalf("failed to seed rating: %v", err)
+	}
+	eval := &PerformanceEvaluation{
+		EmployeeID:     employeeID,
+		OrganizationID: orgID,
+		PeriodID:       period.ID,
+		TemplateID:     tmpl.ID,
+		Status:         "COMPLETED",
+		RatingID:       &rating.ID,
+	}
+	if err := db.Create(eval).Error; err != nil {
+		t.Fatalf("failed to seed evaluation: %v", err)
+	}
+
+	resp, err := svc.ListPerformanceEvaluations(context.Background(), nil, nil, nil, 1, 20)
+	if err != nil {
+		t.Fatalf("ListPerformanceEvaluations failed: %v", err)
+	}
+	rows, ok := resp.Data.([]PerformanceEvaluationResponse)
+	if !ok || len(rows) != 1 {
+		t.Fatalf("expected 1 evaluation row, got %+v", resp.Data)
+	}
+	row := rows[0]
+	if row.EmployeeName != "John Smith" {
+		t.Errorf("expected employee_name 'John Smith', got %q", row.EmployeeName)
+	}
+	if row.OrganizationName != "Sales Manager" {
+		t.Errorf("expected organization_name 'Sales Manager', got %q", row.OrganizationName)
+	}
+	if row.PeriodCode != "2026-Q2" {
+		t.Errorf("expected period_code '2026-Q2', got %q", row.PeriodCode)
+	}
+	if row.RatingName != "Excellent" {
+		t.Errorf("expected rating_name 'Excellent', got %q", row.RatingName)
+	}
+	if row.RatingColor != "green" {
+		t.Errorf("expected rating_color 'green', got %q", row.RatingColor)
+	}
+}
+
 func TestService_GetEvaluationWithDetails_EnrichesNames(t *testing.T) {
 	svc, dbResolver, cleanup := setupMyKPIContextTestDB(t)
 	defer cleanup()
