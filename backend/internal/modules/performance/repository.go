@@ -1319,6 +1319,27 @@ func (r *Repository) GetActivePeriod(ctx context.Context) (*PerformancePeriod, e
 	return &p, nil
 }
 
+// GetLatestPeriod mengambil PerformancePeriod terbaru apapun statusnya —
+// dipakai HR Dashboard sebagai fallback ketika belum ada periode berstatus
+// "active" (mis. periode masih "draft"), supaya dashboard tetap menampilkan
+// ringkasan alih-alih selalu kosong.
+func (r *Repository) GetLatestPeriod(ctx context.Context) (*PerformancePeriod, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var p PerformancePeriod
+	if err := db.WithContext(ctx).
+		Order("year DESC, created_at DESC").
+		First(&p).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &p, nil
+}
+
 // GetEmployeeEvaluation returns evaluation for employee in a period
 func (r *Repository) GetEmployeeEvaluation(ctx context.Context, employeeID, periodID uuid.UUID) (*PerformanceEvaluation, error) {
 	db, err := r.db(ctx)

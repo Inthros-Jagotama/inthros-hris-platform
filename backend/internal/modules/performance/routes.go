@@ -260,5 +260,8 @@ func RegisterOKRRoutes(rg *gin.RouterGroup, handler *OKRHandler) {
 
 		// OKR Dashboard
 		okr.GET("/dashboard/hr", handler.GetHRDashboard)
+
+		// OKR Self-assessment context
+		okr.GET("/my-context", handler.GetMyOKRContext)
 	}
 }

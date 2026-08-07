@@ -66,6 +66,10 @@ type OKRRepository interface {
 
 	// Dashboard
 	GetOKRHRDashboardStats(db *gorm.DB, periodID *uuid.UUID) (*OKRDashboardHRResponse, error)
+
+	// My Context (self-assessment)
+	GetCurrentEmployeeContext(db *gorm.DB, userID uuid.UUID) (employeeID *uuid.UUID, organizationID *uuid.UUID, err error)
+	GetOrganizationName(db *gorm.DB, orgID uuid.UUID) (string, error)
 }
 
 type okrRepositoryImpl struct{}
@@ -445,4 +449,54 @@ func (r *okrRepositoryImpl) GetOKRHRDashboardStats(db *gorm.DB, periodID *uuid.U
 	result.AverageScore = avgScore
 
 	return &result, nil
+}
+
+// =========================================================================
+// My Context (self-assessment)
+// =========================================================================
+
+// GetCurrentEmployeeContext resolves the current (open-ended) employee_id and
+// organization_id for a logged-in user — same join pattern as the KPI
+// self-assessment context resolver, duplicated here because the OKR
+// repository takes *gorm.DB directly rather than a context-based resolver.
+func (r *okrRepositoryImpl) GetCurrentEmployeeContext(db *gorm.DB, userID uuid.UUID) (*uuid.UUID, *uuid.UUID, error) {
+	type row struct {
+		EmployeeID     string
+		OrganizationID string
+	}
+	var result row
+	err := db.Table("employee_accounts AS ea").
+		Joins("JOIN employments AS emp ON emp.employee_id = ea.employee_id").
+		Where("ea.user_id = ? AND emp.effective_end_date IS NULL", userID).
+		Order("emp.effective_date DESC").
+		Limit(1).
+		Select("ea.employee_id AS employee_id, emp.organization_id AS organization_id").
+		Scan(&result).Error
+	if err != nil {
+		return nil, nil, err
+	}
+	if result.EmployeeID == "" || result.OrganizationID == "" {
+		return nil, nil, nil
+	}
+	empID, err := uuid.Parse(result.EmployeeID)
+	if err != nil {
+		return nil, nil, err
+	}
+	orgID, err := uuid.Parse(result.OrganizationID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &empID, &orgID, nil
+}
+
+// GetOrganizationName mengambil nomenclature Organization via raw table
+// query (tanpa import package organization, hindari circular dependency).
+func (r *okrRepositoryImpl) GetOrganizationName(db *gorm.DB, orgID uuid.UUID) (string, error) {
+	var name string
+	if err := db.Table("organizations").
+		Where("id = ?", orgID).
+		Pluck("nomenclature", &name).Error; err != nil {
+		return "", err
+	}
+	return name, nil
 }

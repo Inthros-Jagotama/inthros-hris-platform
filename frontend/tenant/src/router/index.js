@@ -195,6 +195,12 @@ const routes = [
         meta: { title: 'Evaluation Detail', titleKey: 'kpi.evaluation_detail', descKey: 'kpi.evaluation_detail_desc', icon: 'pi pi-chart-bar', module: 'performance', backRoute: '/performance/kpi', backLabelKey: 'kpi.evaluations' }
       },
       {
+        path: 'performance/okr/my-evaluation',
+        name: 'OKRSelfAssessment',
+        component: () => import('@/views/modules/performance/okr/OKRSelfAssessment.vue'),
+        meta: { title: 'My OKR', titleKey: 'okr.my_evaluation', descKey: 'okr.my_evaluation_desc', icon: 'pi pi-user-edit', module: 'performance' }
+      },
+      {
         path: 'performance/okr',
         name: 'PerformanceOKR',
         component: () => import('@/views/modules/performance/okr/OKRIndex.vue'),

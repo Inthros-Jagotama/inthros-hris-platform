@@ -71,6 +71,9 @@ type OKRService interface {
 
 	// Dashboard
 	GetHRDashboard(db *gorm.DB, periodID *uuid.UUID) (*OKRDashboardHRResponse, error)
+
+	// My Context (self-assessment)
+	GetMyOKRContext(db *gorm.DB, userID uuid.UUID) (*MyOKRContextResponse, error)
 }
 
 type okrServiceImpl struct {
@@ -949,6 +952,48 @@ func (s *okrServiceImpl) DeleteAttachment(db *gorm.DB, id uuid.UUID) error {
 
 func (s *okrServiceImpl) GetHRDashboard(db *gorm.DB, periodID *uuid.UUID) (*OKRDashboardHRResponse, error) {
 	return s.repo.GetOKRHRDashboardStats(db, periodID)
+}
+
+// =========================================================================
+// My Context (self-assessment)
+// =========================================================================
+
+// GetMyOKRContext resolves the calling user's current Organization (posisi
+// jabatan terakhir), then returns the ACTIVE (status=1) OKR templates
+// configured for that Organization — mirrors GetMyKPIContext for the KPI
+// module. Self-assessment: an employee can only start filling an OKR
+// evaluation once a template exists for their current position.
+func (s *okrServiceImpl) GetMyOKRContext(db *gorm.DB, userID uuid.UUID) (*MyOKRContextResponse, error) {
+	empID, orgID, err := s.repo.GetCurrentEmployeeContext(db, userID)
+	if err != nil {
+		return nil, err
+	}
+	if empID == nil || orgID == nil {
+		return &MyOKRContextResponse{HasPosition: false, Templates: []OKRTemplateResponse{}}, nil
+	}
+
+	activeStatus := 1
+	templates, _, err := s.repo.ListOKRTemplates(db, orgID, nil, &activeStatus, 1, maxPerPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]OKRTemplateResponse, len(templates))
+	for i, t := range templates {
+		responses[i] = *s.templateToResponse(&t)
+	}
+
+	orgName, err := s.repo.GetOrganizationName(db, *orgID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MyOKRContextResponse{
+		HasPosition:      true,
+		EmployeeID:       empID.String(),
+		OrganizationID:   orgID.String(),
+		OrganizationName: orgName,
+		Templates:        responses,
+	}, nil
 }
 
 // =========================================================================

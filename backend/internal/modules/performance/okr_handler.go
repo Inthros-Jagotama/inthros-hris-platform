@@ -40,6 +40,20 @@ func (h *OKRHandler) getUserID(c *gin.Context) uuid.UUID {
 	return userID
 }
 
+func (h *OKRHandler) GetMyOKRContext(c *gin.Context) {
+	db := h.getTenantDB(c)
+	if db == nil {
+		httputil.InternalError(c, "failed to resolve tenant database")
+		return
+	}
+	resp, err := h.service.GetMyOKRContext(db, h.getUserID(c))
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func okrParsePagination(c *gin.Context) (int, int) {
 	page := 1
 	perPage := 20

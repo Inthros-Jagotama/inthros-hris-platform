@@ -3068,6 +3068,12 @@ func (s *Service) GetEmployeeDashboard(ctx context.Context, employeeID string, p
 		if err != nil {
 			return nil, err
 		}
+		if period == nil {
+			period, err = s.repo.GetLatestPeriod(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	if period != nil {
@@ -3211,6 +3217,12 @@ func (s *Service) GetManagerDashboard(ctx context.Context, managerID string, per
 		if err != nil {
 			return nil, err
 		}
+		if period == nil {
+			period, err = s.repo.GetLatestPeriod(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if period != nil {
 			pID = period.ID
 		}
@@ -3346,6 +3358,12 @@ func (s *Service) GetHRDashboard(ctx context.Context, periodID *string) (*HRDash
 		period, err = s.repo.GetActivePeriod(ctx)
 		if err != nil {
 			return nil, err
+		}
+		if period == nil {
+			period, err = s.repo.GetLatestPeriod(ctx)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if period != nil {
 			pID = period.ID

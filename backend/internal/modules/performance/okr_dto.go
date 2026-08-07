@@ -42,6 +42,17 @@ type OKRTemplateResponse struct {
 	Objectives       []OKRObjectiveResponse `json:"objectives,omitempty"`
 }
 
+// MyOKRContextResponse — self-assessment context: resolves the current
+// employee's Organization and the PUBLISHED (status=1) OKR templates
+// configured for it, mirroring MyKPIContextResponse for the KPI module.
+type MyOKRContextResponse struct {
+	HasPosition      bool                  `json:"has_position"`
+	EmployeeID       string                `json:"employee_id,omitempty"`
+	OrganizationID   string                `json:"organization_id,omitempty"`
+	OrganizationName string                `json:"organization_name,omitempty"`
+	Templates        []OKRTemplateResponse `json:"templates"`
+}
+
 // =========================================================================
 // OKR Objective DTOs
 // =========================================================================

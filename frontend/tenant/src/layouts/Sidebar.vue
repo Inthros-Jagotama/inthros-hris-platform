@@ -306,6 +306,16 @@ const talentItems = computed(() => {
       permission: 'performance.view',
       children: [
         {
+          key: 'performance_main',
+          label: t('nav.performance_dashboard'),
+          icon: 'pi pi-th-large',
+          command: () => router.push('/performance'),
+          path: '/performance',
+          excludePaths: ['/performance/kpi', '/performance/okr'],
+          moduleSlug: 'performance',
+          permission: 'performance.view'
+        },
+        {
           key: 'performance_kpi',
           label: t('nav.kpi'),
           icon: 'pi pi-chart-bar',
@@ -320,16 +330,6 @@ const talentItems = computed(() => {
           icon: 'pi pi-bullseye',
           command: () => router.push('/performance/okr'),
           path: '/performance/okr',
-          moduleSlug: 'performance',
-          permission: 'performance.view'
-        },
-        {
-          key: 'performance_main',
-          label: t('nav.performance_dashboard'),
-          icon: 'pi pi-th-large',
-          command: () => router.push('/performance'),
-          path: '/performance',
-          excludePaths: ['/performance/kpi', '/performance/okr'],
           moduleSlug: 'performance',
           permission: 'performance.view'
         }
