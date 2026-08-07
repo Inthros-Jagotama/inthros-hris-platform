@@ -62,58 +62,118 @@
     <!-- ===================================================================== -->
     <!-- Task detail / act dialog -->
     <!-- ===================================================================== -->
-    <Dialog v-model:visible="taskDetailVisible" :header="t('approval.instance_detail')" modal :style="{ width: '600px' }">
+    <Dialog v-model:visible="taskDetailVisible" :header="t('approval.instance_detail')" modal :style="{ width: '960px' }">
       <div v-if="instanceLoading" class="py-8 text-center text-gray-400 text-sm">{{ t('common.loading') }}</div>
-      <div v-else-if="activeInstance" class="space-y-4">
-        <div class="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <p class="text-xs text-gray-400">{{ t('approval.module') }}</p>
-            <Tag :value="activeInstance.module" severity="info" class="!text-xs" />
-          </div>
-          <div>
-            <p class="text-xs text-gray-400">{{ t('common.status') }}</p>
-            <Tag :value="activeInstance.status" severity="warn" class="!text-xs" />
-          </div>
-          <div class="col-span-2">
-            <p class="text-xs text-gray-400">{{ t('approval.document_id') }}</p>
-            <p class="font-mono text-xs text-gray-700 dark:text-gray-200">{{ activeInstance.document_id }}</p>
-          </div>
-          <div class="col-span-2">
-            <p class="text-xs text-gray-400">{{ t('approval.flow_name') }}</p>
-            <p class="text-gray-700 dark:text-gray-200">{{ activeInstance.flow_name || '-' }}</p>
-          </div>
-        </div>
+      <div v-else-if="activeInstance" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Left column: the data being submitted -->
+        <div class="space-y-3 md:border-r md:border-gray-200 md:dark:border-gray-700 md:pr-5">
+          <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ t('approval.submitted_data') }}</p>
 
-        <div>
-          <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">{{ t('approval.steps') }}</p>
-          <div class="space-y-1">
-            <div v-for="s in activeInstance.steps" :key="s.id" class="flex items-center gap-2 text-xs px-2 py-1.5 rounded" :class="s.step_order === activeInstance.current_step ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''">
-              <span class="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">{{ s.step_order }}</span>
-              <span class="font-medium text-gray-700 dark:text-gray-200">{{ s.step_name }}</span>
-              <Tag :value="s.participation_type" :severity="s.participation_type === 'WATCHER' ? 'secondary' : 'success'" class="!text-xs !px-1.5 !py-0.5" />
+          <div v-if="documentLoading" class="py-6 text-center text-gray-400 text-sm">{{ t('common.loading') }}</div>
+
+          <template v-else-if="isKPIModule">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('kpi.employee') }}</p>
+                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ documentDetail?.employee_name || '-' }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('kpi.organization') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.organization_name || '-' }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('kpi.period') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.period_code || '-' }}</p>
+              </div>
+            </div>
+
+            <div v-if="documentDetail?.details?.length">
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-3 mb-1">{{ t('kpi.indicators') }}</p>
+              <div class="space-y-1">
+                <div v-for="d in documentDetail.details" :key="d.id" class="text-xs px-2 py-1.5 rounded bg-gray-50 dark:bg-gray-800/60">
+                  <div class="font-medium text-gray-700 dark:text-gray-200">{{ d.indicator_name }}</div>
+                  <div class="text-gray-500 dark:text-gray-400">
+                    {{ t('kpi.target') }}: {{ d.target }} {{ d.unit_of_measurement }}
+                    <span v-if="d.actual"> · {{ t('kpi.actual') }}: {{ d.actual }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="documentDetail?.program_items?.length">
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-3 mb-1">{{ t('kpi.program_items') }}</p>
+              <div class="space-y-1">
+                <div v-for="p in documentDetail.program_items" :key="p.id" class="text-xs px-2 py-1.5 rounded bg-gray-50 dark:bg-gray-800/60">
+                  <div class="font-medium text-gray-700 dark:text-gray-200">{{ p.title }}</div>
+                  <div class="text-gray-500 dark:text-gray-400">
+                    {{ t('kpi.target') }}: {{ p.target }} {{ p.unit_of_measurement }}
+                    <span v-if="p.actual"> · {{ t('kpi.actual') }}: {{ p.actual }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <div v-else-if="documentFields.length" class="space-y-2">
+            <div v-for="f in documentFields" :key="f.label" class="text-sm">
+              <p class="text-xs text-gray-400">{{ f.label }}</p>
+              <p class="text-gray-700 dark:text-gray-200 break-words">{{ f.value }}</p>
             </div>
           </div>
+
+          <p v-else class="text-xs text-gray-400">{{ t('approval.submitted_data_unavailable') }}</p>
         </div>
 
-        <div v-if="activeInstance.actions?.length">
-          <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">{{ t('approval.history') }}</p>
-          <div class="space-y-1">
-            <div v-for="a in activeInstance.actions" :key="a.id" class="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-2">
-              <Tag :value="a.action" :severity="a.action === 'APPROVE' ? 'success' : 'danger'" class="!text-xs !px-1.5 !py-0.5" />
-              <span>{{ formatDate(a.created_at) }}</span>
-              <span v-if="a.note" class="text-gray-400">— {{ a.note }}</span>
+        <!-- Right column: existing approval data -->
+        <div class="space-y-4">
+          <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ t('approval.approval_data') }}</p>
+
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p class="text-xs text-gray-400">{{ t('approval.module') }}</p>
+              <Tag :value="activeInstance.module" severity="info" class="!text-xs" />
+            </div>
+            <div>
+              <p class="text-xs text-gray-400">{{ t('common.status') }}</p>
+              <Tag :value="activeInstance.status" severity="warn" class="!text-xs" />
+            </div>
+            <div class="col-span-2">
+              <p class="text-xs text-gray-400">{{ t('approval.flow_name') }}</p>
+              <p class="text-gray-700 dark:text-gray-200">{{ activeInstance.flow_name || '-' }}</p>
             </div>
           </div>
-        </div>
 
-        <div v-if="activeTaskIsWatcher" class="text-xs text-gray-400 flex items-center gap-1.5">
-          <i class="pi pi-eye"></i> {{ t('approval.watcher_note') }}
-        </div>
-        <div v-else class="space-y-2">
-          <Textarea v-model="actionNote" :placeholder="t('approval.note_placeholder')" rows="2" class="w-full" />
-          <div class="flex items-center justify-end gap-2">
-            <Button :label="t('approval.reject')" severity="danger" outlined size="small" :loading="actionSubmitting" @click="submitAction('REJECT')" />
-            <Button :label="t('approval.approve')" severity="success" size="small" :loading="actionSubmitting" @click="submitAction('APPROVE')" />
+          <div>
+            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">{{ t('approval.steps') }}</p>
+            <div class="space-y-1">
+              <div v-for="s in activeInstance.steps" :key="s.id" class="flex items-center gap-2 text-xs px-2 py-1.5 rounded" :class="s.step_order === activeInstance.current_step ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''">
+                <span class="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">{{ s.step_order }}</span>
+                <span class="font-medium text-gray-700 dark:text-gray-200">{{ s.step_name }}</span>
+                <Tag :value="s.participation_type" :severity="s.participation_type === 'WATCHER' ? 'secondary' : 'success'" class="!text-xs !px-1.5 !py-0.5" />
+              </div>
+            </div>
+          </div>
+
+          <div v-if="activeInstance.actions?.length">
+            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">{{ t('approval.history') }}</p>
+            <div class="space-y-1">
+              <div v-for="a in activeInstance.actions" :key="a.id" class="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                <Tag :value="a.action" :severity="a.action === 'APPROVE' ? 'success' : 'danger'" class="!text-xs !px-1.5 !py-0.5" />
+                <span>{{ formatDate(a.created_at) }}</span>
+                <span v-if="a.note" class="text-gray-400">— {{ a.note }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="activeTaskIsWatcher" class="text-xs text-gray-400 flex items-center gap-1.5">
+            <i class="pi pi-eye"></i> {{ t('approval.watcher_note') }}
+          </div>
+          <div v-else class="space-y-2">
+            <Textarea v-model="actionNote" :placeholder="t('approval.note_placeholder')" rows="2" class="w-full" />
+            <div class="flex items-center justify-end gap-2">
+              <Button :label="t('approval.reject')" severity="danger" outlined size="small" :loading="actionSubmitting" @click="submitAction('REJECT')" />
+              <Button :label="t('approval.approve')" severity="success" size="small" :loading="actionSubmitting" @click="submitAction('APPROVE')" />
+            </div>
           </div>
         </div>
       </div>
@@ -179,12 +239,87 @@ const activeInstance = ref(null)
 const activeTaskRef = ref(null)
 const actionNote = ref('')
 const actionSubmitting = ref(false)
+const documentDetail = ref(null)
+const documentLoading = ref(false)
 
 const activeTaskIsWatcher = computed(() => {
   if (!activeInstance.value || !activeTaskRef.value) return false
   const step = activeInstance.value.steps?.find(s => s.step_order === activeTaskRef.value.step_order)
   return step?.participation_type === 'WATCHER'
 })
+
+const isKPIModule = computed(() => {
+  return ['performance_kpi_target', 'performance_kpi_realization'].includes(activeInstance.value?.module)
+})
+
+// Fields hidden from the generic "submitted data" fallback view — internal
+// IDs/timestamps/relations that aren't meaningful to a reviewer, or that
+// are already shown elsewhere in the dialog.
+const DOCUMENT_FIELD_DENYLIST = new Set([
+  'id', 'created_at', 'updated_at', 'deleted_at',
+  'employee_id', 'organization_id', 'period_id', 'template_id',
+  'approval_instance_id', 'target_approval_instance_id', 'realization_approval_instance_id',
+  'details', 'program_items', 'items', 'documents'
+])
+
+function humanizeLabel(key) {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function formatFieldValue(value) {
+  if (value === null || value === undefined || value === '') return '-'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+// Generic key-value fallback for modules without a dedicated renderer above
+// (leave, reimbursement, employeemovement, attendance, payroll, ...) — the
+// approval module is document-agnostic, so this covers whatever module
+// ends up here without needing a bespoke view per module.
+const documentFields = computed(() => {
+  if (!documentDetail.value || typeof documentDetail.value !== 'object') return []
+  return Object.entries(documentDetail.value)
+    .filter(([key, value]) => !DOCUMENT_FIELD_DENYLIST.has(key) && typeof value !== 'object')
+    .map(([key, value]) => ({ label: humanizeLabel(key), value: formatFieldValue(value) }))
+})
+
+// Maps an approval "module" slug to the endpoint that returns the
+// underlying document being approved — the approval module itself only
+// knows module + document_id, not the document's shape.
+function documentEndpointFor(module, documentId) {
+  switch (module) {
+    case 'leave':
+      return `/api/v1/tenant/leave/requests/${documentId}`
+    case 'reimbursement':
+      return `/api/v1/tenant/reimbursements/requests/${documentId}`
+    case 'employeemovement':
+      return `/api/v1/tenant/employee-movements/movements/${documentId}`
+    case 'attendance':
+      return `/api/v1/tenant/attendance/overtime-requests/${documentId}`
+    case 'payroll':
+      return `/api/v1/tenant/payroll/runs/${documentId}`
+    case 'performance_kpi_target':
+    case 'performance_kpi_realization':
+      return `/api/v1/tenant/performance/kpi/evaluations/${documentId}/full`
+    default:
+      return null
+  }
+}
+
+async function loadDocumentDetail(module, documentId) {
+  documentDetail.value = null
+  const endpoint = documentEndpointFor(module, documentId)
+  if (!endpoint) return
+  documentLoading.value = true
+  try {
+    const res = await api.get(endpoint)
+    documentDetail.value = res.data?.data || null
+  } catch {
+    documentDetail.value = null
+  } finally {
+    documentLoading.value = false
+  }
+}
 
 async function openTaskDetail(task) {
   activeTaskRef.value = task
@@ -194,6 +329,9 @@ async function openTaskDetail(task) {
   try {
     const res = await api.get(`/api/v1/tenant/approval/instances/${task.instance_id}`)
     activeInstance.value = res.data?.data || null
+    if (activeInstance.value) {
+      await loadDocumentDetail(activeInstance.value.module, activeInstance.value.document_id)
+    }
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.failed_to_load'), life: 4000 })
   } finally {
