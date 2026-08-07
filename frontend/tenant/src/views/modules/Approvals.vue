@@ -1,19 +1,32 @@
 <template>
-  <div class="space-y-3">
-    <Tabs v-model:value="activeTab">
-      <TabList>
-        <Tab value="flows">{{ t('approval.flows') }}</Tab>
-        <Tab value="my_tasks">
-          {{ t('approval.my_tasks') }}
-          <Badge v-if="pendingTotal > 0" :value="pendingTotal" severity="warn" class="ml-1" />
-        </Tab>
-      </TabList>
-      <TabPanels>
+  <div class="max-w-full mx-auto">
+    <div class="flex gap-6">
+      <!-- Left: Navigation Sidebar -->
+      <div class="w-56 shrink-0 space-y-1">
+        <div
+          v-for="(s, i) in sections" :key="s.key"
+          role="button" :tabindex="0"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 cursor-pointer select-none"
+          :class="getNavItemClass(i)"
+          @click="selectSection(i)" @keydown.enter="selectSection(i)"
+        >
+          <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors duration-150" :class="getCircleClass(i)">
+            <i :class="s.icon"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium truncate" :class="getNavTextClass(i)">{{ t(s.labelKey) }}</div>
+          </div>
+          <Badge v-if="s.key === 'my_tasks' && pendingTotal > 0" :value="pendingTotal" severity="warn" />
+        </div>
+      </div>
+
+      <!-- Right: Content -->
+      <div class="flex-1 min-w-0 space-y-3">
         <!-- ================================================================= -->
-        <!-- Flows tab -->
+        <!-- Flows section -->
         <!-- ================================================================= -->
-        <TabPanel value="flows">
-          <div class="flex items-center justify-between gap-2 flex-wrap mb-2 mt-2">
+        <div v-if="activeSection === 0">
+          <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
             <span v-if="flowsTotal > 0" class="text-xs text-gray-400 dark:text-gray-500">
               {{ flowsTotal }} {{ t('common.items') }}
             </span>
@@ -60,13 +73,13 @@
               </template>
             </Column>
           </DataTable>
-        </TabPanel>
+        </div>
 
         <!-- ================================================================= -->
-        <!-- My Tasks tab -->
+        <!-- My Tasks section -->
         <!-- ================================================================= -->
-        <TabPanel value="my_tasks">
-          <div class="flex items-center justify-between gap-2 flex-wrap mb-2 mt-2">
+        <div v-else-if="activeSection === 1">
+          <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
             <span v-if="pendingTotal > 0" class="text-xs text-gray-400 dark:text-gray-500">
               {{ pendingTotal }} {{ t('common.items') }}
             </span>
@@ -106,9 +119,9 @@
               </template>
             </Column>
           </DataTable>
-        </TabPanel>
-      </TabPanels>
-    </Tabs>
+        </div>
+      </div>
+    </div>
 
     <!-- ===================================================================== -->
     <!-- Flow create/edit dialog -->
@@ -344,11 +357,6 @@ import MultiSelect from 'primevue/multiselect'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
-import Tabs from 'primevue/tabs'
-import TabList from 'primevue/tablist'
-import Tab from 'primevue/tab'
-import TabPanels from 'primevue/tabpanels'
-import TabPanel from 'primevue/tabpanel'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
@@ -356,7 +364,34 @@ import TextInput from '@/components/TextInput.vue'
 
 const { t } = useI18n()
 const toast = useToast()
-const activeTab = ref('flows')
+
+const sections = [
+  { key: 'flows', labelKey: 'approval.flows', icon: 'pi pi-sitemap' },
+  { key: 'my_tasks', labelKey: 'approval.my_tasks', icon: 'pi pi-inbox' }
+]
+const activeSection = ref(0)
+
+function selectSection(i) {
+  activeSection.value = i
+}
+
+function getNavItemClass(i) {
+  const active = activeSection.value === i
+  if (active) return 'bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-300 dark:ring-emerald-700'
+  return 'hover:bg-gray-50 dark:hover:bg-gray-800'
+}
+
+function getCircleClass(i) {
+  const active = activeSection.value === i
+  if (active) return 'bg-emerald-600 text-white'
+  return 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+}
+
+function getNavTextClass(i) {
+  const active = activeSection.value === i
+  if (active) return 'text-emerald-700 dark:text-emerald-300'
+  return 'text-gray-700 dark:text-gray-300'
+}
 
 function formatDate(v) {
   if (!v) return '-'
