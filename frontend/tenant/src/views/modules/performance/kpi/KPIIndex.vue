@@ -154,6 +154,8 @@ const employeeOptions = ref([])
 
 const statusOptions = [
   { label: 'Draft', value: 'DRAFT' },
+  { label: 'Target Submitted', value: 'TARGET_SUBMITTED' },
+  { label: 'Target Approved', value: 'TARGET_APPROVED' },
   { label: 'Submitted', value: 'SUBMITTED' },
   { label: 'Approved', value: 'APPROVED' },
   { label: 'Completed', value: 'COMPLETED' }
@@ -192,7 +194,9 @@ function getStatusSeverity(status) {
   switch (status) {
     case 'COMPLETED': return 'success'
     case 'APPROVED': return 'info'
+    case 'TARGET_APPROVED': return 'info'
     case 'SUBMITTED': return 'warn'
+    case 'TARGET_SUBMITTED': return 'warn'
     default: return 'secondary'
   }
 }
