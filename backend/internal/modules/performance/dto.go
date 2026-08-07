@@ -7,9 +7,9 @@ import "time"
 // =========================================================================
 
 type CreatePerformancePeriodRequest struct {
-	PeriodCode string `json:"period_code" binding:"required,max=10"`
-	PeriodType string `json:"period_type" binding:"required,oneof=MONTHLY QUARTERLY SEMESTER ANNUAL"`
-	Year       int    `json:"year" binding:"required"`
+	PeriodCode string  `json:"period_code" binding:"required,max=10"`
+	PeriodType string  `json:"period_type" binding:"required,oneof=MONTHLY QUARTERLY SEMESTER ANNUAL"`
+	Year       int     `json:"year" binding:"required"`
 	StartDate  *string `json:"start_date"`
 	EndDate    *string `json:"end_date"`
 	Status     *string `json:"status" binding:"omitempty,oneof=draft active closed"`
@@ -25,13 +25,13 @@ type UpdatePerformancePeriodRequest struct {
 }
 
 type PerformancePeriodResponse struct {
-	ID         string `json:"id"`
-	PeriodCode string `json:"period_code"`
-	PeriodType string `json:"period_type"`
-	Year       int    `json:"year"`
-	StartDate  string `json:"start_date,omitempty"`
-	EndDate    string `json:"end_date,omitempty"`
-	Status     string `json:"status"`
+	ID         string    `json:"id"`
+	PeriodCode string    `json:"period_code"`
+	PeriodType string    `json:"period_type"`
+	Year       int       `json:"year"`
+	StartDate  string    `json:"start_date,omitempty"`
+	EndDate    string    `json:"end_date,omitempty"`
+	Status     string    `json:"status"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
@@ -163,10 +163,10 @@ type PerformanceIndicatorResponse struct {
 // =========================================================================
 
 type CreatePerformanceEvaluationRequest struct {
-	EmployeeID     string `json:"employee_id" binding:"required"`
-	OrganizationID string `json:"organization_id" binding:"required"`
-	PeriodID       string `json:"period_id" binding:"required"`
-	TemplateID     string `json:"template_id" binding:"required"`
+	EmployeeID     string  `json:"employee_id" binding:"required"`
+	OrganizationID string  `json:"organization_id" binding:"required"`
+	PeriodID       string  `json:"period_id" binding:"required"`
+	TemplateID     string  `json:"template_id" binding:"required"`
 	SupervisorID   *string `json:"supervisor_id"`
 	Notes          *string `json:"notes"`
 }
@@ -251,33 +251,33 @@ type EvaluationDetailResponse struct {
 // =========================================================================
 
 type CreatePerformanceTargetRequest struct {
-	PerformanceEvaluationID string  `json:"performance_evaluation_id" binding:"required"`
-	IndicatorID            string  `json:"indicator_id" binding:"required"`
-	TargetValue            float64 `json:"target_value"`
-	ActualValue            *float64 `json:"actual_value"`
-	UnitOfMeasurement      *string `json:"unit_of_measurement" binding:"omitempty,max=50"`
-	Weight                 float64 `json:"weight"`
+	PerformanceEvaluationID string   `json:"performance_evaluation_id" binding:"required"`
+	IndicatorID             string   `json:"indicator_id" binding:"required"`
+	TargetValue             float64  `json:"target_value"`
+	ActualValue             *float64 `json:"actual_value"`
+	UnitOfMeasurement       *string  `json:"unit_of_measurement" binding:"omitempty,max=50"`
+	Weight                  float64  `json:"weight"`
 }
 
 type UpdatePerformanceTargetRequest struct {
-	TargetValue   *float64 `json:"target_value"`
-	ActualValue   *float64 `json:"actual_value"`
-	UnitOfMeasurement *string `json:"unit_of_measurement" binding:"omitempty,max=50"`
-	Weight        *float64 `json:"weight"`
+	TargetValue       *float64 `json:"target_value"`
+	ActualValue       *float64 `json:"actual_value"`
+	UnitOfMeasurement *string  `json:"unit_of_measurement" binding:"omitempty,max=50"`
+	Weight            *float64 `json:"weight"`
 }
 
 type PerformanceTargetResponse struct {
 	ID                      string    `json:"id"`
 	PerformanceEvaluationID string    `json:"performance_evaluation_id"`
-	IndicatorID            string    `json:"indicator_id"`
-	TargetValue            float64   `json:"target_value"`
-	ActualValue            float64   `json:"actual_value,omitempty"`
-	UnitOfMeasurement      string    `json:"unit_of_measurement,omitempty"`
-	AchievementPercentage  float64   `json:"achievement_percentage"`
-	Weight                 float64   `json:"weight"`
-	Score                  float64   `json:"score"`
-	CreatedAt              time.Time `json:"created_at"`
-	UpdatedAt              time.Time `json:"updated_at"`
+	IndicatorID             string    `json:"indicator_id"`
+	TargetValue             float64   `json:"target_value"`
+	ActualValue             float64   `json:"actual_value,omitempty"`
+	UnitOfMeasurement       string    `json:"unit_of_measurement,omitempty"`
+	AchievementPercentage   float64   `json:"achievement_percentage"`
+	Weight                  float64   `json:"weight"`
+	Score                   float64   `json:"score"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
 }
 
 // =========================================================================
@@ -522,12 +522,12 @@ type EvaluationWithDetailsResponse struct {
 
 // ProgressSummaryResponse returns progress summary for an evaluation
 type ProgressSummaryResponse struct {
-	EvaluationID      string  `json:"evaluation_id"`
-	TotalIndicators   int     `json:"total_indicators"`
-	CompletedCount    int     `json:"completed_count"`
-	InProgressCount   int     `json:"in_progress_count"`
-	NotStartedCount   int     `json:"not_started_count"`
-	OverallProgress   float64 `json:"overall_progress"`
+	EvaluationID       string  `json:"evaluation_id"`
+	TotalIndicators    int     `json:"total_indicators"`
+	CompletedCount     int     `json:"completed_count"`
+	InProgressCount    int     `json:"in_progress_count"`
+	NotStartedCount    int     `json:"not_started_count"`
+	OverallProgress    float64 `json:"overall_progress"`
 	AverageAchievement float64 `json:"average_achievement"`
 }
 
@@ -542,14 +542,14 @@ type CalculateScoreRequest struct {
 
 // EmployeeDashboardResponse - Dashboard untuk employee melihat KPI sendiri
 type EmployeeDashboardResponse struct {
-	EmployeeID       string                     `json:"employee_id"`
-	EmployeeName     string                     `json:"employee_name,omitempty"`
-	OrganizationID   string                     `json:"organization_id"`
-	OrganizationName string                     `json:"organization_name,omitempty"`
-	CurrentPeriod    *PeriodSummary             `json:"current_period,omitempty"`
-	Evaluation       *EvaluationSummary         `json:"evaluation,omitempty"`
-	KPIProgress      []KPIProgressItem          `json:"kpi_progress"`
-	RecentActivities []ActivityItem             `json:"recent_activities"`
+	EmployeeID       string             `json:"employee_id"`
+	EmployeeName     string             `json:"employee_name,omitempty"`
+	OrganizationID   string             `json:"organization_id"`
+	OrganizationName string             `json:"organization_name,omitempty"`
+	CurrentPeriod    *PeriodSummary     `json:"current_period,omitempty"`
+	Evaluation       *EvaluationSummary `json:"evaluation,omitempty"`
+	KPIProgress      []KPIProgressItem  `json:"kpi_progress"`
+	RecentActivities []ActivityItem     `json:"recent_activities"`
 }
 
 type PeriodSummary struct {
@@ -563,16 +563,16 @@ type PeriodSummary struct {
 }
 
 type EvaluationSummary struct {
-	ID               string  `json:"id"`
-	Status           string  `json:"status"`
-	FinalScore       float64 `json:"final_score"`
-	RatingName       string  `json:"rating_name,omitempty"`
-	RatingColor      string  `json:"rating_color,omitempty"`
-	TotalIndicators  int     `json:"total_indicators"`
-	CompletedCount   int     `json:"completed_count"`
-	OverallProgress  float64 `json:"overall_progress"`
-	SubmittedAt      string  `json:"submitted_at,omitempty"`
-	ApprovedAt       string  `json:"approved_at,omitempty"`
+	ID              string  `json:"id"`
+	Status          string  `json:"status"`
+	FinalScore      float64 `json:"final_score"`
+	RatingName      string  `json:"rating_name,omitempty"`
+	RatingColor     string  `json:"rating_color,omitempty"`
+	TotalIndicators int     `json:"total_indicators"`
+	CompletedCount  int     `json:"completed_count"`
+	OverallProgress float64 `json:"overall_progress"`
+	SubmittedAt     string  `json:"submitted_at,omitempty"`
+	ApprovedAt      string  `json:"approved_at,omitempty"`
 }
 
 type KPIProgressItem struct {
@@ -597,62 +597,62 @@ type ActivityItem struct {
 
 // ManagerDashboardResponse - Dashboard untuk manager melihat tim
 type ManagerDashboardResponse struct {
-	ManagerID        string                 `json:"manager_id"`
-	ManagerName      string                 `json:"manager_name,omitempty"`
-	OrganizationID   string                 `json:"organization_id"`
-	OrganizationName string                 `json:"organization_name,omitempty"`
-	CurrentPeriod    *PeriodSummary         `json:"current_period,omitempty"`
-	TeamSummary      TeamKPISummary         `json:"team_summary"`
-	TeamMembers      []TeamMemberKPI        `json:"team_members"`
-	PendingReviews   []PendingReviewItem    `json:"pending_reviews"`
-	OverdueReviews   []OverdueReviewItem    `json:"overdue_reviews"`
+	ManagerID        string              `json:"manager_id"`
+	ManagerName      string              `json:"manager_name,omitempty"`
+	OrganizationID   string              `json:"organization_id"`
+	OrganizationName string              `json:"organization_name,omitempty"`
+	CurrentPeriod    *PeriodSummary      `json:"current_period,omitempty"`
+	TeamSummary      TeamKPISummary      `json:"team_summary"`
+	TeamMembers      []TeamMemberKPI     `json:"team_members"`
+	PendingReviews   []PendingReviewItem `json:"pending_reviews"`
+	OverdueReviews   []OverdueReviewItem `json:"overdue_reviews"`
 }
 
 type TeamKPISummary struct {
-	TotalMembers     int     `json:"total_members"`
-	CompletedCount   int     `json:"completed_count"`
-	InProgressCount  int     `json:"in_progress_count"`
-	PendingCount     int     `json:"pending_count"`
-	AverageScore     float64 `json:"average_score"`
-	OverallProgress  float64 `json:"overall_progress"`
+	TotalMembers    int     `json:"total_members"`
+	CompletedCount  int     `json:"completed_count"`
+	InProgressCount int     `json:"in_progress_count"`
+	PendingCount    int     `json:"pending_count"`
+	AverageScore    float64 `json:"average_score"`
+	OverallProgress float64 `json:"overall_progress"`
 }
 
 type TeamMemberKPI struct {
-	EmployeeID     string  `json:"employee_id"`
-	EmployeeName   string  `json:"employee_name,omitempty"`
-	EvaluationID   string  `json:"evaluation_id,omitempty"`
-	Status         string  `json:"status"`
-	FinalScore     float64 `json:"final_score"`
-	RatingName     string  `json:"rating_name,omitempty"`
-	RatingColor    string  `json:"rating_color,omitempty"`
-	Progress       float64 `json:"progress"`
+	EmployeeID   string  `json:"employee_id"`
+	EmployeeName string  `json:"employee_name,omitempty"`
+	EvaluationID string  `json:"evaluation_id,omitempty"`
+	Status       string  `json:"status"`
+	FinalScore   float64 `json:"final_score"`
+	RatingName   string  `json:"rating_name,omitempty"`
+	RatingColor  string  `json:"rating_color,omitempty"`
+	Progress     float64 `json:"progress"`
 }
 
 type PendingReviewItem struct {
-	EvaluationID   string `json:"evaluation_id"`
-	EmployeeID     string `json:"employee_id"`
-	EmployeeName   string `json:"employee_name,omitempty"`
-	SubmittedAt    string `json:"submitted_at"`
-	DaysPending    int    `json:"days_pending"`
+	EvaluationID string `json:"evaluation_id"`
+	EmployeeID   string `json:"employee_id"`
+	EmployeeName string `json:"employee_name,omitempty"`
+	SubmittedAt  string `json:"submitted_at"`
+	DaysPending  int    `json:"days_pending"`
 }
 
 type OverdueReviewItem struct {
-	EvaluationID   string `json:"evaluation_id"`
-	EmployeeID     string `json:"employee_id"`
-	EmployeeName   string `json:"employee_name,omitempty"`
-	Status         string `json:"status"`
-	DaysOverdue    int    `json:"days_overdue"`
+	EvaluationID string `json:"evaluation_id"`
+	EmployeeID   string `json:"employee_id"`
+	EmployeeName string `json:"employee_name,omitempty"`
+	Status       string `json:"status"`
+	DaysOverdue  int    `json:"days_overdue"`
 }
 
 // HRDashboardResponse - Dashboard untuk HR melihat keseluruhan
 type HRDashboardResponse struct {
-	CurrentPeriod        *PeriodSummary            `json:"current_period,omitempty"`
-	CompletionStats      CompletionStats           `json:"completion_stats"`
-	RatingDistribution   []RatingDistributionItem  `json:"rating_distribution"`
-	OrganizationStats    []OrganizationStatsItem   `json:"organization_stats"`
-	TopPerformers        []PerformerItem           `json:"top_performers"`
-	BottomPerformers     []PerformerItem           `json:"bottom_performers"`
-	TrendData            []TrendItem               `json:"trend_data"`
+	CurrentPeriod      *PeriodSummary           `json:"current_period,omitempty"`
+	CompletionStats    CompletionStats          `json:"completion_stats"`
+	RatingDistribution []RatingDistributionItem `json:"rating_distribution"`
+	OrganizationStats  []OrganizationStatsItem  `json:"organization_stats"`
+	TopPerformers      []PerformerItem          `json:"top_performers"`
+	BottomPerformers   []PerformerItem          `json:"bottom_performers"`
+	TrendData          []TrendItem              `json:"trend_data"`
 }
 
 type CompletionStats struct {
@@ -704,4 +704,82 @@ type TrendItem struct {
 	AverageScore   float64 `json:"average_score"`
 	CompletionRate float64 `json:"completion_rate"`
 	TotalEmployees int     `json:"total_employees"`
+}
+
+// =========================================================================
+// Performance Component DTOs (Phase 5 - Scoring Configuration)
+// =========================================================================
+
+type CreatePerformanceComponentRequest struct {
+	Code        string  `json:"code" binding:"required,max=50"`
+	Name        string  `json:"name" binding:"required,max=100"`
+	Description *string `json:"description"`
+	SortOrder   *int    `json:"sort_order"`
+	IsActive    *bool   `json:"is_active"`
+}
+
+type UpdatePerformanceComponentRequest struct {
+	Code        *string `json:"code" binding:"omitempty,max=50"`
+	Name        *string `json:"name" binding:"omitempty,max=100"`
+	Description *string `json:"description"`
+	SortOrder   *int    `json:"sort_order"`
+	IsActive    *bool   `json:"is_active"`
+}
+
+type PerformanceComponentResponse struct {
+	ID          string    `json:"id"`
+	Code        string    `json:"code"`
+	Name        string    `json:"name"`
+	Description string    `json:"description,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Performance Organization Component DTOs
+// =========================================================================
+
+type UpsertOrganizationComponentRequest struct {
+	OrganizationID string  `json:"organization_id" binding:"required"`
+	ComponentID    string  `json:"component_id" binding:"required"`
+	Weight         float64 `json:"weight"`
+	IsEnabled      *bool   `json:"is_enabled"`
+	SortOrder      *int    `json:"sort_order"`
+}
+
+type OrganizationComponentResponse struct {
+	ID             string    `json:"id"`
+	OrganizationID string    `json:"organization_id"`
+	ComponentID    string    `json:"component_id"`
+	ComponentCode  string    `json:"component_code,omitempty"`
+	ComponentName  string    `json:"component_name,omitempty"`
+	Weight         float64   `json:"weight"`
+	IsEnabled      bool      `json:"is_enabled"`
+	SortOrder      int       `json:"sort_order"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Performance Evaluation Component DTOs
+// =========================================================================
+
+type PerformanceEvaluationComponentResponse struct {
+	ID            string     `json:"id"`
+	EvaluationID  string     `json:"evaluation_id"`
+	ComponentID   string     `json:"component_id"`
+	ComponentName string     `json:"component_name"`
+	Score         float64    `json:"score"`
+	Weight        float64    `json:"weight"`
+	FinalScore    float64    `json:"final_score"`
+	CalculatedAt  *time.Time `json:"calculated_at,omitempty"`
+}
+
+// UpdateEvaluationComponentScoreRequest digunakan untuk mengisi skor komponen
+// yang tidak bisa dihitung otomatis (mis. Work Program — tidak punya sumber
+// data lain di sistem, wajib diisi manual oleh reviewer).
+type UpdateEvaluationComponentScoreRequest struct {
+	Score float64 `json:"score" binding:"required,min=0,max=100"`
 }

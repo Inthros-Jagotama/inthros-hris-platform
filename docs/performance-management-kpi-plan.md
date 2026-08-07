@@ -353,8 +353,230 @@ Completed
 - Trend per Period
 
 ---
+# Phase 5 - Performance Scoring Configuration
 
-# Phase 5 - Future Enhancement
+## Objective
+
+Mendukung konfigurasi metode perhitungan nilai Performance pada setiap Organization.
+
+Setiap Organization dapat memiliki:
+
+- Komponen penilaian yang berbeda.
+- Bobot penilaian yang berbeda.
+- Formula penilaian yang berbeda.
+
+Dengan pendekatan ini setiap jabatan dapat menggunakan metode penilaian yang sesuai dengan tanggung jawabnya.
+
+Contoh:
+
+| Organization | KPI | Work Program | Subordinate KPI |
+|--------------|----:|-------------:|----------------:|
+| Director | 30% | 30% | 40% |
+| Manager | 40% | 40% | 20% |
+| Supervisor | 50% | 50% | 0% |
+| Staff | 60% | 40% | 0% |
+
+Total bobot setiap Organization harus selalu **100%**.
+
+---
+
+## Database Enhancement
+
+### performance_components
+
+Master komponen penilaian.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| id | uuid PK | Primary Key |
+| code | varchar(50) | Unique Code |
+| name | varchar(100) | Component Name |
+| description | text | Description |
+| sort_order | integer | Display Order |
+| is_active | boolean | Active Status |
+| created_at | timestamp | |
+| updated_at | timestamp | |
+| deleted_at | timestamp nullable | Soft Delete |
+
+---
+
+### performance_organization_components
+
+Konfigurasi bobot komponen untuk setiap Organization.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| id | uuid PK | Primary Key |
+| organization_id | uuid FK | Organization |
+| component_id | uuid FK | Performance Component |
+| weight | decimal(5,2) | Weight (%) |
+| is_enabled | boolean | Active Component |
+| sort_order | integer | Display Order |
+| created_at | timestamp | |
+| updated_at | timestamp | |
+
+---
+
+### performance_evaluation_components
+
+Snapshot hasil perhitungan setiap komponen pada saat Evaluation.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| id | uuid PK | Primary Key |
+| evaluation_id | uuid FK | Performance Evaluation |
+| component_id | uuid FK | Performance Component |
+| component_name | varchar(100) | Snapshot Component |
+| score | decimal(5,2) | Component Score |
+| weight | decimal(5,2) | Snapshot Weight |
+| final_score | decimal(5,2) | Weighted Score |
+| calculated_at | timestamp | Calculation Time |
+| created_at | timestamp | |
+| updated_at | timestamp | |
+
+---
+
+## Default Components
+
+| Code | Component |
+|------|-----------|
+| KPI | KPI |
+| WORK_PROGRAM | Work Program |
+| SUBORDINATE | Subordinate KPI |
+
+---
+
+## Organization Configuration Example
+
+### Director
+
+| Component | Weight |
+|-----------|-------:|
+| KPI | 30% |
+| Work Program | 30% |
+| Subordinate KPI | 40% |
+
+### Manager
+
+| Component | Weight |
+|-----------|-------:|
+| KPI | 40% |
+| Work Program | 40% |
+| Subordinate KPI | 20% |
+
+### Staff
+
+| Component | Weight |
+|-----------|-------:|
+| KPI | 60% |
+| Work Program | 40% |
+
+---
+
+## Score Calculation
+
+```
+Final Score =
+Σ(Component Score × Weight)
+```
+
+Contoh
+
+| Component | Score | Weight | Result |
+|-----------|------:|-------:|-------:|
+| KPI | 90 | 40% | 36 |
+| Work Program | 85 | 40% | 34 |
+| Subordinate KPI | 95 | 20% | 19 |
+
+```
+Final Score = 89
+```
+
+---
+
+## Subordinate KPI
+
+Subordinate KPI dihitung otomatis dari rata-rata nilai akhir seluruh bawahan langsung (direct subordinate) pada periode yang sama.
+
+Contoh
+
+```text
+General Manager
+        │
+        ├── Manager A (90)
+        ├── Manager B (80)
+        └── Manager C (85)
+```
+
+```
+Subordinate KPI
+
+=
+
+(90 + 80 + 85) / 3
+
+=
+
+85
+```
+
+Perhitungan dilakukan berdasarkan struktur Organization (`parent_id`) sehingga tidak memerlukan relasi bawahan tambahan.
+
+Organization yang tidak memiliki bawahan dapat menonaktifkan komponen **Subordinate KPI** atau memberikan bobot **0%**.
+
+---
+
+## Validation Rules
+
+- Total bobot setiap Organization harus = 100%.
+- Satu komponen hanya boleh muncul satu kali pada setiap Organization.
+- Organization tanpa bawahan tidak wajib menggunakan komponen Subordinate KPI.
+- Perubahan bobot hanya berlaku untuk Evaluation yang dibuat setelah konfigurasi diubah.
+- Bobot disimpan sebagai snapshot pada saat Evaluation.
+
+---
+
+## Business Flow
+
+```text
+Organization
+
+↓
+
+Performance Component Configuration
+
+↓
+
+Performance Evaluation
+
+↓
+
+Calculate Component Score
+
+↓
+
+Performance Scoring Engine
+
+↓
+
+Final Score
+
+↓
+
+Performance Rating
+```
+
+
+---
+
+---
+
+# Phase 6 - Master Data & Seeder
+
+Beberapa tabel merupakan **master data** yang direkomendasikan menggunakan Seeder agar implementasi HRIS lebih cepat, konsisten, dan mudah dipelihara.
+
+
+# Phase 7 - Future Enhancement
 
 - Mid Year Review
 - Calibration
@@ -366,14 +588,6 @@ Completed
 - Succession Planning Integration
 - Career Path Integration
 - Talent Management Integration
-
----
-
----
-
-# Phase 6 - Master Data & Seeder
-
-Beberapa tabel merupakan **master data** yang direkomendasikan menggunakan Seeder agar implementasi HRIS lebih cepat, konsisten, dan mudah dipelihara.
 
 ## Seeder Overview
 
@@ -537,4 +751,45 @@ struktur dan penamaan ikuti pola yang sudah ada
 - Mendukung Audit Trail.
 - Mendukung Progress Monitoring.
 - Master Data menggunakan Seeder agar implementasi lebih cepat dan konsisten.
+- Siap diintegrasikan dengan Competency Management, Career Path, Succession Planning, Talent Management, Bonus Management, dan Performance Improvement Plan (PIP).
+
+---
+
+# Implementation Status
+
+| Phase | Status | Completion Date | Notes |
+|-------|--------|-----------------|-------|
+| Phase 1-4 | ✅ Completed | 2026-08-06 | Lihat [`docs/frontend-performance-kpi-plan.md`](frontend-performance-kpi-plan.md) untuk detail frontend |
+| Phase 5 - Scoring Configuration | ✅ Completed | 2026-08-07 | Backend: models, DTO, repository, service (scoring engine), handler, routes, migration |
+| Phase 6 - Seeder | ✅ Completed | 2026-08-07 | Default components (KPI, Work Program, Subordinate KPI) di-seed via `module.go` |
+| Phase 7 - Future Enhancement | ⏳ Pending | - | |
+
+## Phase 5 Deliverables
+
+| File | Status | Description |
+|------|--------|-------------|
+| `migrations/tenant/postgres/058_performance_scoring_configuration.sql` (+ down, + mysql) | ✅ | 3 tabel baru: performance_components, performance_organization_components, performance_evaluation_components |
+| `backend/internal/modules/performance/model.go` | ✅ | 3 struct baru: PerformanceComponent, PerformanceOrganizationComponent, PerformanceEvaluationComponent |
+| `backend/internal/modules/performance/dto.go` | ✅ | DTO CRUD komponen, konfigurasi bobot organisasi, response snapshot komponen evaluasi |
+| `backend/internal/modules/performance/repository.go` | ✅ | CRUD komponen, upsert konfigurasi bobot per organisasi, upsert snapshot evaluasi, batch lookup child organization & rata-rata skor |
+| `backend/internal/modules/performance/service.go` | ✅ | `CalculateEvaluationComponentScoring` (scoring engine), validasi total bobot = 100%, resolusi skor per kode komponen (KPI/SUBORDINATE otomatis, lainnya manual) |
+| `backend/internal/modules/performance/handler.go` | ✅ | HTTP handlers untuk semua endpoint Phase 5 |
+| `backend/internal/modules/performance/routes.go` | ✅ | Route registration di bawah `/performance/kpi/*` |
+| `backend/internal/modules/performance/module.go` | ✅ | AutoMigrate + seed default 3 komponen |
+
+## Scoring Engine Behavior
+
+- Jika Organization **belum** dikonfigurasi (tidak ada `performance_organization_components` enabled), evaluasi tetap memakai perhitungan KPI murni dari `RecalculateEvaluationScore` (backward compatible, tidak ada breaking change).
+- Jika dikonfigurasi, `CalculateEvaluationComponentScoring` mem-validasi total bobot komponen enabled = 100% (menolak jika tidak), lalu menghitung skor per komponen:
+  - **KPI**: diambil dari final_score evaluasi itu sendiri (hasil `evaluation_details`).
+  - **SUBORDINATE**: rata-rata final_score evaluasi seluruh direct-child Organization (`parent_id`) pada periode yang sama.
+  - **Komponen lain (mis. Work Program)**: tidak ada sumber data otomatis — diisi manual oleh reviewer via `PUT /evaluations/:id/components/:component_id`, nilai sebelumnya dipertahankan saat rekalkulasi ulang.
+- Final score evaluasi = Σ(component_score × weight/100), disimpan sebagai snapshot per komponen di `performance_evaluation_components`.
+
+## Frontend
+
+Belum diimplementasikan — perlu halaman baru untuk:
+- Master data Performance Components (CRUD)
+- Konfigurasi bobot komponen per Organization
+- Tampilan breakdown skor per komponen di halaman detail evaluasi KPI
 - Siap diintegrasikan dengan Competency Management, Career Path, Succession Planning, Talent Management, Bonus Management, dan Performance Improvement Plan (PIP).

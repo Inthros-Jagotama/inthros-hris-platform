@@ -122,6 +122,27 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			kpi.GET("/dashboard/employee/:employee_id", handler.GetEmployeeDashboard)
 			kpi.GET("/dashboard/manager/:manager_id", handler.GetManagerDashboard)
 			kpi.GET("/dashboard/hr", handler.GetHRDashboard)
+
+			// =================================================================
+			// Phase 5: Performance Scoring Configuration
+			// =================================================================
+
+			// Performance Components (Master data)
+			kpi.POST("/components", handler.CreatePerformanceComponent)
+			kpi.GET("/components", handler.ListPerformanceComponents)
+			kpi.GET("/components/:id", handler.GetPerformanceComponentByID)
+			kpi.PUT("/components/:id", handler.UpdatePerformanceComponent)
+			kpi.DELETE("/components/:id", handler.DeletePerformanceComponent)
+
+			// Organization Component Weight Configuration
+			kpi.POST("/organization-components", handler.UpsertOrganizationComponent)
+			kpi.GET("/organizations/:organization_id/components", handler.ListOrganizationComponents)
+			kpi.DELETE("/organization-components/:id", handler.DeleteOrganizationComponent)
+
+			// Evaluation Scoring Engine
+			kpi.GET("/evaluations/:id/components", handler.ListEvaluationComponents)
+			kpi.POST("/evaluations/:id/calculate-scoring", handler.CalculateEvaluationComponentScoring)
+			kpi.PUT("/evaluations/:id/components/:component_id", handler.UpdateEvaluationComponentScore)
 		}
 	}
 }

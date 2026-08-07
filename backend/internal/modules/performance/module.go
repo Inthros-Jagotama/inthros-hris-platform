@@ -108,6 +108,10 @@ func (m *perfModule) Migrate(db *gorm.DB) error {
 		&OKRProgress{},
 		&OKRComment{},
 		&OKRAttachment{},
+		// Phase 5 - Scoring Configuration
+		&PerformanceComponent{},
+		&PerformanceOrganizationComponent{},
+		&PerformanceEvaluationComponent{},
 	)
 }
 
@@ -118,22 +122,44 @@ func (m *perfModule) Seed(db *gorm.DB) error {
 		return err
 	}
 	if count == 0 {
-	d1 := "Financial performance and profitability metrics"
-	d2 := "Customer satisfaction and market perspective"
-	d3 := "Internal business process efficiency"
-	d4 := "Employee development and organizational growth"
-	defaults := []PerformancePerspective{
-		{Name: "Financial", Description: &d1, SortOrder: 1},
-		{Name: "Customer", Description: &d2, SortOrder: 2},
-		{Name: "Internal Process", Description: &d3, SortOrder: 3},
-		{Name: "Learning & Growth", Description: &d4, SortOrder: 4},
-	}
+		d1 := "Financial performance and profitability metrics"
+		d2 := "Customer satisfaction and market perspective"
+		d3 := "Internal business process efficiency"
+		d4 := "Employee development and organizational growth"
+		defaults := []PerformancePerspective{
+			{Name: "Financial", Description: &d1, SortOrder: 1},
+			{Name: "Customer", Description: &d2, SortOrder: 2},
+			{Name: "Internal Process", Description: &d3, SortOrder: 3},
+			{Name: "Learning & Growth", Description: &d4, SortOrder: 4},
+		}
 		for _, p := range defaults {
 			if err := db.Create(&p).Error; err != nil {
 				return err
 			}
 		}
 	}
+
+	// Seed default performance components if empty
+	var compCount int64
+	if err := db.Model(&PerformanceComponent{}).Count(&compCount).Error; err != nil {
+		return err
+	}
+	if compCount == 0 {
+		cd1 := "Key Performance Indicator score"
+		cd2 := "Work program achievement score (manual input)"
+		cd3 := "Average final score of direct-report Organizations"
+		components := []PerformanceComponent{
+			{Code: "KPI", Name: "KPI", Description: &cd1, SortOrder: 1, IsActive: true},
+			{Code: "WORK_PROGRAM", Name: "Work Program", Description: &cd2, SortOrder: 2, IsActive: true},
+			{Code: "SUBORDINATE", Name: "Subordinate KPI", Description: &cd3, SortOrder: 3, IsActive: true},
+		}
+		for _, c := range components {
+			if err := db.Create(&c).Error; err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

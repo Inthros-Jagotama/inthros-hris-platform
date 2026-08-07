@@ -681,9 +681,9 @@ func (s *Service) UpdateEvaluationStatus(ctx context.Context, id, status, notes 
 
 	// Only allow forward status transitions
 	valid := map[string][]string{
-		"DRAFT":          {"PLAN_SUBMITTED"},
-		"PLAN_SUBMITTED": {"PLAN_APPROVED", "DRAFT"},
-		"PLAN_APPROVED":  {"ACTUAL_SUBMITTED"},
+		"DRAFT":            {"PLAN_SUBMITTED"},
+		"PLAN_SUBMITTED":   {"PLAN_APPROVED", "DRAFT"},
+		"PLAN_APPROVED":    {"ACTUAL_SUBMITTED"},
 		"ACTUAL_SUBMITTED": {"ACTUAL_APPROVED", "DRAFT"},
 		"ACTUAL_APPROVED":  {"COMPLETED"},
 	}
@@ -854,9 +854,9 @@ func (s *Service) CreatePerformanceTarget(ctx context.Context, req CreatePerform
 	}
 	t := &PerformanceTarget{
 		PerformanceEvaluationID: evalID,
-		IndicatorID:           indID,
-		TargetValue:           req.TargetValue,
-		Weight:                req.Weight,
+		IndicatorID:             indID,
+		TargetValue:             req.TargetValue,
+		Weight:                  req.Weight,
 	}
 	if req.ActualValue != nil {
 		t.ActualValue = req.ActualValue
@@ -1087,13 +1087,13 @@ func targetToResponse(t *PerformanceTarget) *PerformanceTargetResponse {
 	r := &PerformanceTargetResponse{
 		ID:                      t.ID.String(),
 		PerformanceEvaluationID: t.PerformanceEvaluationID.String(),
-		IndicatorID:            t.IndicatorID.String(),
-		TargetValue:            t.TargetValue,
-		AchievementPercentage:  t.AchievementPercent,
-		Weight:                 t.Weight,
-		Score:                  t.Score,
-		CreatedAt:              t.CreatedAt,
-		UpdatedAt:              t.UpdatedAt,
+		IndicatorID:             t.IndicatorID.String(),
+		TargetValue:             t.TargetValue,
+		AchievementPercentage:   t.AchievementPercent,
+		Weight:                  t.Weight,
+		Score:                   t.Score,
+		CreatedAt:               t.CreatedAt,
+		UpdatedAt:               t.UpdatedAt,
 	}
 	if t.UnitOfMeasurement != nil {
 		r.UnitOfMeasurement = *t.UnitOfMeasurement
@@ -2640,4 +2640,401 @@ func (s *Service) GetHRDashboard(ctx context.Context, periodID *string) (*HRDash
 	}
 
 	return resp, nil
+}
+
+// =========================================================================
+// Performance Components (Phase 5 - Scoring Configuration)
+// =========================================================================
+
+func componentToResponse(c *PerformanceComponent) *PerformanceComponentResponse {
+	r := &PerformanceComponentResponse{
+		ID:        c.ID.String(),
+		Code:      c.Code,
+		Name:      c.Name,
+		SortOrder: c.SortOrder,
+		IsActive:  c.IsActive,
+		CreatedAt: c.CreatedAt,
+		UpdatedAt: c.UpdatedAt,
+	}
+	if c.Description != nil {
+		r.Description = *c.Description
+	}
+	return r
+}
+
+func (s *Service) CreatePerformanceComponent(ctx context.Context, req CreatePerformanceComponentRequest) (*PerformanceComponentResponse, error) {
+	c := &PerformanceComponent{
+		Code:        req.Code,
+		Name:        req.Name,
+		Description: req.Description,
+		IsActive:    true,
+	}
+	if req.SortOrder != nil {
+		c.SortOrder = *req.SortOrder
+	}
+	if req.IsActive != nil {
+		c.IsActive = *req.IsActive
+	}
+	if err := s.repo.CreatePerformanceComponent(ctx, c); err != nil {
+		return nil, err
+	}
+	return componentToResponse(c), nil
+}
+
+func (s *Service) GetPerformanceComponentByID(ctx context.Context, id string) (*PerformanceComponentResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	c, err := s.repo.FindPerformanceComponentByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return componentToResponse(c), nil
+}
+
+func (s *Service) ListPerformanceComponents(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	list, total, err := s.repo.ListPerformanceComponents(ctx, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]PerformanceComponentResponse, 0, len(list))
+	for _, c := range list {
+		responses = append(responses, *componentToResponse(&c))
+	}
+	return &PaginatedResponse{
+		Success: true, Data: responses, Page: page, PerPage: perPage,
+		Total: total, TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}
+
+func (s *Service) UpdatePerformanceComponent(ctx context.Context, id string, req UpdatePerformanceComponentRequest) (*PerformanceComponentResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	c, err := s.repo.FindPerformanceComponentByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Code != nil {
+		c.Code = *req.Code
+	}
+	if req.Name != nil {
+		c.Name = *req.Name
+	}
+	if req.Description != nil {
+		c.Description = req.Description
+	}
+	if req.SortOrder != nil {
+		c.SortOrder = *req.SortOrder
+	}
+	if req.IsActive != nil {
+		c.IsActive = *req.IsActive
+	}
+	if err := s.repo.UpdatePerformanceComponent(ctx, c); err != nil {
+		return nil, err
+	}
+	return componentToResponse(c), nil
+}
+
+func (s *Service) DeletePerformanceComponent(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeletePerformanceComponent(ctx, uid)
+}
+
+// =========================================================================
+// Performance Organization Components
+// =========================================================================
+
+func (s *Service) UpsertOrganizationComponent(ctx context.Context, req UpsertOrganizationComponentRequest) (*OrganizationComponentResponse, error) {
+	orgUUID, err := uuid.Parse(req.OrganizationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid organization_id: %w", err)
+	}
+	compUUID, err := uuid.Parse(req.ComponentID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid component_id: %w", err)
+	}
+
+	comp, err := s.repo.FindPerformanceComponentByID(ctx, compUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	existing, err := s.repo.FindOrganizationComponent(ctx, orgUUID, compUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	isEnabled := true
+	if req.IsEnabled != nil {
+		isEnabled = *req.IsEnabled
+	}
+	sortOrder := 0
+	if req.SortOrder != nil {
+		sortOrder = *req.SortOrder
+	}
+
+	if existing != nil {
+		existing.Weight = req.Weight
+		existing.IsEnabled = isEnabled
+		existing.SortOrder = sortOrder
+		if err := s.repo.UpdateOrganizationComponent(ctx, existing); err != nil {
+			return nil, err
+		}
+		return organizationComponentToResponse(existing, comp), nil
+	}
+
+	oc := &PerformanceOrganizationComponent{
+		OrganizationID: orgUUID,
+		ComponentID:    compUUID,
+		Weight:         req.Weight,
+		IsEnabled:      isEnabled,
+		SortOrder:      sortOrder,
+	}
+	if err := s.repo.CreateOrganizationComponent(ctx, oc); err != nil {
+		return nil, err
+	}
+	return organizationComponentToResponse(oc, comp), nil
+}
+
+func organizationComponentToResponse(oc *PerformanceOrganizationComponent, comp *PerformanceComponent) *OrganizationComponentResponse {
+	r := &OrganizationComponentResponse{
+		ID:             oc.ID.String(),
+		OrganizationID: oc.OrganizationID.String(),
+		ComponentID:    oc.ComponentID.String(),
+		Weight:         oc.Weight,
+		IsEnabled:      oc.IsEnabled,
+		SortOrder:      oc.SortOrder,
+		CreatedAt:      oc.CreatedAt,
+		UpdatedAt:      oc.UpdatedAt,
+	}
+	if comp != nil {
+		r.ComponentCode = comp.Code
+		r.ComponentName = comp.Name
+	}
+	return r
+}
+
+func (s *Service) ListOrganizationComponents(ctx context.Context, orgID string) ([]OrganizationComponentResponse, error) {
+	orgUUID, err := uuid.Parse(orgID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid organization_id: %w", err)
+	}
+	list, err := s.repo.ListOrganizationComponentsByOrgID(ctx, orgUUID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]OrganizationComponentResponse, 0, len(list))
+	for _, oc := range list {
+		comp, err := s.repo.FindPerformanceComponentByID(ctx, oc.ComponentID)
+		if err != nil {
+			comp = nil
+		}
+		responses = append(responses, *organizationComponentToResponse(&oc, comp))
+	}
+	return responses, nil
+}
+
+func (s *Service) DeleteOrganizationComponent(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteOrganizationComponent(ctx, uid)
+}
+
+// =========================================================================
+// Performance Evaluation Components (Scoring Engine)
+// =========================================================================
+
+const (
+	ComponentCodeKPI         = "KPI"
+	ComponentCodeSubordinate = "SUBORDINATE"
+)
+
+func evaluationComponentToResponse(ec *PerformanceEvaluationComponent) PerformanceEvaluationComponentResponse {
+	return PerformanceEvaluationComponentResponse{
+		ID:            ec.ID.String(),
+		EvaluationID:  ec.EvaluationID.String(),
+		ComponentID:   ec.ComponentID.String(),
+		ComponentName: ec.ComponentName,
+		Score:         ec.Score,
+		Weight:        ec.Weight,
+		FinalScore:    ec.FinalScore,
+		CalculatedAt:  ec.CalculatedAt,
+	}
+}
+
+func (s *Service) ListEvaluationComponents(ctx context.Context, evalID string) ([]PerformanceEvaluationComponentResponse, error) {
+	uid, err := uuid.Parse(evalID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid evaluation_id: %w", err)
+	}
+	list, err := s.repo.ListEvaluationComponents(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]PerformanceEvaluationComponentResponse, 0, len(list))
+	for _, ec := range list {
+		responses = append(responses, evaluationComponentToResponse(&ec))
+	}
+	return responses, nil
+}
+
+// UpdateEvaluationComponentScore mengisi skor komponen yang tidak punya sumber
+// data otomatis (mis. Work Program). Setelah disimpan, scoring engine dijalankan
+// ulang agar final_score evaluasi ikut ter-update.
+func (s *Service) UpdateEvaluationComponentScore(ctx context.Context, evalID, componentID string, req UpdateEvaluationComponentScoreRequest) ([]PerformanceEvaluationComponentResponse, error) {
+	evalUUID, err := uuid.Parse(evalID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid evaluation_id: %w", err)
+	}
+	compUUID, err := uuid.Parse(componentID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid component_id: %w", err)
+	}
+
+	comp, err := s.repo.FindPerformanceComponentByID(ctx, compUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.repo.UpsertEvaluationComponent(ctx, &PerformanceEvaluationComponent{
+		EvaluationID:  evalUUID,
+		ComponentID:   compUUID,
+		ComponentName: comp.Name,
+		Score:         req.Score,
+	}); err != nil {
+		return nil, err
+	}
+
+	return s.CalculateEvaluationComponentScoring(ctx, evalID)
+}
+
+// CalculateEvaluationComponentScoring menghitung ulang seluruh komponen penilaian
+// (KPI, Subordinate KPI, dan komponen lain yang dikonfigurasi) untuk sebuah
+// Evaluation berdasarkan konfigurasi bobot Organization-nya, lalu memperbarui
+// final_score dan rating evaluasi tersebut.
+//
+// Jika Organization tidak memiliki konfigurasi komponen (belum di-setup Phase 5),
+// fungsi ini tidak melakukan apa-apa — evaluasi tetap memakai perhitungan KPI
+// murni dari RecalculateEvaluationScore (backward compatible).
+func (s *Service) CalculateEvaluationComponentScoring(ctx context.Context, evalID string) ([]PerformanceEvaluationComponentResponse, error) {
+	evalUUID, err := uuid.Parse(evalID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid evaluation_id: %w", err)
+	}
+
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, evalUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	orgComponents, err := s.repo.ListEnabledOrganizationComponentsByOrgID(ctx, eval.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+	if len(orgComponents) == 0 {
+		// Organization belum dikonfigurasi — biarkan alur KPI murni yang berlaku.
+		return []PerformanceEvaluationComponentResponse{}, nil
+	}
+
+	totalWeight := 0.0
+	for _, oc := range orgComponents {
+		totalWeight += oc.Weight
+	}
+	if math.Round(totalWeight*100)/100 != 100 {
+		return nil, fmt.Errorf("total bobot komponen Organization harus 100%%, saat ini %.2f%%", totalWeight)
+	}
+
+	// Pastikan skor KPI murni (dari evaluation_details) selalu ter-update dulu.
+	if _, err := s.repo.UpdateEvaluationFinalScore(ctx, evalUUID); err != nil {
+		return nil, err
+	}
+	eval, err = s.repo.FindPerformanceEvaluationByID(ctx, evalUUID)
+	if err != nil {
+		return nil, err
+	}
+	kpiScore := eval.FinalScore
+
+	existingComponents, err := s.repo.ListEvaluationComponents(ctx, evalUUID)
+	if err != nil {
+		return nil, err
+	}
+	existingScoreByComponent := make(map[uuid.UUID]float64, len(existingComponents))
+	for _, ec := range existingComponents {
+		existingScoreByComponent[ec.ComponentID] = ec.Score
+	}
+
+	now := time.Now()
+	var weightedTotal float64
+	results := make([]PerformanceEvaluationComponentResponse, 0, len(orgComponents))
+
+	for _, oc := range orgComponents {
+		comp, err := s.repo.FindPerformanceComponentByID(ctx, oc.ComponentID)
+		if err != nil {
+			return nil, err
+		}
+
+		var score float64
+		switch comp.Code {
+		case ComponentCodeKPI:
+			score = kpiScore
+		case ComponentCodeSubordinate:
+			childIDs, err := s.repo.GetChildOrganizationIDs(ctx, eval.OrganizationID)
+			if err != nil {
+				return nil, err
+			}
+			score, err = s.repo.GetAverageFinalScore(ctx, childIDs, eval.PeriodID)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			// Komponen tanpa sumber data otomatis (mis. Work Program) — pertahankan
+			// skor manual yang sudah pernah diisi reviewer, default 0 jika belum ada.
+			score = existingScoreByComponent[oc.ComponentID]
+		}
+
+		weightedScore := score * oc.Weight / 100
+		weightedTotal += weightedScore
+
+		ec := &PerformanceEvaluationComponent{
+			EvaluationID:  evalUUID,
+			ComponentID:   oc.ComponentID,
+			ComponentName: comp.Name,
+			Score:         score,
+			Weight:        oc.Weight,
+			FinalScore:    weightedScore,
+			CalculatedAt:  &now,
+		}
+		if err := s.repo.UpsertEvaluationComponent(ctx, ec); err != nil {
+			return nil, err
+		}
+		results = append(results, evaluationComponentToResponse(ec))
+	}
+
+	var ratingID *uuid.UUID
+	rating, err := s.repo.FindRatingByScore(ctx, weightedTotal)
+	if err != nil {
+		return nil, err
+	}
+	if rating != nil {
+		ratingID = &rating.ID
+	}
+	if err := s.repo.UpdateEvaluationWithRating(ctx, evalUUID, weightedTotal, ratingID); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }

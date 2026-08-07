@@ -50,15 +50,15 @@ const (
 // =========================================================================
 
 type PerformancePeriod struct {
-	ID          uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
-	PeriodCode  string    `gorm:"type:varchar(10);not null;index:idx_perf_period_code" json:"period_code"`
-	PeriodType  string    `gorm:"type:varchar(20);not null" json:"period_type"`
-	Year        int       `gorm:"type:smallint;not null;index:idx_perf_period_year" json:"year"`
-	StartDate   *string   `gorm:"type:date" json:"start_date,omitempty"`
-	EndDate     *string   `gorm:"type:date" json:"end_date,omitempty"`
-	Status      string    `gorm:"type:varchar(20);default:active" json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID         uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	PeriodCode string    `gorm:"type:varchar(10);not null;index:idx_perf_period_code" json:"period_code"`
+	PeriodType string    `gorm:"type:varchar(20);not null" json:"period_type"`
+	Year       int       `gorm:"type:smallint;not null;index:idx_perf_period_year" json:"year"`
+	StartDate  *string   `gorm:"type:date" json:"start_date,omitempty"`
+	EndDate    *string   `gorm:"type:date" json:"end_date,omitempty"`
+	Status     string    `gorm:"type:varchar(20);default:active" json:"status"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 func (PerformancePeriod) TableName() string {
@@ -237,17 +237,17 @@ func (d *PerformanceEvaluationDetail) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type PerformanceTarget struct {
-	ID                  uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	ID                      uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
 	PerformanceEvaluationID uuid.UUID `gorm:"type:char(36);not null;index:idx_perf_tgt_eval" json:"performance_evaluation_id"`
-	IndicatorID        uuid.UUID `gorm:"type:char(36);not null;index:idx_perf_tgt_ind" json:"indicator_id"`
-	TargetValue        float64   `gorm:"type:decimal(12,2);default:0" json:"target_value"`
-	ActualValue        *float64  `gorm:"type:decimal(12,2)" json:"actual_value,omitempty"`
-	UnitOfMeasurement  *string   `gorm:"type:varchar(50)" json:"unit_of_measurement,omitempty"`
-	AchievementPercent float64   `gorm:"type:decimal(5,2);default:0" json:"achievement_percentage"`
-	Weight             float64   `gorm:"type:decimal(5,2);not null;default:0" json:"weight"`
-	Score              float64   `gorm:"type:decimal(5,2);default:0" json:"score"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	IndicatorID             uuid.UUID `gorm:"type:char(36);not null;index:idx_perf_tgt_ind" json:"indicator_id"`
+	TargetValue             float64   `gorm:"type:decimal(12,2);default:0" json:"target_value"`
+	ActualValue             *float64  `gorm:"type:decimal(12,2)" json:"actual_value,omitempty"`
+	UnitOfMeasurement       *string   `gorm:"type:varchar(50)" json:"unit_of_measurement,omitempty"`
+	AchievementPercent      float64   `gorm:"type:decimal(5,2);default:0" json:"achievement_percentage"`
+	Weight                  float64   `gorm:"type:decimal(5,2);not null;default:0" json:"weight"`
+	Score                   float64   `gorm:"type:decimal(5,2);default:0" json:"score"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
 }
 
 func (PerformanceTarget) TableName() string {
@@ -419,6 +419,87 @@ func (PerformanceLog) TableName() string {
 func (l *PerformanceLog) BeforeCreate(tx *gorm.DB) error {
 	if l.ID == uuid.Nil {
 		l.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// PerformanceComponent (Master komponen penilaian: KPI, Work Program, dst)
+// =========================================================================
+
+type PerformanceComponent struct {
+	ID          uuid.UUID       `gorm:"type:char(36);primaryKey" json:"id"`
+	Code        string          `gorm:"type:varchar(50);not null;uniqueIndex:idx_perf_comp_code" json:"code"`
+	Name        string          `gorm:"type:varchar(100);not null" json:"name"`
+	Description *string         `gorm:"type:text" json:"description,omitempty"`
+	SortOrder   int             `gorm:"type:int;not null;default:0;index:idx_perf_comp_sort" json:"sort_order"`
+	IsActive    bool            `gorm:"type:boolean;not null;default:true" json:"is_active"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
+	DeletedAt   *gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+}
+
+func (PerformanceComponent) TableName() string {
+	return "performance_components"
+}
+
+func (c *PerformanceComponent) BeforeCreate(tx *gorm.DB) error {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// PerformanceOrganizationComponent (Konfigurasi bobot komponen per Organization)
+// =========================================================================
+
+type PerformanceOrganizationComponent struct {
+	ID             uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	OrganizationID uuid.UUID `gorm:"type:char(36);not null;index:idx_perf_orgcomp_org" json:"organization_id"`
+	ComponentID    uuid.UUID `gorm:"type:char(36);not null;index:idx_perf_orgcomp_comp" json:"component_id"`
+	Weight         float64   `gorm:"type:decimal(5,2);not null;default:0" json:"weight"`
+	IsEnabled      bool      `gorm:"type:boolean;not null;default:true" json:"is_enabled"`
+	SortOrder      int       `gorm:"type:int;not null;default:0" json:"sort_order"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (PerformanceOrganizationComponent) TableName() string {
+	return "performance_organization_components"
+}
+
+func (o *PerformanceOrganizationComponent) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == uuid.Nil {
+		o.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// PerformanceEvaluationComponent (Snapshot hasil perhitungan komponen saat evaluasi)
+// =========================================================================
+
+type PerformanceEvaluationComponent struct {
+	ID            uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	EvaluationID  uuid.UUID  `gorm:"type:char(36);not null;index:idx_perf_evalcomp_eval" json:"evaluation_id"`
+	ComponentID   uuid.UUID  `gorm:"type:char(36);not null;index:idx_perf_evalcomp_comp" json:"component_id"`
+	ComponentName string     `gorm:"type:varchar(100);not null" json:"component_name"`
+	Score         float64    `gorm:"type:decimal(5,2);not null;default:0" json:"score"`
+	Weight        float64    `gorm:"type:decimal(5,2);not null;default:0" json:"weight"`
+	FinalScore    float64    `gorm:"type:decimal(5,2);not null;default:0" json:"final_score"`
+	CalculatedAt  *time.Time `json:"calculated_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+}
+
+func (PerformanceEvaluationComponent) TableName() string {
+	return "performance_evaluation_components"
+}
+
+func (e *PerformanceEvaluationComponent) BeforeCreate(tx *gorm.DB) error {
+	if e.ID == uuid.Nil {
+		e.ID = uuid.New()
 	}
 	return nil
 }

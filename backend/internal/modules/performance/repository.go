@@ -1387,9 +1387,9 @@ func (r *Repository) GetBottomPerformers(ctx context.Context, periodID uuid.UUID
 
 // GetTrendData returns performance trends across periods
 func (r *Repository) GetTrendData(ctx context.Context, limit int) ([]struct {
-	PeriodID     uuid.UUID
-	AvgScore     float64
-	TotalCount   int64
+	PeriodID       uuid.UUID
+	AvgScore       float64
+	TotalCount     int64
 	CompletedCount int64
 }, error) {
 	db, err := r.db(ctx)
@@ -1432,4 +1432,214 @@ func (r *Repository) GetTrendData(ctx context.Context, limit int) ([]struct {
 		}{r.PeriodID, r.AvgScore, r.TotalCount, r.CompletedCount})
 	}
 	return output, nil
+}
+
+// =========================================================================
+// Performance Components (Phase 5 - Scoring Configuration)
+// =========================================================================
+
+func (r *Repository) CreatePerformanceComponent(ctx context.Context, c *PerformanceComponent) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(c).Error
+}
+
+func (r *Repository) FindPerformanceComponentByID(ctx context.Context, id uuid.UUID) (*PerformanceComponent, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var c PerformanceComponent
+	if err := db.WithContext(ctx).First(&c, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("performance component not found")
+		}
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (r *Repository) ListPerformanceComponents(ctx context.Context, page, perPage int) ([]PerformanceComponent, int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var list []PerformanceComponent
+	var total int64
+	query := db.WithContext(ctx).Model(&PerformanceComponent{})
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("sort_order ASC").Find(&list).Error; err != nil {
+		return nil, 0, err
+	}
+	return list, total, nil
+}
+
+func (r *Repository) UpdatePerformanceComponent(ctx context.Context, c *PerformanceComponent) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(c).Error
+}
+
+func (r *Repository) DeletePerformanceComponent(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&PerformanceComponent{}, id).Error
+}
+
+// =========================================================================
+// Performance Organization Components
+// =========================================================================
+
+func (r *Repository) FindOrganizationComponent(ctx context.Context, orgID, componentID uuid.UUID) (*PerformanceOrganizationComponent, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var oc PerformanceOrganizationComponent
+	if err := db.WithContext(ctx).
+		Where("organization_id = ? AND component_id = ?", orgID, componentID).
+		First(&oc).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &oc, nil
+}
+
+func (r *Repository) CreateOrganizationComponent(ctx context.Context, oc *PerformanceOrganizationComponent) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(oc).Error
+}
+
+func (r *Repository) UpdateOrganizationComponent(ctx context.Context, oc *PerformanceOrganizationComponent) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(oc).Error
+}
+
+func (r *Repository) ListOrganizationComponentsByOrgID(ctx context.Context, orgID uuid.UUID) ([]PerformanceOrganizationComponent, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []PerformanceOrganizationComponent
+	if err := db.WithContext(ctx).
+		Where("organization_id = ?", orgID).
+		Order("sort_order ASC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) ListEnabledOrganizationComponentsByOrgID(ctx context.Context, orgID uuid.UUID) ([]PerformanceOrganizationComponent, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []PerformanceOrganizationComponent
+	if err := db.WithContext(ctx).
+		Where("organization_id = ? AND is_enabled = ?", orgID, true).
+		Order("sort_order ASC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) DeleteOrganizationComponent(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&PerformanceOrganizationComponent{}, id).Error
+}
+
+// =========================================================================
+// Performance Evaluation Components
+// =========================================================================
+
+func (r *Repository) UpsertEvaluationComponent(ctx context.Context, ec *PerformanceEvaluationComponent) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	var existing PerformanceEvaluationComponent
+	err = db.WithContext(ctx).
+		Where("evaluation_id = ? AND component_id = ?", ec.EvaluationID, ec.ComponentID).
+		First(&existing).Error
+	if err == nil {
+		ec.ID = existing.ID
+		return db.WithContext(ctx).Save(ec).Error
+	}
+	if err != gorm.ErrRecordNotFound {
+		return err
+	}
+	return db.WithContext(ctx).Create(ec).Error
+}
+
+func (r *Repository) ListEvaluationComponents(ctx context.Context, evaluationID uuid.UUID) ([]PerformanceEvaluationComponent, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []PerformanceEvaluationComponent
+	if err := db.WithContext(ctx).
+		Where("evaluation_id = ?", evaluationID).
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// GetChildOrganizationIDs mengambil ID seluruh direct-child Organization (untuk
+// perhitungan Subordinate KPI berdasarkan struktur parent_id).
+func (r *Repository) GetChildOrganizationIDs(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var ids []uuid.UUID
+	if err := db.WithContext(ctx).Table("organizations").
+		Where("parent_id = ? AND deleted_at IS NULL", orgID).
+		Pluck("id", &ids).Error; err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+// GetAverageFinalScore menghitung rata-rata final_score evaluasi (status APPROVED/
+// COMPLETED) milik sekumpulan Organization pada satu periode — dipakai untuk
+// komponen Subordinate KPI.
+func (r *Repository) GetAverageFinalScore(ctx context.Context, orgIDs []uuid.UUID, periodID uuid.UUID) (float64, error) {
+	if len(orgIDs) == 0 {
+		return 0, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var avg float64
+	if err := db.WithContext(ctx).Model(&PerformanceEvaluation{}).
+		Where("organization_id IN ? AND period_id = ? AND status IN ?", orgIDs, periodID, []string{"APPROVED", "COMPLETED"}).
+		Select("COALESCE(AVG(final_score), 0)").
+		Scan(&avg).Error; err != nil {
+		return 0, err
+	}
+	return avg, nil
 }

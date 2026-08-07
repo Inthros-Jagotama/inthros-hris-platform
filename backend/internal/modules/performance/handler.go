@@ -1004,3 +1004,138 @@ func (h *Handler) GetHRDashboard(c *gin.Context) {
 	}
 	httputil.SuccessJSON(c, resp)
 }
+
+// =========================================================================
+// Performance Components (Phase 5 - Scoring Configuration)
+// =========================================================================
+
+func (h *Handler) CreatePerformanceComponent(c *gin.Context) {
+	var req CreatePerformanceComponentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreatePerformanceComponent(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListPerformanceComponents(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	resp, err := h.svc.ListPerformanceComponents(c.Request.Context(), page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetPerformanceComponentByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetPerformanceComponentByID(c.Request.Context(), id)
+	if err != nil {
+		httputil.NotFound(c, "Performance component not found")
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdatePerformanceComponent(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdatePerformanceComponentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdatePerformanceComponent(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeletePerformanceComponent(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeletePerformanceComponent(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Performance Organization Components
+// =========================================================================
+
+func (h *Handler) UpsertOrganizationComponent(c *gin.Context) {
+	var req UpsertOrganizationComponentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpsertOrganizationComponent(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ListOrganizationComponents(c *gin.Context) {
+	orgID := c.Param("organization_id")
+	resp, err := h.svc.ListOrganizationComponents(c.Request.Context(), orgID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteOrganizationComponent(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteOrganizationComponent(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Performance Evaluation Components (Scoring Engine)
+// =========================================================================
+
+func (h *Handler) ListEvaluationComponents(c *gin.Context) {
+	evalID := c.Param("id")
+	resp, err := h.svc.ListEvaluationComponents(c.Request.Context(), evalID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) CalculateEvaluationComponentScoring(c *gin.Context) {
+	evalID := c.Param("id")
+	resp, err := h.svc.CalculateEvaluationComponentScoring(c.Request.Context(), evalID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateEvaluationComponentScore(c *gin.Context) {
+	evalID := c.Param("id")
+	componentID := c.Param("component_id")
+	var req UpdateEvaluationComponentScoreRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateEvaluationComponentScore(c.Request.Context(), evalID, componentID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
