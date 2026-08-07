@@ -615,6 +615,66 @@ func (r *Repository) DeleteEvaluationDetail(ctx context.Context, id uuid.UUID) e
 }
 
 // =========================================================================
+// PerformanceEvaluationProgramItem
+// =========================================================================
+
+func (r *Repository) CreateProgramItem(ctx context.Context, p *PerformanceEvaluationProgramItem) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(p).Error
+}
+
+func (r *Repository) FindProgramItemByID(ctx context.Context, id uuid.UUID) (*PerformanceEvaluationProgramItem, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var p PerformanceEvaluationProgramItem
+	if err := db.WithContext(ctx).First(&p, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("program item not found")
+		}
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (r *Repository) ListProgramItemsByEvaluationID(ctx context.Context, evalID uuid.UUID) ([]PerformanceEvaluationProgramItem, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []PerformanceEvaluationProgramItem
+	if err := db.WithContext(ctx).Where("performance_evaluation_id = ?", evalID).
+		Order("sort_order ASC, created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateProgramItem(ctx context.Context, p *PerformanceEvaluationProgramItem) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(p).Error
+}
+
+func (r *Repository) DeleteProgramItem(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&PerformanceEvaluationProgramItem{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("program item not found")
+	}
+	return result.Error
+}
+
+// =========================================================================
 // Performance Targets
 // =========================================================================
 

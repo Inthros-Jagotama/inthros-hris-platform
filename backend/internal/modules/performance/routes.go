@@ -78,9 +78,18 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			kpi.PUT("/evaluation-details/:id", handler.UpdateEvaluationDetail)
 			kpi.DELETE("/evaluation-details/:id", handler.DeleteEvaluationDetail)
 
-			// Evaluation Actuals Input
+			// Evaluation Target/Actual Input (two-phase: target while DRAFT,
+			// actual once TARGET_APPROVED)
+			kpi.PUT("/evaluation-details/:id/target", handler.UpdateEvaluationTarget)
 			kpi.PUT("/evaluation-details/:id/actual", handler.UpdateEvaluationActual)
 			kpi.PUT("/evaluations/:id/actuals", handler.BulkUpdateEvaluationActuals)
+
+			// Program Items (employee-authored, no HR template)
+			kpi.POST("/program-items", handler.CreateProgramItem)
+			kpi.GET("/evaluations/:id/program-items", handler.ListProgramItems)
+			kpi.PUT("/program-items/:id/target", handler.UpdateProgramItemTarget)
+			kpi.PUT("/program-items/:id/actual", handler.UpdateProgramItemActual)
+			kpi.DELETE("/program-items/:id", handler.DeleteProgramItem)
 
 			// Performance Targets
 			kpi.POST("/targets", handler.CreatePerformanceTarget)
@@ -114,6 +123,11 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			kpi.GET("/evaluations/:id/progress-summary", handler.GetEvaluationProgressSummary)
 
 			// Workflow Status Transitions
+			// Phase 1: DRAFT -> TARGET_SUBMITTED -> TARGET_APPROVED ("Ajukan Target")
+			kpi.POST("/evaluations/:id/submit-target", handler.SubmitTarget)
+			kpi.POST("/evaluations/:id/approve-target", handler.ApproveTarget)
+			kpi.POST("/evaluations/:id/reject-target", handler.RejectTarget)
+			// Phase 2: TARGET_APPROVED -> SUBMITTED -> APPROVED -> COMPLETED ("Ajukan Realisasi")
 			kpi.POST("/evaluations/:id/submit", handler.SubmitEvaluation)
 			kpi.POST("/evaluations/:id/approve", handler.ApproveEvaluation)
 			kpi.POST("/evaluations/:id/reject", handler.RejectEvaluation)

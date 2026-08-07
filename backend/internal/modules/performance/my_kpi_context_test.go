@@ -28,6 +28,10 @@ func setupMyKPIContextTestDB(t *testing.T) (*Service, func(ctx context.Context) 
 		&PerformanceIndicator{},
 		&PerformanceEvaluation{},
 		&PerformanceEvaluationDetail{},
+		&PerformanceEvaluationProgramItem{},
+		&PerformanceComponent{},
+		&PerformanceOrganizationComponent{},
+		&PerformanceRating{},
 	); err != nil {
 		t.Fatalf("failed to migrate test db: %v", err)
 	}

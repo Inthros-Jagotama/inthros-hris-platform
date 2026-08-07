@@ -207,6 +207,8 @@ type PerformanceEvaluationResponse struct {
 	Status         string    `json:"status"`
 	SubmittedAt    string    `json:"submitted_at,omitempty"`
 	ApprovedAt     string    `json:"approved_at,omitempty"`
+	TargetSubmittedAt string `json:"target_submitted_at,omitempty"`
+	TargetApprovedAt  string `json:"target_approved_at,omitempty"`
 	Notes          string    `json:"notes,omitempty"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
@@ -500,9 +502,48 @@ type CreateEvaluationWithSnapshotRequest struct {
 }
 
 // UpdateEvaluationActualRequest updates actual values for evaluation detail
+type UpdateEvaluationTargetRequest struct {
+	Target float64 `json:"target" binding:"required"`
+}
+
 type UpdateEvaluationActualRequest struct {
 	Actual  float64 `json:"actual" binding:"required"`
 	Remarks *string `json:"remarks"`
+}
+
+// =========================================================================
+// Performance Evaluation Program Item DTOs
+// =========================================================================
+
+type CreateProgramItemRequest struct {
+	PerformanceEvaluationID string  `json:"performance_evaluation_id" binding:"required"`
+	Title                   string  `json:"title" binding:"required,max=255"`
+	FormulaType             string  `json:"formula_type" binding:"omitempty,oneof=MANUAL HIGHER_BETTER LOWER_BETTER RANGE"`
+	Target                  float64 `json:"target"`
+}
+
+type UpdateProgramItemTargetRequest struct {
+	Title       *string  `json:"title" binding:"omitempty,max=255"`
+	FormulaType *string  `json:"formula_type" binding:"omitempty,oneof=MANUAL HIGHER_BETTER LOWER_BETTER RANGE"`
+	Target      *float64 `json:"target"`
+}
+
+type UpdateProgramItemActualRequest struct {
+	Actual float64 `json:"actual" binding:"required"`
+}
+
+type ProgramItemResponse struct {
+	ID                      string    `json:"id"`
+	PerformanceEvaluationID string    `json:"performance_evaluation_id"`
+	Title                   string    `json:"title"`
+	FormulaType             string    `json:"formula_type"`
+	Target                  float64   `json:"target"`
+	Actual                  float64   `json:"actual"`
+	Achievement             float64   `json:"achievement"`
+	Score                   float64   `json:"score"`
+	SortOrder               int       `json:"sort_order"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
 }
 
 // BulkUpdateEvaluationActualRequest updates multiple evaluation details
@@ -531,13 +572,16 @@ type EvaluationWithDetailsResponse struct {
 	RatingID         string                     `json:"rating_id,omitempty"`
 	RatingName       string                     `json:"rating_name,omitempty"`
 	RatingColor      string                     `json:"rating_color,omitempty"`
-	Status           string                     `json:"status"`
-	SubmittedAt      string                     `json:"submitted_at,omitempty"`
-	ApprovedAt       string                     `json:"approved_at,omitempty"`
-	Notes            string                     `json:"notes,omitempty"`
-	CreatedAt        time.Time                  `json:"created_at"`
-	UpdatedAt        time.Time                  `json:"updated_at"`
-	Details          []EvaluationDetailResponse `json:"details"`
+	Status            string                     `json:"status"`
+	SubmittedAt       string                     `json:"submitted_at,omitempty"`
+	ApprovedAt        string                     `json:"approved_at,omitempty"`
+	TargetSubmittedAt string                     `json:"target_submitted_at,omitempty"`
+	TargetApprovedAt  string                     `json:"target_approved_at,omitempty"`
+	Notes             string                     `json:"notes,omitempty"`
+	CreatedAt         time.Time                  `json:"created_at"`
+	UpdatedAt         time.Time                  `json:"updated_at"`
+	Details           []EvaluationDetailResponse `json:"details"`
+	ProgramItems      []ProgramItemResponse      `json:"program_items,omitempty"`
 }
 
 // ProgressSummaryResponse returns progress summary for an evaluation

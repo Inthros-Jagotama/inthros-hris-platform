@@ -845,6 +845,20 @@ func (h *Handler) GetEvaluationWithDetails(c *gin.Context) {
 }
 
 // UpdateEvaluationActual updates actual value with auto calculation
+func (h *Handler) UpdateEvaluationTarget(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateEvaluationTargetRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateEvaluationTarget(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) UpdateEvaluationActual(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateEvaluationActualRequest
@@ -857,6 +871,70 @@ func (h *Handler) UpdateEvaluationActual(c *gin.Context) {
 		return
 	}
 	httputil.SuccessJSON(c, resp)
+}
+
+// =========================================================================
+// Performance Evaluation Program Items
+// =========================================================================
+
+func (h *Handler) CreateProgramItem(c *gin.Context) {
+	var req CreateProgramItemRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateProgramItem(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListProgramItems(c *gin.Context) {
+	evalID := c.Param("id")
+	items, err := h.svc.ListProgramItems(c.Request.Context(), evalID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": items})
+}
+
+func (h *Handler) UpdateProgramItemTarget(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateProgramItemTargetRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateProgramItemTarget(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateProgramItemActual(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateProgramItemActualRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateProgramItemActual(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteProgramItem(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteProgramItem(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Program item deleted"})
 }
 
 // BulkUpdateEvaluationActuals updates multiple details with auto calculation
@@ -901,6 +979,42 @@ func (h *Handler) GetEvaluationProgressSummary(c *gin.Context) {
 }
 
 // SubmitEvaluation changes status to SUBMITTED
+func (h *Handler) SubmitTarget(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.SubmitTarget(c.Request.Context(), id)
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ApproveTarget(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.ApproveTarget(c.Request.Context(), id)
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) RejectTarget(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		Notes *string `json:"notes"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// Notes is optional, so ignore binding error
+	}
+	resp, err := h.svc.RejectTarget(c.Request.Context(), id, req.Notes)
+	if err != nil {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) SubmitEvaluation(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.SubmitEvaluation(c.Request.Context(), id)

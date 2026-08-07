@@ -909,6 +909,162 @@ func (s *Service) DeleteEvaluationDetail(ctx context.Context, id string) error {
 }
 
 // =========================================================================
+// Performance Evaluation Program Items — employee-authored, no HR template.
+// Create/edit-target only while the parent evaluation is DRAFT; edit-actual
+// only once the target has been approved (TARGET_APPROVED).
+// =========================================================================
+
+func programItemToResponse(p *PerformanceEvaluationProgramItem) *ProgramItemResponse {
+	return &ProgramItemResponse{
+		ID:                      p.ID.String(),
+		PerformanceEvaluationID: p.PerformanceEvaluationID.String(),
+		Title:                   p.Title,
+		FormulaType:             p.FormulaType,
+		Target:                  p.Target,
+		Actual:                  p.Actual,
+		Achievement:             p.Achievement,
+		Score:                   p.Score,
+		SortOrder:               p.SortOrder,
+		CreatedAt:               p.CreatedAt,
+		UpdatedAt:               p.UpdatedAt,
+	}
+}
+
+func (s *Service) CreateProgramItem(ctx context.Context, req CreateProgramItemRequest) (*ProgramItemResponse, error) {
+	evalID, err := uuid.Parse(req.PerformanceEvaluationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid performance_evaluation_id: %w", err)
+	}
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, evalID)
+	if err != nil {
+		return nil, err
+	}
+	if eval.Status != "DRAFT" {
+		return nil, fmt.Errorf("program items can only be added while the evaluation is in DRAFT status, current: %s", eval.Status)
+	}
+
+	existing, err := s.repo.ListProgramItemsByEvaluationID(ctx, evalID)
+	if err != nil {
+		return nil, err
+	}
+
+	formulaType := req.FormulaType
+	if formulaType == "" {
+		formulaType = "MANUAL"
+	}
+	p := &PerformanceEvaluationProgramItem{
+		PerformanceEvaluationID: evalID,
+		Title:                   req.Title,
+		FormulaType:             formulaType,
+		Target:                  req.Target,
+		SortOrder:               len(existing),
+	}
+	if err := s.repo.CreateProgramItem(ctx, p); err != nil {
+		return nil, err
+	}
+	return programItemToResponse(p), nil
+}
+
+func (s *Service) ListProgramItems(ctx context.Context, evalID string) ([]ProgramItemResponse, error) {
+	uid, err := uuid.Parse(evalID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid evaluation_id: %w", err)
+	}
+	list, err := s.repo.ListProgramItemsByEvaluationID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]ProgramItemResponse, 0, len(list))
+	for _, p := range list {
+		responses = append(responses, *programItemToResponse(&p))
+	}
+	return responses, nil
+}
+
+func (s *Service) UpdateProgramItemTarget(ctx context.Context, id string, req UpdateProgramItemTargetRequest) (*ProgramItemResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	p, err := s.repo.FindProgramItemByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, p.PerformanceEvaluationID)
+	if err != nil {
+		return nil, err
+	}
+	if eval.Status != "DRAFT" {
+		return nil, fmt.Errorf("program item target can only be edited while the evaluation is in DRAFT status, current: %s", eval.Status)
+	}
+
+	if req.Title != nil {
+		p.Title = *req.Title
+	}
+	if req.FormulaType != nil {
+		p.FormulaType = *req.FormulaType
+	}
+	if req.Target != nil {
+		p.Target = *req.Target
+	}
+	if err := s.repo.UpdateProgramItem(ctx, p); err != nil {
+		return nil, err
+	}
+	return programItemToResponse(p), nil
+}
+
+func (s *Service) UpdateProgramItemActual(ctx context.Context, id string, req UpdateProgramItemActualRequest) (*ProgramItemResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	p, err := s.repo.FindProgramItemByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, p.PerformanceEvaluationID)
+	if err != nil {
+		return nil, err
+	}
+	if eval.Status != "TARGET_APPROVED" {
+		return nil, fmt.Errorf("program item actual can only be filled once the target is approved, current status: %s", eval.Status)
+	}
+
+	p.Actual = req.Actual
+	if p.Target > 0 {
+		p.Achievement = (p.Actual / p.Target) * 100
+		if p.Achievement > 100 {
+			p.Achievement = 100
+		}
+	}
+	p.Score = p.Achievement
+
+	if err := s.repo.UpdateProgramItem(ctx, p); err != nil {
+		return nil, err
+	}
+	return programItemToResponse(p), nil
+}
+
+func (s *Service) DeleteProgramItem(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	p, err := s.repo.FindProgramItemByID(ctx, uid)
+	if err != nil {
+		return err
+	}
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, p.PerformanceEvaluationID)
+	if err != nil {
+		return err
+	}
+	if eval.Status != "DRAFT" {
+		return fmt.Errorf("program items can only be removed while the evaluation is in DRAFT status, current: %s", eval.Status)
+	}
+	return s.repo.DeleteProgramItem(ctx, uid)
+}
+
+// =========================================================================
 // Performance Targets
 // =========================================================================
 
@@ -1116,6 +1272,12 @@ func evaluationToResponse(e *PerformanceEvaluation) *PerformanceEvaluationRespon
 	}
 	if e.ApprovedAt != nil {
 		r.ApprovedAt = e.ApprovedAt.Format(time.RFC3339)
+	}
+	if e.TargetSubmittedAt != nil {
+		r.TargetSubmittedAt = e.TargetSubmittedAt.Format(time.RFC3339)
+	}
+	if e.TargetApprovedAt != nil {
+		r.TargetApprovedAt = e.TargetApprovedAt.Format(time.RFC3339)
 	}
 	if e.Notes != nil {
 		r.Notes = *e.Notes
@@ -1945,6 +2107,12 @@ func (s *Service) GetEvaluationWithDetails(ctx context.Context, evalID string) (
 	if eval.ApprovedAt != nil {
 		resp.ApprovedAt = eval.ApprovedAt.Format("2006-01-02 15:04:05")
 	}
+	if eval.TargetSubmittedAt != nil {
+		resp.TargetSubmittedAt = eval.TargetSubmittedAt.Format("2006-01-02 15:04:05")
+	}
+	if eval.TargetApprovedAt != nil {
+		resp.TargetApprovedAt = eval.TargetApprovedAt.Format("2006-01-02 15:04:05")
+	}
 	if eval.Notes != nil {
 		resp.Notes = *eval.Notes
 	}
@@ -2006,10 +2174,45 @@ func (s *Service) GetEvaluationWithDetails(ctx context.Context, evalID string) (
 		resp.Details = append(resp.Details, *dr)
 	}
 
+	programItems, err := s.repo.ListProgramItemsByEvaluationID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range programItems {
+		resp.ProgramItems = append(resp.ProgramItems, *programItemToResponse(&p))
+	}
+
 	return resp, nil
 }
 
-// UpdateEvaluationActual updates actual value and calculates achievement/score
+// UpdateEvaluationTarget sets an indicator's target value — only while the
+// parent evaluation is DRAFT (the employee's first-phase "Ajukan Target" step).
+func (s *Service) UpdateEvaluationTarget(ctx context.Context, detailID string, req UpdateEvaluationTargetRequest) (*EvaluationDetailResponse, error) {
+	uid, err := uuid.Parse(detailID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid detail_id: %w", err)
+	}
+
+	detail, err := s.repo.FindEvaluationDetailByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, detail.PerformanceEvaluationID)
+	if err != nil {
+		return nil, err
+	}
+	if eval.Status != "DRAFT" {
+		return nil, fmt.Errorf("target can only be edited while the evaluation is in DRAFT status, current: %s", eval.Status)
+	}
+
+	detail.Target = req.Target
+	if err := s.repo.UpdateEvaluationDetail(ctx, detail); err != nil {
+		return nil, err
+	}
+	return detailToResponse(detail), nil
+}
+
 func (s *Service) UpdateEvaluationActual(ctx context.Context, detailID string, req UpdateEvaluationActualRequest) (*EvaluationDetailResponse, error) {
 	uid, err := uuid.Parse(detailID)
 	if err != nil {
@@ -2019,6 +2222,14 @@ func (s *Service) UpdateEvaluationActual(ctx context.Context, detailID string, r
 	detail, err := s.repo.FindEvaluationDetailByID(ctx, uid)
 	if err != nil {
 		return nil, err
+	}
+
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, detail.PerformanceEvaluationID)
+	if err != nil {
+		return nil, err
+	}
+	if eval.Status != "TARGET_APPROVED" {
+		return nil, fmt.Errorf("actual can only be filled once the target is approved, current status: %s", eval.Status)
 	}
 
 	// Update actual value
@@ -2163,8 +2374,11 @@ func (s *Service) GetEvaluationProgressSummary(ctx context.Context, evalID strin
 	}, nil
 }
 
-// SubmitEvaluation changes status from DRAFT to SUBMITTED
-func (s *Service) SubmitEvaluation(ctx context.Context, evalID string) (*PerformanceEvaluationResponse, error) {
+// SubmitTarget changes status from DRAFT to TARGET_SUBMITTED — the employee's
+// first-phase submission ("Ajukan Target"). Requires every indicator's
+// target to be filled, and (if the org has PROGRAM enabled) at least one
+// program item with a target.
+func (s *Service) SubmitTarget(ctx context.Context, evalID string) (*PerformanceEvaluationResponse, error) {
 	uid, err := uuid.Parse(evalID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid evaluation_id: %w", err)
@@ -2176,7 +2390,130 @@ func (s *Service) SubmitEvaluation(ctx context.Context, evalID string) (*Perform
 	}
 
 	if eval.Status != "DRAFT" {
-		return nil, fmt.Errorf("evaluation can only be submitted from DRAFT status, current: %s", eval.Status)
+		return nil, fmt.Errorf("target can only be submitted from DRAFT status, current: %s", eval.Status)
+	}
+
+	details, err := s.repo.ListEvaluationDetails(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range details {
+		if d.Target == 0 {
+			return nil, fmt.Errorf("all indicator targets must be filled before submission")
+		}
+	}
+
+	orgComponents, err := s.repo.ListEnabledOrganizationComponentsByOrgID(ctx, eval.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+	programEnabled := false
+	for _, oc := range orgComponents {
+		comp, err := s.repo.FindPerformanceComponentByID(ctx, oc.ComponentID)
+		if err == nil && comp.Code == ComponentCodeProgram {
+			programEnabled = true
+			break
+		}
+	}
+	if programEnabled {
+		items, err := s.repo.ListProgramItemsByEvaluationID(ctx, uid)
+		if err != nil {
+			return nil, err
+		}
+		if len(items) == 0 {
+			return nil, fmt.Errorf("at least one program item is required before submission")
+		}
+		for _, it := range items {
+			if it.Target == 0 {
+				return nil, fmt.Errorf("all program item targets must be filled before submission")
+			}
+		}
+	}
+
+	now := time.Now()
+	eval.Status = "TARGET_SUBMITTED"
+	eval.TargetSubmittedAt = &now
+
+	if err := s.repo.UpdatePerformanceEvaluation(ctx, eval); err != nil {
+		return nil, err
+	}
+
+	return evaluationToResponse(eval), nil
+}
+
+// ApproveTarget changes status from TARGET_SUBMITTED to TARGET_APPROVED,
+// unlocking the realization ("Actual") fields for the employee.
+func (s *Service) ApproveTarget(ctx context.Context, evalID string) (*PerformanceEvaluationResponse, error) {
+	uid, err := uuid.Parse(evalID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid evaluation_id: %w", err)
+	}
+
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	if eval.Status != "TARGET_SUBMITTED" {
+		return nil, fmt.Errorf("target can only be approved from TARGET_SUBMITTED status, current: %s", eval.Status)
+	}
+
+	now := time.Now()
+	eval.Status = "TARGET_APPROVED"
+	eval.TargetApprovedAt = &now
+
+	if err := s.repo.UpdatePerformanceEvaluation(ctx, eval); err != nil {
+		return nil, err
+	}
+
+	return evaluationToResponse(eval), nil
+}
+
+// RejectTarget changes status from TARGET_SUBMITTED back to DRAFT so the
+// employee can revise their proposed target.
+func (s *Service) RejectTarget(ctx context.Context, evalID string, notes *string) (*PerformanceEvaluationResponse, error) {
+	uid, err := uuid.Parse(evalID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid evaluation_id: %w", err)
+	}
+
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	if eval.Status != "TARGET_SUBMITTED" {
+		return nil, fmt.Errorf("target can only be rejected from TARGET_SUBMITTED status, current: %s", eval.Status)
+	}
+
+	eval.Status = "DRAFT"
+	eval.TargetSubmittedAt = nil
+	if notes != nil {
+		eval.Notes = notes
+	}
+
+	if err := s.repo.UpdatePerformanceEvaluation(ctx, eval); err != nil {
+		return nil, err
+	}
+
+	return evaluationToResponse(eval), nil
+}
+
+// SubmitEvaluation changes status from TARGET_APPROVED to SUBMITTED — the
+// employee's second-phase submission ("Ajukan Realisasi").
+func (s *Service) SubmitEvaluation(ctx context.Context, evalID string) (*PerformanceEvaluationResponse, error) {
+	uid, err := uuid.Parse(evalID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid evaluation_id: %w", err)
+	}
+
+	eval, err := s.repo.FindPerformanceEvaluationByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	if eval.Status != "TARGET_APPROVED" {
+		return nil, fmt.Errorf("evaluation can only be submitted from TARGET_APPROVED status, current: %s", eval.Status)
 	}
 
 	// Check if all details have actual values
@@ -2230,7 +2567,8 @@ func (s *Service) ApproveEvaluation(ctx context.Context, evalID string) (*Perfor
 	return evaluationToResponse(eval), nil
 }
 
-// RejectEvaluation changes status from SUBMITTED back to DRAFT for revision
+// RejectEvaluation changes status from SUBMITTED back to TARGET_APPROVED so
+// the employee can revise their realization/actual values
 func (s *Service) RejectEvaluation(ctx context.Context, evalID string, notes *string) (*PerformanceEvaluationResponse, error) {
 	uid, err := uuid.Parse(evalID)
 	if err != nil {
@@ -2246,8 +2584,10 @@ func (s *Service) RejectEvaluation(ctx context.Context, evalID string, notes *st
 		return nil, fmt.Errorf("evaluation can only be rejected from SUBMITTED status, current: %s", eval.Status)
 	}
 
-	// Update status
-	eval.Status = "DRAFT"
+	// Update status — reverts to TARGET_APPROVED (not all the way back to
+	// DRAFT) since the target itself was already approved separately; the
+	// employee only needs to revise their realization/actual values.
+	eval.Status = "TARGET_APPROVED"
 	eval.SubmittedAt = nil
 	if notes != nil {
 		eval.Notes = notes
@@ -3115,6 +3455,18 @@ func (s *Service) CalculateEvaluationComponentScoring(ctx context.Context, evalI
 		switch comp.Code {
 		case ComponentCodeKPI:
 			score = kpiScore
+		case ComponentCodeProgram:
+			items, err := s.repo.ListProgramItemsByEvaluationID(ctx, evalUUID)
+			if err != nil {
+				return nil, err
+			}
+			if len(items) > 0 {
+				var total float64
+				for _, it := range items {
+					total += it.Score
+				}
+				score = total / float64(len(items))
+			}
 		case ComponentCodeSubordinate:
 			childIDs, err := s.repo.GetChildOrganizationIDs(ctx, eval.OrganizationID)
 			if err != nil {
@@ -3125,8 +3477,8 @@ func (s *Service) CalculateEvaluationComponentScoring(ctx context.Context, evalI
 				return nil, err
 			}
 		default:
-			// Komponen tanpa sumber data otomatis (mis. Work Program) — pertahankan
-			// skor manual yang sudah pernah diisi reviewer, default 0 jika belum ada.
+			// Komponen tanpa sumber data otomatis — pertahankan skor manual yang
+			// sudah pernah diisi reviewer, default 0 jika belum ada.
 			score = existingScoreByComponent[oc.ComponentID]
 		}
 

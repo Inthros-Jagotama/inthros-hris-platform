@@ -180,6 +180,8 @@ type PerformanceEvaluation struct {
 	ActualApprovedAt  *int64     `gorm:"type:bigint;default:0" json:"-"`
 	SubmittedAt       *time.Time `gorm:"type:timestamp" json:"submitted_at,omitempty"`
 	ApprovedAt        *time.Time `gorm:"type:timestamp" json:"approved_at,omitempty"`
+	TargetSubmittedAt *time.Time `gorm:"type:timestamp" json:"target_submitted_at,omitempty"`
+	TargetApprovedAt  *time.Time `gorm:"type:timestamp" json:"target_approved_at,omitempty"`
 	Notes             *string    `gorm:"type:text" json:"notes,omitempty"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
@@ -228,6 +230,37 @@ func (PerformanceEvaluationDetail) TableName() string {
 func (d *PerformanceEvaluationDetail) BeforeCreate(tx *gorm.DB) error {
 	if d.ID == uuid.Nil {
 		d.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// PerformanceEvaluationProgramItem — Program items the employee proposes
+// themselves per evaluation (no HR-authored template, unlike indicators).
+// Only relevant when the org's PROGRAM component is enabled.
+// =========================================================================
+
+type PerformanceEvaluationProgramItem struct {
+	ID                      uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	PerformanceEvaluationID uuid.UUID `gorm:"type:char(36);not null;index:idx_perf_prog_eval" json:"performance_evaluation_id"`
+	Title                   string    `gorm:"type:varchar(255);not null" json:"title"`
+	FormulaType             string    `gorm:"type:varchar(30);not null;default:MANUAL" json:"formula_type"`
+	Target                  float64   `gorm:"type:decimal(18,2);not null;default:0" json:"target"`
+	Actual                  float64   `gorm:"type:decimal(18,2);not null;default:0" json:"actual"`
+	Achievement             float64   `gorm:"type:decimal(5,2);not null;default:0" json:"achievement"`
+	Score                   float64   `gorm:"type:decimal(5,2);default:0" json:"score"`
+	SortOrder               int       `gorm:"type:smallint;default:0" json:"sort_order"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
+}
+
+func (PerformanceEvaluationProgramItem) TableName() string {
+	return "performance_evaluation_program_items"
+}
+
+func (p *PerformanceEvaluationProgramItem) BeforeCreate(tx *gorm.DB) error {
+	if p.ID == uuid.Nil {
+		p.ID = uuid.New()
 	}
 	return nil
 }
