@@ -74,7 +74,8 @@
     "email": "Email",
     "clear": "Bersihkan",
     "date": "Tanggal",
-    "notes": "Catatan"
+    "notes": "Catatan",
+    "select_date": "Pilih tanggal"
   },
   "form": {
     "required": "Field ini wajib diisi"
@@ -515,6 +516,9 @@
     "weight_must_100": "Total bobot semua indikator harus 100%.",
     "search_templates": "Cari template...",
     "new_template": "Template Baru",
+    "template_new": "Template Baru",
+    "template_edit": "Edit Template",
+    "template_desc": "Definisikan indikator KPI untuk template ini.",
     "duplicate": "Duplikat",
     "delete_template_title": "Hapus Template",
     "delete_template_message": "Yakin ingin menghapus template \"{name}\"? Tindakan ini tidak dapat dibatalkan.",

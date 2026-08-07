@@ -74,7 +74,8 @@
     "email": "Email",
     "clear": "Clear",
     "date": "Date",
-    "notes": "Notes"
+    "notes": "Notes",
+    "select_date": "Select date"
   },
   "form": {
     "required": "This field is required"
@@ -515,6 +516,9 @@
     "weight_must_100": "Total weight of all indicators must equal 100%.",
     "search_templates": "Search templates...",
     "new_template": "New Template",
+    "template_new": "New Template",
+    "template_edit": "Edit Template",
+    "template_desc": "Define KPI indicators for this template.",
     "duplicate": "Duplicate",
     "delete_template_title": "Delete Template",
     "delete_template_message": "Are you sure you want to delete template \"{name}\"? This cannot be undone.",

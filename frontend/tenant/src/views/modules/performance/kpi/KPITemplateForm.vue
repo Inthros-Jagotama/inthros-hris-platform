@@ -148,7 +148,7 @@ const form = ref({
   description: '',
   organization_id: null,
   period_id: null,
-  status: 0
+  status: 'DRAFT'
 })
 
 const indicators = ref([])
@@ -159,9 +159,9 @@ const perspectiveOptions = ref([])
 const formulaOptions = ref([])
 
 const statusOptions = [
-  { label: 'Draft', value: 0 },
-  { label: 'Active', value: 1 },
-  { label: 'Inactive', value: 2 }
+  { label: 'Draft', value: 'DRAFT' },
+  { label: 'Published', value: 'PUBLISHED' },
+  { label: 'Archived', value: 'ARCHIVED' }
 ]
 
 const totalWeight = computed(() => {
@@ -248,7 +248,7 @@ async function loadTemplate() {
       description: data.description || '',
       organization_id: data.organization_id || null,
       period_id: data.period_id || null,
-      status: data.status ?? 0
+      status: data.status || 'DRAFT'
     }
 
     // Load indicators for this template
