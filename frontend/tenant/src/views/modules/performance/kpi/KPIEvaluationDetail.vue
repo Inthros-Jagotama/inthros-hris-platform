@@ -92,6 +92,21 @@
             </template>
           </Column>
 
+          <Column field="unit_of_measurement" :header="t('kpi.unit')" style="width:100px">
+            <template #body="{data}">
+              <InputText
+                v-if="canEditTarget"
+                v-model="data.unit_of_measurement"
+                :placeholder="t('kpi.unit_placeholder')"
+                class="w-full !text-xs"
+                size="small"
+                maxlength="50"
+                @blur="updateTarget(data)"
+              />
+              <span v-else class="text-gray-500 dark:text-gray-400 text-xs">{{ data.unit_of_measurement || '-' }}</span>
+            </template>
+          </Column>
+
           <Column field="actual_value" :header="t('kpi.actual')" style="width:120px">
             <template #body="{data}">
               <InputNumber
@@ -152,9 +167,14 @@
               <Tag :value="data.formula_type" severity="secondary" class="!text-xs" />
             </template>
           </Column>
-          <Column field="target" :header="t('kpi.target')" style="width:100px">
+          <Column field="weight" :header="t('kpi.weight')" style="width:80px">
             <template #body="{data}">
-              <span class="text-gray-600 dark:text-gray-300 font-mono">{{ formatNumber(data.target) }}</span>
+              <span class="text-gray-600 dark:text-gray-300 font-mono">{{ data.weight?.toFixed(1) || '0.0' }}%</span>
+            </template>
+          </Column>
+          <Column field="target" :header="t('kpi.target')" style="width:120px">
+            <template #body="{data}">
+              <span class="text-gray-600 dark:text-gray-300 font-mono">{{ formatNumber(data.target) }} {{ data.unit_of_measurement }}</span>
             </template>
           </Column>
           <Column field="actual" :header="t('kpi.actual')" style="width:120px">
@@ -272,9 +292,17 @@
         <FormRow :label="t('kpi.program_item_title')" required :errors="programItemErrors?.title">
           <TextInput v-model="programItemForm.title" maxlength="255" autofocus :placeholder="t('kpi.program_item_title_placeholder')" :class="{'p-invalid':programItemErrors?.title}" />
         </FormRow>
-        <FormRow :label="t('kpi.target')" required :errors="programItemErrors?.target">
-          <InputNumber v-model="programItemForm.target" class="!w-full" :minFractionDigits="0" :maxFractionDigits="2" size="small" />
+        <FormRow :label="t('kpi.weight')" required :errors="programItemErrors?.weight">
+          <InputNumber v-model="programItemForm.weight" class="!w-full" :min="0" :max="100" :minFractionDigits="0" :maxFractionDigits="2" suffix="%" size="small" />
         </FormRow>
+        <div class="grid grid-cols-2 gap-4">
+          <FormRow :label="t('kpi.target')" required :errors="programItemErrors?.target">
+            <InputNumber v-model="programItemForm.target" class="!w-full" :minFractionDigits="0" :maxFractionDigits="2" size="small" />
+          </FormRow>
+          <FormRow :label="t('kpi.unit')">
+            <TextInput v-model="programItemForm.unit_of_measurement" maxlength="50" :placeholder="t('kpi.unit_placeholder')" />
+          </FormRow>
+        </div>
         <FormRow :label="t('kpi.formula')">
           <Select v-model="programItemForm.formula_type" :options="formulaOptions" optionLabel="label" optionValue="value" class="w-full" />
         </FormRow>
@@ -301,6 +329,7 @@ import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import FormRow from '@/components/FormRow.vue'
@@ -333,7 +362,7 @@ const programEnabled = ref(false)
 const programItemDialogVisible = ref(false)
 const savingProgramItem = ref(false)
 const programItemErrors = ref({})
-const programItemForm = ref({ title: '', target: 0, formula_type: 'MANUAL' })
+const programItemForm = ref({ title: '', weight: 0, unit_of_measurement: '', target: 0, formula_type: 'MANUAL' })
 
 const formulaOptions = [
   { label: 'Higher Better', value: 'HIGHER_BETTER' },
@@ -521,7 +550,8 @@ async function updateComponentScore(row) {
 async function updateTarget(detail) {
   try {
     await api.put(`/api/v1/tenant/performance/kpi/evaluation-details/${detail.id}/target`, {
-      target: detail.target_value || 0
+      target: detail.target_value || 0,
+      unit_of_measurement: detail.unit_of_measurement || null
     })
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
@@ -540,7 +570,7 @@ async function updateActual(detail) {
 }
 
 function openProgramItemDialog() {
-  programItemForm.value = { title: '', target: 0, formula_type: 'MANUAL' }
+  programItemForm.value = { title: '', weight: 0, unit_of_measurement: '', target: 0, formula_type: 'MANUAL' }
   programItemErrors.value = {}
   programItemDialogVisible.value = true
 }
@@ -549,6 +579,10 @@ async function saveProgramItem() {
   programItemErrors.value = {}
   if (!programItemForm.value.title?.trim()) {
     programItemErrors.value = { title: [t('form.required')] }
+    return
+  }
+  if (!programItemForm.value.weight) {
+    programItemErrors.value = { weight: [t('form.required')] }
     return
   }
   if (!programItemForm.value.target) {
@@ -561,6 +595,8 @@ async function saveProgramItem() {
     await api.post('/api/v1/tenant/performance/kpi/program-items', {
       performance_evaluation_id: evaluationId.value,
       title: programItemForm.value.title,
+      weight: programItemForm.value.weight,
+      unit_of_measurement: programItemForm.value.unit_of_measurement || null,
       target: programItemForm.value.target,
       formula_type: programItemForm.value.formula_type
     })
