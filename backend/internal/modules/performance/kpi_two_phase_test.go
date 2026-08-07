@@ -87,9 +87,14 @@ func TestService_TwoPhaseWorkflow_FullCycle(t *testing.T) {
 	}
 	detailID := full.Details[0].ID
 
-	// Fill target while DRAFT.
-	if _, err := svc.UpdateEvaluationTarget(ctx, detailID, UpdateEvaluationTargetRequest{Target: 1000}); err != nil {
+	// Fill target (and its unit) while DRAFT.
+	unit := "IDR"
+	targetResp, err := svc.UpdateEvaluationTarget(ctx, detailID, UpdateEvaluationTargetRequest{Target: 1000, UnitOfMeasurement: &unit})
+	if err != nil {
 		t.Fatalf("UpdateEvaluationTarget failed: %v", err)
+	}
+	if targetResp.UnitOfMeasurement != "IDR" {
+		t.Errorf("expected unit_of_measurement 'IDR', got %q", targetResp.UnitOfMeasurement)
 	}
 
 	// Actual cannot be filled before target is approved.
@@ -183,9 +188,12 @@ func TestService_ProgramItems_CRUDAndStatusGating(t *testing.T) {
 	evalID := setupTwoPhaseEvaluation(t, svc)
 
 	// Create while DRAFT.
+	unit := "unit"
 	item, err := svc.CreateProgramItem(ctx, CreateProgramItemRequest{
 		PerformanceEvaluationID: evalID,
 		Title:                   "Improve onboarding flow",
+		Weight:                  40,
+		UnitOfMeasurement:       &unit,
 		Target:                  10,
 	})
 	if err != nil {
@@ -193,6 +201,12 @@ func TestService_ProgramItems_CRUDAndStatusGating(t *testing.T) {
 	}
 	if item.FormulaType != "MANUAL" {
 		t.Errorf("expected default formula_type MANUAL, got %s", item.FormulaType)
+	}
+	if item.Weight != 40 {
+		t.Errorf("expected weight 40, got %v", item.Weight)
+	}
+	if item.UnitOfMeasurement != "unit" {
+		t.Errorf("expected unit_of_measurement 'unit', got %q", item.UnitOfMeasurement)
 	}
 
 	// Edit target while DRAFT.
@@ -233,6 +247,10 @@ func TestService_ProgramItems_CRUDAndStatusGating(t *testing.T) {
 	}
 	if afterActual.Achievement != 50 {
 		t.Errorf("expected achievement 50%% (10/20), got %v", afterActual.Achievement)
+	}
+	// Score = weight * achievement / 100 = 40 * 50 / 100 = 20.
+	if afterActual.Score != 20 {
+		t.Errorf("expected weighted score 20 (40%% weight * 50%% achievement), got %v", afterActual.Score)
 	}
 }
 

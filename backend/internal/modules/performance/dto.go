@@ -503,7 +503,8 @@ type CreateEvaluationWithSnapshotRequest struct {
 
 // UpdateEvaluationActualRequest updates actual values for evaluation detail
 type UpdateEvaluationTargetRequest struct {
-	Target float64 `json:"target" binding:"required"`
+	Target            float64 `json:"target" binding:"required"`
+	UnitOfMeasurement *string `json:"unit_of_measurement" binding:"omitempty,max=50"`
 }
 
 type UpdateEvaluationActualRequest struct {
@@ -519,13 +520,17 @@ type CreateProgramItemRequest struct {
 	PerformanceEvaluationID string  `json:"performance_evaluation_id" binding:"required"`
 	Title                   string  `json:"title" binding:"required,max=255"`
 	FormulaType             string  `json:"formula_type" binding:"omitempty,oneof=MANUAL HIGHER_BETTER LOWER_BETTER RANGE"`
+	Weight                  float64 `json:"weight"`
+	UnitOfMeasurement       *string `json:"unit_of_measurement" binding:"omitempty,max=50"`
 	Target                  float64 `json:"target"`
 }
 
 type UpdateProgramItemTargetRequest struct {
-	Title       *string  `json:"title" binding:"omitempty,max=255"`
-	FormulaType *string  `json:"formula_type" binding:"omitempty,oneof=MANUAL HIGHER_BETTER LOWER_BETTER RANGE"`
-	Target      *float64 `json:"target"`
+	Title             *string  `json:"title" binding:"omitempty,max=255"`
+	FormulaType       *string  `json:"formula_type" binding:"omitempty,oneof=MANUAL HIGHER_BETTER LOWER_BETTER RANGE"`
+	Weight            *float64 `json:"weight"`
+	UnitOfMeasurement *string  `json:"unit_of_measurement" binding:"omitempty,max=50"`
+	Target            *float64 `json:"target"`
 }
 
 type UpdateProgramItemActualRequest struct {
@@ -537,6 +542,8 @@ type ProgramItemResponse struct {
 	PerformanceEvaluationID string    `json:"performance_evaluation_id"`
 	Title                   string    `json:"title"`
 	FormulaType             string    `json:"formula_type"`
+	Weight                  float64   `json:"weight"`
+	UnitOfMeasurement       string    `json:"unit_of_measurement,omitempty"`
 	Target                  float64   `json:"target"`
 	Actual                  float64   `json:"actual"`
 	Achievement             float64   `json:"achievement"`

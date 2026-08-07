@@ -915,11 +915,12 @@ func (s *Service) DeleteEvaluationDetail(ctx context.Context, id string) error {
 // =========================================================================
 
 func programItemToResponse(p *PerformanceEvaluationProgramItem) *ProgramItemResponse {
-	return &ProgramItemResponse{
+	r := &ProgramItemResponse{
 		ID:                      p.ID.String(),
 		PerformanceEvaluationID: p.PerformanceEvaluationID.String(),
 		Title:                   p.Title,
 		FormulaType:             p.FormulaType,
+		Weight:                  p.Weight,
 		Target:                  p.Target,
 		Actual:                  p.Actual,
 		Achievement:             p.Achievement,
@@ -928,6 +929,10 @@ func programItemToResponse(p *PerformanceEvaluationProgramItem) *ProgramItemResp
 		CreatedAt:               p.CreatedAt,
 		UpdatedAt:               p.UpdatedAt,
 	}
+	if p.UnitOfMeasurement != nil {
+		r.UnitOfMeasurement = *p.UnitOfMeasurement
+	}
+	return r
 }
 
 func (s *Service) CreateProgramItem(ctx context.Context, req CreateProgramItemRequest) (*ProgramItemResponse, error) {
@@ -956,6 +961,8 @@ func (s *Service) CreateProgramItem(ctx context.Context, req CreateProgramItemRe
 		PerformanceEvaluationID: evalID,
 		Title:                   req.Title,
 		FormulaType:             formulaType,
+		Weight:                  req.Weight,
+		UnitOfMeasurement:       req.UnitOfMeasurement,
 		Target:                  req.Target,
 		SortOrder:               len(existing),
 	}
@@ -1004,6 +1011,12 @@ func (s *Service) UpdateProgramItemTarget(ctx context.Context, id string, req Up
 	if req.FormulaType != nil {
 		p.FormulaType = *req.FormulaType
 	}
+	if req.Weight != nil {
+		p.Weight = *req.Weight
+	}
+	if req.UnitOfMeasurement != nil {
+		p.UnitOfMeasurement = req.UnitOfMeasurement
+	}
 	if req.Target != nil {
 		p.Target = *req.Target
 	}
@@ -1037,7 +1050,9 @@ func (s *Service) UpdateProgramItemActual(ctx context.Context, id string, req Up
 			p.Achievement = 100
 		}
 	}
-	p.Score = p.Achievement
+	// Score weighted the same way indicator details are (weight * achievement
+	// / 100), so the Program component's score is a proper weighted sum.
+	p.Score = (p.Weight * p.Achievement) / 100
 
 	if err := s.repo.UpdateProgramItem(ctx, p); err != nil {
 		return nil, err
@@ -1304,6 +1319,9 @@ func detailToResponse(d *PerformanceEvaluationDetail) *EvaluationDetailResponse 
 	}
 	if d.IndicatorName != nil {
 		r.IndicatorName = *d.IndicatorName
+	}
+	if d.UnitOfMeasurement != nil {
+		r.UnitOfMeasurement = *d.UnitOfMeasurement
 	}
 	if d.Description != nil {
 		r.Description = *d.Description
@@ -2168,7 +2186,12 @@ func (s *Service) GetEvaluationWithDetails(ctx context.Context, evalID string) (
 		dr := detailToResponse(&d)
 		dr.PerspectiveName = perspNames[dr.PerspectiveID]
 		if meta, ok := indicatorMetas[dr.IndicatorID]; ok {
-			dr.UnitOfMeasurement = meta.UnitOfMeasurement
+			// The employee-entered unit (set alongside the target) takes
+			// priority; fall back to the indicator's own unit only for
+			// older data from before the template stopped authoring it.
+			if dr.UnitOfMeasurement == "" {
+				dr.UnitOfMeasurement = meta.UnitOfMeasurement
+			}
 			dr.FormulaType = meta.FormulaType
 		}
 		resp.Details = append(resp.Details, *dr)
@@ -2207,6 +2230,9 @@ func (s *Service) UpdateEvaluationTarget(ctx context.Context, detailID string, r
 	}
 
 	detail.Target = req.Target
+	if req.UnitOfMeasurement != nil {
+		detail.UnitOfMeasurement = req.UnitOfMeasurement
+	}
 	if err := s.repo.UpdateEvaluationDetail(ctx, detail); err != nil {
 		return nil, err
 	}
@@ -3456,16 +3482,16 @@ func (s *Service) CalculateEvaluationComponentScoring(ctx context.Context, evalI
 		case ComponentCodeKPI:
 			score = kpiScore
 		case ComponentCodeProgram:
+			// Each item's Score is already weight * achievement / 100 (see
+			// UpdateProgramItemActual), so the component score is a
+			// straight sum — the same relationship kpiScore has to each
+			// indicator detail's Score.
 			items, err := s.repo.ListProgramItemsByEvaluationID(ctx, evalUUID)
 			if err != nil {
 				return nil, err
 			}
-			if len(items) > 0 {
-				var total float64
-				for _, it := range items {
-					total += it.Score
-				}
-				score = total / float64(len(items))
+			for _, it := range items {
+				score += it.Score
 			}
 		case ComponentCodeSubordinate:
 			childIDs, err := s.repo.GetChildOrganizationIDs(ctx, eval.OrganizationID)

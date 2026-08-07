@@ -213,6 +213,7 @@ type PerformanceEvaluationDetail struct {
 	IndicatorName           *string    `gorm:"type:varchar(255)" json:"indicator_name,omitempty"`
 	AchievementPercentage   float64    `gorm:"type:decimal(5,2);default:0" json:"achievement_percentage"`
 	Weight                  float64    `gorm:"type:decimal(5,2);not null;default:0" json:"weight"`
+	UnitOfMeasurement       *string    `gorm:"type:varchar(50)" json:"unit_of_measurement,omitempty"`
 	Target                  float64    `gorm:"type:decimal(18,2);not null;default:0" json:"target"`
 	Actual                  float64    `gorm:"type:decimal(18,2);not null;default:0" json:"actual"`
 	Achievement             float64    `gorm:"type:decimal(5,2);not null;default:0" json:"achievement"`
@@ -245,6 +246,8 @@ type PerformanceEvaluationProgramItem struct {
 	PerformanceEvaluationID uuid.UUID `gorm:"type:char(36);not null;index:idx_perf_prog_eval" json:"performance_evaluation_id"`
 	Title                   string    `gorm:"type:varchar(255);not null" json:"title"`
 	FormulaType             string    `gorm:"type:varchar(30);not null;default:MANUAL" json:"formula_type"`
+	Weight                  float64   `gorm:"type:decimal(5,2);not null;default:0" json:"weight"`
+	UnitOfMeasurement       *string   `gorm:"type:varchar(50)" json:"unit_of_measurement,omitempty"`
 	Target                  float64   `gorm:"type:decimal(18,2);not null;default:0" json:"target"`
 	Actual                  float64   `gorm:"type:decimal(18,2);not null;default:0" json:"actual"`
 	Achievement             float64   `gorm:"type:decimal(5,2);not null;default:0" json:"achievement"`
