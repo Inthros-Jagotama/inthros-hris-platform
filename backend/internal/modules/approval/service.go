@@ -970,15 +970,33 @@ func (s *Service) resolveSupervisorAssignees(ctx context.Context, instance *Appr
 		target = *parent
 	}
 
-	userIDs, err := s.repo.GetUserIDsByOrganization(ctx, target)
-	if err != nil {
-		return nil, err
+	// The direct supervisor's Organization (or whichever hierarchy_level
+	// was requested) may be vacant — nobody currently occupies it. Keep
+	// walking further up the hierarchy until an occupied Organization is
+	// found. Only fail once the top of the hierarchy is reached with no
+	// occupied Organization anywhere along the way.
+	for {
+		userIDs, err := s.repo.GetUserIDsByOrganization(ctx, target)
+		if err != nil {
+			return nil, err
+		}
+		if len(userIDs) > 0 {
+			assignees := make([]taskAssignee, 0, len(userIDs))
+			for _, uid := range userIDs {
+				assignees = append(assignees, taskAssignee{Type: "USER", ID: uid})
+			}
+			return assignees, nil
+		}
+
+		parent, err := s.repo.GetOrganizationParentID(ctx, target)
+		if err != nil {
+			return nil, err
+		}
+		if parent == nil {
+			return nil, fmt.Errorf("no supervisor found: every organization from the submitter up to the top of the hierarchy is vacant")
+		}
+		target = *parent
 	}
-	assignees := make([]taskAssignee, 0, len(userIDs))
-	for _, uid := range userIDs {
-		assignees = append(assignees, taskAssignee{Type: "USER", ID: uid})
-	}
-	return assignees, nil
 }
 
 // resolveOrganizationAssignees resolves to the platform user(s) currently

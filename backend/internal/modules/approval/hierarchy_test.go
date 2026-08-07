@@ -66,6 +66,108 @@ func TestService_CreateInstance_SupervisorHierarchy_DirectSupervisor(t *testing.
 	}
 }
 
+// TestService_CreateInstance_SupervisorHierarchy_VacantDirectSupervisor_WalksUp
+// validates that when the direct supervisor's Organization has nobody
+// occupying it, resolution keeps walking up the hierarchy until it finds an
+// occupied Organization, instead of failing immediately.
+func TestService_CreateInstance_SupervisorHierarchy_VacantDirectSupervisor_WalksUp(t *testing.T) {
+	svc, repo, db, cleanup := newTestServiceWithDB()
+	defer cleanup()
+
+	// Org tree: grandparentOrg -> parentOrg (vacant) -> childOrg (submitter)
+	grandparentOrgID := uuid.New()
+	parentOrgID := uuid.New()
+	childOrgID := uuid.New()
+	seedOrganization(db, grandparentOrgID, nil)
+	seedOrganization(db, parentOrgID, &grandparentOrgID)
+	seedOrganization(db, childOrgID, &parentOrgID)
+	// parentOrgID intentionally has no Employment — nobody occupies it.
+
+	submitterEmployeeID := uuid.New()
+	submitterUserID := uuid.New()
+	seedEmployment(db, submitterEmployeeID, childOrgID)
+	seedEmployeeAccount(db, submitterEmployeeID, submitterUserID)
+
+	skipLevelEmployeeID := uuid.New()
+	skipLevelUserID := uuid.New()
+	seedEmployment(db, skipLevelEmployeeID, grandparentOrgID)
+	seedEmployeeAccount(db, skipLevelEmployeeID, skipLevelUserID)
+
+	flow := createTestFlow(repo, "leave")
+	step := &ApprovalFlowStep{
+		FlowID:            flow.ID,
+		StepOrder:         1,
+		StepName:          "Direct Supervisor",
+		ApproverType:      ApproverTypeSupervisor,
+		HierarchyLevel:    intPtr(1),
+		ApprovalMode:      ApprovalModeAnyOne,
+		ParticipationType: ParticipationTypeApprover,
+		AllowReject:       true,
+	}
+	if err := repo.CreateStep(context.Background(), step); err != nil {
+		t.Fatalf("failed to create step: %v", err)
+	}
+
+	resp, err := svc.CreateInstance(ctxAsUser(submitterUserID), CreateInstanceRequest{
+		Module:     "leave",
+		DocumentID: uuid.New().String(),
+		FlowID:     flow.ID.String(),
+	})
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	if len(resp.Tasks) != 1 {
+		t.Fatalf("expected 1 task, got %d", len(resp.Tasks))
+	}
+	if resp.Tasks[0].AssigneeID != skipLevelUserID.String() {
+		t.Errorf("expected assignee %s (grandparent org, since direct supervisor org is vacant), got %s", skipLevelUserID, resp.Tasks[0].AssigneeID)
+	}
+}
+
+// TestService_CreateInstance_SupervisorHierarchy_AllVacant_Error validates
+// that if every Organization from the submitter up to the top of the
+// hierarchy is vacant, approval submission fails outright.
+func TestService_CreateInstance_SupervisorHierarchy_AllVacant_Error(t *testing.T) {
+	svc, repo, db, cleanup := newTestServiceWithDB()
+	defer cleanup()
+
+	topOrgID := uuid.New()
+	childOrgID := uuid.New()
+	seedOrganization(db, topOrgID, nil)
+	seedOrganization(db, childOrgID, &topOrgID)
+	// topOrgID also has no Employment — vacant all the way up.
+
+	submitterEmployeeID := uuid.New()
+	submitterUserID := uuid.New()
+	seedEmployment(db, submitterEmployeeID, childOrgID)
+	seedEmployeeAccount(db, submitterEmployeeID, submitterUserID)
+
+	flow := createTestFlow(repo, "leave")
+	step := &ApprovalFlowStep{
+		FlowID:            flow.ID,
+		StepOrder:         1,
+		StepName:          "Direct Supervisor",
+		ApproverType:      ApproverTypeSupervisor,
+		HierarchyLevel:    intPtr(1),
+		ApprovalMode:      ApprovalModeAnyOne,
+		ParticipationType: ParticipationTypeApprover,
+		AllowReject:       true,
+	}
+	if err := repo.CreateStep(context.Background(), step); err != nil {
+		t.Fatalf("failed to create step: %v", err)
+	}
+
+	_, err := svc.CreateInstance(ctxAsUser(submitterUserID), CreateInstanceRequest{
+		Module:     "leave",
+		DocumentID: uuid.New().String(),
+		FlowID:     flow.ID.String(),
+	})
+	if err == nil {
+		t.Fatal("expected error when every organization up to the top of the hierarchy is vacant")
+	}
+}
+
 // TestService_CreateInstance_SupervisorHierarchy_MultipleLevel validates
 // "multiple level": hierarchy_level=2 skips the direct supervisor and resolves
 // to the grandparent Organization's occupant.
