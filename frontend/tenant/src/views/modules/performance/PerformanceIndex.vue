@@ -103,6 +103,13 @@ const stats = ref({
 
 const menuItems = computed(() => [
   {
+    path: '/performance/kpi/my-evaluation',
+    icon: 'pi pi-user-edit',
+    titleKey: 'kpi.my_evaluation',
+    descKey: 'kpi.my_evaluation_desc',
+    tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400'
+  },
+  {
     path: '/performance/kpi',
     icon: 'pi pi-chart-bar',
     titleKey: 'kpi.evaluations',

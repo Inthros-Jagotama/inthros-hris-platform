@@ -183,6 +183,12 @@ const routes = [
         meta: { title: 'Periods', titleKey: 'performance_periods.title', descKey: 'performance_periods.description', icon: 'pi pi-calendar', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title' }
       },
       {
+        path: 'performance/kpi/my-evaluation',
+        name: 'KPISelfAssessment',
+        component: () => import('@/views/modules/performance/kpi/KPISelfAssessment.vue'),
+        meta: { title: 'My Evaluation', titleKey: 'kpi.my_evaluation', descKey: 'kpi.my_evaluation_desc', icon: 'pi pi-user-edit', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title' }
+      },
+      {
         path: 'performance/kpi/evaluation/:id',
         name: 'KPIEvaluationDetail',
         component: () => import('@/views/modules/performance/kpi/KPIEvaluationDetail.vue'),

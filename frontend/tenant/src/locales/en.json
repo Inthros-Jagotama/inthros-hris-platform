@@ -557,7 +557,21 @@
     "evaluation_submitted": "Evaluation submitted for review.",
     "evaluation_approved": "Evaluation approved.",
     "evaluation_rejected": "Evaluation rejected.",
-    "evaluation_completed": "Evaluation completed."
+    "evaluation_completed": "Evaluation completed.",
+    "my_evaluation": "My Evaluation",
+    "my_evaluation_desc": "Fill in your own KPI self-assessment.",
+    "self_assessment_title": "KPI Self-Assessment",
+    "self_assessment_intro": "Self-assessment method: once a KPI template has been created for your current position, you can fill in your own evaluation.",
+    "no_position_title": "No active position found",
+    "no_position_hint": "Your account isn't linked to an active employment record yet. Contact HR to set this up.",
+    "no_template_title": "No KPI template yet for your position",
+    "no_template_hint": "HR hasn't published a KPI template for your current position ({organization}) yet. Please check back later or contact HR.",
+    "your_position": "Your Position",
+    "select_period": "Select a period",
+    "period_required": "Please select a period first.",
+    "start_self_assessment": "Fill Evaluation",
+    "continue_self_assessment": "Continue Evaluation",
+    "existing_evaluation_found": "You already have an evaluation for this period."
   },
   "okr": {
     "title": "Objective & Key Results",

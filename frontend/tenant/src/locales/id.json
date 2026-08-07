@@ -557,7 +557,21 @@
     "evaluation_submitted": "Evaluasi diajukan untuk review.",
     "evaluation_approved": "Evaluasi disetujui.",
     "evaluation_rejected": "Evaluasi ditolak.",
-    "evaluation_completed": "Evaluasi selesai."
+    "evaluation_completed": "Evaluasi selesai.",
+    "my_evaluation": "Evaluasi Saya",
+    "my_evaluation_desc": "Isi self-assessment KPI Anda sendiri.",
+    "self_assessment_title": "Self-Assessment KPI",
+    "self_assessment_intro": "Metode self-assessment: setelah template KPI dibuat untuk posisi jabatan Anda saat ini, Anda bisa mengisi evaluasi Anda sendiri.",
+    "no_position_title": "Belum ada posisi aktif",
+    "no_position_hint": "Akun Anda belum terhubung dengan data kepegawaian (employment) aktif. Hubungi HR untuk mengaturnya.",
+    "no_template_title": "Belum ada template KPI untuk posisi Anda",
+    "no_template_hint": "HR belum menerbitkan template KPI untuk posisi jabatan Anda saat ini ({organization}). Silakan cek kembali nanti atau hubungi HR.",
+    "your_position": "Posisi Anda",
+    "select_period": "Pilih periode",
+    "period_required": "Silakan pilih periode terlebih dahulu.",
+    "start_self_assessment": "Isi Evaluasi",
+    "continue_self_assessment": "Lanjutkan Evaluasi",
+    "existing_evaluation_found": "Anda sudah memiliki evaluasi untuk periode ini."
   },
   "okr": {
     "title": "Tujuan & Hasil Utama",
