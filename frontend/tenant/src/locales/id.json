@@ -1670,22 +1670,17 @@
   },
   "performance_components": {
     "title": "Komponen Penilaian",
-    "description": "Master komponen untuk perhitungan skor akhir berbobot (KPI, Work Program, Subordinate KPI, dll).",
-    "new": "Komponen Baru",
+    "description": "Komponen tetap untuk perhitungan skor akhir berbobot (Indikator, Program, Kinerja Bawahan).",
+    "fixed_hint": "3 komponen ini bersifat tetap, tidak bisa ditambah atau dihapus.",
     "edit": "Ubah Komponen",
     "code": "Kode",
-    "code_placeholder": "cth. WORK_PROGRAM",
     "name": "Nama",
     "name_placeholder": "cth. Work Program",
     "description_label": "Deskripsi",
     "description_placeholder": "Jelaskan komponen ini",
     "sort_order": "Urutan",
     "empty_title": "Belum ada komponen",
-    "delete_title": "Hapus Komponen",
-    "delete_message": "Hapus komponen \"{name}\"? Tindakan ini tidak dapat dibatalkan.",
-    "created": "Komponen berhasil dibuat",
-    "updated": "Komponen berhasil diperbarui",
-    "deleted": "Komponen berhasil dihapus"
+    "updated": "Komponen berhasil diperbarui"
   },
   "performance_scoring": {
     "title": "Bobot Penilaian Kinerja",

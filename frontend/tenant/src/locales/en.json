@@ -1670,22 +1670,17 @@
   },
   "performance_components": {
     "title": "Performance Components",
-    "description": "Master components used to build a weighted final score (KPI, Work Program, Subordinate KPI, etc).",
-    "new": "New Component",
+    "description": "Fixed components used to build a weighted final score (Indicator, Program, Subordinate).",
+    "fixed_hint": "These 3 components are fixed and cannot be added or removed.",
     "edit": "Edit Component",
     "code": "Code",
-    "code_placeholder": "e.g. WORK_PROGRAM",
     "name": "Name",
     "name_placeholder": "e.g. Work Program",
     "description_label": "Description",
     "description_placeholder": "Describe this component",
     "sort_order": "Order",
-    "empty_title": "No components created yet",
-    "delete_title": "Delete Component",
-    "delete_message": "Delete component \"{name}\"? This action cannot be undone.",
-    "created": "Component created successfully",
-    "updated": "Component updated successfully",
-    "deleted": "Component deleted successfully"
+    "empty_title": "No components found",
+    "updated": "Component updated successfully"
   },
   "performance_scoring": {
     "title": "Performance Scoring",

@@ -1875,10 +1875,12 @@ func (s *Service) CreateEvaluationWithSnapshot(ctx context.Context, req CreateEv
 			IndicatorName: &ind.Title,
 			PerspectiveID: ind.PerspectiveID,
 			Weight:        ind.Weight,
-			Target:        ind.TargetValue,
-			Actual:        0,
-			Achievement:   0,
-			Score:         0,
+			// Target is no longer authored on the template — the employee
+			// fills it themselves during the "Ajukan Target" step.
+			Target:      0,
+			Actual:      0,
+			Achievement: 0,
+			Score:       0,
 		}
 		if ind.Description != nil {
 			detail.Description = ind.Description
@@ -2981,6 +2983,7 @@ func (s *Service) DeleteOrganizationComponent(ctx context.Context, id string) er
 
 const (
 	ComponentCodeKPI         = "KPI"
+	ComponentCodeProgram     = "PROGRAM"
 	ComponentCodeSubordinate = "SUBORDINATE"
 )
 

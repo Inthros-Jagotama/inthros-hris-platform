@@ -79,16 +79,6 @@
               <InputNumber v-model="data.weight" :min="0" :max="100" :minFractionDigits="2" :maxFractionDigits="2" suffix="%" class="w-full !text-xs" size="small" />
             </template>
           </Column>
-          <Column :header="t('kpi.target')" style="width:100px">
-            <template #body="{data}">
-              <InputNumber v-model="data.target_value" :minFractionDigits="0" :maxFractionDigits="2" class="w-full !text-xs" size="small" />
-            </template>
-          </Column>
-          <Column :header="t('kpi.unit')" style="width:80px">
-            <template #body="{data}">
-              <InputText v-model="data.unit_of_measurement" :placeholder="t('kpi.unit_placeholder')" class="w-full !text-xs" size="small" maxlength="50" />
-            </template>
-          </Column>
           <Column :header="t('kpi.formula')" style="width:130px">
             <template #body="{data}">
               <Select v-model="data.formula_type" :options="formulaOptions" optionLabel="label" optionValue="value" class="w-full !text-xs" size="small" />
@@ -175,8 +165,6 @@ function addIndicator() {
     title: '',
     description: '',
     weight: 0,
-    target_value: 0,
-    unit_of_measurement: '',
     formula_type: 'HIGHER_BETTER',
     target_type: 'NUMBER',
     indicator_type: 'MAXIMIZATION',
@@ -227,8 +215,8 @@ async function loadReferenceData() {
       formulaOptions.value = [
         { label: 'Higher Better', value: 'HIGHER_BETTER' },
         { label: 'Lower Better', value: 'LOWER_BETTER' },
-        { label: 'Manual', value: 'MANUAL' },
-        { label: 'Boolean', value: 'BOOLEAN' }
+        { label: 'Range', value: 'RANGE' },
+        { label: 'Manual', value: 'MANUAL' }
       ]
     }
   } catch (e) {
@@ -261,8 +249,6 @@ async function loadTemplate() {
       title: ind.title || '',
       description: ind.description || '',
       weight: ind.weight || 0,
-      target_value: ind.target_value || 0,
-      unit_of_measurement: ind.unit_of_measurement || '',
       formula_type: ind.formula_type || 'HIGHER_BETTER',
       target_type: ind.target_type || 'NUMBER',
       indicator_type: ind.indicator_type || 'MAXIMIZATION',
@@ -316,8 +302,6 @@ async function handleSave() {
         title: ind.title,
         description: ind.description || null,
         weight: ind.weight,
-        target_value: ind.target_value,
-        unit_of_measurement: ind.unit_of_measurement || null,
         formula_type: ind.formula_type,
         target_type: ind.target_type || 'NUMBER',
         indicator_type: ind.indicator_type || 'MAXIMIZATION',

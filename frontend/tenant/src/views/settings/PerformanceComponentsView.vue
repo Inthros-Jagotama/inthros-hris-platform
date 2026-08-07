@@ -1,17 +1,13 @@
 <template>
   <div class="space-y-1">
     <div class="flex items-center justify-between gap-2 flex-wrap">
-      <div class="flex items-center gap-2">
-        <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500">
-          {{ totalRecords }} {{ t('common.items') }}
-        </span>
-      </div>
-      <div class="flex items-center gap-2">
-        <Button :label="t('performance_components.new')" icon="pi pi-plus" size="small" @click="openDialog()" />
-      </div>
+      <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500">
+        {{ totalRecords }} {{ t('common.items') }}
+      </span>
+      <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('performance_components.fixed_hint') }}</span>
     </div>
 
-    <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="6" />
+    <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="3" />
 
     <DataTable v-else :value="items" lazy :totalRecords="totalRecords" :first="firstRecord" :rows="perPage" @page="onPage($event)" paginator paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown" :rowsPerPageOptions="[10, 15, 25, 50]" size="small" class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" sortField="sort_order" :sortOrder="1">
       <template #empty>
@@ -43,23 +39,20 @@
           <Tag :value="data.is_active ? t('common_status.active') : t('common_status.inactive')" :severity="data.is_active ? 'success' : 'secondary'" class="!text-xs" />
         </template>
       </Column>
-      <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right">
+      <Column :header="t('common.actions')" style="width:60px" frozen alignFrozen="right">
         <template #body="{data}">
-          <div class="flex items-center gap-1">
-            <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openDialog(data)" />
-            <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" />
-          </div>
+          <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openDialog(data)" />
         </template>
       </Column>
     </DataTable>
 
-    <Dialog v-model:visible="dialogVisible" :header="editing ? t('performance_components.edit') : t('performance_components.new')" modal :style="{ width: '480px' }" :closable="true" @hide="resetForm">
+    <Dialog v-model:visible="dialogVisible" :header="t('performance_components.edit')" modal :style="{ width: '480px' }" :closable="true" @hide="resetForm">
       <div class="space-y-4">
-        <FormRow :label="t('performance_components.code')" required :errors="errors?.code">
-          <TextInput v-model="form.code" maxlength="50" autofocus :placeholder="t('performance_components.code_placeholder')" :class="{'p-invalid':errors?.code}" />
+        <FormRow :label="t('performance_components.code')">
+          <Tag :value="form.code" severity="info" class="!text-xs" />
         </FormRow>
         <FormRow :label="t('performance_components.name')" required :errors="errors?.name">
-          <TextInput v-model="form.name" maxlength="100" :placeholder="t('performance_components.name_placeholder')" :class="{'p-invalid':errors?.name}" />
+          <TextInput v-model="form.name" maxlength="100" autofocus :placeholder="t('performance_components.name_placeholder')" :class="{'p-invalid':errors?.name}" />
         </FormRow>
         <FormRow :label="t('performance_components.description_label')" :errors="errors?.description">
           <Textarea v-model="form.description" rows="2" :placeholder="t('performance_components.description_placeholder')" class="w-full" />
@@ -77,19 +70,10 @@
       <template #footer>
         <div class="flex items-center justify-end gap-2">
           <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible=false" />
-          <Button :label="editing ? t('common.update') : t('common.save')" size="small" :loading="saving" :disabled="saving" @click="handleSave" />
+          <Button :label="t('common.update')" size="small" :loading="saving" :disabled="saving" @click="handleSave" />
         </div>
       </template>
     </Dialog>
-
-    <ConfirmDeleteDialog
-      v-model:visible="deleteDialogVisible"
-      :title="t('performance_components.delete_title')"
-      :message="t('performance_components.delete_message', { name: deleteTarget?.name })"
-      :loading="deleting"
-      :error="deleteError"
-      @confirm="handleDelete"
-    />
   </div>
 </template>
 
@@ -108,7 +92,6 @@ import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
 import SkeletonTable from '@/components/SkeletonTable.vue'
-import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 
@@ -120,14 +103,9 @@ const totalRecords = ref(0)
 const currentPage = ref(1)
 const perPage = ref(15)
 const dialogVisible = ref(false)
-const editing = ref(false)
 const editingId = ref(null)
 const saving = ref(false)
 const errors = ref({})
-const deleteDialogVisible = ref(false)
-const deleting = ref(false)
-const deleteError = ref('')
-const deleteTarget = ref(null)
 
 const form = ref({
   code: '',
@@ -142,7 +120,7 @@ const skeletonColumns = [
   { type: 'text', width: 'w-40', headerWidth: 'w-24' },
   { type: 'text', width: 'w-12', headerWidth: 'w-16' },
   { type: 'tag', width: 'w-16', headerWidth: 'w-12' },
-  { type: 'icons', count: 2, headerWidth: 'w-16' }
+  { type: 'icons', count: 1, headerWidth: 'w-16' }
 ]
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
@@ -171,15 +149,14 @@ function onPage(event) {
 }
 
 function openDialog(item) {
-  editing.value = !!item
-  editingId.value = item?.id || null
+  editingId.value = item.id
   errors.value = {}
   form.value = {
-    code: item?.code || '',
-    name: item?.name || '',
-    description: item?.description || '',
-    sort_order: item?.sort_order || 0,
-    is_active: item?.is_active ?? true
+    code: item.code,
+    name: item.name || '',
+    description: item.description || '',
+    sort_order: item.sort_order || 0,
+    is_active: item.is_active ?? true
   }
   dialogVisible.value = true
 }
@@ -187,16 +164,11 @@ function openDialog(item) {
 function resetForm() {
   form.value = { code: '', name: '', description: '', sort_order: 0, is_active: true }
   errors.value = {}
-  editing.value = false
   editingId.value = null
 }
 
 async function handleSave() {
   errors.value = {}
-  if (!form.value.code?.trim()) {
-    errors.value = { code: [t('form.required')] }
-    return
-  }
   if (!form.value.name?.trim()) {
     errors.value = { name: [t('form.required')] }
     return
@@ -205,20 +177,13 @@ async function handleSave() {
   saving.value = true
   try {
     const payload = {
-      code: form.value.code,
       name: form.value.name,
       description: form.value.description || null,
       sort_order: form.value.sort_order || 0,
       is_active: form.value.is_active
     }
-
-    if (editing.value) {
-      await api.put(`/api/v1/tenant/performance/kpi/components/${editingId.value}`, payload)
-      toast.add({ severity: 'success', summary: t('message.success'), detail: t('performance_components.updated'), life: 3000 })
-    } else {
-      await api.post('/api/v1/tenant/performance/kpi/components', payload)
-      toast.add({ severity: 'success', summary: t('message.success'), detail: t('performance_components.created'), life: 3000 })
-    }
+    await api.put(`/api/v1/tenant/performance/kpi/components/${editingId.value}`, payload)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('performance_components.updated'), life: 3000 })
     dialogVisible.value = false
     await loadData()
   } catch (e) {
@@ -230,27 +195,6 @@ async function handleSave() {
     }
   } finally {
     saving.value = false
-  }
-}
-
-function confirmDelete(item) {
-  deleteTarget.value = item
-  deleteError.value = ''
-  deleteDialogVisible.value = true
-}
-
-async function handleDelete() {
-  deleting.value = true
-  deleteError.value = ''
-  try {
-    await api.delete(`/api/v1/tenant/performance/kpi/components/${deleteTarget.value.id}`)
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('performance_components.deleted'), life: 3000 })
-    deleteDialogVisible.value = false
-    await loadData()
-  } catch (e) {
-    deleteError.value = e.response?.data?.error?.message || t('message.operation_failed')
-  } finally {
-    deleting.value = false
   }
 }
 

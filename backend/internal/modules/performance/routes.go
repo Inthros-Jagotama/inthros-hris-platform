@@ -128,12 +128,13 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			// Phase 5: Performance Scoring Configuration
 			// =================================================================
 
-			// Performance Components (Master data)
-			kpi.POST("/components", handler.CreatePerformanceComponent)
+			// Performance Components (Master data) — locked to exactly 3 seeded
+			// rows (KPI/PROGRAM/SUBORDINATE, migration 064); create/delete are
+			// intentionally not exposed so the set can't grow or shrink. Only
+			// GET/PUT (rename, reorder, activate/deactivate) remain.
 			kpi.GET("/components", handler.ListPerformanceComponents)
 			kpi.GET("/components/:id", handler.GetPerformanceComponentByID)
 			kpi.PUT("/components/:id", handler.UpdatePerformanceComponent)
-			kpi.DELETE("/components/:id", handler.DeletePerformanceComponent)
 
 			// Organization Component Weight Configuration
 			kpi.POST("/organization-components", handler.UpsertOrganizationComponent)
