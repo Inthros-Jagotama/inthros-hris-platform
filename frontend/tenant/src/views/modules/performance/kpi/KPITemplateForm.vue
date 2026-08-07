@@ -179,7 +179,7 @@ function addIndicator() {
     unit_of_measurement: '',
     formula_type: 'HIGHER_BETTER',
     target_type: 'NUMBER',
-    indicator_type: 'KPI',
+    indicator_type: 'MAXIMIZATION',
     is_required: true,
     sort_order: indicators.value.length
   })
@@ -265,7 +265,7 @@ async function loadTemplate() {
       unit_of_measurement: ind.unit_of_measurement || '',
       formula_type: ind.formula_type || 'HIGHER_BETTER',
       target_type: ind.target_type || 'NUMBER',
-      indicator_type: ind.indicator_type || 'KPI',
+      indicator_type: ind.indicator_type || 'MAXIMIZATION',
       is_required: ind.is_required ?? true,
       sort_order: ind.sort_order || 0
     }))
@@ -320,7 +320,7 @@ async function handleSave() {
         unit_of_measurement: ind.unit_of_measurement || null,
         formula_type: ind.formula_type,
         target_type: ind.target_type || 'NUMBER',
-        indicator_type: ind.indicator_type || 'KPI',
+        indicator_type: ind.indicator_type || 'MAXIMIZATION',
         is_required: ind.is_required ?? true,
         sort_order: i,
         minimum_score: 0,
