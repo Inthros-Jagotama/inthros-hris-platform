@@ -18,13 +18,28 @@ const (
 	maxPerPage     = 100
 )
 
+// ApprovalEngine abstracts the central approval module so overtime requests
+// can be routed through it. Implemented via an adapter wrapping
+// approval.Service in main.go (same narrow-interface-plus-adapter pattern
+// payroll/leave/reimbursement/employeemovement already use).
+type ApprovalEngine interface {
+	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
+	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
+}
+
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
+	repo           *Repository
+	logger         *zap.Logger
+	approvalEngine ApprovalEngine
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// SetApprovalEngine wires the central approval module into this service.
+func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
+	s.approvalEngine = ae
 }
 
 // =========================================================================
@@ -541,7 +556,62 @@ func (s *Service) CreateOvertimeRequest(ctx context.Context, req CreateOvertimeR
 	if err := s.repo.CreateOvertimeRequest(ctx, overtime); err != nil {
 		return nil, err
 	}
+
+	// Route through the central approval module when a flow is selected.
+	if s.approvalEngine != nil && req.FlowID != nil && *req.FlowID != "" {
+		instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "attendance", overtime.ID.String(), *req.FlowID)
+		if err != nil {
+			s.logger.Warn("Failed to create approval instance for overtime request, continuing without approval",
+				zap.String("overtime_request_id", overtime.ID.String()),
+				zap.Error(err),
+			)
+		} else {
+			if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+				overtime.ApprovalInstanceID = &parsedInstanceID
+			}
+			overtime.Status = OvertimePendingApproval
+			if err := s.repo.UpdateOvertimeRequest(ctx, overtime); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	return overtimeToResponse(overtime), nil
+}
+
+// HandleApprovalStatusChange is invoked by the approval module's push-based
+// status callback when an overtime request's approval instance reaches a
+// final state, so the request's own status field updates itself.
+func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	o, err := s.repo.FindOvertimeRequestByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	if o.Status != OvertimePendingApproval {
+		return nil
+	}
+
+	now := time.Now()
+	switch status {
+	case "APPROVED":
+		o.Status = OvertimeApproved
+		o.ApprovedAt = &now
+	case "REJECTED":
+		o.Status = OvertimeRejected
+		if note != "" {
+			o.ApprovalNote = &note
+		}
+	case "CANCELLED":
+		o.Status = OvertimeRejected
+	default:
+		return nil
+	}
+
+	s.logger.Info("Overtime request status updated via approval status handler",
+		zap.String("overtime_request_id", o.ID.String()),
+		zap.String("approval_status", status),
+	)
+	return s.repo.UpdateOvertimeRequest(ctx, o)
 }
 
 func (s *Service) GetOvertimeRequestByID(ctx context.Context, id string) (*OvertimeResponse, error) {
@@ -842,6 +912,10 @@ func overtimeToResponse(o *AttendanceOvertimeRequest) *OvertimeResponse {
 	if o.ApprovedBy != nil {
 		ab := o.ApprovedBy.String()
 		resp.ApprovedBy = &ab
+	}
+	if o.ApprovalInstanceID != nil {
+		aiID := o.ApprovalInstanceID.String()
+		resp.ApprovalInstanceID = &aiID
 	}
 	return resp
 }

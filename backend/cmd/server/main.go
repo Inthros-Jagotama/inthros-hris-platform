@@ -504,6 +504,17 @@ func main() {
 		return employeeMovementSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
 
+	// Construct the attendance service up front (instead of inside
+	// attendance.NewModule) so its push-based approval status handler can be
+	// registered with approvalSvc before the module is mounted.
+	attendanceResolver := attendance.NewTenantDBResolver(dbManager)
+	attendanceRepo := attendance.NewRepository(attendanceResolver)
+	attendanceSvc := attendance.NewService(attendanceRepo, l.Named("attendance"))
+	attendanceSvc.SetApprovalEngine(sharedApprovalEngine)
+	approvalSvc.RegisterStatusHandler("attendance", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return attendanceSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
+	})
+
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees
 	// dari file .lic. Pada mode saas, licenseLister memakai company_modules DB.
@@ -557,7 +568,7 @@ func main() {
 			Priority: 5,
 		},
 		module.ModuleRegistration{
-			Module:   attendance.NewModule(dbManager, l),
+			Module:   attendance.NewModuleWithService(l, attendanceSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 6,
 		},

@@ -197,27 +197,29 @@ type SessionResponse struct {
 // =========================================================================
 
 type CreateOvertimeRequest struct {
-	EmployeeID       string `json:"employee_id" binding:"required"`
-	WorkDate         string `json:"work_date" binding:"required"`
-	StartTimeLocal   string `json:"start_time_local" binding:"required"`
-	EndTimeLocal     string `json:"end_time_local" binding:"required"`
-	RequestedMinutes int    `json:"requested_minutes" binding:"required"`
-	Reason           string `json:"reason"`
+	EmployeeID       string  `json:"employee_id" binding:"required"`
+	WorkDate         string  `json:"work_date" binding:"required"`
+	StartTimeLocal   string  `json:"start_time_local" binding:"required"`
+	EndTimeLocal     string  `json:"end_time_local" binding:"required"`
+	RequestedMinutes int     `json:"requested_minutes" binding:"required"`
+	Reason           string  `json:"reason"`
+	FlowID           *string `json:"flow_id"`
 }
 
 type OvertimeResponse struct {
-	ID               string     `json:"id"`
-	EmployeeID       string     `json:"employee_id"`
-	WorkDate         string     `json:"work_date"`
-	StartTimeLocal   time.Time  `json:"start_time_local"`
-	EndTimeLocal     time.Time  `json:"end_time_local"`
-	RequestedMinutes int        `json:"requested_minutes"`
-	Reason           *string    `json:"reason,omitempty"`
-	Status           string     `json:"status"`
-	ApprovedBy       *string    `json:"approved_by,omitempty"`
-	ApprovedAt       *time.Time `json:"approved_at,omitempty"`
-	ApprovalNote     *string    `json:"approval_note,omitempty"`
-	CreatedAt        time.Time  `json:"created_at"`
+	ID                 string     `json:"id"`
+	EmployeeID         string     `json:"employee_id"`
+	WorkDate           string     `json:"work_date"`
+	StartTimeLocal     time.Time  `json:"start_time_local"`
+	EndTimeLocal       time.Time  `json:"end_time_local"`
+	RequestedMinutes   int        `json:"requested_minutes"`
+	Reason             *string    `json:"reason,omitempty"`
+	Status             string     `json:"status"`
+	ApprovedBy         *string    `json:"approved_by,omitempty"`
+	ApprovedAt         *time.Time `json:"approved_at,omitempty"`
+	ApprovalNote       *string    `json:"approval_note,omitempty"`
+	ApprovalInstanceID *string    `json:"approval_instance_id,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
 }
 
 // =========================================================================

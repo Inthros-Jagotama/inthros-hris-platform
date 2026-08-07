@@ -298,9 +298,10 @@ func (s *AttendanceSession) BeforeCreate(tx *gorm.DB) error {
 type OvertimeStatus string
 
 const (
-	OvertimeSubmitted OvertimeStatus = "SUBMITTED"
-	OvertimeApproved  OvertimeStatus = "APPROVED"
-	OvertimeRejected  OvertimeStatus = "REJECTED"
+	OvertimeSubmitted      OvertimeStatus = "SUBMITTED"
+	OvertimePendingApproval OvertimeStatus = "PENDING_APPROVAL"
+	OvertimeApproved       OvertimeStatus = "APPROVED"
+	OvertimeRejected       OvertimeStatus = "REJECTED"
 )
 
 type AttendanceOvertimeRequest struct {
@@ -315,6 +316,7 @@ type AttendanceOvertimeRequest struct {
 	ApprovedBy        *uuid.UUID     `gorm:"type:char(36)" json:"approved_by,omitempty"`
 	ApprovedAt        *time.Time     `json:"approved_at,omitempty"`
 	ApprovalNote      *string        `gorm:"type:varchar(255)" json:"approval_note,omitempty"`
+	ApprovalInstanceID *uuid.UUID    `gorm:"type:char(36);index:idx_att_overtime_approval_instance" json:"approval_instance_id,omitempty"`
 	CreatedAt         time.Time      `json:"created_at"`
 	UpdatedAt         time.Time      `json:"updated_at"`
 }
