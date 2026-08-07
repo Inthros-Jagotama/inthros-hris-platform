@@ -59,8 +59,15 @@ type MovementResponse struct {
 	ApprovedAt           *time.Time `json:"approved_at,omitempty"`
 	ExecutedBy           *string    `json:"executed_by,omitempty"`
 	ExecutedAt           *time.Time `json:"executed_at,omitempty"`
+	ApprovalInstanceID   *string    `json:"approval_instance_id,omitempty"`
 	CreatedAt            time.Time  `json:"created_at"`
 	UpdatedAt            time.Time  `json:"updated_at"`
+}
+
+// SubmitMovementRequest routes a draft movement through the central
+// approval module instead of an HR user directly calling ApproveMovement.
+type SubmitMovementRequest struct {
+	FlowID *string `json:"flow_id"`
 }
 
 type PaginatedMovementResponse struct {
@@ -191,6 +198,10 @@ func (m *EmployeeMovement) ToResponse() MovementResponse {
 	}
 	if m.ExecutedAt != nil {
 		r.ExecutedAt = m.ExecutedAt
+	}
+	if m.ApprovalInstanceID != nil {
+		s := m.ApprovalInstanceID.String()
+		r.ApprovalInstanceID = &s
 	}
 	return r
 }

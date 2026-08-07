@@ -3,6 +3,7 @@ package employeemovement
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -10,10 +11,21 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
+// ApprovalEngine abstracts the central approval module so employee
+// movements can be routed through it instead of an HR user directly calling
+// ApproveMovement. Implemented via an adapter wrapping approval.Service in
+// main.go (same narrow-interface-plus-adapter pattern payroll/leave/
+// reimbursement already use).
+type ApprovalEngine interface {
+	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
+	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
+}
+
 // Service untuk business logic Employee Movement & Career Management.
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
+	repo           *Repository
+	logger         *zap.Logger
+	approvalEngine ApprovalEngine
 }
 
 // NewService membuat Service baru.
@@ -22,6 +34,11 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 		repo:   repo,
 		logger: logger,
 	}
+}
+
+// SetApprovalEngine wires the central approval module into this service.
+func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
+	s.approvalEngine = ae
 }
 
 // =========================================================================
@@ -275,6 +292,84 @@ func (s *Service) DeleteMovement(ctx context.Context, id string) error {
 	}
 
 	return s.repo.DeleteMovement(ctx, uid)
+}
+
+// SubmitMovement routes a draft movement through the central approval
+// module instead of an HR user directly calling ApproveMovement. If no
+// flow is selected, the movement stays in draft and ApproveMovement remains
+// the direct/manual fallback.
+func (s *Service) SubmitMovement(ctx context.Context, id string, req SubmitMovementRequest) (*MovementResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid movement id: %w", err)
+	}
+	movement, err := s.repo.FindMovementByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if movement.Status != MovementStatusDraft {
+		return nil, fmt.Errorf("only draft movements can be submitted, current status: %s", movement.Status)
+	}
+	if s.approvalEngine == nil || req.FlowID == nil || *req.FlowID == "" {
+		return nil, fmt.Errorf("approval engine or flow_id not configured")
+	}
+
+	instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "employeemovement", movement.ID.String(), *req.FlowID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create approval instance: %w", err)
+	}
+	if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+		movement.ApprovalInstanceID = &parsedInstanceID
+	}
+	movement.Status = MovementStatusPendingApproval
+	if err := s.repo.UpdateMovement(ctx, movement); err != nil {
+		return nil, err
+	}
+
+	s.logger.Info("Employee movement submitted for approval",
+		zap.String("movement_id", movement.ID.String()),
+		zap.String("instance_id", instanceID),
+	)
+
+	response := movement.ToResponse()
+	return &response, nil
+}
+
+// HandleApprovalStatusChange is invoked by the approval module's push-based
+// status callback when a movement's approval instance reaches a final
+// state, so the movement's own status field updates itself. There is no
+// dedicated "rejected" status on EmployeeMovement, so a rejection reuses
+// MovementStatusCancelled — the closest existing terminal negative state.
+func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	movement, err := s.repo.FindMovementByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	if movement.Status != MovementStatusPendingApproval {
+		return nil
+	}
+
+	now := time.Now()
+	switch status {
+	case "APPROVED":
+		movement.Status = MovementStatusApproved
+		movement.ApprovedAt = &now
+	case "REJECTED":
+		movement.Status = MovementStatusCancelled
+		if note != "" {
+			movement.Notes = &note
+		}
+	case "CANCELLED":
+		movement.Status = MovementStatusCancelled
+	default:
+		return nil
+	}
+
+	s.logger.Info("Employee movement status updated via approval status handler",
+		zap.String("movement_id", movement.ID.String()),
+		zap.String("approval_status", status),
+	)
+	return s.repo.UpdateMovement(ctx, movement)
 }
 
 // ApproveMovement menyetujui pergerakan.

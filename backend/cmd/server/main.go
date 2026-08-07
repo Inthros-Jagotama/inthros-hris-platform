@@ -493,6 +493,17 @@ func main() {
 		return reimbursementSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
 
+	// Construct the employeemovement service up front (instead of inside
+	// employeemovement.NewModule) so its push-based approval status handler
+	// can be registered with approvalSvc before the module is mounted.
+	employeeMovementResolver := employeemovement.NewTenantDBResolver(dbManager)
+	employeeMovementRepo := employeemovement.NewRepository(employeeMovementResolver)
+	employeeMovementSvc := employeemovement.NewService(employeeMovementRepo, l.Named("employeemovement"))
+	employeeMovementSvc.SetApprovalEngine(sharedApprovalEngine)
+	approvalSvc.RegisterStatusHandler("employeemovement", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return employeeMovementSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
+	})
+
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees
 	// dari file .lic. Pada mode saas, licenseLister memakai company_modules DB.
@@ -541,7 +552,7 @@ func main() {
 			Priority: 4,
 		},
 		module.ModuleRegistration{
-			Module:   employeemovement.NewModule(dbManager, l),
+			Module:   employeemovement.NewModuleWithService(l, employeeMovementSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 5,
 		},

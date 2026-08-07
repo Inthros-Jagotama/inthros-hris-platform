@@ -13,6 +13,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		em.GET("/movements/:id", handler.GetMovementByID)
 		em.PUT("/movements/:id", handler.UpdateMovement)
 		em.DELETE("/movements/:id", handler.DeleteMovement)
+		em.POST("/movements/:id/submit", handler.SubmitMovement)
 		em.POST("/movements/:id/approve", handler.ApproveMovement)
 		em.POST("/movements/:id/execute", handler.ExecuteMovement)
 		em.POST("/movements/:id/cancel", handler.CancelMovement)

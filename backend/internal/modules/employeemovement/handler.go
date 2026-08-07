@@ -107,6 +107,23 @@ func (h *Handler) DeleteMovement(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+// SubmitMovement menangani POST /api/v1/tenant/employee-movements/movements/:id/submit
+// Routes the movement through the central approval module.
+func (h *Handler) SubmitMovement(c *gin.Context) {
+	id := c.Param("id")
+	var req SubmitMovementRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+
+	response, err := h.service.SubmitMovement(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, response)
+}
+
 // ApproveMovement menangani POST /api/v1/tenant/employee-movements/movements/:id/approve
 func (h *Handler) ApproveMovement(c *gin.Context) {
 	id := c.Param("id")

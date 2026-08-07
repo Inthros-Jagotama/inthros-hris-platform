@@ -25,10 +25,11 @@ const (
 type MovementStatus string
 
 const (
-	MovementStatusDraft     MovementStatus = "draft"
-	MovementStatusApproved  MovementStatus = "approved"
-	MovementStatusExecuted  MovementStatus = "executed"
-	MovementStatusCancelled MovementStatus = "cancelled"
+	MovementStatusDraft           MovementStatus = "draft"
+	MovementStatusPendingApproval MovementStatus = "pending_approval"
+	MovementStatusApproved        MovementStatus = "approved"
+	MovementStatusExecuted        MovementStatus = "executed"
+	MovementStatusCancelled       MovementStatus = "cancelled"
 )
 
 // ContractType enum untuk tipe kontrak.
@@ -77,6 +78,7 @@ type EmployeeMovement struct {
 	ApprovedAt           *time.Time     `gorm:"type:timestamp" json:"approved_at,omitempty"`
 	ExecutedBy           *uuid.UUID     `gorm:"type:char(36)" json:"executed_by,omitempty"`
 	ExecutedAt           *time.Time     `gorm:"type:timestamp" json:"executed_at,omitempty"`
+	ApprovalInstanceID   *uuid.UUID     `gorm:"type:char(36);index:idx_emp_mvmt_approval_instance" json:"approval_instance_id,omitempty"`
 	CreatedBy            *uuid.UUID     `gorm:"type:char(36)" json:"created_by,omitempty"`
 	UpdatedBy            *uuid.UUID     `gorm:"type:char(36)" json:"updated_by,omitempty"`
 	CreatedAt            time.Time      `json:"created_at"`
