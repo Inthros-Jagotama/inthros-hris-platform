@@ -33447,6 +33447,104 @@
           }
         }
       }
+    },
+    "/api/v1/tenant/approval/available-modules": {
+      "get": {
+        "operationId": "listAvailableModules",
+        "summary": "List available approval modules",
+        "description": "Ambil slug module yang aktif/disubscribe tenant — dipakai flow builder agar hanya menampilkan module yang tersedia.",
+        "tags": [
+          "Tenant: Approval"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of active module slugs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "example": "leave"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/employee-movements/movements/{id}/submit": {
+      "post": {
+        "operationId": "submitMovement",
+        "summary": "Submit employee movement for approval",
+        "description": "Kirim movement berstatus draft ke alur persetujuan (approval flow) terpusat. Setelah disetujui, approval engine akan mengeksekusi perpindahan.",
+        "tags": [
+          "Tenant: Employee Movement & Career Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovementResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitMovementRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -50196,6 +50294,17 @@
             "type": "number",
             "minimum": 0,
             "maximum": 100
+          }
+        }
+      },
+      "SubmitMovementRequest": {
+        "type": "object",
+        "properties": {
+          "flow_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "ID approval flow yang dipakai; wajib saat routing ke approval engine"
           }
         }
       }

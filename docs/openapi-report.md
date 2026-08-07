@@ -3,9 +3,9 @@
 
 **Generated:** 07 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 450
-**Total Endpoints (methods):** 800
-**Total Schemas:** 497
+**Total Paths:** 452
+**Total Endpoints (methods):** 802
+**Total Schemas:** 498
 **Total Tags:** 32
 
 > 🔗 **Index dokumentasi:** [`docs/README.md`](README.md) · **Terkait:** [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)
@@ -14,9 +14,9 @@
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 800/800 | 100% |
-| Endpoints with `description` | 800/800 | 100% |
-| Endpoints with `operationId` | 800/800 | 100% |
+| Endpoints with `summary` | 802/802 | 100% |
+| Endpoints with `description` | 802/802 | 100% |
+| Endpoints with `operationId` | 802/802 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -120,8 +120,8 @@ Tenant endpoints support validation for Indonesian data formats:
 | 11 | Tenant: Leave & Time Off | 23 | 12 |
 | 12 | Tenant: Career Intelligence | 19 | 11 |
 | 13 | Tenant: Organizations | 18 | 11 |
-| 14 | Tenant: Employee Movement & Career Management | 15 | 9 |
-| 15 | Tenant: Approval | 15 | 9 |
+| 14 | Tenant: Employee Movement & Career Management | 16 | 10 |
+| 15 | Tenant: Approval | 16 | 10 |
 | 16 | Tenant: Reimbursement & Claim | 15 | 7 |
 | 17 | Platform: Companies | 11 | 8 |
 | 18 | Platform: RBAC Management | 10 | 6 |
@@ -138,7 +138,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | 29 | Public | 2 | 2 |
 | 30 | Tenant Auth | 2 | 2 |
 | 31 | Tenant: Company | 2 | 1 |
-| | **TOTAL** | **800** | **450** |
+| | **TOTAL** | **802** | **452** |
 
 ## 2. Module Detail
 
@@ -922,8 +922,8 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Tenant: Employee Movement & Career Management
 **Description:** Employee career movements management including promotions, demotions, mutations, contract extensions (PKWT), retirements, offboarding, and employment contract management
-**Endpoints:** 15 | **Paths:** 9
-**Methods:** DELETE=2 GET=6 POST=5 PUT=2
+**Endpoints:** 16 | **Paths:** 10
+**Methods:** DELETE=2 GET=6 POST=6 PUT=2
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -942,14 +942,16 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/tenant/employee-movements/movements/{id}/approve` | Approve movement | Create a new employee movement resource. |
 | `POST` | `/api/v1/tenant/employee-movements/movements/{id}/cancel` | Cancel movement | Create a new employee movement resource. |
 | `POST` | `/api/v1/tenant/employee-movements/movements/{id}/execute` | Execute movement | Create a new employee movement resource. |
+| `POST` | `/api/v1/tenant/employee-movements/movements/{id}/submit` | Submit employee movement for approval | Kirim movement berstatus draft ke alur persetujuan (approval flow) terpusat. Setelah disetujui, approval engine akan mengeksekusi perpindahan. |
 
 ### Tenant: Approval
 **Description:** Approval engine for multi-level workflow
-**Endpoints:** 15 | **Paths:** 9
-**Methods:** DELETE=2 GET=6 POST=5 PUT=2
+**Endpoints:** 16 | **Paths:** 10
+**Methods:** DELETE=2 GET=7 POST=5 PUT=2
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
+| `GET` | `/api/v1/tenant/approval/available-modules` | List available approval modules | Ambil slug module yang aktif/disubscribe tenant — dipakai flow builder agar hanya menampilkan module yang tersedia. |
 | `GET` | `/api/v1/tenant/approval/flows` | List approval flows | Retrieve a paginated list of approval resources. |
 | `POST` | `/api/v1/tenant/approval/flows` | Create approval flow | Create a new approval resource. |
 | `GET` | `/api/v1/tenant/approval/flows/{flowId}` | Get approval flow by ID | Retrieve a paginated list of approval resources. |

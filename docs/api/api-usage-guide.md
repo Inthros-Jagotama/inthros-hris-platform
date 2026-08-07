@@ -5,7 +5,7 @@
 
 Panduan praktis **cara menggunakan API** HRIS Platform: dari menjalankan server, autentikasi, format request/response, sampai contoh pemanggilan end-to-end (curl).
 
-> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 800 endpoint + skema, lihat:
+> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 802 endpoint + skema, lihat:
 > - [`docs/openapi-report.md`](../openapi-report.md) — laporan komprehensif per modul
 > - `backend/internal/pkg/docs/openapi.json` — OpenAPI 3.0 spec (sumber kebenaran)
 
@@ -477,6 +477,8 @@ curl -X POST http://localhost:8080/api/v1/tenant/employees \
 | Package (subscribe) | `POST /api/v1/tenant/packages/:id/subscribe` |
 | Company self-service | `GET/PUT /api/v1/tenant/companies/me` |
 | Module aktif | `GET /api/v1/tenant/company-modules` |
+| Approval Engine | `GET/POST /api/v1/tenant/approval/flows`, `GET /api/v1/tenant/approval/available-modules`, `POST /api/v1/tenant/approval/instances/:id/actions` |
+| Employee Movement | `GET/POST /api/v1/tenant/employee-movements/movements`, `POST /api/v1/tenant/employee-movements/movements/:id/submit`, `.../:id/approve`, `.../:id/execute` |
 
 > 🔍 Daftar lengkap per modul: lihat [`docs/openapi-report.md`](../openapi-report.md).
 
@@ -653,7 +655,7 @@ curl "http://localhost:8080/api/v1/tenant/performance/okr/dashboard/hr?period_id
 | `POST /api/v1/tenant/performance/okr/comments` | Komentar/review evaluasi (dukung reply via `parent_id`) |
 | `POST /api/v1/tenant/performance/okr/attachments` | Lampirkan file bukti ke evaluation detail |
 
-> 💡 Status evaluasi OKR: `DRAFT` → `SUBMITTED` → `APPROVED` → `COMPLETED` (atau `REJECTED`). Untuk KPI (BSC) gunakan prefix `/performance/kpi/*` — lihat [8.4](#84-contoh-penggunaan-kpi-bsc-end-to-end).
+> 💡 Status evaluasi OKR: `DRAFT` → `SUBMITTED` → `APPROVED` → `COMPLETED` (atau `REJECTED`). Untuk KPI (BSC) gunakan prefix `/performance/kpi/*` — lihat [8.4](#84-contoh-penggunaan-kpi-bsc-end-to-end). Contoh approval flow & employee movement ada di [8.5](#85-contoh-penggunaan-approval-engine--employee-movement).
 
 ### 8.4 Contoh Penggunaan KPI (BSC) — End-to-End
 
@@ -912,6 +914,89 @@ curl -X PUT http://localhost:8080/api/v1/tenant/performance/kpi/evaluations/<eva
 | `POST /api/v1/tenant/performance/kpi/evaluations/:id/calculate-scoring` | Jalankan scoring engine (hitung skor per komponen) |
 
 > 💡 Status evaluasi KPI (BSC): `DRAFT` → `PLAN_SUBMITTED` → `PLAN_APPROVED` → `ACTUAL_SUBMITTED` → `ACTUAL_APPROVED` → `COMPLETED`. Berbeda dari OKR yang satu-tahap (`DRAFT → SUBMITTED → APPROVED → COMPLETED`) — KPI mewajibkan persetujuan rencana **dan** realisasi secara terpisah.
+
+> 🔗 Ingin melihat alur pengajuan & persetujuan (approval flow, submit, approve/reject)? Lihat [8.5 Contoh Penggunaan: Approval Engine & Employee Movement](#85-contoh-penggunaan-approval-engine--employee-movement).
+
+### 8.5 Contoh Penggunaan: Approval Engine & Employee Movement
+
+Employee movement (promosi/mutasi/status change) bisa diajukan lewat **approval flow terpusat**: HR membuat draft movement → men-submit ke flow → approver menyetujui/menolak lewat approval engine → movement tereksekusi.
+
+**Step 1 — Lihat module yang tersedia untuk approval flow:**
+
+```bash
+# Module yang aktif/disubscribe tenant — dipakai flow builder agar hanya menampilkan module valid
+curl "http://localhost:8080/api/v1/tenant/approval/available-modules" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": ["leave", "reimbursement", "employeemovement", ...] }
+```
+
+**Step 2 — Buat approval flow untuk module movement:**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tenant/approval/flows \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "module": "employeemovement",
+    "name": "Movement Approval - 2 Levels",
+    "version": 1
+  }'
+# → { "success": true, "data": { "id": "<flow-uuid>", "module": "employeemovement", ... } }
+```
+
+**Step 3 — Buat draft movement (promosi):**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tenant/employee-movements/movements \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "employee_id": "<employee-uuid>",
+    "movement_type": "promotion",
+    "from_employment_id": "<from-employment-uuid>",
+    "to_employment_id": "<to-employment-uuid>",
+    "decision_letter_number": "SK/2026/0821",
+    "decision_letter_date": "2026-08-07",
+    "effective_date": "2026-09-01",
+    "reason": "Kinerja melebihi target semester I"
+  }'
+# → { "success": true, "data": { "id": "<movement-uuid>", "status": "draft", ... } }
+```
+
+**Step 4 — Submit movement ke approval engine:**
+
+```bash
+# Hanya movement berstatus draft yang bisa di-submit; flow_id wajib diisi
+curl -X POST http://localhost:8080/api/v1/tenant/employee-movements/movements/<movement-uuid>/submit \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "flow_id": "<flow-uuid>" }'
+# → { "success": true, "data": { "id": "<movement-uuid>", "status": "pending_approval", "approval_instance_id": "<instance-uuid>", ... } }
+```
+
+**Step 5 — Approver menyetujui via approval engine:**
+
+```bash
+# (Opsional) Cek task pending untuk user approver
+curl "http://localhost:8080/api/v1/tenant/approval/tasks/pending?page=1&per_page=20" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+
+# Setujui instance approval (action: APPROVE | REJECT)
+curl -X POST http://localhost:8080/api/v1/tenant/approval/instances/<instance-uuid>/actions \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "action": "APPROVE", "note": "Disetujui" }'
+```
+
+**Step 6 — (Opsional) Eksekusi movement setelah disetujui:**
+
+```bash
+# Setelah status approved, HR mengeksekusi perpindahan (update employment efektif)
+curl -X POST http://localhost:8080/api/v1/tenant/employee-movements/movements/<movement-uuid>/execute \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+```
+
+> 💡 Status movement: `draft` → `pending_approval` → `approved` → `executed`. Jika approver **REJECT**, status menjadi `cancelled` (tidak ada status rejected khusus di EmployeeMovement). Endpoint `/movements/:id/approve` dan `/movements/:id/execute` tetap tersedia sebagai jalur manual tanpa approval engine.
 
 ---
 

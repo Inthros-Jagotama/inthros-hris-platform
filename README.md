@@ -1900,7 +1900,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**800 endpoints**, 450 paths, 497 schemas, 32 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**802 endpoints**, 452 paths, 498 schemas, 32 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 

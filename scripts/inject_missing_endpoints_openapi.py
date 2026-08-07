@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Inject missing endpoints into openapi.json (idempotent).
 
-Finds endpoints registered in backend routes (performance Phase 2 KPI, tenant
-RBAC, settings competencies, user accounts, platform users/licenses, career
-intelligence paths delete, public setup-password) that are missing from the
+Finds endpoints registered in backend routes (performance Phase 2 KPI,
+tenant RBAC, settings competencies, user accounts, platform users/licenses,
+career intelligence paths delete, public setup-password, approval
+available-modules, employee movement submit) that are missing from the
 OpenAPI spec and documents them with request/response schemas.
 
 Usage:
@@ -67,6 +68,16 @@ def responses_array(item_ref, desc="List of resources"):
     }
 
 
+def responses_string_array(desc="List of strings"):
+    """Plain non-paginated list of strings: {success, data: ["slug", ...]}."""
+    return {
+        "200": {
+            "description": desc,
+            "content": {"application/json": {"schema": {"type": "object", "properties": {"success": {"type": "boolean", "example": True}, "data": {"type": "array", "items": {"type": "string", "example": "leave"}}}}}}},
+        "400": {"description": "Bad request / Validation error"},
+    }
+
+
 def responses_plain(desc_200="OK"):
     return {
         "200": {"description": desc_200},
@@ -101,8 +112,10 @@ TAG_PERF = "Tenant: Performance Management"
 
 # =========================================================================
 # Performance Phase 2 — Progress
+# (KPI sub-module: routes terdaftar di /performance/kpi/*)
 # =========================================================================
 B = "/api/v1/tenant/performance"
+K = f"{B}/kpi"
 
 def add_path(path, ops):
     global added
@@ -115,17 +128,17 @@ def add_path(path, ops):
 
 
 # --- Progress ---
-add_path(f"{B}/progress", {
+add_path(f"{K}/progress", {
     "post": op("createPerformanceProgress", "Create performance progress",
                "Catat progres realisasi KPI untuk satu evaluation detail (nilai aktual per tanggal).",
                TAG_PERF, request_body=content("CreatePerformanceProgressRequest"), responses=responses_created("PerformanceProgressResponse")),
 })
-add_path(f"{B}/evaluation-details/{{id}}/progress", {
+add_path(f"{K}/evaluation-details/{{id}}/progress", {
     "get": op("listPerformanceProgressByDetailID", "List progress by evaluation detail",
               "Ambil semua progres KPI yang tercatat untuk evaluation detail tertentu (non-paginated).",
               TAG_PERF, parameters=[param("id")], responses=responses_array("PerformanceProgressResponse", "List of performance progress entries")),
 })
-add_path(f"{B}/progress/{{id}}", {
+add_path(f"{K}/progress/{{id}}", {
     "get": op("getPerformanceProgress", "Get performance progress by ID",
               "Ambil satu catatan progres KPI berdasarkan ID.",
               TAG_PERF, parameters=[param("id")], responses=responses_ok("PerformanceProgressResponse")),
@@ -138,17 +151,17 @@ add_path(f"{B}/progress/{{id}}", {
 })
 
 # --- Comments ---
-add_path(f"{B}/comments", {
+add_path(f"{K}/comments", {
     "post": op("createPerformanceComment", "Create performance comment",
                "Tambahkan komentar/review pada sebuah performance evaluation.",
                TAG_PERF, request_body=content("CreatePerformanceCommentRequest"), responses=responses_created("PerformanceCommentResponse")),
 })
-add_path(f"{B}/evaluations/{{id}}/comments", {
+add_path(f"{K}/evaluations/{{id}}/comments", {
     "get": op("listPerformanceCommentsByEvaluationID", "List comments by evaluation",
               "Ambil semua komentar pada sebuah performance evaluation (non-paginated).",
               TAG_PERF, parameters=[param("id")], responses=responses_array("PerformanceCommentResponse", "List of performance comments")),
 })
-add_path(f"{B}/comments/{{id}}", {
+add_path(f"{K}/comments/{{id}}", {
     "get": op("getPerformanceComment", "Get performance comment by ID",
               "Ambil satu komentar performance berdasarkan ID.",
               TAG_PERF, parameters=[param("id")], responses=responses_ok("PerformanceCommentResponse")),
@@ -161,17 +174,17 @@ add_path(f"{B}/comments/{{id}}", {
 })
 
 # --- Attachments ---
-add_path(f"{B}/attachments", {
+add_path(f"{K}/attachments", {
     "post": op("createPerformanceAttachment", "Create performance attachment",
                "Lampirkan file bukti/dokumen pendukung pada evaluation detail.",
                TAG_PERF, request_body=content("CreatePerformanceAttachmentRequest"), responses=responses_created("PerformanceAttachmentResponse")),
 })
-add_path(f"{B}/evaluation-details/{{id}}/attachments", {
+add_path(f"{K}/evaluation-details/{{id}}/attachments", {
     "get": op("listPerformanceAttachmentsByDetailID", "List attachments by evaluation detail",
               "Ambil semua lampiran pada evaluation detail tertentu (non-paginated).",
               TAG_PERF, parameters=[param("id")], responses=responses_array("PerformanceAttachmentResponse", "List of performance attachments")),
 })
-add_path(f"{B}/attachments/{{id}}", {
+add_path(f"{K}/attachments/{{id}}", {
     "get": op("getPerformanceAttachment", "Get performance attachment by ID",
               "Ambil satu lampiran performance berdasarkan ID.",
               TAG_PERF, parameters=[param("id")], responses=responses_ok("PerformanceAttachmentResponse")),
@@ -234,7 +247,7 @@ add_path(f"{B}/logs", {
               TAG_PERF, parameters=[qparam("page", {"type": "integer", "example": 1}), qparam("per_page", {"type": "integer", "example": 20})],
               responses=responses_list("PerformancePaginatedResponse")),
 })
-add_path(f"{B}/evaluations/{{id}}/logs", {
+add_path(f"{K}/evaluations/{{id}}/logs", {
     "get": op("listPerformanceLogsByEvaluationID", "List audit logs by evaluation",
               "Ambil audit trail perubahan pada sebuah performance evaluation.",
               TAG_PERF, parameters=[param("id"), qparam("page", {"type": "integer", "example": 1}), qparam("per_page", {"type": "integer", "example": 20})],
@@ -377,6 +390,26 @@ add_path("/api/v1/public/account/setup-password", {
     "post": op("publicSetPassword", "Set account password via email link",
                "Atur password akun login employee melalui link email (tanpa autentikasi).",
                "Public", security=False, request_body=content("SetPasswordRequest"), responses=responses_plain("Password set successfully")),
+})
+
+# =========================================================================
+# Approval — available modules
+# =========================================================================
+TAG_APPROVAL = "Tenant: Approval"
+add_path("/api/v1/tenant/approval/available-modules", {
+    "get": op("listAvailableModules", "List available approval modules",
+               "Ambil slug module yang aktif/disubscribe tenant — dipakai flow builder agar hanya menampilkan module yang tersedia.",
+               TAG_APPROVAL, responses=responses_string_array("List of active module slugs")),
+})
+
+# =========================================================================
+# Employee Movement — submit to approval
+# =========================================================================
+TAG_EMOV = "Tenant: Employee Movement & Career Management"
+add_path("/api/v1/tenant/employee-movements/movements/{id}/submit", {
+    "post": op("submitMovement", "Submit employee movement for approval",
+               "Kirim movement berstatus draft ke alur persetujuan (approval flow) terpusat. Setelah disetujui, approval engine akan mengeksekusi perpindahan.",
+               TAG_EMOV, parameters=[param("id")], request_body=content("SubmitMovementRequest"), responses=responses_ok("MovementResponse")),
 })
 
 # =========================================================================
@@ -658,6 +691,13 @@ new_schemas = {
             "new_password": {"type": "string", "format": "password", "minLength": 8, "maxLength": 72},
         },
     },
+    # --- Employee Movement — Submit ---
+    "SubmitMovementRequest": {
+        "type": "object",
+        "properties": {
+            "flow_id": {"type": "string", "format": "uuid", "nullable": True, "description": "ID approval flow yang dipakai; wajib saat routing ke approval engine"},
+        },
+    },
     # --- Platform User ---
     "PlatformUserResponse": {
         "type": "object",
@@ -686,9 +726,9 @@ for name, schema in new_schemas.items():
 # (handlers return {success, data: [...]} without pagination)
 # =========================================================================
 list_fixups = {
-    f"{B}/evaluation-details/{{id}}/progress": ("listPerformanceProgressByDetailID", "PerformanceProgressResponse", "List of performance progress entries"),
-    f"{B}/evaluations/{{id}}/comments": ("listPerformanceCommentsByEvaluationID", "PerformanceCommentResponse", "List of performance comments"),
-    f"{B}/evaluation-details/{{id}}/attachments": ("listPerformanceAttachmentsByDetailID", "PerformanceAttachmentResponse", "List of performance attachments"),
+    f"{K}/evaluation-details/{{id}}/progress": ("listPerformanceProgressByDetailID", "PerformanceProgressResponse", "List of performance progress entries"),
+    f"{K}/evaluations/{{id}}/comments": ("listPerformanceCommentsByEvaluationID", "PerformanceCommentResponse", "List of performance comments"),
+    f"{K}/evaluation-details/{{id}}/attachments": ("listPerformanceAttachmentsByDetailID", "PerformanceAttachmentResponse", "List of performance attachments"),
     f"{R}/roles": ("listTenantRbacRoles", "TenantRoleResponse", "List of tenant RBAC roles"),
     f"{R}/permissions": ("listTenantRbacPermissions", "TenantPermissionResponse", "List of tenant RBAC permissions"),
     f"{R}/users": ("listTenantRbacUsers", "TenantUserResponse", "List of tenant RBAC users"),
