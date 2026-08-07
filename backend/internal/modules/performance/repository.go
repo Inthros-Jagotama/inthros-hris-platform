@@ -226,6 +226,34 @@ func (r *Repository) GetOrganizationNamesByIDs(ctx context.Context, ids []uuid.U
 	return result, nil
 }
 
+// GetEmployeeNamesByIDs mengambil nama karyawan untuk sekumpulan employee ID
+// via raw table query (tanpa import package employee, hindari circular dependency).
+func (r *Repository) GetEmployeeNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		ID   string
+		Name string
+	}
+	var rows []row
+	if err := db.WithContext(ctx).Table("employees").
+		Select("id, name").
+		Where("id IN ?", ids).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, rrow := range rows {
+		result[rrow.ID] = rrow.Name
+	}
+	return result, nil
+}
+
 // GetCurrentEmployeeContextByUserID resolve platform user (karyawan yang login)
 // ke employee_id dan Organization tempat dia bekerja saat ini (posisi jabatan
 // terakhir): user -> employee_accounts -> employee -> employments (current,

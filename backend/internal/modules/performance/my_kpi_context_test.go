@@ -27,6 +27,7 @@ func setupMyKPIContextTestDB(t *testing.T) (*Service, func(ctx context.Context) 
 		&PerformanceTemplate{},
 		&PerformanceIndicator{},
 		&PerformanceEvaluation{},
+		&PerformanceEvaluationDetail{},
 	); err != nil {
 		t.Fatalf("failed to migrate test db: %v", err)
 	}
@@ -47,6 +48,10 @@ func setupMyKPIContextTestDB(t *testing.T) (*Service, func(ctx context.Context) 
 			id CHAR(36) PRIMARY KEY,
 			employee_id CHAR(36) NOT NULL,
 			user_id CHAR(36) NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS employees (
+			id CHAR(36) PRIMARY KEY,
+			name VARCHAR(255) NOT NULL DEFAULT ''
 		)`,
 	}
 	for _, stmt := range rawTables {

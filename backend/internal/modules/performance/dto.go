@@ -515,23 +515,26 @@ type BulkUpdateDetailItem struct {
 
 // EvaluationWithDetailsResponse returns evaluation with all details
 type EvaluationWithDetailsResponse struct {
-	ID             string                     `json:"id"`
-	EmployeeID     string                     `json:"employee_id"`
-	OrganizationID string                     `json:"organization_id"`
-	PeriodID       string                     `json:"period_id"`
-	TemplateID     string                     `json:"template_id"`
-	SupervisorID   string                     `json:"supervisor_id,omitempty"`
-	FinalScore     float64                    `json:"final_score"`
-	RatingID       string                     `json:"rating_id,omitempty"`
-	RatingName     string                     `json:"rating_name,omitempty"`
-	RatingColor    string                     `json:"rating_color,omitempty"`
-	Status         string                     `json:"status"`
-	SubmittedAt    string                     `json:"submitted_at,omitempty"`
-	ApprovedAt     string                     `json:"approved_at,omitempty"`
-	Notes          string                     `json:"notes,omitempty"`
-	CreatedAt      time.Time                  `json:"created_at"`
-	UpdatedAt      time.Time                  `json:"updated_at"`
-	Details        []EvaluationDetailResponse `json:"details"`
+	ID               string                     `json:"id"`
+	EmployeeID       string                     `json:"employee_id"`
+	EmployeeName     string                     `json:"employee_name,omitempty"`
+	OrganizationID   string                     `json:"organization_id"`
+	OrganizationName string                     `json:"organization_name,omitempty"`
+	PeriodID         string                     `json:"period_id"`
+	PeriodCode       string                     `json:"period_code,omitempty"`
+	TemplateID       string                     `json:"template_id"`
+	SupervisorID     string                     `json:"supervisor_id,omitempty"`
+	FinalScore       float64                    `json:"final_score"`
+	RatingID         string                     `json:"rating_id,omitempty"`
+	RatingName       string                     `json:"rating_name,omitempty"`
+	RatingColor      string                     `json:"rating_color,omitempty"`
+	Status           string                     `json:"status"`
+	SubmittedAt      string                     `json:"submitted_at,omitempty"`
+	ApprovedAt       string                     `json:"approved_at,omitempty"`
+	Notes            string                     `json:"notes,omitempty"`
+	CreatedAt        time.Time                  `json:"created_at"`
+	UpdatedAt        time.Time                  `json:"updated_at"`
+	Details          []EvaluationDetailResponse `json:"details"`
 }
 
 // ProgressSummaryResponse returns progress summary for an evaluation

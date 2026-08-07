@@ -1947,6 +1947,24 @@ func (s *Service) GetEvaluationWithDetails(ctx context.Context, evalID string) (
 		resp.Notes = *eval.Notes
 	}
 
+	empNames, err := s.repo.GetEmployeeNamesByIDs(ctx, []uuid.UUID{eval.EmployeeID})
+	if err != nil {
+		return nil, err
+	}
+	resp.EmployeeName = empNames[resp.EmployeeID]
+
+	orgNames, err := s.repo.GetOrganizationNamesByIDs(ctx, []uuid.UUID{eval.OrganizationID})
+	if err != nil {
+		return nil, err
+	}
+	resp.OrganizationName = orgNames[resp.OrganizationID]
+
+	periodCodes, err := s.repo.GetPeriodCodesByIDs(ctx, []uuid.UUID{eval.PeriodID})
+	if err != nil {
+		return nil, err
+	}
+	resp.PeriodCode = periodCodes[resp.PeriodID]
+
 	// Convert details
 	for _, d := range details {
 		resp.Details = append(resp.Details, *detailToResponse(&d))
