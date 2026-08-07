@@ -938,6 +938,9 @@ func (s *Service) UpdatePayrollRunStatus(ctx context.Context, id string, req Upd
 					zap.String("run_id", pr.ID.String()),
 					zap.String("instance_id", instanceID),
 				)
+				if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+					pr.ApprovalInstanceID = &parsedInstanceID
+				}
 				pr.Status = "CALCULATED"
 				if err := s.repo.UpdatePayrollRun(ctx, pr); err != nil {
 					return nil, err
@@ -1028,6 +1031,38 @@ func (s *Service) CheckPayrollRunApproval(ctx context.Context, id string, instan
 
 	response := toPayrollRunResponse(pr)
 	return &response, nil
+}
+
+// HandleApprovalStatusChange is invoked by the approval module's push-based
+// status callback when a payroll run's approval instance reaches a final
+// state, so the payroll run's own status field updates itself without
+// requiring a separate manual call to CheckPayrollRunApproval.
+func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	pr, err := s.repo.FindPayrollRunByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	if pr.Status != "CALCULATED" {
+		return nil
+	}
+
+	switch status {
+	case "APPROVED":
+		now := time.Now()
+		pr.ReviewedAt = &now
+		pr.ApprovedAt = &now
+		pr.Status = "APPROVED"
+	case "REJECTED":
+		pr.Status = "DRAFT"
+	default:
+		return nil
+	}
+
+	s.logger.Info("Payroll run status updated via approval status handler",
+		zap.String("run_id", pr.ID.String()),
+		zap.String("approval_status", status),
+	)
+	return s.repo.UpdatePayrollRun(ctx, pr)
 }
 
 // =============================================================================

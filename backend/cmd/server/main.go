@@ -457,6 +457,17 @@ func main() {
 		approvalSvc: approvalSvc,
 	}
 
+	// Construct the payroll service up front (instead of inside payroll.NewModule)
+	// so its push-based approval status handler can be registered with
+	// approvalSvc before the module is mounted.
+	payrollResolver := payroll.NewTenantDBResolver(dbManager)
+	payrollRepo := payroll.NewRepository(payrollResolver)
+	payrollSvc := payroll.NewService(payrollRepo, l.Named("payroll"))
+	payrollSvc.SetApprovalEngine(payrollApprovalEngine)
+	approvalSvc.RegisterStatusHandler("payroll", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return payrollSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
+	})
+
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees
 	// dari file .lic. Pada mode saas, licenseLister memakai company_modules DB.
@@ -520,7 +531,7 @@ func main() {
 			Priority: 7,
 		},
 		module.ModuleRegistration{
-			Module:   payroll.NewModule(dbManager, l, payrollApprovalEngine),
+			Module:   payroll.NewModuleWithService(l, payrollSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 8,
 		},

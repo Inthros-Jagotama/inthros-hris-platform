@@ -551,6 +551,7 @@ type PayrollRunResponse struct {
 	ReviewedAt            *time.Time `json:"reviewed_at,omitempty"`
 	ApprovedAt            *time.Time `json:"approved_at,omitempty"`
 	LockedAt              *time.Time `json:"locked_at,omitempty"`
+	ApprovalInstanceID    string     `json:"approval_instance_id,omitempty"`
 	CreatedAt             time.Time  `json:"created_at"`
 	UpdatedAt             time.Time  `json:"updated_at"`
 }
@@ -909,6 +910,9 @@ func toPayrollRunResponse(p *PayrollRun) PayrollRunResponse {
 		LockedAt:        p.LockedAt,
 		CreatedAt:       p.CreatedAt,
 		UpdatedAt:       p.UpdatedAt,
+	}
+	if p.ApprovalInstanceID != nil {
+		r.ApprovalInstanceID = p.ApprovalInstanceID.String()
 	}
 	return r
 }

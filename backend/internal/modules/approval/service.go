@@ -21,18 +21,53 @@ type ModuleSubscriptionChecker interface {
 	ListActiveModules(companyID string) ([]string, error)
 }
 
+// StatusChangeHandler is invoked when an approval instance belonging to a
+// given module reaches a final state (APPROVED/REJECTED/CANCELLED), so the
+// owning module can update its own record immediately (push) instead of a
+// human/caller having to poll or manually call back with the new status.
+type StatusChangeHandler func(ctx context.Context, documentID uuid.UUID, status InstanceStatus, note string) error
+
 // Service untuk business logic Approval Engine.
 type Service struct {
-	repo          *Repository
-	logger        *zap.Logger
-	moduleChecker ModuleSubscriptionChecker
+	repo           *Repository
+	logger         *zap.Logger
+	moduleChecker  ModuleSubscriptionChecker
+	statusHandlers map[string]StatusChangeHandler
 }
 
 // NewService membuat Service baru.
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{
-		repo:   repo,
-		logger: logger,
+		repo:           repo,
+		logger:         logger,
+		statusHandlers: make(map[string]StatusChangeHandler),
+	}
+}
+
+// RegisterStatusHandler mendaftarkan callback yang dipanggil setiap kali
+// instance milik `module` mencapai status final. Memanggil ulang untuk module
+// yang sama menimpa handler sebelumnya (satu handler per module).
+func (s *Service) RegisterStatusHandler(module string, handler StatusChangeHandler) {
+	s.statusHandlers[module] = handler
+}
+
+// notifyStatusChange memanggil status handler yang terdaftar untuk module
+// milik instance (jika ada). Kegagalan handler di-log, tidak mem-fail-kan
+// operasi approval itu sendiri — status di approval sudah final dan
+// tersimpan; kegagalan sinkronisasi ke module konsumen adalah masalah
+// terpisah yang tidak boleh membuat approval terlihat gagal ke user.
+func (s *Service) notifyStatusChange(ctx context.Context, instance *ApprovalInstance, note string) {
+	handler, ok := s.statusHandlers[instance.Module]
+	if !ok {
+		return
+	}
+	if err := handler(ctx, instance.DocumentID, instance.Status, note); err != nil {
+		s.logger.Error("status change handler failed",
+			zap.String("module", instance.Module),
+			zap.String("document_id", instance.DocumentID.String()),
+			zap.String("status", string(instance.Status)),
+			zap.Error(err),
+		)
 	}
 }
 
@@ -472,6 +507,10 @@ func (s *Service) CreateInstance(ctx context.Context, req CreateInstanceRequest)
 		zap.String("flow_id", req.FlowID),
 	)
 
+	if instance.Status == InstanceStatusApproved {
+		s.notifyStatusChange(ctx, instance, "")
+	}
+
 	// Load and return full instance
 	return s.GetInstanceByID(ctx, instance.ID.String())
 }
@@ -533,7 +572,19 @@ func (s *Service) CancelInstance(ctx context.Context, id string) error {
 		return fmt.Errorf("invalid instance id: %w", err)
 	}
 
-	return s.repo.CancelInstance(ctx, uid)
+	instance, err := s.repo.FindInstanceByID(ctx, uid)
+	if err != nil {
+		return err
+	}
+
+	if err := s.repo.CancelInstance(ctx, uid); err != nil {
+		return err
+	}
+
+	instance.Status = InstanceStatusCancelled
+	s.notifyStatusChange(ctx, instance, "")
+
+	return nil
 }
 
 // =========================================================================
@@ -628,6 +679,14 @@ func (s *Service) SubmitAction(ctx context.Context, instanceID string, userID st
 			zap.String("instance_id", instanceID),
 			zap.String("user_id", userID),
 		)
+
+		instance.Status = InstanceStatusRejected
+		note := ""
+		if req.Note != nil {
+			note = *req.Note
+		}
+		s.notifyStatusChange(ctx, instance, note)
+
 		return s.GetInstanceByID(ctx, instanceID)
 	}
 
@@ -697,6 +756,9 @@ func (s *Service) SubmitAction(ctx context.Context, instanceID string, userID st
 			if err := s.repo.ApproveStep(ctx, instUUID, currentStep, currentStep, nextTasks); err != nil {
 				return nil, err
 			}
+
+			instance.Status = InstanceStatusApproved
+			s.notifyStatusChange(ctx, instance, "")
 		}
 	}
 

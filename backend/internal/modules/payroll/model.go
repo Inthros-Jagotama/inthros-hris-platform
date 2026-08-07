@@ -484,6 +484,7 @@ type PayrollRun struct {
 	ReviewedAt            *time.Time `gorm:"type:timestamp" json:"reviewed_at,omitempty"`
 	ApprovedAt            *time.Time `gorm:"type:timestamp" json:"approved_at,omitempty"`
 	LockedAt              *time.Time `gorm:"type:timestamp" json:"locked_at,omitempty"`
+	ApprovalInstanceID    *uuid.UUID `gorm:"type:char(36)" json:"approval_instance_id,omitempty"`
 	CreatedBy             *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
 	UpdatedBy             *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
 	CreatedAt             time.Time  `json:"created_at"`
