@@ -50,7 +50,7 @@ func (h *Handler) GetLeaveTypeByID(c *gin.Context) {
 	resp, err := h.svc.GetLeaveTypeByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "leave type not found" {
-			httputil.NotFound(c, "Leave type not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -68,7 +68,7 @@ func (h *Handler) UpdateLeaveType(c *gin.Context) {
 	resp, err := h.svc.UpdateLeaveType(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "leave type not found" {
-			httputil.NotFound(c, "Leave type not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -123,7 +123,7 @@ func (h *Handler) GetAccrualPolicyByID(c *gin.Context) {
 	resp, err := h.svc.GetAccrualPolicyByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "accrual policy not found" {
-			httputil.NotFound(c, "Accrual policy not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -186,7 +186,7 @@ func (h *Handler) GetLeaveReasonByID(c *gin.Context) {
 	resp, err := h.svc.GetLeaveReasonByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "leave reason not found" {
-			httputil.NotFound(c, "Leave reason not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -256,7 +256,7 @@ func (h *Handler) GetLeaveRequestByID(c *gin.Context) {
 	resp, err := h.svc.GetLeaveRequestByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "leave request not found" {
-			httputil.NotFound(c, "Leave request not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -333,7 +333,7 @@ func (h *Handler) GetLeaveBalance(c *gin.Context) {
 	resp, err := h.svc.GetLeaveBalance(c.Request.Context(), empID, lTypeID, year)
 	if err != nil {
 		if err.Error() == "leave balance not found" {
-			httputil.NotFound(c, "Leave balance not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})

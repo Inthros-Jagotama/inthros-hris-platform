@@ -28791,6 +28791,194 @@
         }
       }
     },
+    "/api/v1/tenant/performance/kpi/program-items": {
+      "post": {
+        "operationId": "createKpiProgramItem",
+        "summary": "Create KPI program item",
+        "description": "Buat program item (program kerja yang diajukan karyawan sendiri) pada evaluasi KPI — tanpa template HR.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgramItemResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProgramItemRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/kpi/program-items/{id}/target": {
+      "put": {
+        "operationId": "updateKpiProgramItemTarget",
+        "summary": "Update program item target",
+        "description": "Perbarui judul, formula, atau nilai target sebuah program item.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgramItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Program item ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProgramItemTargetRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/kpi/program-items/{id}/actual": {
+      "put": {
+        "operationId": "updateKpiProgramItemActual",
+        "summary": "Update program item actual",
+        "description": "Input nilai aktual program item — achievement & score dihitung ulang.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgramItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Program item ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProgramItemActualRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/kpi/program-items/{id}": {
+      "delete": {
+        "operationId": "deleteKpiProgramItem",
+        "summary": "Delete program item",
+        "description": "Hapus sebuah program item dari evaluasi KPI.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "Program item deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Program item ID"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/tenant/performance/kpi/templates": {
       "post": {
         "operationId": "createKpiTemplate",
@@ -29904,6 +30092,60 @@
         ]
       }
     },
+    "/api/v1/tenant/performance/kpi/evaluation-details/{id}/target": {
+      "put": {
+        "operationId": "updateKpiEvaluationDetailTarget",
+        "summary": "Update evaluation detail target",
+        "description": "Input nilai target untuk satu detail evaluasi KPI (fase planning/target).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEvaluationTargetRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/tenant/performance/kpi/progress/{id}": {
       "get": {
         "operationId": "getKpiProgress",
@@ -30522,6 +30764,62 @@
         ]
       }
     },
+    "/api/v1/tenant/performance/kpi/evaluations/{id}/program-items": {
+      "get": {
+        "operationId": "listKpiEvaluationProgramItems",
+        "summary": "List evaluation program items",
+        "description": "Ambil daftar program item (program kerja yang diajukan karyawan) untuk sebuah evaluasi KPI.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProgramItemResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Evaluation ID"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/tenant/performance/kpi/dashboard/employee/{employee_id}": {
       "get": {
         "operationId": "getKpiEmployeeDashboard",
@@ -30833,6 +31131,51 @@
         ]
       }
     },
+    "/api/v1/tenant/performance/kpi/evaluations/{id}/submit-target": {
+      "post": {
+        "operationId": "submitKpiEvaluationTarget",
+        "summary": "Submit KPI evaluation target",
+        "description": "Ajukan fase target evaluasi KPI (status → PLAN_SUBMITTED).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceEvaluationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Evaluation ID"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/tenant/performance/kpi/evaluations/{id}/approve": {
       "post": {
         "operationId": "approveKpiEvaluation",
@@ -30877,6 +31220,51 @@
         ]
       }
     },
+    "/api/v1/tenant/performance/kpi/evaluations/{id}/approve-target": {
+      "post": {
+        "operationId": "approveKpiEvaluationTarget",
+        "summary": "Approve KPI evaluation target",
+        "description": "Setujui fase target evaluasi KPI (status → PLAN_APPROVED).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceEvaluationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Evaluation ID"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/tenant/performance/kpi/evaluations/{id}/reject": {
       "post": {
         "operationId": "rejectKpiEvaluation",
@@ -30912,6 +31300,61 @@
           },
           "404": {
             "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/kpi/evaluations/{id}/reject-target": {
+      "post": {
+        "operationId": "rejectKpiEvaluationTarget",
+        "summary": "Reject KPI evaluation target",
+        "description": "Tolak fase target evaluasi KPI untuk direvisi (status → DRAFT).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceEvaluationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Evaluation ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectTargetRequest"
+              }
+            }
           }
         },
         "security": [
@@ -30990,7 +31433,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PerformanceEvaluationDetailResponse"
+                  "$ref": "#/components/schemas/EvaluationDetailResponse"
                 }
               }
             }
@@ -31059,7 +31502,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BulkUpdateEvaluationActualsRequest"
+                "$ref": "#/components/schemas/BulkUpdateEvaluationActualRequest"
               }
             }
           }
@@ -32929,45 +33372,6 @@
       }
     },
     "/api/v1/tenant/performance/kpi/components": {
-      "post": {
-        "operationId": "createKpiComponent",
-        "summary": "Create performance component",
-        "description": "Buat komponen scoring KPI (master data) — mis. KPI Target, Competency, Work Program.",
-        "tags": [
-          "Tenant: Performance Management"
-        ],
-        "parameters": [],
-        "responses": {
-          "400": {
-            "description": "Bad request / Validation error"
-          },
-          "201": {
-            "description": "Resource created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PerformanceComponentResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePerformanceComponentRequest"
-              }
-            }
-          }
-        }
-      },
       "get": {
         "operationId": "listKpiComponents",
         "summary": "List performance components",
@@ -33111,28 +33515,27 @@
             }
           }
         }
-      },
-      "delete": {
-        "operationId": "deleteKpiComponent",
-        "summary": "Delete performance component",
-        "description": "Hapus komponen scoring KPI.",
+      }
+    },
+    "/api/v1/tenant/performance/kpi/my-context": {
+      "get": {
+        "operationId": "getMyKPIContext",
+        "summary": "Get my KPI context",
+        "description": "Resolusi user login ke employee & Organization saat ini, lalu mengembalikan template PUBLISHED untuk organisasi tersebut (dipakai halaman self-assessment KPI).",
         "tags": [
           "Tenant: Performance Management"
         ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Performance component deleted"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyKPIContextResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad request / Validation error"
@@ -36974,6 +37377,11 @@
             "format": "date-time",
             "nullable": true
           },
+          "approval_instance_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -37746,6 +38154,11 @@
           },
           "approval_note": {
             "type": "string"
+          },
+          "approval_instance_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           },
           "created_at": {
             "type": "string",
@@ -39696,6 +40109,42 @@
           }
         }
       },
+      "BulkUpdateDetailItem": {
+        "type": "object",
+        "required": [
+          "detail_id"
+        ],
+        "properties": {
+          "detail_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actual": {
+            "type": "number",
+            "format": "float",
+            "example": 85.0
+          },
+          "remarks": {
+            "type": "string",
+            "example": "Pencapaian melebihi target",
+            "nullable": true
+          }
+        }
+      },
+      "BulkUpdateEvaluationActualRequest": {
+        "type": "object",
+        "required": [
+          "details"
+        ],
+        "properties": {
+          "details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkUpdateDetailItem"
+            }
+          }
+        }
+      },
       "CreateBpjsRateComponentRequest": {
         "type": "object",
         "required": [
@@ -40496,6 +40945,10 @@
             "format": "date-time",
             "nullable": true
           },
+          "approval_instance_id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -40767,6 +41220,11 @@
           "hr_action_at": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "approval_instance_id": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           }
         }
@@ -43031,6 +43489,11 @@
             "format": "uuid",
             "example": "550e8400-e29b-41d4-a716-446655440000"
           },
+          "rating_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
           "final_score": {
             "type": "number",
             "format": "float",
@@ -43038,7 +43501,35 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "DRAFT",
+              "PLAN_SUBMITTED",
+              "PLAN_APPROVED",
+              "ACTUAL_SUBMITTED",
+              "ACTUAL_APPROVED",
+              "COMPLETED"
+            ],
             "example": "DRAFT"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "approved_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "target_submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "target_approved_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           },
           "notes": {
             "type": "string",
@@ -43051,6 +43542,178 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "CreateProgramItemRequest": {
+        "type": "object",
+        "required": [
+          "performance_evaluation_id",
+          "title"
+        ],
+        "properties": {
+          "performance_evaluation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "formula_type": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "HIGHER_BETTER",
+              "LOWER_BETTER",
+              "RANGE"
+            ],
+            "default": "MANUAL"
+          },
+          "weight": {
+            "type": "number",
+            "format": "float",
+            "example": 30.0
+          },
+          "unit_of_measurement": {
+            "type": "string",
+            "example": "IDR",
+            "nullable": true
+          },
+          "target": {
+            "type": "number",
+            "format": "float",
+            "example": 100.0
+          }
+        }
+      },
+      "UpdateProgramItemTargetRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "formula_type": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "HIGHER_BETTER",
+              "LOWER_BETTER",
+              "RANGE"
+            ]
+          },
+          "weight": {
+            "type": "number",
+            "format": "float",
+            "example": 30.0,
+            "nullable": true
+          },
+          "unit_of_measurement": {
+            "type": "string",
+            "example": "IDR",
+            "nullable": true
+          },
+          "target": {
+            "type": "number",
+            "format": "float",
+            "example": 100.0
+          }
+        }
+      },
+      "UpdateProgramItemActualRequest": {
+        "type": "object",
+        "required": [
+          "actual"
+        ],
+        "properties": {
+          "actual": {
+            "type": "number",
+            "format": "float",
+            "example": 85.0
+          }
+        }
+      },
+      "ProgramItemResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "performance_evaluation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "formula_type": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number",
+            "format": "float",
+            "example": 30.0
+          },
+          "unit_of_measurement": {
+            "type": "string",
+            "example": "IDR"
+          },
+          "target": {
+            "type": "number",
+            "format": "float"
+          },
+          "actual": {
+            "type": "number",
+            "format": "float"
+          },
+          "achievement": {
+            "type": "number",
+            "format": "float"
+          },
+          "score": {
+            "type": "number",
+            "format": "float"
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RejectTargetRequest": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
+            "example": "Target perlu direvisi",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateEvaluationTargetRequest": {
+        "type": "object",
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "target": {
+            "type": "number",
+            "format": "float",
+            "example": 100.0
+          },
+          "unit_of_measurement": {
+            "type": "string",
+            "example": "IDR",
+            "nullable": true
           }
         }
       },
@@ -43134,6 +43797,19 @@
             "format": "uuid",
             "example": "550e8400-e29b-41d4-a716-446655440000"
           },
+          "indicator_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "indicator_name": {
+            "type": "string",
+            "example": "Revenue Growth"
+          },
+          "unit_of_measurement": {
+            "type": "string",
+            "example": "IDR"
+          },
           "achievement_percentage": {
             "type": "number",
             "format": "float",
@@ -43144,6 +43820,21 @@
             "format": "float",
             "example": 30.0
           },
+          "target": {
+            "type": "number",
+            "format": "float",
+            "example": 100.0
+          },
+          "actual": {
+            "type": "number",
+            "format": "float",
+            "example": 85.0
+          },
+          "achievement": {
+            "type": "number",
+            "format": "float",
+            "example": 85.0
+          },
           "score": {
             "type": "number",
             "format": "float",
@@ -43152,6 +43843,10 @@
           "description": {
             "type": "string",
             "example": "Achievement description"
+          },
+          "remarks": {
+            "type": "string",
+            "example": "Pencapaian melebihi target"
           },
           "created_at": {
             "type": "string",
@@ -47462,6 +48157,31 @@
           }
         }
       },
+      "MyKPIContextResponse": {
+        "type": "object",
+        "properties": {
+          "has_position": {
+            "type": "boolean"
+          },
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organization_name": {
+            "type": "string"
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PerformanceTemplateResponse"
+            }
+          }
+        }
+      },
       "NationalityPaginatedResponse": {
         "type": "object",
         "properties": {
@@ -50099,33 +50819,6 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
-          }
-        }
-      },
-      "CreatePerformanceComponentRequest": {
-        "type": "object",
-        "required": [
-          "code",
-          "name"
-        ],
-        "properties": {
-          "code": {
-            "type": "string",
-            "maxLength": 50
-          },
-          "name": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "description": {
-            "type": "string"
-          },
-          "sort_order": {
-            "type": "integer"
-          },
-          "is_active": {
-            "type": "boolean",
-            "example": true
           }
         }
       },

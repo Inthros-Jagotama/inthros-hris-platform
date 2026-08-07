@@ -90,13 +90,13 @@ func (h *OKRHandler) GetTemplateByID(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid template ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
 	result, err := h.service.GetTemplateWithObjectives(db, id)
 	if err != nil {
-		httputil.NotFound(c, "Template not found")
+		httputil.NotFound(c, "")
 		return
 	}
 
@@ -157,7 +157,7 @@ func (h *OKRHandler) UpdateTemplate(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid template ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -184,7 +184,7 @@ func (h *OKRHandler) DeleteTemplate(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid template ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -205,7 +205,7 @@ func (h *OKRHandler) DuplicateTemplate(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid template ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -252,13 +252,13 @@ func (h *OKRHandler) GetObjectiveByID(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid objective ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
 	result, err := h.service.GetObjectiveByID(db, id)
 	if err != nil {
-		httputil.NotFound(c, "Objective not found")
+		httputil.NotFound(c, "")
 		return
 	}
 
@@ -274,7 +274,7 @@ func (h *OKRHandler) ListObjectivesByTemplateID(c *gin.Context) {
 
 	templateID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid template ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -296,7 +296,7 @@ func (h *OKRHandler) UpdateObjective(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid objective ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -323,7 +323,7 @@ func (h *OKRHandler) DeleteObjective(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid objective ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -369,13 +369,13 @@ func (h *OKRHandler) GetKeyResultByID(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid key result ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
 	result, err := h.service.GetKeyResultByID(db, id)
 	if err != nil {
-		httputil.NotFound(c, "Key result not found")
+		httputil.NotFound(c, "")
 		return
 	}
 
@@ -391,7 +391,7 @@ func (h *OKRHandler) ListKeyResultsByObjectiveID(c *gin.Context) {
 
 	objectiveID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid objective ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -413,7 +413,7 @@ func (h *OKRHandler) UpdateKeyResult(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid key result ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -440,7 +440,7 @@ func (h *OKRHandler) DeleteKeyResult(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid key result ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -486,13 +486,13 @@ func (h *OKRHandler) GetEvaluationByID(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid evaluation ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
 	result, err := h.service.GetEvaluationByID(db, id)
 	if err != nil {
-		httputil.NotFound(c, "Evaluation not found")
+		httputil.NotFound(c, "")
 		return
 	}
 
@@ -508,13 +508,13 @@ func (h *OKRHandler) GetEvaluationWithDetails(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid evaluation ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
 	result, err := h.service.GetEvaluationWithDetails(db, id)
 	if err != nil {
-		httputil.NotFound(c, "Evaluation not found")
+		httputil.NotFound(c, "")
 		return
 	}
 
@@ -578,7 +578,7 @@ func (h *OKRHandler) UpdateEvaluation(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid evaluation ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -605,7 +605,7 @@ func (h *OKRHandler) DeleteEvaluation(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid evaluation ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -630,7 +630,7 @@ func (h *OKRHandler) UpdateEvaluationDetailActual(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid detail ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -657,7 +657,7 @@ func (h *OKRHandler) BulkUpdateEvaluationActuals(c *gin.Context) {
 
 	evaluationID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid evaluation ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -671,7 +671,7 @@ func (h *OKRHandler) BulkUpdateEvaluationActuals(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Actuals updated successfully"})
+	httputil.MessageJSON(c, "success.actuals_updated")
 }
 
 func (h *OKRHandler) RecalculateEvaluationScore(c *gin.Context) {
@@ -683,7 +683,7 @@ func (h *OKRHandler) RecalculateEvaluationScore(c *gin.Context) {
 
 	evaluationID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid evaluation ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -709,7 +709,7 @@ func (h *OKRHandler) SubmitEvaluation(c *gin.Context) {
 
 	evaluationID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid evaluation ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -733,7 +733,7 @@ func (h *OKRHandler) ApproveEvaluation(c *gin.Context) {
 
 	evaluationID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid evaluation ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -757,7 +757,7 @@ func (h *OKRHandler) RejectEvaluation(c *gin.Context) {
 
 	evaluationID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid evaluation ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -786,7 +786,7 @@ func (h *OKRHandler) CompleteEvaluation(c *gin.Context) {
 
 	evaluationID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid evaluation ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -835,13 +835,13 @@ func (h *OKRHandler) GetProgressByID(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid progress ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
 	result, err := h.service.GetProgressByID(db, id)
 	if err != nil {
-		httputil.NotFound(c, "Progress not found")
+		httputil.NotFound(c, "")
 		return
 	}
 
@@ -857,7 +857,7 @@ func (h *OKRHandler) ListProgressByDetailID(c *gin.Context) {
 
 	detailID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid detail ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -879,7 +879,7 @@ func (h *OKRHandler) UpdateProgress(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid progress ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -906,7 +906,7 @@ func (h *OKRHandler) DeleteProgress(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid progress ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -954,7 +954,7 @@ func (h *OKRHandler) ListCommentsByEvaluationID(c *gin.Context) {
 
 	evaluationID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid evaluation ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -976,7 +976,7 @@ func (h *OKRHandler) UpdateComment(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid comment ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -1003,7 +1003,7 @@ func (h *OKRHandler) DeleteComment(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid comment ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -1051,7 +1051,7 @@ func (h *OKRHandler) ListAttachmentsByDetailID(c *gin.Context) {
 
 	detailID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid detail ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 
@@ -1073,7 +1073,7 @@ func (h *OKRHandler) DeleteAttachment(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		httputil.BadRequest(c, "Invalid attachment ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
 		return
 	}
 

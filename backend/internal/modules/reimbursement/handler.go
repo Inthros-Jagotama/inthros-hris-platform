@@ -49,7 +49,7 @@ func (h *Handler) GetReimbursementTypeByID(c *gin.Context) {
 	resp, err := h.svc.GetReimbursementTypeByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "reimbursement type not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Reimbursement type not found"}})
+			httputil.NotFound(c, "")
 			return
 		}
 		httputil.InternalError(c, err.Error())
@@ -67,7 +67,7 @@ func (h *Handler) UpdateReimbursementType(c *gin.Context) {
 	resp, err := h.svc.UpdateReimbursementType(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "reimbursement type not found" {
-			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Reimbursement type not found"}})
+			httputil.NotFound(c, "")
 			return
 		}
 		httputil.InternalError(c, err.Error())
@@ -123,7 +123,7 @@ func (h *Handler) GetReimbursementRequestByID(c *gin.Context) {
 	resp, err := h.svc.GetReimbursementRequestByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "reimbursement request not found" {
-			httputil.NotFound(c, "Reimbursement request not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		httputil.InternalError(c, err.Error())

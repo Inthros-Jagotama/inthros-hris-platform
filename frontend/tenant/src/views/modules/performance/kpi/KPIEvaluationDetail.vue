@@ -86,7 +86,6 @@
                 :maxFractionDigits="2"
                 class="w-full !text-xs"
                 size="small"
-                @blur="updateTarget(data)"
               />
               <span v-else class="text-gray-600 dark:text-gray-300 font-mono">{{ formatNumber(data.target_value) }} {{ data.unit_of_measurement }}</span>
             </template>
@@ -99,7 +98,6 @@
                 v-model="data.unit_of_measurement"
                 class="w-full !text-xs"
                 size="small"
-                @blur="updateTarget(data)"
               />
               <span v-else class="text-gray-500 dark:text-gray-400 text-xs">{{ data.unit_of_measurement || '-' }}</span>
             </template>
@@ -114,7 +112,6 @@
                 :maxFractionDigits="2"
                 class="w-full !text-xs"
                 size="small"
-                @blur="updateActual(data)"
               />
               <span v-else-if="showActualColumn" class="text-gray-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual_value) }}</span>
               <span v-else class="text-gray-300 dark:text-gray-600">—</span>
@@ -167,7 +164,6 @@
                 v-model="data.title"
                 class="w-full !text-xs"
                 size="small"
-                @blur="updateProgramItemTarget(data)"
               />
               <span v-else class="text-gray-800 dark:text-gray-100 font-medium">{{ data.title }}</span>
             </template>
@@ -182,7 +178,6 @@
                 optionValue="value"
                 class="w-full !text-xs"
                 size="small"
-                @change="updateProgramItemTarget(data)"
               />
               <Tag v-else :value="data.formula_type" severity="secondary" class="!text-xs" />
             </template>
@@ -199,7 +194,6 @@
                 suffix="%"
                 class="w-full !text-xs"
                 size="small"
-                @blur="updateProgramItemTarget(data)"
               />
               <span v-else class="text-gray-600 dark:text-gray-300 font-mono">{{ data.weight?.toFixed(1) || '0.0' }}%</span>
             </template>
@@ -213,7 +207,6 @@
                 :maxFractionDigits="2"
                 class="w-full !text-xs"
                 size="small"
-                @blur="updateProgramItemTarget(data)"
               />
               <span v-else class="text-gray-600 dark:text-gray-300 font-mono">{{ formatNumber(data.target) }} {{ data.unit_of_measurement }}</span>
             </template>
@@ -226,7 +219,6 @@
                 class="w-full !text-xs"
                 size="small"
                 maxlength="50"
-                @blur="updateProgramItemTarget(data)"
               />
               <span v-else class="text-gray-500 dark:text-gray-400 text-xs">{{ data.unit_of_measurement || '-' }}</span>
             </template>
@@ -240,7 +232,6 @@
                 :maxFractionDigits="2"
                 class="w-full !text-xs"
                 size="small"
-                @blur="updateProgramItemActual(data)"
               />
               <span v-else-if="showActualColumn" class="text-gray-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual) }}</span>
               <span v-else class="text-gray-300 dark:text-gray-600">—</span>
@@ -257,6 +248,16 @@
             </template>
           </Column>
         </DataTable>
+      </div>
+
+      <!-- Save Target -->
+      <div v-if="canEditTarget" class="flex justify-end">
+        <Button :label="t('kpi.save_target')" icon="pi pi-save" size="small" :loading="savingTargets" @click="saveAllTargets" />
+      </div>
+
+      <!-- Save Actual -->
+      <div v-if="canEditActual" class="flex justify-end">
+        <Button :label="t('kpi.save_actual')" icon="pi pi-save" size="small" :loading="savingActuals" @click="saveAllActuals" />
       </div>
 
       <!-- Scoring Components Breakdown (Phase 5) -->
@@ -413,6 +414,8 @@ const submitting = ref(false)
 const approving = ref(false)
 const rejecting = ref(false)
 const completing = ref(false)
+const savingActuals = ref(false)
+const savingTargets = ref(false)
 
 const components = ref([])
 const hasScoringConfig = ref(false)
@@ -534,7 +537,7 @@ async function loadEvaluation() {
       unit_of_measurement: d.unit_of_measurement || d.indicator?.unit_of_measurement || '',
       formula_type: d.formula_type || d.indicator?.formula_type
     }))
-    programItems.value = (data.program_items || []).map(p => ({ ...p, _savedWeight: p.weight || 0 }))
+    programItems.value = data.program_items || []
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.failed_to_load'), life: 4000 })
     evaluation.value = null
@@ -612,25 +615,52 @@ async function updateComponentScore(row) {
   }
 }
 
-async function updateTarget(detail) {
+async function saveAllTargets() {
+  if (programItemsTotalWeight.value > 100) {
+    toast.add({ severity: 'warn', summary: t('message.warning'), detail: t('kpi.program_weight_exceeds_100'), life: 4000 })
+    return
+  }
+  savingTargets.value = true
   try {
-    await api.put(`/api/v1/tenant/performance/kpi/evaluation-details/${detail.id}/target`, {
-      target: detail.target_value || 0,
-      unit_of_measurement: detail.unit_of_measurement || null
-    })
+    await Promise.all([
+      ...details.value.map(d => api.put(`/api/v1/tenant/performance/kpi/evaluation-details/${d.id}/target`, {
+        target: d.target_value || 0,
+        unit_of_measurement: d.unit_of_measurement || null
+      })),
+      ...programItems.value.map(p => api.put(`/api/v1/tenant/performance/kpi/program-items/${p.id}/target`, {
+        title: p.title,
+        weight: p.weight || 0,
+        unit_of_measurement: p.unit_of_measurement || null,
+        target: p.target || 0,
+        formula_type: p.formula_type
+      }))
+    ])
+    await loadEvaluation()
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('kpi.target_saved'), life: 3000 })
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    savingTargets.value = false
   }
 }
 
-async function updateActual(detail) {
+async function saveAllActuals() {
+  savingActuals.value = true
   try {
-    await api.put(`/api/v1/tenant/performance/kpi/evaluation-details/${detail.id}/actual`, {
-      actual: detail.actual_value || 0
-    })
+    await Promise.all([
+      ...details.value.map(d => api.put(`/api/v1/tenant/performance/kpi/evaluation-details/${d.id}/actual`, {
+        actual: d.actual_value || 0
+      })),
+      ...programItems.value.map(p => api.put(`/api/v1/tenant/performance/kpi/program-items/${p.id}/actual`, {
+        actual: p.actual || 0
+      }))
+    ])
     await recalculate()
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('kpi.actual_saved'), life: 3000 })
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    savingActuals.value = false
   }
 }
 
@@ -686,37 +716,6 @@ async function saveProgramItem() {
 async function removeProgramItem(item) {
   try {
     await api.delete(`/api/v1/tenant/performance/kpi/program-items/${item.id}`)
-    await loadEvaluation()
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
-  }
-}
-
-async function updateProgramItemTarget(item) {
-  if (programItemsTotalWeight.value > 100) {
-    toast.add({ severity: 'warn', summary: t('message.warning'), detail: t('kpi.program_weight_exceeds_100'), life: 4000 })
-    item.weight = item._savedWeight ?? 0
-    return
-  }
-  try {
-    await api.put(`/api/v1/tenant/performance/kpi/program-items/${item.id}/target`, {
-      title: item.title,
-      weight: item.weight || 0,
-      unit_of_measurement: item.unit_of_measurement || null,
-      target: item.target || 0,
-      formula_type: item.formula_type
-    })
-    item._savedWeight = item.weight
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
-  }
-}
-
-async function updateProgramItemActual(item) {
-  try {
-    await api.put(`/api/v1/tenant/performance/kpi/program-items/${item.id}/actual`, {
-      actual: item.actual || 0
-    })
     await loadEvaluation()
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })

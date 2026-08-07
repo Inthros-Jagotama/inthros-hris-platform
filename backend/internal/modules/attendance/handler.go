@@ -264,7 +264,7 @@ func (h *Handler) GetSession(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	workDate := c.Query("work_date")
 	if employeeID == "" || workDate == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": "employee_id and work_date query params are required"}})
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "attendance.query_params_required")
 		return
 	}
 	resp, err := h.service.GetSession(c.Request.Context(), employeeID, workDate)

@@ -54,7 +54,7 @@ func (h *Handler) GetRequisitionByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetRequisitionByID(c.Request.Context(), id)
 	if err != nil {
-		httputil.NotFound(c, "Requisition not found")
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -119,7 +119,7 @@ func (h *Handler) GetCandidateByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetCandidateByID(c.Request.Context(), id)
 	if err != nil {
-		httputil.NotFound(c, "Candidate not found")
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -189,7 +189,7 @@ func (h *Handler) GetApplicationByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetApplicationByID(c.Request.Context(), id)
 	if err != nil {
-		httputil.NotFound(c, "Application not found")
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -258,7 +258,7 @@ func (h *Handler) GetInterviewByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetInterviewByID(c.Request.Context(), id)
 	if err != nil {
-		httputil.NotFound(c, "Interview not found")
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -374,7 +374,7 @@ func (h *Handler) GetEmployeeOnboardingByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetEmployeeOnboardingByID(c.Request.Context(), id)
 	if err != nil {
-		httputil.NotFound(c, "Employee onboarding not found")
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)

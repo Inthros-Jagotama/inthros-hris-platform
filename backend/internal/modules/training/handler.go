@@ -49,7 +49,7 @@ func (h *Handler) GetCategoryByID(c *gin.Context) {
 	resp, err := h.svc.GetCategoryByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training category not found" {
-			httputil.NotFound(c, "Training category not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -67,7 +67,7 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 	resp, err := h.svc.UpdateCategory(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training category not found" {
-			httputil.NotFound(c, "Training category not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -122,7 +122,7 @@ func (h *Handler) GetCourseByID(c *gin.Context) {
 	resp, err := h.svc.GetCourseByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training course not found" {
-			httputil.NotFound(c, "Training course not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -140,7 +140,7 @@ func (h *Handler) UpdateCourse(c *gin.Context) {
 	resp, err := h.svc.UpdateCourse(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training course not found" {
-			httputil.NotFound(c, "Training course not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -200,7 +200,7 @@ func (h *Handler) GetSessionByID(c *gin.Context) {
 	resp, err := h.svc.GetSessionByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training session not found" {
-			httputil.NotFound(c, "Training session not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -218,7 +218,7 @@ func (h *Handler) UpdateSession(c *gin.Context) {
 	resp, err := h.svc.UpdateSession(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training session not found" {
-			httputil.NotFound(c, "Training session not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -291,7 +291,7 @@ func (h *Handler) GetParticipantByID(c *gin.Context) {
 	resp, err := h.svc.GetParticipantByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training participant not found" {
-			httputil.NotFound(c, "Training participant not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -343,7 +343,7 @@ func (h *Handler) CreateMaterial(c *gin.Context) {
 func (h *Handler) ListMaterials(c *gin.Context) {
 	sessionID := c.Query("session_id")
 	if sessionID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": "session_id is required"}})
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "training.session_id_required")
 		return
 	}
 	items, err := h.svc.ListMaterials(c.Request.Context(), sessionID)
@@ -363,7 +363,7 @@ func (h *Handler) UpdateMaterial(c *gin.Context) {
 	resp, err := h.svc.UpdateMaterial(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training material not found" {
-			httputil.NotFound(c, "Training material not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -422,7 +422,7 @@ func (h *Handler) GetEvaluationByID(c *gin.Context) {
 	resp, err := h.svc.GetEvaluationByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training evaluation not found" {
-			httputil.NotFound(c, "Training evaluation not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -440,7 +440,7 @@ func (h *Handler) UpdateEvaluation(c *gin.Context) {
 	resp, err := h.svc.UpdateEvaluation(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training evaluation not found" {
-			httputil.NotFound(c, "Training evaluation not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -495,7 +495,7 @@ func (h *Handler) GetCertificateByID(c *gin.Context) {
 	resp, err := h.svc.GetCertificateByID(c.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "training certificate not found" {
-			httputil.NotFound(c, "Training certificate not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
@@ -513,7 +513,7 @@ func (h *Handler) UpdateCertificate(c *gin.Context) {
 	resp, err := h.svc.UpdateCertificate(c.Request.Context(), id, req)
 	if err != nil {
 		if err.Error() == "training certificate not found" {
-			httputil.NotFound(c, "Training certificate not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})

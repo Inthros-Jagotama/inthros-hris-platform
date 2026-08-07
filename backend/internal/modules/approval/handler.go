@@ -42,11 +42,7 @@ func (h *Handler) CreateFlow(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"success": true,
-		"data":    response,
-		"message": "Approval flow created",
-	})
+	httputil.CreatedJSON(c, response, "approval.flow.created")
 }
 
 // GetFlowByID menangani GET /api/v1/tenant/approval/flows/:flowId
@@ -56,13 +52,7 @@ func (h *Handler) CreateFlow(c *gin.Context) {
 func (h *Handler) GetActiveFlowByModule(c *gin.Context) {
 	module := c.Query("module")
 	if module == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INVALID_PARAM",
-				"message": "module query parameter is required",
-			},
-		})
+		httputil.ErrorJSON(c, http.StatusBadRequest, "INVALID_PARAM", "approval.module_param_required")
 		return
 	}
 
@@ -168,11 +158,7 @@ func (h *Handler) UpdateFlow(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    response,
-		"message": "Approval flow updated",
-	})
+	httputil.UpdatedJSON(c, response, "approval.flow.updated")
 }
 
 // DeleteFlow menangani DELETE /api/v1/tenant/approval/flows/:flowId
@@ -190,10 +176,7 @@ func (h *Handler) DeleteFlow(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Approval flow deleted",
-	})
+	httputil.DeletedJSON(c, "approval.flow.deleted")
 }
 
 // =========================================================================
@@ -221,11 +204,7 @@ func (h *Handler) CreateStep(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"success": true,
-		"data":    response,
-		"message": "Approval step created",
-	})
+	httputil.CreatedJSON(c, response, "approval.step.created")
 }
 
 // ListSteps menangani GET /api/v1/tenant/approval/flows/:flowId/steps
@@ -272,11 +251,7 @@ func (h *Handler) UpdateStep(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    response,
-		"message": "Approval step updated",
-	})
+	httputil.UpdatedJSON(c, response, "approval.step.updated")
 }
 
 // DeleteStep menangani DELETE /api/v1/tenant/approval/flows/:flowId/steps/:stepId
@@ -295,10 +270,7 @@ func (h *Handler) DeleteStep(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Approval step deleted",
-	})
+	httputil.DeletedJSON(c, "approval.step.deleted")
 }
 
 // =========================================================================
@@ -324,11 +296,7 @@ func (h *Handler) CreateInstance(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"success": true,
-		"data":    response,
-		"message": "Approval instance created",
-	})
+	httputil.CreatedJSON(c, response, "approval.instance.created")
 }
 
 // GetInstanceByID menangani GET /api/v1/tenant/approval/instances/:id
@@ -390,10 +358,7 @@ func (h *Handler) CancelInstance(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Approval instance cancelled",
-	})
+	httputil.MessageJSON(c, "approval.instance.cancelled")
 }
 
 // =========================================================================
@@ -412,25 +377,13 @@ func (h *Handler) SubmitAction(c *gin.Context) {
 	// Get user from JWT context
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "UNAUTHORIZED",
-				"message": "user not authenticated",
-			},
-		})
+		httputil.ErrorJSON(c, http.StatusUnauthorized, "UNAUTHORIZED", "error.user_not_authenticated")
 		return
 	}
 
 	userIDStr, ok := userID.(string)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "invalid user_id in context",
-			},
-		})
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", "error.invalid_user_context")
 		return
 	}
 
@@ -446,11 +399,7 @@ func (h *Handler) SubmitAction(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    response,
-		"message": "Approval action submitted",
-	})
+	httputil.SuccessJSONMessage(c, response, "approval.action.submitted")
 }
 
 // =========================================================================
@@ -464,25 +413,13 @@ func (h *Handler) ListMyPendingTasks(c *gin.Context) {
 
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "UNAUTHORIZED",
-				"message": "user not authenticated",
-			},
-		})
+		httputil.ErrorJSON(c, http.StatusUnauthorized, "UNAUTHORIZED", "error.user_not_authenticated")
 		return
 	}
 
 	userIDStr, ok := userID.(string)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "invalid user_id in context",
-			},
-		})
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", "error.invalid_user_context")
 		return
 	}
 

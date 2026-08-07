@@ -1,11 +1,13 @@
 package performance
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
@@ -48,7 +50,7 @@ func (h *Handler) GetPerformancePeriodByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformancePeriodByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance period not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -108,7 +110,7 @@ func (h *Handler) GetPerformancePerspectiveByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformancePerspectiveByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance perspective not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -173,7 +175,7 @@ func (h *Handler) GetPerformanceTemplateByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformanceTemplateByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance template not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -181,6 +183,15 @@ func (h *Handler) GetPerformanceTemplateByID(c *gin.Context) {
 
 func (h *Handler) GetMyKPIContext(c *gin.Context) {
 	resp, err := h.svc.GetMyKPIContext(c.Request.Context())
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ListTemplateOrganizationScope(c *gin.Context) {
+	resp, err := h.svc.ListTemplateOrganizationScope(c.Request.Context())
 	if err != nil {
 		httputil.InternalError(c, err.Error())
 		return
@@ -232,7 +243,7 @@ func (h *Handler) ListPerformanceIndicators(c *gin.Context) {
 	page, perPage := parsePagination(c)
 	templateID := c.Query("template_id")
 	if templateID == "" {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "template_id query parameter is required")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "performance.template_param_required")
 		return
 	}
 	resp, err := h.svc.ListPerformanceIndicators(c.Request.Context(), templateID, page, perPage)
@@ -247,7 +258,7 @@ func (h *Handler) GetPerformanceIndicatorByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformanceIndicatorByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance indicator not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -317,7 +328,7 @@ func (h *Handler) GetPerformanceEvaluationByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformanceEvaluationByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance evaluation not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -407,7 +418,7 @@ func (h *Handler) DeleteEvaluationDetail(c *gin.Context) {
 		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Evaluation detail deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -457,7 +468,7 @@ func (h *Handler) DeletePerformanceTarget(c *gin.Context) {
 		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Performance target deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // =========================================================================
@@ -511,7 +522,7 @@ func (h *Handler) GetPerformanceProgressByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformanceProgressByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance progress not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -571,7 +582,7 @@ func (h *Handler) GetPerformanceCommentByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformanceCommentByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance comment not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -631,7 +642,7 @@ func (h *Handler) GetPerformanceAttachmentByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformanceAttachmentByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance attachment not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -691,7 +702,7 @@ func (h *Handler) GetPerformanceRatingByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformanceRatingByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance rating not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -751,7 +762,7 @@ func (h *Handler) GetPerformanceIndicatorFormulaByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformanceIndicatorFormulaByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance indicator formula not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -809,7 +820,7 @@ func (h *Handler) GetPerformanceLogByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformanceLogByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Performance log not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -838,7 +849,7 @@ func (h *Handler) GetEvaluationWithDetails(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetEvaluationWithDetails(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": "Evaluation not found"}})
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -934,7 +945,7 @@ func (h *Handler) DeleteProgramItem(c *gin.Context) {
 		httputil.NotFound(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Program item deleted"})
+	httputil.DeletedJSON(c, "success.deleted")
 }
 
 // BulkUpdateEvaluationActuals updates multiple details with auto calculation
@@ -983,7 +994,7 @@ func (h *Handler) SubmitTarget(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.SubmitTarget(c.Request.Context(), id)
 	if err != nil {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		emitKPIStatusError(c, err)
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -993,7 +1004,7 @@ func (h *Handler) ApproveTarget(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.ApproveTarget(c.Request.Context(), id)
 	if err != nil {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		emitKPIStatusError(c, err)
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1009,7 +1020,7 @@ func (h *Handler) RejectTarget(c *gin.Context) {
 	}
 	resp, err := h.svc.RejectTarget(c.Request.Context(), id, req.Notes)
 	if err != nil {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		emitKPIStatusError(c, err)
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1019,7 +1030,7 @@ func (h *Handler) SubmitEvaluation(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.SubmitEvaluation(c.Request.Context(), id)
 	if err != nil {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		emitKPIStatusError(c, err)
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1030,7 +1041,7 @@ func (h *Handler) ApproveEvaluation(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.ApproveEvaluation(c.Request.Context(), id)
 	if err != nil {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		emitKPIStatusError(c, err)
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1047,7 +1058,7 @@ func (h *Handler) RejectEvaluation(c *gin.Context) {
 	}
 	resp, err := h.svc.RejectEvaluation(c.Request.Context(), id, req.Notes)
 	if err != nil {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		emitKPIStatusError(c, err)
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1058,10 +1069,24 @@ func (h *Handler) CompleteEvaluation(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.CompleteEvaluation(c.Request.Context(), id)
 	if err != nil {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+		emitKPIStatusError(c, err)
 		return
 	}
 	httputil.SuccessJSON(c, resp)
+}
+
+// emitKPIStatusError responds with a bilingual error for KPI status/approval
+// actions. Approval routing/assignee-resolution failures surface as
+// approval.RoutingError (carrying a translation key + params) and are emitted
+// via httputil.ErrorJSON so the message follows the request language; anything
+// else falls back to the raw error, keeping existing behavior unchanged.
+func emitKPIStatusError(c *gin.Context, err error) {
+	var re *approval.RoutingError
+	if errors.As(err, &re) {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "INVALID_STATUS", re.Key, re.Params...)
+		return
+	}
+	httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())
 }
 
 // =========================================================================
@@ -1072,7 +1097,7 @@ func (h *Handler) CompleteEvaluation(c *gin.Context) {
 func (h *Handler) GetEmployeeDashboard(c *gin.Context) {
 	employeeID := c.Param("employee_id")
 	if employeeID == "" {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_PARAM", "employee_id is required")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "INVALID_PARAM", "performance.employee_id_required")
 		return
 	}
 
@@ -1094,7 +1119,7 @@ func (h *Handler) GetEmployeeDashboard(c *gin.Context) {
 func (h *Handler) GetManagerDashboard(c *gin.Context) {
 	managerID := c.Param("manager_id")
 	if managerID == "" {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_PARAM", "manager_id is required")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "INVALID_PARAM", "performance.manager_id_required")
 		return
 	}
 
@@ -1159,7 +1184,7 @@ func (h *Handler) GetPerformanceComponentByID(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetPerformanceComponentByID(c.Request.Context(), id)
 	if err != nil {
-		httputil.NotFound(c, "Performance component not found")
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)

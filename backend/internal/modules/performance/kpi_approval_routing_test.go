@@ -2,10 +2,17 @@ package performance
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
+	"github.com/inthros/hris-platform/internal/modules/approval"
 )
 
 // fakeApprovalEngine is a test double for ApprovalEngine.
@@ -209,6 +216,62 @@ func TestService_HandleTargetApprovalStatusChange_Rejected_RevertsToDraft(t *tes
 	}
 	if updated.Status != "DRAFT" {
 		t.Fatalf("expected DRAFT after target rejection, got %s", updated.Status)
+	}
+}
+
+// TestEmitKPIStatusError_RoutingErrorBilingual verifies that approval routing
+// failures (e.g. "no supervisor found: every organization ... is vacant") are
+// emitted with a translated message following the request language instead of
+// leaking the raw English service error.
+func TestEmitKPIStatusError_RoutingErrorBilingual(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/tenant/performance/kpi/evaluations/x/submit-target", nil)
+	c.Request.Header.Set("Accept-Language", "id")
+
+	emitKPIStatusError(c, &approval.RoutingError{
+		Key:    "approval.no_supervisor_vacant",
+		Params: []string{"Persetujuan Supervisor"},
+	})
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	var body map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("invalid JSON response: %v", err)
+	}
+	errObj, ok := body["error"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("missing error object: %+v", body)
+	}
+	if errObj["code"] != "INVALID_STATUS" {
+		t.Errorf("expected code INVALID_STATUS, got %v", errObj["code"])
+	}
+	msg, _ := errObj["message"].(string)
+	if !strings.Contains(msg, "Supervisor tidak ditemukan untuk langkah \"Persetujuan Supervisor\"") {
+		t.Errorf("expected Indonesian supervisor message, got: %s", msg)
+	}
+}
+
+// TestEmitKPIStatusError_NonRoutingFallsBackToRaw ensures non-routing errors
+// keep their existing raw-message behavior.
+func TestEmitKPIStatusError_NonRoutingFallsBackToRaw(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/tenant/performance/kpi/evaluations/x/submit-target", nil)
+
+	emitKPIStatusError(c, fmt.Errorf("target can only be submitted from DRAFT status, current: SUBMITTED"))
+
+	var body map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("invalid JSON response: %v", err)
+	}
+	errObj := body["error"].(map[string]interface{})
+	if msg, _ := errObj["message"].(string); !strings.Contains(msg, "target can only be submitted from DRAFT status") {
+		t.Errorf("expected raw fallback message, got: %s", msg)
 	}
 }
 

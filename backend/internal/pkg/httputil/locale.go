@@ -56,6 +56,13 @@ func GetLang(c *gin.Context) Lang {
 	return detectLang(c)
 }
 
+// Translate returns the translated message for the given key and language,
+// with optional parameter substitution. Exported so non-HTTP layers (e.g.
+// service-level error types) can build message text from the same catalog.
+func Translate(lang Lang, key string, params ...string) string {
+	return t(lang, key, params...)
+}
+
 // t returns the translated message for the given tag and language, with
 // optional parameter substitution (%s).
 //
@@ -239,6 +246,18 @@ var localeMessages = map[string]map[Lang]string{
 		LangEN: "Validation failed",
 		LangID: "Validasi gagal",
 	},
+	"error.user_not_authenticated": {
+		LangEN: "User not authenticated",
+		LangID: "Pengguna belum terautentikasi",
+	},
+	"error.invalid_user_context": {
+		LangEN: "Invalid user id in context",
+		LangID: "ID pengguna tidak valid di konteks",
+	},
+	"error.invalid_id": {
+		LangEN: "Invalid id",
+		LangID: "ID tidak valid",
+	},
 
 	// --- Success action messages ---
 	"success.created": {
@@ -264,6 +283,14 @@ var localeMessages = map[string]map[Lang]string{
 	"success.rejected": {
 		LangEN: "Rejected successfully",
 		LangID: "Berhasil ditolak",
+	},
+	"success.executed": {
+		LangEN: "Executed successfully",
+		LangID: "Berhasil dieksekusi",
+	},
+	"success.actuals_updated": {
+		LangEN: "Actuals updated successfully",
+		LangID: "Nilai aktual berhasil diperbarui",
 	},
 	"success.cancelled": {
 		LangEN: "Cancelled successfully",
@@ -390,6 +417,50 @@ var localeMessages = map[string]map[Lang]string{
 	"approval.instance.cancelled": {
 		LangEN: "Approval instance cancelled",
 		LangID: "Instance persetujuan berhasil dibatalkan",
+	},
+	"approval.action.submitted": {
+		LangEN: "Approval action submitted",
+		LangID: "Aksi persetujuan berhasil dikirim",
+	},
+	"approval.module_param_required": {
+		LangEN: "module query parameter is required",
+		LangID: "Parameter query module wajib diisi",
+	},
+	"approval.no_submitter": {
+		LangEN: "Cannot resolve supervisor: instance has no submitter",
+		LangID: "Tidak dapat menentukan supervisor: instance tidak memiliki pengaju",
+	},
+	"approval.submitter_org_unresolved": {
+		LangEN: "Submitter's organization could not be resolved",
+		LangID: "Organisasi pengaju tidak dapat ditentukan",
+	},
+	"approval.no_org_levels": {
+		LangEN: "No organization %s level(s) above the submitter for step \"%s\"",
+		LangID: "Tidak ada organisasi %s level di atas pengaju untuk langkah \"%s\"",
+	},
+	"approval.no_supervisor_vacant": {
+		LangEN: "No supervisor found for step \"%s\": every organization from the submitter up to the top of the hierarchy is vacant",
+		LangID: "Supervisor tidak ditemukan untuk langkah \"%s\": seluruh organisasi dari pengaju hingga puncak hierarki kosong",
+	},
+	"approval.no_assignees": {
+		LangEN: "No assignees resolved for step: %s",
+		LangID: "Tidak ada penyetuju yang dapat ditentukan untuk langkah: %s",
+	},
+	"approval.flow_inactive": {
+		LangEN: "Flow is not active",
+		LangID: "Alur persetujuan tidak aktif",
+	},
+	"approval.flow_no_steps": {
+		LangEN: "Flow has no steps configured",
+		LangID: "Alur persetujuan belum memiliki langkah",
+	},
+	"approval.pending_instance_exists": {
+		LangEN: "Document already has a pending approval instance",
+		LangID: "Dokumen sudah memiliki instance persetujuan yang berjalan",
+	},
+	"approval.zero_approvers": {
+		LangEN: "Approval step \"%s\" (order %s) resolved to zero approvers — check the flow's approver_type/organization/role configuration for this step",
+		LangID: "Langkah persetujuan \"%s\" (urutan %s) tidak memiliki penyetuju — periksa konfigurasi approver_type/organization/role pada langkah ini",
 	},
 
 	"employee.created": {
@@ -581,6 +652,68 @@ var localeMessages = map[string]map[Lang]string{
 	"setting.duplicate_code": {
 		LangEN: "Code '%s' is already in use",
 		LangID: "Kode '%s' sudah digunakan",
+	},
+
+	// --- Additional module messages ---
+	"training.session_id_required": {
+		LangEN: "session_id is required",
+		LangID: "session_id wajib diisi",
+	},
+	"attendance.query_params_required": {
+		LangEN: "employee_id and work_date query parameters are required",
+		LangID: "Parameter query employee_id dan work_date wajib diisi",
+	},
+	"payroll.instance_param_required": {
+		LangEN: "instance_id query parameter is required",
+		LangID: "Parameter query instance_id wajib diisi",
+	},
+	"performance.template_param_required": {
+		LangEN: "template_id query parameter is required",
+		LangID: "Parameter query template_id wajib diisi",
+	},
+	"performance.employee_id_required": {
+		LangEN: "employee_id is required",
+		LangID: "Parameter employee_id wajib diisi",
+	},
+	"performance.manager_id_required": {
+		LangEN: "manager_id is required",
+		LangID: "Parameter manager_id wajib diisi",
+	},
+	"employee.photo_required": {
+		LangEN: "Photo file is required",
+		LangID: "File foto wajib diunggah",
+	},
+	"employee.image_type_only": {
+		LangEN: "Only image files (jpg, jpeg, png, gif, webp) are allowed",
+		LangID: "Hanya file gambar yang diizinkan (jpg, jpeg, png, gif, webp)",
+	},
+	"employee.file_max_2mb": {
+		LangEN: "File size must be less than 2MB",
+		LangID: "Ukuran file maksimal 2MB",
+	},
+	"employee.name_required": {
+		LangEN: "Name is required",
+		LangID: "Nama wajib diisi",
+	},
+	"employee.document_required": {
+		LangEN: "Document file is required",
+		LangID: "File dokumen wajib diunggah",
+	},
+	"employee.file_type_not_allowed": {
+		LangEN: "File type not allowed. Allowed: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT",
+		LangID: "Tipe file tidak diizinkan. Diizinkan: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT",
+	},
+	"employee.file_type_not_allowed_short": {
+		LangEN: "File type not allowed",
+		LangID: "Tipe file tidak diizinkan",
+	},
+	"employee.file_max_10mb": {
+		LangEN: "File size must be less than 10MB",
+		LangID: "Ukuran file maksimal 10MB",
+	},
+	"employee.invalid_id": {
+		LangEN: "Invalid employee ID",
+		LangID: "ID karyawan tidak valid",
 	},
 
 	// --- Package Management messages ---

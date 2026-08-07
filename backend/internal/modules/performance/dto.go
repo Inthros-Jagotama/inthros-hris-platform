@@ -829,6 +829,11 @@ type UpsertOrganizationComponentRequest struct {
 	SortOrder      *int    `json:"sort_order"`
 }
 
+type OrganizationOptionResponse struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type OrganizationComponentResponse struct {
 	ID             string    `json:"id"`
 	OrganizationID string    `json:"organization_id"`

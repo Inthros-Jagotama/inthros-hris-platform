@@ -70,7 +70,7 @@ func (h *Handler) UpdateRole(c *gin.Context) {
 			return
 		}
 		if isNotFound(err) {
-			httputil.NotFound(c, "Role not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		httputil.InternalError(c, err.Error())
@@ -86,7 +86,7 @@ func (h *Handler) DeleteRole(c *gin.Context) {
 			return
 		}
 		if isNotFound(err) {
-			httputil.NotFound(c, "Role not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		httputil.InternalError(c, err.Error())
@@ -112,7 +112,7 @@ func (h *Handler) AssignRolePermissions(c *gin.Context) {
 	}
 	if err := h.service.AssignRolePermissions(c.Request.Context(), c.Param("id"), req.PermissionIDs); err != nil {
 		if isNotFound(err) {
-			httputil.NotFound(c, "Role not found")
+			httputil.NotFound(c, "")
 			return
 		}
 		httputil.InternalError(c, err.Error())
@@ -138,7 +138,7 @@ func (h *Handler) AssignUserRoles(c *gin.Context) {
 	}
 	if err := h.service.AssignUserRoles(c.Request.Context(), c.Param("id"), req.RoleIDs); err != nil {
 		if isNotFound(err) {
-			httputil.NotFound(c, "User not found")
+		httputil.NotFound(c, "")
 			return
 		}
 		httputil.InternalError(c, err.Error())

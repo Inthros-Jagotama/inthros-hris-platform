@@ -78,6 +78,18 @@ func MessageJSON(c *gin.Context, msgKey string, params ...string) {
 	})
 }
 
+// SuccessJSONMessage sends a 200 response with success: true, data, and a
+// translated message identified by msgKey.
+//
+//	{ "success": true, "data": { ... }, "message": "..." }
+func SuccessJSONMessage(c *gin.Context, data interface{}, msgKey string) {
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    data,
+		"message": tCtx(c, msgKey),
+	})
+}
+
 // OKJSON is an alias for SuccessJSON.
 func OKJSON(c *gin.Context, data interface{}) {
 	SuccessJSON(c, data)

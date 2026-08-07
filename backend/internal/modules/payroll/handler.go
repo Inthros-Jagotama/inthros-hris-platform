@@ -576,7 +576,7 @@ func (h *Handler) CheckPayrollRunApproval(c *gin.Context) {
 	id := c.Param("id")
 	instanceID := c.Query("instance_id")
 	if instanceID == "" {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "instance_id query parameter is required")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "payroll.instance_param_required")
 		return
 	}
 

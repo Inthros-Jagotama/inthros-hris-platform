@@ -434,6 +434,37 @@ func (s *Service) GetMyKPIContext(ctx context.Context) (*MyKPIContextResponse, e
 	}, nil
 }
 
+// ListTemplateOrganizationScope mengembalikan daftar Organization yang boleh
+// dipilih saat membuat/mengedit KPI Template — dibatasi hanya pada organisasi
+// yang berada DI BAWAH organisasi milik karyawan (user) yang sedang membuat
+// template, sesuai hierarki org (ParentID). Organisasi milik pembuat sendiri
+// tidak disertakan, hanya turunannya.
+func (s *Service) ListTemplateOrganizationScope(ctx context.Context) ([]OrganizationOptionResponse, error) {
+	userID := authctx.GetUserID(ctx)
+	if userID == nil {
+		return nil, fmt.Errorf("user not authenticated")
+	}
+
+	_, orgID, err := s.repo.GetCurrentEmployeeContextByUserID(ctx, *userID)
+	if err != nil {
+		return nil, err
+	}
+	if orgID == nil {
+		return []OrganizationOptionResponse{}, nil
+	}
+
+	descendants, err := s.repo.GetDescendantOrganizations(ctx, *orgID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]OrganizationOptionResponse, 0, len(descendants))
+	for _, d := range descendants {
+		result = append(result, OrganizationOptionResponse{ID: d.ID.String(), Name: d.Name})
+	}
+	return result, nil
+}
+
 func (s *Service) UpdatePerformanceTemplate(ctx context.Context, id string, req UpdatePerformanceTemplateRequest) (*PerformanceTemplateResponse, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {

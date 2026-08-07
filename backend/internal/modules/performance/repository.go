@@ -1795,7 +1795,14 @@ func (r *Repository) UpsertEvaluationComponent(ctx context.Context, ec *Performa
 		First(&existing).Error
 	if err == nil {
 		ec.ID = existing.ID
-		return db.WithContext(ctx).Save(ec).Error
+		ec.CreatedAt = existing.CreatedAt
+		return db.WithContext(ctx).Model(&PerformanceEvaluationComponent{}).Where("id = ?", ec.ID).Updates(map[string]interface{}{
+			"component_name": ec.ComponentName,
+			"score":          ec.Score,
+			"weight":         ec.Weight,
+			"final_score":    ec.FinalScore,
+			"calculated_at":  ec.CalculatedAt,
+		}).Error
 	}
 	if err != gorm.ErrRecordNotFound {
 		return err
@@ -1831,6 +1838,50 @@ func (r *Repository) GetChildOrganizationIDs(ctx context.Context, orgID uuid.UUI
 		return nil, err
 	}
 	return ids, nil
+}
+
+// OrganizationOption adalah pasangan id-nama organisasi ringan untuk populate dropdown.
+type OrganizationOption struct {
+	ID   uuid.UUID
+	Name string
+}
+
+// GetDescendantOrganizations mengembalikan seluruh organisasi yang berada di
+// bawah rootID (anak, cucu, dst — tidak termasuk rootID sendiri) via BFS
+// berlapis memakai GetChildOrganizationIDs, karena tidak semua target DB
+// (MySQL versi lama) mendukung recursive CTE secara konsisten.
+func (r *Repository) GetDescendantOrganizations(ctx context.Context, rootID uuid.UUID) ([]OrganizationOption, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var descendants []OrganizationOption
+	visited := map[uuid.UUID]bool{rootID: true}
+	frontier := []uuid.UUID{rootID}
+
+	for len(frontier) > 0 {
+		var rows []OrganizationOption
+		if err := db.WithContext(ctx).Table("organizations").
+			Select("id, nomenclature AS name").
+			Where("parent_id IN ? AND deleted_at IS NULL", frontier).
+			Find(&rows).Error; err != nil {
+			return nil, err
+		}
+
+		var next []uuid.UUID
+		for _, row := range rows {
+			if visited[row.ID] {
+				continue
+			}
+			visited[row.ID] = true
+			descendants = append(descendants, row)
+			next = append(next, row.ID)
+		}
+		frontier = next
+	}
+
+	return descendants, nil
 }
 
 // GetAverageFinalScore menghitung rata-rata final_score evaluasi (status APPROVED/

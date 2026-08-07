@@ -131,19 +131,13 @@ func (h *Handler) ApproveMovement(c *gin.Context) {
 	// Get approver from JWT context (set by auth middleware)
 	userID, exists := c.Get("user_id")
 	if !exists {
-		httputil.ErrorRaw(c, http.StatusUnauthorized, "UNAUTHORIZED", "user not authenticated")
+		httputil.ErrorJSON(c, http.StatusUnauthorized, "UNAUTHORIZED", "error.user_not_authenticated")
 		return
 	}
 
 	userIDStr, ok := userID.(string)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "invalid user_id in context",
-			},
-		})
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", "error.invalid_user_context")
 		return
 	}
 
@@ -160,19 +154,13 @@ func (h *Handler) ExecuteMovement(c *gin.Context) {
 
 	userID, exists := c.Get("user_id")
 	if !exists {
-		httputil.ErrorRaw(c, http.StatusUnauthorized, "UNAUTHORIZED", "user not authenticated")
+		httputil.ErrorJSON(c, http.StatusUnauthorized, "UNAUTHORIZED", "error.user_not_authenticated")
 		return
 	}
 
 	userIDStr, ok := userID.(string)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "invalid user_id in context",
-			},
-		})
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", "error.invalid_user_context")
 		return
 	}
 

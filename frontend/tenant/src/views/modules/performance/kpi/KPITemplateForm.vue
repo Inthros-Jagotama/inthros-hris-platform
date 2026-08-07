@@ -184,14 +184,14 @@ function goBack() {
 async function loadReferenceData() {
   try {
     const [orgRes, periodRes, perspRes, formulaRes] = await Promise.all([
-      api.get('/api/v1/tenant/organizations', { params: { per_page: 200, active_only: true } }),
+      api.get('/api/v1/tenant/performance/kpi/templates/organization-scope'),
       api.get('/api/v1/tenant/performance/periods', { params: { per_page: 50 } }),
       api.get('/api/v1/tenant/performance/kpi/perspectives', { params: { per_page: 20 } }),
       api.get('/api/v1/tenant/performance/indicator-formulas', { params: { per_page: 20 } })
     ])
 
     organizationOptions.value = (orgRes.data?.data || []).map(o => ({
-      label: o.nomenclature || o.name || o.code,
+      label: o.name,
       value: o.id
     }))
 

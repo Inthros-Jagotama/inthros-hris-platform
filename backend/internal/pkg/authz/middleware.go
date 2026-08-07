@@ -61,6 +61,18 @@ func NewMiddleware(cfg MiddlewareConfig) gin.HandlerFunc {
 			return
 		}
 
+		// Approve/reject pada approval task adalah aksi berbasis assignment
+		// (siapapun yang menjadi assignee task pending berhak bertindak), bukan
+		// permission berbasis role generik seperti "approval.create" — role
+		// Employee (default, view-only) TIDAK pernah punya "approval.create",
+		// sehingga blanket check di bawah akan mem-block approver yang sah.
+		// Otorisasi sebenarnya sudah divalidasi di service.SubmitAction
+		// (actor harus punya ApprovalTask PENDING miliknya untuk step berjalan).
+		if c.FullPath() == "/api/v1/tenant/approval/instances/:id/actions" {
+			c.Next()
+			return
+		}
+
 		// Extract resource dari path
 		resource := ResourceFromPath(c.FullPath())
 		if resource == "" {

@@ -104,20 +104,20 @@ func (h *Handler) UploadPhoto(c *gin.Context) {
 
 	file, err := c.FormFile("photo")
 	if err != nil {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "Photo file is required")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee.photo_required")
 		return
 	}
 
 	// Validate file type (only images)
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" && ext != ".webp" {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "Only image files (jpg, jpeg, png, gif, webp) are allowed")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee.image_type_only")
 		return
 	}
 
 	// Max 2MB
 	if file.Size > 2*1024*1024 {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "File size must be less than 2MB")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee.file_max_2mb")
 		return
 	}
 
@@ -385,7 +385,7 @@ func (h *Handler) UploadDocumentFile(c *gin.Context) {
 
 	name := c.PostForm("name")
 	if name == "" {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "Name is required")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee.name_required")
 		return
 	}
 
@@ -396,7 +396,7 @@ func (h *Handler) UploadDocumentFile(c *gin.Context) {
 
 	file, err := c.FormFile("file")
 	if err != nil {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "Document file is required")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee.document_required")
 		return
 	}
 
@@ -409,13 +409,13 @@ func (h *Handler) UploadDocumentFile(c *gin.Context) {
 	".txt": true,
 	}
 	if !allowedExts[ext] {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "File type not allowed. Allowed: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee.file_type_not_allowed")
 		return
 	}
 
 	// Max 10MB
 	if file.Size > 10*1024*1024 {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "File size must be less than 10MB")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee.file_max_10mb")
 		return
 	}
 
@@ -439,7 +439,7 @@ func (h *Handler) UploadDocumentFile(c *gin.Context) {
 	empUID, err := uuid.Parse(employeeID)
 	if err != nil {
 		os.Remove(destPath)
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid employee ID")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee.invalid_id")
 		return
 	}
 
@@ -500,11 +500,11 @@ func (h *Handler) UpdateDocumentFile(c *gin.Context) {
 	".txt": true,
 	}
 	if !allowedExts[ext] {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "File type not allowed")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee.file_type_not_allowed_short")
 		return
 	}
 	if file.Size > 10*1024*1024 {
-		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "File size must be less than 10MB")
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee.file_max_10mb")
 		return
 	}
 
