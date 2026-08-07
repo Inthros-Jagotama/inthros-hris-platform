@@ -50,9 +50,10 @@ type UpdateReimbursementRequest struct {
 }
 
 type UpdateReimbursementStatusRequest struct {
-	Status string  `json:"status" binding:"required,oneof=SUBMITTED APPROVED REJECTED PAID CANCELLED"`
-	Note   string  `json:"note"`
+	Status string   `json:"status" binding:"required,oneof=SUBMITTED APPROVED REJECTED PAID CANCELLED"`
+	Note   string   `json:"note"`
 	Amount *float64 `json:"amount"`
+	FlowID *string  `json:"flow_id"`
 }
 
 type ReimbursementRequestResponse struct {
@@ -76,6 +77,7 @@ type ReimbursementRequestResponse struct {
 	ApprovedAt        *time.Time `json:"approved_at,omitempty"`
 	RejectedAt        *time.Time `json:"rejected_at,omitempty"`
 	CancelledAt       *time.Time `json:"cancelled_at,omitempty"`
+	ApprovalInstanceID *string   `json:"approval_instance_id,omitempty"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
 }

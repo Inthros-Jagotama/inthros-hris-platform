@@ -482,6 +482,17 @@ func main() {
 		return leaveSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
 
+	// Construct the reimbursement service up front (instead of inside
+	// reimbursement.NewModule) so its push-based approval status handler can
+	// be registered with approvalSvc before the module is mounted.
+	reimbursementResolver := reimbursement.NewTenantDBResolver(dbManager)
+	reimbursementRepo := reimbursement.NewRepository(reimbursementResolver)
+	reimbursementSvc := reimbursement.NewService(reimbursementRepo, l.Named("reimbursement"))
+	reimbursementSvc.SetApprovalEngine(sharedApprovalEngine)
+	approvalSvc.RegisterStatusHandler("reimbursement", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return reimbursementSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
+	})
+
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees
 	// dari file .lic. Pada mode saas, licenseLister memakai company_modules DB.
@@ -565,7 +576,7 @@ func main() {
 			Priority: 11,
 		},
 		module.ModuleRegistration{
-			Module:   reimbursement.NewModule(dbManager, l),
+			Module:   reimbursement.NewModuleWithService(l, reimbursementSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 12,
 		},

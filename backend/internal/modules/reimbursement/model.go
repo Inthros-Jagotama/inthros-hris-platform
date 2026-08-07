@@ -74,6 +74,7 @@ type ReimbursementRequest struct {
 	ApprovedAt        int64                `gorm:"type:bigint;default:0" json:"-"`
 	RejectedAt        int64                `gorm:"type:bigint;default:0" json:"-"`
 	CancelledAt       int64                `gorm:"type:bigint;default:0" json:"-"`
+	ApprovalInstanceID *uuid.UUID          `gorm:"type:char(36);index:idx_reimb_req_approval_instance" json:"approval_instance_id,omitempty"`
 	Items             []ReimbursementItem  `gorm:"foreignKey:ReimbursementRequestID" json:"items,omitempty"`
 	DeletedAt         gorm.DeletedAt       `gorm:"index:idx_reimb_req_deleted_at" json:"deleted_at,omitempty"`
 	CreatedAt         time.Time            `json:"created_at"`

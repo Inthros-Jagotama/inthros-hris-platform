@@ -227,7 +227,7 @@ func TestService_UpdateReimbursementRequest_NonDraftFails(t *testing.T) {
 	created := createTestReimbursementRequest(repo, empID, rType.ID)
 
 	// Submit first
-	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil)
+	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil, nil)
 	if err != nil {
 		t.Fatalf("UpdateReimbursementRequestStatus failed: %v", err)
 	}
@@ -256,7 +256,7 @@ func TestService_SubmitReimbursementRequest_Success(t *testing.T) {
 	// Add an item first
 	createTestReimbursementItem(repo, created.ID)
 
-	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil)
+	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil, nil)
 	if err != nil {
 		t.Fatalf("Submit reimbursement request failed: %v", err)
 	}
@@ -281,13 +281,13 @@ func TestService_ApproveReimbursementRequest_Success(t *testing.T) {
 	created := createTestReimbursementRequest(repo, empID, rType.ID)
 
 	// Submit first
-	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil)
+	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil, nil)
 	if err != nil {
 		t.Fatalf("Submit failed: %v", err)
 	}
 
 	// Then approve
-	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "APPROVED", "Approved by HR", nil)
+	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "APPROVED", "Approved by HR", nil, nil)
 	if err != nil {
 		t.Fatalf("Approve reimbursement request failed: %v", err)
 	}
@@ -309,13 +309,13 @@ func TestService_RejectReimbursementRequest_Success(t *testing.T) {
 	created := createTestReimbursementRequest(repo, empID, rType.ID)
 
 	// Submit first
-	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil)
+	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil, nil)
 	if err != nil {
 		t.Fatalf("Submit failed: %v", err)
 	}
 
 	// Then reject
-	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "REJECTED", "Receipt not valid", nil)
+	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "REJECTED", "Receipt not valid", nil, nil)
 	if err != nil {
 		t.Fatalf("Reject reimbursement request failed: %v", err)
 	}
@@ -337,17 +337,17 @@ func TestService_PayReimbursementRequest_Success(t *testing.T) {
 	created := createTestReimbursementRequest(repo, empID, rType.ID)
 
 	// Submit → approve → pay
-	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil)
+	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil, nil)
 	if err != nil {
 		t.Fatalf("Submit failed: %v", err)
 	}
-	_, err = svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "APPROVED", "Approved", nil)
+	_, err = svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "APPROVED", "Approved", nil, nil)
 	if err != nil {
 		t.Fatalf("Approve failed: %v", err)
 	}
 
 	paidAmount := 250000.00
-	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "PAID", "Paid via transfer", float64Ptr(paidAmount))
+	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "PAID", "Paid via transfer", float64Ptr(paidAmount), nil)
 	if err != nil {
 		t.Fatalf("Pay reimbursement request failed: %v", err)
 	}
@@ -371,7 +371,7 @@ func TestService_CancelReimbursementRequest_Success(t *testing.T) {
 	empID := uuid.New()
 	created := createTestReimbursementRequest(repo, empID, rType.ID)
 
-	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "CANCELLED", "No longer needed", nil)
+	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "CANCELLED", "No longer needed", nil, nil)
 	if err != nil {
 		t.Fatalf("Cancel reimbursement request failed: %v", err)
 	}
@@ -393,7 +393,7 @@ func TestService_ApproveWithoutSubmit_Fails(t *testing.T) {
 	created := createTestReimbursementRequest(repo, empID, rType.ID)
 
 	// Try to approve directly without submitting
-	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "APPROVED", "", nil)
+	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "APPROVED", "", nil, nil)
 	if err == nil {
 		t.Fatal("expected error when approving without prior submission")
 	}
@@ -408,12 +408,12 @@ func TestService_PayWithoutApprove_Fails(t *testing.T) {
 	created := createTestReimbursementRequest(repo, empID, rType.ID)
 
 	// Submit but don't approve, try to pay directly
-	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil)
+	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil, nil)
 	if err != nil {
 		t.Fatalf("Submit failed: %v", err)
 	}
 
-	_, err = svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "PAID", "", nil)
+	_, err = svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "PAID", "", nil, nil)
 	if err == nil {
 		t.Fatal("expected error when paying without prior approval")
 	}
@@ -427,7 +427,7 @@ func TestService_InvalidStatusTransition_Fails(t *testing.T) {
 	empID := uuid.New()
 	created := createTestReimbursementRequest(repo, empID, rType.ID)
 
-	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "INVALID_STATUS", "", nil)
+	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "INVALID_STATUS", "", nil, nil)
 	if err == nil {
 		t.Fatal("expected error for invalid status")
 	}
@@ -474,7 +474,7 @@ func TestService_CreateReimbursementItem_NonDraftFails(t *testing.T) {
 	rr := createTestReimbursementRequest(repo, empID, rType.ID)
 
 	// Submit first
-	_, err := svc.UpdateReimbursementRequestStatus(ctx(), rr.ID.String(), "SUBMITTED", "", nil)
+	_, err := svc.UpdateReimbursementRequestStatus(ctx(), rr.ID.String(), "SUBMITTED", "", nil, nil)
 	if err != nil {
 		t.Fatalf("Submit failed: %v", err)
 	}

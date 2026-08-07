@@ -40,6 +40,18 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 	}
 }
 
+// NewModuleWithService mounts the reimbursement module's routes using an
+// already-constructed Service, so callers (e.g. main.go) can register a
+// push-based approval status handler against it before it's wrapped.
+func NewModuleWithService(logger *zap.Logger, svc *Service) module.Module {
+	handler := NewHandler(svc)
+
+	return &reimbursementModule{
+		handler: handler,
+		logger:  logger,
+	}
+}
+
 type reimbursementModule struct {
 	handler *Handler
 	logger  *zap.Logger

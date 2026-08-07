@@ -16,13 +16,29 @@ const (
 	maxPerPage     = 100
 )
 
+// ApprovalEngine abstracts the central approval module so reimbursement
+// requests can be routed through it instead of this module's own ad-hoc
+// SupervisorID/HrID fields. Implemented via an adapter wrapping
+// approval.Service in main.go (same narrow-interface-plus-adapter pattern
+// payroll/leave already use).
+type ApprovalEngine interface {
+	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
+	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
+}
+
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
+	repo           *Repository
+	logger         *zap.Logger
+	approvalEngine ApprovalEngine
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// SetApprovalEngine wires the central approval module into this service.
+func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
+	s.approvalEngine = ae
 }
 
 // =========================================================================
@@ -239,7 +255,7 @@ func (s *Service) UpdateReimbursementRequest(ctx context.Context, id string, req
 	return reimbRequestToResponse(rr), nil
 }
 
-func (s *Service) UpdateReimbursementRequestStatus(ctx context.Context, id, status, note string, amount *float64) (*ReimbursementRequestResponse, error) {
+func (s *Service) UpdateReimbursementRequestStatus(ctx context.Context, id, status, note string, amount *float64, flowID *string) (*ReimbursementRequestResponse, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid id: %w", err)
@@ -261,10 +277,30 @@ func (s *Service) UpdateReimbursementRequestStatus(ctx context.Context, id, stat
 			return nil, err
 		}
 		rr.TotalAmount = total
-		rr.Status = ReimbStatusSubmitted
 		rr.SubmittedAt = now.UnixNano()
+
+		// Route through the central approval module when a flow is
+		// selected, instead of relying on this module's own ad-hoc
+		// SupervisorID/HrID fields.
+		if s.approvalEngine != nil && flowID != nil && *flowID != "" {
+			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "reimbursement", rr.ID.String(), *flowID)
+			if err != nil {
+				s.logger.Warn("Failed to create approval instance for reimbursement request, continuing without approval",
+					zap.String("reimbursement_request_id", rr.ID.String()),
+					zap.Error(err),
+				)
+				rr.Status = ReimbStatusSubmitted
+			} else {
+				if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+					rr.ApprovalInstanceID = &parsedInstanceID
+				}
+				rr.Status = ReimbStatusPendingApproval
+			}
+		} else {
+			rr.Status = ReimbStatusSubmitted
+		}
 	case ReimbStatusApproved:
-		if rr.Status != ReimbStatusSubmitted {
+		if rr.Status != ReimbStatusSubmitted && rr.Status != ReimbStatusPendingApproval {
 			return nil, fmt.Errorf("only submitted requests can be approved")
 		}
 		rr.Status = ReimbStatusApproved
@@ -302,6 +338,43 @@ func (s *Service) UpdateReimbursementRequestStatus(ctx context.Context, id, stat
 		zap.String("status", string(rr.Status)),
 	)
 	return reimbRequestToResponse(rr), nil
+}
+
+// HandleApprovalStatusChange is invoked by the approval module's push-based
+// status callback when a reimbursement request's approval instance reaches
+// a final state, so the request's own status field updates itself.
+func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	rr, err := s.repo.FindReimbursementRequestByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	if rr.Status != ReimbStatusPendingApproval {
+		return nil
+	}
+
+	now := time.Now()
+	switch status {
+	case "APPROVED":
+		rr.Status = ReimbStatusApproved
+		rr.ApprovedAt = now.UnixNano()
+	case "REJECTED":
+		rr.Status = ReimbStatusRejected
+		rr.RejectedAt = now.UnixNano()
+		if note != "" {
+			rr.SupervisorNote = &note
+		}
+	case "CANCELLED":
+		rr.Status = ReimbStatusCancelled
+		rr.CancelledAt = now.UnixNano()
+	default:
+		return nil
+	}
+
+	s.logger.Info("Reimbursement request status updated via approval status handler",
+		zap.String("reimbursement_request_id", rr.ID.String()),
+		zap.String("approval_status", status),
+	)
+	return s.repo.UpdateReimbursementRequest(ctx, rr)
 }
 
 func (s *Service) DeleteReimbursementRequest(ctx context.Context, id string) error {
@@ -506,6 +579,10 @@ func reimbRequestToResponse(r *ReimbursementRequest) *ReimbursementRequestRespon
 	if r.HrID != nil {
 		v := r.HrID.String()
 		resp.HrID = &v
+	}
+	if r.ApprovalInstanceID != nil {
+		v := r.ApprovalInstanceID.String()
+		resp.ApprovalInstanceID = &v
 	}
 	return resp
 }

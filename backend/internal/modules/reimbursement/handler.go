@@ -152,7 +152,7 @@ func (h *Handler) UpdateReimbursementRequestStatus(c *gin.Context) {
 	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
-	resp, err := h.svc.UpdateReimbursementRequestStatus(c.Request.Context(), id, req.Status, req.Note, req.Amount)
+	resp, err := h.svc.UpdateReimbursementRequestStatus(c.Request.Context(), id, req.Status, req.Note, req.Amount, req.FlowID)
 	if err != nil {
 		httputil.InternalError(c, err.Error())
 		return
