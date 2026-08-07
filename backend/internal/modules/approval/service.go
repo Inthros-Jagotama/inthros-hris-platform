@@ -10,10 +10,22 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
+// ModuleSubscriptionChecker abstracts checking which modules a tenant has
+// subscribed to. Implemented via an adapter wrapping modulemgmt.Service in
+// main.go (same narrow-interface-plus-adapter pattern payroll already uses
+// for its ApprovalEngine dependency) — approval must not import modulemgmt
+// directly, and modulemgmt lives in the platform DB, not the tenant DB this
+// package otherwise talks to.
+type ModuleSubscriptionChecker interface {
+	IsModuleActive(companyID, moduleSlug string) (bool, error)
+	ListActiveModules(companyID string) ([]string, error)
+}
+
 // Service untuk business logic Approval Engine.
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
+	repo          *Repository
+	logger        *zap.Logger
+	moduleChecker ModuleSubscriptionChecker
 }
 
 // NewService membuat Service baru.
@@ -24,12 +36,58 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 	}
 }
 
+// SetModuleChecker menyuntikkan module-subscription checker (opsional). Jika
+// tidak pernah dipanggil, validasi subscription pada CreateFlow/UpdateFlow
+// dilewati (mis. pada test) — hanya divalidasi ketika benar-benar diwire di
+// main.go.
+func (s *Service) SetModuleChecker(mc ModuleSubscriptionChecker) {
+	s.moduleChecker = mc
+}
+
+// ListAvailableModules mengembalikan slug module yang aktif untuk tenant saat
+// ini (dari context) — dipakai frontend flow builder agar module picker hanya
+// menampilkan module yang benar-benar disubscribe, bukan free-text.
+func (s *Service) ListAvailableModules(ctx context.Context) ([]string, error) {
+	if s.moduleChecker == nil {
+		return nil, fmt.Errorf("module subscription checker is not configured")
+	}
+	companyID := authctx.GetCompanyID(ctx)
+	if companyID == "" {
+		return nil, fmt.Errorf("tenant context not found")
+	}
+	return s.moduleChecker.ListActiveModules(companyID)
+}
+
+// ensureModuleSubscribed menolak operasi jika module belum disubscribe tenant.
+// No-op jika moduleChecker belum diwire (backward compatible / test-friendly).
+func (s *Service) ensureModuleSubscribed(ctx context.Context, module string) error {
+	if s.moduleChecker == nil {
+		return nil
+	}
+	companyID := authctx.GetCompanyID(ctx)
+	if companyID == "" {
+		return fmt.Errorf("tenant context not found")
+	}
+	active, err := s.moduleChecker.IsModuleActive(companyID, module)
+	if err != nil {
+		return fmt.Errorf("failed to check module subscription: %w", err)
+	}
+	if !active {
+		return fmt.Errorf("module %q is not subscribed for this tenant", module)
+	}
+	return nil
+}
+
 // =========================================================================
 // Approval Flows
 // =========================================================================
 
 // CreateFlow membuat alur persetujuan baru.
 func (s *Service) CreateFlow(ctx context.Context, req CreateFlowRequest) (*FlowResponse, error) {
+	if err := s.ensureModuleSubscribed(ctx, req.Module); err != nil {
+		return nil, err
+	}
+
 	flow := &ApprovalFlow{
 		Module:   req.Module,
 		Name:     req.Name,
@@ -126,6 +184,15 @@ func (s *Service) UpdateFlow(ctx context.Context, id string, req UpdateFlowReque
 	}
 	if req.IsActive != nil {
 		flow.IsActive = *req.IsActive
+	}
+
+	// Re-validate subscription whenever the module changes or the flow is
+	// (re)activated — an already-inactive flow being edited otherwise (e.g.
+	// renamed) doesn't need to re-check.
+	if req.Module != nil || (req.IsActive != nil && *req.IsActive) {
+		if err := s.ensureModuleSubscribed(ctx, flow.Module); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := s.repo.UpdateFlow(ctx, flow); err != nil {

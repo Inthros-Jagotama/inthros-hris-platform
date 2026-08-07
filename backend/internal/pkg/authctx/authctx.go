@@ -20,3 +20,13 @@ func GetUserID(ctx context.Context) *uuid.UUID {
 	}
 	return nil
 }
+
+// GetCompanyID extracts the tenant company ID from the request context.
+// Returns "" if not found. company_id diset oleh middleware.TenantRequired
+// dan di-propagate ke request context.
+func GetCompanyID(ctx context.Context) string {
+	if companyID, ok := ctx.Value("company_id").(string); ok {
+		return companyID
+	}
+	return ""
+}

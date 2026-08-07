@@ -15,6 +15,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		approval.GET("/flows/:flowId", handler.GetFlowByID)
 		approval.PUT("/flows/:flowId", handler.UpdateFlow)
 		approval.DELETE("/flows/:flowId", handler.DeleteFlow)
+		approval.GET("/available-modules", handler.ListAvailableModules)
 
 		// =================================================================
 		// Approval Flow Steps (Langkah-langkah dalam alur)

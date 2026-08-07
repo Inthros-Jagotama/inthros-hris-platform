@@ -223,3 +223,8 @@ func strPtr(s string) *string {
 func intPtr(i int) *int {
 	return &i
 }
+
+// boolPtr returns a pointer to the given bool.
+func boolPtr(b bool) *bool {
+	return &b
+}

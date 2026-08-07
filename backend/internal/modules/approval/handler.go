@@ -91,6 +91,28 @@ func (h *Handler) ListFlows(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// ListAvailableModules menangani GET /api/v1/tenant/approval/available-modules
+// Mengembalikan slug module yang aktif/disubscribe tenant — dipakai frontend
+// agar flow builder hanya menampilkan module yang benar-benar tersedia.
+func (h *Handler) ListAvailableModules(c *gin.Context) {
+	modules, err := h.service.ListAvailableModules(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    modules,
+	})
+}
+
 // UpdateFlow menangani PUT /api/v1/tenant/approval/flows/:flowId
 func (h *Handler) UpdateFlow(c *gin.Context) {
 	id := c.Param("flowId")

@@ -191,6 +191,41 @@ func (a companyModuleListerAdapter) EnabledModuleSlugs(companyID string) ([]stri
 	return slugs, nil
 }
 
+// approvalModuleCheckerAdapter membungkus modulemgmt.Service agar memenuhi
+// approval.ModuleSubscriptionChecker — dipakai approval flow CRUD untuk
+// memvalidasi bahwa module target sudah disubscribe tenant sebelum flow
+// dibuat/diaktifkan.
+type approvalModuleCheckerAdapter struct {
+	svc *modulemgmt.Service
+}
+
+func (a approvalModuleCheckerAdapter) IsModuleActive(companyID, moduleSlug string) (bool, error) {
+	mods, err := a.svc.ListCompanyModules(companyID)
+	if err != nil {
+		return false, err
+	}
+	for _, m := range mods {
+		if m.ModuleSlug == moduleSlug && m.Enabled {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (a approvalModuleCheckerAdapter) ListActiveModules(companyID string) ([]string, error) {
+	mods, err := a.svc.ListCompanyModules(companyID)
+	if err != nil {
+		return nil, err
+	}
+	var slugs []string
+	for _, m := range mods {
+		if m.Enabled {
+			slugs = append(slugs, m.ModuleSlug)
+		}
+	}
+	return slugs, nil
+}
+
 // onPremiseLister mengimplementasikan middleware.CompanyModuleLister untuk mode
 // On-Premise: daftar modul yang diizinkan diambil dari file .lic RSA
 // (berlaku untuk semua company pada deployment tunggal tersebut).
@@ -415,6 +450,7 @@ func main() {
 	approvalLogger := l.Named("approval")
 	approvalRepo := approval.NewRepository(approvalResolver)
 	approvalSvc := approval.NewService(approvalRepo, approvalLogger)
+	approvalSvc.SetModuleChecker(approvalModuleCheckerAdapter{svc: modulemgmtSvc})
 
 	// Create the ApprovalEngine adapter that the payroll module expects
 	payrollApprovalEngine := &payrollApprovalAdapter{
