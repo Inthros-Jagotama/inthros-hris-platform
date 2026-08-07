@@ -663,6 +663,93 @@ func (r *Repository) GetSubmitterOrganizationID(ctx context.Context, userID uuid
 	return &orgID, nil
 }
 
+// submitterInfo carries the display fields the "My Tasks" inbox needs about
+// whoever submitted an instance (name, employee code, current org name).
+type submitterInfo struct {
+	Name             string
+	EmployeeCode     string
+	OrganizationName string
+}
+
+// GetSubmitterInfoByUserIDs resolves display info (name, employee code,
+// current organization name) for a batch of submitters at once — used to
+// enrich the "My Tasks" list without an N+1 query per row. Same
+// employee_accounts -> employments -> organizations raw-query pattern as
+// GetSubmitterOrganizationID (approval must not import the employee/
+// organization packages directly).
+func (r *Repository) GetSubmitterInfoByUserIDs(ctx context.Context, userIDs []uuid.UUID) (map[string]submitterInfo, error) {
+	result := make(map[string]submitterInfo, len(userIDs))
+	if len(userIDs) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		UserID           string
+		Name             string
+		EmployeeCode     string
+		OrganizationName string
+	}
+	var rows []row
+	err = db.Table("employee_accounts AS ea").
+		Joins("JOIN employees AS emp ON emp.id = ea.employee_id").
+		Joins("JOIN employments AS em ON em.employee_id = ea.employee_id AND em.effective_end_date IS NULL").
+		Joins("JOIN organizations AS o ON o.id = em.organization_id").
+		Where("ea.user_id IN ?", userIDs).
+		Select("ea.user_id AS user_id, emp.name AS name, emp.employee_id AS employee_code, o.nomenclature AS organization_name").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve submitter info: %w", err)
+	}
+	for _, rrow := range rows {
+		result[rrow.UserID] = submitterInfo{Name: rrow.Name, EmployeeCode: rrow.EmployeeCode, OrganizationName: rrow.OrganizationName}
+	}
+	return result, nil
+}
+
+// GetInstancesByIDs batch-fetches instances (for FlowID/CreatedBy) without
+// their steps/actions — used to enrich task lists.
+func (r *Repository) GetInstancesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]ApprovalInstance, error) {
+	result := make(map[string]ApprovalInstance, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var instances []ApprovalInstance
+	if err := db.Where("id IN ? AND deleted_at IS NULL", ids).Find(&instances).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch instances: %w", err)
+	}
+	for _, inst := range instances {
+		result[inst.ID.String()] = inst
+	}
+	return result, nil
+}
+
+// GetFlowNamesByIDs batch-fetches flow names for a set of flow IDs.
+func (r *Repository) GetFlowNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var flows []ApprovalFlow
+	if err := db.Where("id IN ? AND deleted_at IS NULL", ids).Find(&flows).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch flows: %w", err)
+	}
+	for _, f := range flows {
+		result[f.ID.String()] = f.Name
+	}
+	return result, nil
+}
+
 // GetUserIDsByOrganization mengembalikan platform user ID (bukan employee ID) dari
 // employee yang saat ini menempati sebuah Organization: organization_id -> employments
 // (current) -> employee_id -> employee_accounts -> user_id.

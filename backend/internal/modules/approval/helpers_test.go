@@ -37,6 +37,7 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		`CREATE TABLE IF NOT EXISTS organizations (
 			id CHAR(36) PRIMARY KEY,
 			parent_id CHAR(36) NULL,
+			nomenclature VARCHAR(255) NOT NULL DEFAULT '',
 			deleted_at TIMESTAMP NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS employments (
@@ -50,6 +51,11 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 			id CHAR(36) PRIMARY KEY,
 			employee_id CHAR(36) NOT NULL,
 			user_id CHAR(36) NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS employees (
+			id CHAR(36) PRIMARY KEY,
+			name VARCHAR(255) NOT NULL DEFAULT '',
+			employee_id VARCHAR(50) NOT NULL DEFAULT ''
 		)`,
 	}
 	for _, stmt := range rawTables {
@@ -179,6 +185,21 @@ func createTestTask(repo *Repository, instanceID uuid.UUID, stepOrder int, assig
 func seedOrganization(db *gorm.DB, id uuid.UUID, parentID *uuid.UUID) {
 	if err := db.Exec("INSERT INTO organizations (id, parent_id) VALUES (?, ?)", id.String(), uuidPtrStr(parentID)).Error; err != nil {
 		panic(fmt.Sprintf("failed to seed organization: %v", err))
+	}
+}
+
+// seedOrganizationNamed is like seedOrganization but also sets nomenclature,
+// needed by tests asserting on the resolved organization *name* (not just ID).
+func seedOrganizationNamed(db *gorm.DB, id uuid.UUID, parentID *uuid.UUID, name string) {
+	if err := db.Exec("INSERT INTO organizations (id, parent_id, nomenclature) VALUES (?, ?, ?)", id.String(), uuidPtrStr(parentID), name).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed organization: %v", err))
+	}
+}
+
+// seedEmployee inserts a minimal employees row (name + employee code).
+func seedEmployee(db *gorm.DB, id uuid.UUID, name, employeeCode string) {
+	if err := db.Exec("INSERT INTO employees (id, name, employee_id) VALUES (?, ?, ?)", id.String(), name, employeeCode).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed employee: %v", err))
 	}
 }
 

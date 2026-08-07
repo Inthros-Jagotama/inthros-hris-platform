@@ -138,14 +138,19 @@ type ActionResponse struct {
 // =========================================================================
 
 type TaskResponse struct {
-	ID           string    `json:"id"`
-	InstanceID   string    `json:"instance_id"`
-	StepOrder    int       `json:"step_order"`
-	AssigneeType string    `json:"assignee_type"`
-	AssigneeID   string    `json:"assignee_id"`
-	Status       string    `json:"status"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           string `json:"id"`
+	InstanceID   string `json:"instance_id"`
+	FlowName     string `json:"flow_name,omitempty"`
+	StepOrder    int    `json:"step_order"`
+	AssigneeType string `json:"assignee_type"`
+	AssigneeID   string `json:"assignee_id"`
+	Status       string `json:"status"`
+	// Submitter* describe whoever created the instance this task belongs to.
+	SubmitterName             string    `json:"submitter_name,omitempty"`
+	SubmitterEmployeeCode     string    `json:"submitter_employee_code,omitempty"`
+	SubmitterOrganizationName string    `json:"submitter_organization_name,omitempty"`
+	CreatedAt                 time.Time `json:"created_at"`
+	UpdatedAt                 time.Time `json:"updated_at"`
 }
 
 // =========================================================================

@@ -2,7 +2,9 @@ package approval
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -515,17 +517,17 @@ func (s *Service) CreateInstance(ctx context.Context, req CreateInstanceRequest)
 	}
 
 	if !flow.IsActive {
-		return nil, fmt.Errorf("flow is not active")
+		return nil, newRoutingError("approval.flow_inactive")
 	}
 
 	if len(flow.Steps) == 0 {
-		return nil, fmt.Errorf("flow has no steps configured")
+		return nil, newRoutingError("approval.flow_no_steps")
 	}
 
 	// Check if document already has an active instance
 	existing, err := s.repo.FindInstanceByDocument(ctx, req.Module, docUUID)
 	if err == nil && existing != nil && existing.Status == InstanceStatusPending {
-		return nil, fmt.Errorf("document already has a pending approval instance")
+		return nil, newRoutingError("approval.pending_instance_exists")
 	}
 
 	instance := &ApprovalInstance{
@@ -561,7 +563,7 @@ func (s *Service) CreateInstance(ctx context.Context, req CreateInstanceRequest)
 			}
 		}
 		if !hasPendingTask {
-			return nil, fmt.Errorf("approval step %q (order %d) resolved to zero approvers — check the flow's approver_type/organization/role configuration for this step", landedStep.StepName, landedStep.StepOrder)
+			return nil, newRoutingError("approval.zero_approvers", landedStep.StepName, strconv.Itoa(landedStep.StepOrder))
 		}
 	} else {
 		// Entire flow was WATCHER-only — nothing left to gate on.
@@ -866,9 +868,61 @@ func (s *Service) ListMyPendingTasks(ctx context.Context, userID string, page, p
 		return nil, err
 	}
 
+	// Enrich with the instance's flow name and submitter info (name,
+	// employee code, current org) — batched by distinct instance/flow/user
+	// ID rather than per-row, since this is a paginated list.
+	instanceIDSet := make(map[uuid.UUID]struct{}, len(tasks))
+	for _, t := range tasks {
+		instanceIDSet[t.InstanceID] = struct{}{}
+	}
+	instanceIDs := make([]uuid.UUID, 0, len(instanceIDSet))
+	for id := range instanceIDSet {
+		instanceIDs = append(instanceIDs, id)
+	}
+	instances, err := s.repo.GetInstancesByIDs(ctx, instanceIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	flowIDSet := make(map[uuid.UUID]struct{}, len(instances))
+	submitterIDSet := make(map[uuid.UUID]struct{}, len(instances))
+	for _, inst := range instances {
+		flowIDSet[inst.FlowID] = struct{}{}
+		if inst.CreatedBy != nil {
+			submitterIDSet[*inst.CreatedBy] = struct{}{}
+		}
+	}
+	flowIDs := make([]uuid.UUID, 0, len(flowIDSet))
+	for id := range flowIDSet {
+		flowIDs = append(flowIDs, id)
+	}
+	submitterIDs := make([]uuid.UUID, 0, len(submitterIDSet))
+	for id := range submitterIDSet {
+		submitterIDs = append(submitterIDs, id)
+	}
+	flowNames, err := s.repo.GetFlowNamesByIDs(ctx, flowIDs)
+	if err != nil {
+		return nil, err
+	}
+	submitters, err := s.repo.GetSubmitterInfoByUserIDs(ctx, submitterIDs)
+	if err != nil {
+		return nil, err
+	}
+
 	var responses []TaskResponse
 	for _, t := range tasks {
-		responses = append(responses, t.ToResponse())
+		r := t.ToResponse()
+		if inst, ok := instances[r.InstanceID]; ok {
+			r.FlowName = flowNames[inst.FlowID.String()]
+			if inst.CreatedBy != nil {
+				if sub, ok := submitters[inst.CreatedBy.String()]; ok {
+					r.SubmitterName = sub.Name
+					r.SubmitterEmployeeCode = sub.EmployeeCode
+					r.SubmitterOrganizationName = sub.OrganizationName
+				}
+			}
+		}
+		responses = append(responses, r)
 	}
 
 	totalPages := int(total) / perPage
@@ -942,7 +996,7 @@ func (s *Service) resolveStepAssignees(ctx context.Context, instance *ApprovalIn
 	}
 
 	if len(assignees) == 0 {
-		return nil, fmt.Errorf("no assignees resolved for step: %s", step.StepName)
+		return nil, newRoutingError("approval.no_assignees", step.StepName)
 	}
 
 	return assignees, nil
@@ -953,7 +1007,7 @@ func (s *Service) resolveStepAssignees(ctx context.Context, instance *ApprovalIn
 // the platform user(s) currently occupying that ancestor Organization.
 func (s *Service) resolveSupervisorAssignees(ctx context.Context, instance *ApprovalInstance, step ApprovalFlowStep) ([]taskAssignee, error) {
 	if instance.CreatedBy == nil {
-		return nil, fmt.Errorf("cannot resolve supervisor: instance has no submitter")
+		return nil, newRoutingError("approval.no_submitter")
 	}
 
 	orgID, err := s.repo.GetSubmitterOrganizationID(ctx, *instance.CreatedBy)
@@ -961,7 +1015,7 @@ func (s *Service) resolveSupervisorAssignees(ctx context.Context, instance *Appr
 		return nil, err
 	}
 	if orgID == nil {
-		return nil, fmt.Errorf("submitter's organization could not be resolved")
+		return nil, newRoutingError("approval.submitter_org_unresolved")
 	}
 
 	level := 1
@@ -976,7 +1030,7 @@ func (s *Service) resolveSupervisorAssignees(ctx context.Context, instance *Appr
 			return nil, err
 		}
 		if parent == nil {
-			return nil, fmt.Errorf("no organization %d level(s) above the submitter", level)
+			return nil, newRoutingError("approval.no_org_levels", strconv.Itoa(level), step.StepName)
 		}
 		target = *parent
 	}
@@ -1004,7 +1058,7 @@ func (s *Service) resolveSupervisorAssignees(ctx context.Context, instance *Appr
 			return nil, err
 		}
 		if parent == nil {
-			return nil, fmt.Errorf("no supervisor found: every organization from the submitter up to the top of the hierarchy is vacant")
+			return nil, newRoutingError("approval.no_supervisor_vacant", step.StepName)
 		}
 		target = *parent
 	}
@@ -1052,6 +1106,12 @@ func (s *Service) advanceThroughWatcherSteps(ctx context.Context, instance *Appr
 
 		assignees, err := s.resolveStepAssignees(ctx, instance, step)
 		if err != nil {
+			var re *RoutingError
+			if errors.As(err, &re) {
+				// Already a bilingual routing error — propagate as-is so
+				// consumer handlers keep the translated key + params.
+				return nil, re
+			}
 			return nil, fmt.Errorf("failed to resolve assignees for step %q: %w", step.StepName, err)
 		}
 

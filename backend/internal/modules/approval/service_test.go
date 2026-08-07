@@ -590,6 +590,53 @@ func TestService_ListMyPendingTasks_Success(t *testing.T) {
 	}
 }
 
+func TestService_ListMyPendingTasks_EnrichesFlowNameAndSubmitter(t *testing.T) {
+	svc, repo, db, cleanup := newTestServiceWithDB()
+	defer cleanup()
+
+	flow := createTestFlow(repo, "leave")
+	createTestStep(repo, flow.ID, 1)
+
+	orgID := uuid.New()
+	seedOrganizationNamed(db, orgID, nil, "Finance Department")
+
+	submitterEmployeeID := uuid.New()
+	submitterUserID := uuid.New()
+	seedEmployee(db, submitterEmployeeID, "Jane Doe", "EMP-001")
+	seedEmployment(db, submitterEmployeeID, orgID)
+	seedEmployeeAccount(db, submitterEmployeeID, submitterUserID)
+
+	actorID := uuid.New()
+	inst := createTestInstance(repo, flow, uuid.New())
+	inst.CreatedBy = &submitterUserID
+	if err := db.Save(inst).Error; err != nil {
+		t.Fatalf("failed to set instance CreatedBy: %v", err)
+	}
+	createTestTask(repo, inst.ID, 1, actorID)
+
+	resp, err := svc.ListMyPendingTasks(ctx(), actorID.String(), 1, 10)
+	if err != nil {
+		t.Fatalf("ListMyPendingTasks failed: %v", err)
+	}
+	tasks, ok := resp.Data.([]TaskResponse)
+	if !ok || len(tasks) != 1 {
+		t.Fatalf("expected 1 task, got %+v", resp.Data)
+	}
+	task := tasks[0]
+	if task.FlowName != flow.Name {
+		t.Errorf("expected flow_name %q, got %q", flow.Name, task.FlowName)
+	}
+	if task.SubmitterName != "Jane Doe" {
+		t.Errorf("expected submitter_name 'Jane Doe', got %q", task.SubmitterName)
+	}
+	if task.SubmitterEmployeeCode != "EMP-001" {
+		t.Errorf("expected submitter_employee_code 'EMP-001', got %q", task.SubmitterEmployeeCode)
+	}
+	if task.SubmitterOrganizationName != "Finance Department" {
+		t.Errorf("expected submitter_organization_name 'Finance Department', got %q", task.SubmitterOrganizationName)
+	}
+}
+
 func TestService_ListMyPendingTasks_DefaultPagination(t *testing.T) {
 	svc, _, cleanup := newTestService()
 	defer cleanup()

@@ -22,9 +22,24 @@
       <Column field="step_order" :header="t('approval.step')" style="width:80px">
         <template #body="{data}">#{{ data.step_order }}</template>
       </Column>
-      <Column field="instance_id" :header="t('approval.instance')">
+      <Column field="flow_name" :header="t('approval.instance')">
         <template #body="{data}">
-          <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ data.instance_id }}</span>
+          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.flow_name || '-' }}</span>
+        </template>
+      </Column>
+      <Column field="submitter_name" :header="t('approval.submitted_by')">
+        <template #body="{data}">
+          <span class="text-gray-700 dark:text-gray-200">{{ data.submitter_name || '-' }}</span>
+        </template>
+      </Column>
+      <Column field="submitter_employee_code" :header="t('approval.employee_id')" style="width:120px">
+        <template #body="{data}">
+          <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ data.submitter_employee_code || '-' }}</span>
+        </template>
+      </Column>
+      <Column field="submitter_organization_name" :header="t('approval.organization')" style="width:160px">
+        <template #body="{data}">
+          <span class="text-xs text-gray-600 dark:text-gray-300">{{ data.submitter_organization_name || '-' }}</span>
         </template>
       </Column>
       <Column field="status" :header="t('common.status')" style="width:120px">
@@ -135,7 +150,10 @@ const tasksLoading = ref(false)
 
 const taskSkeletonColumns = [
   { type: 'text', width: 'w-10', headerWidth: 'w-12' },
-  { type: 'text', width: 'w-40', headerWidth: 'w-24' },
+  { type: 'text', width: 'w-32', headerWidth: 'w-24' },
+  { type: 'text', width: 'w-28', headerWidth: 'w-24' },
+  { type: 'text', width: 'w-20', headerWidth: 'w-20' },
+  { type: 'text', width: 'w-28', headerWidth: 'w-24' },
   { type: 'tag', width: 'w-16', headerWidth: 'w-12' },
   { type: 'text', width: 'w-32', headerWidth: 'w-24' },
   { type: 'icons', count: 1, headerWidth: 'w-16' }
