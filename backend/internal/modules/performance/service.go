@@ -416,6 +416,13 @@ func (s *Service) UpdatePerformanceTemplate(ctx context.Context, id string, req 
 	if err != nil {
 		return nil, err
 	}
+	if req.OrganizationID != nil && *req.OrganizationID != "" {
+		orgUID, err := uuid.Parse(*req.OrganizationID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid organization_id: %w", err)
+		}
+		t.OrganizationID = orgUID
+	}
 	if req.PeriodID != nil {
 		if *req.PeriodID != "" {
 			periodUID, err := uuid.Parse(*req.PeriodID)
@@ -560,6 +567,13 @@ func (s *Service) UpdatePerformanceIndicator(ctx context.Context, id string, req
 	i, err := s.repo.FindPerformanceIndicatorByID(ctx, uid)
 	if err != nil {
 		return nil, err
+	}
+	if req.PerspectiveID != nil && *req.PerspectiveID != "" {
+		perspUID, err := uuid.Parse(*req.PerspectiveID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid perspective_id: %w", err)
+		}
+		i.PerspectiveID = perspUID
 	}
 	if req.Code != nil {
 		i.Code = req.Code

@@ -272,6 +272,39 @@ func TestService_UpdatePerformanceTemplate_Status(t *testing.T) {
 	}
 }
 
+func TestService_UpdatePerformanceTemplate_OrganizationID(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	created, _ := svc.CreatePerformanceTemplate(ctx, CreatePerformanceTemplateRequest{
+		OrganizationID: createTestOrgID(),
+		Name:           "Test Template",
+	})
+
+	newOrgID := createTestOrgID()
+	updated, err := svc.UpdatePerformanceTemplate(ctx, created.ID, UpdatePerformanceTemplateRequest{
+		OrganizationID: &newOrgID,
+	})
+	if err != nil {
+		t.Fatalf("UpdatePerformanceTemplate failed: %v", err)
+	}
+	if updated.OrganizationID != newOrgID {
+		t.Errorf("expected organization_id %q, got %q", newOrgID, updated.OrganizationID)
+	}
+
+	// Verify persistence via a fresh repository read (avoids GetPerformanceTemplateByID's
+	// enrichTemplateResponses, which needs the raw "organizations" table this shared
+	// test setup doesn't provision).
+	stored, err := svc.repo.FindPerformanceTemplateByID(ctx, uuid.MustParse(created.ID))
+	if err != nil {
+		t.Fatalf("FindPerformanceTemplateByID failed: %v", err)
+	}
+	if stored.OrganizationID.String() != newOrgID {
+		t.Errorf("expected persisted organization_id %q, got %q", newOrgID, stored.OrganizationID.String())
+	}
+}
+
 func TestService_DeletePerformanceTemplate(t *testing.T) {
 	svc, cleanup := newTestService()
 	defer cleanup()
@@ -371,6 +404,43 @@ func TestService_UpdatePerformanceIndicator(t *testing.T) {
 	}
 	if updated.Title != "After" {
 		t.Errorf("expected title 'After', got '%s'", updated.Title)
+	}
+}
+
+func TestService_UpdatePerformanceIndicator_PerspectiveID(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	tmpl, _ := svc.CreatePerformanceTemplate(ctx, CreatePerformanceTemplateRequest{
+		OrganizationID: createTestOrgID(),
+		Name:           "T",
+	})
+	perspA, _ := svc.CreatePerformancePerspective(ctx, CreatePerformancePerspectiveRequest{Name: "Financial"})
+	perspB, _ := svc.CreatePerformancePerspective(ctx, CreatePerformancePerspectiveRequest{Name: "Customer"})
+	created, _ := svc.CreatePerformanceIndicator(ctx, CreatePerformanceIndicatorRequest{
+		PerformanceTemplateID: tmpl.ID,
+		PerspectiveID:         perspA.ID,
+		IndicatorType:         "MAXIMIZATION",
+		Title:                 "Some Indicator",
+	})
+
+	updated, err := svc.UpdatePerformanceIndicator(ctx, created.ID, UpdatePerformanceIndicatorRequest{
+		PerspectiveID: &perspB.ID,
+	})
+	if err != nil {
+		t.Fatalf("UpdatePerformanceIndicator failed: %v", err)
+	}
+	if updated.PerspectiveID != perspB.ID {
+		t.Errorf("expected perspective_id %q, got %q", perspB.ID, updated.PerspectiveID)
+	}
+
+	refetched, err := svc.GetPerformanceIndicatorByID(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("GetPerformanceIndicatorByID failed: %v", err)
+	}
+	if refetched.PerspectiveID != perspB.ID {
+		t.Errorf("expected persisted perspective_id %q, got %q", perspB.ID, refetched.PerspectiveID)
 	}
 }
 

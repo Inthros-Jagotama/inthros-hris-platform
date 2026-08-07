@@ -75,12 +75,13 @@ type CreatePerformanceTemplateRequest struct {
 }
 
 type UpdatePerformanceTemplateRequest struct {
-	PeriodID      *string `json:"period_id"`
-	Name          *string `json:"name" binding:"omitempty,max=200"`
-	Description   *string `json:"description"`
-	Status        *string `json:"status" binding:"omitempty,oneof=DRAFT PUBLISHED ARCHIVED"`
-	EffectiveDate *string `json:"effective_date"`
-	ExpiredDate   *string `json:"expired_date"`
+	OrganizationID *string `json:"organization_id" binding:"omitempty,uuid"`
+	PeriodID       *string `json:"period_id"`
+	Name           *string `json:"name" binding:"omitempty,max=200"`
+	Description    *string `json:"description"`
+	Status         *string `json:"status" binding:"omitempty,oneof=DRAFT PUBLISHED ARCHIVED"`
+	EffectiveDate  *string `json:"effective_date"`
+	ExpiredDate    *string `json:"expired_date"`
 }
 
 type PerformanceTemplateResponse struct {
@@ -134,6 +135,7 @@ type CreatePerformanceIndicatorRequest struct {
 }
 
 type UpdatePerformanceIndicatorRequest struct {
+	PerspectiveID     *string  `json:"perspective_id" binding:"omitempty,uuid"`
 	Code              *string  `json:"code" binding:"omitempty,max=50"`
 	IndicatorType     *string  `json:"indicator_type" binding:"omitempty,oneof=MAXIMIZATION MINIMIZATION"`
 	Title             *string  `json:"title" binding:"omitempty,max=255"`
