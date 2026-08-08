@@ -7,7 +7,7 @@
 | Phase 1 — Database Schema | ✅ Selesai | Migration `074_notification`, model `Notification`, repository CRUD dasar + test. |
 | Phase 2 — Notifier Interface & Service Layer | ✅ Selesai | Service `Notify`/`ListNotifications`/`MarkAsRead`/`MarkAllAsRead`/`GetUnreadCount`, `module.go` dengan permissions `notification.view`/`notification.manage`. |
 | Phase 3 — REST API | ✅ Selesai | Handler + routes untuk 4 endpoint, module terdaftar di `main.go` (priority 19). |
-| Phase 4 — Integrasi Leave | ⏳ Belum dimulai | |
+| Phase 4 — Integrasi Leave | ✅ Selesai | `leave.Notifier` + `SetNotifier`, `Notify` dipanggil di `HandleApprovalStatusChange` untuk APPROVED/REJECTED, resolusi `employee_id → user_id` via `employee_accounts`. |
 | Phase 5 — Rollout ke Modul Lain | ⏳ Belum dimulai | |
 | Phase 6 — Email/Push Delivery | ⏸️ Di luar cakupan | Butuh keputusan provider terpisah. |
 | Phase 7 — Notification Preferences | ⏸️ Di luar cakupan | Ditunda sampai ada kebutuhan bisnis konkret. |
@@ -229,10 +229,13 @@ Semua titik ini butuh resolusi `employee_id → user_id` (lewat `useraccount`), 
 * ✅ Registrasi module di `cmd/server/main.go` (`notification.NewModule(dbManager, l)`, priority 19, tenant-scoped).
 * Wiring `Notifier` ke modul consumer (Leave, dst.) belum dilakukan — itu Phase 4/5.
 
-## Phase 4 - Integrasi Consumer Pertama (Leave)
+## Phase 4 - Integrasi Consumer Pertama (Leave) ✅ Selesai
 
-* `leave.Notifier` interface + `SetNotifier`.
-* Panggil `Notify` di `HandleApprovalStatusChange` untuk APPROVED/REJECTED.
+* ✅ `leave.Notifier` interface (`backend/internal/modules/leave/service.go`) + `SetNotifier` — `notification.Service` memenuhinya secara struktural, tanpa import eksplisit satu sama lain.
+* ✅ `leave.Repository.FindUserIDByEmployeeID` — resolusi `employee_id → user_id` lewat tabel `employee_accounts`, mengikuti konvensi yang sama dengan `approval.GetUserIDsByOrganization`.
+* ✅ `HandleApprovalStatusChange` memanggil `Notify` lewat helper `notifyLeaveOutcome` untuk transisi ke `APPROVED_FINAL` (`LEAVE_APPROVED`) dan `REJECTED_FINAL` (`LEAVE_REJECTED`) — best-effort: jika notifier belum wired, employee tidak punya user account, atau `Notify` gagal, hanya di-log dan tidak menggagalkan approval itu sendiri.
+* ✅ Wiring di `cmd/server/main.go`: `notificationSvc` dikonstruksi di awal lalu `leaveSvc.SetNotifier(notificationSvc)` sebelum module leave/notification di-mount.
+* ✅ Test integrasi (`notifier_integration_test.go`): notify terkirim ke `recipient_user_id` yang benar saat approved, notify di-skip saat employee tidak punya user account, dan kegagalan `Notify` tidak menggagalkan `HandleApprovalStatusChange`.
 * Dipilih sebagai modul consumer pertama karena Leave adalah modul paling matang dari pekerjaan sesi ini (approval integration + balance + calculation engine semua sudah selesai) — integrasi notifikasi jadi validasi paling murah risikonya.
 
 ## Phase 5 - Rollout ke Modul Lain

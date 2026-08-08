@@ -11,6 +11,24 @@ import (
 	sqlite "github.com/glebarez/sqlite"
 )
 
+// testEmployeeAccount mirrors useraccount.EmployeeAccount's employee_id <->
+// user_id mapping (employee_accounts table) for FindUserIDByEmployeeID tests,
+// without importing the useraccount package.
+type testEmployeeAccount struct {
+	ID         uuid.UUID `gorm:"type:char(36);primaryKey"`
+	EmployeeID uuid.UUID `gorm:"type:char(36);not null;uniqueIndex"`
+	UserID     uuid.UUID `gorm:"type:char(36);not null"`
+}
+
+func (testEmployeeAccount) TableName() string { return "employee_accounts" }
+
+func createTestEmployeeAccount(db *gorm.DB, employeeID, userID uuid.UUID) {
+	acc := &testEmployeeAccount{ID: uuid.New(), EmployeeID: employeeID, UserID: userID}
+	if err := db.Create(acc).Error; err != nil {
+		panic(fmt.Sprintf("failed to create test employee account: %v", err))
+	}
+}
+
 // setupTestDB creates an in-memory SQLite database and auto-migrates all models.
 func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func()) {
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
@@ -26,6 +44,7 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&LeaveRequestDetail{},
 		&EmployeeLeaveBalance{},
 		&LeaveBalanceTransaction{},
+		&testEmployeeAccount{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
 	}
@@ -66,9 +85,9 @@ func createTestLeaveType(repo *Repository) *LeaveType {
 	ctx := context.Background()
 	_leaveTypeCounter++
 	t := &LeaveType{
-		Name:        fmt.Sprintf("Annual Leave %d", _leaveTypeCounter),
-		Description: "Annual paid leave",
-		IsPaid:      true,
+		Name:         fmt.Sprintf("Annual Leave %d", _leaveTypeCounter),
+		Description:  "Annual paid leave",
+		IsPaid:       true,
 		AllowHalfDay: true,
 	}
 	if err := repo.CreateLeaveType(ctx, t); err != nil {
@@ -92,13 +111,13 @@ func createTestLeaveReason(repo *Repository) *LeaveReason {
 func createTestLeaveRequest(repo *Repository, empID uuid.UUID, lTypeID uuid.UUID) *LeaveRequest {
 	ctx := context.Background()
 	lr := &LeaveRequest{
-		EmployeeID:      empID,
-		LeaveTypeID:     lTypeID,
+		EmployeeID:       empID,
+		LeaveTypeID:      lTypeID,
 		RequestStartDate: "2026-01-15",
-		RequestEndDate:  "2026-01-16",
-		DurationMode:    DurationFullDay,
-		RequestedDays:   2,
-		Status:          LeaveStatusSubmitted,
+		RequestEndDate:   "2026-01-16",
+		DurationMode:     DurationFullDay,
+		RequestedDays:    2,
+		Status:           LeaveStatusSubmitted,
 	}
 	if err := repo.CreateLeaveRequest(ctx, lr); err != nil {
 		panic(fmt.Sprintf("failed to create test leave request: %v", err))

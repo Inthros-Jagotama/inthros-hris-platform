@@ -16,20 +16,20 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/gin-gonic/gin"
 	"github.com/inthros/hris-platform/internal/pkg/auth"
 	"github.com/inthros/hris-platform/internal/pkg/authz"
 	"github.com/inthros/hris-platform/internal/pkg/cache"
 	"github.com/inthros/hris-platform/internal/pkg/config"
 	"github.com/inthros/hris-platform/internal/pkg/database"
+	"github.com/inthros/hris-platform/internal/pkg/docs"
 	"github.com/inthros/hris-platform/internal/pkg/logger"
-	"github.com/inthros/hris-platform/internal/pkg/middleware"
 	"github.com/inthros/hris-platform/internal/pkg/mailer"
+	"github.com/inthros/hris-platform/internal/pkg/middleware"
+	"github.com/inthros/hris-platform/internal/pkg/migrator"
 	"github.com/inthros/hris-platform/internal/pkg/module"
 	"github.com/inthros/hris-platform/internal/pkg/onpremise"
 	"github.com/inthros/hris-platform/internal/pkg/router"
-	"github.com/inthros/hris-platform/internal/pkg/docs"
-	"github.com/inthros/hris-platform/internal/pkg/migrator"
-	"github.com/gin-gonic/gin"
 
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 
@@ -46,6 +46,7 @@ import (
 	// Tenant modules
 	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/modules/attendance"
+	"github.com/inthros/hris-platform/internal/modules/careerintelligence"
 	"github.com/inthros/hris-platform/internal/modules/competency"
 	"github.com/inthros/hris-platform/internal/modules/employee"
 	"github.com/inthros/hris-platform/internal/modules/employeemovement"
@@ -55,14 +56,13 @@ import (
 	"github.com/inthros/hris-platform/internal/modules/organization"
 	"github.com/inthros/hris-platform/internal/modules/payroll"
 	"github.com/inthros/hris-platform/internal/modules/performance"
+	"github.com/inthros/hris-platform/internal/modules/rbac"
 	"github.com/inthros/hris-platform/internal/modules/recruitment"
 	"github.com/inthros/hris-platform/internal/modules/reimbursement"
-	"github.com/inthros/hris-platform/internal/modules/training"
-	"github.com/inthros/hris-platform/internal/modules/workforceintelligence"
-	"github.com/inthros/hris-platform/internal/modules/careerintelligence"
 	"github.com/inthros/hris-platform/internal/modules/setting"
-	"github.com/inthros/hris-platform/internal/modules/rbac"
+	"github.com/inthros/hris-platform/internal/modules/training"
 	"github.com/inthros/hris-platform/internal/modules/useraccount"
+	"github.com/inthros/hris-platform/internal/modules/workforceintelligence"
 )
 
 // =============================================================================
@@ -482,6 +482,13 @@ func main() {
 		return payrollSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
 
+	// Construct the notification service up front (instead of inside
+	// notification.NewModule) so it can be wired as a Notifier into consumer
+	// modules (Leave, etc.) before those modules are mounted.
+	notificationResolver := notification.NewTenantDBResolver(dbManager)
+	notificationRepo := notification.NewRepository(notificationResolver)
+	notificationSvc := notification.NewService(notificationRepo, l.Named("notification"))
+
 	// Construct the leave service up front (instead of inside leave.NewModule)
 	// so its push-based approval status handler can be registered with
 	// approvalSvc before the module is mounted. Reuses the same generic
@@ -490,6 +497,7 @@ func main() {
 	leaveRepo := leave.NewRepository(leaveResolver)
 	leaveSvc := leave.NewService(leaveRepo, l.Named("leave"))
 	leaveSvc.SetApprovalEngine(sharedApprovalEngine)
+	leaveSvc.SetNotifier(notificationSvc)
 	approvalSvc.RegisterStatusHandler("leave", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return leaveSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
@@ -685,7 +693,7 @@ func main() {
 			Priority: 18,
 		},
 		module.ModuleRegistration{
-			Module:   notification.NewModule(dbManager, l),
+			Module:   notification.NewModuleWithService(l, notificationSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 19,
 		},

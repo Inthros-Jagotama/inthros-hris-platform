@@ -43,12 +43,20 @@ type AttendanceSessionUpdater interface {
 	ApplyApprovedLeave(ctx context.Context, employeeID uuid.UUID, workDate string, leaveRequestID uuid.UUID, dayFraction float64) error
 }
 
+// Notifier abstracts the notification module so Leave can notify an employee
+// of their leave request's approval outcome (docs/module-notification-plan.md
+// §5.2/§8). notification.Service satisfies this structurally.
+type Notifier interface {
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) error
+}
+
 type Service struct {
 	repo              *Repository
 	logger            *zap.Logger
 	approvalEngine    ApprovalEngine
 	holidayProvider   HolidayProvider
 	attendanceUpdater AttendanceSessionUpdater
+	notifier          Notifier
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -63,6 +71,13 @@ func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 // SetHolidayProvider wires the company holiday calendar into this service.
 func (s *Service) SetHolidayProvider(hp HolidayProvider) {
 	s.holidayProvider = hp
+}
+
+// SetNotifier wires the notification module into this service so
+// HandleApprovalStatusChange can notify the requesting employee of the
+// outcome (docs/module-notification-plan.md §5/§8, Phase 4).
+func (s *Service) SetNotifier(n Notifier) {
+	s.notifier = n
 }
 
 // SetAttendanceSessionUpdater wires the attendance module into this service.
@@ -485,14 +500,14 @@ func (s *Service) CreateLeaveRequest(ctx context.Context, req CreateLeaveRequest
 	}
 
 	lr := &LeaveRequest{
-		EmployeeID:      empID,
-		LeaveTypeID:     lTypeID,
+		EmployeeID:       empID,
+		LeaveTypeID:      lTypeID,
 		RequestStartDate: req.RequestStartDate,
-		RequestEndDate:  req.RequestEndDate,
-		DurationMode:    mode,
-		RequestedDays:   requestedDays,
-		Status:          LeaveStatusSubmitted,
-		SubmittedAt:     timeNowPtr(),
+		RequestEndDate:   req.RequestEndDate,
+		DurationMode:     mode,
+		RequestedDays:    requestedDays,
+		Status:           LeaveStatusSubmitted,
+		SubmittedAt:      timeNowPtr(),
 	}
 	if req.LeaveReasonID != nil {
 		rID, err := uuid.Parse(*req.LeaveReasonID)
@@ -708,7 +723,54 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		}
 		s.applyAttendanceIntegration(ctx, lr)
 	}
+	if lr.Status == LeaveStatusApprovedFinal || lr.Status == LeaveStatusRejectedFinal {
+		s.notifyLeaveOutcome(ctx, lr)
+	}
 	return nil
+}
+
+// notifyLeaveOutcome notifies the requesting employee of their leave
+// request's final approval outcome (docs/module-notification-plan.md §8).
+// Best-effort: if the notifier isn't wired, the employee has no linked user
+// account, or Notify fails, this logs and moves on rather than failing the
+// approval itself.
+func (s *Service) notifyLeaveOutcome(ctx context.Context, lr *LeaveRequest) {
+	if s.notifier == nil {
+		return
+	}
+	userID, err := s.repo.FindUserIDByEmployeeID(ctx, lr.EmployeeID)
+	if err != nil {
+		s.logger.Warn("Failed to resolve employee user id for leave notification",
+			zap.String("leave_request_id", lr.ID.String()),
+			zap.Error(err),
+		)
+		return
+	}
+	if userID == nil {
+		return
+	}
+
+	var notifType, title, body string
+	switch lr.Status {
+	case LeaveStatusApprovedFinal:
+		notifType = "LEAVE_APPROVED"
+		title = "Leave Request Approved"
+		body = "Your leave request has been approved."
+	case LeaveStatusRejectedFinal:
+		notifType = "LEAVE_REJECTED"
+		title = "Leave Request Rejected"
+		body = "Your leave request has been rejected."
+	default:
+		return
+	}
+
+	if err := s.notifier.Notify(ctx, *userID, notifType, title, body, "leave", lr.ID); err != nil {
+		s.logger.Warn("Failed to send leave notification",
+			zap.String("leave_request_id", lr.ID.String()),
+			zap.String("notif_type", notifType),
+			zap.Error(err),
+		)
+	}
 }
 
 // applyAttendanceIntegration pushes each of the leave request's per-date
