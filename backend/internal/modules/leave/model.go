@@ -20,21 +20,21 @@ const (
 )
 
 type LeaveType struct {
-	ID                 uuid.UUID   `gorm:"type:char(36);primaryKey" json:"id"`
-	Code               string      `gorm:"type:varchar(50);not null;default:''" json:"code"`
-	Name               string      `gorm:"type:varchar(50);not null;uniqueIndex:uk_leave_type_name" json:"name"`
-	Description        string      `gorm:"type:varchar(200);not null" json:"description"`
-	IsPaid             bool        `gorm:"not null;default:1" json:"is_paid"`
-	RequiresAttachment bool        `gorm:"not null;default:0" json:"requires_attachment"`
-	AllowHalfDay       bool        `gorm:"not null;default:1" json:"allow_half_day"`
-	DefaultQuotaDays   *int        `json:"default_quota_days,omitempty"`
-	QuotaPeriod        QuotaPeriod `gorm:"type:varchar(255);not null;default:YEAR" json:"quota_period"`
-	CountsAgainstQuota bool        `gorm:"not null;default:1" json:"counts_against_quota"`
-	AllowHourly        bool        `gorm:"not null;default:0" json:"allow_hourly"`
-	IsActive           bool        `gorm:"not null;default:1;index:idx_leave_type_active" json:"is_active"`
+	ID                 uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	Code               string         `gorm:"type:varchar(50);not null;default:''" json:"code"`
+	Name               string         `gorm:"type:varchar(50);not null;uniqueIndex:uk_leave_type_name" json:"name"`
+	Description        string         `gorm:"type:varchar(200);not null" json:"description"`
+	IsPaid             bool           `gorm:"not null;default:1" json:"is_paid"`
+	RequiresAttachment bool           `gorm:"not null;default:0" json:"requires_attachment"`
+	AllowHalfDay       bool           `gorm:"not null;default:1" json:"allow_half_day"`
+	DefaultQuotaDays   *int           `json:"default_quota_days,omitempty"`
+	QuotaPeriod        QuotaPeriod    `gorm:"type:varchar(255);not null;default:YEAR" json:"quota_period"`
+	CountsAgainstQuota bool           `gorm:"not null;default:1" json:"counts_against_quota"`
+	AllowHourly        bool           `gorm:"not null;default:0" json:"allow_hourly"`
+	IsActive           bool           `gorm:"not null;default:1;index:idx_leave_type_active" json:"is_active"`
 	DeletedAt          gorm.DeletedAt `gorm:"index:idx_leave_type_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt          time.Time   `json:"created_at"`
-	UpdatedAt          time.Time   `json:"updated_at"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
 }
 
 func (LeaveType) TableName() string {
@@ -53,17 +53,17 @@ func (t *LeaveType) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type LeaveAccrualPolicy struct {
-	ID             uuid.UUID     `gorm:"type:char(36);primaryKey" json:"id"`
-	LeaveTypeID    uuid.UUID     `gorm:"type:char(36);not null;uniqueIndex:uk_accrual_policy;index:idx_accrual_leave_type" json:"leave_type_id"`
-	BaseQuotaDays  float64       `gorm:"type:decimal(6,2);not null" json:"base_quota_days"`
-	ExtraEveryYears int          `gorm:"not null;default:2" json:"extra_every_years"`
-	ExtraDays      float64       `gorm:"type:decimal(6,2);not null;default:1.00" json:"extra_days"`
-	MaxExtraDays   *float64      `gorm:"type:decimal(6,2)" json:"max_extra_days,omitempty"`
-	EffectiveFrom  string        `gorm:"type:date;not null;uniqueIndex:uk_accrual_policy" json:"effective_from"`
-	EffectiveTo    *string       `gorm:"type:date" json:"effective_to,omitempty"`
-	DeletedAt      gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
-	CreatedAt      time.Time     `json:"created_at"`
-	UpdatedAt      time.Time     `json:"updated_at"`
+	ID              uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	LeaveTypeID     uuid.UUID      `gorm:"type:char(36);not null;uniqueIndex:uk_accrual_policy;index:idx_accrual_leave_type" json:"leave_type_id"`
+	BaseQuotaDays   float64        `gorm:"type:decimal(6,2);not null" json:"base_quota_days"`
+	ExtraEveryYears int            `gorm:"not null;default:2" json:"extra_every_years"`
+	ExtraDays       float64        `gorm:"type:decimal(6,2);not null;default:1.00" json:"extra_days"`
+	MaxExtraDays    *float64       `gorm:"type:decimal(6,2)" json:"max_extra_days,omitempty"`
+	EffectiveFrom   string         `gorm:"type:date;not null;uniqueIndex:uk_accrual_policy" json:"effective_from"`
+	EffectiveTo     *string        `gorm:"type:date" json:"effective_to,omitempty"`
+	DeletedAt       gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
 }
 
 func (LeaveAccrualPolicy) TableName() string {
@@ -127,33 +127,33 @@ const (
 )
 
 type LeaveRequest struct {
-	ID                uuid.UUID    `gorm:"type:char(36);primaryKey" json:"id"`
-	EmployeeID        uuid.UUID    `gorm:"type:char(36);not null;index:idx_leave_req_employee_date,idx_leave_req_employee_created" json:"employee_id"`
-	LeaveTypeID       uuid.UUID    `gorm:"type:char(36);not null;index:idx_leave_req_type" json:"leave_type_id"`
-	RequestStartDate  string       `gorm:"type:date;not null" json:"request_start_date"`
-	RequestEndDate    string       `gorm:"type:date;not null" json:"request_end_date"`
-	DurationMode      DurationMode `gorm:"type:varchar(255);not null;default:FULL_DAY" json:"duration_mode"`
-	RequestedDays     float64      `gorm:"type:decimal(6,2);not null;default:0" json:"requested_days"`
-	LeaveReasonID     *uuid.UUID   `gorm:"type:char(36);index:idx_leave_req_reason" json:"leave_reason_id,omitempty"`
-	LeaveReasonNote   *string      `gorm:"type:varchar(255)" json:"leave_reason_note,omitempty"`
-	AttachmentURL     *string      `gorm:"type:text" json:"attachment_url,omitempty"`
-	Status            LeaveStatus  `gorm:"type:varchar(255);not null;default:SUBMITTED;index:idx_leave_req_status" json:"status"`
-	SupervisorID      *uuid.UUID   `gorm:"type:char(36)" json:"supervisor_id,omitempty"`
-	SupervisorActionAt *time.Time  `gorm:"type:timestamp(6)" json:"supervisor_action_at,omitempty"`
-	SupervisorNote    *string      `gorm:"type:varchar(255)" json:"supervisor_note,omitempty"`
-	HrID              *uuid.UUID   `gorm:"type:char(36)" json:"hr_id,omitempty"`
-	HrActionAt        *time.Time   `gorm:"type:timestamp(6)" json:"hr_action_at,omitempty"`
-	HrNote            *string      `gorm:"type:varchar(255)" json:"hr_note,omitempty"`
-	ApprovalInstanceID *uuid.UUID  `gorm:"type:char(36);index:idx_leave_req_approval_instance" json:"approval_instance_id,omitempty"`
-	StartTime         *string      `gorm:"type:time" json:"start_time,omitempty"`
-	EndTime           *string      `gorm:"type:time" json:"end_time,omitempty"`
-	SubmittedAt       *time.Time   `gorm:"type:timestamp(6)" json:"submitted_at,omitempty"`
-	ApprovedAt        *time.Time   `gorm:"type:timestamp(6)" json:"approved_at,omitempty"`
-	RejectedAt        *time.Time   `gorm:"type:timestamp(6)" json:"rejected_at,omitempty"`
-	CancelledAt       *time.Time   `gorm:"type:timestamp(6)" json:"cancelled_at,omitempty"`
-	DeletedAt         gorm.DeletedAt `gorm:"index:idx_leave_req_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt         time.Time    `json:"created_at"`
-	UpdatedAt         time.Time    `json:"updated_at"`
+	ID                 uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID         uuid.UUID      `gorm:"type:char(36);not null;index:idx_leave_req_employee_date,idx_leave_req_employee_created" json:"employee_id"`
+	LeaveTypeID        uuid.UUID      `gorm:"type:char(36);not null;index:idx_leave_req_type" json:"leave_type_id"`
+	RequestStartDate   string         `gorm:"type:date;not null" json:"request_start_date"`
+	RequestEndDate     string         `gorm:"type:date;not null" json:"request_end_date"`
+	DurationMode       DurationMode   `gorm:"type:varchar(255);not null;default:FULL_DAY" json:"duration_mode"`
+	RequestedDays      float64        `gorm:"type:decimal(6,2);not null;default:0" json:"requested_days"`
+	LeaveReasonID      *uuid.UUID     `gorm:"type:char(36);index:idx_leave_req_reason" json:"leave_reason_id,omitempty"`
+	LeaveReasonNote    *string        `gorm:"type:varchar(255)" json:"leave_reason_note,omitempty"`
+	AttachmentURL      *string        `gorm:"type:text" json:"attachment_url,omitempty"`
+	Status             LeaveStatus    `gorm:"type:varchar(255);not null;default:SUBMITTED;index:idx_leave_req_status" json:"status"`
+	SupervisorID       *uuid.UUID     `gorm:"type:char(36)" json:"supervisor_id,omitempty"`
+	SupervisorActionAt *time.Time     `gorm:"type:timestamp(6)" json:"supervisor_action_at,omitempty"`
+	SupervisorNote     *string        `gorm:"type:varchar(255)" json:"supervisor_note,omitempty"`
+	HrID               *uuid.UUID     `gorm:"type:char(36)" json:"hr_id,omitempty"`
+	HrActionAt         *time.Time     `gorm:"type:timestamp(6)" json:"hr_action_at,omitempty"`
+	HrNote             *string        `gorm:"type:varchar(255)" json:"hr_note,omitempty"`
+	ApprovalInstanceID *uuid.UUID     `gorm:"type:char(36);index:idx_leave_req_approval_instance" json:"approval_instance_id,omitempty"`
+	StartTime          *string        `gorm:"type:time" json:"start_time,omitempty"`
+	EndTime            *string        `gorm:"type:time" json:"end_time,omitempty"`
+	SubmittedAt        *time.Time     `gorm:"type:timestamp(6)" json:"submitted_at,omitempty"`
+	ApprovedAt         *time.Time     `gorm:"type:timestamp(6)" json:"approved_at,omitempty"`
+	RejectedAt         *time.Time     `gorm:"type:timestamp(6)" json:"rejected_at,omitempty"`
+	CancelledAt        *time.Time     `gorm:"type:timestamp(6)" json:"cancelled_at,omitempty"`
+	DeletedAt          gorm.DeletedAt `gorm:"index:idx_leave_req_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
 }
 
 func (LeaveRequest) TableName() string {
@@ -200,18 +200,18 @@ func (d *LeaveRequestDetail) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type EmployeeLeaveBalance struct {
-	ID                  uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	EmployeeID          uuid.UUID      `gorm:"type:char(36);not null;uniqueIndex:uk_leave_balance" json:"employee_id"`
-	LeaveTypeID         uuid.UUID      `gorm:"type:char(36);not null;uniqueIndex:uk_leave_balance;index:idx_leave_balance_type" json:"leave_type_id"`
-	PeriodYear          int            `gorm:"not null;uniqueIndex:uk_leave_balance" json:"period_year"`
-	QuotaDays           float64        `gorm:"type:decimal(6,2);not null;default:0" json:"quota_days"`
-	UsedDays            float64        `gorm:"type:decimal(6,2);not null;default:0" json:"used_days"`
-	RemainingDays       float64        `gorm:"type:decimal(6,2);not null;default:0" json:"remaining_days"`
-	LastAdjustmentRef   *string        `gorm:"type:varchar(50)" json:"last_adjustment_ref,omitempty"`
-	LastAdjustmentRefID *uuid.UUID     `gorm:"type:char(36)" json:"last_adjustment_ref_id,omitempty"`
-	LastAdjustmentAt    *time.Time     `gorm:"type:timestamp(6)" json:"last_adjustment_at,omitempty"`
-	CreatedAt           time.Time      `json:"created_at"`
-	UpdatedAt           time.Time      `json:"updated_at"`
+	ID                  uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID          uuid.UUID  `gorm:"type:char(36);not null;uniqueIndex:uk_leave_balance" json:"employee_id"`
+	LeaveTypeID         uuid.UUID  `gorm:"type:char(36);not null;uniqueIndex:uk_leave_balance;index:idx_leave_balance_type" json:"leave_type_id"`
+	PeriodYear          int        `gorm:"not null;uniqueIndex:uk_leave_balance" json:"period_year"`
+	QuotaDays           float64    `gorm:"type:decimal(6,2);not null;default:0" json:"quota_days"`
+	UsedDays            float64    `gorm:"type:decimal(6,2);not null;default:0" json:"used_days"`
+	RemainingDays       float64    `gorm:"type:decimal(6,2);not null;default:0" json:"remaining_days"`
+	LastAdjustmentRef   *string    `gorm:"type:varchar(50)" json:"last_adjustment_ref,omitempty"`
+	LastAdjustmentRefID *uuid.UUID `gorm:"type:char(36)" json:"last_adjustment_ref_id,omitempty"`
+	LastAdjustmentAt    *time.Time `gorm:"type:timestamp(6)" json:"last_adjustment_at,omitempty"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
 }
 
 func (EmployeeLeaveBalance) TableName() string {
@@ -221,6 +221,52 @@ func (EmployeeLeaveBalance) TableName() string {
 func (b *EmployeeLeaveBalance) BeforeCreate(tx *gorm.DB) error {
 	if b.ID == uuid.Nil {
 		b.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// LeaveBalanceTransaction (Balance Ledger) — Phase 1 (docs/module-leave-plan.md
+// Section 10). employee_leave_balances stays the current-balance cache; this
+// table is the append-only audit trail of every change to it. Nothing writes
+// to this table yet — that lands with the accrual/usage/adjustment logic
+// (Phase 6).
+// =========================================================================
+
+type LeaveTransactionType string
+
+const (
+	LeaveTransactionAccrual      LeaveTransactionType = "ACCRUAL"
+	LeaveTransactionUsage        LeaveTransactionType = "USAGE"
+	LeaveTransactionAdjustment   LeaveTransactionType = "ADJUSTMENT"
+	LeaveTransactionReversal     LeaveTransactionType = "REVERSAL"
+	LeaveTransactionCarryForward LeaveTransactionType = "CARRY_FORWARD"
+	LeaveTransactionExpiry       LeaveTransactionType = "EXPIRY"
+)
+
+type LeaveBalanceTransaction struct {
+	ID              uuid.UUID            `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID      uuid.UUID            `gorm:"type:char(36);not null;index:idx_leave_bal_txn_employee_type" json:"employee_id"`
+	LeaveTypeID     uuid.UUID            `gorm:"type:char(36);not null;index:idx_leave_bal_txn_employee_type" json:"leave_type_id"`
+	BalanceID       uuid.UUID            `gorm:"type:char(36);not null;index:idx_leave_bal_txn_balance" json:"balance_id"`
+	TransactionType LeaveTransactionType `gorm:"type:varchar(20);not null;index:idx_leave_bal_txn_type" json:"transaction_type"`
+	ReferenceType   *string              `gorm:"type:varchar(50);index:idx_leave_bal_txn_reference" json:"reference_type,omitempty"`
+	ReferenceID     *uuid.UUID           `gorm:"type:char(36);index:idx_leave_bal_txn_reference" json:"reference_id,omitempty"`
+	Amount          float64              `gorm:"type:decimal(6,2);not null" json:"amount"`
+	BalanceBefore   float64              `gorm:"type:decimal(6,2);not null" json:"balance_before"`
+	BalanceAfter    float64              `gorm:"type:decimal(6,2);not null" json:"balance_after"`
+	Note            *string              `gorm:"type:varchar(255)" json:"note,omitempty"`
+	CreatedBy       *uuid.UUID           `gorm:"type:char(36)" json:"created_by,omitempty"`
+	CreatedAt       time.Time            `gorm:"index:idx_leave_bal_txn_employee_type" json:"created_at"`
+}
+
+func (LeaveBalanceTransaction) TableName() string {
+	return "leave_balance_transactions"
+}
+
+func (t *LeaveBalanceTransaction) BeforeCreate(tx *gorm.DB) error {
+	if t.ID == uuid.Nil {
+		t.ID = uuid.New()
 	}
 	return nil
 }

@@ -1481,11 +1481,11 @@ leave_cancellation_requests (optional)
 ## Phase 1 - Database Enhancement
 
 * Review existing Leave tables.
-* Fix data type inconsistencies.
-* Add missing indexes.
-* Add `leave_balance_transactions`.
-* Add cancellation table if required.
-* Add eligibility tables if required.
+* Fix data type inconsistencies. ✅ `leave_accrual_policies.deleted_at` was `INT NULL` (mismatched with the Go model's `gorm.DeletedAt`) — fixed to `TIMESTAMP NULL` in migration `070_leave_phase1_db_enhancement`.
+* Add missing indexes. ✅ `idx_accrual_deleted_at` added (was the only soft-deletable Leave table without one).
+* Add `leave_balance_transactions`. ✅ Table + `LeaveBalanceTransaction` model + `CreateLeaveBalanceTransaction`/`ListLeaveBalanceTransactions` repository methods added. Nothing writes to it yet — that's Phase 6 (accrual/usage/adjustment business logic).
+* Add cancellation table if required. ⏳ Deferred — no cancellation flow exists yet (Phase 18/19), revisit when that phase starts.
+* Add eligibility tables if required. ⏳ Deferred — no eligibility rules needed yet per current business requirements (Section 22).
 
 ---
 
@@ -1644,12 +1644,12 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 
 | Phase (§41) | Status | Catatan |
 |---|---|---|
-| Phase 1 - Database Enhancement | 🔶 Sebagian | `005_leave.sql` sudah ada dengan 5 tabel dasar (leave_types, leave_accrual_policies, leave_reasons, leave_requests, leave_request_details, employee_leave_balances). `leave_balance_transactions` (§10) dan tabel eligibility (§22) **belum dibuat** |
+| Phase 1 - Database Enhancement | ✅ Selesai (2026-08-08) | Migration `070_leave_phase1_db_enhancement` (mysql+postgres): fix `leave_accrual_policies.deleted_at` (INT → TIMESTAMP) + index, tambah tabel `leave_balance_transactions` + model `LeaveBalanceTransaction` + repository `CreateLeaveBalanceTransaction`/`ListLeaveBalanceTransactions`. Tabel cancellation (§19) dan eligibility (§22) sengaja ditunda — tidak dibutuhkan sampai fitur terkait (Phase 6 lanjutan/§18, §22) mulai dikerjakan |
 | Phase 2 - Master Data | ✅ Selesai | Leave Types, Accrual Policies, Leave Reasons — CRUD lengkap di `leave/service.go`, `leave/handler.go`, `leave/routes.go` |
 | Phase 3 - Leave Calculation Engine | ❌ Belum ada | Tidak ada working-day/holiday/half-day/hourly calculation di manapun — `requested_days` diterima mentah dari client |
 | Phase 4 - Leave Request | 🔶 Sebagian | Create/Submit/List/Get/Delete/Details sudah ada. Validasi (eligibility, overlap, balance, backdate) di §12 **belum diimplementasikan** |
 | Phase 5 - Approval Integration | ✅ Selesai | `ApprovalEngine`, `SetApprovalEngine`, `HandleApprovalStatusChange`, wiring `main.go`, module slug tunggal `"leave"`, test coverage di `approval_integration_test.go` — lihat Section 7 |
-| Phase 6 - Leave Balance | ❌ Belum ada | `employee_leave_balances` cuma tabel baca; tidak ada accrual/usage/adjustment/reversal/carry-forward/expiry/ledger — lihat Section 9/10 |
+| Phase 6 - Leave Balance | 🔶 Sebagian (2026-08-08) | Tabel ledger `leave_balance_transactions` + repository sudah ada (Phase 1), tapi **belum ada logic** accrual/usage/adjustment/reversal/carry-forward/expiry yang benar-benar menulis ke sana atau ke `employee_leave_balances` — lihat Section 9/10 |
 | Phase 7 - Calendar & Attendance | ❌ Belum ada | Tidak ada endpoint calendar, tidak ada integrasi Attendance |
 | Phase 8 - Notification | ❌ Belum ada | Tidak ditemukan pemanggilan Notification module dari modul Leave |
 | Phase 9 - Dashboard & Reports | ❌ Belum ada | Tidak ada endpoint/handler dashboard atau report |

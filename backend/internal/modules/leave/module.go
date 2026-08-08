@@ -101,6 +101,7 @@ func (m *leaveModule) Migrate(db *gorm.DB) error {
 		&LeaveRequest{},
 		&LeaveRequestDetail{},
 		&EmployeeLeaveBalance{},
+		&LeaveBalanceTransaction{},
 	)
 }
 

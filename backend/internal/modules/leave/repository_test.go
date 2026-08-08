@@ -342,3 +342,100 @@ func TestRepo_ListLeaveBalances_ByEmployee(t *testing.T) {
 		t.Errorf("expected 3 balances, got %d", len(balances))
 	}
 }
+
+// =========================================================================
+// Leave Balance Transaction (Ledger) Repository Tests
+// =========================================================================
+
+func TestRepo_CreateLeaveBalanceTransaction_Success(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+
+	bal := &EmployeeLeaveBalance{
+		EmployeeID:    uuid.New(),
+		LeaveTypeID:   uuid.New(),
+		PeriodYear:    2026,
+		QuotaDays:     12,
+		UsedDays:      0,
+		RemainingDays: 12,
+	}
+	if err := repo.UpsertLeaveBalance(context.Background(), bal); err != nil {
+		t.Fatalf("UpsertLeaveBalance failed: %v", err)
+	}
+
+	txn := &LeaveBalanceTransaction{
+		EmployeeID:      bal.EmployeeID,
+		LeaveTypeID:     bal.LeaveTypeID,
+		BalanceID:       bal.ID,
+		TransactionType: LeaveTransactionUsage,
+		Amount:          -2,
+		BalanceBefore:   12,
+		BalanceAfter:    10,
+	}
+	if err := repo.CreateLeaveBalanceTransaction(context.Background(), txn); err != nil {
+		t.Fatalf("CreateLeaveBalanceTransaction failed: %v", err)
+	}
+	if txn.ID == uuid.Nil {
+		t.Error("expected ID to be auto-generated")
+	}
+}
+
+func TestRepo_ListLeaveBalanceTransactions_ByEmployeeAndType(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+
+	bal := &EmployeeLeaveBalance{
+		EmployeeID:    uuid.New(),
+		LeaveTypeID:   uuid.New(),
+		PeriodYear:    2026,
+		QuotaDays:     12,
+		UsedDays:      0,
+		RemainingDays: 12,
+	}
+	if err := repo.UpsertLeaveBalance(context.Background(), bal); err != nil {
+		t.Fatalf("UpsertLeaveBalance failed: %v", err)
+	}
+
+	types := []LeaveTransactionType{LeaveTransactionAccrual, LeaveTransactionUsage, LeaveTransactionAdjustment}
+	for _, tt := range types {
+		txn := &LeaveBalanceTransaction{
+			EmployeeID:      bal.EmployeeID,
+			LeaveTypeID:     bal.LeaveTypeID,
+			BalanceID:       bal.ID,
+			TransactionType: tt,
+			Amount:          1,
+			BalanceBefore:   0,
+			BalanceAfter:    1,
+		}
+		if err := repo.CreateLeaveBalanceTransaction(context.Background(), txn); err != nil {
+			t.Fatalf("CreateLeaveBalanceTransaction failed: %v", err)
+		}
+	}
+
+	// Unrelated employee's transaction must not leak into the result.
+	other := &LeaveBalanceTransaction{
+		EmployeeID:      uuid.New(),
+		LeaveTypeID:     uuid.New(),
+		BalanceID:       uuid.New(),
+		TransactionType: LeaveTransactionAccrual,
+		Amount:          1,
+		BalanceBefore:   0,
+		BalanceAfter:    1,
+	}
+	if err := repo.CreateLeaveBalanceTransaction(context.Background(), other); err != nil {
+		t.Fatalf("CreateLeaveBalanceTransaction failed: %v", err)
+	}
+
+	txns, total, err := repo.ListLeaveBalanceTransactions(context.Background(), bal.EmployeeID, bal.LeaveTypeID, 1, 10)
+	if err != nil {
+		t.Fatalf("ListLeaveBalanceTransactions failed: %v", err)
+	}
+	if total != 3 {
+		t.Errorf("expected 3 transactions, got %d", total)
+	}
+	if len(txns) != 3 {
+		t.Errorf("expected 3 transactions, got %d", len(txns))
+	}
+}

@@ -344,3 +344,36 @@ func (r *Repository) ListLeaveBalances(ctx context.Context, employeeID *uuid.UUI
 	}
 	return balances, total, nil
 }
+
+// CreateLeaveBalanceTransaction inserts one ledger entry. Callers are
+// responsible for computing BalanceBefore/BalanceAfter and updating the
+// corresponding EmployeeLeaveBalance row — this is a pure append, no
+// recalculation happens here (business logic lands in Phase 6).
+func (r *Repository) CreateLeaveBalanceTransaction(ctx context.Context, txn *LeaveBalanceTransaction) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(txn).Error
+}
+
+// ListLeaveBalanceTransactions returns the ledger history for one employee's
+// leave type, newest first — the audit trail behind a current-balance row.
+func (r *Repository) ListLeaveBalanceTransactions(ctx context.Context, employeeID, leaveTypeID uuid.UUID, page, perPage int) ([]LeaveBalanceTransaction, int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	query := db.WithContext(ctx).Model(&LeaveBalanceTransaction{}).
+		Where("employee_id = ? AND leave_type_id = ?", employeeID, leaveTypeID)
+
+	var total int64
+	query.Count(&total)
+
+	var txns []LeaveBalanceTransaction
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&txns).Error; err != nil {
+		return nil, 0, err
+	}
+	return txns, total, nil
+}
