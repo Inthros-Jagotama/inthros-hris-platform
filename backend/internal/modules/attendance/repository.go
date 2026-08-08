@@ -39,6 +39,10 @@ func (r *Repository) UpsertCompanySetting(ctx context.Context, s *AttendanceComp
 		return err
 	}
 	s.ID = existing.ID
+	// Save menulis semua kolom — pertahankan created_at dari baris existing
+	// (CreatedAt pada objek request adalah zero time → MySQL menolak '0000-00-00').
+	// UpdatedAt diisi otomatis oleh GORM (autoUpdateTime).
+	s.CreatedAt = existing.CreatedAt
 	return db.Save(s).Error
 }
 

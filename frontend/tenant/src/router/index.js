@@ -211,6 +211,30 @@ const routes = [
         component: () => import('@/views/modules/Leave.vue'),
         meta: { title: 'Leave', titleKey: 'leave.title', descKey: 'leave.description', icon: 'pi pi-calendar', module: 'leave' }
       },
+      {
+        path: 'leave/admin',
+        name: 'LeaveAdmin',
+        component: () => import('@/views/modules/LeaveAdmin.vue'),
+        meta: { title: 'Leave Admin', titleKey: 'leave.admin', descKey: 'leave.admin_description', icon: 'pi pi-cog', module: 'leave', backRoute: '/leave', backLabelKey: 'leave.title' }
+      },
+      {
+        path: 'leave/types',
+        name: 'LeaveTypes',
+        component: () => import('@/views/modules/LeaveTypes.vue'),
+        meta: { title: 'Leave Types', titleKey: 'leave.types', descKey: 'leave.types_description', icon: 'pi pi-tags', module: 'leave', backRoute: '/leave/admin', backLabelKey: 'leave.admin' }
+      },
+      {
+        path: 'leave/accrual-policies',
+        name: 'LeaveAccrualPolicies',
+        component: () => import('@/views/modules/LeaveAccrualPolicies.vue'),
+        meta: { title: 'Accrual Policies', titleKey: 'leave.accrual_policies', descKey: 'leave.accrual_policies_description', icon: 'pi pi-percentage', module: 'leave', backRoute: '/leave/admin', backLabelKey: 'leave.admin' }
+      },
+      {
+        path: 'leave/reasons',
+        name: 'LeaveReasons',
+        component: () => import('@/views/modules/LeaveReasons.vue'),
+        meta: { title: 'Leave Reasons', titleKey: 'leave.reasons', descKey: 'leave.reasons_description', icon: 'pi pi-list', module: 'leave', backRoute: '/leave/admin', backLabelKey: 'leave.admin' }
+      },
       // Performance Management
       {
         path: 'performance',

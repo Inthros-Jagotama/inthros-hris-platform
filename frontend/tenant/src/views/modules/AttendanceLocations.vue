@@ -50,17 +50,69 @@
       </Column>
     </DataTable>
 
-    <Dialog v-model:visible="dialogVisible" :header="editing ? t('common.edit') : t('common.add')" modal :style="{ width: '480px' }" @hide="resetForm">
+    <Dialog v-model:visible="dialogVisible" :header="editing ? t('common.edit') : t('common.add')" modal :style="{ width: '720px', maxWidth: '95vw' }" @hide="onDialogHide" @shown="onDialogShown">
       <div class="space-y-3">
         <FormRow :label="t('common.name')" required :errors="errors?.name">
           <TextInput v-model="form.name" maxlength="255" autofocus />
         </FormRow>
-        <FormRow :label="t('attendance.latitude')" required :errors="errors?.latitude">
-          <InputNumber v-model="form.latitude" class="!w-full" :minFractionDigits="0" :maxFractionDigits="8" size="small" />
-        </FormRow>
-        <FormRow :label="t('attendance.longitude')" required :errors="errors?.longitude">
-          <InputNumber v-model="form.longitude" class="!w-full" :minFractionDigits="0" :maxFractionDigits="8" size="small" />
-        </FormRow>
+        <div class="relative">
+          <div class="relative">
+            <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none"></i>
+            <InputText
+              v-model="searchQuery"
+              :placeholder="t('attendance.search_place_placeholder')"
+              size="small"
+              class="w-full !pl-9"
+              @input="onSearchInput"
+              @focus="searchOpen = true"
+              @keydown.esc="searchOpen = false"
+              @keydown.down.prevent="moveSearchSelection(1)"
+              @keydown.up.prevent="moveSearchSelection(-1)"
+              @keydown.enter.prevent="selectHighlighted"
+            />
+          </div>
+          <div
+            v-if="searchOpen && searchQuery.trim().length >= 3"
+            class="absolute z-20 left-0 right-0 mt-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg max-h-52 overflow-y-auto"
+          >
+            <div v-if="searching" class="flex items-center gap-2 px-3 py-2.5 text-xs text-gray-400">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>{{ t('attendance.searching') }}</span>
+            </div>
+            <div v-else-if="searchResults.length === 0" class="px-3 py-2.5 text-xs text-gray-400">
+              {{ t('attendance.search_no_results') }}
+            </div>
+            <button
+              v-for="(r, idx) in searchResults"
+              :key="r.place_id"
+              type="button"
+              class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+              :class="idx === searchHighlight ? 'bg-blue-50 dark:bg-gray-700' : ''"
+              @mousedown.prevent
+              @click="selectSearchResult(r)"
+            >
+              <i class="pi pi-map-marker text-blue-500 shrink-0"></i>
+              <span class="line-clamp-2">{{ r.display_name }}</span>
+            </button>
+          </div>
+        </div>
+        <div class="relative z-0 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div ref="mapEl" class="h-80 w-full bg-gray-100 dark:bg-gray-700" @click.self="mapFocus"></div>
+          <div class="px-2 py-1 text-[11px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+            <span>{{ t('attendance.map_click_hint') }}</span>
+            <span v-if="form.latitude !== null && form.longitude !== null" class="font-mono whitespace-nowrap">
+              {{ formatCoord(form.latitude) }}, {{ formatCoord(form.longitude) }}
+            </span>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <FormRow :label="t('attendance.latitude')" required :errors="errors?.latitude">
+            <InputNumber v-model="form.latitude" class="!w-full" :minFractionDigits="0" :maxFractionDigits="8" size="small" />
+          </FormRow>
+          <FormRow :label="t('attendance.longitude')" required :errors="errors?.longitude">
+            <InputNumber v-model="form.longitude" class="!w-full" :minFractionDigits="0" :maxFractionDigits="8" size="small" />
+          </FormRow>
+        </div>
         <FormRow :label="t('attendance.radius_m')" :errors="errors?.radius_m">
           <InputNumber v-model="form.radius_m" class="!w-full" :min="0" size="small" suffix=" m" />
         </FormRow>
@@ -86,26 +138,49 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { useAuth } from '@/stores/auth'
 import { getErrorMessage, getValidationErrors } from '@/services/responseHandler'
 import api from '@/services/api'
 
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
 import Dialog from 'primevue/dialog'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 
+// Fix default Leaflet marker icon paths for bundlers (webpack/vite)
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow
+})
+
 const { t } = useI18n()
 const toast = useToast()
 const { hasPermission } = useAuth()
+
+// ── Leaflet map state ──
+const mapEl = ref(null)
+let map = null
+let marker = null
+let radiusCircle = null
+const DEFAULT_CENTER = [-6.2088, 106.8456] // Jakarta
+const DEFAULT_ZOOM = 13
 
 const items = ref([])
 const loading = ref(false)
@@ -119,6 +194,15 @@ const editingId = ref(null)
 const saving = ref(false)
 const errors = ref({})
 const form = ref({ name: '', latitude: null, longitude: null, radius_m: null })
+
+// ── Nominatim address search state ──
+const searchQuery = ref('')
+const searchResults = ref([])
+const searching = ref(false)
+const searchOpen = ref(false)
+const searchHighlight = ref(-1)
+let searchTimer = null
+const NOMINATIM_ENDPOINT = 'https://nominatim.openstreetmap.org/search'
 
 const deleteDialogVisible = ref(false)
 const deleting = ref(false)
@@ -167,13 +251,208 @@ function openDialog(item) {
     radius_m: item?.radius_m ?? null
   }
   dialogVisible.value = true
+  nextTick(() => initMap())
 }
+
+function formatCoord(v) {
+  if (v === null || v === undefined) return '-'
+  return Number(v).toFixed(6)
+}
+
+function mapFocus() {
+  // Keep map interactions clickable; container click (outside tiles) is ignored
+}
+
+// ── Nominatim address search ──
+function onSearchInput() {
+  clearTimeout(searchTimer)
+  const q = searchQuery.value.trim()
+  searchHighlight.value = -1
+  if (q.length < 3) {
+    searchResults.value = []
+    searchOpen.value = false
+    searching.value = false
+    return
+  }
+  searchOpen.value = true
+  searching.value = true
+  searchTimer = setTimeout(async () => {
+    // Guard anti race condition: buang respons jika query sudah berubah sejak fetch dimulai
+    const q = searchQuery.value.trim()
+    try {
+      // fetch langsung (bukan axios `api`) agar token/auth header tidak ikut terkirim ke pihak ketiga
+      const res = await fetch(
+        `${NOMINATIM_ENDPOINT}?format=jsonv2&limit=6&addressdetails=1&q=${encodeURIComponent(q)}`
+      )
+      if (!res.ok) throw new Error(res.statusText)
+      const data = await res.json()
+      if (q !== searchQuery.value.trim()) return
+      searchResults.value = data
+    } catch {
+      if (q === searchQuery.value.trim()) searchResults.value = []
+    } finally {
+      if (q === searchQuery.value.trim()) searching.value = false
+    }
+  }, 500)
+}
+
+function moveSearchSelection(dir) {
+  const n = searchResults.value.length
+  if (!n) return
+  searchHighlight.value = (searchHighlight.value + dir + n) % n
+}
+
+function selectHighlighted() {
+  if (searchHighlight.value >= 0 && searchResults.value[searchHighlight.value]) {
+    selectSearchResult(searchResults.value[searchHighlight.value])
+  }
+}
+
+function selectSearchResult(r) {
+  const lat = Number(r.lat)
+  const lng = Number(r.lon)
+  form.value.latitude = roundCoord(lat)
+  form.value.longitude = roundCoord(lng)
+  searchQuery.value = ''
+  searchResults.value = []
+  searchOpen.value = false
+  searchHighlight.value = -1
+  if (map) map.setView([lat, lng], Math.max(map.getZoom(), 16))
+  syncMarker()
+}
+
+function resetSearch() {
+  clearTimeout(searchTimer)
+  searchQuery.value = ''
+  searchResults.value = []
+  searchOpen.value = false
+  searchHighlight.value = -1
+}
+
+function onDialogShown() {
+  // Dipanggil setelah transisi dialog selesai — container peta sudah punya ukuran
+  // nyata, jadi invalidateSize() tidak menghitung 0 (perbaiki peta blank saat buka ulang).
+  nextTick(() => {
+    initMap()
+    // Jeda tambahan sebagai jaring pengaman bila transisi/animasi masih berlangsung.
+    setTimeout(() => map?.invalidateSize(), 150)
+  })
+}
+
+function destroyMap() {
+  if (map) {
+    map.remove()
+    map = null
+    marker = null
+    radiusCircle = null
+  }
+}
+
+function onDialogHide() {
+  resetForm()
+  // Dialog PrimeVue me-unmount kontennya saat ditutup — hancurkan map agar
+  // instance Leaflet lama tidak menempel ke elemen DOM yang sudah hilang
+  // (jika dibiarkan, peta blank saat dialog dibuka lagi).
+  destroyMap()
+}
+
+function initMap() {
+  if (!mapEl.value) return
+  if (map) {
+    // Pengaman: bila container map lama sudah tidak terhubung ke DOM (mis. dialog
+    // di-remount), buang instance lama & buat baru di container yang baru.
+    if (!map.getContainer().isConnected) {
+      destroyMap()
+    } else {
+      map.invalidateSize()
+      syncMarker()
+      return
+    }
+  }
+
+  map = L.map(mapEl.value, { attributionControl: false }).setView(DEFAULT_CENTER, DEFAULT_ZOOM)
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map)
+
+  marker = L.marker(DEFAULT_CENTER, { draggable: true }).addTo(map)
+
+  radiusCircle = L.circle(DEFAULT_CENTER, {
+    radius: 100,
+    color: '#3b82f6',
+    weight: 1.5,
+    fillColor: '#3b82f6',
+    fillOpacity: 0.12
+  }).addTo(map)
+
+  // Click on the map → set lat/long
+  map.on('click', (e) => {
+    const { lat, lng } = e.latlng
+    form.value.latitude = roundCoord(lat)
+    form.value.longitude = roundCoord(lng)
+    syncMarker()
+  })
+
+  // Drag the marker → set lat/long
+  marker.on('dragend', (e) => {
+    const { lat, lng } = e.target.getLatLng()
+    form.value.latitude = roundCoord(lat)
+    form.value.longitude = roundCoord(lng)
+  })
+
+  syncMarker()
+}
+
+function roundCoord(v) {
+  return Math.round(Number(v) * 1e6) / 1e6
+}
+
+function syncMarker() {
+  if (!map || !marker) return
+  const lat = form.value.latitude
+  const lng = form.value.longitude
+  if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
+    const pos = L.latLng(Number(lat), Number(lng))
+    marker.setLatLng(pos)
+    if (radiusCircle) radiusCircle.setLatLng(pos)
+    if (!map.getBounds().contains(pos)) {
+      map.setView(pos, Math.max(map.getZoom(), DEFAULT_ZOOM))
+    }
+  }
+  syncRadius()
+}
+
+function syncRadius() {
+  if (!radiusCircle) return
+  const lat = form.value.latitude
+  const lng = form.value.longitude
+  const r = Number(form.value.radius_m)
+  const hasPoint = lat !== null && lat !== undefined && lng !== null && lng !== undefined
+  if (hasPoint && r > 0) {
+    radiusCircle.setLatLng(L.latLng(Number(lat), Number(lng)))
+    radiusCircle.setRadius(r)
+    radiusCircle.setStyle({ opacity: 1, fillOpacity: 0.12 })
+  } else {
+    radiusCircle.setStyle({ opacity: 0, fillOpacity: 0 })
+  }
+}
+
+// Keep marker + radius circle in sync when lat/long/radius typed manually
+watch(
+  () => [form.value.latitude, form.value.longitude, form.value.radius_m],
+  () => {
+    if (dialogVisible.value) syncMarker()
+  }
+)
 
 function resetForm() {
   form.value = { name: '', latitude: null, longitude: null, radius_m: null }
   errors.value = {}
   editing.value = false
   editingId.value = null
+  resetSearch()
 }
 
 async function handleSave() {
@@ -226,4 +505,9 @@ async function handleDelete() {
 }
 
 onMounted(loadData)
+
+onBeforeUnmount(() => {
+  clearTimeout(searchTimer)
+  destroyMap()
+})
 </script>

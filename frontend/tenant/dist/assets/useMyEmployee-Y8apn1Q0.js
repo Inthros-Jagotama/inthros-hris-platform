@@ -1,0 +1,1 @@
+import{q as e}from"./runtime-core.esm-bundler-BmFWOnhO.js";import{l as t}from"./index-DiEK1uSa.js";var n=null,r=null;function i(){let i=e(n);async function a(){return n?(i.value=n,n):(r||=t.get(`/api/v1/tenant/user-accounts/me`).then(e=>(n=e.data?.data?.employee_id||``,n)).finally(()=>{r=null}),i.value=await r,i.value)}return{employeeId:i,loadMyEmployeeId:a}}export{i as t};

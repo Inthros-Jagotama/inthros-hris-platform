@@ -18,6 +18,7 @@ type AttendanceCompanySetting struct {
 	IsLocationRequired   bool           `gorm:"not null;default:0" json:"is_location_required"`
 	IsFaceRequired       bool           `gorm:"not null;default:0" json:"is_face_required"`
 	IsOvertimeEnabled    bool           `gorm:"not null;default:0" json:"is_overtime_enabled"`
+	AllowCheckinOnDayOff bool           `gorm:"not null" json:"allow_checkin_on_day_off"`
 	MaxDistanceMeter     *int           `json:"max_distance_meter,omitempty"`
 	LateToleranceMinutes *int           `json:"late_tolerance_minutes,omitempty"`
 	OvertimeMinMinutes   *int           `json:"overtime_min_minutes,omitempty"`

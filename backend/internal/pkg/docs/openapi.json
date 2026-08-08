@@ -143,6 +143,9 @@
     {
       "name": "Tenant: User Accounts",
       "description": "Employee login account management"
+    },
+    {
+      "name": "Tenant: Notifications"
     }
   ],
   "paths": {
@@ -34430,6 +34433,559 @@
           }
         ]
       }
+    },
+    "/api/v1/tenant/attendance/calendar": {
+      "get": {
+        "operationId": "getEmployeeAttendanceCalendar",
+        "summary": "Get employee attendance calendar",
+        "description": "Ambil sesi kerja harian satu karyawan dalam rentang tanggal (untuk tampilan kalender). Query employee_id, from, dan to wajib diisi.",
+        "tags": [
+          "Tenant: Time & Attendance"
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-01"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-31"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Employee daily work sessions in range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SessionResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/attendance/summary": {
+      "get": {
+        "operationId": "getEmployeeAttendanceSummary",
+        "summary": "Get employee attendance summary",
+        "description": "Rekap kehadiran satu karyawan dalam rentang tanggal (present, late, missing check-in/out, day off, leave, total work & overtime minutes). Query employee_id, from, dan to wajib diisi.",
+        "tags": [
+          "Tenant: Time & Attendance"
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-01"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-31"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/attendance/reports/sessions": {
+      "get": {
+        "operationId": "getAttendanceReport",
+        "summary": "Get attendance report (all employees)",
+        "description": "Laporan sesi kehadiran semua karyawan dalam rentang tanggal (non-paginated). Query from dan to wajib diisi.",
+        "tags": [
+          "Tenant: Time & Attendance"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-01"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-31"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attendance sessions report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SessionResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/attendance/corrections": {
+      "post": {
+        "operationId": "createAttendanceCorrectionRequest",
+        "summary": "Create attendance correction request",
+        "description": "Ajukan koreksi kehadiran (check-in/check-out salah atau tidak tercatat). Request diproses lewat alur persetujuan bila flow_id diberikan.",
+        "tags": [
+          "Tenant: Time & Attendance"
+        ],
+        "parameters": [],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCorrectionRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listAttendanceCorrectionRequests",
+        "summary": "List attendance correction requests",
+        "description": "Daftar pengajuan koreksi kehadiran, dapat difilter per karyawan (paginated).",
+        "tags": [
+          "Tenant: Time & Attendance"
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionPaginatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/attendance/corrections/{id}": {
+      "get": {
+        "operationId": "getAttendanceCorrectionRequest",
+        "summary": "Get attendance correction request by ID",
+        "description": "Ambil detail satu pengajuan koreksi kehadiran berdasarkan ID.",
+        "tags": [
+          "Tenant: Time & Attendance"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/notifications": {
+      "get": {
+        "operationId": "listNotifications",
+        "summary": "List my notifications",
+        "description": "Feed notifikasi pengguna yang sedang login (paginated). Bisa difilter status baca via is_read.",
+        "tags": [
+          "Tenant: Notifications"
+        ],
+        "parameters": [
+          {
+            "name": "is_read",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPaginatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/notifications/unread-count": {
+      "get": {
+        "operationId": "getNotificationUnreadCount",
+        "summary": "Get unread notification count",
+        "description": "Jumlah notifikasi belum dibaca untuk badge milik pengguna yang sedang login.",
+        "tags": [
+          "Tenant: Notifications"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationUnreadCountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/notifications/{id}/read": {
+      "patch": {
+        "operationId": "markNotificationAsRead",
+        "summary": "Mark a notification as read",
+        "description": "Tandai satu notifikasi (milik pengguna yang sedang login) sebagai sudah dibaca.",
+        "tags": [
+          "Tenant: Notifications"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/notifications/read-all": {
+      "post": {
+        "operationId": "markAllNotificationsAsRead",
+        "summary": "Mark all notifications as read",
+        "description": "Tandai semua notifikasi belum dibaca milik pengguna yang sedang login sebagai sudah dibaca.",
+        "tags": [
+          "Tenant: Notifications"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/user-accounts/me": {
+      "get": {
+        "operationId": "getMyUserAccount",
+        "summary": "Get my user account",
+        "description": "Ambil akun login employee milik user yang sedang login (employee_id, email, status password_set).",
+        "tags": [
+          "Tenant: User Accounts"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -51703,6 +52259,273 @@
             "type": "string",
             "description": "Catatan alasan penolakan proposal Key Results",
             "example": "Target perlu direvisi agar lebih realistis"
+          }
+        }
+      },
+      "SummaryResponse": {
+        "type": "object",
+        "properties": {
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "from_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "to_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "total_sessions": {
+            "type": "integer"
+          },
+          "present_days": {
+            "type": "integer"
+          },
+          "late_days": {
+            "type": "integer"
+          },
+          "missing_checkin_days": {
+            "type": "integer"
+          },
+          "missing_checkout_days": {
+            "type": "integer"
+          },
+          "day_off_days": {
+            "type": "integer"
+          },
+          "leave_days": {
+            "type": "number"
+          },
+          "total_work_minutes": {
+            "type": "integer"
+          },
+          "total_overtime_minutes": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateCorrectionRequest": {
+        "type": "object",
+        "required": [
+          "employee_id",
+          "attendance_session_id",
+          "correction_type",
+          "reason"
+        ],
+        "properties": {
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attendance_session_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "correction_type": {
+            "type": "string",
+            "example": "checkin_missing"
+          },
+          "requested_checkin": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requested_checkout": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Lupa check-in saat masuk kantor"
+          },
+          "flow_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CorrectionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attendance_session_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "correction_type": {
+            "type": "string"
+          },
+          "requested_checkin": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requested_checkout": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "pending"
+          },
+          "approval_instance_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "approved_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CorrectionPaginatedResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CorrectionResponse"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_pages": {
+            "type": "integer"
+          }
+        }
+      },
+      "NotificationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recipient_user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "example": "approval"
+          },
+          "title": {
+            "type": "string",
+            "example": "Approval baru menunggu Anda"
+          },
+          "body": {
+            "type": "string",
+            "example": "Permintaan cuti Andi menunggu persetujuan Anda."
+          },
+          "reference_type": {
+            "type": "string"
+          },
+          "reference_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "is_read": {
+            "type": "boolean"
+          },
+          "read_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NotificationPaginatedResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/NotificationResponse"
+                }
+              },
+              "total": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "page": {
+                "type": "integer"
+              },
+              "per_page": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "NotificationUnreadCountResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "unread_count": {
+                "type": "integer",
+                "example": 3
+              }
+            }
+          }
+        }
+      },
+      "GenericSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "example": true
+              }
+            }
           }
         }
       }

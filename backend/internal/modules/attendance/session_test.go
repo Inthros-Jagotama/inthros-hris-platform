@@ -145,6 +145,11 @@ func TestService_CreateEvent_SessionGeneration_DayOff(t *testing.T) {
 	svc, repo, _, cleanup := newTestService()
 	defer cleanup()
 
+	// Setting: check-in pada hari libur DIBLOKIR.
+	if err := repo.UpsertCompanySetting(ctx(), &AttendanceCompanySetting{AllowCheckinOnDayOff: false}); err != nil {
+		t.Fatalf("failed to create company setting: %v", err)
+	}
+
 	shift := createTestShift(repo)
 	empID := uuid.New()
 	dayOff := true
@@ -176,6 +181,54 @@ func TestService_CreateEvent_SessionGeneration_DayOff(t *testing.T) {
 	}
 	if session.Status != SessionStatusDayOff {
 		t.Errorf("expected status DAY_OFF, got '%s'", session.Status)
+	}
+}
+
+func TestService_CreateEvent_SessionGeneration_DayOff_AllowCheckin(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	// Setting: check-in pada hari libur DIIZINKAN (default migration 075).
+	if err := repo.UpsertCompanySetting(ctx(), &AttendanceCompanySetting{AllowCheckinOnDayOff: true}); err != nil {
+		t.Fatalf("failed to create company setting: %v", err)
+	}
+
+	shift := createTestShift(repo)
+	empID := uuid.New()
+	dayOff := true
+	es := &AttendanceEmployeeShift{
+		EmployeeID:        empID,
+		AttendanceShiftID: shift.ID,
+		EffectiveDateFrom: "2026-01-01",
+		IsDayOff:          &dayOff,
+	}
+	if err := repo.CreateEmployeeShift(ctx(), es); err != nil {
+		t.Fatalf("failed to create day-off employee shift: %v", err)
+	}
+
+	req := CreateEventRequest{
+		EmployeeID:     empID.String(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   "2026-01-15T01:00:00Z",
+		EventTimeLocal: "2026-01-15T08:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	if _, err := svc.CreateEvent(ctx(), req); err != nil {
+		t.Fatalf("CreateEvent failed: %v", err)
+	}
+
+	session, err := repo.FindSessionByEmployeeAndDate(ctx(), empID, "2026-01-15")
+	if err != nil {
+		t.Fatalf("expected session to be generated: %v", err)
+	}
+	// Hari libur tapi diizinkan check-in → status mencerminkan event,
+	// sehingga tombol Check Out muncul di halaman absensi.
+	if session.Status != SessionStatusMissingCheckOut {
+		t.Errorf("expected status MISSING_CHECKOUT, got '%s'", session.Status)
+	}
+	if session.CheckinEventID == nil {
+		t.Error("expected checkin_event_id to be linked to the session")
 	}
 }
 

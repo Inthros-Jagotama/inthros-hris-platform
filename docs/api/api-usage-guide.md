@@ -5,7 +5,7 @@
 
 Panduan praktis **cara menggunakan API** HRIS Platform: dari menjalankan server, autentikasi, format request/response, sampai contoh pemanggilan end-to-end (curl).
 
-> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 821 endpoint + skema, lihat:
+> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 832 endpoint + skema, lihat:
 > - [`docs/openapi-report.md`](../openapi-report.md) — laporan komprehensif per modul
 > - `backend/internal/pkg/docs/openapi.json` — OpenAPI 3.0 spec (sumber kebenaran)
 
@@ -115,7 +115,7 @@ Setelah server jalan, dokumentasi API tersedia di:
 |---|---|
 | `http://localhost:8080/docs` | **Scalar UI** — explore & try endpoint langsung dari browser |
 | `http://localhost:8080/openapi.json` | OpenAPI 3.0 spec mentah (JSON) |
-| `docs/openapi-report.md` | Laporan markdown statis (821 endpoint, 473 paths, 513 schemas, 32 tag) |
+| `docs/openapi-report.md` | Laporan markdown statis (832 endpoint, 483 paths, 521 schemas, 33 tag) |
 
 ---
 
@@ -479,6 +479,9 @@ curl -X POST http://localhost:8080/api/v1/tenant/employees \
 | Module aktif | `GET /api/v1/tenant/company-modules` |
 | Approval Engine | `GET/POST /api/v1/tenant/approval/flows`, `GET /api/v1/tenant/approval/available-modules`, `POST /api/v1/tenant/approval/instances/:id/actions` |
 | Employee Movement | `GET/POST /api/v1/tenant/employee-movements/movements`, `POST /api/v1/tenant/employee-movements/movements/:id/submit`, `.../:id/approve`, `.../:id/execute` |
+| Attendance | `GET/POST /api/v1/tenant/attendance/shifts`, `.../locations`, `.../events`, `GET .../sessions`, `.../calendar`, `.../summary`, `.../reports/sessions`, `POST/GET .../corrections` |
+| Notification | `GET /api/v1/tenant/notifications`, `.../unread-count`, `PATCH .../:id/read`, `POST .../read-all` |
+| User Accounts | `GET /api/v1/tenant/user-accounts/me`, `POST .../employees/:employeeId`, `GET .../employees/:employeeId`, `POST .../employees/:employeeId/resend` |
 
 > 🔍 Daftar lengkap per modul: lihat [`docs/openapi-report.md`](../openapi-report.md).
 
@@ -1151,6 +1154,110 @@ curl -X POST http://localhost:8080/api/v1/tenant/employee-movements/movements/<m
 ```
 
 > 💡 Status movement: `draft` → `pending_approval` → `approved` → `executed`. Jika approver **REJECT**, status menjadi `cancelled` (tidak ada status rejected khusus di EmployeeMovement). Endpoint `/movements/:id/approve` dan `/movements/:id/execute` tetap tersedia sebagai jalur manual tanpa approval engine.
+
+---
+
+### 8.6 Contoh Penggunaan: Attendance & Notifications
+
+#### 8.6.1 Attendance — Kalender, Rekap & Koreksi
+
+Kalender & rekap dipakai untuk tampilan dashboard kehadiran; koreksi dipakai karyawan untuk memperbaiki check-in/check-out yang salah atau tidak tercatat.
+
+**Step 1 — Kalender kehadiran satu karyawan:**
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/attendance/calendar?employee_id=<employee-uuid>&from=2026-07-01&to=2026-07-31" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": [ { "id": "<session-uuid>", "work_date": "2026-07-01", "status": "completed", "work_minutes": 480, ... } ] }
+```
+
+> Query `employee_id`, `from`, dan `to` **wajib** diisi — jika kosong akan error `VALIDATION_ERROR`.
+
+**Step 2 — Rekap kehadiran (summary) karyawan:**
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/attendance/summary?employee_id=<employee-uuid>&from=2026-07-01&to=2026-07-31" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": { "employee_id": "<employee-uuid>", "total_sessions": 22, "present_days": 20,
+#     "late_days": 2, "missing_checkin_days": 0, "missing_checkout_days": 1, "leave_days": 1,
+#     "total_work_minutes": 10180, "total_overtime_minutes": 240 } }
+```
+
+**Step 3 — Laporan sesi semua karyawan (untuk HR):**
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/attendance/reports/sessions?from=2026-07-01&to=2026-07-31" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": [ { "id": "<session-uuid>", "employee_id": "<employee-uuid>", "work_date": "2026-07-01", ... } ] }
+```
+
+**Step 4 — Ajukan koreksi kehadiran:**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tenant/attendance/corrections \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "employee_id": "<employee-uuid>",
+    "attendance_session_id": "<session-uuid>",
+    "correction_type": "checkin_missing",
+    "requested_checkin": "2026-07-15T08:05:00+07:00",
+    "reason": "Lupa check-in saat masuk kantor",
+    "flow_id": "<flow-uuid>"
+  }'
+# → 201 { "success": true, "data": { "id": "<correction-uuid>", "status": "pending", ... } }
+```
+
+**Step 5 — Cek status pengajuan koreksi:**
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/attendance/corrections?employee_id=<employee-uuid>&page=1&per_page=20" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": [ { "id": "<correction-uuid>", "status": "approved", ... } ], "page": 1, "per_page": 20, "total": 1, "total_pages": 1 }
+```
+
+> Jika `flow_id` diberikan, koreksi diproses lewat **Approval Engine** (`approval/instances/:id/actions`). Tanpa flow, status langsung jadi `approved`/`rejected` sesuai logika internal modul.
+
+#### 8.6.2 Notification — Feed, Badge & Tandai Dibaca
+
+Notifikasi in-app dikirim per **user_id** (bukan employee_id) dan otomatis dibuat oleh modul lain (mis. Approval saat ada instance baru).
+
+**Step 1 — Lihat feed notifikasi (paginated, bisa filter belum dibaca):**
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/notifications?is_read=false&page=1&per_page=20" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": { "data": [ { "id": "<notif-uuid>", "type": "approval",
+#     "title": "Approval baru menunggu Anda", "body": "Permintaan cuti Andi menunggu persetujuan Anda.",
+#     "reference_type": "approval_instance", "reference_id": "<instance-uuid>", "is_read": false } ],
+#     "total": 5, "page": 1, "per_page": 20 } }
+```
+
+**Step 2 — Badge jumlah belum dibaca:**
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/notifications/unread-count" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": { "unread_count": 3 } }
+```
+
+**Step 3 — Tandai satu notifikasi sudah dibaca:**
+
+```bash
+curl -X PATCH http://localhost:8080/api/v1/tenant/notifications/<notif-uuid>/read \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": { "success": true } }
+```
+
+**Step 4 — Tandai semua notifikasi sudah dibaca:**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tenant/notifications/read-all \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": { "success": true } }
+```
+
+> 💡 User hanya bisa membaca/menandai **notifikasi miliknya sendiri** — endpoint memakai identitas user dari token, bukan parameter.
 
 ---
 

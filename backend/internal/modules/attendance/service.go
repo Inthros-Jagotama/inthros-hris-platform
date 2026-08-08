@@ -2,12 +2,14 @@ package attendance
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 
 	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
@@ -94,7 +96,8 @@ func (s *Service) notifyRequestOutcome(ctx context.Context, employeeID uuid.UUID
 // =========================================================================
 
 func (s *Service) UpsertCompanySetting(ctx context.Context, req CreateCompanySettingRequest) (*CompanySettingResponse, error) {
-	setting := &AttendanceCompanySetting{}
+	// Default: check-in pada hari libur diizinkan (konsisten dengan migrasi 075).
+	setting := &AttendanceCompanySetting{AllowCheckinOnDayOff: true}
 	if req.IsLocationRequired != nil {
 		setting.IsLocationRequired = *req.IsLocationRequired
 	}
@@ -103,6 +106,9 @@ func (s *Service) UpsertCompanySetting(ctx context.Context, req CreateCompanySet
 	}
 	if req.IsOvertimeEnabled != nil {
 		setting.IsOvertimeEnabled = *req.IsOvertimeEnabled
+	}
+	if req.AllowCheckinOnDayOff != nil {
+		setting.AllowCheckinOnDayOff = *req.AllowCheckinOnDayOff
 	}
 	setting.Latitude = req.Latitude
 	setting.Longitude = req.Longitude
@@ -123,6 +129,11 @@ func (s *Service) UpsertCompanySetting(ctx context.Context, req CreateCompanySet
 func (s *Service) GetCompanySetting(ctx context.Context) (*CompanySettingResponse, error) {
 	setting, err := s.repo.FindCompanySetting(ctx)
 	if err != nil {
+		// Belum ada baris setting (tenant baru) — kembalikan nilai default
+		// (bukan 404) agar halaman Settings bisa dimuat & disimpan.
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CompanySettingResponse{AllowCheckinOnDayOff: true}, nil
+		}
 		return nil, err
 	}
 	return settingToResponse(setting), nil
@@ -1305,6 +1316,7 @@ func settingToResponse(s *AttendanceCompanySetting) *CompanySettingResponse {
 		IsLocationRequired:   s.IsLocationRequired,
 		IsFaceRequired:       s.IsFaceRequired,
 		IsOvertimeEnabled:    s.IsOvertimeEnabled,
+		AllowCheckinOnDayOff: s.AllowCheckinOnDayOff,
 		MaxDistanceMeter:     s.MaxDistanceMeter,
 		LateToleranceMinutes: s.LateToleranceMinutes,
 		OvertimeMinMinutes:   s.OvertimeMinMinutes,

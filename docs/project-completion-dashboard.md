@@ -17,9 +17,9 @@
 | **Total Go Files** | **320** (220 source + 100 test) |
 | **Total GORM Entities** | **137** (130 tenant + 7 platform, dari `go-module-architecture-report.md`) |
 | **Total Test Functions** | **~1265+** |
-| **Total OpenAPI Endpoints** | **821** |
-| **Total OpenAPI Schemas** | **513** |
-| **Total OpenAPI Tags** | **32** |
+| **Total OpenAPI Endpoints** | **832** |
+| **Total OpenAPI Schemas** | **521** |
+| **Total OpenAPI Tags** | **33** |
 | **Module Type Filter** | ✅ **3 endpoints** (`/modules`, `/packages`, `/public/packages`) |
 | **Bilingual Support** | ✅ **EN/ID** — Backend 80+ message pairs + Frontend 200+ locale keys, middleware auto-detect, field validation errors |
 | **Frontend Phase 1** | ✅ **9/9 Platform Admin pages** — 100% complete with bilingual support |
@@ -210,8 +210,8 @@
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 821 endpoints |
-| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 821 endpoints |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 832 endpoints |
+| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 832 endpoints |
 | **RBAC Engine** | ✅ **Active** | 4 default roles, **98 permissions (24 resources)**, auto-reload |
 | **On-Premise License Engine** | ✅ **Ready** | `internal/pkg/onpremise/` — RSA `.lic` (expires_at, allowed_modules, max_employees); CLI `licensectl` (gen-key/gen-lic); mode `on_premise` via `HRIS_LICENSE_DEPLOYMENT_MODE` (dormant di mode saas default); lister alternatif PlatformLicenseMiddleware. **`max_employees` di-enforce di `Service.Create()` → 403 `QUOTA_EXCEEDED`** (toast bilingual FE `employee.quota_exceeded`) |
 | **Quota Audit (no bypass)** | ✅ **Audited** | Kuota terpusat di `Service.Create()` — satu-satunya pembuat Employee master. Payroll profiles / onboarding / employee-shift / sub-record TIDAK membuat Employee master (tidak perlu kuota). Frontend hanya 1 caller (`EmployeeForm.savePersonalData`). Jalur masa depan (batch import) otomatis kena kuota. *(Audit 31 Jul 2026)* |
@@ -309,7 +309,7 @@
 | Task | Priority | Notes | Status |
 |------|:--------:|-------|:------:|
 | **Frontend Phase 1 — Platform Admin** | 🟢 High | 9 pages: Login, Dashboard, Companies, Users, Modules, Licenses, Packages, Monitoring, RBAC | ✅ **Done (26 Jul 2026)** |
-| Frontend Phase 2 — Tenant Module Views | 🟡 Medium | Organization, Employee, Leave, Payroll, Attendance, dll. | ✅ **Partial (19 Settings CRUD views + Organization done)** |
+| Frontend Phase 2 — Tenant Module Views | 🟡 Medium | Organization, Employee, Leave, Payroll, Attendance, dll. | ✅ **Partial (19 Settings CRUD views + Organization done + Leave FE-1/FE-2 + Attendance FE-1 s.d. FE-5)** |
 | — Settings: Zones, Provinces, Regencies, Districts, Villages | 🟢 Easy | 5 geographic entities with parent-child hierarchy | ✅ **Done** |
 | — Settings: Educations, Religions, MaritalStatuses, RelationshipTypes | 🟢 Easy | 4 simple reference CRUDs | ✅ **Done** |
 | — Settings: Education Majors | 🟢 Easy | 1 reference CRUD — **seeder `seedEducationMajors` pakai kode 3 digit (001–020)**, 20 jurusan, UUID deterministik + idempotent (024_education_majors.sql) | ✅ **Done (1 Aug 2026)** |

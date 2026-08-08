@@ -86,7 +86,7 @@ func TestHandler_GetCompanySetting_Success(t *testing.T) {
 	}
 }
 
-func TestHandler_GetCompanySetting_NotFound(t *testing.T) {
+func TestHandler_GetCompanySetting_NoRow_ReturnsDefaults(t *testing.T) {
 	router, _, _, cleanup := setupTestRouter()
 	defer cleanup()
 
@@ -94,8 +94,8 @@ func TestHandler_GetCompanySetting_NotFound(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/api/v1/tenant/attendance/settings", nil)
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusNotFound {
-		t.Errorf("expected 404 Not Found, got %d: %s", w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200 OK with defaults, got %d: %s", w.Code, w.Body.String())
 	}
 }
 

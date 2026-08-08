@@ -21,7 +21,7 @@
           <div>
             <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('attendance.today') }}</h2>
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ todayLabel }}</p>
-            <Tag v-if="todaySession" :value="t('attendance.status_' + todaySession.status.toLowerCase())" :severity="statusSeverity(todaySession.status)" class="!text-xs !px-1.5 !py-0.5 mt-2" />
+            <Tag v-if="displayStatus" :value="t('attendance.status_' + displayStatus.toLowerCase())" :severity="statusSeverity(displayStatus)" class="!text-xs !px-1.5 !py-0.5 mt-2" />
           </div>
           <Button
             :label="canCheckOut ? t('attendance.check_out') : t('attendance.check_in')"
@@ -55,7 +55,7 @@
         </div>
         <div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
           <div v-for="session in calendarSessions" :key="session.id" class="flex items-center justify-between py-2 text-sm">
-            <span class="text-gray-600 dark:text-gray-300">{{ session.work_date }}</span>
+            <span class="text-gray-600 dark:text-gray-300">{{ formatDate(session.work_date, locale) }}</span>
             <div class="flex items-center gap-3">
               <span v-if="session.work_minutes" class="text-gray-400 dark:text-gray-500 text-xs">{{ formatMinutes(session.work_minutes) }}</span>
               <Tag :value="t('attendance.status_' + session.status.toLowerCase())" :severity="statusSeverity(session.status)" class="!text-xs !px-1.5 !py-0.5" />
@@ -76,13 +76,14 @@ import { useMyEmployee } from '@/composables/useMyEmployee'
 import api from '@/services/api'
 import { getErrorMessage } from '@/services/responseHandler'
 import { toLocalISOString } from '@/utils/localTime'
+import { formatDate } from '@/utils/formatDate'
 
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { hasPermission } = useAuth()
 const { employeeId, loadMyEmployeeId } = useMyEmployee()
 
@@ -97,9 +98,41 @@ const todayStr = toDateOnly(today)
 const todayLabel = today.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
 const todaySession = computed(() => calendarSessions.value.find(s => s.work_date === todayStr) || null)
-// OPEN artinya sudah check-in tapi belum check-out; status lain (CLOSED/DAY_OFF/LEAVE/dst.) berarti tidak ada aksi lanjutan hari ini.
-const canCheckOut = computed(() => todaySession.value?.status === 'OPEN')
-const canPunch = computed(() => !todaySession.value || canCheckOut.value)
+const companySettings = ref(null)
+const allowDayOffCheckin = computed(() => companySettings.value?.allow_checkin_on_day_off ?? true)
+
+// Event hari ini (dari endpoint events, urut event_time_utc DESC — item pertama = terbaru).
+// Dipakai sebagai sumber kebenaran tombol: sesi bisa saja stale (mis. dibuat sebelum
+// perbaikan recalculateSession → status DAY_OFF padahal sudah ada event CHECKIN).
+const todayEvents = ref([])
+function eventDateStr(ev) {
+  return (ev.event_time_local || '').slice(0, 10)
+}
+const todayEventList = computed(() => todayEvents.value.filter(e => eventDateStr(e) === todayStr))
+
+// Status tampilan: sesi bisa stale (mis. DAY_OFF dari sebelum perbaikan
+// recalculateSession). Jika ada event hari ini, cerminkan event aktual:
+//   CHECKIN terakhir  → MISSING_CHECKOUT (belum check-out)
+//   CHECKOUT terakhir → CLOSED (sudah check-in & check-out)
+const displayStatus = computed(() => {
+  const base = todaySession.value?.status || null
+  const list = todayEventList.value
+  if ((base === 'DAY_OFF' || !base) && list.length > 0) {
+    return list[0].event_type === 'CHECKIN' ? 'MISSING_CHECKOUT' : 'CLOSED'
+  }
+  return base
+})
+
+const canCheckOut = computed(() => displayStatus.value === 'MISSING_CHECKOUT')
+const canPunch = computed(() => {
+  if (displayStatus.value === 'MISSING_CHECKOUT') return true
+  if (displayStatus.value === 'OPEN') return true
+  // Hari libur: check-in hanya boleh jika setting allow_checkin_on_day_off aktif.
+  if (displayStatus.value === 'DAY_OFF' && allowDayOffCheckin.value) return true
+  // Belum ada sesi & belum ada event hari ini → boleh check-in.
+  if (!displayStatus.value) return true
+  return false
+})
 
 function toDateOnly(date) {
   const y = date.getFullYear()
@@ -143,6 +176,25 @@ const summaryCards = computed(() => {
   ]
 })
 
+async function loadSettings() {
+  try {
+    const res = await api.get('/api/v1/tenant/attendance/settings')
+    companySettings.value = res.data?.data || null
+  } catch {
+    companySettings.value = null
+  }
+}
+
+async function loadTodayEvents() {
+  if (!employeeId.value) return
+  try {
+    const res = await api.get('/api/v1/tenant/attendance/events', { params: { employee_id: employeeId.value, per_page: 100 } })
+    todayEvents.value = res.data?.data || []
+  } catch {
+    todayEvents.value = []
+  }
+}
+
 async function loadSummaryAndCalendar() {
   if (!employeeId.value) return
   const { from, to } = monthRange(today)
@@ -159,7 +211,8 @@ async function loadAll() {
   loading.value = true
   try {
     employeeId.value = await loadMyEmployeeId()
-    await loadSummaryAndCalendar()
+    await loadSettings()
+    await Promise.all([loadTodayEvents(), loadSummaryAndCalendar()])
   } catch (e) {
     punchError.value = getErrorMessage(e, t('message.failed_to_load'))
   } finally {
@@ -194,7 +247,15 @@ async function handlePunch() {
       location_provider: 'GPS'
     })
     await loadSummaryAndCalendar()
+    await loadTodayEvents()
   } catch (e) {
+    // Self-heal: muat ulang event & sesi agar tombol otomatis membalik
+    // (mis. sudah check-in dari perangkat lain / sesi stale → tombol Check Out).
+    try {
+      await Promise.all([loadTodayEvents(), loadSummaryAndCalendar()])
+    } catch {
+      // Abaikan kegagalan reload — error asli tetap ditampilkan.
+    }
     punchError.value = e?.code === 1
       ? t('attendance.geolocation_denied')
       : getErrorMessage(e, t('attendance.punch_failed'))

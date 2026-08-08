@@ -31,6 +31,45 @@ func TestRepo_UpsertCompanySetting_Create(t *testing.T) {
 	}
 }
 
+func TestRepo_UpsertCompanySetting_UpdatePreservesCreatedAt(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	first := &AttendanceCompanySetting{IsLocationRequired: true}
+	if err := repo.UpsertCompanySetting(ctx, first); err != nil {
+		t.Fatalf("initial UpsertCompanySetting failed: %v", err)
+	}
+
+	before, err := repo.FindCompanySetting(ctx)
+	if err != nil {
+		t.Fatalf("FindCompanySetting failed: %v", err)
+	}
+	if before.CreatedAt.IsZero() {
+		t.Fatal("expected created_at to be set after create")
+	}
+
+	// Simulasikan request update: objek baru tanpa timestamps (CreatedAt zero).
+	// Tanpa perbaikan, Save menimpa created_at dengan zero time (MySQL menolak
+	// '0000-00-00' pada strict mode).
+	updated := &AttendanceCompanySetting{IsOvertimeEnabled: true, AllowCheckinOnDayOff: true}
+	if err := repo.UpsertCompanySetting(ctx, updated); err != nil {
+		t.Fatalf("update UpsertCompanySetting failed: %v", err)
+	}
+
+	after, err := repo.FindCompanySetting(ctx)
+	if err != nil {
+		t.Fatalf("FindCompanySetting after update failed: %v", err)
+	}
+	if !after.CreatedAt.Equal(before.CreatedAt) {
+		t.Errorf("expected created_at preserved (%v), got %v", before.CreatedAt, after.CreatedAt)
+	}
+	if !after.IsOvertimeEnabled {
+		t.Error("expected IsOvertimeEnabled = true after update")
+	}
+}
+
 func TestRepo_FindCompanySetting_Success(t *testing.T) {
 	_, dbResolver, cleanup := setupTestDB()
 	defer cleanup()

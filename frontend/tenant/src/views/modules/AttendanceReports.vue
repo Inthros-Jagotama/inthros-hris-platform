@@ -1,11 +1,11 @@
 <template>
   <div class="space-y-3">
     <div class="flex items-center justify-between gap-2 flex-wrap">
-      <div class="flex items-center gap-2">
-        <DateInput v-model="fromDate" :placeholder="t('attendance.from_date')" />
+      <div class="flex items-center gap-2 flex-wrap">
+        <DateInput v-model="fromDate" :placeholder="t('attendance.from_date')" class="!w-36" />
         <span class="text-gray-400">-</span>
-        <DateInput v-model="toDate" :placeholder="t('attendance.to_date')" />
-        <Button :label="t('common.refresh')" icon="pi pi-search" size="small" :loading="loading" @click="loadData" />
+        <DateInput v-model="toDate" :placeholder="t('attendance.to_date')" class="!w-36" />
+        <Button :label="t('common.refresh')" icon="pi pi-search" size="small" :loading="loading" class="!whitespace-nowrap shrink-0" @click="loadData" />
       </div>
       <span v-if="items.length > 0" class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ items.length }} {{ t('common.items') }}</span>
     </div>
@@ -29,7 +29,9 @@
       <Column field="employee_id" :header="t('employee.title')" sortable>
         <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span></template>
       </Column>
-      <Column field="work_date" :header="t('attendance.work_date')" sortable style="width:120px" />
+      <Column field="work_date" :header="t('attendance.work_date')" sortable style="width:150px">
+        <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ formatDate(data.work_date, locale) }}</span></template>
+      </Column>
       <Column field="status" :header="t('common.status')" sortable style="width:140px">
         <template #body="{data}"><Tag :value="t('attendance.status_' + data.status.toLowerCase())" :severity="statusSeverity(data.status)" class="!text-xs !px-1.5 !py-0.5" /></template>
       </Column>
@@ -53,6 +55,7 @@
 import { ref, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
+import { formatDate } from '@/utils/formatDate'
 import { getErrorMessage } from '@/services/responseHandler'
 import api from '@/services/api'
 
@@ -63,7 +66,7 @@ import Tag from 'primevue/tag'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 import DateInput from '@/components/DateInput.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 
 const items = ref([])

@@ -50,13 +50,17 @@
           <DateInput v-model="form.work_date" />
         </FormRow>
         <FormRow :label="t('attendance.start_time')" required :errors="errors?.start_time_local">
-          <InputText v-model="form.start_time" placeholder="17:00:00" size="small" class="w-full" />
+          <TimeInput v-model="form.start_time" />
         </FormRow>
         <FormRow :label="t('attendance.end_time')" required :errors="errors?.end_time_local">
-          <InputText v-model="form.end_time" placeholder="19:00:00" size="small" class="w-full" />
+          <TimeInput v-model="form.end_time" />
         </FormRow>
         <FormRow :label="t('attendance.requested_minutes')" required :errors="errors?.requested_minutes">
           <InputNumber v-model="form.requested_minutes" class="!w-full" :min="1" size="small" suffix=" min" />
+          <p v-if="isCrossDay" class="text-xs text-amber-500 mt-1 flex items-center gap-1">
+            <i class="pi pi-moon"></i>
+            {{ t('attendance.overtime_cross_day') }}
+          </p>
         </FormRow>
         <FormRow :label="t('attendance.reason')" :errors="errors?.reason">
           <TextInput v-model="form.reason" textarea :rows="3" />
@@ -73,7 +77,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
@@ -85,7 +89,6 @@ import api from '@/services/api'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
@@ -93,6 +96,7 @@ import SkeletonTable from '@/components/SkeletonTable.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import DateInput from '@/components/DateInput.vue'
+import TimeInput from '@/components/TimeInput.vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -111,6 +115,41 @@ const errors = ref({})
 const form = ref({ work_date: '', start_time: '', end_time: '', requested_minutes: null, reason: '' })
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
+
+// ── Perhitungan menit otomatis + dukungan lintas hari ──
+function timeToMinutes(t) {
+  const m = String(t || '').match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/)
+  if (!m) return null
+  return Number(m[1]) * 60 + Number(m[2])
+}
+
+function addDays(dateStr, days) {
+  const [y, mo, d] = String(dateStr).split('-').map(Number)
+  const date = new Date(y, mo - 1, d + days)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+// end_time <= start_time → lembur lintas tengah malam (hari berikutnya)
+const isCrossDay = computed(() => {
+  const s = timeToMinutes(form.value.start_time)
+  const e = timeToMinutes(form.value.end_time)
+  return s !== null && e !== null && e <= s
+})
+
+const autoMinutes = computed(() => {
+  const s = timeToMinutes(form.value.start_time)
+  const e = timeToMinutes(form.value.end_time)
+  if (s === null || e === null) return null
+  let diff = e - s
+  if (diff <= 0) diff += 1440
+  return diff
+})
+
+// Isi otomatis saat start/end lengkap (tetap bisa diedit manual)
+watch(autoMinutes, (m) => {
+  if (m !== null && dialogVisible.value) form.value.requested_minutes = m
+})
+
 const skeletonColumns = [
   { type: 'text', width: 'w-24', headerWidth: 'w-20' },
   { type: 'text', width: 'w-20', headerWidth: 'w-20' },
@@ -174,7 +213,11 @@ async function handleSave() {
       employee_id: employeeId.value,
       work_date: form.value.work_date,
       start_time_local: localDateTimeISOString(form.value.work_date, form.value.start_time),
-      end_time_local: localDateTimeISOString(form.value.work_date, form.value.end_time),
+      // Lintas hari: end_time <= start_time → tanggal end = hari berikutnya
+      end_time_local: localDateTimeISOString(
+        isCrossDay.value ? addDays(form.value.work_date, 1) : form.value.work_date,
+        form.value.end_time
+      ),
       requested_minutes: form.value.requested_minutes,
       reason: form.value.reason
     })

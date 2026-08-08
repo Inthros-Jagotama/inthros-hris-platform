@@ -50,17 +50,43 @@ func (s *Service) recalculateSession(ctx context.Context, employeeID uuid.UUID, 
 	}
 
 	empShift, shiftErr := s.repo.FindEmployeeShiftForDate(ctx, employeeID, workDate)
+
+	// Events are loaded up-front so the day-off branches below can reflect
+	// what actually happened instead of unconditionally short-circuiting.
+	events, err := s.repo.FindEventsForWorkDate(ctx, employeeID, workDate)
+	if err != nil {
+		return fmt.Errorf("failed to load events: %w", err)
+	}
+	checkin, checkout := selectCheckinCheckout(events)
+
+	// Company setting: apakah check-in/check-out boleh dilakukan pada hari
+	// libur (tanpa jadwal shift / IsDayOff). Default = diizinkan bila belum
+	// ada baris setting (migration 075 default 1).
+	allowOnDayOff := true
+	if setting, err := s.repo.FindCompanySetting(ctx); err == nil {
+		allowOnDayOff = setting.AllowCheckinOnDayOff
+	}
+	hasEvents := checkin != nil || checkout != nil
+
 	if shiftErr != nil {
 		// No shift assignment for this date - §25 treats an employee with no
-		// working schedule as a day off.
-		session.Status = SessionStatusDayOff
+		// working schedule as a day off. Saat check-in di hari libur
+		// diizinkan dan karyawan benar-benar mencatat event, cerminkan event
+		// tersebut (mis. MISSING_CHECKOUT) alih-alih memaksa DAY_OFF.
 		session.ShiftID = nil
-		return s.repo.UpsertSession(ctx, session)
+		if !allowOnDayOff || !hasEvents {
+			session.Status = SessionStatusDayOff
+			return s.repo.UpsertSession(ctx, session)
+		}
+		return s.repo.UpsertSession(ctx, finishSessionFromEvents(session, checkin, checkout))
 	}
 	if empShift.IsDayOff != nil && *empShift.IsDayOff {
-		session.Status = SessionStatusDayOff
 		session.ShiftID = &empShift.AttendanceShiftID
-		return s.repo.UpsertSession(ctx, session)
+		if !allowOnDayOff || !hasEvents {
+			session.Status = SessionStatusDayOff
+			return s.repo.UpsertSession(ctx, session)
+		}
+		// Diizinkan + ada event → lanjut ke perhitungan normal di bawah.
 	}
 
 	shift, err := s.repo.FindShiftByID(ctx, empShift.AttendanceShiftID)
@@ -73,12 +99,6 @@ func (s *Service) recalculateSession(ctx context.Context, employeeID uuid.UUID, 
 	if err != nil {
 		return fmt.Errorf("invalid work date: %w", err)
 	}
-
-	events, err := s.repo.FindEventsForWorkDate(ctx, employeeID, workDate)
-	if err != nil {
-		return fmt.Errorf("failed to load events: %w", err)
-	}
-	checkin, checkout := selectCheckinCheckout(events)
 
 	// attendance_company_shifts.check_in_time/check_out_time carry no
 	// timezone of their own - anchor them to whichever event's local
@@ -142,6 +162,34 @@ func (s *Service) recalculateSession(ctx context.Context, employeeID uuid.UUID, 
 	}
 
 	return s.repo.UpsertSession(ctx, session)
+}
+
+// finishSessionFromEvents sets a session's status/event-IDs/work-minutes from
+// its raw events when there is no shift to compute planned times against
+// (day-off with check-in allowed, no shift assignment). Lateness/early-leave
+// stay 0 — there are no planned times to compare with.
+func finishSessionFromEvents(session *AttendanceSession, checkin, checkout *AttendanceEvent) *AttendanceSession {
+	session.LatenessMinutes = 0
+	session.EarlyLeaveMinutes = 0
+	session.WorkMinutes = 0
+	session.CheckinEventID = nil
+	session.CheckoutEventID = nil
+	switch {
+	case checkin != nil && checkout != nil:
+		session.CheckinEventID = &checkin.ID
+		session.CheckoutEventID = &checkout.ID
+		session.Status = SessionStatusClosed
+		session.WorkMinutes = workMinutesBetween(checkin.EventTimeLocal, checkout.EventTimeLocal, session.BreakMinutes)
+	case checkin != nil:
+		session.CheckinEventID = &checkin.ID
+		session.Status = SessionStatusMissingCheckOut
+	case checkout != nil:
+		session.CheckoutEventID = &checkout.ID
+		session.Status = SessionStatusMissingCheckIn
+	default:
+		session.Status = SessionStatusOpen
+	}
+	return session
 }
 
 // ApplyApprovedLeave lets the Leave module push an approved leave onto this

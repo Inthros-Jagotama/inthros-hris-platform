@@ -10,7 +10,7 @@ Dokumen ini menjelaskan struktur database HRIS Platform: arsitektur dua-database
 | Database | Isi | Jumlah Tabel |
 |---|---|---|
 | **Platform DB** | Data multi-tenant: companies, modul, lisensi, paket, RBAC platform | 11 |
-| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 173 |
+| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 175 |
 
 > Sumber kebenaran: file migrasi SQL di `backend/internal/pkg/migrator/migrations/` (dialect `postgres/` & `mysql/` identik).
 
@@ -176,28 +176,29 @@ erDiagram
 
 Satu database terisolasi **per company** (database per tenant). Struktur identik untuk semua tenant (dibuat saat provisioning company).
 
-Total **173 tabel** dikelompokkan dalam 18 modul:
+Total **175 tabel** dikelompokkan dalam 19 modul:
 
 | # | Modul | Jumlah Tabel |
 |---|---|---|
 | 1 | Master Data & Settings | 20 |
 | 2 | Organization | 6 |
 | 3 | Employee | 10 |
-| 4 | Attendance | 10 |
-| 5 | Leave | 6 |
-| 6 | Payroll | 21 |
-| 7 | Competency | 7 |
-| 8 | Job Management | 22 |
-| 9 | Approval Engine | 6 |
-| 10 | RBAC & Auth | 9 |
-| 11 | Employee Movement | 2 |
-| 12 | Reimbursement | 3 |
-| 13 | Performance — KPI | 17 |
-| 14 | Performance — OKR | 8 |
-| 15 | Recruitment | 7 |
-| 16 | Training | 7 |
-| 17 | Workforce Intelligence | 7 |
-| 18 | Career Intelligence | 4 |
+| 4 | Attendance | 11 |
+| 5 | Notification | 1 |
+| 6 | Leave | 7 |
+| 7 | Payroll | 21 |
+| 8 | Competency | 7 |
+| 9 | Job Management | 22 |
+| 10 | Approval Engine | 6 |
+| 11 | RBAC & Auth | 9 |
+| 12 | Employee Movement | 2 |
+| 13 | Reimbursement | 3 |
+| 14 | Performance — KPI | 17 |
+| 15 | Performance — OKR | 8 |
+| 16 | Recruitment | 7 |
+| 17 | Training | 7 |
+| 18 | Workforce Intelligence | 7 |
+| 19 | Career Intelligence | 4 |
 
 ---
 
@@ -717,8 +718,9 @@ erDiagram
 | `attendance_face_captures` | 11 | employee_id->employees |
 | `attendance_events` | 20 | employee_id->employees, device_id->attendance_device_captures, face_capture_id->attendance_face_captures |
 | `attendance_sessions` | 23 | employee_id->employees, shift_id->attendance_company_shifts, checkin_event_id->attendance_events, checkout_event_id->attendance_events |
-| `attendance_overtime_requests` | 14 | employee_id->employees |
+| `attendance_overtime_requests` | 16 | employee_id->employees |
 | `attendance_exempt_positions` | 9 | organization_id->organizations |
+| `attendance_correction_requests` | 13 | employee_id->employees, attendance_session_id->attendance_sessions |
 
 ### ERD — Attendance
 
@@ -866,6 +868,8 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
         CHAR approval_instance_id
+        INT actual_minutes
+        INT calculated_minutes
     }
     attendance_exempt_positions {
         CHAR id
@@ -878,12 +882,53 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
+    attendance_correction_requests {
+        CHAR id
+        CHAR employee_id
+        CHAR attendance_session_id
+        VARCHAR correction_type
+        TIMESTAMP requested_checkin
+        TIMESTAMP requested_checkout
+        VARCHAR reason
+        VARCHAR status
+        CHAR approval_instance_id
+        CHAR created_by
+        TIMESTAMP approved_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
     attendance_company_shifts ||--o{ attendance_employee_shifts : "attendance_shift_id"
     attendance_device_captures ||--o{ attendance_events : "device_id"
     attendance_face_captures ||--o{ attendance_events : "face_capture_id"
     attendance_company_shifts ||--o{ attendance_sessions : "shift_id"
     attendance_events ||--o{ attendance_sessions : "checkin_event_id"
     attendance_events ||--o{ attendance_sessions : "checkout_event_id"
+    attendance_sessions ||--o{ attendance_correction_requests : "attendance_session_id"
+```
+
+
+## Notification
+
+| Tabel | Jumlah Kolom | FK Utama |
+|---|---|---|
+| `notifications` | 10 | - |
+
+### ERD — Notification
+
+```mermaid
+erDiagram
+    notifications {
+        CHAR id
+        CHAR recipient_user_id
+        VARCHAR type
+        VARCHAR title
+        VARCHAR body
+        VARCHAR reference_type
+        CHAR reference_id
+        BOOLEAN is_read
+        TIMESTAMP read_at
+        TIMESTAMP created_at
+    }
 ```
 
 
@@ -897,6 +942,7 @@ erDiagram
 | `leave_requests` | 27 | employee_id->employees, leave_type_id->leave_types, leave_reason_id->leave_reasons |
 | `leave_request_details` | 10 | leave_request_id->leave_requests, employee_id->employees |
 | `employee_leave_balances` | 12 | employee_id->employees, leave_type_id->leave_types |
+| `leave_balance_transactions` | 13 | employee_id->employees, leave_type_id->leave_types, balance_id->employee_leave_balances |
 
 ### ERD — Leave
 
@@ -996,11 +1042,28 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
+    leave_balance_transactions {
+        CHAR id
+        CHAR employee_id
+        CHAR leave_type_id
+        CHAR balance_id
+        VARCHAR transaction_type
+        VARCHAR reference_type
+        CHAR reference_id
+        DECIMAL amount
+        DECIMAL balance_before
+        DECIMAL balance_after
+        VARCHAR note
+        CHAR created_by
+        TIMESTAMP created_at
+    }
     leave_types ||--o{ leave_accrual_policies : "leave_type_id"
     leave_types ||--o{ leave_requests : "leave_type_id"
     leave_reasons ||--o{ leave_requests : "leave_reason_id"
     leave_requests ||--o{ leave_request_details : "leave_request_id"
     leave_types ||--o{ employee_leave_balances : "leave_type_id"
+    leave_types ||--o{ leave_balance_transactions : "leave_type_id"
+    employee_leave_balances ||--o{ leave_balance_transactions : "balance_id"
 ```
 
 
@@ -3014,7 +3077,7 @@ erDiagram
 
 ## Migrasi & Dialect
 
-- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 69 file up + 69 file down per dialect (276 total).
+- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 73 file up + 73 file down per dialect (292 total).
 - Migrasi **platform** bersifat cross-dialect di `migrations/platform/`.
 - Tabel tambahan platform (`packages`, `package_modules`) dibuat via GORM `AutoMigrate`.
 - Dijalankan otomatis saat **provisioning company** (tenant DB dibuat + migrasi + seed).

@@ -4,7 +4,7 @@
 > **Terkait:** [`panduan-uiux-hris-enterprise.md`](panduan-uiux-hris-enterprise.md) · [`project-completion-dashboard.md`](project-completion-dashboard.md) · [`api/api-usage-guide.md`](api/api-usage-guide.md)
 
 **Generated:** 27 July 2026
-**Last Updated:** 7 August 2026 (Performance Management KPI + OKR marked done; added Performance Scoring Configuration — KPI Phase 5 — frontend plan, backend already shipped)
+**Last Updated:** 9 August 2026 (Leave & Time Off FE-1/FE-2 marked done — My Leave Dashboard + Admin Configuration; Performance Management KPI + OKR + Performance Scoring Configuration sudah selesai sebelumnya)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios
 
 ---
@@ -443,12 +443,15 @@ frontend/
 - [ ] Tax Brackets
 - [ ] Payslip view
 
-### C.16. Leave & Time Off 🔴 (BARU)
-**Backend:** 23 endpoints
-- [ ] Leave Types CRUD
-- [ ] Accrual Policies CRUD
-- [ ] Leave Requests (create, approve, reject)
-- [ ] Leave Balances per employee
+### C.16. Leave & Time Off ✅ (Selesai — Update 09 Agu 2026)
+**Backend:** 23 endpoints — Leave Types, Accrual Policies, Leave Reasons, Leave Requests, Request Details, Balances, Employee Calendar, Usage Report, approval integration via Central Approval Module, balance usage/reversal + ledger. Detail lengkap: [`module-leave-plan.md`](module-leave-plan.md)
+**Frontend (FE-1 & FE-2):** ✅ Selesai (09 Agu 2026)
+- [x] **`Leave.vue` (My Leave Dashboard)** — kartu balance per leave type (`GET /balances?employee_id=`), list request sendiri (`GET /requests?employee_id=`, kolom leave type/tanggal/status/requested_days + tombol Cancel untuk DRAFT/SUBMITTED/PENDING_APPROVAL via `PUT /requests/:id/status`), tombol "New Request" → Dialog form (leave type dropdown, date range DateInput ×2, duration_mode incl. HOURLY → start/end time `HH:mm`, reason dropdown `GET /reasons`, note textarea, attachment_url jika tipe wajib lampiran), section "My Leave This Month" via `GET /leave/calendar`
+- [x] **`LeaveAdmin.vue`** — index kartu (pola `AttendanceAdmin.vue`), route `leave/admin`
+- [x] **`LeaveTypes.vue`** — CRUD Dialog inline, route `leave/types`
+- [x] **`LeaveAccrualPolicies.vue`** — CRUD Dialog inline (dropdown Leave Type dari `/types`, `effective_from`/`effective_to` via DateInput), route `leave/accrual-policies`
+- [x] **`LeaveReasons.vue`** — CRUD Dialog inline (tanpa pagination — endpoint mengembalikan array polos), route `leave/reasons`
+- [x] **Bilingual EN/ID** — `locales/en.json`/`locales/id.json` section `leave.*` (+~60 keys), `npm run build` bersih, diverifikasi manual di browser tanpa console error
 
 ### C.17. Performance Management ✅ (KPI Phase 1-4 & OKR Phase 1-4 Selesai — Update 07 Agu 2026)
 **Backend:** module `performance` — sub-modul KPI (`/performance/kpi/*`) + OKR (`/performance/okr/*`), shared master di `/performance/*` (periods, ratings, indicator-formulas, logs). Detail lengkap: [`performance-management-kpi-plan.md`](performance-management-kpi-plan.md) (plan backend KPI; plan OKR & frontend KPI/OKR telah diarsipkan ke `docs/archive/`)
@@ -927,7 +930,7 @@ Response handler → toast.show("Berhasil dibuat")
 | P0 | Organization Management (Tree + CRUD) | 🟡 Medium | ✅ Done |
 | P0 | Setting Module — All 19 Reference CRUDs (incl. TER & PTKP & Company Holidays) | 🟡 Medium | ✅ Done |
 | P0 | Employee Management (Wizard) | 🔴 Complex | 🟡 8/9 Steps ✅ |
-| P1 | Leave & Attendance | 🟡 Medium | 🔴 TODO |
+| P1 | Leave & Attendance | 🟡 Medium | 🟡 Partial — Attendance FE-1 s.d. FE-5 ✅, Leave FE-1 & FE-2 ✅ |
 | P1 | Payroll (read-only payslip) | 🟡 Medium | 🔴 TODO |
 | P2 | Job Management | 🔴 Complex | ✅ **Done (05 Agu 2026)** |
 | P2 | Competency Management | 🔴 Complex | 🔴 TODO |

@@ -12,6 +12,7 @@ type CreateCompanySettingRequest struct {
 	IsLocationRequired   *bool    `json:"is_location_required"`
 	IsFaceRequired       *bool    `json:"is_face_required"`
 	IsOvertimeEnabled    *bool    `json:"is_overtime_enabled"`
+	AllowCheckinOnDayOff *bool    `json:"allow_checkin_on_day_off"`
 	MaxDistanceMeter     *int     `json:"max_distance_meter"`
 	LateToleranceMinutes *int     `json:"late_tolerance_minutes"`
 	OvertimeMinMinutes   *int     `json:"overtime_min_minutes"`
@@ -23,6 +24,7 @@ type UpdateCompanySettingRequest struct {
 	IsLocationRequired   *bool    `json:"is_location_required"`
 	IsFaceRequired       *bool    `json:"is_face_required"`
 	IsOvertimeEnabled    *bool    `json:"is_overtime_enabled"`
+	AllowCheckinOnDayOff *bool    `json:"allow_checkin_on_day_off"`
 	MaxDistanceMeter     *int     `json:"max_distance_meter"`
 	LateToleranceMinutes *int     `json:"late_tolerance_minutes"`
 	OvertimeMinMinutes   *int     `json:"overtime_min_minutes"`
@@ -35,6 +37,7 @@ type CompanySettingResponse struct {
 	IsLocationRequired   bool      `json:"is_location_required"`
 	IsFaceRequired       bool      `json:"is_face_required"`
 	IsOvertimeEnabled    bool      `json:"is_overtime_enabled"`
+	AllowCheckinOnDayOff bool      `json:"allow_checkin_on_day_off"`
 	MaxDistanceMeter     *int      `json:"max_distance_meter,omitempty"`
 	LateToleranceMinutes *int      `json:"late_tolerance_minutes,omitempty"`
 	OvertimeMinMinutes   *int      `json:"overtime_min_minutes,omitempty"`

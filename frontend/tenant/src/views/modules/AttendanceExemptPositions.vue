@@ -123,7 +123,7 @@ const deleteError = ref('')
 const deleteTarget = ref(null)
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
-const organizationOptions = computed(() => organizations.value.map(o => ({ label: o.name, value: o.id })))
+const organizationOptions = computed(() => organizations.value.map(o => ({ label: o.nomenclature, value: o.id })))
 const skeletonColumns = [
   { type: 'text', width: 'w-44', headerWidth: 'w-24' },
   { type: 'tag', width: 'w-16', headerWidth: 'w-20' },
@@ -132,7 +132,7 @@ const skeletonColumns = [
 ]
 
 function organizationName(id) {
-  return organizations.value.find(o => o.id === id)?.name || id
+  return organizations.value.find(o => o.id === id)?.nomenclature || id
 }
 
 async function loadOrganizations() {

@@ -1,12 +1,12 @@
-= HRIS Platform — OpenAPI Comprehensive Report (v19) =
+= HRIS Platform — OpenAPI Comprehensive Report (v20) =
 
 
 **Generated:** 08 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 473
-**Total Endpoints (methods):** 821
-**Total Schemas:** 513
-**Total Tags:** 32
+**Total Paths:** 483
+**Total Endpoints (methods):** 832
+**Total Schemas:** 521
+**Total Tags:** 33
 
 > 🔗 **Index dokumentasi:** [`docs/README.md`](README.md) · **Terkait:** [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)
 
@@ -14,9 +14,9 @@
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 821/821 | 100% |
-| Endpoints with `description` | 821/821 | 100% |
-| Endpoints with `operationId` | 821/821 | 100% |
+| Endpoints with `summary` | 832/832 | 100% |
+| Endpoints with `description` | 832/832 | 100% |
+| Endpoints with `operationId` | 832/832 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -113,10 +113,10 @@ Tenant endpoints support validation for Indonesian data formats:
 | 4 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
 | 5 | Tenant: Payroll & Compensation Engine | 47 | 24 |
 | 6 | Tenant: Employees | 36 | 23 |
-| 7 | Tenant: Competency Management | 35 | 15 |
-| 8 | Tenant: Training & Development Management | 35 | 15 |
-| 9 | Tenant: Recruitment & Onboarding (ATS) | 33 | 16 |
-| 10 | Tenant: Time & Attendance | 30 | 15 |
+| 7 | Tenant: Time & Attendance | 36 | 20 |
+| 8 | Tenant: Competency Management | 35 | 15 |
+| 9 | Tenant: Training & Development Management | 35 | 15 |
+| 10 | Tenant: Recruitment & Onboarding (ATS) | 33 | 16 |
 | 11 | Tenant: Leave & Time Off | 23 | 12 |
 | 12 | Tenant: Career Intelligence | 19 | 11 |
 | 13 | Tenant: Organizations | 18 | 11 |
@@ -133,12 +133,13 @@ Tenant endpoints support validation for Indonesian data formats:
 | 24 | Platform: Monitoring | 5 | 5 |
 | 25 | Health | 4 | 4 |
 | 26 | Tenant: Packages | 4 | 4 |
-| 27 | Tenant: User Accounts | 3 | 2 |
-| 28 | Platform: Auth | 2 | 2 |
-| 29 | Public | 2 | 2 |
-| 30 | Tenant Auth | 2 | 2 |
-| 31 | Tenant: Company | 2 | 1 |
-| | **TOTAL** | **821** | **473** |
+| 27 | Tenant: User Accounts | 4 | 3 |
+| 28 | Tenant: Notifications | 4 | 4 |
+| 29 | Platform: Auth | 2 | 2 |
+| 30 | Public | 2 | 2 |
+| 31 | Tenant Auth | 2 | 2 |
+| 32 | Tenant: Company | 2 | 1 |
+| | **TOTAL** | **832** | **483** |
 
 ## 2. Module Detail
 
@@ -689,6 +690,50 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/employees/{id}/photo` | Upload employee profile photo | Upload a profile photo for an employee. Accepts JPG, PNG, GIF, WebP files up to 2MB. The photo is stored on the server and the employee's profile_p... |
 | `DELETE` | `/api/v1/tenant/employees/{id}/photo` | Delete employee profile photo | Remove the profile photo from an employee. Deletes the file from the server and clears the profile_picture field. |
 
+### Tenant: Time & Attendance
+**Description:** Time and attendance management including company settings, shifts, employee shift assignments, geofence locations, check-in/check-out events, daily work sessions, overtime requests, and exempt positions
+**Endpoints:** 36 | **Paths:** 20
+**Methods:** DELETE=4 GET=20 POST=7 PUT=5
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/attendance/calendar` | Get employee attendance calendar | Ambil sesi kerja harian satu karyawan dalam rentang tanggal (untuk tampilan kalender). Query employee_id, from, dan to wajib diisi. |
+| `POST` | `/api/v1/tenant/attendance/corrections` | Create attendance correction request | Ajukan koreksi kehadiran (check-in/check-out salah atau tidak tercatat). Request diproses lewat alur persetujuan bila flow_id diberikan. |
+| `GET` | `/api/v1/tenant/attendance/corrections` | List attendance correction requests | Daftar pengajuan koreksi kehadiran, dapat difilter per karyawan (paginated). |
+| `GET` | `/api/v1/tenant/attendance/corrections/{id}` | Get attendance correction request by ID | Ambil detail satu pengajuan koreksi kehadiran berdasarkan ID. |
+| `GET` | `/api/v1/tenant/attendance/employee-shifts` | List employee shift assignments | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/employee-shifts` | Assign a shift to an employee | Create a new employee shifts record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Get employee shift assignment by ID | Get details of a specific attendance record. |
+| `PUT` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Update employee shift assignment | Update an attendance record. |
+| `DELETE` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Delete employee shift assignment | Remove an attendance record. |
+| `GET` | `/api/v1/tenant/attendance/events` | List attendance events (check-in/out) | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/events` | Create an attendance event (check-in/out) | Create a new events record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/attendance/events/{id}` | Get event by ID | Get details of a specific attendance record. |
+| `GET` | `/api/v1/tenant/attendance/exempt-positions` | List exempt positions (positions not requiring attendance) | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/exempt-positions` | Create an exempt position | Create a new exempt positions record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Get exempt position by ID | Get details of a specific attendance record. |
+| `PUT` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Update an exempt position | Update an attendance record. |
+| `DELETE` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Delete an exempt position | Remove an attendance record. |
+| `GET` | `/api/v1/tenant/attendance/locations` | List attendance locations (geofence) | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/locations` | Create an attendance location (geofence) | Create a new locations record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/attendance/locations/{id}` | Get location by ID | Get details of a specific attendance record. |
+| `PUT` | `/api/v1/tenant/attendance/locations/{id}` | Update a location | Update an attendance record. |
+| `DELETE` | `/api/v1/tenant/attendance/locations/{id}` | Delete a location | Remove an attendance record. |
+| `GET` | `/api/v1/tenant/attendance/overtime-requests` | List overtime requests | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/overtime-requests` | Create an overtime request | Create a new overtime requests record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/attendance/overtime-requests/{id}` | Get overtime request by ID | Get details of a specific attendance record. |
+| `GET` | `/api/v1/tenant/attendance/reports/sessions` | Get attendance report (all employees) | Laporan sesi kehadiran semua karyawan dalam rentang tanggal (non-paginated). Query from dan to wajib diisi. |
+| `GET` | `/api/v1/tenant/attendance/sessions` | List daily work sessions | Get details of a specific attendance record. |
+| `GET` | `/api/v1/tenant/attendance/sessions/detail` | Get session detail for an employee on a specific date | Get details of a specific attendance record. |
+| `GET` | `/api/v1/tenant/attendance/settings` | Get company attendance settings | Get details of a specific attendance record. |
+| `PUT` | `/api/v1/tenant/attendance/settings` | Upsert company attendance settings | Update an attendance record. |
+| `GET` | `/api/v1/tenant/attendance/shifts` | List company shifts | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/shifts` | Create a company shift | Create a new shifts record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/attendance/shifts/{id}` | Get shift by ID | Get details of a specific attendance record. |
+| `PUT` | `/api/v1/tenant/attendance/shifts/{id}` | Update a shift | Update an attendance record. |
+| `DELETE` | `/api/v1/tenant/attendance/shifts/{id}` | Delete a shift | Remove an attendance record. |
+| `GET` | `/api/v1/tenant/attendance/summary` | Get employee attendance summary | Rekap kehadiran satu karyawan dalam rentang tanggal (present, late, missing check-in/out, day off, leave, total work & overtime minutes). Query emp... |
+
 ### Tenant: Competency Management
 **Description:** Competency management including master competencies, values, events, targets, scores, and score details
 **Endpoints:** 35 | **Paths:** 15
@@ -815,44 +860,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/recruitment/requisitions/{id}` | Get job requisition by ID | Retrieve detailed job requisition information by UUID |
 | `PUT` | `/api/v1/tenant/recruitment/requisitions/{id}` | Update job requisition | Update job requisition fields. Only provided fields will be updated |
 | `DELETE` | `/api/v1/tenant/recruitment/requisitions/{id}` | Delete job requisition | Permanently delete a job requisition |
-
-### Tenant: Time & Attendance
-**Description:** Time and attendance management including company settings, shifts, employee shift assignments, geofence locations, check-in/check-out events, daily work sessions, overtime requests, and exempt positions
-**Endpoints:** 30 | **Paths:** 15
-**Methods:** DELETE=4 GET=15 POST=6 PUT=5
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/tenant/attendance/employee-shifts` | List employee shift assignments | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/employee-shifts` | Assign a shift to an employee | Create a new employee shifts record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Get employee shift assignment by ID | Get details of a specific attendance record. |
-| `PUT` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Update employee shift assignment | Update an attendance record. |
-| `DELETE` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Delete employee shift assignment | Remove an attendance record. |
-| `GET` | `/api/v1/tenant/attendance/events` | List attendance events (check-in/out) | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/events` | Create an attendance event (check-in/out) | Create a new events record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/events/{id}` | Get event by ID | Get details of a specific attendance record. |
-| `GET` | `/api/v1/tenant/attendance/exempt-positions` | List exempt positions (positions not requiring attendance) | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/exempt-positions` | Create an exempt position | Create a new exempt positions record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Get exempt position by ID | Get details of a specific attendance record. |
-| `PUT` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Update an exempt position | Update an attendance record. |
-| `DELETE` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Delete an exempt position | Remove an attendance record. |
-| `GET` | `/api/v1/tenant/attendance/locations` | List attendance locations (geofence) | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/locations` | Create an attendance location (geofence) | Create a new locations record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/locations/{id}` | Get location by ID | Get details of a specific attendance record. |
-| `PUT` | `/api/v1/tenant/attendance/locations/{id}` | Update a location | Update an attendance record. |
-| `DELETE` | `/api/v1/tenant/attendance/locations/{id}` | Delete a location | Remove an attendance record. |
-| `GET` | `/api/v1/tenant/attendance/overtime-requests` | List overtime requests | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/overtime-requests` | Create an overtime request | Create a new overtime requests record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/overtime-requests/{id}` | Get overtime request by ID | Get details of a specific attendance record. |
-| `GET` | `/api/v1/tenant/attendance/sessions` | List daily work sessions | Get details of a specific attendance record. |
-| `GET` | `/api/v1/tenant/attendance/sessions/detail` | Get session detail for an employee on a specific date | Get details of a specific attendance record. |
-| `GET` | `/api/v1/tenant/attendance/settings` | Get company attendance settings | Get details of a specific attendance record. |
-| `PUT` | `/api/v1/tenant/attendance/settings` | Upsert company attendance settings | Update an attendance record. |
-| `GET` | `/api/v1/tenant/attendance/shifts` | List company shifts | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/shifts` | Create a company shift | Create a new shifts record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/shifts/{id}` | Get shift by ID | Get details of a specific attendance record. |
-| `PUT` | `/api/v1/tenant/attendance/shifts/{id}` | Update a shift | Update an attendance record. |
-| `DELETE` | `/api/v1/tenant/attendance/shifts/{id}` | Delete a shift | Remove an attendance record. |
 
 ### Tenant: Leave & Time Off
 **Description:** Leave and time off management including leave types, accrual policies, leave reasons, leave requests, leave request details, and employee leave balances
@@ -1161,14 +1168,26 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Tenant: User Accounts
 **Description:** Employee login account management
-**Endpoints:** 3 | **Paths:** 2
-**Methods:** GET=1 POST=2
+**Endpoints:** 4 | **Paths:** 3
+**Methods:** GET=2 POST=2
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
 | `GET` | `/api/v1/tenant/user-accounts/employees/{employeeId}` | Get employee account status | Ambil status akun login employee (email, password_set, setup token). |
 | `POST` | `/api/v1/tenant/user-accounts/employees/{employeeId}` | Create employee account | Buat akun login employee (kirim email setup password). |
 | `POST` | `/api/v1/tenant/user-accounts/employees/{employeeId}/resend` | Resend account setup email | Kirim ulang email link setup password akun employee. |
+| `GET` | `/api/v1/tenant/user-accounts/me` | Get my user account | Ambil akun login employee milik user yang sedang login (employee_id, email, status password_set). |
+
+### Tenant: Notifications
+**Endpoints:** 4 | **Paths:** 4
+**Methods:** GET=2 PATCH=1 POST=1
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/notifications` | List my notifications | Feed notifikasi pengguna yang sedang login (paginated). Bisa difilter status baca via is_read. |
+| `POST` | `/api/v1/tenant/notifications/read-all` | Mark all notifications as read | Tandai semua notifikasi belum dibaca milik pengguna yang sedang login sebagai sudah dibaca. |
+| `GET` | `/api/v1/tenant/notifications/unread-count` | Get unread notification count | Jumlah notifikasi belum dibaca untuk badge milik pengguna yang sedang login. |
+| `PATCH` | `/api/v1/tenant/notifications/{id}/read` | Mark a notification as read | Tandai satu notifikasi (milik pengguna yang sedang login) sebagai sudah dibaca. |
 
 ### Platform: Auth
 **Description:** Platform authentication (login, refresh token)

@@ -2,7 +2,9 @@ Saya sudah pelajari struktur `005_leave.sql`. Struktur dasarnya sudah mencakup *
 
 Berikut plan Markdown yang bisa langsung Anda simpan sebagai `performance-management-leave-plan.md` atau `leave-management-plan.md`.
 
-> ⚠️ **Status vs. Plan ini**: dokumen ini awalnya ditulis seolah modul Leave belum ada (greenfield). Setelah dicek ulang terhadap kode aktual, **backend modul Leave sudah cukup jauh diimplementasikan** — termasuk integrasi ke Central Approval Module — sementara beberapa bagian rencana (balance ledger, cancellation flow, working-day calculation, calendar, accrual engine, notification) **memang belum ada**, dan **frontend masih placeholder "Coming soon"**. Lihat section **"Implementation Status"** di bagian bawah dokumen untuk status per-fase yang sudah diverifikasi terhadap kode, dan catatan blockquote (`>`) yang disisipkan di beberapa section untuk koreksi spesifik.
+> ⚠️ **Status vs. Plan ini**: dokumen ini awalnya ditulis seolah modul Leave belum ada (greenfield). Setelah dicek ulang terhadap kode aktual, **backend modul Leave sudah cukup jauh diimplementasikan** — termasuk integrasi ke Central Approval Module — sementara beberapa bagian rencana (balance ledger, cancellation flow, working-day calculation, calendar, accrual engine, notification) **memang belum ada**, dan **frontend awalnya masih placeholder "Coming soon"**. Lihat section **"Implementation Status"** di bagian bawah dokumen untuk status per-fase yang sudah diverifikasi terhadap kode, dan catatan blockquote (`>`) yang disisipkan di beberapa section untuk koreksi spesifik.
+>
+> ✅ **Update 2026-08-09**: Frontend Implementation Plan FE-1 (My Leave Dashboard) dan FE-2 (Admin Configuration) **sudah diimplementasikan** — lihat status di section "Frontend Implementation Plan" di bagian bawah dokumen.
 
 # Leave Management Module Development Plan
 
@@ -1052,7 +1054,7 @@ Saldo harus tercatat pada ledger.
 
 # 29. Menu Structure
 
-> ❌ **Frontend belum dibangun.** `frontend/tenant/src/views/modules/Leave.vue` saat ini hanya stub placeholder ("Leave Module — Coming soon"). Tidak ada halaman request list, request form, balance view, calendar, atau settings — seluruh struktur menu di bawah ini masih 0% dikerjakan.
+> ✅ **Frontend sudah dibangun (FE-1 & FE-2, 2026-08-09).** `frontend/tenant/src/views/modules/Leave.vue` sudah menjadi My Leave dashboard (balance cards, list request sendiri, dialog New Request, kalender bulan berjalan), plus `LeaveAdmin.vue` (index kartu), `LeaveTypes.vue`, `LeaveAccrualPolicies.vue`, `LeaveReasons.vue` (CRUD Dialog inline) — route `leave`, `leave/admin`, `leave/types`, `leave/accrual-policies`, `leave/reasons`. Struktur menu di bawah ini adalah target penuh; bagian yang belum ada halamannya (Dashboard Manager/HR, Team Calendar, Reports, Adjustment) tetap backend-blocked — lihat "Eksplisit di luar cakupan rencana FE ini" di Frontend Implementation Plan.
 
 ```text
 Leave Management
@@ -1674,20 +1676,22 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 9 - Dashboard & Reports | 🔶 Sebagian (2026-08-09) | Leave Usage Report selesai (`GET /leave/reports/usage`, tenant-wide). Employee Dashboard & Balance Report tidak butuh endpoint baru (sudah bisa disusun dari `GET /balances`/`GET /requests`). Manager/HR Dashboard & Organization Report sengaja ditunda — butuh cross-module employee/organization read yang belum ada |
 | Phase 10 - Testing | 🔶 Sebagian | Test approval-integration sudah ada; test kalkulasi/balance/cancellation belum ada karena fiturnya sendiri belum ada |
 
-**Frontend**: ❌ belum dimulai — `Leave.vue` hanya placeholder "Coming soon", tidak ada halaman di bawah `views/modules/leave/`.
+**Frontend**: ✅ **FE-1 & FE-2 selesai (2026-08-09)** — `Leave.vue` (My Leave dashboard: balance cards + list request + dialog New Request + kalender bulan berjalan), `LeaveAdmin.vue` (index kartu), `LeaveTypes.vue`, `LeaveAccrualPolicies.vue`, `LeaveReasons.vue` (CRUD Dialog inline). Bilingual EN/ID di `locales/en.json` & `locales/id.json`, `npm run build` bersih, diverifikasi manual di browser tanpa console error. Team/Manager/HR Dashboard & Reports tetap backend-blocked (butuh cross-module employee/organization read yang belum ada).
 
 **Rekomendasi urutan lanjutan** (sesuai prioritas P0 di §42, disesuaikan dengan gap yang sudah dikonfirmasi):
 1. Leave Balance auto-deduct on approve + reversal on cancel (saat ini approval "selesai" tanpa efek ke saldo sama sekali — paling kritis).
 2. Working-day calculation server-side (saat ini `requested_days` tidak divalidasi, celah untuk data salah/manipulasi).
 3. Endpoint `submit`/`cancel` khusus (pisah dari `PUT .../status` generik) supaya side-effect balance/ledger bisa dipasang dengan aman.
-4. Frontend dasar: My Leave (request + list + balance) — modul backend sudah cukup matang untuk mulai dari sisi UI.
+4. ~~Frontend dasar: My Leave (request + list + balance)~~ ✅ Selesai (2026-08-09) — FE-1 & FE-2 di Frontend Implementation Plan di bawah.
 5. Balance ledger table (§10) menyusul begitu titik (1) mulai berjalan, supaya auto-deduct langsung punya jejak audit sejak awal alih-alih ditambah belakangan.
 
 ---
 
-# Frontend Implementation Plan
+# Frontend Implementation Plan ✅ Selesai (FE-1 & FE-2, 2026-08-09)
 
-Ditambahkan 2026-08-09. Backend Leave sudah cukup matang (lihat Implementation Status di atas: Master Data, Calculation Engine, Approval Integration, Balance Usage/Reversal/Ledger semuanya selesai) — sisi frontend masih 0%: `frontend/tenant/src/views/modules/Leave.vue` hanya placeholder satu baris ("Leave Module — Coming soon"), sama seperti Attendance sebelum FE-nya dibangun. Section ini mengikuti pola yang sama persis dengan Frontend Implementation Plan Attendance (`docs/module-attendance-plan.md`) — konvensi FE sudah baku, bukan didesain ulang dari nol.
+Ditambahkan 2026-08-09. Backend Leave sudah cukup matang (lihat Implementation Status di atas: Master Data, Calculation Engine, Approval Integration, Balance Usage/Reversal/Ledger semuanya selesai) — sisi frontend awalnya 0%: `frontend/tenant/src/views/modules/Leave.vue` hanya placeholder satu baris ("Leave Module — Coming soon"), sama seperti Attendance sebelum FE-nya dibangun. Section ini mengikuti pola yang sama persis dengan Frontend Implementation Plan Attendance (`docs/module-attendance-plan.md`) — konvensi FE sudah baku, bukan didesain ulang dari nol.
+
+> ✅ **FE-1 (My Leave Dashboard) dan FE-2 (Admin Configuration) sudah diimplementasikan per 2026-08-09.** 5 halaman baru/diisi: `Leave.vue` (My Leave dashboard: balance cards per leave type, list request sendiri + cancel, dialog New Request, kalender bulan berjalan via `GET /leave/calendar`), `LeaveAdmin.vue` (index kartu, pola `AttendanceAdmin.vue`), `LeaveTypes.vue`, `LeaveAccrualPolicies.vue`, `LeaveReasons.vue` (CRUD Dialog inline, pola compact `NationalitiesView.vue`). Route terdaftar: `leave`, `leave/admin`, `leave/types`, `leave/accrual-policies`, `leave/reasons` (`meta.module: 'leave'`). Bilingual EN/ID di `locales/en.json`/`locales/id.json`, `npm run build` bersih (2.2s, zero warning), diverifikasi manual di browser (login tenant `andi.wijaya@test.local`): halaman Leave & Leave Admin render tanpa console error, kolom tabel sesuai rencana. Yang tetap di luar cakupan (lihat "Eksplisit di luar cakupan rencana FE ini" di bawah): Team/Organization Calendar, Manager/HR Dashboard, Leave Reports, Balance Adjustment UI, Attendance Integration UI, notification bell wiring — semuanya blocked oleh gap backend/modul lain, bukan keputusan FE.
 
 ## FE-1. Ringkasan & Prinsip
 
@@ -1703,24 +1707,26 @@ Ditambahkan 2026-08-09. Backend Leave sudah cukup matang (lihat Implementation S
 
 Mengikuti pola nomenklatur route Attendance (`attendance/...` → `leave/...`), sibling di bawah path `leave/...`, `meta.module: 'attendance'` → `meta.module: 'leave'`, dst.
 
-| Halaman | Route (usulan) | Endpoint backend | Permission |
-|---|---|---|---|
-| `Leave.vue` (My Leave dashboard: balance cards + list request saya + tombol "New Request") | `leave` (existing stub, diisi) | `GET /balances?employee_id=`, `GET /requests?employee_id=` | `leave.view` |
-| `LeaveRequestForm.vue` (create request, Dialog atau halaman terpisah — lihat FE-3) | inline di `Leave.vue` atau `leave/new` | `POST /requests` | `leave.create` |
-| `LeaveAdmin.vue` (index kartu, pola sama `AttendanceAdmin.vue`) | `leave/admin` | - | `leave.update` |
-| `LeaveTypes.vue` + Dialog | `leave/types` | `POST/GET /types`, `GET/PUT/DELETE /types/:id` | `leave.view`/`create`/`update`/`delete` |
-| `LeaveAccrualPolicies.vue` + Dialog | `leave/accrual-policies` | `POST/GET /accrual-policies`, `GET/PUT/DELETE /accrual-policies/:id` | sama pola di atas |
-| `LeaveReasons.vue` + Dialog | `leave/reasons` | `POST/GET /reasons`, `GET/PUT/DELETE /reasons/:id` | sama pola di atas |
+| Halaman | Route | Endpoint backend | Permission | Status |
+|---|---|---|---|---|
+| `Leave.vue` (My Leave dashboard: balance cards + list request saya + tombol "New Request" + kalender bulan berjalan) | `leave` | `GET /balances?employee_id=`, `GET /requests?employee_id=`, `GET /calendar?employee_id=&from=&to=` | `leave.view` | ✅ Selesai |
+| `LeaveRequestForm.vue` (create request, Dialog atau halaman terpisah — lihat FE-3) | inline di `Leave.vue` | `POST /requests` | `leave.create` | ✅ Selesai (Dialog inline) |
+| `LeaveAdmin.vue` (index kartu, pola sama `AttendanceAdmin.vue`) | `leave/admin` | - | `leave.update` | ✅ Selesai |
+| `LeaveTypes.vue` + Dialog | `leave/types` | `POST/GET /types`, `GET/PUT/DELETE /types/:id` | `leave.view`/`create`/`update`/`delete` | ✅ Selesai |
+| `LeaveAccrualPolicies.vue` + Dialog | `leave/accrual-policies` | `POST/GET /accrual-policies`, `GET/PUT/DELETE /accrual-policies/:id` | sama pola di atas | ✅ Selesai |
+| `LeaveReasons.vue` + Dialog | `leave/reasons` | `POST/GET /reasons`, `GET/PUT/DELETE /reasons/:id` | sama pola di atas | ✅ Selesai |
 
-Catatan: **tidak ada halaman `TeamLeave`/`LeaveDashboard`(Manager/HR)/`LeaveReports`** — masih backend-blocked (Implementation Status Phase 7/9). **Update 2026-08-09**: `GET /leave/calendar?employee_id=&from=&to=` (Employee Calendar) sudah diimplementasikan backend-side — `Leave.vue` (FE-1) sekarang bisa/sebaiknya menampilkan kalender bulan berjalan memakai endpoint ini, mirip pola `AttendanceCalendar` di FE Attendance, meskipun belum diimplementasikan sebagai halaman FE pada penulisan catatan ini. Team/Organization Calendar tetap backend-blocked.
+Catatan: **tidak ada halaman `TeamLeave`/`LeaveDashboard`(Manager/HR)/`LeaveReports`** — masih backend-blocked (Implementation Status Phase 7/9). **Update 2026-08-09**: `GET /leave/calendar?employee_id=&from=&to=` (Employee Calendar) sudah diimplementasikan backend-side dan **sudah dipakai di `Leave.vue`** (section "My Leave This Month", pola list tanggal + Tag seperti `Attendance.vue`). Team/Organization Calendar tetap backend-blocked.
 
 ## FE-3. Development Phases (FE)
 
-**Phase FE-1 — My Leave Dashboard**
-`Leave.vue`: kartu balance per leave type (`quota_days`/`used_days`/`remaining_days` dari `GET /balances?employee_id=`), list request milik sendiri berstatus apapun (`GET /requests?employee_id=`, tabel dengan kolom leave_type/tanggal/status/requested_days), tombol "New Request" membuka Dialog form (leave type dropdown, date range via `DateInput` x2, `duration_mode` select, `leave_reason_id` dropdown dari `GET /reasons`, textarea note, upload attachment jika `LeaveType.RequiresAttachment` — lihat catatan attachment di FE-4). `requested_days` **tidak dihitung di FE** — backend sudah menghitungnya server-side (`CalculateLeaveDuration`, Leave backend Phase 3), FE cukup kirim `request_start_date`/`request_end_date`/`duration_mode` dan tampilkan `requested_days` dari response. Tombol "Cancel" untuk request berstatus `DRAFT`/`SUBMITTED`/`PENDING_APPROVAL` milik sendiri, memanggil `PUT /requests/:id/status` dengan `status: CANCELLED`.
+**Phase FE-1 — My Leave Dashboard ✅ Selesai (2026-08-09)**
+`Leave.vue`: kartu balance per leave type (`quota_days`/`used_days`/`remaining_days` dari `GET /balances?employee_id=`), list request milik sendiri berstatus apapun (`GET /requests?employee_id=`, tabel dengan kolom leave_type/tanggal/status/requested_days + tombol Cancel untuk `DRAFT`/`SUBMITTED`/`PENDING_APPROVAL` via `PUT /requests/:id/status` `CANCELLED`), tombol "New Request" membuka Dialog form (leave type dropdown, date range via `DateInput` x2, `duration_mode` select incl. `HOURLY` → input `start_time`/`end_time` `HH:mm`, `leave_reason_id` dropdown dari `GET /reasons`, textarea note, input `attachment_url` jika `LeaveType.RequiresAttachment` — lihat catatan attachment di FE-4). `requested_days` **tidak dihitung di FE** — backend sudah menghitungnya server-side (`CalculateLeaveDuration`, Leave backend Phase 3), FE cukup kirim `request_start_date`/`request_end_date`/`duration_mode` dan tampilkan `requested_days` dari response. Tambahan sesuai update FE-2: section "My Leave This Month" memakai `GET /leave/calendar` (Employee Calendar).
 
-**Phase FE-2 — Admin Configuration**
-`LeaveAdmin.vue` (index kartu) + `LeaveTypes.vue`, `LeaveAccrualPolicies.vue`, `LeaveReasons.vue` — CRUD standar Dialog inline, field sesuai `CreateLeaveTypeRequest`/`CreateAccrualPolicyRequest`/`CreateLeaveReasonRequest` (`leave/dto.go`). `LeaveAccrualPolicies.vue` butuh dropdown Leave Type (fetch dari `/types`), field `effective_from`/`effective_to` via `DateInput`.
+> Catatan implementasi: `employee_id` di-resolve dari `composables/useMyEmployee.js` (`GET /user-accounts/me`) — persis alasan yang sama seperti Attendance FE. Gating tombol pakai `useAuth().hasPermission`: Admin (`leave.update`), New Request (`leave.create`). Setelah create/cancel, balance + requests + calendar di-reload bersamaan.
+
+**Phase FE-2 — Admin Configuration ✅ Selesai (2026-08-09)**
+`LeaveAdmin.vue` (index kartu, pola `AttendanceAdmin.vue`) + `LeaveTypes.vue`, `LeaveAccrualPolicies.vue`, `LeaveReasons.vue` — CRUD standar Dialog inline (pola compact `NationalitiesView.vue`), field sesuai `CreateLeaveTypeRequest`/`CreateAccrualPolicyRequest`/`CreateLeaveReasonRequest` (`leave/dto.go`). `LeaveAccrualPolicies.vue` memakai dropdown Leave Type (fetch dari `/types`), field `effective_from`/`effective_to` via `DateInput`. `LeaveReasons.vue` tanpa pagination server-side — `GET /reasons` mengembalikan array polos (`{success, data}`) bukan amplop paginated. `LeaveTypes.vue`/`LeaveAccrualPolicies.vue` pakai `DataTable` `lazy` + pagination server-side (`page`/`per_page`/`total`).
 
 **Eksplisit di luar cakupan rencana FE ini** (semuanya backend-blocked, bukan keputusan FE):
 * **Team Calendar / Organization Calendar** — tidak ada endpoint (`GET /team-calendar` di §31 API Plan tetap proposal murni). **Employee Calendar** (`GET /leave/calendar`) sudah tersedia sejak 2026-08-09 — lihat catatan update di FE-2 di atas, bukan lagi backend-blocked.
@@ -1732,7 +1738,7 @@ Catatan: **tidak ada halaman `TeamLeave`/`LeaveDashboard`(Manager/HR)/`LeaveRepo
 ## FE-4. Catatan Teknis
 
 * **Response envelope & tabel/pagination**: identik dengan Attendance FE — `httputil.SuccessJSON`/paginated response yang sama, `DataTable` `lazy` + server pagination, `SkeletonTable`, debounce search — semua meniru `Employees.vue`.
-* **Attachment upload** (`attachment_url` di `CreateLeaveRequest`) — **belum ada pola upload file di FE manapun yang diperiksa untuk Attendance FE**; perlu dicek dulu apakah ada endpoint/komponen upload generik lain di codebase ini (mis. dipakai employee documents) sebelum membangun yang baru, sesuai disiplin "jangan reinvent" — investigasi ini bagian dari implementasi FE-1, bukan diasumsikan di sini.
+* **Attachment upload** (`attachment_url` di `CreateLeaveRequest`) — ✅ **Investigasi selesai saat implementasi FE-1**: tidak ada endpoint upload generik di codebase ini (hanya upload employee-scoped: `PUT /employees/:id/photo` dan `POST/PUT /employees/:id/documents/upload`, keduanya terikat resource employee, tidak cocok untuk lampiran leave). Sesuai disiplin "jangan reinvent" — tanpa membangun endpoint upload baru di luar scope FE — dialog New Request memakai input teks `attachment_url` (ditampilkan hanya jika tipe cuti terpilih `requires_attachment`). Backend tetap menerima string URL apa pun; jika upload file generik dibutuhkan, itu endpoint backend baru di luar rencana FE ini.
 * **`duration_mode = HOURLY`**: `start_time`/`end_time` di `CreateLeaveRequest` adalah string bebas (bukan RFC3339 seperti Attendance's `event_time_local`/overtime) — cukup input teks/time-picker `HH:mm`, tidak perlu `utils/localTime.js`.
 * **Validasi overlap & balance**: backend sudah menolak overlap tanggal (`CountOverlappingLeaveRequests`) dan (begitu Phase 6 balance-quota check ada) saldo tidak cukup — FE cukup menampilkan error validasi apa adanya lewat `getValidationErrors`/`isValidationError`, tidak mengecek ulang di client.
 

@@ -310,7 +310,7 @@
             class="flex items-center justify-between text-xs p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50"
           >
             <div>
-              <span class="font-medium text-gray-700 dark:text-gray-200">{{ p.progress_date }}</span>
+              <span class="font-medium text-gray-700 dark:text-gray-200">{{ formatDate(p.progress_date, locale) }}</span>
               <span class="text-gray-400 mx-1">-</span>
               <span class="text-gray-600 dark:text-gray-300">{{ formatNumber(p.actual_value) }}</span>
               <span class="ml-2" :class="getAchievementClass(p.achievement)">({{ p.achievement?.toFixed(1) }}%)</span>
@@ -332,6 +332,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
+import { formatDate } from '@/utils/formatDate'
 import api from '@/services/api'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -349,7 +350,7 @@ import TextInput from '@/components/TextInput.vue'
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const pageLoading = ref(true)
 const evaluation = ref(null)

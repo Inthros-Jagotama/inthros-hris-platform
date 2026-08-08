@@ -40,13 +40,16 @@ func TestService_UpsertCompanySetting_Create(t *testing.T) {
 	}
 }
 
-func TestService_GetCompanySetting_NotFound(t *testing.T) {
+func TestService_GetCompanySetting_NoRow_ReturnsDefaults(t *testing.T) {
 	svc, _, _, cleanup := newTestService()
 	defer cleanup()
 
-	_, err := svc.GetCompanySetting(ctx())
-	if err == nil {
-		t.Fatal("expected error when no setting exists")
+	resp, err := svc.GetCompanySetting(ctx())
+	if err != nil {
+		t.Fatalf("expected defaults when no setting row exists, got error: %v", err)
+	}
+	if !resp.AllowCheckinOnDayOff {
+		t.Error("expected allow_checkin_on_day_off default = true")
 	}
 }
 

@@ -276,10 +276,14 @@ MODULES = OrderedDict([
         "attendance_device_captures", "attendance_face_captures",
         "attendance_events", "attendance_sessions",
         "attendance_overtime_requests", "attendance_exempt_positions",
+        "attendance_correction_requests",
+    ]),
+    ("Notification", [
+        "notifications",
     ]),
     ("Leave", [
         "leave_types", "leave_accrual_policies", "leave_reasons", "leave_requests",
-        "leave_request_details", "employee_leave_balances",
+        "leave_request_details", "employee_leave_balances", "leave_balance_transactions",
     ]),
     ("Payroll", [
         "salary_components", "salary_grade_components", "salary_employee_components",

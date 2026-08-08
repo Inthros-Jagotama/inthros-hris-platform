@@ -381,7 +381,7 @@ async function loadOrganizationOptions() {
   try {
     const res = await api.get('/api/v1/tenant/organizations', { params: { per_page: 500, active_only: true } })
     const list = res.data?.data || []
-    organizationOptions.value = list.map(o => ({ label: o.name, value: o.id }))
+    organizationOptions.value = list.map(o => ({ label: o.nomenclature, value: o.id }))
   } catch {
     organizationOptions.value = []
   }
