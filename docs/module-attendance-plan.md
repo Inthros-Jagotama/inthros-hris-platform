@@ -1820,14 +1820,16 @@ Correction
 Develop:
 
 ```text
-Attendance Settings
-Shift
-Shift Rules
-Locations
-Devices
-Face Configuration
-Exempt Positions
+Attendance Settings   ✅ UpsertCompanySetting/GetCompanySetting (service.go:49,76)
+Shift                 ✅ CRUD lengkap (service.go:88-171)
+Shift Rules           ⏳ Deferred — sama seperti keputusan Phase 1, belum ada business rule konkret yang butuh field break/tolerance terpisah dari attendance_company_shifts
+Locations             ✅ CRUD lengkap (service.go:301-384)
+Devices               ❌ Bukan sekadar "belum dikonfigurasi" — attendance_device_captures sama sekali tidak punya repository method maupun handler; tabelnya mati total, tidak ada satupun kode yang menulis atau membaca device capture
+Face Configuration    ❌ Sama seperti Devices — attendance_face_captures juga tidak punya repository method/handler, tabel histori mati total
+Exempt Positions      ✅ CRUD lengkap (service.go:666-746)
 ```
+
+> 🔶 **Sebagian selesai, sisanya sengaja ditunda.** Settings/Shift/Locations/Exempt Positions sudah CRUD penuh. Shift Rules ditunda dengan alasan sama seperti Phase 1 (belum ada requirement konkret). Devices dan Face Configuration **bukan gap konfigurasi biasa** — kedua tabelnya (`attendance_device_captures`, `attendance_face_captures`) tidak punya repository method sama sekali, jadi membangun CRUD/config di atasnya sekarang akan jadi surface area tanpa konsumen, karena keduanya baru berguna setelah capture validation engine (Section 17, Phase 4-5) benar-benar memvalidasi device/face saat check-in/check-out. Revisit bersamaan dengan Phase 4-5, bukan sekarang.
 
 ---
 
@@ -2127,7 +2129,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase (§55) | Status | Catatan |
 |---|---|---|
 | Phase 1 - Database Review & Enhancement | ✅ Selesai (2026-08-08) | Seluruh 10 tabel ada (§2), `approval_instance_id` sudah ada di overtime (migration `063`). Schema/FK/timestamp-type direview — tidak ada bug seperti kasus Leave. Index harian yang kurang di `attendance_events` ditambahkan lewat migration `071_attendance_phase1_event_index` (`idx_att_event_employee_time`). Shift rules table, employee-device mapping, correction table, timezone column — sengaja ditunda, tidak ada kebutuhan konkret saat ini |
-| Phase 2 - Attendance Configuration | 🔶 Sebagian | Settings/Shifts/Locations/Exempt Positions CRUD lengkap. Shift Rules (§5) dan Face Configuration terpisah — belum ada, hanya `attendance_face_captures` sebagai tabel histori hasil, bukan konfigurasi |
+| Phase 2 - Attendance Configuration | 🔶 Sebagian (2026-08-08) | Settings/Shifts/Locations/Exempt Positions CRUD lengkap. Shift Rules ditunda (belum ada requirement konkret, sama alasan dengan Phase 1). Devices dan Face Configuration sengaja ditunda — `attendance_device_captures`/`attendance_face_captures` tidak punya repository method sama sekali (tabel mati total), baru masuk akal dibangun bersamaan dengan capture validation engine (Phase 4-5) |
 | Phase 3 - Shift Management | 🔶 Sebagian | CRUD shift + employee-shift assignment ada. Validasi overlap assignment (§7) belum diverifikasi/kemungkinan belum ada |
 | Phase 4 - Attendance Capture | 🔶 Sebagian | `POST /events` ada tapi generik (CHECKIN/CHECKOUT lewat satu endpoint, bukan endpoint terpisah). GPS/Geofence/Face Verification/Device Validation **tidak dilakukan** oleh `CreateEvent` — lihat Section 17 |
 | Phase 5 - Attendance Validation | ❌ Belum ada | Tidak ada location/face/device/time validation logic di `service.go` — lihat Section 17 |
