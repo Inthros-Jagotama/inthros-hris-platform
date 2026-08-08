@@ -10,7 +10,7 @@ Index pusat seluruh dokumentasi proyek. Semua dokumen (kecuali `README.md` di ro
 | **Arsitektur** | [`platform-architecture-design.md`](platform-architecture-design.md) | Satu-satunya dokumen arsitektur: modular monolith, multi-tenant, provisioning engine |
 | **Deployment** | [`deployment-guide.md`](deployment-guide.md) | Deployment Subscription SaaS & On-Premise (`.lic` RSA), instalasi, troubleshooting |
 | **API Reference** | [`openapi-report.md`](openapi-report.md) | Laporan OpenAPI komprehensif per modul *(generated via `make docs`)* |
-| **Database** | [`database-schema.md`](database-schema.md) | Struktur database & ERD: Platform DB (11 tabel) + Tenant DB (166 tabel), relasi FK, konvensi kolom |
+| **Database** | [`database-schema.md`](database-schema.md) | Struktur database & ERD: Platform DB (11 tabel) + Tenant DB (173 tabel), relasi FK, konvensi kolom |
 | **Laporan Teknis** | [`go-module-architecture-report.md`](go-module-architecture-report.md) | Laporan arsitektur Go module (entities, services, tests per modul) |
 | **Progres Proyek** | [`project-completion-dashboard.md`](project-completion-dashboard.md) | Dashboard penyelesaian proyek (modul, test coverage, infrastruktur) |
 | **Frontend** | [`frontend-development-plan.md`](frontend-development-plan.md) | Roadmap implementasi frontend Platform Admin & Tenant |
@@ -89,7 +89,8 @@ Aturan: huruf kecil semua, pisahkan kata dengan `-` (bukan `_` atau spasi), tanp
 ## ⚙️ Maintenance
 
 - **`openapi-report.md`** di-generate otomatis: `cd backend && make docs` (menjalankan `check-openapi` + `generate_openapi_report.py`).
-- **`database-schema.md`** di-generate dari migrasi SQL: `cd backend && make db-docs`. Verifikasi sinkronisasi tanpa menimpa file: `make check-db-docs` (menjalankan `scripts/check_database_schema_doc.py`). Check memvalidasi **kedua dialect** — daftar tabel di dokumen harus sama dengan migrasi `postgres/` **dan** `mysql/` (166 tabel masing-masing).
+- **`database-schema.md`** di-generate dari migrasi SQL: `cd backend && make db-docs`. Verifikasi sinkronisasi tanpa menimpa file: `make check-db-docs` (menjalankan `scripts/check_database_schema_doc.py`). Check memvalidasi **kedua dialect** — daftar tabel di dokumen harus sama dengan migrasi `postgres/` **dan** `mysql/` (173 tabel masing-masing).
+- **Gap check lintas dokumentasi**: jalankan `python scripts/check_doc_gaps.py` dari root proyek — memeriksa (1) link internal rusak, (2) referensi inline `docs/...` yang menunjuk file tidak ada, dan (3) daftar file markdown di `docs/` root untuk dicek terhadap tabel navigasi di atas. Folder yang diabaikan (`tmp/`, `archive/`, `backlog/`, `seeder/`) otomatis dikecualikan.
 - Tambahkan dokumen baru di folder `docs/` dengan penamaan **kebab-case** (lihat standar di atas), lalu perbarui index ini dan referensi silang di dokumen terkait.
 - Saat merename/memindahkan file, perbarui **semua** referensi (gunakan `git grep '<nama-lama>'` untuk menemukannya).
 - Semua dokumen di luar `docs/` (kecuali `README.md` root) harus dipindahkan ke sini — lihat juga `README.md` root bagian "Dokumentasi Lainnya".

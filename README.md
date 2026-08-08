@@ -500,7 +500,7 @@ Semua perubahan role/permission akan otomatis me-reload enforcer (`Service.Sync(
 
 | Action | Company Status | Tenant Connection | Tenant Database |
 |--------|---------------|-------------------|-----------------|
-| `Create` | `active` | `is_active = true` | ✅ Created + migrated (148 tables) |
+| `Create` | `active` | `is_active = true` | ✅ Created + migrated (173 tables) |
 | `Suspend` | `suspended` | `is_active = false` + cache cleared | ✅ Data preserved |
 | `Activate` | `active` | `is_active = true` + cache cleared | ✅ Reconnected |
 | `Soft Delete` | (hidden via `deleted_at`) | `is_active = false` + cache cleared | ✅ Data preserved |
@@ -1600,12 +1600,12 @@ POST /api/v1/platform/companies
    ├── b. Connect sebagai superuser (root@localhost)
    ├── c. Buat database tenant (CREATE DATABASE IF NOT EXISTS)
    ├── d. Simpan TenantConnection ke platform DB (ID = companyID)
-   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 17 tenant SQL migrations (139 tables)
+   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 69 tenant SQL migrations (173 tables)
 5. Jika provisioning berhasil → company status: active
 6. Jika provisioning gagal → company status: suspended (data tetap tersimpan)
 ```
 
-### Tenant Migration Files (22 files → 148 tables)
+### Tenant Migration Files (69 files → 173 tables)
 
 | File | Isi |
 |------|-----|
@@ -1634,9 +1634,9 @@ POST /api/v1/platform/companies
 | `023_user_accounts.sql` | Employee user accounts (login access for employees) |
 | `024_education_majors.sql` | Education majors master (jurusan pendidikan) |
 
-> **Catatan:** Total 149 tabel termasuk `schema_migrations` (148 tabel tenant + schema_migrations, auto-created oleh migrator engine).
+> **Catatan:** Total 174 tabel termasuk `schema_migrations` (173 tabel tenant + schema_migrations, auto-created oleh migrator engine).
 
-### Daftar Lengkap 148 Tabel Tenant (+ schema_migrations = 149)
+### Daftar Lengkap 173 Tabel Tenant (+ schema_migrations = 174)
 
 **Approval (5):**
 `approval_actions`, `approval_flow_steps`, `approval_flows`, `approval_instances`, `approval_tasks`
@@ -1729,8 +1729,8 @@ POST /api/v1/platform/companies
 | Company status | ✅ **active** | API mengembalikan `status: "active"` |
 | Tenant database | ✅ Created | `hris_final-provision-test` |
 | Tenant connection | ✅ Saved | Record di `tenant_connections` tersimpan |
-| Migrations | ✅ **22 files** | 001 → 022 sukses semua |
-| Total tables | ✅ **148 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
+| Migrations | ✅ **69 files** | 001 → 070 sukses semua (nomor 044 tidak ada) |
+| Total tables | ✅ **173 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
 | Server log | ✅ Clean | "Tenant provisioning completed successfully" |
 
 #### API Test Response
@@ -1810,9 +1810,9 @@ POST /api/v1/platform/companies
 |---|------|------|
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
-| ✅ | Project completion dashboard (14 modules, 1004+ tests, 148 tables) | `docs/project-completion-dashboard.md` |
+| ✅ | Project completion dashboard (22 modules — 16 tenant + 6 platform, 1265+ tests, 173 tables) | `docs/project-completion-dashboard.md` |
 | ✅ | OpenAPI comprehensive report (821 endpoints, 473 paths, 513 schemas, 32 tags) | `docs/openapi-report.md` |
-| ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
+| ✅ | Go module architecture report (137 entities, 622 service methods, 1265 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
 | ✅ | README utama proyek | `README.md` |
@@ -1951,10 +1951,10 @@ gorm.io/gorm v1.30.0                      # ORM
 | # | Item | Detail |
 |---|------|--------|
 | ✅ | Provisioning Engine | Database creation + TenantConnection save |
-| ✅ | Tenant SQL Migrations | 86 migration files → 148+ tables |
+| ✅ | Tenant SQL Migrations | 138 files per dialect (69 up + 69 down) → 173 tables |
 | ✅ | Multi-statement MySQL support | `multiStatements=true` di DSN |
 | ✅ | Error handling / graceful failure | Company status = `suspended` jika provisioning gagal |
-| ✅ | End-to-end test | Company active ✅, 148 tables ✅, MySQL |
+| ✅ | End-to-end test | Company active ✅, 173 tables ✅, MySQL |
 
 ### ✅ Tenant Lifecycle Management
 
@@ -2102,12 +2102,12 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 |---|---|
 | [`docs/README.md`](docs/README.md) | **Index pusat** seluruh dokumentasi (navigasi cepat ke semua dokumen) |
 | [`docs/api/api-usage-guide.md`](docs/api/api-usage-guide.md) | Panduan penggunaan API — menjalankan server, auth, format response, contoh curl, error codes |
-| [`docs/database-schema.md`](docs/database-schema.md) | Struktur database & ERD — Platform DB (11 tabel) + Tenant DB (166 tabel), relasi FK, konvensi kolom |
+| [`docs/database-schema.md`](docs/database-schema.md) | Struktur database & ERD — Platform DB (11 tabel) + Tenant DB (173 tabel), relasi FK, konvensi kolom |
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap (satu-satunya dokumen arsitektur) |
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
 | [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (report v19, spec 1.6.3 — 821 endpoints, 473 paths, 513 schemas, 32 tags) |
-| [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
-| [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (14 modules, 939+ tests, 139 tables) |
+| [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (137 entities, 622 service methods, 1265 tests) |
+| [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (22 modules, 1265+ tests, 173 tables) |
 | [`docs/panduan-uiux-hris-enterprise.md`](docs/panduan-uiux-hris-enterprise.md) | Standar UI/UX enterprise (modal-first, high-density, prompt AI, warna badge) |
 | [`docs/frontend-development-plan.md`](docs/frontend-development-plan.md) | Roadmap implementasi frontend Platform Admin & Tenant |
 | [`docs/job-management-score-analysis.md`](docs/job-management-score-analysis.md) | Analisa perhitungan Job Management Score (dirujuk `calculator.go`) |

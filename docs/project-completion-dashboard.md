@@ -12,13 +12,13 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tenant Modules** | **16** complete (15 business + Settings with 18 reference CRUDs) |
+| **Tenant Modules** | **16** complete (15 business + Settings with 18 reference CRUDs) *(+2 modul tambahan terdaftar di `main.go`: rbac & useraccount — dihitung terpisah di tabel RBAC/shared)* |
 | **Platform Modules** | **6** complete + **2** shared packages |
-| **Total Go Files** | **224+** (155 source + 69 test) |
-| **Total GORM Entities** | **121** (116 tenant + 5 platform) |
-| **Total Test Functions** | **~1004+** |
-| **Total OpenAPI Endpoints** | **800** |
-| **Total OpenAPI Schemas** | **497** |
+| **Total Go Files** | **320** (220 source + 100 test) |
+| **Total GORM Entities** | **137** (130 tenant + 7 platform, dari `go-module-architecture-report.md`) |
+| **Total Test Functions** | **~1265+** |
+| **Total OpenAPI Endpoints** | **821** |
+| **Total OpenAPI Schemas** | **513** |
 | **Total OpenAPI Tags** | **32** |
 | **Module Type Filter** | ✅ **3 endpoints** (`/modules`, `/packages`, `/public/packages`) |
 | **Bilingual Support** | ✅ **EN/ID** — Backend 80+ message pairs + Frontend 200+ locale keys, middleware auto-detect, field validation errors |
@@ -26,9 +26,9 @@
 | **Frontend Tenant (Phase 2)** | ✅ **20+ views** — Dashboard, Login, Profile, Organization, 19 Settings CRUDs |
 | **Frontend Components** | **35+** (11 views, 10 form/action components, 3 composables, 2 utils, stores, services) |
 | **Frontend Build** | ✅ **Clean** — zero warnings |
-| **Migration Files** | **106 per dialect** (53 up + 53 down) |
+| **Migration Files** | **138 per dialect** (69 up + 69 down) |
 | **Database Drivers** | PostgreSQL & MySQL |
-| **Total Tenant Tables** | **148** (+ schema_migrations = 149) |
+| **Total Tenant Tables** | **173** (+ schema_migrations = 174) |
 
 ---
 
@@ -135,7 +135,7 @@
 | **Career Intelligence** | **65** | 6.5% | Repository (23), service (20), handler (22) |
 | **Organization** | 0 | 0% | (basic CRUD — minimal tests) |
 | | | | |
-| **GRAND TOTAL** | **~1004** | **100%** | |
+| **GRAND TOTAL** | **~1265** | **100%** | *(termasuk shared packages & middleware — per-modul lihat kolom Tests di tabel atas)* |
 
 ---
 
@@ -178,11 +178,11 @@
 
 | Item | Count | Details |
 |------|:----:|---------|
-| **Tenant migration files (MySQL)** | **106** (53 up + 53 down) | `001_master_data` → `054_create_job_management_value_clusters` |
-| **Tenant migration files (Postgres)** | **106** (53 up + 53 down) | Same as MySQL, dialect-adapted |
-| **Platform migration files** | **8 DDL** (+6 down = 14) | Platform: 001–006, 007 RBAC, 012; seeders terpisah (2 file) |
-| **Total tenant tables** | **148** | Across all 22 migrations |
-| **Total with schema_migrations** | **149** | Auto-included by migrator engine |
+| **Tenant migration files (MySQL)** | **138** (69 up + 69 down) | `001_master_data` → `070_leave_phase1_db_enhancement` |
+| **Tenant migration files (Postgres)** | **138** (69 up + 69 down) | Same as MySQL, dialect-adapted (penomoran 001–070; nomor 044 tidak ada) |
+| **Platform migration files** | **9 DDL** (+7 down = 16) | Platform: 001–007, 012, 013; seeders terpisah (2 file) |
+| **Total tenant tables** | **173** | Across all 69 migrations |
+| **Total with schema_migrations** | **174** | Auto-included by migrator engine |
 | **Database drivers** | **2** | PostgreSQL 16+ & MySQL 8+ |
 | **Migration engine** | ✅ | SQL-based, embedded, transaction-safe. Terbaru: `021_insurances` (tabel insurances resmi, sebelumnya AutoMigrate) + `022_users` (Level 2 Tenant RBAC identity) |
 | **Tenant RBAC Seeder** | ✅ | `tenantseed.SeedTenantRBAC()` — auto-seed 68 permissions (17 resource × 4 action) + default roles Admin (full) & Employee (view-only) saat provisioning via CLI (`handleProvision`/`seed-data`) **dan API** (`company.Service.provisionTenant`); idempotent |

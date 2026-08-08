@@ -423,10 +423,10 @@ Handler (routes/handler.go)
 | **Down Rollback** (`migrator.Down()` / `migrator.DownTo()`) | Rollback migration via file `.down.sql` — reverse operation DDL/DML |
 
 **Migration Strategy:**
-- Platform DB migrations: `internal/pkg/migrator/migrations/platform/` (8 files)
+- Platform DB migrations: `internal/pkg/migrator/migrations/platform/` (9 up + 7 down = 16 files)
 - Seed data: `internal/pkg/migrator/migrations/seeders/` (2 file — `001_seed_super_admin.sql` + down)
 - Tenant bulk seed: `internal/pkg/tenantseed/seeddata/` (2 embedded SQL — districts & villages), di-embed via `//go:embed seeddata` sehingga CWD-independent
-- Tenant DB template migrations: `internal/pkg/migrator/migrations/tenant/` (106 file per dialect — 53 up + 53 down, mysql & postgres)
+- Tenant DB template migrations: `internal/pkg/migrator/migrations/tenant/` (138 file per dialect — 69 up + 69 down, mysql & postgres)
 - Eksekusi di startup: [SQL Migrator → AutoMigrate → SQL Seeders → Module Seeders]
 
 **File Convention:**
@@ -873,7 +873,7 @@ POST /api/v1/platform/companies
    ├── c. Buat database tenant (CREATE DATABASE IF NOT EXISTS)
    ├── d. Simpan TenantConnection ke platform DB (ID = companyID)
    ├── e. Connect ke tenant DB via GORM
-   └── f. Jalankan 22 tenant SQL migrations (148 tables)
+   └── f. Jalankan 69 tenant SQL migrations (173 tables)
 5. Jika provisioning berhasil → company status: active
 6. Jika provisioning gagal → company status: suspended (data tetap tersimpan)
 ```
@@ -1056,8 +1056,8 @@ Body: {"name": "Final Provision Test", "email": "final@test.com", "phone": "0217
 | Company status | ✅ **active** | Company ter-create dengan status active (bukan suspended) |
 | Tenant database | ✅ Created | `hris_final-provision-test` ter-create di MySQL |
 | Tenant connection | ✅ Saved | Record di `hris_platform.tenant_connections` tersimpan |
-| Migrations | ✅ **22 files** | Semua migration sukses: 001 → 022 |
-| Total tables | ✅ **148 tables** | Semua tabel ter-create sesuai migration files |
+| Migrations | ✅ **69 files** | Semua migration sukses: 001 → 070 |
+| Total tables | ✅ **173 tables** | Semua tabel ter-create sesuai migration files |
 | Server log | ✅ Clean | Tidak ada error — "Migrations completed", "Tenant provisioning completed successfully" |
 
 #### API Test Response
@@ -1084,7 +1084,7 @@ graph LR
     C -->|Error: Access denied| D[Fix: root credentials]
     D -->|Error: multiStatements| E[Fix: multiStatements=true]
     E -->|Error: FK dependency| F[Fix: FK di 008 ALTER TABLE]
-    F -->|✅ SUCCESS| G[Company active, 148 tables]
+    F -->|✅ SUCCESS| G[Company active, 173 tables]
 ```
 
 ---
@@ -1095,7 +1095,7 @@ graph LR
 
 | Method | Endpoint | Deskripsi |
 |---|---|---|
-| `POST` | `/api/v1/platform/companies` | Create company + provision tenant DB (148 tables) |
+| `POST` | `/api/v1/platform/companies` | Create company + provision tenant DB (173 tables) |
 | `GET` | `/api/v1/platform/companies` | List all companies |
 | `GET` | `/api/v1/platform/companies/:id` | Get company detail |
 | `PUT` | `/api/v1/platform/companies/:id` | Update company info |
@@ -1132,7 +1132,7 @@ Setiap company/tenant memiliki lifecycle yang dikelola melalui endpoint tenant m
 
 | Action | HTTP Method | Endpoint | DB Cleanup |
 |--------|------------|----------|------------|
-| **Provision** | `POST` | `/companies` | ✅ Create DB + migrate (148 tables) |
+| **Provision** | `POST` | `/companies` | ✅ Create DB + migrate (173 tables) |
 | **Suspend** | `POST` | `/companies/:id/suspend` | ✅ Deactivate connection + clear cache |
 | **Activate** | `POST` | `/companies/:id/activate` | ✅ Reactivate connection + clear cache |
 | **Soft Delete** | `DELETE` | `/companies/:id` | ✅ Deactivate connection |

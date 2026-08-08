@@ -10,7 +10,7 @@ Dokumen ini menjelaskan struktur database HRIS Platform: arsitektur dua-database
 | Database | Isi | Jumlah Tabel |
 |---|---|---|
 | **Platform DB** | Data multi-tenant: companies, modul, lisensi, paket, RBAC platform | 11 |
-| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 172 |
+| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 173 |
 
 > Sumber kebenaran: file migrasi SQL di `backend/internal/pkg/migrator/migrations/` (dialect `postgres/` & `mysql/` identik).
 
@@ -176,7 +176,7 @@ erDiagram
 
 Satu database terisolasi **per company** (database per tenant). Struktur identik untuk semua tenant (dibuat saat provisioning company).
 
-Total **172 tabel** dikelompokkan dalam 18 modul:
+Total **173 tabel** dikelompokkan dalam 18 modul:
 
 | # | Modul | Jumlah Tabel |
 |---|---|---|
@@ -3014,7 +3014,7 @@ erDiagram
 
 ## Migrasi & Dialect
 
-- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 68 file up + 68 file down per dialect (272 total).
+- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 69 file up + 69 file down per dialect (276 total).
 - Migrasi **platform** bersifat cross-dialect di `migrations/platform/`.
 - Tabel tambahan platform (`packages`, `package_modules`) dibuat via GORM `AutoMigrate`.
 - Dijalankan otomatis saat **provisioning company** (tenant DB dibuat + migrasi + seed).
