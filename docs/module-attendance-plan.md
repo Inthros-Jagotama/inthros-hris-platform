@@ -2008,16 +2008,22 @@ Team Calendar             ⏳ Sama seperti Manager/HR Dashboard — butuh tahu a
 Develop:
 
 ```text
-Daily Attendance
-Monthly Attendance
-Late
-Absent
-Early Leave
-Overtime
-Missing Attendance
-Correction
-Attendance Anomaly
+Daily Attendance        ✅ GET /attendance/reports/sessions?from=X&to=X (same date) — lihat catatan di bawah
+Monthly Attendance       ✅ Endpoint sama, rentang from/to sebulan
+Late                      🔶 Data tersedia (lateness_minutes per session), tapi belum ada endpoint terpisah khusus "Late Report" — filter dilakukan di sisi consumer terhadap hasil /reports/sessions
+Absent                    ❌ Tidak bisa dilaporkan — SessionStatusAbsent tidak pernah di-set (lihat Phase 6/10, butuh scheduled job §44-45)
+Early Leave               🔶 Sama seperti Late — data (early_leave_minutes) tersedia per session, belum ada endpoint filter khusus
+Overtime                  🔶 Data tersedia lewat GET /overtime-requests (sudah ada sejak awal), belum ada filter rentang tanggal khusus "report"
+Missing Attendance        🔶 Sama seperti Late — status MISSING_CHECKIN/MISSING_CHECKOUT ada di data /reports/sessions, difilter di consumer
+Correction                🔶 Data tersedia lewat GET /corrections (Phase 8), belum ada filter rentang tanggal khusus
+Attendance Anomaly        ⏳ Tidak diimplementasikan — "anomaly" butuh definisi bisnis yang belum ada (threshold apa yang dianggap anomali?), bukan sekadar query
 ```
+
+> ✅ **Tenant-wide session report — gap nyata, sekarang diimplementasikan.** Sebelumnya endpoint session (`GET /sessions`, Phase 10) hanya bisa difilter per-employee, tidak ada cara melihat semua employee dalam satu tanggal/rentang sekaligus. Ditambahkan `FindSessionsInRange` (repository, tanpa filter employee) + `GetAttendanceReport` (service) + `GET /attendance/reports/sessions?from=&to=`. Ini **berbeda dari Manager/HR Dashboard yang sengaja ditunda di Phase 10** — laporan tenant-wide tidak perlu tahu "siapa bawahan siapa", cukup mengambil seluruh session dalam rentang tanggal, jadi tidak terhalang oleh ketiadaan cross-module employee/organization read.
+>
+> **Late/Early Leave/Missing Attendance tidak diberi endpoint terpisah** — datanya (`lateness_minutes`, `early_leave_minutes`, `status`) sudah ada di setiap baris hasil `/reports/sessions`; menambah endpoint duplikat hanya untuk memfilter kolom yang sama akan jadi surface area berlebih. Overtime dan Correction reports memakai endpoint list yang sudah ada dari Phase 7/8 (belum punya filter rentang tanggal khusus "report", tapi datanya sudah bisa diambil).
+>
+> **Absent tetap tidak bisa dilaporkan** (sama seperti Phase 10) karena statusnya tidak pernah di-set. **Attendance Anomaly sengaja tidak dikerjakan** — ini bukan gap implementasi teknis, tapi butuh keputusan bisnis dulu (definisi "anomali" apa: pola check-in tidak wajar? lokasi berbeda-beda? belum ada spesifikasi). **Export (Excel/CSV/PDF) tetap belum ada** — itu presentation-layer, di luar cakupan backend murni.
 
 ---
 
@@ -2178,7 +2184,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 8 - Correction | 🔶 Sebagian (2026-08-08) | Tabel `attendance_correction_requests` + model + CRUD + approval integration baru dibangun (migration `073`). `HandleApprovalStatusChange` sekarang dispatch overtime vs correction berdasarkan `documentID`. `MISSING_CHECKIN`/`MISSING_CHECKOUT` diterapkan otomatis ke session saat approved (event baru OVERRIDDEN + recalculate). `WRONG_CHECKIN`/`WRONG_CHECKOUT` tercatat & bisa di-approve tapi **tidak** diterapkan otomatis — butuh perluasan logic seleksi checkin/checkout di Phase 6 |
 | Phase 9 - Leave Integration | ✅ Selesai (2026-08-08) | `leave.AttendanceSessionUpdater` (interface baru) + `attendance.Service.ApplyApprovedLeave` diwire di `main.go`. Saat leave `APPROVED_FINAL`, tiap `LeaveRequestDetail` mendorong session Attendance jadi `LEAVE` (atau mencatat `LeaveFraction` saja jika session sudah `CLOSED` karena ada attendance nyata, sesuai §27) — termasuk membuat session baru untuk hari yang murni cuti tanpa event apapun |
 | Phase 10 - Dashboard & Calendar | 🔶 Sebagian (2026-08-08) | Employee Calendar/Summary (backend) selesai — `GetEmployeeCalendar`/`GetEmployeeSummary` (`GET /attendance/calendar`, `GET /attendance/summary`). Manager/HR Dashboard dan Team Calendar sengaja belum dibangun — butuh cross-module read employee/organization yang belum ada. Frontend tetap belum dimulai |
-| Phase 11 - Reports | ❌ Belum ada | Tidak ada endpoint report apapun |
+| Phase 11 - Reports | 🔶 Sebagian (2026-08-08) | `GET /attendance/reports/sessions?from=&to=` (tenant-wide, semua employee) selesai — mencakup Daily/Monthly Attendance. Late/Early Leave/Missing Attendance datanya sudah ada di respons yang sama (difilter di consumer, bukan endpoint terpisah). Overtime/Correction reports pakai endpoint list Phase 7/8 yang sudah ada. Absent tetap tidak bisa (status tidak pernah di-set). Attendance Anomaly & Export (Excel/CSV/PDF) sengaja tidak dikerjakan — masing-masing butuh definisi bisnis / presentation layer di luar cakupan |
 | Phase 12 - Notification | ❌ Belum ada | Tidak ditemukan pemanggilan Notification module dari modul Attendance |
 | Phase 13 - Payroll Integration | ❌ Belum ada | Tidak ada data untuk diekspos ke Payroll karena session calculation (Phase 6) belum ada |
 | Phase 14 - Testing | ❔ Belum diverifikasi detail | Belum dicek apakah ada test file untuk CRUD/approval integration (pola lain di codebase biasanya punya `approval_integration_test.go`) — perlu verifikasi terpisah sebelum diklaim |
@@ -2191,10 +2197,11 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 3. ~~Correction workflow — Missing Check-in/Checkout (Phase 8)~~ ✅ Selesai (2026-08-08). WRONG_CHECKIN/WRONG_CHECKOUT masih perlu perluasan logic seleksi di Phase 6 sebelum bisa diterapkan otomatis.
 4. ~~Leave Integration (Phase 9)~~ ✅ Selesai (2026-08-08) — `leaveSvc.SetAttendanceSessionUpdater(attendanceSvc)`, session ter-update otomatis saat leave disetujui.
 5. ~~Employee Dashboard/Calendar backend (Phase 10)~~ ✅ Selesai (2026-08-08) — `GetEmployeeSummary`/`GetEmployeeCalendar`. Manager/HR Dashboard + Team Calendar masih perlu cross-module employee/organization read.
-6. **Payroll Integration (Phase 13)** — sekarang jadi kandidat berikutnya yang paling bernilai: session sudah punya `WorkMinutes`/`OvertimeMinutes`/`LeaveFraction` lengkap untuk diekspos ke Payroll, tinggal endpoint/query agregasi per periode.
-7. Scheduled job untuk Absent/Missing detection (§44-45) — perlu keputusan infra (cron/scheduler) yang belum ada polanya di codebase ini.
-8. Dedicated check-in/check-out endpoints (pisah dari `POST /events` generik) — supaya validasi per-aksi (Phase 4-5) punya tempat spesifik dipasang.
-9. Frontend dasar — sekarang data session yang ditampilkan sudah benar-benar berarti (bukan tabel kosong).
+6. ~~Tenant-wide session report (Phase 11)~~ ✅ Selesai (2026-08-08) — `GET /attendance/reports/sessions`. Attendance Anomaly masih butuh definisi bisnis, Export masih presentation-layer.
+7. **Payroll Integration (Phase 13)** — sekarang jadi kandidat berikutnya yang paling bernilai: session sudah punya `WorkMinutes`/`OvertimeMinutes`/`LeaveFraction` lengkap untuk diekspos ke Payroll, tinggal endpoint/query agregasi per periode.
+8. Scheduled job untuk Absent/Missing detection (§44-45) — perlu keputusan infra (cron/scheduler) yang belum ada polanya di codebase ini.
+9. Dedicated check-in/check-out endpoints (pisah dari `POST /events` generik) — supaya validasi per-aksi (Phase 4-5) punya tempat spesifik dipasang.
+10. Frontend dasar — sekarang data session yang ditampilkan sudah benar-benar berarti (bukan tabel kosong).
 
 ---
 

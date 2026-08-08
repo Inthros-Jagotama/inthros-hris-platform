@@ -658,6 +658,26 @@ func (s *Service) GetEmployeeCalendar(ctx context.Context, employeeID, fromDate,
 	return responses, nil
 }
 
+// GetAttendanceReport returns every employee's sessions in a date range,
+// tenant-wide (§40, Phase 11: Daily Attendance when from==to, Monthly
+// Attendance for a month-long range). Late/Missing Attendance/Attendance
+// Anomaly "reports" are the same underlying data filtered by
+// status/lateness_minutes client-side - no separate endpoint per report
+// name, since they're all views over the same session rows. Export
+// (Excel/CSV/PDF) is a presentation-layer concern left to whatever consumes
+// this endpoint, not implemented here.
+func (s *Service) GetAttendanceReport(ctx context.Context, fromDate, toDate string) ([]SessionResponse, error) {
+	sessions, err := s.repo.FindSessionsInRange(ctx, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]SessionResponse, 0, len(sessions))
+	for _, session := range sessions {
+		responses = append(responses, *sessionToResponse(&session))
+	}
+	return responses, nil
+}
+
 // GetEmployeeSummary aggregates one employee's sessions over a date range
 // into the counts §37's Employee Dashboard shows. See SummaryResponse for
 // why Absent isn't included.

@@ -44,6 +44,39 @@ func TestService_GetEmployeeCalendar_ReturnsSessionsInRange(t *testing.T) {
 	}
 }
 
+func TestService_GetAttendanceReport_TenantWide_AcrossEmployees(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	shift := createTestShift(repo)
+	emp1 := uuid.New()
+	emp2 := uuid.New()
+	createTestEmployeeShift(repo, emp1, shift.ID)
+	createTestEmployeeShift(repo, emp2, shift.ID)
+
+	for _, empID := range []uuid.UUID{emp1, emp2} {
+		checkin := CreateEventRequest{
+			EmployeeID:     empID.String(),
+			EventType:      "CHECKIN",
+			EventTimeUTC:   "2026-01-15T01:00:00Z",
+			EventTimeLocal: "2026-01-15T08:00:00+07:00",
+			Latitude:       -6.2088,
+			Longitude:      106.8456,
+		}
+		if _, err := svc.CreateEvent(ctx(), checkin); err != nil {
+			t.Fatalf("CreateEvent failed: %v", err)
+		}
+	}
+
+	report, err := svc.GetAttendanceReport(ctx(), "2026-01-15", "2026-01-15")
+	if err != nil {
+		t.Fatalf("GetAttendanceReport failed: %v", err)
+	}
+	if len(report) != 2 {
+		t.Fatalf("expected 2 sessions (one per employee) on 2026-01-15, got %d", len(report))
+	}
+}
+
 func TestService_GetEmployeeSummary_AggregatesCorrectly(t *testing.T) {
 	svc, repo, _, cleanup := newTestService()
 	defer cleanup()

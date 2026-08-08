@@ -456,6 +456,26 @@ func (r *Repository) FindSessionsForEmployeeInRange(ctx context.Context, employe
 	return sessions, nil
 }
 
+// FindSessionsInRange returns every employee's sessions with work_date in
+// [fromDate, toDate] inclusive, tenant-wide (no employee filter) - used by
+// the attendance reports (§40, Phase 11). Unlike Manager/HR Dashboard (Phase
+// 10, deferred), a tenant-wide report doesn't need to resolve "who reports
+// to whom" - it's every session in the date range, period.
+func (r *Repository) FindSessionsInRange(ctx context.Context, fromDate, toDate string) ([]AttendanceSession, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var sessions []AttendanceSession
+	err = db.Where("work_date >= ? AND work_date <= ?", fromDate, toDate).
+		Order("work_date ASC, employee_id ASC").
+		Find(&sessions).Error
+	if err != nil {
+		return nil, err
+	}
+	return sessions, nil
+}
+
 func (r *Repository) ListSessions(ctx context.Context, employeeID *uuid.UUID, page, perPage int) ([]AttendanceSession, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {

@@ -303,6 +303,21 @@ func (h *Handler) GetEmployeeCalendar(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+func (h *Handler) GetAttendanceReport(c *gin.Context) {
+	from := c.Query("from")
+	to := c.Query("to")
+	if from == "" || to == "" {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "attendance.query_params_required")
+		return
+	}
+	resp, err := h.service.GetAttendanceReport(c.Request.Context(), from, to)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) GetEmployeeSummary(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	from := c.Query("from")
