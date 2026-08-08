@@ -1563,15 +1563,19 @@ Integrate dengan Central Approval Module.
 
 ---
 
-## Phase 8 - Notification
+## Phase 8 - Notification 🔶 Sebagian (2026-08-09)
 
-* Request Submitted
-* Approval Required
-* Approved
-* Rejected
-* Cancelled
-* Reminder
-* Balance Notification
+* Request Submitted ⏳ Sengaja tidak dibangun — pemohon adalah aktor yang melakukan submit itu sendiri, feedback langsung dari response API sudah cukup; self-notification tidak menambah nilai
+* Approval Required ⏳ Sengaja tidak dibangun — ini tanggung jawab modul Approval (pemberitahuan ke approver soal task baru), bukan Leave; Leave hanya membuat approval instance, tidak tahu/tidak seharusnya tahu siapa approver-nya
+* Approved ✅ Sudah ada sejak sebelumnya (`notifyLeaveOutcome`, `LEAVE_APPROVED`) — kini juga terpicu dari `UpdateLeaveRequestStatus` (endpoint status generik/manual), tidak hanya dari `HandleApprovalStatusChange` (push-callback)
+* Rejected ✅ Sama seperti Approved (`LEAVE_REJECTED`), kini juga dari kedua jalur
+* Cancelled ✅ **Baru diimplementasikan** — `LEAVE_CANCELLED` ditambahkan ke `notifyLeaveOutcome`, terpicu dari kedua jalur (`HandleApprovalStatusChange` status CANCELLED, dan `UpdateLeaveRequestStatus` transisi ke CANCELLED)
+* Reminder ⏳ Sengaja tidak dibangun — butuh scheduled job (cek approval yang overdue), tidak ada infrastruktur cron di codebase ini, kategori gap yang sama dengan Missing Checkout Reminder di Attendance (Phase 12)
+* Balance Notification ⏳ Sengaja tidak dibangun — tidak ada fitur balance adjustment (§26 tetap proposal, Phase 6), jadi tidak ada event untuk dinotifikasi
+
+> ✅ **Gap nyata yang ditemukan & diperbaiki**: sebelum perubahan ini, `notifyLeaveOutcome` hanya pernah dipanggil dari `HandleApprovalStatusChange` (jalur push-callback Central Approval Module) — transisi status lewat `UpdateLeaveRequestStatus` (endpoint generik `PUT /requests/:id/status`, dipakai HR untuk override manual) sama sekali tidak memicu notifikasi apapun, padahal efek balance-nya (`applyBalanceEffectOnStatusChange`) sudah konsisten di kedua jalur sejak Phase 6. Ditambahkan pemanggilan `notifyLeaveOutcome` di `UpdateLeaveRequestStatus` juga (hanya saat status benar-benar berubah, ke `APPROVED_FINAL`/`REJECTED_FINAL`/`CANCELLED`), supaya notifikasi konsisten dengan jalur mana pun yang men-drive transisi — sejalan dengan §34 yang menyebut "Approval Result" sebagai efek dari perubahan status leave request, bukan efek dari endpoint tertentu.
+>
+> Test: `notifier_integration_test.go` — notify saat CANCELLED via push-callback, notify saat APPROVED via endpoint status manual, dan tidak ada notify untuk transisi status yang sebenarnya no-op (status lama == status baru).
 
 ---
 
@@ -1660,7 +1664,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 5 - Approval Integration | ✅ Selesai | `ApprovalEngine`, `SetApprovalEngine`, `HandleApprovalStatusChange`, wiring `main.go`, module slug tunggal `"leave"`, test coverage di `approval_integration_test.go` — lihat Section 7 |
 | Phase 6 - Leave Balance | 🔶 Sebagian (2026-08-08) | **Usage + Reversal + Ledger selesai**: `leave/balance.go` (`applyLeaveUsage`/`reverseLeaveUsage`) — deduct saldo saat status masuk `APPROVED_FINAL`, reverse saat keluar dari `APPROVED_FINAL` (mis. cancel setelah approve), keduanya menulis ke `leave_balance_transactions`. Wired di `HandleApprovalStatusChange` dan `UpdateLeaveRequestStatus`. **Belum ada**: Accrual (seed quota dari `LeaveAccrualPolicy`), Adjustment (endpoint HR), Carry Forward, Expiry |
 | Phase 7 - Calendar & Attendance | 🔶 Sebagian (2026-08-09) | Employee Calendar selesai (`GET /leave/calendar`). Attendance Integration sudah selesai sejak sebelumnya (`leave.AttendanceSessionUpdater`). Team/Organization Calendar sengaja ditunda — butuh cross-module employee/organization read yang belum ada |
-| Phase 8 - Notification | ❌ Belum ada | Tidak ditemukan pemanggilan Notification module dari modul Leave |
+| Phase 8 - Notification | 🔶 Sebagian (2026-08-09) | Approved/Rejected/Cancelled notification lewat `notifyLeaveOutcome`, kini konsisten di kedua jalur (`HandleApprovalStatusChange` push-callback dan `UpdateLeaveRequestStatus` manual). Request Submitted/Approval Required sengaja tidak dibangun (bukan tanggung jawab Leave), Reminder butuh scheduled job (belum ada infra), Balance Notification butuh fitur adjustment (belum ada) |
 | Phase 9 - Dashboard & Reports | ❌ Belum ada | Tidak ada endpoint/handler dashboard atau report |
 | Phase 10 - Testing | 🔶 Sebagian | Test approval-integration sudah ada; test kalkulasi/balance/cancellation belum ada karena fiturnya sendiri belum ada |
 

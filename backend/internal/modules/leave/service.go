@@ -647,6 +647,9 @@ func (s *Service) UpdateLeaveRequestStatus(ctx context.Context, id, status, note
 	if err := s.applyBalanceEffectOnStatusChange(ctx, lr, previousStatus); err != nil {
 		return nil, err
 	}
+	if lr.Status != previousStatus && (lr.Status == LeaveStatusApprovedFinal || lr.Status == LeaveStatusRejectedFinal || lr.Status == LeaveStatusCancelled) {
+		s.notifyLeaveOutcome(ctx, lr)
+	}
 	return leaveRequestToResponse(lr), nil
 }
 
@@ -723,7 +726,7 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		}
 		s.applyAttendanceIntegration(ctx, lr)
 	}
-	if lr.Status == LeaveStatusApprovedFinal || lr.Status == LeaveStatusRejectedFinal {
+	if lr.Status == LeaveStatusApprovedFinal || lr.Status == LeaveStatusRejectedFinal || lr.Status == LeaveStatusCancelled {
 		s.notifyLeaveOutcome(ctx, lr)
 	}
 	return nil
@@ -760,6 +763,10 @@ func (s *Service) notifyLeaveOutcome(ctx context.Context, lr *LeaveRequest) {
 		notifType = "LEAVE_REJECTED"
 		title = "Leave Request Rejected"
 		body = "Your leave request has been rejected."
+	case LeaveStatusCancelled:
+		notifType = "LEAVE_CANCELLED"
+		title = "Leave Request Cancelled"
+		body = "Your leave request has been cancelled."
 	default:
 		return
 	}
