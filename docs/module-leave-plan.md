@@ -1491,10 +1491,10 @@ leave_cancellation_requests (optional)
 
 ## Phase 2 - Master Data
 
-* Leave Types
-* Leave Reasons
-* Accrual Policies
-* Leave Eligibility
+* Leave Types ✅
+* Leave Reasons ✅
+* Accrual Policies ✅
+* Leave Eligibility ⏳ Sengaja tidak dibangun — belum ada business rule konkret yang membutuhkannya (lihat §22: "gunakan hanya jika business rule memang diperlukan"). Revisit saat ada requirement nyata (mis. Maternity Leave gender-restricted, minimum service period untuk Annual Leave).
 
 ---
 
@@ -1645,7 +1645,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase (§41) | Status | Catatan |
 |---|---|---|
 | Phase 1 - Database Enhancement | ✅ Selesai (2026-08-08) | Migration `070_leave_phase1_db_enhancement` (mysql+postgres): fix `leave_accrual_policies.deleted_at` (INT → TIMESTAMP) + index, tambah tabel `leave_balance_transactions` + model `LeaveBalanceTransaction` + repository `CreateLeaveBalanceTransaction`/`ListLeaveBalanceTransactions`. Tabel cancellation (§19) dan eligibility (§22) sengaja ditunda — tidak dibutuhkan sampai fitur terkait (Phase 6 lanjutan/§18, §22) mulai dikerjakan |
-| Phase 2 - Master Data | ✅ Selesai | Leave Types, Accrual Policies, Leave Reasons — CRUD lengkap di `leave/service.go`, `leave/handler.go`, `leave/routes.go` |
+| Phase 2 - Master Data | ✅ Selesai (2026-08-08) | Leave Types, Accrual Policies, Leave Reasons — CRUD lengkap di `leave/service.go`, `leave/handler.go`, `leave/routes.go`. Leave Eligibility sengaja tidak dibangun — tidak ada business rule konkret yang membutuhkannya saat ini (§22), revisit saat requirement muncul |
 | Phase 3 - Leave Calculation Engine | ❌ Belum ada | Tidak ada working-day/holiday/half-day/hourly calculation di manapun — `requested_days` diterima mentah dari client |
 | Phase 4 - Leave Request | 🔶 Sebagian | Create/Submit/List/Get/Delete/Details sudah ada. Validasi (eligibility, overlap, balance, backdate) di §12 **belum diimplementasikan** |
 | Phase 5 - Approval Integration | ✅ Selesai | `ApprovalEngine`, `SetApprovalEngine`, `HandleApprovalStatusChange`, wiring `main.go`, module slug tunggal `"leave"`, test coverage di `approval_integration_test.go` — lihat Section 7 |
