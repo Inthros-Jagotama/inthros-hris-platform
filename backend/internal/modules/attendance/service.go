@@ -189,6 +189,16 @@ func (s *Service) CreateEmployeeShift(ctx context.Context, req CreateEmployeeShi
 	if err != nil {
 		return nil, fmt.Errorf("invalid attendance_shift_id: %w", err)
 	}
+	if req.EffectiveDateTo != nil && *req.EffectiveDateTo < req.EffectiveDateFrom {
+		return nil, fmt.Errorf("effective_date_to must not be before effective_date_from")
+	}
+	overlapCount, err := s.repo.CountOverlappingEmployeeShifts(ctx, empID, req.EffectiveDateFrom, req.EffectiveDateTo, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check overlapping shift assignments: %w", err)
+	}
+	if overlapCount > 0 {
+		return nil, fmt.Errorf("employee already has a shift assignment overlapping this date range")
+	}
 
 	es := &AttendanceEmployeeShift{
 		EmployeeID:        empID,
@@ -279,6 +289,16 @@ func (s *Service) UpdateEmployeeShift(ctx context.Context, id string, req Update
 	}
 	if req.IsDayOff != nil {
 		es.IsDayOff = req.IsDayOff
+	}
+	if es.EffectiveDateTo != nil && *es.EffectiveDateTo < es.EffectiveDateFrom {
+		return nil, fmt.Errorf("effective_date_to must not be before effective_date_from")
+	}
+	overlapCount, err := s.repo.CountOverlappingEmployeeShifts(ctx, es.EmployeeID, es.EffectiveDateFrom, es.EffectiveDateTo, &es.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check overlapping shift assignments: %w", err)
+	}
+	if overlapCount > 0 {
+		return nil, fmt.Errorf("employee already has a shift assignment overlapping this date range")
 	}
 	if err := s.repo.UpdateEmployeeShift(ctx, es); err != nil {
 		return nil, err

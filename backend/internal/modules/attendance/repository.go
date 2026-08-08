@@ -163,6 +163,29 @@ func (r *Repository) ListEmployeeShifts(ctx context.Context, employeeID *uuid.UU
 	return shifts, total, nil
 }
 
+// CountOverlappingEmployeeShifts counts the employee's other shift
+// assignments whose [effective_date_from, effective_date_to] range overlaps
+// [from, to] (a nil `to` means open-ended / ongoing). excludeID lets an
+// update check overlap against everything except the row being updated.
+func (r *Repository) CountOverlappingEmployeeShifts(ctx context.Context, employeeID uuid.UUID, from string, to *string, excludeID *uuid.UUID) (int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return 0, err
+	}
+	query := db.Model(&AttendanceEmployeeShift{}).Where("employee_id = ?", employeeID)
+	if excludeID != nil {
+		query = query.Where("id != ?", *excludeID)
+	}
+	if to != nil {
+		query = query.Where("effective_date_from <= ?", *to)
+	}
+	query = query.Where("effective_date_to IS NULL OR effective_date_to >= ?", from)
+
+	var count int64
+	err = query.Count(&count).Error
+	return count, err
+}
+
 func (r *Repository) UpdateEmployeeShift(ctx context.Context, es *AttendanceEmployeeShift) error {
 	db, err := r.getDB(ctx)
 	if err != nil {

@@ -222,11 +222,20 @@ func TestService_ListEmployeeShifts_ByEmployee(t *testing.T) {
 	shift := createTestShift(repo)
 	empID := uuidStr()
 
-	for i := 0; i < 3; i++ {
+	// Non-overlapping date ranges - overlap validation would otherwise
+	// reject the 2nd/3rd assignment for the same employee.
+	dateRanges := [][2]string{
+		{"2026-01-01", "2026-01-31"},
+		{"2026-02-01", "2026-02-28"},
+		{"2026-03-01", "2026-03-31"},
+	}
+	for i, dr := range dateRanges {
+		to := dr[1]
 		req := CreateEmployeeShiftRequest{
 			EmployeeID:        empID,
 			AttendanceShiftID: shift.ID.String(),
-			EffectiveDateFrom: "2026-01-01",
+			EffectiveDateFrom: dr[0],
+			EffectiveDateTo:   &to,
 		}
 		if _, err := svc.CreateEmployeeShift(ctx(), req); err != nil {
 			t.Fatalf("CreateEmployeeShift iteration %d failed: %v", i, err)
@@ -261,6 +270,82 @@ func TestService_UpdateEmployeeShift_Success(t *testing.T) {
 
 	if updated.IsDayOff == nil || !*updated.IsDayOff {
 		t.Error("expected IsDayOff = true")
+	}
+}
+
+func TestService_CreateEmployeeShift_OverlappingDates_ReturnsError(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	shift := createTestShift(repo)
+	empID := uuidStr()
+
+	firstTo := "2026-01-31"
+	first := CreateEmployeeShiftRequest{
+		EmployeeID:        empID,
+		AttendanceShiftID: shift.ID.String(),
+		EffectiveDateFrom: "2026-01-01",
+		EffectiveDateTo:   &firstTo,
+	}
+	if _, err := svc.CreateEmployeeShift(ctx(), first); err != nil {
+		t.Fatalf("first CreateEmployeeShift failed: %v", err)
+	}
+
+	overlapping := CreateEmployeeShiftRequest{
+		EmployeeID:        empID,
+		AttendanceShiftID: shift.ID.String(),
+		EffectiveDateFrom: "2026-01-15",
+	}
+	if _, err := svc.CreateEmployeeShift(ctx(), overlapping); err == nil {
+		t.Fatal("expected error for overlapping shift assignment dates")
+	}
+}
+
+func TestService_CreateEmployeeShift_EffectiveDateToBeforeFrom_ReturnsError(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	shift := createTestShift(repo)
+	to := "2026-01-01"
+	req := CreateEmployeeShiftRequest{
+		EmployeeID:        uuidStr(),
+		AttendanceShiftID: shift.ID.String(),
+		EffectiveDateFrom: "2026-01-31",
+		EffectiveDateTo:   &to,
+	}
+	if _, err := svc.CreateEmployeeShift(ctx(), req); err == nil {
+		t.Fatal("expected error when effective_date_to is before effective_date_from")
+	}
+}
+
+func TestService_UpdateEmployeeShift_OverlappingDates_ReturnsError(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	shift := createTestShift(repo)
+	empID := uuid.New()
+
+	firstTo := "2026-01-31"
+	first := createTestEmployeeShift(repo, empID, shift.ID)
+	first.EffectiveDateFrom = "2026-01-01"
+	first.EffectiveDateTo = &firstTo
+	if err := repo.UpdateEmployeeShift(ctx(), first); err != nil {
+		t.Fatalf("failed to seed first shift: %v", err)
+	}
+
+	secondTo := "2026-03-31"
+	second := createTestEmployeeShift(repo, empID, shift.ID)
+	second.EffectiveDateFrom = "2026-03-01"
+	second.EffectiveDateTo = &secondTo
+	if err := repo.UpdateEmployeeShift(ctx(), second); err != nil {
+		t.Fatalf("failed to seed second shift: %v", err)
+	}
+
+	newFrom := "2026-01-20"
+	if _, err := svc.UpdateEmployeeShift(ctx(), second.ID.String(), UpdateEmployeeShiftRequest{
+		EffectiveDateFrom: &newFrom,
+	}); err == nil {
+		t.Fatal("expected error when updated date range overlaps another assignment")
 	}
 }
 

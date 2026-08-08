@@ -1838,15 +1838,17 @@ Exempt Positions      ✅ CRUD lengkap (service.go:666-746)
 Develop:
 
 ```text
-Create Shift
-Update Shift
-Delete Shift
-Assign Shift
-Effective Date
-Day of Week
-Day Off
-Cross Midnight
+Create Shift        ✅ service.go:88-171
+Update Shift         ✅
+Delete Shift         ✅
+Assign Shift         ✅ CreateEmployeeShift/UpdateEmployeeShift (service.go:183-287)
+Effective Date       ✅ EffectiveDateFrom/To sudah tervalidasi (from <= to) sejak perubahan ini
+Day of Week          🔶 DaysOfWeekMask disimpan, tapi tidak ada logic decode/interpretasi bit-to-weekday di manapun (lihat catatan Leave §41 soal hal yang sama) — field pass-through saja
+Day Off              🔶 IsDayOff disimpan sebagai flag, belum dikonsumsi oleh calculation engine manapun (karena calculation engine sendiri belum ada — Section 19)
+Cross Midnight        ⏳ Field `IsCrossMidnight` ada di `attendance_company_shifts`, tapi logic session cross-midnight (§24) belum ada — bergantung pada Phase 6
 ```
+
+> ✅ **Overlap validation (§7) — gap nyata, sekarang sudah diperbaiki.** Sebelumnya `CreateEmployeeShift`/`UpdateEmployeeShift` tidak melakukan validasi apapun terhadap `effective_date_from <= effective_date_to` maupun terhadap assignment lain yang overlap untuk employee yang sama — persis seperti yang diperingatkan §7, tapi belum diimplementasikan. Ditambahkan `CountOverlappingEmployeeShifts` (repository) + validasi di kedua service method (mengizinkan `effective_date_to` NULL sebagai open-ended). Ini satu-satunya gap Phase 3 yang genuinely fixable tanpa bergantung pada calculation engine — Day of Week mask decoding dan Cross Midnight session logic tetap bergantung pada Phase 6.
 
 ---
 
@@ -2130,7 +2132,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 |---|---|---|
 | Phase 1 - Database Review & Enhancement | ✅ Selesai (2026-08-08) | Seluruh 10 tabel ada (§2), `approval_instance_id` sudah ada di overtime (migration `063`). Schema/FK/timestamp-type direview — tidak ada bug seperti kasus Leave. Index harian yang kurang di `attendance_events` ditambahkan lewat migration `071_attendance_phase1_event_index` (`idx_att_event_employee_time`). Shift rules table, employee-device mapping, correction table, timezone column — sengaja ditunda, tidak ada kebutuhan konkret saat ini |
 | Phase 2 - Attendance Configuration | 🔶 Sebagian (2026-08-08) | Settings/Shifts/Locations/Exempt Positions CRUD lengkap. Shift Rules ditunda (belum ada requirement konkret, sama alasan dengan Phase 1). Devices dan Face Configuration sengaja ditunda — `attendance_device_captures`/`attendance_face_captures` tidak punya repository method sama sekali (tabel mati total), baru masuk akal dibangun bersamaan dengan capture validation engine (Phase 4-5) |
-| Phase 3 - Shift Management | 🔶 Sebagian | CRUD shift + employee-shift assignment ada. Validasi overlap assignment (§7) belum diverifikasi/kemungkinan belum ada |
+| Phase 3 - Shift Management | 🔶 Sebagian (2026-08-08) | CRUD shift + employee-shift assignment lengkap. Overlap validation (§7) ditemukan benar-benar belum ada — sekarang diperbaiki via `CountOverlappingEmployeeShifts` + validasi `effective_date_from <= effective_date_to` di `CreateEmployeeShift`/`UpdateEmployeeShift`. `DaysOfWeekMask`/`IsCrossMidnight` masih sekadar field pass-through — belum dikonsumsi calculation engine manapun (nunggu Phase 6) |
 | Phase 4 - Attendance Capture | 🔶 Sebagian | `POST /events` ada tapi generik (CHECKIN/CHECKOUT lewat satu endpoint, bukan endpoint terpisah). GPS/Geofence/Face Verification/Device Validation **tidak dilakukan** oleh `CreateEvent` — lihat Section 17 |
 | Phase 5 - Attendance Validation | ❌ Belum ada | Tidak ada location/face/device/time validation logic di `service.go` — lihat Section 17 |
 | Phase 6 - Attendance Session | ❌ Belum ada | **Gap paling kritis.** Tidak ada session generation/calculation engine sama sekali — lihat Section 19 |
