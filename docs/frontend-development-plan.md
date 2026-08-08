@@ -451,7 +451,7 @@ frontend/
 - [ ] Leave Balances per employee
 
 ### C.17. Performance Management ✅ (KPI Phase 1-4 & OKR Phase 1-4 Selesai — Update 07 Agu 2026)
-**Backend:** module `performance` — sub-modul KPI (`/performance/kpi/*`) + OKR (`/performance/okr/*`), shared master di `/performance/*` (periods, ratings, indicator-formulas, logs). Detail lengkap: [`performance-management-kpi-plan.md`](performance-management-kpi-plan.md) · [`archive/performance-management-okr-plan.md`](archive/performance-management-okr-plan.md) · [`frontend-performance-kpi-plan.md`](frontend-performance-kpi-plan.md) · [`archive/frontend-performance-okr-plan.md`](archive/frontend-performance-okr-plan.md)
+**Backend:** module `performance` — sub-modul KPI (`/performance/kpi/*`) + OKR (`/performance/okr/*`), shared master di `/performance/*` (periods, ratings, indicator-formulas, logs). Detail lengkap: [`performance-management-kpi-plan.md`](performance-management-kpi-plan.md) (plan backend KPI; plan OKR & frontend KPI/OKR telah diarsipkan ke `docs/archive/`)
 
 **KPI Sub-module ✅ Done**
 - [x] `PerformanceIndex.vue` — dashboard index dengan card menu (KPI Evaluations, KPI Templates, OKR Evaluations, OKR Templates) + quick stats dari HR dashboard

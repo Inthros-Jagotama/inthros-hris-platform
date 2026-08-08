@@ -41,8 +41,12 @@ backend/docker/.dockerignore
 tmp/
 temp/
 
-#
-#inthros-web
+# === Docs — folder yang DIABAIKAN (jangan di-indeks git/tooling) ===
+# Lihat docs/README.md → "Folder yang Diabaikan".
+docs/tmp/
+docs/archive/
+docs/backlog/
+docs/seeder/
 
 # Dependencies
 frontend/platform-admin/node_modules

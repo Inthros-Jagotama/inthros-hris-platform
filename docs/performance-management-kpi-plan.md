@@ -759,7 +759,7 @@ struktur dan penamaan ikuti pola yang sudah ada
 
 | Phase | Status | Completion Date | Notes |
 |-------|--------|-----------------|-------|
-| Phase 1-4 | ✅ Completed | 2026-08-06 | Lihat [`docs/frontend-performance-kpi-plan.md`](frontend-performance-kpi-plan.md) untuk detail frontend |
+| Phase 1-4 | ✅ Completed | 2026-08-06 | Detail frontend KPI diarsipkan ke `docs/archive/frontend-performance-kpi-plan.md` |
 | Phase 5 - Scoring Configuration | ✅ Completed | 2026-08-07 | Backend: models, DTO, repository, service (scoring engine), handler, routes, migration |
 | Phase 6 - Seeder | ✅ Completed | 2026-08-07 | Default components (KPI, Work Program, Subordinate KPI) di-seed via `module.go` |
 | Phase 7 - Future Enhancement | 🔶 Partially completed | 2026-08-08 | Multi Level Approval selesai (lihat Phase 8); sisanya (Mid Year Review, Calibration, KPI Versioning, dst.) masih pending |

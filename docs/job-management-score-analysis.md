@@ -4,8 +4,9 @@
 > **Terkait:** [`analisis-blueprint-vs-existing.md`](analisis-blueprint-vs-existing.md) · [`platform-architecture-design.md`](platform-architecture-design.md)
 
 > **Dokumen hasil analisa** — mempelajari cara perhitungan *Job Management Score* dari
-> `docs/backlog/JobValueCalculator.php` (implementasi legacy PHP/Laravel) dan membandingkannya
-> dengan implementasi backend Go saat ini (`backend/internal/modules/jobmanagement/`).
+> `JobValueCalculator.php` (implementasi legacy PHP/Laravel, kini di `docs/tmp/inthros-web/` —
+> folder diabaikan) dan membandingkannya dengan implementasi backend Go saat ini
+> (`backend/internal/modules/jobmanagement/`).
 >
 > Tanggal analisa: 04 Agustus 2026
 > Status: ✅ **Implementasi selesai** (05 Agu 2026) — `calculator.go` sudah dibuat dan
@@ -42,7 +43,7 @@ Artinya mesin kalkulasi dari PHP **belum dipindahkan** ke Go.
 
 | File | Peran |
 |---|---|
-| `docs/backlog/JobValueCalculator.php` | Mesin kalkulasi legacy (referensi utama) |
+| `JobValueCalculator.php` — kini di `docs/tmp/inthros-web/app/Services/JobManagements/` *(folder diabaikan, referensi historis)* | Mesin kalkulasi legacy (referensi utama) |
 | `backend/internal/modules/jobmanagement/model.go` | Model GORM Go: `JobScore` (9.17), `JobValue`, dll. |
 | `backend/internal/modules/jobmanagement/dto.go` | DTO `UpdateJobScoreRequest` / `JobScoreResponse` |
 | `backend/internal/modules/jobmanagement/service.go` | `UpsertJobScore`, `GetJobScoreByOrganization`, `ListJobScores` |
@@ -50,7 +51,7 @@ Artinya mesin kalkulasi dari PHP **belum dipindahkan** ke Go.
 | `backend/internal/pkg/migrator/migrations/tenant/mysql/009_job_management.sql` | Skema tabel 9.1–9.18 |
 | Migration 033–042 | Seed `job_management_values` (tipe & level) |
 | `frontend/tenant/src/views/modules/job/sections/JobScoreSection.vue` | Halaman skor (konsumsi API) |
-| `docs/backlog/JobManagementValuesTableSeeder.php` | Seeder nilai `job_management_values` legacy — struktur `type` vs `code`, level & deskripsi tiap tipe |
+| `JobManagementValuesTableSeeder.php` — kini di `docs/tmp/inthros-web/database/seeders/` *(folder diabaikan, referensi historis)* | Seeder nilai `job_management_values` legacy — struktur `type` vs `code`, level & deskripsi tiap tipe |
 
 ---
 
@@ -504,7 +505,7 @@ recalculate.
 
 > **Semua tipe sudah ter-seed** di migration Go: `education` & `experience` (049), dan
 > `asset`, `cash`, `impact`, `environment`, `risk`, `relationship`, `frequency` (050) —
-> level & deskripsi mengikuti seeder legacy (`JobManagementValuesTableSeeder.php`, lihat 8.6).
+> level & deskripsi mengikuti seeder legacy (`JobManagementValuesTableSeeder.php` — kini di `docs/tmp/inthros-web/database/seeders/`, folder diabaikan; lihat 8.6).
 > Tidak ada lagi tipe referensi yang belum ter-seed.
 
 ### 8.3 Kecerdasan (Intelligence) sebagai potensi psikologi
@@ -525,8 +526,7 @@ migration 048). Komponen 4.8 hanya memakai `scope × frequency` dari record rela
 **detail tidak memengaruhi skor** di legacy. Perlu konfirmasi apakah detail tetap tidak dihitung.
 
 ### 8.6 Struktur data legacy: `type` vs `code` (dari `JobManagementValuesTableSeeder.php`)
-Seeder legacy **tidak** menyimpan slug tipe secara langsung di kolom `type` — ia memakai
-**dua kolom berbeda**:
+Seeder legacy (`JobManagementValuesTableSeeder.php`, kini di `docs/tmp/inthros-web/database/seeders/` — folder diabaikan) **tidak** menyimpan slug tipe secara langsung di kolom `type` — ia memakai **dua kolom berbeda**:
 
 - **`type`** = **nama grup** besar (label section), contoh: `Psychological`, `Technical`,
   `Managerial`, `Problem Solving & Decision Making`, `Communicating & Influencing Skill`,

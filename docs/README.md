@@ -17,7 +17,6 @@ Index pusat seluruh dokumentasi proyek. Semua dokumen (kecuali `README.md` di ro
 | **Frontend** | [`panduan-uiux-hris-enterprise.md`](panduan-uiux-hris-enterprise.md) | Standar UI/UX enterprise: modal-first, high-density, master prompt AI, warna badge |
 | **Analisis** | [`analisis-blueprint-vs-existing.md`](analisis-blueprint-vs-existing.md) | Perbandingan blueprint vs existing Laravel app (inthros-web) |
 | **Analisis** | [`job-management-score-analysis.md`](job-management-score-analysis.md) | Analisa perhitungan Job Management Score (dirujuk `calculator.go`) |
-| **Arsip** | [`archive/`](archive/) | Plan/rencana modul yang sudah selesai diimplementasikan (referensi historis) |
 
 ## 🔗 Alur Referensi Antar Dokumen
 
@@ -30,15 +29,16 @@ docs/README.md (index)
    ├──→ deployment-guide.md ────────→ platform-architecture-design.md
    ├──→ frontend-development-plan.md ─→ panduan-uiux-hris-enterprise.md
    ├──→ project-completion-dashboard.md
-   ├──→ go-module-architecture-report.md
-   └──→ archive/ (plan historis)
+   └──→ go-module-architecture-report.md
 ```
+
+> ⚠️ Folder `archive/`, `backlog/`, `seeder/`, `tmp/` **DIABAIKAN** — lihat [🚫 Folder yang Diabaikan](#-folder-yang-diabaikan) di bawah.
 
 ## 🗂️ Struktur Folder
 
 ```text
 docs/
-├── README.md                        # ← Index ini
+├── README.md                        # ← Index ini (mulai baca dari sini)
 ├── api/
 │   └── api-usage-guide.md           # Panduan penggunaan API
 ├── database-schema.md               # Struktur database & ERD
@@ -51,8 +51,27 @@ docs/
 ├── panduan-uiux-hris-enterprise.md
 ├── analisis-blueprint-vs-existing.md
 ├── job-management-score-analysis.md
-└── archive/                         # Plan modul yang sudah selesai
+├── archive/                         # 🚫 DIABAIKAN — plan lama yang sudah selesai
+├── backlog/                         # 🚫 DIABAIKAN — ide/backlog, bukan dokumentasi aktif
+├── seeder/                          # 🚫 DIABAIKAN — file seeder/export sementara
+└── tmp/                             # 🚫 DIABAIKAN — file temp & node_modules (besar)
 ```
+
+## 🚫 Folder yang Diabaikan
+
+Folder berikut **tidak boleh dibaca/diindeks** saat memproses dokumentasi (termasuk oleh AI/tooling/link checker):
+
+| Folder | Isi | Alasan Diabaikan |
+|---|---|---|
+| `docs/archive/` | Plan/rencana modul yang sudah selesai diimplementasikan | Referensi historis — gunakan dokumen aktif di `docs/` |
+| `docs/backlog/` | Ide/backlog fitur | Bukan dokumentasi resmi — tidak dipakai |
+| `docs/seeder/` | File seeder/export data sementara | File kerja — tidak relevan untuk dokumentasi |
+| `docs/tmp/` | File temp, `inthros-web/`, `node_modules/` | File sementara & dependency (besar) — memperlambat pencarian |
+
+**Aturan:**
+- Jangan sertakan isi folder-folder di atas dalam ringkasan/indeks/tabel referensi.
+- Jangan jalankan pencarian (`grep`/`rg`) di dalamnya — gunakan flag exclude (mis. `--glob '!docs/tmp/**'`, `--glob '!docs/archive/**'`).
+- Jika ada dokumen di `archive/` yang masih relevan, pindahkan ke root `docs/` (dengan penamaan kebab-case) dan daftarkan di tabel navigasi di atas — jangan dibaca dari lokasi lama.
 
 ## 📝 Standar Penamaan Dokumen
 
