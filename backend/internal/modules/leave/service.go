@@ -436,6 +436,20 @@ func (s *Service) CreateLeaveRequest(ctx context.Context, req CreateLeaveRequest
 	if err != nil {
 		return nil, fmt.Errorf("leave type not found: %w", err)
 	}
+	if !leaveType.IsActive {
+		return nil, fmt.Errorf("leave type %q is not active", leaveType.Name)
+	}
+	if leaveType.RequiresAttachment && (req.AttachmentURL == nil || *req.AttachmentURL == "") {
+		return nil, fmt.Errorf("leave type %q requires an attachment", leaveType.Name)
+	}
+
+	overlapCount, err := s.repo.CountOverlappingLeaveRequests(ctx, empID, req.RequestStartDate, req.RequestEndDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check overlapping leave requests: %w", err)
+	}
+	if overlapCount > 0 {
+		return nil, fmt.Errorf("requested dates overlap with an existing leave request")
+	}
 
 	mode := DurationFullDay
 	if req.DurationMode != "" {

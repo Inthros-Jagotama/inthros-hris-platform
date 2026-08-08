@@ -275,6 +275,75 @@ func TestService_CreateLeaveRequest_ExcludesHolidaysFromWorkingDays(t *testing.T
 	}
 }
 
+func TestService_CreateLeaveRequest_OverlappingDates_ReturnsError(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	lType := createTestLeaveType(repo)
+	empID := uuidStr()
+
+	first := CreateLeaveRequest{
+		EmployeeID:       empID,
+		LeaveTypeID:      lType.ID.String(),
+		RequestStartDate: "2026-01-15",
+		RequestEndDate:   "2026-01-16",
+	}
+	if _, err := svc.CreateLeaveRequest(ctx(), first); err != nil {
+		t.Fatalf("first CreateLeaveRequest failed: %v", err)
+	}
+
+	overlapping := CreateLeaveRequest{
+		EmployeeID:       empID,
+		LeaveTypeID:      lType.ID.String(),
+		RequestStartDate: "2026-01-16",
+		RequestEndDate:   "2026-01-19",
+	}
+	if _, err := svc.CreateLeaveRequest(ctx(), overlapping); err == nil {
+		t.Fatal("expected error for overlapping leave request dates")
+	}
+}
+
+func TestService_CreateLeaveRequest_InactiveLeaveType_ReturnsError(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	lType := createTestLeaveType(repo)
+	lType.IsActive = false
+	if err := repo.UpdateLeaveType(ctx(), lType); err != nil {
+		t.Fatalf("failed to deactivate leave type: %v", err)
+	}
+
+	req := CreateLeaveRequest{
+		EmployeeID:       uuidStr(),
+		LeaveTypeID:      lType.ID.String(),
+		RequestStartDate: "2026-01-15",
+		RequestEndDate:   "2026-01-16",
+	}
+	if _, err := svc.CreateLeaveRequest(ctx(), req); err == nil {
+		t.Fatal("expected error for inactive leave type")
+	}
+}
+
+func TestService_CreateLeaveRequest_MissingRequiredAttachment_ReturnsError(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	lType := &LeaveType{Name: "Sick Leave", IsActive: true, RequiresAttachment: true}
+	if err := repo.CreateLeaveType(ctx(), lType); err != nil {
+		t.Fatalf("failed to create leave type: %v", err)
+	}
+
+	req := CreateLeaveRequest{
+		EmployeeID:       uuidStr(),
+		LeaveTypeID:      lType.ID.String(),
+		RequestStartDate: "2026-01-15",
+		RequestEndDate:   "2026-01-16",
+	}
+	if _, err := svc.CreateLeaveRequest(ctx(), req); err == nil {
+		t.Fatal("expected error when required attachment is missing")
+	}
+}
+
 func TestService_CreateLeaveRequest_Hourly_NotAllowedByLeaveType(t *testing.T) {
 	svc, repo, _, cleanup := newTestService()
 	defer cleanup()

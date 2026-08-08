@@ -247,6 +247,23 @@ func (r *Repository) ListLeaveRequests(ctx context.Context, employeeID *uuid.UUI
 	return requests, total, nil
 }
 
+// CountOverlappingLeaveRequests counts the employee's non-final leave
+// requests whose date range overlaps [startDate, endDate], excluding
+// REJECTED_FINAL/CANCELLED requests which no longer hold the dates.
+func (r *Repository) CountOverlappingLeaveRequests(ctx context.Context, employeeID uuid.UUID, startDate, endDate string) (int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	err = db.WithContext(ctx).Model(&LeaveRequest{}).
+		Where("employee_id = ?", employeeID).
+		Where("status NOT IN ?", []string{string(LeaveStatusRejectedFinal), string(LeaveStatusCancelled)}).
+		Where("request_start_date <= ? AND request_end_date >= ?", endDate, startDate).
+		Count(&count).Error
+	return count, err
+}
+
 func (r *Repository) UpdateLeaveRequest(ctx context.Context, req *LeaveRequest) error {
 	db, err := r.db(ctx)
 	if err != nil {

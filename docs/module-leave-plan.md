@@ -1512,12 +1512,12 @@ leave_cancellation_requests (optional)
 
 ## Phase 4 - Leave Request
 
-* Create Request
-* Draft
-* Submit
-* Validation
-* Attachment
-* Request Detail
+* Create Request ✅
+* Draft ✅ (status exists, not separately exercised by a dedicated endpoint — creation goes straight to `SUBMITTED`)
+* Submit ✅ (via `CreateLeaveRequest`; no separate draft→submit transition endpoint yet — see §31 gap)
+* Validation 🔶 Implemented: leave type active check, required-attachment check, date-overlap check against the employee's own non-final requests (`CountOverlappingLeaveRequests`). **Not** implemented: employee/organization-active check (needs a cross-module `Employee` read no other Leave code currently does — deferred, not designed yet), backdate/minimum-notice rules (no `allow_backdate`/`minimum_notice_days` fields exist on `LeaveType` yet, §3), balance-quota check (`requested_days <= available balance` — belongs to Phase 6, needs balance-deduction logic first)
+* Attachment ✅ Enforced when `LeaveType.RequiresAttachment = true`
+* Request Detail ✅ (done in Phase 3 — `LeaveRequestDetail` rows created per working date on submit)
 
 ---
 
@@ -1648,7 +1648,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 1 - Database Enhancement | ✅ Selesai (2026-08-08) | Migration `070_leave_phase1_db_enhancement` (mysql+postgres): fix `leave_accrual_policies.deleted_at` (INT → TIMESTAMP) + index, tambah tabel `leave_balance_transactions` + model `LeaveBalanceTransaction` + repository `CreateLeaveBalanceTransaction`/`ListLeaveBalanceTransactions`. Tabel cancellation (§19) dan eligibility (§22) sengaja ditunda — tidak dibutuhkan sampai fitur terkait (Phase 6 lanjutan/§18, §22) mulai dikerjakan |
 | Phase 2 - Master Data | ✅ Selesai (2026-08-08) | Leave Types, Accrual Policies, Leave Reasons — CRUD lengkap di `leave/service.go`, `leave/handler.go`, `leave/routes.go`. Leave Eligibility sengaja tidak dibangun — tidak ada business rule konkret yang membutuhkannya saat ini (§22), revisit saat requirement muncul |
 | Phase 3 - Leave Calculation Engine | ✅ Selesai (2026-08-08) | `leave/calculation.go` (`CalculateLeaveDuration`): full-day/half-day/hourly calculation, weekend + company-holiday exclusion via new `HolidayProvider` interface (adapter: `setting.Service.ListHolidayDatesInRange`), `LeaveRequestDetail` rows now actually persisted per date. Shift/`DaysOfWeekMask` handling and balance-quota validation intentionally deferred — see §41 |
-| Phase 4 - Leave Request | 🔶 Sebagian | Create/Submit/List/Get/Delete/Details sudah ada, `requested_days` kini dihitung server-side (Phase 3). Validasi lain (eligibility, overlap tanggal, balance quota, backdate) di §12 **belum diimplementasikan** |
+| Phase 4 - Leave Request | 🔶 Sebagian (2026-08-08) | Create/Submit/List/Get/Delete/Details sudah ada, `requested_days` dihitung server-side (Phase 3). Validasi baru: leave type aktif, attachment wajib, overlap tanggal (`CountOverlappingLeaveRequests`). Belum ada: employee/organization aktif (butuh cross-module read ke `employee`, belum ada pola/interface untuk ini), backdate/minimum-notice (field belum ada di `LeaveType`), balance-quota check (nunggu Phase 6) |
 | Phase 5 - Approval Integration | ✅ Selesai | `ApprovalEngine`, `SetApprovalEngine`, `HandleApprovalStatusChange`, wiring `main.go`, module slug tunggal `"leave"`, test coverage di `approval_integration_test.go` — lihat Section 7 |
 | Phase 6 - Leave Balance | 🔶 Sebagian (2026-08-08) | Tabel ledger `leave_balance_transactions` + repository sudah ada (Phase 1), tapi **belum ada logic** accrual/usage/adjustment/reversal/carry-forward/expiry yang benar-benar menulis ke sana atau ke `employee_leave_balances` — lihat Section 9/10 |
 | Phase 7 - Calendar & Attendance | ❌ Belum ada | Tidak ada endpoint calendar, tidak ada integrasi Attendance |
