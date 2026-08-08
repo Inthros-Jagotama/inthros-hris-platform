@@ -9,6 +9,10 @@
     </template>
 
     <template v-else>
+      <div v-if="hasPermission('attendance.update')" class="flex justify-end">
+        <Button :label="t('attendance.admin')" icon="pi pi-cog" size="small" severity="secondary" outlined @click="router.push('/attendance/admin')" />
+      </div>
+
       <!-- Check-in / Check-out -->
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <div class="flex items-center justify-between flex-wrap gap-3">
@@ -63,7 +67,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/stores/auth'
 import api from '@/services/api'
 import { getErrorMessage } from '@/services/responseHandler'
 
@@ -71,7 +77,9 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 
+const router = useRouter()
 const { t } = useI18n()
+const { hasPermission } = useAuth()
 
 const loading = ref(true)
 const employeeId = ref('')

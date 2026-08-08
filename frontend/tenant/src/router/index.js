@@ -118,6 +118,42 @@ const routes = [
         component: () => import('@/views/modules/Attendance.vue'),
         meta: { title: 'Attendance', titleKey: 'attendance.title', descKey: 'attendance.description', icon: 'pi pi-clock', module: 'attendance' }
       },
+      {
+        path: 'attendance/admin',
+        name: 'AttendanceAdmin',
+        component: () => import('@/views/modules/AttendanceAdmin.vue'),
+        meta: { title: 'Attendance Admin', titleKey: 'attendance.admin', descKey: 'attendance.admin_description', icon: 'pi pi-cog', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title' }
+      },
+      {
+        path: 'attendance/settings',
+        name: 'AttendanceSettings',
+        component: () => import('@/views/modules/AttendanceSettings.vue'),
+        meta: { title: 'Attendance Settings', titleKey: 'attendance.settings', descKey: 'attendance.settings_description', icon: 'pi pi-cog', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
+      },
+      {
+        path: 'attendance/shifts',
+        name: 'AttendanceShifts',
+        component: () => import('@/views/modules/AttendanceShifts.vue'),
+        meta: { title: 'Shifts', titleKey: 'attendance.shifts', descKey: 'attendance.shifts_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
+      },
+      {
+        path: 'attendance/employee-shifts',
+        name: 'AttendanceEmployeeShifts',
+        component: () => import('@/views/modules/AttendanceEmployeeShifts.vue'),
+        meta: { title: 'Employee Shifts', titleKey: 'attendance.employee_shifts', descKey: 'attendance.employee_shifts_description', icon: 'pi pi-users', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
+      },
+      {
+        path: 'attendance/locations',
+        name: 'AttendanceLocations',
+        component: () => import('@/views/modules/AttendanceLocations.vue'),
+        meta: { title: 'Locations', titleKey: 'attendance.locations', descKey: 'attendance.locations_description', icon: 'pi pi-map-marker', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
+      },
+      {
+        path: 'attendance/exempt-positions',
+        name: 'AttendanceExemptPositions',
+        component: () => import('@/views/modules/AttendanceExemptPositions.vue'),
+        meta: { title: 'Exempt Positions', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description', icon: 'pi pi-shield', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
+      },
       // Approval Engine
       {
         path: 'approvals',
