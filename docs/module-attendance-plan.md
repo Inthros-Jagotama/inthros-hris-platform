@@ -1922,13 +1922,17 @@ Exempt                 ⏳ Not implemented — needs the employee's organization
 Develop:
 
 ```text
-Overtime Request
-Central Approval Integration
-Approved Overtime
-Actual Overtime
-Calculated Overtime
-Attendance Integration
+Overtime Request           ✅ Sudah ada sejak awal (CRUD lengkap)
+Central Approval Integration   ✅ Sudah ada sejak awal — lihat Section 29
+Approved Overtime               ✅ Status/ApprovedAt/ApprovedBy sudah ada sejak awal
+Actual Overtime                 ✅ Baru diimplementasikan — lihat catatan di bawah
+Calculated Overtime             ✅ Baru diimplementasikan — lihat catatan di bawah
+Attendance Integration          ✅ Baru diimplementasikan — session di-update dengan data overtime saat approved
 ```
+
+> ✅ **Actual/Calculated Overtime dan Attendance Integration — gap nyata, sekarang diimplementasikan.** `AttendanceOvertimeRequest` sebelumnya hanya punya `requested_minutes`; §31 secara eksplisit meminta field terpisah untuk `actual_minutes`/`calculated_minutes` supaya `requested_minutes` tidak langsung dianggap sebagai overtime final. Ditambahkan kedua kolom via migration `072_attendance_overtime_actual_calculated` (mysql+postgres), lalu `applyOvertimeCalculation` (service.go) dipanggil dari `HandleApprovalStatusChange` saat status APPROVED: `Actual Overtime = actual checkout - planned checkout` (dari session hari itu, sesuai formula §31), lalu `Calculated Overtime = min(actual, requested_minutes)` (dibatasi oleh yang diminta, sesuai §32's worked example). Session yang sama juga di-update: `IsOvertimeDay`, `OvertimeRequestID`, `ApprovedOvertimeStartLocal/EndLocal`, `OvertimeMinutes` — field-field yang sudah ada di model sejak awal tapi sebelumnya tidak pernah diisi.
+>
+> Jika approval terjadi sebelum employee benar-benar checkout (session belum punya `CheckoutEventID`), `actual_minutes`/`calculated_minutes` sengaja dibiarkan `NULL` — ini snapshot best-effort di waktu approval, bukan proses yang re-trigger otomatis saat checkout terlambat terjadi (itu di luar cakupan; approval ulang bukan alur yang didukung endpoint ini).
 
 ---
 
@@ -2152,7 +2156,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 4 - Attendance Capture | 🔶 Sebagian (2026-08-08) | `POST /events` generik (CHECKIN/CHECKOUT satu endpoint, bukan endpoint terpisah — lihat §41). GPS + **Geofence validation kini diimplementasikan** (`geofence.go`, `applyEventValidation`) — event di luar radius jadi `INVALID`. Face Verification & Device Validation sengaja tetap belum ada: tidak ada face-matching provider maupun employee-device mapping (keduanya butuh keputusan/komponen di luar cakupan Phase 4) |
 | Phase 5 - Attendance Validation | 🔶 Sebagian (2026-08-08) | Location Validation selesai di Phase 4. **Duplicate Event Detection kini diimplementasikan** (`checkEventSequence` + `FindLastEventForEmployee`) — menolak CHECKIN ganda tanpa CHECKOUT dan CHECKOUT tanpa CHECKIN terbuka. Face/Device Validation tetap belum ada (butuh provider/mapping yang belum ada). Time Validation sengaja ditunda ke Phase 6 karena butuh resolusi shift yang benar (DaysOfWeekMask/cross-midnight) |
 | Phase 6 - Attendance Session | 🔶 Sebagian (2026-08-08) | **Gap paling kritis kini teratasi.** `session.go` (`recalculateSession`) menghasilkan/update `attendance_sessions` secara real-time setiap CHECKIN/CHECKOUT — resolusi shift, lateness/early-leave/work-minutes, cross-midnight (work_date = tanggal CHECKIN), DAY_OFF. Belum ada: Absent detection (butuh scheduled job §44-45), Exempt (butuh cross-module read ke employee/organization), Leave integration (Phase 9) |
-| Phase 7 - Overtime | 🔶 Sebagian | Approval integration ke Central Approval Module sudah selesai (Section 29). "Actual Overtime"/"Calculated Overtime" berdasarkan attendance (§31-32) belum ada karena bergantung pada session calculation (Phase 6) |
+| Phase 7 - Overtime | ✅ Selesai (2026-08-08) | Approval integration sudah ada sejak awal (Section 29). **Actual/Calculated Overtime kini diimplementasikan**: `applyOvertimeCalculation` dipanggil saat approval, membaca session hari itu untuk `actual_minutes` (aktual checkout vs planned checkout) dan `calculated_minutes` (dibatasi `requested_minutes`), migration `072_attendance_overtime_actual_calculated` menambah kedua kolom. Session juga diupdate dengan `IsOvertimeDay`/`OvertimeMinutes`/dll |
 | Phase 8 - Correction | ❌ Belum ada | Tidak ada tabel/model/endpoint correction — lihat Section 16 |
 | Phase 9 - Leave Integration | ❌ Belum ada | Field `LeaveRequestID`/`LeaveFraction` ada di model tapi tidak diisi kode manapun — lihat Section 26 |
 | Phase 10 - Dashboard & Calendar | ❌ Belum ada | Tidak ada endpoint dashboard/calendar; frontend hanya stub |
@@ -2164,9 +2168,9 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 **Frontend**: ❌ belum dimulai — `Attendance.vue` hanya placeholder "Coming soon", tidak ada halaman di bawah `views/modules/attendance/`.
 
 **Rekomendasi urutan lanjutan** (blocker struktural utama sudah teratasi per 2026-08-08):
-1. ~~Session generation/calculation engine (Phase 6)~~ ✅ Selesai (2026-08-08) — `recalculateSession` sekarang men-generate `attendance_sessions` secara real-time. Overtime aktual (Phase 7) dan sebagian Payroll Integration (Phase 13) sudah punya data untuk dibaca.
-2. **Leave Integration (Phase 9)** — sekarang jadi prioritas berikutnya yang paling bernilai: baca leave request `APPROVED_FINAL` dan set `session.status = LEAVE` + `leave_fraction`, straightforward sekarang karena session sudah ada untuk di-update.
-3. Overtime actual/calculated minutes (Phase 7 sisanya) — session sudah punya `WorkMinutes`/checkout data, tinggal hitung `Actual Overtime = Actual Checkout - Planned Checkout` lalu dibatasi oleh `Approved Overtime`.
+1. ~~Session generation/calculation engine (Phase 6)~~ ✅ Selesai (2026-08-08) — `recalculateSession` sekarang men-generate `attendance_sessions` secara real-time.
+2. ~~Overtime actual/calculated minutes (Phase 7)~~ ✅ Selesai (2026-08-08) — `applyOvertimeCalculation` dipanggil saat approval, membaca session hari itu.
+3. **Leave Integration (Phase 9)** — sekarang jadi prioritas berikutnya yang paling bernilai: baca leave request `APPROVED_FINAL` dan set `session.status = LEAVE` + `leave_fraction`, straightforward sekarang karena session sudah ada untuk di-update.
 4. Scheduled job untuk Absent/Missing detection (§44-45) — perlu keputusan infra (cron/scheduler) yang belum ada polanya di codebase ini.
 5. Dedicated check-in/check-out endpoints (pisah dari `POST /events` generik) — supaya validasi per-aksi (Phase 4-5) punya tempat spesifik dipasang.
 6. Frontend dasar — sekarang data session yang ditampilkan sudah benar-benar berarti (bukan tabel kosong).

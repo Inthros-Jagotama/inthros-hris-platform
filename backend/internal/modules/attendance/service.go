@@ -705,6 +705,7 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 	case "APPROVED":
 		o.Status = OvertimeApproved
 		o.ApprovedAt = &now
+		s.applyOvertimeCalculation(ctx, o)
 	case "REJECTED":
 		o.Status = OvertimeRejected
 		if note != "" {
@@ -721,6 +722,49 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		zap.String("approval_status", status),
 	)
 	return s.repo.UpdateOvertimeRequest(ctx, o)
+}
+
+// applyOvertimeCalculation fills in ActualMinutes/CalculatedMinutes (§31-32)
+// once an overtime request is approved: actual overtime is derived from that
+// day's session (actual checkout minus planned checkout, per §31's formula),
+// then capped by the approved/requested minutes. If the session doesn't
+// exist yet or has no checkout recorded (e.g. approval happened before the
+// employee actually checked out), both fields are left nil - there's
+// nothing to calculate from yet, and re-approving isn't a workflow this
+// endpoint supports, so this is a best-effort snapshot at approval time.
+func (s *Service) applyOvertimeCalculation(ctx context.Context, o *AttendanceOvertimeRequest) {
+	session, err := s.repo.FindSessionByEmployeeAndDate(ctx, o.EmployeeID, normalizeWorkDate(o.WorkDate))
+	if err != nil || session.PlannedEndLocal == nil || session.CheckoutEventID == nil {
+		return
+	}
+	checkoutEvent, err := s.repo.FindEventByID(ctx, *session.CheckoutEventID)
+	if err != nil {
+		return
+	}
+	actual := int(checkoutEvent.EventTimeLocal.Sub(*session.PlannedEndLocal).Minutes())
+	if actual < 0 {
+		actual = 0
+	}
+	calculated := actual
+	if calculated > o.RequestedMinutes {
+		calculated = o.RequestedMinutes
+	}
+	o.ActualMinutes = &actual
+	o.CalculatedMinutes = &calculated
+
+	session.IsOvertimeDay = true
+	session.OvertimeRequestID = &o.ID
+	session.ApprovedOvertimeStartLocal = session.PlannedEndLocal
+	overtimeEnd := session.PlannedEndLocal.Add(time.Duration(calculated) * time.Minute)
+	session.ApprovedOvertimeEndLocal = &overtimeEnd
+	session.OvertimeMinutes = calculated
+	if err := s.repo.UpsertSession(ctx, session); err != nil {
+		s.logger.Warn("Failed to update session with overtime calculation",
+			zap.String("employee_id", o.EmployeeID.String()),
+			zap.String("work_date", o.WorkDate),
+			zap.Error(err),
+		)
+	}
 }
 
 func (s *Service) GetOvertimeRequestByID(ctx context.Context, id string) (*OvertimeResponse, error) {
@@ -1006,17 +1050,19 @@ func sessionToResponse(s *AttendanceSession) *SessionResponse {
 
 func overtimeToResponse(o *AttendanceOvertimeRequest) *OvertimeResponse {
 	resp := &OvertimeResponse{
-		ID:               o.ID.String(),
-		EmployeeID:       o.EmployeeID.String(),
-		WorkDate:         o.WorkDate,
-		StartTimeLocal:   o.StartTimeLocal,
-		EndTimeLocal:     o.EndTimeLocal,
-		RequestedMinutes: o.RequestedMinutes,
-		Reason:           o.Reason,
-		Status:           string(o.Status),
-		ApprovedAt:       o.ApprovedAt,
-		ApprovalNote:     o.ApprovalNote,
-		CreatedAt:        o.CreatedAt,
+		ID:                o.ID.String(),
+		EmployeeID:        o.EmployeeID.String(),
+		WorkDate:          o.WorkDate,
+		StartTimeLocal:    o.StartTimeLocal,
+		EndTimeLocal:      o.EndTimeLocal,
+		RequestedMinutes:  o.RequestedMinutes,
+		ActualMinutes:     o.ActualMinutes,
+		CalculatedMinutes: o.CalculatedMinutes,
+		Reason:            o.Reason,
+		Status:            string(o.Status),
+		ApprovedAt:        o.ApprovedAt,
+		ApprovalNote:      o.ApprovalNote,
+		CreatedAt:         o.CreatedAt,
 	}
 	if o.ApprovedBy != nil {
 		ab := o.ApprovedBy.String()

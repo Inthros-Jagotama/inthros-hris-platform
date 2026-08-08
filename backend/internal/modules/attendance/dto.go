@@ -75,9 +75,9 @@ type CompanyShiftResponse struct {
 // =========================================================================
 
 type CreateEmployeeShiftRequest struct {
-	EmployeeID        string `json:"employee_id" binding:"required"`
-	AttendanceShiftID string `json:"attendance_shift_id" binding:"required"`
-	EffectiveDateFrom string `json:"effective_date_from" binding:"required"`
+	EmployeeID        string  `json:"employee_id" binding:"required"`
+	AttendanceShiftID string  `json:"attendance_shift_id" binding:"required"`
+	EffectiveDateFrom string  `json:"effective_date_from" binding:"required"`
 	EffectiveDateTo   *string `json:"effective_date_to"`
 	DaysOfWeekMask    *int    `json:"days_of_week_mask"`
 	IsDayOff          *bool   `json:"is_day_off"`
@@ -148,22 +148,22 @@ type CreateEventRequest struct {
 }
 
 type EventResponse struct {
-	ID                  string     `json:"id"`
-	EmployeeID          string     `json:"employee_id"`
-	EventType           string     `json:"event_type"`
-	EventTimeUTC        time.Time  `json:"event_time_utc"`
-	EventTimeLocal      time.Time  `json:"event_time_local"`
-	DeviceID            *string    `json:"device_id,omitempty"`
-	Latitude            float64    `json:"latitude"`
-	Longitude           float64    `json:"longitude"`
-	AccuracyM           *int       `json:"accuracy_m,omitempty"`
-	LocationProvider    *string    `json:"location_provider,omitempty"`
-	ValidatedLocationID *string    `json:"validated_location_id,omitempty"`
-	DistanceM           *int       `json:"distance_m,omitempty"`
-	IsInGeofence        bool       `json:"is_in_geofence"`
-	ValidationStatus    string     `json:"validation_status"`
-	ValidationNote      *string    `json:"validation_note,omitempty"`
-	CreatedAt           time.Time  `json:"created_at"`
+	ID                  string    `json:"id"`
+	EmployeeID          string    `json:"employee_id"`
+	EventType           string    `json:"event_type"`
+	EventTimeUTC        time.Time `json:"event_time_utc"`
+	EventTimeLocal      time.Time `json:"event_time_local"`
+	DeviceID            *string   `json:"device_id,omitempty"`
+	Latitude            float64   `json:"latitude"`
+	Longitude           float64   `json:"longitude"`
+	AccuracyM           *int      `json:"accuracy_m,omitempty"`
+	LocationProvider    *string   `json:"location_provider,omitempty"`
+	ValidatedLocationID *string   `json:"validated_location_id,omitempty"`
+	DistanceM           *int      `json:"distance_m,omitempty"`
+	IsInGeofence        bool      `json:"is_in_geofence"`
+	ValidationStatus    string    `json:"validation_status"`
+	ValidationNote      *string   `json:"validation_note,omitempty"`
+	CreatedAt           time.Time `json:"created_at"`
 }
 
 // =========================================================================
@@ -171,25 +171,25 @@ type EventResponse struct {
 // =========================================================================
 
 type SessionResponse struct {
-	ID                         string     `json:"id"`
-	EmployeeID                 string     `json:"employee_id"`
-	WorkDate                   string     `json:"work_date"`
-	ShiftID                    *string    `json:"shift_id,omitempty"`
-	IsOvertimeDay              bool       `json:"is_overtime_day"`
-	OvertimeRequestID          *string    `json:"overtime_request_id,omitempty"`
-	LeaveRequestID             *string    `json:"leave_request_id,omitempty"`
-	PlannedStartLocal          *time.Time `json:"planned_start_local,omitempty"`
-	PlannedEndLocal            *time.Time `json:"planned_end_local,omitempty"`
-	CheckinEventID             *string    `json:"checkin_event_id,omitempty"`
-	CheckoutEventID            *string    `json:"checkout_event_id,omitempty"`
-	Status                     string     `json:"status"`
-	LatenessMinutes            int        `json:"lateness_minutes"`
-	EarlyLeaveMinutes          int        `json:"early_leave_minutes"`
-	WorkMinutes                int        `json:"work_minutes"`
-	BreakMinutes               int        `json:"break_minutes"`
-	OvertimeMinutes            int        `json:"overtime_minutes"`
-	CreatedAt                  time.Time  `json:"created_at"`
-	UpdatedAt                  time.Time  `json:"updated_at"`
+	ID                string     `json:"id"`
+	EmployeeID        string     `json:"employee_id"`
+	WorkDate          string     `json:"work_date"`
+	ShiftID           *string    `json:"shift_id,omitempty"`
+	IsOvertimeDay     bool       `json:"is_overtime_day"`
+	OvertimeRequestID *string    `json:"overtime_request_id,omitempty"`
+	LeaveRequestID    *string    `json:"leave_request_id,omitempty"`
+	PlannedStartLocal *time.Time `json:"planned_start_local,omitempty"`
+	PlannedEndLocal   *time.Time `json:"planned_end_local,omitempty"`
+	CheckinEventID    *string    `json:"checkin_event_id,omitempty"`
+	CheckoutEventID   *string    `json:"checkout_event_id,omitempty"`
+	Status            string     `json:"status"`
+	LatenessMinutes   int        `json:"lateness_minutes"`
+	EarlyLeaveMinutes int        `json:"early_leave_minutes"`
+	WorkMinutes       int        `json:"work_minutes"`
+	BreakMinutes      int        `json:"break_minutes"`
+	OvertimeMinutes   int        `json:"overtime_minutes"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
 // =========================================================================
@@ -213,6 +213,8 @@ type OvertimeResponse struct {
 	StartTimeLocal     time.Time  `json:"start_time_local"`
 	EndTimeLocal       time.Time  `json:"end_time_local"`
 	RequestedMinutes   int        `json:"requested_minutes"`
+	ActualMinutes      *int       `json:"actual_minutes,omitempty"`
+	CalculatedMinutes  *int       `json:"calculated_minutes,omitempty"`
 	Reason             *string    `json:"reason,omitempty"`
 	Status             string     `json:"status"`
 	ApprovedBy         *string    `json:"approved_by,omitempty"`
@@ -251,10 +253,10 @@ type ExemptPositionResponse struct {
 // =========================================================================
 
 type PaginatedResponse struct {
-	Success    bool          `json:"success"`
-	Data       interface{}   `json:"data"`
-	Page       int           `json:"page"`
-	PerPage    int           `json:"per_page"`
-	Total      int64         `json:"total"`
-	TotalPages int           `json:"total_pages"`
+	Success    bool        `json:"success"`
+	Data       interface{} `json:"data"`
+	Page       int         `json:"page"`
+	PerPage    int         `json:"per_page"`
+	Total      int64       `json:"total"`
+	TotalPages int         `json:"total_pages"`
 }

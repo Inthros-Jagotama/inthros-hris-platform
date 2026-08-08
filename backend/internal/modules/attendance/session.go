@@ -10,6 +10,21 @@ import (
 
 const workDateLayout = "2006-01-02"
 
+// normalizeWorkDate handles the same DB round-trip quirk documented for
+// Leave (see leave/balance.go): some drivers (e.g. glebarez/sqlite in tests)
+// return a `type:date` column as a full RFC3339 timestamp instead of plain
+// "2006-01-02". Reformats to workDateLayout so it matches values that were
+// never round-tripped.
+func normalizeWorkDate(workDate string) string {
+	if t, err := time.Parse(workDateLayout, workDate); err == nil {
+		return t.Format(workDateLayout)
+	}
+	if t, err := time.Parse(time.RFC3339, workDate); err == nil {
+		return t.Format(workDateLayout)
+	}
+	return workDate
+}
+
 // recalculateSession is the session calculation engine (§19-24, §43):
 // resolves the employee's shift for workDate, reads that window's raw
 // events, and creates/updates the corresponding AttendanceSession with

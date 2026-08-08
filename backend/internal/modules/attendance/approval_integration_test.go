@@ -128,6 +128,115 @@ func TestService_HandleApprovalStatusChange_Approved(t *testing.T) {
 	}
 }
 
+func TestService_HandleApprovalStatusChange_Approved_CalculatesOvertimeFromSession(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	shift := createTestShift(repo) // 08:00 - 17:00
+	empID := uuid.New()
+	createTestEmployeeShift(repo, empID, shift.ID)
+
+	checkin := CreateEventRequest{
+		EmployeeID:     empID.String(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   "2026-01-15T01:00:00Z",
+		EventTimeLocal: "2026-01-15T08:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	if _, err := svc.CreateEvent(ctx(), checkin); err != nil {
+		t.Fatalf("checkin CreateEvent failed: %v", err)
+	}
+	checkout := checkin
+	checkout.EventType = "CHECKOUT"
+	checkout.EventTimeUTC = "2026-01-15T12:00:00Z"
+	checkout.EventTimeLocal = "2026-01-15T19:00:00+07:00" // 2h (120m) past planned 17:00
+	if _, err := svc.CreateEvent(ctx(), checkout); err != nil {
+		t.Fatalf("checkout CreateEvent failed: %v", err)
+	}
+
+	o := createTestOvertimeRequest(repo, empID) // WorkDate 2026-01-15, RequestedMinutes 120
+	o.Status = OvertimePendingApproval
+	if err := repo.UpdateOvertimeRequest(ctx(), o); err != nil {
+		t.Fatalf("failed to seed overtime request: %v", err)
+	}
+
+	if err := svc.HandleApprovalStatusChange(ctx(), o.ID, "APPROVED", ""); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+
+	updated, err := svc.GetOvertimeRequestByID(ctx(), o.ID.String())
+	if err != nil {
+		t.Fatalf("GetOvertimeRequestByID failed: %v", err)
+	}
+	if updated.ActualMinutes == nil || *updated.ActualMinutes != 120 {
+		t.Errorf("expected actual_minutes 120, got %v", updated.ActualMinutes)
+	}
+	if updated.CalculatedMinutes == nil || *updated.CalculatedMinutes != 120 {
+		t.Errorf("expected calculated_minutes 120, got %v", updated.CalculatedMinutes)
+	}
+
+	session, err := repo.FindSessionByEmployeeAndDate(ctx(), empID, "2026-01-15")
+	if err != nil {
+		t.Fatalf("expected session: %v", err)
+	}
+	if !session.IsOvertimeDay {
+		t.Error("expected session.IsOvertimeDay = true")
+	}
+	if session.OvertimeMinutes != 120 {
+		t.Errorf("expected session.OvertimeMinutes 120, got %d", session.OvertimeMinutes)
+	}
+}
+
+func TestService_HandleApprovalStatusChange_Approved_CalculatedMinutesCappedByRequested(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	shift := createTestShift(repo) // 08:00 - 17:00
+	empID := uuid.New()
+	createTestEmployeeShift(repo, empID, shift.ID)
+
+	checkin := CreateEventRequest{
+		EmployeeID:     empID.String(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   "2026-01-15T01:00:00Z",
+		EventTimeLocal: "2026-01-15T08:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	if _, err := svc.CreateEvent(ctx(), checkin); err != nil {
+		t.Fatalf("checkin CreateEvent failed: %v", err)
+	}
+	checkout := checkin
+	checkout.EventType = "CHECKOUT"
+	checkout.EventTimeUTC = "2026-01-15T13:00:00Z"
+	checkout.EventTimeLocal = "2026-01-15T20:00:00+07:00" // 3h (180m) past planned 17:00
+	if _, err := svc.CreateEvent(ctx(), checkout); err != nil {
+		t.Fatalf("checkout CreateEvent failed: %v", err)
+	}
+
+	o := createTestOvertimeRequest(repo, empID) // RequestedMinutes 120
+	o.Status = OvertimePendingApproval
+	if err := repo.UpdateOvertimeRequest(ctx(), o); err != nil {
+		t.Fatalf("failed to seed overtime request: %v", err)
+	}
+
+	if err := svc.HandleApprovalStatusChange(ctx(), o.ID, "APPROVED", ""); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+
+	updated, err := svc.GetOvertimeRequestByID(ctx(), o.ID.String())
+	if err != nil {
+		t.Fatalf("GetOvertimeRequestByID failed: %v", err)
+	}
+	if updated.ActualMinutes == nil || *updated.ActualMinutes != 180 {
+		t.Errorf("expected actual_minutes 180, got %v", updated.ActualMinutes)
+	}
+	if updated.CalculatedMinutes == nil || *updated.CalculatedMinutes != 120 {
+		t.Errorf("expected calculated_minutes capped at requested 120, got %v", updated.CalculatedMinutes)
+	}
+}
+
 func TestService_HandleApprovalStatusChange_Rejected(t *testing.T) {
 	svc, repo, _, cleanup := newTestService()
 	defer cleanup()

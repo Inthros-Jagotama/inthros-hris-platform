@@ -311,6 +311,8 @@ type AttendanceOvertimeRequest struct {
 	StartTimeLocal    time.Time      `gorm:"not null" json:"start_time_local"`
 	EndTimeLocal      time.Time      `gorm:"not null" json:"end_time_local"`
 	RequestedMinutes  int            `gorm:"not null" json:"requested_minutes"`
+	ActualMinutes     *int           `json:"actual_minutes,omitempty"`
+	CalculatedMinutes *int           `json:"calculated_minutes,omitempty"`
 	Reason            *string        `gorm:"type:varchar(255)" json:"reason,omitempty"`
 	Status            OvertimeStatus `gorm:"type:varchar(255);default:SUBMITTED;index:idx_att_overtime_status" json:"status"`
 	ApprovedBy        *uuid.UUID     `gorm:"type:char(36)" json:"approved_by,omitempty"`
