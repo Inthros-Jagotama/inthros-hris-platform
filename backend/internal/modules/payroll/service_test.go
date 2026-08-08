@@ -442,7 +442,20 @@ func TestService_CreatePayrollRun(t *testing.T) {
 	}
 }
 
-func TestService_UpdatePayrollRunStatus(t *testing.T) {
+// mockApprovalEngine is a minimal ApprovalEngine stub for payroll service tests.
+type mockApprovalEngine struct {
+	instanceID string
+}
+
+func (m *mockApprovalEngine) CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error) {
+	return m.instanceID, nil
+}
+
+func (m *mockApprovalEngine) GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error) {
+	return "APPROVED", nil
+}
+
+func TestService_UpdatePayrollRunStatus_NoApprovalEngine(t *testing.T) {
 	svc, cleanup := newTestService()
 	defer cleanup()
 	ctx := context.Background()
@@ -464,8 +477,46 @@ func TestService_UpdatePayrollRunStatus(t *testing.T) {
 		t.Fatalf("UpdatePayrollRunStatus failed: %v", err)
 	}
 
+	// Without an approval engine (and no flow_id), requesting CALCULATED
+	// auto-advances the run straight to REVIEWED — there is no approval step.
+	if updated.Status != "REVIEWED" {
+		t.Errorf("expected status 'REVIEWED' without approval engine, got '%s'", updated.Status)
+	}
+}
+
+func TestService_UpdatePayrollRunStatus_WithApprovalEngine(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	svc.SetApprovalEngine(&mockApprovalEngine{instanceID: uuid.New().String()})
+
+	period, _ := svc.CreatePayrollPeriod(ctx, CreatePayrollPeriodRequest{
+		PeriodYear: 2026, PeriodMonth: 4,
+		StartDate: "2026-04-01", EndDate: "2026-04-30", AsOfDate: "2026-04-30",
+	})
+
+	run, _ := svc.CreatePayrollRun(ctx, CreatePayrollRunRequest{
+		PayrollPeriodID: period.ID,
+		RunCode:         "RUN-APR-2026",
+	})
+
+	flowID := uuid.New().String()
+	updated, err := svc.UpdatePayrollRunStatus(ctx, run.ID, UpdatePayrollRunStatusRequest{
+		Status: "CALCULATED",
+		FlowID: &flowID,
+	})
+	if err != nil {
+		t.Fatalf("UpdatePayrollRunStatus failed: %v", err)
+	}
+
+	// With an approval engine + flow, the run lands on CALCULATED
+	// and is linked to a created approval instance.
 	if updated.Status != "CALCULATED" {
-		t.Errorf("expected status 'CALCULATED', got '%s'", updated.Status)
+		t.Errorf("expected status 'CALCULATED' with approval engine, got '%s'", updated.Status)
+	}
+	if updated.ApprovalInstanceID == "" {
+		t.Error("expected approval_instance_id to be set with approval engine")
 	}
 }
 

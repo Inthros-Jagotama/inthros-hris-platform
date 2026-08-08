@@ -177,7 +177,7 @@ func TestHandler_CreatePerformancePerspective(t *testing.T) {
 	r, _, cleanup := setupTestRouter()
 	defer cleanup()
 
-	w := performRequest(r, "POST", "/api/v1/tenant/performance/perspectives", map[string]interface{}{
+	w := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/perspectives", map[string]interface{}{
 		"name":       "Financial",
 		"sort_order": 1,
 	})
@@ -190,14 +190,14 @@ func TestHandler_ListPerformancePerspectives(t *testing.T) {
 	r, _, cleanup := setupTestRouter()
 	defer cleanup()
 
-	performRequest(r, "POST", "/api/v1/tenant/performance/perspectives", map[string]interface{}{
+	performRequest(r, "POST", "/api/v1/tenant/performance/kpi/perspectives", map[string]interface{}{
 		"name": "Financial",
 	})
-	performRequest(r, "POST", "/api/v1/tenant/performance/perspectives", map[string]interface{}{
+	performRequest(r, "POST", "/api/v1/tenant/performance/kpi/perspectives", map[string]interface{}{
 		"name": "Customer",
 	})
 
-	w := performRequest(r, "GET", "/api/v1/tenant/performance/perspectives", nil)
+	w := performRequest(r, "GET", "/api/v1/tenant/performance/kpi/perspectives", nil)
 	if w.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", w.Code)
 	}
@@ -211,7 +211,7 @@ func TestHandler_CreatePerformanceTemplate(t *testing.T) {
 	r, _, cleanup := setupTestRouter()
 	defer cleanup()
 
-	w := performRequest(r, "POST", "/api/v1/tenant/performance/templates", map[string]interface{}{
+	w := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/templates", map[string]interface{}{
 		"organization_id": createTestOrgID(),
 		"name":            "Manager Template",
 	})
@@ -236,14 +236,14 @@ func TestHandler_CreatePerformanceEvaluation(t *testing.T) {
 	json.Unmarshal(periodW.Body.Bytes(), &periodResp)
 	periodID := periodResp["data"].(map[string]interface{})["id"].(string)
 
-	tmplW := performRequest(r, "POST", "/api/v1/tenant/performance/templates", map[string]interface{}{
+	tmplW := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/templates", map[string]interface{}{
 		"organization_id": createTestOrgID(), "name": "Template",
 	})
 	var tmplResp map[string]interface{}
 	json.Unmarshal(tmplW.Body.Bytes(), &tmplResp)
 	tmplID := tmplResp["data"].(map[string]interface{})["id"].(string)
 
-	w := performRequest(r, "POST", "/api/v1/tenant/performance/evaluations", map[string]interface{}{
+	w := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/evaluations", map[string]interface{}{
 		"employee_id":     createTestUUID(),
 		"organization_id": createTestOrgID(),
 		"period_id":       periodID,
@@ -266,14 +266,14 @@ func TestHandler_UpdateEvaluationStatus(t *testing.T) {
 	json.Unmarshal(periodW.Body.Bytes(), &periodResp)
 	periodID := periodResp["data"].(map[string]interface{})["id"].(string)
 
-	tmplW := performRequest(r, "POST", "/api/v1/tenant/performance/templates", map[string]interface{}{
+	tmplW := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/templates", map[string]interface{}{
 		"organization_id": createTestOrgID(), "name": "Template",
 	})
 	var tmplResp map[string]interface{}
 	json.Unmarshal(tmplW.Body.Bytes(), &tmplResp)
 	tmplID := tmplResp["data"].(map[string]interface{})["id"].(string)
 
-	evalW := performRequest(r, "POST", "/api/v1/tenant/performance/evaluations", map[string]interface{}{
+	evalW := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/evaluations", map[string]interface{}{
 		"employee_id":     createTestUUID(),
 		"organization_id": createTestOrgID(),
 		"period_id":       periodID,
@@ -283,7 +283,7 @@ func TestHandler_UpdateEvaluationStatus(t *testing.T) {
 	json.Unmarshal(evalW.Body.Bytes(), &evalResp)
 	evalID := evalResp["data"].(map[string]interface{})["id"].(string)
 
-	w := performRequest(r, "PUT", "/api/v1/tenant/performance/evaluations/"+evalID+"/status", map[string]interface{}{
+	w := performRequest(r, "PUT", "/api/v1/tenant/performance/kpi/evaluations/"+evalID+"/status", map[string]interface{}{
 		"status": "PLAN_SUBMITTED",
 	})
 	if w.Code != http.StatusOK {
@@ -303,21 +303,21 @@ func TestHandler_CreateEvaluationDetail(t *testing.T) {
 	json.Unmarshal(periodW.Body.Bytes(), &periodResp)
 	periodID := periodResp["data"].(map[string]interface{})["id"].(string)
 
-	tmplW := performRequest(r, "POST", "/api/v1/tenant/performance/templates", map[string]interface{}{
+	tmplW := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/templates", map[string]interface{}{
 		"organization_id": createTestOrgID(), "name": "Template",
 	})
 	var tmplResp map[string]interface{}
 	json.Unmarshal(tmplW.Body.Bytes(), &tmplResp)
 	tmplID := tmplResp["data"].(map[string]interface{})["id"].(string)
 
-	perspW := performRequest(r, "POST", "/api/v1/tenant/performance/perspectives", map[string]interface{}{
+	perspW := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/perspectives", map[string]interface{}{
 		"name": "Financial",
 	})
 	var perspResp map[string]interface{}
 	json.Unmarshal(perspW.Body.Bytes(), &perspResp)
 	perspID := perspResp["data"].(map[string]interface{})["id"].(string)
 
-	evalW := performRequest(r, "POST", "/api/v1/tenant/performance/evaluations", map[string]interface{}{
+	evalW := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/evaluations", map[string]interface{}{
 		"employee_id":     createTestUUID(),
 		"organization_id": createTestOrgID(),
 		"period_id":       periodID,
@@ -327,7 +327,7 @@ func TestHandler_CreateEvaluationDetail(t *testing.T) {
 	json.Unmarshal(evalW.Body.Bytes(), &evalResp)
 	evalID := evalResp["data"].(map[string]interface{})["id"].(string)
 
-	w := performRequest(r, "POST", "/api/v1/tenant/performance/evaluation-details", map[string]interface{}{
+	w := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/evaluation-details", map[string]interface{}{
 		"performance_evaluation_id": evalID,
 		"perspective_id":           perspID,
 		"achievement_percentage":    90.0,
@@ -351,21 +351,21 @@ func TestHandler_CreatePerformanceTarget(t *testing.T) {
 	json.Unmarshal(periodW.Body.Bytes(), &periodResp)
 	periodID := periodResp["data"].(map[string]interface{})["id"].(string)
 
-	tmplW := performRequest(r, "POST", "/api/v1/tenant/performance/templates", map[string]interface{}{
+	tmplW := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/templates", map[string]interface{}{
 		"organization_id": createTestOrgID(), "name": "Template",
 	})
 	var tmplResp map[string]interface{}
 	json.Unmarshal(tmplW.Body.Bytes(), &tmplResp)
 	tmplID := tmplResp["data"].(map[string]interface{})["id"].(string)
 
-	perspW := performRequest(r, "POST", "/api/v1/tenant/performance/perspectives", map[string]interface{}{
+	perspW := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/perspectives", map[string]interface{}{
 		"name": "Financial",
 	})
 	var perspResp map[string]interface{}
 	json.Unmarshal(perspW.Body.Bytes(), &perspResp)
 	perspID := perspResp["data"].(map[string]interface{})["id"].(string)
 
-	evalW := performRequest(r, "POST", "/api/v1/tenant/performance/evaluations", map[string]interface{}{
+	evalW := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/evaluations", map[string]interface{}{
 		"employee_id":     createTestUUID(),
 		"organization_id": createTestOrgID(),
 		"period_id":       periodID,
@@ -375,7 +375,7 @@ func TestHandler_CreatePerformanceTarget(t *testing.T) {
 	json.Unmarshal(evalW.Body.Bytes(), &evalResp)
 	evalID := evalResp["data"].(map[string]interface{})["id"].(string)
 
-	indW := performRequest(r, "POST", "/api/v1/tenant/performance/indicators", map[string]interface{}{
+	indW := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/indicators", map[string]interface{}{
 		"performance_template_id": tmplID,
 		"perspective_id":         perspID,
 		"indicator_type":         "MAXIMIZATION",
@@ -386,7 +386,7 @@ func TestHandler_CreatePerformanceTarget(t *testing.T) {
 	json.Unmarshal(indW.Body.Bytes(), &indResp)
 	indID := indResp["data"].(map[string]interface{})["id"].(string)
 
-	w := performRequest(r, "POST", "/api/v1/tenant/performance/targets", map[string]interface{}{
+	w := performRequest(r, "POST", "/api/v1/tenant/performance/kpi/targets", map[string]interface{}{
 		"performance_evaluation_id": evalID,
 		"indicator_id":             indID,
 		"target_value":             1000000,
