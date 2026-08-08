@@ -871,6 +871,40 @@ func (s *Service) GetEmployeeCalendar(ctx context.Context, employeeID, fromDate,
 }
 
 // =========================================================================
+// Reports (Phase 9 - Leave Usage Report, §30/§40)
+// =========================================================================
+
+// GetLeaveUsageReport returns every employee's leave requests whose date
+// range overlaps [fromDate, toDate], tenant-wide — the same shape as
+// ListLeaveRequests' response items, mirroring
+// attendance.Service.GetAttendanceReport's tenant-wide report pattern
+// (Attendance Phase 11). This is the data source for the Leave Usage Report
+// and Leave Type Report (the latter is just this data grouped by
+// leave_type_id, no separate endpoint needed — same discipline Attendance
+// used for its Late/Early Leave/Missing Attendance "reports").
+//
+// Balance Report doesn't need a new endpoint either: ListLeaveBalances is
+// already tenant-wide when called without an employee_id filter.
+//
+// Manager Dashboard, HR Dashboard, and Organization Report are NOT built
+// here — all three need to know "who reports to whom"/organization
+// membership, a cross-module employee/organization read that doesn't exist
+// anywhere in this codebase, the same category of gap already deferred for
+// Attendance's Manager/HR Dashboard (Phase 10) and Leave's own Team/
+// Organization Calendar (Phase 7).
+func (s *Service) GetLeaveUsageReport(ctx context.Context, fromDate, toDate string) ([]LeaveRequestResponse, error) {
+	requests, err := s.repo.FindLeaveRequestsInRange(ctx, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]LeaveRequestResponse, 0, len(requests))
+	for _, r := range requests {
+		responses = append(responses, *leaveRequestToResponse(&r))
+	}
+	return responses, nil
+}
+
+// =========================================================================
 // Leave Balances
 // =========================================================================
 

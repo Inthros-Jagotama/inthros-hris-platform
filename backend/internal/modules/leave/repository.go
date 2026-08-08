@@ -264,6 +264,29 @@ func (r *Repository) CountOverlappingLeaveRequests(ctx context.Context, employee
 	return count, err
 }
 
+// FindLeaveRequestsInRange returns every employee's leave requests whose
+// date range overlaps [fromDate, toDate], tenant-wide (no employee_id
+// filter) — the basis for the Leave Usage Report (§9/Phase 9), mirroring
+// attendance.Repository.FindSessionsInRange's tenant-wide report pattern.
+// Unlike CountOverlappingLeaveRequests, REJECTED_FINAL/CANCELLED requests
+// are NOT excluded here — a usage report needs to show the full picture
+// (including what was rejected/cancelled), not just active holds on a date.
+func (r *Repository) FindLeaveRequestsInRange(ctx context.Context, fromDate, toDate string) ([]LeaveRequest, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var requests []LeaveRequest
+	err = db.WithContext(ctx).
+		Where("request_start_date <= ? AND request_end_date >= ?", toDate, fromDate).
+		Order("request_start_date ASC, employee_id ASC").
+		Find(&requests).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to load leave requests in range: %w", err)
+	}
+	return requests, nil
+}
+
 func (r *Repository) UpdateLeaveRequest(ctx context.Context, req *LeaveRequest) error {
 	db, err := r.db(ctx)
 	if err != nil {

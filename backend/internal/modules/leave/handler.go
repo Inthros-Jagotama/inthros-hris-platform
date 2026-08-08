@@ -323,6 +323,25 @@ func (h *Handler) GetEmployeeCalendar(c *gin.Context) {
 }
 
 // =========================================================================
+// Reports
+// =========================================================================
+
+func (h *Handler) GetLeaveUsageReport(c *gin.Context) {
+	from := c.Query("from")
+	to := c.Query("to")
+	if from == "" || to == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": "from and to are required"}})
+		return
+	}
+	resp, err := h.svc.GetLeaveUsageReport(c.Request.Context(), from, to)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+// =========================================================================
 // Leave Balances
 // =========================================================================
 

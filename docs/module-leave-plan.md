@@ -1579,15 +1579,21 @@ Integrate dengan Central Approval Module.
 
 ---
 
-## Phase 9 - Dashboard & Reports
+## Phase 9 - Dashboard & Reports 🔶 Sebagian (2026-08-09)
 
-* Employee Dashboard
-* Manager Dashboard
-* HR Dashboard
-* Leave Usage Report
-* Balance Report
-* Organization Report
-* Leave Type Report
+* Employee Dashboard ✅ Tidak butuh endpoint baru — sudah bisa disusun penuh dari endpoint yang ada (`GET /balances?employee_id=` untuk quota/used/remaining, `GET /requests?employee_id=` untuk upcoming/pending/recent history), murni komposisi di FE
+* Manager Dashboard ⏳ Deferred — butuh cross-module employee/organization read ("siapa bawahan siapa") yang tidak ada interface-nya di manapun di codebase ini, kategori gap yang sama dengan Manager/HR Dashboard Attendance (Phase 10) dan Team/Organization Calendar Leave (Phase 7)
+* HR Dashboard ⏳ Deferred — sama seperti Manager Dashboard
+* Leave Usage Report ✅ Diimplementasikan — lihat catatan di bawah
+* Balance Report ✅ Tidak butuh endpoint baru — `GET /balances` tanpa filter `employee_id` sudah tenant-wide sejak awal
+* Organization Report ⏳ Deferred — sama seperti Manager/HR Dashboard, butuh cross-module organization read
+* Leave Type Report ✅ Tidak butuh endpoint terpisah — data yang sama dari Leave Usage Report, dikelompokkan per `leave_type_id` di sisi consumer (pola yang sama dipakai Attendance untuk Late/Early Leave/Missing Attendance "reports", Phase 11)
+
+> ✅ **Leave Usage Report diimplementasikan.** `GET /api/v1/tenant/leave/reports/usage?from=&to=` (`leave/handler.go` `GetLeaveUsageReport`, `leave/service.go` `Service.GetLeaveUsageReport`) — mengembalikan `[]LeaveRequestResponse` tenant-wide (semua employee) untuk request yang date range-nya overlap dengan `[from, to]` (`Repository.FindLeaveRequestsInRange`), pola yang identik dengan `attendance.Service.GetAttendanceReport` (Attendance Phase 11). **Request `REJECTED_FINAL`/`CANCELLED` sengaja TIDAK dikecualikan** di sini — beda dari Employee Calendar (Phase 7) yang mengecualikan `REJECTED_FINAL` karena kalender menunjukkan hari yang benar-benar jadi leave day, sedangkan usage report justru harus menunjukkan gambaran lengkap termasuk apa yang ditolak/dibatalkan.
+>
+> **Manager Dashboard, HR Dashboard, dan Organization Report sengaja tidak dibangun** — ketiganya butuh mengetahui struktur organisasi/siapa bawahan siapa, cross-module read ke employee/organization yang tidak ada interface-nya di manapun di codebase ini (kategori gap yang sama persis dengan Attendance Phase 10 dan Leave Phase 7). **Employee Dashboard dan Balance Report tidak butuh pekerjaan backend baru** — keduanya sudah bisa dipenuhi dari endpoint existing (`GET /balances`, `GET /requests`), murni pekerjaan FE komposisi, bukan gap backend.
+>
+> Test: `report_test.go` — request tenant-wide dalam rentang tanggal (lintas employee), dan request `REJECTED_FINAL` tetap muncul di hasil (beda perilaku dari kalender). Fixture ditulis lewat repository langsung (`seedLeaveRequest`) untuk menghindari quirk driver sqlite test yang sama seperti `calendar_test.go`.
 
 ---
 
@@ -1665,7 +1671,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 6 - Leave Balance | 🔶 Sebagian (2026-08-08) | **Usage + Reversal + Ledger selesai**: `leave/balance.go` (`applyLeaveUsage`/`reverseLeaveUsage`) — deduct saldo saat status masuk `APPROVED_FINAL`, reverse saat keluar dari `APPROVED_FINAL` (mis. cancel setelah approve), keduanya menulis ke `leave_balance_transactions`. Wired di `HandleApprovalStatusChange` dan `UpdateLeaveRequestStatus`. **Belum ada**: Accrual (seed quota dari `LeaveAccrualPolicy`), Adjustment (endpoint HR), Carry Forward, Expiry |
 | Phase 7 - Calendar & Attendance | 🔶 Sebagian (2026-08-09) | Employee Calendar selesai (`GET /leave/calendar`). Attendance Integration sudah selesai sejak sebelumnya (`leave.AttendanceSessionUpdater`). Team/Organization Calendar sengaja ditunda — butuh cross-module employee/organization read yang belum ada |
 | Phase 8 - Notification | 🔶 Sebagian (2026-08-09) | Approved/Rejected/Cancelled notification lewat `notifyLeaveOutcome`, kini konsisten di kedua jalur (`HandleApprovalStatusChange` push-callback dan `UpdateLeaveRequestStatus` manual). Request Submitted/Approval Required sengaja tidak dibangun (bukan tanggung jawab Leave), Reminder butuh scheduled job (belum ada infra), Balance Notification butuh fitur adjustment (belum ada) |
-| Phase 9 - Dashboard & Reports | ❌ Belum ada | Tidak ada endpoint/handler dashboard atau report |
+| Phase 9 - Dashboard & Reports | 🔶 Sebagian (2026-08-09) | Leave Usage Report selesai (`GET /leave/reports/usage`, tenant-wide). Employee Dashboard & Balance Report tidak butuh endpoint baru (sudah bisa disusun dari `GET /balances`/`GET /requests`). Manager/HR Dashboard & Organization Report sengaja ditunda — butuh cross-module employee/organization read yang belum ada |
 | Phase 10 - Testing | 🔶 Sebagian | Test approval-integration sudah ada; test kalkulasi/balance/cancellation belum ada karena fiturnya sendiri belum ada |
 
 **Frontend**: ❌ belum dimulai — `Leave.vue` hanya placeholder "Coming soon", tidak ada halaman di bawah `views/modules/leave/`.
@@ -1718,7 +1724,7 @@ Catatan: **tidak ada halaman `TeamLeave`/`LeaveDashboard`(Manager/HR)/`LeaveRepo
 
 **Eksplisit di luar cakupan rencana FE ini** (semuanya backend-blocked, bukan keputusan FE):
 * **Team Calendar / Organization Calendar** — tidak ada endpoint (`GET /team-calendar` di §31 API Plan tetap proposal murni). **Employee Calendar** (`GET /leave/calendar`) sudah tersedia sejak 2026-08-09 — lihat catatan update di FE-2 di atas, bukan lagi backend-blocked.
-* **Manager Dashboard, HR Dashboard, Reports** (§30/§39 backend Phase 9) — tidak ada handler/endpoint sama sekali.
+* **Manager Dashboard, HR Dashboard** (§30 backend Phase 9) — tidak ada endpoint, butuh cross-module employee/organization read. **Update 2026-08-09**: `GET /leave/reports/usage?from=&to=` (Leave Usage Report, tenant-wide) sudah diimplementasikan backend-side — halaman FE Report belum dibangun pada penulisan catatan ini, tapi tidak lagi backend-blocked.
 * **Balance Adjustment UI** — tidak ada endpoint `POST /balances/{employee}/adjust` (§26 tetap proposal).
 * **Attendance Integration UI** — tidak ada yang perlu ditampilkan di FE Leave; integrasi ini sudah selesai di sisi backend (Leave backend Phase 9 — `leave.AttendanceSessionUpdater`) dan hasilnya muncul di FE **Attendance**, bukan FE Leave.
 * **Notification bell wiring** — sama seperti catatan Attendance FE, di luar cakupan modul ini (scope `docs/module-notification-plan.md`). Catatan: Leave justru sudah jadi Notifier consumer **pertama** di backend (`leave.Notifier`/`SetNotifier`, `docs/module-notification-plan.md` Phase 4 — mendahului Attendance's Phase 5 rollout), tapi notifikasi itu baru benar-benar terlihat pengguna setelah bell-nya jadi dropdown fungsional, yang tetap di luar cakupan FE plan ini.

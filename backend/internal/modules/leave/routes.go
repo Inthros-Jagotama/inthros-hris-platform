@@ -43,5 +43,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 
 		// Calendar
 		leave.GET("/calendar", handler.GetEmployeeCalendar)
+
+		// Reports
+		leave.GET("/reports/usage", handler.GetLeaveUsageReport)
 	}
 }
