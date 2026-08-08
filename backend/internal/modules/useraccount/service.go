@@ -277,6 +277,31 @@ func (s *Service) GetAccountStatus(ctx context.Context, employeeID string) (*Acc
 	}, nil
 }
 
+// GetMyAccount resolves the employee_accounts row for the currently
+// authenticated user (via authctx.GetUserID), so FE features can look up
+// "my employee_id" without being handed a client-supplied employee_id.
+func (s *Service) GetMyAccount(ctx context.Context) (*AccountResponse, error) {
+	userID := authctx.GetUserID(ctx)
+	if userID == nil {
+		return nil, fmt.Errorf("unauthorized")
+	}
+	acc, err := s.repo.FindAccountByUserID(ctx, *userID)
+	if err != nil {
+		return nil, err
+	}
+	passwordSet := acc.SetupToken == nil || acc.SetupTokenExpiry == nil
+	return &AccountResponse{
+		ID:          acc.ID.String(),
+		EmployeeID:  acc.EmployeeID.String(),
+		UserID:      acc.UserID.String(),
+		Email:       acc.Email,
+		RoleName:    DefaultRoleName,
+		PasswordSet: passwordSet,
+		CreatedAt:   acc.CreatedAt,
+		UpdatedAt:   acc.UpdatedAt,
+	}, nil
+}
+
 // ── Password setup (public, via link email) ──────────────────────────────────
 
 // SetPassword memverifikasi setup token lalu mengeset password baru.

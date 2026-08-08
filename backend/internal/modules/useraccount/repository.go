@@ -47,6 +47,23 @@ func (r *Repository) FindAccountByEmployeeID(ctx context.Context, employeeID uui
 	return &acc, nil
 }
 
+// FindAccountByUserID resolves the employee_accounts row for the platform
+// user_id encoded in the current JWT — the reverse direction of
+// FindAccountByEmployeeID. Used by GetMyAccount so any FE feature needing
+// "my employee_id" (e.g. Attendance's self-service dashboard) can resolve it
+// without a client-supplied employee_id.
+func (r *Repository) FindAccountByUserID(ctx context.Context, userID uuid.UUID) (*EmployeeAccount, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var acc EmployeeAccount
+	if err := db.First(&acc, "user_id = ?", userID).Error; err != nil {
+		return nil, fmt.Errorf("account not found: %w", err)
+	}
+	return &acc, nil
+}
+
 func (r *Repository) FindAccountBySetupToken(ctx context.Context, token string) (*EmployeeAccount, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {

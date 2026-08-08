@@ -80,6 +80,18 @@ func (h *Handler) GetAccountStatus(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+// GET /api/v1/tenant/user-accounts/me — resolusi employee_id milik user yang
+// sedang login, dipakai FE untuk fitur self-service (mis. Attendance My
+// Dashboard) yang butuh employee_id tanpa harus di-supply manual oleh client.
+func (h *Handler) GetMyAccount(c *gin.Context) {
+	resp, err := h.service.GetMyAccount(c.Request.Context())
+	if err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 // POST /api/v1/tenant/user-accounts/employees/:employeeId/resend — kirim ulang email setup.
 func (h *Handler) ResendSetupEmail(c *gin.Context) {
 	resp, err := h.service.ResendSetupEmail(c.Request.Context(), c.Param("employeeId"))

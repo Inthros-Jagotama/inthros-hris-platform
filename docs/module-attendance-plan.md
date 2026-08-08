@@ -2212,6 +2212,79 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 
 ---
 
+# Frontend Implementation Plan
+
+Ditambahkan 2026-08-08. Backend Attendance sudah selesai >90% (lihat Implementation Status di atas) — sisi frontend justru 0%: `frontend/tenant/src/views/modules/Attendance.vue` hanya placeholder satu baris ("Attendance Module — Coming soon"), tidak ada komponen atau pemanggilan API apapun. Sidebar entry (`layouts/Sidebar.vue:346`, `moduleSlug: 'attendance'`, `permission: 'attendance.view'`) dan router stub sudah ada, tapi belum ada halaman nyata di baliknya. Section ini adalah rencana untuk mengisi gap tersebut, mengikuti konvensi FE yang sudah baku di repo ini — bukan pola baru.
+
+## FE-1. Ringkasan & Prinsip
+
+* **Tidak ada dokumen konvensi FE terpisah** — pola diambil dari modul tenant yang sudah punya UI nyata: `views/modules/Employees.vue` + `EmployeeForm.vue` (list+form+pagination+search — template utama), `Organizations.vue`, dan `Approvals.vue`/`ApprovalFlows.vue` (untuk halaman dengan state/tab lebih kompleks). **`Leave.vue` dan `Payroll.vue` masih placeholder sama seperti Attendance** — jangan dipakai sebagai referensi meskipun secara domain lebih mirip.
+* **Tidak ada service-layer/Pinia store per modul.** Komponen memanggil `services/api.js` (axios instance dengan interceptor auth/tenant) langsung dengan path REST mentah, mis. `api.get('/api/v1/tenant/employees', { params })`. Error ditangani lewat `services/responseHandler.js` (`getMessage`, `getErrorMessage`, `getValidationErrors`, `isValidationError`). Attendance mengikuti pola yang sama — tidak membuat `attendanceStore.js` atau `attendanceApi.js` terpisah.
+* **State cukup `ref`/`reactive` lokal per view** (`<script setup>`), bukan Pinia store baru — Pinia di repo ini hanya untuk concern lintas-modul (`stores/auth.js`, `stores/activeModules.js`, dll.).
+* **Approval Overtime/Correction TIDAK dibangun ulang di Attendance.** Backend approval sepenuhnya lewat Central Approval Module (module slug `"attendance"` generik, endpoint approve/reject ada di modul Approval, bukan di `attendance/routes.go`). FE Attendance hanya perlu link-out ke halaman detail approval instance yang sudah ada (pola sama seperti yang seharusnya dilakukan Leave), bukan tombol approve/reject sendiri.
+* **Permission gating** pakai composable yang sudah ada — `useAuth().hasPermission(slug)` (`stores/auth.js`), dipakai inline `v-if="hasPermission('attendance.create')"`. Tidak ada directive `v-can`. Slug permission Attendance yang tersedia (`backend/internal/modules/attendance/module.go`): `attendance.view`, `attendance.create`, `attendance.update`, `attendance.delete` — **tidak ada** `attendance.approve` terpisah, karena approve lewat modul Approval.
+* **Tidak ada link otomatis backend↔frontend.** `moduleSlug`/`permission` di router & sidebar FE adalah string yang di-hardcode manual, harus dicocokkan sendiri dengan `Info().Slug`/`Info().Permissions` backend — bukan digenerate dari manifest manapun. Setiap halaman baru di bawah wajib memakai slug modul `'attendance'` yang sama persis.
+
+## FE-2. Halaman & Routing
+
+Semua route baru sebagai sibling di bawah path `attendance/...`, `meta.module: 'attendance'`, kebab-case path, PascalCase `name`, `meta.titleKey`/`descKey` untuk i18n, sub-halaman pakai `meta.backRoute`/`backLabelKey` mengikuti konvensi routing yang sudah ada di `router/index.js`. Router guard yang sudah ada (`router/index.js:330-346`, cek `useActiveModules().hasModule(meta.module)`) otomatis berlaku tanpa perubahan.
+
+| Halaman | Route (usulan) | Endpoint backend | Permission |
+|---|---|---|---|
+| `Attendance.vue` (My Attendance dashboard: ringkasan + kalender + tombol check-in/out) | `attendance` (existing stub, diisi) | `GET /calendar`, `GET /summary`, `POST /events` | `attendance.view` (create implisit via check-in/out sebagai aksi diri sendiri) |
+| `AttendanceSettings.vue` | `attendance/settings` | `GET/PUT /settings` | `attendance.update` |
+| `AttendanceShifts.vue` + `AttendanceShiftForm.vue` | `attendance/shifts` | `POST/GET /shifts`, `GET/PUT/DELETE /shifts/:id` | `attendance.view`/`create`/`update`/`delete` |
+| `AttendanceEmployeeShifts.vue` + form | `attendance/employee-shifts` | `POST/GET /employee-shifts`, `GET/PUT/DELETE /employee-shifts/:id` | sama pola di atas |
+| `AttendanceLocations.vue` + form | `attendance/locations` | `POST/GET /locations`, `GET/PUT/DELETE /locations/:id` | sama pola di atas |
+| `AttendanceExemptPositions.vue` + form | `attendance/exempt-positions` | `POST/GET /exempt-positions`, `GET/PUT/DELETE /exempt-positions/:id` | sama pola di atas |
+| `AttendanceEvents.vue` (read-only, audit) | `attendance/events` | `GET /events`, `GET /events/:id` | `attendance.view` |
+| `AttendanceSessions.vue` (read-only, per-employee) | `attendance/sessions` | `GET /sessions`, `GET /sessions/detail` | `attendance.view` |
+| `AttendanceOvertime.vue` + `AttendanceOvertimeForm.vue` | `attendance/overtime` | `POST/GET /overtime-requests`, `GET /overtime-requests/:id` | `attendance.view`/`create` |
+| `AttendanceCorrections.vue` + form | `attendance/corrections` | `POST/GET /corrections`, `GET /corrections/:id` | `attendance.view`/`create` |
+| `AttendanceReports.vue` (tenant-wide, admin/HR) | `attendance/reports` | `GET /reports/sessions` | `attendance.view` (direkomendasikan dibatasi lebih lanjut di FE lewat role/permission HR jika tersedia) |
+
+Catatan: `POST /events` adalah endpoint generik untuk CHECKIN & CHECKOUT (`event_type` di body), bukan dua endpoint terpisah — FE cukup satu handler check-in/out yang menentukan `event_type` berdasarkan status sesi terakhir (dari `GET /summary` atau `GET /calendar` hari berjalan).
+
+## FE-3. Development Phases (FE)
+
+Mengikuti gaya granular §55 (backend), diurutkan berdasarkan nilai bagi pengguna dan ketergantungan data:
+
+**Phase FE-1 — My Attendance Dashboard ✅ Selesai (2026-08-08)**
+Halaman utama employee: ringkasan (present/late/missing/leave-days dari `GetEmployeeSummary`), kalender bulan berjalan (`GetEmployeeCalendar`), tombol Check-in/Check-out dengan capture GPS browser (`navigator.geolocation`) yang mengirim `POST /events`. Nilai tertinggi untuk end user biasa — tanpa ini modul Attendance FE benar-benar 0% dipakai sehari-hari.
+
+> ✅ **Diimplementasikan.** `frontend/tenant/src/views/modules/Attendance.vue` (diisi, sebelumnya placeholder): kartu ringkasan (present/late/missing-checkout/leave-days), daftar sesi bulan berjalan dengan status tag, dan tombol Check-in/Check-out yang menentukan `event_type` dari status sesi hari ini (`OPEN` → tombol Check-out, selain itu → Check-in) lalu mengirim `POST /attendance/events` dengan GPS dari `navigator.geolocation`. Menggunakan `services/api.js`/`responseHandler.js` yang sama dengan modul lain — tidak ada service-layer/store baru, sesuai FE-1 di atas.
+>
+> **Blocker yang ditemukan saat implementasi dan cara mengatasinya**: `GetEmployeeSummary`/`GetEmployeeCalendar`/`CreateEvent` semuanya butuh `employee_id` sebagai parameter dari client — tidak ada resolusi otomatis dari user yang login di modul manapun (`performance`'s `GetCurrentEmployeeContextByUserID` adalah pola serupa tapi khusus modul performance, tidak reusable). Tanpa ini, dashboard tidak bisa tahu "employee_id saya sendiri". Ditambahkan endpoint baru **`GET /api/v1/tenant/user-accounts/me`** (`useraccount` module — `Repository.FindAccountByUserID`, `Service.GetMyAccount`, `Handler.GetMyAccount`) yang resolusi `employee_accounts` lewat `authctx.GetUserID(ctx)`, arah sebaliknya dari `FindAccountByEmployeeID` yang sudah ada. Ini bukan endpoint khusus Attendance — sengaja diletakkan di `useraccount` karena modul itu yang memiliki tabel `employee_accounts`, agar fitur self-service modul lain di masa depan (mis. Leave "My Requests") bisa reuse endpoint yang sama tanpa duplikasi logic resolusi.
+>
+> Belum ada test otomatis untuk `GetMyAccount` — package `useraccount` belum punya test harness (`setupTestDB`) sama sekali di codebase ini sebelum perubahan ini, jadi menambah satu test untuk method ini akan berarti membangun seluruh harness baru di luar cakupan Phase FE-1; diverifikasi manual lewat `go build`/`go vet` saja. Revisit jika `useraccount` mendapat test harness di kesempatan lain.
+
+**Phase FE-2 — Admin Configuration**
+`AttendanceSettings`, `AttendanceShifts` (+form), `AttendanceEmployeeShifts` (+form, termasuk validasi overlap yang sudah dilakukan backend — tampilkan error validasi apa adanya lewat `isValidationError`/`getValidationErrors`), `AttendanceLocations` (+form, mis. input lat/long manual atau pick-on-map jika ada komponen map di repo — cek dulu sebelum menambah dependency baru), `AttendanceExemptPositions` (+form). Semua CRUD standar mengikuti pola `Employees.vue`.
+
+**Phase FE-3 — Overtime & Correction Requests**
+`AttendanceOvertime`/`AttendanceCorrections` (+form masing-masing): create request + list status (SUBMITTED/PENDING_APPROVAL/APPROVED/REJECTED). Approve/reject **tidak dibangun di sini** — tampilkan status + link-out ke halaman detail approval instance module Approval yang sudah ada.
+
+**Phase FE-4 — Events & Sessions (Read-only Audit Views)**
+`AttendanceEvents`, `AttendanceSessions`: tabel read-only untuk audit/troubleshooting HR (raw event log, session detail per employee/tanggal). Prioritas lebih rendah dari FE-1/2/3 karena bukan alur kerja harian.
+
+**Phase FE-5 — Tenant-wide Reports**
+`AttendanceReports`: `GET /reports/sessions?from=&to=` dengan filter rentang tanggal, tabel semua employee. Late/Early Leave/Missing Attendance ditampilkan sebagai kolom dari respons yang sama (bukan endpoint terpisah — backend memang tidak menyediakannya, lihat Phase 11 backend).
+
+**Eksplisit di luar cakupan rencana FE ini:**
+* **Manager Dashboard, HR Dashboard, Team Calendar** — backend belum ada (blocked oleh cross-module employee/organization read yang belum ada interface-nya, sama seperti dicatat di backend Phase 10). Tidak ada FE yang bisa dibangun sampai backend-nya ada.
+* **Absent detection di UI mana pun** — status `ABSENT` tidak pernah di-set backend (butuh scheduled job §44-45), jadi FE tidak boleh menampilkan hitungan/badge Absent yang akan selalu 0 dan menyesatkan.
+* **Notification bell wiring** — bell icon sudah ada secara kosmetik (`layouts/HeaderBar.vue:146-156`, badge hardcoded "3", belum ada dropdown/API). Attendance sekarang memicu notifikasi (`OVERTIME_APPROVED/REJECTED`, `CORRECTION_APPROVED/REJECTED` — lihat Phase 12 di atas), tapi mewujudkan bell jadi dropdown fungsional adalah scope `docs/module-notification-plan.md`, bukan bagian dari plan Attendance FE ini.
+* **Export Excel/CSV/PDF** pada Reports — presentation-layer tambahan, di luar cakupan pass pertama FE.
+
+## FE-4. Catatan Teknis
+
+* **Response envelope**: seluruh endpoint pakai `httputil.SuccessJSON`/pola paginated response yang sama dengan modul lain — FE harus mem-parsing respons dengan cara yang sama seperti `Employees.vue` menangani `api.get(...)`, jangan berasumsi shape berbeda untuk Attendance.
+* **Tabel & pagination**: PrimeVue `DataTable` dengan `lazy` + server-side pagination (`:totalRecords`, `:first`, `:rows`, `@page`), loading state pakai komponen `SkeletonTable` yang sudah ada (bukan built-in loading DataTable), search pakai debounce `setTimeout` — semua meniru `Employees.vue`.
+* **Form & validasi**: tidak ada vee-validate/yup/zod di dependency — validasi manual + error dari backend ditangkap lewat try/catch dan `responseHandler.js`. PrimeVue input components dengan `v-model`.
+* **GPS capture** (Phase FE-1) adalah kebutuhan baru yang belum ada polanya di modul lain manapun di FE ini — perlu `navigator.geolocation.getCurrentPosition` langsung di komponen, tidak ada composable existing untuk itu; kalau dipakai di lebih dari satu tempat (mis. juga dibutuhkan saat submit correction dengan lokasi), pertimbangkan composable `useGeolocation()` kecil saat itu terjadi, bukan dibuat spekulatif di awal.
+
+---
+
 # 59. Design Principles
 
 1. `attendance_events` merupakan raw attendance event.
