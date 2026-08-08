@@ -175,7 +175,7 @@ src/views/modules/performance/okr/
 ├── OKRIndex.vue                   # List evaluasi OKR
 ├── OKREvaluationDetail.vue        # Detail evaluasi dengan objectives & key results
 ├── OKRTemplates.vue               # List template OKR
-└── OKRTemplateForm.vue            # Form template dengan objectives & key results
+└── OKRTemplateForm.vue            # Form template — hanya objectives (title/weight); Key Results diusulkan karyawan (Phase 7)
 ```
 
 ---
@@ -301,7 +301,8 @@ src/views/modules/performance/okr/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/v1/tenant/performance/okr/templates` | List templates |
-| POST | `/api/v1/tenant/performance/okr/templates` | Create template |
+| POST | `/api/v1/tenant/performance/okr/templates` | Create template (hanya objectives; Phase 8 gate scope org) |
+| GET | `/api/v1/tenant/performance/okr/templates/objective-scope` | **(Phase 8)** Resolve eligibility + daftar Organization bawahan efektif untuk dropdown form |
 | GET | `/api/v1/tenant/performance/okr/templates/:id` | Get template with objectives |
 | PUT | `/api/v1/tenant/performance/okr/templates/:id` | Update template |
 | DELETE | `/api/v1/tenant/performance/okr/templates/:id` | Delete template |
@@ -317,18 +318,24 @@ src/views/modules/performance/okr/
 | PUT | `/api/v1/tenant/performance/okr/key-results/:id` | Update key result |
 | DELETE | `/api/v1/tenant/performance/okr/key-results/:id` | Delete key result |
 | GET | `/api/v1/tenant/performance/okr/evaluations` | List evaluations |
-| POST | `/api/v1/tenant/performance/okr/evaluations` | Create evaluation with snapshot |
+| POST | `/api/v1/tenant/performance/okr/evaluations` | Create evaluation (hanya referensi `template_id`; Objective dibaca via `GET .../templates/:id/objectives`) |
 | GET | `/api/v1/tenant/performance/okr/evaluations/:id` | Get evaluation |
 | GET | `/api/v1/tenant/performance/okr/evaluations/:id/details` | Get evaluation with details |
 | PUT | `/api/v1/tenant/performance/okr/evaluations/:id` | Update evaluation |
 | DELETE | `/api/v1/tenant/performance/okr/evaluations/:id` | Delete evaluation |
-| PUT | `/api/v1/tenant/performance/okr/evaluations/:id/actuals` | Bulk update actuals |
+| PUT | `/api/v1/tenant/performance/okr/evaluations/:id/actuals` | Bulk update actuals (gated KR_APPROVED) |
+| POST | `/api/v1/tenant/performance/okr/evaluations/:id/key-results` | **(Phase 7)** Usulkan Key Result karyawan (saat DRAFT) |
+| PUT | `/api/v1/tenant/performance/okr/evaluation-key-results/:id/target` | **(Phase 7)** Edit target Key Result yang diusulkan |
+| DELETE | `/api/v1/tenant/performance/okr/evaluation-key-results/:id` | **(Phase 7)** Hapus Key Result yang diusulkan |
+| POST | `/api/v1/tenant/performance/okr/evaluations/:id/submit-key-results` | **(Phase 7)** DRAFT → KR_SUBMITTED |
+| POST | `/api/v1/tenant/performance/okr/evaluations/:id/approve-key-results` | **(Phase 7)** KR_SUBMITTED → KR_APPROVED |
+| POST | `/api/v1/tenant/performance/okr/evaluations/:id/reject-key-results` | **(Phase 7)** KR_SUBMITTED → DRAFT |
 | POST | `/api/v1/tenant/performance/okr/evaluations/:id/recalculate` | Recalculate score |
-| POST | `/api/v1/tenant/performance/okr/evaluations/:id/submit` | Submit evaluation |
-| POST | `/api/v1/tenant/performance/okr/evaluations/:id/approve` | Approve evaluation |
-| POST | `/api/v1/tenant/performance/okr/evaluations/:id/reject` | Reject evaluation |
-| POST | `/api/v1/tenant/performance/okr/evaluations/:id/complete` | Complete evaluation |
-| PUT | `/api/v1/tenant/performance/okr/evaluation-details/:id` | Update detail actual |
+| POST | `/api/v1/tenant/performance/okr/evaluations/:id/submit` | Submit assessment (KR_APPROVED → SUBMITTED) |
+| POST | `/api/v1/tenant/performance/okr/evaluations/:id/approve` | Approve (SUBMITTED → COMPLETED langsung, auto-complete) |
+| POST | `/api/v1/tenant/performance/okr/evaluations/:id/reject` | Reject assessment (SUBMITTED → KR_APPROVED) |
+| POST | `/api/v1/tenant/performance/okr/evaluations/:id/complete` | Legacy manual (hanya evaluasi lama berstatus APPROVED) |
+| PUT | `/api/v1/tenant/performance/okr/evaluation-details/:id` | Update detail actual (gated KR_APPROVED) |
 | GET | `/api/v1/tenant/performance/okr/evaluation-details/:id/progress` | List progress |
 | POST | `/api/v1/tenant/performance/okr/progress` | Create progress (check-in) |
 | PUT | `/api/v1/tenant/performance/okr/progress/:id` | Update progress |
@@ -354,19 +361,20 @@ src/views/modules/performance/okr/
 
 ### Phase 2: OKR Templates
 1. Create `okr/OKRTemplates.vue` - List templates with DataTable
-2. Create `okr/OKRTemplateForm.vue` - Form with nested objectives & key results
-3. Support CRUD for objectives and key results
+2. Create `okr/OKRTemplateForm.vue` - Form dengan objectives (title/weight) saja — sejak Phase 7 Key Results TIDAK lagi didefinisikan di template, diusulkan karyawan saat evaluasi
+3. Support CRUD for objectives
 4. Duplicate template functionality
-5. Weight validation (objectives = 100%, key results per objective = 100%)
+5. Weight validation (objectives = 100%)
 
 ### Phase 3: OKR Evaluation
 1. Create `okr/OKRIndex.vue` - List evaluations with filters
 2. Create `okr/OKREvaluationDetail.vue` - Detail view with:
    - Header card (employee, period, status, final score)
    - Objectives grouped with their key results
-   - Actual value input for DRAFT status
+   - "Ajukan Key Result"/"Simpan Target" saat status DRAFT (proposal KR karyawan — Phase 7)
+   - Actual value input saat status KR_APPROVED (gated backend)
    - Progress check-in panel
-   - Workflow actions (Submit, Approve, Reject, Complete)
+   - Workflow actions dua fase (Submit/Approve/Reject Key Results → Submit/Approve Assessment; approve assessment auto-complete)
 3. Support comments and attachments
 
 ### Phase 4: Progress Check-in
@@ -393,13 +401,10 @@ src/views/modules/performance/okr/
 ### OKRTemplateForm.vue
 - Template info section (Name, Organization, Period, Status)
 - Objectives panel with accordion/expandable rows
-- Each objective has:
-  - Title, Description, Weight
-  - Key Results sub-table
-- Each key result has:
-  - Title, Target Type, Target Value, Unit, Formula, Weight
-- Add/Edit/Delete objectives and key results inline
-- Weight validation
+- Each objective has: Title, Description, Weight
+- Add/Edit/Delete objectives inline
+- Weight validation (objectives = 100%)
+- ⚠️ Sejak **Phase 7**: Key Results sub-table dihapus total — Key Results murni diusulkan karyawan per Objective saat mengisi evaluasi
 
 ### OKREvaluationDetail.vue
 - Header card with:
@@ -412,14 +417,17 @@ src/views/modules/performance/okr/
   - Card per objective with title, weight, achievement
   - Expand to show key results table
   - Key results columns: Title, Target, Actual, Achievement, Score
-  - Inline actual value input (editable in DRAFT)
+  - Saat **DRAFT**: tombol "Ajukan Key Result"/"Simpan Target" (proposal KR karyawan — Phase 7)
+  - Inline actual value input (editable saat **KR_APPROVED** — digerbang backend)
 - Progress panel (collapsible):
   - Add progress button
   - Progress history list per key result
-- Actions footer:
-  - Submit (DRAFT → SUBMITTED)
-  - Approve/Reject (SUBMITTED → APPROVED/DRAFT)
-  - Complete (APPROVED → COMPLETED)
+- Actions footer dua fase (Phase 7):
+  - Submit Key Results (DRAFT → KR_SUBMITTED)
+  - Approve/Reject Key Results (→ KR_APPROVED / → DRAFT)
+  - Submit Assessment (KR_APPROVED → SUBMITTED)
+  - Approve (SUBMITTED → **COMPLETED langsung**, auto-complete — tidak ada tombol "Complete" manual)
+  - Reject Assessment (SUBMITTED → KR_APPROVED)
   - Recalculate score
 
 ---
@@ -435,6 +443,8 @@ src/views/modules/performance/okr/
   - Performance Periods
   - Performance Ratings
   - Performance Indicator Formulas
+- **Alur dua fase (Phase 7 backend):** template OKR hanya mendefinisikan Objective (title/weight) — Key Results diusulkan karyawan sendiri per Objective saat evaluasi DRAFT, lalu melewati 2 checkpoint approval: `submit/approve/reject-key-results` (KR_APPROVED / "OKR Active") dan `submit/approve/reject` assessment (approve final auto-COMPLETED). Detail lengkap: `docs/performance-management-okr-plan.md` Phase 7.
+- **Dropdown Organization pada OKRTemplateForm** memakai `GET .../okr/templates/objective-scope` (Phase 8): hanya Organization bawahan efektif pemanggil yang boleh dipilih saat create — mode edit tetap memakai daftar Organization penuh.
 
 ---
 
@@ -446,3 +456,4 @@ src/views/modules/performance/okr/
 | Phase 2 - OKR Templates | ✅ Completed | 2026-08-06 | OKRTemplates.vue (list), OKRTemplateForm.vue (nested objectives + key results); OKRIndex.vue & OKREvaluationDetail.vue added as stubs to keep build green until phase 3 |
 | Phase 3 - OKR Evaluation | ✅ Completed | 2026-08-06 | OKRIndex.vue (list + create dialog), OKREvaluationDetail.vue (objectives grouped with key results, actual input, recalculate, workflow actions); progress check-in dialog included ahead of schedule |
 | Phase 4 - Progress Check-in | ✅ Completed | 2026-08-06 | Delivered together with phase 3 via check-in dialog on OKREvaluationDetail.vue (add + history per key result) |
+| Phase 5+ - Two-Phase Flow & Cascading (mengikuti backend Phase 7/8) | ✅ Completed | 2026-08-08 | OKREvaluationDetail.vue rework total (proposal KR per Objective, 2 checkpoint approval, auto-complete, tanpa tombol Complete manual), OKRTemplateForm.vue disederhanakan (hanya objectives + dropdown scope org), OKRIndex.vue filter status KR_SUBMITTED/KR_APPROVED, Approvals.vue render submitted-data modul okr_key_result/okr_assessment. Detail: `docs/performance-management-okr-plan.md` Phase 7/8 |
