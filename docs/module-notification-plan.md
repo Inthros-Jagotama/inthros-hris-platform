@@ -1,5 +1,17 @@
 # Notification Module Development Plan
 
+## Implementation Status
+
+| Phase | Status | Catatan |
+|---|---|---|
+| Phase 1 — Database Schema | ✅ Selesai | Migration `074_notification`, model `Notification`, repository CRUD dasar + test. |
+| Phase 2 — Notifier Interface & Service Layer | ⏳ Belum dimulai | |
+| Phase 3 — REST API | ⏳ Belum dimulai | |
+| Phase 4 — Integrasi Leave | ⏳ Belum dimulai | |
+| Phase 5 — Rollout ke Modul Lain | ⏳ Belum dimulai | |
+| Phase 6 — Email/Push Delivery | ⏸️ Di luar cakupan | Butuh keputusan provider terpisah. |
+| Phase 7 — Notification Preferences | ⏸️ Di luar cakupan | Ditunda sampai ada kebutuhan bisnis konkret. |
+
 ## 1. Objective
 
 Membangun modul **Notification** yang bertanggung jawab untuk membuat, menyimpan, mengirim (in-app), dan melacak status baca/belum-baca notifikasi yang dipicu oleh modul lain di HRIS ini.
@@ -194,10 +206,13 @@ Semua titik ini butuh resolusi `employee_id → user_id` (lewat `useraccount`), 
 
 # 9. Development Phases
 
-## Phase 1 - Database Schema
+## Phase 1 - Database Schema ✅ Selesai
 
-* Migration `074_notification` (mysql + postgres) — tabel `notifications`.
-* Model Go `Notification` + repository CRUD dasar.
+* ✅ Migration `074_notification` (mysql + postgres, up + down) — tabel `notifications` dengan index `idx_notification_recipient`, `idx_notification_recipient_unread`, `idx_notification_reference`.
+* ✅ Model Go `Notification` (`backend/internal/modules/notification/model.go`) — UUID PK dengan `BeforeCreate`, `TableName()`.
+* ✅ Repository CRUD dasar (`backend/internal/modules/notification/repository.go`): `CreateNotification`, `FindNotificationByID`, `ListNotificationsByRecipient` (filter `is_read`, paginasi), `UpdateNotification`.
+* ✅ Test repository-level (`repository_test.go`) dengan sqlite in-memory: create+find, list dengan filter unread & paginasi.
+* Belum ada `Notifier` interface, service layer, handler, routes, atau registrasi `main.go` — sesuai batas scope Phase 1 (murni DB layer), dilanjutkan di Phase 2.
 
 ## Phase 2 - Notifier Interface & Service Layer
 
