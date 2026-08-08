@@ -204,7 +204,7 @@ async function handlePunch() {
       latitude: position.coords.latitude,
       longitude: position.coords.longitude,
       accuracy_m: position.coords.accuracy ? Math.round(position.coords.accuracy) : null,
-      location_provider: 'browser'
+      location_provider: 'GPS'
     })
     await loadSummaryAndCalendar()
   } catch (e) {

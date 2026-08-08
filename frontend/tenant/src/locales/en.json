@@ -477,6 +477,7 @@
     "shifts_description": "Define check-in/check-out schedules employees can be assigned to.",
     "employee_shifts_description": "Assign a shift to each employee with an effective date range.",
     "locations_description": "Geofenced locations allowed for check-in/check-out.",
+    "exempt_positions": "Exempt Positions",
     "exempt_positions_description": "Organizations exempted from normal attendance tracking.",
     "shift_name": "Shift Name",
     "check_in_time": "Check-in Time",

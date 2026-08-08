@@ -477,6 +477,7 @@
     "shifts_description": "Definisikan jadwal check-in/check-out yang dapat ditetapkan ke karyawan.",
     "employee_shifts_description": "Tetapkan shift untuk setiap karyawan dengan rentang tanggal efektif.",
     "locations_description": "Lokasi geofence yang diizinkan untuk check-in/check-out.",
+    "exempt_positions": "Posisi Dikecualikan",
     "exempt_positions_description": "Organization yang dikecualikan dari pelacakan absensi normal.",
     "shift_name": "Nama Shift",
     "check_in_time": "Jam Check-in",
