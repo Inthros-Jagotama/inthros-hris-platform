@@ -1348,6 +1348,9 @@ make build            # Build binary
 make run              # Run server
 make run-hot          # Run with hot reload (air)
 make test             # Run all tests
+make race-test        # Run all tests with race detector in Docker (golang:1.24)
+make db-race-up       # Start MySQL + PostgreSQL containers for the migrator integration test
+make db-race-down     # Stop & remove the race-test DB containers
 make lint             # Run linter
 make vet              # Run go vet
 make coverage         # Run tests with coverage report
@@ -1458,6 +1461,38 @@ make coverage     # hasil: coverage.html
 # Short test (tanpa integration)
 make test-short
 ```
+
+### Race Detector (`make race-test`)
+
+Menjalankan full suite dengan **race detector** untuk memastikan tidak ada *data race*:
+
+```bash
+# Cara standar — otomatis menyalakan MySQL + PostgreSQL via Docker, lalu
+# menjalankan seluruh suite dengan -race
+make race-test
+```
+
+**Kenapa Docker?** Race detector Go memerlukan cgo + kompiler C (`CGO_ENABLED=1`). Di Windows tanpa gcc terpasang, `make test` / `make test-verbose` (yang juga memakai `-race`) tidak bisa berjalan — image resmi `golang:1.24` sudah menyertakan gcc, sehingga `-race` berfungsi di dalam container.
+
+**Alur kerja `make race-test`:**
+
+1. **`db-race-up`** (dependency otomatis) — menjalankan container MySQL + PostgreSQL (`--network host`) dengan kredensial yang sesuai DSN *hardcoded* di `internal/pkg/migrator/migrator_integration_test.go`:
+   - MySQL: `root@` tanpa password, port `3306`
+   - PostgreSQL: `postgres:password`, port `5432`
+   - Database: `hris_migrate_test`
+   - Idempotent — container yang sudah ada dipakai ulang; jika rusak, dibuat ulang otomatis.
+2. **Test race** — `go test -race -count=1 -p 4 -timeout 15m ./...` di container `golang:1.24`, dengan volume cache (`go-mod-cache` & `go-build-cache`) agar run berikutnya cepat.
+
+**Perintah terkait:**
+
+```bash
+make race-test                              # Full suite + race detector (DB otomatis)
+make race-test PKG=./internal/modules/leave/...   # Hanya paket tertentu
+make db-race-up                             # Nyalakan DB saja (idempotent)
+make db-race-down                           # Hentikan & hapus container DB
+```
+
+> ⚠️ **Catatan port:** `db-race-up` mengikat port `3306`/`5432` di dalam Docker VM. Jika service `docker compose --profile mysql/postgres up` sedang berjalan, hentikan dulu karena akan terjadi konflik port.
 
 ### Cache Test Details
 

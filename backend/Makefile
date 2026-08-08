@@ -3,6 +3,8 @@
 # make build       - Build Go binary
 # make run         - Run server locally
 # make test        - Run all tests
+# make race-test   - Run all tests with race detector in Docker (golang:1.24)
+# make db-race-up  - Start MySQL + PostgreSQL containers for the migrator integration test
 # make lint        - Run linter
 # make check-openapi - Verify all registered endpoints are documented in openapi.json
 # make docs        - Run check-openapi + regenerate docs/openapi-report.md
@@ -14,10 +16,14 @@
 # make seed        - Run seeders
 # make coverage    - Run tests with coverage
 
-.PHONY: build build-installer run run-hot test test-verbose test-short test-pkg test-employee test-organization test-cache test-cache-quick test-cache-integration test-cache-error bench-cache bench-cache-compare coverage cover-view cover-func lint vet check-openapi docs db-docs check-db-docs migrate seed seed-modules docker docker-compose-up docker-compose-down tidy clean help
+.PHONY: build build-installer run run-hot test test-verbose test-short test-pkg race-test db-race-up db-race-down test-employee test-organization test-cache test-cache-quick test-cache-integration test-cache-error bench-cache bench-cache-compare coverage cover-view cover-func lint vet check-openapi docs db-docs check-db-docs migrate seed seed-modules docker docker-compose-up docker-compose-down tidy clean help
 
 BUILD_DIR := ./bin
 BINARY := $(BUILD_DIR)/server
+
+# Absolute path of the Makefile dir with forward slashes (docker -v source).
+# Normalized so it works whether make is invoked from git-bash, cmd, or Linux.
+BACKEND_DIR := $(subst \,/,$(CURDIR))
 
 # Python interpreter for docs tooling (prefer python3, fallback to python)
 PYTHON := $(shell command -v python3 2>/dev/null || command -v python 2>/dev/null)
@@ -49,6 +55,8 @@ run-hot:
 
 # ============ Test ============
 
+# NOTE: `test` and `test-verbose` run -race locally, which needs cgo + a C
+# compiler. On Windows without gcc these fail; use `make race-test` instead.
 test:
 	@echo "Running all tests..."
 	@go test -v -race -count=1 ./...
@@ -64,6 +72,81 @@ test-short:
 test-pkg:
 	@echo "Running tests for package: $(pkg)"
 	@go test -v -race -count=1 ./internal/$(pkg)/...
+
+# Run the full test suite with the race detector inside a golang:1.24 container.
+#
+# Why Docker: on Windows the race detector requires cgo + a C compiler
+# (CGO_ENABLED=1), which is not always installed locally. The official golang
+# image ships with gcc, so -race works out of the box.
+#
+# Details:
+#   - --network host  : integration tests (migrator) reach MySQL:3306 &
+#                       PostgreSQL:5432 (started automatically via db-race-up).
+#   - volume caches   : go-mod-cache & go-build-cache persist across runs so
+#                       repeat invocations are fast.
+#   - MSYS_NO_PATHCONV: prevents git-bash from mangling the -v mount path
+#                       (Windows only; harmless no-op on Linux/macOS).
+#   - PKG override    : e.g. make race-test PKG=./internal/modules/leave/...
+# Default target set: the whole module tree.
+GO_TEST_IMAGE ?= golang:1.24
+RACE_PARALLEL ?= 4
+PKG ?= ./...
+
+# DB containers for the migrator integration test. The DSNs are hardcoded in
+# internal/pkg/migrator/migrator_integration_test.go:
+#   MySQL    : root:@tcp(localhost:3306)/hris_migrate_test
+#   Postgres : postgres:password@localhost:5432/hris_migrate_test
+RACE_MYSQL_CTR ?= hris-race-mysql
+RACE_PG_CTR ?= hris-race-pg
+RACE_MYSQL_IMAGE ?= mysql:8.0
+RACE_PG_IMAGE ?= postgres:16-alpine
+
+# Container creation commands (shared so db-race-up avoids duplication).
+RACE_MYSQL_RUN := docker run -d --name $(RACE_MYSQL_CTR) --network host -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -e MYSQL_DATABASE=hris_migrate_test $(RACE_MYSQL_IMAGE)
+RACE_PG_RUN := docker run -d --name $(RACE_PG_CTR) --network host -e POSTGRES_PASSWORD=password -e POSTGRES_DB=hris_migrate_test $(RACE_PG_IMAGE)
+
+# Start MySQL + PostgreSQL as --network host containers matching the DSNs above.
+# Idempotent: reuses an existing container; if it exists but fails to start, it is
+# removed and recreated. NOTE: ports 3306/5432 must be free inside the Docker VM —
+# stop `docker compose --profile mysql/postgres up` services first if they run.
+db-race-up:
+	@echo "Starting race-test DBs (MySQL + PostgreSQL, --network host)..."
+	@if docker inspect $(RACE_MYSQL_CTR) >/dev/null 2>&1; then \
+		docker start $(RACE_MYSQL_CTR) >/dev/null 2>&1 || { docker rm -f $(RACE_MYSQL_CTR) >/dev/null 2>&1; $(RACE_MYSQL_RUN); }; \
+	else \
+		$(RACE_MYSQL_RUN); \
+	fi
+	@if docker inspect $(RACE_PG_CTR) >/dev/null 2>&1; then \
+		docker start $(RACE_PG_CTR) >/dev/null 2>&1 || { docker rm -f $(RACE_PG_CTR) >/dev/null 2>&1; $(RACE_PG_RUN); }; \
+	else \
+		$(RACE_PG_RUN); \
+	fi
+	@echo "Waiting for DBs to accept connections..."
+	@for i in $$(seq 1 40); do \
+		mysql_up=$$(docker exec $(RACE_MYSQL_CTR) mysqladmin ping -uroot --silent >/dev/null 2>&1 && echo up || echo down); \
+		pg_up=$$(docker exec $(RACE_PG_CTR) pg_isready -U postgres -h localhost >/dev/null 2>&1 && echo up || echo down); \
+		if [ "$$mysql_up" = up ] && [ "$$pg_up" = up ]; then echo "DBs ready (t=$$((i*3))s)"; exit 0; fi; \
+		sleep 3; \
+	done; \
+	echo "ERROR: DBs not ready within 120s"; exit 1
+
+# Stop and remove the race-test DB containers.
+db-race-down:
+	@echo "Stopping & removing race-test DB containers..."
+	@docker rm -f $(RACE_MYSQL_CTR) 2>/dev/null || true
+	@docker rm -f $(RACE_PG_CTR) 2>/dev/null || true
+	@echo "DB containers removed."
+
+race-test: db-race-up
+	@echo "Running tests with race detector in Docker ($(GO_TEST_IMAGE))..."
+	@echo "  NOTE: MySQL + PostgreSQL started automatically by db-race-up (migrator integration test)."
+	@MSYS_NO_PATHCONV=1 docker run --rm \
+		--network host \
+		-v "$(BACKEND_DIR):/app" \
+		-v go-mod-cache:/go/pkg/mod \
+		-v go-build-cache:/root/.cache/go-build \
+		-w /app \
+		$(GO_TEST_IMAGE) go test -race -count=1 -p $(RACE_PARALLEL) -timeout 15m $(PKG)
 
 test-employee:
 	@echo "Running employee module tests..."
@@ -206,6 +289,9 @@ help:
 	@echo "test-verbose   - Run all tests, output to test-output.log"
 	@echo "test-short     - Run short tests (non-integration)"
 	@echo "test-pkg pkg=   - Run tests for a specific package (e.g. pkg=modules/employee)"
+	@echo "race-test PKG=  - Run tests with race detector in Docker; starts DBs via db-race-up; PKG=./... default"
+	@echo "db-race-up      - Start MySQL + PostgreSQL (--network host) for migrator integration test"
+	@echo "db-race-down    - Stop & remove race-test DB containers"
 	@echo "test-employee  - Run employee module tests"
 	@echo "test-organization - Run organization module tests"
 	@echo "test-cache     - Run ALL cache tests (unit + integration)"
