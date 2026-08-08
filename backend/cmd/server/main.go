@@ -542,6 +542,21 @@ func main() {
 		return performanceSvc.HandleRealizationApprovalStatusChange(ctx, documentID, string(status), note)
 	})
 
+	// Construct the OKR service up front (instead of inside performance.NewModule)
+	// so its two push-based approval status handlers (Key Result approval,
+	// assessment approval — two independent checkpoints on the same
+	// evaluation) can be registered with approvalSvc before the module is
+	// mounted. Reuses the same shared approval adapter as performance (KPI).
+	okrRepo := performance.NewOKRRepository()
+	okrSvc := performance.NewOKRService(okrRepo, performanceResolver)
+	okrSvc.SetApprovalEngine(sharedApprovalEngine)
+	approvalSvc.RegisterStatusHandler(performance.ApprovalModuleOKRKeyResult, func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return okrSvc.HandleKeyResultApprovalStatusChange(ctx, documentID, string(status), note)
+	})
+	approvalSvc.RegisterStatusHandler(performance.ApprovalModuleOKRAssessment, func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return okrSvc.HandleAssessmentApprovalStatusChange(ctx, documentID, string(status), note)
+	})
+
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees
 	// dari file .lic. Pada mode saas, licenseLister memakai company_modules DB.
@@ -615,7 +630,7 @@ func main() {
 			Priority: 9,
 		},
 		module.ModuleRegistration{
-			Module:   performance.NewModuleWithService(dbManager, l, performanceSvc),
+			Module:   performance.NewModuleWithServices(dbManager, l, performanceSvc, okrSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 10,
 		},

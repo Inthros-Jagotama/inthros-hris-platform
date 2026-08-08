@@ -1,7 +1,9 @@
 package performance
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,7 +12,7 @@ import (
 
 type OKRService interface {
 	// OKR Templates
-	CreateTemplate(db *gorm.DB, req *CreateOKRTemplateRequest) (*OKRTemplateResponse, error)
+	CreateTemplate(db *gorm.DB, userID uuid.UUID, req *CreateOKRTemplateRequest) (*OKRTemplateResponse, error)
 	GetTemplateByID(db *gorm.DB, id uuid.UUID) (*OKRTemplateResponse, error)
 	GetTemplateWithObjectives(db *gorm.DB, id uuid.UUID) (*OKRTemplateResponse, error)
 	ListTemplates(db *gorm.DB, orgID *uuid.UUID, periodID *uuid.UUID, status *int, page, perPage int) ([]OKRTemplateResponse, int64, error)
@@ -34,6 +36,9 @@ type OKRService interface {
 
 	// OKR Evaluations
 	CreateEvaluationWithSnapshot(db *gorm.DB, req *CreateOKREvaluationRequest) (*OKREvaluationResponse, error)
+	CreateEvaluationKeyResult(db *gorm.DB, req *CreateOKREvaluationKeyResultRequest) (*OKREvaluationDetailResponse, error)
+	UpdateEvaluationKeyResultTarget(db *gorm.DB, id uuid.UUID, req *UpdateOKREvaluationKeyResultTargetRequest) (*OKREvaluationDetailResponse, error)
+	DeleteEvaluationKeyResult(db *gorm.DB, id uuid.UUID) error
 	GetEvaluationByID(db *gorm.DB, id uuid.UUID) (*OKREvaluationResponse, error)
 	GetEvaluationWithDetails(db *gorm.DB, id uuid.UUID) (*OKREvaluationResponse, error)
 	ListEvaluations(db *gorm.DB, employeeID, orgID, periodID *uuid.UUID, status *string, page, perPage int) ([]OKREvaluationResponse, int64, error)
@@ -46,7 +51,10 @@ type OKRService interface {
 	RecalculateEvaluationScore(db *gorm.DB, evaluationID uuid.UUID) (*OKREvaluationResponse, error)
 
 	// Workflow
-	SubmitEvaluation(db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID) (*OKREvaluationResponse, error)
+	SubmitKeyResults(ctx context.Context, db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID) (*OKREvaluationResponse, error)
+	ApproveKeyResults(db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID) (*OKREvaluationResponse, error)
+	RejectKeyResults(db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID, notes string) (*OKREvaluationResponse, error)
+	SubmitEvaluation(ctx context.Context, db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID) (*OKREvaluationResponse, error)
 	ApproveEvaluation(db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID) (*OKREvaluationResponse, error)
 	RejectEvaluation(db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID, notes string) (*OKREvaluationResponse, error)
 	CompleteEvaluation(db *gorm.DB, evaluationID uuid.UUID) (*OKREvaluationResponse, error)
@@ -74,24 +82,154 @@ type OKRService interface {
 
 	// My Context (self-assessment)
 	GetMyOKRContext(db *gorm.DB, userID uuid.UUID) (*MyOKRContextResponse, error)
+
+	// Cascading objective creation (top-down through the org hierarchy)
+	GetObjectiveCreationScope(db *gorm.DB, userID uuid.UUID) (*OKRObjectiveScopeResponse, error)
+
+	// Central approval module integration
+	SetApprovalEngine(engine ApprovalEngine)
+	HandleKeyResultApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error
+	HandleAssessmentApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error
 }
+
+// ApprovalModuleOKRKeyResult/OKRAssessment are separate approval module
+// slugs (not just "okr") because Key Result approval and final assessment
+// approval are two independent approval instances on the same evaluation,
+// potentially configured with different flows/approvers — mirrors
+// ApprovalModuleKPITarget/KPIRealization.
+const (
+	ApprovalModuleOKRKeyResult  = "okr_key_result"
+	ApprovalModuleOKRAssessment = "okr_assessment"
+)
 
 type okrServiceImpl struct {
-	repo OKRRepository
+	repo           OKRRepository
+	dbResolver     TenantDBFunc
+	approvalEngine ApprovalEngine
 }
 
-func NewOKRService(repo OKRRepository) OKRService {
-	return &okrServiceImpl{repo: repo}
+func NewOKRService(repo OKRRepository, dbResolver TenantDBFunc) OKRService {
+	return &okrServiceImpl{repo: repo, dbResolver: dbResolver}
+}
+
+// SetApprovalEngine wires the central approval module into the OKR service —
+// mirrors Service.SetApprovalEngine for KPI.
+func (s *okrServiceImpl) SetApprovalEngine(engine ApprovalEngine) {
+	s.approvalEngine = engine
 }
 
 // =========================================================================
 // OKR Templates
 // =========================================================================
 
-func (s *okrServiceImpl) CreateTemplate(db *gorm.DB, req *CreateOKRTemplateRequest) (*OKRTemplateResponse, error) {
+// resolveObjectiveEligibility determines whether ownOrgID is currently
+// allowed to create an Objective for a subordinate: true if it's the top of
+// the hierarchy (no parent — seeds the cascade), otherwise true only if it
+// has already received its own Objective (an active Template with
+// Objectives targeting it).
+func (s *okrServiceImpl) resolveObjectiveEligibility(db *gorm.DB, ownOrgID uuid.UUID) (bool, string, error) {
+	parent, err := s.repo.GetOrganizationParentID(db, ownOrgID)
+	if err != nil {
+		return false, "", err
+	}
+	if parent == nil {
+		return true, "", nil
+	}
+	hasOwn, err := s.repo.HasActiveTemplateWithObjectives(db, ownOrgID)
+	if err != nil {
+		return false, "", err
+	}
+	if !hasOwn {
+		return false, "okr.objective_scope_ineligible_no_own_objective", nil
+	}
+	return true, "", nil
+}
+
+// GetObjectiveCreationScope resolves whether the calling employee can
+// currently create an Objective (a Template) for a subordinate Organization,
+// and which Organizations qualify as their effective subordinates (direct
+// children, walking down through vacant Organizations — see
+// GetEffectiveChildOrganizationIDs).
+func (s *okrServiceImpl) GetObjectiveCreationScope(db *gorm.DB, userID uuid.UUID) (*OKRObjectiveScopeResponse, error) {
+	_, ownOrgID, err := s.repo.GetCurrentEmployeeContext(db, userID)
+	if err != nil {
+		return nil, err
+	}
+	if ownOrgID == nil {
+		return &OKRObjectiveScopeResponse{
+			Eligible:                 false,
+			IneligibleReasonKey:      "okr.objective_scope_ineligible_no_position",
+			SubordinateOrganizations: []OrganizationOptionResponse{},
+		}, nil
+	}
+
+	eligible, reasonKey, err := s.resolveObjectiveEligibility(db, *ownOrgID)
+	if err != nil {
+		return nil, err
+	}
+
+	subordinateIDs, err := s.repo.GetEffectiveChildOrganizationIDs(db, *ownOrgID)
+	if err != nil {
+		return nil, err
+	}
+	names, err := s.repo.GetOrganizationNamesByIDs(db, subordinateIDs)
+	if err != nil {
+		return nil, err
+	}
+	ownName, err := s.repo.GetOrganizationName(db, *ownOrgID)
+	if err != nil {
+		return nil, err
+	}
+
+	subordinates := make([]OrganizationOptionResponse, 0, len(subordinateIDs))
+	for _, id := range subordinateIDs {
+		subordinates = append(subordinates, OrganizationOptionResponse{ID: id.String(), Name: names[id.String()]})
+	}
+
+	return &OKRObjectiveScopeResponse{
+		OrganizationID:           ownOrgID.String(),
+		OrganizationName:         ownName,
+		Eligible:                 eligible,
+		IneligibleReasonKey:      reasonKey,
+		SubordinateOrganizations: subordinates,
+	}, nil
+}
+
+func (s *okrServiceImpl) CreateTemplate(db *gorm.DB, userID uuid.UUID, req *CreateOKRTemplateRequest) (*OKRTemplateResponse, error) {
 	orgID, err := uuid.Parse(req.OrganizationID)
 	if err != nil {
 		return nil, errors.New("invalid organization_id")
+	}
+
+	_, ownOrgID, err := s.repo.GetCurrentEmployeeContext(db, userID)
+	if err != nil {
+		return nil, err
+	}
+	if ownOrgID == nil {
+		return nil, errors.New("you don't have an active position, so no subordinate organization can be resolved")
+	}
+
+	eligible, _, err := s.resolveObjectiveEligibility(db, *ownOrgID)
+	if err != nil {
+		return nil, err
+	}
+	if !eligible {
+		return nil, errors.New("you must have your own objective before you can create one for a subordinate")
+	}
+
+	subordinateIDs, err := s.repo.GetEffectiveChildOrganizationIDs(db, *ownOrgID)
+	if err != nil {
+		return nil, err
+	}
+	isSubordinate := false
+	for _, id := range subordinateIDs {
+		if id == orgID {
+			isSubordinate = true
+			break
+		}
+	}
+	if !isSubordinate {
+		return nil, errors.New("this organization is not one of your effective subordinates")
 	}
 
 	template := &OKRTemplate{
@@ -494,34 +632,158 @@ func (s *okrServiceImpl) CreateEvaluationWithSnapshot(db *gorm.DB, req *CreateOK
 		return nil, err
 	}
 
-	var details []OKREvaluationDetail
+	// Objectives are "received" implicitly via TemplateID (the frontend reads
+	// GET /okr/templates/:id/objectives to know which Objectives to propose
+	// Key Results under) — Key Results themselves are NOT copied from the
+	// Template here. The employee proposes their own Key Results per
+	// Objective while the evaluation is DRAFT (see CreateEvaluationKeyResult),
+	// mirroring KPI's employee-authored Program items.
+	_ = template
+
+	return s.GetEvaluationWithDetails(db, evaluation.ID)
+}
+
+// =========================================================================
+// Employee-Proposed Key Results (DRAFT phase)
+// =========================================================================
+
+// CreateEvaluationKeyResult adds an employee-proposed Key Result under one
+// of the evaluation's snapshotted Objectives, only while the evaluation is
+// DRAFT. Total Key Result weight within a single Objective cannot exceed
+// 100%. Mirrors performance.Service.CreateProgramItem for KPI.
+func (s *okrServiceImpl) CreateEvaluationKeyResult(db *gorm.DB, req *CreateOKREvaluationKeyResultRequest) (*OKREvaluationDetailResponse, error) {
+	evalID, err := uuid.Parse(req.EvaluationID)
+	if err != nil {
+		return nil, errors.New("invalid evaluation_id")
+	}
+	objID, err := uuid.Parse(req.ObjectiveID)
+	if err != nil {
+		return nil, errors.New("invalid objective_id")
+	}
+
+	evaluation, err := s.repo.GetOKREvaluationByID(db, evalID)
+	if err != nil {
+		return nil, err
+	}
+	if evaluation.Status != OKRStatusDraft {
+		return nil, fmt.Errorf("key results can only be proposed while the evaluation is in DRAFT status, current: %s", evaluation.Status)
+	}
+
+	existing, err := s.repo.ListOKREvaluationDetailsByEvaluationID(db, evalID)
+	if err != nil {
+		return nil, err
+	}
+	existingWeight := 0.0
 	sortOrder := 0
-	for _, obj := range template.Objectives {
-		for _, kr := range obj.KeyResults {
-			detail := OKREvaluationDetail{
-				EvaluationID:    evaluation.ID,
-				ObjectiveID:     &obj.ID,
-				KeyResultID:     &kr.ID,
-				ObjectiveTitle:  obj.Title,
-				KeyResultTitle:  kr.Title,
-				ObjectiveWeight: obj.Weight,
-				KeyResultWeight: kr.Weight,
-				TargetValue:     kr.TargetValue,
-				TargetType:      kr.TargetType,
-				Unit:            kr.Unit,
-				FormulaType:     kr.FormulaType,
-				SortOrder:       sortOrder,
-			}
-			details = append(details, detail)
+	for _, d := range existing {
+		if d.ObjectiveID != nil && *d.ObjectiveID == objID {
+			existingWeight += d.KeyResultWeight
 			sortOrder++
 		}
 	}
-
-	if err := s.repo.CreateOKREvaluationDetailsBatch(db, details); err != nil {
-		return nil, err
+	if existingWeight+req.Weight > 100 {
+		return nil, fmt.Errorf("total weight of key results for this objective cannot exceed 100%%, currently at %.2f%%", existingWeight)
 	}
 
-	return s.GetEvaluationWithDetails(db, evaluation.ID)
+	targetType := TargetType(req.TargetType)
+	if targetType == "" {
+		targetType = TargetTypeNumber
+	}
+	formulaType := FormulaType(req.FormulaType)
+	if formulaType == "" {
+		formulaType = FormulaTypeHigherBetter
+	}
+
+	detail := &OKREvaluationDetail{
+		EvaluationID:    evalID,
+		ObjectiveID:     &objID,
+		ObjectiveTitle:  req.ObjectiveTitle,
+		KeyResultTitle:  req.Title,
+		ObjectiveWeight: req.ObjectiveWeight,
+		KeyResultWeight: req.Weight,
+		TargetValue:     req.TargetValue,
+		TargetType:      targetType,
+		Unit:            req.Unit,
+		FormulaType:     formulaType,
+		SortOrder:       sortOrder,
+	}
+	if err := s.repo.CreateOKREvaluationDetail(db, detail); err != nil {
+		return nil, err
+	}
+	return s.evaluationDetailToResponse(detail), nil
+}
+
+// UpdateEvaluationKeyResultTarget edits an employee-proposed Key Result,
+// only while the evaluation is DRAFT.
+func (s *okrServiceImpl) UpdateEvaluationKeyResultTarget(db *gorm.DB, id uuid.UUID, req *UpdateOKREvaluationKeyResultTargetRequest) (*OKREvaluationDetailResponse, error) {
+	detail, err := s.repo.GetOKREvaluationDetailByID(db, id)
+	if err != nil {
+		return nil, err
+	}
+	evaluation, err := s.repo.GetOKREvaluationByID(db, detail.EvaluationID)
+	if err != nil {
+		return nil, err
+	}
+	if evaluation.Status != OKRStatusDraft {
+		return nil, fmt.Errorf("key result target can only be edited while the evaluation is in DRAFT status, current: %s", evaluation.Status)
+	}
+
+	if req.Weight != nil && *req.Weight != detail.KeyResultWeight {
+		others, err := s.repo.ListOKREvaluationDetailsByEvaluationID(db, detail.EvaluationID)
+		if err != nil {
+			return nil, err
+		}
+		otherWeight := 0.0
+		for _, d := range others {
+			if d.ID != detail.ID && d.ObjectiveID != nil && detail.ObjectiveID != nil && *d.ObjectiveID == *detail.ObjectiveID {
+				otherWeight += d.KeyResultWeight
+			}
+		}
+		if otherWeight+*req.Weight > 100 {
+			return nil, fmt.Errorf("total weight of key results for this objective cannot exceed 100%%, other key results already total %.2f%%", otherWeight)
+		}
+	}
+
+	if req.Title != nil {
+		detail.KeyResultTitle = *req.Title
+	}
+	if req.TargetType != nil {
+		detail.TargetType = TargetType(*req.TargetType)
+	}
+	if req.TargetValue != nil {
+		detail.TargetValue = *req.TargetValue
+	}
+	if req.Unit != nil {
+		detail.Unit = req.Unit
+	}
+	if req.FormulaType != nil {
+		detail.FormulaType = FormulaType(*req.FormulaType)
+	}
+	if req.Weight != nil {
+		detail.KeyResultWeight = *req.Weight
+	}
+
+	if err := s.repo.UpdateOKREvaluationDetail(db, detail); err != nil {
+		return nil, err
+	}
+	return s.evaluationDetailToResponse(detail), nil
+}
+
+// DeleteEvaluationKeyResult removes an employee-proposed Key Result, only
+// while the evaluation is DRAFT.
+func (s *okrServiceImpl) DeleteEvaluationKeyResult(db *gorm.DB, id uuid.UUID) error {
+	detail, err := s.repo.GetOKREvaluationDetailByID(db, id)
+	if err != nil {
+		return err
+	}
+	evaluation, err := s.repo.GetOKREvaluationByID(db, detail.EvaluationID)
+	if err != nil {
+		return err
+	}
+	if evaluation.Status != OKRStatusDraft {
+		return fmt.Errorf("key results can only be removed while the evaluation is in DRAFT status, current: %s", evaluation.Status)
+	}
+	return s.repo.DeleteOKREvaluationDetail(db, id)
 }
 
 func (s *okrServiceImpl) GetEvaluationByID(db *gorm.DB, id uuid.UUID) (*OKREvaluationResponse, error) {
@@ -529,7 +791,11 @@ func (s *okrServiceImpl) GetEvaluationByID(db *gorm.DB, id uuid.UUID) (*OKREvalu
 	if err != nil {
 		return nil, err
 	}
-	return s.evaluationToResponse(evaluation), nil
+	resp := s.evaluationToResponse(evaluation)
+	if err := s.enrichEvaluationResponses(db, []*OKREvaluationResponse{resp}); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (s *okrServiceImpl) GetEvaluationWithDetails(db *gorm.DB, id uuid.UUID) (*OKREvaluationResponse, error) {
@@ -537,7 +803,11 @@ func (s *okrServiceImpl) GetEvaluationWithDetails(db *gorm.DB, id uuid.UUID) (*O
 	if err != nil {
 		return nil, err
 	}
-	return s.evaluationToResponseWithDetails(evaluation), nil
+	resp := s.evaluationToResponseWithDetails(evaluation)
+	if err := s.enrichEvaluationResponses(db, []*OKREvaluationResponse{resp}); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (s *okrServiceImpl) ListEvaluations(db *gorm.DB, employeeID, orgID, periodID *uuid.UUID, status *string, page, perPage int) ([]OKREvaluationResponse, int64, error) {
@@ -547,11 +817,81 @@ func (s *okrServiceImpl) ListEvaluations(db *gorm.DB, employeeID, orgID, periodI
 	}
 
 	responses := make([]OKREvaluationResponse, len(evaluations))
+	refs := make([]*OKREvaluationResponse, len(evaluations))
 	for i, e := range evaluations {
 		responses[i] = *s.evaluationToResponse(&e)
+		refs[i] = &responses[i]
+	}
+	if err := s.enrichEvaluationResponses(db, refs); err != nil {
+		return nil, 0, err
 	}
 
 	return responses, total, nil
+}
+
+// enrichEvaluationResponses batch-populates EmployeeName and
+// OrganizationName (Organization = Position in this platform's convention,
+// so this doubles as the "jabatan" shown on the evaluation detail page) on
+// a set of already-built responses — mirrors the equivalent KPI evaluation
+// enrichment in performance/service.go.
+func (s *okrServiceImpl) enrichEvaluationResponses(db *gorm.DB, responses []*OKREvaluationResponse) error {
+	if len(responses) == 0 {
+		return nil
+	}
+
+	empIDSet := make(map[uuid.UUID]struct{})
+	orgIDSet := make(map[uuid.UUID]struct{})
+	periodIDSet := make(map[uuid.UUID]struct{})
+	for _, r := range responses {
+		if id, err := uuid.Parse(r.EmployeeID); err == nil {
+			empIDSet[id] = struct{}{}
+		}
+		if id, err := uuid.Parse(r.OrganizationID); err == nil {
+			orgIDSet[id] = struct{}{}
+		}
+		if id, err := uuid.Parse(r.PeriodID); err == nil {
+			periodIDSet[id] = struct{}{}
+		}
+	}
+
+	empIDs := make([]uuid.UUID, 0, len(empIDSet))
+	for id := range empIDSet {
+		empIDs = append(empIDs, id)
+	}
+	orgIDs := make([]uuid.UUID, 0, len(orgIDSet))
+	for id := range orgIDSet {
+		orgIDs = append(orgIDs, id)
+	}
+	periodIDs := make([]uuid.UUID, 0, len(periodIDSet))
+	for id := range periodIDSet {
+		periodIDs = append(periodIDs, id)
+	}
+
+	empNames, err := s.repo.GetEmployeeNamesByIDs(db, empIDs)
+	if err != nil {
+		return err
+	}
+	orgNames, err := s.repo.GetOrganizationNamesByIDs(db, orgIDs)
+	if err != nil {
+		return err
+	}
+	periodCodes, err := s.repo.GetPeriodCodesByIDs(db, periodIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, r := range responses {
+		if name, ok := empNames[r.EmployeeID]; ok {
+			r.EmployeeName = name
+		}
+		if name, ok := orgNames[r.OrganizationID]; ok {
+			r.OrganizationName = name
+		}
+		if code, ok := periodCodes[r.PeriodID]; ok {
+			r.PeriodCode = code
+		}
+	}
+	return nil
 }
 
 func (s *okrServiceImpl) UpdateEvaluation(db *gorm.DB, id uuid.UUID, req *UpdateOKREvaluationRequest) (*OKREvaluationResponse, error) {
@@ -587,6 +927,13 @@ func (s *okrServiceImpl) UpdateEvaluationDetailActual(db *gorm.DB, id uuid.UUID,
 	if err != nil {
 		return nil, err
 	}
+	evaluation, err := s.repo.GetOKREvaluationByID(db, detail.EvaluationID)
+	if err != nil {
+		return nil, err
+	}
+	if evaluation.Status != OKRStatusKRApproved {
+		return nil, fmt.Errorf("actual can only be filled once key results are approved, current status: %s", evaluation.Status)
+	}
 
 	detail.ActualValue = req.ActualValue
 	if req.Remarks != nil {
@@ -604,6 +951,14 @@ func (s *okrServiceImpl) UpdateEvaluationDetailActual(db *gorm.DB, id uuid.UUID,
 }
 
 func (s *okrServiceImpl) BulkUpdateEvaluationActuals(db *gorm.DB, evaluationID uuid.UUID, req *OKRBulkUpdateActualsRequest) error {
+	evaluation, err := s.repo.GetOKREvaluationByID(db, evaluationID)
+	if err != nil {
+		return err
+	}
+	if evaluation.Status != OKRStatusKRApproved {
+		return fmt.Errorf("actuals can only be filled once key results are approved, current status: %s", evaluation.Status)
+	}
+
 	for _, item := range req.Details {
 		detailID, err := uuid.Parse(item.ID)
 		if err != nil {
@@ -665,23 +1020,64 @@ func (s *okrServiceImpl) calculateAchievement(actual, target float64, formulaTyp
 }
 
 // =========================================================================
-// Workflow
+// Workflow — Key Result proposal phase (DRAFT -> KR_SUBMITTED -> KR_APPROVED)
 // =========================================================================
 
-func (s *okrServiceImpl) SubmitEvaluation(db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID) (*OKREvaluationResponse, error) {
+// SubmitKeyResults moves an evaluation from DRAFT to KR_SUBMITTED — the
+// employee's proposed Key Results are sent to their supervisor for review.
+// Requires every snapshotted Objective to have at least one Key Result with
+// weight > 0. Mirrors performance.Service.SubmitTarget for KPI.
+func (s *okrServiceImpl) SubmitKeyResults(ctx context.Context, db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID) (*OKREvaluationResponse, error) {
 	evaluation, err := s.repo.GetOKREvaluationByID(db, evaluationID)
 	if err != nil {
 		return nil, err
 	}
-
 	if evaluation.Status != OKRStatusDraft {
-		return nil, errors.New("only draft evaluations can be submitted")
+		return nil, fmt.Errorf("key results can only be submitted from DRAFT status, current: %s", evaluation.Status)
+	}
+
+	details, err := s.repo.ListOKREvaluationDetailsByEvaluationID(db, evaluationID)
+	if err != nil {
+		return nil, err
+	}
+	if len(details) == 0 {
+		return nil, errors.New("at least one key result must be proposed before submitting")
+	}
+	weightByObjective := make(map[uuid.UUID]float64)
+	for _, d := range details {
+		if d.ObjectiveID != nil {
+			weightByObjective[*d.ObjectiveID] += d.KeyResultWeight
+		}
+	}
+	for _, w := range weightByObjective {
+		if w <= 0 {
+			return nil, errors.New("each objective must have at least one key result with weight greater than 0")
+		}
 	}
 
 	now := time.Now()
-	evaluation.Status = OKRStatusSubmitted
-	evaluation.SubmittedAt = &now
-	evaluation.SubmittedBy = &userID
+	evaluation.Status = OKRStatusKRSubmitted
+	evaluation.KRSubmittedAt = &now
+
+	// Route through the central approval module when a flow is configured
+	// for this module; ApproveKeyResults/RejectKeyResults remain the manual
+	// fallback only when no flow is configured at all. If a flow IS
+	// configured but fails to resolve, the whole submission must fail
+	// rather than silently degrading to manual mode — mirrors
+	// performance.Service.SubmitTarget for KPI.
+	if s.approvalEngine != nil {
+		if flowID, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, ApprovalModuleOKRKeyResult); err == nil {
+			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, ApprovalModuleOKRKeyResult, evaluation.ID.String(), flowID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to route key results for approval: %w", err)
+			}
+			parsedInstanceID, err := uuid.Parse(instanceID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid approval instance id returned: %w", err)
+			}
+			evaluation.KRApprovalInstanceID = &parsedInstanceID
+		}
+	}
 
 	if err := s.repo.UpdateOKREvaluation(db, evaluation); err != nil {
 		return nil, err
@@ -690,6 +1086,97 @@ func (s *okrServiceImpl) SubmitEvaluation(db *gorm.DB, evaluationID uuid.UUID, u
 	return s.evaluationToResponse(evaluation), nil
 }
 
+// ApproveKeyResults moves KR_SUBMITTED -> KR_APPROVED ("OKR Active") — the
+// manual-fallback path used when no central approval flow is configured.
+func (s *okrServiceImpl) ApproveKeyResults(db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID) (*OKREvaluationResponse, error) {
+	evaluation, err := s.repo.GetOKREvaluationByID(db, evaluationID)
+	if err != nil {
+		return nil, err
+	}
+	if evaluation.Status != OKRStatusKRSubmitted {
+		return nil, fmt.Errorf("only key-result-submitted evaluations can be approved, current: %s", evaluation.Status)
+	}
+
+	evaluation.Status = OKRStatusKRApproved
+
+	if err := s.repo.UpdateOKREvaluation(db, evaluation); err != nil {
+		return nil, err
+	}
+
+	return s.evaluationToResponse(evaluation), nil
+}
+
+// RejectKeyResults reverts KR_SUBMITTED -> DRAFT so the employee can revise
+// their proposed Key Results.
+func (s *okrServiceImpl) RejectKeyResults(db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID, notes string) (*OKREvaluationResponse, error) {
+	evaluation, err := s.repo.GetOKREvaluationByID(db, evaluationID)
+	if err != nil {
+		return nil, err
+	}
+	if evaluation.Status != OKRStatusKRSubmitted {
+		return nil, fmt.Errorf("only key-result-submitted evaluations can be rejected, current: %s", evaluation.Status)
+	}
+
+	evaluation.Status = OKRStatusDraft
+	if notes != "" {
+		evaluation.ReviewerNotes = &notes
+	}
+
+	if err := s.repo.UpdateOKREvaluation(db, evaluation); err != nil {
+		return nil, err
+	}
+
+	return s.evaluationToResponse(evaluation), nil
+}
+
+// =========================================================================
+// Workflow — Assessment phase (KR_APPROVED -> SUBMITTED -> COMPLETED)
+// =========================================================================
+
+// SubmitEvaluation moves an evaluation from KR_APPROVED ("OKR Active", after
+// check-in and self-assessment actuals are filled) to SUBMITTED — the
+// employee's final self-assessment sent to their supervisor.
+func (s *okrServiceImpl) SubmitEvaluation(ctx context.Context, db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID) (*OKREvaluationResponse, error) {
+	evaluation, err := s.repo.GetOKREvaluationByID(db, evaluationID)
+	if err != nil {
+		return nil, err
+	}
+
+	if evaluation.Status != OKRStatusKRApproved {
+		return nil, fmt.Errorf("evaluation can only be submitted once its key results are approved, current: %s", evaluation.Status)
+	}
+
+	now := time.Now()
+	evaluation.Status = OKRStatusSubmitted
+	evaluation.SubmittedAt = &now
+	evaluation.SubmittedBy = &userID
+
+	// Same hard-fail-if-configured-but-unresolvable semantics as SubmitKeyResults.
+	if s.approvalEngine != nil {
+		if flowID, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, ApprovalModuleOKRAssessment); err == nil {
+			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, ApprovalModuleOKRAssessment, evaluation.ID.String(), flowID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to route assessment for approval: %w", err)
+			}
+			parsedInstanceID, err := uuid.Parse(instanceID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid approval instance id returned: %w", err)
+			}
+			evaluation.AssessmentApprovalInstanceID = &parsedInstanceID
+		}
+	}
+
+	if err := s.repo.UpdateOKREvaluation(db, evaluation); err != nil {
+		return nil, err
+	}
+
+	return s.evaluationToResponse(evaluation), nil
+}
+
+// ApproveEvaluation changes status from SUBMITTED directly to COMPLETED —
+// this is the final approval step for the assessment, so there's no
+// separate manual "Complete" action needed afterward. Mirrors
+// performance.Service.ApproveEvaluation for KPI.
 func (s *okrServiceImpl) ApproveEvaluation(db *gorm.DB, evaluationID uuid.UUID, userID uuid.UUID) (*OKREvaluationResponse, error) {
 	evaluation, err := s.repo.GetOKREvaluationByID(db, evaluationID)
 	if err != nil {
@@ -701,7 +1188,7 @@ func (s *okrServiceImpl) ApproveEvaluation(db *gorm.DB, evaluationID uuid.UUID, 
 	}
 
 	now := time.Now()
-	evaluation.Status = OKRStatusApproved
+	evaluation.Status = OKRStatusCompleted
 	evaluation.ApprovedAt = &now
 	evaluation.ApprovedBy = &userID
 
@@ -722,14 +1209,87 @@ func (s *okrServiceImpl) RejectEvaluation(db *gorm.DB, evaluationID uuid.UUID, u
 		return nil, errors.New("only submitted evaluations can be rejected")
 	}
 
-	evaluation.Status = OKRStatusDraft
-	evaluation.ReviewerNotes = &notes
+	// Reverts to KR_APPROVED (not all the way to DRAFT) — the Key Results
+	// were already approved separately, the employee only needs to revise
+	// their self-assessment actuals.
+	evaluation.Status = OKRStatusKRApproved
+	if notes != "" {
+		evaluation.ReviewerNotes = &notes
+	}
 
 	if err := s.repo.UpdateOKREvaluation(db, evaluation); err != nil {
 		return nil, err
 	}
 
 	return s.evaluationToResponse(evaluation), nil
+}
+
+// HandleKeyResultApprovalStatusChange is invoked by the approval module's
+// push-based status callback when a Key Result approval instance reaches a
+// final state, so the evaluation's own status updates itself. Mirrors
+// performance.Service.HandleTargetApprovalStatusChange for KPI.
+func (s *okrServiceImpl) HandleKeyResultApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	db, err := s.dbResolver(ctx)
+	if err != nil {
+		return err
+	}
+	evaluation, err := s.repo.GetOKREvaluationByID(db, documentID)
+	if err != nil {
+		return err
+	}
+	if evaluation.Status != OKRStatusKRSubmitted {
+		return nil
+	}
+
+	switch status {
+	case "APPROVED":
+		evaluation.Status = OKRStatusKRApproved
+	case "REJECTED", "CANCELLED":
+		evaluation.Status = OKRStatusDraft
+		evaluation.KRSubmittedAt = nil
+		if note != "" {
+			evaluation.ReviewerNotes = &note
+		}
+	default:
+		return nil
+	}
+
+	return s.repo.UpdateOKREvaluation(db, evaluation)
+}
+
+// HandleAssessmentApprovalStatusChange is invoked by the approval module's
+// push-based status callback when an assessment approval instance reaches a
+// final state. Final approval completes the evaluation directly. Mirrors
+// performance.Service.HandleRealizationApprovalStatusChange for KPI.
+func (s *okrServiceImpl) HandleAssessmentApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	db, err := s.dbResolver(ctx)
+	if err != nil {
+		return err
+	}
+	evaluation, err := s.repo.GetOKREvaluationByID(db, documentID)
+	if err != nil {
+		return err
+	}
+	if evaluation.Status != OKRStatusSubmitted {
+		return nil
+	}
+
+	now := time.Now()
+	switch status {
+	case "APPROVED":
+		evaluation.Status = OKRStatusCompleted
+		evaluation.ApprovedAt = &now
+	case "REJECTED", "CANCELLED":
+		evaluation.Status = OKRStatusKRApproved
+		evaluation.SubmittedAt = nil
+		if note != "" {
+			evaluation.ReviewerNotes = &note
+		}
+	default:
+		return nil
+	}
+
+	return s.repo.UpdateOKREvaluation(db, evaluation)
 }
 
 func (s *okrServiceImpl) CompleteEvaluation(db *gorm.DB, evaluationID uuid.UUID) (*OKREvaluationResponse, error) {
@@ -1111,6 +1671,12 @@ func (s *okrServiceImpl) evaluationToResponse(e *OKREvaluation) *OKREvaluationRe
 	}
 	if e.ReviewerNotes != nil {
 		resp.ReviewerNotes = *e.ReviewerNotes
+	}
+	if e.KRApprovalInstanceID != nil {
+		resp.KRApprovalInstanceID = e.KRApprovalInstanceID.String()
+	}
+	if e.AssessmentApprovalInstanceID != nil {
+		resp.AssessmentApprovalInstanceID = e.AssessmentApprovalInstanceID.String()
 	}
 	return resp
 }

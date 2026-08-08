@@ -162,7 +162,7 @@ const routes = [
         path: 'performance/kpi/templates',
         name: 'KPITemplates',
         component: () => import('@/views/modules/performance/kpi/KPITemplates.vue'),
-        meta: { title: 'KPI Templates', titleKey: 'kpi.templates', descKey: 'kpi.templates_desc', icon: 'pi pi-file', module: 'performance' }
+        meta: { title: 'KPI Templates', titleKey: 'kpi.templates', descKey: 'kpi.templates_desc', icon: 'pi pi-file', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title' }
       },
       {
         path: 'performance/kpi/templates/new',
@@ -210,7 +210,7 @@ const routes = [
         path: 'performance/okr/templates',
         name: 'OKRTemplates',
         component: () => import('@/views/modules/performance/okr/OKRTemplates.vue'),
-        meta: { title: 'OKR Templates', titleKey: 'okr.templates', descKey: 'okr.templates_desc', icon: 'pi pi-file', module: 'performance' }
+        meta: { title: 'OKR Templates', titleKey: 'okr.templates', descKey: 'okr.templates_desc', icon: 'pi pi-file', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title' }
       },
       {
         path: 'performance/okr/templates/new',

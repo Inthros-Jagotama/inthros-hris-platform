@@ -10,7 +10,7 @@ Dokumen ini menjelaskan struktur database HRIS Platform: arsitektur dua-database
 | Database | Isi | Jumlah Tabel |
 |---|---|---|
 | **Platform DB** | Data multi-tenant: companies, modul, lisensi, paket, RBAC platform | 11 |
-| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 166 |
+| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 172 |
 
 > Sumber kebenaran: file migrasi SQL di `backend/internal/pkg/migrator/migrations/` (dialect `postgres/` & `mysql/` identik).
 
@@ -22,10 +22,10 @@ Database pusat penyedia SaaS (Platform Central DB). Menyimpan data **perusahaan/
 
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
-| `companies` | 14 | - |
+| `companies` | 16 | - |
 | `tenant_connections` | 13 | company_id->companies |
 | `platform_users` | 10 | - |
-| `modules` | 9 | - |
+| `modules` | 10 | - |
 | `company_modules` | 4 | company_id->companies, module_id->modules |
 | `licenses` | 12 | company_id->companies |
 | `rbac_roles` | 8 | parent_id->rbac_roles |
@@ -53,6 +53,8 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
         TIMESTAMP deleted_at
+        VARCHAR subdomain
+        VARCHAR domain
     }
     tenant_connections {
         CHAR id
@@ -91,6 +93,7 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
         TIMESTAMP deleted_at
+        VARCHAR module_type
     }
     company_modules {
         CHAR company_id
@@ -173,7 +176,7 @@ erDiagram
 
 Satu database terisolasi **per company** (database per tenant). Struktur identik untuk semua tenant (dibuat saat provisioning company).
 
-Total **166 tabel** dikelompokkan dalam 18 modul:
+Total **172 tabel** dikelompokkan dalam 18 modul:
 
 | # | Modul | Jumlah Tabel |
 |---|---|---|
@@ -184,12 +187,12 @@ Total **166 tabel** dikelompokkan dalam 18 modul:
 | 5 | Leave | 6 |
 | 6 | Payroll | 21 |
 | 7 | Competency | 7 |
-| 8 | Job Management | 21 |
-| 9 | Approval Engine | 5 |
+| 8 | Job Management | 22 |
+| 9 | Approval Engine | 6 |
 | 10 | RBAC & Auth | 9 |
 | 11 | Employee Movement | 2 |
 | 12 | Reimbursement | 3 |
-| 13 | Performance — KPI | 13 |
+| 13 | Performance — KPI | 17 |
 | 14 | Performance — OKR | 8 |
 | 15 | Recruitment | 7 |
 | 16 | Training | 7 |
@@ -217,8 +220,8 @@ Total **166 tabel** dikelompokkan dalam 18 modul:
 | `banks` | 7 | - |
 | `nationalities` | 7 | - |
 | `salary_grades` | 10 | - |
-| `ptkps` | 8 | - |
-| `ters` | 9 | - |
+| `ptkps` | 9 | - |
+| `ters` | 10 | - |
 | `insurances` | 7 | - |
 | `company_holidays` | 6 | - |
 | `document_templates` | 7 | - |
@@ -380,6 +383,7 @@ erDiagram
         CHAR id
         VARCHAR name
         BIGINT ptkp
+        CHAR group
         CHAR created_by
         CHAR updated_by
         TIMESTAMP created_at
@@ -388,6 +392,7 @@ erDiagram
     }
     ters {
         CHAR id
+        CHAR group
         BIGINT bruto_min
         BIGINT bruto_max
         DECIMAL rate
@@ -438,7 +443,7 @@ erDiagram
 | `zones` | 13 | - |
 | `organizations` | 17 | organization_summary_id->organization_summaries, parent_id->organizations, zone_id->zones, job_family_id->job_families, grading_id->gradings |
 | `positions` | 14 | organization_id->organizations, parent_position_id->positions, job_family_id->job_families, grading_id->gradings |
-| `job_family_competencies` | 5 | job_family_id->job_families |
+| `job_family_competencies` | 5 | job_family_id->job_families, competency_id->competencies |
 
 ### ERD — Organization
 
@@ -532,15 +537,15 @@ erDiagram
 
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
-| `employees` | 24 | religion_id->religions, marital_status_id->marital_statuses |
+| `employees` | 24 | religion_id->religions, marital_status_id->marital_statuses, nationality_id->nationalities |
 | `employments` | 13 | employee_id->employees, organization_id->organizations, position_id->positions, employment_status_id->employment_statuses |
 | `employee_addresses` | 13 | employee_id->employees, province_id->provinces, regency_id->regencies, district_id->districts, village_id->villages |
 | `emergency_contacts` | 10 | employee_id->employees, relationship_type_id->relationship_types |
 | `employee_families` | 11 | employee_id->employees, relationship_type_id->relationship_types, education_id->educations |
-| `employee_educations` | 10 | employee_id->employees, education_id->educations |
+| `employee_educations` | 11 | employee_id->employees, education_id->educations |
 | `employee_experiences` | 10 | employee_id->employees |
 | `employee_documents` | 9 | employee_id->employees |
-| `employee_insurances` | 10 | employee_id->employees |
+| `employee_insurances` | 11 | employee_id->employees, insurance_id->insurances |
 | `employee_bank_accounts` | 9 | employee_id->employees |
 
 ### ERD — Employee
@@ -639,6 +644,7 @@ erDiagram
         CHAR updated_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR education_major_id
     }
     employee_experiences {
         CHAR id
@@ -674,6 +680,7 @@ erDiagram
         CHAR updated_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR insurance_id
     }
     employee_bank_accounts {
         CHAR id
@@ -710,7 +717,7 @@ erDiagram
 | `attendance_face_captures` | 11 | employee_id->employees |
 | `attendance_events` | 20 | employee_id->employees, device_id->attendance_device_captures, face_capture_id->attendance_face_captures |
 | `attendance_sessions` | 23 | employee_id->employees, shift_id->attendance_company_shifts, checkin_event_id->attendance_events, checkout_event_id->attendance_events |
-| `attendance_overtime_requests` | 13 | employee_id->employees |
+| `attendance_overtime_requests` | 14 | employee_id->employees |
 | `attendance_exempt_positions` | 9 | organization_id->organizations |
 
 ### ERD — Attendance
@@ -858,6 +865,7 @@ erDiagram
         VARCHAR approval_note
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR approval_instance_id
     }
     attendance_exempt_positions {
         CHAR id
@@ -1015,7 +1023,7 @@ erDiagram
 | `pph21_settings` | 24 | pph21_component_id->salary_components |
 | `pph21_ptkp_rates` | 11 | - |
 | `pph21_tax_brackets` | 12 | - |
-| `payroll_runs` | 19 | payroll_period_id->payroll_periods |
+| `payroll_runs` | 20 | payroll_period_id->payroll_periods |
 | `payroll_run_employees` | 18 | payroll_run_id->payroll_runs, employee_id->employees, employment_id->employments, position_id->positions |
 | `payroll_run_items` | 23 | payroll_run_id->payroll_runs, payroll_run_employee_id->payroll_run_employees, salary_component_id->salary_components |
 | `payroll_payslips` | 23 | payroll_run_id->payroll_runs, payroll_run_employee_id->payroll_run_employees, employee_id->employees |
@@ -1333,6 +1341,7 @@ erDiagram
         CHAR updated_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR approval_instance_id
     }
     payroll_run_employees {
         CHAR id
@@ -1583,11 +1592,11 @@ erDiagram
 |---|---|---|
 | `job_management_titles` | 8 | - |
 | `job_management_title_subs` | 10 | - |
-| `job_management_values` | 14 | - |
+| `job_management_values` | 16 | - |
 | `job_management_objectives` | 9 | organization_id->organizations |
 | `job_management_identifications` | 9 | organization_id->organizations, grading_id->gradings |
 | `job_management_responsibilities` | 12 | organization_id->organizations |
-| `job_management_education_experiences` | 10 | organization_id->organizations |
+| `job_management_education_experiences` | 15 | organization_id->organizations, education_id->educations, education_major_id->education_majors, job_family_id->job_families, education_id->job_management_values, experience_id->job_management_values |
 | `job_management_hr_authorities` | 9 | organization_id->organizations |
 | `job_management_operational_authorities` | 9 | organization_id->organizations |
 | `job_management_working_activities` | 9 | organization_id->organizations |
@@ -1597,11 +1606,12 @@ erDiagram
 | `job_management_assets` | 10 | organization_id->organizations |
 | `job_management_financials` | 12 | organization_id->organizations |
 | `job_management_potency_competencies` | 9 | organization_id->organizations, competency_id->competencies |
-| `job_management_scores` | 10 | organization_id->organizations |
+| `job_management_scores` | 12 | organization_id->organizations |
 | `job_management_competency_groups` | 6 | organization_id->organizations |
-| `job_management_majors` | 5 | - |
-| `job_management_job_family` | 5 | - |
-| `job_management_relationship_details` | 8 | - |
+| `job_management_value_clusters` | 5 | - |
+| `job_management_majors` | 5 | job_management_education_experience_id->job_management_education_experiences, education_major_id->education_majors |
+| `job_management_job_family` | 5 | job_management_education_experience_id->job_management_education_experiences, job_family_id->job_families |
+| `job_management_relationship_details` | 8 | job_management_relationship_id->job_management_relationships, organization_id->organizations |
 
 ### ERD — Job Management
 
@@ -1644,6 +1654,8 @@ erDiagram
         CHAR updated_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        VARCHAR type_group
+        TEXT description_group
     }
     job_management_objectives {
         CHAR id
@@ -1692,6 +1704,11 @@ erDiagram
         CHAR updated_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR education_id
+        CHAR education_major_id
+        CHAR job_family_id
+        VARCHAR experience_range
+        CHAR experience_id
     }
     job_management_hr_authorities {
         CHAR id
@@ -1809,12 +1826,21 @@ erDiagram
         TIMESTAMP calculated_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        SMALLINT is_complete
+        TIMESTAMP completed_at
     }
     job_management_competency_groups {
         CHAR id
         CHAR organization_id
         VARCHAR category
         DECIMAL weight
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    job_management_value_clusters {
+        UUID id
+        VARCHAR type
+        VARCHAR cluster
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
@@ -1842,6 +1868,11 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
+    job_management_values ||--o{ job_management_education_experiences : "education_id"
+    job_management_values ||--o{ job_management_education_experiences : "experience_id"
+    job_management_education_experiences ||--o{ job_management_majors : "job_management_education_experience_id"
+    job_management_education_experiences ||--o{ job_management_job_family : "job_management_education_experience_id"
+    job_management_relationships ||--o{ job_management_relationship_details : "job_management_relationship_id"
 ```
 
 
@@ -1850,10 +1881,11 @@ erDiagram
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
 | `approval_flows` | 8 | - |
-| `approval_flow_steps` | 15 | flow_id->approval_flows |
+| `approval_flow_steps` | 17 | flow_id->approval_flows |
 | `approval_instances` | 10 | flow_id->approval_flows |
 | `approval_actions` | 7 | instance_id->approval_instances |
 | `approval_tasks` | 9 | instance_id->approval_instances |
+| `approval_flow_step_organizations` | 4 | step_id->approval_flow_steps |
 
 ### ERD — Approval Engine
 
@@ -1885,6 +1917,8 @@ erDiagram
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        INT hierarchy_level
+        VARCHAR participation_type
     }
     approval_instances {
         CHAR id
@@ -1918,10 +1952,17 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
+    approval_flow_step_organizations {
+        CHAR id
+        CHAR step_id
+        CHAR organization_id
+        TIMESTAMP created_at
+    }
     approval_flows ||--o{ approval_flow_steps : "flow_id"
     approval_flows ||--o{ approval_instances : "flow_id"
     approval_instances ||--o{ approval_actions : "instance_id"
     approval_instances ||--o{ approval_tasks : "instance_id"
+    approval_flow_steps ||--o{ approval_flow_step_organizations : "step_id"
 ```
 
 
@@ -1929,7 +1970,7 @@ erDiagram
 
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
-| `features` | 6 | - |
+| `features` | 7 | - |
 | `permissions` | 5 | - |
 | `roles` | 8 | - |
 | `feature_permission` | 5 | feature_id->features, permission_id->permissions |
@@ -1947,6 +1988,7 @@ erDiagram
         CHAR id
         VARCHAR name
         VARCHAR slug
+        VARCHAR group
         VARCHAR description
         TIMESTAMP created_at
         TIMESTAMP updated_at
@@ -2026,7 +2068,7 @@ erDiagram
 
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
-| `employee_movements` | 25 | employee_id->employees, from_employment_id->employments, to_employment_id->employments, from_organization_id->organizations, to_organization_id->organizations, from_position_id->positions, to_position_id->positions, from_employment_status_id->employment_statuses, to_employment_status_id->employment_statuses |
+| `employee_movements` | 26 | employee_id->employees, from_employment_id->employments, to_employment_id->employments, from_organization_id->organizations, to_organization_id->organizations, from_position_id->positions, to_position_id->positions, from_employment_status_id->employment_statuses, to_employment_status_id->employment_statuses |
 | `employee_contracts` | 16 | employee_id->employees, previous_contract_id->employee_contracts |
 
 ### ERD — Employee Movement
@@ -2059,6 +2101,7 @@ erDiagram
         CHAR updated_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR approval_instance_id
     }
     employee_contracts {
         CHAR id
@@ -2087,7 +2130,7 @@ erDiagram
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
 | `reimbursement_types` | 8 | - |
-| `reimbursement_requests` | 23 | - |
+| `reimbursement_requests` | 24 | - |
 | `reimbursement_items` | 10 | - |
 
 ### ERD — Reimbursement
@@ -2128,6 +2171,7 @@ erDiagram
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR approval_instance_id
     }
     reimbursement_items {
         CHAR id
@@ -2150,17 +2194,21 @@ erDiagram
 |---|---|---|
 | `performance_periods` | 9 | - |
 | `performance_perspectives` | 6 | - |
-| `performance_templates` | 7 | - |
-| `performance_indicators` | 12 | - |
-| `performance_evaluations` | 15 | - |
-| `performance_evaluation_details` | 9 | - |
+| `performance_templates` | 10 | period_id->performance_periods |
+| `performance_indicators` | 18 | - |
+| `performance_evaluations` | 22 | rating_id->performance_ratings |
+| `performance_evaluation_details` | 16 | indicator_id->performance_indicators |
+| `performance_components` | 9 | - |
+| `performance_organization_components` | 8 | component_id->performance_components |
+| `performance_evaluation_components` | 10 | evaluation_id->performance_evaluations, component_id->performance_components |
+| `performance_evaluation_program_items` | 13 | performance_evaluation_id->performance_evaluations |
 | `performance_targets` | 11 | - |
 | `performance_ratings` | 10 | - |
 | `performance_indicator_formulas` | 9 | - |
-| `performance_progress` | 9 | - |
-| `performance_comments` | 7 | - |
-| `performance_attachments` | 10 | - |
-| `performance_logs` | 9 | - |
+| `performance_progress` | 9 | evaluation_detail_id->performance_evaluation_details |
+| `performance_comments` | 7 | evaluation_id->performance_evaluations |
+| `performance_attachments` | 10 | evaluation_detail_id->performance_evaluation_details |
+| `performance_logs` | 9 | evaluation_id->performance_evaluations |
 
 ### ERD — Performance — KPI
 
@@ -2193,6 +2241,9 @@ erDiagram
         VARCHAR status
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR period_id
+        DATE effective_date
+        DATE expired_date
     }
     performance_indicators {
         CHAR id
@@ -2207,6 +2258,12 @@ erDiagram
         SMALLINT sort_order
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        VARCHAR code
+        VARCHAR formula_type
+        DECIMAL minimum_score
+        DECIMAL maximum_score
+        VARCHAR target_type
+        SMALLINT is_required
     }
     performance_evaluations {
         CHAR id
@@ -2224,6 +2281,13 @@ erDiagram
         TEXT notes
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR rating_id
+        TIMESTAMP submitted_at
+        TIMESTAMP approved_at
+        TIMESTAMP target_submitted_at
+        TIMESTAMP target_approved_at
+        CHAR target_approval_instance_id
+        CHAR realization_approval_instance_id
     }
     performance_evaluation_details {
         CHAR id
@@ -2235,6 +2299,61 @@ erDiagram
         VARCHAR description
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR indicator_id
+        VARCHAR indicator_name
+        DECIMAL target
+        DECIMAL actual
+        DECIMAL achievement
+        TEXT remarks
+        VARCHAR unit_of_measurement
+    }
+    performance_components {
+        CHAR id
+        VARCHAR code
+        VARCHAR name
+        TEXT description
+        INTEGER sort_order
+        BOOLEAN is_active
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at
+    }
+    performance_organization_components {
+        CHAR id
+        CHAR organization_id
+        CHAR component_id
+        DECIMAL weight
+        BOOLEAN is_enabled
+        INTEGER sort_order
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    performance_evaluation_components {
+        CHAR id
+        CHAR evaluation_id
+        CHAR component_id
+        VARCHAR component_name
+        DECIMAL score
+        DECIMAL weight
+        DECIMAL final_score
+        TIMESTAMP calculated_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    performance_evaluation_program_items {
+        CHAR id
+        CHAR performance_evaluation_id
+        VARCHAR title
+        VARCHAR formula_type
+        DECIMAL target
+        DECIMAL actual
+        DECIMAL achievement
+        DECIMAL score
+        SMALLINT sort_order
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+        DECIMAL weight
+        VARCHAR unit_of_measurement
     }
     performance_targets {
         CHAR id
@@ -2315,6 +2434,17 @@ erDiagram
         CHAR created_by
         TIMESTAMP created_at
     }
+    performance_periods ||--o{ performance_templates : "period_id"
+    performance_ratings ||--o{ performance_evaluations : "rating_id"
+    performance_indicators ||--o{ performance_evaluation_details : "indicator_id"
+    performance_components ||--o{ performance_organization_components : "component_id"
+    performance_evaluations ||--o{ performance_evaluation_components : "evaluation_id"
+    performance_components ||--o{ performance_evaluation_components : "component_id"
+    performance_evaluations ||--o{ performance_evaluation_program_items : "performance_evaluation_id"
+    performance_evaluation_details ||--o{ performance_progress : "evaluation_detail_id"
+    performance_evaluations ||--o{ performance_comments : "evaluation_id"
+    performance_evaluation_details ||--o{ performance_attachments : "evaluation_detail_id"
+    performance_evaluations ||--o{ performance_logs : "evaluation_id"
 ```
 
 
@@ -2325,7 +2455,7 @@ erDiagram
 | `okr_templates` | 11 | organization_id->organizations, period_id->performance_periods |
 | `okr_objectives` | 10 | template_id->okr_templates |
 | `okr_key_results` | 17 | objective_id->okr_objectives |
-| `okr_evaluations` | 16 | employee_id->employees, organization_id->organizations, period_id->performance_periods, template_id->okr_templates, rating_id->performance_ratings |
+| `okr_evaluations` | 19 | employee_id->employees, organization_id->organizations, period_id->performance_periods, template_id->okr_templates, rating_id->performance_ratings |
 | `okr_evaluation_details` | 19 | evaluation_id->okr_evaluations, objective_id->okr_objectives, key_result_id->okr_key_results |
 | `okr_progress` | 9 | evaluation_detail_id->okr_evaluation_details |
 | `okr_comments` | 7 | evaluation_id->okr_evaluations, parent_id->okr_comments |
@@ -2396,6 +2526,9 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
         TIMESTAMP deleted_at
+        CHAR kr_approval_instance_id
+        CHAR assessment_approval_instance_id
+        TIMESTAMP kr_submitted_at
     }
     okr_evaluation_details {
         CHAR id
@@ -2881,7 +3014,7 @@ erDiagram
 
 ## Migrasi & Dialect
 
-- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 56 file up + 56 file down per dialect (112 total).
+- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 68 file up + 68 file down per dialect (272 total).
 - Migrasi **platform** bersifat cross-dialect di `migrations/platform/`.
 - Tabel tambahan platform (`packages`, `package_modules`) dibuat via GORM `AutoMigrate`.
 - Dijalankan otomatis saat **provisioning company** (tenant DB dibuat + migrasi + seed).

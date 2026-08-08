@@ -1970,7 +1970,8 @@ func (r *Repository) GetOrganizationParentID(ctx context.Context, orgID uuid.UUI
 	var parentID *string
 	if err := db.WithContext(ctx).Table("organizations").
 		Where("id = ? AND deleted_at IS NULL", orgID).
-		Pluck("parent_id", &parentID).Error; err != nil {
+		Select("parent_id").
+		Scan(&parentID).Error; err != nil {
 		return nil, err
 	}
 	if parentID == nil || *parentID == "" {

@@ -35,7 +35,13 @@
         </div>
       </div>
 
-      <!-- Objectives -->
+      <!-- Phase hint -->
+      <div v-if="phaseHintKey" class="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-3 flex items-center gap-2">
+        <i class="pi pi-info-circle text-blue-500"></i>
+        <span class="text-xs text-blue-700 dark:text-blue-300">{{ t(phaseHintKey) }}</span>
+      </div>
+
+      <!-- Objectives / Key Results -->
       <div class="space-y-4">
         <div class="flex items-center justify-between">
           <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
@@ -43,60 +49,123 @@
             {{ t('okr.objectives') }}
             <span class="text-xs font-normal text-gray-500">({{ objectiveGroups.length }})</span>
           </h3>
-          <Button v-if="canEdit" :label="t('okr.recalculate')" icon="pi pi-refresh" size="small" outlined severity="secondary" :loading="recalculating" @click="recalculate" />
+          <Button v-if="canEditActual" :label="t('okr.recalculate')" icon="pi pi-refresh" size="small" outlined severity="secondary" :loading="recalculating" @click="recalculate" />
         </div>
 
         <div
           v-for="group in objectiveGroups"
-          :key="group.key"
+          :key="group.objective_id"
           class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5"
         >
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div>
               <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ group.title }}</p>
               <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('okr.weight') }}: {{ group.weight?.toFixed(1) }}%</p>
             </div>
-            <div class="text-right">
-              <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('okr.achievement') }}</p>
-              <p class="text-lg font-bold" :class="getAchievementClass(group.achievement)">{{ group.achievement.toFixed(1) }}%</p>
+            <div class="flex items-center gap-3">
+              <span v-if="canProposeKR" class="text-xs" :class="group.totalKRWeight > 100 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'">
+                {{ t('okr.total_weight') }}: {{ group.totalKRWeight.toFixed(2) }}% / 100%
+              </span>
+              <div class="text-right" v-if="showActualColumn">
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('okr.achievement') }}</p>
+                <p class="text-lg font-bold" :class="getAchievementClass(group.achievement)">{{ group.achievement.toFixed(1) }}%</p>
+              </div>
+              <Button v-if="canProposeKR" :label="t('okr.add_key_result')" icon="pi pi-plus" size="small" outlined @click="openKeyResultDialog(group)" />
             </div>
           </div>
 
-          <DataTable :value="group.items" size="small" class="!text-sm p-datatable-sm" :rowHover="true">
+          <p v-if="group.items.length === 0" class="text-xs text-gray-400 dark:text-gray-500 py-2">
+            {{ t('okr.no_key_results') }}
+          </p>
+
+          <DataTable v-else :value="group.items" size="small" class="!text-sm p-datatable-sm" :rowHover="true">
             <Column field="key_result_title" :header="t('okr.key_result_title')" style="min-width:200px">
               <template #body="{data}">
-                <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.key_result_title }}</span>
+                <InputText
+                  v-if="canProposeKR"
+                  v-model="data.key_result_title"
+                  class="w-full !text-xs"
+                  size="small"
+                />
+                <span v-else class="text-gray-800 dark:text-gray-100 font-medium">{{ data.key_result_title }}</span>
               </template>
             </Column>
 
-            <Column field="key_result_weight" :header="t('okr.weight')" style="width:80px">
+            <Column field="formula_type" :header="t('okr.formula_type')" style="width:140px">
               <template #body="{data}">
-                <span class="text-gray-600 dark:text-gray-300 font-mono">{{ data.key_result_weight?.toFixed(1) }}%</span>
+                <Select
+                  v-if="canProposeKR"
+                  v-model="data.formula_type"
+                  :options="formulaOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  class="w-full !text-xs"
+                  size="small"
+                />
+                <Tag v-else :value="data.formula_type" severity="secondary" class="!text-xs" />
               </template>
             </Column>
 
-            <Column field="target_value" :header="t('okr.target')" style="width:100px">
+            <Column field="key_result_weight" :header="t('okr.weight')" style="width:100px">
               <template #body="{data}">
-                <span class="text-gray-600 dark:text-gray-300 font-mono">{{ formatNumber(data.target_value) }} {{ data.unit }}</span>
+                <InputNumber
+                  v-if="canProposeKR"
+                  v-model="data.key_result_weight"
+                  :min="0"
+                  :max="100"
+                  :minFractionDigits="0"
+                  :maxFractionDigits="2"
+                  suffix="%"
+                  class="w-full !text-xs"
+                  size="small"
+                />
+                <span v-else class="text-gray-600 dark:text-gray-300 font-mono">{{ data.key_result_weight?.toFixed(1) }}%</span>
+              </template>
+            </Column>
+
+            <Column field="target_value" :header="t('okr.target')" style="width:110px">
+              <template #body="{data}">
+                <InputNumber
+                  v-if="canProposeKR"
+                  v-model="data.target_value"
+                  :minFractionDigits="0"
+                  :maxFractionDigits="2"
+                  class="w-full !text-xs"
+                  size="small"
+                />
+                <span v-else class="text-gray-600 dark:text-gray-300 font-mono">{{ formatNumber(data.target_value) }} {{ data.unit }}</span>
+              </template>
+            </Column>
+
+            <Column field="unit" :header="t('okr.unit')" style="width:90px">
+              <template #body="{data}">
+                <InputText
+                  v-if="canProposeKR"
+                  v-model="data.unit"
+                  class="w-full !text-xs"
+                  size="small"
+                  maxlength="50"
+                />
+                <span v-else class="text-gray-500 dark:text-gray-400 text-xs">{{ data.unit || '-' }}</span>
               </template>
             </Column>
 
             <Column field="actual_value" :header="t('okr.actual')" style="width:120px">
               <template #body="{data}">
                 <InputNumber
-                  v-if="canEdit"
+                  v-if="canEditActual"
                   v-model="data.actual_value"
                   :minFractionDigits="0"
                   :maxFractionDigits="2"
                   class="w-full !text-xs"
                   size="small"
-                  @blur="updateActual(data)"
                 />
-                <span v-else class="text-gray-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual_value) }}</span>
+                <span v-else-if="showActualColumn" class="text-gray-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual_value) }}</span>
+                <span v-else class="text-gray-300 dark:text-gray-600">—</span>
               </template>
             </Column>
 
-            <Column field="achievement" :header="t('okr.achievement')" style="width:100px">
+            <Column field="achievement" :header="t('okr.achievement')" style="width:90px">
               <template #body="{data}">
                 <span class="font-mono font-semibold" :class="getAchievementClass(data.achievement)">
                   {{ data.achievement?.toFixed(1) || '0.0' }}%
@@ -112,7 +181,12 @@
               </template>
             </Column>
 
-            <Column style="width:50px">
+            <Column v-if="canProposeKR" style="width:50px">
+              <template #body="{data}">
+                <Button icon="pi pi-trash" size="small" text severity="danger" @click="removeKeyResult(data)" />
+              </template>
+            </Column>
+            <Column v-else style="width:50px">
               <template #body="{data}">
                 <Button icon="pi pi-history" size="small" text severity="secondary" v-tooltip.left="t('okr.progress')" @click="openProgress(data)" />
               </template>
@@ -121,16 +195,43 @@
         </div>
       </div>
 
+      <!-- Save Target -->
+      <div v-if="canProposeKR" class="flex justify-end">
+        <Button :label="t('okr.save_target')" icon="pi pi-save" size="small" :loading="savingTargets" @click="saveAllKeyResultTargets" />
+      </div>
+
+      <!-- Save Actual -->
+      <div v-if="canEditActual" class="flex justify-end">
+        <Button :label="t('okr.save_actual')" icon="pi pi-save" size="small" :loading="savingActuals" @click="saveAllActuals" />
+      </div>
+
       <!-- Actions -->
       <div class="flex items-center justify-between">
         <Button :label="t('common.back')" icon="pi pi-arrow-left" severity="secondary" outlined size="small" @click="goBack" />
         <div class="flex items-center gap-2">
           <template v-if="evaluation.status === 'DRAFT'">
+            <Button :label="t('okr.submit_key_results')" icon="pi pi-send" size="small" :loading="submittingKR" @click="submitKeyResults" />
+          </template>
+          <template v-else-if="evaluation.status === 'KR_SUBMITTED'">
+            <span v-if="evaluation.kr_approval_instance_id" class="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+              <i class="pi pi-clock"></i> {{ t('okr.awaiting_central_approval') }}
+            </span>
+            <template v-else>
+              <Button :label="t('okr.reject_key_results')" icon="pi pi-times" severity="danger" outlined size="small" :loading="rejectingKR" @click="rejectKeyResults" />
+              <Button :label="t('okr.approve_key_results')" icon="pi pi-check" severity="success" size="small" :loading="approvingKR" @click="approveKeyResults" />
+            </template>
+          </template>
+          <template v-else-if="evaluation.status === 'KR_APPROVED'">
             <Button :label="t('okr.submit')" icon="pi pi-send" size="small" :loading="submitting" @click="submitEvaluation" />
           </template>
           <template v-else-if="evaluation.status === 'SUBMITTED'">
-            <Button :label="t('okr.reject')" icon="pi pi-times" severity="danger" outlined size="small" :loading="rejecting" @click="rejectEvaluation" />
-            <Button :label="t('okr.approve')" icon="pi pi-check" severity="success" size="small" :loading="approving" @click="approveEvaluation" />
+            <span v-if="evaluation.assessment_approval_instance_id" class="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+              <i class="pi pi-clock"></i> {{ t('okr.awaiting_central_approval') }}
+            </span>
+            <template v-else>
+              <Button :label="t('okr.reject')" icon="pi pi-times" severity="danger" outlined size="small" :loading="rejecting" @click="rejectEvaluation" />
+              <Button :label="t('okr.approve')" icon="pi pi-check" severity="success" size="small" :loading="approving" @click="approveEvaluation" />
+            </template>
           </template>
           <template v-else-if="evaluation.status === 'APPROVED'">
             <Button :label="t('okr.complete')" icon="pi pi-check-circle" severity="success" size="small" :loading="completing" @click="completeEvaluation" />
@@ -146,13 +247,40 @@
       <Button :label="t('common.back')" icon="pi pi-arrow-left" severity="secondary" outlined size="small" class="mt-4" @click="goBack" />
     </div>
 
+    <!-- Add Key Result Dialog -->
+    <Dialog v-model:visible="keyResultDialogVisible" :header="t('okr.add_key_result')" modal :style="{ width: '480px' }">
+      <div v-if="keyResultTargetObjective" class="space-y-4">
+        <p class="text-xs text-gray-500 dark:text-gray-400">{{ keyResultTargetObjective.title }}</p>
+        <FormRow :label="t('okr.key_result_title')" required :errors="keyResultErrors?.title">
+          <TextInput v-model="keyResultForm.title" maxlength="255" autofocus :placeholder="t('okr.key_result_title_placeholder')" :class="{'p-invalid':keyResultErrors?.title}" />
+        </FormRow>
+        <FormRow :label="t('okr.weight')" required :errors="keyResultErrors?.weight">
+          <InputNumber v-model="keyResultForm.weight" class="!w-full" :min="0" :max="100" :minFractionDigits="0" :maxFractionDigits="2" suffix="%" size="small" />
+        </FormRow>
+        <FormRow :label="t('okr.target')" required :errors="keyResultErrors?.target_value">
+          <InputNumber v-model="keyResultForm.target_value" class="!w-full" :minFractionDigits="0" :maxFractionDigits="2" size="small" />
+        </FormRow>
+        <FormRow :label="t('okr.unit')">
+          <TextInput v-model="keyResultForm.unit" />
+        </FormRow>
+        <FormRow :label="t('okr.formula_type')">
+          <Select v-model="keyResultForm.formula_type" :options="formulaOptions" optionLabel="label" optionValue="value" class="w-full" />
+        </FormRow>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="keyResultDialogVisible=false" />
+          <Button :label="t('common.save')" size="small" :loading="savingKeyResult" :disabled="savingKeyResult" @click="saveKeyResult" />
+        </div>
+      </template>
+    </Dialog>
+
     <!-- Progress Check-in Dialog -->
     <Dialog v-model:visible="progressDialogVisible" :header="t('okr.check_in')" modal :style="{ width: '480px' }">
       <div v-if="progressTarget" class="space-y-4">
         <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ progressTarget.key_result_title }}</p>
 
-        <!-- Add Progress Form -->
-        <div v-if="canEdit" class="grid grid-cols-2 gap-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+        <div class="grid grid-cols-2 gap-3 pb-3 border-b border-gray-100 dark:border-gray-700">
           <FormRow :label="t('common.date')">
             <DatePicker v-model="progressForm.progress_date" class="w-full" size="small" />
           </FormRow>
@@ -169,7 +297,6 @@
           </div>
         </div>
 
-        <!-- Progress History -->
         <div class="max-h-64 overflow-y-auto space-y-2">
           <div v-if="progressLoading" class="text-center py-4">
             <i class="pi pi-spin pi-spinner text-gray-400"></i>
@@ -204,16 +331,20 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
+import { getValidationErrors } from '@/services/responseHandler'
 import api from '@/services/api'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
 import Dialog from 'primevue/dialog'
+import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
 import FormRow from '@/components/FormRow.vue'
+import TextInput from '@/components/TextInput.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -223,11 +354,23 @@ const { t } = useI18n()
 const pageLoading = ref(true)
 const evaluation = ref(null)
 const details = ref([])
+const objectives = ref([])
 const recalculating = ref(false)
+const submittingKR = ref(false)
+const approvingKR = ref(false)
+const rejectingKR = ref(false)
 const submitting = ref(false)
 const approving = ref(false)
 const rejecting = ref(false)
 const completing = ref(false)
+const savingTargets = ref(false)
+const savingActuals = ref(false)
+
+const keyResultDialogVisible = ref(false)
+const keyResultTargetObjective = ref(null)
+const savingKeyResult = ref(false)
+const keyResultErrors = ref({})
+const keyResultForm = ref({ title: '', weight: 0, target_value: 0, unit: '', formula_type: 'HIGHER_BETTER' })
 
 const progressDialogVisible = ref(false)
 const progressTarget = ref(null)
@@ -236,33 +379,43 @@ const progressLoading = ref(false)
 const addingProgress = ref(false)
 const progressForm = ref({ progress_date: new Date(), actual_value: 0, notes: '' })
 
+const formulaOptions = [
+  { label: 'Higher Better', value: 'HIGHER_BETTER' },
+  { label: 'Lower Better', value: 'LOWER_BETTER' }
+]
+
 const evaluationId = computed(() => route.params.id)
-const canEdit = computed(() => evaluation.value?.status === 'DRAFT')
+// Two-phase gating: Key Results proposed only in DRAFT ("Ajukan Key Result"),
+// actual editable only once Key Results have been approved ("OKR Active").
+const canProposeKR = computed(() => evaluation.value?.status === 'DRAFT')
+const canEditActual = computed(() => evaluation.value?.status === 'KR_APPROVED')
+const showActualColumn = computed(() => !['DRAFT', 'KR_SUBMITTED'].includes(evaluation.value?.status))
+
+const phaseHintKey = computed(() => {
+  switch (evaluation.value?.status) {
+    case 'DRAFT': return 'okr.phase_hint_draft'
+    case 'KR_SUBMITTED': return 'okr.phase_hint_kr_submitted'
+    case 'KR_APPROVED': return 'okr.phase_hint_kr_approved'
+    default: return null
+  }
+})
 
 const objectiveGroups = computed(() => {
-  const groups = {}
-  const order = []
-  for (const d of details.value) {
-    const key = d.objective_id || d.objective_title
-    if (!groups[key]) {
-      groups[key] = {
-        key,
-        title: d.objective_title,
-        weight: d.objective_weight,
-        items: []
-      }
-      order.push(key)
+  return objectives.value.map(obj => {
+    const items = details.value.filter(d => d.objective_id === obj.id)
+    const totalScore = items.reduce((sum, i) => sum + (i.score || 0), 0)
+    const totalKRWeight = items.reduce((sum, i) => sum + (i.key_result_weight || 0), 0)
+    const totalItemWeight = items.reduce((sum, i) => sum + (i.key_result_weight || 0), 0) || 1
+    const weightedAchievement = items.reduce((sum, i) => sum + (i.achievement || 0) * (i.key_result_weight || 0), 0)
+    return {
+      objective_id: obj.id,
+      title: obj.title,
+      weight: obj.weight,
+      items,
+      score: totalScore,
+      totalKRWeight,
+      achievement: weightedAchievement / totalItemWeight
     }
-    groups[key].items.push(d)
-  }
-  return order.map(key => {
-    const g = groups[key]
-    const totalScore = g.items.reduce((sum, i) => sum + (i.score || 0), 0)
-    const totalWeight = g.items.reduce((sum, i) => sum + (i.key_result_weight || 0), 0) || 1
-    const weightedAchievement = g.items.reduce((sum, i) => sum + (i.achievement || 0) * (i.key_result_weight || 0), 0)
-    g.achievement = weightedAchievement / totalWeight
-    g.score = totalScore
-    return g
   })
 })
 
@@ -276,6 +429,8 @@ function getStatusSeverity(status) {
     case 'COMPLETED': return 'success'
     case 'APPROVED': return 'info'
     case 'SUBMITTED': return 'warn'
+    case 'KR_APPROVED': return 'info'
+    case 'KR_SUBMITTED': return 'warn'
     default: return 'secondary'
   }
 }
@@ -318,20 +473,22 @@ async function loadEvaluation() {
     evaluation.value = {
       id: data.id,
       employee_id: data.employee_id,
+      template_id: data.template_id,
       employee_name: data.employee_name || data.employee?.full_name || '-',
       organization_name: data.organization_name || data.organization?.name || '-',
       period_code: data.period_code || data.period?.period_code || '-',
       status: data.status,
       final_score: data.final_score,
       rating_name: data.rating_name || data.rating?.name,
-      rating_color: data.rating_color || data.rating?.color
+      rating_color: data.rating_color || data.rating?.color,
+      kr_approval_instance_id: data.kr_approval_instance_id || null,
+      assessment_approval_instance_id: data.assessment_approval_instance_id || null
     }
     details.value = (data.details || []).map(d => ({
       id: d.id,
       objective_id: d.objective_id,
       objective_title: d.objective_title,
       objective_weight: d.objective_weight,
-      key_result_id: d.key_result_id,
       key_result_title: d.key_result_title,
       key_result_weight: d.key_result_weight,
       target_value: d.target_value,
@@ -348,16 +505,120 @@ async function loadEvaluation() {
   } finally {
     pageLoading.value = false
   }
+
+  if (evaluation.value?.template_id) {
+    await loadObjectives()
+  }
 }
 
-async function updateActual(detail) {
+async function loadObjectives() {
   try {
-    await api.put(`/api/v1/tenant/performance/okr/evaluation-details/${detail.id}`, {
-      actual_value: detail.actual_value || 0
+    const res = await api.get(`/api/v1/tenant/performance/okr/templates/${evaluation.value.template_id}/objectives`)
+    objectives.value = res.data?.data || []
+  } catch {
+    objectives.value = []
+  }
+}
+
+function openKeyResultDialog(group) {
+  keyResultTargetObjective.value = group
+  keyResultForm.value = { title: '', weight: 0, target_value: 0, unit: '', formula_type: 'HIGHER_BETTER' }
+  keyResultErrors.value = {}
+  keyResultDialogVisible.value = true
+}
+
+async function saveKeyResult() {
+  keyResultErrors.value = {}
+  if (!keyResultForm.value.title?.trim()) {
+    keyResultErrors.value = { title: [t('form.required')] }
+    return
+  }
+  if (!keyResultForm.value.weight) {
+    keyResultErrors.value = { weight: [t('form.required')] }
+    return
+  }
+  if (!keyResultForm.value.target_value) {
+    keyResultErrors.value = { target_value: [t('form.required')] }
+    return
+  }
+  if (keyResultTargetObjective.value.totalKRWeight + keyResultForm.value.weight > 100) {
+    keyResultErrors.value = { weight: [t('okr.key_result_weight_exceeds_100')] }
+    return
+  }
+
+  savingKeyResult.value = true
+  try {
+    await api.post(`/api/v1/tenant/performance/okr/evaluations/${evaluationId.value}/key-results`, {
+      evaluation_id: evaluationId.value,
+      objective_id: keyResultTargetObjective.value.objective_id,
+      objective_title: keyResultTargetObjective.value.title,
+      objective_weight: keyResultTargetObjective.value.weight,
+      title: keyResultForm.value.title,
+      weight: keyResultForm.value.weight,
+      target_value: keyResultForm.value.target_value,
+      unit: keyResultForm.value.unit || null,
+      formula_type: keyResultForm.value.formula_type
     })
-    await recalculate()
+    keyResultDialogVisible.value = false
+    await loadEvaluation()
+  } catch (e) {
+    const fe = getValidationErrors(e)
+    if (Object.keys(fe).length > 0) {
+      keyResultErrors.value = fe
+    } else {
+      toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+    }
+  } finally {
+    savingKeyResult.value = false
+  }
+}
+
+async function removeKeyResult(item) {
+  try {
+    await api.delete(`/api/v1/tenant/performance/okr/evaluation-key-results/${item.id}`)
+    await loadEvaluation()
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  }
+}
+
+async function saveAllKeyResultTargets() {
+  const overWeight = objectiveGroups.value.some(g => g.totalKRWeight > 100)
+  if (overWeight) {
+    toast.add({ severity: 'warn', summary: t('message.warning'), detail: t('okr.key_result_weight_exceeds_100'), life: 4000 })
+    return
+  }
+  savingTargets.value = true
+  try {
+    await Promise.all(details.value.map(d => api.put(`/api/v1/tenant/performance/okr/evaluation-key-results/${d.id}/target`, {
+      title: d.key_result_title,
+      target_type: d.target_type,
+      target_value: d.target_value || 0,
+      unit: d.unit || null,
+      formula_type: d.formula_type,
+      weight: d.key_result_weight || 0
+    })))
+    await loadEvaluation()
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('okr.target_saved'), life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    savingTargets.value = false
+  }
+}
+
+async function saveAllActuals() {
+  savingActuals.value = true
+  try {
+    await Promise.all(details.value.map(d => api.put(`/api/v1/tenant/performance/okr/evaluation-details/${d.id}`, {
+      actual_value: d.actual_value || 0
+    })))
+    await recalculate()
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('okr.actual_saved'), life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    savingActuals.value = false
   }
 }
 
@@ -371,6 +632,45 @@ async function recalculate() {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
   } finally {
     recalculating.value = false
+  }
+}
+
+async function submitKeyResults() {
+  submittingKR.value = true
+  try {
+    await api.post(`/api/v1/tenant/performance/okr/evaluations/${evaluationId.value}/submit-key-results`)
+    await loadEvaluation()
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('okr.key_results_submitted'), life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    submittingKR.value = false
+  }
+}
+
+async function approveKeyResults() {
+  approvingKR.value = true
+  try {
+    await api.post(`/api/v1/tenant/performance/okr/evaluations/${evaluationId.value}/approve-key-results`)
+    await loadEvaluation()
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('okr.key_results_approved'), life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    approvingKR.value = false
+  }
+}
+
+async function rejectKeyResults() {
+  rejectingKR.value = true
+  try {
+    await api.post(`/api/v1/tenant/performance/okr/evaluations/${evaluationId.value}/reject-key-results`)
+    await loadEvaluation()
+    toast.add({ severity: 'warn', summary: t('message.success'), detail: t('okr.key_results_rejected'), life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
+  } finally {
+    rejectingKR.value = false
   }
 }
 

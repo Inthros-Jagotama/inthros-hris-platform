@@ -173,6 +173,7 @@ func RegisterOKRRoutes(rg *gin.RouterGroup, handler *OKRHandler) {
 		templates := okr.Group("/templates")
 		{
 			templates.POST("", handler.CreateTemplate)
+			templates.GET("/objective-scope", handler.GetObjectiveCreationScope)
 			templates.GET("", handler.ListTemplates)
 			templates.GET("/:id", handler.GetTemplateByID)
 			templates.PUT("/:id", handler.UpdateTemplate)
@@ -216,7 +217,15 @@ func RegisterOKRRoutes(rg *gin.RouterGroup, handler *OKRHandler) {
 			// Recalculate score
 			evaluations.POST("/:id/recalculate", handler.RecalculateEvaluationScore)
 
-			// Workflow actions
+			// Employee-proposed Key Results (DRAFT phase)
+			evaluations.POST("/:id/key-results", handler.CreateEvaluationKeyResult)
+
+			// Workflow actions — Key Result proposal phase
+			evaluations.POST("/:id/submit-key-results", handler.SubmitKeyResults)
+			evaluations.POST("/:id/approve-key-results", handler.ApproveKeyResults)
+			evaluations.POST("/:id/reject-key-results", handler.RejectKeyResults)
+
+			// Workflow actions — assessment phase
 			evaluations.POST("/:id/submit", handler.SubmitEvaluation)
 			evaluations.POST("/:id/approve", handler.ApproveEvaluation)
 			evaluations.POST("/:id/reject", handler.RejectEvaluation)
@@ -224,6 +233,14 @@ func RegisterOKRRoutes(rg *gin.RouterGroup, handler *OKRHandler) {
 
 			// Evaluation comments
 			evaluations.GET("/:id/comments", handler.ListCommentsByEvaluationID)
+		}
+
+		// OKR Evaluation Key Results (employee-proposed, DRAFT phase) — distinct
+		// prefix from /key-results above, which is Template-level master data.
+		evaluationKeyResults := okr.Group("/evaluation-key-results")
+		{
+			evaluationKeyResults.PUT("/:id/target", handler.UpdateEvaluationKeyResultTarget)
+			evaluationKeyResults.DELETE("/:id", handler.DeleteEvaluationKeyResult)
 		}
 
 		// OKR Evaluation Details

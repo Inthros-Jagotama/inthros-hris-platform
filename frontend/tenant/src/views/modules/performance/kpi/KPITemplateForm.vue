@@ -25,10 +25,10 @@
             <Select v-model="form.organization_id" :options="organizationOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" filter showClear />
           </FormRow>
           <FormRow :label="t('kpi.period')" :errors="errors?.period_id">
-            <Select v-model="form.period_id" :options="periodOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" showClear />
+            <Select v-model="form.period_id" :options="periodOptions" small optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" showClear />
           </FormRow>
           <FormRow :label="t('kpi.status')" :errors="errors?.status">
-            <Select v-model="form.status" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" />
+            <Select v-model="form.status" :options="statusOptions" small optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" />
           </FormRow>
         </div>
         <div class="mt-4">

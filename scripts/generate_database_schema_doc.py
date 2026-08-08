@@ -18,6 +18,52 @@ PLATFORM_DIR = os.path.join(BASE_DIR, "backend/internal/pkg/migrator/migrations/
 OUTPUT = os.path.join(BASE_DIR, "docs/database-schema.md")
 
 
+_SQL_CLAUSE_KEYWORDS = (
+    "CONSTRAINT", "PRIMARY", "UNIQUE", "FOREIGN", "INDEX",
+    "KEY", "REFERENCES", "CHECK", "FULLTEXT", "SPATIAL",
+)
+
+# Cocok dengan keyword klausa SQL di awal part. Batas kata (\(\w|\s|\() mencegah
+# kolom legitimate yang diawali kata serupa (mis. index_fingerprint, key_label)
+# ikut ter-skip.
+_SQL_CLAUSE_START = re.compile(r"(?:%s)[\s(]" % "|".join(_SQL_CLAUSE_KEYWORDS), re.I)
+
+
+def split_column_line(line):
+    """Pecah baris yang memuat beberapa definisi kolom dalam satu baris.
+
+    MySQL terkadang menulis beberapa kolom dalam satu baris (mis. migrasi 001:
+    `created_at ... , updated_at ...`). Koma di dalam tipe ber-parens
+    (mis. DECIMAL(18,2), ENUM('a','b')) tidak boleh dipecah.
+    """
+    parts = []
+    depth = 0
+    cur = []
+    in_str = None
+    for ch in line:
+        if in_str:
+            if ch == in_str:
+                in_str = None
+            cur.append(ch)
+            continue
+        if ch in ("'", '"'):
+            in_str = ch
+            cur.append(ch)
+        elif ch == "(":
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth = max(0, depth - 1)
+            cur.append(ch)
+        elif ch == "," and depth == 0:
+            parts.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+    parts.append("".join(cur))
+    return parts
+
+
 def parse_create_tables(path):
     out = {}
     try:
@@ -25,7 +71,8 @@ def parse_create_tables(path):
     except OSError:
         return out
     # Menangani dua format: postgres `) ;` dan mysql `) ENGINE=InnoDB ... ;`
-    for m in re.finditer(r"CREATE TABLE IF NOT EXISTS (\w+) \((.*?)\)\s*(?:ENGINE[^;]*)?;", txt, re.S):
+    # Regex juga menangkap CREATE TABLE tanpa IF NOT EXISTS (mis. 054_create_job_management_value_clusters)
+    for m in re.finditer(r"CREATE TABLE (?:IF NOT EXISTS )?(\w+) \((.*?)\)\s*(?:ENGINE[^;]*)?;", txt, re.S):
         name = m.group(1)
         body = m.group(2)
         cols = []
@@ -39,10 +86,71 @@ def parse_create_tables(path):
                 if fm:
                     fks.append((fm.group(1), fm.group(2), fm.group(3)))
                 continue
-            cm = re.match(r"^(\w+)\s+([\w()]+)", line)
-            if cm:
-                cols.append((cm.group(1), cm.group(2).strip()))
+            # Baris kolom (mungkin berisi beberapa kolom sekaligus di mysql)
+            for part in split_column_line(line):
+                part = part.strip()
+                if not part:
+                    continue
+                if _SQL_CLAUSE_START.match(part):
+                    continue
+                # Nama kolom boleh di-backtick (mysql `x`) atau double-quote
+                # (postgres "group"), tipe boleh ber-parens/string
+                cm = re.match(r"^[`\"]?(\w+)[`\"]?\s+([\w(),']+)", part)
+                if cm:
+                    cols.append((cm.group(1), cm.group(2).strip()))
         out[name] = {"cols": cols, "fks": fks}
+
+    # Inline column-level REFERENCES di dalam body CREATE TABLE
+    # (mis. migrasi 066: performance_evaluation_id ... REFERENCES performance_evaluations(id))
+    for tname, info in out.items():
+        mb = re.search(
+            r"CREATE TABLE (?:IF NOT EXISTS )?" + re.escape(tname) + r" \((.*?)\)\s*(?:ENGINE[^;]*)?;",
+            txt, re.S,
+        )
+        if not mb:
+            continue
+        body = mb.group(1)
+        for col, _ in info["cols"]:
+            fm = re.search(
+                r"\b" + re.escape(col) + r"\b[^,()]*(?:\([^,()]*\)[^,()]*)*?\bREFERENCES\s+(\w+)\s*\((\w+)\)",
+                body, re.I,
+            )
+            if fm:
+                fk = (col, fm.group(1), fm.group(2))
+                if fk not in info["fks"]:
+                    info["fks"].append(fk)
+    return out
+
+
+_ALTER_FK_RE = re.compile(
+    r"ALTER TABLE\s+(\w+)\s+ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN KEY\s*\((\w+)\)\s*REFERENCES\s+(\w+)\s*\((\w+)\)",
+    re.I,
+)
+
+
+def parse_alter_fks(txt):
+    """FK yang dideklarasikan via ALTER TABLE ... ADD CONSTRAINT FOREIGN KEY
+    (mis. migrasi 058/059 memakai blok DO $$ ... END $$). Dipanggil di load_all
+    setelah semua file di-merge agar FK antar-file tidak terlewat."""
+    return [(m.group(1), m.group(2), m.group(3), m.group(4)) for m in _ALTER_FK_RE.finditer(txt)]
+
+
+def parse_alter_add_columns(txt):
+    """Kolom yang ditambahkan via ALTER TABLE ... ADD COLUMN.
+
+    Banyak migrasi (055, 060-069, dll.) menambah kolom dengan ALTER TABLE, bukan
+    di CREATE TABLE. Karena load_all memanggil ini per file setelah tabel di-merge,
+    kolom hasil ALTER ikut tercatat di dokumen. Mendukung postgres (multi-baris,
+    IF NOT EXISTS) dan mysql (ADD COLUMN ... AFTER col).
+    """
+    out = []  # (tabel, nama_kolom, tipe)
+    for m in re.finditer(r"ALTER TABLE\s+(\w+)\s*([^;]*);", txt, re.S | re.I):
+        tname = m.group(1)
+        body = m.group(2)
+        # 'COLUMN' wajib: menolak false positive dari 'ADD CONSTRAINT ... FOREIGN KEY'
+        # (postgres: 'ADD COLUMN IF NOT EXISTS x TYPE', mysql: 'ADD COLUMN x TYPE AFTER y')
+        for cm in re.finditer(r"ADD\s+COLUMN\s+(?:IF NOT EXISTS\s+)?(\w+)\s+([\w(),]+)", body, re.I):
+            out.append((tname, cm.group(1), cm.group(2)))
     return out
 
 
@@ -62,9 +170,21 @@ def load_all(directory):
             continue
         for m in re.finditer(r"DROP TABLE IF EXISTS (\w+)", txt):
             tables.pop(m.group(1), None)
-    # Buang FK yang menunjuk ke tabel yang sudah tidak ada (mis. countries)
+        # FK via ALTER TABLE (mungkin di file yang berbeda dari CREATE TABLE)
+        for tname, col, ref_t, ref_c in parse_alter_fks(txt):
+            if tname in tables:
+                tables[tname]["fks"].append((col, ref_t, ref_c))
+        # Kolom via ALTER TABLE ... ADD COLUMN
+        for tname, col, ctype in parse_alter_add_columns(txt):
+            if tname in tables and col not in [c for c, _ in tables[tname]["cols"]]:
+                tables[tname]["cols"].append((col, ctype))
+    # Buang FK yang menunjuk ke tabel yang sudah tidak ada (mis. countries), dan dedup
     for name, info in tables.items():
-        info["fks"] = [fk for fk in info["fks"] if fk[1] in tables]
+        fks = []
+        for fk in info["fks"]:
+            if fk[1] in tables and fk not in fks:
+                fks.append(fk)
+        info["fks"] = fks
     return tables
 
 
@@ -191,7 +311,7 @@ MODULES = OrderedDict([
     ]),
     ("Approval Engine", [
         "approval_flows", "approval_flow_steps", "approval_instances",
-        "approval_actions", "approval_tasks",
+        "approval_actions", "approval_tasks", "approval_flow_step_organizations",
     ]),
     ("RBAC & Auth", [
         "features", "permissions", "roles", "feature_permission",
@@ -208,6 +328,8 @@ MODULES = OrderedDict([
         "performance_periods", "performance_perspectives",
         "performance_templates", "performance_indicators",
         "performance_evaluations", "performance_evaluation_details",
+        "performance_components", "performance_organization_components",
+        "performance_evaluation_components", "performance_evaluation_program_items",
         "performance_targets", "performance_ratings",
         "performance_indicator_formulas", "performance_progress",
         "performance_comments", "performance_attachments", "performance_logs",
@@ -318,7 +440,9 @@ def build_doc():
     doc.append("")
     doc.append("## Migrasi & Dialect")
     doc.append("")
-    doc.append("- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 56 file up + 56 file down per dialect (112 total).")
+    up_files = len([f for f in os.listdir(TENANT_DIR) if f.endswith(".sql") and not f.endswith(".down.sql")])
+    down_files = len([f for f in os.listdir(TENANT_DIR) if f.endswith(".down.sql")])
+    doc.append(f"- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — {up_files} file up + {down_files} file down per dialect ({up_files * 2 + down_files * 2} total).")
     doc.append("- Migrasi **platform** bersifat cross-dialect di `migrations/platform/`.")
     doc.append("- Tabel tambahan platform (`packages`, `package_modules`) dibuat via GORM `AutoMigrate`.")
     doc.append("- Dijalankan otomatis saat **provisioning company** (tenant DB dibuat + migrasi + seed).")

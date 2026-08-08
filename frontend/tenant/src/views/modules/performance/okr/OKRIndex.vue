@@ -10,7 +10,6 @@
       <div class="flex items-center gap-3">
         <Select v-model="filterPeriod" :options="periodOptions" optionLabel="label" optionValue="value" :placeholder="t('okr.filter_period')" class="w-48" size="small" showClear />
         <Select v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('okr.filter_status')" class="w-36" size="small" showClear />
-        <Button :label="t('okr.new_evaluation')" icon="pi pi-plus" size="small" @click="createEvaluation" />
       </div>
     </div>
 
@@ -87,30 +86,6 @@
         </template>
       </Column>
     </DataTable>
-
-    <!-- Create Evaluation Dialog -->
-    <Dialog v-model:visible="createDialogVisible" :header="t('okr.new_evaluation')" modal :style="{ width: '500px' }">
-      <div class="space-y-4">
-        <FormRow :label="t('okr.employee')" required :errors="createErrors?.employee_id">
-          <Select v-model="createForm.employee_id" :options="employeeOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" filter />
-        </FormRow>
-        <FormRow :label="t('okr.organization')" required :errors="createErrors?.organization_id">
-          <Select v-model="createForm.organization_id" :options="organizationOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" filter />
-        </FormRow>
-        <FormRow :label="t('okr.template')" required :errors="createErrors?.template_id">
-          <Select v-model="createForm.template_id" :options="templateOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" />
-        </FormRow>
-        <FormRow :label="t('okr.period')" required :errors="createErrors?.period_id">
-          <Select v-model="createForm.period_id" :options="periodOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" />
-        </FormRow>
-      </div>
-      <template #footer>
-        <div class="flex items-center justify-end gap-2">
-          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="createDialogVisible = false" />
-          <Button :label="t('common.create')" size="small" :loading="creating" @click="handleCreate" />
-        </div>
-      </template>
-    </Dialog>
   </div>
 </template>
 
@@ -119,16 +94,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
-import { getValidationErrors } from '@/services/responseHandler'
 import api from '@/services/api'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Select from 'primevue/select'
-import Dialog from 'primevue/dialog'
 import SkeletonTable from '@/components/SkeletonTable.vue'
-import FormRow from '@/components/FormRow.vue'
 
 const router = useRouter()
 const toast = useToast()
@@ -142,23 +114,12 @@ const perPage = ref(15)
 const filterPeriod = ref(null)
 const filterStatus = ref(null)
 
-const createDialogVisible = ref(false)
-const creating = ref(false)
-const createErrors = ref({})
-const createForm = ref({
-  employee_id: null,
-  organization_id: null,
-  template_id: null,
-  period_id: null
-})
-
 const periodOptions = ref([])
-const templateOptions = ref([])
-const employeeOptions = ref([])
-const organizationOptions = ref([])
 
 const statusOptions = [
   { label: 'Draft', value: 'DRAFT' },
+  { label: 'Key Result Submitted', value: 'KR_SUBMITTED' },
+  { label: 'Key Result Approved', value: 'KR_APPROVED' },
   { label: 'Submitted', value: 'SUBMITTED' },
   { label: 'Approved', value: 'APPROVED' },
   { label: 'Completed', value: 'COMPLETED' }
@@ -198,6 +159,8 @@ function getStatusSeverity(status) {
     case 'COMPLETED': return 'success'
     case 'APPROVED': return 'info'
     case 'SUBMITTED': return 'warn'
+    case 'KR_APPROVED': return 'info'
+    case 'KR_SUBMITTED': return 'warn'
     default: return 'secondary'
   }
 }
@@ -226,31 +189,10 @@ async function loadData() {
 
 async function loadReferenceData() {
   try {
-    const [periodRes, templateRes, empRes, orgRes] = await Promise.all([
-      api.get('/api/v1/tenant/performance/periods', { params: { per_page: 50 } }),
-      api.get('/api/v1/tenant/performance/okr/templates', { params: { per_page: 100 } }),
-      api.get('/api/v1/tenant/employees', { params: { per_page: 200, status: 'active' } }),
-      api.get('/api/v1/tenant/organizations', { params: { per_page: 200, active_only: true } })
-    ])
-
+    const periodRes = await api.get('/api/v1/tenant/performance/periods', { params: { per_page: 50 } })
     periodOptions.value = (periodRes.data?.data || []).map(p => ({
       label: `${p.period_code} (${p.year})`,
       value: p.id
-    }))
-
-    templateOptions.value = (templateRes.data?.data || []).map(tpl => ({
-      label: tpl.name,
-      value: tpl.id
-    }))
-
-    employeeOptions.value = (empRes.data?.data || []).map(e => ({
-      label: e.full_name || `${e.first_name} ${e.last_name}`,
-      value: e.id
-    }))
-
-    organizationOptions.value = (orgRes.data?.data || []).map(o => ({
-      label: o.nomenclature || o.name || o.code,
-      value: o.id
     }))
   } catch {
     // Silently fail
@@ -267,61 +209,6 @@ watch([filterPeriod, filterStatus], () => {
   currentPage.value = 1
   loadData()
 })
-
-function createEvaluation() {
-  createForm.value = { employee_id: null, organization_id: null, template_id: null, period_id: null }
-  createErrors.value = {}
-  createDialogVisible.value = true
-}
-
-async function handleCreate() {
-  createErrors.value = {}
-  if (!createForm.value.employee_id) {
-    createErrors.value = { employee_id: [t('form.required')] }
-    return
-  }
-  if (!createForm.value.organization_id) {
-    createErrors.value = { organization_id: [t('form.required')] }
-    return
-  }
-  if (!createForm.value.template_id) {
-    createErrors.value = { template_id: [t('form.required')] }
-    return
-  }
-  if (!createForm.value.period_id) {
-    createErrors.value = { period_id: [t('form.required')] }
-    return
-  }
-
-  creating.value = true
-  try {
-    const res = await api.post('/api/v1/tenant/performance/okr/evaluations', {
-      employee_id: createForm.value.employee_id,
-      organization_id: createForm.value.organization_id,
-      template_id: createForm.value.template_id,
-      period_id: createForm.value.period_id
-    })
-
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('okr.evaluation_created'), life: 3000 })
-    createDialogVisible.value = false
-
-    const evalId = res.data?.data?.id || res.data?.id
-    if (evalId) {
-      router.push(`/performance/okr/evaluation/${evalId}`)
-    } else {
-      await loadData()
-    }
-  } catch (e) {
-    const fe = getValidationErrors(e)
-    if (Object.keys(fe).length > 0) {
-      createErrors.value = fe
-    } else {
-      toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
-    }
-  } finally {
-    creating.value = false
-  }
-}
 
 function viewEvaluation(item) {
   router.push(`/performance/okr/evaluation/${item.id}`)

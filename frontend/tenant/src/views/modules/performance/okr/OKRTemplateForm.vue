@@ -10,6 +10,21 @@
       <div class="h-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
     </div>
 
+    <!-- Blocked: not yet eligible to create an Objective -->
+    <div v-else-if="!isEditing && scopeLoaded && !scope?.eligible" class="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+      <i class="pi pi-lock text-4xl mb-3 opacity-50"></i>
+      <p class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('okr.objective_scope_ineligible_title') }}</p>
+      <p class="text-xs mt-1 max-w-md text-center">{{ t(scope?.ineligible_reason_key || 'okr.objective_scope_ineligible_no_own_objective') }}</p>
+      <Button :label="t('common.back')" icon="pi pi-arrow-left" severity="secondary" outlined size="small" class="mt-4" @click="goBack" />
+    </div>
+
+    <!-- Blocked: eligible but no subordinate organizations to create for -->
+    <div v-else-if="!isEditing && scopeLoaded && scope?.eligible && organizationOptions.length === 0" class="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+      <i class="pi pi-sitemap text-4xl mb-3 opacity-50"></i>
+      <p class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('okr.no_subordinate_organizations') }}</p>
+      <Button :label="t('common.back')" icon="pi pi-arrow-left" severity="secondary" outlined size="small" class="mt-4" @click="goBack" />
+    </div>
+
     <template v-else>
       <!-- Template Info Card -->
       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
@@ -22,18 +37,18 @@
             <TextInput v-model="form.name" maxlength="255" :placeholder="t('okr.template_name_placeholder')" :class="{'p-invalid':errors?.name}" />
           </FormRow>
           <FormRow :label="t('okr.organization')" :errors="errors?.organization_id">
-            <Select v-model="form.organization_id" :options="organizationOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" filter showClear />
+            <Select v-model="form.organization_id" small :options="organizationOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" filter showClear />
           </FormRow>
           <FormRow :label="t('okr.period')" :errors="errors?.period_id">
-            <Select v-model="form.period_id" :options="periodOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" showClear />
+            <Select v-model="form.period_id" small :options="periodOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" showClear />
           </FormRow>
           <FormRow :label="t('okr.status')" :errors="errors?.status">
-            <Select v-model="form.status" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" />
+            <Select v-model="form.status" small :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="w-full" />
           </FormRow>
         </div>
         <div class="mt-4">
           <FormRow :label="t('okr.description_label')" :errors="errors?.description">
-            <Textarea v-model="form.description" rows="2" :placeholder="t('okr.description_placeholder')" class="w-full" />
+            <Textarea v-model="form.description" small rows="2" :placeholder="t('okr.description_placeholder')" class="w-full" />
           </FormRow>
         </div>
       </div>
@@ -53,6 +68,7 @@
             <Button :label="t('okr.add_objective')" icon="pi pi-plus" size="small" outlined @click="addObjective" />
           </div>
         </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 -mt-2 mb-4">{{ t('okr.key_results_filled_at_evaluation_hint') }}</p>
 
         <!-- Empty State -->
         <div v-if="objectives.length === 0" class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
@@ -69,7 +85,7 @@
             :key="objective._key"
             class="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
           >
-            <div class="flex items-start gap-3 mb-3">
+            <div class="flex items-start gap-3">
               <div class="flex-1 grid grid-cols-1 md:grid-cols-12 gap-3">
                 <div class="md:col-span-7">
                   <InputText v-model="objective.title" :placeholder="t('okr.objective_title_placeholder')" class="w-full !text-sm" />
@@ -81,69 +97,6 @@
                   <Button icon="pi pi-trash" size="small" text severity="danger" @click="removeObjective(oIndex)" />
                 </div>
               </div>
-            </div>
-
-            <!-- Key Results Table -->
-            <div class="pl-4 border-l-2 border-gray-100 dark:border-gray-700">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center gap-1">
-                  <i class="pi pi-list-check text-xs"></i>
-                  {{ t('okr.key_results') }}
-                  <span class="text-gray-400">({{ objective.key_results.length }})</span>
-                </span>
-                <div class="flex items-center gap-2">
-                  <span
-                    v-if="objective.key_results.length > 0"
-                    class="text-xs"
-                    :class="keyResultTotalWeight(objective) === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'"
-                  >
-                    {{ t('okr.total_weight') }}: {{ keyResultTotalWeight(objective).toFixed(2) }}%
-                  </span>
-                  <Button :label="t('okr.add_key_result')" icon="pi pi-plus" size="small" text @click="addKeyResult(objective)" />
-                </div>
-              </div>
-
-              <p v-if="objective.key_results.length === 0" class="text-xs text-gray-400 dark:text-gray-500 py-2">
-                {{ t('okr.no_key_results') }}
-              </p>
-
-              <DataTable v-else :value="objective.key_results" size="small" class="!text-sm p-datatable-sm" :rowHover="true">
-                <Column :header="t('okr.key_result_title')" style="min-width:180px">
-                  <template #body="{data}">
-                    <InputText v-model="data.title" :placeholder="t('okr.key_result_title_placeholder')" class="w-full !text-xs" size="small" />
-                  </template>
-                </Column>
-                <Column :header="t('okr.target_type')" style="width:130px">
-                  <template #body="{data}">
-                    <Select v-model="data.target_type" :options="targetTypeOptions" optionLabel="label" optionValue="value" class="w-full !text-xs" size="small" />
-                  </template>
-                </Column>
-                <Column :header="t('okr.target')" style="width:100px">
-                  <template #body="{data}">
-                    <InputNumber v-model="data.target_value" :minFractionDigits="0" :maxFractionDigits="2" class="w-full !text-xs" size="small" />
-                  </template>
-                </Column>
-                <Column :header="t('okr.unit')" style="width:80px">
-                  <template #body="{data}">
-                    <InputText v-model="data.unit" :placeholder="t('okr.unit_placeholder')" class="w-full !text-xs" size="small" maxlength="50" />
-                  </template>
-                </Column>
-                <Column :header="t('okr.formula_type')" style="width:130px">
-                  <template #body="{data}">
-                    <Select v-model="data.formula_type" :options="formulaOptions" optionLabel="label" optionValue="value" class="w-full !text-xs" size="small" />
-                  </template>
-                </Column>
-                <Column :header="t('okr.weight')" style="width:90px">
-                  <template #body="{data}">
-                    <InputNumber v-model="data.weight" :min="0" :max="100" :minFractionDigits="2" :maxFractionDigits="2" suffix="%" class="w-full !text-xs" size="small" />
-                  </template>
-                </Column>
-                <Column style="width:50px">
-                  <template #body="{index}">
-                    <Button icon="pi pi-trash" size="small" text severity="danger" @click="removeKeyResult(objective, index)" />
-                  </template>
-                </Column>
-              </DataTable>
             </div>
           </div>
         </div>
@@ -173,8 +126,6 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 
@@ -203,6 +154,8 @@ let keyCounter = 0
 
 const organizationOptions = ref([])
 const periodOptions = ref([])
+const scope = ref(null)
+const scopeLoaded = ref(false)
 
 const statusOptions = [
   { label: 'Draft', value: 0 },
@@ -210,29 +163,9 @@ const statusOptions = [
   { label: 'Inactive', value: 2 }
 ]
 
-const targetTypeOptions = [
-  { label: 'Number', value: 'NUMBER' },
-  { label: 'Currency', value: 'CURRENCY' },
-  { label: 'Percentage', value: 'PERCENTAGE' },
-  { label: 'Duration', value: 'DURATION' },
-  { label: 'Boolean', value: 'BOOLEAN' }
-]
-
-const formulaOptions = [
-  { label: 'Higher Better', value: 'HIGHER_BETTER' },
-  { label: 'Lower Better', value: 'LOWER_BETTER' },
-  { label: 'Manual', value: 'MANUAL' },
-  { label: 'Boolean', value: 'BOOLEAN' },
-  { label: 'Percentage', value: 'PERCENTAGE' }
-]
-
 const objectiveTotalWeight = computed(() => {
   return objectives.value.reduce((sum, o) => sum + (o.weight || 0), 0)
 })
-
-function keyResultTotalWeight(objective) {
-  return objective.key_results.reduce((sum, kr) => sum + (kr.weight || 0), 0)
-}
 
 function addObjective() {
   objectives.value.push({
@@ -241,34 +174,12 @@ function addObjective() {
     title: '',
     description: '',
     weight: 0,
-    sort_order: objectives.value.length,
-    key_results: []
+    sort_order: objectives.value.length
   })
 }
 
 function removeObjective(index) {
   objectives.value.splice(index, 1)
-}
-
-function addKeyResult(objective) {
-  objective.key_results.push({
-    id: null,
-    title: '',
-    description: '',
-    target_type: 'NUMBER',
-    target_value: 0,
-    unit: '',
-    formula_type: 'HIGHER_BETTER',
-    weight: 0,
-    minimum_score: 0,
-    maximum_score: 100,
-    is_required: true,
-    sort_order: objective.key_results.length
-  })
-}
-
-function removeKeyResult(objective, index) {
-  objective.key_results.splice(index, 1)
 }
 
 function goBack() {
@@ -277,20 +188,29 @@ function goBack() {
 
 async function loadReferenceData() {
   try {
-    const [orgRes, periodRes] = await Promise.all([
-      api.get('/api/v1/tenant/organizations', { params: { per_page: 200, active_only: true } }),
-      api.get('/api/v1/tenant/performance/periods', { params: { per_page: 50 } })
-    ])
-
-    organizationOptions.value = (orgRes.data?.data || []).map(o => ({
-      label: o.nomenclature || o.name || o.code,
-      value: o.id
-    }))
-
+    const periodRes = await api.get('/api/v1/tenant/performance/periods', { params: { per_page: 50 } })
     periodOptions.value = (periodRes.data?.data || []).map(p => ({
       label: `${p.period_code} (${p.year})`,
       value: p.id
     }))
+
+    if (isEditing.value) {
+      // Editing an existing Objective/Template keeps the full organization
+      // list — the cascading-eligibility gate only governs creating new ones.
+      const orgRes = await api.get('/api/v1/tenant/organizations', { params: { per_page: 200, active_only: true } })
+      organizationOptions.value = (orgRes.data?.data || []).map(o => ({
+        label: o.nomenclature || o.name || o.code,
+        value: o.id
+      }))
+    } else {
+      const scopeRes = await api.get('/api/v1/tenant/performance/okr/templates/objective-scope')
+      scope.value = scopeRes.data?.data || scopeRes.data
+      organizationOptions.value = (scope.value?.subordinate_organizations || []).map(o => ({
+        label: o.name,
+        value: o.id
+      }))
+      scopeLoaded.value = true
+    }
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: t('message.failed_to_load'), life: 4000 })
   }
@@ -317,21 +237,7 @@ async function loadTemplate() {
       title: obj.title || '',
       description: obj.description || '',
       weight: obj.weight || 0,
-      sort_order: obj.sort_order || 0,
-      key_results: (obj.key_results || []).map(kr => ({
-        id: kr.id,
-        title: kr.title || '',
-        description: kr.description || '',
-        target_type: kr.target_type || 'NUMBER',
-        target_value: kr.target_value || 0,
-        unit: kr.unit || '',
-        formula_type: kr.formula_type || 'HIGHER_BETTER',
-        weight: kr.weight || 0,
-        minimum_score: kr.minimum_score || 0,
-        maximum_score: kr.maximum_score || 100,
-        is_required: kr.is_required ?? true,
-        sort_order: kr.sort_order || 0
-      }))
+      sort_order: obj.sort_order || 0
     }))
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.failed_to_load'), life: 4000 })
@@ -349,14 +255,6 @@ async function handleSave() {
   if (objectiveTotalWeight.value !== 100 && objectives.value.length > 0) {
     toast.add({ severity: 'warn', summary: t('message.warning'), detail: t('okr.objective_weight_total'), life: 4000 })
     return
-  }
-
-  for (const objective of objectives.value) {
-    const total = keyResultTotalWeight(objective)
-    if (objective.key_results.length > 0 && total !== 100) {
-      toast.add({ severity: 'warn', summary: t('message.warning'), detail: t('okr.key_result_weight_total'), life: 4000 })
-      return
-    }
   }
 
   saving.value = true
@@ -378,7 +276,8 @@ async function handleSave() {
       savedTemplateId = res.data?.data?.id || res.data?.id
     }
 
-    // Save objectives and their key results
+    // Save objectives (Key Results are filled in by the employee at
+    // evaluation time, not authored here — see the two-phase OKR flow).
     for (let i = 0; i < objectives.value.length; i++) {
       const objective = objectives.value[i]
       const objPayload = {
@@ -389,36 +288,10 @@ async function handleSave() {
         sort_order: i
       }
 
-      let savedObjectiveId = objective.id
       if (objective.id) {
         await api.put(`/api/v1/tenant/performance/okr/objectives/${objective.id}`, objPayload)
       } else {
-        const objRes = await api.post('/api/v1/tenant/performance/okr/objectives', objPayload)
-        savedObjectiveId = objRes.data?.data?.id || objRes.data?.id
-      }
-
-      for (let j = 0; j < objective.key_results.length; j++) {
-        const kr = objective.key_results[j]
-        const krPayload = {
-          objective_id: savedObjectiveId,
-          title: kr.title,
-          description: kr.description || null,
-          target_type: kr.target_type,
-          target_value: kr.target_value,
-          unit: kr.unit || null,
-          formula_type: kr.formula_type,
-          weight: kr.weight,
-          minimum_score: kr.minimum_score,
-          maximum_score: kr.maximum_score,
-          is_required: kr.is_required ?? true,
-          sort_order: j
-        }
-
-        if (kr.id) {
-          await api.put(`/api/v1/tenant/performance/okr/key-results/${kr.id}`, krPayload)
-        } else {
-          await api.post('/api/v1/tenant/performance/okr/key-results', krPayload)
-        }
+        await api.post('/api/v1/tenant/performance/okr/objectives', objPayload)
       }
     }
 

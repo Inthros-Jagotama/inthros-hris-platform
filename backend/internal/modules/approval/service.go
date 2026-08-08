@@ -89,7 +89,7 @@ func (s *Service) SetModuleChecker(mc ModuleSubscriptionChecker) {
 // subscriptionModuleAliases) — e.g. subscribing to "performance" also lets
 // HR configure flows for the two independent KPI approval checkpoints.
 var subscriptionModuleSubslots = map[string][]string{
-	"performance": {"performance_kpi_target", "performance_kpi_realization"},
+	"performance": {"performance_kpi_target", "performance_kpi_realization", "okr_key_result", "okr_assessment"},
 }
 
 func (s *Service) ListAvailableModules(ctx context.Context) ([]string, error) {
@@ -125,6 +125,8 @@ func (s *Service) ListAvailableModules(ctx context.Context) ([]string, error) {
 var subscriptionModuleAliases = map[string]string{
 	"performance_kpi_target":      "performance",
 	"performance_kpi_realization": "performance",
+	"okr_key_result":              "performance",
+	"okr_assessment":              "performance",
 }
 
 func (s *Service) ensureModuleSubscribed(ctx context.Context, module string) error {

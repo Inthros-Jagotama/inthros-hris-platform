@@ -42,6 +42,18 @@ type OKRTemplateResponse struct {
 	Objectives       []OKRObjectiveResponse `json:"objectives,omitempty"`
 }
 
+// OKRObjectiveScopeResponse — cascading objective creation scope: whether
+// the calling employee is currently allowed to create an Objective (an
+// OKRTemplate) for a subordinate Organization, and which Organizations
+// qualify as their effective subordinates.
+type OKRObjectiveScopeResponse struct {
+	OrganizationID           string                       `json:"organization_id,omitempty"`
+	OrganizationName         string                       `json:"organization_name,omitempty"`
+	Eligible                 bool                         `json:"eligible"`
+	IneligibleReasonKey      string                       `json:"ineligible_reason_key,omitempty"`
+	SubordinateOrganizations []OrganizationOptionResponse `json:"subordinate_organizations"`
+}
+
 // MyOKRContextResponse — self-assessment context: resolves the current
 // employee's Organization and the PUBLISHED (status=1) OKR templates
 // configured for it, mirroring MyKPIContextResponse for the KPI module.
@@ -158,26 +170,28 @@ type UpdateOKREvaluationRequest struct {
 }
 
 type OKREvaluationResponse struct {
-	ID               string                        `json:"id"`
-	EmployeeID       string                        `json:"employee_id"`
-	EmployeeName     string                        `json:"employee_name,omitempty"`
-	OrganizationID   string                        `json:"organization_id"`
-	OrganizationName string                        `json:"organization_name,omitempty"`
-	PeriodID         string                        `json:"period_id"`
-	PeriodCode       string                        `json:"period_code,omitempty"`
-	TemplateID       string                        `json:"template_id,omitempty"`
-	TemplateName     string                        `json:"template_name,omitempty"`
-	Status           string                        `json:"status"`
-	SubmittedAt      *time.Time                    `json:"submitted_at,omitempty"`
-	ApprovedAt       *time.Time                    `json:"approved_at,omitempty"`
-	FinalScore       float64                       `json:"final_score"`
-	RatingID         string                        `json:"rating_id,omitempty"`
-	RatingName       string                        `json:"rating_name,omitempty"`
-	RatingColor      string                        `json:"rating_color,omitempty"`
-	ReviewerNotes    string                        `json:"reviewer_notes,omitempty"`
-	Details          []OKREvaluationDetailResponse `json:"details,omitempty"`
-	CreatedAt        time.Time                     `json:"created_at"`
-	UpdatedAt        time.Time                     `json:"updated_at"`
+	ID                           string                        `json:"id"`
+	EmployeeID                   string                        `json:"employee_id"`
+	EmployeeName                 string                        `json:"employee_name,omitempty"`
+	OrganizationID               string                        `json:"organization_id"`
+	OrganizationName             string                        `json:"organization_name,omitempty"`
+	PeriodID                     string                        `json:"period_id"`
+	PeriodCode                   string                        `json:"period_code,omitempty"`
+	TemplateID                   string                        `json:"template_id,omitempty"`
+	TemplateName                 string                        `json:"template_name,omitempty"`
+	Status                       string                        `json:"status"`
+	SubmittedAt                  *time.Time                    `json:"submitted_at,omitempty"`
+	ApprovedAt                   *time.Time                    `json:"approved_at,omitempty"`
+	KRApprovalInstanceID         string                        `json:"kr_approval_instance_id,omitempty"`
+	AssessmentApprovalInstanceID string                        `json:"assessment_approval_instance_id,omitempty"`
+	FinalScore                   float64                       `json:"final_score"`
+	RatingID                     string                        `json:"rating_id,omitempty"`
+	RatingName                   string                        `json:"rating_name,omitempty"`
+	RatingColor                  string                        `json:"rating_color,omitempty"`
+	ReviewerNotes                string                        `json:"reviewer_notes,omitempty"`
+	Details                      []OKREvaluationDetailResponse `json:"details,omitempty"`
+	CreatedAt                    time.Time                     `json:"created_at"`
+	UpdatedAt                    time.Time                     `json:"updated_at"`
 }
 
 // =========================================================================
@@ -187,6 +201,31 @@ type OKREvaluationResponse struct {
 type UpdateOKREvaluationDetailRequest struct {
 	ActualValue float64 `json:"actual_value"`
 	Remarks     *string `json:"remarks"`
+}
+
+// CreateOKREvaluationKeyResultRequest — employee-proposed Key Result under a
+// snapshotted Objective, created while the evaluation is DRAFT. Mirrors
+// CreateProgramItemRequest for KPI.
+type CreateOKREvaluationKeyResultRequest struct {
+	EvaluationID    string  `json:"evaluation_id" binding:"required"`
+	ObjectiveID     string  `json:"objective_id" binding:"required"`
+	ObjectiveTitle  string  `json:"objective_title" binding:"required,max=255"`
+	ObjectiveWeight float64 `json:"objective_weight"`
+	Title           string  `json:"title" binding:"required,max=255"`
+	TargetType      string  `json:"target_type" binding:"omitempty,oneof=NUMBER PERCENTAGE CURRENCY BOOLEAN DURATION SCORE"`
+	TargetValue     float64 `json:"target_value"`
+	Unit            *string `json:"unit" binding:"omitempty,max=50"`
+	FormulaType     string  `json:"formula_type" binding:"omitempty,oneof=MANUAL HIGHER_BETTER LOWER_BETTER RANGE BOOLEAN PERCENTAGE"`
+	Weight          float64 `json:"weight"`
+}
+
+type UpdateOKREvaluationKeyResultTargetRequest struct {
+	Title       *string  `json:"title" binding:"omitempty,max=255"`
+	TargetType  *string  `json:"target_type" binding:"omitempty,oneof=NUMBER PERCENTAGE CURRENCY BOOLEAN DURATION SCORE"`
+	TargetValue *float64 `json:"target_value"`
+	Unit        *string  `json:"unit" binding:"omitempty,max=50"`
+	FormulaType *string  `json:"formula_type" binding:"omitempty,oneof=MANUAL HIGHER_BETTER LOWER_BETTER RANGE BOOLEAN PERCENTAGE"`
+	Weight      *float64 `json:"weight"`
 }
 
 type OKRBulkUpdateActualsRequest struct {
@@ -307,13 +346,13 @@ type OKRAttachmentResponse struct {
 // =========================================================================
 
 type OKRDashboardEmployeeResponse struct {
-	TotalObjectives    int                        `json:"total_objectives"`
-	TotalKeyResults    int                        `json:"total_key_results"`
-	OverallAchievement float64                    `json:"overall_achievement"`
-	FinalScore         float64                    `json:"final_score"`
-	RatingName         string                     `json:"rating_name,omitempty"`
-	Status             string                     `json:"status"`
-	Objectives         []OKRObjectiveProgressDTO  `json:"objectives,omitempty"`
+	TotalObjectives    int                       `json:"total_objectives"`
+	TotalKeyResults    int                       `json:"total_key_results"`
+	OverallAchievement float64                   `json:"overall_achievement"`
+	FinalScore         float64                   `json:"final_score"`
+	RatingName         string                    `json:"rating_name,omitempty"`
+	Status             string                    `json:"status"`
+	Objectives         []OKRObjectiveProgressDTO `json:"objectives,omitempty"`
 }
 
 type OKRObjectiveProgressDTO struct {
@@ -333,14 +372,14 @@ type OKRKeyResultProgressDTO struct {
 }
 
 type OKRDashboardHRResponse struct {
-	TotalEvaluations   int                  `json:"total_evaluations"`
-	CompletedCount     int                  `json:"completed_count"`
-	ApprovedCount      int                  `json:"approved_count"`
-	SubmittedCount     int                  `json:"submitted_count"`
-	DraftCount         int                  `json:"draft_count"`
-	AverageScore       float64              `json:"average_score"`
-	AverageAchievement float64              `json:"average_achievement"`
-	RatingDistribution []OKRRatingCountDTO  `json:"rating_distribution,omitempty"`
+	TotalEvaluations   int                 `json:"total_evaluations"`
+	CompletedCount     int                 `json:"completed_count"`
+	ApprovedCount      int                 `json:"approved_count"`
+	SubmittedCount     int                 `json:"submitted_count"`
+	DraftCount         int                 `json:"draft_count"`
+	AverageScore       float64             `json:"average_score"`
+	AverageAchievement float64             `json:"average_achievement"`
+	RatingDistribution []OKRRatingCountDTO `json:"rating_distribution,omitempty"`
 }
 
 type OKRRatingCountDTO struct {

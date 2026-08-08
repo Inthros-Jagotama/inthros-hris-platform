@@ -86,13 +86,29 @@ func (h *OKRHandler) CreateTemplate(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.CreateTemplate(db, &req)
+	result, err := h.service.CreateTemplate(db, h.getUserID(c), &req)
+	if err != nil {
+		httputil.BadRequest(c, err.Error())
+		return
+	}
+
+	httputil.CreatedJSON(c, result, "success.created")
+}
+
+func (h *OKRHandler) GetObjectiveCreationScope(c *gin.Context) {
+	db := h.getTenantDB(c)
+	if db == nil {
+		httputil.InternalError(c, "Database connection not found")
+		return
+	}
+
+	result, err := h.service.GetObjectiveCreationScope(db, h.getUserID(c))
 	if err != nil {
 		httputil.InternalError(c, err.Error())
 		return
 	}
 
-	httputil.CreatedJSON(c, result, "success.created")
+	httputil.SuccessJSON(c, result)
 }
 
 func (h *OKRHandler) GetTemplateByID(c *gin.Context) {
@@ -491,6 +507,75 @@ func (h *OKRHandler) CreateEvaluationWithSnapshot(c *gin.Context) {
 	httputil.CreatedJSON(c, result, "success.created")
 }
 
+func (h *OKRHandler) CreateEvaluationKeyResult(c *gin.Context) {
+	db := h.getTenantDB(c)
+	if db == nil {
+		httputil.InternalError(c, "Database connection not found")
+		return
+	}
+
+	var req CreateOKREvaluationKeyResultRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+
+	result, err := h.service.CreateEvaluationKeyResult(db, &req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	httputil.CreatedJSON(c, result, "success.created")
+}
+
+func (h *OKRHandler) UpdateEvaluationKeyResultTarget(c *gin.Context) {
+	db := h.getTenantDB(c)
+	if db == nil {
+		httputil.InternalError(c, "Database connection not found")
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
+		return
+	}
+
+	var req UpdateOKREvaluationKeyResultTargetRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+
+	result, err := h.service.UpdateEvaluationKeyResultTarget(db, id, &req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	httputil.SuccessJSON(c, result)
+}
+
+func (h *OKRHandler) DeleteEvaluationKeyResult(c *gin.Context) {
+	db := h.getTenantDB(c)
+	if db == nil {
+		httputil.InternalError(c, "Database connection not found")
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
+		return
+	}
+
+	if err := h.service.DeleteEvaluationKeyResult(db, id); err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	httputil.MessageJSON(c, "success.deleted")
+}
+
 func (h *OKRHandler) GetEvaluationByID(c *gin.Context) {
 	db := h.getTenantDB(c)
 	if db == nil {
@@ -714,6 +799,83 @@ func (h *OKRHandler) RecalculateEvaluationScore(c *gin.Context) {
 // Workflow
 // =========================================================================
 
+func (h *OKRHandler) SubmitKeyResults(c *gin.Context) {
+	db := h.getTenantDB(c)
+	if db == nil {
+		httputil.InternalError(c, "Database connection not found")
+		return
+	}
+
+	evaluationID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
+		return
+	}
+
+	userID := h.getUserID(c)
+
+	result, err := h.service.SubmitKeyResults(c.Request.Context(), db, evaluationID, userID)
+	if err != nil {
+		httputil.BadRequest(c, err.Error())
+		return
+	}
+
+	httputil.SuccessJSON(c, result)
+}
+
+func (h *OKRHandler) ApproveKeyResults(c *gin.Context) {
+	db := h.getTenantDB(c)
+	if db == nil {
+		httputil.InternalError(c, "Database connection not found")
+		return
+	}
+
+	evaluationID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
+		return
+	}
+
+	userID := h.getUserID(c)
+
+	result, err := h.service.ApproveKeyResults(db, evaluationID, userID)
+	if err != nil {
+		httputil.BadRequest(c, err.Error())
+		return
+	}
+
+	httputil.SuccessJSON(c, result)
+}
+
+func (h *OKRHandler) RejectKeyResults(c *gin.Context) {
+	db := h.getTenantDB(c)
+	if db == nil {
+		httputil.InternalError(c, "Database connection not found")
+		return
+	}
+
+	evaluationID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "BAD_REQUEST", "error.invalid_id")
+		return
+	}
+
+	userID := h.getUserID(c)
+
+	var req struct {
+		Notes string `json:"notes"`
+	}
+	c.ShouldBindJSON(&req)
+
+	result, err := h.service.RejectKeyResults(db, evaluationID, userID, req.Notes)
+	if err != nil {
+		httputil.BadRequest(c, err.Error())
+		return
+	}
+
+	httputil.SuccessJSON(c, result)
+}
+
 func (h *OKRHandler) SubmitEvaluation(c *gin.Context) {
 	db := h.getTenantDB(c)
 	if db == nil {
@@ -729,7 +891,7 @@ func (h *OKRHandler) SubmitEvaluation(c *gin.Context) {
 
 	userID := h.getUserID(c)
 
-	result, err := h.service.SubmitEvaluation(db, evaluationID, userID)
+	result, err := h.service.SubmitEvaluation(c.Request.Context(), db, evaluationID, userID)
 	if err != nil {
 		httputil.BadRequest(c, err.Error())
 		return

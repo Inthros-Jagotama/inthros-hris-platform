@@ -43,6 +43,7 @@ type OKRRepository interface {
 	GetOKREvaluationDetailByID(db *gorm.DB, id uuid.UUID) (*OKREvaluationDetail, error)
 	ListOKREvaluationDetailsByEvaluationID(db *gorm.DB, evaluationID uuid.UUID) ([]OKREvaluationDetail, error)
 	UpdateOKREvaluationDetail(db *gorm.DB, detail *OKREvaluationDetail) error
+	DeleteOKREvaluationDetail(db *gorm.DB, id uuid.UUID) error
 
 	// OKR Progress
 	CreateOKRProgress(db *gorm.DB, progress *OKRProgress) error
@@ -70,6 +71,16 @@ type OKRRepository interface {
 	// My Context (self-assessment)
 	GetCurrentEmployeeContext(db *gorm.DB, userID uuid.UUID) (employeeID *uuid.UUID, organizationID *uuid.UUID, err error)
 	GetOrganizationName(db *gorm.DB, orgID uuid.UUID) (string, error)
+	GetEmployeeNamesByIDs(db *gorm.DB, ids []uuid.UUID) (map[string]string, error)
+	GetPeriodCodesByIDs(db *gorm.DB, ids []uuid.UUID) (map[string]string, error)
+
+	// Cascading objective creation (top-down through the org hierarchy)
+	IsOrganizationOccupied(db *gorm.DB, orgID uuid.UUID) (bool, error)
+	GetOrganizationParentID(db *gorm.DB, orgID uuid.UUID) (*uuid.UUID, error)
+	GetChildOrganizationIDs(db *gorm.DB, orgID uuid.UUID) ([]uuid.UUID, error)
+	GetEffectiveChildOrganizationIDs(db *gorm.DB, orgID uuid.UUID) ([]uuid.UUID, error)
+	HasActiveTemplateWithObjectives(db *gorm.DB, orgID uuid.UUID) (bool, error)
+	GetOrganizationNamesByIDs(db *gorm.DB, ids []uuid.UUID) (map[string]string, error)
 }
 
 type okrRepositoryImpl struct{}
@@ -316,6 +327,10 @@ func (r *okrRepositoryImpl) UpdateOKREvaluationDetail(db *gorm.DB, detail *OKREv
 	return db.Save(detail).Error
 }
 
+func (r *okrRepositoryImpl) DeleteOKREvaluationDetail(db *gorm.DB, id uuid.UUID) error {
+	return db.Delete(&OKREvaluationDetail{}, "id = ?", id).Error
+}
+
 // =========================================================================
 // OKR Progress
 // =========================================================================
@@ -499,4 +514,167 @@ func (r *okrRepositoryImpl) GetOrganizationName(db *gorm.DB, orgID uuid.UUID) (s
 		return "", err
 	}
 	return name, nil
+}
+
+// =========================================================================
+// Cascading objective creation (top-down through the org hierarchy)
+// =========================================================================
+
+// IsOrganizationOccupied memeriksa apakah sebuah Organization sedang punya
+// employment aktif (posisi terisi).
+func (r *okrRepositoryImpl) IsOrganizationOccupied(db *gorm.DB, orgID uuid.UUID) (bool, error) {
+	var count int64
+	if err := db.Table("employments").
+		Where("organization_id = ? AND effective_end_date IS NULL", orgID).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// GetOrganizationParentID mengambil parent_id sebuah Organization (nil jika
+// sudah di akar hierarki).
+func (r *okrRepositoryImpl) GetOrganizationParentID(db *gorm.DB, orgID uuid.UUID) (*uuid.UUID, error) {
+	var parentID *string
+	if err := db.Table("organizations").
+		Where("id = ? AND deleted_at IS NULL", orgID).
+		Select("parent_id").
+		Scan(&parentID).Error; err != nil {
+		return nil, err
+	}
+	if parentID == nil || *parentID == "" {
+		return nil, nil
+	}
+	pid, err := uuid.Parse(*parentID)
+	if err != nil {
+		return nil, err
+	}
+	return &pid, nil
+}
+
+// GetChildOrganizationIDs mengambil ID seluruh direct-child Organization.
+func (r *okrRepositoryImpl) GetChildOrganizationIDs(db *gorm.DB, orgID uuid.UUID) ([]uuid.UUID, error) {
+	var ids []uuid.UUID
+	if err := db.Table("organizations").
+		Where("parent_id = ? AND deleted_at IS NULL", orgID).
+		Pluck("id", &ids).Error; err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+// GetEffectiveChildOrganizationIDs mengembalikan ID seluruh Organization yang
+// "bawahan efektif" dari orgID: anak langsung yang terisi, ditambah — bila
+// sebuah anak langsung vakan — bawahan efektif di bawah anak vakan tersebut
+// (jalan terus turun melompati setiap Organization vakan sampai ketemu yang
+// terisi). Mirrors performance.Repository.GetEffectiveChildOrganizationIDs
+// (duplicated here since the OKR repository takes *gorm.DB directly).
+func (r *okrRepositoryImpl) GetEffectiveChildOrganizationIDs(db *gorm.DB, orgID uuid.UUID) ([]uuid.UUID, error) {
+	var effective []uuid.UUID
+	frontier := []uuid.UUID{orgID}
+
+	for len(frontier) > 0 {
+		var nextFrontier []uuid.UUID
+		for _, parent := range frontier {
+			children, err := r.GetChildOrganizationIDs(db, parent)
+			if err != nil {
+				return nil, err
+			}
+			for _, child := range children {
+				occupied, err := r.IsOrganizationOccupied(db, child)
+				if err != nil {
+					return nil, err
+				}
+				if occupied {
+					effective = append(effective, child)
+					continue
+				}
+				nextFrontier = append(nextFrontier, child)
+			}
+		}
+		frontier = nextFrontier
+	}
+
+	return effective, nil
+}
+
+// HasActiveTemplateWithObjectives memeriksa apakah sebuah Organization sudah
+// "menerima" Objective — ada okr_templates berstatus Active (1) yang punya
+// minimal satu Objective untuk Organization tersebut.
+func (r *okrRepositoryImpl) HasActiveTemplateWithObjectives(db *gorm.DB, orgID uuid.UUID) (bool, error) {
+	var count int64
+	if err := db.Table("okr_templates AS t").
+		Joins("JOIN okr_objectives AS o ON o.template_id = t.id").
+		Where("t.organization_id = ? AND t.status = 1 AND t.deleted_at IS NULL AND o.deleted_at IS NULL", orgID).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// GetOrganizationNamesByIDs mengambil nomenclature untuk sekumpulan
+// Organization sekaligus (batch), menghindari N+1 saat menyusun daftar
+// bawahan efektif.
+func (r *okrRepositoryImpl) GetOrganizationNamesByIDs(db *gorm.DB, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	type row struct {
+		ID           string
+		Nomenclature string
+	}
+	var rows []row
+	if err := db.Table("organizations").
+		Select("id, nomenclature").
+		Where("id IN ?", ids).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, rrow := range rows {
+		result[rrow.ID] = rrow.Nomenclature
+	}
+	return result, nil
+}
+
+// GetEmployeeNamesByIDs mengambil nama karyawan untuk sekumpulan employee ID
+// via raw table query (tanpa import package employee, hindari circular
+// dependency) — dipakai untuk enrich employee_name pada response evaluasi.
+func (r *okrRepositoryImpl) GetEmployeeNamesByIDs(db *gorm.DB, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	type row struct {
+		ID   string
+		Name string
+	}
+	var rows []row
+	if err := db.Table("employees").
+		Select("id, name").
+		Where("id IN ?", ids).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, rrow := range rows {
+		result[rrow.ID] = rrow.Name
+	}
+	return result, nil
+}
+
+// GetPeriodCodesByIDs mengambil period_code untuk sekumpulan Performance
+// Period ID — OKR reuses the same performance_periods table as KPI.
+func (r *okrRepositoryImpl) GetPeriodCodesByIDs(db *gorm.DB, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	var periods []PerformancePeriod
+	if err := db.Where("id IN ?", ids).Find(&periods).Error; err != nil {
+		return nil, err
+	}
+	for _, p := range periods {
+		result[p.ID.String()] = p.PeriodCode
+	}
+	return result, nil
 }

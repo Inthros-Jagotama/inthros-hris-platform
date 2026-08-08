@@ -36,7 +36,7 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 
 	// OKR
 	okrRepo := NewOKRRepository()
-	okrSvc := NewOKRService(okrRepo)
+	okrSvc := NewOKRService(okrRepo, resolver)
 	okrHandler := NewOKRHandler(okrSvc, resolver)
 
 	return &perfModule{
@@ -54,7 +54,23 @@ func NewModuleWithService(dbManager *database.Manager, logger *zap.Logger, svc *
 	handler := NewHandler(svc)
 
 	okrRepo := NewOKRRepository()
-	okrSvc := NewOKRService(okrRepo)
+	okrSvc := NewOKRService(okrRepo, resolver)
+	okrHandler := NewOKRHandler(okrSvc, resolver)
+
+	return &perfModule{
+		handler:    handler,
+		okrHandler: okrHandler,
+		logger:     logger,
+	}
+}
+
+// NewModuleWithServices is like NewModuleWithService but also accepts an
+// already-constructed OKRService, so main.go can register its own
+// push-based approval status handlers (Key Result approval, assessment
+// approval) before the module is mounted.
+func NewModuleWithServices(dbManager *database.Manager, logger *zap.Logger, svc *Service, okrSvc OKRService) module.Module {
+	resolver := NewTenantDBResolver(dbManager)
+	handler := NewHandler(svc)
 	okrHandler := NewOKRHandler(okrSvc, resolver)
 
 	return &perfModule{
