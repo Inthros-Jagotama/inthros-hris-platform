@@ -2271,8 +2271,18 @@ Halaman utama employee: ringkasan (present/late/missing/leave-days dari `GetEmpl
 >
 > **Sidebar tetap satu entry** (`Sidebar.vue:346`, tidak diubah) — `operationsItems` di sidebar tidak mendukung dropdown children (`coreHRItems`/`talentItems` yang mendukung), jadi navigasi ke halaman admin baru dilakukan lewat tombol "Admin" di dalam `Attendance.vue` menuju index kartu `AttendanceAdmin.vue`, bukan lewat perubahan struktur sidebar — konsisten dengan pola `/settings` yang juga satu sidebar entry menuju index kartu.
 
-**Phase FE-3 — Overtime & Correction Requests**
+**Phase FE-3 — Overtime & Correction Requests ✅ Selesai (2026-08-09)**
 `AttendanceOvertime`/`AttendanceCorrections` (+form masing-masing): create request + list status (SUBMITTED/PENDING_APPROVAL/APPROVED/REJECTED). Approve/reject **tidak dibangun di sini** — tampilkan status + link-out ke halaman detail approval instance module Approval yang sudah ada.
+
+> ✅ **Diimplementasikan.** `AttendanceOvertime.vue` (list + Dialog create, field `work_date`/`start_time`/`end_time`/`requested_minutes`/`reason`, kolom `calculated_minutes` ditampilkan read-only dari hasil `applyOvertimeCalculation` backend) dan `AttendanceCorrections.vue` (list + Dialog create, 4 `correction_type` dari model backend). Keduanya difilter `employee_id` milik user yang login (lewat `useMyEmployee` composable, lihat di bawah) — halaman ini murni self-service, bukan admin view lintas-employee. Tombol "View in Approvals" mengarah ke `/approvals` (halaman Approval Module yang sudah ada) — **bukan deep-link ke instance spesifik**, karena `Approvals.vue` tidak punya dukungan query-param untuk membuka satu instance langsung; membangun itu di luar cakupan plan Attendance FE ini (milik Approval module).
+>
+> **`AttendanceCorrections.vue` me-resolve `attendance_session_id` dari tanggal** — backend `CreateCorrectionRequest` mewajibkan `attendance_session_id`, bukan `work_date` mentah, jadi form memanggil `GET /attendance/sessions/detail?employee_id=&work_date=` saat tanggal dipilih untuk mendapatkan session yang sesuai (menampilkan pesan "sesi tidak ditemukan" jika tidak ada). `WRONG_CHECKIN`/`WRONG_CHECKOUT` tetap bisa diajukan lewat form ini untuk keperluan audit (sesuai catatan Phase 8 backend), meskipun backend belum menerapkannya otomatis ke session.
+>
+> **Dua file baru diekstrak** karena sekarang dipakai di 3 tempat (Attendance.vue, AttendanceOvertime.vue, AttendanceCorrections.vue) — bukan duplikasi lagi:
+> - `composables/useMyEmployee.js`: membungkus `GET /user-accounts/me` dengan cache module-level (sekali per sesi browser), menggantikan fetch inline yang sebelumnya cuma ada di `Attendance.vue`.
+> - `utils/localTime.js` (`toLocalISOString`, `localDateTimeISOString`): logic ISO+offset yang sebelumnya inline di `Attendance.vue` untuk `event_time_local`, sekarang dipakai ulang untuk `start_time_local`/`end_time_local` (Overtime) dan `requested_checkin`/`requested_checkout` (Correction) — semuanya di-parse backend sebagai RFC3339 (`time.Parse(time.RFC3339, ...)`), butuh offset eksplisit, bukan sekadar `YYYY-MM-DDTHH:mm:ss`.
+>
+> Route baru: `attendance/overtime`, `attendance/corrections` (sibling `/attendance`, bukan di bawah `/attendance/admin` — kedua halaman ini untuk semua employee, bukan admin-only). Tombol akses ditambahkan di header `Attendance.vue` di samping tombol "Admin".
 
 **Phase FE-4 — Events & Sessions (Read-only Audit Views)**
 `AttendanceEvents`, `AttendanceSessions`: tabel read-only untuk audit/troubleshooting HR (raw event log, session detail per employee/tanggal). Prioritas lebih rendah dari FE-1/2/3 karena bukan alur kerja harian.

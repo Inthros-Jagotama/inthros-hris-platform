@@ -9,8 +9,10 @@
     </template>
 
     <template v-else>
-      <div v-if="hasPermission('attendance.update')" class="flex justify-end">
-        <Button :label="t('attendance.admin')" icon="pi pi-cog" size="small" severity="secondary" outlined @click="router.push('/attendance/admin')" />
+      <div class="flex justify-end gap-2">
+        <Button :label="t('attendance.overtime')" icon="pi pi-clock" size="small" severity="secondary" outlined @click="router.push('/attendance/overtime')" />
+        <Button :label="t('attendance.corrections')" icon="pi pi-pencil" size="small" severity="secondary" outlined @click="router.push('/attendance/corrections')" />
+        <Button v-if="hasPermission('attendance.update')" :label="t('attendance.admin')" icon="pi pi-cog" size="small" severity="secondary" outlined @click="router.push('/attendance/admin')" />
       </div>
 
       <!-- Check-in / Check-out -->
@@ -70,8 +72,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
 import { useAuth } from '@/stores/auth'
+import { useMyEmployee } from '@/composables/useMyEmployee'
 import api from '@/services/api'
 import { getErrorMessage } from '@/services/responseHandler'
+import { toLocalISOString } from '@/utils/localTime'
 
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -80,9 +84,9 @@ import Message from 'primevue/message'
 const router = useRouter()
 const { t } = useI18n()
 const { hasPermission } = useAuth()
+const { employeeId, loadMyEmployeeId } = useMyEmployee()
 
 const loading = ref(true)
-const employeeId = ref('')
 const summary = ref(null)
 const calendarSessions = ref([])
 const punching = ref(false)
@@ -102,18 +106,6 @@ function toDateOnly(date) {
   const m = String(date.getMonth() + 1).padStart(2, '0')
   const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
-}
-
-// toLocalISOString membangun ISO string dengan offset zona waktu lokal browser
-// (mis. 2026-08-08T14:30:00+07:00), karena backend attendance/events butuh
-// event_time_local dengan offset eksplisit, bukan hanya UTC.
-function toLocalISOString(date) {
-  const pad = (n) => String(n).padStart(2, '0')
-  const offsetMin = -date.getTimezoneOffset()
-  const sign = offsetMin >= 0 ? '+' : '-'
-  const offH = pad(Math.floor(Math.abs(offsetMin) / 60))
-  const offM = pad(Math.abs(offsetMin) % 60)
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}${sign}${offH}:${offM}`
 }
 
 function monthRange(date) {
@@ -151,11 +143,6 @@ const summaryCards = computed(() => {
   ]
 })
 
-async function loadEmployeeId() {
-  const res = await api.get('/api/v1/tenant/user-accounts/me')
-  employeeId.value = res.data?.data?.employee_id || ''
-}
-
 async function loadSummaryAndCalendar() {
   if (!employeeId.value) return
   const { from, to } = monthRange(today)
@@ -171,7 +158,7 @@ async function loadSummaryAndCalendar() {
 async function loadAll() {
   loading.value = true
   try {
-    await loadEmployeeId()
+    employeeId.value = await loadMyEmployeeId()
     await loadSummaryAndCalendar()
   } catch (e) {
     punchError.value = getErrorMessage(e, t('message.failed_to_load'))

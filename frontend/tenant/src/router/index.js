@@ -154,6 +154,18 @@ const routes = [
         component: () => import('@/views/modules/AttendanceExemptPositions.vue'),
         meta: { title: 'Exempt Positions', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description', icon: 'pi pi-shield', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
       },
+      {
+        path: 'attendance/overtime',
+        name: 'AttendanceOvertime',
+        component: () => import('@/views/modules/AttendanceOvertime.vue'),
+        meta: { title: 'Overtime', titleKey: 'attendance.overtime', descKey: 'attendance.overtime_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title' }
+      },
+      {
+        path: 'attendance/corrections',
+        name: 'AttendanceCorrections',
+        component: () => import('@/views/modules/AttendanceCorrections.vue'),
+        meta: { title: 'Corrections', titleKey: 'attendance.corrections', descKey: 'attendance.corrections_description', icon: 'pi pi-pencil', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title' }
+      },
       // Approval Engine
       {
         path: 'approvals',
