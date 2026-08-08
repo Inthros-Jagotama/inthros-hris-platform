@@ -679,3 +679,31 @@ func (r *Repository) UpdateCorrectionRequest(ctx context.Context, c *AttendanceC
 	}
 	return db.Save(c).Error
 }
+
+// FindUserIDByEmployeeID resolves an employee's platform user_id via
+// employee_accounts, mirroring the employee_id -> user_id resolution already
+// used by the approval module (GetUserIDsByOrganization) and by
+// leave.Repository.FindUserIDByEmployeeID. Returns nil if the employee has
+// no linked user account.
+func (r *Repository) FindUserIDByEmployeeID(ctx context.Context, employeeID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var userIDStrs []string
+	err = db.Table("employee_accounts").
+		Where("employee_id = ?", employeeID).
+		Limit(1).
+		Pluck("user_id", &userIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve employee user id: %w", err)
+	}
+	if len(userIDStrs) == 0 || userIDStrs[0] == "" {
+		return nil, nil
+	}
+	userID, err := uuid.Parse(userIDStrs[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id: %w", err)
+	}
+	return &userID, nil
+}

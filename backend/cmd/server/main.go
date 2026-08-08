@@ -536,6 +536,7 @@ func main() {
 	attendanceRepo := attendance.NewRepository(attendanceResolver)
 	attendanceSvc := attendance.NewService(attendanceRepo, l.Named("attendance"))
 	attendanceSvc.SetApprovalEngine(sharedApprovalEngine)
+	attendanceSvc.SetNotifier(notificationSvc)
 	approvalSvc.RegisterStatusHandler("attendance", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return attendanceSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})

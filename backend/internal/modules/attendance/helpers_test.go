@@ -12,6 +12,25 @@ import (
 	sqlite "github.com/glebarez/sqlite"
 )
 
+// testEmployeeAccount mirrors useraccount.EmployeeAccount's employee_id <->
+// user_id mapping (employee_accounts table) for FindUserIDByEmployeeID tests,
+// without importing the useraccount package (same pattern as
+// leave/helpers_test.go's testEmployeeAccount).
+type testEmployeeAccount struct {
+	ID         uuid.UUID `gorm:"type:char(36);primaryKey"`
+	EmployeeID uuid.UUID `gorm:"type:char(36);not null;uniqueIndex"`
+	UserID     uuid.UUID `gorm:"type:char(36);not null"`
+}
+
+func (testEmployeeAccount) TableName() string { return "employee_accounts" }
+
+func createTestEmployeeAccount(db *gorm.DB, employeeID, userID uuid.UUID) {
+	acc := &testEmployeeAccount{ID: uuid.New(), EmployeeID: employeeID, UserID: userID}
+	if err := db.Create(acc).Error; err != nil {
+		panic(fmt.Sprintf("failed to create test employee account: %v", err))
+	}
+}
+
 // setupTestDB creates an in-memory SQLite database and auto-migrates all models.
 func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func()) {
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
@@ -31,6 +50,7 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&AttendanceOvertimeRequest{},
 		&AttendanceExemptPosition{},
 		&AttendanceCorrectionRequest{},
+		&testEmployeeAccount{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
 	}

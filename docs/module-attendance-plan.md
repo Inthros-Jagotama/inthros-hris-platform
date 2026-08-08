@@ -2027,20 +2027,22 @@ Attendance Anomaly        ⏳ Tidak diimplementasikan — "anomaly" butuh defini
 
 ---
 
-## Phase 12 - Notification
+## Phase 12 - Notification ✅ Sebagian Selesai (2026-08-08)
 
 Integrate:
 
 ```text
-Attendance Notification    ⏳ Tidak diimplementasikan — lihat catatan di bawah
-Overtime Notification       ⏳ Sama
-Correction Notification      ⏳ Sama
-Missing Checkout Reminder     ⏳ Sama
+Attendance Notification    ⏳ N/A — tidak ada notifikasi umum di luar overtime/correction
+Overtime Notification       ✅ Diimplementasikan — lihat catatan di bawah
+Correction Notification      ✅ Diimplementasikan — lihat catatan di bawah
+Missing Checkout Reminder     ⏳ Tetap belum ada — butuh scheduled job (§44-45), tidak ada infrastruktur cron di codebase ini
 ```
 
-> ⏳ **Sepenuhnya ditunda — bukan gap spesifik Attendance, tapi ketiadaan infrastruktur lintas-modul.** Dikonfirmasi lewat pencarian menyeluruh: **tidak ada modul Notification sama sekali** di `backend/internal/modules/*` (tidak ada folder, tidak ada tabel, tidak ada service) — bukan cuma Attendance yang belum terintegrasi, **tidak ada satupun modul lain** (Leave, Payroll, Performance, dll.) yang pernah memanggil sistem notifikasi user-facing apapun. Satu-satunya hal bernama mirip adalah `approval.StatusChangeHandler` (`approval/service.go`), yaitu callback internal supaya modul lain bisa bereaksi terhadap perubahan status approval — bukan notifikasi ke user (email/push/in-app).
+> ✅ **Modul Notification sekarang ada** (`docs/module-notification-plan.md`, dibangun terpisah Phase 1-5) — blocker infrastruktur lintas-modul yang sebelumnya menahan seluruh Phase 12 ini sudah teratasi. Attendance jadi consumer kedua setelah Leave (Notification Phase 5, rollout).
 >
-> Membangun modul Notification dari nol sekarang akan menjadi keputusan arsitektur lintas-modul (skema tabel, provider pengiriman, konvensi wiring) yang jauh di luar cakupan "Phase 12 modul Attendance" — sama seperti Absent detection/scheduled job (§44-45) yang juga butuh infrastruktur belum ada, bukan sesuatu yang bisa diselesaikan dengan menambah kode di satu modul saja. Ditunda sepenuhnya sampai ada keputusan produk/infra untuk membangun modul Notification secara terpusat terlebih dahulu, baru Attendance (dan modul lain) bisa terintegrasi dengannya.
+> **Overtime & Correction Notification — diimplementasikan.** `attendance.Notifier` interface baru (`service.go`) + `SetNotifier`, dipenuhi secara struktural oleh `notification.Service` (pola narrow-interface-plus-adapter yang sama dengan `ApprovalEngine`). `attendance.Repository.FindUserIDByEmployeeID` resolusi `employee_id → user_id` lewat `employee_accounts`, sama seperti yang dipakai Leave. `handleOvertimeApprovalStatusChange` dan `handleCorrectionApprovalStatusChange` memanggil `notifyRequestOutcome` pada transisi APPROVED (`OVERTIME_APPROVED`/`CORRECTION_APPROVED`) dan REJECTED (`OVERTIME_REJECTED`/`CORRECTION_REJECTED`) — best-effort: notifier belum wired, employee tanpa user account, atau `Notify` gagal hanya di-log, tidak menggagalkan approval. Diwire di `cmd/server/main.go` via `attendanceSvc.SetNotifier(notificationSvc)`.
+>
+> **Missing Checkout Reminder tetap belum ada** — bukan lagi soal ketiadaan modul Notification, tapi butuh scheduled job proaktif (§44-45) yang mendeteksi sesi `MISSING_CHECKOUT` tanpa event pemicu apapun; tidak ada infrastruktur cron/scheduler di codebase ini (kategori gap yang sama dengan Absent detection di Phase 6/10-11). **Attendance Notification generik** (di luar overtime/correction) tidak punya trigger konkret lain yang teridentifikasi di plan ini, jadi tidak dibangun sebagai surface area spekulatif.
 
 ---
 
@@ -2189,7 +2191,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 9 - Leave Integration | ✅ Selesai (2026-08-08) | `leave.AttendanceSessionUpdater` (interface baru) + `attendance.Service.ApplyApprovedLeave` diwire di `main.go`. Saat leave `APPROVED_FINAL`, tiap `LeaveRequestDetail` mendorong session Attendance jadi `LEAVE` (atau mencatat `LeaveFraction` saja jika session sudah `CLOSED` karena ada attendance nyata, sesuai §27) — termasuk membuat session baru untuk hari yang murni cuti tanpa event apapun |
 | Phase 10 - Dashboard & Calendar | 🔶 Sebagian (2026-08-08) | Employee Calendar/Summary (backend) selesai — `GetEmployeeCalendar`/`GetEmployeeSummary` (`GET /attendance/calendar`, `GET /attendance/summary`). Manager/HR Dashboard dan Team Calendar sengaja belum dibangun — butuh cross-module read employee/organization yang belum ada. Frontend tetap belum dimulai |
 | Phase 11 - Reports | 🔶 Sebagian (2026-08-08) | `GET /attendance/reports/sessions?from=&to=` (tenant-wide, semua employee) selesai — mencakup Daily/Monthly Attendance. Late/Early Leave/Missing Attendance datanya sudah ada di respons yang sama (difilter di consumer, bukan endpoint terpisah). Overtime/Correction reports pakai endpoint list Phase 7/8 yang sudah ada. Absent tetap tidak bisa (status tidak pernah di-set). Attendance Anomaly & Export (Excel/CSV/PDF) sengaja tidak dikerjakan — masing-masing butuh definisi bisnis / presentation layer di luar cakupan |
-| Phase 12 - Notification | ❌ Belum ada (2026-08-08, dikonfirmasi ulang) | **Bukan gap spesifik Attendance** — tidak ada modul Notification sama sekali di codebase ini (tidak ada folder/tabel/service), tidak ada satupun modul lain yang mengintegrasikannya. Butuh keputusan infra terpusat dulu sebelum modul manapun (termasuk Attendance) bisa terintegrasi |
+| Phase 12 - Notification | 🔶 Sebagian (2026-08-08) | Modul Notification kini ada (`docs/module-notification-plan.md`). `attendance.Notifier` + `SetNotifier` diimplementasikan; `Notify` dipanggil saat Overtime/Correction request APPROVED/REJECTED (`OVERTIME_APPROVED/REJECTED`, `CORRECTION_APPROVED/REJECTED`), best-effort. Missing Checkout Reminder tetap belum ada — butuh scheduled job (§44-45) yang belum ada infrastrukturnya |
 | Phase 13 - Payroll Integration | ❌ Belum ada | Tidak ada data untuk diekspos ke Payroll karena session calculation (Phase 6) belum ada |
 | Phase 14 - Testing | ❔ Belum diverifikasi detail | Belum dicek apakah ada test file untuk CRUD/approval integration (pola lain di codebase biasanya punya `approval_integration_test.go`) — perlu verifikasi terpisah sebelum diklaim |
 
@@ -2204,7 +2206,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 6. ~~Tenant-wide session report (Phase 11)~~ ✅ Selesai (2026-08-08) — `GET /attendance/reports/sessions`. Attendance Anomaly masih butuh definisi bisnis, Export masih presentation-layer.
 7. **Payroll Integration (Phase 13)** — sekarang jadi kandidat berikutnya yang paling bernilai: session sudah punya `WorkMinutes`/`OvertimeMinutes`/`LeaveFraction` lengkap untuk diekspos ke Payroll, tinggal endpoint/query agregasi per periode.
 8. Scheduled job untuk Absent/Missing detection (§44-45) — perlu keputusan infra (cron/scheduler) yang belum ada polanya di codebase ini.
-9. Modul Notification terpusat (Phase 12) — di luar cakupan Attendance sendiri; butuh keputusan infra lintas-modul dulu (tidak ada modul ini sama sekali di codebase, bukan cuma belum terintegrasi dengan Attendance).
+9. ~~Modul Notification terpusat (Phase 12)~~ ✅ Selesai sebagian (2026-08-08) — Overtime/Correction notification terwire. Missing Checkout Reminder masih menunggu scheduled job (§44-45).
 10. Dedicated check-in/check-out endpoints (pisah dari `POST /events` generik) — supaya validasi per-aksi (Phase 4-5) punya tempat spesifik dipasang.
 11. Frontend dasar — sekarang data session yang ditampilkan sudah benar-benar berarti (bukan tabel kosong).
 

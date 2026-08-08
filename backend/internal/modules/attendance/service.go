@@ -27,10 +27,19 @@ type ApprovalEngine interface {
 	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
 }
 
+// Notifier abstracts the notification module so Attendance can notify an
+// employee of their overtime/correction request's approval outcome
+// (docs/module-notification-plan.md §5.2/§8, Phase 5). notification.Service
+// satisfies this structurally.
+type Notifier interface {
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) error
+}
+
 type Service struct {
 	repo           *Repository
 	logger         *zap.Logger
 	approvalEngine ApprovalEngine
+	notifier       Notifier
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -40,6 +49,44 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 // SetApprovalEngine wires the central approval module into this service.
 func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 	s.approvalEngine = ae
+}
+
+// SetNotifier wires the notification module into this service so overtime
+// and correction approval outcomes can be relayed to the requesting
+// employee (docs/module-notification-plan.md §8, Phase 5).
+func (s *Service) SetNotifier(n Notifier) {
+	s.notifier = n
+}
+
+// notifyRequestOutcome notifies employeeID of a request's approval outcome.
+// Best-effort: if the notifier isn't wired, the employee has no linked user
+// account, or Notify fails, this logs and moves on rather than failing the
+// approval itself (docs/module-notification-plan.md's best-effort delivery
+// principle, mirroring leave.Service.notifyLeaveOutcome).
+func (s *Service) notifyRequestOutcome(ctx context.Context, employeeID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) {
+	if s.notifier == nil {
+		return
+	}
+	userID, err := s.repo.FindUserIDByEmployeeID(ctx, employeeID)
+	if err != nil {
+		s.logger.Warn("Failed to resolve employee user id for attendance notification",
+			zap.String("reference_type", referenceType),
+			zap.String("reference_id", referenceID.String()),
+			zap.Error(err),
+		)
+		return
+	}
+	if userID == nil {
+		return
+	}
+	if err := s.notifier.Notify(ctx, *userID, notifType, title, body, referenceType, referenceID); err != nil {
+		s.logger.Warn("Failed to send attendance notification",
+			zap.String("notif_type", notifType),
+			zap.String("reference_type", referenceType),
+			zap.String("reference_id", referenceID.String()),
+			zap.Error(err),
+		)
+	}
 }
 
 // =========================================================================
@@ -816,7 +863,16 @@ func (s *Service) handleOvertimeApprovalStatusChange(ctx context.Context, o *Att
 		zap.String("overtime_request_id", o.ID.String()),
 		zap.String("approval_status", status),
 	)
-	return s.repo.UpdateOvertimeRequest(ctx, o)
+	if err := s.repo.UpdateOvertimeRequest(ctx, o); err != nil {
+		return err
+	}
+	switch o.Status {
+	case OvertimeApproved:
+		s.notifyRequestOutcome(ctx, o.EmployeeID, "OVERTIME_APPROVED", "Overtime Request Approved", "Your overtime request has been approved.", "attendance_overtime", o.ID)
+	case OvertimeRejected:
+		s.notifyRequestOutcome(ctx, o.EmployeeID, "OVERTIME_REJECTED", "Overtime Request Rejected", "Your overtime request has been rejected.", "attendance_overtime", o.ID)
+	}
+	return nil
 }
 
 // applyOvertimeCalculation fills in ActualMinutes/CalculatedMinutes (§31-32)
@@ -991,7 +1047,16 @@ func (s *Service) handleCorrectionApprovalStatusChange(ctx context.Context, c *A
 		zap.String("correction_request_id", c.ID.String()),
 		zap.String("approval_status", status),
 	)
-	return s.repo.UpdateCorrectionRequest(ctx, c)
+	if err := s.repo.UpdateCorrectionRequest(ctx, c); err != nil {
+		return err
+	}
+	switch c.Status {
+	case CorrectionApproved:
+		s.notifyRequestOutcome(ctx, c.EmployeeID, "CORRECTION_APPROVED", "Attendance Correction Approved", "Your attendance correction request has been approved.", "attendance_correction", c.ID)
+	case CorrectionRejected:
+		s.notifyRequestOutcome(ctx, c.EmployeeID, "CORRECTION_REJECTED", "Attendance Correction Rejected", "Your attendance correction request has been rejected.", "attendance_correction", c.ID)
+	}
+	return nil
 }
 
 // applyCorrectionToSession applies an approved correction by inserting a new
