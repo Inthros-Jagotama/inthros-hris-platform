@@ -32,10 +32,12 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 	resolver := NewTenantDBResolver(dbManager)
 	repo := NewRepository(resolver)
 	svc := NewService(repo, logger)
+	handler := NewHandler(svc)
 
 	return &notificationModule{
-		svc:    svc,
-		logger: logger,
+		svc:     svc,
+		handler: handler,
+		logger:  logger,
 	}
 }
 
@@ -44,14 +46,16 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 // other modules as a Notifier before/while mounting it.
 func NewModuleWithService(logger *zap.Logger, svc *Service) module.Module {
 	return &notificationModule{
-		svc:    svc,
-		logger: logger,
+		svc:     svc,
+		handler: NewHandler(svc),
+		logger:  logger,
 	}
 }
 
 type notificationModule struct {
-	svc    *Service
-	logger *zap.Logger
+	svc     *Service
+	handler *Handler
+	logger  *zap.Logger
 }
 
 func (m *notificationModule) Info() module.ModuleInfo {
@@ -69,9 +73,9 @@ func (m *notificationModule) Info() module.ModuleInfo {
 	}
 }
 
-// RegisterRoutes is a no-op for now — the REST API (handler + routes) is
-// built in Phase 3 per docs/module-notification-plan.md §9.
-func (m *notificationModule) RegisterRoutes(rg *gin.RouterGroup) {}
+func (m *notificationModule) RegisterRoutes(rg *gin.RouterGroup) {
+	RegisterRoutes(rg, m.handler)
+}
 
 func (m *notificationModule) Migrate(db *gorm.DB) error {
 	return db.AutoMigrate(&Notification{})

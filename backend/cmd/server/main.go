@@ -51,6 +51,7 @@ import (
 	"github.com/inthros/hris-platform/internal/modules/employeemovement"
 	"github.com/inthros/hris-platform/internal/modules/jobmanagement"
 	"github.com/inthros/hris-platform/internal/modules/leave"
+	"github.com/inthros/hris-platform/internal/modules/notification"
 	"github.com/inthros/hris-platform/internal/modules/organization"
 	"github.com/inthros/hris-platform/internal/modules/payroll"
 	"github.com/inthros/hris-platform/internal/modules/performance"
@@ -682,6 +683,11 @@ func main() {
 			Module:   useraccount.NewModule(dbManager, authManager, mailerSvc, l),
 			TargetDB: module.TargetTenant,
 			Priority: 18,
+		},
+		module.ModuleRegistration{
+			Module:   notification.NewModule(dbManager, l),
+			TargetDB: module.TargetTenant,
+			Priority: 19,
 		},
 	)
 

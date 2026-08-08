@@ -6,7 +6,7 @@
 |---|---|---|
 | Phase 1 — Database Schema | ✅ Selesai | Migration `074_notification`, model `Notification`, repository CRUD dasar + test. |
 | Phase 2 — Notifier Interface & Service Layer | ✅ Selesai | Service `Notify`/`ListNotifications`/`MarkAsRead`/`MarkAllAsRead`/`GetUnreadCount`, `module.go` dengan permissions `notification.view`/`notification.manage`. |
-| Phase 3 — REST API | ⏳ Belum dimulai | |
+| Phase 3 — REST API | ✅ Selesai | Handler + routes untuk 4 endpoint, module terdaftar di `main.go` (priority 19). |
 | Phase 4 — Integrasi Leave | ⏳ Belum dimulai | |
 | Phase 5 — Rollout ke Modul Lain | ⏳ Belum dimulai | |
 | Phase 6 — Email/Push Delivery | ⏸️ Di luar cakupan | Butuh keputusan provider terpisah. |
@@ -221,10 +221,13 @@ Semua titik ini butuh resolusi `employee_id → user_id` (lewat `useraccount`), 
 * ✅ Test service-level (`service_test.go`): `Notify` menghasilkan notifikasi unread dengan reference tersimpan, `MarkAsRead` menolak user lain, `MarkAllAsRead` + `GetUnreadCount` konsisten.
 * Belum ada handler, routes, atau registrasi module di `main.go` — sesuai batas scope Phase 2, dilanjutkan di Phase 3.
 
-## Phase 3 - REST API
+## Phase 3 - REST API ✅ Selesai
 
-* Handler + routes untuk 4 endpoint di §7.
-* Registrasi module di `main.go`.
+* ✅ Handler (`backend/internal/modules/notification/handler.go`) untuk 4 endpoint di §7 — `recipientUserID` selalu diambil dari `authctx.GetUserID(ctx)`, tidak pernah dari parameter client.
+* ✅ Routes (`backend/internal/modules/notification/routes.go`) — `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `POST /notifications/read-all`.
+* ✅ `module.go` — `RegisterRoutes` kini memanggil handler (sebelumnya no-op di Phase 2).
+* ✅ Registrasi module di `cmd/server/main.go` (`notification.NewModule(dbManager, l)`, priority 19, tenant-scoped).
+* Wiring `Notifier` ke modul consumer (Leave, dst.) belum dilakukan — itu Phase 4/5.
 
 ## Phase 4 - Integrasi Consumer Pertama (Leave)
 
