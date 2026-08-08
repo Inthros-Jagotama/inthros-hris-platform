@@ -1,0 +1,148 @@
+<template>
+  <div class="space-y-1">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <div class="flex items-center gap-2">
+        <Select v-model="employeeFilter" :options="employeeOptions" optionLabel="label" optionValue="value" filter showClear class="w-64" :placeholder="t('attendance.filter_all_employees')" @update:modelValue="onFilterChange" />
+        <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ totalRecords }} {{ t('common.items') }}</span>
+      </div>
+    </div>
+
+    <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="8" />
+    <DataTable
+      v-else
+      :value="items"
+      lazy
+      :totalRecords="totalRecords"
+      :first="firstRecord"
+      :rows="perPage"
+      @page="onPage($event)"
+      paginator
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+      :rowsPerPageOptions="[10, 15, 25, 50]"
+      size="small"
+      class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+    >
+      <template #empty>
+        <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
+          <i class="pi pi-list text-3xl mb-2 opacity-50"></i>
+          <p class="text-sm font-medium">{{ t('attendance.events_empty') }}</p>
+        </div>
+      </template>
+      <Column field="employee_id" :header="t('employee.title')">
+        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span></template>
+      </Column>
+      <Column field="event_type" :header="t('attendance.event_type')" style="width:110px">
+        <template #body="{data}"><Tag :value="data.event_type" :severity="data.event_type === 'CHECKIN' ? 'success' : 'warn'" class="!text-xs !px-1.5 !py-0.5" /></template>
+      </Column>
+      <Column field="event_time_local" :header="t('attendance.event_time')" style="width:200px">
+        <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ formatDateTime(data.event_time_local) }}</span></template>
+      </Column>
+      <Column field="validation_status" :header="t('attendance.validation_status')" style="width:130px">
+        <template #body="{data}"><Tag :value="data.validation_status" :severity="validationSeverity(data.validation_status)" class="!text-xs !px-1.5 !py-0.5" /></template>
+      </Column>
+      <Column field="distance_m" :header="t('attendance.distance_m')" style="width:110px">
+        <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.distance_m != null ? data.distance_m + ' m' : '-' }}</span></template>
+      </Column>
+      <Column field="is_in_geofence" :header="t('attendance.in_geofence')" style="width:110px">
+        <template #body="{data}"><Tag :value="data.is_in_geofence ? t('common.yes') : t('common.no')" :severity="data.is_in_geofence ? 'success' : 'danger'" class="!text-xs !px-1.5 !py-0.5" /></template>
+      </Column>
+    </DataTable>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useToast } from 'primevue/usetoast'
+import { useI18n } from '@/composables/useI18n'
+import { getErrorMessage } from '@/services/responseHandler'
+import api from '@/services/api'
+
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Tag from 'primevue/tag'
+import Select from 'primevue/select'
+import SkeletonTable from '@/components/SkeletonTable.vue'
+
+const { t } = useI18n()
+const toast = useToast()
+
+const items = ref([])
+const loading = ref(false)
+const totalRecords = ref(0)
+const currentPage = ref(1)
+const perPage = ref(15)
+const employees = ref([])
+const employeeFilter = ref(null)
+
+const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
+const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_id})`, value: e.id })))
+const skeletonColumns = [
+  { type: 'text', width: 'w-44', headerWidth: 'w-24' },
+  { type: 'tag', width: 'w-20', headerWidth: 'w-16' },
+  { type: 'text', width: 'w-44', headerWidth: 'w-24' },
+  { type: 'tag', width: 'w-20', headerWidth: 'w-16' },
+  { type: 'text', width: 'w-16', headerWidth: 'w-16' },
+  { type: 'tag', width: 'w-14', headerWidth: 'w-16' }
+]
+
+function employeeName(id) {
+  const e = employees.value.find(x => x.id === id)
+  return e ? `${e.name} (${e.employee_id})` : id
+}
+
+function validationSeverity(status) {
+  switch (status) {
+    case 'VALID': return 'success'
+    case 'INVALID': return 'danger'
+    case 'OVERRIDDEN': return 'info'
+    default: return 'secondary'
+  }
+}
+
+function formatDateTime(value) {
+  if (!value) return '-'
+  return new Date(value).toLocaleString()
+}
+
+async function loadEmployees() {
+  try {
+    const res = await api.get('/api/v1/tenant/employees', { params: { per_page: 500 } })
+    employees.value = res.data?.data || []
+  } catch {
+    employees.value = []
+  }
+}
+
+async function loadData() {
+  loading.value = true
+  try {
+    const params = { page: currentPage.value, per_page: perPage.value }
+    if (employeeFilter.value) params.employee_id = employeeFilter.value
+    const res = await api.get('/api/v1/tenant/attendance/events', { params })
+    const body = res.data
+    items.value = body?.data || []
+    totalRecords.value = body?.total || 0
+    if (body?.page) currentPage.value = body.page
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_load')), life: 4000 })
+  } finally {
+    loading.value = false
+  }
+}
+
+function onPage(event) {
+  currentPage.value = event.page + 1
+  perPage.value = event.rows
+  loadData()
+}
+
+function onFilterChange() {
+  currentPage.value = 1
+  loadData()
+}
+
+onMounted(() => {
+  loadEmployees()
+  loadData()
+})
+</script>

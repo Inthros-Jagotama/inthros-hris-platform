@@ -166,6 +166,18 @@ const routes = [
         component: () => import('@/views/modules/AttendanceCorrections.vue'),
         meta: { title: 'Corrections', titleKey: 'attendance.corrections', descKey: 'attendance.corrections_description', icon: 'pi pi-pencil', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title' }
       },
+      {
+        path: 'attendance/events',
+        name: 'AttendanceEvents',
+        component: () => import('@/views/modules/AttendanceEvents.vue'),
+        meta: { title: 'Events', titleKey: 'attendance.events', descKey: 'attendance.events_description', icon: 'pi pi-list', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
+      },
+      {
+        path: 'attendance/sessions',
+        name: 'AttendanceSessions',
+        component: () => import('@/views/modules/AttendanceSessions.vue'),
+        meta: { title: 'Sessions', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description', icon: 'pi pi-calendar', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
+      },
       // Approval Engine
       {
         path: 'approvals',

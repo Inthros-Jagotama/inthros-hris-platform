@@ -2284,8 +2284,14 @@ Halaman utama employee: ringkasan (present/late/missing/leave-days dari `GetEmpl
 >
 > Route baru: `attendance/overtime`, `attendance/corrections` (sibling `/attendance`, bukan di bawah `/attendance/admin` — kedua halaman ini untuk semua employee, bukan admin-only). Tombol akses ditambahkan di header `Attendance.vue` di samping tombol "Admin".
 
-**Phase FE-4 — Events & Sessions (Read-only Audit Views)**
+**Phase FE-4 — Events & Sessions (Read-only Audit Views) ✅ Selesai (2026-08-09)**
 `AttendanceEvents`, `AttendanceSessions`: tabel read-only untuk audit/troubleshooting HR (raw event log, session detail per employee/tanggal). Prioritas lebih rendah dari FE-1/2/3 karena bukan alur kerja harian.
+
+> ✅ **Diimplementasikan.** `AttendanceEvents.vue` (tabel raw event: employee, event_type, event_time_local, validation_status, distance_m, is_in_geofence) dan `AttendanceSessions.vue` (tabel session: employee, work_date, status, lateness/early-leave/work/overtime minutes) — keduanya tenant-wide (bukan "punya saya sendiri" seperti Overtime/Correction FE-3), dengan dropdown filter employee opsional (kosong = semua employee, sesuai perilaku backend `ListEvents`/`ListSessions` saat `employee_id` kosong). Ditambahkan sebagai 2 kartu baru di `AttendanceAdmin.vue` (bukan di dashboard utama seperti Overtime/Correction) — audit tooling ini untuk HR/admin, konsisten dengan penempatan Settings/Shifts/dll.
+>
+> Label status session (`status_open`/`status_closed`/dst.) **reuse key i18n yang sudah ada dari Phase FE-1** (`attendance.status_*`), tidak diduplikasi.
+>
+> Route baru: `attendance/events`, `attendance/sessions`, sibling di bawah `/attendance/admin` dengan `backRoute` kembali ke situ.
 
 **Phase FE-5 — Tenant-wide Reports**
 `AttendanceReports`: `GET /reports/sessions?from=&to=` dengan filter rentang tanggal, tabel semua employee. Late/Early Leave/Missing Attendance ditampilkan sebagai kolom dari respons yang sama (bukan endpoint terpisah — backend memang tidak menyediakannya, lihat Phase 11 backend).

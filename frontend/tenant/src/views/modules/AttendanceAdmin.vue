@@ -31,6 +31,8 @@ const items = [
   { path: '/attendance/shifts', icon: 'pi pi-clock', titleKey: 'attendance.shifts', descKey: 'attendance.shifts_description' },
   { path: '/attendance/employee-shifts', icon: 'pi pi-users', titleKey: 'attendance.employee_shifts', descKey: 'attendance.employee_shifts_description' },
   { path: '/attendance/locations', icon: 'pi pi-map-marker', titleKey: 'attendance.locations', descKey: 'attendance.locations_description' },
-  { path: '/attendance/exempt-positions', icon: 'pi pi-shield', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description' }
+  { path: '/attendance/exempt-positions', icon: 'pi pi-shield', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description' },
+  { path: '/attendance/events', icon: 'pi pi-list', titleKey: 'attendance.events', descKey: 'attendance.events_description' },
+  { path: '/attendance/sessions', icon: 'pi pi-calendar', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description' }
 ]
 </script>
