@@ -232,6 +232,73 @@ func TestService_CreateLeaveRequest_Success(t *testing.T) {
 	}
 }
 
+type fakeHolidayProvider struct {
+	dates []string
+}
+
+func (f *fakeHolidayProvider) ListHolidayDatesInRange(_ context.Context, _, _ string) ([]string, error) {
+	return f.dates, nil
+}
+
+func TestService_CreateLeaveRequest_ExcludesHolidaysFromWorkingDays(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	svc.SetHolidayProvider(&fakeHolidayProvider{dates: []string{"2026-01-16"}})
+	lType := createTestLeaveType(repo)
+
+	req := CreateLeaveRequest{
+		EmployeeID:       uuidStr(),
+		LeaveTypeID:      lType.ID.String(),
+		RequestStartDate: "2026-01-15",
+		RequestEndDate:   "2026-01-16",
+	}
+
+	resp, err := svc.CreateLeaveRequest(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateLeaveRequest failed: %v", err)
+	}
+	if resp.RequestedDays != 1 {
+		t.Errorf("expected 1 day (16th excluded as holiday), got %.2f", resp.RequestedDays)
+	}
+
+	reqID, err := uuid.Parse(resp.ID)
+	if err != nil {
+		t.Fatalf("failed to parse response id: %v", err)
+	}
+	details, err := repo.ListLeaveRequestDetails(ctx(), reqID)
+	if err != nil {
+		t.Fatalf("ListLeaveRequestDetails failed: %v", err)
+	}
+	if len(details) != 1 || details[0].LeaveDate[:10] != "2026-01-15" {
+		t.Errorf("unexpected details: %+v", details)
+	}
+}
+
+func TestService_CreateLeaveRequest_Hourly_NotAllowedByLeaveType(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	// createTestLeaveType's fixture leaves AllowHourly at its default (false).
+	lType := createTestLeaveType(repo)
+	start := "09:00"
+	end := "13:00"
+
+	req := CreateLeaveRequest{
+		EmployeeID:       uuidStr(),
+		LeaveTypeID:      lType.ID.String(),
+		RequestStartDate: "2026-01-15",
+		RequestEndDate:   "2026-01-15",
+		DurationMode:     string(DurationHourly),
+		StartTime:        &start,
+		EndTime:          &end,
+	}
+
+	if _, err := svc.CreateLeaveRequest(ctx(), req); err == nil {
+		t.Fatal("expected error when leave type does not allow hourly requests")
+	}
+}
+
 func TestService_GetLeaveRequestByID_Success(t *testing.T) {
 	svc, repo, _, cleanup := newTestService()
 	defer cleanup()

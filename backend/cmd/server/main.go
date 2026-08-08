@@ -492,6 +492,11 @@ func main() {
 	approvalSvc.RegisterStatusHandler("leave", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return leaveSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
+	// Separate setting.Service instance used only for its ListHolidayDatesInRange
+	// read (company holiday calendar), so leave's working-day calculation can
+	// exclude holidays without importing setting's module wiring directly.
+	settingRepoForLeave := setting.NewRepository(setting.NewTenantDBResolver(dbManager))
+	leaveSvc.SetHolidayProvider(setting.NewService(settingRepoForLeave, l.Named("setting")))
 
 	// Construct the reimbursement service up front (instead of inside
 	// reimbursement.NewModule) so its push-based approval status handler can

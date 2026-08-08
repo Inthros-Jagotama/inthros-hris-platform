@@ -25,10 +25,19 @@ type ApprovalEngine interface {
 	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
 }
 
+// HolidayProvider abstracts the setting module's company holiday calendar so
+// the leave calculation engine can exclude holidays from working-day counts
+// without importing setting's repository/service directly (same
+// narrow-interface-plus-adapter pattern as ApprovalEngine above).
+type HolidayProvider interface {
+	ListHolidayDatesInRange(ctx context.Context, fromDate, toDate string) ([]string, error)
+}
+
 type Service struct {
-	repo           *Repository
-	logger         *zap.Logger
-	approvalEngine ApprovalEngine
+	repo            *Repository
+	logger          *zap.Logger
+	approvalEngine  ApprovalEngine
+	holidayProvider HolidayProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -38,6 +47,31 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 // SetApprovalEngine wires the central approval module into this service.
 func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 	s.approvalEngine = ae
+}
+
+// SetHolidayProvider wires the company holiday calendar into this service.
+func (s *Service) SetHolidayProvider(hp HolidayProvider) {
+	s.holidayProvider = hp
+}
+
+// holidayDatesInRange returns holiday dates in the range, degrading to "no
+// holidays known" (rather than failing the request) if the provider isn't
+// wired or errors — working-day calculation should not hard-fail a leave
+// request just because the holiday lookup is unavailable.
+func (s *Service) holidayDatesInRange(ctx context.Context, fromDate, toDate string) map[string]bool {
+	holidayDates := map[string]bool{}
+	if s.holidayProvider == nil {
+		return holidayDates
+	}
+	dates, err := s.holidayProvider.ListHolidayDatesInRange(ctx, fromDate, toDate)
+	if err != nil {
+		s.logger.Warn("Failed to load company holidays for leave calculation, proceeding without them", zap.Error(err))
+		return holidayDates
+	}
+	for _, d := range dates {
+		holidayDates[d] = true
+	}
+	return holidayDates
 }
 
 // =========================================================================
@@ -398,19 +432,37 @@ func (s *Service) CreateLeaveRequest(ctx context.Context, req CreateLeaveRequest
 	if err != nil {
 		return nil, fmt.Errorf("invalid leave_type_id: %w", err)
 	}
+	leaveType, err := s.repo.FindLeaveTypeByID(ctx, lTypeID)
+	if err != nil {
+		return nil, fmt.Errorf("leave type not found: %w", err)
+	}
+
+	mode := DurationFullDay
+	if req.DurationMode != "" {
+		mode = DurationMode(req.DurationMode)
+	}
+	if (mode == DurationHalfDayAM || mode == DurationHalfDayPM) && !leaveType.AllowHalfDay {
+		return nil, fmt.Errorf("leave type %q does not allow half day requests", leaveType.Name)
+	}
+	if mode == DurationHourly && !leaveType.AllowHourly {
+		return nil, fmt.Errorf("leave type %q does not allow hourly requests", leaveType.Name)
+	}
+
+	holidayDates := s.holidayDatesInRange(ctx, req.RequestStartDate, req.RequestEndDate)
+	requestedDays, dayDetails, err := CalculateLeaveDuration(req.RequestStartDate, req.RequestEndDate, mode, req.StartTime, req.EndTime, holidayDates)
+	if err != nil {
+		return nil, err
+	}
 
 	lr := &LeaveRequest{
 		EmployeeID:      empID,
 		LeaveTypeID:     lTypeID,
 		RequestStartDate: req.RequestStartDate,
 		RequestEndDate:  req.RequestEndDate,
-		DurationMode:    DurationFullDay,
-		RequestedDays:   req.RequestedDays,
+		DurationMode:    mode,
+		RequestedDays:   requestedDays,
 		Status:          LeaveStatusSubmitted,
 		SubmittedAt:     timeNowPtr(),
-	}
-	if req.DurationMode != "" {
-		lr.DurationMode = DurationMode(req.DurationMode)
 	}
 	if req.LeaveReasonID != nil {
 		rID, err := uuid.Parse(*req.LeaveReasonID)
@@ -431,6 +483,19 @@ func (s *Service) CreateLeaveRequest(ctx context.Context, req CreateLeaveRequest
 
 	if err := s.repo.CreateLeaveRequest(ctx, lr); err != nil {
 		return nil, err
+	}
+
+	for _, dd := range dayDetails {
+		detail := &LeaveRequestDetail{
+			LeaveRequestID: lr.ID,
+			EmployeeID:     lr.EmployeeID,
+			LeaveDate:      dd.Date,
+			DayFraction:    dd.DayFraction,
+			IsPaid:         leaveType.IsPaid,
+		}
+		if err := s.repo.CreateLeaveRequestDetail(ctx, detail); err != nil {
+			return nil, fmt.Errorf("failed to create leave request detail: %w", err)
+		}
 	}
 
 	// Route through the central approval module when a flow is selected,

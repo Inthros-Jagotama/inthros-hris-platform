@@ -1500,12 +1500,13 @@ leave_cancellation_requests (optional)
 
 ## Phase 3 - Leave Calculation Engine
 
-* Working day calculation
-* Half day
-* Hourly leave
-* Holiday handling
-* Shift handling
-* Quota calculation
+* Working day calculation ✅ `CalculateLeaveDuration` (`leave/calculation.go`) — excludes Sat/Sun and holiday dates, wired into `CreateLeaveRequest` so `requested_days` is now server-computed, not client-trusted.
+* Half day ✅ `DurationHalfDayAM/PM` → 0.5 fraction, rejected on non-working days, rejected if `LeaveType.AllowHalfDay = false`.
+* Hourly leave ✅ `DurationHourly` → `(end_time - start_time) / 8h`, rejected if `LeaveType.AllowHourly = false`. `8h/day` is a hardcoded default — no per-company `hours_per_day` config exists yet, flagged as a future config point.
+* Holiday handling ✅ New `HolidayProvider` interface (`leave/service.go`) + adapter wiring a second `setting.Service` instance in `main.go`, reading `setting.CompanyHoliday` via new `ListHolidayDatesInRange`. Missing/erroring holiday data degrades to "no holidays known" rather than failing the request.
+* Shift handling ⏳ **Intentionally not implemented.** Attendance's `AttendanceEmployeeShift.DaysOfWeekMask` has no documented bit-to-weekday interpretation anywhere in the codebase (grep confirmed: the field is only ever passed through, never decoded) — inventing that convention unilaterally inside Leave would be a cross-module design decision, not a Phase 3 calculation task. Standard Sat/Sun + company holidays is the baseline until that convention is established elsewhere.
+* Quota calculation 🔶 Duration-mode permission checks against `LeaveType.AllowHalfDay`/`AllowHourly` are done. Balance-quota validation (`requested_days <= available balance`, §12) is **not** part of this phase — that belongs to Phase 6 (Leave Balance) since it needs the balance-deduction logic that doesn't exist yet.
+* `LeaveRequestDetail` rows ✅ now actually created per working date on submit (previously the repository methods existed but were never called from `CreateLeaveRequest`).
 
 ---
 
@@ -1646,8 +1647,8 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 |---|---|---|
 | Phase 1 - Database Enhancement | ✅ Selesai (2026-08-08) | Migration `070_leave_phase1_db_enhancement` (mysql+postgres): fix `leave_accrual_policies.deleted_at` (INT → TIMESTAMP) + index, tambah tabel `leave_balance_transactions` + model `LeaveBalanceTransaction` + repository `CreateLeaveBalanceTransaction`/`ListLeaveBalanceTransactions`. Tabel cancellation (§19) dan eligibility (§22) sengaja ditunda — tidak dibutuhkan sampai fitur terkait (Phase 6 lanjutan/§18, §22) mulai dikerjakan |
 | Phase 2 - Master Data | ✅ Selesai (2026-08-08) | Leave Types, Accrual Policies, Leave Reasons — CRUD lengkap di `leave/service.go`, `leave/handler.go`, `leave/routes.go`. Leave Eligibility sengaja tidak dibangun — tidak ada business rule konkret yang membutuhkannya saat ini (§22), revisit saat requirement muncul |
-| Phase 3 - Leave Calculation Engine | ❌ Belum ada | Tidak ada working-day/holiday/half-day/hourly calculation di manapun — `requested_days` diterima mentah dari client |
-| Phase 4 - Leave Request | 🔶 Sebagian | Create/Submit/List/Get/Delete/Details sudah ada. Validasi (eligibility, overlap, balance, backdate) di §12 **belum diimplementasikan** |
+| Phase 3 - Leave Calculation Engine | ✅ Selesai (2026-08-08) | `leave/calculation.go` (`CalculateLeaveDuration`): full-day/half-day/hourly calculation, weekend + company-holiday exclusion via new `HolidayProvider` interface (adapter: `setting.Service.ListHolidayDatesInRange`), `LeaveRequestDetail` rows now actually persisted per date. Shift/`DaysOfWeekMask` handling and balance-quota validation intentionally deferred — see §41 |
+| Phase 4 - Leave Request | 🔶 Sebagian | Create/Submit/List/Get/Delete/Details sudah ada, `requested_days` kini dihitung server-side (Phase 3). Validasi lain (eligibility, overlap tanggal, balance quota, backdate) di §12 **belum diimplementasikan** |
 | Phase 5 - Approval Integration | ✅ Selesai | `ApprovalEngine`, `SetApprovalEngine`, `HandleApprovalStatusChange`, wiring `main.go`, module slug tunggal `"leave"`, test coverage di `approval_integration_test.go` — lihat Section 7 |
 | Phase 6 - Leave Balance | 🔶 Sebagian (2026-08-08) | Tabel ledger `leave_balance_transactions` + repository sudah ada (Phase 1), tapi **belum ada logic** accrual/usage/adjustment/reversal/carry-forward/expiry yang benar-benar menulis ke sana atau ke `employee_leave_balances` — lihat Section 9/10 |
 | Phase 7 - Calendar & Attendance | ❌ Belum ada | Tidak ada endpoint calendar, tidak ada integrasi Attendance |

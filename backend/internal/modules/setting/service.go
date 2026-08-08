@@ -1081,6 +1081,13 @@ func (s *Service) DeleteCompanyHoliday(ctx context.Context, id string) error {
 	if err != nil { return fmt.Errorf("invalid id: %w", err) }
 	return s.repo.DeleteCompanyHoliday(ctx, uid)
 }
+func (s *Service) ListHolidayDatesInRange(ctx context.Context, fromDate, toDate string) ([]string, error) {
+	list, err := s.repo.FindCompanyHolidaysInRange(ctx, fromDate, toDate)
+	if err != nil { return nil, err }
+	dates := make([]string, len(list))
+	for i, ch := range list { dates[i] = ch.HolidayDate }
+	return dates, nil
+}
 
 func (s *Service) validateUniqueName(ctx context.Context, model interface{}, name string, table string) error {
 	exists, err := s.repo.findByName(ctx, model, name, table)

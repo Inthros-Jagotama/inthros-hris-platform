@@ -606,3 +606,10 @@ func (r *Repository) DeleteCompanyHoliday(ctx context.Context, id uuid.UUID) err
 	if err != nil { return err }
 	return db.Unscoped().Where("id = ?", id).Delete(&CompanyHoliday{}).Error
 }
+func (r *Repository) FindCompanyHolidaysInRange(ctx context.Context, fromDate, toDate string) ([]CompanyHoliday, error) {
+	db, err := r.getDB(ctx)
+	if err != nil { return nil, err }
+	var list []CompanyHoliday
+	err = db.Where("is_active = ? AND holiday_date BETWEEN ? AND ?", true, fromDate, toDate).Find(&list).Error
+	return list, err
+}
