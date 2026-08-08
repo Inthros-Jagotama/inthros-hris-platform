@@ -360,3 +360,56 @@ func (p *AttendanceExemptPosition) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+// =========================================================================
+// AttendanceCorrectionRequest (§16/§33-34) - Phase 8
+// =========================================================================
+
+type CorrectionType string
+
+const (
+	CorrectionTypeMissingCheckin  CorrectionType = "MISSING_CHECKIN"
+	CorrectionTypeMissingCheckout CorrectionType = "MISSING_CHECKOUT"
+	CorrectionTypeWrongCheckin    CorrectionType = "WRONG_CHECKIN"
+	CorrectionTypeWrongCheckout   CorrectionType = "WRONG_CHECKOUT"
+)
+
+type CorrectionStatus string
+
+const (
+	CorrectionSubmitted      CorrectionStatus = "SUBMITTED"
+	CorrectionPendingApproval CorrectionStatus = "PENDING_APPROVAL"
+	CorrectionApproved       CorrectionStatus = "APPROVED"
+	CorrectionRejected       CorrectionStatus = "REJECTED"
+)
+
+// AttendanceCorrectionRequest lets an employee/HR request a fix to a day's
+// session (missing/wrong check-in or check-out) without ever mutating the
+// raw attendance_events history (§15's immutability principle) - approval
+// applies the requested times to the session and triggers a recalculation.
+type AttendanceCorrectionRequest struct {
+	ID                  uuid.UUID        `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID          uuid.UUID        `gorm:"type:char(36);not null;index:idx_att_correction_employee" json:"employee_id"`
+	AttendanceSessionID uuid.UUID        `gorm:"type:char(36);not null;index:idx_att_correction_session" json:"attendance_session_id"`
+	CorrectionType      CorrectionType   `gorm:"type:varchar(50);not null" json:"correction_type"`
+	RequestedCheckin    *time.Time       `json:"requested_checkin,omitempty"`
+	RequestedCheckout   *time.Time       `json:"requested_checkout,omitempty"`
+	Reason              string           `gorm:"type:varchar(255);not null" json:"reason"`
+	Status              CorrectionStatus `gorm:"type:varchar(255);default:SUBMITTED;index:idx_att_correction_status" json:"status"`
+	ApprovalInstanceID  *uuid.UUID       `gorm:"type:char(36);index:idx_att_correction_approval_instance" json:"approval_instance_id,omitempty"`
+	CreatedBy           *uuid.UUID       `gorm:"type:char(36)" json:"created_by,omitempty"`
+	ApprovedAt          *time.Time       `json:"approved_at,omitempty"`
+	CreatedAt           time.Time        `json:"created_at"`
+	UpdatedAt           time.Time        `json:"updated_at"`
+}
+
+func (AttendanceCorrectionRequest) TableName() string {
+	return "attendance_correction_requests"
+}
+
+func (c *AttendanceCorrectionRequest) BeforeCreate(tx *gorm.DB) error {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
+	}
+	return nil
+}

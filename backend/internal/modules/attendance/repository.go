@@ -362,6 +362,18 @@ func (r *Repository) UpdateEvent(ctx context.Context, e *AttendanceEvent) error 
 // Sessions
 // =========================================================================
 
+func (r *Repository) FindSessionByID(ctx context.Context, id uuid.UUID) (*AttendanceSession, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var s AttendanceSession
+	if err := db.First(&s, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("session not found: %w", err)
+	}
+	return &s, nil
+}
+
 func (r *Repository) FindSessionByEmployeeAndDate(ctx context.Context, employeeID uuid.UUID, workDate string) (*AttendanceSession, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
@@ -575,4 +587,57 @@ func (r *Repository) DeleteExemptPosition(ctx context.Context, id uuid.UUID) err
 		return fmt.Errorf("exempt position not found")
 	}
 	return nil
+}
+
+// =========================================================================
+// Correction Requests
+// =========================================================================
+
+func (r *Repository) CreateCorrectionRequest(ctx context.Context, c *AttendanceCorrectionRequest) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(c).Error
+}
+
+func (r *Repository) FindCorrectionRequestByID(ctx context.Context, id uuid.UUID) (*AttendanceCorrectionRequest, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var c AttendanceCorrectionRequest
+	if err := db.First(&c, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("correction request not found: %w", err)
+	}
+	return &c, nil
+}
+
+func (r *Repository) ListCorrectionRequests(ctx context.Context, employeeID *uuid.UUID, page, perPage int) ([]AttendanceCorrectionRequest, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var requests []AttendanceCorrectionRequest
+	var total int64
+	query := db.Model(&AttendanceCorrectionRequest{})
+	if employeeID != nil {
+		query = query.Where("employee_id = ?", *employeeID)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&requests).Error; err != nil {
+		return nil, 0, err
+	}
+	return requests, total, nil
+}
+
+func (r *Repository) UpdateCorrectionRequest(ctx context.Context, c *AttendanceCorrectionRequest) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(c).Error
 }

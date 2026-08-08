@@ -46,6 +46,11 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.GET("/overtime-requests", handler.ListOvertimeRequests)
 		att.GET("/overtime-requests/:id", handler.GetOvertimeRequestByID)
 
+		// Correction Requests
+		att.POST("/corrections", handler.CreateCorrectionRequest)
+		att.GET("/corrections", handler.ListCorrectionRequests)
+		att.GET("/corrections/:id", handler.GetCorrectionRequestByID)
+
 		// Exempt Positions
 		att.POST("/exempt-positions", handler.CreateExemptPosition)
 		att.GET("/exempt-positions", handler.ListExemptPositions)

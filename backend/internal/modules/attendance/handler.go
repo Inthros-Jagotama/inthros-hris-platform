@@ -326,6 +326,44 @@ func (h *Handler) ListOvertimeRequests(c *gin.Context) {
 }
 
 // =========================================================================
+// Correction Requests
+// =========================================================================
+
+func (h *Handler) CreateCorrectionRequest(c *gin.Context) {
+	var req CreateCorrectionRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.CreateCorrectionRequest(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) GetCorrectionRequestByID(c *gin.Context) {
+	resp, err := h.service.GetCorrectionRequestByID(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ListCorrectionRequests(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	employeeID := c.Query("employee_id")
+	resp, err := h.service.ListCorrectionRequests(c.Request.Context(), &employeeID, page, perPage)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// =========================================================================
 // Exempt Positions
 // =========================================================================
 

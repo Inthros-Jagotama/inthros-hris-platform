@@ -689,13 +689,21 @@ func (s *Service) CreateOvertimeRequest(ctx context.Context, req CreateOvertimeR
 }
 
 // HandleApprovalStatusChange is invoked by the approval module's push-based
-// status callback when an overtime request's approval instance reaches a
-// final state, so the request's own status field updates itself.
+// status callback when an overtime or correction request's approval
+// instance reaches a final state. Both request types share the "attendance"
+// module slug, so documentID could belong to either table - overtime is
+// tried first (the original type), then correction requests.
 func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
-	o, err := s.repo.FindOvertimeRequestByID(ctx, documentID)
-	if err != nil {
-		return err
+	if o, err := s.repo.FindOvertimeRequestByID(ctx, documentID); err == nil {
+		return s.handleOvertimeApprovalStatusChange(ctx, o, status, note)
 	}
+	if c, err := s.repo.FindCorrectionRequestByID(ctx, documentID); err == nil {
+		return s.handleCorrectionApprovalStatusChange(ctx, c, status, note)
+	}
+	return fmt.Errorf("no overtime or correction request found for document %s", documentID)
+}
+
+func (s *Service) handleOvertimeApprovalStatusChange(ctx context.Context, o *AttendanceOvertimeRequest, status string, note string) error {
 	if o.Status != OvertimePendingApproval {
 		return nil
 	}
@@ -810,6 +818,220 @@ func (s *Service) ListOvertimeRequests(ctx context.Context, employeeID *string, 
 		Total:      total,
 		TotalPages: calcTotalPages(total, perPage),
 	}, nil
+}
+
+// =========================================================================
+// Correction Requests (§16/§33-34) - Phase 8
+// =========================================================================
+
+func (s *Service) CreateCorrectionRequest(ctx context.Context, req CreateCorrectionRequest) (*CorrectionResponse, error) {
+	empID, err := uuid.Parse(req.EmployeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee_id: %w", err)
+	}
+	sessionID, err := uuid.Parse(req.AttendanceSessionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid attendance_session_id: %w", err)
+	}
+
+	c := &AttendanceCorrectionRequest{
+		EmployeeID:          empID,
+		AttendanceSessionID: sessionID,
+		CorrectionType:      CorrectionType(req.CorrectionType),
+		Reason:              req.Reason,
+		Status:              CorrectionSubmitted,
+	}
+	c.CreatedBy = authctx.GetUserID(ctx)
+	if req.RequestedCheckin != nil {
+		t, err := time.Parse(time.RFC3339, *req.RequestedCheckin)
+		if err != nil {
+			return nil, fmt.Errorf("invalid requested_checkin: %w", err)
+		}
+		c.RequestedCheckin = &t
+	}
+	if req.RequestedCheckout != nil {
+		t, err := time.Parse(time.RFC3339, *req.RequestedCheckout)
+		if err != nil {
+			return nil, fmt.Errorf("invalid requested_checkout: %w", err)
+		}
+		c.RequestedCheckout = &t
+	}
+	if err := s.repo.CreateCorrectionRequest(ctx, c); err != nil {
+		return nil, err
+	}
+
+	// Route through the central approval module when a flow is selected,
+	// same "attendance" module slug the overtime flow uses.
+	if s.approvalEngine != nil && req.FlowID != nil && *req.FlowID != "" {
+		instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "attendance", c.ID.String(), *req.FlowID)
+		if err != nil {
+			s.logger.Warn("Failed to create approval instance for correction request, continuing without approval",
+				zap.String("correction_request_id", c.ID.String()),
+				zap.Error(err),
+			)
+		} else {
+			if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+				c.ApprovalInstanceID = &parsedInstanceID
+			}
+			c.Status = CorrectionPendingApproval
+			if err := s.repo.UpdateCorrectionRequest(ctx, c); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return correctionToResponse(c), nil
+}
+
+func (s *Service) handleCorrectionApprovalStatusChange(ctx context.Context, c *AttendanceCorrectionRequest, status string, note string) error {
+	if c.Status != CorrectionPendingApproval {
+		return nil
+	}
+
+	now := time.Now()
+	switch status {
+	case "APPROVED":
+		c.Status = CorrectionApproved
+		c.ApprovedAt = &now
+		s.applyCorrectionToSession(ctx, c)
+	case "REJECTED", "CANCELLED":
+		c.Status = CorrectionRejected
+	default:
+		return nil
+	}
+
+	s.logger.Info("Correction request status updated via approval status handler",
+		zap.String("correction_request_id", c.ID.String()),
+		zap.String("approval_status", status),
+	)
+	return s.repo.UpdateCorrectionRequest(ctx, c)
+}
+
+// applyCorrectionToSession applies an approved correction by inserting a new
+// OVERRIDDEN attendance_event with the requested time - never mutating the
+// original raw event(s), per §15's immutability principle - then
+// recalculating that day's session so the correction actually takes effect.
+//
+// Only MISSING_CHECKIN/MISSING_CHECKOUT are applied automatically: there's
+// no existing event to reconcile against, so inserting the corrected one is
+// unambiguous. WRONG_CHECKIN/WRONG_CHECKOUT are intentionally NOT
+// auto-applied - recalculateSession's selectCheckinCheckout always takes the
+// first CHECKIN/first-following-CHECKOUT of the day, so simply inserting a
+// second event wouldn't reliably override the wrong one without either
+// excluding the original from selection (no tracking for that exists) or
+// mutating it (forbidden). The request is still recorded and approved for
+// audit purposes; a human applies the session-level fix outside this flow
+// until that selection logic is extended to support it.
+func (s *Service) applyCorrectionToSession(ctx context.Context, c *AttendanceCorrectionRequest) {
+	session, err := s.repo.FindSessionByID(ctx, c.AttendanceSessionID)
+	if err != nil {
+		s.logger.Warn("Failed to load session for correction",
+			zap.String("correction_request_id", c.ID.String()),
+			zap.Error(err),
+		)
+		return
+	}
+
+	var eventType EventType
+	var eventTime *time.Time
+	switch c.CorrectionType {
+	case CorrectionTypeMissingCheckin:
+		eventType, eventTime = EventTypeCheckIn, c.RequestedCheckin
+	case CorrectionTypeMissingCheckout:
+		eventType, eventTime = EventTypeCheckOut, c.RequestedCheckout
+	default:
+		return // WRONG_CHECKIN/WRONG_CHECKOUT - not auto-applied, see doc comment above.
+	}
+	if eventTime == nil {
+		return
+	}
+
+	event := &AttendanceEvent{
+		EmployeeID:       c.EmployeeID,
+		EventType:        eventType,
+		EventTimeUTC:     eventTime.UTC(),
+		EventTimeLocal:   *eventTime,
+		ValidationStatus: ValidationOverridden,
+	}
+	if err := s.repo.CreateEvent(ctx, event); err != nil {
+		s.logger.Warn("Failed to create corrected event",
+			zap.String("correction_request_id", c.ID.String()),
+			zap.Error(err),
+		)
+		return
+	}
+
+	if err := s.recalculateSession(ctx, c.EmployeeID, normalizeWorkDate(session.WorkDate)); err != nil {
+		s.logger.Warn("Failed to recalculate session after correction",
+			zap.String("correction_request_id", c.ID.String()),
+			zap.Error(err),
+		)
+	}
+}
+
+func (s *Service) GetCorrectionRequestByID(ctx context.Context, id string) (*CorrectionResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	c, err := s.repo.FindCorrectionRequestByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return correctionToResponse(c), nil
+}
+
+func (s *Service) ListCorrectionRequests(ctx context.Context, employeeID *string, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	var empUUID *uuid.UUID
+	if employeeID != nil && *employeeID != "" {
+		uid, err := uuid.Parse(*employeeID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid employee_id: %w", err)
+		}
+		empUUID = &uid
+	}
+	requests, total, err := s.repo.ListCorrectionRequests(ctx, empUUID, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]CorrectionResponse, 0, len(requests))
+	for _, c := range requests {
+		responses = append(responses, *correctionToResponse(&c))
+	}
+	return &PaginatedResponse{
+		Success:    true,
+		Data:       responses,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}
+
+func correctionToResponse(c *AttendanceCorrectionRequest) *CorrectionResponse {
+	resp := &CorrectionResponse{
+		ID:                  c.ID.String(),
+		EmployeeID:          c.EmployeeID.String(),
+		AttendanceSessionID: c.AttendanceSessionID.String(),
+		CorrectionType:      string(c.CorrectionType),
+		RequestedCheckin:    c.RequestedCheckin,
+		RequestedCheckout:   c.RequestedCheckout,
+		Reason:              c.Reason,
+		Status:              string(c.Status),
+		ApprovedAt:          c.ApprovedAt,
+		CreatedAt:           c.CreatedAt,
+	}
+	if c.ApprovalInstanceID != nil {
+		aiID := c.ApprovalInstanceID.String()
+		resp.ApprovalInstanceID = &aiID
+	}
+	return resp
 }
 
 // =========================================================================

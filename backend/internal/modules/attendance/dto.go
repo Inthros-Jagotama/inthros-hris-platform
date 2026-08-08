@@ -249,6 +249,34 @@ type ExemptPositionResponse struct {
 }
 
 // =========================================================================
+// Correction Request DTOs
+// =========================================================================
+
+type CreateCorrectionRequest struct {
+	EmployeeID          string  `json:"employee_id" binding:"required"`
+	AttendanceSessionID string  `json:"attendance_session_id" binding:"required"`
+	CorrectionType      string  `json:"correction_type" binding:"required"`
+	RequestedCheckin    *string `json:"requested_checkin"`
+	RequestedCheckout   *string `json:"requested_checkout"`
+	Reason              string  `json:"reason" binding:"required"`
+	FlowID              *string `json:"flow_id"`
+}
+
+type CorrectionResponse struct {
+	ID                  string     `json:"id"`
+	EmployeeID          string     `json:"employee_id"`
+	AttendanceSessionID string     `json:"attendance_session_id"`
+	CorrectionType      string     `json:"correction_type"`
+	RequestedCheckin    *time.Time `json:"requested_checkin,omitempty"`
+	RequestedCheckout   *time.Time `json:"requested_checkout,omitempty"`
+	Reason              string     `json:"reason"`
+	Status              string     `json:"status"`
+	ApprovalInstanceID  *string    `json:"approval_instance_id,omitempty"`
+	ApprovedAt          *time.Time `json:"approved_at,omitempty"`
+	CreatedAt           time.Time  `json:"created_at"`
+}
+
+// =========================================================================
 // Pagination
 // =========================================================================
 

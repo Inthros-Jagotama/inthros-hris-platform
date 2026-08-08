@@ -106,6 +106,7 @@ func (m *attModule) Migrate(db *gorm.DB) error {
 		&AttendanceSession{},
 		&AttendanceOvertimeRequest{},
 		&AttendanceExemptPosition{},
+		&AttendanceCorrectionRequest{},
 	)
 }
 
