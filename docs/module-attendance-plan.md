@@ -1857,14 +1857,18 @@ Cross Midnight        ⏳ Field `IsCrossMidnight` ada di `attendance_company_shi
 Develop:
 
 ```text
-Check-in
-Check-out
-GPS
-Geofence
-Face Verification
-Device Validation
-Attendance Event
+Check-in            🔶 Lewat POST /events generik (event_type=CHECKIN), bukan endpoint khusus — lihat §41
+Check-out            🔶 Sama, lewat POST /events (event_type=CHECKOUT)
+GPS                  ✅ latitude/longitude sudah diterima dan disimpan sejak awal
+Geofence             ✅ Baru diimplementasikan — lihat catatan di bawah
+Face Verification    ⏳ Tetap belum ada — tidak ada face-matching provider, hanya field pass-through (lihat Phase 2)
+Device Validation     ⏳ Tetap belum ada — tidak ada employee-device mapping (lihat Phase 1/2, sengaja ditunda)
+Attendance Event      ✅ CreateEvent sudah lengkap (raw event + sekarang location validation)
 ```
+
+> ✅ **Geofence validation — gap nyata, sekarang diimplementasikan.** `CreateEvent` sebelumnya menyimpan `DistanceM`/`IsInGeofence`/`ValidatedLocationID` sebagai kosong selamanya (§17). Ditambahkan `geofence.go` (`haversineDistanceMeters`, `validateEventLocation`) + `applyEventValidation` di service: jika `IsLocationRequired`, event dicek terhadap seluruh `attendance_locations` terdaftar (radius masing-masing), fallback ke titik tunggal `attendance_company_settings.latitude/longitude/max_distance_meter` jika belum ada location terdaftar. Event yang berada di luar geofence → `ValidationStatus = INVALID`.
+>
+> Face verification dan device validation **sengaja tetap tidak diimplementasikan** — bukan kelalaian. Face verification butuh provider face-matching eksternal yang tidak ada di codebase ini (§13 tetap murni proposal); menandai event sebagai VALID padahal face tidak pernah benar-benar diverifikasi akan menyesatkan, jadi ketika `IsFaceRequired = true`, event sengaja dibiarkan `PENDING` bukan `VALID`. Device validation butuh `attendance_employee_devices` yang sudah sengaja ditunda di Phase 1/2 (tidak ada kebutuhan konkret) — memvalidasi tanpa tabel itu tidak mungkin.
 
 ---
 
@@ -2133,7 +2137,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 1 - Database Review & Enhancement | ✅ Selesai (2026-08-08) | Seluruh 10 tabel ada (§2), `approval_instance_id` sudah ada di overtime (migration `063`). Schema/FK/timestamp-type direview — tidak ada bug seperti kasus Leave. Index harian yang kurang di `attendance_events` ditambahkan lewat migration `071_attendance_phase1_event_index` (`idx_att_event_employee_time`). Shift rules table, employee-device mapping, correction table, timezone column — sengaja ditunda, tidak ada kebutuhan konkret saat ini |
 | Phase 2 - Attendance Configuration | 🔶 Sebagian (2026-08-08) | Settings/Shifts/Locations/Exempt Positions CRUD lengkap. Shift Rules ditunda (belum ada requirement konkret, sama alasan dengan Phase 1). Devices dan Face Configuration sengaja ditunda — `attendance_device_captures`/`attendance_face_captures` tidak punya repository method sama sekali (tabel mati total), baru masuk akal dibangun bersamaan dengan capture validation engine (Phase 4-5) |
 | Phase 3 - Shift Management | 🔶 Sebagian (2026-08-08) | CRUD shift + employee-shift assignment lengkap. Overlap validation (§7) ditemukan benar-benar belum ada — sekarang diperbaiki via `CountOverlappingEmployeeShifts` + validasi `effective_date_from <= effective_date_to` di `CreateEmployeeShift`/`UpdateEmployeeShift`. `DaysOfWeekMask`/`IsCrossMidnight` masih sekadar field pass-through — belum dikonsumsi calculation engine manapun (nunggu Phase 6) |
-| Phase 4 - Attendance Capture | 🔶 Sebagian | `POST /events` ada tapi generik (CHECKIN/CHECKOUT lewat satu endpoint, bukan endpoint terpisah). GPS/Geofence/Face Verification/Device Validation **tidak dilakukan** oleh `CreateEvent` — lihat Section 17 |
+| Phase 4 - Attendance Capture | 🔶 Sebagian (2026-08-08) | `POST /events` generik (CHECKIN/CHECKOUT satu endpoint, bukan endpoint terpisah — lihat §41). GPS + **Geofence validation kini diimplementasikan** (`geofence.go`, `applyEventValidation`) — event di luar radius jadi `INVALID`. Face Verification & Device Validation sengaja tetap belum ada: tidak ada face-matching provider maupun employee-device mapping (keduanya butuh keputusan/komponen di luar cakupan Phase 4) |
 | Phase 5 - Attendance Validation | ❌ Belum ada | Tidak ada location/face/device/time validation logic di `service.go` — lihat Section 17 |
 | Phase 6 - Attendance Session | ❌ Belum ada | **Gap paling kritis.** Tidak ada session generation/calculation engine sama sekali — lihat Section 19 |
 | Phase 7 - Overtime | 🔶 Sebagian | Approval integration ke Central Approval Module sudah selesai (Section 29). "Actual Overtime"/"Calculated Overtime" berdasarkan attendance (§31-32) belum ada karena bergantung pada session calculation (Phase 6) |
@@ -2149,7 +2153,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 
 **Rekomendasi urutan lanjutan** (berbeda bentuk dari Leave — di sini ada satu blocker struktural, bukan satu gap P0 yang berdiri sendiri):
 1. **Session generation/calculation engine (Phase 6)** — prioritas mutlak pertama. Overtime aktual (Phase 7), Leave Integration (Phase 9), dan Payroll Integration (Phase 13) semuanya secara struktural bergantung pada `attendance_sessions` benar-benar ter-generate; membangun fase-fase itu sebelum Phase 6 akan menghasilkan kode yang tidak punya data untuk diproses.
-2. Capture validation (geofence/face/device, Phase 4-5) — bisa paralel dengan Phase 6 karena tidak saling bergantung, tapi tanpa ini `AttendanceEvent` yang masuk ke session calculation tidak tervalidasi.
+2. Capture validation (Phase 4-5) — geofence sudah selesai (2026-08-08). Face/device validation masih perlu keputusan produk (provider face-matching, kebutuhan device-restriction) sebelum bisa dikerjakan, tapi tidak memblokir Phase 6 karena `ValidationStatus = PENDING` untuk keduanya tidak menghalangi event dibaca oleh session calculation.
 3. Dedicated check-in/check-out endpoints (pisah dari `POST /events` generik) — supaya validasi Phase 4 punya tempat spesifik untuk dipasang per aksi, sama seperti rekomendasi Leave untuk endpoint `submit`/`cancel` khusus.
 4. Leave Integration (Phase 9) — setelah Phase 6 ada, ini jadi straightforward: baca leave request APPROVED_FINAL, set session status LEAVE.
 5. Frontend dasar — baru masuk akal setelah data yang ditampilkan (sessions dengan status yang benar) benar-benar ada.

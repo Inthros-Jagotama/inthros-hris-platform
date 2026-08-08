@@ -233,6 +233,20 @@ func (r *Repository) FindLocationByID(ctx context.Context, id uuid.UUID) (*Atten
 	return &l, nil
 }
 
+// FindAllLocations returns every registered geofence location, unpaginated,
+// for use by event-time location validation (see geofence.go).
+func (r *Repository) FindAllLocations(ctx context.Context) ([]AttendanceLocation, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var locs []AttendanceLocation
+	if err := db.Find(&locs).Error; err != nil {
+		return nil, err
+	}
+	return locs, nil
+}
+
 func (r *Repository) ListLocations(ctx context.Context, page, perPage int) ([]AttendanceLocation, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {

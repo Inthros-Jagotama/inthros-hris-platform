@@ -462,6 +462,95 @@ func TestService_CreateEvent_Success(t *testing.T) {
 	}
 }
 
+func TestService_CreateEvent_LocationRequired_InsideGeofence_MarksValid(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	required := true
+	if _, err := svc.UpsertCompanySetting(ctx(), CreateCompanySettingRequest{IsLocationRequired: &required}); err != nil {
+		t.Fatalf("UpsertCompanySetting failed: %v", err)
+	}
+	loc := &AttendanceLocation{Name: "Office", Latitude: -6.2088, Longitude: 106.8456, RadiusM: 100}
+	if err := repo.CreateLocation(ctx(), loc); err != nil {
+		t.Fatalf("failed to create location: %v", err)
+	}
+
+	req := CreateEventRequest{
+		EmployeeID:     uuidStr(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   "2026-01-15T00:00:00Z",
+		EventTimeLocal: "2026-01-15T07:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	resp, err := svc.CreateEvent(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateEvent failed: %v", err)
+	}
+	if resp.ValidationStatus != "VALID" {
+		t.Errorf("expected validation_status VALID, got '%s'", resp.ValidationStatus)
+	}
+	if !resp.IsInGeofence {
+		t.Errorf("expected is_in_geofence true, got %v", resp.IsInGeofence)
+	}
+}
+
+func TestService_CreateEvent_LocationRequired_OutsideGeofence_MarksInvalid(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	required := true
+	if _, err := svc.UpsertCompanySetting(ctx(), CreateCompanySettingRequest{IsLocationRequired: &required}); err != nil {
+		t.Fatalf("UpsertCompanySetting failed: %v", err)
+	}
+	loc := &AttendanceLocation{Name: "Office", Latitude: -6.2088, Longitude: 106.8456, RadiusM: 100}
+	if err := repo.CreateLocation(ctx(), loc); err != nil {
+		t.Fatalf("failed to create location: %v", err)
+	}
+
+	req := CreateEventRequest{
+		EmployeeID:     uuidStr(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   "2026-01-15T00:00:00Z",
+		EventTimeLocal: "2026-01-15T07:00:00+07:00",
+		Latitude:       -6.3000, // far from the office
+		Longitude:      106.9000,
+	}
+	resp, err := svc.CreateEvent(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateEvent failed: %v", err)
+	}
+	if resp.ValidationStatus != "INVALID" {
+		t.Errorf("expected validation_status INVALID, got '%s'", resp.ValidationStatus)
+	}
+}
+
+func TestService_CreateEvent_FaceRequired_LeavesStatusPending(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	faceRequired := true
+	if _, err := svc.UpsertCompanySetting(ctx(), CreateCompanySettingRequest{IsFaceRequired: &faceRequired}); err != nil {
+		t.Fatalf("UpsertCompanySetting failed: %v", err)
+	}
+
+	req := CreateEventRequest{
+		EmployeeID:     uuidStr(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   "2026-01-15T00:00:00Z",
+		EventTimeLocal: "2026-01-15T07:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	resp, err := svc.CreateEvent(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateEvent failed: %v", err)
+	}
+	if resp.ValidationStatus != "PENDING" {
+		t.Errorf("expected validation_status PENDING (face check has no implementation to run), got '%s'", resp.ValidationStatus)
+	}
+}
+
 func TestService_CreateEvent_InvalidTime(t *testing.T) {
 	svc, _, _, cleanup := newTestService()
 	defer cleanup()

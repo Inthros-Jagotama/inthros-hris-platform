@@ -445,10 +445,50 @@ func (s *Service) CreateEvent(ctx context.Context, req CreateEventRequest) (*Eve
 			event.DeviceID = &did
 		}
 	}
+
+	s.applyEventValidation(ctx, event)
+
 	if err := s.repo.CreateEvent(ctx, event); err != nil {
 		return nil, err
 	}
 	return eventToResponse(event), nil
+}
+
+// applyEventValidation runs the checks §17-18 describe against a not-yet-
+// persisted event, setting its ValidationStatus/DistanceM/IsInGeofence
+// fields in place. Only location validation is implemented here - face and
+// device validation stay PENDING because there is no face-matching provider
+// or employee-device mapping in this codebase yet (see docs/module-attendance-plan.md
+// §17, Phase 2/4), so this can't silently decide those checks passed.
+func (s *Service) applyEventValidation(ctx context.Context, event *AttendanceEvent) {
+	setting, err := s.repo.FindCompanySetting(ctx)
+	if err != nil {
+		// No settings configured yet - nothing to validate against.
+		event.ValidationStatus = ValidationPending
+		return
+	}
+
+	locationOK := true
+	if setting.IsLocationRequired {
+		locations, err := s.repo.FindAllLocations(ctx)
+		if err != nil {
+			locations = nil
+		}
+		locationOK = validateEventLocation(event, locations, setting)
+	}
+
+	switch {
+	case setting.IsLocationRequired && !locationOK:
+		event.ValidationStatus = ValidationInvalid
+		note := "outside allowed check-in location"
+		event.ValidationNote = &note
+	case setting.IsFaceRequired:
+		// Face verification has no implementation to consult - leave PENDING
+		// rather than mark VALID for a check that was never actually run.
+		event.ValidationStatus = ValidationPending
+	default:
+		event.ValidationStatus = ValidationValid
+	}
 }
 
 func (s *Service) GetEventByID(ctx context.Context, id string) (*EventResponse, error) {
