@@ -1536,13 +1536,13 @@ Integrate dengan Central Approval Module.
 
 ## Phase 6 - Leave Balance
 
-* Accrual
-* Usage
-* Adjustment
-* Reversal
-* Carry Forward
-* Expiry
-* Ledger
+* Accrual ⏳ Not implemented — no code seeds an ACCRUAL ledger entry or `employee_leave_balances.quota_days` from `LeaveAccrualPolicy`; a balance row is only lazily created (quota seeded from `LeaveType.DefaultQuotaDays`) the first time a USAGE deduction needs one.
+* Usage ✅ `applyLeaveUsage` (`leave/balance.go`) deducts `RequestedDays` from `employee_leave_balances` and writes a USAGE ledger row, triggered from both `HandleApprovalStatusChange` (push-callback path) and `UpdateLeaveRequestStatus` (manual generic status endpoint) whenever a request transitions into `APPROVED_FINAL`. Skipped entirely when `LeaveType.CountsAgainstQuota = false` (§12).
+* Adjustment ⏳ Not implemented — no HR-initiated balance adjustment endpoint/flow exists yet (§26 stays a proposal).
+* Reversal ✅ `reverseLeaveUsage` (`leave/balance.go`) restores the deducted days and writes a REVERSAL ledger row, triggered from `UpdateLeaveRequestStatus` whenever a request transitions **away from** `APPROVED_FINAL` (e.g. cancelled by HR after approval). Note: `HandleApprovalStatusChange`'s own CANCELLED branch only fires from `PENDING_APPROVAL`, where the balance was never deducted, so no reversal is needed there — full post-approval cancellation as its own workflow (§18/§19) is still not built.
+* Carry Forward ⏳ Not implemented (§27 stays a proposal).
+* Expiry ⏳ Not implemented (§28 stays a proposal).
+* Ledger ✅ Every USAGE/REVERSAL write goes through `writeLeaveBalanceTransaction`, recording `balance_before`/`balance_after` on `leave_balance_transactions` (table existed since Phase 1, now actually written to).
 
 ---
 
@@ -1650,7 +1650,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 3 - Leave Calculation Engine | ✅ Selesai (2026-08-08) | `leave/calculation.go` (`CalculateLeaveDuration`): full-day/half-day/hourly calculation, weekend + company-holiday exclusion via new `HolidayProvider` interface (adapter: `setting.Service.ListHolidayDatesInRange`), `LeaveRequestDetail` rows now actually persisted per date. Shift/`DaysOfWeekMask` handling and balance-quota validation intentionally deferred — see §41 |
 | Phase 4 - Leave Request | 🔶 Sebagian (2026-08-08) | Create/Submit/List/Get/Delete/Details sudah ada, `requested_days` dihitung server-side (Phase 3). Validasi baru: leave type aktif, attachment wajib, overlap tanggal (`CountOverlappingLeaveRequests`). Belum ada: employee/organization aktif (butuh cross-module read ke `employee`, belum ada pola/interface untuk ini), backdate/minimum-notice (field belum ada di `LeaveType`), balance-quota check (nunggu Phase 6) |
 | Phase 5 - Approval Integration | ✅ Selesai | `ApprovalEngine`, `SetApprovalEngine`, `HandleApprovalStatusChange`, wiring `main.go`, module slug tunggal `"leave"`, test coverage di `approval_integration_test.go` — lihat Section 7 |
-| Phase 6 - Leave Balance | 🔶 Sebagian (2026-08-08) | Tabel ledger `leave_balance_transactions` + repository sudah ada (Phase 1), tapi **belum ada logic** accrual/usage/adjustment/reversal/carry-forward/expiry yang benar-benar menulis ke sana atau ke `employee_leave_balances` — lihat Section 9/10 |
+| Phase 6 - Leave Balance | 🔶 Sebagian (2026-08-08) | **Usage + Reversal + Ledger selesai**: `leave/balance.go` (`applyLeaveUsage`/`reverseLeaveUsage`) — deduct saldo saat status masuk `APPROVED_FINAL`, reverse saat keluar dari `APPROVED_FINAL` (mis. cancel setelah approve), keduanya menulis ke `leave_balance_transactions`. Wired di `HandleApprovalStatusChange` dan `UpdateLeaveRequestStatus`. **Belum ada**: Accrual (seed quota dari `LeaveAccrualPolicy`), Adjustment (endpoint HR), Carry Forward, Expiry |
 | Phase 7 - Calendar & Attendance | ❌ Belum ada | Tidak ada endpoint calendar, tidak ada integrasi Attendance |
 | Phase 8 - Notification | ❌ Belum ada | Tidak ditemukan pemanggilan Notification module dari modul Leave |
 | Phase 9 - Dashboard & Reports | ❌ Belum ada | Tidak ada endpoint/handler dashboard atau report |

@@ -591,6 +591,7 @@ func (s *Service) UpdateLeaveRequestStatus(ctx context.Context, id, status, note
 		return nil, err
 	}
 
+	previousStatus := lr.Status
 	now := time.Now()
 	switch LeaveStatus(status) {
 	case LeaveStatusApprovedFinal:
@@ -612,7 +613,33 @@ func (s *Service) UpdateLeaveRequestStatus(ctx context.Context, id, status, note
 	if err := s.repo.UpdateLeaveRequest(ctx, lr); err != nil {
 		return nil, err
 	}
+	if err := s.applyBalanceEffectOnStatusChange(ctx, lr, previousStatus); err != nil {
+		return nil, err
+	}
 	return leaveRequestToResponse(lr), nil
+}
+
+// applyBalanceEffectOnStatusChange deducts or reverses the leave balance when
+// a status transition crosses into/out of APPROVED_FINAL (§34/§18) — the
+// leave balance ledger is a side effect of the status change, not of the
+// specific endpoint/caller that triggered it.
+func (s *Service) applyBalanceEffectOnStatusChange(ctx context.Context, lr *LeaveRequest, previousStatus LeaveStatus) error {
+	if lr.Status == previousStatus {
+		return nil
+	}
+	if lr.Status != LeaveStatusApprovedFinal && previousStatus != LeaveStatusApprovedFinal {
+		return nil
+	}
+	leaveType, err := s.repo.FindLeaveTypeByID(ctx, lr.LeaveTypeID)
+	if err != nil {
+		return fmt.Errorf("leave type not found: %w", err)
+	}
+	if lr.Status == LeaveStatusApprovedFinal {
+		return s.applyLeaveUsage(ctx, lr, leaveType)
+	}
+	// previousStatus was APPROVED_FINAL and it's moving away from it
+	// (cancelled/rejected via manual override) — reverse the deduction.
+	return s.reverseLeaveUsage(ctx, lr, leaveType)
 }
 
 // HandleApprovalStatusChange is invoked by the approval module's push-based
@@ -649,7 +676,20 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		zap.String("leave_request_id", lr.ID.String()),
 		zap.String("approval_status", status),
 	)
-	return s.repo.UpdateLeaveRequest(ctx, lr)
+	if err := s.repo.UpdateLeaveRequest(ctx, lr); err != nil {
+		return err
+	}
+	// Coming from PENDING_APPROVAL, only the APPROVED_FINAL transition can
+	// require a balance deduction — REJECTED/CANCELLED from this state never
+	// had the balance touched in the first place, so no reversal applies.
+	if lr.Status == LeaveStatusApprovedFinal {
+		leaveType, err := s.repo.FindLeaveTypeByID(ctx, lr.LeaveTypeID)
+		if err != nil {
+			return fmt.Errorf("leave type not found: %w", err)
+		}
+		return s.applyLeaveUsage(ctx, lr, leaveType)
+	}
+	return nil
 }
 
 func (s *Service) DeleteLeaveRequest(ctx context.Context, id string) error {
