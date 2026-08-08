@@ -33,6 +33,7 @@ const items = [
   { path: '/attendance/locations', icon: 'pi pi-map-marker', titleKey: 'attendance.locations', descKey: 'attendance.locations_description' },
   { path: '/attendance/exempt-positions', icon: 'pi pi-shield', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description' },
   { path: '/attendance/events', icon: 'pi pi-list', titleKey: 'attendance.events', descKey: 'attendance.events_description' },
-  { path: '/attendance/sessions', icon: 'pi pi-calendar', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description' }
+  { path: '/attendance/sessions', icon: 'pi pi-calendar', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description' },
+  { path: '/attendance/reports', icon: 'pi pi-chart-bar', titleKey: 'attendance.reports', descKey: 'attendance.reports_description' }
 ]
 </script>

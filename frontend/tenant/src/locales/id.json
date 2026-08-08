@@ -549,7 +549,12 @@
     "lateness_minutes": "Terlambat",
     "early_leave_minutes": "Pulang Cepat",
     "work_minutes": "Menit Kerja",
-    "overtime_minutes": "Menit Lembur"
+    "overtime_minutes": "Menit Lembur",
+    "reports": "Laporan",
+    "reports_description": "Laporan absensi harian/bulanan tenant-wide untuk semua karyawan.",
+    "from_date": "Dari",
+    "to_date": "Sampai",
+    "reports_empty": "Tidak ada sesi dalam rentang tanggal ini."
   },
   "leave": {
     "title": "Cuti",

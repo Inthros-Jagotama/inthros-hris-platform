@@ -178,6 +178,12 @@ const routes = [
         component: () => import('@/views/modules/AttendanceSessions.vue'),
         meta: { title: 'Sessions', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description', icon: 'pi pi-calendar', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
       },
+      {
+        path: 'attendance/reports',
+        name: 'AttendanceReports',
+        component: () => import('@/views/modules/AttendanceReports.vue'),
+        meta: { title: 'Reports', titleKey: 'attendance.reports', descKey: 'attendance.reports_description', icon: 'pi pi-chart-bar', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
+      },
       // Approval Engine
       {
         path: 'approvals',

@@ -2212,9 +2212,11 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 
 ---
 
-# Frontend Implementation Plan
+# Frontend Implementation Plan ✅ Selesai (FE-1 s.d. FE-5, 2026-08-09)
 
-Ditambahkan 2026-08-08. Backend Attendance sudah selesai >90% (lihat Implementation Status di atas) — sisi frontend justru 0%: `frontend/tenant/src/views/modules/Attendance.vue` hanya placeholder satu baris ("Attendance Module — Coming soon"), tidak ada komponen atau pemanggilan API apapun. Sidebar entry (`layouts/Sidebar.vue:346`, `moduleSlug: 'attendance'`, `permission: 'attendance.view'`) dan router stub sudah ada, tapi belum ada halaman nyata di baliknya. Section ini adalah rencana untuk mengisi gap tersebut, mengikuti konvensi FE yang sudah baku di repo ini — bukan pola baru.
+Ditambahkan 2026-08-08. Backend Attendance sudah selesai >90% (lihat Implementation Status di atas) — sisi frontend awalnya 0%: `frontend/tenant/src/views/modules/Attendance.vue` hanya placeholder satu baris ("Attendance Module — Coming soon"), tidak ada komponen atau pemanggilan API apapun. Sidebar entry (`layouts/Sidebar.vue:346`, `moduleSlug: 'attendance'`, `permission: 'attendance.view'`) dan router stub sudah ada sejak awal. Section ini adalah rencana untuk mengisi gap tersebut, mengikuti konvensi FE yang sudah baku di repo ini — bukan pola baru.
+
+> ✅ **Seluruh 5 phase FE (FE-1 s.d. FE-5) sudah diimplementasikan per 2026-08-09.** 11 halaman baru: `Attendance.vue` (My Dashboard, diisi), `AttendanceAdmin.vue`, `AttendanceSettings.vue`, `AttendanceShifts.vue`, `AttendanceEmployeeShifts.vue`, `AttendanceLocations.vue`, `AttendanceExemptPositions.vue`, `AttendanceOvertime.vue`, `AttendanceCorrections.vue`, `AttendanceEvents.vue`, `AttendanceSessions.vue`, `AttendanceReports.vue`. Detail per-phase ada di masing-masing blockquote FE-1 s.d. FE-5 di bawah. Yang tetap di luar cakupan (lihat "Eksplisit di luar cakupan rencana FE ini" di bawah §FE-3.5): Manager/HR Dashboard, Absent detection di UI, notification bell wiring, dan export Excel/CSV/PDF — semuanya blocked oleh gap backend atau modul lain, bukan sesuatu yang FE bisa selesaikan sendiri.
 
 ## FE-1. Ringkasan & Prinsip
 
@@ -2293,8 +2295,14 @@ Halaman utama employee: ringkasan (present/late/missing/leave-days dari `GetEmpl
 >
 > Route baru: `attendance/events`, `attendance/sessions`, sibling di bawah `/attendance/admin` dengan `backRoute` kembali ke situ.
 
-**Phase FE-5 — Tenant-wide Reports**
+**Phase FE-5 — Tenant-wide Reports ✅ Selesai (2026-08-09)**
 `AttendanceReports`: `GET /reports/sessions?from=&to=` dengan filter rentang tanggal, tabel semua employee. Late/Early Leave/Missing Attendance ditampilkan sebagai kolom dari respons yang sama (bukan endpoint terpisah — backend memang tidak menyediakannya, lihat Phase 11 backend).
+
+> ✅ **Diimplementasikan — sekaligus phase FE terakhir, seluruh Frontend Implementation Plan (FE-1 s.d. FE-5) sekarang selesai.** `AttendanceReports.vue`: filter `from`/`to` (`DateInput`, default bulan berjalan), tabel semua employee dengan kolom yang sama seperti `AttendanceSessions.vue` (status, lateness/early-leave/work/overtime minutes).
+>
+> **Pagination client-side, bukan server-side** — beda dari halaman list lain di modul ini. `GET /reports/sessions` (`service.GetAttendanceReport`) mengembalikan `[]SessionResponse` langsung tanpa amplop `page`/`total`/paginasi (lihat `service.go:716-726` — murni `FindSessionsInRange` tanpa limit/offset), jadi `AttendanceReports.vue` memakai `DataTable` `paginator` bawaan PrimeVue (client-side, tanpa `lazy`) alih-alih pola `lazy` + `@page` yang dipakai `AttendanceEvents`/`AttendanceSessions`/dll. Ini bukan penyimpangan dari konvensi — backend memang tidak menyediakan paginasi untuk endpoint ini.
+>
+> Ditambahkan sebagai kartu ke-6 di `AttendanceAdmin.vue`, route `attendance/reports`.
 
 **Eksplisit di luar cakupan rencana FE ini:**
 * **Manager Dashboard, HR Dashboard, Team Calendar** — backend belum ada (blocked oleh cross-module employee/organization read yang belum ada interface-nya, sama seperti dicatat di backend Phase 10). Tidak ada FE yang bisa dibangun sampai backend-nya ada.

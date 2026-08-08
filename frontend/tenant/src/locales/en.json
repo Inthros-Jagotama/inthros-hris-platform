@@ -549,7 +549,12 @@
     "lateness_minutes": "Late",
     "early_leave_minutes": "Early Leave",
     "work_minutes": "Work Minutes",
-    "overtime_minutes": "Overtime Minutes"
+    "overtime_minutes": "Overtime Minutes",
+    "reports": "Reports",
+    "reports_description": "Tenant-wide daily/monthly attendance report across all employees.",
+    "from_date": "From",
+    "to_date": "To",
+    "reports_empty": "No sessions found in this date range."
   },
   "leave": {
     "title": "Leave",
