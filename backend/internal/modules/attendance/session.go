@@ -144,6 +144,28 @@ func (s *Service) recalculateSession(ctx context.Context, employeeID uuid.UUID, 
 	return s.repo.UpsertSession(ctx, session)
 }
 
+// ApplyApprovedLeave lets the Leave module push an approved leave onto this
+// day's session (§26/§27/§50) - implements leave.AttendanceSessionUpdater,
+// wired in main.go the same push-based way ApprovalEngine callbacks work.
+// It only overwrites the session status to LEAVE when the day isn't already
+// CLOSED (a real, completed attendance day): a half-day leave coexisting
+// with half-day attendance just records LeaveFraction/LeaveRequestID
+// without discarding real work data, matching §27's worked example.
+func (s *Service) ApplyApprovedLeave(ctx context.Context, employeeID uuid.UUID, workDate string, leaveRequestID uuid.UUID, dayFraction float64) error {
+	workDate = normalizeWorkDate(workDate)
+	session, err := s.repo.FindSessionByEmployeeAndDate(ctx, employeeID, workDate)
+	if err != nil {
+		session = &AttendanceSession{EmployeeID: employeeID, WorkDate: workDate}
+	}
+	session.LeaveRequestID = &leaveRequestID
+	fraction := dayFraction
+	session.LeaveFraction = &fraction
+	if session.Status != SessionStatusClosed {
+		session.Status = SessionStatusLeave
+	}
+	return s.repo.UpsertSession(ctx, session)
+}
+
 // selectCheckinCheckout picks the first CHECKIN and the first CHECKOUT that
 // follows it from a work date's events (already ordered by event_time_local
 // ascending) - covering the cross-midnight case where the checkout's local

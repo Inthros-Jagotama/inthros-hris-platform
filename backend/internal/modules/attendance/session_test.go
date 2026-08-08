@@ -179,6 +179,75 @@ func TestService_CreateEvent_SessionGeneration_DayOff(t *testing.T) {
 	}
 }
 
+func TestService_ApplyApprovedLeave_NoExistingSession_MarksLeave(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	empID := uuid.New()
+	leaveReqID := uuid.New()
+	if err := svc.ApplyApprovedLeave(ctx(), empID, "2026-01-20", leaveReqID, 1.0); err != nil {
+		t.Fatalf("ApplyApprovedLeave failed: %v", err)
+	}
+
+	session, err := repo.FindSessionByEmployeeAndDate(ctx(), empID, "2026-01-20")
+	if err != nil {
+		t.Fatalf("expected session to be created: %v", err)
+	}
+	if session.Status != SessionStatusLeave {
+		t.Errorf("expected status LEAVE, got '%s'", session.Status)
+	}
+	if session.LeaveRequestID == nil || *session.LeaveRequestID != leaveReqID {
+		t.Errorf("expected leave_request_id %s, got %v", leaveReqID, session.LeaveRequestID)
+	}
+	if session.LeaveFraction == nil || *session.LeaveFraction != 1.0 {
+		t.Errorf("expected leave_fraction 1.0, got %v", session.LeaveFraction)
+	}
+}
+
+func TestService_ApplyApprovedLeave_ClosedSession_DoesNotOverwriteStatus(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	shift := createTestShift(repo)
+	empID := uuid.New()
+	createTestEmployeeShift(repo, empID, shift.ID)
+
+	checkin := CreateEventRequest{
+		EmployeeID:     empID.String(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   "2026-01-15T01:00:00Z",
+		EventTimeLocal: "2026-01-15T08:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	if _, err := svc.CreateEvent(ctx(), checkin); err != nil {
+		t.Fatalf("checkin CreateEvent failed: %v", err)
+	}
+	checkout := checkin
+	checkout.EventType = "CHECKOUT"
+	checkout.EventTimeUTC = "2026-01-15T05:00:00Z"
+	checkout.EventTimeLocal = "2026-01-15T12:00:00+07:00" // half day
+	if _, err := svc.CreateEvent(ctx(), checkout); err != nil {
+		t.Fatalf("checkout CreateEvent failed: %v", err)
+	}
+
+	leaveReqID := uuid.New()
+	if err := svc.ApplyApprovedLeave(ctx(), empID, "2026-01-15", leaveReqID, 0.5); err != nil {
+		t.Fatalf("ApplyApprovedLeave failed: %v", err)
+	}
+
+	session, err := repo.FindSessionByEmployeeAndDate(ctx(), empID, "2026-01-15")
+	if err != nil {
+		t.Fatalf("expected session: %v", err)
+	}
+	if session.Status != SessionStatusClosed {
+		t.Errorf("expected status to remain CLOSED (real attendance happened), got '%s'", session.Status)
+	}
+	if session.LeaveFraction == nil || *session.LeaveFraction != 0.5 {
+		t.Errorf("expected leave_fraction 0.5 to still be recorded, got %v", session.LeaveFraction)
+	}
+}
+
 func TestService_CreateEvent_SessionGeneration_NoShiftAssignment(t *testing.T) {
 	svc, _, _, cleanup := newTestService()
 	defer cleanup()

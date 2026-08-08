@@ -1960,18 +1960,24 @@ Audit                       ✅ Correction event baru diberi ValidationStatus OV
 Integrate:
 
 ```text
-Approved Leave
+Approved Leave           ✅ Diimplementasikan — lihat catatan di bawah
         ↓
-Attendance Session
+Attendance Session         ✅
 ```
 
 Support:
 
 ```text
-Full Day
-Half Day
-Hourly Leave
+Full Day        ✅ leave_fraction 1.0 → session.status = LEAVE
+Half Day          ✅ leave_fraction 0.5 tercatat, status session TIDAK ditimpa jika sudah CLOSED (ada attendance riil)
+Hourly Leave       ✅ Leave module sudah menghasilkan `LeaveRequestDetail.DayFraction` yang benar untuk hourly (Leave Phase 3); Attendance hanya menerima fraction apa adanya, tidak perlu logic tambahan
 ```
+
+> ✅ **Leave Integration — gap nyata, sekarang diimplementasikan.** Sebelumnya field `AttendanceSession.LeaveRequestID`/`LeaveFraction` ada di model tapi tidak pernah diisi kode manapun, dan Leave tidak pernah memanggil Attendance. Sekarang: `leave.AttendanceSessionUpdater` (interface baru di `leave/service.go`) memberi Leave cara memanggil Attendance tanpa import langsung — `attendance.Service` mengimplementasikan `ApplyApprovedLeave(ctx, employeeID, workDate, leaveRequestID, dayFraction)` yang cocok dengan interface tersebut, diwire di `main.go` via `leaveSvc.SetAttendanceSessionUpdater(attendanceSvc)` (arah sebaliknya dari pola `ApprovalEngine` yang biasa — di sini Leave yang mendefinisikan interface dan memanggil Attendance, bukan Attendance memanggil modul lain).
+>
+> Saat leave request menjadi `APPROVED_FINAL`, `applyAttendanceIntegration` (leave/service.go) membaca `LeaveRequestDetail` (satu baris per tanggal, dengan `DayFraction` yang sudah benar untuk full/half/hourly leave sejak Leave Phase 3) dan memanggil `ApplyApprovedLeave` untuk tiap tanggal. Di sisi Attendance, `ApplyApprovedLeave` (session.go) membuat session baru jika belum ada (sehingga hari yang murni cuti tanpa check-in apapun tetap tercatat, mengatasi keterbatasan Phase 6 yang hanya bereaksi terhadap event), atau meng-update session yang sudah ada — **tapi tidak menimpa status `CLOSED`** (hari dengan attendance nyata), hanya mencatat `LeaveFraction`/`LeaveRequestID`, sesuai contoh half-day leave + half-day attendance di §27.
+>
+> Kegagalan integrasi ini bersifat best-effort/non-fatal — jika updater belum di-wire atau satu tanggal gagal, di-log dan lanjut ke tanggal berikutnya, tidak menggagalkan approval leave itu sendiri.
 
 ---
 
@@ -2162,7 +2168,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 6 - Attendance Session | 🔶 Sebagian (2026-08-08) | **Gap paling kritis kini teratasi.** `session.go` (`recalculateSession`) menghasilkan/update `attendance_sessions` secara real-time setiap CHECKIN/CHECKOUT — resolusi shift, lateness/early-leave/work-minutes, cross-midnight (work_date = tanggal CHECKIN), DAY_OFF. Belum ada: Absent detection (butuh scheduled job §44-45), Exempt (butuh cross-module read ke employee/organization), Leave integration (Phase 9) |
 | Phase 7 - Overtime | ✅ Selesai (2026-08-08) | Approval integration sudah ada sejak awal (Section 29). **Actual/Calculated Overtime kini diimplementasikan**: `applyOvertimeCalculation` dipanggil saat approval, membaca session hari itu untuk `actual_minutes` (aktual checkout vs planned checkout) dan `calculated_minutes` (dibatasi `requested_minutes`), migration `072_attendance_overtime_actual_calculated` menambah kedua kolom. Session juga diupdate dengan `IsOvertimeDay`/`OvertimeMinutes`/dll |
 | Phase 8 - Correction | 🔶 Sebagian (2026-08-08) | Tabel `attendance_correction_requests` + model + CRUD + approval integration baru dibangun (migration `073`). `HandleApprovalStatusChange` sekarang dispatch overtime vs correction berdasarkan `documentID`. `MISSING_CHECKIN`/`MISSING_CHECKOUT` diterapkan otomatis ke session saat approved (event baru OVERRIDDEN + recalculate). `WRONG_CHECKIN`/`WRONG_CHECKOUT` tercatat & bisa di-approve tapi **tidak** diterapkan otomatis — butuh perluasan logic seleksi checkin/checkout di Phase 6 |
-| Phase 9 - Leave Integration | ❌ Belum ada | Field `LeaveRequestID`/`LeaveFraction` ada di model tapi tidak diisi kode manapun — lihat Section 26 |
+| Phase 9 - Leave Integration | ✅ Selesai (2026-08-08) | `leave.AttendanceSessionUpdater` (interface baru) + `attendance.Service.ApplyApprovedLeave` diwire di `main.go`. Saat leave `APPROVED_FINAL`, tiap `LeaveRequestDetail` mendorong session Attendance jadi `LEAVE` (atau mencatat `LeaveFraction` saja jika session sudah `CLOSED` karena ada attendance nyata, sesuai §27) — termasuk membuat session baru untuk hari yang murni cuti tanpa event apapun |
 | Phase 10 - Dashboard & Calendar | ❌ Belum ada | Tidak ada endpoint dashboard/calendar; frontend hanya stub |
 | Phase 11 - Reports | ❌ Belum ada | Tidak ada endpoint report apapun |
 | Phase 12 - Notification | ❌ Belum ada | Tidak ditemukan pemanggilan Notification module dari modul Attendance |
@@ -2175,10 +2181,11 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 1. ~~Session generation/calculation engine (Phase 6)~~ ✅ Selesai (2026-08-08) — `recalculateSession` sekarang men-generate `attendance_sessions` secara real-time.
 2. ~~Overtime actual/calculated minutes (Phase 7)~~ ✅ Selesai (2026-08-08) — `applyOvertimeCalculation` dipanggil saat approval, membaca session hari itu.
 3. ~~Correction workflow — Missing Check-in/Checkout (Phase 8)~~ ✅ Selesai (2026-08-08). WRONG_CHECKIN/WRONG_CHECKOUT masih perlu perluasan logic seleksi di Phase 6 sebelum bisa diterapkan otomatis.
-4. **Leave Integration (Phase 9)** — sekarang jadi prioritas berikutnya yang paling bernilai: baca leave request `APPROVED_FINAL` dan set `session.status = LEAVE` + `leave_fraction`, straightforward sekarang karena session sudah ada untuk di-update.
-5. Scheduled job untuk Absent/Missing detection (§44-45) — perlu keputusan infra (cron/scheduler) yang belum ada polanya di codebase ini.
-6. Dedicated check-in/check-out endpoints (pisah dari `POST /events` generik) — supaya validasi per-aksi (Phase 4-5) punya tempat spesifik dipasang.
-7. Frontend dasar — sekarang data session yang ditampilkan sudah benar-benar berarti (bukan tabel kosong).
+4. ~~Leave Integration (Phase 9)~~ ✅ Selesai (2026-08-08) — `leaveSvc.SetAttendanceSessionUpdater(attendanceSvc)`, session ter-update otomatis saat leave disetujui.
+5. **Payroll Integration (Phase 13)** — sekarang jadi kandidat berikutnya yang paling bernilai: session sudah punya `WorkMinutes`/`OvertimeMinutes`/`LeaveFraction` lengkap untuk diekspos ke Payroll, tinggal endpoint/query agregasi per periode.
+6. Scheduled job untuk Absent/Missing detection (§44-45) — perlu keputusan infra (cron/scheduler) yang belum ada polanya di codebase ini.
+7. Dedicated check-in/check-out endpoints (pisah dari `POST /events` generik) — supaya validasi per-aksi (Phase 4-5) punya tempat spesifik dipasang.
+8. Frontend dasar — sekarang data session yang ditampilkan sudah benar-benar berarti (bukan tabel kosong).
 
 ---
 

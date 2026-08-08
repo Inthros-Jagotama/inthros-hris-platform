@@ -530,6 +530,10 @@ func main() {
 	approvalSvc.RegisterStatusHandler("attendance", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return attendanceSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
+	// Push approved leave onto Attendance's daily session (§26/§50 of
+	// docs/module-attendance-plan.md) so a day fully covered by leave is
+	// reflected without needing a check-in event to trigger it.
+	leaveSvc.SetAttendanceSessionUpdater(attendanceSvc)
 
 	// Construct the performance service up front (instead of inside
 	// performance.NewModule) so its two push-based approval status handlers

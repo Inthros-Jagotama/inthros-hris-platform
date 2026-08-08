@@ -33,11 +33,22 @@ type HolidayProvider interface {
 	ListHolidayDatesInRange(ctx context.Context, fromDate, toDate string) ([]string, error)
 }
 
+// AttendanceSessionUpdater lets Leave push an approved leave onto Attendance's
+// session for each covered date (docs/module-attendance-plan.md §26/§50), so
+// a day fully covered by approved leave gets marked without needing a
+// check-in event to trigger session generation. Implemented via an adapter
+// wrapping attendance.Service in main.go (same narrow-interface-plus-adapter
+// pattern as ApprovalEngine/HolidayProvider above).
+type AttendanceSessionUpdater interface {
+	ApplyApprovedLeave(ctx context.Context, employeeID uuid.UUID, workDate string, leaveRequestID uuid.UUID, dayFraction float64) error
+}
+
 type Service struct {
-	repo            *Repository
-	logger          *zap.Logger
-	approvalEngine  ApprovalEngine
-	holidayProvider HolidayProvider
+	repo              *Repository
+	logger            *zap.Logger
+	approvalEngine    ApprovalEngine
+	holidayProvider   HolidayProvider
+	attendanceUpdater AttendanceSessionUpdater
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -52,6 +63,11 @@ func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 // SetHolidayProvider wires the company holiday calendar into this service.
 func (s *Service) SetHolidayProvider(hp HolidayProvider) {
 	s.holidayProvider = hp
+}
+
+// SetAttendanceSessionUpdater wires the attendance module into this service.
+func (s *Service) SetAttendanceSessionUpdater(u AttendanceSessionUpdater) {
+	s.attendanceUpdater = u
 }
 
 // holidayDatesInRange returns holiday dates in the range, degrading to "no
@@ -687,9 +703,42 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		if err != nil {
 			return fmt.Errorf("leave type not found: %w", err)
 		}
-		return s.applyLeaveUsage(ctx, lr, leaveType)
+		if err := s.applyLeaveUsage(ctx, lr, leaveType); err != nil {
+			return err
+		}
+		s.applyAttendanceIntegration(ctx, lr)
 	}
 	return nil
+}
+
+// applyAttendanceIntegration pushes each of the leave request's per-date
+// entries onto Attendance's session for that date (docs/module-attendance-plan.md
+// §26/§50), so a day fully covered by approved leave is reflected in
+// Attendance without needing a check-in event to trigger session
+// generation. Best-effort: if the updater isn't wired, or a given date
+// fails, this logs and moves on rather than failing the whole approval -
+// the leave itself is still correctly approved either way.
+func (s *Service) applyAttendanceIntegration(ctx context.Context, lr *LeaveRequest) {
+	if s.attendanceUpdater == nil {
+		return
+	}
+	details, err := s.repo.ListLeaveRequestDetails(ctx, lr.ID)
+	if err != nil {
+		s.logger.Warn("Failed to load leave request details for attendance integration",
+			zap.String("leave_request_id", lr.ID.String()),
+			zap.Error(err),
+		)
+		return
+	}
+	for _, d := range details {
+		if err := s.attendanceUpdater.ApplyApprovedLeave(ctx, lr.EmployeeID, d.LeaveDate, lr.ID, d.DayFraction); err != nil {
+			s.logger.Warn("Failed to apply approved leave to attendance session",
+				zap.String("leave_request_id", lr.ID.String()),
+				zap.String("leave_date", d.LeaveDate),
+				zap.Error(err),
+			)
+		}
+	}
 }
 
 func (s *Service) DeleteLeaveRequest(ctx context.Context, id string) error {
