@@ -418,6 +418,10 @@ func (s *Service) CreateEvent(ctx context.Context, req CreateEventRequest) (*Eve
 	if err != nil {
 		return nil, fmt.Errorf("invalid employee_id: %w", err)
 	}
+	eventType := EventType(req.EventType)
+	if err := s.checkEventSequence(ctx, empID, eventType); err != nil {
+		return nil, err
+	}
 
 	utcTime, err := time.Parse(time.RFC3339, req.EventTimeUTC)
 	if err != nil {
@@ -430,7 +434,7 @@ func (s *Service) CreateEvent(ctx context.Context, req CreateEventRequest) (*Eve
 
 	event := &AttendanceEvent{
 		EmployeeID:       empID,
-		EventType:        EventType(req.EventType),
+		EventType:        eventType,
 		EventTimeUTC:     utcTime,
 		EventTimeLocal:   localTime,
 		Latitude:         req.Latitude,
@@ -452,6 +456,34 @@ func (s *Service) CreateEvent(ctx context.Context, req CreateEventRequest) (*Eve
 		return nil, err
 	}
 	return eventToResponse(event), nil
+}
+
+// checkEventSequence rejects out-of-sequence check-in/check-out submissions
+// (§5/§18's "Duplicate Event Detection"): an employee can't check in twice
+// without checking out in between, and can't check out without an open
+// check-in. This is a lightweight sequence check on raw events - it doesn't
+// require resolving the employee's shift/work-date (that's session
+// calculation, Phase 6), just the last event's type.
+func (s *Service) checkEventSequence(ctx context.Context, employeeID uuid.UUID, eventType EventType) error {
+	last, err := s.repo.FindLastEventForEmployee(ctx, employeeID)
+	if err != nil {
+		// No prior event - CHECKIN is fine, CHECKOUT has nothing to close.
+		if eventType == EventTypeCheckOut {
+			return fmt.Errorf("cannot check out without an open check-in")
+		}
+		return nil
+	}
+	switch eventType {
+	case EventTypeCheckIn:
+		if last.EventType == EventTypeCheckIn {
+			return fmt.Errorf("already checked in; check out before checking in again")
+		}
+	case EventTypeCheckOut:
+		if last.EventType == EventTypeCheckOut {
+			return fmt.Errorf("cannot check out without an open check-in")
+		}
+	}
+	return nil
 }
 
 // applyEventValidation runs the checks §17-18 describe against a not-yet-

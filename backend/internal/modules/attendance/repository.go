@@ -333,6 +333,22 @@ func (r *Repository) ListEvents(ctx context.Context, employeeID *uuid.UUID, page
 	return events, total, nil
 }
 
+// FindLastEventForEmployee returns the employee's most recent attendance
+// event (by event_time_utc), used to detect duplicate/out-of-sequence
+// check-in or check-out submissions. Returns gorm.ErrRecordNotFound wrapped
+// when the employee has no events yet.
+func (r *Repository) FindLastEventForEmployee(ctx context.Context, employeeID uuid.UUID) (*AttendanceEvent, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var e AttendanceEvent
+	if err := db.Where("employee_id = ?", employeeID).Order("event_time_utc DESC").First(&e).Error; err != nil {
+		return nil, err
+	}
+	return &e, nil
+}
+
 func (r *Repository) UpdateEvent(ctx context.Context, e *AttendanceEvent) error {
 	db, err := r.getDB(ctx)
 	if err != nil {

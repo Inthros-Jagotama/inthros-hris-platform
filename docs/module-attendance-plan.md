@@ -1877,12 +1877,16 @@ Attendance Event      ✅ CreateEvent sudah lengkap (raw event + sekarang locati
 Develop:
 
 ```text
-Location Validation
-Face Validation
-Device Validation
-Time Validation
-Duplicate Event Detection
+Location Validation       ✅ Selesai di Phase 4 (geofence.go)
+Face Validation             ⏳ Tetap belum ada — tidak ada face-matching provider (lihat Phase 4)
+Device Validation           ⏳ Tetap belum ada — tidak ada employee-device mapping (lihat Phase 1/2)
+Time Validation              ⏳ Belum ada — butuh resolusi shift per employee/tanggal (planned_start/end_local), yaitu bagian dari session calculation engine (Phase 6), bukan validation berdiri sendiri. Membangun versi parsial sekarang berisiko salah karena interpretasi `DaysOfWeekMask`/day-off/cross-midnight belum ada konvensinya di manapun
+Duplicate Event Detection    ✅ Baru diimplementasikan — lihat catatan di bawah
 ```
+
+> ✅ **Duplicate Event Detection — gap nyata, sekarang diimplementasikan.** Sebelumnya `CreateEvent` menerima event apapun tanpa cek urutan — employee bisa check-in dua kali berturut-turut tanpa check-out di antaranya, atau check-out tanpa pernah check-in. Ditambahkan `checkEventSequence` (service.go) + `FindLastEventForEmployee` (repository): CHECKIN ditolak jika event terakhir employee juga CHECKIN (belum check-out), CHECKOUT ditolak jika event terakhir bukan CHECKIN terbuka (atau belum ada event sama sekali). Ini murni cek urutan raw event — sengaja tidak menyentuh resolusi shift/work-date, itu tetap tanggung jawab Phase 6.
+>
+> Time Validation sengaja **tidak** diimplementasikan sebagian di sini karena akan butuh resolusi shift (`attendance_employee_shifts` + `attendance_company_shifts`) yang benar termasuk `DaysOfWeekMask`/cross-midnight — komponen yang sama yang bikin Phase 6 jadi gap paling kritis di modul ini. Membangun versi Time Validation yang naif sekarang (tanpa resolusi shift yang benar) berisiko menghasilkan validasi yang salah, lebih buruk daripada tidak ada validasi sama sekali.
 
 ---
 
@@ -2138,7 +2142,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 2 - Attendance Configuration | 🔶 Sebagian (2026-08-08) | Settings/Shifts/Locations/Exempt Positions CRUD lengkap. Shift Rules ditunda (belum ada requirement konkret, sama alasan dengan Phase 1). Devices dan Face Configuration sengaja ditunda — `attendance_device_captures`/`attendance_face_captures` tidak punya repository method sama sekali (tabel mati total), baru masuk akal dibangun bersamaan dengan capture validation engine (Phase 4-5) |
 | Phase 3 - Shift Management | 🔶 Sebagian (2026-08-08) | CRUD shift + employee-shift assignment lengkap. Overlap validation (§7) ditemukan benar-benar belum ada — sekarang diperbaiki via `CountOverlappingEmployeeShifts` + validasi `effective_date_from <= effective_date_to` di `CreateEmployeeShift`/`UpdateEmployeeShift`. `DaysOfWeekMask`/`IsCrossMidnight` masih sekadar field pass-through — belum dikonsumsi calculation engine manapun (nunggu Phase 6) |
 | Phase 4 - Attendance Capture | 🔶 Sebagian (2026-08-08) | `POST /events` generik (CHECKIN/CHECKOUT satu endpoint, bukan endpoint terpisah — lihat §41). GPS + **Geofence validation kini diimplementasikan** (`geofence.go`, `applyEventValidation`) — event di luar radius jadi `INVALID`. Face Verification & Device Validation sengaja tetap belum ada: tidak ada face-matching provider maupun employee-device mapping (keduanya butuh keputusan/komponen di luar cakupan Phase 4) |
-| Phase 5 - Attendance Validation | ❌ Belum ada | Tidak ada location/face/device/time validation logic di `service.go` — lihat Section 17 |
+| Phase 5 - Attendance Validation | 🔶 Sebagian (2026-08-08) | Location Validation selesai di Phase 4. **Duplicate Event Detection kini diimplementasikan** (`checkEventSequence` + `FindLastEventForEmployee`) — menolak CHECKIN ganda tanpa CHECKOUT dan CHECKOUT tanpa CHECKIN terbuka. Face/Device Validation tetap belum ada (butuh provider/mapping yang belum ada). Time Validation sengaja ditunda ke Phase 6 karena butuh resolusi shift yang benar (DaysOfWeekMask/cross-midnight) |
 | Phase 6 - Attendance Session | ❌ Belum ada | **Gap paling kritis.** Tidak ada session generation/calculation engine sama sekali — lihat Section 19 |
 | Phase 7 - Overtime | 🔶 Sebagian | Approval integration ke Central Approval Module sudah selesai (Section 29). "Actual Overtime"/"Calculated Overtime" berdasarkan attendance (§31-32) belum ada karena bergantung pada session calculation (Phase 6) |
 | Phase 8 - Correction | ❌ Belum ada | Tidak ada tabel/model/endpoint correction — lihat Section 16 |

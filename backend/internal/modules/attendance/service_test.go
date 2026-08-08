@@ -551,6 +551,74 @@ func TestService_CreateEvent_FaceRequired_LeavesStatusPending(t *testing.T) {
 	}
 }
 
+func TestService_CreateEvent_DuplicateCheckin_ReturnsError(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	empID := uuidStr()
+	first := CreateEventRequest{
+		EmployeeID:     empID,
+		EventType:      "CHECKIN",
+		EventTimeUTC:   "2026-01-15T00:00:00Z",
+		EventTimeLocal: "2026-01-15T07:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	if _, err := svc.CreateEvent(ctx(), first); err != nil {
+		t.Fatalf("first CreateEvent failed: %v", err)
+	}
+
+	second := first
+	second.EventTimeUTC = "2026-01-15T01:00:00Z"
+	second.EventTimeLocal = "2026-01-15T08:00:00+07:00"
+	if _, err := svc.CreateEvent(ctx(), second); err == nil {
+		t.Fatal("expected error for duplicate CHECKIN without an intervening CHECKOUT")
+	}
+}
+
+func TestService_CreateEvent_CheckoutWithoutCheckin_ReturnsError(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	req := CreateEventRequest{
+		EmployeeID:     uuidStr(),
+		EventType:      "CHECKOUT",
+		EventTimeUTC:   "2026-01-15T00:00:00Z",
+		EventTimeLocal: "2026-01-15T07:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	if _, err := svc.CreateEvent(ctx(), req); err == nil {
+		t.Fatal("expected error for CHECKOUT without an open CHECKIN")
+	}
+}
+
+func TestService_CreateEvent_CheckinThenCheckout_Succeeds(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	empID := uuidStr()
+	checkin := CreateEventRequest{
+		EmployeeID:     empID,
+		EventType:      "CHECKIN",
+		EventTimeUTC:   "2026-01-15T00:00:00Z",
+		EventTimeLocal: "2026-01-15T07:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	if _, err := svc.CreateEvent(ctx(), checkin); err != nil {
+		t.Fatalf("CHECKIN failed: %v", err)
+	}
+
+	checkout := checkin
+	checkout.EventType = "CHECKOUT"
+	checkout.EventTimeUTC = "2026-01-15T09:00:00Z"
+	checkout.EventTimeLocal = "2026-01-15T16:00:00+07:00"
+	if _, err := svc.CreateEvent(ctx(), checkout); err != nil {
+		t.Fatalf("CHECKOUT failed: %v", err)
+	}
+}
+
 func TestService_CreateEvent_InvalidTime(t *testing.T) {
 	svc, _, _, cleanup := newTestService()
 	defer cleanup()
