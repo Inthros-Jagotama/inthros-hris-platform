@@ -114,6 +114,39 @@
             </div>
           </template>
 
+          <template v-else-if="isOKRModule">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('okr.employee') }}</p>
+                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ documentDetail?.employee_name || '-' }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('okr.organization') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.organization_name || '-' }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('okr.period') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.period_code || '-' }}</p>
+              </div>
+            </div>
+
+            <div v-if="okrObjectiveGroups.length">
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-3 mb-1">{{ t('okr.objectives') }}</p>
+              <div v-for="g in okrObjectiveGroups" :key="g.key" class="mb-2">
+                <div class="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ g.title }}</div>
+                <div class="space-y-1">
+                  <div v-for="kr in g.items" :key="kr.id" class="text-xs px-2 py-1.5 rounded bg-gray-50 dark:bg-gray-800/60">
+                    <div class="font-medium text-gray-700 dark:text-gray-200">{{ kr.key_result_title }}</div>
+                    <div class="text-gray-500 dark:text-gray-400">
+                      {{ t('okr.target') }}: {{ kr.target_value }} {{ kr.unit }}
+                      <span v-if="kr.actual_value"> · {{ t('okr.actual') }}: {{ kr.actual_value }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
           <div v-else-if="documentFields.length" class="space-y-2">
             <div v-for="f in documentFields" :key="f.label" class="text-sm">
               <p class="text-xs text-gray-400">{{ f.label }}</p>
@@ -252,6 +285,25 @@ const isKPIModule = computed(() => {
   return ['performance_kpi_target', 'performance_kpi_realization'].includes(activeInstance.value?.module)
 })
 
+const isOKRModule = computed(() => {
+  return ['okr_key_result', 'okr_assessment'].includes(activeInstance.value?.module)
+})
+
+const okrObjectiveGroups = computed(() => {
+  const details = documentDetail.value?.details || []
+  const groups = {}
+  const order = []
+  for (const d of details) {
+    const key = d.objective_id || d.objective_title
+    if (!groups[key]) {
+      groups[key] = { key, title: d.objective_title, items: [] }
+      order.push(key)
+    }
+    groups[key].items.push(d)
+  }
+  return order.map(key => groups[key])
+})
+
 // Fields hidden from the generic "submitted data" fallback view — internal
 // IDs/timestamps/relations that aren't meaningful to a reviewer, or that
 // are already shown elsewhere in the dialog.
@@ -259,6 +311,7 @@ const DOCUMENT_FIELD_DENYLIST = new Set([
   'id', 'created_at', 'updated_at', 'deleted_at',
   'employee_id', 'organization_id', 'period_id', 'template_id',
   'approval_instance_id', 'target_approval_instance_id', 'realization_approval_instance_id',
+  'kr_approval_instance_id', 'assessment_approval_instance_id',
   'details', 'program_items', 'items', 'documents'
 ])
 
@@ -301,6 +354,9 @@ function documentEndpointFor(module, documentId) {
     case 'performance_kpi_target':
     case 'performance_kpi_realization':
       return `/api/v1/tenant/performance/kpi/evaluations/${documentId}/full`
+    case 'okr_key_result':
+    case 'okr_assessment':
+      return `/api/v1/tenant/performance/okr/evaluations/${documentId}/details`
     default:
       return null
   }
