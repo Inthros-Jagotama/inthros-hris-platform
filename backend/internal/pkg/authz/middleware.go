@@ -73,6 +73,16 @@ func NewMiddleware(cfg MiddlewareConfig) gin.HandlerFunc {
 			return
 		}
 
+		// GET /user-accounts/me is a self-service lookup (resolving the caller's
+		// own employee_id from their JWT user_id) — any authenticated tenant user
+		// may call it regardless of "useraccount.view", which gates HR-admin
+		// account management actions (create/resend/status for OTHER employees),
+		// not looking up one's own account.
+		if c.FullPath() == "/api/v1/tenant/user-accounts/me" {
+			c.Next()
+			return
+		}
+
 		// Extract resource dari path
 		resource := ResourceFromPath(c.FullPath())
 		if resource == "" {
