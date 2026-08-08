@@ -5,7 +5,7 @@
 | Phase | Status | Catatan |
 |---|---|---|
 | Phase 1 — Database Schema | ✅ Selesai | Migration `074_notification`, model `Notification`, repository CRUD dasar + test. |
-| Phase 2 — Notifier Interface & Service Layer | ⏳ Belum dimulai | |
+| Phase 2 — Notifier Interface & Service Layer | ✅ Selesai | Service `Notify`/`ListNotifications`/`MarkAsRead`/`MarkAllAsRead`/`GetUnreadCount`, `module.go` dengan permissions `notification.view`/`notification.manage`. |
 | Phase 3 — REST API | ⏳ Belum dimulai | |
 | Phase 4 — Integrasi Leave | ⏳ Belum dimulai | |
 | Phase 5 — Rollout ke Modul Lain | ⏳ Belum dimulai | |
@@ -214,10 +214,12 @@ Semua titik ini butuh resolusi `employee_id → user_id` (lewat `useraccount`), 
 * ✅ Test repository-level (`repository_test.go`) dengan sqlite in-memory: create+find, list dengan filter unread & paginasi.
 * Belum ada `Notifier` interface, service layer, handler, routes, atau registrasi `main.go` — sesuai batas scope Phase 1 (murni DB layer), dilanjutkan di Phase 2.
 
-## Phase 2 - Notifier Interface & Service Layer
+## Phase 2 - Notifier Interface & Service Layer ✅ Selesai
 
-* `notification.Service` dengan `Notify`, `ListNotifications`, `MarkAsRead`, `MarkAllAsRead`, `GetUnreadCount`.
-* `module.go` (`NewModule`, `Info()` dengan permissions `notification.view`/`notification.manage`).
+* ✅ `notification.Service` (`backend/internal/modules/notification/service.go`) dengan `Notify`, `ListNotifications`, `MarkAsRead` (validasi kepemilikan recipient), `MarkAllAsRead`, `GetUnreadCount`.
+* ✅ `module.go` — `NewModule`/`NewModuleWithService`, `Info()` dengan permissions `notification.view`/`notification.manage`, `Migrate()` (`AutoMigrate(&Notification{})`). `RegisterRoutes` masih no-op karena handler baru dibangun di Phase 3.
+* ✅ Test service-level (`service_test.go`): `Notify` menghasilkan notifikasi unread dengan reference tersimpan, `MarkAsRead` menolak user lain, `MarkAllAsRead` + `GetUnreadCount` konsisten.
+* Belum ada handler, routes, atau registrasi module di `main.go` — sesuai batas scope Phase 2, dilanjutkan di Phase 3.
 
 ## Phase 3 - REST API
 
