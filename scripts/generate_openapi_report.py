@@ -41,7 +41,7 @@ generated_date = datetime.now().strftime("%d %B %Y")
 
 lines = []
 # Human-readable report version (update this when significant changes are made)
-REPORT_VERSION = "v18"
+REPORT_VERSION = "v19"
 lines.append(f"= HRIS Platform — OpenAPI Comprehensive Report ({REPORT_VERSION}) =\n")
 lines.append("")
 lines.append(f"**Generated:** {generated_date}")
@@ -209,6 +209,7 @@ with open(REPORT_PATH, "w", encoding="utf-8") as f:
     f.write("\n".join(lines))
 
 print(f"Report generated: {REPORT_PATH}")
-print(f"  Version: {version}")
+print(f"  Report Version: {REPORT_VERSION}")
+print(f"  Spec Version:   {version}")
 print(f"  Paths: {total_paths}, Endpoints: {total_endpoints}")
 print(f"  Tags: {total_tags}, Schemas: {total_schemas}")

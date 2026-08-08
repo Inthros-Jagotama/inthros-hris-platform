@@ -212,8 +212,13 @@ hris-platform/
     ├── panduan-uiux-hris-enterprise.md # Standar & prompt UI/UX
     ├── frontend-development-plan.md  # Roadmap implementasi frontend
     ├── ...                           # Lihat bagian "Dokumentasi Lainnya"
-    └── archive/                      # Plan/rencana modul yang sudah selesai
+    ├── archive/                      # 🚫 DIABAIKAN — plan lama (jangan dibaca)
+    ├── backlog/                      # 🚫 DIABAIKAN — ide/backlog
+    ├── seeder/                       # 🚫 DIABAIKAN — file sementara
+    └── tmp/                          # 🚫 DIABAIKAN — temp & node_modules
 ```
+
+> ⚠️ **Folder yang diabaikan di `docs/`:** `archive/`, `backlog/`, `seeder/`, `tmp/` — jangan dibaca/diindeks (detail: [`docs/README.md`](docs/README.md#-folder-yang-diabaikan)).
 
 ---
 
@@ -1806,7 +1811,7 @@ POST /api/v1/platform/companies
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
 | ✅ | Project completion dashboard (14 modules, 1004+ tests, 148 tables) | `docs/project-completion-dashboard.md` |
-| ✅ | OpenAPI comprehensive report (814 endpoints, 466 paths, 509 schemas, 32 tags) | `docs/openapi-report.md` |
+| ✅ | OpenAPI comprehensive report (821 endpoints, 473 paths, 513 schemas, 32 tags) | `docs/openapi-report.md` |
 | ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
@@ -1900,7 +1905,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**814 endpoints**, 466 paths, 509 schemas, 32 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**821 endpoints**, 473 paths, 513 schemas, 32 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 
@@ -2100,14 +2105,13 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 | [`docs/database-schema.md`](docs/database-schema.md) | Struktur database & ERD — Platform DB (11 tabel) + Tenant DB (166 tabel), relasi FK, konvensi kolom |
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap (satu-satunya dokumen arsitektur) |
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v18 — 814 endpoints, 466 paths, 509 schemas, 32 tags) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (report v19, spec 1.6.3 — 821 endpoints, 473 paths, 513 schemas, 32 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
 | [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (14 modules, 939+ tests, 139 tables) |
 | [`docs/panduan-uiux-hris-enterprise.md`](docs/panduan-uiux-hris-enterprise.md) | Standar UI/UX enterprise (modal-first, high-density, prompt AI, warna badge) |
 | [`docs/frontend-development-plan.md`](docs/frontend-development-plan.md) | Roadmap implementasi frontend Platform Admin & Tenant |
 | [`docs/job-management-score-analysis.md`](docs/job-management-score-analysis.md) | Analisa perhitungan Job Management Score (dirujuk `calculator.go`) |
 | [`docs/analisis-blueprint-vs-existing.md`](docs/analisis-blueprint-vs-existing.md) | Analisis blueprint vs existing Laravel app |
-| [`docs/archive/`](docs/archive/) | Arsip plan/rencana modul yang sudah selesai diimplementasikan (KPI, OKR, Job Management, Workforce Intelligence, dll.) |
 | [`backend/.env.example`](backend/.env.example) | Template environment variables |
 | [`backend/Makefile`](backend/Makefile) | Build & development commands |
 

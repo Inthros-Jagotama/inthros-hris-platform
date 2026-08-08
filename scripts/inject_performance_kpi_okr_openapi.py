@@ -15,6 +15,13 @@ Script ini menyinkronkan openapi.json dengan routes.go:
 5. HAPUS PHANTOM — hapus path lama yang sudah dipindah (tidak lagi terdaftar
    di routes.go).
 
+CATATAN: skema yang didefinisikan di `new_schemas` bersifat kanonik dan
+selalu disinkronkan (overwrite jika definisi berubah). Jangan edit skema
+KPI/OKR langsung di openapi.json — ubah definisi di `new_schemas`.
+
+Usage:
+    python scripts/inject_performance_kpi_okr_openapi.py
+
 Usage:
     python scripts/inject_performance_kpi_okr_openapi.py
 """
@@ -353,6 +360,11 @@ add_path(f"{O}/my-context", {
               "Konteks OKR user saat ini: apakah punya posisi, employee/organization terkait, dan daftar template OKR yang tersedia (dipakai self-assessment).",
               TAG, responses=responses_ok("MyOKRContextResponse")),
 })
+add_path(f"{O}/templates/objective-scope", {
+    "get": op("getOkrObjectiveScope", "Get OKR objective creation scope",
+              "Resolusi scope pembuatan objective cascading: apakah employee saat ini boleh membuat objective untuk organisasi bawahan, dan organisasi mana yang memenuhi syarat sebagai subordinate (walking down melalui organisasi kosong).",
+              TAG, responses=responses_ok("OKRObjectiveScopeResponse")),
+})
 
 # --- OKR Templates ---
 add_path(f"{O}/templates", {
@@ -468,6 +480,28 @@ add_path(f"{O}/evaluations/{{id}}/recalculate", {
                "Hitung ulang skor & achievement evaluasi OKR dari nilai aktual dan formula tiap key result.",
                TAG, parameters=[param("id")], responses=responses_ok("OKREvaluationResponse")),
 })
+add_path(f"{O}/evaluations/{{id}}/key-results", {
+    "post": op("createOkrEvaluationKeyResult", "Create employee-proposed OKR evaluation key result",
+               "Tambahkan Key Result yang diajukan employee di bawah Objective hasil snapshot, hanya saat evaluasi berstatus DRAFT (fase KR proposal).",
+               TAG, parameters=[param("id")], request_body=content("CreateOKREvaluationKeyResultRequest"),
+               responses=responses_created("OKREvaluationDetailResponse")),
+})
+add_path(f"{O}/evaluations/{{id}}/submit-key-results", {
+    "post": op("submitOkrKeyResults", "Submit OKR key results for approval",
+               "Ajukan proposal Key Results karyawan untuk persetujuan (status → KR_SUBMITTED) melalui approval flow modul performance.",
+               TAG, parameters=[param("id")], responses=responses_ok("OKREvaluationResponse")),
+})
+add_path(f"{O}/evaluations/{{id}}/approve-key-results", {
+    "post": op("approveOkrKeyResults", "Approve OKR key results",
+               "Setujui proposal Key Results (status → KR_APPROVED, \"OKR Active\") — dapat diresolusi otomatis oleh approval flow jika dikonfigurasi.",
+               TAG, parameters=[param("id")], responses=responses_ok("OKREvaluationResponse")),
+})
+add_path(f"{O}/evaluations/{{id}}/reject-key-results", {
+    "post": op("rejectOkrKeyResults", "Reject OKR key results",
+               "Tolak proposal Key Results kembali ke DRAFT (status → DRAFT) dengan catatan penolakan, agar karyawan dapat memperbaiki proposal.",
+               TAG, parameters=[param("id")], request_body=content("RejectOkrKeyResultsRequest"),
+               responses=responses_ok("OKREvaluationResponse")),
+})
 add_path(f"{O}/evaluations/{{id}}/submit", {
     "post": op("submitOkrEvaluation", "Submit OKR evaluation",
                "Ajukan evaluasi OKR (status → SUBMITTED).",
@@ -510,6 +544,19 @@ add_path(f"{O}/evaluation-details/{{id}}/attachments", {
     "get": op("listOkrAttachmentsByDetailID", "List OKR attachments by evaluation detail",
               "Ambil daftar lampiran bukti pada satu evaluation detail OKR.",
               TAG, parameters=[param("id")], responses=responses_array("OKRAttachmentResponse", "List of OKR attachments")),
+})
+
+# --- OKR Evaluation Key Results (employee-proposed, DRAFT phase) ---
+add_path(f"{O}/evaluation-key-results/{{id}}/target", {
+    "put": op("updateOkrEvaluationKeyResultTarget", "Update OKR evaluation key result target",
+              "Perbarui target Key Result yang diajukan karyawan (judul, target, unit, formula, bobot) sebelum disubmit.",
+              TAG, parameters=[param("id")], request_body=content("UpdateOKREvaluationKeyResultTargetRequest"),
+              responses=responses_ok("OKREvaluationDetailResponse")),
+})
+add_path(f"{O}/evaluation-key-results/{{id}}", {
+    "delete": op("deleteOkrEvaluationKeyResult", "Delete OKR evaluation key result",
+                 "Hapus Key Result yang diajukan karyawan, hanya saat evaluasi masih DRAFT.",
+                 TAG, parameters=[param("id")], responses=responses_plain("OKR evaluation key result deleted")),
 })
 
 # --- OKR Progress ---
@@ -664,6 +711,16 @@ new_schemas = {
             "organization_id": {"type": "string", "format": "uuid"},
             "organization_name": {"type": "string"},
             "templates": {"type": "array", "items": ref("OKRTemplateResponse")},
+        },
+    },
+    "OKRObjectiveScopeResponse": {
+        "type": "object",
+        "properties": {
+            "organization_id": {"type": "string", "format": "uuid"},
+            "organization_name": {"type": "string"},
+            "eligible": {"type": "boolean", "description": "Apakah employee saat ini boleh membuat objective untuk organisasi bawahan", "example": True},
+            "ineligible_reason_key": {"type": "string", "description": "Kunci pesan alasan tidak boleh membuat objective (saat eligible=false)", "example": "okr.no_employee_position"},
+            "subordinate_organizations": {"type": "array", "items": ref("OrganizationOptionResponse")},
         },
     },
     # --- OKR Template ---
@@ -832,9 +889,11 @@ new_schemas = {
             "period_code": {"type": "string"},
             "template_id": {"type": "string", "format": "uuid"},
             "template_name": {"type": "string"},
-            "status": {"type": "string"},
+            "status": {"type": "string", "description": "Status workflow dua fase: DRAFT → KR_SUBMITTED → KR_APPROVED → SUBMITTED → COMPLETED (atau REJECTED)", "example": "KR_SUBMITTED"},
             "submitted_at": {"type": "string", "format": "date-time"},
             "approved_at": {"type": "string", "format": "date-time"},
+            "kr_approval_instance_id": {"type": "string", "format": "uuid", "description": "ID approval instance untuk checkpoint persetujuan Key Results"},
+            "assessment_approval_instance_id": {"type": "string", "format": "uuid", "description": "ID approval instance untuk checkpoint persetujuan penilaian akhir"},
             "final_score": {"type": "number"},
             "rating_id": {"type": "string", "format": "uuid"},
             "rating_name": {"type": "string"},
@@ -860,6 +919,39 @@ new_schemas = {
                 "type": "object", "required": ["id"],
                 "properties": {"id": {"type": "string", "format": "uuid"}, "actual_value": {"type": "number"}},
             }},
+        },
+    },
+    "CreateOKREvaluationKeyResultRequest": {
+        "type": "object",
+        "required": ["evaluation_id", "objective_id", "objective_title", "title"],
+        "properties": {
+            "evaluation_id": {"type": "string", "format": "uuid"},
+            "objective_id": {"type": "string", "format": "uuid"},
+            "objective_title": {"type": "string", "maxLength": 255, "example": "Meningkatkan Kepuasan Pelanggan"},
+            "objective_weight": {"type": "number", "example": 40},
+            "title": {"type": "string", "maxLength": 255, "example": "Skor CSAT ≥ 85"},
+            "target_type": {"type": "string", "enum": ["NUMBER", "PERCENTAGE", "CURRENCY", "BOOLEAN", "DURATION", "SCORE"], "example": "PERCENTAGE"},
+            "target_value": {"type": "number", "example": 85},
+            "unit": {"type": "string", "maxLength": 50, "example": "%"},
+            "formula_type": {"type": "string", "enum": ["MANUAL", "HIGHER_BETTER", "LOWER_BETTER", "RANGE", "BOOLEAN", "PERCENTAGE"], "example": "HIGHER_BETTER"},
+            "weight": {"type": "number", "example": 100},
+        },
+    },
+    "UpdateOKREvaluationKeyResultTargetRequest": {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string", "maxLength": 255},
+            "target_type": {"type": "string", "enum": ["NUMBER", "PERCENTAGE", "CURRENCY", "BOOLEAN", "DURATION", "SCORE"]},
+            "target_value": {"type": "number"},
+            "unit": {"type": "string", "maxLength": 50},
+            "formula_type": {"type": "string", "enum": ["MANUAL", "HIGHER_BETTER", "LOWER_BETTER", "RANGE", "BOOLEAN", "PERCENTAGE"]},
+            "weight": {"type": "number"},
+        },
+    },
+    "RejectOkrKeyResultsRequest": {
+        "type": "object",
+        "properties": {
+            "notes": {"type": "string", "description": "Catatan alasan penolakan proposal Key Results", "example": "Target perlu direvisi agar lebih realistis"},
         },
     },
     "OKREvaluationDetailResponse": {
@@ -976,7 +1068,8 @@ new_schemas = {
 }
 
 for name, schema in new_schemas.items():
-    if name not in schemas:
+    # Sinkronkan selalu: overwrite jika definisi berubah, tambah jika belum ada.
+    if name not in schemas or schemas[name] != schema:
         schemas[name] = schema
         added += 1
 

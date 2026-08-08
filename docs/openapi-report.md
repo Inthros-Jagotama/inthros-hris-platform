@@ -1,11 +1,11 @@
-= HRIS Platform — OpenAPI Comprehensive Report (v18) =
+= HRIS Platform — OpenAPI Comprehensive Report (v19) =
 
 
 **Generated:** 08 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 466
-**Total Endpoints (methods):** 814
-**Total Schemas:** 509
+**Total Paths:** 473
+**Total Endpoints (methods):** 821
+**Total Schemas:** 513
 **Total Tags:** 32
 
 > 🔗 **Index dokumentasi:** [`docs/README.md`](README.md) · **Terkait:** [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)
@@ -14,9 +14,9 @@
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 814/814 | 100% |
-| Endpoints with `description` | 814/814 | 100% |
-| Endpoints with `operationId` | 814/814 | 100% |
+| Endpoints with `summary` | 821/821 | 100% |
+| Endpoints with `description` | 821/821 | 100% |
+| Endpoints with `operationId` | 821/821 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -107,7 +107,7 @@ Tenant endpoints support validation for Indonesian data formats:
 
 | # | Tag | Endpoints | Paths |
 |---|---|---|---|
-| 1 | Tenant: Performance Management | 139 | 96 |
+| 1 | Tenant: Performance Management | 146 | 103 |
 | 2 | Tenant: Settings | 107 | 44 |
 | 3 | Tenant: Job Management | 96 | 40 |
 | 4 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
@@ -138,14 +138,14 @@ Tenant endpoints support validation for Indonesian data formats:
 | 29 | Public | 2 | 2 |
 | 30 | Tenant Auth | 2 | 2 |
 | 31 | Tenant: Company | 2 | 1 |
-| | **TOTAL** | **814** | **466** |
+| | **TOTAL** | **821** | **473** |
 
 ## 2. Module Detail
 
 ### Tenant: Performance Management
 **Description:** Performance Management â€” BSC (Balanced Scorecard) based KPI and performance evaluation module. Includes performance periods, BSC perspectives, KPI templates and indicators, employee evaluations, and individual performance targets with full status workflow (DRAFT->PLAN_SUBMITTED->PLAN_APPROVED->ACTUAL_SUBMITTED->ACTUAL_APPROVED->COMPLETED).
-**Endpoints:** 139 | **Paths:** 96
-**Methods:** DELETE=21 GET=52 POST=38 PUT=28
+**Endpoints:** 146 | **Paths:** 103
+**Methods:** DELETE=22 GET=53 POST=42 PUT=29
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -244,6 +244,8 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/performance/okr/evaluation-details/{id}` | Update OKR evaluation detail actual | Input nilai aktual satu evaluation detail OKR. |
 | `GET` | `/api/v1/tenant/performance/okr/evaluation-details/{id}/attachments` | List OKR attachments by evaluation detail | Ambil daftar lampiran bukti pada satu evaluation detail OKR. |
 | `GET` | `/api/v1/tenant/performance/okr/evaluation-details/{id}/progress` | List OKR progress by evaluation detail | Ambil riwayat progres (check-in) untuk satu evaluation detail OKR. |
+| `DELETE` | `/api/v1/tenant/performance/okr/evaluation-key-results/{id}` | Delete OKR evaluation key result | Hapus Key Result yang diajukan karyawan, hanya saat evaluasi masih DRAFT. |
+| `PUT` | `/api/v1/tenant/performance/okr/evaluation-key-results/{id}/target` | Update OKR evaluation key result target | Perbarui target Key Result yang diajukan karyawan (judul, target, unit, formula, bobot) sebelum disubmit. |
 | `POST` | `/api/v1/tenant/performance/okr/evaluations` | Create OKR evaluation with snapshot | Buat evaluasi OKR employee dari template (objective & key results di-snapshot ke evaluation details). |
 | `GET` | `/api/v1/tenant/performance/okr/evaluations` | List OKR evaluations | Ambil daftar evaluasi OKR dengan pagination, filter per employee/organisasi/periode/status. |
 | `GET` | `/api/v1/tenant/performance/okr/evaluations/{id}` | Get OKR evaluation by ID | Ambil detail evaluasi OKR termasuk details, skor, dan status workflow. |
@@ -251,12 +253,16 @@ Tenant endpoints support validation for Indonesian data formats:
 | `DELETE` | `/api/v1/tenant/performance/okr/evaluations/{id}` | Delete OKR evaluation | Hapus evaluasi OKR (hanya status DRAFT). |
 | `PUT` | `/api/v1/tenant/performance/okr/evaluations/{id}/actuals` | Bulk update OKR evaluation actuals | Input nilai aktual sekaligus untuk banyak evaluation detail OKR. |
 | `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/approve` | Approve OKR evaluation | Setujui evaluasi OKR (status → APPROVED). |
+| `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/approve-key-results` | Approve OKR key results | Setujui proposal Key Results (status → KR_APPROVED, "OKR Active") — dapat diresolusi otomatis oleh approval flow jika dikonfigurasi. |
 | `GET` | `/api/v1/tenant/performance/okr/evaluations/{id}/comments` | List OKR comments by evaluation | Ambil semua komentar (dengan replies) pada sebuah evaluasi OKR. |
 | `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/complete` | Complete OKR evaluation | Selesaikan evaluasi OKR (status → COMPLETED). |
 | `GET` | `/api/v1/tenant/performance/okr/evaluations/{id}/details` | Get OKR evaluation with details | Ambil evaluasi OKR lengkap dengan seluruh evaluation details. |
+| `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/key-results` | Create employee-proposed OKR evaluation key result | Tambahkan Key Result yang diajukan employee di bawah Objective hasil snapshot, hanya saat evaluasi berstatus DRAFT (fase KR proposal). |
 | `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/recalculate` | Recalculate OKR evaluation score | Hitung ulang skor & achievement evaluasi OKR dari nilai aktual dan formula tiap key result. |
 | `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/reject` | Reject OKR evaluation | Tolak evaluasi OKR (status → REJECTED). |
+| `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/reject-key-results` | Reject OKR key results | Tolak proposal Key Results kembali ke DRAFT (status → DRAFT) dengan catatan penolakan, agar karyawan dapat memperbaiki proposal. |
 | `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/submit` | Submit OKR evaluation | Ajukan evaluasi OKR (status → SUBMITTED). |
+| `POST` | `/api/v1/tenant/performance/okr/evaluations/{id}/submit-key-results` | Submit OKR key results for approval | Ajukan proposal Key Results karyawan untuk persetujuan (status → KR_SUBMITTED) melalui approval flow modul performance. |
 | `POST` | `/api/v1/tenant/performance/okr/key-results` | Create OKR key result | Buat key result terukur di dalam sebuah objective (target, unit, formula, bobot). |
 | `GET` | `/api/v1/tenant/performance/okr/key-results/{id}` | Get OKR key result by ID | Ambil detail key result OKR. |
 | `PUT` | `/api/v1/tenant/performance/okr/key-results/{id}` | Update OKR key result | Perbarui target, unit, formula, bobot, atau status key result. |
@@ -273,6 +279,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | `DELETE` | `/api/v1/tenant/performance/okr/progress/{id}` | Delete OKR progress | Hapus satu catatan progres OKR. |
 | `POST` | `/api/v1/tenant/performance/okr/templates` | Create OKR template | Buat template OKR untuk sebuah organisasi & periode (dengan objective & key results). |
 | `GET` | `/api/v1/tenant/performance/okr/templates` | List OKR templates | Ambil daftar template OKR dengan pagination, filter per organisasi/periode. |
+| `GET` | `/api/v1/tenant/performance/okr/templates/objective-scope` | Get OKR objective creation scope | Resolusi scope pembuatan objective cascading: apakah employee saat ini boleh membuat objective untuk organisasi bawahan, dan organisasi mana yang m... |
 | `GET` | `/api/v1/tenant/performance/okr/templates/{id}` | Get OKR template by ID | Ambil detail template OKR termasuk daftar objective & key results. |
 | `PUT` | `/api/v1/tenant/performance/okr/templates/{id}` | Update OKR template | Perbarui nama, periode, status, atau tanggal efektif template OKR. |
 | `DELETE` | `/api/v1/tenant/performance/okr/templates/{id}` | Delete OKR template | Hapus template OKR beserta objective & key results terkait. |

@@ -5,7 +5,7 @@
 
 Panduan praktis **cara menggunakan API** HRIS Platform: dari menjalankan server, autentikasi, format request/response, sampai contoh pemanggilan end-to-end (curl).
 
-> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 814 endpoint + skema, lihat:
+> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 821 endpoint + skema, lihat:
 > - [`docs/openapi-report.md`](../openapi-report.md) — laporan komprehensif per modul
 > - `backend/internal/pkg/docs/openapi.json` — OpenAPI 3.0 spec (sumber kebenaran)
 
@@ -115,7 +115,7 @@ Setelah server jalan, dokumentasi API tersedia di:
 |---|---|
 | `http://localhost:8080/docs` | **Scalar UI** — explore & try endpoint langsung dari browser |
 | `http://localhost:8080/openapi.json` | OpenAPI 3.0 spec mentah (JSON) |
-| `docs/openapi-report.md` | Laporan markdown statis (814 endpoint, 466 paths, 509 schemas, 32 tag) |
+| `docs/openapi-report.md` | Laporan markdown statis (821 endpoint, 473 paths, 513 schemas, 32 tag) |
 
 ---
 
@@ -487,7 +487,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/employees \
 Alur lengkap pengelolaan **OKR** dari membuat template sampai menyelesaikan evaluasi. Semua endpoint berada di `/api/v1/tenant/performance/okr/*` dan memerlukan `Authorization: Bearer <tenant_token>`.
 
 ```
-Cek Konteks → Template OKR → Objective → Key Result → Evaluasi (snapshot) → Input Actual → Workflow → Dashboard HR
+Cek Konteks & Scope → Template OKR (Objectives) → Evaluasi (snapshot) → Proposal Key Results → Persetujuan KR → Input Actual → Workflow Assessment → Dashboard HR
 ```
 
 > **Prasyarat:** `TENANT_TOKEN` dari login tenant (lihat Step 3 di 8.1), serta UUID `organization_id`, `period_id` (performance period), dan `employee_id` yang sudah ada.
@@ -512,7 +512,28 @@ curl "http://localhost:8080/api/v1/tenant/performance/okr/my-context" \
 
 > `has_position: false` berarti user belum memiliki posisi aktif — evaluasi OKR belum bisa dimulai. Self-assessment hanya memungkinkan setelah ada template **aktif** (`status = 1`) untuk organisasi posisi terakhir user. Mirip dengan `my-context` di modul KPI.
 
-**Step 2 — Buat OKR template:**
+**Step 2 — Cek scope pembuatan objective (cascading top-down):**
+
+Employee yang menyiapkan OKR untuk **bawahannya** dapat mengecek apakah dirinya berhak membuat objective (cascading) dan organisasi bawahan mana yang memenuhi syarat — objective hanya bisa dibuat untuk **anak organisasi langsung** (melewati organisasi kosong), dan hanya setelah menerima objective sendiri (kecuali puncak hierarki yang men-seed cascade):
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/performance/okr/templates/objective-scope" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": {
+#     "organization_id": "<org-uuid>",
+#     "organization_name": "Direktorat Operasional",
+#     "eligible": true,
+#     "ineligible_reason_key": "",
+#     "subordinate_organizations": [
+#       { "id": "<child-org-uuid>", "name": "Divisi Penjualan" },
+#       { "id": "<child-org-uuid>", "name": "Cabang Surabaya" }
+#     ]
+#   } }
+```
+
+> `eligible: false` berarti user belum memenuhi syarat — `ineligible_reason_key` memuat alasan (mis. `okr.objective_scope_ineligible_no_position` saat tidak punya posisi aktif). Organisasi di `subordinate_organizations` adalah **anak efektif** (turunan langsung melewati organisasi kosong).
+
+**Step 3 — Buat OKR template:**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/templates \
@@ -543,7 +564,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/templates \
 }
 ```
 
-**Step 3 — Buat objective di dalam template:**
+**Step 4 — Buat objective di dalam template:**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/objectives \
@@ -557,7 +578,9 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/objectives \
   }'
 ```
 
-**Step 4 — Buat key result di dalam objective (target terukur):**
+**Step 5 — (Opsional) Buat key result master data di template:**
+
+Template-level key results **tidak lagi disalin** ke evaluasi — Key Results diusulkan oleh employee saat self-assessment (lihat Step 7). Endpoint master data ini tetap tersedia sebagai standar acuan/referensi:
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/key-results \
@@ -573,12 +596,13 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/key-results \
     "weight": 50,
     "is_required": true
   }'
+
+# Verifikasi isi template (objectives yang tersedia untuk usulan KR)
+curl "http://localhost:8080/api/v1/tenant/performance/okr/templates/<template-uuid>/objectives" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
 ```
 
-> Ulangi untuk key result lain (mis. `PERCENTAGE` untuk "Growth pelanggan baru 20%"). Verifikasi isi template:
-> `GET /api/v1/tenant/performance/okr/templates/<template-uuid>/objectives`
-
-**Step 5 — Buat evaluasi OKR untuk employee (snapshot dari template):**
+**Step 6 — Buat evaluasi OKR untuk employee:**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations \
@@ -592,7 +616,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations \
   }'
 ```
 
-> Evaluasi dibuat dengan status `DRAFT` dan **menyalin (snapshot)** seluruh objective & key result dari template ke `evaluation_details` — perubahan template setelah ini tidak memengaruhi evaluasi yang sudah dibuat.
+> Evaluasi dibuat dengan status `DRAFT` dan **hanya mereferensikan template** — objectives diterima via `template_id` (frontend membaca `GET /okr/templates/:id/objectives` untuk tahu objective mana yang harus diisi). **Key Results tidak disalin** dari template: employee mengusulkan Key Results-nya sendiri per objective saat fase DRAFT (lihat Step 7).
 
 **Response 201:**
 ```json
@@ -605,14 +629,70 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations \
     "period_id": "<period-uuid>",
     "template_id": "<template-uuid>",
     "status": "DRAFT",
-    "details": [
-      { "id": "<detail-uuid>", "key_result_title": "Meraih target penjualan Rp 2 Miliar", "target_value": 2000000000, "actual_value": 0 }
-    ]
+    "details": []
   }
 }
 ```
 
-**Step 6 — Input nilai aktual (actual) secara massal:**
+**Step 7 — Usulkan Key Results per objective (saat DRAFT):**
+
+Karyawan mengusulkan Key Results-nya sendiri di bawah objective hasil snapshot, lengkap dengan target yang diajukan. Total bobot Key Result dalam satu objective maksimal 100%:
+
+```bash
+# Usulkan Key Result baru di bawah objective
+curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>/key-results \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "evaluation_id": "<evaluation-uuid>",
+    "objective_id": "<objective-uuid>",
+    "objective_title": "Meningkatkan pendapatan penjualan",
+    "objective_weight": 100,
+    "title": "Skor CSAT ≥ 85",
+    "target_type": "PERCENTAGE",
+    "target_value": 85,
+    "unit": "%",
+    "formula_type": "HIGHER_BETTER",
+    "weight": 100
+  }'
+# → { "success": true, "data": { "id": "<detail-uuid>", "key_result_title": "Skor CSAT ≥ 85", "target_value": 85, "target_type": "PERCENTAGE", ... } }
+
+# Ubah target Key Result yang diajukan (sebelum di-submit)
+curl -X PUT http://localhost:8080/api/v1/tenant/performance/okr/evaluation-key-results/<detail-uuid>/target \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "title": "Skor CSAT ≥ 88", "target_value": 88, "weight": 100 }'
+
+# Hapus Key Result yang diajukan (masih DRAFT)
+curl -X DELETE http://localhost:8080/api/v1/tenant/performance/okr/evaluation-key-results/<detail-uuid> \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+```
+
+> Ulangi untuk setiap objective yang diterima. Setelah proposal selesai, cek `GET /api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>/details`.
+
+**Step 8 — Submit & persetujuan Key Results (checkpoint pertama):**
+
+```bash
+# Employee mengajukan proposal Key Results
+curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>/submit-key-results \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → status: DRAFT → KR_SUBMITTED
+
+# Atasan menyetujui proposal — evaluasi siap diisi actual
+curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>/approve-key-results \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → status: KR_SUBMITTED → KR_APPROVED ("OKR Active")
+
+# (Opsional) Menolak proposal — kembali ke DRAFT untuk revisi
+curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>/reject-key-results \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "notes": "Target perlu direvisi agar lebih realistis" }'
+```
+
+> Checkpoint ini dirutekan melalui **approval engine** — module slug sub-checkpoint OKR dengan **fallback ke module induk `performance`** (satu flow cukup untuk semua checkpoint di bawahnya). Jika flow dikonfigurasi tapi tidak bisa di-resolve, submission **gagal** (hard-fail) — lihat `GET /api/v1/tenant/approval/active-flow?module=performance` di [8.5](#85-contoh-penggunaan-approval-engine--employee-movement). Tanpa approval engine, approve/reject manual tetap tersedia.
+
+**Step 9 — Input nilai aktual (actual) secara massal:**
 
 Ambil UUID detail dari `GET /api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>` lalu kirim nilai realisasi:
 
@@ -627,7 +707,7 @@ curl -X PUT http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<eva
   }'
 ```
 
-**Step 7 — Hitung ulang skor (bisa diulang kapan saja):**
+**Step 10 — Hitung ulang skor (bisa diulang kapan saja):**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>/recalculate \
@@ -635,29 +715,32 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<ev
 # → achievement & final_score dihitung ulang dari actual vs target + formula tiap key result
 ```
 
-**Step 8 — Workflow status (DRAFT → SUBMITTED → APPROVED → COMPLETED):**
+**Step 11 — Workflow assessment (checkpoint kedua — persetujuan akhir):**
+
+Setelah Key Results disetujui (KR_APPROVED), employee mengisi actual (Step 9) lalu mengajukan penilaian akhir. Persetujuan akhir **langsung menyelesaikan** evaluasi — tidak ada aksi "Complete" terpisah:
 
 ```bash
-# Employee mengajukan evaluasi
+# Employee mengajukan penilaian (hanya bisa setelah KR_APPROVED)
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>/submit \
   -H "Authorization: Bearer $TENANT_TOKEN"
+# → status: KR_APPROVED → SUBMITTED
 
-# Atasan menyetujui
+# Atasan menyetujui penilaian → langsung COMPLETED (hasil terkunci)
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>/approve \
   -H "Authorization: Bearer $TENANT_TOKEN"
+# → status: SUBMITTED → COMPLETED
 
-# (Opsional) menolak dengan catatan — evaluasi kembali ke revisi
+# (Opsional) Menolak penilaian — kembali ke KR_APPROVED (KR tetap disetujui,
+# employee cukup merevisi actual self-assessment)
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>/reject \
   -H "Authorization: Bearer $TENANT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{ "notes": "Actual perlu dilengkapi" }'
-
-# Menyelesaikan evaluasi (hasil akhir terkunci)
-curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>/complete \
-  -H "Authorization: Bearer $TENANT_TOKEN"
 ```
 
-**Step 9 — Lihat dashboard OKR HR (ringkasan seluruh evaluasi):**
+> Endpoint `POST /evaluations/:id/complete` masih tersedia sebagai jalur manual/legacy, namun alur normal memakai `approve` sebagai langkah penyelesaian.
+
+**Step 12 — Lihat dashboard OKR HR (ringkasan seluruh evaluasi):**
 
 ```bash
 curl "http://localhost:8080/api/v1/tenant/performance/okr/dashboard/hr?period_id=<period-uuid>" \
@@ -669,13 +752,20 @@ curl "http://localhost:8080/api/v1/tenant/performance/okr/dashboard/hr?period_id
 
 | Endpoint | Deskripsi |
 |---|---|
+| `GET /api/v1/tenant/performance/okr/templates/objective-scope` | Cek scope pembuatan objective cascading (`eligible` + daftar org bawahan) |
+| `POST /api/v1/tenant/performance/okr/evaluations/:id/key-results` | Usulkan Key Results karyawan per objective (saat DRAFT) |
+| `PUT /api/v1/tenant/performance/okr/evaluation-key-results/:id/target` | Ubah target Key Results yang diajukan |
+| `DELETE /api/v1/tenant/performance/okr/evaluation-key-results/:id` | Hapus Key Results yang diajukan |
+| `POST /api/v1/tenant/performance/okr/evaluations/:id/submit-key-results` | Ajukan proposal Key Results (→ `KR_SUBMITTED`) |
+| `POST /api/v1/tenant/performance/okr/evaluations/:id/approve-key-results` | Setujui proposal Key Results (→ `KR_APPROVED`) |
+| `POST /api/v1/tenant/performance/okr/evaluations/:id/reject-key-results` | Tolak proposal Key Results (→ `DRAFT`) |
 | `POST /api/v1/tenant/performance/okr/templates/:id/duplicate` | Duplikat template (beserta objective & key results) sebagai template baru |
 | `GET /api/v1/tenant/performance/okr/objectives/:id/key-results` | List key results dalam sebuah objective |
 | `POST /api/v1/tenant/performance/okr/progress` | Catat progres/check-in per detail (riwayat tanggal) |
 | `POST /api/v1/tenant/performance/okr/comments` | Komentar/review evaluasi (dukung reply via `parent_id`) |
 | `POST /api/v1/tenant/performance/okr/attachments` | Lampirkan file bukti ke evaluation detail |
 
-> 💡 Status evaluasi OKR: `DRAFT` → `SUBMITTED` → `APPROVED` → `COMPLETED` (atau `REJECTED`). Untuk KPI (BSC) gunakan prefix `/performance/kpi/*` — lihat [8.4](#84-contoh-penggunaan-kpi-bsc-end-to-end). Contoh approval flow & employee movement ada di [8.5](#85-contoh-penggunaan-approval-engine--employee-movement).
+> 💡 Status evaluasi OKR **dua fase**: `DRAFT` → `KR_SUBMITTED` → `KR_APPROVED` → `SUBMITTED` → `COMPLETED` (atau `REJECTED` di tiap fase — reject KR kembali ke `DRAFT`, reject assessment kembali ke `KR_APPROVED`). Untuk KPI (BSC) gunakan prefix `/performance/kpi/*` — lihat [8.4](#84-contoh-penggunaan-kpi-bsc-end-to-end). Contoh approval flow & employee movement ada di [8.5](#85-contoh-penggunaan-approval-engine--employee-movement).
 
 ### 8.4 Contoh Penggunaan KPI (BSC) — End-to-End
 
@@ -963,7 +1053,7 @@ curl -X PUT http://localhost:8080/api/v1/tenant/performance/kpi/evaluations/<eva
 | `POST /api/v1/tenant/performance/kpi/organization-components` | Set bobot/aktifkan komponen per organisasi (upsert) |
 | `POST /api/v1/tenant/performance/kpi/evaluations/:id/calculate-scoring` | Jalankan scoring engine (hitung skor per komponen) |
 
-> 💡 Status evaluasi KPI (BSC): `DRAFT` → `PLAN_SUBMITTED` → `PLAN_APPROVED` → `ACTUAL_SUBMITTED` → `ACTUAL_APPROVED` → `COMPLETED`. Berbeda dari OKR yang satu-tahap (`DRAFT → SUBMITTED → APPROVED → COMPLETED`) — KPI mewajibkan persetujuan rencana **dan** realisasi secara terpisah.
+> 💡 Status evaluasi KPI (BSC): `DRAFT` → `PLAN_SUBMITTED` → `PLAN_APPROVED` → `ACTUAL_SUBMITTED` → `ACTUAL_APPROVED` → `COMPLETED`. Sama seperti OKR yang juga dua fase (`DRAFT → KR_SUBMITTED → KR_APPROVED → SUBMITTED → COMPLETED`) — KPI mewajibkan persetujuan rencana **dan** realisasi secara terpisah.
 
 > 🔗 Ingin melihat alur pengajuan & persetujuan (approval flow, submit, approve/reject)? Lihat [8.5 Contoh Penggunaan: Approval Engine & Employee Movement](#85-contoh-penggunaan-approval-engine--employee-movement).
 

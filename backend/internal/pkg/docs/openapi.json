@@ -34112,6 +34112,324 @@
           }
         ]
       }
+    },
+    "/api/v1/tenant/performance/okr/templates/objective-scope": {
+      "get": {
+        "operationId": "getOkrObjectiveScope",
+        "summary": "Get OKR objective creation scope",
+        "description": "Resolusi scope pembuatan objective cascading: apakah employee saat ini boleh membuat objective untuk organisasi bawahan, dan organisasi mana yang memenuhi syarat sebagai subordinate (walking down melalui organisasi kosong).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OKRObjectiveScopeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/okr/evaluations/{id}/key-results": {
+      "post": {
+        "operationId": "createOkrEvaluationKeyResult",
+        "summary": "Create employee-proposed OKR evaluation key result",
+        "description": "Tambahkan Key Result yang diajukan employee di bawah Objective hasil snapshot, hanya saat evaluasi berstatus DRAFT (fase KR proposal).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "201": {
+            "description": "Resource created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OKREvaluationDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOKREvaluationKeyResultRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/performance/okr/evaluations/{id}/submit-key-results": {
+      "post": {
+        "operationId": "submitOkrKeyResults",
+        "summary": "Submit OKR key results for approval",
+        "description": "Ajukan proposal Key Results karyawan untuk persetujuan (status → KR_SUBMITTED) melalui approval flow modul performance.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OKREvaluationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/okr/evaluations/{id}/approve-key-results": {
+      "post": {
+        "operationId": "approveOkrKeyResults",
+        "summary": "Approve OKR key results",
+        "description": "Setujui proposal Key Results (status → KR_APPROVED, \"OKR Active\") — dapat diresolusi otomatis oleh approval flow jika dikonfigurasi.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OKREvaluationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/okr/evaluations/{id}/reject-key-results": {
+      "post": {
+        "operationId": "rejectOkrKeyResults",
+        "summary": "Reject OKR key results",
+        "description": "Tolak proposal Key Results kembali ke DRAFT (status → DRAFT) dengan catatan penolakan, agar karyawan dapat memperbaiki proposal.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OKREvaluationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectOkrKeyResultsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/performance/okr/evaluation-key-results/{id}/target": {
+      "put": {
+        "operationId": "updateOkrEvaluationKeyResultTarget",
+        "summary": "Update OKR evaluation key result target",
+        "description": "Perbarui target Key Result yang diajukan karyawan (judul, target, unit, formula, bobot) sebelum disubmit.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OKREvaluationDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOKREvaluationKeyResultTargetRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/performance/okr/evaluation-key-results/{id}": {
+      "delete": {
+        "operationId": "deleteOkrEvaluationKeyResult",
+        "summary": "Delete OKR evaluation key result",
+        "description": "Hapus Key Result yang diajukan karyawan, hanya saat evaluasi masih DRAFT.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OKR evaluation key result deleted"
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -50612,7 +50930,9 @@
             "type": "string"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "description": "Status workflow dua fase: DRAFT → KR_SUBMITTED → KR_APPROVED → SUBMITTED → COMPLETED (atau REJECTED)",
+            "example": "KR_SUBMITTED"
           },
           "submitted_at": {
             "type": "string",
@@ -50621,6 +50941,16 @@
           "approved_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "kr_approval_instance_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID approval instance untuk checkpoint persetujuan Key Results"
+          },
+          "assessment_approval_instance_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID approval instance untuk checkpoint persetujuan penilaian akhir"
           },
           "final_score": {
             "type": "number"
@@ -51224,6 +51554,155 @@
             "items": {
               "$ref": "#/components/schemas/OKRTemplateResponse"
             }
+          }
+        }
+      },
+      "OKRObjectiveScopeResponse": {
+        "type": "object",
+        "properties": {
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organization_name": {
+            "type": "string"
+          },
+          "eligible": {
+            "type": "boolean",
+            "description": "Apakah employee saat ini boleh membuat objective untuk organisasi bawahan",
+            "example": true
+          },
+          "ineligible_reason_key": {
+            "type": "string",
+            "description": "Kunci pesan alasan tidak boleh membuat objective (saat eligible=false)",
+            "example": "okr.no_employee_position"
+          },
+          "subordinate_organizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationOptionResponse"
+            }
+          }
+        }
+      },
+      "CreateOKREvaluationKeyResultRequest": {
+        "type": "object",
+        "required": [
+          "evaluation_id",
+          "objective_id",
+          "objective_title",
+          "title"
+        ],
+        "properties": {
+          "evaluation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "objective_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "objective_title": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "Meningkatkan Kepuasan Pelanggan"
+          },
+          "objective_weight": {
+            "type": "number",
+            "example": 40
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "Skor CSAT ≥ 85"
+          },
+          "target_type": {
+            "type": "string",
+            "enum": [
+              "NUMBER",
+              "PERCENTAGE",
+              "CURRENCY",
+              "BOOLEAN",
+              "DURATION",
+              "SCORE"
+            ],
+            "example": "PERCENTAGE"
+          },
+          "target_value": {
+            "type": "number",
+            "example": 85
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 50,
+            "example": "%"
+          },
+          "formula_type": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "HIGHER_BETTER",
+              "LOWER_BETTER",
+              "RANGE",
+              "BOOLEAN",
+              "PERCENTAGE"
+            ],
+            "example": "HIGHER_BETTER"
+          },
+          "weight": {
+            "type": "number",
+            "example": 100
+          }
+        }
+      },
+      "UpdateOKREvaluationKeyResultTargetRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "target_type": {
+            "type": "string",
+            "enum": [
+              "NUMBER",
+              "PERCENTAGE",
+              "CURRENCY",
+              "BOOLEAN",
+              "DURATION",
+              "SCORE"
+            ]
+          },
+          "target_value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "formula_type": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "HIGHER_BETTER",
+              "LOWER_BETTER",
+              "RANGE",
+              "BOOLEAN",
+              "PERCENTAGE"
+            ]
+          },
+          "weight": {
+            "type": "number"
+          }
+        }
+      },
+      "RejectOkrKeyResultsRequest": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
+            "description": "Catatan alasan penolakan proposal Key Results",
+            "example": "Target perlu direvisi agar lebih realistis"
           }
         }
       }
