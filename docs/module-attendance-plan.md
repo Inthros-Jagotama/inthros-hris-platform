@@ -1,4 +1,4 @@
-> ⚠️ **Status vs. Plan ini**: dokumen ini ditulis seolah modul Attendance belum ada (greenfield). Setelah dicek ulang terhadap kode aktual, **seluruh tabel data (§2-§14) dan integrasi approval Overtime (§29-§30) sudah diimplementasikan sepenuhnya** — sama seperti pola Leave/Payroll. Namun **seluruh calculation/processing engine yang menjadi inti modul ini (session generation, lateness/overtime calculation, capture validation, integrasi Leave, correction workflow) belum ada sama sekali** — hanya CRUD tipis di atas tabel mentah. Ini gap yang lebih besar dibanding yang ditemukan di modul Leave. **Frontend masih placeholder "Coming soon"**. Lihat section **"Implementation Status"** di bagian bawah dokumen untuk status per-fase yang sudah diverifikasi terhadap kode, dan catatan blockquote (`>`) di beberapa section untuk koreksi spesifik.
+> ⚠️ **Status vs. Plan ini**: dokumen ini ditulis seolah modul Attendance belum ada (greenfield). Setelah dicek ulang terhadap kode aktual, **seluruh tabel data (§2-§14) dan integrasi approval Overtime (§29-§30) sudah diimplementasikan sepenuhnya** — sama seperti pola Leave/Payroll. Awalnya **seluruh calculation/processing engine (session generation, capture validation) belum ada sama sekali**; per 2026-08-08, **geofence validation, duplicate-event detection, dan session generation/calculation (lateness, early-leave, work-minutes, cross-midnight) sudah diimplementasikan** (Phase 3-6). Yang masih belum ada: correction workflow, Leave/Payroll integration ke session, Absent/Exempt detection (butuh scheduled job & cross-module employee read), dan seluruh frontend. Lihat section **"Implementation Status"** di bagian bawah dokumen untuk status per-fase yang sudah diverifikasi terhadap kode, dan catatan blockquote (`>`) di beberapa section untuk koreksi spesifik.
 
 # Attendance Management Module Development Plan
 
@@ -1895,17 +1895,25 @@ Duplicate Event Detection    ✅ Baru diimplementasikan — lihat catatan di baw
 Develop:
 
 ```text
-Session Generation
-Check-in Mapping
-Check-out Mapping
-Work Minutes
-Late
-Early Leave
-Day Off
-Absent
-Leave
-Exempt
+Session Generation    ✅ recalculateSession (session.go), triggered synchronously from CreateEvent
+Check-in Mapping       ✅ selectCheckinCheckout — first CHECKIN of the work date
+Check-out Mapping      ✅ first CHECKOUT following that CHECKIN (crosses midnight correctly)
+Work Minutes           ✅ workMinutesBetween (checkout - checkin - break_minutes, floored at 0)
+Late                   ✅ minutesLate (raw lateness minus late_tolerance_minutes, floored at 0)
+Early Leave            ✅ minutesEarly (planned_end - actual checkout, floored at 0)
+Day Off                ✅ IsDayOff on the employee's shift assignment, or no assignment at all (§25)
+Absent                 ⏳ Not implemented — needs the scheduled ProcessDailyAttendance/DetectMissingAttendance job (§44-45) to proactively mark days with zero events; this engine only reacts to events that actually happened
+Leave                  ⏳ Not implemented — belongs to Phase 9 (needs a read into the Leave module)
+Exempt                 ⏳ Not implemented — needs the employee's organization_id, which needs a cross-module read into the employee module that doesn't exist anywhere in this codebase yet
 ```
+
+> ✅ **The module's critical gap is closed.** New `session.go`: `recalculateSession(ctx, employeeID, workDate)` resolves the employee's active `attendance_employee_shifts` row for that date, loads `attendance_company_shifts`, reads the work date's events (`FindEventsForWorkDate` — a 2-day window catching cross-midnight checkouts), picks the first CHECKIN and the CHECKOUT that follows it, and computes lateness/early-leave/work-minutes before upserting `attendance_sessions` via new `UpsertSession`. Wired into `CreateEvent`: every check-in/check-out now actually recalculates that day's session, so `attendance_sessions` is no longer a dead table.
+>
+> **Work-date attribution for cross-midnight shifts (§24)** uses the CHECKIN event's local calendar date, not the CHECKOUT's — `CreateEvent` passes `lastEvent`'s date (the open check-in being closed) as the work date when a CHECKOUT arrives, exactly matching §24's worked example.
+>
+> **Timezone note**: shift `check_in_time`/`check_out_time` (e.g. `"08:00:00"`) carry no timezone of their own. Since this codebase has no company/tenant timezone setting (§3, deferred in Phase 1), planned start/end are anchored to whichever event's `event_time_local` offset is available for that work date — the only source of "local" time this system has. This is a pragmatic choice given the constraint, not a permanent design; a real timezone setting would replace it cleanly.
+>
+> **Deliberately not implemented**: Absent detection and Exempt status need components explicitly out of scope for this pass — a scheduled job (§44-45, no cron infrastructure was found anywhere in this codebase) and a cross-module employee/organization read (no established interface, same category of gap noted for Leave). Leave integration is its own phase (Phase 9). None of these block session generation for events that actually happen, which was the P0 gap.
 
 ---
 
@@ -2143,7 +2151,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 3 - Shift Management | 🔶 Sebagian (2026-08-08) | CRUD shift + employee-shift assignment lengkap. Overlap validation (§7) ditemukan benar-benar belum ada — sekarang diperbaiki via `CountOverlappingEmployeeShifts` + validasi `effective_date_from <= effective_date_to` di `CreateEmployeeShift`/`UpdateEmployeeShift`. `DaysOfWeekMask`/`IsCrossMidnight` masih sekadar field pass-through — belum dikonsumsi calculation engine manapun (nunggu Phase 6) |
 | Phase 4 - Attendance Capture | 🔶 Sebagian (2026-08-08) | `POST /events` generik (CHECKIN/CHECKOUT satu endpoint, bukan endpoint terpisah — lihat §41). GPS + **Geofence validation kini diimplementasikan** (`geofence.go`, `applyEventValidation`) — event di luar radius jadi `INVALID`. Face Verification & Device Validation sengaja tetap belum ada: tidak ada face-matching provider maupun employee-device mapping (keduanya butuh keputusan/komponen di luar cakupan Phase 4) |
 | Phase 5 - Attendance Validation | 🔶 Sebagian (2026-08-08) | Location Validation selesai di Phase 4. **Duplicate Event Detection kini diimplementasikan** (`checkEventSequence` + `FindLastEventForEmployee`) — menolak CHECKIN ganda tanpa CHECKOUT dan CHECKOUT tanpa CHECKIN terbuka. Face/Device Validation tetap belum ada (butuh provider/mapping yang belum ada). Time Validation sengaja ditunda ke Phase 6 karena butuh resolusi shift yang benar (DaysOfWeekMask/cross-midnight) |
-| Phase 6 - Attendance Session | ❌ Belum ada | **Gap paling kritis.** Tidak ada session generation/calculation engine sama sekali — lihat Section 19 |
+| Phase 6 - Attendance Session | 🔶 Sebagian (2026-08-08) | **Gap paling kritis kini teratasi.** `session.go` (`recalculateSession`) menghasilkan/update `attendance_sessions` secara real-time setiap CHECKIN/CHECKOUT — resolusi shift, lateness/early-leave/work-minutes, cross-midnight (work_date = tanggal CHECKIN), DAY_OFF. Belum ada: Absent detection (butuh scheduled job §44-45), Exempt (butuh cross-module read ke employee/organization), Leave integration (Phase 9) |
 | Phase 7 - Overtime | 🔶 Sebagian | Approval integration ke Central Approval Module sudah selesai (Section 29). "Actual Overtime"/"Calculated Overtime" berdasarkan attendance (§31-32) belum ada karena bergantung pada session calculation (Phase 6) |
 | Phase 8 - Correction | ❌ Belum ada | Tidak ada tabel/model/endpoint correction — lihat Section 16 |
 | Phase 9 - Leave Integration | ❌ Belum ada | Field `LeaveRequestID`/`LeaveFraction` ada di model tapi tidak diisi kode manapun — lihat Section 26 |
@@ -2155,12 +2163,13 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 
 **Frontend**: ❌ belum dimulai — `Attendance.vue` hanya placeholder "Coming soon", tidak ada halaman di bawah `views/modules/attendance/`.
 
-**Rekomendasi urutan lanjutan** (berbeda bentuk dari Leave — di sini ada satu blocker struktural, bukan satu gap P0 yang berdiri sendiri):
-1. **Session generation/calculation engine (Phase 6)** — prioritas mutlak pertama. Overtime aktual (Phase 7), Leave Integration (Phase 9), dan Payroll Integration (Phase 13) semuanya secara struktural bergantung pada `attendance_sessions` benar-benar ter-generate; membangun fase-fase itu sebelum Phase 6 akan menghasilkan kode yang tidak punya data untuk diproses.
-2. Capture validation (Phase 4-5) — geofence sudah selesai (2026-08-08). Face/device validation masih perlu keputusan produk (provider face-matching, kebutuhan device-restriction) sebelum bisa dikerjakan, tapi tidak memblokir Phase 6 karena `ValidationStatus = PENDING` untuk keduanya tidak menghalangi event dibaca oleh session calculation.
-3. Dedicated check-in/check-out endpoints (pisah dari `POST /events` generik) — supaya validasi Phase 4 punya tempat spesifik untuk dipasang per aksi, sama seperti rekomendasi Leave untuk endpoint `submit`/`cancel` khusus.
-4. Leave Integration (Phase 9) — setelah Phase 6 ada, ini jadi straightforward: baca leave request APPROVED_FINAL, set session status LEAVE.
-5. Frontend dasar — baru masuk akal setelah data yang ditampilkan (sessions dengan status yang benar) benar-benar ada.
+**Rekomendasi urutan lanjutan** (blocker struktural utama sudah teratasi per 2026-08-08):
+1. ~~Session generation/calculation engine (Phase 6)~~ ✅ Selesai (2026-08-08) — `recalculateSession` sekarang men-generate `attendance_sessions` secara real-time. Overtime aktual (Phase 7) dan sebagian Payroll Integration (Phase 13) sudah punya data untuk dibaca.
+2. **Leave Integration (Phase 9)** — sekarang jadi prioritas berikutnya yang paling bernilai: baca leave request `APPROVED_FINAL` dan set `session.status = LEAVE` + `leave_fraction`, straightforward sekarang karena session sudah ada untuk di-update.
+3. Overtime actual/calculated minutes (Phase 7 sisanya) — session sudah punya `WorkMinutes`/checkout data, tinggal hitung `Actual Overtime = Actual Checkout - Planned Checkout` lalu dibatasi oleh `Approved Overtime`.
+4. Scheduled job untuk Absent/Missing detection (§44-45) — perlu keputusan infra (cron/scheduler) yang belum ada polanya di codebase ini.
+5. Dedicated check-in/check-out endpoints (pisah dari `POST /events` generik) — supaya validasi per-aksi (Phase 4-5) punya tempat spesifik dipasang.
+6. Frontend dasar — sekarang data session yang ditampilkan sudah benar-benar berarti (bukan tabel kosong).
 
 ---
 

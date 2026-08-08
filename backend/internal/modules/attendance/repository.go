@@ -3,6 +3,7 @@ package attendance
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -371,6 +372,58 @@ func (r *Repository) FindSessionByEmployeeAndDate(ctx context.Context, employeeI
 		return nil, fmt.Errorf("session not found: %w", err)
 	}
 	return &s, nil
+}
+
+// UpsertSession creates or updates a session by its (employee_id, work_date)
+// unique key, used by the session calculation engine (session.go).
+func (r *Repository) UpsertSession(ctx context.Context, s *AttendanceSession) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(s).Error
+}
+
+// FindEmployeeShiftForDate returns the employee's active shift assignment
+// covering workDate, if any (most recently effective one wins).
+func (r *Repository) FindEmployeeShiftForDate(ctx context.Context, employeeID uuid.UUID, workDate string) (*AttendanceEmployeeShift, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var es AttendanceEmployeeShift
+	err = db.Where("employee_id = ? AND effective_date_from <= ?", employeeID, workDate).
+		Where("effective_date_to IS NULL OR effective_date_to >= ?", workDate).
+		Order("effective_date_from DESC").
+		First(&es).Error
+	if err != nil {
+		return nil, err
+	}
+	return &es, nil
+}
+
+// FindEventsForWorkDate returns the employee's events whose event_time_local
+// falls within [workDate 00:00, workDate+1 24:00) local time - a wide-enough
+// window to catch a cross-midnight shift's checkout, which lands on the
+// following calendar day (§24).
+func (r *Repository) FindEventsForWorkDate(ctx context.Context, employeeID uuid.UUID, workDate string) ([]AttendanceEvent, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	start, err := time.Parse("2006-01-02", workDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid work date: %w", err)
+	}
+	end := start.AddDate(0, 0, 2)
+	var events []AttendanceEvent
+	err = db.Where("employee_id = ? AND event_time_local >= ? AND event_time_local < ?", employeeID, start, end).
+		Order("event_time_local ASC").
+		Find(&events).Error
+	if err != nil {
+		return nil, err
+	}
+	return events, nil
 }
 
 func (r *Repository) ListSessions(ctx context.Context, employeeID *uuid.UUID, page, perPage int) ([]AttendanceSession, int64, error) {

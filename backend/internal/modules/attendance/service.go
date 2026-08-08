@@ -419,7 +419,8 @@ func (s *Service) CreateEvent(ctx context.Context, req CreateEventRequest) (*Eve
 		return nil, fmt.Errorf("invalid employee_id: %w", err)
 	}
 	eventType := EventType(req.EventType)
-	if err := s.checkEventSequence(ctx, empID, eventType); err != nil {
+	lastEvent, err := s.checkEventSequence(ctx, empID, eventType)
+	if err != nil {
 		return nil, err
 	}
 
@@ -455,6 +456,22 @@ func (s *Service) CreateEvent(ctx context.Context, req CreateEventRequest) (*Eve
 	if err := s.repo.CreateEvent(ctx, event); err != nil {
 		return nil, err
 	}
+
+	// Work date is the CHECKIN's local calendar date (§24) - for a CHECKOUT
+	// that closes a cross-midnight shift, that's lastEvent's date, not this
+	// event's own (which lands on the following day).
+	workDate := event.EventTimeLocal.Format(workDateLayout)
+	if eventType == EventTypeCheckOut && lastEvent != nil {
+		workDate = lastEvent.EventTimeLocal.Format(workDateLayout)
+	}
+	if err := s.recalculateSession(ctx, empID, workDate); err != nil {
+		s.logger.Warn("Failed to recalculate attendance session",
+			zap.String("employee_id", empID.String()),
+			zap.String("work_date", workDate),
+			zap.Error(err),
+		)
+	}
+
 	return eventToResponse(event), nil
 }
 
@@ -464,26 +481,26 @@ func (s *Service) CreateEvent(ctx context.Context, req CreateEventRequest) (*Eve
 // check-in. This is a lightweight sequence check on raw events - it doesn't
 // require resolving the employee's shift/work-date (that's session
 // calculation, Phase 6), just the last event's type.
-func (s *Service) checkEventSequence(ctx context.Context, employeeID uuid.UUID, eventType EventType) error {
+func (s *Service) checkEventSequence(ctx context.Context, employeeID uuid.UUID, eventType EventType) (*AttendanceEvent, error) {
 	last, err := s.repo.FindLastEventForEmployee(ctx, employeeID)
 	if err != nil {
 		// No prior event - CHECKIN is fine, CHECKOUT has nothing to close.
 		if eventType == EventTypeCheckOut {
-			return fmt.Errorf("cannot check out without an open check-in")
+			return nil, fmt.Errorf("cannot check out without an open check-in")
 		}
-		return nil
+		return nil, nil
 	}
 	switch eventType {
 	case EventTypeCheckIn:
 		if last.EventType == EventTypeCheckIn {
-			return fmt.Errorf("already checked in; check out before checking in again")
+			return nil, fmt.Errorf("already checked in; check out before checking in again")
 		}
 	case EventTypeCheckOut:
 		if last.EventType == EventTypeCheckOut {
-			return fmt.Errorf("cannot check out without an open check-in")
+			return nil, fmt.Errorf("cannot check out without an open check-in")
 		}
 	}
-	return nil
+	return last, nil
 }
 
 // applyEventValidation runs the checks §17-18 describe against a not-yet-
