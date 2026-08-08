@@ -438,6 +438,24 @@ func (r *Repository) FindEventsForWorkDate(ctx context.Context, employeeID uuid.
 	return events, nil
 }
 
+// FindSessionsForEmployeeInRange returns an employee's sessions with
+// work_date in [fromDate, toDate] inclusive, ordered chronologically - used
+// by the Employee Dashboard/Calendar (§36-37, Phase 10).
+func (r *Repository) FindSessionsForEmployeeInRange(ctx context.Context, employeeID uuid.UUID, fromDate, toDate string) ([]AttendanceSession, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var sessions []AttendanceSession
+	err = db.Where("employee_id = ? AND work_date >= ? AND work_date <= ?", employeeID, fromDate, toDate).
+		Order("work_date ASC").
+		Find(&sessions).Error
+	if err != nil {
+		return nil, err
+	}
+	return sessions, nil
+}
+
 func (r *Repository) ListSessions(ctx context.Context, employeeID *uuid.UUID, page, perPage int) ([]AttendanceSession, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {

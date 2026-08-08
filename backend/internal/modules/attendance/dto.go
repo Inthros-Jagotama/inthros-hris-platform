@@ -193,6 +193,31 @@ type SessionResponse struct {
 }
 
 // =========================================================================
+// Summary DTOs (Phase 10 - Employee Dashboard/Calendar, §36-37)
+// =========================================================================
+
+// SummaryResponse aggregates one employee's sessions over a date range.
+// Absent isn't included: attendance_sessions never gets a status of
+// SessionStatusAbsent anywhere in this codebase yet (no scheduled
+// ProcessDailyAttendance/DetectMissingAttendance job exists to set it - see
+// §44-45), so a count would always read zero and misleadingly imply
+// absences are being tracked when they aren't.
+type SummaryResponse struct {
+	EmployeeID          string  `json:"employee_id"`
+	FromDate            string  `json:"from_date"`
+	ToDate              string  `json:"to_date"`
+	TotalSessions       int     `json:"total_sessions"`
+	PresentDays         int     `json:"present_days"`
+	LateDays            int     `json:"late_days"`
+	MissingCheckinDays  int     `json:"missing_checkin_days"`
+	MissingCheckoutDays int     `json:"missing_checkout_days"`
+	DayOffDays          int     `json:"day_off_days"`
+	LeaveDays           float64 `json:"leave_days"`
+	TotalWorkMinutes    int     `json:"total_work_minutes"`
+	TotalOvertimeMinutes int    `json:"total_overtime_minutes"`
+}
+
+// =========================================================================
 // Overtime Request DTOs
 // =========================================================================
 

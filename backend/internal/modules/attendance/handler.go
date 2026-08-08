@@ -287,6 +287,38 @@ func (h *Handler) ListSessions(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+func (h *Handler) GetEmployeeCalendar(c *gin.Context) {
+	employeeID := c.Query("employee_id")
+	from := c.Query("from")
+	to := c.Query("to")
+	if employeeID == "" || from == "" || to == "" {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "attendance.query_params_required")
+		return
+	}
+	resp, err := h.service.GetEmployeeCalendar(c.Request.Context(), employeeID, from, to)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) GetEmployeeSummary(c *gin.Context) {
+	employeeID := c.Query("employee_id")
+	from := c.Query("from")
+	to := c.Query("to")
+	if employeeID == "" || from == "" || to == "" {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "attendance.query_params_required")
+		return
+	}
+	resp, err := h.service.GetEmployeeSummary(c.Request.Context(), employeeID, from, to)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 // =========================================================================
 // Overtime Requests
 // =========================================================================

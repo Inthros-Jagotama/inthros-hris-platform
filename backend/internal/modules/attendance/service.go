@@ -634,6 +634,73 @@ func (s *Service) ListSessions(ctx context.Context, employeeID *string, page, pe
 	}, nil
 }
 
+// GetEmployeeCalendar returns one employee's sessions across a date range
+// (§36 Employee/§37 Attendance Calendar), Phase 10. Manager/HR calendars and
+// dashboards (§38-39) that aggregate across an organization are NOT
+// implemented here - they'd need a cross-module read into the employee
+// module to resolve "which employees report to this manager" /
+// "which employees belong to this organization", and no such interface
+// exists anywhere in this codebase yet (same category of gap already
+// documented for Exempt status in Phase 6).
+func (s *Service) GetEmployeeCalendar(ctx context.Context, employeeID, fromDate, toDate string) ([]SessionResponse, error) {
+	empUUID, err := uuid.Parse(employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee_id: %w", err)
+	}
+	sessions, err := s.repo.FindSessionsForEmployeeInRange(ctx, empUUID, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]SessionResponse, 0, len(sessions))
+	for _, session := range sessions {
+		responses = append(responses, *sessionToResponse(&session))
+	}
+	return responses, nil
+}
+
+// GetEmployeeSummary aggregates one employee's sessions over a date range
+// into the counts §37's Employee Dashboard shows. See SummaryResponse for
+// why Absent isn't included.
+func (s *Service) GetEmployeeSummary(ctx context.Context, employeeID, fromDate, toDate string) (*SummaryResponse, error) {
+	empUUID, err := uuid.Parse(employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee_id: %w", err)
+	}
+	sessions, err := s.repo.FindSessionsForEmployeeInRange(ctx, empUUID, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &SummaryResponse{
+		EmployeeID: employeeID,
+		FromDate:   fromDate,
+		ToDate:     toDate,
+	}
+	for _, session := range sessions {
+		summary.TotalSessions++
+		summary.TotalWorkMinutes += session.WorkMinutes
+		summary.TotalOvertimeMinutes += session.OvertimeMinutes
+		if session.LeaveFraction != nil {
+			summary.LeaveDays += *session.LeaveFraction
+		}
+		switch session.Status {
+		case SessionStatusClosed:
+			if session.LatenessMinutes > 0 {
+				summary.LateDays++
+			} else {
+				summary.PresentDays++
+			}
+		case SessionStatusMissingCheckIn:
+			summary.MissingCheckinDays++
+		case SessionStatusMissingCheckOut:
+			summary.MissingCheckoutDays++
+		case SessionStatusDayOff:
+			summary.DayOffDays++
+		}
+	}
+	return summary, nil
+}
+
 // =========================================================================
 // Overtime Requests
 // =========================================================================

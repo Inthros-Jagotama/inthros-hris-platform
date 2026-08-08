@@ -1986,12 +1986,20 @@ Hourly Leave       ✅ Leave module sudah menghasilkan `LeaveRequestDetail.DayFr
 Develop:
 
 ```text
-Employee Dashboard
-Manager Dashboard
-HR Dashboard
-Attendance Calendar
-Team Calendar
+Employee Dashboard    ✅ Backend selesai — GetEmployeeSummary, lihat catatan di bawah
+Manager Dashboard      ⏳ Belum ada — butuh cross-module read employee/organization (siapa yang lapor ke manager ini), belum ada interface untuk itu
+HR Dashboard            ⏳ Sama seperti Manager Dashboard — agregasi lintas-organization butuh employee/organization read yang belum ada
+Attendance Calendar      ✅ Backend selesai — GetEmployeeCalendar, lihat catatan di bawah
+Team Calendar             ⏳ Sama seperti Manager/HR Dashboard — butuh tahu anggota tim/organization
 ```
+
+> ✅ **Employee Dashboard/Calendar (backend) — diimplementasikan.** `GetEmployeeCalendar` (`GET /attendance/calendar?employee_id=&from=&to=`) mengembalikan sesi dalam rentang tanggal (§36-37). `GetEmployeeSummary` (`GET /attendance/summary?employee_id=&from=&to=`) mengagregasi sesi tersebut menjadi hitungan present/late/missing-checkin/missing-checkout/day-off/leave-days + total work/overtime minutes, sesuai contoh ringkasan di §37.
+>
+> **Absent sengaja tidak dihitung** di `SummaryResponse` — `SessionStatusAbsent` tidak pernah di-set di manapun di codebase ini (tidak ada scheduled job `ProcessDailyAttendance`/`DetectMissingAttendance`, §44-45), jadi menampilkan hitungan Absent akan selalu 0 dan menyesatkan seolah-olah absensi benar-benar dilacak.
+>
+> **Manager Dashboard, HR Dashboard, dan Team Calendar sengaja tidak diimplementasikan** — ketiganya butuh mengetahui "siapa bawahan manager ini" atau "siapa anggota organization ini", yaitu cross-module read ke modul employee/organization yang tidak ada interface-nya di manapun di codebase ini (kategori gap yang sama dengan Exempt status di Phase 6 dan employee-active check di Leave). Employee-level dashboard/calendar tidak butuh itu karena `employee_id` sudah diberikan langsung oleh caller.
+>
+> **Frontend tetap belum dikerjakan** — endpoint backend di atas belum punya UI konsumen; `Attendance.vue` masih placeholder.
 
 ---
 
@@ -2169,7 +2177,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 7 - Overtime | ✅ Selesai (2026-08-08) | Approval integration sudah ada sejak awal (Section 29). **Actual/Calculated Overtime kini diimplementasikan**: `applyOvertimeCalculation` dipanggil saat approval, membaca session hari itu untuk `actual_minutes` (aktual checkout vs planned checkout) dan `calculated_minutes` (dibatasi `requested_minutes`), migration `072_attendance_overtime_actual_calculated` menambah kedua kolom. Session juga diupdate dengan `IsOvertimeDay`/`OvertimeMinutes`/dll |
 | Phase 8 - Correction | 🔶 Sebagian (2026-08-08) | Tabel `attendance_correction_requests` + model + CRUD + approval integration baru dibangun (migration `073`). `HandleApprovalStatusChange` sekarang dispatch overtime vs correction berdasarkan `documentID`. `MISSING_CHECKIN`/`MISSING_CHECKOUT` diterapkan otomatis ke session saat approved (event baru OVERRIDDEN + recalculate). `WRONG_CHECKIN`/`WRONG_CHECKOUT` tercatat & bisa di-approve tapi **tidak** diterapkan otomatis — butuh perluasan logic seleksi checkin/checkout di Phase 6 |
 | Phase 9 - Leave Integration | ✅ Selesai (2026-08-08) | `leave.AttendanceSessionUpdater` (interface baru) + `attendance.Service.ApplyApprovedLeave` diwire di `main.go`. Saat leave `APPROVED_FINAL`, tiap `LeaveRequestDetail` mendorong session Attendance jadi `LEAVE` (atau mencatat `LeaveFraction` saja jika session sudah `CLOSED` karena ada attendance nyata, sesuai §27) — termasuk membuat session baru untuk hari yang murni cuti tanpa event apapun |
-| Phase 10 - Dashboard & Calendar | ❌ Belum ada | Tidak ada endpoint dashboard/calendar; frontend hanya stub |
+| Phase 10 - Dashboard & Calendar | 🔶 Sebagian (2026-08-08) | Employee Calendar/Summary (backend) selesai — `GetEmployeeCalendar`/`GetEmployeeSummary` (`GET /attendance/calendar`, `GET /attendance/summary`). Manager/HR Dashboard dan Team Calendar sengaja belum dibangun — butuh cross-module read employee/organization yang belum ada. Frontend tetap belum dimulai |
 | Phase 11 - Reports | ❌ Belum ada | Tidak ada endpoint report apapun |
 | Phase 12 - Notification | ❌ Belum ada | Tidak ditemukan pemanggilan Notification module dari modul Attendance |
 | Phase 13 - Payroll Integration | ❌ Belum ada | Tidak ada data untuk diekspos ke Payroll karena session calculation (Phase 6) belum ada |
@@ -2182,10 +2190,11 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 2. ~~Overtime actual/calculated minutes (Phase 7)~~ ✅ Selesai (2026-08-08) — `applyOvertimeCalculation` dipanggil saat approval, membaca session hari itu.
 3. ~~Correction workflow — Missing Check-in/Checkout (Phase 8)~~ ✅ Selesai (2026-08-08). WRONG_CHECKIN/WRONG_CHECKOUT masih perlu perluasan logic seleksi di Phase 6 sebelum bisa diterapkan otomatis.
 4. ~~Leave Integration (Phase 9)~~ ✅ Selesai (2026-08-08) — `leaveSvc.SetAttendanceSessionUpdater(attendanceSvc)`, session ter-update otomatis saat leave disetujui.
-5. **Payroll Integration (Phase 13)** — sekarang jadi kandidat berikutnya yang paling bernilai: session sudah punya `WorkMinutes`/`OvertimeMinutes`/`LeaveFraction` lengkap untuk diekspos ke Payroll, tinggal endpoint/query agregasi per periode.
-6. Scheduled job untuk Absent/Missing detection (§44-45) — perlu keputusan infra (cron/scheduler) yang belum ada polanya di codebase ini.
-7. Dedicated check-in/check-out endpoints (pisah dari `POST /events` generik) — supaya validasi per-aksi (Phase 4-5) punya tempat spesifik dipasang.
-8. Frontend dasar — sekarang data session yang ditampilkan sudah benar-benar berarti (bukan tabel kosong).
+5. ~~Employee Dashboard/Calendar backend (Phase 10)~~ ✅ Selesai (2026-08-08) — `GetEmployeeSummary`/`GetEmployeeCalendar`. Manager/HR Dashboard + Team Calendar masih perlu cross-module employee/organization read.
+6. **Payroll Integration (Phase 13)** — sekarang jadi kandidat berikutnya yang paling bernilai: session sudah punya `WorkMinutes`/`OvertimeMinutes`/`LeaveFraction` lengkap untuk diekspos ke Payroll, tinggal endpoint/query agregasi per periode.
+7. Scheduled job untuk Absent/Missing detection (§44-45) — perlu keputusan infra (cron/scheduler) yang belum ada polanya di codebase ini.
+8. Dedicated check-in/check-out endpoints (pisah dari `POST /events` generik) — supaya validasi per-aksi (Phase 4-5) punya tempat spesifik dipasang.
+9. Frontend dasar — sekarang data session yang ditampilkan sudah benar-benar berarti (bukan tabel kosong).
 
 ---
 

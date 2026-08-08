@@ -40,6 +40,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// Sessions (Daily Work Sessions)
 		att.GET("/sessions", handler.ListSessions)
 		att.GET("/sessions/detail", handler.GetSession)
+		att.GET("/calendar", handler.GetEmployeeCalendar)
+		att.GET("/summary", handler.GetEmployeeSummary)
 
 		// Overtime Requests
 		att.POST("/overtime-requests", handler.CreateOvertimeRequest)
