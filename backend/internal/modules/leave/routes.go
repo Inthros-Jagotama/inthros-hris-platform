@@ -40,5 +40,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// Leave Balances
 		leave.GET("/balances", handler.ListLeaveBalances)
 		leave.GET("/balances/employees/:employeeId/types/:leaveTypeId", handler.GetLeaveBalance)
+
+		// Calendar
+		leave.GET("/calendar", handler.GetEmployeeCalendar)
 	}
 }

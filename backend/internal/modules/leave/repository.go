@@ -421,3 +421,42 @@ func (r *Repository) FindUserIDByEmployeeID(ctx context.Context, employeeID uuid
 	}
 	return &userID, nil
 }
+
+// CalendarEntry is one date-level row of an employee's leave calendar —
+// a leave_request_details row joined back to its parent leave_requests for
+// status/leave_type_id, since details themselves don't carry those fields.
+type CalendarEntry struct {
+	LeaveRequestID uuid.UUID `json:"leave_request_id"`
+	LeaveDate      string    `json:"leave_date"`
+	DayFraction    float64   `json:"day_fraction"`
+	LeaveTypeID    uuid.UUID `json:"leave_type_id"`
+	Status         string    `json:"status"`
+}
+
+// FindCalendarEntriesForEmployeeInRange returns the employee's leave dates in
+// [fromDate, toDate], excluding REJECTED_FINAL requests (dates that never
+// actually happened as leave, per §26's "Pending Leave -> tidak boleh
+// dianggap sebagai approved leave" principle extended to the calendar: a
+// rejected date shouldn't show up as if it were a leave day at all).
+// CANCELLED is kept visible so the employee can still see why a date is free
+// again, mirroring how the request list itself never hides cancelled rows.
+func (r *Repository) FindCalendarEntriesForEmployeeInRange(ctx context.Context, employeeID uuid.UUID, fromDate, toDate string) ([]CalendarEntry, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var entries []CalendarEntry
+	err = db.WithContext(ctx).
+		Table("leave_request_details AS d").
+		Select("d.leave_request_id, d.leave_date, d.day_fraction, r.leave_type_id, r.status").
+		Joins("JOIN leave_requests AS r ON r.id = d.leave_request_id").
+		Where("d.employee_id = ? AND d.leave_date BETWEEN ? AND ?", employeeID, fromDate, toDate).
+		Where("r.status <> ?", string(LeaveStatusRejectedFinal)).
+		Where("r.deleted_at IS NULL AND d.deleted_at IS NULL").
+		Order("d.leave_date ASC").
+		Find(&entries).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to load leave calendar entries: %w", err)
+	}
+	return entries, nil
+}

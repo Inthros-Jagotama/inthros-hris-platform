@@ -13,6 +13,21 @@ const defaultHoursPerDay = 8.0
 const dateLayout = "2006-01-02"
 const timeLayout = "15:04"
 
+// normalizeLeaveDate handles the same DB round-trip quirk noted in
+// balance.go's requestYear: some drivers (e.g. glebarez/sqlite in tests)
+// return a `type:date` column as a full RFC3339 timestamp instead of plain
+// "2006-01-02". Reformats to dateLayout so it matches values that were
+// never round-tripped.
+func normalizeLeaveDate(leaveDate string) string {
+	if t, err := time.Parse(dateLayout, leaveDate); err == nil {
+		return t.Format(dateLayout)
+	}
+	if t, err := time.Parse(time.RFC3339, leaveDate); err == nil {
+		return t.Format(dateLayout)
+	}
+	return leaveDate
+}
+
 // LeaveDayDetail is one row of the per-date breakdown produced by
 // CalculateLeaveDuration, used to populate LeaveRequestDetail.
 type LeaveDayDetail struct {

@@ -832,6 +832,38 @@ func (s *Service) ListLeaveRequestDetails(ctx context.Context, leaveRequestID st
 }
 
 // =========================================================================
+// Calendar (Phase 7 - Employee Calendar, §20)
+// =========================================================================
+
+// GetEmployeeCalendar returns the employee's leave dates in [fromDate,
+// toDate], mirroring attendance.Service.GetEmployeeCalendar's shape/purpose.
+// Team/Organization Calendar are intentionally not built here — they'd need
+// a cross-module employee/organization read ("who reports to whom") that
+// doesn't exist anywhere in this codebase yet, the same category of gap
+// already deferred for Attendance's Manager/HR Dashboard (Phase 10).
+func (s *Service) GetEmployeeCalendar(ctx context.Context, employeeID, fromDate, toDate string) ([]CalendarEntryResponse, error) {
+	empUUID, err := uuid.Parse(employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee_id: %w", err)
+	}
+	entries, err := s.repo.FindCalendarEntriesForEmployeeInRange(ctx, empUUID, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]CalendarEntryResponse, 0, len(entries))
+	for _, e := range entries {
+		responses = append(responses, CalendarEntryResponse{
+			LeaveRequestID: e.LeaveRequestID.String(),
+			LeaveDate:      normalizeLeaveDate(e.LeaveDate),
+			DayFraction:    e.DayFraction,
+			LeaveTypeID:    e.LeaveTypeID.String(),
+			Status:         e.Status,
+		})
+	}
+	return responses, nil
+}
+
+// =========================================================================
 // Leave Balances
 // =========================================================================
 

@@ -56,13 +56,13 @@ type LeaveTypeResponse struct {
 // =========================================================================
 
 type CreateAccrualPolicyRequest struct {
-	LeaveTypeID     string  `json:"leave_type_id" binding:"required"`
-	BaseQuotaDays   float64 `json:"base_quota_days" binding:"required"`
-	ExtraEveryYears *int    `json:"extra_every_years"`
+	LeaveTypeID     string   `json:"leave_type_id" binding:"required"`
+	BaseQuotaDays   float64  `json:"base_quota_days" binding:"required"`
+	ExtraEveryYears *int     `json:"extra_every_years"`
 	ExtraDays       *float64 `json:"extra_days"`
 	MaxExtraDays    *float64 `json:"max_extra_days"`
-	EffectiveFrom   string  `json:"effective_from" binding:"required"`
-	EffectiveTo     *string `json:"effective_to"`
+	EffectiveFrom   string   `json:"effective_from" binding:"required"`
+	EffectiveTo     *string  `json:"effective_to"`
 }
 
 type UpdateAccrualPolicyRequest struct {
@@ -118,19 +118,19 @@ type LeaveReasonResponse struct {
 // =========================================================================
 
 type CreateLeaveRequest struct {
-	EmployeeID      string  `json:"employee_id" binding:"required"`
-	LeaveTypeID     string  `json:"leave_type_id" binding:"required"`
-	RequestStartDate string `json:"request_start_date" binding:"required"`
-	RequestEndDate  string  `json:"request_end_date" binding:"required"`
-	DurationMode    string  `json:"duration_mode"`
-	RequestedDays   float64 `json:"requested_days"`
-	LeaveReasonID   *string `json:"leave_reason_id"`
-	LeaveReasonNote *string `json:"leave_reason_note"`
-	AttachmentURL   *string `json:"attachment_url"`
-	SupervisorID    *string `json:"supervisor_id"`
-	StartTime       *string `json:"start_time"`
-	EndTime         *string `json:"end_time"`
-	FlowID          *string `json:"flow_id"`
+	EmployeeID       string  `json:"employee_id" binding:"required"`
+	LeaveTypeID      string  `json:"leave_type_id" binding:"required"`
+	RequestStartDate string  `json:"request_start_date" binding:"required"`
+	RequestEndDate   string  `json:"request_end_date" binding:"required"`
+	DurationMode     string  `json:"duration_mode"`
+	RequestedDays    float64 `json:"requested_days"`
+	LeaveReasonID    *string `json:"leave_reason_id"`
+	LeaveReasonNote  *string `json:"leave_reason_note"`
+	AttachmentURL    *string `json:"attachment_url"`
+	SupervisorID     *string `json:"supervisor_id"`
+	StartTime        *string `json:"start_time"`
+	EndTime          *string `json:"end_time"`
+	FlowID           *string `json:"flow_id"`
 }
 
 type UpdateLeaveRequestStatus struct {
@@ -139,30 +139,30 @@ type UpdateLeaveRequestStatus struct {
 }
 
 type LeaveRequestResponse struct {
-	ID                string     `json:"id"`
-	EmployeeID        string     `json:"employee_id"`
-	LeaveTypeID       string     `json:"leave_type_id"`
-	RequestStartDate  string     `json:"request_start_date"`
-	RequestEndDate    string     `json:"request_end_date"`
-	DurationMode      string     `json:"duration_mode"`
-	RequestedDays     float64    `json:"requested_days"`
-	LeaveReasonID     *string    `json:"leave_reason_id,omitempty"`
-	LeaveReasonNote   *string    `json:"leave_reason_note,omitempty"`
-	AttachmentURL     *string    `json:"attachment_url,omitempty"`
-	Status            string     `json:"status"`
-	SupervisorID      *string    `json:"supervisor_id,omitempty"`
-	SupervisorNote    *string    `json:"supervisor_note,omitempty"`
-	HrID              *string    `json:"hr_id,omitempty"`
-	HrNote            *string    `json:"hr_note,omitempty"`
-	ApprovalInstanceID *string   `json:"approval_instance_id,omitempty"`
-	StartTime         *string    `json:"start_time,omitempty"`
-	EndTime           *string    `json:"end_time,omitempty"`
-	SubmittedAt       *time.Time `json:"submitted_at,omitempty"`
-	ApprovedAt        *time.Time `json:"approved_at,omitempty"`
-	RejectedAt        *time.Time `json:"rejected_at,omitempty"`
-	CancelledAt       *time.Time `json:"cancelled_at,omitempty"`
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
+	ID                 string     `json:"id"`
+	EmployeeID         string     `json:"employee_id"`
+	LeaveTypeID        string     `json:"leave_type_id"`
+	RequestStartDate   string     `json:"request_start_date"`
+	RequestEndDate     string     `json:"request_end_date"`
+	DurationMode       string     `json:"duration_mode"`
+	RequestedDays      float64    `json:"requested_days"`
+	LeaveReasonID      *string    `json:"leave_reason_id,omitempty"`
+	LeaveReasonNote    *string    `json:"leave_reason_note,omitempty"`
+	AttachmentURL      *string    `json:"attachment_url,omitempty"`
+	Status             string     `json:"status"`
+	SupervisorID       *string    `json:"supervisor_id,omitempty"`
+	SupervisorNote     *string    `json:"supervisor_note,omitempty"`
+	HrID               *string    `json:"hr_id,omitempty"`
+	HrNote             *string    `json:"hr_note,omitempty"`
+	ApprovalInstanceID *string    `json:"approval_instance_id,omitempty"`
+	StartTime          *string    `json:"start_time,omitempty"`
+	EndTime            *string    `json:"end_time,omitempty"`
+	SubmittedAt        *time.Time `json:"submitted_at,omitempty"`
+	ApprovedAt         *time.Time `json:"approved_at,omitempty"`
+	RejectedAt         *time.Time `json:"rejected_at,omitempty"`
+	CancelledAt        *time.Time `json:"cancelled_at,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
 }
 
 // =========================================================================
@@ -170,13 +170,13 @@ type LeaveRequestResponse struct {
 // =========================================================================
 
 type LeaveRequestDetailResponse struct {
-	ID                string    `json:"id"`
-	LeaveRequestID    string    `json:"leave_request_id"`
-	EmployeeID        string    `json:"employee_id"`
-	LeaveDate         string    `json:"leave_date"`
-	DayFraction       float64   `json:"day_fraction"`
-	IsPaid            bool      `json:"is_paid"`
-	CreatedAt         time.Time `json:"created_at"`
+	ID             string    `json:"id"`
+	LeaveRequestID string    `json:"leave_request_id"`
+	EmployeeID     string    `json:"employee_id"`
+	LeaveDate      string    `json:"leave_date"`
+	DayFraction    float64   `json:"day_fraction"`
+	IsPaid         bool      `json:"is_paid"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 // =========================================================================
@@ -184,17 +184,29 @@ type LeaveRequestDetailResponse struct {
 // =========================================================================
 
 type LeaveBalanceResponse struct {
-	ID                string    `json:"id"`
-	EmployeeID        string    `json:"employee_id"`
-	LeaveTypeID       string    `json:"leave_type_id"`
-	PeriodYear        int       `json:"period_year"`
-	QuotaDays         float64   `json:"quota_days"`
-	UsedDays          float64   `json:"used_days"`
-	RemainingDays     float64   `json:"remaining_days"`
-	LastAdjustmentRef *string   `json:"last_adjustment_ref,omitempty"`
+	ID                string     `json:"id"`
+	EmployeeID        string     `json:"employee_id"`
+	LeaveTypeID       string     `json:"leave_type_id"`
+	PeriodYear        int        `json:"period_year"`
+	QuotaDays         float64    `json:"quota_days"`
+	UsedDays          float64    `json:"used_days"`
+	RemainingDays     float64    `json:"remaining_days"`
+	LastAdjustmentRef *string    `json:"last_adjustment_ref,omitempty"`
 	LastAdjustmentAt  *time.Time `json:"last_adjustment_at,omitempty"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+}
+
+// =========================================================================
+// Calendar (Phase 7 - Employee Calendar, §20)
+// =========================================================================
+
+type CalendarEntryResponse struct {
+	LeaveRequestID string  `json:"leave_request_id"`
+	LeaveDate      string  `json:"leave_date"`
+	DayFraction    float64 `json:"day_fraction"`
+	LeaveTypeID    string  `json:"leave_type_id"`
+	Status         string  `json:"status"`
 }
 
 // =========================================================================
@@ -202,10 +214,10 @@ type LeaveBalanceResponse struct {
 // =========================================================================
 
 type PaginatedResponse struct {
-	Success    bool          `json:"success"`
-	Data       interface{}   `json:"data"`
-	Page       int           `json:"page"`
-	PerPage    int           `json:"per_page"`
-	Total      int64         `json:"total"`
-	TotalPages int           `json:"total_pages"`
+	Success    bool        `json:"success"`
+	Data       interface{} `json:"data"`
+	Page       int         `json:"page"`
+	PerPage    int         `json:"per_page"`
+	Total      int64       `json:"total"`
+	TotalPages int         `json:"total_pages"`
 }

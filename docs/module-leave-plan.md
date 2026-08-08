@@ -1152,7 +1152,7 @@ Menampilkan:
 > GET           /api/v1/tenant/leave/balances
 > GET           /api/v1/tenant/leave/balances/employees/:employeeId/types/:leaveTypeId
 > ```
-> Endpoint `submit`, `cancel`, `balances/{employee}/adjust`, dan seluruh Calendar di bawah **belum ada** — perlu dibuat sebagai endpoint khusus (bukan terus menumpuk di satu endpoint status generik), terutama karena `submit`/`cancel`/`adjust` masing-masing butuh side-effect berbeda (validasi saldo, penulisan ledger, reversal) yang saat ini tidak dilakukan sama sekali oleh `PUT .../status`.
+> Endpoint `submit`, `cancel`, `balances/{employee}/adjust`, dan `team-calendar` **belum ada** — perlu dibuat sebagai endpoint khusus (bukan terus menumpuk di satu endpoint status generik), terutama karena `submit`/`cancel`/`adjust` masing-masing butuh side-effect berbeda (validasi saldo, penulisan ledger, reversal) yang saat ini tidak dilakukan sama sekali oleh `PUT .../status`. **Update 2026-08-09**: `GET /leave/calendar?employee_id=&from=&to=` (Employee Calendar) sudah diimplementasikan — lihat Section 7/Phase 7.
 
 ## Leave Types
 
@@ -1546,12 +1546,20 @@ Integrate dengan Central Approval Module.
 
 ---
 
-## Phase 7 - Calendar & Attendance
+## Phase 7 - Calendar & Attendance 🔶 Sebagian (2026-08-09)
 
-* Employee Calendar
-* Team Calendar
-* Organization Calendar
-* Attendance Integration
+* Employee Calendar ✅ Diimplementasikan — lihat catatan di bawah
+* Team Calendar ⏳ Deferred — butuh cross-module employee/organization read ("siapa bawahan siapa") yang tidak ada interface-nya di manapun di codebase ini, kategori gap yang sama dengan Manager/HR Dashboard di Attendance (Phase 10)
+* Organization Calendar ⏳ Deferred — sama seperti Team Calendar
+* Attendance Integration ✅ Sudah selesai sejak sebelumnya (bukan pekerjaan baru Phase 7 ini) — `leave.AttendanceSessionUpdater`/`SetAttendanceSessionUpdater`, diwire di `main.go` via `leaveSvc.SetAttendanceSessionUpdater(attendanceSvc)`, lihat catatan Attendance backend Phase 9 (`docs/module-attendance-plan.md`)
+
+> ✅ **Employee Calendar diimplementasikan.** `GET /api/v1/tenant/leave/calendar?employee_id=&from=&to=` (`leave/handler.go` `GetEmployeeCalendar`, `leave/service.go` `Service.GetEmployeeCalendar`) — mengembalikan `[]CalendarEntryResponse` (leave_request_id, leave_date, day_fraction, leave_type_id, status) dari `leave_request_details` JOIN `leave_requests` (`Repository.FindCalendarEntriesForEmployeeInRange`), pola yang identik dengan `attendance.Service.GetEmployeeCalendar`. Request berstatus `REJECTED_FINAL` sengaja dikecualikan dari hasil kalender — tanggal yang ditolak tidak pernah benar-benar jadi leave day, konsisten dengan prinsip §26 ("Pending Leave tidak boleh dianggap sebagai approved leave"). `CANCELLED` tetap ditampilkan supaya karyawan tahu kenapa tanggal itu kembali kosong.
+>
+> **Team/Organization Calendar sengaja tidak dibangun** — keduanya butuh mengetahui struktur organisasi/siapa bawahan siapa, sebuah cross-module read ke employee/organization yang tidak ada interface-nya di manapun di codebase ini (kategori gap yang identik dengan Manager/HR Dashboard Attendance, Phase 10). Employee Calendar tidak butuh itu karena `employee_id` sudah diberikan langsung oleh caller (sama seperti alasan Attendance's employee-level calendar tidak butuh cross-module read).
+>
+> Test: `calendar_test.go` — entries dalam rentang tanggal, dan request yang REJECTED_FINAL dikecualikan dari hasil.
+>
+> Bug driver ditemukan & diperbaiki saat implementasi: kolom `leave_date` (`type:date`) round-trip sebagai RFC3339 penuh di sqlite test driver (quirk yang sama seperti `submitted_at`/`work_date` yang sudah didokumentasikan di `balance.go`/Attendance `session.go`) — ditambahkan `normalizeLeaveDate` (`calculation.go`) mengikuti pola `normalizeWorkDate` Attendance.
 
 ---
 
@@ -1651,7 +1659,7 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 | Phase 4 - Leave Request | 🔶 Sebagian (2026-08-08) | Create/Submit/List/Get/Delete/Details sudah ada, `requested_days` dihitung server-side (Phase 3). Validasi baru: leave type aktif, attachment wajib, overlap tanggal (`CountOverlappingLeaveRequests`). Belum ada: employee/organization aktif (butuh cross-module read ke `employee`, belum ada pola/interface untuk ini), backdate/minimum-notice (field belum ada di `LeaveType`), balance-quota check (nunggu Phase 6) |
 | Phase 5 - Approval Integration | ✅ Selesai | `ApprovalEngine`, `SetApprovalEngine`, `HandleApprovalStatusChange`, wiring `main.go`, module slug tunggal `"leave"`, test coverage di `approval_integration_test.go` — lihat Section 7 |
 | Phase 6 - Leave Balance | 🔶 Sebagian (2026-08-08) | **Usage + Reversal + Ledger selesai**: `leave/balance.go` (`applyLeaveUsage`/`reverseLeaveUsage`) — deduct saldo saat status masuk `APPROVED_FINAL`, reverse saat keluar dari `APPROVED_FINAL` (mis. cancel setelah approve), keduanya menulis ke `leave_balance_transactions`. Wired di `HandleApprovalStatusChange` dan `UpdateLeaveRequestStatus`. **Belum ada**: Accrual (seed quota dari `LeaveAccrualPolicy`), Adjustment (endpoint HR), Carry Forward, Expiry |
-| Phase 7 - Calendar & Attendance | ❌ Belum ada | Tidak ada endpoint calendar, tidak ada integrasi Attendance |
+| Phase 7 - Calendar & Attendance | 🔶 Sebagian (2026-08-09) | Employee Calendar selesai (`GET /leave/calendar`). Attendance Integration sudah selesai sejak sebelumnya (`leave.AttendanceSessionUpdater`). Team/Organization Calendar sengaja ditunda — butuh cross-module employee/organization read yang belum ada |
 | Phase 8 - Notification | ❌ Belum ada | Tidak ditemukan pemanggilan Notification module dari modul Leave |
 | Phase 9 - Dashboard & Reports | ❌ Belum ada | Tidak ada endpoint/handler dashboard atau report |
 | Phase 10 - Testing | 🔶 Sebagian | Test approval-integration sudah ada; test kalkulasi/balance/cancellation belum ada karena fiturnya sendiri belum ada |
@@ -1667,7 +1675,56 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 
 ---
 
-# 44. Design Principles
+# Frontend Implementation Plan
+
+Ditambahkan 2026-08-09. Backend Leave sudah cukup matang (lihat Implementation Status di atas: Master Data, Calculation Engine, Approval Integration, Balance Usage/Reversal/Ledger semuanya selesai) — sisi frontend masih 0%: `frontend/tenant/src/views/modules/Leave.vue` hanya placeholder satu baris ("Leave Module — Coming soon"), sama seperti Attendance sebelum FE-nya dibangun. Section ini mengikuti pola yang sama persis dengan Frontend Implementation Plan Attendance (`docs/module-attendance-plan.md`) — konvensi FE sudah baku, bukan didesain ulang dari nol.
+
+## FE-1. Ringkasan & Prinsip
+
+* **Pola FE mengikuti persis apa yang sudah divalidasi di Attendance FE** (`docs/module-attendance-plan.md`, sudah selesai FE-1 s.d. FE-5): reuse `Employees.vue` untuk list+pagination, pola compact `NationalitiesView.vue` (DataTable + `Dialog` inline) untuk CRUD entitas sederhana, `services/api.js`/`services/responseHandler.js` langsung tanpa service-layer/Pinia store baru per modul, `useAuth().hasPermission(slug)` untuk gating tombol.
+* **Reuse langsung composable/util yang sudah dibuat untuk Attendance FE** — keduanya generik, tidak spesifik Attendance:
+  - `composables/useMyEmployee.js` (`GET /user-accounts/me`, cache module-level) — dibutuhkan Leave persis dengan alasan yang sama seperti Attendance: `CreateLeaveRequest`/`ListLeaveRequests`/`ListLeaveBalances` semuanya butuh `employee_id` yang harus resolve dari user yang login, bukan endpoint "my-request" tersendiri.
+  - `utils/localTime.js` — **tidak dibutuhkan Leave** kecuali untuk `duration_mode = HOURLY` (`start_time`/`end_time`, lihat dto.go `CreateLeaveRequest`); field ini string bebas format tanpa binding RFC3339 eksplisit di backend (beda dari Attendance overtime), jadi cukup `HH:mm` biasa — dicatat di sini supaya tidak salah asumsi format saat implementasi.
+* **Approval TIDAK dibangun ulang di Leave**, sama seperti Attendance. Bedanya: Leave punya permission `leave.approve` terpisah di `Info().Permissions` (`leave/module.go`) — Attendance tidak. Namun tidak ada endpoint approve/reject khusus di `leave/routes.go` (hanya `PUT /requests/:id/status` generik yang di-drive oleh Central Approval Module lewat push-callback, lihat Section 7) — jadi permission ini kemungkinan besar dipakai untuk gating siapa yang boleh jadi approver di flow config Approval Module, bukan untuk tombol approve di FE Leave. FE Leave tetap murni link-out ke `/approvals`, tidak mencoba membuat tombol approve sendiri.
+* **Balance ditampilkan read-only** — tidak ada endpoint adjustment (§26 tetap proposal, dikonfirmasi di Implementation Status Phase 6), jadi FE tidak boleh menampilkan form "Adjust Balance" yang akan gagal karena endpoint-nya tidak ada.
+* **Cancellation lewat endpoint status generik** — `PUT /requests/:id/status` dengan `status: "CANCELLED"` adalah satu-satunya mekanisme yang ada (§18 dikonfirmasi belum ada sub-flow cancellation khusus/reversal approval). FE cukup memanggil endpoint ini untuk request yang masih `DRAFT`/`SUBMITTED`/`PENDING_APPROVAL` milik sendiri — bukan membangun UI cancellation-request-dengan-approval yang backend-nya tidak ada.
+
+## FE-2. Halaman & Routing
+
+Mengikuti pola nomenklatur route Attendance (`attendance/...` → `leave/...`), sibling di bawah path `leave/...`, `meta.module: 'attendance'` → `meta.module: 'leave'`, dst.
+
+| Halaman | Route (usulan) | Endpoint backend | Permission |
+|---|---|---|---|
+| `Leave.vue` (My Leave dashboard: balance cards + list request saya + tombol "New Request") | `leave` (existing stub, diisi) | `GET /balances?employee_id=`, `GET /requests?employee_id=` | `leave.view` |
+| `LeaveRequestForm.vue` (create request, Dialog atau halaman terpisah — lihat FE-3) | inline di `Leave.vue` atau `leave/new` | `POST /requests` | `leave.create` |
+| `LeaveAdmin.vue` (index kartu, pola sama `AttendanceAdmin.vue`) | `leave/admin` | - | `leave.update` |
+| `LeaveTypes.vue` + Dialog | `leave/types` | `POST/GET /types`, `GET/PUT/DELETE /types/:id` | `leave.view`/`create`/`update`/`delete` |
+| `LeaveAccrualPolicies.vue` + Dialog | `leave/accrual-policies` | `POST/GET /accrual-policies`, `GET/PUT/DELETE /accrual-policies/:id` | sama pola di atas |
+| `LeaveReasons.vue` + Dialog | `leave/reasons` | `POST/GET /reasons`, `GET/PUT/DELETE /reasons/:id` | sama pola di atas |
+
+Catatan: **tidak ada halaman `TeamLeave`/`LeaveDashboard`(Manager/HR)/`LeaveReports`** — masih backend-blocked (Implementation Status Phase 7/9). **Update 2026-08-09**: `GET /leave/calendar?employee_id=&from=&to=` (Employee Calendar) sudah diimplementasikan backend-side — `Leave.vue` (FE-1) sekarang bisa/sebaiknya menampilkan kalender bulan berjalan memakai endpoint ini, mirip pola `AttendanceCalendar` di FE Attendance, meskipun belum diimplementasikan sebagai halaman FE pada penulisan catatan ini. Team/Organization Calendar tetap backend-blocked.
+
+## FE-3. Development Phases (FE)
+
+**Phase FE-1 — My Leave Dashboard**
+`Leave.vue`: kartu balance per leave type (`quota_days`/`used_days`/`remaining_days` dari `GET /balances?employee_id=`), list request milik sendiri berstatus apapun (`GET /requests?employee_id=`, tabel dengan kolom leave_type/tanggal/status/requested_days), tombol "New Request" membuka Dialog form (leave type dropdown, date range via `DateInput` x2, `duration_mode` select, `leave_reason_id` dropdown dari `GET /reasons`, textarea note, upload attachment jika `LeaveType.RequiresAttachment` — lihat catatan attachment di FE-4). `requested_days` **tidak dihitung di FE** — backend sudah menghitungnya server-side (`CalculateLeaveDuration`, Leave backend Phase 3), FE cukup kirim `request_start_date`/`request_end_date`/`duration_mode` dan tampilkan `requested_days` dari response. Tombol "Cancel" untuk request berstatus `DRAFT`/`SUBMITTED`/`PENDING_APPROVAL` milik sendiri, memanggil `PUT /requests/:id/status` dengan `status: CANCELLED`.
+
+**Phase FE-2 — Admin Configuration**
+`LeaveAdmin.vue` (index kartu) + `LeaveTypes.vue`, `LeaveAccrualPolicies.vue`, `LeaveReasons.vue` — CRUD standar Dialog inline, field sesuai `CreateLeaveTypeRequest`/`CreateAccrualPolicyRequest`/`CreateLeaveReasonRequest` (`leave/dto.go`). `LeaveAccrualPolicies.vue` butuh dropdown Leave Type (fetch dari `/types`), field `effective_from`/`effective_to` via `DateInput`.
+
+**Eksplisit di luar cakupan rencana FE ini** (semuanya backend-blocked, bukan keputusan FE):
+* **Team Calendar / Organization Calendar** — tidak ada endpoint (`GET /team-calendar` di §31 API Plan tetap proposal murni). **Employee Calendar** (`GET /leave/calendar`) sudah tersedia sejak 2026-08-09 — lihat catatan update di FE-2 di atas, bukan lagi backend-blocked.
+* **Manager Dashboard, HR Dashboard, Reports** (§30/§39 backend Phase 9) — tidak ada handler/endpoint sama sekali.
+* **Balance Adjustment UI** — tidak ada endpoint `POST /balances/{employee}/adjust` (§26 tetap proposal).
+* **Attendance Integration UI** — tidak ada yang perlu ditampilkan di FE Leave; integrasi ini sudah selesai di sisi backend (Leave backend Phase 9 — `leave.AttendanceSessionUpdater`) dan hasilnya muncul di FE **Attendance**, bukan FE Leave.
+* **Notification bell wiring** — sama seperti catatan Attendance FE, di luar cakupan modul ini (scope `docs/module-notification-plan.md`). Catatan: Leave justru sudah jadi Notifier consumer **pertama** di backend (`leave.Notifier`/`SetNotifier`, `docs/module-notification-plan.md` Phase 4 — mendahului Attendance's Phase 5 rollout), tapi notifikasi itu baru benar-benar terlihat pengguna setelah bell-nya jadi dropdown fungsional, yang tetap di luar cakupan FE plan ini.
+
+## FE-4. Catatan Teknis
+
+* **Response envelope & tabel/pagination**: identik dengan Attendance FE — `httputil.SuccessJSON`/paginated response yang sama, `DataTable` `lazy` + server pagination, `SkeletonTable`, debounce search — semua meniru `Employees.vue`.
+* **Attachment upload** (`attachment_url` di `CreateLeaveRequest`) — **belum ada pola upload file di FE manapun yang diperiksa untuk Attendance FE**; perlu dicek dulu apakah ada endpoint/komponen upload generik lain di codebase ini (mis. dipakai employee documents) sebelum membangun yang baru, sesuai disiplin "jangan reinvent" — investigasi ini bagian dari implementasi FE-1, bukan diasumsikan di sini.
+* **`duration_mode = HOURLY`**: `start_time`/`end_time` di `CreateLeaveRequest` adalah string bebas (bukan RFC3339 seperti Attendance's `event_time_local`/overtime) — cukup input teks/time-picker `HH:mm`, tidak perlu `utils/localTime.js`.
+* **Validasi overlap & balance**: backend sudah menolak overlap tanggal (`CountOverlappingLeaveRequests`) dan (begitu Phase 6 balance-quota check ada) saldo tidak cukup — FE cukup menampilkan error validasi apa adanya lewat `getValidationErrors`/`isValidationError`, tidak mengecek ulang di client.
 
 1. Leave Module bertanggung jawab terhadap **business rule cuti**.
 2. Approval dilakukan oleh **Central Approval Module**.
