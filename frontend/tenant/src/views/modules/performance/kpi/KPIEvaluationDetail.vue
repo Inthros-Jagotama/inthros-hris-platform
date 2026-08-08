@@ -337,9 +337,6 @@
               <Button :label="t('kpi.approve')" icon="pi pi-check" severity="success" size="small" :loading="approving" @click="approveEvaluation" />
             </template>
           </template>
-          <template v-else-if="evaluation.status === 'APPROVED'">
-            <Button :label="t('kpi.complete')" icon="pi pi-check-circle" severity="success" size="small" :loading="completing" @click="completeEvaluation" />
-          </template>
         </div>
       </div>
     </template>
@@ -413,7 +410,6 @@ const rejectingTarget = ref(false)
 const submitting = ref(false)
 const approving = ref(false)
 const rejecting = ref(false)
-const completing = ref(false)
 const savingActuals = ref(false)
 const savingTargets = ref(false)
 
@@ -810,19 +806,6 @@ async function rejectEvaluation() {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
   } finally {
     rejecting.value = false
-  }
-}
-
-async function completeEvaluation() {
-  completing.value = true
-  try {
-    await api.post(`/api/v1/tenant/performance/kpi/evaluations/${evaluationId.value}/complete`)
-    await loadEvaluation()
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('kpi.evaluation_completed'), life: 3000 })
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
-  } finally {
-    completing.value = false
   }
 }
 

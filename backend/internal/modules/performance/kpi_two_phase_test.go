@@ -160,20 +160,14 @@ func TestService_TwoPhaseWorkflow_FullCycle(t *testing.T) {
 		t.Fatalf("expected TARGET_APPROVED after realization rejection, got %s", rejectedRealization.Status)
 	}
 
-	// Resubmit and approve to COMPLETED.
+	// Resubmit and approve — final approval on realization completes the
+	// evaluation directly, no separate manual "Complete" step needed.
 	if _, err := svc.SubmitEvaluation(ctx, evalID); err != nil {
 		t.Fatalf("re-SubmitEvaluation failed: %v", err)
 	}
-	finalApproved, err := svc.ApproveEvaluation(ctx, evalID)
+	completed, err := svc.ApproveEvaluation(ctx, evalID)
 	if err != nil {
 		t.Fatalf("ApproveEvaluation failed: %v", err)
-	}
-	if finalApproved.Status != "APPROVED" {
-		t.Fatalf("expected APPROVED, got %s", finalApproved.Status)
-	}
-	completed, err := svc.CompleteEvaluation(ctx, evalID)
-	if err != nil {
-		t.Fatalf("CompleteEvaluation failed: %v", err)
 	}
 	if completed.Status != "COMPLETED" {
 		t.Fatalf("expected COMPLETED, got %s", completed.Status)

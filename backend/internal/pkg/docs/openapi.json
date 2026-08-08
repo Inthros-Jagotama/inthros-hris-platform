@@ -33948,6 +33948,170 @@
           }
         }
       }
+    },
+    "/api/v1/tenant/performance/kpi/templates/organization-scope": {
+      "get": {
+        "operationId": "listKpiTemplateOrganizationScope",
+        "summary": "List KPI template organization scope",
+        "description": "Ambil daftar organisasi yang boleh dipilih saat membuat/mengedit KPI template — hanya organisasi turunan dari organisasi user (hierarki org), organisasi milik user sendiri tidak disertakan.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of selectable organizations for KPI template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrganizationOptionResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/kpi/periods/{period_id}/recalculate-scoring": {
+      "post": {
+        "operationId": "recalculatePeriodScoring",
+        "summary": "Recalculate period scoring (batch)",
+        "description": "Jalankan batch recalculation scoring untuk seluruh evaluasi dalam sebuah periode KPI (bottom-up subordinate scoring / akhir periode) lalu simpan hasilnya.",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [
+          {
+            "name": "period_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecalculatePeriodScoringResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/performance/okr/my-context": {
+      "get": {
+        "operationId": "getMyOkrContext",
+        "summary": "Get my OKR context",
+        "description": "Konteks OKR user saat ini: apakah punya posisi, employee/organization terkait, dan daftar template OKR yang tersedia (dipakai self-assessment).",
+        "tags": [
+          "Tenant: Performance Management"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyOKRContextResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenant/approval/active-flow": {
+      "get": {
+        "operationId": "getActiveFlowByModule",
+        "summary": "Get active approval flow by module",
+        "description": "Resolusi otomatis alur persetujuan aktif untuk sebuah module (?module=xxx) — dipakai consumer yang ingin auto-resolve flow tanpa memilih flow_id manual (mis. KPI self-assessment dua fase). Kembalikan flow aktif versi tertinggi; bila tidak ada flow khusus, fallback ke flow module dasar (mis. performance untuk performance_kpi_target).",
+        "tags": [
+          "Tenant: Approval"
+        ],
+        "parameters": [
+          {
+            "name": "module",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalFlowResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -50998,6 +51162,68 @@
             "format": "uuid",
             "nullable": true,
             "description": "ID approval flow yang dipakai; wajib saat routing ke approval engine"
+          }
+        }
+      },
+      "OrganizationOptionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "RecalculatePeriodScoringResponse": {
+        "type": "object",
+        "properties": {
+          "period_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total evaluasi di periode",
+            "example": 42
+          },
+          "processed": {
+            "type": "integer",
+            "description": "Jumlah evaluasi berhasil dihitung ulang",
+            "example": 41
+          },
+          "failed": {
+            "type": "integer",
+            "description": "Jumlah evaluasi gagal",
+            "example": 1
+          }
+        }
+      },
+      "MyOKRContextResponse": {
+        "type": "object",
+        "properties": {
+          "has_position": {
+            "type": "boolean",
+            "example": true
+          },
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organization_name": {
+            "type": "string"
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OKRTemplateResponse"
+            }
           }
         }
       }

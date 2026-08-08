@@ -3,9 +3,8 @@
 
 Finds endpoints registered in backend routes (performance Phase 2 KPI,
 tenant RBAC, settings competencies, user accounts, platform users/licenses,
-career intelligence paths delete, public setup-password, approval
-available-modules, employee movement submit) that are missing from the
-OpenAPI spec and documents them with request/response schemas.
+career intelligence paths delete, public setup-password,approval available-modules & active-flow, employee movement submit) that are
+missing from the OpenAPI spec and documents them with request/response schemas.
 
 Usage:
     python scripts/inject_missing_endpoints_openapi.py
@@ -400,6 +399,16 @@ add_path("/api/v1/tenant/approval/available-modules", {
     "get": op("listAvailableModules", "List available approval modules",
                "Ambil slug module yang aktif/disubscribe tenant — dipakai flow builder agar hanya menampilkan module yang tersedia.",
                TAG_APPROVAL, responses=responses_string_array("List of active module slugs")),
+})
+
+# =========================================================================
+# Approval — active flow by module
+# =========================================================================
+add_path("/api/v1/tenant/approval/active-flow", {
+    "get": op("getActiveFlowByModule", "Get active approval flow by module",
+               "Resolusi otomatis alur persetujuan aktif untuk sebuah module (?module=xxx) — dipakai consumer yang ingin auto-resolve flow tanpa memilih flow_id manual (mis. KPI self-assessment dua fase). Kembalikan flow aktif versi tertinggi; bila tidak ada flow khusus, fallback ke flow module dasar (mis. performance untuk performance_kpi_target).",
+               TAG_APPROVAL, parameters=[param("module", where="query", required=True, schema={"type": "string"})],
+               responses=responses_ok("ApprovalFlowResponse")),
 })
 
 # =========================================================================

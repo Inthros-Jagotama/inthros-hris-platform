@@ -94,6 +94,20 @@
         <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ t('approval.flows') }}</span>
       </template>
 
+      <!-- Breadcrumb: generic — driven by route.meta.backRoute/backLabelKey -->
+      <template v-else-if="showMetaBackBreadcrumb">
+        <Button
+          text
+          size="small"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          @click="goBackToMetaRoute"
+        >
+          {{ t(route.meta.backLabelKey) }}
+        </Button>
+        <i class="pi pi-chevron-right text-xs text-gray-300"></i>
+        <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">{{ route.meta?.titleKey ? t(route.meta.titleKey) : (route.meta?.title || '') }}</span>
+      </template>
+
       <!-- Normal page title -->
       <template v-else>
         <i class="pi pi-chevron-right text-sm text-gray-300"></i>
@@ -223,6 +237,15 @@ const showSettingsBreadcrumb = computed(() => {
 const showApprovalFlowsBreadcrumb = computed(() => {
   return route.name === 'ApprovalFlows'
 })
+
+/** Generic breadcrumb fallback for any route declaring backRoute/backLabelKey in its meta */
+const showMetaBackBreadcrumb = computed(() => {
+  return !!(route.meta?.backRoute && route.meta?.backLabelKey)
+})
+
+function goBackToMetaRoute() {
+  router.push(route.meta.backRoute)
+}
 
 function goBackToSummary() {
   router.push('/organization-summary')

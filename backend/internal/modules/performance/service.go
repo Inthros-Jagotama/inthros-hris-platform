@@ -2800,7 +2800,10 @@ func (s *Service) HandleRealizationApprovalStatusChange(ctx context.Context, doc
 	now := time.Now()
 	switch status {
 	case "APPROVED":
-		eval.Status = "APPROVED"
+		// Final approval on the realization checkpoint completes the
+		// evaluation outright — there's no separate manual "Complete" step
+		// once the last approver has signed off.
+		eval.Status = "COMPLETED"
 		eval.ApprovedAt = &now
 	case "REJECTED", "CANCELLED":
 		// Reverts to TARGET_APPROVED (not all the way to DRAFT) since the
@@ -2819,10 +2822,18 @@ func (s *Service) HandleRealizationApprovalStatusChange(ctx context.Context, doc
 		zap.String("evaluation_id", eval.ID.String()),
 		zap.String("approval_status", status),
 	)
-	return s.repo.UpdatePerformanceEvaluation(ctx, eval)
+	if err := s.repo.UpdatePerformanceEvaluation(ctx, eval); err != nil {
+		return err
+	}
+	if eval.Status == "COMPLETED" {
+		s.propagateSubordinateScoreUpwardBestEffort(ctx, eval)
+	}
+	return nil
 }
 
-// ApproveEvaluation changes status from SUBMITTED to APPROVED
+// ApproveEvaluation changes status from SUBMITTED directly to COMPLETED —
+// this is the final approval step for realization, so there's no separate
+// manual "Complete" action needed afterward.
 func (s *Service) ApproveEvaluation(ctx context.Context, evalID string) (*PerformanceEvaluationResponse, error) {
 	uid, err := uuid.Parse(evalID)
 	if err != nil {
@@ -2840,12 +2851,14 @@ func (s *Service) ApproveEvaluation(ctx context.Context, evalID string) (*Perfor
 
 	// Update status
 	now := time.Now()
-	eval.Status = "APPROVED"
+	eval.Status = "COMPLETED"
 	eval.ApprovedAt = &now
 
 	if err := s.repo.UpdatePerformanceEvaluation(ctx, eval); err != nil {
 		return nil, err
 	}
+
+	s.propagateSubordinateScoreUpwardBestEffort(ctx, eval)
 
 	return evaluationToResponse(eval), nil
 }
@@ -2906,11 +2919,16 @@ func (s *Service) CompleteEvaluation(ctx context.Context, evalID string) (*Perfo
 		return nil, err
 	}
 
-	// Propagate: this Organization's score is now eligible to count toward
-	// its effective supervisor's Subordinate KPI component. Recalculate up
-	// the chain (skipping vacant Organizations) all the way to the top.
-	// Best-effort — a hiccup recalculating an ancestor's score must not
-	// block this employee's own completion.
+	s.propagateSubordinateScoreUpwardBestEffort(ctx, eval)
+
+	return evaluationToResponse(eval), nil
+}
+
+// propagateSubordinateScoreUpwardBestEffort recalculates the effective
+// supervisor chain's Subordinate KPI component now that eval's Organization
+// just reached COMPLETED. Best-effort — a hiccup recalculating an ancestor's
+// score must not block the caller's own completion/approval action.
+func (s *Service) propagateSubordinateScoreUpwardBestEffort(ctx context.Context, eval *PerformanceEvaluation) {
 	if err := s.propagateSubordinateScoreUpward(ctx, eval.OrganizationID, eval.PeriodID); err != nil {
 		s.logger.Warn("failed to propagate subordinate score upward after evaluation completion",
 			zap.String("evaluation_id", eval.ID.String()),
@@ -2918,8 +2936,6 @@ func (s *Service) CompleteEvaluation(ctx context.Context, evalID string) (*Perfo
 			zap.Error(err),
 		)
 	}
-
-	return evaluationToResponse(eval), nil
 }
 
 // propagateSubordinateScoreUpward walks up the effective supervisor chain

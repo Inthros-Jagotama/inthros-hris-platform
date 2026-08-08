@@ -198,6 +198,13 @@ add_path(f"{B}/dashboard/hr", {
               TAG, responses=responses_plain("HR KPI dashboard data")),
 })
 
+# --- KPI Templates (organization scope) ---
+add_path(f"{B}/templates/organization-scope", {
+    "get": op("listKpiTemplateOrganizationScope", "List KPI template organization scope",
+              "Ambil daftar organisasi yang boleh dipilih saat membuat/mengedit KPI template — hanya organisasi turunan dari organisasi user (hierarki org), organisasi milik user sendiri tidak disertakan.",
+              TAG, responses=responses_array("OrganizationOptionResponse", "List of selectable organizations for KPI template")),
+})
+
 # --- Evaluation snapshot & full ---
 add_path(f"{B}/evaluations/snapshot", {
     "post": op("createKpiEvaluationWithSnapshot", "Create KPI evaluation with snapshot",
@@ -264,11 +271,10 @@ add_path(f"{B}/evaluations/{{id}}/actuals", {
 # =========================================================================
 
 # --- Performance Components (master data) ---
+# CATATAN: sejak KPI Phase 1 (commit 6b84dce, lock components) routes.go hanya
+# mendaftarkan GET /components, GET/PUT /components/{id} — POST & DELETE sudah
+# tidak ada di backend (komponen terkunci setelah dipakai evaluasi).
 add_path(f"{B}/components", {
-    "post": op("createKpiComponent", "Create performance component",
-               "Buat komponen scoring KPI (master data) — mis. KPI Target, Competency, Work Program.",
-               TAG, request_body=content("CreatePerformanceComponentRequest"),
-               responses=responses_created("PerformanceComponentResponse")),
     "get": op("listKpiComponents", "List performance components",
               "Ambil daftar komponen scoring KPI dengan pagination.",
               TAG, parameters=[qparam("page", {"type": "integer", "example": 1}), qparam("per_page", {"type": "integer", "example": 20})],
@@ -282,10 +288,13 @@ add_path(f"{B}/components/{{id}}", {
               "Perbarui kode, nama, deskripsi, urutan, atau status aktif komponen scoring.",
               TAG, parameters=[param("id")], request_body=content("UpdatePerformanceComponentRequest"),
               responses=responses_ok("PerformanceComponentResponse")),
-    "delete": op("deleteKpiComponent", "Delete performance component",
-                 "Hapus komponen scoring KPI.",
-                 TAG, parameters=[param("id")], responses=responses_plain("Performance component deleted")),
 })
+# Hapus phantom method POST/DELETE yang sempat terdokumentasi (tidak terdaftar
+# di routes.go) — script tetap idempoten.
+for _p, _m in ((f"{B}/components", "post"), (f"{B}/components/{{id}}", "delete")):
+    if _p in paths and _m in paths[_p]:
+        del paths[_p][_m]
+        print(f"  removed phantom {_m.upper()} {_p}")
 
 # --- Organization component weight configuration ---
 add_path(f"{B}/organization-components", {
@@ -326,11 +335,24 @@ add_path(f"{B}/evaluations/{{id}}/components/{{component_id}}", {
               request_body=content("UpdateEvaluationComponentScoreRequest"),
               responses=responses_ok("PerformanceEvaluationComponentResponse")),
 })
+add_path(f"{B}/periods/{{period_id}}/recalculate-scoring", {
+    "post": op("recalculatePeriodScoring", "Recalculate period scoring (batch)",
+               "Jalankan batch recalculation scoring untuk seluruh evaluasi dalam sebuah periode KPI (bottom-up subordinate scoring / akhir periode) lalu simpan hasilnya.",
+               TAG, parameters=[param("period_id")],
+               responses=responses_ok("RecalculatePeriodScoringResponse")),
+})
 
 # =========================================================================
 # 4. OKR BARU — seluruh endpoint sub-modul OKR
 # =========================================================================
 O = "/api/v1/tenant/performance/okr"
+
+# --- OKR Context ---
+add_path(f"{O}/my-context", {
+    "get": op("getMyOkrContext", "Get my OKR context",
+              "Konteks OKR user saat ini: apakah punya posisi, employee/organization terkait, dan daftar template OKR yang tersedia (dipakai self-assessment).",
+              TAG, responses=responses_ok("MyOKRContextResponse")),
+})
 
 # --- OKR Templates ---
 add_path(f"{O}/templates", {
@@ -549,16 +571,8 @@ add_path(f"{O}/dashboard/hr", {
 # =========================================================================
 new_schemas = {
     # --- Performance Component (Phase 5) ---
-    "CreatePerformanceComponentRequest": {
-        "type": "object", "required": ["code", "name"],
-        "properties": {
-            "code": {"type": "string", "maxLength": 50},
-            "name": {"type": "string", "maxLength": 100},
-            "description": {"type": "string"},
-            "sort_order": {"type": "integer"},
-            "is_active": {"type": "boolean", "example": True},
-        },
-    },
+    # CATATAN: CreatePerformanceComponentRequest sengaja TIDAK dibuat — sejak
+    # KPI Phase 1 (lock components) tidak ada endpoint create komponen.
     "UpdatePerformanceComponentRequest": {
         "type": "object",
         "properties": {
@@ -624,6 +638,32 @@ new_schemas = {
         "type": "object", "required": ["score"],
         "properties": {
             "score": {"type": "number", "minimum": 0, "maximum": 100},
+        },
+    },
+    "OrganizationOptionResponse": {
+        "type": "object",
+        "properties": {
+            "id": {"type": "string", "format": "uuid"},
+            "name": {"type": "string"},
+        },
+    },
+    "RecalculatePeriodScoringResponse": {
+        "type": "object",
+        "properties": {
+            "period_id": {"type": "string", "format": "uuid"},
+            "total": {"type": "integer", "description": "Total evaluasi di periode", "example": 42},
+            "processed": {"type": "integer", "description": "Jumlah evaluasi berhasil dihitung ulang", "example": 41},
+            "failed": {"type": "integer", "description": "Jumlah evaluasi gagal", "example": 1},
+        },
+    },
+    "MyOKRContextResponse": {
+        "type": "object",
+        "properties": {
+            "has_position": {"type": "boolean", "example": True},
+            "employee_id": {"type": "string", "format": "uuid"},
+            "organization_id": {"type": "string", "format": "uuid"},
+            "organization_name": {"type": "string"},
+            "templates": {"type": "array", "items": ref("OKRTemplateResponse")},
         },
     },
     # --- OKR Template ---

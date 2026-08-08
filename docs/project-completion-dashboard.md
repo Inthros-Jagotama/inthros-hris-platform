@@ -145,7 +145,7 @@
 |----------|-------------|:------:|
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
 | `docs/platform-architecture-design.md` | Architecture design (modular monolith, multi-tenant) | ✅ Complete |
-| `docs/openapi-report.md` | OpenAPI comprehensive report (v18) | ✅ v18 — 800 endpoints, 450 paths, 497 schemas, 32 tags |
+| `docs/openapi-report.md` | OpenAPI comprehensive report (v18) | ✅ v18 — 814 endpoints, 466 paths, 509 schemas, 32 tags |
 | `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ Updated with Settings module (130 entities, 550 service methods, 1029 tests) |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
@@ -211,8 +211,8 @@
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 802 endpoints |
-| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 802 endpoints |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 814 endpoints |
+| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 814 endpoints |
 | **RBAC Engine** | ✅ **Active** | 4 default roles, **98 permissions (24 resources)**, auto-reload |
 | **On-Premise License Engine** | ✅ **Ready** | `internal/pkg/onpremise/` — RSA `.lic` (expires_at, allowed_modules, max_employees); CLI `licensectl` (gen-key/gen-lic); mode `on_premise` via `HRIS_LICENSE_DEPLOYMENT_MODE` (dormant di mode saas default); lister alternatif PlatformLicenseMiddleware. **`max_employees` di-enforce di `Service.Create()` → 403 `QUOTA_EXCEEDED`** (toast bilingual FE `employee.quota_exceeded`) |
 | **Quota Audit (no bypass)** | ✅ **Audited** | Kuota terpusat di `Service.Create()` — satu-satunya pembuat Employee master. Payroll profiles / onboarding / employee-shift / sub-record TIDAK membuat Employee master (tidak perlu kuota). Frontend hanya 1 caller (`EmployeeForm.savePersonalData`). Jalur masa depan (batch import) otomatis kena kuota. *(Audit 31 Jul 2026)* |

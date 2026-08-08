@@ -1806,7 +1806,7 @@ POST /api/v1/platform/companies
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
 | ✅ | Project completion dashboard (14 modules, 1004+ tests, 148 tables) | `docs/project-completion-dashboard.md` |
-| ✅ | OpenAPI comprehensive report (800 endpoints, 450 paths, 497 schemas, 32 tags) | `docs/openapi-report.md` |
+| ✅ | OpenAPI comprehensive report (814 endpoints, 466 paths, 509 schemas, 32 tags) | `docs/openapi-report.md` |
 | ✅ | Go module architecture report (116 entities, 480 services, 1004 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
@@ -1900,7 +1900,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**802 endpoints**, 452 paths, 498 schemas, 32 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**814 endpoints**, 466 paths, 509 schemas, 32 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 
@@ -2100,7 +2100,7 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 | [`docs/database-schema.md`](docs/database-schema.md) | Struktur database & ERD — Platform DB (11 tabel) + Tenant DB (166 tabel), relasi FK, konvensi kolom |
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap (satu-satunya dokumen arsitektur) |
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v18 — 800 endpoints, 450 paths, 497 schemas, 32 tags) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (v18 — 814 endpoints, 466 paths, 509 schemas, 32 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (110 entities, 445 services, 831 tests) |
 | [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (14 modules, 939+ tests, 139 tables) |
 | [`docs/panduan-uiux-hris-enterprise.md`](docs/panduan-uiux-hris-enterprise.md) | Standar UI/UX enterprise (modal-first, high-density, prompt AI, warna badge) |

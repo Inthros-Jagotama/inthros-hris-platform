@@ -762,7 +762,9 @@ struktur dan penamaan ikuti pola yang sudah ada
 | Phase 1-4 | ✅ Completed | 2026-08-06 | Lihat [`docs/frontend-performance-kpi-plan.md`](frontend-performance-kpi-plan.md) untuk detail frontend |
 | Phase 5 - Scoring Configuration | ✅ Completed | 2026-08-07 | Backend: models, DTO, repository, service (scoring engine), handler, routes, migration |
 | Phase 6 - Seeder | ✅ Completed | 2026-08-07 | Default components (KPI, Work Program, Subordinate KPI) di-seed via `module.go` |
-| Phase 7 - Future Enhancement | ⏳ Pending | - | |
+| Phase 7 - Future Enhancement | 🔶 Partially completed | 2026-08-08 | Multi Level Approval selesai (lihat Phase 8); sisanya (Mid Year Review, Calibration, KPI Versioning, dst.) masih pending |
+| Phase 8 - Approval Integration & Two-Phase Target/Realization | ✅ Completed | 2026-08-08 | Lihat detail di bawah |
+| Phase 9 - Program Component, Bottom-Up Subordinate Scoring & OKR Self-Assessment | ✅ Completed | 2026-08-08 | Lihat detail di bawah |
 
 ## Phase 5 Deliverables
 
@@ -788,8 +790,89 @@ struktur dan penamaan ikuti pola yang sudah ada
 
 ## Frontend
 
-Belum diimplementasikan — perlu halaman baru untuk:
-- Master data Performance Components (CRUD)
-- Konfigurasi bobot komponen per Organization
-- Tampilan breakdown skor per komponen di halaman detail evaluasi KPI
-- Siap diintegrasikan dengan Competency Management, Career Path, Succession Planning, Talent Management, Bonus Management, dan Performance Improvement Plan (PIP).
+✅ Diimplementasikan:
+- `PerformanceComponentsView.vue` — master data Performance Components. Dikunci ke 3 komponen tetap (Indikator/KPI, Program, Kinerja Bawahan) — tombol New/Delete dihapus, hanya edit nama/deskripsi/urutan/is_active yang diizinkan.
+- `PerformanceScoringConfigView.vue` — konfigurasi bobot komponen per Organization.
+- Breakdown skor per komponen ditampilkan di `KPIEvaluationDetail.vue` (tabel "Scoring Components").
+
+---
+
+# Phase 8 - Approval Integration & Two-Phase Target/Realization
+
+## Objective
+
+Selaraskan proses approval KPI dengan modul `approval` terpusat (single source of truth untuk semua workflow approval lintas modul — lihat arsitektur approval module), dan mengubah alur pengajuan evaluasi karyawan menjadi dua tahap agar target disetujui atasan sebelum realisasi bisa diisi.
+
+## Status Machine (baru)
+
+```
+DRAFT → TARGET_SUBMITTED → TARGET_APPROVED → SUBMITTED → APPROVED → COMPLETED
+  ↑____________|                                  ↑___________|
+   (reject target)                                 (reject realization)
+```
+
+- **DRAFT**: karyawan mengisi target indikator (+ item Program bila komponen Program aktif untuk Organization-nya).
+- **TARGET_SUBMITTED → TARGET_APPROVED**: target diajukan ("Ajukan Target") dan disetujui/ditolak atasan via approval instance terpisah, module slug `performance_kpi_target`.
+- **TARGET_APPROVED**: karyawan mengisi aktual indikator + item Program.
+- **SUBMITTED → APPROVED → COMPLETED**: realisasi diajukan ("Ajukan Realisasi") dan disetujui/ditolak via approval instance terpisah, module slug `performance_kpi_realization`. Reject pada tahap ini kembali ke `TARGET_APPROVED` (bukan `DRAFT`), karena target sudah final.
+
+Kedua module slug di atas di-alias ke subscription module `performance` (lihat `subscriptionModuleAliases`/`subscriptionModuleSubslots` di `approval/service.go`) sehingga tenant hanya perlu subscribe modul `performance` biasa, dan flow approval bisa dikonfigurasi generik di bawah slug `performance` lalu otomatis dipakai kedua checkpoint (fallback resolusi via `GetActiveFlowByModule`).
+
+## Perilaku Kunci
+
+- **Hard-fail bila flow dikonfigurasi tapi gagal resolve** (mis. seluruh hierarki atasan vakan): submit ditolak, status TIDAK berubah. Fallback manual-approval (tanpa modul approval) HANYA berlaku bila memang tidak ada flow yang dikonfigurasi sama sekali.
+- **Walk-up hierarki organisasi**: bila atasan langsung vakan (tidak ada employment aktif), resolusi approver naik terus ke `parent_id` berikutnya sampai ketemu Organization terisi, atau gagal total bila mentok ke akar hierarki tanpa hasil (`resolveSupervisorAssignees` di `approval/service.go`).
+- **Zero-assignee guard**: `CreateInstance` di modul approval menolak instance yang landing di step dengan nol approver ter-resolve (dulu diam-diam membuat instance yang tidak bisa disetujui siapapun).
+- Field `target_approval_instance_id` / `realization_approval_instance_id` disimpan di `performance_evaluations` untuk melacak instance approval aktif per fase.
+
+## Program Component (baru)
+
+- `PerformanceEvaluationProgramItem` — sub-resource baru per evaluation (`performance_evaluation_program_items`), employee-authored (tidak dari template HR): title, weight, target, actual, formula_type, unit_of_measurement, score.
+- Total bobot item Program per evaluation dibatasi maksimal 100%.
+- Bisa diubah selama status masih `DRAFT` (fase target); actual hanya bisa diisi saat `TARGET_APPROVED`.
+- Skor komponen Program = jumlah (bukan rata-rata) skor seluruh item — simetris dengan cara komponen KPI dihitung dari total skor `evaluation_details`.
+
+## Template Simplification
+
+- `KPITemplateForm.vue` — kolom Target & Unit dihapus dari tabel indikator; HR hanya mendefinisikan perspective, title, weight, formula. Target kini murni input karyawan di fase Ajukan Target.
+- Dropdown Organization saat membuat template kini dibatasi hanya Organization di bawah hierarki milik karyawan pembuat (endpoint baru `GET /performance/kpi/templates/organization-scope`, walk-down descendant via `GetDescendantOrganizations`).
+
+## Save UX
+
+- Input Target dan Aktual di `KPIEvaluationDetail.vue` tidak lagi auto-save per field (on blur). Diganti tombol eksplisit **"Simpan Target"** / **"Simpan Aktual"** yang menyimpan seluruh baris indikator + item Program sekaligus dalam satu aksi.
+
+---
+
+# Phase 9 - Program Component, Bottom-Up Subordinate Scoring & OKR Self-Assessment
+
+## Total Score Formula (dikonfirmasi)
+
+```
+Final Score = (Total Skor Indikator × Bobot KPI)
+            + (Total Skor Program × Bobot Program)
+            + (Rata-rata Skor Bawahan yang COMPLETED × Bobot Kinerja Bawahan)
+```
+
+Total skor Indikator dan Program adalah **jumlah**, bukan rata-rata (`CalculateEvaluationComponentScoring` di `service.go`).
+
+## Bottom-Up Subordinate Scoring
+
+- **Walk-up/walk-down melompati Organization vakan**: `ResolveEffectiveSupervisorOrgID` (naik) dan `GetEffectiveChildOrganizationIDs` (turun) — bila Organization langsung di atas/bawah tidak punya employment aktif, resolusi lanjut ke level berikutnya, bukan berhenti/gagal di level pertama.
+- **Setiap bawahan efektif selalu ikut jadi pembagi rata-rata** (`GetAverageFinalScore`): yang `COMPLETED` memakai `final_score` aktualnya; yang belum `COMPLETED` — termasuk Organization yang sudah punya karyawan tapi belum pernah membuat target/evaluasi sama sekali — dihitung sebagai skor **0**, bukan dikecualikan dari rata-rata.
+- **Propagasi otomatis**: saat sebuah evaluasi `COMPLETED`, skor Subordinate seluruh atasan efektif di sepanjang hierarki (sampai paling atas) dihitung ulang otomatis (`CompleteEvaluation` → `propagateSubordinateScoreUpward`), best-effort (tidak memblokir completion karyawan sendiri bila gagal).
+- **Batch recalculation akhir periode**: endpoint `POST /performance/kpi/periods/:period_id/recalculate-scoring` + tombol "Hitung Ulang Skor" di halaman Performance Periods — menghitung ulang seluruh evaluasi dalam satu periode dari bawah ke atas hierarki (`RecalculatePeriodScoring`), untuk dipakai setelah periode penilaian berakhir.
+
+## OKR Self-Assessment
+
+- `GET /performance/okr/my-context` (backend) + `OKRSelfAssessment.vue` (frontend) di `/performance/okr/my-evaluation` — mirror dari alur self-assessment KPI yang sudah ada, memakai template OKR `status=1` (Active) milik Organization karyawan.
+
+## Dashboard & Navigasi
+
+- Sidebar: "Dashboard Kinerja" dipindah ke atas "KPI" pada submenu Performance.
+- `PerformanceIndex.vue` — menu card dikelompokkan: **Self-Assessment** (highlight, deskripsi detail), **KPI**, **OKR**, **Shared Settings** (Periods dipindah keluar dari grup KPI karena dipakai bersama KPI & OKR). Card Self-Assessment otomatis muted & non-klik bila karyawan belum punya posisi aktif atau belum ada template aktif untuk Organization-nya.
+- **Fix**: ringkasan (Quick Stats) di Dashboard Kinerja sempat selalu kosong karena hanya mencari Performance Period berstatus `active`, padahal Period baru default berstatus `draft`. Ditambahkan fallback `GetLatestPeriod` (Period terbaru apapun statusnya) pada Employee/Manager/HR dashboard.
+
+## Bug Fixes Terkait
+
+- `UpsertEvaluationComponent` menulis `CreatedAt` zero-value saat update (bukan create), menyebabkan error MySQL strict-mode `'0000-00-00'` pada `calculate-scoring` setelah komponen (mis. skor bawahan) pernah tersimpan sebelumnya — diperbaiki dengan mempertahankan `CreatedAt` asli dan `Updates()` kolom spesifik alih-alih `Save()` penuh.
+- Approve/Reject pada task approval sempat mengembalikan `403 Forbidden` untuk role Employee (default view-only) karena middleware RBAC generik mewajibkan permission `approval.create` — padahal otorisasi sebenarnya (assignee task pending) sudah divalidasi di `service.SubmitAction`. Endpoint `POST /approval/instances/:id/actions` dikecualikan dari blanket permission check tersebut.

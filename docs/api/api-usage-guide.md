@@ -5,7 +5,7 @@
 
 Panduan praktis **cara menggunakan API** HRIS Platform: dari menjalankan server, autentikasi, format request/response, sampai contoh pemanggilan end-to-end (curl).
 
-> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 802 endpoint + skema, lihat:
+> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 814 endpoint + skema, lihat:
 > - [`docs/openapi-report.md`](../openapi-report.md) — laporan komprehensif per modul
 > - `backend/internal/pkg/docs/openapi.json` — OpenAPI 3.0 spec (sumber kebenaran)
 
@@ -115,7 +115,7 @@ Setelah server jalan, dokumentasi API tersedia di:
 |---|---|
 | `http://localhost:8080/docs` | **Scalar UI** — explore & try endpoint langsung dari browser |
 | `http://localhost:8080/openapi.json` | OpenAPI 3.0 spec mentah (JSON) |
-| `docs/openapi-report.md` | Laporan markdown statis (800 endpoint, 450 paths, 497 schemas, 32 tag) |
+| `docs/openapi-report.md` | Laporan markdown statis (814 endpoint, 466 paths, 509 schemas, 32 tag) |
 
 ---
 
@@ -487,12 +487,32 @@ curl -X POST http://localhost:8080/api/v1/tenant/employees \
 Alur lengkap pengelolaan **OKR** dari membuat template sampai menyelesaikan evaluasi. Semua endpoint berada di `/api/v1/tenant/performance/okr/*` dan memerlukan `Authorization: Bearer <tenant_token>`.
 
 ```
-Template OKR → Objective → Key Result → Evaluasi (snapshot) → Input Actual → Workflow → Dashboard HR
+Cek Konteks → Template OKR → Objective → Key Result → Evaluasi (snapshot) → Input Actual → Workflow → Dashboard HR
 ```
 
 > **Prasyarat:** `TENANT_TOKEN` dari login tenant (lihat Step 3 di 8.1), serta UUID `organization_id`, `period_id` (performance period), dan `employee_id` yang sudah ada.
 
-**Step 1 — Buat OKR template:**
+**Step 1 — Cek konteks OKR & template aktif untuk user saat ini (self-assessment):**
+
+Sebelum membuat evaluasi, employee dapat mengecek konteksnya: apakah sudah memiliki posisi (employment) aktif, berada di organisasi mana, dan template OKR **aktif** apa saja yang tersedia untuk organisasi tersebut:
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/performance/okr/my-context" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": {
+#     "has_position": true,
+#     "employee_id": "<employee-uuid>",
+#     "organization_id": "<org-uuid>",
+#     "organization_name": "PT Contoh Sejahtera",
+#     "templates": [
+#       { "id": "<template-uuid>", "name": "OKR Sales Team — Q3 2026", "status": 1, "period_code": "2026-Q3" }
+#     ]
+#   } }
+```
+
+> `has_position: false` berarti user belum memiliki posisi aktif — evaluasi OKR belum bisa dimulai. Self-assessment hanya memungkinkan setelah ada template **aktif** (`status = 1`) untuk organisasi posisi terakhir user. Mirip dengan `my-context` di modul KPI.
+
+**Step 2 — Buat OKR template:**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/templates \
@@ -523,7 +543,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/templates \
 }
 ```
 
-**Step 2 — Buat objective di dalam template:**
+**Step 3 — Buat objective di dalam template:**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/objectives \
@@ -537,7 +557,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/objectives \
   }'
 ```
 
-**Step 3 — Buat key result di dalam objective (target terukur):**
+**Step 4 — Buat key result di dalam objective (target terukur):**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/key-results \
@@ -558,7 +578,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/key-results \
 > Ulangi untuk key result lain (mis. `PERCENTAGE` untuk "Growth pelanggan baru 20%"). Verifikasi isi template:
 > `GET /api/v1/tenant/performance/okr/templates/<template-uuid>/objectives`
 
-**Step 4 — Buat evaluasi OKR untuk employee (snapshot dari template):**
+**Step 5 — Buat evaluasi OKR untuk employee (snapshot dari template):**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations \
@@ -592,7 +612,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations \
 }
 ```
 
-**Step 5 — Input nilai aktual (actual) secara massal:**
+**Step 6 — Input nilai aktual (actual) secara massal:**
 
 Ambil UUID detail dari `GET /api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>` lalu kirim nilai realisasi:
 
@@ -607,7 +627,7 @@ curl -X PUT http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<eva
   }'
 ```
 
-**Step 6 — Hitung ulang skor (bisa diulang kapan saja):**
+**Step 7 — Hitung ulang skor (bisa diulang kapan saja):**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<evaluation-uuid>/recalculate \
@@ -615,7 +635,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<ev
 # → achievement & final_score dihitung ulang dari actual vs target + formula tiap key result
 ```
 
-**Step 7 — Workflow status (DRAFT → SUBMITTED → APPROVED → COMPLETED):**
+**Step 8 — Workflow status (DRAFT → SUBMITTED → APPROVED → COMPLETED):**
 
 ```bash
 # Employee mengajukan evaluasi
@@ -637,7 +657,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/okr/evaluations/<ev
   -H "Authorization: Bearer $TENANT_TOKEN"
 ```
 
-**Step 8 — Lihat dashboard OKR HR (ringkasan seluruh evaluasi):**
+**Step 9 — Lihat dashboard OKR HR (ringkasan seluruh evaluasi):**
 
 ```bash
 curl "http://localhost:8080/api/v1/tenant/performance/okr/dashboard/hr?period_id=<period-uuid>" \
@@ -662,7 +682,7 @@ curl "http://localhost:8080/api/v1/tenant/performance/okr/dashboard/hr?period_id
 Alur lengkap pengelolaan **KPI (Balanced Scorecard)** dari perspektif sampai dashboard & scoring komponen. Semua endpoint berada di `/api/v1/tenant/performance/kpi/*` dan memerlukan `Authorization: Bearer <tenant_token>`.
 
 ```
-Perspektif BSC → Template KPI → Indikator → Evaluasi (snapshot) → Input Actual → Workflow → Dashboard → Scoring Komponen
+Perspektif BSC → Template KPI (scope org) → Indikator → Evaluasi (snapshot) → Input Actual → Workflow → Dashboard → Scoring (per evaluasi & batch)
 ```
 
 > **Prasyarat:** `TENANT_TOKEN` dari login tenant (lihat Step 3 di 8.1), serta UUID `organization_id`, `period_id` (performance period), dan `employee_id` yang sudah ada.
@@ -713,7 +733,22 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/templates \
 }
 ```
 
-**Step 3 — Buat indikator KPI di dalam template** (linked ke perspektif):
+**Step 3 — (Opsional) Lihat opsi organisasi untuk scoped template:**
+
+Saat menyiapkan template KPI yang dibatasi pada organisasi turunan (sebelum mengisi `organization_id` pada Step 2), HR dapat mengambil daftar organisasi yang boleh dipilih — hanya organisasi **di bawah** organisasi milik user saat ini (hierarki `ParentID`):
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/performance/kpi/templates/organization-scope" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": [
+#     { "id": "<child-org-uuid>", "name": "Divisi Penjualan" },
+#     { "id": "<child-org-uuid>", "name": "Cabang Surabaya" }
+#   ] }
+```
+
+> Organisasi milik user sendiri **tidak** disertakan — hanya turunannya. Array kosong jika user tidak memiliki organisasi turunan.
+
+**Step 4 — Buat indikator KPI di dalam template** (linked ke perspektif):
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/indicators \
@@ -735,7 +770,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/indicators \
 
 > `indicator_type` hanya `MAXIMIZATION` / `MINIMIZATION`; `formula_type`: `MANUAL` / `HIGHER_BETTER` / `LOWER_BETTER` / `RANGE`. Ulangi untuk indikator lain (mis. `MINIMIZATION` untuk "Keluhan pelanggan").
 
-**Step 4 — Buat evaluasi KPI untuk employee (snapshot dari template):**
+**Step 5 — Buat evaluasi KPI untuk employee (snapshot dari template):**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/evaluations/snapshot \
@@ -771,7 +806,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/evaluations/sna
 }
 ```
 
-**Step 5 — Input nilai aktual (actual) secara massal:**
+**Step 6 — Input nilai aktual (actual) secara massal:**
 
 Ambil UUID detail dari `GET /api/v1/tenant/performance/kpi/evaluations/<evaluation-uuid>/full` lalu kirim nilai realisasi:
 
@@ -786,7 +821,7 @@ curl -X PUT http://localhost:8080/api/v1/tenant/performance/kpi/evaluations/<eva
   }'
 ```
 
-**Step 6 — Hitung ulang skor (bisa diulang kapan saja):**
+**Step 7 — Hitung ulang skor (bisa diulang kapan saja):**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/evaluations/<evaluation-uuid>/recalculate \
@@ -794,7 +829,22 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/evaluations/<ev
 # → achievement & final_score dihitung ulang dari actual vs target + formula tiap indikator
 ```
 
-**Step 7 — Workflow status (2-tahap: plan dulu, lalu actual):**
+**Step 8 — Hitung ulang skor seluruh evaluasi dalam satu period (batch):**
+
+Untuk re-kalkulasi massal (mis. setelah mengubah formula atau bobot komponen), jalankan batch scoring untuk **semua** evaluasi di sebuah period:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/periods/<period-uuid>/recalculate-scoring \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": {
+#     "period_id": "<period-uuid>",
+#     "total": 42, "processed": 41, "failed": 1
+#   } }
+```
+
+> `total` = jumlah evaluasi dalam period; `processed` = berhasil dihitung ulang; `failed` = gagal (mis. evaluasi tanpa komponen scoring aktif). Berbeda dengan `POST /evaluations/:id/calculate-scoring` yang hanya menghitung satu evaluasi.
+
+**Step 9 — Workflow status (2-tahap: plan dulu, lalu actual):**
 
 ```bash
 # 1) Employee mengajukan rencana KPI
@@ -831,7 +881,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/performance/kpi/evaluations/<ev
 
 > Alternatif manual: `PUT /api/v1/tenant/performance/kpi/evaluations/<id>/status` dengan body `{ "status": "PLAN_APPROVED", "notes": "..." }` untuk transisi status langsung (nilai `status`: `DRAFT`, `PLAN_SUBMITTED`, `PLAN_APPROVED`, `ACTUAL_SUBMITTED`, `ACTUAL_APPROVED`, `COMPLETED`).
 
-**Step 8 — Lihat dashboard KPI:**
+**Step 10 — Lihat dashboard KPI:**
 
 ```bash
 # Dashboard employee (progress KPI sendiri)
@@ -847,7 +897,7 @@ curl "http://localhost:8080/api/v1/tenant/performance/kpi/dashboard/hr?period_id
   -H "Authorization: Bearer $TENANT_TOKEN"
 ```
 
-**Step 9 — Konfigurasi komponen scoring (Phase 5):**
+**Step 11 — Konfigurasi komponen scoring (Phase 5):**
 
 Komponen scoring memecah nilai evaluasi menjadi beberapa komponen (mis. `KPI Target`, `Competency`, `Work Program`) dengan bobot yang bisa diatur per organisasi, lalu dihitung oleh scoring engine.
 
@@ -944,7 +994,21 @@ curl -X POST http://localhost:8080/api/v1/tenant/approval/flows \
 # → { "success": true, "data": { "id": "<flow-uuid>", "module": "employeemovement", ... } }
 ```
 
-**Step 3 — Buat draft movement (promosi):**
+**Step 3 — (Opsional) Resolusi otomatis flow aktif per module:**
+
+Alih-alih memilih `flow_id` secara manual, konsumen yang butuh auto-resolution (mis. submission KPI/OKR dua tahap) dapat meminta flow aktif untuk sebuah module:
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/approval/active-flow?module=performance_kpi_target" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": {
+#     "id": "<flow-uuid>", "module": "performance", "name": "Performance Approval", "version": 1, "is_active": true, "steps": [...]
+#   } }
+```
+
+> Parameter `module` **wajib**. Jika tidak ada flow spesifik untuk sub-checkpoint (mis. `performance_kpi_target`), sistem otomatis **fallback** ke flow module induk (`performance`) hingga flow khusus dibuat — satu flow cukup untuk mencakup semua checkpoint di bawahnya.
+
+**Step 4 — Buat draft movement (promosi):**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/employee-movements/movements \
@@ -963,7 +1027,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/employee-movements/movements \
 # → { "success": true, "data": { "id": "<movement-uuid>", "status": "draft", ... } }
 ```
 
-**Step 4 — Submit movement ke approval engine:**
+**Step 5 — Submit movement ke approval engine:**
 
 ```bash
 # Hanya movement berstatus draft yang bisa di-submit; flow_id wajib diisi
@@ -974,7 +1038,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/employee-movements/movements/<m
 # → { "success": true, "data": { "id": "<movement-uuid>", "status": "pending_approval", "approval_instance_id": "<instance-uuid>", ... } }
 ```
 
-**Step 5 — Approver menyetujui via approval engine:**
+**Step 6 — Approver menyetujui via approval engine:**
 
 ```bash
 # (Opsional) Cek task pending untuk user approver
@@ -988,7 +1052,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/approval/instances/<instance-uu
   -d '{ "action": "APPROVE", "note": "Disetujui" }'
 ```
 
-**Step 6 — (Opsional) Eksekusi movement setelah disetujui:**
+**Step 7 — (Opsional) Eksekusi movement setelah disetujui:**
 
 ```bash
 # Setelah status approved, HR mengeksekusi perpindahan (update employment efektif)
