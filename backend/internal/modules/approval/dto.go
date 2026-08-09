@@ -145,6 +145,16 @@ type TaskResponse struct {
 	AssigneeType string `json:"assignee_type"`
 	AssigneeID   string `json:"assignee_id"`
 	Status       string `json:"status"`
+	// ParticipationType is the owning step's participation_type (APPROVER/
+	// WATCHER) — the FE uses this to avoid showing a raw task status like
+	// "PENDING" for a watcher row, which reads as an actionable item even
+	// though watchers have no approve/reject action.
+	ParticipationType string `json:"participation_type,omitempty"`
+	// InstanceStatus is the overall approval instance's status (PENDING/
+	// APPROVED/REJECTED/CANCELLED) as of now — for a WATCHER row this is the
+	// more meaningful "status" to display, since the task's own PENDING
+	// status doesn't reflect what's actually happened in the flow.
+	InstanceStatus string `json:"instance_status,omitempty"`
 	// Submitter* describe whoever created the instance this task belongs to.
 	SubmitterName             string    `json:"submitter_name,omitempty"`
 	SubmitterEmployeeCode     string    `json:"submitter_employee_code,omitempty"`

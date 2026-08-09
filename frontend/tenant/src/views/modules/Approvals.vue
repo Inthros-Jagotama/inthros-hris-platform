@@ -44,7 +44,7 @@
       </Column>
       <Column field="status" :header="t('common.status')" style="width:120px">
         <template #body="{data}">
-          <Tag :value="data.status" severity="warn" class="!text-xs" />
+          <Tag :value="rowStatusLabel(data)" :severity="rowStatusSeverity(data)" class="!text-xs" />
         </template>
       </Column>
       <Column field="created_at" :header="t('approval.submitted_at')" style="width:160px">
@@ -335,6 +335,29 @@ const noteError = ref('')
 const actionSubmitting = ref(false)
 const documentDetail = ref(null)
 const documentLoading = ref(false)
+
+// rowStatusLabel/rowStatusSeverity — for a WATCHER row, the task's own
+// status is always PENDING (visible-but-not-actionable, see backend fix),
+// which reads as ambiguous ("pending what? there's no approve/reject here").
+// Watchers show the underlying instance's actual approval status instead —
+// what the approver(s) have actually decided so far.
+function rowStatusLabel(row) {
+  if (row.participation_type === 'WATCHER' && row.instance_status) {
+    return row.instance_status
+  }
+  return row.status
+}
+function rowStatusSeverity(row) {
+  if (row.participation_type === 'WATCHER' && row.instance_status) {
+    switch (row.instance_status) {
+      case 'APPROVED': return 'success'
+      case 'REJECTED': return 'danger'
+      case 'CANCELLED': return 'secondary'
+      default: return 'warn'
+    }
+  }
+  return 'warn'
+}
 
 const activeTaskIsWatcher = computed(() => {
   if (!activeInstance.value || !activeTaskRef.value) return false

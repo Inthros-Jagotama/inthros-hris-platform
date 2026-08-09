@@ -719,6 +719,23 @@ func TestService_SubmitAction_Approve_WatcherStepBecomesVisibleAfterStep1(t *tes
 	if watcherTasks.Total != 1 {
 		t.Fatalf("expected 1 visible task for the watcher after step1 approval, got %d", watcherTasks.Total)
 	}
+
+	// The row must be enriched with participation_type=WATCHER and the
+	// instance's real status, so the FE can avoid showing an ambiguous
+	// "PENDING" tag (task PENDING doesn't mean there's an approve/reject
+	// action available to a watcher — the FE displays instance_status
+	// instead for WATCHER rows).
+	watcherTaskList, ok := watcherTasks.Data.([]TaskResponse)
+	if !ok || len(watcherTaskList) != 1 {
+		t.Fatalf("expected 1 TaskResponse for the watcher, got %+v", watcherTasks.Data)
+	}
+	watcherRow := watcherTaskList[0]
+	if watcherRow.ParticipationType != string(ParticipationTypeWatcher) {
+		t.Errorf("expected participation_type WATCHER, got %q", watcherRow.ParticipationType)
+	}
+	if watcherRow.InstanceStatus != string(InstanceStatusApproved) {
+		t.Errorf("expected instance_status APPROVED, got %q", watcherRow.InstanceStatus)
+	}
 }
 
 func TestService_SubmitAction_Approve_Step1MultipleApprovers_AllMode(t *testing.T) {

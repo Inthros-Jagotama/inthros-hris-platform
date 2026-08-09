@@ -915,17 +915,28 @@ func (s *Service) ListMyPendingTasks(ctx context.Context, userID string, page, p
 	if err != nil {
 		return nil, err
 	}
+	stepsByFlow, err := s.repo.GetStepsByFlowIDs(ctx, flowIDs)
+	if err != nil {
+		return nil, err
+	}
 
 	var responses []TaskResponse
 	for _, t := range tasks {
 		r := t.ToResponse()
 		if inst, ok := instances[r.InstanceID]; ok {
 			r.FlowName = flowNames[inst.FlowID.String()]
+			r.InstanceStatus = string(inst.Status)
 			if inst.CreatedBy != nil {
 				if sub, ok := submitters[inst.CreatedBy.String()]; ok {
 					r.SubmitterName = sub.Name
 					r.SubmitterEmployeeCode = sub.EmployeeCode
 					r.SubmitterOrganizationName = sub.OrganizationName
+				}
+			}
+			for _, step := range stepsByFlow[inst.FlowID.String()] {
+				if step.StepOrder == t.StepOrder {
+					r.ParticipationType = string(step.ParticipationType)
+					break
 				}
 			}
 		}

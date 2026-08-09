@@ -189,6 +189,30 @@ func (r *Repository) ListStepsByFlowID(ctx context.Context, flowID uuid.UUID) ([
 	return steps, nil
 }
 
+// GetStepsByFlowIDs batch-fetches steps for multiple flows at once, keyed by
+// flow ID — used to enrich a task list with each task's step config
+// (participation_type) without an N+1 query per row.
+func (r *Repository) GetStepsByFlowIDs(ctx context.Context, flowIDs []uuid.UUID) (map[string][]ApprovalFlowStep, error) {
+	result := make(map[string][]ApprovalFlowStep, len(flowIDs))
+	if len(flowIDs) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var steps []ApprovalFlowStep
+	if err := db.Where("flow_id IN ? AND deleted_at IS NULL", flowIDs).
+		Order("step_order ASC").Find(&steps).Error; err != nil {
+		return nil, fmt.Errorf("failed to list steps: %w", err)
+	}
+	for _, s := range steps {
+		key := s.FlowID.String()
+		result[key] = append(result[key], s)
+	}
+	return result, nil
+}
+
 func (r *Repository) GetMaxStepOrder(ctx context.Context, flowID uuid.UUID) (int, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
