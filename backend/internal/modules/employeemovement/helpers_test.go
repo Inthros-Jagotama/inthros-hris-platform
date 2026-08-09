@@ -51,6 +51,12 @@ func newTestService() (*Service, *Repository, func()) {
 	}
 }
 
+// testLogger returns a zap logger for tests that need one.
+func testLogger() *zap.Logger {
+	logger, _ := zap.NewDevelopment()
+	return logger
+}
+
 // createTestMovement inserts a test employee movement for the given employee.
 func createTestMovement(repo *Repository, employeeID uuid.UUID) *EmployeeMovement {
 	ctx := context.Background()
@@ -93,6 +99,11 @@ func uuidStr() string {
 // strPtr returns a pointer to the given string.
 func strPtr(s string) *string {
 	return &s
+}
+
+// ptrUUID returns a pointer to the given UUID.
+func ptrUUID(u uuid.UUID) *uuid.UUID {
+	return &u
 }
 
 // intPtr returns a pointer to the given int.

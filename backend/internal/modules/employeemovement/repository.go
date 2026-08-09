@@ -235,19 +235,26 @@ func (r *Repository) ApproveMovement(ctx context.Context, id uuid.UUID, approved
 	return nil
 }
 
-func (r *Repository) ExecuteMovement(ctx context.Context, id uuid.UUID, executedBy uuid.UUID) error {
+// ExecuteMovement menandai movement sebagai executed. Bila toEmploymentID
+// tidak nil, to_employment_id ikut dipersist (hasil eksekusi G-1: employment
+// baru yang dibuat dari to_* fields movement).
+func (r *Repository) ExecuteMovement(ctx context.Context, id uuid.UUID, executedBy uuid.UUID, toEmploymentID *uuid.UUID) error {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return err
 	}
 	now := time.Now()
+	updates := map[string]interface{}{
+		"status":      MovementStatusExecuted,
+		"executed_by": executedBy.String(),
+		"executed_at": now,
+	}
+	if toEmploymentID != nil {
+		updates["to_employment_id"] = toEmploymentID.String()
+	}
 	result := db.Model(&EmployeeMovement{}).
 		Where("id = ? AND status = ?", id, MovementStatusApproved).
-		Updates(map[string]interface{}{
-			"status":      MovementStatusExecuted,
-			"executed_by": executedBy.String(),
-			"executed_at": now,
-		})
+		Updates(updates)
 	if result.Error != nil {
 		return fmt.Errorf("failed to execute movement: %w", result.Error)
 	}

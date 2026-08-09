@@ -140,6 +140,64 @@ backend/internal/pkg/migrator/migrations/tenant/postgres/082_employeemovement_st
 - `TestMigratorIntegration/MySQL` **PASS** (mencakup up + down 082 di database bersih) ✅
 - Catatan: Postgres lokal tidak aktif saat validasi — no-op aman, diverifikasi saat server Postgres tersedia.
 
+## 3.5 Log Implementasi — Langkah 2 ✅ (G-1 ExecuteMovement transaksi employment)
+
+> Implementasi selesai **2026-08-10**. Referensi untuk langkah-langkah berikut.
+
+### 3.5.1 Interface narrow + adapter
+
+- `employeemovement.CareerExecutor` (interface di `service.go`): `FindCurrentEmployment`, `CloseEmployment`, `CreateEmployment`, `SetEmployeeInactive` + data holder `CareerEmployment` (berisi `ID` yang hanya terisi saat `FindCurrentEmployment`, serta `to_*` fields) — **tanpa import modul employee** (hanya `uuid`).
+- `employeeCareerAdapter` di `cmd/server/main.go` membungkus **instance `employee.Repository` terpisah** (pola sama dengan `setting.Service` untuk holiday leave) dan di-wire via `employeeMovementSvc.SetCareerExecutor(...)` sebelum module di-mount.
+
+### 3.5.2 Perubahan kode
+
+| File | Perubahan |
+|---|---|
+| `employeemovement/service.go` | Interface `CareerExecutor` + `SetCareerExecutor`; `ExecuteMovement` = fetch movement → validasi `approved` → HR data change per tipe → `repo.ExecuteMovement` (status `executed`) |
+| `employeemovement/repository.go` | `ExecuteMovement(ctx, id, executedBy, toEmploymentID *uuid.UUID)` — `to_employment_id` di-persist hanya jika tidak nil |
+| `employee/repository.go` | +`FindActiveEmploymentByEmployeeID` (end_date NULL, terbaru), +`CloseEmployment` (guard `effective_end_date IS NULL`), +`SetEmployeeStatus` (update status saja, hindari Preload berat) |
+| `cmd/server/main.go` | +`employeeCareerAdapter` (4 method) + wiring `SetCareerExecutor` |
+| `service_test.go`, `repository_test.go`, `helpers_test.go` | fake executor + 2 integration test (promotion & offboarding, repo employee nyata + adapter, SQLite) + `dayBefore` test + helper `ptrUUID`/`uuidPtr`/`dateStartsWith`/`testLogger` |
+
+### 3.5.3 Perilaku per tipe movement
+
+| Tipe | Perubahan HR data saat execute |
+|---|---|
+| `promotion`, `demotion`, `mutation`, `status_change`, `other` | Tutup employment aktif (`end = effective_date - 1`) → buat employment baru (`to_*` + SK + effective_date) → `to_employment_id` di-persist di movement |
+| `offboarding`, `retirement` | Tutup employment aktif, **tanpa** employment baru; employee di-set `status = inactive` |
+| `contract_extension` | Tanpa perubahan employment (hanya status movement) |
+
+`effective_date` boleh masa depan (§11.2): employment baru disimpan dengan tanggal tsb, yang lama aktif sampai sehari sebelumnya. `dayBefore` menangani format plain date (`YYYY-MM-DD`) maupun RFC3339 (driver MySQL/SQLite).
+
+### 3.5.4 Catatan & tradeoff
+
+- **Non-transaksional lintas modul** (pola leave→attendance): jika langkah tengah gagal, movement tetap `approved` (retry oleh HR). Konsekuensi & mitigasi didokumentasikan di catatan §G-1.
+- `CloseEmployment` tidak akan menimpa employment yang sudah tertutup (guard `effective_end_date IS NULL`).
+- `other` diperlakukan sebagai perubahan kepegawaian (buat employment baru) — keputusan yang bisa ditinjau ulang.
+
+### 3.5.5 Validasi
+
+- `go build ./...` ✅ · `go vet` (cmd/server, employeemovement, employee) ✅
+- `go test` employeemovement / employee / approval — semua **PASS** ✅
+- Integration test (repo nyata + adapter, SQLite): promotion → employment lama `effective_end_date = 2026-07-31`, employment baru terisi `to_*` fields, `to_employment_id` persist di movement; offboarding → employment tertutup tanpa yang baru + employee `inactive` ✅
+- E2E via API tidak dieksekusi penuh (akun admin tenant untuk permission `employeemovement.*` belum tersedia saat validasi) — alur diverifikasi via integration test setara.
+
+## 3.6 Log Implementasi — Langkah 3 ✅ (G-3 auto-resolve flow)
+
+> Implementasi selesai **2026-08-10**. Referensi untuk langkah-langkah berikut.
+
+### 3.6.1 Perubahan
+
+- `employeemovement/service.go`:
+  - Interface `ApprovalEngine` + method **`GetActiveFlowIDForModule(ctx, module string) (string, error)`** (pola sama leave/attendance).
+  - `SubmitMovement` di-refactor: bila client tidak mengirim `flow_id`, flow aktif module `"employeemovement"` di-auto-resolve. Prioritas: `flow_id` eksplisit → auto-resolve → error bila keduanya kosong (`approval flow not configured: provide flow_id or activate an approval flow for module employeemovement`).
+- `approval_integration_test.go`: fake engine + `GetActiveFlowIDForModule` (resolvedFlowID/resolvedFlowErr/resolveCalls); test lama `NoFlowID_ReturnsError` diganti 3 test baru: **NoFlowID_AutoResolves** (flow ter-resolve dipakai), **NoFlowResolved_ReturnsError** (flow kosong → error), **ExplicitFlowID_BeatsAutoResolve** (flow_id eksplisit menang, auto-resolve tidak dipanggil).
+- `cmd/server/main.go`: **tanpa perubahan** — `sharedApprovalEngine` (payrollApprovalAdapter) sudah mengimplementasi `GetActiveFlowIDForModule` → otomatis memenuhi interface baru.
+
+### 3.6.2 Validasi
+
+- `go build ./...` ✅ · `go test ./internal/modules/employeemovement/` ✅
+
 ---
 
 # 4. Gap Analysis & Backend Enhancement Plan
@@ -156,6 +214,8 @@ backend/internal/pkg/migrator/migrations/tenant/postgres/082_employeemovement_st
 3. **`effective_date` boleh di masa depan** (keputusan §11.2): employment baru disimpan dengan `effective_date` tersebut, employment lama tetap aktif sampai `effective_date - 1`.
 4. Tipe khusus: `contract_extension` → hanya update kontrak (lihat G-6); `offboarding`/`retirement` → tutup employment aktif **dan tandai employee non-aktif** (`is_active = false` — keputusan §11.3).
 5. Eksekusi tetap **manual oleh HR** via tombol Execute (keputusan §11.1); scheduler otomatis = fase berikutnya (opsional).
+
+> ⚠️ **Catatan implementasi (2026-08-10)**: `ExecuteMovement` memakai pola adapter **non-transaksional lintas modul** (sama dengan leave→attendance) — `CreateEmployment`/`CloseEmployment`/`SetEmployeeInactive` berjalan di koneksi terpisah dari update status movement. Jika langkah tengah gagal, movement tetap `approved` sehingga HR bisa retry; konsekuensi: bila gagal setelah employment baru dibuat, ada employment baru tanpa movement `executed` (retry bisa membuat employment ganda — mitigasi: operator cek sebelum retry). `CloseEmployment` dilengkapi guard `effective_end_date IS NULL` agar tidak menimpa employment yang sudah tertutup. Tipe `other` diperlakukan sebagai perubahan kepegawaian (buat employment baru) — keputusan ini bisa ditinjau ulang di §11.
 
 ## G-2 🟠 TIDAK ADA NOTIFIKASI
 
@@ -330,8 +390,8 @@ i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama
 | # | Item | Area | Ketergantungan |
 |---|---|---|---|
 | 1 | **Migration + enum status `rejected`** (mysql+postgres) + model `MovementStatusRejected` — ✅ **SELESAI (2026-08-10, migration 082)** | BE | — |
-| 2 | G-1 ExecuteMovement transaksi employment + adapter (termasuk employee `is_active=false` utk offboarding/retirement) | BE | 1 |
-| 3 | G-3 auto-resolve flow (`GetActiveFlowIDForModule`) | BE | approval engine |
+| 2 | G-1 ExecuteMovement transaksi employment + adapter (termasuk employee `is_active=false` utk offboarding/retirement) — ✅ **SELESAI (2026-08-10)** | BE | 1 |
+| 3 | G-3 auto-resolve flow (`GetActiveFlowIDForModule`) — ✅ **SELESAI (2026-08-10)** | BE | approval engine |
 | 4 | G-4 enriched responses (nama employee/org/posisi/status) | BE | — |
 | 5 | G-2 notifikasi `MOVEMENT_*` (i18n + wiring; REJECTED → status `rejected`) | BE | 1 |
 | 6 | G-5 hapus endpoint approve manual + service `ApproveMovement` + test | BE | — |

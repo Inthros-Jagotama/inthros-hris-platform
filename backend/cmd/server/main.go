@@ -113,6 +113,59 @@ func (a *payrollApprovalAdapter) CancelApprovalInstance(ctx context.Context, ins
 	return a.approvalSvc.CancelInstance(ctx, instanceID)
 }
 
+// employeeCareerAdapter implements employeemovement.CareerExecutor using the
+// employee repository, so ExecuteMovement can push real HR data changes
+// (new employment, closed previous employment, inactive offboarded employee)
+// without employeemovement importing the employee module (plan G-1).
+type employeeCareerAdapter struct {
+	repo *employee.Repository
+}
+
+func (a employeeCareerAdapter) FindCurrentEmployment(ctx context.Context, employeeID uuid.UUID) (*employeemovement.CareerEmployment, error) {
+	e, err := a.repo.FindActiveEmploymentByEmployeeID(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+	if e == nil {
+		return nil, nil
+	}
+	out := &employeemovement.CareerEmployment{
+		ID:                   e.ID,
+		DecisionLetterNumber: e.DecisionLetterNumber,
+		DecisionLetterDate:   e.DecisionLetterDate,
+		EffectiveDate:        e.EffectiveDate,
+	}
+	out.OrganizationID = e.OrganizationID
+	out.PositionID = e.PositionID
+	out.EmploymentStatusID = e.EmploymentStatusID
+	return out, nil
+}
+
+func (a employeeCareerAdapter) CloseEmployment(ctx context.Context, employmentID uuid.UUID, effectiveDate string) error {
+	endDate := effectiveDate
+	return a.repo.CloseEmployment(ctx, employmentID, endDate)
+}
+
+func (a employeeCareerAdapter) CreateEmployment(ctx context.Context, employeeID uuid.UUID, data employeemovement.CareerEmployment) (uuid.UUID, error) {
+	emp := &employee.Employment{
+		EmployeeID:           &employeeID,
+		DecisionLetterNumber: data.DecisionLetterNumber,
+		DecisionLetterDate:   data.DecisionLetterDate,
+		EffectiveDate:        data.EffectiveDate,
+	}
+	emp.OrganizationID = data.OrganizationID
+	emp.PositionID = data.PositionID
+	emp.EmploymentStatusID = data.EmploymentStatusID
+	if err := a.repo.CreateEmployment(ctx, emp); err != nil {
+		return uuid.Nil, err
+	}
+	return emp.ID, nil
+}
+
+func (a employeeCareerAdapter) SetEmployeeInactive(ctx context.Context, employeeID uuid.UUID) error {
+	return a.repo.SetEmployeeStatus(ctx, employeeID, "inactive")
+}
+
 // licenseCreatorAdapter implements company.LicenseCreator using the license service.
 // Digunakan untuk auto-create license saat signup company dengan package.
 type licenseCreatorAdapter struct {
@@ -540,6 +593,13 @@ func main() {
 	employeeMovementRepo := employeemovement.NewRepository(employeeMovementResolver)
 	employeeMovementSvc := employeemovement.NewService(employeeMovementRepo, l.Named("employeemovement"))
 	employeeMovementSvc.SetApprovalEngine(sharedApprovalEngine)
+	// Wire the employee module (employment + employee status changes) into
+	// ExecuteMovement so movement execution touches real HR data (plan G-1):
+	// create new employment, close the previous one, mark offboarding /
+	// retirement employees inactive. Separate employee repo instance (same
+	// pattern as the setting.Service instance leave uses for holidays).
+	employeeCareerRepo := employee.NewRepository(employee.NewTenantDBResolver(dbManager))
+	employeeMovementSvc.SetCareerExecutor(employeeCareerAdapter{repo: employeeCareerRepo})
 	approvalSvc.RegisterStatusHandler("employeemovement", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return employeeMovementSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})

@@ -11,6 +11,40 @@ func ctx() context.Context {
 	return context.Background()
 }
 
+// fakeCareerExecutor captures the HR data changes ExecuteMovement pushes
+// through the CareerExecutor interface (plan G-1).
+type fakeCareerExecutor struct {
+	currentEmployment *CareerEmployment
+	closedID          *uuid.UUID
+	closedEndDate     string
+	createdData       *CareerEmployment
+	createdEmployeeID *uuid.UUID
+	createdID         uuid.UUID
+	inactiveEmployee  *uuid.UUID
+}
+
+func (f *fakeCareerExecutor) FindCurrentEmployment(_ context.Context, employeeID uuid.UUID) (*CareerEmployment, error) {
+	return f.currentEmployment, nil
+}
+
+func (f *fakeCareerExecutor) CloseEmployment(_ context.Context, employmentID uuid.UUID, effectiveDate string) error {
+	f.closedID = &employmentID
+	f.closedEndDate = effectiveDate
+	return nil
+}
+
+func (f *fakeCareerExecutor) CreateEmployment(_ context.Context, employeeID uuid.UUID, data CareerEmployment) (uuid.UUID, error) {
+	f.createdEmployeeID = &employeeID
+	f.createdData = &data
+	f.createdID = uuid.New()
+	return f.createdID, nil
+}
+
+func (f *fakeCareerExecutor) SetEmployeeInactive(_ context.Context, employeeID uuid.UUID) error {
+	f.inactiveEmployee = &employeeID
+	return nil
+}
+
 // =========================================================================
 // Employee Movement Service Tests
 // =========================================================================
@@ -253,6 +287,9 @@ func TestService_ExecuteMovement_Success(t *testing.T) {
 	svc, repo, cleanup := newTestService()
 	defer cleanup()
 
+	// Promotion movements need a career executor for the HR data change.
+	svc.SetCareerExecutor(&fakeCareerExecutor{})
+
 	employeeID := uuid.New()
 	created := createTestMovement(repo, employeeID)
 	created.Status = MovementStatusApproved
@@ -266,6 +303,190 @@ func TestService_ExecuteMovement_Success(t *testing.T) {
 	m, _ := repo.FindMovementByID(ctx(), created.ID)
 	if m.Status != MovementStatusExecuted {
 		t.Errorf("expected status 'executed', got '%s'", m.Status)
+	}
+}
+
+func TestService_ExecuteMovement_NoExecutor_Error(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	repo.UpdateMovement(ctx(), created)
+
+	err := svc.ExecuteMovement(ctx(), created.ID.String(), uuidStr())
+	if err == nil {
+		t.Fatal("expected error when career executor is not configured")
+	}
+
+	// Movement stays approved (no partial execution).
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusApproved {
+		t.Errorf("expected status to remain 'approved', got '%s'", m.Status)
+	}
+}
+
+func TestService_ExecuteMovement_Promotion_CreatesEmployment(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	executor := &fakeCareerExecutor{
+		currentEmployment: &CareerEmployment{
+			ID:                   uuid.New(),
+			OrganizationID:       ptrUUID(uuid.New()),
+			DecisionLetterNumber: "SK-OLD",
+			DecisionLetterDate:   "2026-01-01",
+			EffectiveDate:        "2026-01-01",
+		},
+	}
+	svc.SetCareerExecutor(executor)
+
+	employeeID := uuid.New()
+	toOrg := uuid.New()
+	toPos := uuid.New()
+	toStatus := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	created.MovementType = MovementTypePromotion
+	created.ToOrganizationID = &toOrg
+	created.ToPositionID = &toPos
+	created.ToEmploymentStatusID = &toStatus
+	created.EffectiveDate = "2026-08-01"
+	repo.UpdateMovement(ctx(), created)
+
+	if err := svc.ExecuteMovement(ctx(), created.ID.String(), uuidStr()); err != nil {
+		t.Fatalf("ExecuteMovement failed: %v", err)
+	}
+
+	// Previous employment closed one day before effective date.
+	if executor.closedID == nil {
+		t.Fatal("expected previous employment to be closed")
+	}
+	if executor.closedEndDate != "2026-07-31" {
+		t.Errorf("expected closed end date 2026-07-31, got '%s'", executor.closedEndDate)
+	}
+
+	// New employment created with the movement's to_* fields.
+	if executor.createdData == nil {
+		t.Fatal("expected new employment to be created")
+	}
+	if executor.createdData.OrganizationID == nil || *executor.createdData.OrganizationID != toOrg {
+		t.Errorf("expected organization_id %s, got %v", toOrg, executor.createdData.OrganizationID)
+	}
+	if executor.createdData.PositionID == nil || *executor.createdData.PositionID != toPos {
+		t.Errorf("expected position_id %s, got %v", toPos, executor.createdData.PositionID)
+	}
+	// SQLite returns DATE columns as RFC3339 timestamps; normalize before compare.
+	if len(executor.createdData.EffectiveDate) >= 10 && executor.createdData.EffectiveDate[:10] != "2026-08-01" {
+		t.Errorf("expected effective_date 2026-08-01, got '%s'", executor.createdData.EffectiveDate)
+	}
+	if executor.createdData.DecisionLetterNumber != created.DecisionLetterNumber {
+		t.Errorf("expected decision_letter_number from movement, got '%s'", executor.createdData.DecisionLetterNumber)
+	}
+
+	// to_employment_id persisted on the movement.
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusExecuted {
+		t.Errorf("expected status 'executed', got '%s'", m.Status)
+	}
+	if m.ToEmploymentID == nil || *m.ToEmploymentID != executor.createdID {
+		t.Errorf("expected to_employment_id %s on movement, got %v", executor.createdID, m.ToEmploymentID)
+	}
+
+	// Employee NOT deactivated for a promotion.
+	if executor.inactiveEmployee != nil {
+		t.Errorf("promotion should not deactivate the employee, got %v", *executor.inactiveEmployee)
+	}
+}
+
+func TestService_ExecuteMovement_Offboarding_DeactivatesEmployee(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	executor := &fakeCareerExecutor{
+		currentEmployment: &CareerEmployment{
+			ID:                   uuid.New(),
+			DecisionLetterNumber: "SK-OLD",
+			DecisionLetterDate:   "2026-01-01",
+			EffectiveDate:        "2026-01-01",
+		},
+	}
+	svc.SetCareerExecutor(executor)
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	created.MovementType = MovementTypeOffboarding
+	created.EffectiveDate = "2026-08-01"
+	repo.UpdateMovement(ctx(), created)
+
+	if err := svc.ExecuteMovement(ctx(), created.ID.String(), uuidStr()); err != nil {
+		t.Fatalf("ExecuteMovement failed: %v", err)
+	}
+
+	// Previous employment closed, no new employment created.
+	if executor.closedID == nil {
+		t.Fatal("expected previous employment to be closed")
+	}
+	if executor.createdData != nil {
+		t.Error("offboarding should NOT create a new employment")
+	}
+
+	// Employee marked inactive.
+	if executor.inactiveEmployee == nil || *executor.inactiveEmployee != employeeID {
+		t.Errorf("expected employee %s to be marked inactive, got %v", employeeID, executor.inactiveEmployee)
+	}
+
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusExecuted {
+		t.Errorf("expected status 'executed', got '%s'", m.Status)
+	}
+}
+
+func TestService_ExecuteMovement_ContractExtension_SkipsEmployment(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	svc.SetCareerExecutor(&fakeCareerExecutor{})
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	created.MovementType = MovementTypeContractExtension
+	repo.UpdateMovement(ctx(), created)
+
+	if err := svc.ExecuteMovement(ctx(), created.ID.String(), uuidStr()); err != nil {
+		t.Fatalf("ExecuteMovement failed: %v", err)
+	}
+
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusExecuted {
+		t.Errorf("expected status 'executed', got '%s'", m.Status)
+	}
+}
+
+func TestDayBefore(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"2026-08-01", "2026-07-31"},
+		{"2026-03-01", "2026-02-28"},
+		{"2026-01-01", "2025-12-31"},
+	}
+	for _, c := range cases {
+		got, err := dayBefore(c.in)
+		if err != nil {
+			t.Fatalf("dayBefore(%q) unexpected error: %v", c.in, err)
+		}
+		if got != c.want {
+			t.Errorf("dayBefore(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+
+	if _, err := dayBefore("not-a-date"); err == nil {
+		t.Error("expected error for invalid date")
 	}
 }
 

@@ -116,6 +116,25 @@ func (r *Repository) UpdateEmployee(ctx context.Context, emp *Employee) error {
 	return db.Save(emp).Error
 }
 
+// SetEmployeeStatus updates only the employee's status column (used by
+// movement execution to mark offboarded/retired employees inactive — avoids
+// the heavy Preload chain in FindEmployeeByID). Returns an error when the
+// employee does not exist.
+func (r *Repository) SetEmployeeStatus(ctx context.Context, id uuid.UUID, status string) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.Model(&Employee{}).Where("id = ?", id).Update("status", status)
+	if result.Error != nil {
+		return fmt.Errorf("failed to set employee status: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("employee not found")
+	}
+	return nil
+}
+
 func (r *Repository) DeleteEmployee(ctx context.Context, id uuid.UUID) error {
 	db, err := r.getDB(ctx)
 	if err != nil {
@@ -468,12 +487,55 @@ func (r *Repository) FindEmploymentByID(ctx context.Context, id uuid.UUID) (*Emp
 	return &emp, nil
 }
 
+// FindActiveEmploymentByEmployeeID returns the employee's currently active
+// employment — the most recent record with no effective_end_date. Returns
+// nil (without error) when the employee has no active employment.
+func (r *Repository) FindActiveEmploymentByEmployeeID(ctx context.Context, employeeID uuid.UUID) (*Employment, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var emp Employment
+	err = db.
+		Where("employee_id = ? AND effective_end_date IS NULL", employeeID).
+		Order("effective_date DESC, created_at DESC").
+		First(&emp).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to find active employment: %w", err)
+	}
+	return &emp, nil
+}
+
 func (r *Repository) UpdateEmployment(ctx context.Context, emp *Employment) error {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return err
 	}
 	return db.Save(emp).Error
+}
+
+// CloseEmployment sets the employment's effective_end_date (used by movement
+// execution to close the previous employment the day before the new one takes
+// effect). Returns an error if the employment does not exist or is already
+// closed (defensive guard: never overwrite an existing end date).
+func (r *Repository) CloseEmployment(ctx context.Context, id uuid.UUID, effectiveEndDate string) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.Model(&Employment{}).
+		Where("id = ? AND effective_end_date IS NULL", id).
+		Update("effective_end_date", effectiveEndDate)
+	if result.Error != nil {
+		return fmt.Errorf("failed to close employment: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("employment not found or already closed")
+	}
+	return nil
 }
 
 func (r *Repository) DeleteEmployment(ctx context.Context, id uuid.UUID) error {

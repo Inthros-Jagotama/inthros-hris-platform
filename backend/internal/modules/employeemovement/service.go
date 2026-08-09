@@ -19,6 +19,47 @@ import (
 type ApprovalEngine interface {
 	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
 	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
+	// GetActiveFlowIDForModule lets a movement submission auto-resolve which
+	// flow to route through when the client doesn't supply flow_id explicitly
+	// (same pattern leave/attendance uses) — without this, a movement
+	// submitted without a flow_id stays in draft and never reaches the
+	// Approval module.
+	GetActiveFlowIDForModule(ctx context.Context, module string) (string, error)
+}
+
+// CareerEmployment is the data needed to create an employment record from a
+// movement's to_* fields. Defined here (instead of importing the employee
+// module) so employeemovement only depends on a narrow interface.
+//
+// ID is only populated by FindCurrentEmployment (so CloseEmployment knows
+// which record to close); it is empty when building a new employment.
+type CareerEmployment struct {
+	ID                   uuid.UUID
+	OrganizationID       *uuid.UUID
+	PositionID           *uuid.UUID
+	EmploymentStatusID   *uuid.UUID
+	DecisionLetterNumber string
+	DecisionLetterDate   string
+	EffectiveDate        string
+}
+
+// CareerExecutor abstracts the employee module's employment + employee
+// status changes so ExecuteMovement can push the real HR data change
+// (create new employment, close the previous one, mark offboarding /
+// retirement employees inactive). Implemented via an adapter wrapping
+// employee.Service in main.go (same narrow-interface-plus-adapter pattern
+// as ApprovalEngine / AttendanceSessionUpdater).
+type CareerExecutor interface {
+	// FindCurrentEmployment returns the employee's currently active employment
+	// (most recent with no effective_end_date), or nil if none.
+	FindCurrentEmployment(ctx context.Context, employeeID uuid.UUID) (*CareerEmployment, error)
+	// CloseEmployment sets the employment's effective_end_date to the day
+	// before effectiveDate (so the new employment can take over).
+	CloseEmployment(ctx context.Context, employmentID uuid.UUID, effectiveDate string) error
+	// CreateEmployment persists a new employment record and returns its ID.
+	CreateEmployment(ctx context.Context, employeeID uuid.UUID, data CareerEmployment) (uuid.UUID, error)
+	// SetEmployeeInactive marks an offboarded/retired employee as inactive.
+	SetEmployeeInactive(ctx context.Context, employeeID uuid.UUID) error
 }
 
 // Service untuk business logic Employee Movement & Career Management.
@@ -26,6 +67,7 @@ type Service struct {
 	repo           *Repository
 	logger         *zap.Logger
 	approvalEngine ApprovalEngine
+	careerExecutor CareerExecutor
 }
 
 // NewService membuat Service baru.
@@ -41,6 +83,12 @@ func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 	s.approvalEngine = ae
 }
 
+// SetCareerExecutor wires the employee module (employment + employee status
+// changes) into this service so ExecuteMovement touches real HR data.
+func (s *Service) SetCareerExecutor(ce CareerExecutor) {
+	s.careerExecutor = ce
+}
+
 // =========================================================================
 // Employee Movement
 // =========================================================================
@@ -53,8 +101,8 @@ func (s *Service) CreateMovement(ctx context.Context, req CreateMovementRequest)
 	}
 
 	movement := &EmployeeMovement{
-		CreatedBy: authctx.GetUserID(ctx),
-		UpdatedBy: authctx.GetUserID(ctx),
+		CreatedBy:            authctx.GetUserID(ctx),
+		UpdatedBy:            authctx.GetUserID(ctx),
 		EmployeeID:           employeeUUID,
 		MovementType:         MovementType(req.MovementType),
 		DecisionLetterNumber: req.DecisionLetterNumber,
@@ -295,9 +343,9 @@ func (s *Service) DeleteMovement(ctx context.Context, id string) error {
 }
 
 // SubmitMovement routes a draft movement through the central approval
-// module instead of an HR user directly calling ApproveMovement. If no
-// flow is selected, the movement stays in draft and ApproveMovement remains
-// the direct/manual fallback.
+// module instead of an HR user directly calling ApproveMovement. If the
+// client doesn't supply flow_id, the active flow for module
+// "employeemovement" is auto-resolved (G-3 — same pattern leave/attendance).
 func (s *Service) SubmitMovement(ctx context.Context, id string, req SubmitMovementRequest) (*MovementResponse, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -310,11 +358,22 @@ func (s *Service) SubmitMovement(ctx context.Context, id string, req SubmitMovem
 	if movement.Status != MovementStatusDraft {
 		return nil, fmt.Errorf("only draft movements can be submitted, current status: %s", movement.Status)
 	}
-	if s.approvalEngine == nil || req.FlowID == nil || *req.FlowID == "" {
-		return nil, fmt.Errorf("approval engine or flow_id not configured")
+	if s.approvalEngine == nil {
+		return nil, fmt.Errorf("approval engine not configured")
 	}
 
-	instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "employeemovement", movement.ID.String(), *req.FlowID)
+	// Auto-resolve the active flow when no flow_id is supplied (G-3).
+	flowID := ""
+	if req.FlowID != nil && *req.FlowID != "" {
+		flowID = *req.FlowID
+	} else if resolved, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, "employeemovement"); err == nil {
+		flowID = resolved
+	}
+	if flowID == "" {
+		return nil, fmt.Errorf("approval flow not configured: provide flow_id or activate an approval flow for module employeemovement")
+	}
+
+	instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "employeemovement", movement.ID.String(), flowID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create approval instance: %w", err)
 	}
@@ -387,7 +446,53 @@ func (s *Service) ApproveMovement(ctx context.Context, id string, approvedBy str
 	return s.repo.ApproveMovement(ctx, uid, approverUUID)
 }
 
-// ExecuteMovement mengeksekusi pergerakan.
+// movementCreatesEmployment reports whether the movement type should create
+// a new employment record when executed. contract_extension only extends the
+// contract; offboarding/retirement close the employment without a new one.
+func movementCreatesEmployment(t MovementType) bool {
+	switch t {
+	case MovementTypePromotion, MovementTypeDemotion, MovementTypeMutation, MovementTypeStatusChange, MovementTypeOther:
+		return true
+	default:
+		return false
+	}
+}
+
+// movementDeactivatesEmployee reports whether the movement marks the
+// employee as inactive (offboarding / retirement — keputusan plan §11.3).
+func movementDeactivatesEmployee(t MovementType) bool {
+	return t == MovementTypeOffboarding || t == MovementTypeRetirement
+}
+
+// dayBefore returns the date one day before the given date. Accepts both
+// plain YYYY-MM-DD and RFC3339 timestamps (MySQL returns DATETIME values for
+// DATE columns), so movement execution is robust regardless of driver.
+func dayBefore(date string) (string, error) {
+	// Normalize: strip the time portion when an RFC3339 value is stored.
+	if len(date) >= 10 {
+		if _, err := time.Parse("2006-01-02", date[:10]); err == nil {
+			date = date[:10]
+		}
+	}
+	d, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return "", fmt.Errorf("invalid effective_date %q: %w", date, err)
+	}
+	return d.AddDate(0, 0, -1).Format("2006-01-02"), nil
+}
+
+// ExecuteMovement mengeksekusi pergerakan. Selain mengubah status movement
+// menjadi executed, transaksi HR data juga dijalankan (G-1):
+//   - promotion/demotion/mutation/status_change/other → buat employment baru
+//     (to_* + effective_date), tutup employment aktif lama (effective_end_date
+//     = effective_date - 1), simpan to_employment_id di movement.
+//   - offboarding/retirement → tutup employment aktif lama dan tandai
+//     employee non-aktif (keputusan §11.3).
+//   - contract_extension → tanpa perubahan employment.
+//
+// effective_date boleh di masa depan (keputusan §11.2): employment baru
+// disimpan dengan tanggal tsb, employment lama tetap aktif sampai sehari
+// sebelumnya.
 func (s *Service) ExecuteMovement(ctx context.Context, id string, executedBy string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -399,7 +504,60 @@ func (s *Service) ExecuteMovement(ctx context.Context, id string, executedBy str
 		return fmt.Errorf("invalid executor id: %w", err)
 	}
 
-	return s.repo.ExecuteMovement(ctx, uid, executorUUID)
+	movement, err := s.repo.FindMovementByID(ctx, uid)
+	if err != nil {
+		return err
+	}
+	if movement.Status != MovementStatusApproved {
+		return fmt.Errorf("movement not found or not in approved status")
+	}
+
+	// --- HR data transaction (G-1) ---
+	if movementCreatesEmployment(movement.MovementType) || movementDeactivatesEmployee(movement.MovementType) {
+		if s.careerExecutor == nil {
+			return fmt.Errorf("career executor not configured: cannot execute movement type '%s'", movement.MovementType)
+		}
+
+		current, err := s.careerExecutor.FindCurrentEmployment(ctx, movement.EmployeeID)
+		if err != nil {
+			return fmt.Errorf("failed to find current employment: %w", err)
+		}
+
+		// Tutup employment aktif lama (effective_end_date = effective_date - 1).
+		if current != nil {
+			endDate, err := dayBefore(movement.EffectiveDate)
+			if err != nil {
+				return err
+			}
+			if err := s.careerExecutor.CloseEmployment(ctx, current.ID, endDate); err != nil {
+				return fmt.Errorf("failed to close previous employment: %w", err)
+			}
+		}
+
+		if movementCreatesEmployment(movement.MovementType) {
+			data := CareerEmployment{
+				OrganizationID:       movement.ToOrganizationID,
+				PositionID:           movement.ToPositionID,
+				EmploymentStatusID:   movement.ToEmploymentStatusID,
+				DecisionLetterNumber: movement.DecisionLetterNumber,
+				DecisionLetterDate:   movement.DecisionLetterDate,
+				EffectiveDate:        movement.EffectiveDate,
+			}
+			newEmploymentID, err := s.careerExecutor.CreateEmployment(ctx, movement.EmployeeID, data)
+			if err != nil {
+				return fmt.Errorf("failed to create new employment: %w", err)
+			}
+			movement.ToEmploymentID = &newEmploymentID
+		}
+
+		if movementDeactivatesEmployee(movement.MovementType) {
+			if err := s.careerExecutor.SetEmployeeInactive(ctx, movement.EmployeeID); err != nil {
+				return fmt.Errorf("failed to mark employee inactive: %w", err)
+			}
+		}
+	}
+
+	return s.repo.ExecuteMovement(ctx, uid, executorUUID, movement.ToEmploymentID)
 }
 
 // CancelMovement membatalkan pergerakan.
@@ -424,8 +582,8 @@ func (s *Service) CreateContract(ctx context.Context, req CreateContractRequest)
 	}
 
 	contract := &EmployeeContract{
-		CreatedBy: authctx.GetUserID(ctx),
-		UpdatedBy: authctx.GetUserID(ctx),
+		CreatedBy:      authctx.GetUserID(ctx),
+		UpdatedBy:      authctx.GetUserID(ctx),
 		EmployeeID:     employeeUUID,
 		ContractNumber: req.ContractNumber,
 		ContractType:   ContractType(req.ContractType),

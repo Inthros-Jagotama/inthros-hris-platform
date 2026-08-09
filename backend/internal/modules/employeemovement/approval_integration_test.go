@@ -14,8 +14,11 @@ type fakeApprovalEngine struct {
 		documentID string
 		flowID     string
 	}
-	instanceID string
-	createErr  error
+	instanceID      string
+	createErr       error
+	resolvedFlowID  string
+	resolvedFlowErr error
+	resolveCalls    []string // module per call
 }
 
 func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error) {
@@ -35,6 +38,14 @@ func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module,
 
 func (f *fakeApprovalEngine) GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error) {
 	return "PENDING", nil
+}
+
+func (f *fakeApprovalEngine) GetActiveFlowIDForModule(ctx context.Context, module string) (string, error) {
+	f.resolveCalls = append(f.resolveCalls, module)
+	if f.resolvedFlowErr != nil {
+		return "", f.resolvedFlowErr
+	}
+	return f.resolvedFlowID, nil
 }
 
 func TestService_SubmitMovement_WithApprovalEngine_CreatesInstance(t *testing.T) {
@@ -67,10 +78,43 @@ func TestService_SubmitMovement_WithApprovalEngine_CreatesInstance(t *testing.T)
 	}
 }
 
-func TestService_SubmitMovement_NoFlowID_ReturnsError(t *testing.T) {
+func TestService_SubmitMovement_NoFlowID_AutoResolves(t *testing.T) {
 	svc, repo, cleanup := newTestService()
 	defer cleanup()
 
+	resolvedFlow := uuid.New().String()
+	fake := &fakeApprovalEngine{resolvedFlowID: resolvedFlow}
+	svc.SetApprovalEngine(fake)
+
+	empID := uuid.New()
+	movement := createTestMovement(repo, empID)
+
+	resp, err := svc.SubmitMovement(ctx(), movement.ID.String(), SubmitMovementRequest{})
+	if err != nil {
+		t.Fatalf("SubmitMovement failed: %v", err)
+	}
+
+	if resp.Status != "pending_approval" {
+		t.Errorf("expected status pending_approval, got '%s'", resp.Status)
+	}
+	// Auto-resolve called for module employeemovement.
+	if len(fake.resolveCalls) != 1 || fake.resolveCalls[0] != "employeemovement" {
+		t.Errorf("expected GetActiveFlowIDForModule('employeemovement') call, got %v", fake.resolveCalls)
+	}
+	// Instance created with the resolved flow.
+	if len(fake.createCalls) != 1 || fake.createCalls[0].flowID != resolvedFlow {
+		t.Errorf("expected CreateApprovalInstance with resolved flow %s, got %+v", resolvedFlow, fake.createCalls)
+	}
+	if resp.ApprovalInstanceID == nil || *resp.ApprovalInstanceID != fake.instanceID {
+		t.Errorf("expected approval_instance_id %s, got %v", fake.instanceID, resp.ApprovalInstanceID)
+	}
+}
+
+func TestService_SubmitMovement_NoFlowResolved_ReturnsError(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	// No active flow configured — auto-resolve returns empty.
 	fake := &fakeApprovalEngine{}
 	svc.SetApprovalEngine(fake)
 
@@ -79,10 +123,38 @@ func TestService_SubmitMovement_NoFlowID_ReturnsError(t *testing.T) {
 
 	_, err := svc.SubmitMovement(ctx(), movement.ID.String(), SubmitMovementRequest{})
 	if err == nil {
-		t.Fatal("expected error when flow_id is missing")
+		t.Fatal("expected error when no flow can be resolved")
 	}
 	if len(fake.createCalls) != 0 {
 		t.Errorf("expected no CreateApprovalInstance calls, got %d", len(fake.createCalls))
+	}
+}
+
+func TestService_SubmitMovement_ExplicitFlowID_BeatsAutoResolve(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{resolvedFlowID: uuid.New().String()}
+	svc.SetApprovalEngine(fake)
+
+	empID := uuid.New()
+	movement := createTestMovement(repo, empID)
+	explicitFlow := uuid.New().String()
+
+	resp, err := svc.SubmitMovement(ctx(), movement.ID.String(), SubmitMovementRequest{FlowID: &explicitFlow})
+	if err != nil {
+		t.Fatalf("SubmitMovement failed: %v", err)
+	}
+
+	// Explicit flow_id wins — no auto-resolve call made.
+	if len(fake.resolveCalls) != 0 {
+		t.Errorf("expected no auto-resolve calls when flow_id supplied, got %v", fake.resolveCalls)
+	}
+	if len(fake.createCalls) != 1 || fake.createCalls[0].flowID != explicitFlow {
+		t.Errorf("expected CreateApprovalInstance with explicit flow %s, got %+v", explicitFlow, fake.createCalls)
+	}
+	if resp.Status != "pending_approval" {
+		t.Errorf("expected status pending_approval, got '%s'", resp.Status)
 	}
 }
 
