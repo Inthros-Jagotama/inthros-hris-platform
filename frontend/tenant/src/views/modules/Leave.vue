@@ -81,6 +81,12 @@
               <Tag :value="t('leave.status_' + data.status.toLowerCase())" :severity="statusSeverity(data.status)" class="!text-xs !px-1.5 !py-0.5" />
             </template>
           </Column>
+          <Column field="supervisor_note" :header="t('leave.approval_note')" style="width:220px">
+            <template #body="{data}">
+              <span v-if="data.supervisor_note" class="text-xs text-gray-600 dark:text-gray-300">{{ data.supervisor_note }}</span>
+              <span v-else class="text-xs text-gray-300 dark:text-gray-600">-</span>
+            </template>
+          </Column>
           <Column :header="t('common.actions')" style="width:80px" frozen alignFrozen="right">
             <template #body="{data}">
               <div class="flex items-center gap-1 justify-end">

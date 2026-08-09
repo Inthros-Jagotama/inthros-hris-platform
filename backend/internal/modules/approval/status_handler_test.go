@@ -54,6 +54,105 @@ func TestService_SubmitAction_Approve_NotifiesStatusHandler(t *testing.T) {
 	}
 }
 
+// TestService_SubmitAction_Approve_WithNote_ForwardsNoteToStatusHandler guards
+// the fix for a note entered on the final APPROVE action being silently
+// discarded — SubmitAction previously always notified with a hardcoded empty
+// note on full approval, dropping whatever the approver actually wrote.
+func TestService_SubmitAction_Approve_WithNote_ForwardsNoteToStatusHandler(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	captured := &capturingHandler{}
+	svc.RegisterStatusHandler("leave", captured.handle)
+
+	flow := createTestFlow(repo, "leave")
+	step := createTestStep(repo, flow.ID, 1)
+	docID := uuid.New()
+	inst := createTestInstance(repo, flow, docID)
+	createTestTask(repo, inst.ID, 1, *step.ApproverUserID)
+
+	note := "approved, enjoy your leave"
+	_, err := svc.SubmitAction(ctx(), inst.ID.String(), step.ApproverUserID.String(), SubmitActionRequest{Action: "APPROVE", Note: &note})
+	if err != nil {
+		t.Fatalf("SubmitAction failed: %v", err)
+	}
+
+	if len(captured.calls) != 1 {
+		t.Fatalf("expected 1 status handler call, got %d", len(captured.calls))
+	}
+	if captured.calls[0].note != note {
+		t.Errorf("expected note %q, got %q", note, captured.calls[0].note)
+	}
+}
+
+// TestService_SubmitAction_Approve_IntermediateStepNote_NotifiesStatusHandlerAsPending
+// guards a related gap: in a multi-step flow, a note entered when approving
+// a NON-final step (the instance stays PENDING, more steps remain) used to
+// be dropped entirely — notifyStatusChange was only ever called when the
+// instance reached a terminal state. Now an intermediate approve with a note
+// still notifies (status stays PENDING) so the note isn't lost while waiting
+// for the rest of the flow to resolve.
+func TestService_SubmitAction_Approve_IntermediateStepNote_NotifiesStatusHandlerAsPending(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	captured := &capturingHandler{}
+	svc.RegisterStatusHandler("leave", captured.handle)
+
+	flow := createTestFlow(repo, "leave")
+	step1 := createTestStep(repo, flow.ID, 1)
+	createTestStep(repo, flow.ID, 2)
+
+	docID := uuid.New()
+	inst := createTestInstance(repo, flow, docID)
+	createTestTask(repo, inst.ID, 1, *step1.ApproverUserID)
+
+	note := "looks fine so far, forwarding to next approver"
+	_, err := svc.SubmitAction(ctx(), inst.ID.String(), step1.ApproverUserID.String(), SubmitActionRequest{Action: "APPROVE", Note: &note})
+	if err != nil {
+		t.Fatalf("SubmitAction failed: %v", err)
+	}
+
+	if len(captured.calls) != 1 {
+		t.Fatalf("expected 1 status handler call for the intermediate approval, got %d", len(captured.calls))
+	}
+	if captured.calls[0].status != InstanceStatusPending {
+		t.Errorf("expected status PENDING (flow not finalized), got %s", captured.calls[0].status)
+	}
+	if captured.calls[0].note != note {
+		t.Errorf("expected note %q, got %q", note, captured.calls[0].note)
+	}
+}
+
+// TestService_SubmitAction_Approve_IntermediateStepNoNote_DoesNotNotify
+// ensures the intermediate-step notification only fires when there's
+// actually a note to carry — an intermediate approve without a note has
+// nothing new to tell consumer modules, so it stays silent as before.
+func TestService_SubmitAction_Approve_IntermediateStepNoNote_DoesNotNotify(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	captured := &capturingHandler{}
+	svc.RegisterStatusHandler("leave", captured.handle)
+
+	flow := createTestFlow(repo, "leave")
+	step1 := createTestStep(repo, flow.ID, 1)
+	createTestStep(repo, flow.ID, 2)
+
+	docID := uuid.New()
+	inst := createTestInstance(repo, flow, docID)
+	createTestTask(repo, inst.ID, 1, *step1.ApproverUserID)
+
+	_, err := svc.SubmitAction(ctx(), inst.ID.String(), step1.ApproverUserID.String(), SubmitActionRequest{Action: "APPROVE"})
+	if err != nil {
+		t.Fatalf("SubmitAction failed: %v", err)
+	}
+
+	if len(captured.calls) != 0 {
+		t.Errorf("expected no status handler calls for a note-less intermediate approval, got %d", len(captured.calls))
+	}
+}
+
 func TestService_SubmitAction_Reject_NotifiesStatusHandler(t *testing.T) {
 	svc, repo, cleanup := newTestService()
 	defer cleanup()

@@ -697,7 +697,11 @@ func (s *Service) applyBalanceEffectOnStatusChange(ctx context.Context, lr *Leav
 
 // HandleApprovalStatusChange is invoked by the approval module's push-based
 // status callback when a leave request's approval instance reaches a final
-// state, so the leave request's own status field updates itself.
+// state, so the leave request's own status field updates itself. It is also
+// invoked (with status still "PENDING") after an intermediate step of a
+// multi-step flow is approved with a note, so that note isn't lost while
+// waiting for the flow to fully resolve — it just updates supervisor_note
+// without touching lr.Status.
 func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
 	lr, err := s.repo.FindLeaveRequestByID(ctx, documentID)
 	if err != nil {
@@ -707,11 +711,22 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		return nil
 	}
 
+	if status == "PENDING" {
+		if note == "" {
+			return nil
+		}
+		lr.SupervisorNote = &note
+		return s.repo.UpdateLeaveRequest(ctx, lr)
+	}
+
 	now := time.Now()
 	switch status {
 	case "APPROVED":
 		lr.Status = LeaveStatusApprovedFinal
 		lr.ApprovedAt = &now
+		if note != "" {
+			lr.SupervisorNote = &note
+		}
 	case "REJECTED":
 		lr.Status = LeaveStatusRejectedFinal
 		lr.RejectedAt = &now

@@ -611,6 +611,7 @@
     "end_time": "End Time",
     "leave_reason": "Reason",
     "leave_reason_note": "Reason Note",
+    "approval_note": "Approval Note",
     "attachment_url": "Attachment URL",
     "cancel_request": "Cancel Request",
     "confirm_cancel_request": "Are you sure you want to cancel this leave request?",

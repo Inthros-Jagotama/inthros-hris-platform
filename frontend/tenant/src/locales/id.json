@@ -611,6 +611,7 @@
     "end_time": "Jam Selesai",
     "leave_reason": "Alasan",
     "leave_reason_note": "Catatan Alasan",
+    "approval_note": "Catatan Approval",
     "attachment_url": "URL Lampiran",
     "cancel_request": "Batalkan Permohonan",
     "confirm_cancel_request": "Yakin ingin membatalkan permohonan cuti ini?",

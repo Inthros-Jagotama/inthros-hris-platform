@@ -851,6 +851,16 @@ func (s *Service) SubmitAction(ctx context.Context, instanceID string, userID st
 			if err := s.repo.ApproveStep(ctx, instUUID, currentStep, landedStep.StepOrder, nextTasks); err != nil {
 				return nil, err
 			}
+
+			// Instance is still PENDING overall (more real steps remain), but
+			// an intermediate step's note would otherwise be lost forever —
+			// it's never re-sent once the flow later finalizes. Notify with
+			// the instance's unchanged PENDING status so consumer modules can
+			// surface "what has been said so far" without waiting for the
+			// whole flow to resolve.
+			if req.Note != nil && *req.Note != "" {
+				s.notifyStatusChange(ctx, instance, *req.Note)
+			}
 		} else {
 			// No more real steps — approve instance fully. Any trailing
 			// WATCHER tasks are still persisted for visibility/audit.
@@ -859,7 +869,11 @@ func (s *Service) SubmitAction(ctx context.Context, instanceID string, userID st
 			}
 
 			instance.Status = InstanceStatusApproved
-			s.notifyStatusChange(ctx, instance, "")
+			approveNote := ""
+			if req.Note != nil {
+				approveNote = *req.Note
+			}
+			s.notifyStatusChange(ctx, instance, approveNote)
 		}
 	}
 

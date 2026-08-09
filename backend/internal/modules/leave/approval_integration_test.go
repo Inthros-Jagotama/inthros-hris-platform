@@ -200,6 +200,68 @@ func TestService_HandleApprovalStatusChange_Approved(t *testing.T) {
 	}
 }
 
+// TestService_HandleApprovalStatusChange_Approved_WithNote_PersistsSupervisorNote
+// guards the fix for a note entered by the approver at the final APPROVE
+// action being silently discarded: SubmitAction previously always called
+// notifyStatusChange with a hardcoded empty note on full approval, so an
+// approver's note never reached the leave request (or the FE's "my
+// requests" list, which surfaces supervisor_note).
+func TestService_HandleApprovalStatusChange_Approved_WithNote_PersistsSupervisorNote(t *testing.T) {
+	svc, repo, db, cleanup := newTestService()
+	defer cleanup()
+
+	lType := createTestLeaveType(repo)
+	lr := createTestLeaveRequest(repo, uuid.New(), lType.ID)
+	lr.Status = LeaveStatusPendingApproval
+	if err := repo.UpdateLeaveRequest(ctx(), lr); err != nil {
+		t.Fatalf("failed to seed leave request: %v", err)
+	}
+
+	note := "approved, welcome back on the 20th"
+	if err := svc.HandleApprovalStatusChange(ctx(), lr.ID, "APPROVED", note); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+
+	row := fetchLeaveRequestStatusNote(t, db, lr.ID)
+	if row.Status != "APPROVED_FINAL" {
+		t.Errorf("expected status APPROVED_FINAL, got '%s'", row.Status)
+	}
+	if row.SupervisorNote == nil || *row.SupervisorNote != note {
+		t.Errorf("expected supervisor note %q, got %v", note, row.SupervisorNote)
+	}
+}
+
+// TestService_HandleApprovalStatusChange_IntermediatePendingNote_UpdatesNoteOnly
+// guards the fix for a note entered when approving a non-final step of a
+// multi-step flow: the approval instance stays PENDING (more steps remain),
+// but the note must still surface on the leave request — reported as "note
+// doesn't appear on GET /leave/requests" when the tester had only approved
+// step 1 of a 2-step flow, not the final step.
+func TestService_HandleApprovalStatusChange_IntermediatePendingNote_UpdatesNoteOnly(t *testing.T) {
+	svc, repo, db, cleanup := newTestService()
+	defer cleanup()
+
+	lType := createTestLeaveType(repo)
+	lr := createTestLeaveRequest(repo, uuid.New(), lType.ID)
+	lr.Status = LeaveStatusPendingApproval
+	if err := repo.UpdateLeaveRequest(ctx(), lr); err != nil {
+		t.Fatalf("failed to seed leave request: %v", err)
+	}
+
+	note := "step 1 approved, forwarding to HR"
+	if err := svc.HandleApprovalStatusChange(ctx(), lr.ID, "PENDING", note); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+
+	row := fetchLeaveRequestStatusNote(t, db, lr.ID)
+	if row.Status != "PENDING_APPROVAL" {
+		t.Errorf("expected status to remain PENDING_APPROVAL, got '%s'", row.Status)
+	}
+	if row.SupervisorNote == nil || *row.SupervisorNote != note {
+		t.Errorf("expected supervisor note %q, got %v", note, row.SupervisorNote)
+	}
+}
+
 func TestService_HandleApprovalStatusChange_Rejected(t *testing.T) {
 	svc, repo, db, cleanup := newTestService()
 	defer cleanup()
