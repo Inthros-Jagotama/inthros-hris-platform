@@ -637,6 +637,280 @@ func TestService_ListMyPendingTasks_EnrichesFlowNameAndSubmitter(t *testing.T) {
 	}
 }
 
+// =========================================================================
+// WATCHER Participation Type Tests
+//
+// Regression coverage for the bug where a step2=WATCHER task was created
+// with status DONE at the moment step1 (APPROVER) was approved, making it
+// invisible to ListMyPendingTasks/FindPendingTasksByAssignee (which filter
+// strictly on status=PENDING) — so the watcher never saw anything land in
+// their task list even though the instance had genuinely progressed past
+// their step. Fixed in advanceThroughWatcherSteps: WATCHER-step tasks are
+// now created PENDING like any other task, while still never gating
+// progression (a WATCHER step is never "landed" on / never becomes the
+// instance's current_step).
+// =========================================================================
+
+func TestService_SubmitAction_Approve_WatcherStepBecomesVisibleAfterStep1(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	flow := createTestFlow(repo, "leave")
+
+	approverID := uuid.New()
+	watcherID := uuid.New()
+
+	// Step 1: APPROVER (gates progression)
+	approverIDStr := approverID.String()
+	step1, err := svc.CreateStep(ctx(), flow.ID.String(), CreateStepRequest{
+		StepName:       "Manager Approval",
+		ApproverType:   "USER",
+		ApproverUserID: &approverIDStr,
+	})
+	if err != nil {
+		t.Fatalf("CreateStep (step1) failed: %v", err)
+	}
+	if step1.ParticipationType != string(ParticipationTypeApprover) {
+		t.Fatalf("expected step1 participation_type APPROVER by default, got %q", step1.ParticipationType)
+	}
+
+	// Step 2: WATCHER (informational only, must not gate/land, but its task
+	// must be visible to the watcher once created)
+	watcherIDStr := watcherID.String()
+	_, err = svc.CreateStep(ctx(), flow.ID.String(), CreateStepRequest{
+		StepName:          "Notify HR",
+		ApproverType:      "USER",
+		ApproverUserID:    &watcherIDStr,
+		ParticipationType: string(ParticipationTypeWatcher),
+	})
+	if err != nil {
+		t.Fatalf("CreateStep (step2/watcher) failed: %v", err)
+	}
+
+	inst, err := svc.CreateInstance(ctx(), CreateInstanceRequest{
+		Module:     "leave",
+		DocumentID: uuidStr(),
+		FlowID:     flow.ID.String(),
+	})
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+	if inst.CurrentStep != 1 {
+		t.Fatalf("expected instance to land on step 1 (APPROVER), got current_step=%d", inst.CurrentStep)
+	}
+
+	// Approve step 1 — this is the exact scenario reported: after step 1 is
+	// approved, the watcher's task must reach them.
+	resp, err := svc.SubmitAction(ctx(), inst.ID, approverID.String(), SubmitActionRequest{
+		Action: "APPROVE",
+	})
+	if err != nil {
+		t.Fatalf("SubmitAction failed: %v", err)
+	}
+	if resp.Status != "APPROVED" {
+		t.Errorf("expected instance status 'APPROVED' (no more gating steps left), got '%s'", resp.Status)
+	}
+
+	// The watcher's task must now be visible in their own pending task list.
+	watcherTasks, err := svc.ListMyPendingTasks(ctx(), watcherID.String(), 1, 10)
+	if err != nil {
+		t.Fatalf("ListMyPendingTasks (watcher) failed: %v", err)
+	}
+	if watcherTasks.Total != 1 {
+		t.Fatalf("expected 1 visible task for the watcher after step1 approval, got %d", watcherTasks.Total)
+	}
+}
+
+func TestService_SubmitAction_Approve_Step1MultipleApprovers_AllMode(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	flow := createTestFlow(repo, "leave")
+	step := &ApprovalFlowStep{
+		FlowID:       flow.ID,
+		StepOrder:    1,
+		StepName:     "Multi-Approver Step",
+		ApproverType: ApproverTypeUser,
+		ApprovalMode: ApprovalModeAll,
+		AllowReject:  true,
+	}
+	if err := repo.CreateStep(ctx(), step); err != nil {
+		t.Fatalf("failed to create step: %v", err)
+	}
+
+	inst := createTestInstance(repo, flow, uuid.New())
+
+	approver1 := uuid.New()
+	approver2 := uuid.New()
+	createTestTask(repo, inst.ID, 1, approver1)
+	createTestTask(repo, inst.ID, 1, approver2)
+
+	// First approver approves — ALL mode, one task still pending, must not proceed.
+	resp, err := svc.SubmitAction(ctx(), inst.ID.String(), approver1.String(), SubmitActionRequest{
+		Action: "APPROVE",
+	})
+	if err != nil {
+		t.Fatalf("SubmitAction (approver1) failed: %v", err)
+	}
+	if resp.Status != "PENDING" {
+		t.Errorf("expected instance to remain PENDING with one approver still outstanding, got '%s'", resp.Status)
+	}
+	if resp.CurrentStep != 1 {
+		t.Errorf("expected current_step to remain 1, got %d", resp.CurrentStep)
+	}
+
+	// Second approver approves — all tasks for step 1 now done, should proceed.
+	resp, err = svc.SubmitAction(ctx(), inst.ID.String(), approver2.String(), SubmitActionRequest{
+		Action: "APPROVE",
+	})
+	if err != nil {
+		t.Fatalf("SubmitAction (approver2) failed: %v", err)
+	}
+	if resp.Status != "APPROVED" {
+		t.Errorf("expected instance status 'APPROVED' once all step1 approvers are done, got '%s'", resp.Status)
+	}
+}
+
+func TestService_SubmitAction_Approve_Step1ThenStep2_BothApprover(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	flow := createTestFlow(repo, "leave")
+
+	approver1ID := uuid.New()
+	approver2ID := uuid.New()
+	approver1IDStr := approver1ID.String()
+	approver2IDStr := approver2ID.String()
+
+	if _, err := svc.CreateStep(ctx(), flow.ID.String(), CreateStepRequest{
+		StepName:       "Step 1 Approval",
+		ApproverType:   "USER",
+		ApproverUserID: &approver1IDStr,
+	}); err != nil {
+		t.Fatalf("CreateStep (step1) failed: %v", err)
+	}
+	if _, err := svc.CreateStep(ctx(), flow.ID.String(), CreateStepRequest{
+		StepName:       "Step 2 Approval",
+		ApproverType:   "USER",
+		ApproverUserID: &approver2IDStr,
+	}); err != nil {
+		t.Fatalf("CreateStep (step2) failed: %v", err)
+	}
+
+	inst, err := svc.CreateInstance(ctx(), CreateInstanceRequest{
+		Module:     "leave",
+		DocumentID: uuidStr(),
+		FlowID:     flow.ID.String(),
+	})
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+	if inst.CurrentStep != 1 {
+		t.Fatalf("expected instance to land on step 1, got current_step=%d", inst.CurrentStep)
+	}
+
+	// Approver 2 must not be able to act while step 1 is still current.
+	_, err = svc.SubmitAction(ctx(), inst.ID, approver2ID.String(), SubmitActionRequest{
+		Action: "APPROVE",
+	})
+	if err == nil {
+		t.Fatal("expected error when step2's approver tries to act before step1 is resolved")
+	}
+
+	// Approver 1 approves step 1 — should advance to step 2 (still PENDING overall).
+	resp, err := svc.SubmitAction(ctx(), inst.ID, approver1ID.String(), SubmitActionRequest{
+		Action: "APPROVE",
+	})
+	if err != nil {
+		t.Fatalf("SubmitAction (approver1) failed: %v", err)
+	}
+	if resp.Status != "PENDING" {
+		t.Errorf("expected instance status 'PENDING' after step1 approval (step2 still gating), got '%s'", resp.Status)
+	}
+	if resp.CurrentStep != 2 {
+		t.Errorf("expected current_step to advance to 2, got %d", resp.CurrentStep)
+	}
+
+	// Approver 1 must not be able to act again on step 2's task.
+	_, err = svc.SubmitAction(ctx(), inst.ID, approver1ID.String(), SubmitActionRequest{
+		Action: "APPROVE",
+	})
+	if err == nil {
+		t.Fatal("expected error when step1's approver tries to act on step2's task")
+	}
+
+	// Approver 2 approves step 2 — no more steps left, instance fully approved.
+	resp, err = svc.SubmitAction(ctx(), inst.ID, approver2ID.String(), SubmitActionRequest{
+		Action: "APPROVE",
+	})
+	if err != nil {
+		t.Fatalf("SubmitAction (approver2) failed: %v", err)
+	}
+	if resp.Status != "APPROVED" {
+		t.Errorf("expected instance status 'APPROVED' after step2 approval, got '%s'", resp.Status)
+	}
+}
+
+// TestService_ListMyPendingTasks_RoleAssignedTask_VisibleToRoleMember guards
+// a related defect found while fixing the WATCHER-visibility bug above: a
+// task routed to a ROLE approver/watcher (assignee_type=ROLE, assignee_id=
+// roleID) previously never appeared in ANY user's pending-tasks list, since
+// ListMyPendingTasks only ever queried assignee_type=USER matching the
+// caller's own user ID literally. Fixed by resolving the caller's RBAC role
+// IDs (via model_has_roles) and matching ROLE-assigned tasks against them too.
+func TestService_ListMyPendingTasks_RoleAssignedTask_VisibleToRoleMember(t *testing.T) {
+	svc, repo, db, cleanup := newTestServiceWithDB()
+	defer cleanup()
+
+	flow := createTestFlow(repo, "leave")
+	roleID := uuid.New()
+	step := &ApprovalFlowStep{
+		FlowID:       flow.ID,
+		StepOrder:    1,
+		StepName:     "HR Role Watcher",
+		ApproverType: ApproverTypeRole,
+		RoleID:       &roleID,
+		ApprovalMode: ApprovalModeAnyOne,
+		AllowReject:  true,
+	}
+	if err := repo.CreateStep(ctx(), step); err != nil {
+		t.Fatalf("failed to create step: %v", err)
+	}
+
+	inst, err := svc.CreateInstance(ctx(), CreateInstanceRequest{
+		Module:     "leave",
+		DocumentID: uuidStr(),
+		FlowID:     flow.ID.String(),
+	})
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+	if len(inst.Tasks) != 1 || inst.Tasks[0].AssigneeID != roleID.String() {
+		t.Fatalf("expected a single ROLE-assigned task, got %+v", inst.Tasks)
+	}
+
+	memberUserID := uuid.New()
+	seedUserRole(db, memberUserID, roleID)
+
+	resp, err := svc.ListMyPendingTasks(ctx(), memberUserID.String(), 1, 10)
+	if err != nil {
+		t.Fatalf("ListMyPendingTasks failed: %v", err)
+	}
+	if resp.Total != 1 {
+		t.Fatalf("expected 1 visible task for a member of the assigned role, got %d", resp.Total)
+	}
+
+	// A user who does NOT hold the role must not see the task.
+	outsiderUserID := uuid.New()
+	resp, err = svc.ListMyPendingTasks(ctx(), outsiderUserID.String(), 1, 10)
+	if err != nil {
+		t.Fatalf("ListMyPendingTasks (outsider) failed: %v", err)
+	}
+	if resp.Total != 0 {
+		t.Errorf("expected 0 visible tasks for a non-member of the role, got %d", resp.Total)
+	}
+}
+
 func TestService_ListMyPendingTasks_DefaultPagination(t *testing.T) {
 	svc, _, cleanup := newTestService()
 	defer cleanup()

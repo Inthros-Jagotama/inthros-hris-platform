@@ -339,8 +339,10 @@ func TestService_CreateInstance_BothApprover_UnionAndDedup(t *testing.T) {
 }
 
 // TestService_CreateInstance_WatcherStep_DoesNotBlock validates "hanya
-// mengetahui": a WATCHER step's task is auto-completed and the instance lands
-// directly on the next real (APPROVER) step instead of waiting on the watcher.
+// mengetahui": a WATCHER step never gates progression — the instance lands
+// directly on the next real (APPROVER) step instead of waiting on the
+// watcher — but the watcher's own task is still created PENDING (not
+// auto-completed) so it actually surfaces in their pending-tasks list.
 func TestService_CreateInstance_WatcherStep_DoesNotBlock(t *testing.T) {
 	svc, repo, cleanup := newTestService()
 	defer cleanup()
@@ -399,15 +401,17 @@ func TestService_CreateInstance_WatcherStep_DoesNotBlock(t *testing.T) {
 			approverTask = &resp.Tasks[i]
 		}
 	}
-	if watcherTask == nil || watcherTask.Status != "DONE" {
-		t.Errorf("expected watcher task auto-completed (DONE), got %+v", watcherTask)
+	if watcherTask == nil || watcherTask.Status != "PENDING" {
+		t.Errorf("expected watcher task PENDING (visible in their task list), got %+v", watcherTask)
 	}
 	if approverTask == nil || approverTask.Status != "PENDING" {
 		t.Errorf("expected approver task PENDING, got %+v", approverTask)
 	}
 
-	// Watcher must not be able to actually approve/reject — they have no
-	// pending task, so SubmitAction should reject the attempt.
+	// Watcher must not be able to actually approve/reject — their task's
+	// StepOrder (1) never equals the instance's current_step (2), since a
+	// WATCHER step is never landed on, so SubmitAction should reject the
+	// attempt even though their task is PENDING.
 	_, err = svc.SubmitAction(ctx(), resp.ID, watcherUserID.String(), SubmitActionRequest{Action: "APPROVE"})
 	if err == nil {
 		t.Error("expected error when a WATCHER attempts to submit an action, got nil")

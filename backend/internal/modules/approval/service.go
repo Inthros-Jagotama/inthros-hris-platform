@@ -865,7 +865,12 @@ func (s *Service) ListMyPendingTasks(ctx context.Context, userID string, page, p
 		perPage = 20
 	}
 
-	tasks, total, err := s.repo.FindPendingTasksByAssignee(ctx, "USER", uid, page, perPage)
+	roleIDs, err := s.repo.GetUserRoleIDs(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	tasks, total, err := s.repo.FindPendingTasksByAssigneeAndRoles(ctx, uid, roleIDs, page, perPage)
 	if err != nil {
 		return nil, err
 	}
@@ -1097,11 +1102,18 @@ func dedupAssignees(in []taskAssignee) []taskAssignee {
 }
 
 // advanceThroughWatcherSteps walks forward through steps[fromIndex:], resolving
-// assignees and appending tasks for each to tasksOut. WATCHER steps have their
-// tasks marked DONE immediately (informational only, they never block
-// progression) and the walk continues past them. Returns the first step it
-// lands on that actually gates progress (participation_type=APPROVER), or nil
-// if every remaining step was WATCHER-only.
+// assignees and appending tasks for each to tasksOut. WATCHER steps never gate
+// progression, so the walk continues straight past them to find the next step
+// that does — but their tasks are still created as PENDING (not DONE), the
+// same as an APPROVER task, purely so the watcher's task actually surfaces in
+// their own pending-tasks list (ListMyPendingTasks/FindPendingTasksByAssignee
+// filters strictly on status=PENDING). A watcher can never action it anyway:
+// SubmitAction only accepts a task whose StepOrder equals the instance's
+// *current* step, and a WATCHER step is never landed on / never becomes
+// current, so there's no risk of a watcher blocking or resolving a step meant
+// to gate on a real approver. Returns the first step it lands on that
+// actually gates progress (participation_type=APPROVER), or nil if every
+// remaining step was WATCHER-only.
 func (s *Service) advanceThroughWatcherSteps(ctx context.Context, instance *ApprovalInstance, steps []ApprovalFlowStep, fromIndex int, tasksOut *[]ApprovalTask) (*ApprovalFlowStep, error) {
 	for i := fromIndex; i < len(steps); i++ {
 		step := steps[i]
@@ -1117,16 +1129,12 @@ func (s *Service) advanceThroughWatcherSteps(ctx context.Context, instance *Appr
 			return nil, fmt.Errorf("failed to resolve assignees for step %q: %w", step.StepName, err)
 		}
 
-		status := TaskStatusPending
-		if step.ParticipationType == ParticipationTypeWatcher {
-			status = TaskStatusDone
-		}
 		for _, a := range assignees {
 			*tasksOut = append(*tasksOut, ApprovalTask{
 				StepOrder:    step.StepOrder,
 				AssigneeType: a.Type,
 				AssigneeID:   a.ID,
-				Status:       status,
+				Status:       TaskStatusPending,
 			})
 		}
 

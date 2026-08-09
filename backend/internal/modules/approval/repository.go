@@ -442,6 +442,39 @@ func (r *Repository) FindPendingTasksByAssignee(ctx context.Context, assigneeTyp
 	return tasks, total, nil
 }
 
+// FindPendingTasksByAssigneeAndRoles is like FindPendingTasksByAssignee but
+// also matches tasks assigned to any of the given role IDs (assignee_type=
+// ROLE), so a task routed to a ROLE approver/watcher surfaces for every user
+// holding that role, not only a literal USER-id match.
+func (r *Repository) FindPendingTasksByAssigneeAndRoles(ctx context.Context, userID uuid.UUID, roleIDs []uuid.UUID, page, perPage int) ([]ApprovalTask, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var tasks []ApprovalTask
+	var total int64
+
+	query := db.Model(&ApprovalTask{}).Where("status = ? AND deleted_at IS NULL", TaskStatusPending)
+	if len(roleIDs) > 0 {
+		query = query.Where(
+			"(assignee_type = ? AND assignee_id = ?) OR (assignee_type = ? AND assignee_id IN ?)",
+			"USER", userID, "ROLE", roleIDs,
+		)
+	} else {
+		query = query.Where("assignee_type = ? AND assignee_id = ?", "USER", userID)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to count tasks: %w", err)
+	}
+
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&tasks).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
+	}
+	return tasks, total, nil
+}
+
 func (r *Repository) FindTasksByInstanceID(ctx context.Context, instanceID uuid.UUID) ([]ApprovalTask, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
@@ -548,8 +581,9 @@ func (r *Repository) ApproveStep(ctx context.Context, instanceID uuid.UUID, curr
 				return fmt.Errorf("failed to approve instance: %w", err)
 			}
 
-			// Persist any trailing WATCHER-step tasks (already DONE, informational
-			// only) that were resolved while walking past the final gate.
+			// Persist any trailing WATCHER-step tasks (created PENDING, same as an
+			// APPROVER task, so they surface in the watcher's own pending-tasks
+			// list) that were resolved while walking past the final gate.
 			for i := range nextTasks {
 				nextTasks[i].InstanceID = instanceID
 			}
@@ -707,6 +741,34 @@ func (r *Repository) GetSubmitterInfoByUserIDs(ctx context.Context, userIDs []uu
 		result[rrow.UserID] = submitterInfo{Name: rrow.Name, EmployeeCode: rrow.EmployeeCode, OrganizationName: rrow.OrganizationName}
 	}
 	return result, nil
+}
+
+// GetUserRoleIDs resolves the RBAC role IDs assigned to a platform user via
+// the `model_has_roles` pivot table (model_type='user'). Raw query — approval
+// must not import the rbac package directly (same reasoning as the
+// organization-hierarchy raw queries above). Used so a task assigned to
+// assignee_type=ROLE surfaces in ListMyPendingTasks for every user holding
+// that role, not just a literal assignee_id match.
+func (r *Repository) GetUserRoleIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var idStrs []string
+	if err := db.Table("model_has_roles").
+		Where("model_type = ? AND model_id = ?", "user", userID.String()).
+		Pluck("role_id", &idStrs).Error; err != nil {
+		return nil, fmt.Errorf("failed to resolve user role ids: %w", err)
+	}
+	ids := make([]uuid.UUID, 0, len(idStrs))
+	for _, s := range idStrs {
+		id, err := uuid.Parse(s)
+		if err != nil {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }
 
 // GetInstancesByIDs batch-fetches instances (for FlowID/CreatedBy) without

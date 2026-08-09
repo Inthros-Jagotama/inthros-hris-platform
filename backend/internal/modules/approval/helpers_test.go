@@ -57,6 +57,12 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 			name VARCHAR(255) NOT NULL DEFAULT '',
 			employee_id VARCHAR(50) NOT NULL DEFAULT ''
 		)`,
+		`CREATE TABLE IF NOT EXISTS model_has_roles (
+			role_id CHAR(36) NOT NULL,
+			model_type VARCHAR(255) NOT NULL,
+			model_id CHAR(36) NOT NULL,
+			PRIMARY KEY (role_id, model_type, model_id)
+		)`,
 	}
 	for _, stmt := range rawTables {
 		if err := db.Exec(stmt).Error; err != nil {
@@ -220,6 +226,16 @@ func seedEmployeeAccount(db *gorm.DB, employeeID, userID uuid.UUID) {
 		uuid.New().String(), employeeID.String(), userID.String(),
 	).Error; err != nil {
 		panic(fmt.Sprintf("failed to seed employee account: %v", err))
+	}
+}
+
+// seedUserRole links a platform user to an RBAC role via model_has_roles.
+func seedUserRole(db *gorm.DB, userID, roleID uuid.UUID) {
+	if err := db.Exec(
+		"INSERT INTO model_has_roles (role_id, model_type, model_id) VALUES (?, ?, ?)",
+		roleID.String(), "user", userID.String(),
+	).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed user role: %v", err))
 	}
 }
 
