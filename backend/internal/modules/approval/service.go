@@ -29,12 +29,24 @@ type ModuleSubscriptionChecker interface {
 // human/caller having to poll or manually call back with the new status.
 type StatusChangeHandler func(ctx context.Context, documentID uuid.UUID, status InstanceStatus, note string) error
 
+// Notifier is the narrow interface the central Approval module uses to push
+// an in-app notification to a single platform user — satisfied structurally
+// by notification.Service (same adapter pattern as leave.Notifier /
+// ApprovalEngine, see docs/module-notification-plan.md §5.2). Wired once via
+// SetNotifier so every module routed through this shared approval engine
+// (leave, attendance, payroll, ...) automatically gets "you have a pending
+// approval" notifications without each of them wiring it separately.
+type Notifier interface {
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) error
+}
+
 // Service untuk business logic Approval Engine.
 type Service struct {
 	repo           *Repository
 	logger         *zap.Logger
 	moduleChecker  ModuleSubscriptionChecker
 	statusHandlers map[string]StatusChangeHandler
+	notifier       Notifier
 }
 
 // NewService membuat Service baru.
@@ -44,6 +56,13 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 		logger:         logger,
 		statusHandlers: make(map[string]StatusChangeHandler),
 	}
+}
+
+// SetNotifier menyuntikkan Notifier (opsional) — jika tidak pernah dipanggil,
+// notifyNewTasks() no-op (tidak ada notifikasi terkirim, tapi task tetap
+// dibuat & approval tetap berjalan normal).
+func (s *Service) SetNotifier(n Notifier) {
+	s.notifier = n
 }
 
 // RegisterStatusHandler mendaftarkan callback yang dipanggil setiap kali
@@ -70,6 +89,86 @@ func (s *Service) notifyStatusChange(ctx context.Context, instance *ApprovalInst
 			zap.String("status", string(instance.Status)),
 			zap.Error(err),
 		)
+	}
+}
+
+// notifyNewTasks pushes an in-app "you have a pending approval" (or "you are
+// now watching") notification for every newly-created PENDING task in
+// `tasks`, using `steps` to look up each task's step name/participation type
+// by StepOrder. Best-effort throughout — the approval action itself has
+// already succeeded and been persisted by the time this runs, so a
+// notification failure is logged and never propagated as an error.
+//
+// referenceType/referenceID point at the *owning module's own document*
+// (instance.Module / instance.DocumentID), not at the approval instance
+// itself — this keeps every notification about a given leave/overtime/etc.
+// request (both "pending your action" and "outcome decided", the latter
+// sent by the owning module itself, e.g. leave.notifyLeaveOutcome) pointing
+// at the same reference_type/reference_id pair for consistent FE deep-linking.
+func (s *Service) notifyNewTasks(ctx context.Context, instance *ApprovalInstance, steps []ApprovalFlowStep, tasks []ApprovalTask) {
+	if s.notifier == nil || len(tasks) == 0 {
+		return
+	}
+
+	stepByOrder := make(map[int]ApprovalFlowStep, len(steps))
+	for _, st := range steps {
+		stepByOrder[st.StepOrder] = st
+	}
+
+	for _, task := range tasks {
+		if task.Status != TaskStatusPending {
+			continue
+		}
+		step := stepByOrder[task.StepOrder]
+
+		notifType := "APPROVAL_TASK_ASSIGNED"
+		title := "Approval Needed"
+		body := fmt.Sprintf("A %s request needs your approval.", instance.Module)
+		if step.ParticipationType == ParticipationTypeWatcher {
+			notifType = "APPROVAL_WATCHER_ASSIGNED"
+			title = "You're Watching an Approval"
+			body = fmt.Sprintf("A %s request has reached a step you're watching.", instance.Module)
+		}
+		if step.StepName != "" {
+			body = fmt.Sprintf("%s (%s)", body, step.StepName)
+		}
+
+		recipients, err := s.resolveNotifyRecipients(ctx, task)
+		if err != nil {
+			s.logger.Warn("failed to resolve approval task notification recipients",
+				zap.String("instance_id", instance.ID.String()),
+				zap.String("assignee_type", task.AssigneeType),
+				zap.Error(err),
+			)
+			continue
+		}
+		for _, uid := range recipients {
+			if err := s.notifier.Notify(ctx, uid, notifType, title, body, instance.Module, instance.DocumentID); err != nil {
+				s.logger.Warn("failed to send approval task notification",
+					zap.String("instance_id", instance.ID.String()),
+					zap.String("recipient", uid.String()),
+					zap.Error(err),
+				)
+			}
+		}
+	}
+}
+
+// resolveNotifyRecipients expands a task's assignee into the individual
+// platform user IDs that should be notified. USER tasks (which is what
+// SUPERVISOR/ORGANIZATION/BOTH resolution already produces — see
+// resolveOrganizationAssignees/resolveSupervisorAssignees) map 1:1; ROLE
+// tasks are stored against the role's own ID (one task row, not one per
+// member) so they're expanded here via the same model_has_roles lookup
+// ListMyPendingTasks already uses for visibility.
+func (s *Service) resolveNotifyRecipients(ctx context.Context, task ApprovalTask) ([]uuid.UUID, error) {
+	switch task.AssigneeType {
+	case "USER":
+		return []uuid.UUID{task.AssigneeID}, nil
+	case "ROLE":
+		return s.repo.GetUserIDsByRole(ctx, task.AssigneeID)
+	default:
+		return nil, nil
 	}
 }
 
@@ -585,6 +684,8 @@ func (s *Service) CreateInstance(ctx context.Context, req CreateInstanceRequest)
 
 	if instance.Status == InstanceStatusApproved {
 		s.notifyStatusChange(ctx, instance, "")
+	} else {
+		s.notifyNewTasks(ctx, instance, flow.Steps, tasks)
 	}
 
 	// Load and return full instance
@@ -861,6 +962,11 @@ func (s *Service) SubmitAction(ctx context.Context, instanceID string, userID st
 			if req.Note != nil && *req.Note != "" {
 				s.notifyStatusChange(ctx, instance, *req.Note)
 			}
+
+			// The next step's assignee(s) — and any WATCHER steps skipped
+			// through along the way — just got a new PENDING task; this is
+			// the actual "you have something to approve" notification.
+			s.notifyNewTasks(ctx, instance, instance.Steps, nextTasks)
 		} else {
 			// No more real steps — approve instance fully. Any trailing
 			// WATCHER tasks are still persisted for visibility/audit.
@@ -874,6 +980,9 @@ func (s *Service) SubmitAction(ctx context.Context, instanceID string, userID st
 				approveNote = *req.Note
 			}
 			s.notifyStatusChange(ctx, instance, approveNote)
+			// Trailing WATCHER-step tasks resolved while walking to the end
+			// still deserve their own "you're watching" notification.
+			s.notifyNewTasks(ctx, instance, instance.Steps, nextTasks)
 		}
 	}
 

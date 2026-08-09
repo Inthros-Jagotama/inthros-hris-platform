@@ -795,6 +795,33 @@ func (r *Repository) GetUserRoleIDs(ctx context.Context, userID uuid.UUID) ([]uu
 	return ids, nil
 }
 
+// GetUserIDsByRole is the reverse of GetUserRoleIDs: resolves every platform
+// user currently holding the given RBAC role, via the same `model_has_roles`
+// pivot table. Used to expand a ROLE-assigned approval task into the
+// individual users who should actually be notified about it — a task's
+// assignee_id for a ROLE step is the role's ID, not any one user's.
+func (r *Repository) GetUserIDsByRole(ctx context.Context, roleID uuid.UUID) ([]uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var idStrs []string
+	if err := db.Table("model_has_roles").
+		Where("model_type = ? AND role_id = ?", "user", roleID.String()).
+		Pluck("model_id", &idStrs).Error; err != nil {
+		return nil, fmt.Errorf("failed to resolve role member user ids: %w", err)
+	}
+	ids := make([]uuid.UUID, 0, len(idStrs))
+	for _, s := range idStrs {
+		id, err := uuid.Parse(s)
+		if err != nil {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
 // GetInstancesByIDs batch-fetches instances (for FlowID/CreatedBy) without
 // their steps/actions — used to enrich task lists.
 func (r *Repository) GetInstancesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]ApprovalInstance, error) {

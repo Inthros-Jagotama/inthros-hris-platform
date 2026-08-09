@@ -489,6 +489,13 @@ func main() {
 	notificationRepo := notification.NewRepository(notificationResolver)
 	notificationSvc := notification.NewService(notificationRepo, l.Named("notification"))
 
+	// Wire the central Approval module itself as a notification producer —
+	// every module routed through it (leave, payroll, attendance, ...)
+	// automatically gets "you have a pending approval" pushes for new
+	// USER/ROLE/ORGANIZATION-resolved tasks, without each consumer module
+	// wiring this separately.
+	approvalSvc.SetNotifier(notificationSvc)
+
 	// Construct the leave service up front (instead of inside leave.NewModule)
 	// so its push-based approval status handler can be registered with
 	// approvalSvc before the module is mounted. Reuses the same generic
