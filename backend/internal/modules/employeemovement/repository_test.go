@@ -204,41 +204,6 @@ func TestRepo_DeleteMovement_Success(t *testing.T) {
 	}
 }
 
-func TestRepo_ApproveMovement_Success(t *testing.T) {
-	_, dbResolver, cleanup := setupTestDB()
-	defer cleanup()
-	repo := NewRepository(dbResolver)
-	ctx := context.Background()
-
-	created := createTestMovement(repo, uuid.New())
-	approverID := uuid.New()
-
-	if err := repo.ApproveMovement(ctx, created.ID, approverID); err != nil {
-		t.Fatalf("ApproveMovement failed: %v", err)
-	}
-
-	found, _ := repo.FindMovementByID(ctx, created.ID)
-	if found.Status != MovementStatusApproved {
-		t.Errorf("expected status 'approved', got '%s'", found.Status)
-	}
-}
-
-func TestRepo_ApproveMovement_NonDraft_Error(t *testing.T) {
-	_, dbResolver, cleanup := setupTestDB()
-	defer cleanup()
-	repo := NewRepository(dbResolver)
-	ctx := context.Background()
-
-	created := createTestMovement(repo, uuid.New())
-	created.Status = MovementStatusExecuted
-	repo.UpdateMovement(ctx, created)
-
-	err := repo.ApproveMovement(ctx, created.ID, uuid.New())
-	if err == nil {
-		t.Fatal("expected error when approving non-draft movement")
-	}
-}
-
 func TestRepo_ExecuteMovement_Success(t *testing.T) {
 	_, dbResolver, cleanup := setupTestDB()
 	defer cleanup()

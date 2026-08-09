@@ -250,39 +250,6 @@ func TestService_DeleteMovement_NonDraft_Error(t *testing.T) {
 	}
 }
 
-func TestService_ApproveMovement_Success(t *testing.T) {
-	svc, repo, cleanup := newTestService()
-	defer cleanup()
-
-	employeeID := uuid.New()
-	created := createTestMovement(repo, employeeID)
-
-	approverID := uuidStr()
-	if err := svc.ApproveMovement(ctx(), created.ID.String(), approverID); err != nil {
-		t.Fatalf("ApproveMovement failed: %v", err)
-	}
-
-	m, _ := repo.FindMovementByID(ctx(), created.ID)
-	if m.Status != MovementStatusApproved {
-		t.Errorf("expected status 'approved', got '%s'", m.Status)
-	}
-}
-
-func TestService_ApproveMovement_AlreadyApproved_Error(t *testing.T) {
-	svc, repo, cleanup := newTestService()
-	defer cleanup()
-
-	employeeID := uuid.New()
-	created := createTestMovement(repo, employeeID)
-	created.Status = MovementStatusApproved
-	repo.UpdateMovement(ctx(), created)
-
-	err := svc.ApproveMovement(ctx(), created.ID.String(), uuidStr())
-	if err == nil {
-		t.Fatal("expected error when approving already approved movement")
-	}
-}
-
 func TestService_ExecuteMovement_Success(t *testing.T) {
 	svc, repo, cleanup := newTestService()
 	defer cleanup()

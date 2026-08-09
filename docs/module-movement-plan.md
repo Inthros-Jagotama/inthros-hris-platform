@@ -1,8 +1,9 @@
 # Employee Movement & Career Management — Development Plan
 
-> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI DIMULAI — langkah 1/12 selesai** (backend existing ✅, FE placeholder ❌)
+> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 3/12 selesai** (backend existing ✅ + 3 langkah baru ✅, FE placeholder ❌)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow. **Berikutnya:** 4) G-4 enriched responses · 5) G-2 notifikasi `MOVEMENT_*` · 6) G-5 hapus approve manual · 7) G-6/G-7 · 8-10) FE · 11) G-8 slug/route · 12) test & verifikasi.
 
 ---
 
@@ -73,7 +74,7 @@ Modul `backend/internal/modules/employeemovement/` (±3.200 baris) sudah lengkap
 - **Model**: `EmployeeMovement` + `EmployeeContract` (enum movement/contract type & status, `TableName`, `BeforeCreate`) — migration 012 + 062.
 - **DTO**: `Create/UpdateMovementRequest`, `MovementResponse`, `SubmitMovementRequest`, `Create/UpdateContractRequest`, `ContractResponse`, pagination.
 - **Service**: CRUD movement, `SubmitMovement` (routing ke Central Approval), `HandleApprovalStatusChange` (push-callback), `Approve/Execute/CancelMovement`, CRUD kontrak + alur `ExtendContract`.
-- **Repository**: CRUD + `ApproveMovement`/`ExecuteMovement`/`CancelMovement`/`ExtendContract`.
+- **Repository**: CRUD + `ExecuteMovement`/`CancelMovement`/`ExtendContract` (`ApproveMovement` sudah dihapus sejak G-5, 2026-08-10).
 - **Handler + Routes**: 
   - `POST/GET /employee-movements/movements`, `GET/PUT/DELETE /movements/:id`, `POST /movements/:id/submit|execute|cancel` (approve manual **dihapus** §11.5), `GET /employees/:employeeId/movements`
   - `POST/GET /employee-movements/contracts`, `GET/PUT/DELETE /contracts/:id`, `GET /employees/:employeeId/contracts`
@@ -197,6 +198,55 @@ backend/internal/pkg/migrator/migrations/tenant/postgres/082_employeemovement_st
 ### 3.6.2 Validasi
 
 - `go build ./...` ✅ · `go test ./internal/modules/employeemovement/` ✅
+
+## 3.7 Log Implementasi — Langkah 6 ✅ (G-5 hapus approve manual)
+
+> Implementasi selesai **2026-08-10**. Keputusan §11.5: satu pintu approval via `submit` → Central Approval.
+
+### 3.7.1 Yang dihapus
+
+| File | Penghapusan |
+|---|---|
+| `routes.go` | Route `POST /movements/:id/approve` dihapus (+komentar: approval hanya lewat submit) |
+| `handler.go` | Handler `ApproveMovement` dihapus |
+| `service.go` | Service `ApproveMovement` dihapus; komentar interface `ApprovalEngine` & `SubmitMovement` diperbarui (bukan lagi "manual fallback") |
+| `repository.go` | Repository `ApproveMovement` dihapus |
+| `dto.go` | Komentar `SubmitMovementRequest` diperbarui |
+| `module.go` | Permission `employeemovement.approve` dihapus dari daftar (view/create/update/delete/execute) |
+| `openapi.json` | Endpoint `/api/v1/tenant/employee-movements/movements/{id}/approve` dihapus (JSON tetap valid) |
+| `handler_test.go`, `service_test.go`, `repository_test.go` | Test approve manual dihapus (handler/service/repo) |
+
+### 3.7.2 Verifikasi
+
+- Tidak ada referensi `ApproveMovement` / `/approve` tersisa di modul & seluruh backend ✅
+- Seed RBAC tenant (`tenantseed/seed_rbac.go`) memang tidak pernah memuat `employeemovement.approve` → konsisten ✅
+- FE belum punya halaman movement → tidak ada referensi frontend yang perlu dihapus ✅
+- `go build ./...` ✅ · `go test` employeemovement + approval **PASS** ✅
+
+## 3.8 Log Implementasi — Langkah 5 ✅ (G-2 notifikasi `MOVEMENT_*` + REJECTED → `rejected`)
+
+> Implementasi selesai **2026-08-10**. Pola sama dengan notifikasi attendance/leave.
+
+### 3.8.1 Perubahan
+
+| File | Perubahan |
+|---|---|
+| `notification/i18n.go` | +4 tipe bilingual: `MOVEMENT_SUBMITTED`, `MOVEMENT_APPROVED`, `MOVEMENT_REJECTED`, `MOVEMENT_EXECUTED` (EN/ID) |
+| `employeemovement/service.go` | +interface `Notifier` + `SetNotifier` + helper `notifyMovementOutcome` (best-effort, resolve user via `FindUserIDByEmployeeID`); `HandleApprovalStatusChange`: REJECTED → **`rejected`** (keputusan §11.4, bukan lagi `cancelled`) + notify APPROVED/REJECTED; `ExecuteMovement` sukses → notify `MOVEMENT_EXECUTED` |
+| `employeemovement/repository.go` | +`FindUserIDByEmployeeID` (query `employee_accounts`, pola attendance) |
+| `cmd/server/main.go` | `employeeMovementSvc.SetNotifier(notificationSvc)` (satu baris) |
+| `frontend/.../Notifications.vue` | Deep-link: `reference_type == 'employeemovement'` atau `type` berawalan `MOVEMENT_` → `/admin/career/movements` (pola sama overtime/leave) |
+| Test | `fakeNotifier`; `HandleApprovalStatusChange_Rejected` → expect `rejected`; +`Approved_NotifiesEmployee` (seed `employee_accounts`), +`ExecuteMovement_NotifiesEmployee` |
+
+### 3.8.2 Catatan
+
+- `MOVEMENT_SUBMITTED` → approver sudah otomatis dapat task-assigned push dari Central Approval (tidak perlu kirim manual dari modul) — konsisten dengan pola modul lain.
+- Notifikasi best-effort: employee tanpa user account → di-skip (tidak menggagalkan approval/eksekusi).
+
+### 3.8.3 Validasi
+
+- `go build ./...` ✅ · `go test` employeemovement + notification **PASS** ✅
+- `npm run build` (tenant FE) ✅
 
 ---
 
@@ -393,8 +443,8 @@ i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama
 | 2 | G-1 ExecuteMovement transaksi employment + adapter (termasuk employee `is_active=false` utk offboarding/retirement) — ✅ **SELESAI (2026-08-10)** | BE | 1 |
 | 3 | G-3 auto-resolve flow (`GetActiveFlowIDForModule`) — ✅ **SELESAI (2026-08-10)** | BE | approval engine |
 | 4 | G-4 enriched responses (nama employee/org/posisi/status) | BE | — |
-| 5 | G-2 notifikasi `MOVEMENT_*` (i18n + wiring; REJECTED → status `rejected`) | BE | 1 |
-| 6 | G-5 hapus endpoint approve manual + service `ApproveMovement` + test | BE | — |
+| 5 | G-2 notifikasi `MOVEMENT_*` (i18n + wiring; REJECTED → status `rejected`) — ✅ **SELESAI (2026-08-10)** | BE | 1 |
+| 6 | G-5 hapus endpoint approve manual + service `ApproveMovement` + test — ✅ **SELESAI (2026-08-10)** | BE | — |
 | 7 | G-6 contract extension count + G-7 validasi per tipe | BE | — |
 | 8 | FE: halaman Movements (`/admin/career/movements`) + locale lengkap | FE | 2-7 |
 | 9 | FE: halaman Contracts terpisah (`/admin/career/contracts`) + upload dokumen | FE | 7 |

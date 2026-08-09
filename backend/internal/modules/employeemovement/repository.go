@@ -38,6 +38,32 @@ func (r *Repository) CreateMovement(ctx context.Context, m *EmployeeMovement) er
 	return nil
 }
 
+// FindUserIDByEmployeeID resolves the employee's linked user account id for
+// notifications (same pattern attendance/leave repository). Returns nil if
+// the employee has no linked user account.
+func (r *Repository) FindUserIDByEmployeeID(ctx context.Context, employeeID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var userIDStrs []string
+	err = db.Table("employee_accounts").
+		Where("employee_id = ?", employeeID).
+		Limit(1).
+		Pluck("user_id", &userIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve employee user id: %w", err)
+	}
+	if len(userIDStrs) == 0 || userIDStrs[0] == "" {
+		return nil, nil
+	}
+	uid, parseErr := uuid.Parse(userIDStrs[0])
+	if parseErr != nil {
+		return nil, fmt.Errorf("invalid user id for employee: %w", parseErr)
+	}
+	return &uid, nil
+}
+
 func (r *Repository) FindMovementByID(ctx context.Context, id uuid.UUID) (*EmployeeMovement, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
@@ -212,28 +238,6 @@ func (r *Repository) DeleteContract(ctx context.Context, id uuid.UUID) error {
 // =========================================================================
 // Approval flows
 // =========================================================================
-
-func (r *Repository) ApproveMovement(ctx context.Context, id uuid.UUID, approvedBy uuid.UUID) error {
-	db, err := r.getDB(ctx)
-	if err != nil {
-		return err
-	}
-	now := time.Now()
-	result := db.Model(&EmployeeMovement{}).
-		Where("id = ? AND status = ?", id, MovementStatusDraft).
-		Updates(map[string]interface{}{
-			"status":      MovementStatusApproved,
-			"approved_by": approvedBy.String(),
-			"approved_at": now,
-		})
-	if result.Error != nil {
-		return fmt.Errorf("failed to approve movement: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("movement not found or not in draft status")
-	}
-	return nil
-}
 
 // ExecuteMovement menandai movement sebagai executed. Bila toEmploymentID
 // tidak nil, to_employment_id ikut dipersist (hasil eksekusi G-1: employment

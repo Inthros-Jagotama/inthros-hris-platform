@@ -124,30 +124,6 @@ func (h *Handler) SubmitMovement(c *gin.Context) {
 	httputil.SuccessJSON(c, response)
 }
 
-// ApproveMovement menangani POST /api/v1/tenant/employee-movements/movements/:id/approve
-func (h *Handler) ApproveMovement(c *gin.Context) {
-	id := c.Param("id")
-
-	// Get approver from JWT context (set by auth middleware)
-	userID, exists := c.Get("user_id")
-	if !exists {
-		httputil.ErrorJSON(c, http.StatusUnauthorized, "UNAUTHORIZED", "error.user_not_authenticated")
-		return
-	}
-
-	userIDStr, ok := userID.(string)
-	if !ok {
-		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", "error.invalid_user_context")
-		return
-	}
-
-	if err := h.service.ApproveMovement(c.Request.Context(), id, userIDStr); err != nil {
-		httputil.ErrorRaw(c, http.StatusConflict, "APPROVE_FAILED", err.Error())
-		return
-	}
-	httputil.MessageJSON(c, "success.approved")
-}
-
 // ExecuteMovement menangani POST /api/v1/tenant/employee-movements/movements/:id/execute
 func (h *Handler) ExecuteMovement(c *gin.Context) {
 	id := c.Param("id")

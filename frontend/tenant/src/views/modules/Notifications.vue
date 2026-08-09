@@ -191,6 +191,12 @@ async function handleRowClick(item) {
     router.push('/attendance/overtime')
     return
   }
+  // Career movement (modul employeemovement): MOVEMENT_SUBMITTED/APPROVED/
+  // REJECTED/EXECUTED → halaman movement.
+  if (item.reference_type === 'employeemovement' || item.type?.startsWith('MOVEMENT_')) {
+    router.push('/admin/career/movements')
+    return
+  }
 }
 
 onMounted(() => {

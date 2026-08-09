@@ -65,7 +65,7 @@ type MovementResponse struct {
 }
 
 // SubmitMovementRequest routes a draft movement through the central
-// approval module instead of an HR user directly calling ApproveMovement.
+// approval module — the single approval path (manual approve dihapus, G-5).
 type SubmitMovementRequest struct {
 	FlowID *string `json:"flow_id"`
 }

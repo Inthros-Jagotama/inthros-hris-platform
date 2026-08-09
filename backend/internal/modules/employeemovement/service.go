@@ -12,10 +12,10 @@ import (
 )
 
 // ApprovalEngine abstracts the central approval module so employee
-// movements can be routed through it instead of an HR user directly calling
-// ApproveMovement. Implemented via an adapter wrapping approval.Service in
-// main.go (same narrow-interface-plus-adapter pattern payroll/leave/
-// reimbursement already use).
+// movements are approved through it (single approval path — manual approve
+// dihapus, keputusan plan §11.5 / G-5). Implemented via an adapter wrapping
+// approval.Service in main.go (same narrow-interface-plus-adapter pattern
+// payroll/leave/reimbursement already use).
 type ApprovalEngine interface {
 	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
 	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
@@ -25,6 +25,14 @@ type ApprovalEngine interface {
 	// submitted without a flow_id stays in draft and never reaches the
 	// Approval module.
 	GetActiveFlowIDForModule(ctx context.Context, module string) (string, error)
+}
+
+// Notifier abstracts the notification module so employeemovement can notify
+// the employee of their movement's approval/execution outcome
+// (docs/module-movement-plan.md §7 — same pattern attendance/leave).
+// notification.Service satisfies this structurally.
+type Notifier interface {
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
 }
 
 // CareerEmployment is the data needed to create an employment record from a
@@ -68,6 +76,7 @@ type Service struct {
 	logger         *zap.Logger
 	approvalEngine ApprovalEngine
 	careerExecutor CareerExecutor
+	notifier       Notifier
 }
 
 // NewService membuat Service baru.
@@ -87,6 +96,41 @@ func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 // changes) into this service so ExecuteMovement touches real HR data.
 func (s *Service) SetCareerExecutor(ce CareerExecutor) {
 	s.careerExecutor = ce
+}
+
+// SetNotifier wires the notification module into this service so
+// HandleApprovalStatusChange and ExecuteMovement can notify the employee of
+// the movement outcome (docs/module-movement-plan.md §7).
+func (s *Service) SetNotifier(n Notifier) {
+	s.notifier = n
+}
+
+// notifyMovementOutcome best-effort notification to the movement's employee
+// (mirrors attendance.notifyRequestOutcome / leave.notifyLeaveOutcome).
+func (s *Service) notifyMovementOutcome(ctx context.Context, employeeID uuid.UUID, notifType, referenceType string, referenceID uuid.UUID) {
+	if s.notifier == nil {
+		return
+	}
+	userID, err := s.repo.FindUserIDByEmployeeID(ctx, employeeID)
+	if err != nil {
+		s.logger.Warn("Failed to resolve employee user id for movement notification",
+			zap.String("reference_type", referenceType),
+			zap.String("reference_id", referenceID.String()),
+			zap.Error(err),
+		)
+		return
+	}
+	if userID == nil {
+		return
+	}
+	if err := s.notifier.Notify(ctx, *userID, notifType, nil, referenceType, referenceID); err != nil {
+		s.logger.Warn("Failed to send movement notification",
+			zap.String("notif_type", notifType),
+			zap.String("reference_type", referenceType),
+			zap.String("reference_id", referenceID.String()),
+			zap.Error(err),
+		)
+	}
 }
 
 // =========================================================================
@@ -343,7 +387,7 @@ func (s *Service) DeleteMovement(ctx context.Context, id string) error {
 }
 
 // SubmitMovement routes a draft movement through the central approval
-// module instead of an HR user directly calling ApproveMovement. If the
+// module — the single approval path (manual approve dihapus, G-5). If the
 // client doesn't supply flow_id, the active flow for module
 // "employeemovement" is auto-resolved (G-3 — same pattern leave/attendance).
 func (s *Service) SubmitMovement(ctx context.Context, id string, req SubmitMovementRequest) (*MovementResponse, error) {
@@ -396,9 +440,9 @@ func (s *Service) SubmitMovement(ctx context.Context, id string, req SubmitMovem
 
 // HandleApprovalStatusChange is invoked by the approval module's push-based
 // status callback when a movement's approval instance reaches a final
-// state, so the movement's own status field updates itself. There is no
-// dedicated "rejected" status on EmployeeMovement, so a rejection reuses
-// MovementStatusCancelled — the closest existing terminal negative state.
+// state, so the movement's own status field updates itself. Since G-5 the
+// approval module is the single approval path. REJECTED maps to the
+// dedicated "rejected" status (keputusan plan §11.4) — not cancelled.
 func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
 	movement, err := s.repo.FindMovementByID(ctx, documentID)
 	if err != nil {
@@ -414,7 +458,7 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		movement.Status = MovementStatusApproved
 		movement.ApprovedAt = &now
 	case "REJECTED":
-		movement.Status = MovementStatusCancelled
+		movement.Status = MovementStatusRejected
 		if note != "" {
 			movement.Notes = &note
 		}
@@ -428,22 +472,18 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		zap.String("movement_id", movement.ID.String()),
 		zap.String("approval_status", status),
 	)
-	return s.repo.UpdateMovement(ctx, movement)
-}
-
-// ApproveMovement menyetujui pergerakan.
-func (s *Service) ApproveMovement(ctx context.Context, id string, approvedBy string) error {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return fmt.Errorf("invalid movement id: %w", err)
+	if err := s.repo.UpdateMovement(ctx, movement); err != nil {
+		return err
 	}
 
-	approverUUID, err := uuid.Parse(approvedBy)
-	if err != nil {
-		return fmt.Errorf("invalid approver id: %w", err)
+	// Best-effort notification to the movement's employee (plan §7).
+	switch movement.Status {
+	case MovementStatusApproved:
+		s.notifyMovementOutcome(ctx, movement.EmployeeID, "MOVEMENT_APPROVED", "employeemovement", movement.ID)
+	case MovementStatusRejected, MovementStatusCancelled:
+		s.notifyMovementOutcome(ctx, movement.EmployeeID, "MOVEMENT_REJECTED", "employeemovement", movement.ID)
 	}
-
-	return s.repo.ApproveMovement(ctx, uid, approverUUID)
+	return nil
 }
 
 // movementCreatesEmployment reports whether the movement type should create
@@ -557,7 +597,11 @@ func (s *Service) ExecuteMovement(ctx context.Context, id string, executedBy str
 		}
 	}
 
-	return s.repo.ExecuteMovement(ctx, uid, executorUUID, movement.ToEmploymentID)
+	if err := s.repo.ExecuteMovement(ctx, uid, executorUUID, movement.ToEmploymentID); err != nil {
+		return err
+	}
+	s.notifyMovementOutcome(ctx, movement.EmployeeID, "MOVEMENT_EXECUTED", "employeemovement", movement.ID)
+	return nil
 }
 
 // CancelMovement membatalkan pergerakan.

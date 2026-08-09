@@ -65,12 +65,12 @@ func (m *empMovementModule) Info() module.ModuleInfo {
 		Description: "Manage employee career movements (promotions, demotions, mutations, contract extensions, retirements, offboarding) and employment contracts (PKWT/PKWTT)",
 		IsCore:      true,
 		DependsOn:   []string{"employee", "organization", "setting"},
+		// Approve dihapus (G-5): approval hanya lewat Central Approval (submit).
 		Permissions: []string{
 			"employeemovement.view",
 			"employeemovement.create",
 			"employeemovement.update",
 			"employeemovement.delete",
-			"employeemovement.approve",
 			"employeemovement.execute",
 		},
 		Menus: []module.Menu{

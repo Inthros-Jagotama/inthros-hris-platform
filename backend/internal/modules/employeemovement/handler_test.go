@@ -185,25 +185,6 @@ func TestHandler_DeleteMovement_Success(t *testing.T) {
 	}
 }
 
-func TestHandler_ApproveMovement_Success(t *testing.T) {
-	router, repo, cleanup := setupTestRouter()
-	defer cleanup()
-
-	created := createTestMovement(repo, uuid.New())
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/api/v1/tenant/employee-movements/movements/"+created.ID.String()+"/approve", nil)
-	// Simulate authenticated user by setting user_id in context...
-	// (The handler expects user_id from JWT middleware)
-	// For this test, we'll skip that and expect 401
-	router.ServeHTTP(w, req)
-
-	// Since there's no auth middleware, user_id won't be in context → 401
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401 Unauthorized (no user_id in context), got %d: %s", w.Code, w.Body.String())
-	}
-}
-
 // =========================================================================
 // Contract Handler Tests
 // =========================================================================

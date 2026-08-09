@@ -524,8 +524,7 @@
 - `DeleteMovement()`
 - `SubmitMovement()`
 - `HandleApprovalStatusChange()`
-- `ApproveMovement()`
-- `ExecuteMovement()`
+- `ExecuteMovement()` (sejak G-1 juga membuat/menutup employment & menonaktifkan employee)
 - `CancelMovement()`
 - `CreateContract()`
 - `GetContractByID()`

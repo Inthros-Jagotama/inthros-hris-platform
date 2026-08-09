@@ -53,6 +53,46 @@ var catalog = map[string]catalogEntry{
 			httputil.LangID: "Permohonan cuti Anda telah dibatalkan.",
 		},
 	},
+	"MOVEMENT_SUBMITTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Career Movement Submitted",
+			httputil.LangID: "Pergerakan Karier Diajukan",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your career movement has been submitted for approval.",
+			httputil.LangID: "Pergerakan karier Anda telah diajukan untuk persetujuan.",
+		},
+	},
+	"MOVEMENT_APPROVED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Career Movement Approved",
+			httputil.LangID: "Pergerakan Karier Disetujui",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your career movement has been approved. HR can now execute it.",
+			httputil.LangID: "Pergerakan karier Anda telah disetujui. HR dapat mengeksekusinya.",
+		},
+	},
+	"MOVEMENT_REJECTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Career Movement Rejected",
+			httputil.LangID: "Pergerakan Karier Ditolak",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your career movement has been rejected.",
+			httputil.LangID: "Pergerakan karier Anda telah ditolak.",
+		},
+	},
+	"MOVEMENT_EXECUTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Career Movement Executed",
+			httputil.LangID: "Pergerakan Karier Dieksekusi",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your career movement has been executed.",
+			httputil.LangID: "Pergerakan karier Anda telah dieksekusi.",
+		},
+	},
 	"OVERTIME_APPROVED": {
 		title: map[httputil.Lang]string{
 			httputil.LangEN: "Overtime Request Approved",

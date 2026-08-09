@@ -48,6 +48,41 @@ func (f *fakeApprovalEngine) GetActiveFlowIDForModule(ctx context.Context, modul
 	return f.resolvedFlowID, nil
 }
 
+// EmployeeAccount is a minimal test stand-in for the tenant employee_accounts
+// table (mirrors useraccount.EmployeeAccount) so notification recipient
+// resolution can be exercised without importing the useraccount module.
+type EmployeeAccount struct {
+	ID         uuid.UUID `gorm:"type:char(36);primaryKey"`
+	CompanyID  uuid.UUID `gorm:"type:char(36);not null"`
+	EmployeeID uuid.UUID `gorm:"type:char(36);not null;uniqueIndex"`
+	UserID     uuid.UUID `gorm:"type:char(36);not null"`
+	Email      string    `gorm:"type:varchar(255);not null;uniqueIndex"`
+}
+
+func (EmployeeAccount) TableName() string { return "employee_accounts" }
+
+// fakeNotifier captures Notify calls for movement outcome notifications.
+type fakeNotifier struct {
+	calls []struct {
+		recipientUserID uuid.UUID
+		notifType       string
+		params          []string
+		referenceType   string
+		referenceID     uuid.UUID
+	}
+}
+
+func (f *fakeNotifier) Notify(_ context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error {
+	f.calls = append(f.calls, struct {
+		recipientUserID uuid.UUID
+		notifType       string
+		params          []string
+		referenceType   string
+		referenceID     uuid.UUID
+	}{recipientUserID, notifType, params, referenceType, referenceID})
+	return nil
+}
+
 func TestService_SubmitMovement_WithApprovalEngine_CreatesInstance(t *testing.T) {
 	svc, repo, cleanup := newTestService()
 	defer cleanup()
@@ -210,6 +245,10 @@ func TestService_HandleApprovalStatusChange_Rejected(t *testing.T) {
 	svc, repo, cleanup := newTestService()
 	defer cleanup()
 
+	// Notifier wired to assert the REJECTED notification.
+	notifier := &fakeNotifier{}
+	svc.SetNotifier(notifier)
+
 	empID := uuid.New()
 	movement := createTestMovement(repo, empID)
 	movement.Status = MovementStatusPendingApproval
@@ -226,11 +265,95 @@ func TestService_HandleApprovalStatusChange_Rejected(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetMovementByID failed: %v", err)
 	}
-	if updated.Status != "cancelled" {
-		t.Errorf("expected status cancelled (rejection reuses cancelled), got '%s'", updated.Status)
+	// Keputusan §11.4: REJECTED → status rejected terpisah (bukan cancelled).
+	if updated.Status != "rejected" {
+		t.Errorf("expected status 'rejected', got '%s'", updated.Status)
 	}
 	if updated.Notes == nil || *updated.Notes != note {
 		t.Errorf("expected notes %q, got %v", note, updated.Notes)
+	}
+	// Employee tanpa user account → notifikasi tidak terkirim (nil user ID).
+	if len(notifier.calls) != 0 {
+		t.Errorf("expected no notifications (employee has no user account), got %d", len(notifier.calls))
+	}
+}
+
+func TestService_HandleApprovalStatusChange_Approved_NotifiesEmployee(t *testing.T) {
+	// Shared DB + employee_accounts table so the employee->user resolution works.
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	if err := db.AutoMigrate(&EmployeeAccount{}); err != nil {
+		t.Fatalf("failed to migrate employee_accounts: %v", err)
+	}
+
+	repo := NewRepository(dbResolver)
+	logger := testLogger()
+	svc := NewService(repo, logger)
+	notifier := &fakeNotifier{}
+	svc.SetNotifier(notifier)
+
+	empID := uuid.New()
+	userID := uuid.New()
+	if err := db.Create(&EmployeeAccount{
+		EmployeeID: empID,
+		UserID:     userID,
+		Email:      "movement@test.local",
+	}).Error; err != nil {
+		t.Fatalf("failed to seed employee account: %v", err)
+	}
+
+	movement := createTestMovement(repo, empID)
+	movement.Status = MovementStatusPendingApproval
+	if err := repo.UpdateMovement(ctx(), movement); err != nil {
+		t.Fatalf("failed to seed movement: %v", err)
+	}
+
+	if err := svc.HandleApprovalStatusChange(ctx(), movement.ID, "APPROVED", ""); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+
+	updated, _ := svc.GetMovementByID(ctx(), movement.ID.String())
+	if updated.Status != "approved" {
+		t.Errorf("expected status 'approved', got '%s'", updated.Status)
+	}
+	// Notification sent to the employee's user with reference to the movement.
+	if len(notifier.calls) != 1 {
+		t.Fatalf("expected 1 notification, got %d", len(notifier.calls))
+	}
+	c := notifier.calls[0]
+	if c.recipientUserID != userID {
+		t.Errorf("expected recipient %s, got %s", userID, c.recipientUserID)
+	}
+	if c.notifType != "MOVEMENT_APPROVED" {
+		t.Errorf("expected type MOVEMENT_APPROVED, got %s", c.notifType)
+	}
+	if c.referenceType != "employeemovement" || c.referenceID != movement.ID {
+		t.Errorf("unexpected reference: %s %s", c.referenceType, c.referenceID)
+	}
+}
+
+func TestService_ExecuteMovement_NotifiesEmployee(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	// Career executor + notifier wired.
+	svc.SetCareerExecutor(&fakeCareerExecutor{})
+	notifier := &fakeNotifier{}
+	svc.SetNotifier(notifier)
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	created.MovementType = MovementTypeContractExtension // skips employment change
+	repo.UpdateMovement(ctx(), created)
+
+	if err := svc.ExecuteMovement(ctx(), created.ID.String(), uuidStr()); err != nil {
+		t.Fatalf("ExecuteMovement failed: %v", err)
+	}
+
+	// Employee has no user account in this DB → no notification sent (best-effort).
+	if len(notifier.calls) != 0 {
+		t.Errorf("expected no notifications (no user account), got %d", len(notifier.calls))
 	}
 }
 

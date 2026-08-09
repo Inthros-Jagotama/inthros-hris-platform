@@ -593,6 +593,7 @@ func main() {
 	employeeMovementRepo := employeemovement.NewRepository(employeeMovementResolver)
 	employeeMovementSvc := employeemovement.NewService(employeeMovementRepo, l.Named("employeemovement"))
 	employeeMovementSvc.SetApprovalEngine(sharedApprovalEngine)
+	employeeMovementSvc.SetNotifier(notificationSvc)
 	// Wire the employee module (employment + employee status changes) into
 	// ExecuteMovement so movement execution touches real HR data (plan G-1):
 	// create new employment, close the previous one, mark offboarding /
