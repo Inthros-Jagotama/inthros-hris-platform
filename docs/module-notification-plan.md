@@ -11,8 +11,9 @@
 | Phase 5 — Rollout ke Modul Lain | ⏳ Belum dimulai | |
 | Phase 6 — Email/Push Delivery | ⏸️ Di luar cakupan | Butuh keputusan provider terpisah. |
 | Phase 7 — Notification Preferences | ⏸️ Di luar cakupan | Ditunda sampai ada kebutuhan bisnis konkret. |
-| Phase FE-1 — Store & Bell Dropdown | ⏳ Belum dimulai | Lihat §13. FE saat ini 0% — bell di `HeaderBar.vue` murni kosmetik (badge hardcoded `"3"`). |
-| Phase FE-2 — Halaman Notifikasi Penuh | ⏳ Belum dimulai | Lihat §13. |
+| Phase FE-1 — Store & Bell Dropdown | ✅ Selesai | `stores/notifications.js` (pola `activeModules.js`, unread count + recent items + polling `setInterval` 60s), bell di `HeaderBar.vue` kini interaktif (Popover dropdown, badge dinamis, mark-all-as-read). |
+| Phase FE-2 — Halaman Notifikasi Penuh | ✅ Selesai | `views/modules/Notifications.vue` (list paginated, filter All/Unread, mark-as-read per baris + bulk), route `/notifications` (`meta.module:'notification'`), entri sidebar, locale `notification.*` (en/id). |
+| Phase FE-3 — Deep-link per reference_type | ⏳ Belum dimulai | Lihat §13.6. Ditunda sampai lebih banyak modul FE (Attendance, Payroll, dll.) punya halaman detail sendiri. |
 
 ## 1. Objective
 
@@ -311,13 +312,13 @@ Semua titik ini butuh resolusi `employee_id → user_id` (lewat `useraccount`), 
 
 ## 13.1 Ringkasan & Prinsip
 
-Backend sudah lengkap sampai Phase 4 (schema, service, 4 endpoint REST, Leave sudah jadi consumer pertama). Frontend saat ini **0%** — dikonfirmasi lewat pemeriksaan langsung:
+Backend sudah lengkap sampai Phase 4 (schema, service, 4 endpoint REST, Leave sudah jadi consumer pertama). **Update: FE-1 dan FE-2 sudah selesai diimplementasikan** — bagian di bawah ini (kondisi awal) dipertahankan sebagai catatan historis kenapa plan ini dibuat:
 
-* `frontend/tenant/src/layouts/HeaderBar.vue:146-156` punya bell icon, tapi murni kosmetik: `Button icon="pi pi-bell"` + `Badge value="3"` dengan angka **hardcoded**, tanpa `@click`, tanpa dropdown/panel, tanpa pemanggilan API sama sekali.
-* Tidak ada route apapun yang menyebut "notification" di `router/index.js`.
-* Tidak ada key `notification` di `locales/en.json` maupun `locales/id.json`.
-* Tidak ada file `Notifications.vue` atau sejenisnya di `views/modules/`.
-* Tidak ada pola `setInterval`/polling apapun di codebase FE saat ini — refresh unread-count akan jadi pola pertama semacam ini.
+* ~~`frontend/tenant/src/layouts/HeaderBar.vue:146-156` punya bell icon, tapi murni kosmetik: `Button icon="pi pi-bell"` + `Badge value="3"` dengan angka **hardcoded**, tanpa `@click`, tanpa dropdown/panel, tanpa pemanggilan API sama sekali.~~ → sudah interaktif, lihat §13.2/§13.3.
+* ~~Tidak ada route apapun yang menyebut "notification" di `router/index.js`.~~ → route `/notifications` sudah ditambahkan.
+* ~~Tidak ada key `notification` di `locales/en.json` maupun `locales/id.json`.~~ → namespace `notification.*` + `nav.notification` sudah ditambahkan.
+* ~~Tidak ada file `Notifications.vue` atau sejenisnya di `views/modules/`.~~ → sudah dibuat.
+* ~~Tidak ada pola `setInterval`/polling apapun di codebase FE saat ini~~ → sudah diimplementasikan di `stores/notifications.js` (interval 60 detik, single global timer).
 
 Prinsip pengerjaan FE ini:
 
@@ -375,7 +376,9 @@ Response envelope sama dengan modul lain (`success`/`data`/`page`/`per_page`/`to
 
 ## 13.6 Development Phases (FE)
 
-* **Phase FE-1 — Store & Bell Dropdown**: `stores/notifications.js` (unread-count + recent list + polling) dan bell interaktif di `HeaderBar.vue` (OverlayPanel dropdown, badge dinamis, mark-as-read per item). Nilai tertinggi untuk end user karena langsung terlihat di semua halaman.
-* **Phase FE-2 — Halaman Notifikasi Penuh**: `Notifications.vue` (list paginated, filter `is_read`, mark-all-as-read) + route + entri sidebar + locale keys.
-* **Phase FE-3 (opsional, nanti)** — deep-link ke halaman detail per `reference_type` begitu makin banyak modul FE (Attendance, Payroll, dll.) punya halaman detail sendiri. **Belum dikerjakan sekarang** — dicatat sebagai perluasan alami, bukan bagian dari FE-1/FE-2.
+* **Phase FE-1 — Store & Bell Dropdown ✅ Selesai**: `stores/notifications.js` (unread-count + recent list + polling `setInterval` 60s, pola `activeModules.js`) dan bell interaktif di `HeaderBar.vue` (`Popover` dropdown, badge dinamis, mark-as-read per item, mark-all-as-read).
+* **Phase FE-2 — Halaman Notifikasi Penuh ✅ Selesai**: `views/modules/Notifications.vue` (list paginated lazy `DataTable`, filter All/Unread via `is_read`, mark-as-read per baris + bulk) + route `/notifications` (`meta.module:'notification'`) + entri sidebar (Operations, gated `notification.view`) + locale keys `notification.*`/`nav.notification` (en/id). Reset store diwire ke logout guard yang sama dengan `useActiveModules().reset()`.
+* **Phase FE-3 (opsional, nanti)** — deep-link ke halaman detail per `reference_type` begitu makin banyak modul FE (Attendance, Payroll, dll.) punya halaman detail sendiri. **Belum dikerjakan** — `Notifications.vue` saat ini hanya menangani navigasi untuk `reference_type=leave` (satu-satunya modul FE yang sudah punya halaman relevan), dicatat sebagai perluasan alami, bukan bagian dari FE-1/FE-2.
 * **Di luar cakupan eksplisit**: browser push notification/service worker, UI notification preferences (backend §3.2/Phase 7 juga di luar cakupan), email digest.
+
+**Catatan implementasi (deviasi kecil dari desain awal di §13.1-13.5):** endpoint `GET /notifications` dan `GET /notifications/unread-count` ternyata membungkus payload satu level lebih dalam dari kebanyakan endpoint list lain di aplikasi ini — `{success, data: {data, total, page, per_page}}`, bukan `{success, data, total, page, per_page}`. Store (`stores/notifications.js`) dan halaman (`Notifications.vue`) sudah menangani ini secara eksplisit (lihat komentar inline di kedua file).
