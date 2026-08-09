@@ -345,7 +345,8 @@ const operationsItems = computed(() => {
   return filterByModule([
     { key: 'attendance', label: t('nav.attendance'), icon: 'pi pi-clock', command: () => router.push('/attendance'), path: '/attendance', moduleSlug: 'attendance', permission: 'attendance.view' },
     { key: 'leave', label: t('nav.leave'), icon: 'pi pi-calendar', command: () => router.push('/leave'), path: '/leave', moduleSlug: 'leave', permission: 'leave.view' },
-    { key: 'movement', label: t('nav.movement'), icon: 'pi pi-arrows-alt', command: () => router.push('/employee-movements'), path: '/employee-movements', moduleSlug: 'employeemovement', permission: 'employeemovement.view' },
+    { key: 'movement', label: t('employee_movement.movements'), icon: 'pi pi-arrows-alt', command: () => router.push('/admin/career/movements'), path: '/admin/career/movements', moduleSlug: 'employeemovement', permission: 'employeemovement.view' },
+    { key: 'contracts', label: t('employee_movement.contracts'), icon: 'pi pi-file-edit', command: () => router.push('/admin/career/contracts'), path: '/admin/career/contracts', moduleSlug: 'employeemovement', permission: 'employeemovement.view' },
     { key: 'approval', label: t('nav.approval'), icon: 'pi pi-check-square', command: () => router.push('/approvals'), path: '/approvals', moduleSlug: 'approval', permission: 'approval.view' },
     { key: 'notification', label: t('nav.notification'), icon: 'pi pi-bell', command: () => router.push('/notifications'), path: '/notifications', moduleSlug: 'notification', permission: 'notification.view' }
   ])

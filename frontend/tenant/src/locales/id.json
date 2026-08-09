@@ -23,7 +23,6 @@
     "operations": "Operasional",
     "attendance": "Absensi",
     "leave": "Cuti",
-    "movement": "Mutasi",
     "approval": "Persetujuan",
     "notification": "Notifikasi",
     "finance": "Keuangan",
@@ -976,7 +975,8 @@
     "title": "Mutasi Karyawan",
     "description": "Kelola mutasi dan kontrak karyawan.",
     "movements": "Mutasi",
-    "contracts": "Kontrak"
+    "contracts": "Kontrak",
+    "contracts_coming_soon": "Halaman pengelolaan kontrak segera hadir"
   },
   "approval": {
     "title": "Persetujuan",

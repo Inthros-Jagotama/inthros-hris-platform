@@ -105,12 +105,18 @@ const routes = [
         component: () => import('@/views/modules/Competencies.vue'),
         meta: { title: 'Competency', titleKey: 'competency.title', descKey: 'competency.description', icon: 'pi pi-star', module: 'competency' }
       },
-      // Employee Movement
+      // Employee Movement & Career Management (G-8: route menyamakan menu server)
       {
-        path: 'employee-movements',
+        path: 'admin/career/movements',
         name: 'EmployeeMovements',
         component: () => import('@/views/modules/EmployeeMovements.vue'),
-        meta: { title: 'Movement', titleKey: 'employee_movement.title', descKey: 'employee_movement.description', icon: 'pi pi-arrows-alt', module: 'employee-movement' }
+        meta: { title: 'Movements', titleKey: 'employee_movement.movements', descKey: 'employee_movement.description', icon: 'pi pi-arrows-alt', module: 'employeemovement' }
+      },
+      {
+        path: 'admin/career/contracts',
+        name: 'EmployeeContracts',
+        component: () => import('@/views/modules/EmployeeContracts.vue'),
+        meta: { title: 'Contracts', titleKey: 'employee_movement.contracts', descKey: 'employee_movement.description', icon: 'pi pi-file-edit', module: 'employeemovement' }
       },
       // Time & Attendance
       {

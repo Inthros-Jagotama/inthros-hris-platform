@@ -23,7 +23,6 @@
     "operations": "Operations",
     "attendance": "Attendance",
     "leave": "Leave",
-    "movement": "Movement",
     "approval": "Approval",
     "notification": "Notifications",
     "finance": "Finance",
@@ -976,7 +975,8 @@
     "title": "Employee Movement",
     "description": "Manage employee movements and contracts.",
     "movements": "Movements",
-    "contracts": "Contracts"
+    "contracts": "Contracts",
+    "contracts_coming_soon": "Contract management page coming soon"
   },
   "approval": {
     "title": "Approval",

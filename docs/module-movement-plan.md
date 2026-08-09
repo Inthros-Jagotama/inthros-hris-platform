@@ -3,7 +3,7 @@
 > 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 3/12 selesai** (backend existing ✅ + 3 langkah baru ✅, FE placeholder ❌)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe. **Berikutnya:** 9-11) FE · 12) G-8 slug/route · 13) test & verifikasi.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan. **Berikutnya:** 10-12) FE halaman Movements/Contracts/aksi · 13) test & verifikasi.
 
 ---
 
@@ -363,6 +363,20 @@ Belum ada validasi "tipe X wajib field Y":
 - `/admin/career/contracts` → halaman Contracts (`EmployeeContracts.vue` baru)
 - Router FE + sidebar disesuaikan; module slug disamakan (`employeemovement` atau `employee-movement` — pilih satu, samakan dengan permission & filter approval).
 
+### 3.12 Log Implementasi Langkah 11 (G-8 slug/route konsisten) — 2026-08-10
+
+**Tujuan:** menyamakan route FE dengan menu server & slug module.
+
+**Perubahan (backend sudah benar — tanpa perubahan):** `ModuleSlug = "employeemovement"`, menu `/admin/career/movements` & `/admin/career/contracts` (module.go). Approval module slug juga `employeemovement` (konsisten, G-3 auto-resolve memakainya).
+
+**FE:**
+- `router/index.js` — route lama `employee-movements` (slug `employee-movement`) diganti dua route: `/admin/career/movements` (EmployeeMovements.vue, title `employee_movement.movements`) & `/admin/career/contracts` (EmployeeContracts.vue baru); slug `employeemovement` + backRoute `/admin/career`.
+- `layouts/Sidebar.vue` — item `movement` diarahkan ke `/admin/career/movements` (label kini `employee_movement.movements`) + item baru `contracts` → `/admin/career/contracts` (ikon `pi-file-edit`).
+- `views/modules/EmployeeContracts.vue` (baru) — placeholder mengikuti pola EmployeeMovements.vue.
+- Locale `employee_movement.contracts_coming_soon` (en/id). `nav.movement` jadi dead key (Sidebar sudah tidak memakainya).
+
+**Validasi:** `npm run build` FE **PASS** ✅ · JSON locale valid.
+
 ---
 
 # 5. API Plan
@@ -485,7 +499,7 @@ i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama
 | 8 | FE: halaman Movements (`/admin/career/movements`) + locale lengkap | FE | 2-7 |
 | 9 | FE: halaman Contracts terpisah (`/admin/career/contracts`) + upload dokumen | FE | 7 |
 | 10 | FE: aksi submit/execute/cancel + detail + deep-link notifikasi + badge `rejected` | FE | 5 |
-| 11 | G-8 samakan slug module & route FE dengan menu server | BE/FE | — |
+| 11 | G-8 samakan slug module & route FE dengan menu server — ✅ **SELESAI (2026-08-10)** | BE/FE | — |
 | 12 | Test: unit/service + FE build + verifikasi manual E2E | — | semua |
 
 ---
