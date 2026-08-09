@@ -240,7 +240,8 @@
             <i class="pi pi-eye"></i> {{ t('approval.watcher_note') }}
           </div>
           <div v-else class="space-y-2">
-            <Textarea v-model="actionNote" :placeholder="t('approval.note_placeholder')" rows="2" class="w-full" />
+            <Textarea v-model="actionNote" :placeholder="t('approval.note_placeholder')" rows="2" class="w-full" :class="{ 'p-invalid': noteError }" @input="noteError = ''" />
+            <small v-if="noteError" class="text-red-500 text-xs block">{{ noteError }}</small>
             <div class="flex items-center justify-end gap-2">
               <Button :label="t('approval.reject')" severity="danger" outlined size="small" :loading="actionSubmitting" @click="submitAction('REJECT')" />
               <Button :label="t('approval.approve')" severity="success" size="small" :loading="actionSubmitting" @click="submitAction('APPROVE')" />
@@ -248,6 +249,9 @@
           </div>
         </div>
       </div>
+      <template #footer>
+        <Button :label="t('common.close')" severity="secondary" outlined size="small" @click="taskDetailVisible = false" />
+      </template>
     </Dialog>
   </div>
 </template>
@@ -257,6 +261,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
+import { formatDate as formatDateGlobal } from '@/utils/formatDate'
 import api from '@/services/api'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -266,25 +271,27 @@ import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 const router = useRouter()
 
+// formatDate — date + time, built on the app-wide date formatter
+// (utils/formatDate.js) so the date portion matches every other page
+// (e.g. "30 July 2026"), with a time suffix appended since the global
+// utility is date-only.
 function formatDate(v) {
   if (!v) return '-'
-  return new Date(v).toLocaleString()
+  const datePart = formatDateGlobal(v, locale.value)
+  if (!datePart) return '-'
+  const time = new Date(v).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return `${datePart} ${time}`
 }
 
-// formatDateOnly renders date-only strings (e.g. "2026-01-15") without a
-// time component — parsed as local calendar date rather than via `new
-// Date(v)` (which treats a bare "YYYY-MM-DD" as UTC midnight and can shift
-// the displayed day depending on the viewer's timezone).
+// formatDateOnly — date only, via the same app-wide formatter (handles the
+// "YYYY-MM-DD" vs ISO-timestamp parsing itself, so a bare date string never
+// shifts a day across a UTC-midnight boundary).
 function formatDateOnly(v) {
-  if (!v) return '-'
-  const match = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (!match) return String(v)
-  const [, y, m, d] = match
-  return new Date(Number(y), Number(m) - 1, Number(d)).toLocaleDateString()
+  return formatDateGlobal(v, locale.value) || '-'
 }
 
 const pendingTasks = ref([])
@@ -321,6 +328,7 @@ const instanceLoading = ref(false)
 const activeInstance = ref(null)
 const activeTaskRef = ref(null)
 const actionNote = ref('')
+const noteError = ref('')
 const actionSubmitting = ref(false)
 const documentDetail = ref(null)
 const documentLoading = ref(false)
@@ -468,6 +476,7 @@ async function loadDocumentDetail(module, documentId) {
 async function openTaskDetail(task) {
   activeTaskRef.value = task
   actionNote.value = ''
+  noteError.value = ''
   taskDetailVisible.value = true
   instanceLoading.value = true
   try {
@@ -485,6 +494,11 @@ async function openTaskDetail(task) {
 
 async function submitAction(action) {
   if (!activeTaskRef.value) return
+  if (action === 'REJECT' && !actionNote.value?.trim()) {
+    noteError.value = t('approval.reject_note_required')
+    return
+  }
+  noteError.value = ''
   actionSubmitting.value = true
   try {
     await api.post(`/api/v1/tenant/approval/instances/${activeTaskRef.value.instance_id}/actions`, {

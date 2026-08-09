@@ -1010,6 +1010,7 @@
     "note_placeholder": "Catatan (opsional)",
     "approve": "Setujui",
     "reject": "Tolak",
+    "reject_note_required": "Alasan wajib diisi untuk menolak.",
     "action_submitted": "Aksi berhasil dikirim",
     "empty_tasks": "Tidak ada tugas tertunda"
   },

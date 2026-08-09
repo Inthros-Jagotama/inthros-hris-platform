@@ -1010,6 +1010,7 @@
     "note_placeholder": "Optional note",
     "approve": "Approve",
     "reject": "Reject",
+    "reject_note_required": "A reason is required to reject.",
     "action_submitted": "Action submitted successfully",
     "empty_tasks": "No pending tasks"
   },
