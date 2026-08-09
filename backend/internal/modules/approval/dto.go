@@ -131,6 +131,13 @@ type ActionResponse struct {
 	Action      string    `json:"action"`
 	Note        *string   `json:"note,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
+	// Actor* describe who actually performed the action (name, employee
+	// code, current organization) — populated by the service layer (needs a
+	// repo lookup, so it can't be filled in ToResponse()), used by the FE to
+	// show who approved each step once it's done.
+	ActorName             string `json:"actor_name,omitempty"`
+	ActorEmployeeCode     string `json:"actor_employee_code,omitempty"`
+	ActorOrganizationName string `json:"actor_organization_name,omitempty"`
 }
 
 // =========================================================================

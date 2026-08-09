@@ -604,6 +604,31 @@ func (s *Service) GetInstanceByID(ctx context.Context, id string) (*InstanceResp
 	}
 
 	response := instance.ToResponse()
+
+	if len(response.Actions) > 0 {
+		actorIDSet := make(map[uuid.UUID]struct{}, len(response.Actions))
+		for _, a := range response.Actions {
+			if aid, err := uuid.Parse(a.ActorUserID); err == nil {
+				actorIDSet[aid] = struct{}{}
+			}
+		}
+		actorIDs := make([]uuid.UUID, 0, len(actorIDSet))
+		for id := range actorIDSet {
+			actorIDs = append(actorIDs, id)
+		}
+		actors, err := s.repo.GetSubmitterInfoByUserIDs(ctx, actorIDs)
+		if err != nil {
+			return nil, err
+		}
+		for i := range response.Actions {
+			if info, ok := actors[response.Actions[i].ActorUserID]; ok {
+				response.Actions[i].ActorName = info.Name
+				response.Actions[i].ActorEmployeeCode = info.EmployeeCode
+				response.Actions[i].ActorOrganizationName = info.OrganizationName
+			}
+		}
+	}
+
 	return &response, nil
 }
 

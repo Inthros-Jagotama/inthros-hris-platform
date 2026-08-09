@@ -374,6 +374,54 @@ func TestService_GetInstanceByID_Success(t *testing.T) {
 	}
 }
 
+// TestService_GetInstanceByID_EnrichesActionsWithActorInfo guards the
+// approval-preview requirement: once a step has been approved, its action
+// entry must carry the approver's name/employee code/organization so the FE
+// can show "who approved this step" instead of just a raw actor_user_id.
+func TestService_GetInstanceByID_EnrichesActionsWithActorInfo(t *testing.T) {
+	svc, repo, db, cleanup := newTestServiceWithDB()
+	defer cleanup()
+
+	flow := createTestFlow(repo, "leave")
+	createTestStep(repo, flow.ID, 1)
+
+	inst := createTestInstance(repo, flow, uuid.New())
+
+	approverID := uuid.New()
+	createTestTask(repo, inst.ID, 1, approverID)
+
+	orgID := uuid.New()
+	seedOrganizationNamed(db, orgID, nil, "Finance Department")
+	employeeID := uuid.New()
+	seedEmployee(db, employeeID, "Budi Santoso", "EMP-042")
+	seedEmployment(db, employeeID, orgID)
+	seedEmployeeAccount(db, employeeID, approverID)
+
+	if _, err := svc.SubmitAction(ctx(), inst.ID.String(), approverID.String(), SubmitActionRequest{
+		Action: "APPROVE",
+	}); err != nil {
+		t.Fatalf("SubmitAction failed: %v", err)
+	}
+
+	found, err := svc.GetInstanceByID(ctx(), inst.ID.String())
+	if err != nil {
+		t.Fatalf("GetInstanceByID failed: %v", err)
+	}
+	if len(found.Actions) != 1 {
+		t.Fatalf("expected 1 action, got %d", len(found.Actions))
+	}
+	action := found.Actions[0]
+	if action.ActorName != "Budi Santoso" {
+		t.Errorf("expected actor_name 'Budi Santoso', got %q", action.ActorName)
+	}
+	if action.ActorEmployeeCode != "EMP-042" {
+		t.Errorf("expected actor_employee_code 'EMP-042', got %q", action.ActorEmployeeCode)
+	}
+	if action.ActorOrganizationName != "Finance Department" {
+		t.Errorf("expected actor_organization_name 'Finance Department', got %q", action.ActorOrganizationName)
+	}
+}
+
 func TestService_ListInstances_DefaultPagination(t *testing.T) {
 	svc, repo, cleanup := newTestService()
 	defer cleanup()

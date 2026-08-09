@@ -217,10 +217,18 @@
           <div>
             <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">{{ t('approval.steps') }}</p>
             <div class="space-y-1">
-              <div v-for="s in activeInstance.steps" :key="s.id" class="flex items-center gap-2 text-xs px-2 py-1.5 rounded" :class="s.step_order === activeInstance.current_step ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''">
-                <span class="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">{{ s.step_order }}</span>
-                <span class="font-medium text-gray-700 dark:text-gray-200">{{ s.step_name }}</span>
-                <Tag :value="s.participation_type" :severity="s.participation_type === 'WATCHER' ? 'secondary' : 'success'" class="!text-xs !px-1.5 !py-0.5" />
+              <div v-for="s in activeInstance.steps" :key="s.id" class="px-2 py-1.5 rounded" :class="s.step_order === activeInstance.current_step ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''">
+                <div class="flex items-center gap-2 text-xs">
+                  <span class="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">{{ s.step_order }}</span>
+                  <span class="font-medium text-gray-700 dark:text-gray-200">{{ s.step_name }}</span>
+                  <Tag :value="s.participation_type" :severity="s.participation_type === 'WATCHER' ? 'secondary' : 'success'" class="!text-xs !px-1.5 !py-0.5" />
+                </div>
+                <div v-if="stepApprover(s.step_order)" class="ml-7 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <i class="pi pi-check-circle text-emerald-500 mr-1"></i>
+                  {{ stepApprover(s.step_order).actor_name || '-' }}
+                  <span v-if="stepApprover(s.step_order).actor_employee_code">({{ stepApprover(s.step_order).actor_employee_code }})</span>
+                  <span v-if="stepApprover(s.step_order).actor_organization_name"> — {{ stepApprover(s.step_order).actor_organization_name }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -357,6 +365,14 @@ function rowStatusSeverity(row) {
     }
   }
   return 'warn'
+}
+
+// stepApprover — the approve action recorded for a given step, if any, so
+// each step in the preview can show who actually approved it (name,
+// employee code, organization) once its status has moved past PENDING.
+function stepApprover(stepOrder) {
+  const actions = activeInstance.value?.actions || []
+  return actions.find(a => a.step_order === stepOrder && a.action === 'APPROVE') || null
 }
 
 const activeTaskIsWatcher = computed(() => {
