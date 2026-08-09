@@ -597,6 +597,7 @@
     "quota_days": "Quota",
     "used_days": "Used",
     "remaining_days": "Remaining",
+    "employee": "Employee",
     "leave_type": "Leave Type",
     "request_start_date": "Start Date",
     "request_end_date": "End Date",

@@ -147,6 +147,44 @@
             </div>
           </template>
 
+          <template v-else-if="isLeaveModule">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('leave.employee') }}</p>
+                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ leaveEmployeeName || '-' }}</p>
+                <p v-if="leaveEmployeeCode" class="text-xs text-gray-400">{{ leaveEmployeeCode }}</p>
+              </div>
+              <div class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('leave.leave_type') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ leaveTypeName || '-' }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('leave.request_start_date') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatDateOnly(documentDetail?.request_start_date) }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('leave.request_end_date') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatDateOnly(documentDetail?.request_end_date) }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('leave.duration_mode') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.duration_mode || '-' }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('leave.requested_days') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.requested_days ?? '-' }}</p>
+              </div>
+              <div class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('approval.submitted_at') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatDate(documentDetail?.submitted_at) }}</p>
+              </div>
+              <div v-if="documentDetail?.leave_reason_note" class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('leave.leave_reason_note') }}</p>
+                <p class="text-gray-700 dark:text-gray-200 break-words">{{ documentDetail.leave_reason_note }}</p>
+              </div>
+            </div>
+          </template>
+
           <div v-else-if="documentFields.length" class="space-y-2">
             <div v-for="f in documentFields" :key="f.label" class="text-sm">
               <p class="text-xs text-gray-400">{{ f.label }}</p>
@@ -237,6 +275,18 @@ function formatDate(v) {
   return new Date(v).toLocaleString()
 }
 
+// formatDateOnly renders date-only strings (e.g. "2026-01-15") without a
+// time component — parsed as local calendar date rather than via `new
+// Date(v)` (which treats a bare "YYYY-MM-DD" as UTC midnight and can shift
+// the displayed day depending on the viewer's timezone).
+function formatDateOnly(v) {
+  if (!v) return '-'
+  const match = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return String(v)
+  const [, y, m, d] = match
+  return new Date(Number(y), Number(m) - 1, Number(d)).toLocaleDateString()
+}
+
 const pendingTasks = ref([])
 const pendingTotal = ref(0)
 const tasksLoading = ref(false)
@@ -289,6 +339,41 @@ const isOKRModule = computed(() => {
   return ['okr_key_result', 'okr_assessment'].includes(activeInstance.value?.module)
 })
 
+const isLeaveModule = computed(() => activeInstance.value?.module === 'leave')
+const leaveEmployeeName = ref('')
+const leaveEmployeeCode = ref('')
+const leaveTypeName = ref('')
+
+// Leave's own GET /requests/:id response only has employee_id/leave_type_id
+// (no names) — resolved here client-side, same reasoning as why the generic
+// documentFields fallback denylists raw id fields (not meaningful to a
+// reviewer on their own).
+async function loadLeaveNames(employeeId, leaveTypeId) {
+  leaveEmployeeName.value = ''
+  leaveEmployeeCode.value = ''
+  leaveTypeName.value = ''
+  const requests = []
+  if (employeeId) {
+    requests.push(
+      api.get(`/api/v1/tenant/employees/${employeeId}`)
+        .then(res => {
+          const emp = res.data?.data
+          leaveEmployeeName.value = emp?.name || ''
+          leaveEmployeeCode.value = emp?.employee_id || ''
+        })
+        .catch(() => {})
+    )
+  }
+  if (leaveTypeId) {
+    requests.push(
+      api.get(`/api/v1/tenant/leave/types/${leaveTypeId}`)
+        .then(res => { leaveTypeName.value = res.data?.data?.name || '' })
+        .catch(() => {})
+    )
+  }
+  await Promise.all(requests)
+}
+
 const okrObjectiveGroups = computed(() => {
   const details = documentDetail.value?.details || []
   const groups = {}
@@ -326,7 +411,7 @@ function formatFieldValue(value) {
 }
 
 // Generic key-value fallback for modules without a dedicated renderer above
-// (leave, reimbursement, employeemovement, attendance, payroll, ...) — the
+// (reimbursement, employeemovement, attendance, payroll, ...) — the
 // approval module is document-agnostic, so this covers whatever module
 // ends up here without needing a bespoke view per module.
 const documentFields = computed(() => {
@@ -370,6 +455,9 @@ async function loadDocumentDetail(module, documentId) {
   try {
     const res = await api.get(endpoint)
     documentDetail.value = res.data?.data || null
+    if (module === 'leave' && documentDetail.value) {
+      await loadLeaveNames(documentDetail.value.employee_id, documentDetail.value.leave_type_id)
+    }
   } catch {
     documentDetail.value = null
   } finally {

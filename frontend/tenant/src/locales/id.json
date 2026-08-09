@@ -597,6 +597,7 @@
     "quota_days": "Kuota",
     "used_days": "Terpakai",
     "remaining_days": "Sisa",
+    "employee": "Karyawan",
     "leave_type": "Tipe Cuti",
     "request_start_date": "Tanggal Mulai",
     "request_end_date": "Tanggal Selesai",
