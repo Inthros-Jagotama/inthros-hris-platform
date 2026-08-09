@@ -151,9 +151,54 @@
           text
           size="small"
           class="!p-1.5"
+          @click="toggleNotifications"
         />
-        <Badge value="3" severity="danger" class="!absolute -top-0.5 -right-0.5 !text-xs !min-w-[1.1rem] !h-[1.1rem]" />
+        <Badge
+          v-if="notifState.unreadCount > 0"
+          :value="notifState.unreadCount > 99 ? '99+' : notifState.unreadCount"
+          severity="danger"
+          class="!absolute -top-0.5 -right-0.5 !text-xs !min-w-[1.1rem] !h-[1.1rem]"
+        />
       </div>
+      <Popover ref="notificationsPanel" class="!w-80">
+        <div class="flex items-center justify-between px-1 pb-2 border-b border-gray-100 dark:border-gray-700">
+          <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('notification.title') }}</span>
+          <Button
+            v-if="notifState.unreadCount > 0"
+            :label="t('notification.mark_all_read')"
+            text
+            size="small"
+            class="!p-1 !text-xs"
+            @click="handleMarkAllAsRead"
+          />
+        </div>
+        <div class="max-h-96 overflow-y-auto">
+          <div v-if="notifState.recentItems.length === 0" class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
+            <i class="pi pi-bell-slash text-2xl mb-2 opacity-50"></i>
+            <p class="text-xs">{{ t('notification.empty') }}</p>
+          </div>
+          <div
+            v-for="item in notifState.recentItems"
+            :key="item.id"
+            class="px-2 py-2 border-b border-gray-50 dark:border-gray-700/50 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40 rounded"
+            :class="{ 'bg-emerald-50/60 dark:bg-emerald-500/5': !item.is_read }"
+            @click="handleNotificationClick(item)"
+          >
+            <div class="flex items-start gap-2">
+              <span v-if="!item.is_read" class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
+              <span v-else class="w-1.5 h-1.5 shrink-0"></span>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{{ item.title }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{{ item.body }}</p>
+                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{{ relativeTime(item.created_at) }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
+          <Button :label="t('notification.view_all')" text size="small" class="w-full !text-xs" @click="goToNotifications" />
+        </div>
+      </Popover>
 
       <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mr-2">
         <i class="pi pi-circle-fill text-emerald-400 text-[6px]"></i>
@@ -183,17 +228,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLanguage } from '@/stores/language'
 import { useTheme } from '@/stores/theme'
 import { useAuth } from '@/stores/auth'
+import { useNotifications } from '@/stores/notifications'
 import { useI18n } from '@/composables/useI18n'
 import { jobValueTypeLabel as jobValueTypeLabelFn } from '@/utils/jobValues'
 import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
 import Badge from 'primevue/badge'
 import Menu from 'primevue/menu'
+import Popover from 'primevue/popover'
 
 const emit = defineEmits(['toggle-sidebar', 'logout'])
 
@@ -204,6 +251,52 @@ const langStore = useLanguage()
 const themeStore = useTheme()
 const { state: authState } = useAuth()
 const { t } = useI18n()
+
+// ── Notifications ──
+const notificationsPanel = ref(null)
+const { state: notifState, refresh: refreshNotifications, markAsRead, markAllAsRead, startPolling, stopPolling } = useNotifications()
+
+function toggleNotifications(event) {
+  notificationsPanel.value.toggle(event)
+  if (!notifState.loaded) refreshNotifications()
+}
+
+async function handleMarkAllAsRead() {
+  await markAllAsRead()
+}
+
+async function handleNotificationClick(item) {
+  if (!item.is_read) await markAsRead(item.id)
+  notificationsPanel.value.hide()
+  router.push('/notifications')
+}
+
+function goToNotifications() {
+  notificationsPanel.value.hide()
+  router.push('/notifications')
+}
+
+// relativeTime — short "X minutes/hours/days ago" label for the dropdown
+// feed, built on the existing time.* locale keys (previously unused).
+function relativeTime(value) {
+  if (!value) return ''
+  const diffMs = Date.now() - new Date(value).getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return t('time.just_now')
+  if (diffMin < 60) return t('time.minutes_ago', diffMin)
+  const diffHours = Math.floor(diffMin / 60)
+  if (diffHours < 24) return t('time.hours_ago', diffHours)
+  const diffDays = Math.floor(diffHours / 24)
+  return t('time.days_ago', diffDays)
+}
+
+onMounted(() => {
+  refreshNotifications()
+  startPolling()
+})
+onUnmounted(() => {
+  stopPolling()
+})
 
 /** Show breadcrumb when visiting Organizations with summary_id query param */
 const showOrgBreadcrumb = computed(() => {

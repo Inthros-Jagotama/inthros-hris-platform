@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useActiveModules } from '@/stores/activeModules'
+import { useNotifications } from '@/stores/notifications'
 
 const routes = [
   {
@@ -196,6 +197,13 @@ const routes = [
         name: 'ApprovalFlows',
         component: () => import('@/views/modules/ApprovalFlows.vue'),
         meta: { title: 'Approval Flows', titleKey: 'approval.flows', descKey: 'approval.description', icon: 'pi pi-sitemap', module: 'approval' }
+      },
+      // Notifications
+      {
+        path: 'notifications',
+        name: 'Notifications',
+        component: () => import('@/views/modules/Notifications.vue'),
+        meta: { title: 'Notifications', titleKey: 'notification.title', descKey: 'notification.description', icon: 'pi pi-bell', module: 'notification' }
       },
       // Payroll
       {
@@ -403,6 +411,7 @@ router.beforeEach(async (to, from, next) => {
   // Reset active modules cache on logout (navigating to login)
   if (to.name === 'Login') {
     useActiveModules().reset()
+    useNotifications().reset()
   }
   const token = localStorage.getItem('tenant_token')
   const isAuthenticated = !!token

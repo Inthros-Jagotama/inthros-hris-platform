@@ -25,6 +25,7 @@
     "leave": "Cuti",
     "movement": "Mutasi",
     "approval": "Persetujuan",
+    "notification": "Notifikasi",
     "finance": "Keuangan",
     "payroll": "Penggajian",
     "reimbursement": "Reimbursemen",
@@ -1014,6 +1015,20 @@
     "reject_note_required": "Alasan wajib diisi untuk menolak.",
     "action_submitted": "Aksi berhasil dikirim",
     "empty_tasks": "Tidak ada tugas tertunda"
+  },
+  "notification": {
+    "title": "Notifikasi",
+    "description": "Lihat dan kelola notifikasi in-app Anda.",
+    "empty": "Belum ada notifikasi",
+    "mark_all_read": "Tandai semua dibaca",
+    "mark_read": "Tandai dibaca",
+    "view_all": "Lihat semua notifikasi",
+    "filter_all": "Semua",
+    "filter_unread": "Belum Dibaca",
+    "column_title": "Judul",
+    "column_body": "Pesan",
+    "column_type": "Tipe",
+    "column_date": "Tanggal"
   },
   "job_management": {
     "title": "Manajemen Jabatan",

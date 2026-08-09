@@ -25,6 +25,7 @@
     "leave": "Leave",
     "movement": "Movement",
     "approval": "Approval",
+    "notification": "Notifications",
     "finance": "Finance",
     "payroll": "Payroll",
     "reimbursement": "Reimbursement",
@@ -1014,6 +1015,20 @@
     "reject_note_required": "A reason is required to reject.",
     "action_submitted": "Action submitted successfully",
     "empty_tasks": "No pending tasks"
+  },
+  "notification": {
+    "title": "Notifications",
+    "description": "View and manage your in-app notifications.",
+    "empty": "No notifications yet",
+    "mark_all_read": "Mark all as read",
+    "mark_read": "Mark as read",
+    "view_all": "View all notifications",
+    "filter_all": "All",
+    "filter_unread": "Unread",
+    "column_title": "Title",
+    "column_body": "Message",
+    "column_type": "Type",
+    "column_date": "Date"
   },
   "job_management": {
     "title": "Job Management",
