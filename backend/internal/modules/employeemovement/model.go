@@ -28,6 +28,7 @@ const (
 	MovementStatusDraft           MovementStatus = "draft"
 	MovementStatusPendingApproval MovementStatus = "pending_approval"
 	MovementStatusApproved        MovementStatus = "approved"
+	MovementStatusRejected        MovementStatus = "rejected" // keputusan plan §11.4: status terpisah utk approval ditolak
 	MovementStatusExecuted        MovementStatus = "executed"
 	MovementStatusCancelled       MovementStatus = "cancelled"
 )
