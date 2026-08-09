@@ -283,7 +283,7 @@ func TestService_ListMovements_DefaultPagination(t *testing.T) {
 		createTestMovement(repo, employeeID)
 	}
 
-	resp, err := svc.ListMovements(ctx(), 0, 0)
+	resp, err := svc.ListMovements(ctx(), 0, 0, "", "", "")
 	if err != nil {
 		t.Fatalf("ListMovements failed: %v", err)
 	}

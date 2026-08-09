@@ -107,7 +107,7 @@ func TestService_ListMovements_Enriched(t *testing.T) {
 	logger := testLogger()
 	svc := NewService(repo, logger)
 
-	resp, err := svc.ListMovements(ctx(), 1, 20)
+	resp, err := svc.ListMovements(ctx(), 1, 20, "", "", "")
 	if err != nil {
 		t.Fatalf("ListMovements failed: %v", err)
 	}
@@ -263,7 +263,7 @@ func TestService_ListMovements_NoRefs_NoError(t *testing.T) {
 		t.Fatalf("failed to create movement: %v", err)
 	}
 
-	resp, err := svc.ListMovements(ctx(), 1, 20)
+	resp, err := svc.ListMovements(ctx(), 1, 20, "", "", "")
 	if err != nil {
 		t.Fatalf("ListMovements failed: %v", err)
 	}

@@ -522,7 +522,9 @@ func (s *Service) ListMovementsByEmployee(ctx context.Context, employeeID string
 }
 
 // ListMovements mengembalikan daftar semua pergerakan dengan pagination.
-func (s *Service) ListMovements(ctx context.Context, page, perPage int) (*PaginatedMovementResponse, error) {
+// Optional filters: movementType, status, search (by decision letter number or
+// employee name/code) — dipakai halaman FE Movements (langkah 9 plan).
+func (s *Service) ListMovements(ctx context.Context, page, perPage int, movementType, status, search string) (*PaginatedMovementResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -530,7 +532,7 @@ func (s *Service) ListMovements(ctx context.Context, page, perPage int) (*Pagina
 		perPage = 20
 	}
 
-	movements, total, err := s.repo.ListMovements(ctx, page, perPage)
+	movements, total, err := s.repo.ListMovements(ctx, page, perPage, movementType, status, search)
 	if err != nil {
 		return nil, err
 	}

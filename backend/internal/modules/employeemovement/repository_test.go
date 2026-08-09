@@ -128,7 +128,7 @@ func TestRepo_ListMovements_Pagination(t *testing.T) {
 		createTestMovement(repo, empID)
 	}
 
-	movements, total, err := repo.ListMovements(ctx, 1, 3)
+	movements, total, err := repo.ListMovements(ctx, 1, 3, "", "", "")
 	if err != nil {
 		t.Fatalf("ListMovements failed: %v", err)
 	}
@@ -678,6 +678,66 @@ func TestRepo_ExtendContract_MissingPrevious(t *testing.T) {
 	if count != 0 {
 		t.Errorf("expected no contracts persisted after rollback, got %d", count)
 	}
+}
+
+// TestRepo_ListMovements_Filters verifies movement_type/status/search filters
+// on the list endpoint (halaman FE Movements — langkah 9 plan).
+func TestRepo_ListMovements_Filters(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	empID := uuid.New()
+	// Seed a minimal employees row so the search JOIN works.
+	db.Exec(`CREATE TABLE IF NOT EXISTS employees (id CHAR(36) PRIMARY KEY, employee_id VARCHAR(50) NOT NULL, name VARCHAR(255) NOT NULL)`)
+	db.Exec(`INSERT INTO employees (id, employee_id, name) VALUES (?, ?, ?)`, empID.String(), "EMP-001", "Budi Santoso")
+
+	m1 := createTestMovement(repo, empID) // type other, draft
+	m2 := createTestMovement(repo, empID)
+	m2.MovementType = MovementTypePromotion
+	m2.Status = MovementStatusApproved
+	if err := repo.UpdateMovement(ctx, m2); err != nil {
+		t.Fatalf("failed to update m2: %v", err)
+	}
+
+	// Filter by movement_type.
+	promotions, total, err := repo.ListMovements(ctx, 1, 20, "promotion", "", "")
+	if err != nil {
+		t.Fatalf("ListMovements by type failed: %v", err)
+	}
+	if total != 1 || promotions[0].ID != m2.ID {
+		t.Errorf("expected 1 promotion, got %d", total)
+	}
+
+	// Filter by status.
+	approved, total, err := repo.ListMovements(ctx, 1, 20, "", "approved", "")
+	if err != nil {
+		t.Fatalf("ListMovements by status failed: %v", err)
+	}
+	if total != 1 || approved[0].ID != m2.ID {
+		t.Errorf("expected 1 approved, got %d", total)
+	}
+
+	// Search by employee name.
+	_, total, err = repo.ListMovements(ctx, 1, 20, "", "", "Budi")
+	if err != nil {
+		t.Fatalf("ListMovements search failed: %v", err)
+	}
+	if total != 2 {
+		t.Errorf("expected 2 movements for search 'Budi', got %d", total)
+	}
+
+	// Combined + no match.
+	none, total, err := repo.ListMovements(ctx, 1, 20, "mutation", "executed", "")
+	if err != nil {
+		t.Fatalf("ListMovements combined failed: %v", err)
+	}
+	if total != 0 || len(none) != 0 {
+		t.Errorf("expected 0 movements, got %d", total)
+	}
+
+	_ = m1
 }
 
 // uuidPtr returns a pointer to the given UUID (test helper).

@@ -70,8 +70,11 @@ func (h *Handler) GetMovementByID(c *gin.Context) {
 func (h *Handler) ListMovements(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	movementType := c.Query("movement_type")
+	status := c.Query("status")
+	search := c.Query("search")
 
-	response, err := h.service.ListMovements(c.Request.Context(), page, perPage)
+	response, err := h.service.ListMovements(c.Request.Context(), page, perPage, movementType, status, search)
 	if err != nil {
 		httputil.InternalError(c, err.Error())
 		return

@@ -3,7 +3,7 @@
 > 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 3/12 selesai** (backend existing ✅ + 3 langkah baru ✅, FE placeholder ❌)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan. **Berikutnya:** 10-12) FE halaman Movements/Contracts/aksi · 13) test & verifikasi.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements (daftar enriched + filter + form per tipe + submit/execute/cancel) + filter backend. **Berikutnya:** 11) FE Contracts · 12) FE detail/deep-link/badge · 13) test & verifikasi.
 
 ---
 
@@ -377,6 +377,23 @@ Belum ada validasi "tipe X wajib field Y":
 
 **Validasi:** `npm run build` FE **PASS** ✅ · JSON locale valid.
 
+### 3.13 Log Implementasi Langkah 10 (FE halaman Movements) — 2026-08-10
+
+**Tujuan:** halaman `/admin/career/movements` (EmployeeMovements.vue) — daftar enriched, filter, form create per tipe, aksi submit/execute/cancel/delete.
+
+**Backend (penunjang filter list):**
+- `ListMovements` (repo/service/handler) + 3 parameter opsional: `movement_type`, `status`, `search` (decision letter number / alasan, LIKE). Test filter baru di repository_test.go (`TestRepository_ListMovements_Filters*`).
+
+**FE (`EmployeeMovements.vue` — rewrite penuh, sebelumnya placeholder):**
+- Toolbar: total records, filter type (8 tipe), filter status (6 status), pencarian, tombol reset, tombol **Add Movement**.
+- Tabel lazy pagination (SkeletonTable saat load): kolom employee (nama + employee_code), movement_type (Tag berwarna), to_position/to_organization, to_employment_status, decision_letter_number, effective_date (formatDate bilingual), status (Tag), aksi.
+- Aksi per baris sesuai status: **Submit** (draft → pending_approval), **Execute** (approved → executed), **Cancel** (pending_approval/approved), **Delete** (draft), semuanya via ConfirmActionDialog/ConfirmDeleteDialog.
+- Dialog create: pilih employee + movement_type; field `to_*` tampil kondisional sesuai tipe (mutation → to_organization (+to_position), promotion/demotion → to_position, status_change → to_employment_status); decision_letter_number/date + effective_date (DateInput) + reason. Validasi frontend mengikuti aturan G-7; error VALIDATION_ERROR dari backend ditampilkan per-field via getValidationErrors.
+- Referensi dropdown: employees (`per_page=500`), organizations **`active_only=true`** (summary aktif — sesuai instruksi user: *position ambil dari organization yang organization summary active*), employment-statuses (`settings/employment-statuses`).
+- Locale `employee_movement.*` lengkap (en/id): label tipe & status, konfirmasi aksi, hint per tipe, field_required.
+
+**Validasi:** `go build` + `go vet` + test employeemovement **PASS** ✅ · `npm run build` FE **PASS** ✅ · JSON locale valid ✅
+
 ---
 
 # 5. API Plan
@@ -496,11 +513,11 @@ i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama
 | 6 | G-5 hapus endpoint approve manual + service `ApproveMovement` + test — ✅ **SELESAI (2026-08-10)** | BE | — |
 | 7 | G-6 contract extension count — ✅ **SELESAI (2026-08-10)** | BE | — |
 | 8 | G-7 validasi bisnis per tipe — ✅ **SELESAI (2026-08-10)** | BE | — |
-| 8 | FE: halaman Movements (`/admin/career/movements`) + locale lengkap | FE | 2-7 |
-| 9 | FE: halaman Contracts terpisah (`/admin/career/contracts`) + upload dokumen | FE | 7 |
-| 10 | FE: aksi submit/execute/cancel + detail + deep-link notifikasi + badge `rejected` | FE | 5 |
-| 11 | G-8 samakan slug module & route FE dengan menu server — ✅ **SELESAI (2026-08-10)** | BE/FE | — |
-| 12 | Test: unit/service + FE build + verifikasi manual E2E | — | semua |
+| 9 | G-8 samakan slug module & route FE dengan menu server — ✅ **SELESAI (2026-08-10)** | BE/FE | — |
+| 10 | FE: halaman Movements (`/admin/career/movements`) — daftar enriched + filter (type/status/search) + form create per tipe + aksi submit/execute/cancel + delete — ✅ **SELESAI (2026-08-10)** | FE | 2-7, 9 |
+| 11 | FE: halaman Contracts terpisah (`/admin/career/contracts`) + upload dokumen | FE | 7 |
+| 12 | FE: aksi submit/execute/cancel + detail + deep-link notifikasi + badge `rejected` | FE | 5 |
+| 13 | Test: unit/service + FE build + verifikasi manual E2E | — | semua |
 
 ---
 
