@@ -3,7 +3,7 @@
 > 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 3/12 selesai** (backend existing ✅ + 3 langkah baru ✅, FE placeholder ❌)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow. **Berikutnya:** 4) G-4 enriched responses · 5) G-2 notifikasi `MOVEMENT_*` · 6) G-5 hapus approve manual · 7) G-6/G-7 · 8-10) FE · 11) G-8 slug/route · 12) test & verifikasi.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual. **Berikutnya:** 7) G-6 contract extension count + G-7 validasi per tipe · 8-10) FE · 11) G-8 slug/route · 12) test & verifikasi.
 
 ---
 
@@ -294,6 +294,18 @@ Deep-link FE: `reference_type = 'employeemovement'` → `/admin/career/movements
 - `from/to_organization_name`, `from/to_position_name`, `from/to_employment_status_name`
 - `contract` → `employee_name`, `employee_code`, `previous_contract_number`
 
+### 3.9 Log Implementasi Langkah 4 (G-4 enriched responses) — 2026-08-10
+
+**Tujuan:** respons list/detail movement & contract membawa nama display (bukan hanya UUID) agar FE tidak resolve satu-satu.
+
+**Perubahan:**
+- `dto.go` — `MovementResponse` + `EmployeeName`, `EmployeeCode`, `From/ToOrganizationName`, `From/ToPositionName`, `From/ToEmploymentStatusName`; `ContractResponse` + `EmployeeName`, `EmployeeCode`, `PreviousContractNumber`.
+- `repository.go` — method batch resolver (raw table query, tanpa import modul employee/organization — pola `attendance.GetEmployeeInfoByIDs`): `GetEmployeeInfoByIDs` (employees → name + employee_id/employee_code), `resolveNamesByIDs` (helper generik), `GetOrganizationNamesByIDs` (nomenclature), `GetPositionNamesByIDs` (title), `GetEmploymentStatusNamesByIDs` (name), `GetContractNumbersByIDs` (employee_contracts → contract_number).
+- `service.go` — helper `enrichMovementResponses` / `enrichContractResponses` (batch collect id per tabel → satu query per tabel → map); dipanggil di semua jalur respons: `Get/List/ListByEmployee/Update/Create/Submit` movement & `Get/List/ListByEmployee/Update/Create` contract. Enrichment best-effort (gagal resolve → warn log, tidak error).
+- `enrichment_test.go` (baru) — 4 test: list & get movement enriched (employee/org/posisi/status), contract enriched (employee + previous_contract_number), dan no-refs → nama kosong tanpa error.
+
+**Validasi:** `go build` ✅ · `go test ./internal/modules/employeemovement/` **PASS** ✅ (termasuk 4 test enrichment baru).
+
 ## G-5 🟡 ENDPOINT APPROVE MANUAL MASIH ADA
 
 `POST /movements/:id/approve` (manual, tanpa engine) tetap eksis sebagai jalur paralel approval. Dengan Central Approval yang sudah jalan, jalur manual berisiko "dua pintu" yang tidak sinkron.
@@ -442,7 +454,7 @@ i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama
 | 1 | **Migration + enum status `rejected`** (mysql+postgres) + model `MovementStatusRejected` — ✅ **SELESAI (2026-08-10, migration 082)** | BE | — |
 | 2 | G-1 ExecuteMovement transaksi employment + adapter (termasuk employee `is_active=false` utk offboarding/retirement) — ✅ **SELESAI (2026-08-10)** | BE | 1 |
 | 3 | G-3 auto-resolve flow (`GetActiveFlowIDForModule`) — ✅ **SELESAI (2026-08-10)** | BE | approval engine |
-| 4 | G-4 enriched responses (nama employee/org/posisi/status) | BE | — |
+| 4 | G-4 enriched responses (nama employee/org/posisi/status) — ✅ **SELESAI (2026-08-10)** | BE | — |
 | 5 | G-2 notifikasi `MOVEMENT_*` (i18n + wiring; REJECTED → status `rejected`) — ✅ **SELESAI (2026-08-10)** | BE | 1 |
 | 6 | G-5 hapus endpoint approve manual + service `ApproveMovement` + test — ✅ **SELESAI (2026-08-10)** | BE | — |
 | 7 | G-6 contract extension count + G-7 validasi per tipe | BE | — |

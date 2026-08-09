@@ -25,43 +25,51 @@ type CreateMovementRequest struct {
 }
 
 type UpdateMovementRequest struct {
-	MovementType           *string `json:"movement_type" binding:"omitempty,oneof=promotion demotion mutation contract_extension status_change retirement offboarding other"`
-	ToOrganizationID       *string `json:"to_organization_id" binding:"omitempty,uuid"`
-	ToPositionID           *string `json:"to_position_id" binding:"omitempty,uuid"`
-	ToEmploymentStatusID   *string `json:"to_employment_status_id" binding:"omitempty,uuid"`
-	Reason                 *string `json:"reason"`
-	DecisionLetterNumber   *string `json:"decision_letter_number"`
-	DecisionLetterDate     *string `json:"decision_letter_date"`
-	EffectiveDate          *string `json:"effective_date"`
-	Status                 *string `json:"status" binding:"omitempty,oneof=draft approved executed cancelled"`
-	Notes                  *string `json:"notes"`
+	MovementType         *string `json:"movement_type" binding:"omitempty,oneof=promotion demotion mutation contract_extension status_change retirement offboarding other"`
+	ToOrganizationID     *string `json:"to_organization_id" binding:"omitempty,uuid"`
+	ToPositionID         *string `json:"to_position_id" binding:"omitempty,uuid"`
+	ToEmploymentStatusID *string `json:"to_employment_status_id" binding:"omitempty,uuid"`
+	Reason               *string `json:"reason"`
+	DecisionLetterNumber *string `json:"decision_letter_number"`
+	DecisionLetterDate   *string `json:"decision_letter_date"`
+	EffectiveDate        *string `json:"effective_date"`
+	Status               *string `json:"status" binding:"omitempty,oneof=draft approved executed cancelled"`
+	Notes                *string `json:"notes"`
 }
 
 type MovementResponse struct {
-	ID                   string     `json:"id"`
-	EmployeeID           string     `json:"employee_id"`
-	MovementType         string     `json:"movement_type"`
-	FromEmploymentID     *string    `json:"from_employment_id,omitempty"`
-	ToEmploymentID       *string    `json:"to_employment_id,omitempty"`
-	FromOrganizationID   *string    `json:"from_organization_id,omitempty"`
-	ToOrganizationID     *string    `json:"to_organization_id,omitempty"`
-	FromPositionID       *string    `json:"from_position_id,omitempty"`
-	ToPositionID         *string    `json:"to_position_id,omitempty"`
-	FromEmploymentStatusID *string  `json:"from_employment_status_id,omitempty"`
-	ToEmploymentStatusID   *string  `json:"to_employment_status_id,omitempty"`
-	Reason               *string    `json:"reason,omitempty"`
-	DecisionLetterNumber string     `json:"decision_letter_number"`
-	DecisionLetterDate   string     `json:"decision_letter_date"`
-	EffectiveDate        string     `json:"effective_date"`
-	Status               string     `json:"status"`
-	Notes                *string    `json:"notes,omitempty"`
-	ApprovedBy           *string    `json:"approved_by,omitempty"`
-	ApprovedAt           *time.Time `json:"approved_at,omitempty"`
-	ExecutedBy           *string    `json:"executed_by,omitempty"`
-	ExecutedAt           *time.Time `json:"executed_at,omitempty"`
-	ApprovalInstanceID   *string    `json:"approval_instance_id,omitempty"`
-	CreatedAt            time.Time  `json:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at"`
+	ID                       string     `json:"id"`
+	EmployeeID               string     `json:"employee_id"`
+	EmployeeName             string     `json:"employee_name"`
+	EmployeeCode             string     `json:"employee_code"`
+	MovementType             string     `json:"movement_type"`
+	FromEmploymentID         *string    `json:"from_employment_id,omitempty"`
+	ToEmploymentID           *string    `json:"to_employment_id,omitempty"`
+	FromOrganizationID       *string    `json:"from_organization_id,omitempty"`
+	ToOrganizationID         *string    `json:"to_organization_id,omitempty"`
+	FromOrganizationName     string     `json:"from_organization_name,omitempty"`
+	ToOrganizationName       string     `json:"to_organization_name,omitempty"`
+	FromPositionID           *string    `json:"from_position_id,omitempty"`
+	ToPositionID             *string    `json:"to_position_id,omitempty"`
+	FromPositionName         string     `json:"from_position_name,omitempty"`
+	ToPositionName           string     `json:"to_position_name,omitempty"`
+	FromEmploymentStatusID   *string    `json:"from_employment_status_id,omitempty"`
+	ToEmploymentStatusID     *string    `json:"to_employment_status_id,omitempty"`
+	FromEmploymentStatusName string     `json:"from_employment_status_name,omitempty"`
+	ToEmploymentStatusName   string     `json:"to_employment_status_name,omitempty"`
+	Reason                   *string    `json:"reason,omitempty"`
+	DecisionLetterNumber     string     `json:"decision_letter_number"`
+	DecisionLetterDate       string     `json:"decision_letter_date"`
+	EffectiveDate            string     `json:"effective_date"`
+	Status                   string     `json:"status"`
+	Notes                    *string    `json:"notes,omitempty"`
+	ApprovedBy               *string    `json:"approved_by,omitempty"`
+	ApprovedAt               *time.Time `json:"approved_at,omitempty"`
+	ExecutedBy               *string    `json:"executed_by,omitempty"`
+	ExecutedAt               *time.Time `json:"executed_at,omitempty"`
+	ApprovalInstanceID       *string    `json:"approval_instance_id,omitempty"`
+	CreatedAt                time.Time  `json:"created_at"`
+	UpdatedAt                time.Time  `json:"updated_at"`
 }
 
 // SubmitMovementRequest routes a draft movement through the central
@@ -71,12 +79,12 @@ type SubmitMovementRequest struct {
 }
 
 type PaginatedMovementResponse struct {
-	Success    bool               `json:"success"`
-	Data       interface{}        `json:"data"`
-	Page       int                `json:"page"`
-	PerPage    int                `json:"per_page"`
-	Total      int64              `json:"total"`
-	TotalPages int                `json:"total_pages"`
+	Success    bool        `json:"success"`
+	Data       interface{} `json:"data"`
+	Page       int         `json:"page"`
+	PerPage    int         `json:"per_page"`
+	Total      int64       `json:"total"`
+	TotalPages int         `json:"total_pages"`
 }
 
 // =========================================================================
@@ -84,42 +92,45 @@ type PaginatedMovementResponse struct {
 // =========================================================================
 
 type CreateContractRequest struct {
-	EmployeeID          string  `json:"employee_id" binding:"required,uuid"`
-	ContractNumber      string  `json:"contract_number" binding:"required"`
-	ContractType        string  `json:"contract_type" binding:"required,oneof=pkwt pkwtt daily other"`
-	StartDate           string  `json:"start_date" binding:"required"`
-	EndDate             *string `json:"end_date" binding:"omitempty"`
-	PreviousContractID  *string `json:"previous_contract_id" binding:"omitempty,uuid"`
+	EmployeeID           string  `json:"employee_id" binding:"required,uuid"`
+	ContractNumber       string  `json:"contract_number" binding:"required"`
+	ContractType         string  `json:"contract_type" binding:"required,oneof=pkwt pkwtt daily other"`
+	StartDate            string  `json:"start_date" binding:"required"`
+	EndDate              *string `json:"end_date" binding:"omitempty"`
+	PreviousContractID   *string `json:"previous_contract_id" binding:"omitempty,uuid"`
 	DecisionLetterNumber *string `json:"decision_letter_number"`
-	Notes               *string `json:"notes"`
-	DocumentURL         *string `json:"document_url"`
+	Notes                *string `json:"notes"`
+	DocumentURL          *string `json:"document_url"`
 }
 
 type UpdateContractRequest struct {
-	ContractNumber      *string `json:"contract_number"`
-	ContractType        *string `json:"contract_type" binding:"omitempty,oneof=pkwt pkwtt daily other"`
-	EndDate             *string `json:"end_date"`
+	ContractNumber       *string `json:"contract_number"`
+	ContractType         *string `json:"contract_type" binding:"omitempty,oneof=pkwt pkwtt daily other"`
+	EndDate              *string `json:"end_date"`
 	DecisionLetterNumber *string `json:"decision_letter_number"`
-	Notes               *string `json:"notes"`
-	DocumentURL         *string `json:"document_url"`
-	Status              *string `json:"status" binding:"omitempty,oneof=active expired extended terminated"`
+	Notes                *string `json:"notes"`
+	DocumentURL          *string `json:"document_url"`
+	Status               *string `json:"status" binding:"omitempty,oneof=active expired extended terminated"`
 }
 
 type ContractResponse struct {
-	ID                  string    `json:"id"`
-	EmployeeID          string    `json:"employee_id"`
-	ContractNumber      string    `json:"contract_number"`
-	ContractType        string    `json:"contract_type"`
-	StartDate           string    `json:"start_date"`
-	EndDate             *string   `json:"end_date,omitempty"`
-	ExtensionCount      int       `json:"extension_count"`
-	PreviousContractID  *string   `json:"previous_contract_id,omitempty"`
-	DecisionLetterNumber *string  `json:"decision_letter_number,omitempty"`
-	Notes               *string   `json:"notes,omitempty"`
-	DocumentURL         *string   `json:"document_url,omitempty"`
-	Status              string    `json:"status"`
-	CreatedAt           time.Time `json:"created_at"`
-	UpdatedAt           time.Time `json:"updated_at"`
+	ID                     string    `json:"id"`
+	EmployeeID             string    `json:"employee_id"`
+	EmployeeName           string    `json:"employee_name"`
+	EmployeeCode           string    `json:"employee_code"`
+	ContractNumber         string    `json:"contract_number"`
+	ContractType           string    `json:"contract_type"`
+	StartDate              string    `json:"start_date"`
+	EndDate                *string   `json:"end_date,omitempty"`
+	ExtensionCount         int       `json:"extension_count"`
+	PreviousContractID     *string   `json:"previous_contract_id,omitempty"`
+	PreviousContractNumber string    `json:"previous_contract_number,omitempty"`
+	DecisionLetterNumber   *string   `json:"decision_letter_number,omitempty"`
+	Notes                  *string   `json:"notes,omitempty"`
+	DocumentURL            *string   `json:"document_url,omitempty"`
+	Status                 string    `json:"status"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at"`
 }
 
 type PaginatedContractResponse struct {

@@ -212,8 +212,193 @@ func (s *Service) CreateMovement(ctx context.Context, req CreateMovementRequest)
 		zap.String("movement_id", movement.ID.String()),
 	)
 
-	response := movement.ToResponse()
-	return &response, nil
+	responses := []MovementResponse{movement.ToResponse()}
+	s.enrichMovementResponses(ctx, responses)
+	return &responses[0], nil
+}
+
+// =========================================================================
+// Enrichment helpers (plan G-4) — fill display names on responses via batch
+// JOINs so the frontend does not need to resolve UUIDs one-by-one.
+// =========================================================================
+
+// collectUUIDStrings parses non-empty string ids into a deduped uuid slice,
+// silently skipping values that are not valid UUIDs.
+func collectUUIDStrings(ids []string) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{}, len(ids))
+	var result []uuid.UUID
+	for _, id := range ids {
+		if id == "" {
+			continue
+		}
+		uid, err := uuid.Parse(id)
+		if err != nil {
+			continue
+		}
+		if _, ok := seen[uid]; !ok {
+			seen[uid] = struct{}{}
+			result = append(result, uid)
+		}
+	}
+	return result
+}
+
+// fillEmployeeNames copies resolved employee info (name + code) onto the given
+// employee ids, if present in the info map.
+func fillEmployeeNames(info map[string]employeeRefInfo, employeeID string, resp *MovementResponse) {
+	if info != nil {
+		if emp, ok := info[employeeID]; ok {
+			resp.EmployeeName = emp.Name
+			resp.EmployeeCode = emp.Code
+		}
+	}
+}
+
+// fillContractEmployeeNames copies resolved employee info (name + code) onto
+// the given contract response, if present in the info map.
+func fillContractEmployeeNames(info map[string]employeeRefInfo, employeeID string, resp *ContractResponse) {
+	if info != nil {
+		if emp, ok := info[employeeID]; ok {
+			resp.EmployeeName = emp.Name
+			resp.EmployeeCode = emp.Code
+		}
+	}
+}
+
+// enrichMovementResponses fills employee/organization/position/status display
+// names on movement responses (single or list) with batch queries (G-4).
+func (s *Service) enrichMovementResponses(ctx context.Context, responses []MovementResponse) {
+	if len(responses) == 0 {
+		return
+	}
+
+	// Collect distinct ids per reference table.
+	empIDs := make(map[uuid.UUID]struct{}, len(responses))
+	var orgIDs, posIDs, statusIDs []string
+	for i := range responses {
+		r := &responses[i]
+		eid, err := uuid.Parse(r.EmployeeID)
+		if err == nil {
+			empIDs[eid] = struct{}{}
+		}
+		if r.FromOrganizationID != nil {
+			orgIDs = append(orgIDs, *r.FromOrganizationID)
+		}
+		if r.ToOrganizationID != nil {
+			orgIDs = append(orgIDs, *r.ToOrganizationID)
+		}
+		if r.FromPositionID != nil {
+			posIDs = append(posIDs, *r.FromPositionID)
+		}
+		if r.ToPositionID != nil {
+			posIDs = append(posIDs, *r.ToPositionID)
+		}
+		if r.FromEmploymentStatusID != nil {
+			statusIDs = append(statusIDs, *r.FromEmploymentStatusID)
+		}
+		if r.ToEmploymentStatusID != nil {
+			statusIDs = append(statusIDs, *r.ToEmploymentStatusID)
+		}
+	}
+
+	empList := make([]uuid.UUID, 0, len(empIDs))
+	for id := range empIDs {
+		empList = append(empList, id)
+	}
+	orgList := collectUUIDStrings(orgIDs)
+	posList := collectUUIDStrings(posIDs)
+	statusList := collectUUIDStrings(statusIDs)
+
+	if empInfo, err := s.repo.GetEmployeeInfoByIDs(ctx, empList); err == nil {
+		for i := range responses {
+			fillEmployeeNames(empInfo, responses[i].EmployeeID, &responses[i])
+		}
+	} else {
+		s.logger.Warn("failed to resolve employee info for movements", zap.Error(err))
+	}
+
+	if names, err := s.repo.GetOrganizationNamesByIDs(ctx, orgList); err == nil {
+		for i := range responses {
+			if responses[i].FromOrganizationID != nil {
+				responses[i].FromOrganizationName = names[*responses[i].FromOrganizationID]
+			}
+			if responses[i].ToOrganizationID != nil {
+				responses[i].ToOrganizationName = names[*responses[i].ToOrganizationID]
+			}
+		}
+	} else {
+		s.logger.Warn("failed to resolve organization names for movements", zap.Error(err))
+	}
+
+	if names, err := s.repo.GetPositionNamesByIDs(ctx, posList); err == nil {
+		for i := range responses {
+			if responses[i].FromPositionID != nil {
+				responses[i].FromPositionName = names[*responses[i].FromPositionID]
+			}
+			if responses[i].ToPositionID != nil {
+				responses[i].ToPositionName = names[*responses[i].ToPositionID]
+			}
+		}
+	} else {
+		s.logger.Warn("failed to resolve position names for movements", zap.Error(err))
+	}
+
+	if names, err := s.repo.GetEmploymentStatusNamesByIDs(ctx, statusList); err == nil {
+		for i := range responses {
+			if responses[i].FromEmploymentStatusID != nil {
+				responses[i].FromEmploymentStatusName = names[*responses[i].FromEmploymentStatusID]
+			}
+			if responses[i].ToEmploymentStatusID != nil {
+				responses[i].ToEmploymentStatusName = names[*responses[i].ToEmploymentStatusID]
+			}
+		}
+	} else {
+		s.logger.Warn("failed to resolve employment status names for movements", zap.Error(err))
+	}
+}
+
+// enrichContractResponses fills employee name/code and previous contract number
+// on contract responses (single or list) with batch queries (G-4).
+func (s *Service) enrichContractResponses(ctx context.Context, responses []ContractResponse) {
+	if len(responses) == 0 {
+		return
+	}
+	empIDs := make(map[uuid.UUID]struct{}, len(responses))
+	var prevIDs []string
+	for i := range responses {
+		r := &responses[i]
+		eid, err := uuid.Parse(r.EmployeeID)
+		if err == nil {
+			empIDs[eid] = struct{}{}
+		}
+		if r.PreviousContractID != nil {
+			prevIDs = append(prevIDs, *r.PreviousContractID)
+		}
+	}
+
+	empList := make([]uuid.UUID, 0, len(empIDs))
+	for id := range empIDs {
+		empList = append(empList, id)
+	}
+	prevList := collectUUIDStrings(prevIDs)
+
+	if empInfo, err := s.repo.GetEmployeeInfoByIDs(ctx, empList); err == nil {
+		for i := range responses {
+			fillContractEmployeeNames(empInfo, responses[i].EmployeeID, &responses[i])
+		}
+	} else {
+		s.logger.Warn("failed to resolve employee info for contracts", zap.Error(err))
+	}
+
+	if numbers, err := s.repo.GetContractNumbersByIDs(ctx, prevList); err == nil {
+		for i := range responses {
+			if responses[i].PreviousContractID != nil {
+				responses[i].PreviousContractNumber = numbers[*responses[i].PreviousContractID]
+			}
+		}
+	} else {
+		s.logger.Warn("failed to resolve previous contract numbers", zap.Error(err))
+	}
 }
 
 // GetMovementByID mengembalikan pergerakan berdasarkan ID.
@@ -228,8 +413,9 @@ func (s *Service) GetMovementByID(ctx context.Context, id string) (*MovementResp
 		return nil, err
 	}
 
-	response := movement.ToResponse()
-	return &response, nil
+	responses := []MovementResponse{movement.ToResponse()}
+	s.enrichMovementResponses(ctx, responses)
+	return &responses[0], nil
 }
 
 // ListMovementsByEmployee mengembalikan daftar pergerakan untuk seorang karyawan.
@@ -255,6 +441,7 @@ func (s *Service) ListMovementsByEmployee(ctx context.Context, employeeID string
 	for _, m := range movements {
 		responses = append(responses, m.ToResponse())
 	}
+	s.enrichMovementResponses(ctx, responses)
 
 	totalPages := int(total) / perPage
 	if int(total)%perPage > 0 {
@@ -289,6 +476,7 @@ func (s *Service) ListMovements(ctx context.Context, page, perPage int) (*Pagina
 	for _, m := range movements {
 		responses = append(responses, m.ToResponse())
 	}
+	s.enrichMovementResponses(ctx, responses)
 
 	totalPages := int(total) / perPage
 	if int(total)%perPage > 0 {
@@ -363,8 +551,9 @@ func (s *Service) UpdateMovement(ctx context.Context, id string, req UpdateMovem
 		return nil, err
 	}
 
-	response := movement.ToResponse()
-	return &response, nil
+	responses := []MovementResponse{movement.ToResponse()}
+	s.enrichMovementResponses(ctx, responses)
+	return &responses[0], nil
 }
 
 // DeleteMovement menghapus pergerakan (hanya draft).
@@ -434,8 +623,9 @@ func (s *Service) SubmitMovement(ctx context.Context, id string, req SubmitMovem
 		zap.String("instance_id", instanceID),
 	)
 
-	response := movement.ToResponse()
-	return &response, nil
+	responses := []MovementResponse{movement.ToResponse()}
+	s.enrichMovementResponses(ctx, responses)
+	return &responses[0], nil
 }
 
 // HandleApprovalStatusChange is invoked by the approval module's push-based
@@ -671,8 +861,9 @@ func (s *Service) CreateContract(ctx context.Context, req CreateContractRequest)
 		zap.String("contract_type", req.ContractType),
 	)
 
-	response := contract.ToResponse()
-	return &response, nil
+	responses := []ContractResponse{contract.ToResponse()}
+	s.enrichContractResponses(ctx, responses)
+	return &responses[0], nil
 }
 
 // GetContractByID mengembalikan kontrak berdasarkan ID.
@@ -687,8 +878,9 @@ func (s *Service) GetContractByID(ctx context.Context, id string) (*ContractResp
 		return nil, err
 	}
 
-	response := contract.ToResponse()
-	return &response, nil
+	responses := []ContractResponse{contract.ToResponse()}
+	s.enrichContractResponses(ctx, responses)
+	return &responses[0], nil
 }
 
 // ListContractsByEmployee mengembalikan daftar kontrak untuk seorang karyawan.
@@ -714,6 +906,7 @@ func (s *Service) ListContractsByEmployee(ctx context.Context, employeeID string
 	for _, c := range contracts {
 		responses = append(responses, c.ToResponse())
 	}
+	s.enrichContractResponses(ctx, responses)
 
 	totalPages := int(total) / perPage
 	if int(total)%perPage > 0 {
@@ -748,6 +941,7 @@ func (s *Service) ListContracts(ctx context.Context, page, perPage int) (*Pagina
 	for _, c := range contracts {
 		responses = append(responses, c.ToResponse())
 	}
+	s.enrichContractResponses(ctx, responses)
 
 	totalPages := int(total) / perPage
 	if int(total)%perPage > 0 {
@@ -803,8 +997,9 @@ func (s *Service) UpdateContract(ctx context.Context, id string, req UpdateContr
 		return nil, err
 	}
 
-	response := contract.ToResponse()
-	return &response, nil
+	responses := []ContractResponse{contract.ToResponse()}
+	s.enrichContractResponses(ctx, responses)
+	return &responses[0], nil
 }
 
 // DeleteContract menghapus kontrak.

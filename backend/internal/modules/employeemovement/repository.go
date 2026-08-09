@@ -64,6 +64,115 @@ func (r *Repository) FindUserIDByEmployeeID(ctx context.Context, employeeID uuid
 	return &uid, nil
 }
 
+// employeeRefInfo holds display info (name + employee code) for an employee.
+type employeeRefInfo struct {
+	EmployeeID string
+	Name       string
+	Code       string
+}
+
+// GetEmployeeInfoByIDs resolves display info (name, employee code) for a batch
+// of employees at once — used to enrich movement/contract responses without an
+// N+1 query per row (pola sama attendance.GetEmployeeInfoByIDs).
+func (r *Repository) GetEmployeeInfoByIDs(ctx context.Context, employeeIDs []uuid.UUID) (map[string]employeeRefInfo, error) {
+	result := make(map[string]employeeRefInfo, len(employeeIDs))
+	if len(employeeIDs) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []employeeRefInfo
+	err = db.Table("employees").
+		Where("id IN ?", employeeIDs).
+		Select("id AS employee_id, name AS name, employee_id AS code").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve employee info: %w", err)
+	}
+	for _, rrow := range rows {
+		result[rrow.EmployeeID] = rrow
+	}
+	return result, nil
+}
+
+// GetOrganizationNamesByIDs resolves organization nomenclatures for a batch of
+// ids (used for from/to_organization_name enrichment).
+func (r *Repository) GetOrganizationNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
+	return r.resolveNamesByIDs(ctx, "organizations", "nomenclature", ids)
+}
+
+// GetPositionNamesByIDs resolves position titles for a batch of ids
+// (used for from/to_position_name enrichment).
+func (r *Repository) GetPositionNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
+	return r.resolveNamesByIDs(ctx, "positions", "title", ids)
+}
+
+// GetEmploymentStatusNamesByIDs resolves employment status names for a batch
+// of ids (used for from/to_employment_status_name enrichment).
+func (r *Repository) GetEmploymentStatusNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
+	return r.resolveNamesByIDs(ctx, "employment_statuses", "name", ids)
+}
+
+// resolveNamesByIDs is a shared helper that maps reference-table ids to a
+// display column (name/nomenclature/title) using a single batch query.
+func (r *Repository) resolveNamesByIDs(ctx context.Context, table, nameColumn string, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		ID   string
+		Name string
+	}
+	var rows []row
+	err = db.Table(table).
+		Where("id IN ?", ids).
+		Select("id AS id, " + nameColumn + " AS name").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve %s names: %w", table, err)
+	}
+	for _, rrow := range rows {
+		result[rrow.ID] = rrow.Name
+	}
+	return result, nil
+}
+
+// GetContractNumbersByIDs resolves contract numbers for a batch of contract
+// ids (used for previous_contract_number enrichment).
+func (r *Repository) GetContractNumbersByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		ID     string
+		Number string
+	}
+	var rows []row
+	err = db.Table("employee_contracts").
+		Where("id IN ?", ids).
+		Select("id AS id, contract_number AS number").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve contract numbers: %w", err)
+	}
+	for _, rrow := range rows {
+		result[rrow.ID] = rrow.Number
+	}
+	return result, nil
+}
+
 func (r *Repository) FindMovementByID(ctx context.Context, id uuid.UUID) (*EmployeeMovement, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
