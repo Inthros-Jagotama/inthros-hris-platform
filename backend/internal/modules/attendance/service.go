@@ -27,6 +27,12 @@ const (
 type ApprovalEngine interface {
 	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
 	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
+	// GetActiveFlowIDForModule lets an overtime request auto-resolve which
+	// flow to route through when the client doesn't supply one explicitly
+	// (same pattern leave uses) — without this, a request created without a
+	// flow_id in the payload silently stays SUBMITTED forever and never
+	// reaches the Approval module.
+	GetActiveFlowIDForModule(ctx context.Context, module string) (string, error)
 }
 
 // Notifier abstracts the notification module so Attendance can notify an
@@ -811,21 +817,32 @@ func (s *Service) CreateOvertimeRequest(ctx context.Context, req CreateOvertimeR
 		return nil, err
 	}
 
-	// Route through the central approval module when a flow is selected.
-	if s.approvalEngine != nil && req.FlowID != nil && *req.FlowID != "" {
-		instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "attendance", overtime.ID.String(), *req.FlowID)
-		if err != nil {
-			s.logger.Warn("Failed to create approval instance for overtime request, continuing without approval",
-				zap.String("overtime_request_id", overtime.ID.String()),
-				zap.Error(err),
-			)
-		} else {
-			if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
-				overtime.ApprovalInstanceID = &parsedInstanceID
-			}
-			overtime.Status = OvertimePendingApproval
-			if err := s.repo.UpdateOvertimeRequest(ctx, overtime); err != nil {
-				return nil, err
+	// Route through the central approval module. When the client doesn't
+	// supply a flow_id, auto-resolve the active flow for the attendance
+	// module (same pattern leave uses) so overtime requests always reach an
+	// approver instead of silently sitting at SUBMITTED forever.
+	if s.approvalEngine != nil {
+		flowID := ""
+		if req.FlowID != nil && *req.FlowID != "" {
+			flowID = *req.FlowID
+		} else if resolved, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, "attendance"); err == nil {
+			flowID = resolved
+		}
+		if flowID != "" {
+			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "attendance", overtime.ID.String(), flowID)
+			if err != nil {
+				s.logger.Warn("Failed to create approval instance for overtime request, continuing without approval",
+					zap.String("overtime_request_id", overtime.ID.String()),
+					zap.Error(err),
+				)
+			} else {
+				if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+					overtime.ApprovalInstanceID = &parsedInstanceID
+				}
+				overtime.Status = OvertimePendingApproval
+				if err := s.repo.UpdateOvertimeRequest(ctx, overtime); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -964,6 +981,29 @@ func (s *Service) ListOvertimeRequests(ctx context.Context, employeeID *string, 
 	for _, o := range requests {
 		responses = append(responses, *overtimeToResponse(&o))
 	}
+
+	// Enrich with submitter name/organization — most useful for the
+	// tenant-wide (empUUID == nil, admin) listing, but harmless to always
+	// populate since it's just the caller's own info in the self-only case.
+	empIDSet := make(map[uuid.UUID]struct{}, len(requests))
+	for _, o := range requests {
+		empIDSet[o.EmployeeID] = struct{}{}
+	}
+	empIDs := make([]uuid.UUID, 0, len(empIDSet))
+	for id := range empIDSet {
+		empIDs = append(empIDs, id)
+	}
+	if infoByID, err := s.repo.GetEmployeeInfoByIDs(ctx, empIDs); err == nil {
+		for i := range responses {
+			if info, ok := infoByID[responses[i].EmployeeID]; ok {
+				responses[i].EmployeeName = info.Name
+				responses[i].OrganizationName = info.OrganizationName
+			}
+		}
+	} else {
+		s.logger.Warn("failed to resolve submitter info for overtime request list", zap.Error(err))
+	}
+
 	return &PaginatedResponse{
 		Success:    true,
 		Data:       responses,
@@ -1014,22 +1054,33 @@ func (s *Service) CreateCorrectionRequest(ctx context.Context, req CreateCorrect
 		return nil, err
 	}
 
-	// Route through the central approval module when a flow is selected,
-	// same "attendance" module slug the overtime flow uses.
-	if s.approvalEngine != nil && req.FlowID != nil && *req.FlowID != "" {
-		instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "attendance", c.ID.String(), *req.FlowID)
-		if err != nil {
-			s.logger.Warn("Failed to create approval instance for correction request, continuing without approval",
-				zap.String("correction_request_id", c.ID.String()),
-				zap.Error(err),
-			)
-		} else {
-			if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
-				c.ApprovalInstanceID = &parsedInstanceID
-			}
-			c.Status = CorrectionPendingApproval
-			if err := s.repo.UpdateCorrectionRequest(ctx, c); err != nil {
-				return nil, err
+	// Route through the central approval module. When the client doesn't
+	// supply a flow_id, auto-resolve the active flow for the attendance
+	// module (same pattern overtime/leave use) so correction requests
+	// always reach an approver instead of silently sitting at SUBMITTED
+	// forever.
+	if s.approvalEngine != nil {
+		flowID := ""
+		if req.FlowID != nil && *req.FlowID != "" {
+			flowID = *req.FlowID
+		} else if resolved, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, "attendance"); err == nil {
+			flowID = resolved
+		}
+		if flowID != "" {
+			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "attendance", c.ID.String(), flowID)
+			if err != nil {
+				s.logger.Warn("Failed to create approval instance for correction request, continuing without approval",
+					zap.String("correction_request_id", c.ID.String()),
+					zap.Error(err),
+				)
+			} else {
+				if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+					c.ApprovalInstanceID = &parsedInstanceID
+				}
+				c.Status = CorrectionPendingApproval
+				if err := s.repo.UpdateCorrectionRequest(ctx, c); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}

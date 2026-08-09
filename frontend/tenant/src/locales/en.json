@@ -537,6 +537,7 @@
     "overtime_empty": "No overtime requests yet.",
     "overtime_new": "New Overtime Request",
     "overtime_cross_day": "Crosses midnight — ends the next day",
+    "submitted_by": "Submitted By",
     "work_date": "Work Date",
     "start_time": "Start Time",
     "end_time": "End Time",

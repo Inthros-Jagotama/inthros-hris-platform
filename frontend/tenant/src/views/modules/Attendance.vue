@@ -9,10 +9,27 @@
     </template>
 
     <template v-else>
-      <div class="flex justify-end gap-2">
-        <Button :label="t('attendance.overtime')" icon="pi pi-clock" size="small" severity="secondary" outlined @click="router.push('/attendance/overtime')" />
-        <Button :label="t('attendance.corrections')" icon="pi pi-pencil" size="small" severity="secondary" outlined @click="router.push('/attendance/corrections')" />
-        <Button v-if="hasPermission('attendance.update')" :label="t('attendance.admin')" icon="pi pi-cog" size="small" severity="secondary" outlined @click="router.push('/attendance/admin')" />
+      <!-- Menu cards (pola sama dengan menu Settings) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <button
+          v-for="menu in menuCards"
+          :key="menu.route"
+          type="button"
+          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          @click="router.push(menu.route)"
+        >
+          <div
+            class="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center transition-colors"
+            :class="menu.tint"
+          >
+            <i :class="menu.icon" class="text-base"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(menu.labelKey) }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(menu.descKey) }}</p>
+          </div>
+          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+        </button>
       </div>
 
       <!-- Check-in / Check-out -->
@@ -92,6 +109,19 @@ const summary = ref(null)
 const calendarSessions = ref([])
 const punching = ref(false)
 const punchError = ref('')
+
+// Menu absensi sebagai card (Lembur / Koreksi / Admin — setting), pola sama
+// dengan card di halaman Settings (ikon dalam kotak tinted + chevron).
+const menuCards = computed(() => {
+  const cards = [
+    { labelKey: 'attendance.overtime', descKey: 'attendance.overtime_description', icon: 'pi pi-clock', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', route: '/attendance/overtime' },
+    { labelKey: 'attendance.corrections', descKey: 'attendance.corrections_description', icon: 'pi pi-pencil', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/attendance/corrections' }
+  ]
+  if (hasPermission('attendance.update')) {
+    cards.push({ labelKey: 'attendance.admin', descKey: 'attendance.admin_description', icon: 'pi pi-cog', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/admin' })
+  }
+  return cards
+})
 
 const today = new Date()
 const todayStr = toDateOnly(today)

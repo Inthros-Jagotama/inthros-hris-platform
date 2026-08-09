@@ -29,7 +29,21 @@
           <p class="text-sm font-medium">{{ t('attendance.overtime_empty') }}</p>
         </div>
       </template>
-      <Column field="work_date" :header="t('attendance.work_date')" style="width:130px" />
+      <Column field="employee_name" :header="t('attendance.submitted_by')" style="width:160px">
+        <template #body="{data}"><span class="text-gray-700 dark:text-gray-200 font-medium">{{ data.employee_name || '-' }}</span></template>
+      </Column>
+      <Column field="organization_name" :header="t('attendance.organization')" style="width:160px">
+        <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.organization_name || '-' }}</span></template>
+      </Column>
+      <Column field="work_date" :header="t('attendance.work_date')" style="width:130px">
+        <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ formatDate(data.work_date, locale) }}</span></template>
+      </Column>
+      <Column :header="t('attendance.start_time')" style="width:120px">
+        <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ formatTime(data.start_time_local) }}</span></template>
+      </Column>
+      <Column :header="t('attendance.end_time')" style="width:120px">
+        <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ formatTime(data.end_time_local) }}</span></template>
+      </Column>
       <Column field="requested_minutes" :header="t('attendance.requested_minutes')" style="width:130px">
         <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.requested_minutes }} min</span></template>
       </Column>
@@ -84,6 +98,7 @@ import { useI18n } from '@/composables/useI18n'
 import { useMyEmployee } from '@/composables/useMyEmployee'
 import { getErrorMessage, getValidationErrors } from '@/services/responseHandler'
 import { localDateTimeISOString } from '@/utils/localTime'
+import { formatDate } from '@/utils/formatDate'
 import api from '@/services/api'
 
 import DataTable from 'primevue/datatable'
@@ -99,7 +114,7 @@ import DateInput from '@/components/DateInput.vue'
 import TimeInput from '@/components/TimeInput.vue'
 
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 const { employeeId, loadMyEmployeeId } = useMyEmployee()
 
@@ -165,6 +180,14 @@ function statusSeverity(status) {
     case 'PENDING_APPROVAL': return 'info'
     default: return 'secondary'
   }
+}
+
+// formatTime — HH:MM lokal dari timestamp RFC3339 (pola sama dgn Approvals/Notifications).
+function formatTime(v) {
+  if (!v) return '-'
+  const d = new Date(v)
+  if (isNaN(d.getTime())) return '-'
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 async function loadData() {

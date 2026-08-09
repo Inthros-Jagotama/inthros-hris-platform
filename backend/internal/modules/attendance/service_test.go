@@ -766,6 +766,36 @@ func TestService_GetOvertimeRequestByID_Success(t *testing.T) {
 	}
 }
 
+// TestService_ListOvertimeRequests_EnrichesSubmitterInfo guards the
+// admin-facing "who submitted this" columns: ListOvertimeRequests must
+// resolve each request's employee_id to a name + current organization name
+// via GetEmployeeInfoByIDs, without requiring the caller to filter by a
+// specific employee_id (the admin/tenant-wide listing case).
+func TestService_ListOvertimeRequests_EnrichesSubmitterInfo(t *testing.T) {
+	svc, repo, db, cleanup := newTestService()
+	defer cleanup()
+
+	empID := uuid.New()
+	orgID := uuid.New()
+	seedEmployeeOrg(db, empID, "Budi Santoso", orgID, "Finance Department")
+	createTestOvertimeRequest(repo, empID)
+
+	resp, err := svc.ListOvertimeRequests(ctx(), nil, 1, 10)
+	if err != nil {
+		t.Fatalf("ListOvertimeRequests failed: %v", err)
+	}
+	items, ok := resp.Data.([]OvertimeResponse)
+	if !ok || len(items) != 1 {
+		t.Fatalf("expected 1 overtime request, got %+v", resp.Data)
+	}
+	if items[0].EmployeeName != "Budi Santoso" {
+		t.Errorf("expected employee_name 'Budi Santoso', got %q", items[0].EmployeeName)
+	}
+	if items[0].OrganizationName != "Finance Department" {
+		t.Errorf("expected organization_name 'Finance Department', got %q", items[0].OrganizationName)
+	}
+}
+
 // =========================================================================
 // Exempt Position Service Tests
 // =========================================================================

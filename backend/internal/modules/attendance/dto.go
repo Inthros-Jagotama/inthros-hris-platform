@@ -206,18 +206,18 @@ type SessionResponse struct {
 // §44-45), so a count would always read zero and misleadingly imply
 // absences are being tracked when they aren't.
 type SummaryResponse struct {
-	EmployeeID          string  `json:"employee_id"`
-	FromDate            string  `json:"from_date"`
-	ToDate              string  `json:"to_date"`
-	TotalSessions       int     `json:"total_sessions"`
-	PresentDays         int     `json:"present_days"`
-	LateDays            int     `json:"late_days"`
-	MissingCheckinDays  int     `json:"missing_checkin_days"`
-	MissingCheckoutDays int     `json:"missing_checkout_days"`
-	DayOffDays          int     `json:"day_off_days"`
-	LeaveDays           float64 `json:"leave_days"`
-	TotalWorkMinutes    int     `json:"total_work_minutes"`
-	TotalOvertimeMinutes int    `json:"total_overtime_minutes"`
+	EmployeeID           string  `json:"employee_id"`
+	FromDate             string  `json:"from_date"`
+	ToDate               string  `json:"to_date"`
+	TotalSessions        int     `json:"total_sessions"`
+	PresentDays          int     `json:"present_days"`
+	LateDays             int     `json:"late_days"`
+	MissingCheckinDays   int     `json:"missing_checkin_days"`
+	MissingCheckoutDays  int     `json:"missing_checkout_days"`
+	DayOffDays           int     `json:"day_off_days"`
+	LeaveDays            float64 `json:"leave_days"`
+	TotalWorkMinutes     int     `json:"total_work_minutes"`
+	TotalOvertimeMinutes int     `json:"total_overtime_minutes"`
 }
 
 // =========================================================================
@@ -235,8 +235,13 @@ type CreateOvertimeRequest struct {
 }
 
 type OvertimeResponse struct {
-	ID                 string     `json:"id"`
-	EmployeeID         string     `json:"employee_id"`
+	ID         string `json:"id"`
+	EmployeeID string `json:"employee_id"`
+	// EmployeeName/OrganizationName describe who submitted the request —
+	// populated by ListOvertimeRequests for admin-facing (tenant-wide)
+	// listings; empty when unresolved (e.g. an unlinked employee record).
+	EmployeeName       string     `json:"employee_name,omitempty"`
+	OrganizationName   string     `json:"organization_name,omitempty"`
 	WorkDate           string     `json:"work_date"`
 	StartTimeLocal     time.Time  `json:"start_time_local"`
 	EndTimeLocal       time.Time  `json:"end_time_local"`

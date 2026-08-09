@@ -940,6 +940,8 @@ Employee tidak dihitung sebagai absent berdasarkan attendance normal.
 
 > ✅ **Sudah diimplementasikan sepenuhnya** — satu-satunya bagian dari dokumen ini yang benar-benar sudah production-ready. `attendance/service.go` punya `ApprovalEngine` interface (`CreateApprovalInstance`, `GetApprovalInstanceStatus`, service.go:25-28), `SetApprovalEngine` (service.go:41-43), `HandleApprovalStatusChange` push-callback (service.go:585-615), dan `AttendanceOvertimeRequest.ApprovalInstanceID` (model.go:352, migration `063_attendance_overtime_approval_instance.sql`). Wired di `cmd/server/main.go:523-531` via `attendanceSvc.SetApprovalEngine(sharedApprovalEngine)` + `approvalSvc.RegisterStatusHandler("attendance", ...)` — identik dengan pola Leave/Payroll. Tidak ada endpoint approve/reject khusus di Attendance sendiri; approval sepenuhnya lewat endpoint generik Central Approval Module, sesuai desain di bawah.
 >
+> ✅ **Auto-resolve flow (2026-08-09):** `CreateOvertimeRequest` **dan** `CreateCorrectionRequest` kini auto-resolve active flow module `"attendance"` via `GetActiveFlowIDForModule` (pola sama dengan Leave) jika client tidak mengirim `flow_id` — request lembur yang dibuat tanpa `flow_id` (termasuk dari FE) sekarang benar-benar masuk Central Approval Module (status `PENDING_APPROVAL`) alih-alih diam di `SUBMITTED`, sehingga muncul di daftar approval + mendapat notifikasi.
+>
 > Catatan: "Actual Overtime" vs "Calculated Overtime" (§31-32) **belum diimplementasikan** — itu bagian dari session calculation engine yang belum ada (lihat Section 19). Approval instance-nya sudah jalan, tapi perhitungan menit overtime aktual berdasarkan attendance masih proposal.
 
 ## Existing Table

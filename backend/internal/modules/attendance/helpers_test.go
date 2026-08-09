@@ -55,6 +55,34 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
 	}
 
+	// Raw tables owned by other modules (employee/organization) that
+	// GetEmployeeInfoByIDs queries directly via db.Table(...) — attendance
+	// must not import those packages (circular dependency risk). Minimal
+	// schema covering only the columns the raw query touches, same pattern
+	// as approval/helpers_test.go's setupTestDB.
+	rawTables := []string{
+		`CREATE TABLE IF NOT EXISTS employees (
+			id CHAR(36) PRIMARY KEY,
+			name VARCHAR(255) NOT NULL DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS organizations (
+			id CHAR(36) PRIMARY KEY,
+			nomenclature VARCHAR(255) NOT NULL DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS employments (
+			id CHAR(36) PRIMARY KEY,
+			employee_id CHAR(36) NOT NULL,
+			organization_id CHAR(36) NOT NULL,
+			effective_date DATE NOT NULL,
+			effective_end_date DATE NULL
+		)`,
+	}
+	for _, stmt := range rawTables {
+		if err := db.Exec(stmt).Error; err != nil {
+			panic(fmt.Sprintf("failed to create raw test table: %v", err))
+		}
+	}
+
 	dbResolver := func(ctx context.Context) (*gorm.DB, error) {
 		return db, nil
 	}
@@ -196,6 +224,23 @@ func createTestExemptPosition(repo *Repository, orgID uuid.UUID) *AttendanceExem
 		panic(fmt.Sprintf("failed to create test exempt position: %v", err))
 	}
 	return p
+}
+
+// seedEmployeeOrg inserts a minimal employees + organizations + employments
+// row set so GetEmployeeInfoByIDs can resolve employeeID -> (name, org name).
+func seedEmployeeOrg(db *gorm.DB, employeeID uuid.UUID, name string, orgID uuid.UUID, orgName string) {
+	if err := db.Exec("INSERT INTO employees (id, name) VALUES (?, ?)", employeeID.String(), name).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed employee: %v", err))
+	}
+	if err := db.Exec("INSERT INTO organizations (id, nomenclature) VALUES (?, ?)", orgID.String(), orgName).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed organization: %v", err))
+	}
+	if err := db.Exec(
+		"INSERT INTO employments (id, employee_id, organization_id, effective_date, effective_end_date) VALUES (?, ?, ?, ?, NULL)",
+		uuid.New().String(), employeeID.String(), orgID.String(), "2026-01-01",
+	).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed employment: %v", err))
+	}
 }
 
 // =========================================================================

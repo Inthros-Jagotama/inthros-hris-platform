@@ -51,10 +51,10 @@
           <Select v-model="form.correction_type" :options="correctionTypeOptions" optionLabel="label" optionValue="value" class="w-full" />
         </FormRow>
         <FormRow v-if="needsCheckin" :label="t('attendance.requested_checkin')" required :errors="errors?.requested_checkin">
-          <InputText v-model="form.requested_checkin" placeholder="08:00:00" size="small" class="w-full" />
+          <TimeInput v-model="form.requested_checkin" />
         </FormRow>
         <FormRow v-if="needsCheckout" :label="t('attendance.requested_checkout')" required :errors="errors?.requested_checkout">
-          <InputText v-model="form.requested_checkout" placeholder="17:00:00" size="small" class="w-full" />
+          <TimeInput v-model="form.requested_checkout" />
         </FormRow>
         <FormRow :label="t('attendance.reason')" required :errors="errors?.reason">
           <TextInput v-model="form.reason" textarea :rows="3" />
@@ -83,7 +83,6 @@ import api from '@/services/api'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
@@ -91,6 +90,7 @@ import SkeletonTable from '@/components/SkeletonTable.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import DateInput from '@/components/DateInput.vue'
+import TimeInput from '@/components/TimeInput.vue'
 
 const router = useRouter()
 const { t } = useI18n()

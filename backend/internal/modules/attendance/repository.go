@@ -684,6 +684,48 @@ func (r *Repository) UpdateCorrectionRequest(ctx context.Context, c *AttendanceC
 	return db.Save(c).Error
 }
 
+// employeeInfo carries the display fields an admin-facing request list needs
+// about who submitted it (name, current organization).
+type employeeInfo struct {
+	Name             string
+	OrganizationName string
+}
+
+// GetEmployeeInfoByIDs resolves display info (name, current organization
+// name) for a batch of employees at once — used to enrich admin-facing
+// overtime/correction request lists without an N+1 query per row. Raw
+// query — attendance must not import the employee/organization packages
+// directly (same reasoning as approval.GetSubmitterInfoByUserIDs).
+func (r *Repository) GetEmployeeInfoByIDs(ctx context.Context, employeeIDs []uuid.UUID) (map[string]employeeInfo, error) {
+	result := make(map[string]employeeInfo, len(employeeIDs))
+	if len(employeeIDs) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		EmployeeID       string
+		Name             string
+		OrganizationName string
+	}
+	var rows []row
+	err = db.Table("employees AS e").
+		Joins("JOIN employments AS em ON em.employee_id = e.id AND em.effective_end_date IS NULL").
+		Joins("JOIN organizations AS o ON o.id = em.organization_id").
+		Where("e.id IN ?", employeeIDs).
+		Select("e.id AS employee_id, e.name AS name, o.nomenclature AS organization_name").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve employee info: %w", err)
+	}
+	for _, rrow := range rows {
+		result[rrow.EmployeeID] = employeeInfo{Name: rrow.Name, OrganizationName: rrow.OrganizationName}
+	}
+	return result, nil
+}
+
 // FindUserIDByEmployeeID resolves an employee's platform user_id via
 // employee_accounts, mirroring the employee_id -> user_id resolution already
 // used by the approval module (GetUserIDsByOrganization) and by

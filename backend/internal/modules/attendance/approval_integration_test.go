@@ -2,6 +2,7 @@ package attendance
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -14,8 +15,10 @@ type fakeApprovalEngine struct {
 		documentID string
 		flowID     string
 	}
-	instanceID string
-	createErr  error
+	instanceID     string
+	createErr      error
+	activeFlowID   string
+	flowResolveErr error
 }
 
 func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error) {
@@ -35,6 +38,13 @@ func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module,
 
 func (f *fakeApprovalEngine) GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error) {
 	return "PENDING", nil
+}
+
+func (f *fakeApprovalEngine) GetActiveFlowIDForModule(ctx context.Context, module string) (string, error) {
+	if f.flowResolveErr != nil {
+		return "", f.flowResolveErr
+	}
+	return f.activeFlowID, nil
 }
 
 func TestService_CreateOvertimeRequest_WithApprovalEngine_CreatesInstance(t *testing.T) {
@@ -74,11 +84,12 @@ func TestService_CreateOvertimeRequest_WithApprovalEngine_CreatesInstance(t *tes
 	}
 }
 
-func TestService_CreateOvertimeRequest_NoFlowID_SkipsApproval(t *testing.T) {
+func TestService_CreateOvertimeRequest_NoFlowID_ResolvesActiveFlow(t *testing.T) {
 	svc, _, _, cleanup := newTestService()
 	defer cleanup()
 
-	fake := &fakeApprovalEngine{}
+	activeFlow := uuid.New().String()
+	fake := &fakeApprovalEngine{activeFlowID: activeFlow}
 	svc.SetApprovalEngine(fake)
 
 	req := CreateOvertimeRequest{
@@ -93,6 +104,137 @@ func TestService_CreateOvertimeRequest_NoFlowID_SkipsApproval(t *testing.T) {
 	resp, err := svc.CreateOvertimeRequest(ctx(), req)
 	if err != nil {
 		t.Fatalf("CreateOvertimeRequest failed: %v", err)
+	}
+	if resp.Status != "PENDING_APPROVAL" {
+		t.Errorf("expected status PENDING_APPROVAL, got '%s'", resp.Status)
+	}
+	if resp.ApprovalInstanceID == nil || *resp.ApprovalInstanceID != fake.instanceID {
+		t.Errorf("expected approval_instance_id %s, got %v", fake.instanceID, resp.ApprovalInstanceID)
+	}
+	if len(fake.createCalls) != 1 {
+		t.Fatalf("expected 1 CreateApprovalInstance call, got %d", len(fake.createCalls))
+	}
+	if fake.createCalls[0].module != "attendance" || fake.createCalls[0].flowID != activeFlow {
+		t.Errorf("unexpected call params: %+v", fake.createCalls[0])
+	}
+}
+
+func TestService_CreateOvertimeRequest_NoFlowID_NoActiveFlow_SkipsApproval(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{flowResolveErr: errors.New("no active flow for module")}
+	svc.SetApprovalEngine(fake)
+
+	req := CreateOvertimeRequest{
+		EmployeeID:       uuid.New().String(),
+		WorkDate:         "2026-01-15",
+		StartTimeLocal:   "2026-01-15T18:00:00+07:00",
+		EndTimeLocal:     "2026-01-15T20:00:00+07:00",
+		RequestedMinutes: 120,
+		Reason:           "Deadline crunch",
+	}
+
+	resp, err := svc.CreateOvertimeRequest(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateOvertimeRequest failed: %v", err)
+	}
+	if resp.Status != "SUBMITTED" {
+		t.Errorf("expected status SUBMITTED, got '%s'", resp.Status)
+	}
+	if len(fake.createCalls) != 0 {
+		t.Errorf("expected no CreateApprovalInstance calls, got %d", len(fake.createCalls))
+	}
+}
+
+func TestService_CreateCorrectionRequest_WithApprovalEngine_CreatesInstance(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{}
+	svc.SetApprovalEngine(fake)
+
+	flowID := uuid.New().String()
+	req := CreateCorrectionRequest{
+		EmployeeID:          uuid.New().String(),
+		AttendanceSessionID: uuid.New().String(),
+		CorrectionType:      string(CorrectionTypeMissingCheckout),
+		RequestedCheckout:   strPtr("2026-01-15T17:00:00+07:00"),
+		Reason:              "Forgot to check out",
+		FlowID:              &flowID,
+	}
+
+	resp, err := svc.CreateCorrectionRequest(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateCorrectionRequest failed: %v", err)
+	}
+
+	if resp.Status != "PENDING_APPROVAL" {
+		t.Errorf("expected status PENDING_APPROVAL, got '%s'", resp.Status)
+	}
+	if resp.ApprovalInstanceID == nil || *resp.ApprovalInstanceID != fake.instanceID {
+		t.Errorf("expected approval_instance_id %s, got %v", fake.instanceID, resp.ApprovalInstanceID)
+	}
+	if len(fake.createCalls) != 1 {
+		t.Fatalf("expected 1 CreateApprovalInstance call, got %d", len(fake.createCalls))
+	}
+	if fake.createCalls[0].module != "attendance" || fake.createCalls[0].flowID != flowID {
+		t.Errorf("unexpected call params: %+v", fake.createCalls[0])
+	}
+}
+
+func TestService_CreateCorrectionRequest_NoFlowID_ResolvesActiveFlow(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	activeFlow := uuid.New().String()
+	fake := &fakeApprovalEngine{activeFlowID: activeFlow}
+	svc.SetApprovalEngine(fake)
+
+	req := CreateCorrectionRequest{
+		EmployeeID:          uuid.New().String(),
+		AttendanceSessionID: uuid.New().String(),
+		CorrectionType:      string(CorrectionTypeMissingCheckout),
+		RequestedCheckout:   strPtr("2026-01-15T17:00:00+07:00"),
+		Reason:              "Forgot to check out",
+	}
+
+	resp, err := svc.CreateCorrectionRequest(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateCorrectionRequest failed: %v", err)
+	}
+	if resp.Status != "PENDING_APPROVAL" {
+		t.Errorf("expected status PENDING_APPROVAL, got '%s'", resp.Status)
+	}
+	if resp.ApprovalInstanceID == nil || *resp.ApprovalInstanceID != fake.instanceID {
+		t.Errorf("expected approval_instance_id %s, got %v", fake.instanceID, resp.ApprovalInstanceID)
+	}
+	if len(fake.createCalls) != 1 {
+		t.Fatalf("expected 1 CreateApprovalInstance call, got %d", len(fake.createCalls))
+	}
+	if fake.createCalls[0].module != "attendance" || fake.createCalls[0].flowID != activeFlow {
+		t.Errorf("unexpected call params: %+v", fake.createCalls[0])
+	}
+}
+
+func TestService_CreateCorrectionRequest_NoFlowID_NoActiveFlow_SkipsApproval(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{flowResolveErr: errors.New("no active flow for module")}
+	svc.SetApprovalEngine(fake)
+
+	req := CreateCorrectionRequest{
+		EmployeeID:          uuid.New().String(),
+		AttendanceSessionID: uuid.New().String(),
+		CorrectionType:      string(CorrectionTypeMissingCheckout),
+		RequestedCheckout:   strPtr("2026-01-15T17:00:00+07:00"),
+		Reason:              "Forgot to check out",
+	}
+
+	resp, err := svc.CreateCorrectionRequest(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateCorrectionRequest failed: %v", err)
 	}
 	if resp.Status != "SUBMITTED" {
 		t.Errorf("expected status SUBMITTED, got '%s'", resp.Status)
