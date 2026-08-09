@@ -11,6 +11,8 @@
 | Phase 5 — Rollout ke Modul Lain | ⏳ Belum dimulai | |
 | Phase 6 — Email/Push Delivery | ⏸️ Di luar cakupan | Butuh keputusan provider terpisah. |
 | Phase 7 — Notification Preferences | ⏸️ Di luar cakupan | Ditunda sampai ada kebutuhan bisnis konkret. |
+| Phase FE-1 — Store & Bell Dropdown | ⏳ Belum dimulai | Lihat §13. FE saat ini 0% — bell di `HeaderBar.vue` murni kosmetik (badge hardcoded `"3"`). |
+| Phase FE-2 — Halaman Notifikasi Penuh | ⏳ Belum dimulai | Lihat §13. |
 
 ## 1. Objective
 
@@ -302,3 +304,78 @@ Semua titik ini butuh resolusi `employee_id → user_id` (lewat `useraccount`), 
 8. Seluruh ID menggunakan UUID.
 9. Email/push/SMS dan notification preferences adalah fase terpisah di masa depan, bukan bagian dari cakupan awal modul ini.
 10. Setiap notifikasi harus punya `reference_type`/`reference_id` yang jelas menunjuk ke record sumbernya, untuk audit dan navigasi dari frontend.
+
+---
+
+# 13. Frontend Implementation Plan
+
+## 13.1 Ringkasan & Prinsip
+
+Backend sudah lengkap sampai Phase 4 (schema, service, 4 endpoint REST, Leave sudah jadi consumer pertama). Frontend saat ini **0%** — dikonfirmasi lewat pemeriksaan langsung:
+
+* `frontend/tenant/src/layouts/HeaderBar.vue:146-156` punya bell icon, tapi murni kosmetik: `Button icon="pi pi-bell"` + `Badge value="3"` dengan angka **hardcoded**, tanpa `@click`, tanpa dropdown/panel, tanpa pemanggilan API sama sekali.
+* Tidak ada route apapun yang menyebut "notification" di `router/index.js`.
+* Tidak ada key `notification` di `locales/en.json` maupun `locales/id.json`.
+* Tidak ada file `Notifications.vue` atau sejenisnya di `views/modules/`.
+* Tidak ada pola `setInterval`/polling apapun di codebase FE saat ini — refresh unread-count akan jadi pola pertama semacam ini.
+
+Prinsip pengerjaan FE ini:
+
+* **In-app only**, selaras dengan §2 (Scope Decision) backend — tidak ada browser push/service worker/email di FE.
+* **Reuse pola yang sudah ada, jangan menciptakan pola baru**:
+  * List/pagination → contoh `Approvals.vue` (`loadPendingTasks()`: `api.get(url, {params:{page,per_page}})`, baca `res.data.data`/`res.data.total`, try/catch/finally + toast error, render lewat `DataTable`/`Column` + `SkeletonTable` saat loading).
+  * Global lightweight state → contoh `stores/activeModules.js`: singleton `reactive()` di luar fungsi (supaya sama-sama dipakai semua consumer), dibungkus composable `useXxx()`, dengan guard `loaded` dan method `reset()` dipanggil dari router guard saat logout. **Bukan** Pinia `defineStore` — proyek ini tidak memakainya sama sekali.
+  * Panggilan API → langsung lewat `services/api.js` (axios instance, `baseURL` kosong, setiap call site menulis path lengkap `/api/v1/tenant/...` sendiri; interceptor Bearer token + `X-Tenant-ID` + refresh-token sudah otomatis).
+* Modul `notification` **subscribable** (`IsCore: false` di `module.go` `Info()`, sama seperti Attendance/Leave/dll.) — jadi halaman penuh & entri sidebar tetap perlu gating `meta.module:'notification'` + `useActiveModules().hasModule('notification')` mengikuti convention module lain. Bell icon di header, karena bagian dari layout global (selalu tampil di semua halaman), tetap ditampilkan terlepas dari gating tersebut — cukup source datanya (unread count/list) yang no-op/kosong kalau module tidak disubscribe (backend akan mengembalikan list kosong, bukan error, untuk tenant yang belum punya data notifikasi).
+* Tidak ada endpoint create notifikasi di FE — notifikasi murni ditampilkan/ditandai-dibaca, sesuai §7/§12.6 backend.
+
+## 13.2 Komponen & Routing
+
+* **`layouts/HeaderBar.vue`** — ganti bell kosmetik jadi interaktif:
+  * `@click` men-toggle PrimeVue `OverlayPanel`/`Popover` berisi daftar notifikasi terbaru (mis. 5-10 item terakhir, ringkas: title + waktu relatif + indikator belum-dibaca), plus link "Lihat semua" ke halaman penuh.
+  * `Badge` value diambil dari store unread-count (§13.3), bukan hardcoded — disembunyikan atau tidak dirender kalau count 0.
+  * Klik item di dropdown → `PATCH /:id/read` lalu refresh store; kalau notifikasi punya `reference_type`/`reference_id` yang sudah punya halaman detail di FE (lihat §13.5), navigasi ke sana.
+* **`views/modules/Notifications.vue`** — halaman daftar penuh:
+  * `DataTable` lazy-paginated (pola sama dengan `Employees.vue`: `:totalRecords`, `:first`, `:rows`, `@page`) memanggil `GET /api/v1/tenant/notifications` dengan `page`/`per_page`/`is_read`.
+  * Filter status baca (tab atau dropdown: Semua / Belum Dibaca) via query param `is_read`.
+  * Tombol "Tandai semua dibaca" → `POST /read-all`, refresh list + store.
+  * Klik baris → `PATCH /:id/read` (kalau belum dibaca) + navigasi kondisional sama seperti dropdown.
+* **Route baru di `router/index.js`**: path `notifications`, `name: 'Notifications'`, `meta: { titleKey: 'notification.title', descKey: 'notification.description', icon: 'pi pi-bell', module: 'notification' }` — mengikuti pola module-gated route yang sudah ada (router guard otomatis redirect kalau `hasModule('notification')` false).
+* **Sidebar** — tambahkan entri baru mengikuti pola `Sidebar.vue` module lain (`moduleSlug: 'notification'`, `permission: 'notification.view'`).
+* **Locales** — tambahkan namespace `notification.*` baru di `en.json`/`id.json` (title, description, empty-state, mark_all_read, dst.) — belum ada sama sekali saat ini.
+
+## 13.3 State: `stores/notifications.js`
+
+Composable baru mengikuti bentuk persis `activeModules.js`:
+
+```js
+// module-level singleton, di luar fungsi — shared oleh semua consumer
+const state = reactive({ unreadCount: 0, recentItems: [], loaded: false })
+
+export function useNotifications() {
+  async function fetchUnreadCount() { /* GET /unread-count, set state.unreadCount */ }
+  async function fetchRecent() { /* GET /notifications?per_page=10, set state.recentItems */ }
+  async function refresh() { await Promise.all([fetchUnreadCount(), fetchRecent()]) }
+  function reset() { state.unreadCount = 0; state.recentItems = []; state.loaded = false }
+  return { state, fetchUnreadCount, fetchRecent, refresh, reset }
+}
+```
+
+`reset()` dipanggil dari router guard yang sama yang sudah memanggil `useActiveModules().reset()` saat logout (cek lokasi persis di router guard, jangan bikin hook logout baru).
+
+## 13.4 Polling
+
+Karena tidak ada infrastruktur push/websocket, unread-count di-refresh via `setInterval` (mis. tiap 60 detik), dipasang **satu kali di level store/HeaderBar.vue** (bukan per-komponen, supaya tidak numpuk banyak timer kalau bell/store dipakai di beberapa tempat), dengan `clearInterval` saat unmount/logout. Ini pola `setInterval` **pertama** di codebase FE — jaga sesederhana mungkin, jangan bangun generic polling utility dulu sebelum ada kebutuhan kedua yang nyata.
+
+## 13.5 Data Shape & Navigasi Referensi
+
+Setiap notifikasi punya `reference_type`/`reference_id` (§3.1). FE tidak perlu membangun routing map lengkap untuk semua kemungkinan `reference_type` di awal — cukup dukung yang sudah punya halaman FE nyata (mis. `leave` → halaman Leave My Requests, kalau ada request ID yang bisa di-deep-link). Untuk `reference_type` yang modul FE-nya sendiri masih placeholder (attendance, payroll, dll.), notifikasi cukup ditampilkan + bisa ditandai dibaca, tanpa navigasi — jangan membangun deep-link spekulatif ke halaman yang belum ada.
+
+Response envelope sama dengan modul lain (`success`/`data`/`page`/`per_page`/`total`) — parsing FE harus konsisten dengan cara `Approvals.vue` membaca `res.data.data`/`res.data.total`.
+
+## 13.6 Development Phases (FE)
+
+* **Phase FE-1 — Store & Bell Dropdown**: `stores/notifications.js` (unread-count + recent list + polling) dan bell interaktif di `HeaderBar.vue` (OverlayPanel dropdown, badge dinamis, mark-as-read per item). Nilai tertinggi untuk end user karena langsung terlihat di semua halaman.
+* **Phase FE-2 — Halaman Notifikasi Penuh**: `Notifications.vue` (list paginated, filter `is_read`, mark-all-as-read) + route + entri sidebar + locale keys.
+* **Phase FE-3 (opsional, nanti)** — deep-link ke halaman detail per `reference_type` begitu makin banyak modul FE (Attendance, Payroll, dll.) punya halaman detail sendiri. **Belum dikerjakan sekarang** — dicatat sebagai perluasan alami, bukan bagian dari FE-1/FE-2.
+* **Di luar cakupan eksplisit**: browser push notification/service worker, UI notification preferences (backend §3.2/Phase 7 juga di luar cakupan), email digest.
