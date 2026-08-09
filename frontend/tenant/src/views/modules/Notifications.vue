@@ -183,6 +183,14 @@ async function handleRowClick(item) {
     router.push('/performance/okr/my-evaluation')
     return
   }
+  // Lembur (dua alur §32b): notifikasi OVERTIME_ASSIGNED (penugasan),
+  // OVERTIME_ACTUAL_APPROVED/REJECTED (hasil approval aktual) → halaman lembur.
+  if (item.reference_type === 'attendance_overtime' ||
+      item.type?.startsWith('OVERTIME_') ||
+      item.type?.startsWith('OVERTIME_ACTUAL_')) {
+    router.push('/attendance/overtime')
+    return
+  }
 }
 
 onMounted(() => {

@@ -947,6 +947,8 @@ Employee tidak dihitung sebagai absent berdasarkan attendance normal.
 > ✅ **Actual/Calculated Overtime sudah diimplementasikan (Phase 7, 2026-08-08)** — `applyOvertimeCalculation` dipanggil dari `HandleApprovalStatusChange` saat APPROVED: `actual_minutes = actual checkout − planned checkout` (dari session hari itu), `calculated_minutes = min(actual_minutes, requested_minutes)`; migration `072_attendance_overtime_actual_calculated` menambah kedua kolom. Detail di catatan Phase 7 di bawah.
 >
 > ✅ **Migration `079_attendance_overtime_status_pending_approval` (2026-08-09):** kolom `status` di `attendance_overtime_requests` (MySQL) adalah `ENUM('SUBMITTED','APPROVED','REJECTED')` yang tidak memuat `PENDING_APPROVAL` — sejak auto-resolve flow di atas, request yang masuk approval disimpan dengan status tersebut dan MySQL menolak insert (`Error 1265 Data truncated`). Migration 079 menambah `PENDING_APPROVAL` ke enum (Postgres no-op, sudah `VARCHAR(255)`).
+>
+> 🔶 **RENCANA — Overtime dua alur (2026-08-09; backend selesai 2026-08-10, FE belum):** request lembur menjadi dua tahap: (1) planned request → approval → isian aktual (jam mulai/selesai, catatan, lampiran) → approval kedua; (2) alur tugaskan bawahan (notifikasi → isian aktual → approval). Kedua alur bisa dibatalkan sebelum isian aktual. Backend ✅ (migration 080/081, upload generik, service dua-alur, notifikasi) — FE §32b.7 ⏳. Detail lengkap: **§32b** di bawah.
 
 ## Existing Table
 
@@ -1092,6 +1094,165 @@ Actual Overtime = 120
 Approved Overtime = 120
 Calculated Overtime = 120
 ```
+
+---
+
+# 32b. RENCANA — Overtime Dua Alur: Request → Isian Aktual (SELF & ASSIGNED)
+
+> 🔶 **Status: SEBAGIAN SELESAI (per 2026-08-10) — backend tahap 1-3 ✅, FE (tahap 4) ⏳.** Enhancement alur lembur menjadi dua tahap (planned request → isian aktual) dengan dua alur: lembur sendiri (SELF) dan tugaskan bawahan (ASSIGNED).
+> ✅ **Selesai (2026-08-10):** migration `080` (13 kolom baru + enum status `WAITING_ACTUAL`/`ACTUAL_SUBMITTED`/`CANCELLED`), migration `081` backfill `APPROVED`→`WAITING_ACTUAL`, endpoint upload generik `POST /uploads` (`internal/pkg/upload` + config `storage.upload_dir`), service `AssignOvertimeRequest`/`SubmitActualOvertime`/`CancelOvertimeRequest`, dispatch dua instance di `HandleApprovalStatusChange` + kalkulasi dari isian aktual di instance #2, notifikasi `OVERTIME_ASSIGNED`/`OVERTIME_ACTUAL_APPROVED`/`OVERTIME_ACTUAL_REJECTED` (i18n en/id), test service dua-alur (`overtime_two_flow_test.go`).
+> ⏳ **Belum (FE §32b.7):** form isian aktual, tombol assign/cancel, kolom baru & badge status di `AttendanceOvertime.vue`, locale key notifikasi baru di `en.json`/`id.json` tenant. Keputusan desain yang sudah dikonfirmasi user: (1) isian aktual di alur SELF **perlu approval kedua**; (2) penugasan di alur ASSIGNED **langsung kirim notifikasi ke bawahan tanpa approval penugasan** — approval hanya di isian aktual; (3) approver isian aktual = **Central Approval Module** (instance approval kedua, module slug `"attendance"` yang sama); (4) lampiran memakai **endpoint upload generik baru** (bukan `attachment_url` teks seperti leave).
+
+## 32b.1 Requirement
+
+### Alur 1 — Lembur sendiri (SELF)
+
+```text
+Karyawan mengajukan lembur untuk dirinya (work_date, jam planned, reason)
+        ↓
+Central Approval Module — instance #1 (request/planned)
+        ↓
+APPROVED → status WAITING_ACTUAL
+        ↓
+Karyawan mengisi AKTUAL: jam mulai aktual, jam selesai aktual, catatan, file lampiran
+        ↓
+Central Approval Module — instance #2 (isian aktual)
+        ↓
+APPROVED → selesai (status APPROVED final)
+```
+
+### Alur 2 — Tugaskan bawahan (ASSIGNED)
+
+```text
+Atasan membuat penugasan lembur untuk bawahan (planned + assigned_employee_id)
+        ↓
+Kirim notifikasi OVERTIME_ASSIGNED ke bawahan (TANPA approval penugasan)
+        ↓
+status = WAITING_ACTUAL
+        ↓
+Bawahan mengisi AKTUAL (jam mulai aktual, jam selesai aktual, catatan, lampiran)
+        ↓
+Central Approval Module — instance #2 (isian aktual)
+        ↓
+APPROVED → selesai (status APPROVED final)
+```
+
+### Aturan lintas alur
+
+* **Batal sebelum isian aktual**: kedua alur bisa dibatalkan selama status masih `PENDING_APPROVAL` (instance #1 belum approve) atau `WAITING_ACTUAL` (sudah approve tapi belum isi aktual). Setelah `ACTUAL_SUBMITTED` tidak bisa dibatalkan oleh pemohon — hanya lewat jalur approval instance #2 (REJECTED/CANCELLED).
+* **Perubahan semantik**: status terminal `APPROVED` final hanya tercapai **setelah isian aktual disetujui** — berbeda dari perilaku lama yang men-set `APPROVED` saat request disetujui.
+
+## 32b.2 State Machine (usulan)
+
+```text
+                        ┌───────────────┐
+                        │   SUBMITTED   │  ← CreateOvertimeRequest (SELF), auto-resolve flow
+                        └──────┬────────┘
+                               │ instance #1 (Central Approval)
+                    ┌──────────┴──────────┐
+                    ▼                     ▼
+        ┌──────────────────┐   ┌──────────────────┐
+        │  PENDING_APPROVAL │   │     REJECTED      │  ← instance #1 REJECTED / CANCELLED
+        └──────┬───────────┘   └──────────────────┘
+               │ APPROVED (instance #1)
+               ▼
+        ┌──────────────────┐   ← entri langsung juga untuk ASSIGNED:
+        │  WAITING_ACTUAL   │     AssignOvertimeRequest (tanpa instance #1)
+        └──────┬───────────┘
+               │ SubmitActualOvertime → instance #2 (Central Approval)
+               ▼
+        ┌──────────────────┐
+        │ ACTUAL_SUBMITTED  │
+        └──────┬───────────┘
+     ┌─────────┴──────────┐
+     ▼                    ▼
+┌──────────┐        ┌──────────┐
+│ APPROVED │        │ REJECTED │  ← instance #2 REJECTED / CANCELLED
+│  (final) │        └──────────┘
+└──────────┘
+```
+
+* Status baru: `WAITING_ACTUAL`, `ACTUAL_SUBMITTED`, `CANCELLED` (MySQL enum perlu `MODIFY COLUMN` — pola sama migration `079`; Postgres `VARCHAR(255)` sudah muat).
+* **Dispatch dua instance**: `HandleApprovalStatusChange` (module `"attendance"`) saat ini hanya mencocokkan `documentID` ke `approval_instance_id` (lihat Phase 8/29) — harus diperluas agar juga mencocokkan `actual_approval_instance_id`, supaya callback instance #1 vs #2 tidak tertukar.
+
+## 32b.3 Field Baru (migration ~080, mysql + postgres) — ✅ selesai (migration 080, 2026-08-10)
+
+Tabel `attendance_overtime_requests`:
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `flow_type` | varchar (SELF / ASSIGNED) | default `SELF` — pembeda alur |
+| `assigned_by` | uuid NULL | pembuat penugasan (alur 2); NULL untuk SELF |
+| `assigned_at` | timestamp NULL | waktu penugasan |
+| `actual_start_time_local` | timestamp NULL | jam mulai aktual (isian) |
+| `actual_end_time_local` | timestamp NULL | jam selesai aktual (isian) |
+| `actual_note` | varchar NULL | catatan isian aktual |
+| `attachment_url` | varchar NULL | URL file lampiran (hasil endpoint upload) |
+| `actual_approval_instance_id` | uuid NULL | instance approval kedua |
+| `actual_submitted_at` | timestamp NULL | waktu submit isian aktual |
+| `actual_approved_by` / `actual_approved_at` | uuid / timestamp NULL | approver & waktu approval aktual |
+| `cancelled_by` / `cancelled_at` | uuid / timestamp NULL | jejak pembatalan |
+
+Catatan: `actual_minutes` (kolom sudah ada) diisi dari `actual_end_time_local − actual_start_time_local` saat submit isian aktual — **bukan lagi snapshot otomatis dari checkout session** seperti perilaku `applyOvertimeCalculation` saat ini (perubahan semantik yang disengaja sesuai requirement isian aktual manual).
+
+## 32b.4 API Plan — ✅ backend selesai (2026-08-10); verifikasi FE belum
+
+```http
+POST /api/v1/tenant/attendance/overtime-requests                 ← SELF (seperti sekarang; flow_type default SELF)
+POST /api/v1/tenant/attendance/overtime-requests/assign          ← ASSIGNED (assigned_employee_id, work_date, start/end, reason)
+POST /api/v1/tenant/attendance/overtime-requests/:id/actual      ← submit isian aktual (actual_start/end, actual_note, attachment_url)
+POST /api/v1/tenant/attendance/overtime-requests/:id/cancel      ← batal sebelum isian aktual (PENDING_APPROVAL / WAITING_ACTUAL)
+POST /api/v1/tenant/uploads                                      ← endpoint upload generik baru (multipart → URL publik)
+GET  /api/v1/tenant/attendance/overtime-requests/:id             ← detail + status + isian aktual (existing, diperkaya)
+```
+
+* **Route order**: `/overtime-requests/assign` harus didaftarkan **sebelum** `/:id` (gin wildcard conflict).
+* **Upload generik**: modul/paket bersama baru (bukan terikat resource employee seperti `PUT /employees/:id/photo` / `POST /employees/:id/documents/upload` yang sudah ada) — simpan ke direktori upload (perlu config `storage.upload_dir`), validasi tipe & ukuran, nama file UUID, kembalikan URL. Konsumen pertama: lampiran lembur; bisa dipakai modul lain (mis. `attachment_url` leave) belakangan.
+* **Cancel + instance aktif**: request `PENDING_APPROVAL` dibatalkan lewat jalur approval (instance #1 CANCELLED — sama seperti pemetaan CANCELLED → REJECTED di handler saat ini); `WAITING_ACTUAL` dibatalkan langsung (tidak ada instance aktif). Perlu verifikasi apakah `ApprovalEngine` butuh method cancel instance (interface saat ini: `CreateApprovalInstance`/`GetApprovalInstanceStatus`/`GetActiveFlowIDForModule`) atau cukup endpoint generik modul Approval.
+
+## 32b.5 Notifikasi Baru (katalog i18n en/id) — ✅ selesai (2026-08-10)
+
+| Type | Penerima | Trigger |
+|---|---|---|
+| `OVERTIME_ASSIGNED` | bawahan (employee yang ditugaskan) | `AssignOvertimeRequest` dibuat |
+| `OVERTIME_ACTUAL_SUBMITTED` | approver | task-assigned otomatis dari engine pusat (tidak perlu wiring baru) — atau eksplisit bila perlu |
+| `OVERTIME_ACTUAL_APPROVED` / `OVERTIME_ACTUAL_REJECTED` | karyawan/pengisi aktual | instance #2 APPROVED / REJECTED |
+
+## 32b.6 Service Layer (perubahan di `attendance/service.go`) — ✅ selesai (2026-08-10)
+
+* `CreateOvertimeRequest` — SELF: perilaku existing (auto-resolve flow), status `PENDING_APPROVAL`, `flow_type=SELF`.
+* `AssignOvertimeRequest` (baru) — ASSIGNED: simpan planned + `assigned_by` (dari `authctx.GetUserID` → resolusi employee), status langsung `WAITING_ACTUAL` (tanpa instance #1), kirim `OVERTIME_ASSIGNED` ke bawahan (best-effort).
+* `handleOvertimeApprovalStatusChange` — dispatch dua jalur: (a) `documentID == *o.ApprovalInstanceID` → instance #1: APPROVED → `WAITING_ACTUAL` (bukan `APPROVED` final), REJECTED/CANCELLED → `REJECTED`/`CANCELLED`; (b) `documentID == *o.ActualApprovalInstanceID` → instance #2: APPROVED → `APPROVED` final + `applyOvertimeCalculation` dari isian aktual + update session; REJECTED/CANCELLED → `REJECTED`/`CANCELLED`.
+* `SubmitActualOvertime` (baru) — validasi status `WAITING_ACTUAL` & kepemilikan (pengisi = employee request, baik SELF maupun bawahan pada ASSIGNED); simpan actual fields; hitung `actual_minutes`; auto-resolve flow → instance #2; status `ACTUAL_SUBMITTED`.
+* `CancelOvertimeRequest` (baru) — validasi status ∈ {`PENDING_APPROVAL`, `WAITING_ACTUAL`}; catat `cancelled_by/at`; cancel instance aktif bila ada; status `CANCELLED`.
+* `applyOvertimeCalculation` — pemicu dipindah ke approval instance #2, dan `actual` diambil dari isian (`actual_start/end`) bukan snapshot checkout.
+
+## 32b.7 Frontend (`AttendanceOvertime.vue`)
+
+* Dua aksi pembuatan: **Ajukan Lembur** (SELF, form existing) dan **Tugaskan Lembur** (ASSIGNED — tambah dropdown pilih karyawan dari `GET /employees`).
+* Status `WAITING_ACTUAL`: tampil form isian aktual (TimeInput jam mulai/selesai, textarea catatan, upload lampiran → `POST /uploads` lalu simpan URL) + tombol **Simpan Aktual**.
+* Tombol **Batal** pada status `PENDING_APPROVAL` / `WAITING_ACTUAL` (kedua alur).
+* Tabel: kolom baru `flow_type` (badge "Self"/"Ditugaskan"), `assigned_by`, jam aktual, link lampiran; badge status baru (`WAITING_ACTUAL`/`ACTUAL_SUBMITTED`) + i18n `attendance.status_*`.
+* Notifikasi `OVERTIME_ASSIGNED` → deep-link ke halaman lembur (pola `Notifications.vue` `handleRowClick`, §13.5 notification plan).
+
+## 32b.8 Data Migration (existing requests) — ✅ selesai (migration 081, 2026-08-10)
+
+* Request yang sudah `APPROVED` (alur lama, tanpa isian aktual): **backfill → `WAITING_ACTUAL`** — diputuskan & dieksekusi: `UPDATE ... WHERE status='APPROVED' AND actual_submitted_at IS NULL` (mysql + postgres). Diverifikasi di tenant dev: 4 request lama berhasil jadi `WAITING_ACTUAL`.
+* Request dengan `actual_minutes` snapshot lama (dari approval tanpa isian manual): ikut backfill `WAITING_ACTUAL` karena actual di alur baru diisi manual.
+
+## 32b.9 Testing Plan
+
+* Unit/service: transisi state tiap aksi (create/assign/approve instance 1/submit actual/approve instance 2/cancel), validasi status yang dilarang, perhitungan `actual_minutes`/`calculated_minutes`, dispatch dua instance di `HandleApprovalStatusChange`.
+* Integration: instance approval ganda per request, notifikasi `OVERTIME_ASSIGNED`/`OVERTIME_ACTUAL_*`, upload lampiran.
+* FE: build bersih + verifikasi manual alur 1 & alur 2 end-to-end.
+
+## 32b.10 Urutan Implementasi
+
+1. ✅ Migration `080` (kolom baru + enum status) + `081` backfill — **selesai (2026-08-10)**, diterapkan ke tenant dev (mysql + postgres).
+2. ✅ Backend: model/DTO + endpoint upload generik `POST /uploads` — **selesai** (`internal/pkg/upload`, config `storage.upload_dir`, locale keys `upload.*`).
+3. ✅ Backend: service (assign/submit actual/cancel + dispatch dua instance) + notifikasi baru — **selesai** (+ test service `overtime_two_flow_test.go`).
+4. ⏳ FE: form dua alur + isian aktual + batal + kolom baru — **belum**.
+5. 🔶 Test + review: unit/service ✅ (build + seluruh test module pass, migrator integration MySQL pass); FE build + verifikasi manual E2E belum.
 
 ---
 
@@ -2192,7 +2353,7 @@ Diverifikasi langsung terhadap kode per 2026-08-09.
 | Phase 4 - Attendance Capture | 🔶 Sebagian (2026-08-08) | `POST /events` generik (CHECKIN/CHECKOUT satu endpoint, bukan endpoint terpisah — lihat §41). GPS + **Geofence validation kini diimplementasikan** (`geofence.go`, `applyEventValidation`) — event di luar radius jadi `INVALID`. Face Verification & Device Validation sengaja tetap belum ada: tidak ada face-matching provider maupun employee-device mapping (keduanya butuh keputusan/komponen di luar cakupan Phase 4) |
 | Phase 5 - Attendance Validation | 🔶 Sebagian (2026-08-08) | Location Validation selesai di Phase 4. **Duplicate Event Detection kini diimplementasikan** (`checkEventSequence` + `FindLastEventForEmployee`) — menolak CHECKIN ganda tanpa CHECKOUT dan CHECKOUT tanpa CHECKIN terbuka. Face/Device Validation tetap belum ada (butuh provider/mapping yang belum ada). Time Validation sengaja ditunda ke Phase 6 karena butuh resolusi shift yang benar (DaysOfWeekMask/cross-midnight) |
 | Phase 6 - Attendance Session | 🔶 Sebagian (2026-08-08) | **Gap paling kritis kini teratasi.** `session.go` (`recalculateSession`) menghasilkan/update `attendance_sessions` secara real-time setiap CHECKIN/CHECKOUT — resolusi shift, lateness/early-leave/work-minutes, cross-midnight (work_date = tanggal CHECKIN), DAY_OFF. Belum ada: Absent detection (butuh scheduled job §44-45), Exempt (butuh cross-module read ke employee/organization), Leave integration (Phase 9) |
-| Phase 7 - Overtime | ✅ Selesai (2026-08-08) | Approval integration sudah ada sejak awal (Section 29). **Actual/Calculated Overtime kini diimplementasikan**: `applyOvertimeCalculation` dipanggil saat approval, membaca session hari itu untuk `actual_minutes` (aktual checkout vs planned checkout) dan `calculated_minutes` (dibatasi `requested_minutes`), migration `072_attendance_overtime_actual_calculated` menambah kedua kolom. Session juga diupdate dengan `IsOvertimeDay`/`OvertimeMinutes`/dll. **Auto-resolve flow + enum status (2026-08-09)**: `CreateOvertimeRequest` auto-resolve active flow module `"attendance"` jika `flow_id` kosong (lihat §29); migration `079_attendance_overtime_status_pending_approval` menambah `PENDING_APPROVAL` ke enum status MySQL (Postgres sudah VARCHAR) |
+| Phase 7 - Overtime | ✅ Selesai (2026-08-08) | Approval integration sudah ada sejak awal (Section 29). **Actual/Calculated Overtime kini diimplementasikan**: `applyOvertimeCalculation` dipanggil saat approval, membaca session hari itu untuk `actual_minutes` (aktual checkout vs planned checkout) dan `calculated_minutes` (dibatasi `requested_minutes`), migration `072_attendance_overtime_actual_calculated` menambah kedua kolom. Session juga diupdate dengan `IsOvertimeDay`/`OvertimeMinutes`/dll. **Auto-resolve flow + enum status (2026-08-09)**: `CreateOvertimeRequest` auto-resolve active flow module `"attendance"` jika `flow_id` kosong (lihat §29); migration `079_attendance_overtime_status_pending_approval` menambah `PENDING_APPROVAL` ke enum status MySQL (Postgres sudah VARCHAR). ⏳→🔶 **Rencana dua alur request→isian aktual (SELF & ASSIGNED): lihat §32b — backend selesai (2026-08-10), FE belum** |
 | Phase 8 - Correction | 🔶 Sebagian (2026-08-08) | Tabel `attendance_correction_requests` + model + CRUD + approval integration baru dibangun (migration `073`). `HandleApprovalStatusChange` sekarang dispatch overtime vs correction berdasarkan `documentID`. `MISSING_CHECKIN`/`MISSING_CHECKOUT` diterapkan otomatis ke session saat approved (event baru OVERRIDDEN + recalculate). `WRONG_CHECKIN`/`WRONG_CHECKOUT` tercatat & bisa di-approve tapi **tidak** diterapkan otomatis — butuh perluasan logic seleksi checkin/checkout di Phase 6 |
 | Phase 9 - Leave Integration | ✅ Selesai (2026-08-08) | `leave.AttendanceSessionUpdater` (interface baru) + `attendance.Service.ApplyApprovedLeave` diwire di `main.go`. Saat leave `APPROVED_FINAL`, tiap `LeaveRequestDetail` mendorong session Attendance jadi `LEAVE` (atau mencatat `LeaveFraction` saja jika session sudah `CLOSED` karena ada attendance nyata, sesuai §27) — termasuk membuat session baru untuk hari yang murni cuti tanpa event apapun |
 | Phase 10 - Dashboard & Calendar | 🔶 Sebagian (2026-08-08) | Employee Calendar/Summary (backend) selesai — `GetEmployeeCalendar`/`GetEmployeeSummary` (`GET /attendance/calendar`, `GET /attendance/summary`). Manager/HR Dashboard dan Team Calendar sengaja belum dibangun — butuh cross-module read employee/organization yang belum ada. Frontend tetap belum dimulai |

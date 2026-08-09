@@ -30,6 +30,7 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/module"
 	"github.com/inthros/hris-platform/internal/pkg/onpremise"
 	"github.com/inthros/hris-platform/internal/pkg/router"
+	"github.com/inthros/hris-platform/internal/pkg/upload"
 
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 
@@ -103,6 +104,13 @@ func (a *payrollApprovalAdapter) GetActiveFlowIDForModule(ctx context.Context, m
 		return "", err
 	}
 	return resp.ID, nil
+}
+
+// CancelApprovalInstance membatalkan instance approval yang masih aktif
+// (dipakai attendance saat request lembur dibatalkan sebelum isian aktual,
+// §32b docs/module-attendance-plan.md) supaya task approver tidak menggantung.
+func (a *payrollApprovalAdapter) CancelApprovalInstance(ctx context.Context, instanceID string) error {
+	return a.approvalSvc.CancelInstance(ctx, instanceID)
 }
 
 // licenseCreatorAdapter implements company.LicenseCreator using the license service.
@@ -839,6 +847,12 @@ func main() {
 	}
 	tenantPkgGroup.Use(middleware.TenantRequired())
 	{
+		// Generic file upload (lampiran modul tenant — konsumen pertama: isian
+		// aktual lembur, §32b docs/module-attendance-plan.md). Auth tenant saja;
+		// file diserve publik via router r.Static("/uploads", upload_dir).
+		uploadHandler := upload.NewHandler(cfg.Storage.UploadDir)
+		tenantPkgGroup.POST("/uploads", uploadHandler.Upload)
+
 		// Self-service company detail endpoint (dipakai halaman Detail Perusahaan FE tenant).
 		// Terdaftar di tenantPkgGroup (tanpa RBAC/license guard) karena data company
 		// milik user sendiri — pola sama dengan /company-modules & /packages.

@@ -55,3 +55,5 @@ frontend/tenant/node_modules
 # === Python ===
 __pycache__/
 *.pyc
+# runtime uploads (attachment files)
+backend/uploads/

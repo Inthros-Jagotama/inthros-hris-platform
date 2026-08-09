@@ -54,8 +54,8 @@ func TestHandler_UpsertCompanySetting_Success(t *testing.T) {
 	}
 
 	var resp struct {
-		Success bool                    `json:"success"`
-		Data    CompanySettingResponse  `json:"data"`
+		Success bool                   `json:"success"`
+		Data    CompanySettingResponse `json:"data"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
@@ -119,7 +119,7 @@ func TestHandler_CreateShift_Success(t *testing.T) {
 	}
 
 	var resp struct {
-		Success bool                `json:"success"`
+		Success bool                 `json:"success"`
 		Data    CompanyShiftResponse `json:"data"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {

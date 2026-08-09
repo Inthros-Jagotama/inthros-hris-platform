@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import api from '@/services/api'
+import { resetMyEmployeeCache } from '@/composables/useMyEmployee'
 
 const TOKEN_KEY = 'tenant_token'
 const REFRESH_KEY = 'tenant_refresh'
@@ -113,6 +114,10 @@ export function useAuth() {
         name: companyName || user?.company_name || (companyChanged ? '' : state.company?.name) || ''
       })
     }
+    // Reset cache employee_id level-modul: menutup skenario ganti user tanpa
+    // logout (login langsung sebagai user lain) agar halaman berbasis
+    // "my employee" tidak memakai employee_id user sebelumnya.
+    resetMyEmployeeCache()
     return user
   }
 
@@ -139,6 +144,10 @@ export function useAuth() {
     localStorage.removeItem(COMPANY_KEY)
     delete api.defaults.headers.common['Authorization']
     delete api.defaults.headers.common['X-Tenant-ID']
+    // Reset cache employee_id level-modul agar user berikutnya yang login
+    // tidak mewarisi data user sebelumnya di halaman berbasis "my employee"
+    // (mis. Overtime Requests, Attendance, Leave).
+    resetMyEmployeeCache()
   }
 
   // hasPermission — filter Level 2 (Dynamic Menu Rendering):

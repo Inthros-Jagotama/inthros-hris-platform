@@ -679,6 +679,18 @@ var localeMessages = map[string]map[Lang]string{
 		LangEN: "manager_id is required",
 		LangID: "Parameter manager_id wajib diisi",
 	},
+	"upload.file_required": {
+		LangEN: "Please upload a file",
+		LangID: "Mohon unggah sebuah file",
+	},
+	"upload.type_not_allowed": {
+		LangEN: "File type not allowed",
+		LangID: "Tipe file tidak diizinkan",
+	},
+	"upload.file_too_large": {
+		LangEN: "File too large (max 10 MB)",
+		LangID: "File terlalu besar (maks 10 MB)",
+	},
 	"employee.photo_required": {
 		LangEN: "Photo file is required",
 		LangID: "File foto wajib diunggah",

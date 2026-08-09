@@ -28,7 +28,10 @@ export function toLocalISOString(date) {
  */
 export function localDateTimeISOString(dateStr, timeStr) {
   const [h = '00', m = '00', s = '00'] = String(timeStr).split(':')
-  const [y, mo, d] = String(dateStr).split('-').map(Number)
+  // dateStr bisa berupa "YYYY-MM-DD" (dari DateInput) atau timestamp RFC3339
+  // seperti "2026-08-19T00:00:00+07:00" (dari API) — ambil bagian tanggal saja.
+  const datePart = String(dateStr).slice(0, 10)
+  const [y, mo, d] = datePart.split('-').map(Number)
   const date = new Date(y, mo - 1, d, Number(h), Number(m), Number(s))
   return toLocalISOString(date)
 }

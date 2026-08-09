@@ -753,3 +753,203 @@ func (r *Repository) FindUserIDByEmployeeID(ctx context.Context, employeeID uuid
 	}
 	return &userID, nil
 }
+
+// FindEmployeeIDByUserID resolves the employee linked to a platform user
+// (reverse of FindUserIDByEmployeeID) — used to attribute ASSIGNED overtime
+// requests (assigned_by) and to validate ownership when filling the actual
+// overtime (§32b dua-alur). Returns nil if the user has no linked employee.
+func (r *Repository) FindEmployeeIDByUserID(ctx context.Context, userID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var employeeIDStrs []string
+	err = db.Table("employee_accounts").
+		Where("user_id = ?", userID).
+		Limit(1).
+		Pluck("employee_id", &employeeIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve user employee id: %w", err)
+	}
+	if len(employeeIDStrs) == 0 || employeeIDStrs[0] == "" {
+		return nil, nil
+	}
+	employeeID, err := uuid.Parse(employeeIDStrs[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee id: %w", err)
+	}
+	return &employeeID, nil
+}
+
+// =========================================================================
+// Assignable Employees (§32b alur ASSIGNED) — resolusi hirarki organisasi
+// =========================================================================
+//
+// Resolusi "bawahan yang bisa ditugaskan" memakai pola yang sama dengan
+// performance.GetEffectiveChildOrganizationIDs: turun dari organisasi user
+// yang login, anak langsung yang terisi (ada employment aktif) ikut dipilih;
+// anak langsung yang KOSONG dilewati dan pencarian turun ke level berikutnya
+// sampai menemukan organisasi terisi — "bawahan langsung, atau turun level
+// sampai ada karyawannya". Raw table queries (tanpa import package
+// organization/employee — hindari circular dependency, pola sama dengan
+// GetEmployeeInfoByIDs).
+
+// FindOrganizationIDByUserID resolves the current (open-ended) organization
+// of the employee linked to a platform user — join employee_accounts →
+// employments (effective_end_date IS NULL), pola sama dengan
+// performance.okrRepositoryImpl.GetCurrentEmployeeContext. Returns nil if the
+// user has no linked employee or no active employment.
+func (r *Repository) FindOrganizationIDByUserID(ctx context.Context, userID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		OrganizationID string
+	}
+	var result row
+	err = db.Table("employee_accounts AS ea").
+		Joins("JOIN employments AS emp ON emp.employee_id = ea.employee_id").
+		Where("ea.user_id = ? AND emp.effective_end_date IS NULL", userID).
+		Order("emp.effective_date DESC").
+		Limit(1).
+		Select("emp.organization_id AS organization_id").
+		Scan(&result).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve user organization: %w", err)
+	}
+	if result.OrganizationID == "" {
+		return nil, nil
+	}
+	orgID, err := uuid.Parse(result.OrganizationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid organization id: %w", err)
+	}
+	return &orgID, nil
+}
+
+// GetChildOrganizationIDs returns the direct children of an organization.
+func (r *Repository) GetChildOrganizationIDs(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var ids []uuid.UUID
+	if err := db.Table("organizations").
+		Where("parent_id = ? AND deleted_at IS NULL", orgID).
+		Pluck("id", &ids).Error; err != nil {
+		return nil, fmt.Errorf("failed to resolve child organizations: %w", err)
+	}
+	return ids, nil
+}
+
+// IsOrganizationOccupied reports whether an organization currently has an
+// active employment (occupied position).
+func (r *Repository) IsOrganizationOccupied(ctx context.Context, orgID uuid.UUID) (bool, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return false, err
+	}
+	var count int64
+	if err := db.Table("employments").
+		Where("organization_id = ? AND effective_end_date IS NULL", orgID).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("failed to check organization occupancy: %w", err)
+	}
+	return count > 0, nil
+}
+
+// GetEffectiveChildOrganizationIDs returns the organizations whose employees
+// can be assigned overtime by a member of orgID: direct children that are
+// occupied, plus — when a direct child is vacant — the effective subordinates
+// below that vacant child (walking down past every vacant organization until
+// an occupied one is found). Mirrors performance.GetEffectiveChildOrganizationIDs.
+func (r *Repository) GetEffectiveChildOrganizationIDs(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {
+	var effective []uuid.UUID
+	frontier := []uuid.UUID{orgID}
+
+	for len(frontier) > 0 {
+		var nextFrontier []uuid.UUID
+		for _, parent := range frontier {
+			children, err := r.GetChildOrganizationIDs(ctx, parent)
+			if err != nil {
+				return nil, err
+			}
+			for _, child := range children {
+				occupied, err := r.IsOrganizationOccupied(ctx, child)
+				if err != nil {
+					return nil, err
+				}
+				if occupied {
+					effective = append(effective, child)
+					continue
+				}
+				nextFrontier = append(nextFrontier, child)
+			}
+		}
+		frontier = nextFrontier
+	}
+
+	return effective, nil
+}
+
+// IsEmployeeInOrganizations reports whether the employee currently occupies
+// (active employment) any of the given organizations — server-side guard for
+// the ASSIGNED overtime flow so only effective subordinates can be assigned.
+// Returns ErrOvertimeNotAssignable (defined in service.go) when the employee
+// is outside the assigner's effective subordinate set.
+func (r *Repository) IsEmployeeInOrganizations(ctx context.Context, employeeID uuid.UUID, orgIDs []uuid.UUID) error {
+	if len(orgIDs) == 0 {
+		return ErrOvertimeNotAssignable
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	var count int64
+	if err := db.Table("employments").
+		Where("employee_id = ? AND organization_id IN ? AND effective_end_date IS NULL", employeeID, orgIDs).
+		Count(&count).Error; err != nil {
+		return fmt.Errorf("failed to check assignable employee: %w", err)
+	}
+	if count == 0 {
+		return ErrOvertimeNotAssignable
+	}
+	return nil
+}
+
+// assignableEmployee is the display row for the assign dropdown: an employee
+// currently occupying one of the assigner's effective subordinate orgs.
+type assignableEmployee struct {
+	EmployeeID     string
+	EmployeeCode   string
+	Name           string
+	OrganizationID string
+	OrgName        string
+}
+
+// FindEmployeesByOrganizationIDs resolves employees currently occupying the
+// given organizations (active employment), one row per employee, batched —
+// used to fill the ASSIGNED overtime dropdown. Raw query without importing
+// employee/organization packages (pola sama GetEmployeeInfoByIDs).
+func (r *Repository) FindEmployeesByOrganizationIDs(ctx context.Context, orgIDs []uuid.UUID) ([]assignableEmployee, error) {
+	if len(orgIDs) == 0 {
+		return []assignableEmployee{}, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []assignableEmployee
+	err = db.Table("employments AS em").
+		Joins("JOIN employees AS e ON e.id = em.employee_id").
+		Joins("JOIN organizations AS o ON o.id = em.organization_id").
+		Where("em.organization_id IN ? AND em.effective_end_date IS NULL", orgIDs).
+		Select("e.id AS employee_id, e.employee_id AS employee_code, e.name AS name, em.organization_id AS organization_id, o.nomenclature AS org_name").
+		Order("e.name ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve assignable employees: %w", err)
+	}
+	return rows, nil
+}

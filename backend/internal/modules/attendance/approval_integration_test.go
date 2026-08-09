@@ -19,6 +19,8 @@ type fakeApprovalEngine struct {
 	createErr      error
 	activeFlowID   string
 	flowResolveErr error
+	cancelCalls    []string
+	cancelErr      error
 }
 
 func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error) {
@@ -38,6 +40,11 @@ func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module,
 
 func (f *fakeApprovalEngine) GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error) {
 	return "PENDING", nil
+}
+
+func (f *fakeApprovalEngine) CancelApprovalInstance(ctx context.Context, instanceID string) error {
+	f.cancelCalls = append(f.cancelCalls, instanceID)
+	return f.cancelErr
 }
 
 func (f *fakeApprovalEngine) GetActiveFlowIDForModule(ctx context.Context, module string) (string, error) {
@@ -244,12 +251,48 @@ func TestService_CreateCorrectionRequest_NoFlowID_NoActiveFlow_SkipsApproval(t *
 	}
 }
 
-func TestService_HandleApprovalStatusChange_Approved(t *testing.T) {
+func TestService_HandleApprovalStatusChange_Approved_MovesToWaitingActual(t *testing.T) {
 	svc, repo, _, cleanup := newTestService()
 	defer cleanup()
 
 	o := createTestOvertimeRequest(repo, uuid.New())
 	o.Status = OvertimePendingApproval
+	if err := repo.UpdateOvertimeRequest(ctx(), o); err != nil {
+		t.Fatalf("failed to seed overtime request: %v", err)
+	}
+
+	// §32b: approval instance #1 (request) hanya menyetujui rencana — status
+	// menjadi WAITING_ACTUAL menunggu isian aktual karyawan; status final
+	// APPROVED hanya dicapai lewat instance approval #2.
+	if err := svc.HandleApprovalStatusChange(ctx(), o.ID, "APPROVED", ""); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+
+	updated, err := svc.GetOvertimeRequestByID(ctx(), o.ID.String())
+	if err != nil {
+		t.Fatalf("GetOvertimeRequestByID failed: %v", err)
+	}
+	if updated.Status != "WAITING_ACTUAL" {
+		t.Errorf("expected status WAITING_ACTUAL, got '%s'", updated.Status)
+	}
+	if updated.ApprovedAt == nil {
+		t.Error("expected ApprovedAt to be set")
+	}
+}
+
+func TestService_HandleApprovalStatusChange_Approved_FinalAfterActual(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	o := createTestOvertimeRequest(repo, uuid.New())
+	// §32b: karyawan sudah mengisi isian aktual, instance #2 (aktual) dibuat.
+	actualStart := parseTime("2026-01-15T18:00:00+07:00")
+	actualEnd := parseTime("2026-01-15T20:00:00+07:00")
+	actualMinutes := 120
+	o.Status = OvertimeActualSubmitted
+	o.ActualStartTimeLocal = &actualStart
+	o.ActualEndTimeLocal = &actualEnd
+	o.ActualMinutes = &actualMinutes
 	if err := repo.UpdateOvertimeRequest(ctx(), o); err != nil {
 		t.Fatalf("failed to seed overtime request: %v", err)
 	}
@@ -265,12 +308,12 @@ func TestService_HandleApprovalStatusChange_Approved(t *testing.T) {
 	if updated.Status != "APPROVED" {
 		t.Errorf("expected status APPROVED, got '%s'", updated.Status)
 	}
-	if updated.ApprovedAt == nil {
-		t.Error("expected ApprovedAt to be set")
+	if updated.ActualApprovedAt == nil {
+		t.Error("expected ActualApprovedAt to be set")
 	}
 }
 
-func TestService_HandleApprovalStatusChange_Approved_CalculatesOvertimeFromSession(t *testing.T) {
+func TestService_HandleApprovalStatusChange_Approved_CalculatesOvertimeFromActual(t *testing.T) {
 	svc, repo, _, cleanup := newTestService()
 	defer cleanup()
 
@@ -278,6 +321,7 @@ func TestService_HandleApprovalStatusChange_Approved_CalculatesOvertimeFromSessi
 	empID := uuid.New()
 	createTestEmployeeShift(repo, empID, shift.ID)
 
+	// Buat session di hari tersebut supaya update overtime punya target.
 	checkin := CreateEventRequest{
 		EmployeeID:     empID.String(),
 		EventType:      "CHECKIN",
@@ -291,18 +335,26 @@ func TestService_HandleApprovalStatusChange_Approved_CalculatesOvertimeFromSessi
 	}
 	checkout := checkin
 	checkout.EventType = "CHECKOUT"
-	checkout.EventTimeUTC = "2026-01-15T12:00:00Z"
-	checkout.EventTimeLocal = "2026-01-15T19:00:00+07:00" // 2h (120m) past planned 17:00
+	checkout.EventTimeUTC = "2026-01-15T11:00:00Z"
+	checkout.EventTimeLocal = "2026-01-15T18:00:00+07:00"
 	if _, err := svc.CreateEvent(ctx(), checkout); err != nil {
 		t.Fatalf("checkout CreateEvent failed: %v", err)
 	}
 
+	// §32b: karyawan sudah mengisi isian aktual 18:00–20:00 (120m).
 	o := createTestOvertimeRequest(repo, empID) // WorkDate 2026-01-15, RequestedMinutes 120
-	o.Status = OvertimePendingApproval
+	actualStart := parseTime("2026-01-15T18:00:00+07:00")
+	actualEnd := parseTime("2026-01-15T20:00:00+07:00")
+	actualMinutes := 120
+	o.Status = OvertimeActualSubmitted
+	o.ActualStartTimeLocal = &actualStart
+	o.ActualEndTimeLocal = &actualEnd
+	o.ActualMinutes = &actualMinutes
 	if err := repo.UpdateOvertimeRequest(ctx(), o); err != nil {
 		t.Fatalf("failed to seed overtime request: %v", err)
 	}
 
+	// Instance approval #2 (aktual) disetujui → status APPROVED + kalkulasi.
 	if err := svc.HandleApprovalStatusChange(ctx(), o.ID, "APPROVED", ""); err != nil {
 		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
 	}
@@ -310,6 +362,9 @@ func TestService_HandleApprovalStatusChange_Approved_CalculatesOvertimeFromSessi
 	updated, err := svc.GetOvertimeRequestByID(ctx(), o.ID.String())
 	if err != nil {
 		t.Fatalf("GetOvertimeRequestByID failed: %v", err)
+	}
+	if updated.Status != "APPROVED" {
+		t.Errorf("expected status APPROVED, got '%s'", updated.Status)
 	}
 	if updated.ActualMinutes == nil || *updated.ActualMinutes != 120 {
 		t.Errorf("expected actual_minutes 120, got %v", updated.ActualMinutes)
@@ -338,6 +393,7 @@ func TestService_HandleApprovalStatusChange_Approved_CalculatedMinutesCappedByRe
 	empID := uuid.New()
 	createTestEmployeeShift(repo, empID, shift.ID)
 
+	// Buat session di hari tersebut supaya update overtime punya target.
 	checkin := CreateEventRequest{
 		EmployeeID:     empID.String(),
 		EventType:      "CHECKIN",
@@ -351,18 +407,26 @@ func TestService_HandleApprovalStatusChange_Approved_CalculatedMinutesCappedByRe
 	}
 	checkout := checkin
 	checkout.EventType = "CHECKOUT"
-	checkout.EventTimeUTC = "2026-01-15T13:00:00Z"
-	checkout.EventTimeLocal = "2026-01-15T20:00:00+07:00" // 3h (180m) past planned 17:00
+	checkout.EventTimeUTC = "2026-01-15T11:00:00Z"
+	checkout.EventTimeLocal = "2026-01-15T18:00:00+07:00"
 	if _, err := svc.CreateEvent(ctx(), checkout); err != nil {
 		t.Fatalf("checkout CreateEvent failed: %v", err)
 	}
 
+	// §32b: isian aktual 17:00–20:00 = 180m, diminta 120m → calculated cap 120.
 	o := createTestOvertimeRequest(repo, empID) // RequestedMinutes 120
-	o.Status = OvertimePendingApproval
+	actualStart := parseTime("2026-01-15T17:00:00+07:00")
+	actualEnd := parseTime("2026-01-15T20:00:00+07:00")
+	actualMinutes := 180
+	o.Status = OvertimeActualSubmitted
+	o.ActualStartTimeLocal = &actualStart
+	o.ActualEndTimeLocal = &actualEnd
+	o.ActualMinutes = &actualMinutes
 	if err := repo.UpdateOvertimeRequest(ctx(), o); err != nil {
 		t.Fatalf("failed to seed overtime request: %v", err)
 	}
 
+	// Instance approval #2 (aktual) disetujui → status APPROVED + kalkulasi.
 	if err := svc.HandleApprovalStatusChange(ctx(), o.ID, "APPROVED", ""); err != nil {
 		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
 	}
@@ -370,6 +434,9 @@ func TestService_HandleApprovalStatusChange_Approved_CalculatedMinutesCappedByRe
 	updated, err := svc.GetOvertimeRequestByID(ctx(), o.ID.String())
 	if err != nil {
 		t.Fatalf("GetOvertimeRequestByID failed: %v", err)
+	}
+	if updated.Status != "APPROVED" {
+		t.Errorf("expected status APPROVED, got '%s'", updated.Status)
 	}
 	if updated.ActualMinutes == nil || *updated.ActualMinutes != 180 {
 		t.Errorf("expected actual_minutes 180, got %v", updated.ActualMinutes)

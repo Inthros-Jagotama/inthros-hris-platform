@@ -670,7 +670,7 @@ func TestService_ListSessions_ByEmployee(t *testing.T) {
 	empID := uuid.New()
 	empIDStr := empID.String()
 
-	createTestSession(db, empID)       // WorkDate: 2026-01-15
+	createTestSession(db, empID) // WorkDate: 2026-01-15
 	// Second session needs different work date - create directly
 	s2 := &AttendanceSession{
 		EmployeeID: empID,

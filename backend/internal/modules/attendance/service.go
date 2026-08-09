@@ -20,6 +20,21 @@ const (
 	maxPerPage     = 100
 )
 
+// Sentinel errors untuk alur dua-tahap lembur (§32b).
+var (
+	// ErrOvertimeInvalidState: aksi tidak valid untuk status request saat ini
+	// (mis. submit isian aktual padahal bukan WAITING_ACTUAL).
+	ErrOvertimeInvalidState = errors.New("overtime request is not in a valid state for this action")
+	// ErrOvertimeNotOwner: hanya employee pemilik request yang boleh mengisi aktual.
+	ErrOvertimeNotOwner = errors.New("only the requesting employee can fill the actual overtime")
+	// ErrOvertimeInvalidActualRange: jam selesai aktual harus setelah jam mulai aktual.
+	ErrOvertimeInvalidActualRange = errors.New("actual end time must be after actual start time")
+	// ErrOvertimeNotAssignable: employee target bukan bawahan efektif dari
+	// user yang login (alur ASSIGNED) — "bawahan langsung, atau turun level
+	// sampai ada karyawannya".
+	ErrOvertimeNotAssignable = errors.New("employee is not an assignable subordinate")
+)
+
 // ApprovalEngine abstracts the central approval module so overtime requests
 // can be routed through it. Implemented via an adapter wrapping
 // approval.Service in main.go (same narrow-interface-plus-adapter pattern
@@ -33,6 +48,10 @@ type ApprovalEngine interface {
 	// flow_id in the payload silently stays SUBMITTED forever and never
 	// reaches the Approval module.
 	GetActiveFlowIDForModule(ctx context.Context, module string) (string, error)
+	// CancelApprovalInstance membatalkan instance approval yang masih aktif
+	// (dipakai saat request lembur dibatalkan sebelum isian aktual, §32b)
+	// supaya task approval tidak menggantung.
+	CancelApprovalInstance(ctx context.Context, instanceID string) error
 }
 
 // Notifier abstracts the notification module so Attendance can notify an
@@ -857,6 +876,13 @@ func (s *Service) CreateOvertimeRequest(ctx context.Context, req CreateOvertimeR
 // tried first (the original type), then correction requests.
 func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
 	if o, err := s.repo.FindOvertimeRequestByID(ctx, documentID); err == nil {
+		// §32b dua-alur: satu request punya dua instance approval (request &
+		// isian aktual) dengan document_id yang sama. Dispatch berbasis status:
+		// instance #2 (aktual) hanya pernah ada saat status ACTUAL_SUBMITTED,
+		// sehingga callback yang datang dalam status itu adalah callback aktual.
+		if o.Status == OvertimeActualSubmitted {
+			return s.handleActualApprovalStatusChange(ctx, o, status, note)
+		}
 		return s.handleOvertimeApprovalStatusChange(ctx, o, status, note)
 	}
 	if c, err := s.repo.FindCorrectionRequestByID(ctx, documentID); err == nil {
@@ -873,16 +899,18 @@ func (s *Service) handleOvertimeApprovalStatusChange(ctx context.Context, o *Att
 	now := time.Now()
 	switch status {
 	case "APPROVED":
-		o.Status = OvertimeApproved
+		// §32b: approval instance #1 (request) hanya menyetujui rencana —
+		// status jadi WAITING_ACTUAL, menunggu isian aktual karyawan;
+		// status final APPROVED dicapai lewat approval instance #2.
+		o.Status = OvertimeWaitingActual
 		o.ApprovedAt = &now
-		s.applyOvertimeCalculation(ctx, o)
 	case "REJECTED":
 		o.Status = OvertimeRejected
 		if note != "" {
 			o.ApprovalNote = &note
 		}
 	case "CANCELLED":
-		o.Status = OvertimeRejected
+		o.Status = OvertimeCancelled
 	default:
 		return nil
 	}
@@ -895,10 +923,308 @@ func (s *Service) handleOvertimeApprovalStatusChange(ctx context.Context, o *Att
 		return err
 	}
 	switch o.Status {
-	case OvertimeApproved:
+	case OvertimeWaitingActual:
 		s.notifyRequestOutcome(ctx, o.EmployeeID, "OVERTIME_APPROVED", "attendance_overtime", o.ID)
-	case OvertimeRejected:
+	case OvertimeRejected, OvertimeCancelled:
 		s.notifyRequestOutcome(ctx, o.EmployeeID, "OVERTIME_REJECTED", "attendance_overtime", o.ID)
+	}
+	return nil
+}
+
+// AssignOvertimeRequest — alur ASSIGNED (§32b): atasan membuat penugasan lembur
+// untuk bawahan. Tanpa approval penugasan — langsung status WAITING_ACTUAL dan
+// notifikasi OVERTIME_ASSIGNED ke bawahan; approval hanya di isian aktual.
+func (s *Service) AssignOvertimeRequest(ctx context.Context, req AssignOvertimeRequest) (*OvertimeResponse, error) {
+	empID, err := uuid.Parse(req.AssignedEmployeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid assigned_employee_id: %w", err)
+	}
+	startTime, err := time.Parse(time.RFC3339, req.StartTimeLocal)
+	if err != nil {
+		return nil, fmt.Errorf("invalid start_time_local: %w", err)
+	}
+	endTime, err := time.Parse(time.RFC3339, req.EndTimeLocal)
+	if err != nil {
+		return nil, fmt.Errorf("invalid end_time_local: %w", err)
+	}
+
+	// Server-side guard: hanya karyawan di organisasi bawahan efektif dari
+	// user yang login yang boleh ditugaskan (bukan hanya filter FE) — "bawahan
+	// langsung, atau turun level sampai ada karyawannya". Guard TIDAK
+	// fail-open: error resolusi organisasi diteruskan (bukan hanya di-log);
+	// hanya saat user benar-benar tanpa employment aktif (ownOrgID nil) guard
+	// di-skip karena tidak ada hirarki yang bisa di-resolve.
+	if userID := authctx.GetUserID(ctx); userID != nil {
+		ownOrgID, rerr := s.repo.FindOrganizationIDByUserID(ctx, *userID)
+		if rerr != nil {
+			return nil, fmt.Errorf("failed to resolve assigner organization: %w", rerr)
+		}
+		if ownOrgID != nil {
+			effectiveIDs, rerr := s.repo.GetEffectiveChildOrganizationIDs(ctx, *ownOrgID)
+			if rerr != nil {
+				return nil, fmt.Errorf("failed to resolve subordinate organizations: %w", rerr)
+			}
+			if rerr := s.repo.IsEmployeeInOrganizations(ctx, empID, effectiveIDs); rerr != nil {
+				if errors.Is(rerr, ErrOvertimeNotAssignable) {
+					return nil, ErrOvertimeNotAssignable
+				}
+				return nil, rerr
+			}
+		}
+	}
+
+	// Pembuat penugasan: resolve employee dari user yang login (best-effort).
+	var assignerEmpID *uuid.UUID
+	if userID := authctx.GetUserID(ctx); userID != nil {
+		if resolved, rerr := s.repo.FindEmployeeIDByUserID(ctx, *userID); rerr == nil {
+			assignerEmpID = resolved
+		} else {
+			s.logger.Warn("failed to resolve assigner employee for overtime assignment",
+				zap.Error(rerr))
+		}
+	}
+
+	now := time.Now()
+	overtime := &AttendanceOvertimeRequest{
+		EmployeeID:       empID,
+		WorkDate:         req.WorkDate,
+		StartTimeLocal:   startTime,
+		EndTimeLocal:     endTime,
+		RequestedMinutes: req.RequestedMinutes,
+		Reason:           strPtr(req.Reason),
+		Status:           OvertimeWaitingActual,
+		FlowType:         OvertimeFlowAssigned,
+		AssignedBy:       assignerEmpID,
+		AssignedAt:       &now,
+	}
+	if err := s.repo.CreateOvertimeRequest(ctx, overtime); err != nil {
+		return nil, err
+	}
+
+	s.notifyOvertimeAssigned(ctx, overtime)
+	return overtimeToResponse(overtime), nil
+}
+
+// notifyOvertimeAssigned mengirim OVERTIME_ASSIGNED ke bawahan yang ditugaskan
+// (best-effort — kegagalan hanya di-log, tidak menggagalkan penugasan).
+func (s *Service) notifyOvertimeAssigned(ctx context.Context, o *AttendanceOvertimeRequest) {
+	if s.notifier == nil {
+		return
+	}
+	userID, err := s.repo.FindUserIDByEmployeeID(ctx, o.EmployeeID)
+	if err != nil {
+		s.logger.Warn("failed to resolve employee user id for overtime assignment",
+			zap.String("overtime_request_id", o.ID.String()),
+			zap.Error(err))
+		return
+	}
+	if userID == nil {
+		return
+	}
+	if err := s.notifier.Notify(ctx, *userID, "OVERTIME_ASSIGNED", []string{o.WorkDate}, "attendance_overtime", o.ID); err != nil {
+		s.logger.Warn("failed to send overtime assignment notification",
+			zap.String("overtime_request_id", o.ID.String()),
+			zap.Error(err))
+	}
+}
+
+// SubmitActualOvertime — §32b: karyawan (pemohon SELF atau bawahan ASSIGNED)
+// mengisi isian aktual lembur (jam mulai/selesai, catatan, lampiran). Valid
+// hanya saat status WAITING_ACTUAL dan oleh employee pemilik request. Setelah
+// tersimpan, dibuat instance approval kedua (Central Approval) → ACTUAL_SUBMITTED.
+func (s *Service) SubmitActualOvertime(ctx context.Context, id uuid.UUID, req SubmitOvertimeActualRequest) (*OvertimeResponse, error) {
+	overtime, err := s.repo.FindOvertimeRequestByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("overtime request not found: %w", err)
+	}
+	if overtime.Status != OvertimeWaitingActual {
+		return nil, ErrOvertimeInvalidState
+	}
+
+	// Kepemilikan: hanya employee yang bersangkutan (pemohon/bawahan) yang boleh
+	// mengisi aktual. Resolusi best-effort — tanpa akun employee, dibiarkan lolos
+	// (guard utamanya status WAITING_ACTUAL).
+	if userID := authctx.GetUserID(ctx); userID != nil {
+		empID, rerr := s.repo.FindEmployeeIDByUserID(ctx, *userID)
+		if rerr == nil && empID != nil && *empID != overtime.EmployeeID {
+			return nil, ErrOvertimeNotOwner
+		}
+	}
+
+	actualStart, err := time.Parse(time.RFC3339, req.ActualStartTimeLocal)
+	if err != nil {
+		return nil, fmt.Errorf("invalid actual_start_time_local: %w", err)
+	}
+	actualEnd, err := time.Parse(time.RFC3339, req.ActualEndTimeLocal)
+	if err != nil {
+		return nil, fmt.Errorf("invalid actual_end_time_local: %w", err)
+	}
+	if !actualEnd.After(actualStart) {
+		return nil, ErrOvertimeInvalidActualRange
+	}
+	actualMinutes := int(actualEnd.Sub(actualStart).Minutes())
+
+	now := time.Now()
+	overtime.ActualStartTimeLocal = &actualStart
+	overtime.ActualEndTimeLocal = &actualEnd
+	overtime.ActualMinutes = &actualMinutes
+	if req.ActualNote != "" {
+		overtime.ActualNote = strPtr(req.ActualNote)
+	}
+	if req.AttachmentURL != "" {
+		overtime.AttachmentURL = strPtr(req.AttachmentURL)
+	}
+	overtime.ActualSubmittedAt = &now
+	overtime.Status = OvertimeActualSubmitted
+
+	// Instance approval kedua — auto-resolve active flow module "attendance"
+	// (pola sama dengan CreateOvertimeRequest). Jika tidak ada flow aktif /
+	// instance gagal dibuat, status dikembalikan ke WAITING_ACTUAL (data aktual
+	// tetap tersimpan) agar karyawan bisa submit ulang nanti.
+	if s.approvalEngine != nil {
+		flowID := ""
+		if resolved, ferr := s.approvalEngine.GetActiveFlowIDForModule(ctx, "attendance"); ferr == nil {
+			flowID = resolved
+		}
+		if flowID != "" {
+			instanceID, cerr := s.approvalEngine.CreateApprovalInstance(ctx, "attendance", overtime.ID.String(), flowID)
+			if cerr != nil {
+				s.logger.Warn("failed to create actual approval instance for overtime",
+					zap.String("overtime_request_id", overtime.ID.String()),
+					zap.Error(cerr))
+			} else if parsedInstanceID, perr := uuid.Parse(instanceID); perr == nil {
+				overtime.ActualApprovalInstanceID = &parsedInstanceID
+			}
+		}
+	}
+	if overtime.ActualApprovalInstanceID == nil {
+		overtime.Status = OvertimeWaitingActual
+	}
+
+	if err := s.repo.UpdateOvertimeRequest(ctx, overtime); err != nil {
+		return nil, err
+	}
+	return overtimeToResponse(overtime), nil
+}
+
+// ListAssignableEmployees — §32b alur ASSIGNED: daftar karyawan yang boleh
+// ditugaskan lembur oleh user yang login. Hanya "bawahan efektif": anak
+// organisasi langsung yang terisi (ada employment aktif); jika sebuah anak
+// langsung kosong, turun ke level berikutnya sampai menemukan organisasi
+// terisi (pola sama performance.GetEffectiveChildOrganizationIDs). Returns an
+// empty list when the user has no active employment (nothing to resolve from).
+func (s *Service) ListAssignableEmployees(ctx context.Context) ([]AssignableEmployeeResponse, error) {
+	userID := authctx.GetUserID(ctx)
+	if userID == nil {
+		return []AssignableEmployeeResponse{}, nil
+	}
+	ownOrgID, err := s.repo.FindOrganizationIDByUserID(ctx, *userID)
+	if err != nil {
+		return nil, err
+	}
+	if ownOrgID == nil {
+		return []AssignableEmployeeResponse{}, nil
+	}
+
+	effectiveChildIDs, err := s.repo.GetEffectiveChildOrganizationIDs(ctx, *ownOrgID)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.repo.FindEmployeesByOrganizationIDs(ctx, effectiveChildIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]AssignableEmployeeResponse, 0, len(rows))
+	for _, row := range rows {
+		responses = append(responses, AssignableEmployeeResponse{
+			EmployeeID:       row.EmployeeID,
+			EmployeeCode:     row.EmployeeCode,
+			Name:             row.Name,
+			OrganizationID:   row.OrganizationID,
+			OrganizationName: row.OrgName,
+		})
+	}
+	return responses, nil
+}
+
+// CancelOvertimeRequest — §32b: batal sebelum isian aktual. Berlaku untuk
+// PENDING_APPROVAL (request SELF belum di-approve) dan WAITING_ACTUAL (kedua
+// alur). Instance approval aktif (jika ada) ikut dibatalkan (best-effort).
+func (s *Service) CancelOvertimeRequest(ctx context.Context, id uuid.UUID) error {
+	overtime, err := s.repo.FindOvertimeRequestByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("overtime request not found: %w", err)
+	}
+	if overtime.Status != OvertimePendingApproval && overtime.Status != OvertimeWaitingActual {
+		return ErrOvertimeInvalidState
+	}
+
+	now := time.Now()
+	if userID := authctx.GetUserID(ctx); userID != nil {
+		if empID, rerr := s.repo.FindEmployeeIDByUserID(ctx, *userID); rerr == nil {
+			overtime.CancelledBy = empID
+		}
+	}
+	overtime.CancelledAt = &now
+	overtime.Status = OvertimeCancelled
+	if err := s.repo.UpdateOvertimeRequest(ctx, overtime); err != nil {
+		return err
+	}
+
+	// Batalkan instance approval yang masih aktif supaya task approver tidak
+	// menggantung. Callback CANCELLED dari CancelInstance di-abaikan oleh guard
+	// status di handleOvertimeApprovalStatusChange (status sudah CANCELLED).
+	if s.approvalEngine != nil && overtime.ApprovalInstanceID != nil {
+		if cerr := s.approvalEngine.CancelApprovalInstance(ctx, overtime.ApprovalInstanceID.String()); cerr != nil {
+			s.logger.Warn("failed to cancel pending approval instance for overtime",
+				zap.String("overtime_request_id", overtime.ID.String()),
+				zap.Error(cerr))
+		}
+	}
+	return nil
+}
+
+// handleActualApprovalStatusChange — callback instance approval #2 (isian
+// aktual). APPROVED → status final APPROVED + perhitungan overtime dari isian
+// aktual; REJECTED/CANCELLED → REJECTED/CANCELLED. Notifikasi outcome aktual.
+func (s *Service) handleActualApprovalStatusChange(ctx context.Context, o *AttendanceOvertimeRequest, status string, note string) error {
+	if o.Status != OvertimeActualSubmitted {
+		return nil
+	}
+
+	now := time.Now()
+	switch status {
+	case "APPROVED":
+		o.Status = OvertimeApproved
+		// ActualApprovedBy tidak diisi: callback status approval tidak membawa
+		// identitas approver (hanya status + note), jadi field approver sengaja
+		// dibiarkan NULL sampai callback yang aware-actor tersedia.
+		o.ActualApprovedAt = &now
+		s.applyOvertimeCalculation(ctx, o)
+	case "REJECTED":
+		o.Status = OvertimeRejected
+		if note != "" {
+			o.ApprovalNote = &note
+		}
+	case "CANCELLED":
+		o.Status = OvertimeCancelled
+	default:
+		return nil
+	}
+
+	s.logger.Info("Overtime actual status updated via approval status handler",
+		zap.String("overtime_request_id", o.ID.String()),
+		zap.String("approval_status", status),
+	)
+	if err := s.repo.UpdateOvertimeRequest(ctx, o); err != nil {
+		return err
+	}
+	switch o.Status {
+	case OvertimeApproved:
+		s.notifyRequestOutcome(ctx, o.EmployeeID, "OVERTIME_ACTUAL_APPROVED", "attendance_overtime", o.ID)
+	case OvertimeRejected, OvertimeCancelled:
+		s.notifyRequestOutcome(ctx, o.EmployeeID, "OVERTIME_ACTUAL_REJECTED", "attendance_overtime", o.ID)
 	}
 	return nil
 }
@@ -912,30 +1238,30 @@ func (s *Service) handleOvertimeApprovalStatusChange(ctx context.Context, o *Att
 // nothing to calculate from yet, and re-approving isn't a workflow this
 // endpoint supports, so this is a best-effort snapshot at approval time.
 func (s *Service) applyOvertimeCalculation(ctx context.Context, o *AttendanceOvertimeRequest) {
-	session, err := s.repo.FindSessionByEmployeeAndDate(ctx, o.EmployeeID, normalizeWorkDate(o.WorkDate))
-	if err != nil || session.PlannedEndLocal == nil || session.CheckoutEventID == nil {
+	// §32b: actual diisi manual oleh karyawan saat submit isian aktual
+	// (actual_minutes = actual_end − actual_start, sudah dihitung di
+	// SubmitActualOvertime). calculated = min(actual, requested); session
+	// di-update dengan range aktual yang disetujui.
+	if o.ActualMinutes == nil || o.ActualStartTimeLocal == nil || o.ActualEndTimeLocal == nil {
 		return
 	}
-	checkoutEvent, err := s.repo.FindEventByID(ctx, *session.CheckoutEventID)
-	if err != nil {
-		return
-	}
-	actual := int(checkoutEvent.EventTimeLocal.Sub(*session.PlannedEndLocal).Minutes())
-	if actual < 0 {
-		actual = 0
-	}
-	calculated := actual
+	calculated := *o.ActualMinutes
 	if calculated > o.RequestedMinutes {
 		calculated = o.RequestedMinutes
 	}
-	o.ActualMinutes = &actual
 	o.CalculatedMinutes = &calculated
 
+	session, err := s.repo.FindSessionByEmployeeAndDate(ctx, o.EmployeeID, normalizeWorkDate(o.WorkDate))
+	if err != nil {
+		s.logger.Warn("failed to find session for overtime calculation",
+			zap.String("overtime_request_id", o.ID.String()),
+			zap.Error(err))
+		return
+	}
 	session.IsOvertimeDay = true
 	session.OvertimeRequestID = &o.ID
-	session.ApprovedOvertimeStartLocal = session.PlannedEndLocal
-	overtimeEnd := session.PlannedEndLocal.Add(time.Duration(calculated) * time.Minute)
-	session.ApprovedOvertimeEndLocal = &overtimeEnd
+	session.ApprovedOvertimeStartLocal = o.ActualStartTimeLocal
+	session.ApprovedOvertimeEndLocal = o.ActualEndTimeLocal
 	session.OvertimeMinutes = calculated
 	if err := s.repo.UpsertSession(ctx, session); err != nil {
 		s.logger.Warn("Failed to update session with overtime calculation",
@@ -1486,6 +1812,12 @@ func sessionToResponse(s *AttendanceSession) *SessionResponse {
 }
 
 func overtimeToResponse(o *AttendanceOvertimeRequest) *OvertimeResponse {
+	// §32b: row DB selalu 'SELF' (default kolom), tapi struct in-memory (mis.
+	// helper test) bisa kosong — defaultkan ke SELF agar respons konsisten.
+	flowType := string(o.FlowType)
+	if flowType == "" {
+		flowType = string(OvertimeFlowSelf)
+	}
 	resp := &OvertimeResponse{
 		ID:                o.ID.String(),
 		EmployeeID:        o.EmployeeID.String(),
@@ -1500,6 +1832,16 @@ func overtimeToResponse(o *AttendanceOvertimeRequest) *OvertimeResponse {
 		ApprovedAt:        o.ApprovedAt,
 		ApprovalNote:      o.ApprovalNote,
 		CreatedAt:         o.CreatedAt,
+		// §32b dua-alur (migration 080).
+		FlowType:             flowType,
+		AssignedAt:           o.AssignedAt,
+		ActualStartTimeLocal: o.ActualStartTimeLocal,
+		ActualEndTimeLocal:   o.ActualEndTimeLocal,
+		ActualNote:           o.ActualNote,
+		AttachmentURL:        o.AttachmentURL,
+		ActualSubmittedAt:    o.ActualSubmittedAt,
+		ActualApprovedAt:     o.ActualApprovedAt,
+		CancelledAt:          o.CancelledAt,
 	}
 	if o.ApprovedBy != nil {
 		ab := o.ApprovedBy.String()
@@ -1508,6 +1850,22 @@ func overtimeToResponse(o *AttendanceOvertimeRequest) *OvertimeResponse {
 	if o.ApprovalInstanceID != nil {
 		aiID := o.ApprovalInstanceID.String()
 		resp.ApprovalInstanceID = &aiID
+	}
+	if o.AssignedBy != nil {
+		ab := o.AssignedBy.String()
+		resp.AssignedBy = &ab
+	}
+	if o.ActualApprovalInstanceID != nil {
+		aiID := o.ActualApprovalInstanceID.String()
+		resp.ActualApprovalInstanceID = &aiID
+	}
+	if o.ActualApprovedBy != nil {
+		ab := o.ActualApprovedBy.String()
+		resp.ActualApprovedBy = &ab
+	}
+	if o.CancelledBy != nil {
+		cb := o.CancelledBy.String()
+		resp.CancelledBy = &cb
 	}
 	return resp
 }

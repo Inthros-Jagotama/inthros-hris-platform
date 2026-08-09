@@ -66,8 +66,12 @@
       <div v-if="instanceLoading" class="py-8 text-center text-gray-400 text-sm">{{ t('common.loading') }}</div>
       <div v-else-if="activeInstance" class="grid grid-cols-1 md:grid-cols-2 gap-5">
         <!-- Left column: the data being submitted -->
-        <div class="space-y-3 md:border-r md:border-gray-200 md:dark:border-gray-700 md:pr-5">
-          <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ t('approval.submitted_data') }}</p>
+        <div class="space-y-4 md:border-r md:border-gray-200 md:dark:border-gray-700 md:pr-5">
+          <div v-if="!isAttendanceModule" class="flex items-center gap-2">
+            <i class="pi pi-file-text text-indigo-400 text-sm"></i>
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('approval.submitted_data') }}</h2>
+            <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+          </div>
 
           <div v-if="documentLoading" class="py-6 text-center text-gray-400 text-sm">{{ t('common.loading') }}</div>
 
@@ -147,6 +151,102 @@
             </div>
           </template>
 
+          <template v-else-if="isAttendanceModule">
+            <div class="space-y-4">
+              <!-- Group: Informasi Lembur -->
+              <div>
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-clock text-indigo-400 text-sm"></i>
+                  <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('attendance.overtime_info') }}</h2>
+                  <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                  <div class="col-span-2">
+                    <p class="text-xs text-gray-400">{{ t('attendance.employee') }}</p>
+                    <p class="text-gray-800 dark:text-gray-100 font-medium">{{ overtimeEmployeeName || '-' }}</p>
+                    <p v-if="overtimeEmployeeCode" class="text-xs text-gray-400">{{ overtimeEmployeeCode }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-400">{{ t('attendance.flow_type') }}</p>
+                    <Tag :value="documentDetail?.flow_type === 'ASSIGNED' ? t('attendance.flow_assigned') : t('attendance.flow_self')" :severity="documentDetail?.flow_type === 'ASSIGNED' ? 'info' : 'secondary'" class="!text-xs" />
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-400">{{ t('common.status') }}</p>
+                    <Tag :value="overtimeStatusLabel(documentDetail?.status)" :severity="overtimeStatusSeverity(documentDetail?.status)" class="!text-xs" />
+                  </div>
+                  <div v-if="isAssignedFlow" class="col-span-2">
+                    <p class="text-xs text-gray-400">{{ t('attendance.assigned_by') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200">{{ overtimeAssignedByName || '-' }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-400">{{ t('attendance.work_date') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200">{{ formatDateOnly(documentDetail?.work_date) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-400">{{ t('attendance.requested_minutes') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200">
+                      {{ documentDetail?.requested_minutes ?? '-' }} min
+                      <span v-if="isOvertimeCrossDay" class="text-xs text-amber-500 ml-1">· {{ t('attendance.overtime_cross_day') }}</span>
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-400">{{ t('attendance.start_time') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200">{{ formatTime(documentDetail?.start_time_local) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-400">{{ t('attendance.end_time') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200">{{ formatTime(documentDetail?.end_time_local) }}</p>
+                  </div>
+                  <div v-if="documentDetail?.reason" class="col-span-2">
+                    <p class="text-xs text-gray-400">{{ t('attendance.reason') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200 break-words">{{ documentDetail.reason }}</p>
+                  </div>
+                  <div v-if="documentDetail?.approval_note" class="col-span-2">
+                    <p class="text-xs text-gray-400">{{ t('attendance.approval_note') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200 break-words">{{ documentDetail.approval_note }}</p>
+                  </div>
+                  <div class="col-span-2">
+                    <p class="text-xs text-gray-400">{{ t('approval.submitted_at') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200">{{ formatDate(documentDetail?.created_at) }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group: Detail Aktual -->
+              <div v-if="hasActualData">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-check-square text-indigo-400 text-sm"></i>
+                  <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('attendance.actual_data') }}</h2>
+                  <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p class="text-xs text-gray-400">{{ t('attendance.actual_start_time') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200">{{ formatTime(documentDetail?.actual_start_time_local) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-400">{{ t('attendance.actual_end_time') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200">{{ formatTime(documentDetail?.actual_end_time_local) }}</p>
+                  </div>
+                  <div v-if="documentDetail?.actual_note" class="col-span-2">
+                    <p class="text-xs text-gray-400">{{ t('attendance.actual_note') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200 break-words">{{ documentDetail.actual_note }}</p>
+                  </div>
+                  <div v-if="documentDetail?.calculated_minutes != null" class="col-span-2">
+                    <p class="text-xs text-gray-400">{{ t('attendance.calculated_minutes') }}</p>
+                    <p class="text-gray-700 dark:text-gray-200 font-medium">{{ documentDetail.calculated_minutes }} min</p>
+                  </div>
+                  <div v-if="documentDetail?.attachment_url" class="col-span-2">
+                    <p class="text-xs text-gray-400">{{ t('attendance.attachment') }}</p>
+                    <a :href="documentDetail.attachment_url" target="_blank" class="text-sm text-emerald-600 dark:text-emerald-400 hover:underline">
+                      <i class="pi pi-paperclip mr-1"></i>{{ t('attendance.attachment') }}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
           <template v-else-if="isLeaveModule">
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="col-span-2">
@@ -197,7 +297,11 @@
 
         <!-- Right column: existing approval data -->
         <div class="space-y-4">
-          <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ t('approval.approval_data') }}</p>
+          <div class="flex items-center gap-2">
+            <i class="pi pi-check-circle text-indigo-400 text-sm"></i>
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('approval.approval_data') }}</h2>
+            <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+          </div>
 
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div>
@@ -394,6 +498,77 @@ const leaveEmployeeName = ref('')
 const leaveEmployeeCode = ref('')
 const leaveTypeName = ref('')
 
+// ── Attendance (overtime) ──
+const isAttendanceModule = computed(() => activeInstance.value?.module === 'attendance')
+const overtimeEmployeeName = ref('')
+const overtimeEmployeeCode = ref('')
+
+// Overtime's detail response only carries employee_id (no name) — resolved
+// here client-side, same reasoning as loadLeaveNames above.
+async function loadOvertimeNames(employeeId) {
+  overtimeEmployeeName.value = ''
+  overtimeEmployeeCode.value = ''
+  if (!employeeId) return
+  try {
+    const res = await api.get(`/api/v1/tenant/employees/${employeeId}`)
+    const emp = res.data?.data
+    overtimeEmployeeName.value = emp?.name || ''
+    overtimeEmployeeCode.value = emp?.employee_id || ''
+  } catch {}
+}
+
+// ASSIGNED flow: the person who submitted the approval task IS the assigner
+// (manager), so "Assigned By" maps straight to the task's submitter.
+const isAssignedFlow = computed(() => documentDetail.value?.flow_type === 'ASSIGNED')
+const overtimeAssignedByName = computed(() => {
+  if (!isAssignedFlow.value) return null
+  return activeTaskRef.value?.submitter_name || '-'
+})
+
+// formatTime — HH:mm lokal dari timestamp RFC3339 (pola sama AttendanceOvertime).
+function formatTime(v) {
+  if (!v) return '-'
+  const d = new Date(v)
+  if (isNaN(d.getTime())) return '-'
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function overtimeStatusSeverity(status) {
+  switch (status) {
+    case 'APPROVED': return 'success'
+    case 'REJECTED': return 'danger'
+    case 'PENDING_APPROVAL': return 'info'
+    case 'WAITING_ACTUAL': return 'warning'
+    case 'ACTUAL_SUBMITTED': return 'info'
+    case 'CANCELLED': return 'secondary'
+    default: return 'secondary'
+  }
+}
+
+function overtimeStatusLabel(status) {
+  if (!status) return '-'
+  const key = `attendance.status_${status.toLowerCase()}`
+  return t(key) !== key ? t(key) : status
+}
+
+// Lintas hari: end di hari berikutnya tetap disimpan sebagai timestamp tanggal
+// +1 hari (pola FE), jadi bandingkan jam-jam (HH:MM) — sama seperti logika
+// isCrossDayOf di AttendanceOvertime.vue.
+const isOvertimeCrossDay = computed(() => {
+  const s = documentDetail.value?.start_time_local
+  const e = documentDetail.value?.end_time_local
+  if (!s || !e) return false
+  const sd = new Date(s)
+  const ed = new Date(e)
+  if (isNaN(sd.getTime()) || isNaN(ed.getTime())) return false
+  return ed.getHours() * 60 + ed.getMinutes() <= sd.getHours() * 60 + sd.getMinutes()
+})
+
+const hasActualData = computed(() => {
+  const d = documentDetail.value
+  return !!(d && (d.actual_start_time_local || d.actual_end_time_local || d.actual_note || d.attachment_url))
+})
+
 // Leave's own GET /requests/:id response only has employee_id/leave_type_id
 // (no names) — resolved here client-side, same reasoning as why the generic
 // documentFields fallback denylists raw id fields (not meaningful to a
@@ -507,6 +682,9 @@ async function loadDocumentDetail(module, documentId) {
     documentDetail.value = res.data?.data || null
     if (module === 'leave' && documentDetail.value) {
       await loadLeaveNames(documentDetail.value.employee_id, documentDetail.value.leave_type_id)
+    }
+    if (module === 'attendance' && documentDetail.value) {
+      await loadOvertimeNames(documentDetail.value.employee_id)
     }
   } catch {
     documentDetail.value = null

@@ -1,10 +1,13 @@
 package attendance
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
@@ -349,6 +352,84 @@ func (h *Handler) CreateOvertimeRequest(c *gin.Context) {
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+// GET /overtime-requests/assignable-employees — opsi dropdown alur ASSIGNED
+// (§32b): karyawan di organisasi bawahan efektif dari user yang login.
+func (h *Handler) ListAssignableEmployees(c *gin.Context) {
+	resp, err := h.service.ListAssignableEmployees(c.Request.Context())
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// POST /overtime-requests/assign — alur ASSIGNED (§32b): atasan menugaskan
+// lembur ke bawahan. Langsung WAITING_ACTUAL + notifikasi ke bawahan.
+func (h *Handler) AssignOvertimeRequest(c *gin.Context) {
+	var req AssignOvertimeRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.AssignOvertimeRequest(c.Request.Context(), req)
+	if err != nil {
+		writeOvertimeError(c, err)
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+// POST /overtime-requests/:id/actual — submit isian aktual lembur (§32b).
+func (h *Handler) SubmitOvertimeActual(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.BadRequest(c, "Invalid overtime request id")
+		return
+	}
+	var req SubmitOvertimeActualRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.SubmitActualOvertime(c.Request.Context(), id, req)
+	if err != nil {
+		writeOvertimeError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// POST /overtime-requests/:id/cancel — batal sebelum isian aktual (§32b).
+func (h *Handler) CancelOvertimeRequest(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.BadRequest(c, "Invalid overtime request id")
+		return
+	}
+	if err := h.service.CancelOvertimeRequest(c.Request.Context(), id); err != nil {
+		writeOvertimeError(c, err)
+		return
+	}
+	httputil.OKJSON(c, gin.H{"id": c.Param("id"), "status": "CANCELLED"})
+}
+
+// writeOvertimeError memetakan error layanan alur dua-tahap lembur (§32b) ke
+// status HTTP yang tepat.
+func writeOvertimeError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		httputil.NotFound(c, err.Error())
+	case errors.Is(err, ErrOvertimeInvalidState):
+		httputil.Conflict(c, "INVALID_STATUS", err.Error())
+	case errors.Is(err, ErrOvertimeNotOwner):
+		httputil.ErrorRaw(c, http.StatusForbidden, "FORBIDDEN", err.Error())
+	case errors.Is(err, ErrOvertimeNotAssignable):
+		httputil.ErrorRaw(c, http.StatusForbidden, "FORBIDDEN", err.Error())
+	case errors.Is(err, ErrOvertimeInvalidActualRange):
+		httputil.BadRequest(c, err.Error())
+	default:
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+	}
 }
 
 func (h *Handler) GetOvertimeRequestByID(c *gin.Context) {

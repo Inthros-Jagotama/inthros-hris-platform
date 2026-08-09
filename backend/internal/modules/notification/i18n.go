@@ -73,6 +73,36 @@ var catalog = map[string]catalogEntry{
 			httputil.LangID: "Pengajuan lembur Anda telah ditolak.",
 		},
 	},
+	"OVERTIME_ASSIGNED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Overtime Assigned",
+			httputil.LangID: "Penugasan Lembur",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "You have been assigned an overtime duty on %s. Please fill in the actual hours.",
+			httputil.LangID: "Anda ditugaskan lembur pada %s. Silakan isi jam aktual lembur Anda.",
+		},
+	},
+	"OVERTIME_ACTUAL_APPROVED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Overtime Actual Approved",
+			httputil.LangID: "Isian Aktual Lembur Disetujui",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your overtime actual entry has been approved.",
+			httputil.LangID: "Isian aktual lembur Anda telah disetujui.",
+		},
+	},
+	"OVERTIME_ACTUAL_REJECTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Overtime Actual Rejected",
+			httputil.LangID: "Isian Aktual Lembur Ditolak",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your overtime actual entry has been rejected.",
+			httputil.LangID: "Isian aktual lembur Anda telah ditolak.",
+		},
+	},
 	"CORRECTION_APPROVED": {
 		title: map[httputil.Lang]string{
 			httputil.LangEN: "Attendance Correction Approved",

@@ -25,6 +25,16 @@ type Config struct {
 	CORS     CORSConfig     `mapstructure:"cors"`
 	License  LicenseConfig  `mapstructure:"license"`
 	SMTP     SMTPConfig     `mapstructure:"smtp"`
+	Storage  StorageConfig  `mapstructure:"storage"`
+}
+
+// StorageConfig untuk penyimpanan file (mis. lampiran modul tenant).
+// UploadDir menjadi direktori dasar file upload — diserve publik oleh
+// router r.Static("/uploads", uploadDir) dan diisi endpoint generik
+// POST /api/v1/tenant/uploads (internal/pkg/upload).
+type StorageConfig struct {
+	// UploadDir: direktori penyimpanan file upload (default "uploads").
+	UploadDir string `mapstructure:"upload_dir"`
 }
 
 // Catatan: Kunci enkripsi AES-256-GCM dibaca langsung dari environment variable
@@ -203,6 +213,8 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("smtp.password", "")
 	v.SetDefault("smtp.from", "no-reply@hris.local")
 	v.SetDefault("smtp.frontend_base_url", "http://localhost:5173")
+
+	v.SetDefault("storage.upload_dir", "uploads")
 
 	v.SetDefault("cors.allowed_origins", []string{"*"})
 	v.SetDefault("cors.allowed_methods", []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})

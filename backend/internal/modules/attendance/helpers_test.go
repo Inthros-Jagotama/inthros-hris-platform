@@ -63,11 +63,14 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 	rawTables := []string{
 		`CREATE TABLE IF NOT EXISTS employees (
 			id CHAR(36) PRIMARY KEY,
+			employee_id VARCHAR(50) NOT NULL DEFAULT '',
 			name VARCHAR(255) NOT NULL DEFAULT ''
 		)`,
 		`CREATE TABLE IF NOT EXISTS organizations (
 			id CHAR(36) PRIMARY KEY,
-			nomenclature VARCHAR(255) NOT NULL DEFAULT ''
+			nomenclature VARCHAR(255) NOT NULL DEFAULT '',
+			parent_id CHAR(36) NULL,
+			deleted_at DATETIME NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS employments (
 			id CHAR(36) PRIMARY KEY,
@@ -241,6 +244,54 @@ func seedEmployeeOrg(db *gorm.DB, employeeID uuid.UUID, name string, orgID uuid.
 	).Error; err != nil {
 		panic(fmt.Sprintf("failed to seed employment: %v", err))
 	}
+}
+
+// seedUserEmployee inserts a user_id -> employee_id mapping in
+// employee_accounts so FindEmployeeIDByUserID can resolve the logged-in
+// user's employee (used by the §32b ownership guard tests).
+func seedUserEmployee(db *gorm.DB, userID, employeeID uuid.UUID) {
+	createTestEmployeeAccount(db, employeeID, userID)
+}
+
+// seedOrg inserts an organization row (parentID may be nil for a root org)
+// into the raw organizations table — used by the assignable-employee
+// hierarchy tests.
+func seedOrg(db *gorm.DB, id uuid.UUID, parentID *uuid.UUID, name string) {
+	sql := "INSERT INTO organizations (id, nomenclature, parent_id) VALUES (?, ?, NULL)"
+	args := []interface{}{id.String(), name}
+	if parentID != nil {
+		sql = "INSERT INTO organizations (id, nomenclature, parent_id) VALUES (?, ?, ?)"
+		args = append(args, parentID.String())
+	}
+	if err := db.Exec(sql, args...).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed organization: %v", err))
+	}
+}
+
+// seedEmployment inserts an active employment (effective_end_date NULL) for
+// employeeID in orgID — used by the assignable-employee hierarchy tests.
+func seedEmployment(db *gorm.DB, employeeID, orgID uuid.UUID) {
+	if err := db.Exec(
+		"INSERT INTO employments (id, employee_id, organization_id, effective_date, effective_end_date) VALUES (?, ?, ?, ?, NULL)",
+		uuid.New().String(), employeeID.String(), orgID.String(), "2026-01-01",
+	).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed employment: %v", err))
+	}
+}
+
+// seedEmployeeRow inserts a minimal employees row so raw JOINs against the
+// employees table (e.g. FindEmployeesByOrganizationIDs) can resolve names.
+func seedEmployeeRow(db *gorm.DB, employeeID uuid.UUID, name string) {
+	code := "EMP-" + employeeID.String()[:8]
+	if err := db.Exec("INSERT INTO employees (id, employee_id, name) VALUES (?, ?, ?)", employeeID.String(), code, name).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed employee row: %v", err))
+	}
+}
+
+// ctxWithUser returns a context carrying the given user_id, mirroring what
+// the AuthJWT middleware injects so authctx.GetUserID can resolve it.
+func ctxWithUser(userID uuid.UUID) context.Context {
+	return context.WithValue(context.Background(), "user_id", userID.String())
 }
 
 // =========================================================================

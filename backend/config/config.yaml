@@ -61,6 +61,9 @@ database:
   tenant_conn_max_lifetime_ms: 1800000   # Per tenant: 30 menit
   tenant_conn_max_idle_time_ms: 300000   # Per tenant: 5 menit idle → close
 
+storage:
+  upload_dir: "uploads"   # direktori file upload (lampiran lembur, dll.) — diserve di /uploads
+
 smtp:
   # SMTP untuk mengirim email transaksional (mis. link set-password employee).
   # Default mengarah ke Mailpit lokal (development): SMTP localhost:1025,

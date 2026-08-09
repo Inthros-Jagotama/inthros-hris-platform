@@ -234,6 +234,39 @@ type CreateOvertimeRequest struct {
 	FlowID           *string `json:"flow_id"`
 }
 
+// AssignOvertimeRequest — alur ASSIGNED (§32b): atasan menugaskan lembur ke
+// bawahan. Langsung menunggu isian aktual (status WAITING_ACTUAL) tanpa
+// approval penugasan; notifikasi OVERTIME_ASSIGNED dikirim ke bawahan.
+type AssignOvertimeRequest struct {
+	AssignedEmployeeID string `json:"assigned_employee_id" binding:"required"`
+	WorkDate           string `json:"work_date" binding:"required"`
+	StartTimeLocal     string `json:"start_time_local" binding:"required"`
+	EndTimeLocal       string `json:"end_time_local" binding:"required"`
+	RequestedMinutes   int    `json:"requested_minutes" binding:"required"`
+	Reason             string `json:"reason"`
+}
+
+// AssignableEmployeeResponse — opsi dropdown "Tugaskan Lembur" (§32b alur
+// ASSIGNED): karyawan yang saat ini menempati organisasi bawahan efektif dari
+// user yang login (anak langsung terisi, atau turun level sampai ada
+// karyawannya).
+type AssignableEmployeeResponse struct {
+	EmployeeID       string `json:"employee_id"`
+	EmployeeCode     string `json:"employee_code"`
+	Name             string `json:"name"`
+	OrganizationID   string `json:"organization_id"`
+	OrganizationName string `json:"organization_name,omitempty"`
+}
+
+// SubmitOvertimeActualRequest — isian aktual lembur (§32b): jam mulai/selesai
+// aktual, catatan, dan URL lampiran. Hanya valid saat status WAITING_ACTUAL.
+type SubmitOvertimeActualRequest struct {
+	ActualStartTimeLocal string `json:"actual_start_time_local" binding:"required"`
+	ActualEndTimeLocal   string `json:"actual_end_time_local" binding:"required"`
+	ActualNote           string `json:"actual_note"`
+	AttachmentURL        string `json:"attachment_url"`
+}
+
 type OvertimeResponse struct {
 	ID         string `json:"id"`
 	EmployeeID string `json:"employee_id"`
@@ -254,7 +287,21 @@ type OvertimeResponse struct {
 	ApprovedAt         *time.Time `json:"approved_at,omitempty"`
 	ApprovalNote       *string    `json:"approval_note,omitempty"`
 	ApprovalInstanceID *string    `json:"approval_instance_id,omitempty"`
-	CreatedAt          time.Time  `json:"created_at"`
+	// §32b dua-alur (migration 080).
+	FlowType                 string     `json:"flow_type"`
+	AssignedBy               *string    `json:"assigned_by,omitempty"`
+	AssignedAt               *time.Time `json:"assigned_at,omitempty"`
+	ActualStartTimeLocal     *time.Time `json:"actual_start_time_local,omitempty"`
+	ActualEndTimeLocal       *time.Time `json:"actual_end_time_local,omitempty"`
+	ActualNote               *string    `json:"actual_note,omitempty"`
+	AttachmentURL            *string    `json:"attachment_url,omitempty"`
+	ActualApprovalInstanceID *string    `json:"actual_approval_instance_id,omitempty"`
+	ActualSubmittedAt        *time.Time `json:"actual_submitted_at,omitempty"`
+	ActualApprovedBy         *string    `json:"actual_approved_by,omitempty"`
+	ActualApprovedAt         *time.Time `json:"actual_approved_at,omitempty"`
+	CancelledBy              *string    `json:"cancelled_by,omitempty"`
+	CancelledAt              *time.Time `json:"cancelled_at,omitempty"`
+	CreatedAt                time.Time  `json:"created_at"`
 }
 
 // =========================================================================

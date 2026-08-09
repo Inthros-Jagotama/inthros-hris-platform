@@ -44,8 +44,12 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.GET("/summary", handler.GetEmployeeSummary)
 		att.GET("/reports/sessions", handler.GetAttendanceReport)
 
-		// Overtime Requests
+		// Overtime Requests (§32b dua-alur: SELF & ASSIGNED → isian aktual)
 		att.POST("/overtime-requests", handler.CreateOvertimeRequest)
+		att.GET("/overtime-requests/assignable-employees", handler.ListAssignableEmployees)
+		att.POST("/overtime-requests/assign", handler.AssignOvertimeRequest)
+		att.POST("/overtime-requests/:id/actual", handler.SubmitOvertimeActual)
+		att.POST("/overtime-requests/:id/cancel", handler.CancelOvertimeRequest)
 		att.GET("/overtime-requests", handler.ListOvertimeRequests)
 		att.GET("/overtime-requests/:id", handler.GetOvertimeRequestByID)
 

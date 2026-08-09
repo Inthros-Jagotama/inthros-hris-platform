@@ -160,17 +160,17 @@ func (d *AttendanceDeviceCapture) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type AttendanceFaceCapture struct {
-	ID            uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
-	EmployeeID    uuid.UUID  `gorm:"type:char(36);not null;index:idx_face_employee_time" json:"employee_id"`
-	CapturedAt    time.Time  `gorm:"not null" json:"captured_at"`
-	ImageURL      string     `gorm:"type:text;not null" json:"image_url"`
-	ImageSHA256   string     `gorm:"type:char(64);not null" json:"image_sha256"`
-	LivenessScore *float64   `gorm:"type:decimal(6,3)" json:"liveness_score,omitempty"`
-	MatchScore    *float64   `gorm:"type:decimal(6,3)" json:"match_score,omitempty"`
-	Verified      *bool      `json:"verified,omitempty"`
-	Provider      *string    `gorm:"type:varchar(50)" json:"provider,omitempty"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	ID            uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID    uuid.UUID `gorm:"type:char(36);not null;index:idx_face_employee_time" json:"employee_id"`
+	CapturedAt    time.Time `gorm:"not null" json:"captured_at"`
+	ImageURL      string    `gorm:"type:text;not null" json:"image_url"`
+	ImageSHA256   string    `gorm:"type:char(64);not null" json:"image_sha256"`
+	LivenessScore *float64  `gorm:"type:decimal(6,3)" json:"liveness_score,omitempty"`
+	MatchScore    *float64  `gorm:"type:decimal(6,3)" json:"match_score,omitempty"`
+	Verified      *bool     `json:"verified,omitempty"`
+	Provider      *string   `gorm:"type:varchar(50)" json:"provider,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 func (AttendanceFaceCapture) TableName() string {
@@ -256,29 +256,29 @@ const (
 )
 
 type AttendanceSession struct {
-	ID                         uuid.UUID       `gorm:"type:char(36);primaryKey" json:"id"`
-	EmployeeID                 uuid.UUID       `gorm:"type:char(36);not null;uniqueIndex:uk_session_emp_date" json:"employee_id"`
-	WorkDate                   string          `gorm:"not null;uniqueIndex:uk_session_emp_date" json:"work_date"`
-	ShiftID                    *uuid.UUID      `gorm:"type:char(36);index:idx_att_session_shift" json:"shift_id,omitempty"`
-	IsOvertimeDay              bool            `json:"is_overtime_day"`
-	OvertimeRequestID          *uuid.UUID      `gorm:"type:char(36);index:idx_att_session_overtime" json:"overtime_request_id,omitempty"`
-	ApprovedOvertimeStartLocal *time.Time      `json:"approved_overtime_start_local,omitempty"`
-	ApprovedOvertimeEndLocal   *time.Time      `json:"approved_overtime_end_local,omitempty"`
-	LeaveRequestID             *uuid.UUID      `gorm:"type:char(36);index:idx_att_session_leave" json:"leave_request_id,omitempty"`
-	LeaveFraction              *float64        `gorm:"type:decimal(4,2)" json:"leave_fraction,omitempty"`
-	PlannedStartLocal          *time.Time      `json:"planned_start_local,omitempty"`
-	PlannedEndLocal            *time.Time      `json:"planned_end_local,omitempty"`
-	CheckinEventID             *uuid.UUID      `gorm:"type:char(36);index:idx_att_session_checkin" json:"checkin_event_id,omitempty"`
-	CheckoutEventID            *uuid.UUID      `gorm:"type:char(36);index:idx_att_session_checkout" json:"checkout_event_id,omitempty"`
-	Status                     SessionStatus   `gorm:"type:varchar(255);default:OPEN" json:"status"`
-	LatenessMinutes            int             `gorm:"not null;default:0" json:"lateness_minutes"`
-	EarlyLeaveMinutes          int             `gorm:"not null;default:0" json:"early_leave_minutes"`
-	WorkMinutes                int             `gorm:"not null;default:0" json:"work_minutes"`
-	BreakMinutes               int             `gorm:"not null;default:0" json:"break_minutes"`
-	OvertimeMinutes            int             `gorm:"not null;default:0" json:"overtime_minutes"`
-	DeletedAt                  gorm.DeletedAt  `gorm:"index:idx_att_session_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt                  time.Time       `json:"created_at"`
-	UpdatedAt                  time.Time       `json:"updated_at"`
+	ID                         uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID                 uuid.UUID      `gorm:"type:char(36);not null;uniqueIndex:uk_session_emp_date" json:"employee_id"`
+	WorkDate                   string         `gorm:"not null;uniqueIndex:uk_session_emp_date" json:"work_date"`
+	ShiftID                    *uuid.UUID     `gorm:"type:char(36);index:idx_att_session_shift" json:"shift_id,omitempty"`
+	IsOvertimeDay              bool           `json:"is_overtime_day"`
+	OvertimeRequestID          *uuid.UUID     `gorm:"type:char(36);index:idx_att_session_overtime" json:"overtime_request_id,omitempty"`
+	ApprovedOvertimeStartLocal *time.Time     `json:"approved_overtime_start_local,omitempty"`
+	ApprovedOvertimeEndLocal   *time.Time     `json:"approved_overtime_end_local,omitempty"`
+	LeaveRequestID             *uuid.UUID     `gorm:"type:char(36);index:idx_att_session_leave" json:"leave_request_id,omitempty"`
+	LeaveFraction              *float64       `gorm:"type:decimal(4,2)" json:"leave_fraction,omitempty"`
+	PlannedStartLocal          *time.Time     `json:"planned_start_local,omitempty"`
+	PlannedEndLocal            *time.Time     `json:"planned_end_local,omitempty"`
+	CheckinEventID             *uuid.UUID     `gorm:"type:char(36);index:idx_att_session_checkin" json:"checkin_event_id,omitempty"`
+	CheckoutEventID            *uuid.UUID     `gorm:"type:char(36);index:idx_att_session_checkout" json:"checkout_event_id,omitempty"`
+	Status                     SessionStatus  `gorm:"type:varchar(255);default:OPEN" json:"status"`
+	LatenessMinutes            int            `gorm:"not null;default:0" json:"lateness_minutes"`
+	EarlyLeaveMinutes          int            `gorm:"not null;default:0" json:"early_leave_minutes"`
+	WorkMinutes                int            `gorm:"not null;default:0" json:"work_minutes"`
+	BreakMinutes               int            `gorm:"not null;default:0" json:"break_minutes"`
+	OvertimeMinutes            int            `gorm:"not null;default:0" json:"overtime_minutes"`
+	DeletedAt                  gorm.DeletedAt `gorm:"index:idx_att_session_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt                  time.Time      `json:"created_at"`
+	UpdatedAt                  time.Time      `json:"updated_at"`
 }
 
 func (AttendanceSession) TableName() string {
@@ -299,29 +299,60 @@ func (s *AttendanceSession) BeforeCreate(tx *gorm.DB) error {
 type OvertimeStatus string
 
 const (
-	OvertimeSubmitted      OvertimeStatus = "SUBMITTED"
+	OvertimeSubmitted       OvertimeStatus = "SUBMITTED"
 	OvertimePendingApproval OvertimeStatus = "PENDING_APPROVAL"
-	OvertimeApproved       OvertimeStatus = "APPROVED"
-	OvertimeRejected       OvertimeStatus = "REJECTED"
+	OvertimeApproved        OvertimeStatus = "APPROVED"
+	OvertimeRejected        OvertimeStatus = "REJECTED"
+	// §32b dua-alur: request disetujui (alur SELF) / penugasan dibuat
+	// (alur ASSIGNED) — menunggu karyawan mengisi isian aktual.
+	OvertimeWaitingActual OvertimeStatus = "WAITING_ACTUAL"
+	// §32b: isian aktual disubmit, menunggu approval instance kedua.
+	OvertimeActualSubmitted OvertimeStatus = "ACTUAL_SUBMITTED"
+	// §32b: dibatalkan sebelum isian aktual (kedua alur).
+	OvertimeCancelled OvertimeStatus = "CANCELLED"
+)
+
+// OvertimeFlowType membedakan alur lembur (§32b): SELF (ajukan sendiri,
+// melalui approval request dulu) vs ASSIGNED (ditugaskan atasan, langsung
+// menunggu isian aktual tanpa approval penugasan).
+type OvertimeFlowType string
+
+const (
+	OvertimeFlowSelf     OvertimeFlowType = "SELF"
+	OvertimeFlowAssigned OvertimeFlowType = "ASSIGNED"
 )
 
 type AttendanceOvertimeRequest struct {
-	ID                uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	EmployeeID        uuid.UUID      `gorm:"type:char(36);not null;index:idx_att_overtime_employee" json:"employee_id"`
-	WorkDate          string         `gorm:"type:date;not null;index:idx_att_overtime_date" json:"work_date"`
-	StartTimeLocal    time.Time      `gorm:"not null" json:"start_time_local"`
-	EndTimeLocal      time.Time      `gorm:"not null" json:"end_time_local"`
-	RequestedMinutes  int            `gorm:"not null" json:"requested_minutes"`
-	ActualMinutes     *int           `json:"actual_minutes,omitempty"`
-	CalculatedMinutes *int           `json:"calculated_minutes,omitempty"`
-	Reason            *string        `gorm:"type:varchar(255)" json:"reason,omitempty"`
-	Status            OvertimeStatus `gorm:"type:varchar(255);default:SUBMITTED;index:idx_att_overtime_status" json:"status"`
-	ApprovedBy        *uuid.UUID     `gorm:"type:char(36)" json:"approved_by,omitempty"`
-	ApprovedAt        *time.Time     `json:"approved_at,omitempty"`
-	ApprovalNote      *string        `gorm:"type:varchar(255)" json:"approval_note,omitempty"`
-	ApprovalInstanceID *uuid.UUID    `gorm:"type:char(36);index:idx_att_overtime_approval_instance" json:"approval_instance_id,omitempty"`
-	CreatedAt         time.Time      `json:"created_at"`
-	UpdatedAt         time.Time      `json:"updated_at"`
+	ID                 uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID         uuid.UUID      `gorm:"type:char(36);not null;index:idx_att_overtime_employee" json:"employee_id"`
+	WorkDate           string         `gorm:"type:date;not null;index:idx_att_overtime_date" json:"work_date"`
+	StartTimeLocal     time.Time      `gorm:"not null" json:"start_time_local"`
+	EndTimeLocal       time.Time      `gorm:"not null" json:"end_time_local"`
+	RequestedMinutes   int            `gorm:"not null" json:"requested_minutes"`
+	ActualMinutes      *int           `json:"actual_minutes,omitempty"`
+	CalculatedMinutes  *int           `json:"calculated_minutes,omitempty"`
+	Reason             *string        `gorm:"type:varchar(255)" json:"reason,omitempty"`
+	Status             OvertimeStatus `gorm:"type:varchar(255);default:SUBMITTED;index:idx_att_overtime_status" json:"status"`
+	ApprovedBy         *uuid.UUID     `gorm:"type:char(36)" json:"approved_by,omitempty"`
+	ApprovedAt         *time.Time     `json:"approved_at,omitempty"`
+	ApprovalNote       *string        `gorm:"type:varchar(255)" json:"approval_note,omitempty"`
+	ApprovalInstanceID *uuid.UUID     `gorm:"type:char(36);index:idx_att_overtime_approval_instance" json:"approval_instance_id,omitempty"`
+	// §32b dua-alur: flow SELF vs ASSIGNED (migration 080).
+	FlowType                 OvertimeFlowType `gorm:"type:varchar(20);not null;default:SELF" json:"flow_type"`
+	AssignedBy               *uuid.UUID       `gorm:"type:char(36)" json:"assigned_by,omitempty"`
+	AssignedAt               *time.Time       `json:"assigned_at,omitempty"`
+	ActualStartTimeLocal     *time.Time       `json:"actual_start_time_local,omitempty"`
+	ActualEndTimeLocal       *time.Time       `json:"actual_end_time_local,omitempty"`
+	ActualNote               *string          `gorm:"type:varchar(500)" json:"actual_note,omitempty"`
+	AttachmentURL            *string          `gorm:"type:varchar(500)" json:"attachment_url,omitempty"`
+	ActualApprovalInstanceID *uuid.UUID       `gorm:"type:char(36);index:idx_att_overtime_actual_approval_instance" json:"actual_approval_instance_id,omitempty"`
+	ActualSubmittedAt        *time.Time       `json:"actual_submitted_at,omitempty"`
+	ActualApprovedBy         *uuid.UUID       `gorm:"type:char(36)" json:"actual_approved_by,omitempty"`
+	ActualApprovedAt         *time.Time       `json:"actual_approved_at,omitempty"`
+	CancelledBy              *uuid.UUID       `gorm:"type:char(36)" json:"cancelled_by,omitempty"`
+	CancelledAt              *time.Time       `json:"cancelled_at,omitempty"`
+	CreatedAt                time.Time        `json:"created_at"`
+	UpdatedAt                time.Time        `json:"updated_at"`
 }
 
 func (AttendanceOvertimeRequest) TableName() string {
@@ -378,10 +409,10 @@ const (
 type CorrectionStatus string
 
 const (
-	CorrectionSubmitted      CorrectionStatus = "SUBMITTED"
+	CorrectionSubmitted       CorrectionStatus = "SUBMITTED"
 	CorrectionPendingApproval CorrectionStatus = "PENDING_APPROVAL"
-	CorrectionApproved       CorrectionStatus = "APPROVED"
-	CorrectionRejected       CorrectionStatus = "REJECTED"
+	CorrectionApproved        CorrectionStatus = "APPROVED"
+	CorrectionRejected        CorrectionStatus = "REJECTED"
 )
 
 // AttendanceCorrectionRequest lets an employee/HR request a fix to a day's
