@@ -3,7 +3,7 @@
 > 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 3/12 selesai** (backend existing ✅ + 3 langkah baru ✅, FE placeholder ❌)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual. **Berikutnya:** 7) G-6 contract extension count + G-7 validasi per tipe · 8-10) FE · 11) G-8 slug/route · 12) test & verifikasi.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count. **Berikutnya:** 8) G-7 validasi per tipe · 9-11) FE · 12) G-8 slug/route · 13) test & verifikasi.
 
 ---
 
@@ -318,6 +318,17 @@ Deep-link FE: `reference_type = 'employeemovement'` → `/admin/career/movements
 
 **Rencana:** `ExtendContract` menghitung `extension_count = previous.extension_count + 1`, dan kontrak sebelumnya di-set `status = extended`.
 
+### 3.10 Log Implementasi Langkah 7 (G-6 contract extension count) — 2026-08-10
+
+**Tujuan:** perpanjangan kontrak berantai menghitung `extension_count` dengan benar (sebelumnya hardcoded `1`).
+
+**Perubahan:**
+- `repository.go ExtendContract` — di dalam transaksi: load previous contract (`tx.First`) → set `status = extended` → set `newContract.ExtensionCount = previous.ExtensionCount + 1` → create. Previous yang tidak ada → error + rollback (mencegah orphan contract).
+- `service.go CreateContract` — hapus hardcoded `contract.ExtensionCount = 1`; count kini diturunkan dari rantai kontrak sebelumnya.
+- Test: `TestRepo_ExtendContract_ChainCount` (2x extension → count 1 lalu 2, kedua previous berstatus `extended`), `TestRepo_ExtendContract_MissingPrevious` (rollback, 0 kontrak persist), `TestService_CreateContract_WithPrevious_ChainCount` (via service, response membawa count berantai).
+
+**Validasi:** `go build` ✅ · `go vet` ✅ · test employeemovement/employee/approval **PASS** ✅.
+
 ## G-7 🟡 VALIDASI BISNIS PER TIPE MOVEMENT
 
 Belum ada validasi "tipe X wajib field Y":
@@ -457,7 +468,7 @@ i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama
 | 4 | G-4 enriched responses (nama employee/org/posisi/status) — ✅ **SELESAI (2026-08-10)** | BE | — |
 | 5 | G-2 notifikasi `MOVEMENT_*` (i18n + wiring; REJECTED → status `rejected`) — ✅ **SELESAI (2026-08-10)** | BE | 1 |
 | 6 | G-5 hapus endpoint approve manual + service `ApproveMovement` + test — ✅ **SELESAI (2026-08-10)** | BE | — |
-| 7 | G-6 contract extension count + G-7 validasi per tipe | BE | — |
+| 7 | G-6 contract extension count — ✅ **SELESAI (2026-08-10)** · G-7 validasi per tipe | BE | — |
 | 8 | FE: halaman Movements (`/admin/career/movements`) + locale lengkap | FE | 2-7 |
 | 9 | FE: halaman Contracts terpisah (`/admin/career/contracts`) + upload dokumen | FE | 7 |
 | 10 | FE: aksi submit/execute/cancel + detail + deep-link notifikasi + badge `rejected` | FE | 5 |

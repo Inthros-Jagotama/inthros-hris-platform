@@ -843,12 +843,12 @@ func (s *Service) CreateContract(ctx context.Context, req CreateContractRequest)
 		contract.DocumentURL = req.DocumentURL
 	}
 
-	// Jika ada previous_contract_id, gunakan ExtendContract flow
+	// Jika ada previous_contract_id, gunakan ExtendContract flow — extension
+	// count dihitung berantai dari kontrak sebelumnya (G-6).
 	if contract.PreviousContractID != nil {
 		if err := s.repo.ExtendContract(ctx, contract, *contract.PreviousContractID); err != nil {
 			return nil, err
 		}
-		contract.ExtensionCount = 1 // akan dihitung manual oleh caller untuk extension > 1
 	} else {
 		if err := s.repo.CreateContract(ctx, contract); err != nil {
 			return nil, err

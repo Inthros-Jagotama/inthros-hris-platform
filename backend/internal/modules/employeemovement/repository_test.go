@@ -583,6 +583,103 @@ func TestService_ExecuteMovement_Integration_Offboarding(t *testing.T) {
 	}
 }
 
+// TestRepo_ExtendContract_ChainCount verifies G-6: extension_count is derived
+// from the previous contract (previous + 1), so chained extensions accumulate
+// instead of being hardcoded to 1.
+func TestRepo_ExtendContract_ChainCount(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	empID := uuid.New()
+	c1 := &EmployeeContract{
+		EmployeeID:     empID,
+		ContractNumber: "CTR-001",
+		ContractType:   ContractTypePKWT,
+		StartDate:      "2026-01-01",
+		Status:         ContractStatusActive,
+	}
+	if err := repo.CreateContract(ctx, c1); err != nil {
+		t.Fatalf("CreateContract failed: %v", err)
+	}
+
+	c2 := &EmployeeContract{
+		EmployeeID:         empID,
+		ContractNumber:     "CTR-002",
+		ContractType:       ContractTypePKWT,
+		StartDate:          "2026-06-01",
+		Status:             ContractStatusActive,
+		PreviousContractID: &c1.ID,
+	}
+	if err := repo.ExtendContract(ctx, c2, c1.ID); err != nil {
+		t.Fatalf("ExtendContract (1st) failed: %v", err)
+	}
+	if c2.ExtensionCount != 1 {
+		t.Errorf("expected 1st extension_count 1, got %d", c2.ExtensionCount)
+	}
+
+	c3 := &EmployeeContract{
+		EmployeeID:         empID,
+		ContractNumber:     "CTR-003",
+		ContractType:       ContractTypePKWT,
+		StartDate:          "2027-01-01",
+		Status:             ContractStatusActive,
+		PreviousContractID: &c2.ID,
+	}
+	if err := repo.ExtendContract(ctx, c3, c2.ID); err != nil {
+		t.Fatalf("ExtendContract (2nd) failed: %v", err)
+	}
+	if c3.ExtensionCount != 2 {
+		t.Errorf("expected 2nd extension_count 2, got %d", c3.ExtensionCount)
+	}
+
+	// Previous contracts must be marked extended.
+	var status1, status2 string
+	if err := db.Model(&EmployeeContract{}).Where("id = ?", c1.ID).Pluck("status", &status1).Error; err != nil {
+		t.Fatalf("failed to query c1 status: %v", err)
+	}
+	if status1 != string(ContractStatusExtended) {
+		t.Errorf("expected c1 status 'extended', got '%s'", status1)
+	}
+	if err := db.Model(&EmployeeContract{}).Where("id = ?", c2.ID).Pluck("status", &status2).Error; err != nil {
+		t.Fatalf("failed to query c2 status: %v", err)
+	}
+	if status2 != string(ContractStatusExtended) {
+		t.Errorf("expected c2 status 'extended', got '%s'", status2)
+	}
+}
+
+// TestRepo_ExtendContract_MissingPrevious verifies extending a non-existent
+// contract fails and rolls back (no orphan contract created).
+func TestRepo_ExtendContract_MissingPrevious(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	newC := &EmployeeContract{
+		EmployeeID:         uuid.New(),
+		ContractNumber:     "CTR-X",
+		ContractType:       ContractTypePKWT,
+		StartDate:          "2026-06-01",
+		Status:             ContractStatusActive,
+		PreviousContractID: uuidPtr(uuid.New()),
+	}
+	err := repo.ExtendContract(ctx, newC, *newC.PreviousContractID)
+	if err == nil {
+		t.Fatal("expected error when previous contract does not exist")
+	}
+
+	var count int64
+	if err := db.Model(&EmployeeContract{}).Count(&count).Error; err != nil {
+		t.Fatalf("failed to count contracts: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("expected no contracts persisted after rollback, got %d", count)
+	}
+}
+
 // uuidPtr returns a pointer to the given UUID (test helper).
 func uuidPtr(u uuid.UUID) *uuid.UUID {
 	return &u

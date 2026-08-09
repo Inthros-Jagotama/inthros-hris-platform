@@ -537,6 +537,61 @@ func TestService_CreateContract_Success(t *testing.T) {
 	}
 }
 
+// TestService_CreateContract_WithPrevious_ChainCount verifies G-6 at the
+// service level: creating a contract with previous_contract_id routes through
+// ExtendContract and the response carries the derived extension_count.
+func TestService_CreateContract_WithPrevious_ChainCount(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	first := createTestContract(repo, employeeID) // 1st extension → count 1
+	prevID := first.ID.String()
+	second := CreateContractRequest{
+		EmployeeID:         employeeID.String(),
+		ContractNumber:     "CTR-002",
+		ContractType:       "pkwt",
+		StartDate:          "2026-06-01",
+		PreviousContractID: &prevID,
+	}
+	resp1, err := svc.CreateContract(ctx(), second)
+	if err != nil {
+		t.Fatalf("CreateContract (1st ext) failed: %v", err)
+	}
+	if resp1.ExtensionCount != 1 {
+		t.Errorf("expected extension_count 1, got %d", resp1.ExtensionCount)
+	}
+
+	// 2nd extension → count 2 (chained, plan G-6)
+	third := CreateContractRequest{
+		EmployeeID:         employeeID.String(),
+		ContractNumber:     "CTR-003",
+		ContractType:       "pkwt",
+		StartDate:          "2027-01-01",
+		PreviousContractID: &resp1.ID,
+	}
+	resp2, err := svc.CreateContract(ctx(), third)
+	if err != nil {
+		t.Fatalf("CreateContract (2nd ext) failed: %v", err)
+	}
+	if resp2.ExtensionCount != 2 {
+		t.Errorf("expected extension_count 2, got %d", resp2.ExtensionCount)
+	}
+
+	// Previous contract marked extended in DB.
+	db, err := svc.repo.getDB(ctx())
+	if err != nil {
+		t.Fatalf("failed to get test db: %v", err)
+	}
+	var status string
+	if err := db.Model(&EmployeeContract{}).Where("id = ?", resp1.ID).Pluck("status", &status).Error; err != nil {
+		t.Fatalf("failed to query contract status: %v", err)
+	}
+	if status != string(ContractStatusExtended) {
+		t.Errorf("expected previous contract status 'extended', got '%s'", status)
+	}
+}
+
 func TestService_CreateContract_InvalidEmployeeID(t *testing.T) {
 	svc, _, cleanup := newTestService()
 	defer cleanup()

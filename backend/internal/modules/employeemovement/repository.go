@@ -2,6 +2,7 @@ package employeemovement
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -395,6 +396,11 @@ func (r *Repository) CancelMovement(ctx context.Context, id uuid.UUID) error {
 }
 
 // ExtendContract membuat kontrak baru sebagai perpanjangan dari kontrak sebelumnya.
+// ExtendContract creates a new contract as the extension of a previous one
+// inside a single transaction. The new contract's extension_count is derived
+// from the previous contract's count (previous + 1) so chained extensions
+// accumulate correctly (plan G-6 — previously hardcoded to 1 by the caller).
+// The previous contract is marked as status = extended.
 func (r *Repository) ExtendContract(ctx context.Context, newContract *EmployeeContract, previousID uuid.UUID) error {
 	db, err := r.getDB(ctx)
 	if err != nil {
@@ -406,17 +412,30 @@ func (r *Repository) ExtendContract(ctx context.Context, newContract *EmployeeCo
 		return fmt.Errorf("failed to begin transaction: %w", tx.Error)
 	}
 
+	defer tx.Rollback()
+
+	// Load previous contract to derive its extension_count (and confirm it
+	// exists — avoid silently extending a deleted/missing contract).
+	var previous EmployeeContract
+	if err := tx.First(&previous, "id = ?", previousID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("previous contract not found")
+		}
+		return fmt.Errorf("failed to find previous contract: %w", err)
+	}
+
 	// Set previous contract as extended
 	if err := tx.Model(&EmployeeContract{}).
 		Where("id = ?", previousID).
 		Update("status", ContractStatusExtended).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to update previous contract status: %w", err)
 	}
 
+	// Derive the new contract's extension count from the chain (G-6).
+	newContract.ExtensionCount = previous.ExtensionCount + 1
+
 	// Create new contract
 	if err := tx.Create(newContract).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to create new contract: %w", err)
 	}
 
