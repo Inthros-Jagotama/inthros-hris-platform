@@ -83,6 +83,39 @@ func NewMiddleware(cfg MiddlewareConfig) gin.HandlerFunc {
 			return
 		}
 
+		// Marking a notification (or all of them) as read is a self-service
+		// action on the caller's OWN notifications — ownership is already
+		// enforced in service.MarkAsRead/MarkAllAsRead via authctx.GetUserID,
+		// same discipline as the approval-actions bypass above. The blanket
+		// path/method-derived check below would require "notification.patch"
+		// (PATCH) / "notification.create" (POST) — permissions that were never
+		// declared and can never be granted — so these two routes are checked
+		// against "notification.view" instead (same permission that gates
+		// reading the list in the first place).
+		if c.FullPath() == "/api/v1/tenant/notifications/:id/read" || c.FullPath() == "/api/v1/tenant/notifications/read-all" {
+			if isTenantPath(c.FullPath()) && hasPermissionClaim(c, "notification.view") {
+				c.Next()
+				return
+			}
+			if cfg.Enforcer.Check(role, "notification", "view") == DecisionDeny {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+					"success": false,
+					"error": gin.H{
+						"code":    "FORBIDDEN",
+						"message": "You don't have permission to perform this action",
+						"details": gin.H{
+							"role":     role,
+							"resource": "notification",
+							"action":   "view",
+						},
+					},
+				})
+				return
+			}
+			c.Next()
+			return
+		}
+
 		// Extract resource dari path
 		resource := ResourceFromPath(c.FullPath())
 		if resource == "" {

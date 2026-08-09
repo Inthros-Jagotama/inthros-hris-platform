@@ -41,12 +41,22 @@ func setupMiddlewareTest(claims []string, role string) *gin.Engine {
 	r.GET("/api/v1/platform/rbac/roles", mw, func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
+	r.PATCH("/api/v1/tenant/notifications/:id/read", mw, func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+	r.POST("/api/v1/tenant/notifications/read-all", mw, func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
 	return r
 }
 
 func doMiddlewareRequest(r *gin.Engine, path string) *httptest.ResponseRecorder {
+	return doMiddlewareRequestMethod(r, http.MethodGet, path)
+}
+
+func doMiddlewareRequestMethod(r *gin.Engine, method, path string) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, path, nil)
+	req := httptest.NewRequest(method, path, nil)
 	r.ServeHTTP(w, req)
 	return w
 }
@@ -119,6 +129,54 @@ func TestNewMiddleware_ClaimDoesNotBypassPlatformRoutes(t *testing.T) {
 
 	if w := doMiddlewareRequest(r, "/api/v1/platform/rbac/roles"); w.Code != http.StatusForbidden {
 		t.Errorf("GET platform rbac: status = %d, want 403 (claim must not bypass platform routes)", w.Code)
+	}
+}
+
+// =========================================================================
+// Notification mark-as-read routes — permission override
+// =========================================================================
+//
+// PATCH .../notifications/:id/read and POST .../notifications/read-all used
+// to be checked against the blanket path/method-derived permission
+// ("notification.patch" / "notification.create"), neither of which was ever
+// a declared, grantable permission — so these two self-service routes were
+// permanently 403 regardless of what the user had. Fixed by checking
+// "notification.view" instead (ownership itself is enforced in the service
+// layer via authctx.GetUserID, same as the approval-actions bypass above).
+
+func TestNewMiddleware_NotificationMarkAsRead_AllowsWithViewClaim(t *testing.T) {
+	r := setupMiddlewareTest([]string{"notification.view"}, "Employee")
+
+	if w := doMiddlewareRequestMethod(r, http.MethodPatch, "/api/v1/tenant/notifications/8c3c72a8-f17c-43f1-9396-e6dc5c5a23da/read"); w.Code != http.StatusOK {
+		t.Errorf("PATCH notifications/:id/read: status = %d, want 200 (claim notification.view)", w.Code)
+	}
+}
+
+func TestNewMiddleware_NotificationMarkAllAsRead_AllowsWithViewClaim(t *testing.T) {
+	r := setupMiddlewareTest([]string{"notification.view"}, "Employee")
+
+	if w := doMiddlewareRequestMethod(r, http.MethodPost, "/api/v1/tenant/notifications/read-all"); w.Code != http.StatusOK {
+		t.Errorf("POST notifications/read-all: status = %d, want 200 (claim notification.view)", w.Code)
+	}
+}
+
+// Regression guard for the exact bug reported: a "notification.manage" claim
+// alone (no notification.view) does NOT satisfy these routes — they check
+// specifically against "notification.view", the same permission gating the
+// list/unread-count endpoints, not "notification.manage".
+func TestNewMiddleware_NotificationMarkAsRead_ManageClaimAloneInsufficient(t *testing.T) {
+	r := setupMiddlewareTest([]string{"notification.manage"}, "Employee")
+
+	if w := doMiddlewareRequestMethod(r, http.MethodPatch, "/api/v1/tenant/notifications/8c3c72a8-f17c-43f1-9396-e6dc5c5a23da/read"); w.Code != http.StatusForbidden {
+		t.Errorf("PATCH notifications/:id/read: status = %d, want 403 (manage claim alone, no view claim, no enforcer fallback for Employee)", w.Code)
+	}
+}
+
+func TestNewMiddleware_NotificationMarkAsRead_NoClaim_Denies(t *testing.T) {
+	r := setupMiddlewareTest(nil, "Employee")
+
+	if w := doMiddlewareRequestMethod(r, http.MethodPatch, "/api/v1/tenant/notifications/8c3c72a8-f17c-43f1-9396-e6dc5c5a23da/read"); w.Code != http.StatusForbidden {
+		t.Errorf("PATCH notifications/:id/read: status = %d, want 403 (no claim, unknown role)", w.Code)
 	}
 }
 
