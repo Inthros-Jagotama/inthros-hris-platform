@@ -23,6 +23,12 @@ const (
 type ApprovalEngine interface {
 	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
 	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
+	// GetActiveFlowIDForModule lets a leave request auto-resolve which flow
+	// to route through when the client doesn't supply one explicitly (same
+	// pattern performance/KPI target submission uses) — without this, a
+	// request created without a flow_id in the payload silently stays
+	// SUBMITTED forever and never reaches the Approval module.
+	GetActiveFlowIDForModule(ctx context.Context, module string) (string, error)
 }
 
 // HolidayProvider abstracts the setting module's company holiday calendar so
@@ -543,22 +549,35 @@ func (s *Service) CreateLeaveRequest(ctx context.Context, req CreateLeaveRequest
 		}
 	}
 
-	// Route through the central approval module when a flow is selected,
-	// instead of relying on leave's own ad-hoc SupervisorID/HrID fields.
-	if s.approvalEngine != nil && req.FlowID != nil && *req.FlowID != "" {
-		instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "leave", lr.ID.String(), *req.FlowID)
-		if err != nil {
-			s.logger.Warn("Failed to create approval instance for leave request, continuing without approval",
-				zap.String("leave_request_id", lr.ID.String()),
-				zap.Error(err),
-			)
-		} else {
-			if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
-				lr.ApprovalInstanceID = &parsedInstanceID
-			}
-			lr.Status = LeaveStatusPendingApproval
-			if err := s.repo.UpdateLeaveRequest(ctx, lr); err != nil {
-				return nil, err
+	// Route through the central approval module, instead of relying on
+	// leave's own ad-hoc SupervisorID/HrID fields. An explicit flow_id in
+	// the payload wins; otherwise the module's active flow is auto-resolved
+	// (same fallback performance/KPI target submission uses) so a plain
+	// CreateLeaveRequest call — the normal case, since no FE sends flow_id
+	// today — still actually reaches an approver instead of silently
+	// sitting at SUBMITTED forever.
+	if s.approvalEngine != nil {
+		flowID := ""
+		if req.FlowID != nil && *req.FlowID != "" {
+			flowID = *req.FlowID
+		} else if resolved, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, "leave"); err == nil {
+			flowID = resolved
+		}
+		if flowID != "" {
+			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "leave", lr.ID.String(), flowID)
+			if err != nil {
+				s.logger.Warn("Failed to create approval instance for leave request, continuing without approval",
+					zap.String("leave_request_id", lr.ID.String()),
+					zap.Error(err),
+				)
+			} else {
+				if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+					lr.ApprovalInstanceID = &parsedInstanceID
+				}
+				lr.Status = LeaveStatusPendingApproval
+				if err := s.repo.UpdateLeaveRequest(ctx, lr); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}

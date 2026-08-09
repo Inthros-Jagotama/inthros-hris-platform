@@ -2,6 +2,7 @@ package leave
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -15,8 +16,10 @@ type fakeApprovalEngine struct {
 		documentID string
 		flowID     string
 	}
-	instanceID string
-	createErr  error
+	instanceID    string
+	createErr     error
+	activeFlowID  string
+	activeFlowErr error
 }
 
 func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error) {
@@ -36,6 +39,16 @@ func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module,
 
 func (f *fakeApprovalEngine) GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error) {
 	return "PENDING", nil
+}
+
+func (f *fakeApprovalEngine) GetActiveFlowIDForModule(ctx context.Context, module string) (string, error) {
+	if f.activeFlowErr != nil {
+		return "", f.activeFlowErr
+	}
+	if f.activeFlowID == "" {
+		return "", fmt.Errorf("no active flow configured")
+	}
+	return f.activeFlowID, nil
 }
 
 func TestService_CreateLeaveRequest_WithApprovalEngine_CreatesInstance(t *testing.T) {
@@ -76,11 +89,52 @@ func TestService_CreateLeaveRequest_WithApprovalEngine_CreatesInstance(t *testin
 	}
 }
 
-func TestService_CreateLeaveRequest_NoFlowID_SkipsApproval(t *testing.T) {
+// TestService_CreateLeaveRequest_NoFlowID_AutoResolvesActiveFlow guards the
+// fix for the bug where a leave request created without an explicit flow_id
+// (the normal case — no FE sends one) silently stayed SUBMITTED forever and
+// never reached the Approval module, because CreateLeaveRequest previously
+// only routed through approval when the client supplied flow_id itself.
+func TestService_CreateLeaveRequest_NoFlowID_AutoResolvesActiveFlow(t *testing.T) {
 	svc, repo, _, cleanup := newTestService()
 	defer cleanup()
 
-	fake := &fakeApprovalEngine{}
+	activeFlowID := uuidStr()
+	fake := &fakeApprovalEngine{activeFlowID: activeFlowID}
+	svc.SetApprovalEngine(fake)
+
+	lType := createTestLeaveType(repo)
+
+	req := CreateLeaveRequest{
+		EmployeeID:       uuidStr(),
+		LeaveTypeID:      lType.ID.String(),
+		RequestStartDate: "2026-01-15",
+		RequestEndDate:   "2026-01-16",
+		RequestedDays:    2,
+	}
+
+	resp, err := svc.CreateLeaveRequest(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateLeaveRequest failed: %v", err)
+	}
+	if resp.Status != "PENDING_APPROVAL" {
+		t.Errorf("expected status PENDING_APPROVAL, got '%s'", resp.Status)
+	}
+	if resp.ApprovalInstanceID == nil {
+		t.Fatal("expected approval_instance_id to be set")
+	}
+	if len(fake.createCalls) != 1 {
+		t.Fatalf("expected 1 CreateApprovalInstance call, got %d", len(fake.createCalls))
+	}
+	if fake.createCalls[0].flowID != activeFlowID {
+		t.Errorf("expected auto-resolved flow_id %s, got %s", activeFlowID, fake.createCalls[0].flowID)
+	}
+}
+
+func TestService_CreateLeaveRequest_NoFlowIDAndNoActiveFlow_SkipsApproval(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{} // no active flow configured
 	svc.SetApprovalEngine(fake)
 
 	lType := createTestLeaveType(repo)
