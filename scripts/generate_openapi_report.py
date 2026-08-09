@@ -41,7 +41,7 @@ generated_date = datetime.now().strftime("%d %B %Y")
 
 lines = []
 # Human-readable report version (update this when significant changes are made)
-REPORT_VERSION = "v20"
+REPORT_VERSION = "v21"
 lines.append(f"= HRIS Platform — OpenAPI Comprehensive Report ({REPORT_VERSION}) =\n")
 lines.append("")
 lines.append(f"**Generated:** {generated_date}")

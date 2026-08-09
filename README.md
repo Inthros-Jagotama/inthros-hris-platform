@@ -500,7 +500,7 @@ Semua perubahan role/permission akan otomatis me-reload enforcer (`Service.Sync(
 
 | Action | Company Status | Tenant Connection | Tenant Database |
 |--------|---------------|-------------------|-----------------|
-| `Create` | `active` | `is_active = true` | ✅ Created + migrated (173 tables) |
+| `Create` | `active` | `is_active = true` | ✅ Created + migrated (175 tables) |
 | `Suspend` | `suspended` | `is_active = false` + cache cleared | ✅ Data preserved |
 | `Activate` | `active` | `is_active = true` + cache cleared | ✅ Reconnected |
 | `Soft Delete` | (hidden via `deleted_at`) | `is_active = false` + cache cleared | ✅ Data preserved |
@@ -1321,6 +1321,8 @@ go run ./cmd/installer encrypt-passwords --config=./config/config.yaml
 | `make docs` | Verifikasi OpenAPI + regenerate `docs/openapi-report.md` |
 | `make db-docs` | Regenerate `docs/database-schema.md` dari migrasi SQL |
 | `make check-db-docs` | Verifikasi `docs/database-schema.md` sinkron dengan migrasi SQL postgres **&** mysql (tanpa menimpa) |
+| `make arch-report` | Regenerate `docs/go-module-architecture-report.md` dari analisis statis kode Go |
+| `make check-arch-report` | Verifikasi `docs/go-module-architecture-report.md` sinkron dengan kode Go (tanpa menimpa) |
 
 > **Catatan:** `make seed` (server) berbeda dari `go run ./cmd/installer seed-data` (installer). Gunakan `make seed` untuk platform-level dan installer `seed-data --company=<uuid>` untuk tenant-level master data.
 
@@ -1357,6 +1359,8 @@ make coverage         # Run tests with coverage report
 make docs             # Verify OpenAPI + regenerate docs/openapi-report.md
 make db-docs          # Regenerate docs/database-schema.md from SQL migrations
 make check-db-docs    # Verify database-schema.md in sync with postgres & mysql migrations (no overwrite)
+make arch-report      # Regenerate docs/go-module-architecture-report.md from Go source
+make check-arch-report  # Verify go-module-architecture-report.md in sync with Go source (no overwrite)
 make docker           # Build Docker image
 make tidy             # Tidy dependencies
 make clean            # Clean build artifacts
@@ -1635,12 +1639,12 @@ POST /api/v1/platform/companies
    ├── b. Connect sebagai superuser (root@localhost)
    ├── c. Buat database tenant (CREATE DATABASE IF NOT EXISTS)
    ├── d. Simpan TenantConnection ke platform DB (ID = companyID)
-   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 69 tenant SQL migrations (173 tables)
+   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 75 tenant SQL migrations (175 tables)
 5. Jika provisioning berhasil → company status: active
 6. Jika provisioning gagal → company status: suspended (data tetap tersimpan)
 ```
 
-### Tenant Migration Files (69 files → 173 tables)
+### Tenant Migration Files (75 files → 175 tables)
 
 | File | Isi |
 |------|-----|
@@ -1669,9 +1673,9 @@ POST /api/v1/platform/companies
 | `023_user_accounts.sql` | Employee user accounts (login access for employees) |
 | `024_education_majors.sql` | Education majors master (jurusan pendidikan) |
 
-> **Catatan:** Total 174 tabel termasuk `schema_migrations` (173 tabel tenant + schema_migrations, auto-created oleh migrator engine).
+> **Catatan:** Total 176 tabel termasuk `schema_migrations` (175 tabel tenant + schema_migrations, auto-created oleh migrator engine).
 
-### Daftar Lengkap 173 Tabel Tenant (+ schema_migrations = 174)
+### Daftar Lengkap 175 Tabel Tenant (+ schema_migrations = 176)
 
 **Approval (5):**
 `approval_actions`, `approval_flow_steps`, `approval_flows`, `approval_instances`, `approval_tasks`
@@ -1764,8 +1768,8 @@ POST /api/v1/platform/companies
 | Company status | ✅ **active** | API mengembalikan `status: "active"` |
 | Tenant database | ✅ Created | `hris_final-provision-test` |
 | Tenant connection | ✅ Saved | Record di `tenant_connections` tersimpan |
-| Migrations | ✅ **69 files** | 001 → 070 sukses semua (nomor 044 tidak ada) |
-| Total tables | ✅ **173 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
+| Migrations | ✅ **75 files** | 001 → 076 sukses semua (nomor 044 tidak ada) |
+| Total tables | ✅ **175 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
 | Server log | ✅ Clean | "Tenant provisioning completed successfully" |
 
 #### API Test Response
@@ -1845,9 +1849,9 @@ POST /api/v1/platform/companies
 |---|------|------|
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
-| ✅ | Project completion dashboard (22 modules — 16 tenant + 6 platform, 1265+ tests, 173 tables) | `docs/project-completion-dashboard.md` |
-| ✅ | OpenAPI comprehensive report (832 endpoints, 483 paths, 521 schemas, 33 tags) | `docs/openapi-report.md` |
-| ✅ | Go module architecture report (137 entities, 622 service methods, 1265 tests) | `docs/go-module-architecture-report.md` |
+| ✅ | Project completion dashboard (25 modules — 19 tenant + 6 platform, 1357 tests, 175 tables) | `docs/project-completion-dashboard.md` |
+| ✅ | OpenAPI comprehensive report (834 endpoints, 485 paths, 522 schemas, 33 tags) | `docs/openapi-report.md` |
+| ✅ | Go module architecture report (173 entities, 823 service methods, 1357 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
 | ✅ | README utama proyek | `README.md` |
@@ -1940,7 +1944,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**832 endpoints**, 483 paths, 521 schemas, 33 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**834 endpoints**, 485 paths, 522 schemas, 33 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 
@@ -1986,10 +1990,10 @@ gorm.io/gorm v1.30.0                      # ORM
 | # | Item | Detail |
 |---|------|--------|
 | ✅ | Provisioning Engine | Database creation + TenantConnection save |
-| ✅ | Tenant SQL Migrations | 138 files per dialect (69 up + 69 down) → 173 tables |
+| ✅ | Tenant SQL Migrations | 150 files per dialect (75 up + 75 down) → 175 tables |
 | ✅ | Multi-statement MySQL support | `multiStatements=true` di DSN |
 | ✅ | Error handling / graceful failure | Company status = `suspended` jika provisioning gagal |
-| ✅ | End-to-end test | Company active ✅, 173 tables ✅, MySQL |
+| ✅ | End-to-end test | Company active ✅, 175 tables ✅, MySQL |
 
 ### ✅ Tenant Lifecycle Management
 
@@ -2142,7 +2146,7 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
 | [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (report v20, spec 1.6.3 — 832 endpoints, 483 paths, 521 schemas, 33 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (137 entities, 622 service methods, 1265 tests) |
-| [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (22 modules, 1265+ tests, 173 tables) |
+| [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (25 modules, 1357 tests, 175 tables) |
 | [`docs/panduan-uiux-hris-enterprise.md`](docs/panduan-uiux-hris-enterprise.md) | Standar UI/UX enterprise (modal-first, high-density, prompt AI, warna badge) |
 | [`docs/frontend-development-plan.md`](docs/frontend-development-plan.md) | Roadmap implementasi frontend Platform Admin & Tenant |
 | [`docs/job-management-score-analysis.md`](docs/job-management-score-analysis.md) | Analisa perhitungan Job Management Score (dirujuk `calculator.go`) |

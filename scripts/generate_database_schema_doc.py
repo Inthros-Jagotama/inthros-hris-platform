@@ -410,6 +410,8 @@ def build_doc():
     doc.append("")
     doc.append(f"Total **{len(tenant)} tabel** dikelompokkan dalam {len(MODULES)} modul:")
     doc.append("")
+    doc.append("> ℹ️ **Catatan:** pengelompokan di sini berbasis **domain tabel** (mis. Performance dipecah jadi KPI & OKR, RBAC digabung dengan Auth) — bukan folder kode. Jumlah **folder modul tenant** di kode = **19** (termasuk `notification`, `rbac`, `useraccount`), lihat [`go-module-architecture-report.md`](go-module-architecture-report.md).")
+    doc.append("")
 
     # module summary table
     doc.append("| # | Modul | Jumlah Tabel |")

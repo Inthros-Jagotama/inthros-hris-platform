@@ -16,7 +16,7 @@
 # make seed        - Run seeders
 # make coverage    - Run tests with coverage
 
-.PHONY: build build-installer run run-hot test test-verbose test-short test-pkg race-test db-race-up db-race-down test-employee test-organization test-cache test-cache-quick test-cache-integration test-cache-error bench-cache bench-cache-compare coverage cover-view cover-func lint vet check-openapi docs db-docs check-db-docs migrate seed seed-modules docker docker-compose-up docker-compose-down tidy clean help
+.PHONY: build build-installer run run-hot test test-verbose test-short test-pkg race-test db-race-up db-race-down test-employee test-organization test-cache test-cache-quick test-cache-integration test-cache-error bench-cache bench-cache-compare coverage cover-view cover-func lint vet check-openapi docs db-docs check-db-docs arch-report check-arch-report migrate seed seed-modules docker docker-compose-up docker-compose-down tidy clean help
 
 BUILD_DIR := ./bin
 BINARY := $(BUILD_DIR)/server
@@ -232,6 +232,18 @@ check-db-docs:
 	@cd .. && "$(PYTHON)" scripts/check_database_schema_doc.py
 	@echo "Database schema doc check passed: docs/database-schema.md is up to date."
 
+arch-report:
+	@echo "Regenerating Go module architecture report..."
+	@test -n "$(PYTHON)" || { echo "ERROR: python3/python required to run this check"; exit 1; }
+	@cd .. && "$(PYTHON)" scripts/generate_go_module_report.py
+	@echo "Go module architecture report regenerated: docs/go-module-architecture-report.md"
+
+check-arch-report:
+	@echo "Checking Go module architecture report sync with the Go source..."
+	@test -n "$(PYTHON)" || { echo "ERROR: python3/python required to run this check"; exit 1; }
+	@cd .. && "$(PYTHON)" scripts/check_go_module_report.py
+	@echo "Go module architecture report check passed: docs/go-module-architecture-report.md is up to date."
+
 # ============ Database ============
 
 migrate:
@@ -313,6 +325,8 @@ help:
 	@echo "docs           - Run check-openapi + regenerate docs/openapi-report.md"
 	@echo "db-docs        - Regenerate docs/database-schema.md from SQL migrations"
 	@echo "check-db-docs  - Verify docs/database-schema.md is in sync with migrations (no overwrite)"
+	@echo "arch-report    - Regenerate docs/go-module-architecture-report.md from Go source"
+	@echo "check-arch-report - Verify docs/go-module-architecture-report.md is in sync with Go source (no overwrite)"
 	@echo ""
 	@echo "=== Database ==="
 	@echo "migrate        - Run platform migrations"

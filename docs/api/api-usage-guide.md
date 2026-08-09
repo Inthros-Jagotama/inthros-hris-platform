@@ -5,7 +5,7 @@
 
 Panduan praktis **cara menggunakan API** HRIS Platform: dari menjalankan server, autentikasi, format request/response, sampai contoh pemanggilan end-to-end (curl).
 
-> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 832 endpoint + skema, lihat:
+> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 834 endpoint + skema, lihat:
 > - [`docs/openapi-report.md`](../openapi-report.md) — laporan komprehensif per modul
 > - `backend/internal/pkg/docs/openapi.json` — OpenAPI 3.0 spec (sumber kebenaran)
 
@@ -469,7 +469,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/employees \
 | Settings / Master data | `GET /api/v1/tenant/settings/banks`, `.../religions`, `.../zones`, `.../company-holidays` |
 | Job Management | `GET/POST /api/v1/tenant/job-management/titles`, `.../values/tree` |
 | Payroll | `GET /api/v1/tenant/payroll/...` |
-| Leave | `GET /api/v1/tenant/leave/...` |
+| Leave | `GET/POST /api/v1/tenant/leave/types`, `.../requests`, `.../balances`, `GET /api/v1/tenant/leave/calendar`, `GET /api/v1/tenant/leave/reports/usage` → lihat §8.7 |
 | Performance — Master Data | `GET/POST /api/v1/tenant/performance/periods`, `.../ratings`, `.../indicator-formulas`, `.../logs` |
 | Performance — KPI | `GET/POST /api/v1/tenant/performance/kpi/templates`, `.../kpi/indicators`, `.../kpi/evaluations`, `.../kpi/dashboard/hr` |
 | Performance — OKR | `GET/POST /api/v1/tenant/performance/okr/templates`, `.../okr/objectives`, `.../okr/key-results`, `.../okr/evaluations`, `.../okr/dashboard/hr` |
@@ -1261,6 +1261,41 @@ curl -X POST http://localhost:8080/api/v1/tenant/notifications/read-all \
 
 ---
 
+### 8.7 Contoh Penggunaan: Leave — Kalender & Laporan Penggunaan
+
+Kalender cuti dipakai untuk tampilan kalender per karyawan; laporan penggunaan dipakai HR untuk melihat semua permintaan cuti yang beririsan dengan rentang tanggal tertentu.
+
+#### 8.7.1 Leave Calendar — Kalender Cuti Satu Karyawan
+
+**Step 1 — Entri cuti harian karyawan dalam rentang tanggal:**
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/leave/calendar?employee_id=<employee-uuid>&from=2026-07-01&to=2026-07-31" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": [ { "leave_request_id": "<req-uuid>", "leave_date": "2026-07-02",
+#     "day_fraction": 1.0, "leave_type_id": "<type-uuid>", "status": "approved" } ] }
+```
+
+> Query `employee_id`, `from`, dan `to` **wajib** diisi — jika kosong akan error `VALIDATION_ERROR`. Setiap entri mewakili **satu hari cuti** (`day_fraction` bisa 0.5 untuk cuti setengah hari).
+
+#### 8.7.2 Leave Usage Report — Laporan Penggunaan Cuti (HR)
+
+**Step 2 — Semua permintaan cuti yang beririsan dengan rentang tanggal (untuk HR):**
+
+```bash
+curl "http://localhost:8080/api/v1/tenant/leave/reports/usage?from=2026-07-01&to=2026-07-31" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": [ { "id": "<req-uuid>", "employee_id": "<employee-uuid>",
+#     "leave_type_id": "<type-uuid>", "request_start_date": "2026-07-02", "request_end_date": "2026-07-03",
+#     "requested_days": 2.0, "status": "approved", ... } ] }
+```
+
+> Query `from` dan `to` **wajib** diisi. Response non-paginated; bentuk item sama dengan `GET /api/v1/tenant/leave/requests` (`LeaveRequestResponse`). Jika perlu dikelompokkan per jenis cuti, cukup agregasi `leave_type_id` di sisi klien.
+
+> 💡 Alur lengkap cuti (buat jenis → buat request → setujui via Approval Engine → cek balance) mengikuti pola yang sama dengan contoh di §8.3–§8.6; `calendar` & `reports/usage` adalah endpoint *read-only* untuk tampilan & laporan.
+
+---
+
 ## 9. Error Codes
 
 | Kode | HTTP | Arti |
@@ -1319,7 +1354,8 @@ make docs
                          test-employee, test-organization, test-cache*,
                          bench-cache, coverage, cover-view, cover-func
 === Lint ===             make lint, make vet
-=== API Docs ===         make check-openapi, make docs
+=== API Docs ===         make check-openapi, make docs, make db-docs, make check-db-docs,
+                         make arch-report, make check-arch-report
 === Database ===         make migrate, make seed, make seed-modules
 === Docker ===           make docker, make docker-compose-up, make docker-compose-down
 === Utilities ===        make tidy, make clean, make help

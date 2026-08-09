@@ -1,11 +1,11 @@
-= HRIS Platform — OpenAPI Comprehensive Report (v20) =
+= HRIS Platform — OpenAPI Comprehensive Report (v21) =
 
 
-**Generated:** 08 August 2026
+**Generated:** 09 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 483
-**Total Endpoints (methods):** 832
-**Total Schemas:** 521
+**Total Paths:** 485
+**Total Endpoints (methods):** 834
+**Total Schemas:** 522
 **Total Tags:** 33
 
 > 🔗 **Index dokumentasi:** [`docs/README.md`](README.md) · **Terkait:** [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)
@@ -14,9 +14,9 @@
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 832/832 | 100% |
-| Endpoints with `description` | 832/832 | 100% |
-| Endpoints with `operationId` | 832/832 | 100% |
+| Endpoints with `summary` | 834/834 | 100% |
+| Endpoints with `description` | 834/834 | 100% |
+| Endpoints with `operationId` | 834/834 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -117,7 +117,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | 8 | Tenant: Competency Management | 35 | 15 |
 | 9 | Tenant: Training & Development Management | 35 | 15 |
 | 10 | Tenant: Recruitment & Onboarding (ATS) | 33 | 16 |
-| 11 | Tenant: Leave & Time Off | 23 | 12 |
+| 11 | Tenant: Leave & Time Off | 25 | 14 |
 | 12 | Tenant: Career Intelligence | 19 | 11 |
 | 13 | Tenant: Organizations | 18 | 11 |
 | 14 | Tenant: Approval | 17 | 11 |
@@ -139,7 +139,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | 30 | Public | 2 | 2 |
 | 31 | Tenant Auth | 2 | 2 |
 | 32 | Tenant: Company | 2 | 1 |
-| | **TOTAL** | **832** | **483** |
+| | **TOTAL** | **834** | **485** |
 
 ## 2. Module Detail
 
@@ -863,8 +863,8 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Tenant: Leave & Time Off
 **Description:** Leave and time off management including leave types, accrual policies, leave reasons, leave requests, leave request details, and employee leave balances
-**Endpoints:** 23 | **Paths:** 12
-**Methods:** DELETE=4 GET=11 POST=4 PUT=4
+**Endpoints:** 25 | **Paths:** 14
+**Methods:** DELETE=4 GET=13 POST=4 PUT=4
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -875,11 +875,13 @@ Tenant endpoints support validation for Indonesian data formats:
 | `DELETE` | `/api/v1/tenant/leave/accrual-policies/{id}` | Delete accrual policy | Delete a accrual policies record by its unique ID. This action may be reversible depending on system configuration. |
 | `GET` | `/api/v1/tenant/leave/balances` | List leave balances with pagination | Retrieve a paginated list of leave resources. |
 | `GET` | `/api/v1/tenant/leave/balances/employees/{employeeId}/types/{leaveTypeId}` | Get leave balance for specific employee and leave type | Retrieve a paginated list of leave resources. |
+| `GET` | `/api/v1/tenant/leave/calendar` | Get employee leave calendar | Entri cuti harian satu karyawan dalam rentang tanggal (untuk tampilan kalender). Query employee_id, from, dan to wajib diisi. |
 | `GET` | `/api/v1/tenant/leave/reasons` | List leave reasons | Retrieve a paginated list of leave resources. |
 | `POST` | `/api/v1/tenant/leave/reasons` | Create a leave reason | Create a new leave resource. |
 | `GET` | `/api/v1/tenant/leave/reasons/{id}` | Get leave reason by ID | Retrieve a paginated list of leave resources. |
 | `PUT` | `/api/v1/tenant/leave/reasons/{id}` | Update leave reason | Update an existing reasons record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `DELETE` | `/api/v1/tenant/leave/reasons/{id}` | Delete leave reason | Delete a reasons record by its unique ID. This action may be reversible depending on system configuration. |
+| `GET` | `/api/v1/tenant/leave/reports/usage` | Get leave usage report (all employees) | Semua permintaan cuti karyawan yang rentang tanggalnya beririsan dengan [from, to] — bentuk item sama dengan ListLeaveRequests, non-paginated. Data... |
 | `GET` | `/api/v1/tenant/leave/requests` | List leave requests with pagination | Retrieve a paginated list of leave resources. |
 | `POST` | `/api/v1/tenant/leave/requests` | Create a leave request | Create a new leave resource. |
 | `GET` | `/api/v1/tenant/leave/requests/{id}` | Get leave request by ID | Retrieve a paginated list of leave resources. |

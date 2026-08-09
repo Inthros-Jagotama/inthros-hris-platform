@@ -397,6 +397,9 @@ func handleSeedModules(l *zap.Logger, dbManager *database.Manager) {
 		{Name: "Workforce Intelligence", Slug: "workforce-intelligence", Version: "1.0.0", Description: "Workforce analytics, planning, and strategic dashboards", ModuleType: "tenant", DependsOn: "organization,employee,attendance,leave,payroll,performance,competency,training,recruitment,employeemovement"},
 		{Name: "Career Intelligence", Slug: "career-intelligence", Version: "1.0.0", Description: "Career development, succession planning, and talent management", ModuleType: "tenant", DependsOn: "organization,employee,jobmanagement,competency"},
 		{Name: "Settings (Master Data)", Slug: "setting", Version: "1.0.0", Description: "Manage tenant reference data — zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades", ModuleType: "tenant", DependsOn: ""},
+		{Name: "Notification", Slug: "notification", Version: "1.0.0", Description: "In-app notifications delivered to users by other modules, with read/unread tracking", ModuleType: "tenant", DependsOn: "useraccount"},
+		{Name: "User Account", Slug: "useraccount", Version: "1.0.0", Description: "Manage employee login accounts (user tenant + setup password via email link)", ModuleType: "tenant", DependsOn: "employee,setting,rbac"},
+		{Name: "RBAC", Slug: "rbac", Version: "1.0.0", Description: "Manage tenant roles, permissions, and user-role assignments", ModuleType: "tenant", DependsOn: "setting"},
 	}
 
 	db := dbManager.PlatformDB()

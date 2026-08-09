@@ -178,6 +178,8 @@ Satu database terisolasi **per company** (database per tenant). Struktur identik
 
 Total **175 tabel** dikelompokkan dalam 19 modul:
 
+> ℹ️ **Catatan:** pengelompokan di sini berbasis **domain tabel** (mis. Performance dipecah jadi KPI & OKR, RBAC digabung dengan Auth) — bukan folder kode. Jumlah **folder modul tenant** di kode = **19** (termasuk `notification`, `rbac`, `useraccount`), lihat [`go-module-architecture-report.md`](go-module-architecture-report.md).
+
 | # | Modul | Jumlah Tabel |
 |---|---|---|
 | 1 | Master Data & Settings | 20 |
@@ -710,7 +712,7 @@ erDiagram
 
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
-| `attendance_company_settings` | 15 | - |
+| `attendance_company_settings` | 16 | - |
 | `attendance_company_shifts` | 10 | - |
 | `attendance_employee_shifts` | 12 | employee_id->employees, attendance_shift_id->attendance_company_shifts |
 | `attendance_locations` | 10 | - |
@@ -742,6 +744,7 @@ erDiagram
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        BOOLEAN allow_checkin_on_day_off
     }
     attendance_company_shifts {
         CHAR id
@@ -911,7 +914,7 @@ erDiagram
 
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
-| `notifications` | 10 | - |
+| `notifications` | 11 | - |
 
 ### ERD — Notification
 
@@ -928,6 +931,7 @@ erDiagram
         BOOLEAN is_read
         TIMESTAMP read_at
         TIMESTAMP created_at
+        TEXT params
     }
 ```
 
@@ -3077,7 +3081,7 @@ erDiagram
 
 ## Migrasi & Dialect
 
-- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 73 file up + 73 file down per dialect (292 total).
+- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 75 file up + 75 file down per dialect (300 total).
 - Migrasi **platform** bersifat cross-dialect di `migrations/platform/`.
 - Tabel tambahan platform (`packages`, `package_modules`) dibuat via GORM `AutoMigrate`.
 - Dijalankan otomatis saat **provisioning company** (tenant DB dibuat + migrasi + seed).

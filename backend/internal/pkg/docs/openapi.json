@@ -34986,6 +34986,143 @@
           }
         ]
       }
+    },
+    "/api/v1/tenant/leave/calendar": {
+      "get": {
+        "operationId": "getEmployeeLeaveCalendar",
+        "summary": "Get employee leave calendar",
+        "description": "Entri cuti harian satu karyawan dalam rentang tanggal (untuk tampilan kalender). Query employee_id, from, dan to wajib diisi.",
+        "tags": [
+          "Tenant: Leave & Time Off"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-01"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-31"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Employee leave calendar entries in range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CalendarEntryResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/leave/reports/usage": {
+      "get": {
+        "operationId": "getLeaveUsageReport",
+        "summary": "Get leave usage report (all employees)",
+        "description": "Semua permintaan cuti karyawan yang rentang tanggalnya beririsan dengan [from, to] — bentuk item sama dengan ListLeaveRequests, non-paginated. Data sumber untuk laporan penggunaan cuti. Query from dan to wajib diisi.",
+        "tags": [
+          "Tenant: Leave & Time Off"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-01"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-31"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Leave usage report (all employees)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LeaveRequestResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -52526,6 +52663,33 @@
                 "example": true
               }
             }
+          }
+        }
+      },
+      "CalendarEntryResponse": {
+        "type": "object",
+        "properties": {
+          "leave_request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "leave_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-01-05"
+          },
+          "day_fraction": {
+            "type": "number",
+            "format": "float",
+            "example": 1.0
+          },
+          "leave_type_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "example": "approved"
           }
         }
       }
