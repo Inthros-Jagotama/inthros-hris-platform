@@ -53,7 +53,7 @@ type AttendanceSessionUpdater interface {
 // of their leave request's approval outcome (docs/module-notification-plan.md
 // §5.2/§8). notification.Service satisfies this structurally.
 type Notifier interface {
-	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) error
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
 }
 
 type Service struct {
@@ -787,25 +787,19 @@ func (s *Service) notifyLeaveOutcome(ctx context.Context, lr *LeaveRequest) {
 		return
 	}
 
-	var notifType, title, body string
+	var notifType string
 	switch lr.Status {
 	case LeaveStatusApprovedFinal:
 		notifType = "LEAVE_APPROVED"
-		title = "Leave Request Approved"
-		body = "Your leave request has been approved."
 	case LeaveStatusRejectedFinal:
 		notifType = "LEAVE_REJECTED"
-		title = "Leave Request Rejected"
-		body = "Your leave request has been rejected."
 	case LeaveStatusCancelled:
 		notifType = "LEAVE_CANCELLED"
-		title = "Leave Request Cancelled"
-		body = "Your leave request has been cancelled."
 	default:
 		return
 	}
 
-	if err := s.notifier.Notify(ctx, *userID, notifType, title, body, "leave", lr.ID); err != nil {
+	if err := s.notifier.Notify(ctx, *userID, notifType, nil, "leave", lr.ID); err != nil {
 		s.logger.Warn("Failed to send leave notification",
 			zap.String("leave_request_id", lr.ID.String()),
 			zap.String("notif_type", notifType),

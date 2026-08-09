@@ -12,22 +12,20 @@ type capturingNotifier struct {
 	calls []struct {
 		recipientUserID uuid.UUID
 		notifType       string
-		title           string
-		body            string
+		params          []string
 		referenceType   string
 		referenceID     uuid.UUID
 	}
 }
 
-func (c *capturingNotifier) Notify(ctx context.Context, recipientUserID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) error {
+func (c *capturingNotifier) Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error {
 	c.calls = append(c.calls, struct {
 		recipientUserID uuid.UUID
 		notifType       string
-		title           string
-		body            string
+		params          []string
 		referenceType   string
 		referenceID     uuid.UUID
-	}{recipientUserID, notifType, title, body, referenceType, referenceID})
+	}{recipientUserID, notifType, params, referenceType, referenceID})
 	return nil
 }
 

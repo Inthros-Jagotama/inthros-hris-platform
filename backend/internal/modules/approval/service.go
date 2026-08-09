@@ -37,7 +37,7 @@ type StatusChangeHandler func(ctx context.Context, documentID uuid.UUID, status 
 // (leave, attendance, payroll, ...) automatically gets "you have a pending
 // approval" notifications without each of them wiring it separately.
 type Notifier interface {
-	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) error
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
 }
 
 // Service untuk business logic Approval Engine.
@@ -122,16 +122,13 @@ func (s *Service) notifyNewTasks(ctx context.Context, instance *ApprovalInstance
 		step := stepByOrder[task.StepOrder]
 
 		notifType := "APPROVAL_TASK_ASSIGNED"
-		title := "Approval Needed"
-		body := fmt.Sprintf("A %s request needs your approval.", instance.Module)
 		if step.ParticipationType == ParticipationTypeWatcher {
 			notifType = "APPROVAL_WATCHER_ASSIGNED"
-			title = "You're Watching an Approval"
-			body = fmt.Sprintf("A %s request has reached a step you're watching.", instance.Module)
 		}
-		if step.StepName != "" {
-			body = fmt.Sprintf("%s (%s)", body, step.StepName)
-		}
+		// Catalog body templates for both types take (module, step_name) —
+		// see notification/i18n.go. Rendered per-recipient in their own
+		// language when they actually view it, not here.
+		params := []string{instance.Module, step.StepName}
 
 		recipients, err := s.resolveNotifyRecipients(ctx, task)
 		if err != nil {
@@ -143,7 +140,7 @@ func (s *Service) notifyNewTasks(ctx context.Context, instance *ApprovalInstance
 			continue
 		}
 		for _, uid := range recipients {
-			if err := s.notifier.Notify(ctx, uid, notifType, title, body, instance.Module, instance.DocumentID); err != nil {
+			if err := s.notifier.Notify(ctx, uid, notifType, params, instance.Module, instance.DocumentID); err != nil {
 				s.logger.Warn("failed to send approval task notification",
 					zap.String("instance_id", instance.ID.String()),
 					zap.String("recipient", uid.String()),

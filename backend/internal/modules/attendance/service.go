@@ -34,7 +34,7 @@ type ApprovalEngine interface {
 // (docs/module-notification-plan.md §5.2/§8, Phase 5). notification.Service
 // satisfies this structurally.
 type Notifier interface {
-	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) error
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
 }
 
 type Service struct {
@@ -65,7 +65,7 @@ func (s *Service) SetNotifier(n Notifier) {
 // account, or Notify fails, this logs and moves on rather than failing the
 // approval itself (docs/module-notification-plan.md's best-effort delivery
 // principle, mirroring leave.Service.notifyLeaveOutcome).
-func (s *Service) notifyRequestOutcome(ctx context.Context, employeeID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) {
+func (s *Service) notifyRequestOutcome(ctx context.Context, employeeID uuid.UUID, notifType, referenceType string, referenceID uuid.UUID) {
 	if s.notifier == nil {
 		return
 	}
@@ -81,7 +81,7 @@ func (s *Service) notifyRequestOutcome(ctx context.Context, employeeID uuid.UUID
 	if userID == nil {
 		return
 	}
-	if err := s.notifier.Notify(ctx, *userID, notifType, title, body, referenceType, referenceID); err != nil {
+	if err := s.notifier.Notify(ctx, *userID, notifType, nil, referenceType, referenceID); err != nil {
 		s.logger.Warn("Failed to send attendance notification",
 			zap.String("notif_type", notifType),
 			zap.String("reference_type", referenceType),
@@ -879,9 +879,9 @@ func (s *Service) handleOvertimeApprovalStatusChange(ctx context.Context, o *Att
 	}
 	switch o.Status {
 	case OvertimeApproved:
-		s.notifyRequestOutcome(ctx, o.EmployeeID, "OVERTIME_APPROVED", "Overtime Request Approved", "Your overtime request has been approved.", "attendance_overtime", o.ID)
+		s.notifyRequestOutcome(ctx, o.EmployeeID, "OVERTIME_APPROVED", "attendance_overtime", o.ID)
 	case OvertimeRejected:
-		s.notifyRequestOutcome(ctx, o.EmployeeID, "OVERTIME_REJECTED", "Overtime Request Rejected", "Your overtime request has been rejected.", "attendance_overtime", o.ID)
+		s.notifyRequestOutcome(ctx, o.EmployeeID, "OVERTIME_REJECTED", "attendance_overtime", o.ID)
 	}
 	return nil
 }
@@ -1063,9 +1063,9 @@ func (s *Service) handleCorrectionApprovalStatusChange(ctx context.Context, c *A
 	}
 	switch c.Status {
 	case CorrectionApproved:
-		s.notifyRequestOutcome(ctx, c.EmployeeID, "CORRECTION_APPROVED", "Attendance Correction Approved", "Your attendance correction request has been approved.", "attendance_correction", c.ID)
+		s.notifyRequestOutcome(ctx, c.EmployeeID, "CORRECTION_APPROVED", "attendance_correction", c.ID)
 	case CorrectionRejected:
-		s.notifyRequestOutcome(ctx, c.EmployeeID, "CORRECTION_REJECTED", "Attendance Correction Rejected", "Your attendance correction request has been rejected.", "attendance_correction", c.ID)
+		s.notifyRequestOutcome(ctx, c.EmployeeID, "CORRECTION_REJECTED", "attendance_correction", c.ID)
 	}
 	return nil
 }

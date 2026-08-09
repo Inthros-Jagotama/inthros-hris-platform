@@ -2,11 +2,14 @@ package notification
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
 // maxMarkAllPageSize bounds how many unread notifications MarkAllAsRead
@@ -25,12 +28,31 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 // Notify creates a new notification for a recipient. It is called by other
 // modules through their local Notifier interface — there is no public HTTP
 // endpoint for creating notifications.
-func (s *Service) Notify(ctx context.Context, recipientUserID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) error {
+//
+// Callers pass notifType + params only, not rendered text — the bilingual
+// title/body are rendered per-request from the catalog in i18n.go, in
+// whatever language the recipient is actually viewing in at the time (their
+// own Accept-Language), which is unknowable at Notify()-time since the
+// creator (e.g. an approver submitting an action) and the recipient are
+// different people who may be using different languages. The English
+// rendering computed here is stored purely as an audit/fallback default.
+func (s *Service) Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error {
+	defaultTitle, defaultBody := translate(httputil.LangEN, notifType, params, notifType, "")
+
+	var paramsJSON *string
+	if len(params) > 0 {
+		if b, err := json.Marshal(params); err == nil {
+			s := string(b)
+			paramsJSON = &s
+		}
+	}
+
 	n := &Notification{
 		RecipientUserID: recipientUserID,
 		Type:            notifType,
-		Title:           title,
-		Body:            body,
+		Title:           defaultTitle,
+		Body:            defaultBody,
+		Params:          paramsJSON,
 		ReferenceType:   &referenceType,
 		ReferenceID:     &referenceID,
 	}
@@ -38,15 +60,35 @@ func (s *Service) Notify(ctx context.Context, recipientUserID uuid.UUID, notifTy
 }
 
 // ListNotifications returns paginated notifications for the given recipient,
-// optionally filtered by read status.
-func (s *Service) ListNotifications(ctx context.Context, recipientUserID uuid.UUID, isRead *bool, page, perPage int) ([]Notification, int64, error) {
+// optionally filtered by read status, with Title/Body re-rendered in `lang`
+// (the recipient's own requested language) rather than whatever was stored
+// at Notify()-time.
+func (s *Service) ListNotifications(ctx context.Context, recipientUserID uuid.UUID, isRead *bool, page, perPage int, lang httputil.Lang) ([]Notification, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if perPage < 1 {
 		perPage = 20
 	}
-	return s.repo.ListNotificationsByRecipient(ctx, recipientUserID, isRead, page, perPage)
+	notifications, total, err := s.repo.ListNotificationsByRecipient(ctx, recipientUserID, isRead, page, perPage)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range notifications {
+		applyTranslation(&notifications[i], lang)
+	}
+	return notifications, total, nil
+}
+
+// applyTranslation overrides a notification's Title/Body in place with the
+// rendering for `lang`, decoding its stored Params (if any) for body
+// placeholder substitution.
+func applyTranslation(n *Notification, lang httputil.Lang) {
+	var params []string
+	if n.Params != nil && *n.Params != "" {
+		_ = json.Unmarshal([]byte(*n.Params), &params)
+	}
+	n.Title, n.Body = translate(lang, n.Type, params, n.Title, n.Body)
 }
 
 // MarkAsRead marks a single notification as read. Only the recipient of the

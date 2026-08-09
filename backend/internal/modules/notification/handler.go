@@ -47,7 +47,7 @@ func (h *Handler) ListNotifications(c *gin.Context) {
 		isRead = &parsed
 	}
 
-	notifications, total, err := h.service.ListNotifications(c.Request.Context(), userID, isRead, page, perPage)
+	notifications, total, err := h.service.ListNotifications(c.Request.Context(), userID, isRead, page, perPage, httputil.GetLang(c))
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return

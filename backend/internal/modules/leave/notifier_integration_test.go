@@ -19,7 +19,7 @@ type fakeNotifyCall struct {
 	referenceID     uuid.UUID
 }
 
-func (f *fakeNotifier) Notify(ctx context.Context, recipientUserID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) error {
+func (f *fakeNotifier) Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error {
 	f.calls = append(f.calls, fakeNotifyCall{recipientUserID, notifType, referenceType, referenceID})
 	return f.err
 }
