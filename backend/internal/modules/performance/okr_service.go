@@ -12,13 +12,13 @@ import (
 
 type OKRService interface {
 	// OKR Templates
-	CreateTemplate(db *gorm.DB, userID uuid.UUID, req *CreateOKRTemplateRequest) (*OKRTemplateResponse, error)
+	CreateTemplate(ctx context.Context, db *gorm.DB, userID uuid.UUID, req *CreateOKRTemplateRequest) (*OKRTemplateResponse, error)
 	GetTemplateByID(db *gorm.DB, id uuid.UUID) (*OKRTemplateResponse, error)
 	GetTemplateWithObjectives(db *gorm.DB, id uuid.UUID) (*OKRTemplateResponse, error)
 	ListTemplates(db *gorm.DB, orgID *uuid.UUID, periodID *uuid.UUID, status *int, page, perPage int) ([]OKRTemplateResponse, int64, error)
-	UpdateTemplate(db *gorm.DB, id uuid.UUID, req *UpdateOKRTemplateRequest) (*OKRTemplateResponse, error)
-	DeleteTemplate(db *gorm.DB, id uuid.UUID) error
-	DuplicateTemplate(db *gorm.DB, id uuid.UUID) (*OKRTemplateResponse, error)
+	UpdateTemplate(db *gorm.DB, id uuid.UUID, userID uuid.UUID, req *UpdateOKRTemplateRequest) (*OKRTemplateResponse, error)
+	DeleteTemplate(db *gorm.DB, id uuid.UUID, userID uuid.UUID) error
+	DuplicateTemplate(db *gorm.DB, id uuid.UUID, userID uuid.UUID) (*OKRTemplateResponse, error)
 
 	// OKR Objectives
 	CreateObjective(db *gorm.DB, req *CreateOKRObjectiveRequest) (*OKRObjectiveResponse, error)
@@ -88,6 +88,7 @@ type OKRService interface {
 
 	// Central approval module integration
 	SetApprovalEngine(engine ApprovalEngine)
+	SetNotifier(n Notifier)
 	HandleKeyResultApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error
 	HandleAssessmentApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error
 }
@@ -102,10 +103,15 @@ const (
 	ApprovalModuleOKRAssessment = "okr_assessment"
 )
 
+// OKRTemplateStatusPublished marks an OKR template as published (status=1),
+// after which it can no longer be edited or deleted. 0 = draft.
+const OKRTemplateStatusPublished = 1
+
 type okrServiceImpl struct {
 	repo           OKRRepository
 	dbResolver     TenantDBFunc
 	approvalEngine ApprovalEngine
+	notifier       Notifier
 }
 
 func NewOKRService(repo OKRRepository, dbResolver TenantDBFunc) OKRService {
@@ -116,6 +122,34 @@ func NewOKRService(repo OKRRepository, dbResolver TenantDBFunc) OKRService {
 // mirrors Service.SetApprovalEngine for KPI.
 func (s *okrServiceImpl) SetApprovalEngine(engine ApprovalEngine) {
 	s.approvalEngine = engine
+}
+
+// SetNotifier wires the notification module into the OKR service so Key
+// Result and assessment approval outcomes can be relayed to the requesting
+// employee (docs/module-notification-plan.md §8, Phase 5) — mirrors
+// Service.SetNotifier for KPI.
+func (s *okrServiceImpl) SetNotifier(n Notifier) {
+	s.notifier = n
+}
+
+// notifyEvaluationOutcome notifies employeeID of an OKR evaluation's
+// approval outcome. Best-effort: if the notifier isn't wired, the employee
+// has no linked user account, or Notify fails, this moves on rather than
+// failing the approval itself — the OKR service has no logger, so failures
+// are intentionally silent (the approval outcome itself is already
+// persisted before this runs, mirroring leave.Service.notifyLeaveOutcome's
+// best-effort discipline). The ctx must carry company_id (it comes from the
+// approval module's push callback) — notification.Service resolves the
+// tenant DB from it.
+func (s *okrServiceImpl) notifyEvaluationOutcome(ctx context.Context, db *gorm.DB, employeeID uuid.UUID, notifType, referenceType string, referenceID uuid.UUID) {
+	if s.notifier == nil {
+		return
+	}
+	userID, err := s.repo.FindUserIDByEmployeeID(db, employeeID)
+	if err != nil || userID == nil {
+		return
+	}
+	_ = s.notifier.Notify(ctx, *userID, notifType, nil, referenceType, referenceID)
 }
 
 // =========================================================================
@@ -195,7 +229,7 @@ func (s *okrServiceImpl) GetObjectiveCreationScope(db *gorm.DB, userID uuid.UUID
 	}, nil
 }
 
-func (s *okrServiceImpl) CreateTemplate(db *gorm.DB, userID uuid.UUID, req *CreateOKRTemplateRequest) (*OKRTemplateResponse, error) {
+func (s *okrServiceImpl) CreateTemplate(ctx context.Context, db *gorm.DB, userID uuid.UUID, req *CreateOKRTemplateRequest) (*OKRTemplateResponse, error) {
 	orgID, err := uuid.Parse(req.OrganizationID)
 	if err != nil {
 		return nil, errors.New("invalid organization_id")
@@ -238,6 +272,10 @@ func (s *okrServiceImpl) CreateTemplate(db *gorm.DB, userID uuid.UUID, req *Crea
 		Description:    req.Description,
 		EffectiveDate:  req.EffectiveDate,
 		ExpiredDate:    req.ExpiredDate,
+		CreatedBy:      userID,
+		// Organisasi pembuat (bukan org template — template dibuat utk org bawahan).
+		// Otorisasi edit/hapus membandingkan org user saat login dengan kolom ini.
+		CreatedByOrgID: ownOrgID,
 	}
 
 	if req.PeriodID != nil {
@@ -256,7 +294,27 @@ func (s *okrServiceImpl) CreateTemplate(db *gorm.DB, userID uuid.UUID, req *Crea
 		return nil, err
 	}
 
+	s.notifyTemplateCreated(ctx, db, template)
 	return s.templateToResponse(template), nil
+}
+
+// notifyTemplateCreated notifies every employee currently occupying the
+// template's Organization that a new OKR template is available for them.
+// Best-effort: a notification failure never fails template creation, and
+// recipients without a linked user account are skipped. The ctx must carry
+// company_id (request context) — notification.Service resolves the tenant DB
+// from it; a bare context.Background() would silently drop every notification.
+func (s *okrServiceImpl) notifyTemplateCreated(ctx context.Context, db *gorm.DB, t *OKRTemplate) {
+	if s.notifier == nil {
+		return
+	}
+	userIDs, err := s.repo.GetUserIDsByOrganization(db, t.OrganizationID)
+	if err != nil {
+		return
+	}
+	for _, uid := range userIDs {
+		_ = s.notifier.Notify(ctx, uid, "OKR_TEMPLATE_CREATED", []string{t.Name}, "okr_template", t.ID)
+	}
 }
 
 func (s *okrServiceImpl) GetTemplateByID(db *gorm.DB, id uuid.UUID) (*OKRTemplateResponse, error) {
@@ -264,7 +322,11 @@ func (s *okrServiceImpl) GetTemplateByID(db *gorm.DB, id uuid.UUID) (*OKRTemplat
 	if err != nil {
 		return nil, err
 	}
-	return s.templateToResponse(template), nil
+	resp := s.templateToResponse(template)
+	if err := s.enrichTemplateResponses(db, []*OKRTemplateResponse{resp}); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (s *okrServiceImpl) GetTemplateWithObjectives(db *gorm.DB, id uuid.UUID) (*OKRTemplateResponse, error) {
@@ -272,7 +334,11 @@ func (s *okrServiceImpl) GetTemplateWithObjectives(db *gorm.DB, id uuid.UUID) (*
 	if err != nil {
 		return nil, err
 	}
-	return s.templateToResponseWithObjectives(template), nil
+	resp := s.templateToResponseWithObjectives(template)
+	if err := s.enrichTemplateResponses(db, []*OKRTemplateResponse{resp}); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (s *okrServiceImpl) ListTemplates(db *gorm.DB, orgID *uuid.UUID, periodID *uuid.UUID, status *int, page, perPage int) ([]OKRTemplateResponse, int64, error) {
@@ -282,16 +348,76 @@ func (s *okrServiceImpl) ListTemplates(db *gorm.DB, orgID *uuid.UUID, periodID *
 	}
 
 	responses := make([]OKRTemplateResponse, len(templates))
+	ptrs := make([]*OKRTemplateResponse, len(templates))
 	for i, t := range templates {
 		responses[i] = *s.templateToResponse(&t)
+		ptrs[i] = &responses[i]
+	}
+	if err := s.enrichTemplateResponses(db, ptrs); err != nil {
+		return nil, 0, err
 	}
 
 	return responses, total, nil
 }
 
-func (s *okrServiceImpl) UpdateTemplate(db *gorm.DB, id uuid.UUID, req *UpdateOKRTemplateRequest) (*OKRTemplateResponse, error) {
+// enrichTemplateResponses mengisi OrganizationName & PeriodCode yang tidak
+// tersedia di model OKRTemplate (butuh lookup lintas tabel organizations dan
+// performance_periods) — pola sama dengan KPI enrichTemplateResponses.
+func (s *okrServiceImpl) enrichTemplateResponses(db *gorm.DB, responses []*OKRTemplateResponse) error {
+	if len(responses) == 0 {
+		return nil
+	}
+
+	orgIDSet := make(map[uuid.UUID]struct{})
+	periodIDSet := make(map[uuid.UUID]struct{})
+	for _, r := range responses {
+		if r.OrganizationID != "" {
+			if id, err := uuid.Parse(r.OrganizationID); err == nil {
+				orgIDSet[id] = struct{}{}
+			}
+		}
+		if r.PeriodID != "" {
+			if id, err := uuid.Parse(r.PeriodID); err == nil {
+				periodIDSet[id] = struct{}{}
+			}
+		}
+	}
+
+	orgIDs := make([]uuid.UUID, 0, len(orgIDSet))
+	for id := range orgIDSet {
+		orgIDs = append(orgIDs, id)
+	}
+	periodIDs := make([]uuid.UUID, 0, len(periodIDSet))
+	for id := range periodIDSet {
+		periodIDs = append(periodIDs, id)
+	}
+
+	orgNames, err := s.repo.GetOrganizationNamesByIDs(db, orgIDs)
+	if err != nil {
+		return err
+	}
+	periodCodes, err := s.repo.GetPeriodCodesByIDs(db, periodIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, r := range responses {
+		r.OrganizationName = orgNames[r.OrganizationID]
+		r.PeriodCode = periodCodes[r.PeriodID]
+	}
+	return nil
+}
+
+func (s *okrServiceImpl) UpdateTemplate(db *gorm.DB, id uuid.UUID, userID uuid.UUID, req *UpdateOKRTemplateRequest) (*OKRTemplateResponse, error) {
 	template, err := s.repo.GetOKRTemplateByID(db, id)
 	if err != nil {
+		return nil, err
+	}
+
+	if template.Status == OKRTemplateStatusPublished {
+		return nil, errors.New("published OKR templates cannot be modified")
+	}
+	if err := s.authorizeTemplateOrg(db, template.CreatedByOrgID, userID); err != nil {
 		return nil, err
 	}
 
@@ -325,13 +451,49 @@ func (s *okrServiceImpl) UpdateTemplate(db *gorm.DB, id uuid.UUID, req *UpdateOK
 	return s.templateToResponse(template), nil
 }
 
-func (s *okrServiceImpl) DeleteTemplate(db *gorm.DB, id uuid.UUID) error {
+func (s *okrServiceImpl) DeleteTemplate(db *gorm.DB, id uuid.UUID, userID uuid.UUID) error {
+	template, err := s.repo.GetOKRTemplateByID(db, id)
+	if err != nil {
+		return err
+	}
+	if template.Status == OKRTemplateStatusPublished {
+		return errors.New("published OKR templates cannot be deleted")
+	}
+	if err := s.authorizeTemplateOrg(db, template.CreatedByOrgID, userID); err != nil {
+		return err
+	}
 	return s.repo.DeleteOKRTemplate(db, id)
 }
 
-func (s *okrServiceImpl) DuplicateTemplate(db *gorm.DB, id uuid.UUID) (*OKRTemplateResponse, error) {
+// authorizeTemplateOrg memastikan user yang sedang login masih berada di
+// organisasi PEMBUAT template (created_by_org_id) sebelum boleh
+// mengubah/menghapusnya. Perbandingan STRICT ke created_by_org_id — tanpa
+// fallback ke organization_id template. Template tanpa created_by_org_id
+// tercatat (legacy) tidak bisa dikelola sama sekali. Aturan berbasis
+// ORGANISASI: karyawan yang sudah pindah organisasi tidak lagi bisa
+// mengubah/menghapus template meskipun dia yang membuatnya.
+func (s *okrServiceImpl) authorizeTemplateOrg(db *gorm.DB, creatorOrgID *uuid.UUID, userID uuid.UUID) error {
+	if creatorOrgID == nil {
+		return errors.New("this OKR template has no recorded creator organization and cannot be managed")
+	}
+	_, orgID, err := s.repo.GetCurrentEmployeeContext(db, userID)
+	if err != nil {
+		return err
+	}
+	if orgID == nil || *orgID != *creatorOrgID {
+		return errors.New("only members of the organization that created this OKR template can modify it")
+	}
+	return nil
+}
+
+func (s *okrServiceImpl) DuplicateTemplate(db *gorm.DB, id uuid.UUID, userID uuid.UUID) (*OKRTemplateResponse, error) {
 	original, err := s.repo.GetOKRTemplateWithObjectives(db, id)
 	if err != nil {
+		return nil, err
+	}
+	// Duplikasi mengikuti aturan otorisasi yang sama dengan edit/hapus — hanya
+	// anggota organisasi pembuat yang boleh menduplikasi template.
+	if err := s.authorizeTemplateOrg(db, original.CreatedByOrgID, userID); err != nil {
 		return nil, err
 	}
 
@@ -343,6 +505,12 @@ func (s *okrServiceImpl) DuplicateTemplate(db *gorm.DB, id uuid.UUID) (*OKRTempl
 		Status:         0,
 		EffectiveDate:  original.EffectiveDate,
 		ExpiredDate:    original.ExpiredDate,
+	}
+	// Duplikat adalah template baru — organisasi pembuatnya mengikuti user yang
+	// melakukan duplikasi (bukan menyalin original), konsisten dengan create.
+	// Best-effort: jika gagal resolve, nil → fallback ke organization_id.
+	if _, creatorOrg, err := s.repo.GetCurrentEmployeeContext(db, userID); err == nil && creatorOrg != nil {
+		newTemplate.CreatedByOrgID = creatorOrg
 	}
 
 	if err := s.repo.CreateOKRTemplate(db, newTemplate); err != nil {
@@ -1254,7 +1422,16 @@ func (s *okrServiceImpl) HandleKeyResultApprovalStatusChange(ctx context.Context
 		return nil
 	}
 
-	return s.repo.UpdateOKREvaluation(db, evaluation)
+	if err := s.repo.UpdateOKREvaluation(db, evaluation); err != nil {
+		return err
+	}
+	switch status {
+	case "APPROVED":
+		s.notifyEvaluationOutcome(ctx, db, evaluation.EmployeeID, "OKR_KEY_RESULT_APPROVED", "okr_key_result", evaluation.ID)
+	case "REJECTED", "CANCELLED":
+		s.notifyEvaluationOutcome(ctx, db, evaluation.EmployeeID, "OKR_KEY_RESULT_REJECTED", "okr_key_result", evaluation.ID)
+	}
+	return nil
 }
 
 // HandleAssessmentApprovalStatusChange is invoked by the approval module's
@@ -1289,7 +1466,16 @@ func (s *okrServiceImpl) HandleAssessmentApprovalStatusChange(ctx context.Contex
 		return nil
 	}
 
-	return s.repo.UpdateOKREvaluation(db, evaluation)
+	if err := s.repo.UpdateOKREvaluation(db, evaluation); err != nil {
+		return err
+	}
+	switch status {
+	case "APPROVED":
+		s.notifyEvaluationOutcome(ctx, db, evaluation.EmployeeID, "OKR_ASSESSMENT_APPROVED", "okr_assessment", evaluation.ID)
+	case "REJECTED", "CANCELLED":
+		s.notifyEvaluationOutcome(ctx, db, evaluation.EmployeeID, "OKR_ASSESSMENT_REJECTED", "okr_assessment", evaluation.ID)
+	}
+	return nil
 }
 
 func (s *okrServiceImpl) CompleteEvaluation(db *gorm.DB, evaluationID uuid.UUID) (*OKREvaluationResponse, error) {
@@ -1568,6 +1754,12 @@ func (s *okrServiceImpl) templateToResponse(t *OKRTemplate) *OKRTemplateResponse
 		Status:         t.Status,
 		CreatedAt:      t.CreatedAt,
 		UpdatedAt:      t.UpdatedAt,
+	}
+	if t.CreatedBy != uuid.Nil {
+		resp.CreatedBy = t.CreatedBy.String()
+	}
+	if t.CreatedByOrgID != nil {
+		resp.CreatedByOrgID = t.CreatedByOrgID.String()
 	}
 	if t.PeriodID != nil {
 		resp.PeriodID = t.PeriodID.String()

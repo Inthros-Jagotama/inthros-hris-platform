@@ -36,6 +36,8 @@ type OKRTemplate struct {
 	Status         int             `gorm:"type:smallint;not null;default:0;index:idx_okr_tpl_status" json:"status"`
 	EffectiveDate  *string         `gorm:"type:date" json:"effective_date,omitempty"`
 	ExpiredDate    *string         `gorm:"type:date" json:"expired_date,omitempty"`
+	CreatedBy      uuid.UUID       `gorm:"type:char(36);index:idx_okr_tpl_created_by" json:"created_by"`
+	CreatedByOrgID *uuid.UUID      `gorm:"type:char(36);index:idx_okr_tpl_created_by_org" json:"created_by_org_id,omitempty"`
 	CreatedAt      time.Time       `json:"created_at"`
 	UpdatedAt      time.Time       `json:"updated_at"`
 	DeletedAt      *gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`

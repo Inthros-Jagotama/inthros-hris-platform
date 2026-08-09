@@ -86,7 +86,7 @@ func (h *OKRHandler) CreateTemplate(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.CreateTemplate(db, h.getUserID(c), &req)
+	result, err := h.service.CreateTemplate(c.Request.Context(), db, h.getUserID(c), &req)
 	if err != nil {
 		httputil.BadRequest(c, err.Error())
 		return
@@ -196,7 +196,7 @@ func (h *OKRHandler) UpdateTemplate(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.UpdateTemplate(db, id, &req)
+	result, err := h.service.UpdateTemplate(db, id, h.getUserID(c), &req)
 	if err != nil {
 		httputil.InternalError(c, err.Error())
 		return
@@ -218,7 +218,7 @@ func (h *OKRHandler) DeleteTemplate(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.DeleteTemplate(db, id); err != nil {
+	if err := h.service.DeleteTemplate(db, id, h.getUserID(c)); err != nil {
 		httputil.InternalError(c, err.Error())
 		return
 	}
@@ -239,7 +239,7 @@ func (h *OKRHandler) DuplicateTemplate(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.DuplicateTemplate(db, id)
+	result, err := h.service.DuplicateTemplate(db, id, h.getUserID(c))
 	if err != nil {
 		httputil.InternalError(c, err.Error())
 		return

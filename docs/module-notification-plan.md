@@ -8,12 +8,12 @@
 | Phase 2 — Notifier Interface & Service Layer | ✅ Selesai | Service `Notify`/`ListNotifications`/`MarkAsRead`/`MarkAllAsRead`/`GetUnreadCount`, `module.go` dengan permissions `notification.view`/`notification.manage`. |
 | Phase 3 — REST API | ✅ Selesai | Handler + routes untuk 4 endpoint, module terdaftar di `main.go` (priority 19). |
 | Phase 4 — Integrasi Leave | ✅ Selesai | `leave.Notifier` + `SetNotifier`, `Notify` dipanggil di `HandleApprovalStatusChange` untuk APPROVED/REJECTED, resolusi `employee_id → user_id` via `employee_accounts`. |
-| Phase 5 — Rollout ke Modul Lain | ⏳ Belum dimulai | |
+| Phase 5 — Rollout ke Modul Lain | 🔄 Sebagian | **Attendance ✅** (Overtime + Correction), **Performance ✅** (KPI target + realization, OKR key result + assessment), dan **Approval engine pusat ✅** (task-assigned untuk approver/watcher semua modul) sudah terintegrasi. Outcome notification untuk Payroll, Employee Movement, Reimbursement ⏳ belum; Recruitment belum tersentuh. Lihat §8/§9. |
 | Phase 6 — Email/Push Delivery | ⏸️ Di luar cakupan | Butuh keputusan provider terpisah. |
 | Phase 7 — Notification Preferences | ⏸️ Di luar cakupan | Ditunda sampai ada kebutuhan bisnis konkret. |
 | Phase FE-1 — Store & Bell Dropdown | ✅ Selesai | `stores/notifications.js` (pola `activeModules.js`, unread count + recent items + polling `setInterval` 60s), bell di `HeaderBar.vue` kini interaktif (Popover dropdown, badge dinamis, mark-all-as-read). |
 | Phase FE-2 — Halaman Notifikasi Penuh | ✅ Selesai | `views/modules/Notifications.vue` (list paginated, filter All/Unread, mark-as-read per baris + bulk), route `/notifications` (`meta.module:'notification'`), entri sidebar, locale `notification.*` (en/id). |
-| Phase FE-3 — Deep-link per reference_type | ⏳ Belum dimulai | Lihat §13.6. Ditunda sampai lebih banyak modul FE (Attendance, Payroll, dll.) punya halaman detail sendiri. |
+| Phase FE-3 — Deep-link per reference_type | 🔄 Sebagian | Deep-link `leave` → `/leave` sudah aktif di `Notifications.vue` (`handleRowClick`). Attendance/payroll/dst. belum — menunggu halaman detail FE masing-masing. Lihat §13.6. |
 
 ## 1. Objective
 
@@ -112,18 +112,26 @@ type Service struct {
     logger *zap.Logger
 }
 
-func (s *Service) Notify(ctx context.Context, recipientUserID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) error {
+// Deviasi dari desain awal: caller mengirim notifType + params (bukan
+// title/body yang sudah dirender). Title/body bilingual dirender saat
+// dibaca (GET /notifications) dari katalog i18n.go — lihat catatan di bawah.
+func (s *Service) Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error {
     n := &Notification{
         RecipientUserID: recipientUserID,
         Type:            notifType,
-        Title:           title,
-        Body:            body,
+        Params:          &paramsJSON, // optional, json.Marshal(params)
         ReferenceType:   &referenceType,
         ReferenceID:     &referenceID,
     }
     return s.repo.CreateNotification(ctx, n)
 }
 ```
+
+**Deviasi implementasi (dari desain awal §5.1):** signature `Notify` berubah dari `(notifType, title, body, ...)` menjadi `(notifType, params []string, ...)`. Title/body **tidak dikirim oleh caller** — kolom `title`/`body` diisi dengan rendering bahasa Inggris (fallback/audit), dan teks bilingual sebenarnya dirender saat user membaca list (`notification/i18n.go` — `catalog` berisi template title/body EN/ID per tipe, placeholder `%s` diisi dari `params`, dan dirender dalam bahasa **penerima** berdasarkan `Accept-Language` request-nya, bukan bahasa pemicunya). Tipe tanpa entri katalog fallback ke teks default yang disimpan.
+
+Katalog saat ini berisi 19 tipe: `LEAVE_APPROVED`, `LEAVE_REJECTED`, `LEAVE_CANCELLED`, `OVERTIME_APPROVED`, `OVERTIME_REJECTED`, `CORRECTION_APPROVED`, `CORRECTION_REJECTED`, `KPI_TARGET_APPROVED`, `KPI_TARGET_REJECTED`, `KPI_REALIZATION_APPROVED`, `KPI_REALIZATION_REJECTED`, `OKR_KEY_RESULT_APPROVED`, `OKR_KEY_RESULT_REJECTED`, `OKR_ASSESSMENT_APPROVED`, `OKR_ASSESSMENT_REJECTED`, `KPI_TEMPLATE_CREATED`, `OKR_TEMPLATE_CREATED`, `APPROVAL_TASK_ASSIGNED`, `APPROVAL_WATCHER_ASSIGNED`.
+
+Selain outcome notifikasi, modul Performance juga memakai notifier untuk **pemberitahuan template** (migration `077_performance_template_created_by`): saat template KPI/OKR dibuat, semua karyawan yang menempati organisasi template dinotifikasi (`KPI_TEMPLATE_CREATED`/`OKR_TEMPLATE_CREATED`, reference `performance_kpi_template`/`okr_template`, params `[nama template]`). Kolom `created_by` disimpan untuk audit/riwayat, dan **organisasi pembuat disimpan di kolom `created_by_org_id`** (migration `078_performance_template_created_by_org`) — diisi dari organisasi user yang pertama membuat saat create (posisi jabatan terakhir dengan `effective_end_date IS NULL`). **Otorisasi edit/hapus/duplikasi membandingkan organisasi user saat login dengan `created_by_org_id` secara STRICT (tanpa fallback ke `organization_id`)**: hanya user yang saat ini berada di organisasi pembuat yang boleh mengelola — jika karyawan sudah pindah organisasi, dia tidak lagi bisa mengubah/menghapus template meskipun dia yang membuatnya. Untuk template yang dibuat untuk organisasi bawahan (mis. OKR/KPI dibuat oleh user di root org untuk sub org), anggota sub org **tidak** bisa mengelola — hanya anggota organisasi pembuat. Template legacy (tanpa `created_by_org_id` tercatat) **tidak bisa dikelola sama sekali** (read-only) — tidak ada fallback. Template berstatus PUBLISHED tidak bisa diedit/dihapus sama sekali. Frontend (`KPITemplates.vue`/`OKRTemplates.vue`) menyembunyikan tombol edit/duplicate/delete (menampilkan ikon lock + tooltip) saat `created_by_org_id` ≠ organisasi user dari `my-context` (strict, tanpa fallback); fail-open hanya saat `my-context` gagal di-resolve. Duplikasi template OKR (`DuplicateTemplate`) maupun KPI (`DuplicatePerformanceTemplate` — endpoint `POST /performance/kpi/templates/:id/duplicate`, menyalin template + seluruh indicator, status DRAFT, nama + " (Copy)") juga mencatat organisasi pembuat dari user yang melakukan duplikasi (konsisten dengan create).
 
 ## 5.2 Interface di sisi consumer (contoh: Leave)
 
@@ -132,7 +140,7 @@ Setiap modul consumer mendefinisikan interface sempit miliknya sendiri (persis s
 ```go
 // leave/service.go
 type Notifier interface {
-    Notify(ctx context.Context, recipientUserID uuid.UUID, notifType, title, body, referenceType string, referenceID uuid.UUID) error
+    Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
 }
 
 func (s *Service) SetNotifier(n Notifier) {
@@ -147,9 +155,10 @@ func (s *Service) SetNotifier(n Notifier) {
 ```go
 notificationSvc := notification.NewService(notificationRepo, l.Named("notification"))
 
-leaveSvc.SetNotifier(notificationSvc)
-attendanceSvc.SetNotifier(notificationSvc)
-payrollSvc.SetNotifier(notificationSvc)
+approvalSvc.SetNotifier(notificationSvc)   // ✅ task-assigned, semua modul lewat engine
+leaveSvc.SetNotifier(notificationSvc)      // ✅ outcome
+attendanceSvc.SetNotifier(notificationSvc) // ✅ outcome
+// payrollSvc.SetNotifier(notificationSvc) // ⏳ belum — pola sama, tinggal 1 baris
 // dst. — satu baris per modul consumer, sama seperti wiring ApprovalEngine
 ```
 
@@ -158,8 +167,8 @@ payrollSvc.SetNotifier(notificationSvc)
 # 6. Service Layer
 
 ```text
-CreateNotification(ctx, recipientUserID, type, title, body, referenceType, referenceID) — dipanggil lewat Notify(), bukan endpoint HTTP
-ListNotifications(ctx, recipientUserID, isRead *bool, page, perPage) — paginated, filter opsional oleh status baca
+CreateNotification(ctx, recipientUserID, type, params, referenceType, referenceID) — dipanggil lewat Notify(), bukan endpoint HTTP
+ListNotifications(ctx, recipientUserID, isRead *bool, page, perPage, lang) — paginated, filter opsional oleh status baca; title/body dirender ulang dalam bahasa `lang` (penerima)
 MarkAsRead(ctx, notificationID, recipientUserID)
 MarkAllAsRead(ctx, recipientUserID)
 GetUnreadCount(ctx, recipientUserID)
@@ -187,23 +196,47 @@ POST  /api/v1/tenant/notifications/read-all         -- tandai semua sebagai diba
 Berdasarkan kode yang sudah ada dari pekerjaan sesi ini terhadap Leave dan Attendance, berikut titik pemicu `Notify(...)` yang bisa langsung dipasang begitu modul ini ada — semuanya sudah punya call site untuk `ApprovalEngine`, tinggal ditambahkan pemanggilan `Notify` di titik yang sama:
 
 ```text
-leave.Service.HandleApprovalStatusChange
+[✅ TERPASANG] leave.Service.HandleApprovalStatusChange
     → APPROVED: Notify(employee, "LEAVE_APPROVED", ...)
     → REJECTED: Notify(employee, "LEAVE_REJECTED", ...)
+    → CANCELLED: Notify(employee, "LEAVE_CANCELLED", ...)
 
-attendance.Service.HandleApprovalStatusChange (overtime)
+[✅ TERPASANG] attendance.Service.HandleApprovalStatusChange (overtime)
     → APPROVED: Notify(employee, "OVERTIME_APPROVED", ...)
     → REJECTED: Notify(employee, "OVERTIME_REJECTED", ...)
 
-attendance.Service.HandleApprovalStatusChange (correction)
+[✅ TERPASANG] attendance.Service.HandleApprovalStatusChange (correction)
     → APPROVED: Notify(employee, "CORRECTION_APPROVED", ...)
     → REJECTED: Notify(employee, "CORRECTION_REJECTED", ...)
 
-payroll (approval flow serupa, pola sama)
-performance/kpi, performance/okr (approval flow serupa, pola sama)
+[✅ TERPASANG] approval.Service.notifyNewTasks (task-assigned, SEMUA modul)
+    → APPROVAL_TASK_ASSIGNED   — task approver baru (APPROVER_USER/ROLE/ORGANIZATION)
+    → APPROVAL_WATCHER_ASSIGNED — task watcher baru (WATCHER)
+
+[✅ TERPASANG] performance.Service.HandleTargetApprovalStatusChange (KPI target)
+    → APPROVED: Notify(employee, "KPI_TARGET_APPROVED", ...)
+    → REJECTED/CANCELLED: Notify(employee, "KPI_TARGET_REJECTED", ...)
+
+[✅ TERPASANG] performance.Service.HandleRealizationApprovalStatusChange (KPI realization)
+    → APPROVED: Notify(employee, "KPI_REALIZATION_APPROVED", ...)
+    → REJECTED/CANCELLED: Notify(employee, "KPI_REALIZATION_REJECTED", ...)
+
+[✅ TERPASANG] performance.okrServiceImpl.HandleKeyResultApprovalStatusChange (OKR key result)
+    → APPROVED: Notify(employee, "OKR_KEY_RESULT_APPROVED", ...)
+    → REJECTED/CANCELLED: Notify(employee, "OKR_KEY_RESULT_REJECTED", ...)
+
+[✅ TERPASANG] performance.okrServiceImpl.HandleAssessmentApprovalStatusChange (OKR assessment)
+    → APPROVED: Notify(employee, "OKR_ASSESSMENT_APPROVED", ...)
+    → REJECTED/CANCELLED: Notify(employee, "OKR_ASSESSMENT_REJECTED", ...)
+
+[⏳ BELUM] payroll (approval flow serupa, pola sama)
+[⏳ BELUM] employeemovement, reimbursement
+[⏳ BELUM] recruitment (belum ada integrasi approval sama sekali)
 ```
 
 Semua titik ini butuh resolusi `employee_id → user_id` (lewat `useraccount`), yang sudah jadi konvensi baku di `approval` module — bukan konsep baru.
+
+**Deviasi penting dari desain awal:** selain outcome-notification per modul (§8 asli), pendekatan yang diimplementasikan menambahkan **notifikasi task-assigned dari Approval engine pusat** (`approval.Service.SetNotifier` + `notifyNewTasks`). Artinya: begitu sebuah instance approval dibuat/lanjut ke step berikutnya, semua approver/watcher yang mendapat task PENDING baru langsung dinotifikasi (`APPROVAL_TASK_ASSIGNED`/`APPROVAL_WATCHER_ASSIGNED`) — otomatis mencakup **semua modul** yang dirutekan lewat engine (leave, attendance, payroll, performance, employeemovement, reimbursement) tanpa tiap modul consumer harus wiring sendiri. `reference_type`/`reference_id` menunjuk ke dokumen modul pemilik (mis. `leave`/leave_request_id), bukan instance approval — konsisten dengan outcome notification sehingga FE bisa deep-link ke record yang sama. Yang **belum** terpasang hanyalah outcome notification (approved/rejected ke pengaju) untuk payroll, employeemovement, reimbursement — modul-modul itu sudah menerima notifikasi task approval secara tidak langsung lewat engine pusat. (Performance/KPI + OKR sudah selesai, termasuk `reference_type` `performance_kpi_target`/`performance_kpi_realization`/`okr_key_result`/`okr_assessment` yang konsisten dengan task-assigned engine pusat.)
 
 ---
 
@@ -236,14 +269,19 @@ Semua titik ini butuh resolusi `employee_id → user_id` (lewat `useraccount`), 
 
 * ✅ `leave.Notifier` interface (`backend/internal/modules/leave/service.go`) + `SetNotifier` — `notification.Service` memenuhinya secara struktural, tanpa import eksplisit satu sama lain.
 * ✅ `leave.Repository.FindUserIDByEmployeeID` — resolusi `employee_id → user_id` lewat tabel `employee_accounts`, mengikuti konvensi yang sama dengan `approval.GetUserIDsByOrganization`.
-* ✅ `HandleApprovalStatusChange` memanggil `Notify` lewat helper `notifyLeaveOutcome` untuk transisi ke `APPROVED_FINAL` (`LEAVE_APPROVED`) dan `REJECTED_FINAL` (`LEAVE_REJECTED`) — best-effort: jika notifier belum wired, employee tidak punya user account, atau `Notify` gagal, hanya di-log dan tidak menggagalkan approval itu sendiri.
+* ✅ `HandleApprovalStatusChange` memanggil `Notify` lewat helper `notifyLeaveOutcome` untuk transisi ke `APPROVED_FINAL` (`LEAVE_APPROVED`), `REJECTED_FINAL` (`LEAVE_REJECTED`), dan `CANCELLED` (`LEAVE_CANCELLED`) — best-effort: jika notifier belum wired, employee tidak punya user account, atau `Notify` gagal, hanya di-log dan tidak menggagalkan approval itu sendiri.
 * ✅ Wiring di `cmd/server/main.go`: `notificationSvc` dikonstruksi di awal lalu `leaveSvc.SetNotifier(notificationSvc)` sebelum module leave/notification di-mount.
 * ✅ Test integrasi (`notifier_integration_test.go`): notify terkirim ke `recipient_user_id` yang benar saat approved, notify di-skip saat employee tidak punya user account, dan kegagalan `Notify` tidak menggagalkan `HandleApprovalStatusChange`.
 * Dipilih sebagai modul consumer pertama karena Leave adalah modul paling matang dari pekerjaan sesi ini (approval integration + balance + calculation engine semua sudah selesai) — integrasi notifikasi jadi validasi paling murah risikonya.
 
-## Phase 5 - Rollout ke Modul Lain
+## Phase 5 - Rollout ke Modul Lain 🔄 Sebagian
 
-* Attendance (Overtime + Correction), Payroll, Performance/KPI, Performance/OKR, Employee Movement, Reimbursement — masing-masing menambahkan `Notifier` interface lokal + wiring, mengikuti pola Phase 4.
+* ✅ **Attendance (Overtime + Correction)** — `attendance.Notifier` interface + `SetNotifier` di `attendance/service.go`, wiring `attendanceSvc.SetNotifier(notificationSvc)` di `cmd/server/main.go`, outcome notification via `HandleApprovalStatusChange` (OVERTIME_APPROVED/REJECTED, CORRECTION_APPROVED/REJECTED) + test integrasi `notifier_integration_test.go` (mengikuti pola persis Phase 4).
+* ✅ **Performance — KPI (target + realization)** — `Notifier` interface (satu definisi di `performance/service.go`, dipakai KPI & OKR) + `SetNotifier` + helper `notifyEvaluationOutcome` di `performance/service.go`, `Repository.FindUserIDByEmployeeID` di `performance/repository.go`, wiring `performanceSvc.SetNotifier(notificationSvc)` di `cmd/server/main.go`. Outcome notification di `HandleTargetApprovalStatusChange` (KPI_TARGET_APPROVED/REJECTED, reference `performance_kpi_target`) dan `HandleRealizationApprovalStatusChange` (KPI_REALIZATION_APPROVED/REJECTED, reference `performance_kpi_realization`).
+* ✅ **Performance — OKR (key result + assessment)** — `SetNotifier` di interface `OKRService` + impl di `okrServiceImpl`, helper `notifyEvaluationOutcome`, `OKRRepository.FindUserIDByEmployeeID` di `performance/okr_repository.go`, wiring `okrSvc.SetNotifier(notificationSvc)` di `cmd/server/main.go`. Outcome notification di `HandleKeyResultApprovalStatusChange` (OKR_KEY_RESULT_APPROVED/REJECTED, reference `okr_key_result`) dan `HandleAssessmentApprovalStatusChange` (OKR_ASSESSMENT_APPROVED/REJECTED, reference `okr_assessment`). Test integrasi `performance/notifier_integration_test.go` (11 kasus: KPI target/realization + OKR key result/assessment — approved/rejected, skip tanpa user account, kegagalan notify tidak menggagalkan approval).
+* ✅ **Approval engine pusat (task-assigned untuk semua modul)** — `approval.Notifier` + `SetNotifier` + `notifyNewTasks` di `approval/service.go`, wiring `approvalSvc.SetNotifier(notificationSvc)` di `main.go`. Deviasi dari plan asli: bukan hanya outcome per modul, engine pusat juga mengirim `APPROVAL_TASK_ASSIGNED`/`APPROVAL_WATCHER_ASSIGNED` untuk setiap task PENDING baru. Karena hampir semua modul consumer (leave, payroll, attendance, performance, employeemovement, reimbursement) sudah dirutekan lewat engine ini, notifikasi "perlu persetujuan Anda" otomatis terkirim tanpa wiring tambahan per modul.
+* ⏳ **Belum** — outcome notification (approved/rejected ke pengaju) untuk: Payroll, Employee Movement, Reimbursement. Modul-modul ini sudah punya `HandleApprovalStatusChange` terdaftar di `main.go` dan sudah menerima task-assigned notification dari engine pusat; tinggal meniru pola `notifyLeaveOutcome`/`notifyEvaluationOutcome` (interface `Notifier` lokal + `SetNotifier` + panggil `Notify` pada status final).
+* ⏳ **Belum tersentuh** — Recruitment (belum ada integrasi approval/notifier sama sekali).
 
 ## Phase 6 - Email/Push Delivery (di luar cakupan pass ini)
 
@@ -312,7 +350,7 @@ Semua titik ini butuh resolusi `employee_id → user_id` (lewat `useraccount`), 
 
 ## 13.1 Ringkasan & Prinsip
 
-Backend sudah lengkap sampai Phase 4 (schema, service, 4 endpoint REST, Leave sudah jadi consumer pertama). **Update: FE-1 dan FE-2 sudah selesai diimplementasikan** — bagian di bawah ini (kondisi awal) dipertahankan sebagai catatan historis kenapa plan ini dibuat:
+Backend sudah lengkap sampai Phase 4 (schema, service, 4 endpoint REST, Leave sudah jadi consumer pertama) **dan Phase 5 sebagian (Attendance + Approval engine pusat task-assigned, lihat §8/§9)**. **Update: FE-1 dan FE-2 sudah selesai diimplementasikan** — bagian di bawah ini (kondisi awal) dipertahankan sebagai catatan historis kenapa plan ini dibuat:
 
 * ~~`frontend/tenant/src/layouts/HeaderBar.vue:146-156` punya bell icon, tapi murni kosmetik: `Button icon="pi pi-bell"` + `Badge value="3"` dengan angka **hardcoded**, tanpa `@click`, tanpa dropdown/panel, tanpa pemanggilan API sama sekali.~~ → sudah interaktif, lihat §13.2/§13.3.
 * ~~Tidak ada route apapun yang menyebut "notification" di `router/index.js`.~~ → route `/notifications` sudah ditambahkan.
@@ -378,7 +416,7 @@ Response envelope sama dengan modul lain (`success`/`data`/`page`/`per_page`/`to
 
 * **Phase FE-1 — Store & Bell Dropdown ✅ Selesai**: `stores/notifications.js` (unread-count + recent list + polling `setInterval` 60s, pola `activeModules.js`) dan bell interaktif di `HeaderBar.vue` (`Popover` dropdown, badge dinamis, mark-as-read per item, mark-all-as-read).
 * **Phase FE-2 — Halaman Notifikasi Penuh ✅ Selesai**: `views/modules/Notifications.vue` (list paginated lazy `DataTable`, filter All/Unread via `is_read`, mark-as-read per baris + bulk) + route `/notifications` (`meta.module:'notification'`) + entri sidebar (Operations, gated `notification.view`) + locale keys `notification.*`/`nav.notification` (en/id). Reset store diwire ke logout guard yang sama dengan `useActiveModules().reset()`.
-* **Phase FE-3 (opsional, nanti)** — deep-link ke halaman detail per `reference_type` begitu makin banyak modul FE (Attendance, Payroll, dll.) punya halaman detail sendiri. **Belum dikerjakan** — `Notifications.vue` saat ini hanya menangani navigasi untuk `reference_type=leave` (satu-satunya modul FE yang sudah punya halaman relevan), dicatat sebagai perluasan alami, bukan bagian dari FE-1/FE-2.
+* **Phase FE-3 (opsional, nanti) 🔄 Sebagian** — deep-link ke halaman detail per `reference_type` begitu makin banyak modul FE (Attendance, Payroll, dll.) punya halaman detail sendiri. **Status saat ini:** `Notifications.vue` `handleRowClick` sudah menavigasi `reference_type=leave` → `/leave` (satu-satunya modul FE yang sudah punya halaman relevan); attendance/overtime/correction, payroll, dll. masih "mark read only" tanpa navigasi — dicatat sebagai perluasan alami, bukan bagian dari FE-1/FE-2.
 * **Di luar cakupan eksplisit**: browser push notification/service worker, UI notification preferences (backend §3.2/Phase 7 juga di luar cakupan), email digest.
 
 **Catatan implementasi (deviasi kecil dari desain awal di §13.1-13.5):** endpoint `GET /notifications` dan `GET /notifications/unread-count` ternyata membungkus payload satu level lebih dalam dari kebanyakan endpoint list lain di aplikasi ini — `{success, data: {data, total, page, per_page}}`, bukan `{success, data, total, page, per_page}`. Store (`stores/notifications.js`) dan halaman (`Notifications.vue`) sudah menangani ini secara eksplisit (lihat komentar inline di kedua file).

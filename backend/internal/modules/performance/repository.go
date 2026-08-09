@@ -346,11 +346,69 @@ func (r *Repository) GetCurrentEmployeeContextByUserID(ctx context.Context, user
 	return &empID, &orgID, nil
 }
 
+// GetUserIDsByOrganization mengembalikan platform user ID (bukan employee ID)
+// dari employee yang saat ini menempati sebuah Organization:
+// organization_id -> employments (current) -> employee_id -> employee_accounts
+// -> user_id. Dipakai untuk mengirim notifikasi "template tersedia" ke semua
+// karyawan organisasi template (pola sama approval.Repository).
+func (r *Repository) GetUserIDsByOrganization(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var userIDStrs []string
+	err = db.WithContext(ctx).Table("employments AS emp").
+		Joins("JOIN employee_accounts AS ea ON ea.employee_id = emp.employee_id").
+		Where("emp.organization_id = ? AND (emp.effective_end_date IS NULL)", orgID).
+		Distinct().
+		Pluck("ea.user_id", &userIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve organization assignees: %w", err)
+	}
+	userIDs := make([]uuid.UUID, 0, len(userIDStrs))
+	for _, s := range userIDStrs {
+		id, err := uuid.Parse(s)
+		if err != nil {
+			return nil, fmt.Errorf("invalid user id: %w", err)
+		}
+		userIDs = append(userIDs, id)
+	}
+	return userIDs, nil
+}
+
 // GetPeriodCodesByIDs mengambil period_code untuk sekumpulan performance_periods ID.
 // ratingMeta carries the rating fields a list row needs for display.
 type ratingMeta struct {
 	Name  string
 	Color string
+}
+
+// FindUserIDByEmployeeID resolves an employee's platform user_id via
+// employee_accounts, mirroring the employee_id -> user_id resolution already
+// used by the approval module (GetUserIDsByOrganization) and by
+// leave.Repository.FindUserIDByEmployeeID / attendance.Repository.
+// Returns nil if the employee has no linked user account.
+func (r *Repository) FindUserIDByEmployeeID(ctx context.Context, employeeID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var userIDStrs []string
+	err = db.WithContext(ctx).Table("employee_accounts").
+		Where("employee_id = ?", employeeID).
+		Limit(1).
+		Pluck("user_id", &userIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve employee user id: %w", err)
+	}
+	if len(userIDStrs) == 0 || userIDStrs[0] == "" {
+		return nil, nil
+	}
+	userID, err := uuid.Parse(userIDStrs[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id: %w", err)
+	}
+	return &userID, nil
 }
 
 // GetRatingsByIDs mengambil name+color untuk sekumpulan rating ID.

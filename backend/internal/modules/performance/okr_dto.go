@@ -37,6 +37,8 @@ type OKRTemplateResponse struct {
 	EffectiveDate    string                 `json:"effective_date,omitempty"`
 	ExpiredDate      string                 `json:"expired_date,omitempty"`
 	ObjectiveCount   int                    `json:"objective_count,omitempty"`
+	CreatedBy        string                 `json:"created_by"`
+	CreatedByOrgID   string                 `json:"created_by_org_id,omitempty"`
 	CreatedAt        time.Time              `json:"created_at"`
 	UpdatedAt        time.Time              `json:"updated_at"`
 	Objectives       []OKRObjectiveResponse `json:"objectives,omitempty"`

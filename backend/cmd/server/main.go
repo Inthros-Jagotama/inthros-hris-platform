@@ -561,6 +561,7 @@ func main() {
 	performanceRepo := performance.NewRepository(performanceResolver)
 	performanceSvc := performance.NewService(performanceRepo, l.Named("performance"))
 	performanceSvc.SetApprovalEngine(sharedApprovalEngine)
+	performanceSvc.SetNotifier(notificationSvc)
 	approvalSvc.RegisterStatusHandler(performance.ApprovalModuleKPITarget, func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return performanceSvc.HandleTargetApprovalStatusChange(ctx, documentID, string(status), note)
 	})
@@ -576,6 +577,7 @@ func main() {
 	okrRepo := performance.NewOKRRepository()
 	okrSvc := performance.NewOKRService(okrRepo, performanceResolver)
 	okrSvc.SetApprovalEngine(sharedApprovalEngine)
+	okrSvc.SetNotifier(notificationSvc)
 	approvalSvc.RegisterStatusHandler(performance.ApprovalModuleOKRKeyResult, func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return okrSvc.HandleKeyResultApprovalStatusChange(ctx, documentID, string(status), note)
 	})

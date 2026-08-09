@@ -52,6 +52,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			kpi.GET("/templates/:id", handler.GetPerformanceTemplateByID)
 			kpi.PUT("/templates/:id", handler.UpdatePerformanceTemplate)
 			kpi.DELETE("/templates/:id", handler.DeletePerformanceTemplate)
+			kpi.POST("/templates/:id/duplicate", handler.DuplicatePerformanceTemplate)
 
 			// Performance Indicators (KPI Indicators)
 			kpi.POST("/indicators", handler.CreatePerformanceIndicator)

@@ -1,6 +1,7 @@
 package performance
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -38,7 +39,7 @@ func TestOKRService_TopOfHierarchy_CanCreateForDirectSubordinate(t *testing.T) {
 		t.Fatalf("expected exactly the direct subordinate, got %+v", scope.SubordinateOrganizations)
 	}
 
-	if _, err := svc.CreateTemplate(db, rootUserID, &CreateOKRTemplateRequest{
+	if _, err := svc.CreateTemplate(context.Background(), db, rootUserID, &CreateOKRTemplateRequest{
 		OrganizationID: subOrgID.String(),
 		Name:           "Subordinate Objective",
 	}); err != nil {
@@ -60,7 +61,7 @@ func TestOKRService_CannotCreateForOwnOrganization(t *testing.T) {
 	seedOKREmployment(t, db, rootEmployeeID, rootOrgID)
 	seedOKREmployeeAccount(t, db, rootEmployeeID, rootUserID)
 
-	if _, err := svc.CreateTemplate(db, rootUserID, &CreateOKRTemplateRequest{
+	if _, err := svc.CreateTemplate(context.Background(), db, rootUserID, &CreateOKRTemplateRequest{
 		OrganizationID: rootOrgID.String(),
 		Name:           "Self Objective",
 	}); err == nil {
@@ -85,7 +86,7 @@ func TestOKRService_CannotCreateForNonSubordinate(t *testing.T) {
 	seedOKREmployment(t, db, rootEmployeeID, rootOrgID)
 	seedOKREmployeeAccount(t, db, rootEmployeeID, rootUserID)
 
-	if _, err := svc.CreateTemplate(db, rootUserID, &CreateOKRTemplateRequest{
+	if _, err := svc.CreateTemplate(context.Background(), db, rootUserID, &CreateOKRTemplateRequest{
 		OrganizationID: unrelatedOrgID.String(),
 		Name:           "Cross-hierarchy Objective",
 	}); err == nil {
@@ -123,7 +124,7 @@ func TestOKRService_MiddleEmployee_RequiresOwnObjectiveFirst(t *testing.T) {
 	if scope.Eligible {
 		t.Fatal("expected middle-of-hierarchy employee without their own Objective to be ineligible")
 	}
-	if _, err := svc.CreateTemplate(db, middleUserID, &CreateOKRTemplateRequest{
+	if _, err := svc.CreateTemplate(context.Background(), db, middleUserID, &CreateOKRTemplateRequest{
 		OrganizationID: leafOrgID.String(),
 		Name:           "Leaf Objective",
 	}); err == nil {
@@ -135,7 +136,7 @@ func TestOKRService_MiddleEmployee_RequiresOwnObjectiveFirst(t *testing.T) {
 	rootUserID := uuid.New()
 	seedOKREmployment(t, db, rootEmployeeID, rootOrgID)
 	seedOKREmployeeAccount(t, db, rootEmployeeID, rootUserID)
-	tmpl, err := svc.CreateTemplate(db, rootUserID, &CreateOKRTemplateRequest{
+	tmpl, err := svc.CreateTemplate(context.Background(), db, rootUserID, &CreateOKRTemplateRequest{
 		OrganizationID: middleOrgID.String(),
 		Name:           "Middle Objective",
 		Status:         intPtr(1),
@@ -159,7 +160,7 @@ func TestOKRService_MiddleEmployee_RequiresOwnObjectiveFirst(t *testing.T) {
 	if !scope.Eligible {
 		t.Fatalf("expected middle-of-hierarchy employee to become eligible after receiving their own Objective, reason: %s", scope.IneligibleReasonKey)
 	}
-	if _, err := svc.CreateTemplate(db, middleUserID, &CreateOKRTemplateRequest{
+	if _, err := svc.CreateTemplate(context.Background(), db, middleUserID, &CreateOKRTemplateRequest{
 		OrganizationID: leafOrgID.String(),
 		Name:           "Leaf Objective",
 	}); err != nil {
@@ -199,7 +200,7 @@ func TestOKRService_WalkDownSkipsVacantDirectChild(t *testing.T) {
 		t.Fatalf("expected walk-down to reach the occupied grandchild, got %+v", scope.SubordinateOrganizations)
 	}
 
-	if _, err := svc.CreateTemplate(db, rootUserID, &CreateOKRTemplateRequest{
+	if _, err := svc.CreateTemplate(context.Background(), db, rootUserID, &CreateOKRTemplateRequest{
 		OrganizationID: occupiedGrandchildOrgID.String(),
 		Name:           "Grandchild Objective",
 	}); err != nil {

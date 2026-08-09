@@ -40,10 +40,20 @@ const (
 	ApprovalModuleKPIRealization = "performance_kpi_realization"
 )
 
+// Notifier abstracts the notification module so Performance can notify an
+// employee of their KPI evaluation's approval outcome
+// (docs/module-notification-plan.md §5.2/§8, Phase 5). notification.Service
+// satisfies this structurally — the same narrow-interface-plus-adapter
+// pattern leave.Notifier / attendance.Notifier use.
+type Notifier interface {
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
+}
+
 type Service struct {
 	repo           *Repository
 	logger         *zap.Logger
 	approvalEngine ApprovalEngine
+	notifier       Notifier
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -53,6 +63,44 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 // SetApprovalEngine wires the central approval module into this service.
 func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 	s.approvalEngine = ae
+}
+
+// SetNotifier wires the notification module into this service so KPI target
+// and realization approval outcomes can be relayed to the requesting
+// employee (docs/module-notification-plan.md §8, Phase 5).
+func (s *Service) SetNotifier(n Notifier) {
+	s.notifier = n
+}
+
+// notifyEvaluationOutcome notifies employeeID of a KPI evaluation's approval
+// outcome. Best-effort: if the notifier isn't wired, the employee has no
+// linked user account, or Notify fails, this logs and moves on rather than
+// failing the approval itself (docs/module-notification-plan.md's best-effort
+// delivery principle, mirroring leave.Service.notifyLeaveOutcome).
+func (s *Service) notifyEvaluationOutcome(ctx context.Context, employeeID uuid.UUID, notifType, referenceType string, referenceID uuid.UUID) {
+	if s.notifier == nil {
+		return
+	}
+	userID, err := s.repo.FindUserIDByEmployeeID(ctx, employeeID)
+	if err != nil {
+		s.logger.Warn("Failed to resolve employee user id for performance notification",
+			zap.String("reference_type", referenceType),
+			zap.String("reference_id", referenceID.String()),
+			zap.Error(err),
+		)
+		return
+	}
+	if userID == nil {
+		return
+	}
+	if err := s.notifier.Notify(ctx, *userID, notifType, nil, referenceType, referenceID); err != nil {
+		s.logger.Warn("Failed to send performance notification",
+			zap.String("notif_type", notifType),
+			zap.String("reference_type", referenceType),
+			zap.String("reference_id", referenceID.String()),
+			zap.Error(err),
+		)
+	}
 }
 
 // =========================================================================
@@ -251,6 +299,15 @@ func (s *Service) CreatePerformanceTemplate(ctx context.Context, req CreatePerfo
 		OrganizationID: orgID,
 		Name:           req.Name,
 	}
+	if userID := authctx.GetUserID(ctx); userID != nil {
+		t.CreatedBy = *userID
+		// Simpan organisasi pembuat saat template dibuat — otorisasi edit/hapus
+		// membandingkan org user saat login dengan kolom ini, bukan org template.
+		_, creatorOrg, err := s.repo.GetCurrentEmployeeContextByUserID(ctx, *userID)
+		if err == nil && creatorOrg != nil {
+			t.CreatedByOrgID = creatorOrg
+		}
+	}
 	if req.PeriodID != nil && *req.PeriodID != "" {
 		periodUID, err := uuid.Parse(*req.PeriodID)
 		if err != nil {
@@ -270,7 +327,35 @@ func (s *Service) CreatePerformanceTemplate(ctx context.Context, req CreatePerfo
 	if err := s.repo.CreatePerformanceTemplate(ctx, t); err != nil {
 		return nil, err
 	}
+	s.notifyTemplateCreated(ctx, t)
 	return templateToResponse(t), nil
+}
+
+// notifyTemplateCreated notifies every employee currently occupying the
+// template's Organization that a new KPI template is available for them.
+// Best-effort: a notification failure never fails template creation, and
+// recipients without a linked user account are skipped.
+func (s *Service) notifyTemplateCreated(ctx context.Context, t *PerformanceTemplate) {
+	if s.notifier == nil {
+		return
+	}
+	userIDs, err := s.repo.GetUserIDsByOrganization(ctx, t.OrganizationID)
+	if err != nil {
+		s.logger.Warn("Failed to resolve organization assignees for KPI template notification",
+			zap.String("template_id", t.ID.String()),
+			zap.Error(err),
+		)
+		return
+	}
+	for _, uid := range userIDs {
+		if err := s.notifier.Notify(ctx, uid, "KPI_TEMPLATE_CREATED", []string{t.Name}, "performance_kpi_template", t.ID); err != nil {
+			s.logger.Warn("Failed to send KPI template notification",
+				zap.String("template_id", t.ID.String()),
+				zap.String("recipient", uid.String()),
+				zap.Error(err),
+			)
+		}
+	}
 }
 
 func (s *Service) GetPerformanceTemplateByID(ctx context.Context, id string) (*PerformanceTemplateResponse, error) {
@@ -475,6 +560,13 @@ func (s *Service) UpdatePerformanceTemplate(ctx context.Context, id string, req 
 	if err != nil {
 		return nil, err
 	}
+	if t.Status == "PUBLISHED" {
+		return nil, fmt.Errorf("published KPI templates cannot be modified")
+	}
+	userID := authctx.GetUserID(ctx)
+	if err := s.authorizeTemplateOrg(ctx, t.CreatedByOrgID, userID); err != nil {
+		return nil, err
+	}
 	if req.OrganizationID != nil && *req.OrganizationID != "" {
 		orgUID, err := uuid.Parse(*req.OrganizationID)
 		if err != nil {
@@ -519,7 +611,121 @@ func (s *Service) DeletePerformanceTemplate(ctx context.Context, id string) erro
 	if err != nil {
 		return fmt.Errorf("invalid id: %w", err)
 	}
+	t, err := s.repo.FindPerformanceTemplateByID(ctx, uid)
+	if err != nil {
+		return err
+	}
+	if t.Status == "PUBLISHED" {
+		return fmt.Errorf("published KPI templates cannot be deleted")
+	}
+	userID := authctx.GetUserID(ctx)
+	if err := s.authorizeTemplateOrg(ctx, t.CreatedByOrgID, userID); err != nil {
+		return err
+	}
 	return s.repo.DeletePerformanceTemplate(ctx, uid)
+}
+
+// authorizeTemplateOrg memastikan user yang sedang login masih berada di
+// organisasi PEMBUAT template (created_by_org_id — organisasi user yang pertama
+// membuat) sebelum boleh mengubah/menghapusnya. Perbandingan STRICT ke
+// created_by_org_id — tanpa fallback ke organization_id template. Template
+// tanpa created_by_org_id tercatat (legacy) tidak bisa dikelola sama sekali.
+// Aturan berbasis ORGANISASI, bukan per-user: jika karyawan sudah pindah
+// organisasi maka dia tidak lagi bisa mengubah/menghapus template meskipun dia
+// yang membuatnya.
+func (s *Service) authorizeTemplateOrg(ctx context.Context, creatorOrgID *uuid.UUID, userID *uuid.UUID) error {
+	if userID == nil {
+		return fmt.Errorf("user not authenticated")
+	}
+	if creatorOrgID == nil {
+		return fmt.Errorf("this KPI template has no recorded creator organization and cannot be managed")
+	}
+	_, orgID, err := s.repo.GetCurrentEmployeeContextByUserID(ctx, *userID)
+	if err != nil {
+		return err
+	}
+	if orgID == nil || *orgID != *creatorOrgID {
+		return fmt.Errorf("only members of the organization that created this KPI template can modify it")
+	}
+	return nil
+}
+
+// DuplicatePerformanceTemplate menyalin template KPI beserta seluruh
+// indicator-nya menjadi template baru berstatus DRAFT. Nama diberi suffix
+// " (Copy)". Organisasi pembuat (created_by_org_id) diisi dari user yang
+// melakukan duplikasi — konsisten dengan create dan OKR duplicate — sehingga
+// template hasil duplikasi mengikuti aturan otorisasi berbasis organisasi.
+func (s *Service) DuplicatePerformanceTemplate(ctx context.Context, id string) (*PerformanceTemplateResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	original, err := s.repo.FindPerformanceTemplateByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	// Duplikasi mengikuti aturan otorisasi yang sama dengan edit/hapus — hanya
+	// anggota organisasi pembuat yang boleh menduplikasi template.
+	userID := authctx.GetUserID(ctx)
+	if err := s.authorizeTemplateOrg(ctx, original.CreatedByOrgID, userID); err != nil {
+		return nil, err
+	}
+
+	newTemplate := &PerformanceTemplate{
+		OrganizationID: original.OrganizationID,
+		PeriodID:       original.PeriodID,
+		Name:           original.Name + " (Copy)",
+		Description:    original.Description,
+		Status:         "DRAFT",
+		EffectiveDate:  original.EffectiveDate,
+		ExpiredDate:    original.ExpiredDate,
+	}
+	if userID != nil {
+		newTemplate.CreatedBy = *userID
+		if _, creatorOrg, err := s.repo.GetCurrentEmployeeContextByUserID(ctx, *userID); err == nil && creatorOrg != nil {
+			newTemplate.CreatedByOrgID = creatorOrg
+		}
+	}
+	if err := s.repo.CreatePerformanceTemplate(ctx, newTemplate); err != nil {
+		return nil, err
+	}
+
+	// Salin semua indicator (maxPerPage per halaman, loop sampai habis).
+	page := 1
+	for {
+		indicators, total, err := s.repo.ListPerformanceIndicators(ctx, uid, page, maxPerPage)
+		if err != nil {
+			return nil, err
+		}
+		for _, ind := range indicators {
+			newInd := &PerformanceIndicator{
+				PerformanceTemplateID: newTemplate.ID,
+				PerspectiveID:         ind.PerspectiveID,
+				Code:                  ind.Code,
+				IndicatorType:         ind.IndicatorType,
+				Title:                 ind.Title,
+				Description:           ind.Description,
+				Weight:                ind.Weight,
+				TargetValue:           ind.TargetValue,
+				UnitOfMeasurement:     ind.UnitOfMeasurement,
+				FormulaType:           ind.FormulaType,
+				MinimumScore:          ind.MinimumScore,
+				MaximumScore:          ind.MaximumScore,
+				TargetType:            ind.TargetType,
+				IsRequired:            ind.IsRequired,
+				SortOrder:             ind.SortOrder,
+			}
+			if err := s.repo.CreatePerformanceIndicator(ctx, newInd); err != nil {
+				return nil, err
+			}
+		}
+		if page*maxPerPage >= int(total) {
+			break
+		}
+		page++
+	}
+
+	return s.GetPerformanceTemplateByID(ctx, newTemplate.ID.String())
 }
 
 // =========================================================================
@@ -1351,6 +1557,12 @@ func templateToResponse(t *PerformanceTemplate) *PerformanceTemplateResponse {
 		Status:         t.Status,
 		CreatedAt:      t.CreatedAt,
 		UpdatedAt:      t.UpdatedAt,
+	}
+	if t.CreatedBy != uuid.Nil {
+		r.CreatedBy = t.CreatedBy.String()
+	}
+	if t.CreatedByOrgID != nil {
+		r.CreatedByOrgID = t.CreatedByOrgID.String()
 	}
 	if t.PeriodID != nil {
 		r.PeriodID = t.PeriodID.String()
@@ -2665,7 +2877,16 @@ func (s *Service) HandleTargetApprovalStatusChange(ctx context.Context, document
 		zap.String("evaluation_id", eval.ID.String()),
 		zap.String("approval_status", status),
 	)
-	return s.repo.UpdatePerformanceEvaluation(ctx, eval)
+	if err := s.repo.UpdatePerformanceEvaluation(ctx, eval); err != nil {
+		return err
+	}
+	switch status {
+	case "APPROVED":
+		s.notifyEvaluationOutcome(ctx, eval.EmployeeID, "KPI_TARGET_APPROVED", "performance_kpi_target", eval.ID)
+	case "REJECTED", "CANCELLED":
+		s.notifyEvaluationOutcome(ctx, eval.EmployeeID, "KPI_TARGET_REJECTED", "performance_kpi_target", eval.ID)
+	}
+	return nil
 }
 
 // ApproveTarget changes status from TARGET_SUBMITTED to TARGET_APPROVED,
@@ -2827,6 +3048,12 @@ func (s *Service) HandleRealizationApprovalStatusChange(ctx context.Context, doc
 	}
 	if eval.Status == "COMPLETED" {
 		s.propagateSubordinateScoreUpwardBestEffort(ctx, eval)
+	}
+	switch status {
+	case "APPROVED":
+		s.notifyEvaluationOutcome(ctx, eval.EmployeeID, "KPI_REALIZATION_APPROVED", "performance_kpi_realization", eval.ID)
+	case "REJECTED", "CANCELLED":
+		s.notifyEvaluationOutcome(ctx, eval.EmployeeID, "KPI_REALIZATION_REJECTED", "performance_kpi_realization", eval.ID)
 	}
 	return nil
 }

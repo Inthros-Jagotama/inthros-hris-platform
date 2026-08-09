@@ -251,12 +251,17 @@ func TestService_CreatePerformanceTemplate(t *testing.T) {
 }
 
 func TestService_UpdatePerformanceTemplate_Status(t *testing.T) {
-	svc, cleanup := newTestService()
+	svc, dbResolver, cleanup := setupMyKPIContextTestDB(t)
 	defer cleanup()
-	ctx := context.Background()
+
+	userID := uuid.New()
+	empID := uuid.New()
+	orgID := uuid.MustParse(createTestOrgID())
+	seedMyKPIContextEmployee(t, dbResolver, userID, empID, orgID, "Org")
+	ctx := ctxWithUser(userID)
 
 	created, _ := svc.CreatePerformanceTemplate(ctx, CreatePerformanceTemplateRequest{
-		OrganizationID: createTestOrgID(),
+		OrganizationID: orgID.String(),
 		Name:           "Test Template",
 	})
 
@@ -273,12 +278,17 @@ func TestService_UpdatePerformanceTemplate_Status(t *testing.T) {
 }
 
 func TestService_UpdatePerformanceTemplate_OrganizationID(t *testing.T) {
-	svc, cleanup := newTestService()
+	svc, dbResolver, cleanup := setupMyKPIContextTestDB(t)
 	defer cleanup()
-	ctx := context.Background()
+
+	userID := uuid.New()
+	empID := uuid.New()
+	orgID := uuid.MustParse(createTestOrgID())
+	seedMyKPIContextEmployee(t, dbResolver, userID, empID, orgID, "Org")
+	ctx := ctxWithUser(userID)
 
 	created, _ := svc.CreatePerformanceTemplate(ctx, CreatePerformanceTemplateRequest{
-		OrganizationID: createTestOrgID(),
+		OrganizationID: orgID.String(),
 		Name:           "Test Template",
 	})
 
@@ -306,12 +316,17 @@ func TestService_UpdatePerformanceTemplate_OrganizationID(t *testing.T) {
 }
 
 func TestService_DeletePerformanceTemplate(t *testing.T) {
-	svc, cleanup := newTestService()
+	svc, dbResolver, cleanup := setupMyKPIContextTestDB(t)
 	defer cleanup()
-	ctx := context.Background()
+
+	userID := uuid.New()
+	empID := uuid.New()
+	orgID := uuid.MustParse(createTestOrgID())
+	seedMyKPIContextEmployee(t, dbResolver, userID, empID, orgID, "Org")
+	ctx := ctxWithUser(userID)
 
 	created, _ := svc.CreatePerformanceTemplate(ctx, CreatePerformanceTemplateRequest{
-		OrganizationID: createTestOrgID(),
+		OrganizationID: orgID.String(),
 		Name:           "To Delete",
 	})
 	if err := svc.DeletePerformanceTemplate(ctx, created.ID); err != nil {
@@ -320,6 +335,86 @@ func TestService_DeletePerformanceTemplate(t *testing.T) {
 	_, err := svc.GetPerformanceTemplateByID(ctx, created.ID)
 	if err == nil {
 		t.Fatal("expected error after deleting template")
+	}
+}
+
+func TestService_DuplicatePerformanceTemplate(t *testing.T) {
+	svc, dbResolver, cleanup := setupMyKPIContextTestDB(t)
+	defer cleanup()
+
+	userID := uuid.New()
+	empID := uuid.New()
+	orgID := uuid.MustParse(createTestOrgID())
+	seedMyKPIContextEmployee(t, dbResolver, userID, empID, orgID, "Org")
+	ctx := ctxWithUser(userID)
+
+	created, err := svc.CreatePerformanceTemplate(ctx, CreatePerformanceTemplateRequest{
+		OrganizationID: orgID.String(),
+		Name:           "Original BSC",
+	})
+	if err != nil {
+		t.Fatalf("CreatePerformanceTemplate failed: %v", err)
+	}
+
+	// Seed satu indicator langsung via repo.
+	if err := svc.repo.CreatePerformanceIndicator(ctx, &PerformanceIndicator{
+		PerformanceTemplateID: uuid.MustParse(created.ID),
+		PerspectiveID:         uuid.New(),
+		IndicatorType:         "QUANTITATIVE",
+		Title:                 "Revenue Growth",
+		Weight:                50,
+		FormulaType:           "MANUAL",
+		TargetType:            "NUMBER",
+		MinimumScore:          0,
+		MaximumScore:          100,
+		IsRequired:            true,
+		SortOrder:             1,
+	}); err != nil {
+		t.Fatalf("CreatePerformanceIndicator failed: %v", err)
+	}
+
+	dup, err := svc.DuplicatePerformanceTemplate(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("DuplicatePerformanceTemplate failed: %v", err)
+	}
+	if dup.ID == created.ID {
+		t.Error("duplicate template id must differ from the original")
+	}
+	if dup.Name != "Original BSC (Copy)" {
+		t.Errorf("expected name 'Original BSC (Copy)', got '%s'", dup.Name)
+	}
+	if dup.Status != "DRAFT" {
+		t.Errorf("expected duplicate status DRAFT, got '%s'", dup.Status)
+	}
+	if dup.CreatedBy != userID.String() {
+		t.Errorf("expected created_by %s, got %s", userID, dup.CreatedBy)
+	}
+	if dup.CreatedByOrgID != orgID.String() {
+		t.Errorf("expected created_by_org_id %s, got %s", orgID, dup.CreatedByOrgID)
+	}
+	if dup.IndicatorCount != 1 {
+		t.Errorf("expected duplicate to have 1 indicator, got %d", dup.IndicatorCount)
+	}
+
+	// Indicator disalin ke template baru.
+	indList, _, err := svc.repo.ListPerformanceIndicators(ctx, uuid.MustParse(dup.ID), 1, 50)
+	if err != nil {
+		t.Fatalf("ListPerformanceIndicators failed: %v", err)
+	}
+	if len(indList) != 1 {
+		t.Fatalf("expected 1 indicator on the duplicate, got %d", len(indList))
+	}
+	if indList[0].Title != "Revenue Growth" {
+		t.Errorf("expected indicator title 'Revenue Growth', got '%s'", indList[0].Title)
+	}
+
+	// Template asli tidak termutasi — indicator-nya tetap utuh.
+	origList, _, err := svc.repo.ListPerformanceIndicators(ctx, uuid.MustParse(created.ID), 1, 50)
+	if err != nil {
+		t.Fatalf("ListPerformanceIndicators (original) failed: %v", err)
+	}
+	if len(origList) != 1 {
+		t.Fatalf("expected original to keep its 1 indicator, got %d", len(origList))
 	}
 }
 

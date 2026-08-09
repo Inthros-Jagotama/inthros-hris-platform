@@ -232,6 +232,16 @@ func (h *Handler) DeletePerformanceTemplate(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+func (h *Handler) DuplicatePerformanceTemplate(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.DuplicatePerformanceTemplate(c.Request.Context(), id)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
 // =========================================================================
 // Performance Indicators
 // =========================================================================

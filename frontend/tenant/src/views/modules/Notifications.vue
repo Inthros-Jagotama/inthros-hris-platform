@@ -171,6 +171,17 @@ async function handleRowClick(item) {
   }
   if (item.reference_type === 'leave') {
     router.push('/leave')
+    return
+  }
+  // Template KPI/OKR baru dibuat → langsung ke halaman "isi KPI/OKR saya"
+  // (self-assessment) agar karyawan langsung mengisi evaluasinya.
+  if (item.type === 'KPI_TEMPLATE_CREATED' || item.reference_type === 'performance_kpi_template') {
+    router.push('/performance/kpi/my-evaluation')
+    return
+  }
+  if (item.type === 'OKR_TEMPLATE_CREATED' || item.reference_type === 'okr_template') {
+    router.push('/performance/okr/my-evaluation')
+    return
   }
 }
 

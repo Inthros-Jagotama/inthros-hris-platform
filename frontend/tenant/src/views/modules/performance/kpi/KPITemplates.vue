@@ -89,11 +89,14 @@
 
       <Column :header="t('common.actions')" style="width:120px" frozen alignFrozen="right">
         <template #body="{data}">
-          <div class="flex items-center gap-1">
+          <div v-if="canManageTemplate(data)" class="flex items-center gap-1">
             <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="editTemplate(data)" />
             <Button icon="pi pi-copy" size="small" text severity="info" v-tooltip.left="t('kpi.duplicate')" @click="duplicateTemplate(data)" />
             <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" />
           </div>
+          <span v-else v-tooltip.left="t('kpi.cannot_manage_template')" class="inline-flex items-center justify-center w-7 h-7 text-gray-300 dark:text-gray-600">
+            <i class="pi pi-lock text-sm"></i>
+          </span>
         </template>
       </Column>
     </DataTable>
@@ -141,6 +144,11 @@ const deleting = ref(false)
 const deleteError = ref('')
 const deleteTarget = ref(null)
 
+// Organisasi tempat user saat ini bekerja (dari my-context — posisi jabatan
+// terakhir). Template hanya bisa dikelola (edit/duplicate/hapus) oleh anggota
+// organisasinya — aturan yang sama dengan validasi backend.
+const myOrgId = ref(null)
+
 const skeletonColumns = [
   { type: 'text', width: 'w-40', headerWidth: 'w-24' },
   { type: 'text', width: 'w-32', headerWidth: 'w-20' },
@@ -166,6 +174,28 @@ function getStatusSeverity(status) {
     case 'ARCHIVED': return 'secondary'
     default: return 'warn'
   }
+}
+
+async function loadMyOrg() {
+  // Fail-open: jika gagal resolve, myOrgId tetap null sehingga semua tombol
+  // tetap tampil (backend tetap menolak aksi yang tidak berhak).
+  try {
+    const res = await api.get('/api/v1/tenant/performance/kpi/my-context')
+    const ctx = res.data?.data
+    if (ctx?.has_position && ctx.organization_id) {
+      myOrgId.value = ctx.organization_id
+    }
+  } catch {
+    myOrgId.value = null
+  }
+}
+
+function canManageTemplate(template) {
+  if (!myOrgId.value) return true
+  // Otorisasi STRICT berbasis organisasi PEMBUAT (created_by_org_id, disimpan
+  // saat template pertama dibuat). Template tanpa created_by_org_id (legacy)
+  // tidak bisa dikelola sama sekali.
+  return !!template.created_by_org_id && template.created_by_org_id === myOrgId.value
 }
 
 async function loadData() {
@@ -254,5 +284,8 @@ async function handleDelete() {
   }
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  await loadMyOrg()
+  await loadData()
+})
 </script>

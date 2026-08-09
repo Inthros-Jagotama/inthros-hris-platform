@@ -1,6 +1,8 @@
 package performance
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -70,6 +72,8 @@ type OKRRepository interface {
 
 	// My Context (self-assessment)
 	GetCurrentEmployeeContext(db *gorm.DB, userID uuid.UUID) (employeeID *uuid.UUID, organizationID *uuid.UUID, err error)
+	FindUserIDByEmployeeID(db *gorm.DB, employeeID uuid.UUID) (*uuid.UUID, error)
+	GetUserIDsByOrganization(db *gorm.DB, orgID uuid.UUID) ([]uuid.UUID, error)
 	GetOrganizationName(db *gorm.DB, orgID uuid.UUID) (string, error)
 	GetEmployeeNamesByIDs(db *gorm.DB, ids []uuid.UUID) (map[string]string, error)
 	GetPeriodCodesByIDs(db *gorm.DB, ids []uuid.UUID) (map[string]string, error)
@@ -502,6 +506,53 @@ func (r *okrRepositoryImpl) GetCurrentEmployeeContext(db *gorm.DB, userID uuid.U
 		return nil, nil, err
 	}
 	return &empID, &orgID, nil
+}
+
+// FindUserIDByEmployeeID resolves an employee's platform user_id via
+// employee_accounts, mirroring the employee_id -> user_id resolution used by
+// the approval module / leave / attendance / KPI repositories. Returns nil if
+// the employee has no linked user account.
+func (r *okrRepositoryImpl) FindUserIDByEmployeeID(db *gorm.DB, employeeID uuid.UUID) (*uuid.UUID, error) {
+	var userIDStrs []string
+	err := db.Table("employee_accounts").
+		Where("employee_id = ?", employeeID).
+		Limit(1).
+		Pluck("user_id", &userIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve employee user id: %w", err)
+	}
+	if len(userIDStrs) == 0 || userIDStrs[0] == "" {
+		return nil, nil
+	}
+	userID, err := uuid.Parse(userIDStrs[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id: %w", err)
+	}
+	return &userID, nil
+}
+
+// GetUserIDsByOrganization mengembalikan platform user ID (bukan employee ID)
+// dari employee yang saat ini menempati sebuah Organization — dipakai untuk
+// notifikasi "template tersedia" ke semua karyawan organisasi template.
+func (r *okrRepositoryImpl) GetUserIDsByOrganization(db *gorm.DB, orgID uuid.UUID) ([]uuid.UUID, error) {
+	var userIDStrs []string
+	err := db.Table("employments AS emp").
+		Joins("JOIN employee_accounts AS ea ON ea.employee_id = emp.employee_id").
+		Where("emp.organization_id = ? AND (emp.effective_end_date IS NULL)", orgID).
+		Distinct().
+		Pluck("ea.user_id", &userIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve organization assignees: %w", err)
+	}
+	userIDs := make([]uuid.UUID, 0, len(userIDStrs))
+	for _, s := range userIDStrs {
+		id, err := uuid.Parse(s)
+		if err != nil {
+			return nil, fmt.Errorf("invalid user id: %w", err)
+		}
+		userIDs = append(userIDs, id)
+	}
+	return userIDs, nil
 }
 
 // GetOrganizationName mengambil nomenclature Organization via raw table

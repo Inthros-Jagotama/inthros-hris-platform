@@ -138,7 +138,7 @@ func setupOKRTwoPhaseEvaluation(t *testing.T, svc OKRService, db *gorm.DB) (eval
 	subEmployeeID := uuid.New()
 	seedOKREmployment(t, db, subEmployeeID, orgUUID)
 
-	tmpl, err := svc.CreateTemplate(db, creatorUserID, &CreateOKRTemplateRequest{
+	tmpl, err := svc.CreateTemplate(context.Background(), db, creatorUserID, &CreateOKRTemplateRequest{
 		OrganizationID: orgID,
 		Name:           "Two Phase OKR Template",
 	})

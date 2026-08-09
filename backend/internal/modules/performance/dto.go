@@ -96,6 +96,8 @@ type PerformanceTemplateResponse struct {
 	EffectiveDate    string    `json:"effective_date,omitempty"`
 	ExpiredDate      string    `json:"expired_date,omitempty"`
 	IndicatorCount   int       `json:"indicator_count"`
+	CreatedBy        string    `json:"created_by"`
+	CreatedByOrgID   string    `json:"created_by_org_id,omitempty"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 }

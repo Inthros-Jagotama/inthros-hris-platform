@@ -93,6 +93,106 @@ var catalog = map[string]catalogEntry{
 			httputil.LangID: "Pengajuan koreksi kehadiran Anda telah ditolak.",
 		},
 	},
+	"KPI_TEMPLATE_CREATED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "New KPI Template",
+			httputil.LangID: "Template KPI Baru",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "A new KPI template \"%s\" is available for your organization.",
+			httputil.LangID: "Template KPI baru \"%s\" tersedia untuk organisasi Anda.",
+		},
+	},
+	"OKR_TEMPLATE_CREATED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "New OKR Template",
+			httputil.LangID: "Template OKR Baru",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "A new OKR template \"%s\" is available for your organization.",
+			httputil.LangID: "Template OKR baru \"%s\" tersedia untuk organisasi Anda.",
+		},
+	},
+	"KPI_TARGET_APPROVED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "KPI Target Approved",
+			httputil.LangID: "Target KPI Disetujui",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your KPI target has been approved.",
+			httputil.LangID: "Target KPI Anda telah disetujui.",
+		},
+	},
+	"KPI_TARGET_REJECTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "KPI Target Rejected",
+			httputil.LangID: "Target KPI Ditolak",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your KPI target has been rejected. Please revise and resubmit.",
+			httputil.LangID: "Target KPI Anda telah ditolak. Silakan perbaiki dan ajukan kembali.",
+		},
+	},
+	"KPI_REALIZATION_APPROVED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "KPI Realization Approved",
+			httputil.LangID: "Realisasi KPI Disetujui",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your KPI realization has been approved.",
+			httputil.LangID: "Realisasi KPI Anda telah disetujui.",
+		},
+	},
+	"KPI_REALIZATION_REJECTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "KPI Realization Rejected",
+			httputil.LangID: "Realisasi KPI Ditolak",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your KPI realization has been rejected. Please revise and resubmit.",
+			httputil.LangID: "Realisasi KPI Anda telah ditolak. Silakan perbaiki dan ajukan kembali.",
+		},
+	},
+	"OKR_KEY_RESULT_APPROVED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "OKR Key Results Approved",
+			httputil.LangID: "Key Results OKR Disetujui",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your OKR key results have been approved.",
+			httputil.LangID: "Key results OKR Anda telah disetujui.",
+		},
+	},
+	"OKR_KEY_RESULT_REJECTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "OKR Key Results Rejected",
+			httputil.LangID: "Key Results OKR Ditolak",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your OKR key results have been rejected. Please revise and resubmit.",
+			httputil.LangID: "Key results OKR Anda telah ditolak. Silakan perbaiki dan ajukan kembali.",
+		},
+	},
+	"OKR_ASSESSMENT_APPROVED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "OKR Assessment Approved",
+			httputil.LangID: "Penilaian OKR Disetujui",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your OKR assessment has been approved.",
+			httputil.LangID: "Penilaian OKR Anda telah disetujui.",
+		},
+	},
+	"OKR_ASSESSMENT_REJECTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "OKR Assessment Rejected",
+			httputil.LangID: "Penilaian OKR Ditolak",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your OKR assessment has been rejected. Please revise and resubmit.",
+			httputil.LangID: "Penilaian OKR Anda telah ditolak. Silakan perbaiki dan ajukan kembali.",
+		},
+	},
 	"APPROVAL_TASK_ASSIGNED": {
 		title: map[httputil.Lang]string{
 			httputil.LangEN: "Approval Needed",
