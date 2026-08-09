@@ -236,22 +236,25 @@
             </div>
           </div>
 
-          <div v-if="activeTaskIsWatcher" class="text-xs text-gray-400 flex items-center gap-1.5">
-            <i class="pi pi-eye"></i> {{ t('approval.watcher_note') }}
+          <div v-if="activeTaskIsWatcher" class="space-y-2">
+            <p class="text-xs text-gray-400 flex items-center gap-1.5">
+              <i class="pi pi-eye"></i> {{ t('approval.watcher_note') }}
+            </p>
+            <div class="flex items-center justify-end gap-2">
+              <Button :label="t('common.close')" severity="secondary" outlined size="small" @click="taskDetailVisible = false" />
+            </div>
           </div>
           <div v-else class="space-y-2">
             <Textarea v-model="actionNote" :placeholder="t('approval.note_placeholder')" rows="2" class="w-full" :class="{ 'p-invalid': noteError }" @input="noteError = ''" />
             <small v-if="noteError" class="text-red-500 text-xs block">{{ noteError }}</small>
             <div class="flex items-center justify-end gap-2">
+              <Button :label="t('common.close')" severity="secondary" outlined size="small" @click="taskDetailVisible = false" />
               <Button :label="t('approval.reject')" severity="danger" outlined size="small" :loading="actionSubmitting" @click="submitAction('REJECT')" />
               <Button :label="t('approval.approve')" severity="success" size="small" :loading="actionSubmitting" @click="submitAction('APPROVE')" />
             </div>
           </div>
         </div>
       </div>
-      <template #footer>
-        <Button :label="t('common.close')" severity="secondary" outlined size="small" @click="taskDetailVisible = false" />
-      </template>
     </Dialog>
   </div>
 </template>
