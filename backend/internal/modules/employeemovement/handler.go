@@ -216,8 +216,10 @@ func (h *Handler) GetContractByID(c *gin.Context) {
 func (h *Handler) ListContracts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	status := c.Query("status")
+	search := c.Query("search")
 
-	response, err := h.service.ListContracts(c.Request.Context(), page, perPage)
+	response, err := h.service.ListContracts(c.Request.Context(), page, perPage, status, search)
 	if err != nil {
 		httputil.InternalError(c, err.Error())
 		return

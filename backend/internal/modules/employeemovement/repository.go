@@ -332,7 +332,7 @@ func (r *Repository) FindContractsByEmployeeID(ctx context.Context, employeeID u
 	return contracts, total, nil
 }
 
-func (r *Repository) ListContracts(ctx context.Context, page, perPage int) ([]EmployeeContract, int64, error) {
+func (r *Repository) ListContracts(ctx context.Context, page, perPage int, status, search string) ([]EmployeeContract, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -341,12 +341,24 @@ func (r *Repository) ListContracts(ctx context.Context, page, perPage int) ([]Em
 	var total int64
 
 	query := db.Model(&EmployeeContract{})
+	if status != "" {
+		query = query.Where("employee_contracts.status = ?", status)
+	}
+	if search != "" {
+		// Escape LIKE wildcards agar input user tidak diperlakukan sebagai pola.
+		escaped := strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(search)
+		like := "%" + escaped + "%"
+		// Search by contract number or employee name (join employees).
+		query = query.
+			Joins("JOIN employees ON employees.id = employee_contracts.employee_id").
+			Where("(employee_contracts.contract_number LIKE ? OR employees.name LIKE ? OR employees.employee_id LIKE ?)", like, like, like)
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to count contracts: %w", err)
 	}
 
 	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&contracts).Error; err != nil {
+	if err := query.Offset(offset).Limit(perPage).Order("employee_contracts.created_at DESC").Find(&contracts).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to list contracts: %w", err)
 	}
 	return contracts, total, nil

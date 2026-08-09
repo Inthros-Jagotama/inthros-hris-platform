@@ -213,7 +213,7 @@ func TestService_ListContracts_Enriched(t *testing.T) {
 	repo := NewRepository(dbResolver)
 	svc := NewService(repo, testLogger())
 
-	resp, err := svc.ListContracts(ctx(), 1, 20)
+	resp, err := svc.ListContracts(ctx(), 1, 20, "", "")
 	if err != nil {
 		t.Fatalf("ListContracts failed: %v", err)
 	}

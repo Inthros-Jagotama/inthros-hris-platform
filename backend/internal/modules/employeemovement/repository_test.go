@@ -378,7 +378,7 @@ func TestRepo_ListContracts_Pagination(t *testing.T) {
 		createTestContract(repo, empID)
 	}
 
-	contracts, total, err := repo.ListContracts(ctx, 1, 2)
+	contracts, total, err := repo.ListContracts(ctx, 1, 2, "", "")
 	if err != nil {
 		t.Fatalf("ListContracts failed: %v", err)
 	}
@@ -388,6 +388,62 @@ func TestRepo_ListContracts_Pagination(t *testing.T) {
 	}
 	if len(contracts) != 2 {
 		t.Errorf("expected 2 contracts (page 1 of 3), got %d", len(contracts))
+	}
+}
+
+func TestRepo_ListContracts_Filters(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	empID := uuid.New()
+	// Seed minimal employees row agar JOIN search berfungsi.
+	db, err := dbResolver(ctx)
+	if err != nil {
+		t.Fatalf("dbResolver failed: %v", err)
+	}
+	if err := db.Exec(`CREATE TABLE IF NOT EXISTS employees (id CHAR(36) PRIMARY KEY, employee_id VARCHAR(50) NOT NULL, name VARCHAR(255) NOT NULL)`).Error; err != nil {
+		t.Fatalf("create employees table failed: %v", err)
+	}
+	if err := db.Exec(`INSERT INTO employees (id, employee_id, name) VALUES (?, ?, ?)`, empID.String(), "EMP-CON-001", "Budi Santoso").Error; err != nil {
+		t.Fatalf("seed employee failed: %v", err)
+	}
+
+	// 2 aktif, 1 terminated.
+	c1 := createTestContract(repo, empID)
+	createTestContract(repo, empID)
+	c3 := createTestContract(repo, empID)
+	// Set status terminated untuk c3 via direct update (helper selalu active).
+	if err := db.Model(&EmployeeContract{}).Where("id = ?", c3.ID).Update("status", "terminated").Error; err != nil {
+		t.Fatalf("update status failed: %v", err)
+	}
+
+	// Filter status.
+	contracts, total, err := repo.ListContracts(ctx, 1, 10, "terminated", "")
+	if err != nil {
+		t.Fatalf("ListContracts(status) failed: %v", err)
+	}
+	if total != 1 || len(contracts) != 1 || contracts[0].ID != c3.ID {
+		t.Errorf("status filter: expected 1 terminated contract, got total=%d len=%d", total, len(contracts))
+	}
+
+	// Filter search by contract number.
+	contracts, total, err = repo.ListContracts(ctx, 1, 10, "", c1.ContractNumber)
+	if err != nil {
+		t.Fatalf("ListContracts(search) failed: %v", err)
+	}
+	if total != 1 || len(contracts) != 1 || contracts[0].ID != c1.ID {
+		t.Errorf("search filter: expected 1 contract by number, got total=%d len=%d", total, len(contracts))
+	}
+
+	// Filter kombinasi tidak boleh cocok.
+	contracts, total, err = repo.ListContracts(ctx, 1, 10, "terminated", c1.ContractNumber)
+	if err != nil {
+		t.Fatalf("ListContracts(combo) failed: %v", err)
+	}
+	if total != 0 || len(contracts) != 0 {
+		t.Errorf("combo filter: expected 0, got total=%d len=%d", total, len(contracts))
 	}
 }
 

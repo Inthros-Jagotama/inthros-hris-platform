@@ -3,7 +3,7 @@
 > 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 3/12 selesai** (backend existing ✅ + 3 langkah baru ✅, FE placeholder ❌)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements (daftar enriched + filter + form per tipe + submit/execute/cancel) + filter backend. **Berikutnya:** 11) FE Contracts · 12) FE detail/deep-link/badge · 13) test & verifikasi.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend. **Berikutnya:** 12) FE detail/deep-link/badge · 13) test & verifikasi.
 
 ---
 
@@ -394,6 +394,22 @@ Belum ada validasi "tipe X wajib field Y":
 
 **Validasi:** `go build` + `go vet` + test employeemovement **PASS** ✅ · `npm run build` FE **PASS** ✅ · JSON locale valid ✅
 
+### 3.14 Log Implementasi Langkah 11 (FE halaman Contracts) — 2026-08-10
+
+**Tujuan:** halaman `/admin/career/contracts` (EmployeeContracts.vue, sebelumnya placeholder) — daftar enriched, filter, create/edit, upload dokumen, delete.
+
+**Backend (penunjang filter list):** `ListContracts` (repo/service/handler) + 2 parameter opsional: `status`, `search` (contract_number / nama employee / employee_id, parameterized LIKE + escape wildcard, JOIN employees). Test baru `TestRepo_ListContracts_Filters` (filter status, search by number, kombinasi tak-cocok) + seed minimal tabel employees.
+
+**FE (`EmployeeContracts.vue` — rewrite penuh):**
+- Toolbar: total records, filter status (active/expired/extended/terminated), pencarian, reset, tombol **New Contract**.
+- Tabel lazy pagination + SkeletonTable: employee (nama + kode), contract_number, contract_type (Tag), start_date/end_date (formatDate bilingual), extension_count (badge xN), status (Tag), dokumen (link lampiran), aksi edit/delete.
+- Dialog create/edit: employee (create only, disabled saat edit), contract_number, contract_type (pkwt/pkwtt/daily/other), start_date (+ minDate utk end_date), end_date, previous_contract_id (opsional — opsi = kontrak milik employee terpilih, minus dirinya), decision_letter_number, notes, upload dokumen, status (edit only).
+- Upload: `POST /api/v1/tenant/uploads` (FormData `file`) → `data.url` disimpan ke `document_url` (pola AttendanceOvertime).
+- Delete via ConfirmDeleteDialog; error VALIDATION_ERROR per-field via getValidationErrors.
+- Locale: key `contracts_coming_soon` **dihapus**, diganti keys contract lengkap (en/id).
+
+**Validasi:** `go build` + `go vet` + test employeemovement **PASS** ✅ · `npm run build` FE **PASS** ✅ · JSON locale valid ✅ (tanpa dead key `contracts_coming_soon`)
+
 ---
 
 # 5. API Plan
@@ -515,7 +531,7 @@ i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama
 | 8 | G-7 validasi bisnis per tipe — ✅ **SELESAI (2026-08-10)** | BE | — |
 | 9 | G-8 samakan slug module & route FE dengan menu server — ✅ **SELESAI (2026-08-10)** | BE/FE | — |
 | 10 | FE: halaman Movements (`/admin/career/movements`) — daftar enriched + filter (type/status/search) + form create per tipe + aksi submit/execute/cancel + delete — ✅ **SELESAI (2026-08-10)** | FE | 2-7, 9 |
-| 11 | FE: halaman Contracts terpisah (`/admin/career/contracts`) + upload dokumen | FE | 7 |
+| 11 | FE: halaman Contracts terpisah (`/admin/career/contracts`) — daftar enriched + filter status/search + dialog create/edit + upload dokumen + delete — ✅ **SELESAI (2026-08-10)** | FE | 7 |
 | 12 | FE: aksi submit/execute/cancel + detail + deep-link notifikasi + badge `rejected` | FE | 5 |
 | 13 | Test: unit/service + FE build + verifikasi manual E2E | — | semua |
 

@@ -995,7 +995,7 @@ func (s *Service) ListContractsByEmployee(ctx context.Context, employeeID string
 }
 
 // ListContracts mengembalikan daftar semua kontrak dengan pagination.
-func (s *Service) ListContracts(ctx context.Context, page, perPage int) (*PaginatedContractResponse, error) {
+func (s *Service) ListContracts(ctx context.Context, page, perPage int, status, search string) (*PaginatedContractResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -1003,7 +1003,7 @@ func (s *Service) ListContracts(ctx context.Context, page, perPage int) (*Pagina
 		perPage = 20
 	}
 
-	contracts, total, err := s.repo.ListContracts(ctx, page, perPage)
+	contracts, total, err := s.repo.ListContracts(ctx, page, perPage, status, search)
 	if err != nil {
 		return nil, err
 	}

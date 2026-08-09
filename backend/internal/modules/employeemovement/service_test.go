@@ -787,7 +787,7 @@ func TestService_ListContracts_DefaultPagination(t *testing.T) {
 		createTestContract(repo, employeeID)
 	}
 
-	resp, err := svc.ListContracts(ctx(), 0, 0)
+	resp, err := svc.ListContracts(ctx(), 0, 0, "", "")
 	if err != nil {
 		t.Fatalf("ListContracts failed: %v", err)
 	}
