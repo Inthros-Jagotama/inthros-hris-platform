@@ -43,6 +43,7 @@ func TestHandler_CreateMovement_Success(t *testing.T) {
 	body := `{
 		"employee_id": "` + uuidStr() + `",
 		"movement_type": "promotion",
+		"to_position_id": "` + uuidStr() + `",
 		"decision_letter_number": "SK-001",
 		"decision_letter_date": "2026-07-01",
 		"effective_date": "2026-08-01",

@@ -2,6 +2,7 @@ package employeemovement
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -54,12 +55,14 @@ func TestService_CreateMovement_Success(t *testing.T) {
 	defer cleanup()
 
 	employeeID := uuidStr()
+	toPosition := uuidStr()
 	req := CreateMovementRequest{
 		EmployeeID:           employeeID,
 		MovementType:         "promotion",
 		DecisionLetterNumber: "SK-001",
 		DecisionLetterDate:   "2026-07-01",
 		EffectiveDate:        "2026-08-01",
+		ToPositionID:         &toPosition,
 		Reason:               strPtr("Kinerja baik"),
 	}
 
@@ -76,6 +79,143 @@ func TestService_CreateMovement_Success(t *testing.T) {
 	}
 	if resp.EmployeeID != employeeID {
 		t.Errorf("expected employee_id '%s', got '%s'", employeeID, resp.EmployeeID)
+	}
+}
+
+// =========================================================================
+// G-7: Business validation per movement type
+// =========================================================================
+
+// newValidPromotionReq returns a promotion request that passes G-7 validation.
+func newValidPromotionReq() CreateMovementRequest {
+	toPos := uuidStr()
+	return CreateMovementRequest{
+		EmployeeID:           uuidStr(),
+		MovementType:         "promotion",
+		ToPositionID:         &toPos,
+		DecisionLetterNumber: "SK-G7",
+		DecisionLetterDate:   "2026-07-01",
+		EffectiveDate:        "2026-08-01",
+	}
+}
+
+// TestService_CreateMovement_Validation_Mutation requires to_org or to_position.
+func TestService_CreateMovement_Validation_Mutation(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	req := newValidPromotionReq()
+	req.MovementType = "mutation"
+	req.ToPositionID = nil
+	_, err := svc.CreateMovement(ctx(), req)
+	if err == nil {
+		t.Fatal("expected error: mutation requires to_organization_id or to_position_id")
+	}
+	var ve *MovementValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected MovementValidationError, got %T: %v", err, err)
+	}
+
+	// Providing to_organization_id satisfies it.
+	toOrg := uuidStr()
+	req.ToOrganizationID = &toOrg
+	if _, err := svc.CreateMovement(ctx(), req); err != nil {
+		t.Fatalf("mutation with to_organization_id should pass: %v", err)
+	}
+}
+
+// TestService_CreateMovement_Validation_Promotion requires to_position_id.
+func TestService_CreateMovement_Validation_Promotion(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	req := newValidPromotionReq()
+	req.ToPositionID = nil
+	_, err := svc.CreateMovement(ctx(), req)
+	if err == nil {
+		t.Fatal("expected error: promotion requires to_position_id")
+	}
+}
+
+// TestService_CreateMovement_Validation_StatusChange requires to_employment_status_id.
+func TestService_CreateMovement_Validation_StatusChange(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	req := newValidPromotionReq()
+	req.MovementType = "status_change"
+	_, err := svc.CreateMovement(ctx(), req)
+	if err == nil {
+		t.Fatal("expected error: status_change requires to_employment_status_id")
+	}
+
+	toStatus := uuidStr()
+	req.ToEmploymentStatusID = &toStatus
+	if _, err := svc.CreateMovement(ctx(), req); err != nil {
+		t.Fatalf("status_change with to_employment_status_id should pass: %v", err)
+	}
+}
+
+// TestService_CreateMovement_Validation_ContractExtension requires an active
+// contract for the employee (plan G-7).
+func TestService_CreateMovement_Validation_ContractExtension(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	req := newValidPromotionReq()
+	req.EmployeeID = employeeID.String()
+	req.MovementType = "contract_extension"
+
+	// No active contract yet → validation error.
+	_, err := svc.CreateMovement(ctx(), req)
+	if err == nil {
+		t.Fatal("expected error: contract_extension requires an active contract")
+	}
+
+	// Seed an active contract → passes.
+	createTestContract(repo, employeeID)
+	if _, err := svc.CreateMovement(ctx(), req); err != nil {
+		t.Fatalf("contract_extension with active contract should pass: %v", err)
+	}
+}
+
+// TestService_CreateMovement_Validation_Offboarding passes without to_* fields.
+func TestService_CreateMovement_Validation_Offboarding(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	req := newValidPromotionReq()
+	req.MovementType = "offboarding"
+	req.ToPositionID = nil
+	if _, err := svc.CreateMovement(ctx(), req); err != nil {
+		t.Fatalf("offboarding without to_* should pass: %v", err)
+	}
+}
+
+// TestService_UpdateMovement_Validation re-validates after type change.
+func TestService_UpdateMovement_Validation(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	created := createTestMovement(repo, uuid.New()) // type = other, no to_*
+
+	// Change to promotion without to_position_id → rejected.
+	promotion := "promotion"
+	_, err := svc.UpdateMovement(ctx(), created.ID.String(), UpdateMovementRequest{
+		MovementType: &promotion,
+	})
+	if err == nil {
+		t.Fatal("expected error: promotion requires to_position_id on update")
+	}
+
+	// With to_position_id → passes.
+	toPos := uuidStr()
+	if _, err := svc.UpdateMovement(ctx(), created.ID.String(), UpdateMovementRequest{
+		MovementType: &promotion,
+		ToPositionID: &toPos,
+	}); err != nil {
+		t.Fatalf("promotion with to_position_id should pass on update: %v", err)
 	}
 }
 
@@ -188,8 +328,10 @@ func TestService_UpdateMovement_Success(t *testing.T) {
 	created := createTestMovement(repo, employeeID)
 
 	newReason := "Updated reason"
+	toPosition := uuidStr()
 	updated, err := svc.UpdateMovement(ctx(), created.ID.String(), UpdateMovementRequest{
-		Reason: &newReason,
+		Reason:       &newReason,
+		ToPositionID: &toPosition,
 	})
 	if err != nil {
 		t.Fatalf("UpdateMovement failed: %v", err)

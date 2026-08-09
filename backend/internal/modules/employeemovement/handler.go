@@ -1,6 +1,7 @@
 package employeemovement
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -23,6 +24,17 @@ func NewHandler(service *Service) *Handler {
 // Employee Movement Handlers
 // =========================================================================
 
+// movementErrStatus maps service errors to HTTP status codes: business
+// validation failures (MovementValidationError, plan G-7) become 400, other
+// errors fall through to the caller's default handling.
+func movementErrStatus(err error) (int, bool) {
+	var ve *MovementValidationError
+	if errors.As(err, &ve) {
+		return http.StatusBadRequest, true
+	}
+	return 0, false
+}
+
 // CreateMovement menangani POST /api/v1/tenant/employee-movements/movements
 func (h *Handler) CreateMovement(c *gin.Context) {
 	var req CreateMovementRequest
@@ -32,6 +44,10 @@ func (h *Handler) CreateMovement(c *gin.Context) {
 
 	response, err := h.service.CreateMovement(c.Request.Context(), req)
 	if err != nil {
+		if status, ok := movementErrStatus(err); ok {
+			httputil.ErrorRaw(c, status, "VALIDATION_ERROR", err.Error())
+			return
+		}
 		httputil.InternalError(c, err.Error())
 		return
 	}
@@ -90,6 +106,10 @@ func (h *Handler) UpdateMovement(c *gin.Context) {
 
 	response, err := h.service.UpdateMovement(c.Request.Context(), id, req)
 	if err != nil {
+		if status, ok := movementErrStatus(err); ok {
+			httputil.ErrorRaw(c, status, "VALIDATION_ERROR", err.Error())
+			return
+		}
 		httputil.InternalError(c, err.Error())
 		return
 	}

@@ -51,6 +51,48 @@ type CareerEmployment struct {
 	EffectiveDate        string
 }
 
+// MovementValidationError is returned by the service when movement fields
+// violate the per-type business rules (plan G-7). Handlers map it to a 400
+// Bad Request response so the FE gets a field-level message instead of a 500.
+type MovementValidationError struct {
+	Message string
+}
+
+func (e *MovementValidationError) Error() string {
+	return e.Message
+}
+
+// validateMovementFields enforces per-type required fields (plan G-7):
+//   - mutation            → wajib to_organization_id (dan/atau to_position_id)
+//   - promotion / demotion → wajib to_position_id
+//   - status_change       → wajib to_employment_status_id
+//   - contract_extension  → wajib merujuk kontrak aktif (dicek via repo)
+//   - offboarding / retirement → boleh tanpa to_* (tanpa validasi)
+//
+// `hasActiveContract` is only consulted for contract_extension and may be nil
+// (skip) when the caller already knows the employee has no contract.
+func validateMovementFields(movementType MovementType, toOrganizationID, toPositionID, toEmploymentStatusID *uuid.UUID, hasActiveContract bool) error {
+	switch movementType {
+	case MovementTypeMutation:
+		if toOrganizationID == nil && toPositionID == nil {
+			return &MovementValidationError{Message: "movement type 'mutation' requires to_organization_id or to_position_id"}
+		}
+	case MovementTypePromotion, MovementTypeDemotion:
+		if toPositionID == nil {
+			return &MovementValidationError{Message: fmt.Sprintf("movement type '%s' requires to_position_id", movementType)}
+		}
+	case MovementTypeStatusChange:
+		if toEmploymentStatusID == nil {
+			return &MovementValidationError{Message: "movement type 'status_change' requires to_employment_status_id"}
+		}
+	case MovementTypeContractExtension:
+		if !hasActiveContract {
+			return &MovementValidationError{Message: "movement type 'contract_extension' requires an active employee contract"}
+		}
+	}
+	return nil
+}
+
 // CareerExecutor abstracts the employee module's employment + employee
 // status changes so ExecuteMovement can push the real HR data change
 // (create new employment, close the previous one, mark offboarding /
@@ -133,6 +175,22 @@ func (s *Service) notifyMovementOutcome(ctx context.Context, employeeID uuid.UUI
 	}
 }
 
+// validateMovement checks the per-type required fields before persisting or
+// updating a movement. contract_extension also verifies the employee has an
+// active contract (plan G-7). It is called both on create and after an update
+// (movement_type and to_* fields may have changed).
+func (s *Service) validateMovement(ctx context.Context, m *EmployeeMovement) error {
+	hasActiveContract := false
+	if m.MovementType == MovementTypeContractExtension {
+		has, err := s.repo.HasActiveContractByEmployeeID(ctx, m.EmployeeID)
+		if err != nil {
+			return err
+		}
+		hasActiveContract = has
+	}
+	return validateMovementFields(m.MovementType, m.ToOrganizationID, m.ToPositionID, m.ToEmploymentStatusID, hasActiveContract)
+}
+
 // =========================================================================
 // Employee Movement
 // =========================================================================
@@ -200,6 +258,11 @@ func (s *Service) CreateMovement(ctx context.Context, req CreateMovementRequest)
 	}
 	if req.Notes != nil {
 		movement.Notes = req.Notes
+	}
+
+	// Business validation per movement type (plan G-7).
+	if err := s.validateMovement(ctx, movement); err != nil {
+		return nil, err
 	}
 
 	if err := s.repo.CreateMovement(ctx, movement); err != nil {
@@ -545,6 +608,12 @@ func (s *Service) UpdateMovement(ctx context.Context, id string, req UpdateMovem
 	}
 	if req.Notes != nil {
 		movement.Notes = req.Notes
+	}
+
+	// Business validation per movement type (plan G-7) — the movement_type
+	// may have changed in this request, so re-validate with the effective value.
+	if err := s.validateMovement(ctx, movement); err != nil {
+		return nil, err
 	}
 
 	if err := s.repo.UpdateMovement(ctx, movement); err != nil {

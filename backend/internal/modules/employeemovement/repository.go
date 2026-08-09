@@ -267,6 +267,23 @@ func (r *Repository) CreateContract(ctx context.Context, c *EmployeeContract) er
 	return nil
 }
 
+// HasActiveContractByEmployeeID reports whether the employee currently has a
+// contract with status = active. Used by the contract_extension movement
+// validation (plan G-7: contract_extension wajib merujuk kontrak aktif).
+func (r *Repository) HasActiveContractByEmployeeID(ctx context.Context, employeeID uuid.UUID) (bool, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return false, err
+	}
+	var count int64
+	if err := db.Model(&EmployeeContract{}).
+		Where("employee_id = ? AND status = ?", employeeID, ContractStatusActive).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("failed to count active contracts: %w", err)
+	}
+	return count > 0, nil
+}
+
 func (r *Repository) FindContractByID(ctx context.Context, id uuid.UUID) (*EmployeeContract, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {

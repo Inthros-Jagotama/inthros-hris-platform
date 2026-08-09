@@ -3,7 +3,7 @@
 > 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 3/12 selesai** (backend existing ✅ + 3 langkah baru ✅, FE placeholder ❌)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count. **Berikutnya:** 8) G-7 validasi per tipe · 9-11) FE · 12) G-8 slug/route · 13) test & verifikasi.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe. **Berikutnya:** 9-11) FE · 12) G-8 slug/route · 13) test & verifikasi.
 
 ---
 
@@ -340,6 +340,18 @@ Belum ada validasi "tipe X wajib field Y":
 
 **Rencana:** validasi service-level + `binding` DTO, kembalikan pesan field error (pola `getValidationErrors`).
 
+### 3.11 Log Implementasi Langkah 8 (G-7 validasi per tipe) — 2026-08-10
+
+**Tujuan:** menegakkan "tipe X wajib field Y" di service level dengan pesan field error yang bisa dipetakan handler ke 400.
+
+**Perubahan:**
+- `service.go` — tipe error baru `MovementValidationError`; `validateMovementFields(type, toOrg, toPos, toStatus, hasActiveContract)` menegakkan: `mutation` → wajib `to_organization_id` ATAU `to_position_id`; `promotion`/`demotion` → wajib `to_position_id`; `status_change` → wajib `to_employment_status_id`; `contract_extension` → wajib ada kontrak aktif; `offboarding`/`retirement` → tanpa validasi (boleh tanpa to_*). Dipanggil via `validateMovementCreate` / `validateMovementUpdate` (re-validasi saat movement_type berubah pada update).
+- `repository.go` — `HasActiveContractByEmployeeID` (status = active) untuk dukungan contract_extension.
+- `handler.go` — `movementErrStatus` memetakan `MovementValidationError` → 400 `VALIDATION_ERROR` (bukan 500).
+- Test: 6 test validasi baru (mutation org/pos, promotion, status_change, contract_extension dengan/sans kontrak aktif, offboarding lolos tanpa to_*, update re-validasi). Helper `createTestMovement` beralih ke `MovementTypeOther` (tanpa kewajiban to_*); test lama promotion dilengkapi `to_position_id`.
+
+**Validasi:** `go build` ✅ · `go vet` ✅ · test employeemovement/employee/approval **PASS** ✅.
+
 ## G-8 🟡 KONSISTENSI ROUTE/MENU & MODULE SLUG
 
 - Backend menu (module.go): `/admin/career/movements`, `/admin/career/contracts`
@@ -468,7 +480,8 @@ i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama
 | 4 | G-4 enriched responses (nama employee/org/posisi/status) — ✅ **SELESAI (2026-08-10)** | BE | — |
 | 5 | G-2 notifikasi `MOVEMENT_*` (i18n + wiring; REJECTED → status `rejected`) — ✅ **SELESAI (2026-08-10)** | BE | 1 |
 | 6 | G-5 hapus endpoint approve manual + service `ApproveMovement` + test — ✅ **SELESAI (2026-08-10)** | BE | — |
-| 7 | G-6 contract extension count — ✅ **SELESAI (2026-08-10)** · G-7 validasi per tipe | BE | — |
+| 7 | G-6 contract extension count — ✅ **SELESAI (2026-08-10)** | BE | — |
+| 8 | G-7 validasi bisnis per tipe — ✅ **SELESAI (2026-08-10)** | BE | — |
 | 8 | FE: halaman Movements (`/admin/career/movements`) + locale lengkap | FE | 2-7 |
 | 9 | FE: halaman Contracts terpisah (`/admin/career/contracts`) + upload dokumen | FE | 7 |
 | 10 | FE: aksi submit/execute/cancel + detail + deep-link notifikasi + badge `rejected` | FE | 5 |

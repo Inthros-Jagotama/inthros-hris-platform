@@ -58,11 +58,13 @@ func testLogger() *zap.Logger {
 }
 
 // createTestMovement inserts a test employee movement for the given employee.
+// Uses MovementTypeOther (no required to_* fields per plan G-7 validation);
+// tests that exercise a specific type set it explicitly afterwards.
 func createTestMovement(repo *Repository, employeeID uuid.UUID) *EmployeeMovement {
 	ctx := context.Background()
 	m := &EmployeeMovement{
 		EmployeeID:           employeeID,
-		MovementType:         MovementTypePromotion,
+		MovementType:         MovementTypeOther,
 		DecisionLetterNumber: fmt.Sprintf("SK-%s", uuid.New().String()[:8]),
 		DecisionLetterDate:   "2026-07-01",
 		EffectiveDate:        "2026-08-01",
