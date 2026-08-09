@@ -17,20 +17,28 @@
       <div class="flex items-center gap-2">
         <IconField>
           <InputIcon class="pi pi-search" />
-          <InputText v-model="searchQuery" :placeholder="t('common.search')" size="small" />
+          <InputText v-model="searchQuery" :placeholder="t('common.search')" size="small" @input="onSearchInput" />
         </IconField>
+        <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+          {{ totalRecords }} {{ t('common.items') }}
+        </span>
         <Button :label="t('modules.register_module')" icon="pi pi-plus" size="small" @click="openCreate" />
       </div>
     </div>
 
     <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="6" />
 
-    <DataTable 
+    <DataTable
     v-else
-    :value="filteredModules" 
-    paginator 
-    :rows="15" 
-    size="small" 
+    :value="modules"
+    lazy
+    :totalRecords="totalRecords"
+    :first="firstRecord"
+    :rows="perPage"
+    @page="onPage($event)"
+    paginator
+    :rowsPerPageOptions="[10, 15, 25, 50]"
+    size="small"
     class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
     >
       <template #empty>
@@ -40,7 +48,7 @@
           <p class="text-sm mt-1">{{ t('modules.empty_hint') }}</p>
         </div>
       </template>
-      <Column field="name" :header="t('modules.module_name')" sortable>
+      <Column field="name" :header="t('modules.module_name')">
         <template #body="{ data }">
           <div class="flex-row gap-2">
             <div class="uppercase font-semibold text-gray-600 dark:text-gray-300">{{ data.name }}</div>
@@ -48,20 +56,20 @@
           </div>
         </template>
       </Column>
-      <Column field="slug" :header="t('modules.slug')" sortable />
-      <Column field="module_type" :header="t('modules.module_type')" sortable>
+      <Column field="slug" :header="t('modules.slug')" />
+      <Column field="module_type" :header="t('modules.module_type')">
         <template #body="{ data }">
           <Tag :value="data.module_type === 'platform' ? t('modules.filter_platform') : t('modules.filter_tenant')" :severity="data.module_type === 'platform' ? 'info' : 'success'" class="!text-xs" />
         </template>
       </Column>
-      <Column field="version" :header="t('modules.version')" sortable />
-      <Column field="depends_on" :header="t('modules.depends_on')" sortable>
+      <Column field="version" :header="t('modules.version')" />
+      <Column field="depends_on" :header="t('modules.depends_on')">
         <template #body="{ data }">
           <span v-if="data.depends_on" class="text-xs text-gray-500" v-tooltip.top="data.depends_on">{{ data.depends_on }}</span>
           <span v-else class="text-gray-300 italic text-xs">—</span>
         </template>
       </Column>
-      <Column field="created_at" :header="t('modules.registered')" sortable>
+      <Column field="created_at" :header="t('modules.registered')">
         <template #body="{ data }">
           <span class="text-gray-500 dark:text-gray-400">{{ data.created_at || '-' }}</span>
         </template>
@@ -153,6 +161,10 @@ const { loading, wrapLoad } = useSkeletonPage()
 const modules = ref([])
 const searchQuery = ref('')
 const moduleTypeFilter = ref(null)
+const totalRecords = ref(0)
+const currentPage = ref(1)
+const perPage = ref(15)
+let searchTimer = null
 const dialogVisible = ref(false)
 const isEditing = ref(false)
 const editingId = ref(null)
@@ -185,39 +197,46 @@ const filterChips = computed(() => [
   { label: t('modules.filter_tenant'), value: 'tenant', severity: 'success' }
 ])
 
-// Filtered modules
-const filteredModules = computed(() => {
-  let result = modules.value
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    result = result.filter(m =>
-      m.name?.toLowerCase().includes(q) ||
-      m.slug?.toLowerCase().includes(q) ||
-      m.description?.toLowerCase().includes(q)
-    )
-  }
-  return result
-})
+const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 
-
-
-// Reload modules from API dengan filter opsional
-async function loadModules(type) {
+// Reload modules from API — server-side pagination + filter + search, matching
+// the lazy DataTable pattern used across the tenant app (Employees.vue).
+async function loadModules() {
   try {
     await wrapLoad(async () => {
-      const params = type ? `?module_type=${type}` : ''
-      const res = await api.get(`/api/v1/platform/modules${params}`)
+      const params = { page: currentPage.value, per_page: perPage.value }
+      if (moduleTypeFilter.value) params.module_type = moduleTypeFilter.value
+      const q = searchQuery.value?.trim()
+      if (q) params.search = q
+      const res = await api.get('/api/v1/platform/modules', { params })
       const payload = res.data
       modules.value = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : [])
+      totalRecords.value = payload.total || 0
+      if (payload.page) currentPage.value = payload.page
     })
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: t('message.failed_to_load'), life: 3000 })
   }
 }
 
+function onPage(event) {
+  currentPage.value = event.page + 1
+  perPage.value = event.rows
+  loadModules()
+}
+
+function onSearchInput() {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadModules()
+  }, 400)
+}
+
 function setModuleTypeFilter(type) {
   moduleTypeFilter.value = type
-  loadModules(type)
+  currentPage.value = 1
+  loadModules()
 }
 
 onMounted(async () => {
@@ -253,7 +272,7 @@ async function saveModule() {
       toast.add({ severity: 'success', summary: t('message.created'), life: 2000 })
     }
     dialogVisible.value = false
-    await loadModules(moduleTypeFilter.value)
+    await loadModules()
   } catch (e) {
     errors.value = getValidationErrors(e)
     if (Object.keys(errors.value).length === 0) {

@@ -56,8 +56,9 @@ func (h *Handler) ListModules(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	moduleType := c.Query("module_type")
+	search := c.Query("search")
 
-	response, err := h.service.ListModules(page, perPage, moduleType)
+	response, err := h.service.ListModules(page, perPage, moduleType, search)
 	if err != nil {
 		httputil.InternalError(c, err.Error())
 		return

@@ -38,25 +38,30 @@ func (r *Repository) FindByID(id string) (*PlatformModule, error) {
 
 // FindAll mengembalikan semua modul dengan pagination dan optional filter module_type.
 // Jika moduleType tidak kosong, hanya mengembalikan modul dengan tipe tersebut (platform/tenant).
-func (r *Repository) FindAll(page, perPage int, moduleType string) ([]PlatformModule, int64, error) {
+func (r *Repository) FindAll(page, perPage int, moduleType, search string) ([]PlatformModule, int64, error) {
 	var modules []PlatformModule
 	var total int64
 
-	// Count total
-	countQuery := r.db.Model(&PlatformModule{})
-	if moduleType != "" {
-		countQuery = countQuery.Where("module_type = ?", moduleType)
+	applyFilters := func(q *gorm.DB) *gorm.DB {
+		if moduleType != "" {
+			q = q.Where("module_type = ?", moduleType)
+		}
+		if search != "" {
+			like := "%" + search + "%"
+			q = q.Where("name LIKE ? OR slug LIKE ? OR description LIKE ?", like, like, like)
+		}
+		return q
 	}
+
+	// Count total
+	countQuery := applyFilters(r.db.Model(&PlatformModule{}))
 	if err := countQuery.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to count modules: %w", err)
 	}
 
 	// Get paginated data
 	offset := (page - 1) * perPage
-	dataQuery := r.db.Model(&PlatformModule{})
-	if moduleType != "" {
-		dataQuery = dataQuery.Where("module_type = ?", moduleType)
-	}
+	dataQuery := applyFilters(r.db.Model(&PlatformModule{}))
 	if err := dataQuery.
 		Offset(offset).
 		Limit(perPage).

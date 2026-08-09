@@ -15,6 +15,7 @@
     "rbac": "RBAC"
   },
   "common": {
+    "items": "items",
     "search": "Search...",
     "filter": "Filter",
     "all": "All",

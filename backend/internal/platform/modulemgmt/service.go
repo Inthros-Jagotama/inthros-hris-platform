@@ -98,7 +98,7 @@ func (s *Service) GetModule(id string) (*ModuleResponse, error) {
 
 // ListModules mengembalikan daftar semua modul dengan pagination dan optional filter module_type.
 // moduleType bisa "platform", "tenant", atau "" untuk semua.
-func (s *Service) ListModules(page, perPage int, moduleType string) (*PaginatedResponse, error) {
+func (s *Service) ListModules(page, perPage int, moduleType, search string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -106,7 +106,7 @@ func (s *Service) ListModules(page, perPage int, moduleType string) (*PaginatedR
 		perPage = 20
 	}
 
-	modules, total, err := s.repo.FindAll(page, perPage, moduleType)
+	modules, total, err := s.repo.FindAll(page, perPage, moduleType, search)
 	if err != nil {
 		return nil, err
 	}

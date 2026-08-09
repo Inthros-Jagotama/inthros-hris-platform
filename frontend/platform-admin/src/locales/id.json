@@ -15,6 +15,7 @@
     "rbac": "RBAC"
   },
   "common": {
+    "items": "item",
     "search": "Cari...",
     "filter": "Filter",
     "all": "Semua",
