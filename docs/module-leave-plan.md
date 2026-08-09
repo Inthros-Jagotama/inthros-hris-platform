@@ -2,7 +2,7 @@ Saya sudah pelajari struktur `005_leave.sql`. Struktur dasarnya sudah mencakup *
 
 Berikut plan Markdown yang bisa langsung Anda simpan sebagai `performance-management-leave-plan.md` atau `leave-management-plan.md`.
 
-> ⚠️ **Status vs. Plan ini**: dokumen ini awalnya ditulis seolah modul Leave belum ada (greenfield). Setelah dicek ulang terhadap kode aktual, **backend modul Leave sudah cukup jauh diimplementasikan** — termasuk integrasi ke Central Approval Module — sementara beberapa bagian rencana (balance ledger, cancellation flow, working-day calculation, calendar, accrual engine, notification) **memang belum ada**, dan **frontend awalnya masih placeholder "Coming soon"**. Lihat section **"Implementation Status"** di bagian bawah dokumen untuk status per-fase yang sudah diverifikasi terhadap kode, dan catatan blockquote (`>`) yang disisipkan di beberapa section untuk koreksi spesifik.
+> ⚠️ **Status vs. Plan ini**: dokumen ini awalnya ditulis seolah modul Leave belum ada (greenfield). Setelah dicek ulang terhadap kode aktual, **backend modul Leave sudah cukup jauh diimplementasikan** — termasuk integrasi ke Central Approval Module — sementara beberapa bagian rencana (cancellation flow sebagai sub-flow tersendiri, accrual engine dari `LeaveAccrualPolicy`, carry forward, expiry, adjustment HR) **memang belum ada** — balance ledger/usage/reversal (Phase 6), working-day calculation (Phase 3), employee calendar (Phase 7), dan notification (Phase 8) sudah terimplementasi sejak 2026-08-08/09 — dan **frontend awalnya masih placeholder "Coming soon"** (kini FE-1 & FE-2 selesai, lihat baris 7 di bawah). Lihat section **"Implementation Status"** di bagian bawah dokumen untuk status per-fase yang sudah diverifikasi terhadap kode, dan catatan blockquote (`>`) yang disisipkan di beberapa section untuk koreksi spesifik.
 >
 > ✅ **Update 2026-08-09**: Frontend Implementation Plan FE-1 (My Leave Dashboard) dan FE-2 (Admin Configuration) **sudah diimplementasikan** — lihat status di section "Frontend Implementation Plan" di bagian bawah dokumen.
 
@@ -365,11 +365,13 @@ Ini sudah tepat untuk balance tahunan.
 
 > ✅ Tabel `employee_leave_balances` sudah ada persis seperti ini (unique `employee_id, leave_type_id, period_year`), dengan `GetLeaveBalance`/`ListLeaveBalances` (read-only).
 >
-> ❌ **Gap nyata, prioritas P0**: tidak ada satupun kode yang menulis/mengurangi `used_days`/`remaining_days` saat leave di-approve, atau mengembalikannya saat dibatalkan. Approval flow saat ini "selesai" tanpa pernah menyentuh saldo yang seharusnya ia lindungi. Section 10 (Balance Ledger) di bawah masih berupa proposal — belum ada implementasinya sama sekali, bukan cuma "enhancement" opsional.
+> ✅ **Gap P0 sudah teratasi (Phase 6, 2026-08-08)** — `leave/balance.go` kini menulis/mengurangi `used_days`/`remaining_days` saat leave di-approve (`applyLeaveUsage`, transisi ke `APPROVED_FINAL`) dan mengembalikannya saat dibatalkan/keluar dari `APPROVED_FINAL` (`reverseLeaveUsage`), keduanya tercatat di `leave_balance_transactions` (ledger) lewat `writeLeaveBalanceTransaction`. Detail di catatan Phase 6 di bawah. Yang masih berupa proposal: accrual dari `LeaveAccrualPolicy`, adjustment HR, carry forward, expiry.
 
 ---
 
 # 10. Leave Balance Enhancement
+
+> ✅ **Sudah diimplementasikan (Phase 6, 2026-08-08)** — tabel `leave_balance_transactions` + model + repository ada sejak Phase 1, dan sejak Phase 6 ledger benar-benar ditulis: setiap USAGE/REVERSAL lewat `writeLeaveBalanceTransaction` dengan `balance_before`/`balance_after` (lihat catatan Phase 6 di bawah). Entri ACCRUAL/ADJUSTMENT/CARRY_FORWARD/EXPIRY masih kosong karena fitur-fitur tersebut (accrual engine, adjustment, carry forward, expiry) tetap proposal.
 
 Disarankan menambahkan mekanisme **Balance Ledger**.
 
@@ -694,7 +696,7 @@ dan menerima hasil approval.
 
 # 18. Cancellation
 
-> ❌ **Belum ada sama sekali** di luar nilai status `CANCELLED` yang bisa di-set lewat endpoint generik `PUT /requests/:id/status`. Tidak ada sub-flow request/approval cancellation, tidak ada reversal saldo (karena saldo sendiri belum pernah dikurangi — lihat Section 9/10), tidak ada endpoint `cancel` khusus. Desain di bawah ini masih sepenuhnya proposal.
+> 🔶 **Sub-flow cancellation tetap belum ada**, tapi catatan asli perlu dikoreksi: reversal saldo **sudah ada** sejak Phase 6 — `reverseLeaveUsage` (`leave/balance.go`) mengembalikan hari yang terpakai + menulis ledger REVERSAL saat request keluar dari `APPROVED_FINAL` via `UpdateLeaveRequestStatus` (mis. cancel oleh HR setelah approve; jalur `HandleApprovalStatusChange` CANCELLED hanya terjadi dari `PENDING_APPROVAL` yang saldonya belum pernah dikurangi, jadi tidak butuh reversal). Yang masih belum ada: sub-flow cancellation-request dengan approval tersendiri, endpoint `cancel` khusus, dan tabel `leave_cancellation_requests` (§19 tetap proposal).
 
 Employee dapat membatalkan request berdasarkan policy.
 
@@ -1485,7 +1487,7 @@ leave_cancellation_requests (optional)
 * Review existing Leave tables.
 * Fix data type inconsistencies. ✅ `leave_accrual_policies.deleted_at` was `INT NULL` (mismatched with the Go model's `gorm.DeletedAt`) — fixed to `TIMESTAMP NULL` in migration `070_leave_phase1_db_enhancement`.
 * Add missing indexes. ✅ `idx_accrual_deleted_at` added (was the only soft-deletable Leave table without one).
-* Add `leave_balance_transactions`. ✅ Table + `LeaveBalanceTransaction` model + `CreateLeaveBalanceTransaction`/`ListLeaveBalanceTransactions` repository methods added. Nothing writes to it yet — that's Phase 6 (accrual/usage/adjustment business logic).
+* Add `leave_balance_transactions`. ✅ Table + `LeaveBalanceTransaction` model + `CreateLeaveBalanceTransaction`/`ListLeaveBalanceTransactions` repository methods added. **Kini sudah ditulis** sejak Phase 6 — setiap USAGE/REVERSAL lewat `writeLeaveBalanceTransaction` (catatan asli "nothing writes to it yet" hanya benar saat Phase 1 selesai, sebelum Phase 6 berjalan).
 * Add cancellation table if required. ⏳ Deferred — no cancellation flow exists yet (Phase 18/19), revisit when that phase starts.
 * Add eligibility tables if required. ⏳ Deferred — no eligibility rules needed yet per current business requirements (Section 22).
 
@@ -1661,7 +1663,7 @@ Integrate dengan Central Approval Module.
 
 # Implementation Status
 
-Diverifikasi langsung terhadap kode per 2026-08-08.
+Diverifikasi langsung terhadap kode per 2026-08-09.
 
 | Phase (§41) | Status | Catatan |
 |---|---|---|
@@ -1679,11 +1681,11 @@ Diverifikasi langsung terhadap kode per 2026-08-08.
 **Frontend**: ✅ **FE-1 & FE-2 selesai (2026-08-09)** — `Leave.vue` (My Leave dashboard: balance cards + list request + dialog New Request + kalender bulan berjalan), `LeaveAdmin.vue` (index kartu), `LeaveTypes.vue`, `LeaveAccrualPolicies.vue`, `LeaveReasons.vue` (CRUD Dialog inline). Bilingual EN/ID di `locales/en.json` & `locales/id.json`, `npm run build` bersih, diverifikasi manual di browser tanpa console error. Team/Manager/HR Dashboard & Reports tetap backend-blocked (butuh cross-module employee/organization read yang belum ada).
 
 **Rekomendasi urutan lanjutan** (sesuai prioritas P0 di §42, disesuaikan dengan gap yang sudah dikonfirmasi):
-1. Leave Balance auto-deduct on approve + reversal on cancel (saat ini approval "selesai" tanpa efek ke saldo sama sekali — paling kritis).
-2. Working-day calculation server-side (saat ini `requested_days` tidak divalidasi, celah untuk data salah/manipulasi).
-3. Endpoint `submit`/`cancel` khusus (pisah dari `PUT .../status` generik) supaya side-effect balance/ledger bisa dipasang dengan aman.
+1. ~~Leave Balance auto-deduct on approve + reversal on cancel~~ ✅ Selesai (2026-08-08, Phase 6) — `applyLeaveUsage`/`reverseLeaveUsage` + ledger `leave_balance_transactions`.
+2. ~~Working-day calculation server-side~~ ✅ Selesai (2026-08-08, Phase 3) — `CalculateLeaveDuration` wired ke `CreateLeaveRequest`, `requested_days` dihitung server-side bukan dipercaya dari client.
+3. Endpoint `submit`/`cancel` khusus (pisah dari `PUT .../status` generik) — masih belum ada; side-effect balance/ledger sudah aman di jalur `UpdateLeaveRequestStatus`, endpoint khusus tinggal menyederhanakan UX/audit.
 4. ~~Frontend dasar: My Leave (request + list + balance)~~ ✅ Selesai (2026-08-09) — FE-1 & FE-2 di Frontend Implementation Plan di bawah.
-5. Balance ledger table (§10) menyusul begitu titik (1) mulai berjalan, supaya auto-deduct langsung punya jejak audit sejak awal alih-alih ditambah belakangan.
+5. ~~Balance ledger table (§10)~~ ✅ Selesai (2026-08-08, Phase 6) — `leave_balance_transactions` sudah ditulis untuk USAGE/REVERSAL sejak auto-deduct berjalan.
 
 ---
 

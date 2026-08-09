@@ -2,6 +2,8 @@
 
 ## Implementation Status
 
+Diverifikasi langsung terhadap kode per 2026-08-09.
+
 | Phase | Status | Catatan |
 |---|---|---|
 | Phase 1 — Database Schema | ✅ Selesai | Migration `074_notification`, model `Notification`, repository CRUD dasar + test. |
@@ -65,10 +67,13 @@ title              VARCHAR(255)
 body               TEXT
 reference_type     VARCHAR(50)        -- module slug sumber, mis. "leave", "attendance"
 reference_id       UUID NULL          -- id record sumber (leave_request_id, dll.)
+params             JSON NULL          -- []string untuk placeholder body (mis. nama template)
 is_read            BOOLEAN DEFAULT FALSE
 read_at            TIMESTAMP NULL
 created_at         TIMESTAMP
 ```
+
+> ✅ Kolom `params` (JSON, `[]string` untuk placeholder `%s` body) ada di tabel `notifications` (migration `074_notification`; perbaikan tenant migration di commit `5dd5909` menambah kolom yang sempat terlewat). Caller `Notify` mengirim `type + params` (bukan title/body ter-render) — kolom `title`/`body` menyimpan rendering bahasa Inggris sebagai fallback/audit, teks bilingual dirender ulang saat dibaca sesuai bahasa penerima (lihat §5.1).
 
 Index yang direkomendasikan:
 
@@ -409,6 +414,8 @@ Karena tidak ada infrastruktur push/websocket, unread-count di-refresh via `setI
 ## 13.5 Data Shape & Navigasi Referensi
 
 Setiap notifikasi punya `reference_type`/`reference_id` (§3.1). FE tidak perlu membangun routing map lengkap untuk semua kemungkinan `reference_type` di awal — cukup dukung yang sudah punya halaman FE nyata (mis. `leave` → halaman Leave My Requests, kalau ada request ID yang bisa di-deep-link). Untuk `reference_type` yang modul FE-nya sendiri masih placeholder (attendance, payroll, dll.), notifikasi cukup ditampilkan + bisa ditandai dibaca, tanpa navigasi — jangan membangun deep-link spekulatif ke halaman yang belum ada.
+
+> ✅ **Deep-link navigation sudah diimplementasikan (2026-08-09)** — `Notifications.vue` `handleRowClick` menandai notifikasi sebagai dibaca lalu menavigasi berdasarkan tipe/reference (hanya untuk modul yang FE-nya sudah punya halaman): `reference_type == 'leave'` → `/leave`; `type == 'KPI_TEMPLATE_CREATED'` atau `reference_type == 'performance_kpi_template'` → `/performance/kpi/my-evaluation`; `type == 'OKR_TEMPLATE_CREATED'` atau `reference_type == 'okr_template'` → `/performance/okr/my-evaluation`. Reference type lain (attendance, payroll, dll.) sengaja dibiarkan "mark-read only" tanpa navigasi — konsisten dengan prinsip asli di atas (tidak ada deep-link spekulatif ke halaman yang belum ada).
 
 Response envelope sama dengan modul lain (`success`/`data`/`page`/`per_page`/`total`) — parsing FE harus konsisten dengan cara `Approvals.vue` membaca `res.data.data`/`res.data.total`.
 
