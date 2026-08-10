@@ -3,9 +3,10 @@
 > 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6–12) ✅ + P2 (13–14) ✅** (backend ✅ + FE halaman Movements/Contracts/detail/reports/dashboard ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21) · ✅ **Enhancement §12 P1 8** (Contract Expiry Management — lihat log §3.22) · ✅ **Enhancement §12 P1 10** (Career Path — lihat log §3.23) · ✅ **Enhancement §12 P1 11** (Promotion Eligibility — lihat log §3.24) · ✅ **Enhancement §12 P1 9** (Performance Integration — KPI/OKR/competency sebagai input eligibility, lihat log §3.25) · ✅ **Enhancement §12 P1 12** (Movement Cancellation Approval via Central Approval — lihat log §3.26) · ✅ **Enhancement §12 P2 13** (Movement Reporting — report promosi/mutasi/kontrak + filter periode/org/posisi, lihat log §3.27) · ✅ **Enhancement §12 P2 14** (Dashboard — kartu HR movement/contract di Dashboard FE, lihat log §3.28). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21) · ✅ **Enhancement §12 P1 8** (Contract Expiry Management — lihat log §3.22) · ✅ **Enhancement §12 P1 10** (Career Path — **pindah ke modul Career Intelligence**, lihat `docs/module-career-intelligence-plan.md` §4/§7) · ✅ **Enhancement §12 P1 11** (Promotion Eligibility — lihat log §3.24) · ✅ **Enhancement §12 P1 9** (Performance Integration — KPI/OKR/competency sebagai input eligibility, lihat log §3.25) · ✅ **Enhancement §12 P1 12** (Movement Cancellation Approval via Central Approval — lihat log §3.26) · ✅ **Enhancement §12 P2 13** (Movement Reporting — report promosi/mutasi/kontrak + filter periode/org/posisi, lihat log §3.27) · ✅ **Enhancement §12 P2 14** (Dashboard — kartu HR movement/contract di Dashboard FE, lihat log §3.28). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
 > ⏳ **Sisa TODO (per review 2026-08-10):** (1) eksekusi manual checklist E2E (menunggu environment) · (2) §12.7 Opsi B scheduler auto-execute movement (opsional, feature flag) · (3) §12.12 validasi eksplisit pasangan `organization_id`–`position_id` pada mutation (opsional) · (4) tabel `career_path_requirements` (opsional, eligibility masih hardcode rule) · (5) kolom `from/to_employment_type_name` pada snapshot (opsional) — semuanya enhancement opsional, bukan blocker.
-> 🔧 **Pasca-verifikasi DB (2026-08-10):** tenant `hris_pt-inthros-jago-utama` kini **86/86 migration ter-apply** (sebelumnya 81/86 — 083–087 pending). Konflik `career_paths` (086 vs 018 career intelligence) **diselesaikan via unifikasi penuh** (lihat log §3.29).
+> 🔧 **Pasca-verifikasi DB (2026-08-10):** tenant `hris_pt-inthros-jago-utama` kini **86/86 migration ter-apply** (sebelumnya 81/86 — 083–087 pending). Konflik `career_paths` (086 vs 018 career intelligence) **diselesaikan via unifikasi penuh** (lihat `docs/module-career-intelligence-plan.md` §7.2).
+> 🔀 **Pemisahan transactional vs strategical (2026-08-10):** **Career Paths pindah penuh ke modul Career Intelligence** — endpoint `/career-intelligence/paths` (ladder-style), EM hanya baca untuk eligibility; detail di `docs/module-career-intelligence-plan.md` §7.3.
 
 ---
 
@@ -659,34 +660,13 @@ Scheduled process `ProcessContractExpiration` (plan §12.13) — mark expired ot
 
 ---
 
-# 3.23 Log Implementasi — Enhancement P1 item 10: Career Path (2026-08-10)
+# 3.23 Log Implementasi — Career Path (2026-08-10) — ✅ **DIPINDAHKAN ke `docs/module-career-intelligence-plan.md` §7.1**
 
-## 3.23.1 Yang dikerjakan
-
-**Career Path** (plan §12.9 + API §15) — konfigurasi/planning jenjang karier, bukan movement transaction.
-
-- **Migration 086_career_paths** (mysql + postgres, up + down):
-  - `career_paths` — id CHAR(36) PK · `name` UNIQUE · `description` · `is_active` · created_by/updated_by · timestamps.
-  - `career_path_steps` — id PK · `career_path_id` FK → `career_paths` **ON DELETE CASCADE** · `position_id` (tanpa FK, pola `employee_movements.from_/to_position_id`) · `sequence` · `minimum_service_months` · `requirements` · **UNIQUE (career_path_id, sequence)** + **UNIQUE (career_path_id, position_id)** + index position_id.
-- **Model**: `CareerPath` + `CareerPathStep` (AutoMigrate module ditambah).
-- **DTO**: `CreateCareerPathRequest` / `UpdateCareerPathRequest` (full-replace steps) / `CareerPathResponse` (dengan `steps` + `position_name` enrichment) / `PaginatedCareerPathResponse`.
-- **Repository**: `CreateCareerPathTx` · `ListCareerPaths` (keyword + pagination) · `FindCareerPathByID` · `ListCareerPathStepsByPathID` (sequence ASC) · `UpdateCareerPathTx` (header + replace seluruh steps, transaksional) · `DeleteCareerPath` (hapus steps eksplisit dulu — konsisten lintas driver, karena SQLite test tidak selalu mengaktifkan FK).
-- **Service**: `CreateCareerPath` · `ListCareerPaths` · `GetCareerPathByID` · `UpdateCareerPath` · `DeleteCareerPath` + helper `buildAndValidateCareerPathSteps` (minimal 1 step · sequence unik per path · posisi unik per path · semua `position_id` harus merujuk posisi yang **benar-benar ada**, bukan hanya format UUID) + `enrichCareerPathSteps` (batch `GetPositionNamesByIDs` → `position_name`, pola G-4).
-- **Handler + routes**: `GET/POST /career-paths` · `GET/PUT/DELETE /career-paths/:id` (per plan §15).
-
-## 3.23.2 Keputusan desain
-
-1. **Full-replace steps pada update** — klien mengirim daftar steps lengkap yang diinginkan; server menghapus seluruh steps lama lalu insert ulang dalam satu transaksi. Aman karena tidak ada referensi eksternal ke `career_path_steps` (path adalah konfigurasi).
-2. **`position_id` tanpa FK** — konsisten dengan `employee_movements.from_/to_position_id`; eksistensi posisi divalidasi di service layer (`GetPositionNamesByIDs`), bukan oleh DB constraint. Menghindari migration fragile bila tenant punya data posisi tidak konsisten.
-3. **UNIQUE (career_path_id, sequence)** mencegah urutan ganda; **UNIQUE (career_path_id, position_id)** mencegah posisi muncul dua kali dalam satu jalur — keduanya juga di-validasi pre-insert di service agar error-nya 400 (validation) bukan 500 (constraint cryptic).
-4. **`CareerPathID` di-generate di service** (bukan menunggu `BeforeCreate`) agar steps membawa FK yang sama sebelum insert — bug awal yang tertangkap test: steps pernah memakai UUID nol sehingga semua path saling collide.
-5. Test list memakai prefix nama unik (`Paginate-*`) karena DB SQLite shared antar-test (pola yang sama dengan flakiness audit/document test).
-
-## 3.23.3 Validasi
-
-- `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/...` ✅ · `gofmt` bersih ✅
-- `go test ./internal/modules/employeemovement/... ./internal/modules/employee/... ./internal/modules/approval/... ./internal/modules/notification/...` — semua **PASS** ✅
-- Test baru (8): create (steps urut + enrich nama posisi) · duplicate sequence ditolak · posisi tak eksis ditolak · list pagination + keyword · get by id · update full-replace · delete (path + steps bersih) · not-found.
+> Career Path kini dimiliki modul **Career Intelligence** (strategical planning) — kepemilikan CRUD,
+> skema, dan seluruh log terkait dipindahkan ke `docs/module-career-intelligence-plan.md` (§4 Career
+> Path plan, §7.1 log awal, §7.2 unifikasi schema, §7.3 pemisahan transactional vs strategical).
+> Employee Movement hanya **membaca** `career_paths`/`career_path_steps` untuk promotion eligibility
+> (lihat §3.24).
 
 ---
 
@@ -853,49 +833,17 @@ Scheduled process `ProcessContractExpiration` (plan §12.13) — mark expired ot
 
 ---
 
-# 3.29 Log Implementasi — UNIFIKASI Career Paths (EM 086 + Career Intelligence 018) + apply migration 083–087 (2026-08-10)
+# 3.29 Log Implementasi — UNIFIKASI Career Paths (086 + Career Intelligence 018) — ✅ **DIPINDAHKAN ke `docs/module-career-intelligence-plan.md` §7.2**
 
-> **Latar:** saat verifikasi langsung ke database ditemukan tenant DB (`hris_pt-inthros-jago-utama`) hanya 81/86 migration ter-apply (083–087 pending), DAN migration 086 `career_paths` berkonflik dengan tabel `career_paths` dari modul Career Intelligence (018) yang memakai `CREATE TABLE IF NOT EXISTS` — jika 086 dijalankan apa adanya, kolom `name` (yang dibutuhkan model EM) tidak akan pernah dibuat. Keputusan user (2026-08-10): **unifikasi penuh** — satu skema `career_paths` + `career_path_steps` untuk kedua modul.
+> Konflik `career_paths` (086 vs 018) diselesaikan via **unifikasi penuh** — satu skema terpadu untuk
+> kedua modul. Detail lengkap (skema, refactor CI, apply migration 083–087, hasil code review) ada di
+> `docs/module-career-intelligence-plan.md` §7.2.
 
-## 3.29.1 Yang dikerjakan
+# 3.30 Log Implementasi — PEMISAHAN TRANSACTIONAL vs STRATEGICAL: Career Paths pindah ke Career Intelligence — ✅ **DIPINDAHKAN ke `docs/module-career-intelligence-plan.md` §7.3**
 
-- **Migration 086 di-rewrite** (mysql + postgres, up + down) menjadi skema TERPADU (idempotent):
-  - `career_paths` = header jenjang: `id, name, description, is_active, created_by, updated_by, created_at, updated_at, deleted_at` + `uk_career_paths_name`.
-  - Kolom edge CI lama (`source_title_id, target_title_id, path_type, typical_tenure, requirements, competencies, certifications` + `idx_cp_source/target`) **dihapus** — atribut dipindah ke `career_path_steps`.
-  - `career_path_steps` = langkah terpadu: `position_id, sequence, minimum_service_months, requirements` (EM) + `path_type, typical_tenure, competencies, certifications` (CI, pada step target) + `idx_career_path_steps_position` + unique `(career_path_id, sequence)` & `(career_path_id, position_id)` + FK CASCADE.
-- **Career Intelligence di-refactor** (model/dto/repo/service):
-  - `CareerPath` CI = header (name/description/is_active/soft delete); tambah `CareerPathStep` CI.
-  - Edge CI (`source → target, path_type, typical_tenure, requirements, competencies`) disimpan sebagai **path 2-langkah**: step 1 = source, step 2 = target + atribut edge.
-  - `CreateCareerPathTx` (transaksi header+steps), `ListCareerPathStepsByPathID(s)`, `FindCareerPathsBySource` (via step sequence 1), `DeleteCareerPath` (steps hard + header soft).
-  - `buildCareerPathName` generate nama unik `<PATH_TYPE>: <source> → <target>` bila klien tidak mengirim `name`.
-  - Respons CI backward-compatible: tetap mengekspos `source_title_id/target_title_id/path_type/typical_tenure/requirements/competencies/certifications` (diderivasi dari steps) + tambahan `name` & `steps`.
-- **Test**: fixtures + repo/service tests CI diperbarui ke skema baru (termasuk `TestRepo_FindCareerPathsBySource`); EM `careerpath_test.go` tidak berubah (model EM kompatibel).
-
-## 3.29.2 Apply migration ke tenant & verifikasi DB
-
-- Binary `installer.exe` di-build ulang (embed FS memuat migration baru), lalu:
-  `installer.exe migrate --company=df687f34-e580-40c5-8935-73180fb5fd3c` → **5 migration applied** (083 snapshot, 084 audit, 085 documents, 086 career_paths unifikasi, 087 cancellation).
-- Verifikasi langsung `information_schema`:
-  - `schema_migrations` 083–087 hadir.
-  - `career_paths` = 9 kolom header terpadu (tanpa `source_title_id`).
-  - `career_path_steps` = 12 kolom (EM + CI) + index + FK.
-  - `employee_movements` snapshot 6 kolom ✅ · `employee_movement_audits` ✅ · `employee_movement_documents` ✅ · `cancellation_approval_instance_id` ✅.
-
-## 3.29.3 Validasi
-
-- `go build ./...` ✅ · `go vet` kedua modul ✅.
-- `go test ./internal/modules/careerintelligence/ ./internal/modules/employeemovement/` — semua **PASS** ✅.
-- DB tenant kini **86/86** migration ter-apply.
-
-## 3.29.4 Hasil code review & perbaikan
-
-- **Reviewer finding 1 (data loss di migration 086):** tidak ada data `career_paths` pada semua tenant (0 baris) — tidak ada data yang hilang. Risiko teoritis untuk tenant masa depan dengan data CI didokumentasikan (keputusan unifikasi menerima drop edge lama demi satu sumber kebenaran).
-- **Reviewer finding 2 (soft-delete mismatch):** diperbaiki ✅. CI memakai `gorm.DeletedAt` (soft delete header, `deleted_at` di-set), sedangkan model EM `CareerPath` tidak punya `DeletedAt` → query eligibility EM bisa mengembalikan path yang sudah soft-deleted oleh CI. Perbaikan: tambah `DeletedAt gorm.DeletedAt` + `idx_cp_deleted_at` di model EM `CareerPath` (kolom & index sudah ada di DB dari 018), sehingga semua query EM (list, detail, `FindCareerPathStepsByPositionID`) otomatis memfilter `deleted_at IS NULL`.
-- **Reviewer finding 2b (nama unik vs soft delete):** `FindCareerPathByName` (CI) kini memakai `Unscoped()` agar nama path yang sudah soft-deleted tetap terdeteksi/terpesan — mencegah `uk_career_paths_name` violation saat `buildCareerPathName` memilih nama yang sama dengan path yang baru dihapus.
-- **Reviewer finding 3 (name collision):** sudah aman dari awal — `buildCareerPathName` memakai loop akhiran `-2/-3/...`.
-- **Reviewer finding 4 (ORDER BY sequence):** sudah aman — semua fetch steps (`ListCareerPathStepsByPathID`, `ListCareerPathStepsByPathIDs`, EM `FindCareerPathStepsByPositionID`) memakai `Order("sequence ASC")`.
-- **Reviewer finding 5 (validasi asimetris CI vs EM):** diterima sebagai trade-off desain — CI membuat path 2-step deterministik (source seq 1, target seq 2) yang selalu lolos validasi EM; didokumentasikan sebagai kontrak skema terpadu.
-- Validasi ulang: `go build ./...` ✅ · `go vet` ✅ · `go test ./internal/modules/...` — **17/17 modul PASS** ✅.
+> Keputusan user (2026-08-10): career paths pindah penuh ke modul **career-intelligence** (strategical).
+> Detail lengkap (perubahan CI sebagai pemilik baru, perombakan EM ke read-only, test & FE) ada di
+> `docs/module-career-intelligence-plan.md` §7.3.
 
 ---
 
@@ -1355,47 +1303,15 @@ Movement menjadi sumber transaksi, sedangkan API career-history menjadi read mod
 
 ---
 
-## 12.9 P1 — Career Path — ✅ **SELESAI (2026-08-10)** — lihat log §3.23 + **§3.29 (unifikasi schema dengan Career Intelligence 018)**
+## 12.9 P1 — Career Path — ✅ **SELESAI (2026-08-10) — DIPINDAHKAN ke modul Career Intelligence**
 
-Karena module mencakup Career Management, tambahkan konfigurasi career path.
-
-### New Table
-
-```text
-career_paths
-career_path_steps
-```
-
-### Structure
-
-```text
-career_paths
-    │
-    └── career_path_steps
-             │
-             ├── position_id
-             ├── sequence
-             ├── minimum_service_months
-             └── requirements
-```
-
-### Example
-
-```text
-Staff
-  ↓
-Senior Staff
-  ↓
-Supervisor
-  ↓
-Manager
-  ↓
-Senior Manager
-```
-
-### Catatan
-
-Career Path adalah **planning/configuration**, bukan movement transaction.
+> **⚠️ Kepemilikan pindah:** Career Path kini menjadi bagian modul **Career Intelligence** (strategical
+> planning) — pemisahan transactional vs strategical. Plan lengkap, skema terpadu, validasi, API
+> `/career-intelligence/paths`, dan seluruh log implementasi ada di
+> **`docs/module-career-intelligence-plan.md`** (§4 Career Path, §6 API, §7 log).
+>
+> Employee Movement tetap **membaca** `career_paths`/`career_path_steps` sebagai input promotion
+> eligibility (lihat §12.10).
 
 ---
 
@@ -1745,14 +1661,14 @@ employee_movement_audits        ✅ migration 084 (P0-5, log §3.19)
 employee_movement_documents     ✅ migration 085 (P1-6, log §3.20)
 ```
 
-## Career Management — ✅ (migration 086 di-rewrite sebagai skema TERPADU, log §3.29)
+## Career Management — ✅ (migration 086 di-rewrite sebagai skema TERPADU — detail: `docs/module-career-intelligence-plan.md` §7.2)
 
 ```text
 career_paths        ✅ migration 086 — header jenjang TERPADU (EM + Career Intelligence 018)
 career_path_steps   ✅ migration 086 — langkah terpadu (EM fields + atribut edge CI)
 ```
 
-> **Keputusan unifikasi (2026-08-10, log §3.29):** `career_paths` adalah SATU sumber kebenaran untuk Employee Movement (P1-10) DAN Career Intelligence (018). Edge CI (`source → target`, `path_type`, `typical_tenure`, `requirements`, `competencies`, `certifications`) direpresentasikan sebagai **path 2-langkah** pada skema terpadu; kolom edge CI lama dihapus dari header dan dipindah ke `career_path_steps`.
+> **Keputusan unifikasi (2026-08-10, log §7.2 di `docs/module-career-intelligence-plan.md`):** `career_paths` adalah SATU sumber kebenaran untuk Employee Movement (P1-10) DAN Career Intelligence (018). Edge CI (`source → target`, `path_type`, `typical_tenure`, `requirements`, `competencies`, `certifications`) direpresentasikan sebagai **path 2-langkah** pada skema terpadu; kolom edge CI lama dihapus dari header dan dipindah ke `career_path_steps`.
 
 ## Optional — ⏳ TODO (belum dibuat, sengaja ditunda)
 
@@ -1841,15 +1757,13 @@ DELETE /api/v1/tenant/employee-movements/movements/{id}/documents/{documentId}
 GET /api/v1/tenant/employee-movements/movements/{id}/audits
 ```
 
-## Career Paths — ✅ (P1-10, log §3.23)
+## Career Paths — ✅ (P1-10) — **DIPINDAHKAN ke modul Career Intelligence**
 
-```http
-GET    /api/v1/tenant/career-paths
-POST   /api/v1/tenant/career-paths
-GET    /api/v1/tenant/career-paths/{id}
-PUT    /api/v1/tenant/career-paths/{id}
-DELETE /api/v1/tenant/career-paths/{id}
-```
+> **⚠️ Perubahan kepemilikan (2026-08-10):** career paths bukan lagi endpoint modul Employee Movement.
+> Keputusan user: **pemisahan transactional vs strategical** — kepemilikan penuh pindah ke modul
+> **Career Intelligence** (strategical planning), endpoint `/career-intelligence/paths` (ladder-style
+> `name` + `steps[]`). EM hanya **membaca** `career_paths`/`career_path_steps` untuk promotion
+> eligibility. Plan lengkap + skema + seluruh log: **`docs/module-career-intelligence-plan.md`** §4/§6/§7.
 
 ## Bonus (report & dashboard, P2-13/14) — ✅
 
@@ -2043,7 +1957,7 @@ C = 2
 | 7 | Career Timeline — ✅ **SELESAI (2026-08-10)** | P1 | BE/FE |
 | 8 | Contract Expiry — ✅ **SELESAI (2026-08-10)** | P1 | BE/Job/FE |
 | 9 | Performance Integration — ✅ **SELESAI (2026-08-10)** | P1 | BE |
-| 10 | Career Path — ✅ **SELESAI (2026-08-10)** — skema TERPADU dgn Career Intelligence 018 (log §3.29); migration 086 di-apply | P1 | DB/BE/FE |
+| 10 | Career Path — ✅ **SELESAI (2026-08-10)** — **kepemilikan pindah ke modul Career Intelligence** (strategical; log §7.1–§7.4 di `docs/module-career-intelligence-plan.md`); migration 086 di-apply | P1 | DB/BE/FE |
 | 11 | Promotion Eligibility — ✅ **SELESAI (2026-08-10)** | P1/P2 | BE |
 | 12 | Movement Cancellation Approval | ✅ **SELESAI (2026-08-10)** — via Central Approval: draft langsung, approved → Cancellation Request module `employeemovement_cancellation` → cancellation_pending → cancelled/kembali approved; migration 087 + audit CANCELLATION_REQUESTED/REJECTED (log §3.26) | Approval/BE |
 | 13 | Reports | ✅ **SELESAI (2026-08-10)** — GET `/reports/movements` (total + by_type + by_status, filter periode/org/posisi/employee/tipe/status) + GET `/reports/contracts` (by_status + expiring < 30 hari); FE halaman Movement Reports + kartu statistik (log §3.27) | BE/FE |

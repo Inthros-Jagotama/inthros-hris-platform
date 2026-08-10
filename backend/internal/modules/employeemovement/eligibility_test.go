@@ -223,14 +223,21 @@ func TestGetPromotionEligibility_WithCareerPath(t *testing.T) {
 			t.Fatalf("failed to seed position %s: %v", p.title, err)
 		}
 	}
-	path := &CareerPath{Name: "Test Career Path — Staff ke Supervisor", Description: strPtr("Jenjang test"), IsActive: true}
-	path.ID = uuid.New()
-	if err := repo.CreateCareerPathTx(ctx(), path, []CareerPathStep{
-		{CareerPathID: path.ID, PositionID: staffPosID, Sequence: 1, MinimumServiceMonths: intPtr(12)},
-		{CareerPathID: path.ID, PositionID: seniorPosID, Sequence: 2, MinimumServiceMonths: intPtr(24)},
-		{CareerPathID: path.ID, PositionID: supPosID, Sequence: 3, MinimumServiceMonths: intPtr(36)},
-	}); err != nil {
+	// Seed career path langsung via gorm (CreateCareerPathTx dipindah ke modul
+	// Career Intelligence — modul ini hanya membaca untuk eligibility).
+	path := &CareerPath{ID: uuid.New(), Name: "Test Career Path — Staff ke Supervisor", IsActive: true}
+	if err := db.Create(path).Error; err != nil {
 		t.Fatalf("failed to seed career path: %v", err)
+	}
+	steps := []CareerPathStep{
+		{ID: uuid.New(), CareerPathID: path.ID, PositionID: staffPosID, Sequence: 1, MinimumServiceMonths: intPtr(12)},
+		{ID: uuid.New(), CareerPathID: path.ID, PositionID: seniorPosID, Sequence: 2, MinimumServiceMonths: intPtr(24)},
+		{ID: uuid.New(), CareerPathID: path.ID, PositionID: supPosID, Sequence: 3, MinimumServiceMonths: intPtr(36)},
+	}
+	for _, st := range steps {
+		if err := db.Create(&st).Error; err != nil {
+			t.Fatalf("failed to seed career path step: %v", err)
+		}
 	}
 
 	resp, err := svc.GetPromotionEligibility(ctx(), employeeID.String())

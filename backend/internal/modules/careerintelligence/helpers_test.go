@@ -3,6 +3,7 @@ package careerintelligence
 import (
 	"context"
 	"fmt"
+	"testing"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -132,6 +133,28 @@ func createTestCareerPath(repo *Repository) *CareerPath {
 		panic(fmt.Sprintf("failed to create test career path: %v", err))
 	}
 	return cp
+}
+
+// seedCareerPathPositions membuat tabel positions referensi + mengisi beberapa
+// posisi untuk test career path ladder (validasi posisi JOIN ke tabel itu).
+func seedCareerPathPositions(t *testing.T, repo *Repository) (uuid.UUID, uuid.UUID) {
+	t.Helper()
+	db, err := repo.db(context.Background())
+	if err != nil {
+		t.Fatalf("failed to get test db: %v", err)
+	}
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS positions (id CHAR(36) PRIMARY KEY, title VARCHAR(255))").Error; err != nil {
+		t.Fatalf("failed to create positions table: %v", err)
+	}
+	a := uuid.New()
+	b := uuid.New()
+	if err := db.Table("positions").Create([]map[string]interface{}{
+		{"id": a.String(), "title": "Staff"},
+		{"id": b.String(), "title": "Supervisor"},
+	}).Error; err != nil {
+		t.Fatalf("failed to seed positions: %v", err)
+	}
+	return a, b
 }
 
 func createTestSuccessionPlan(repo *Repository) *CareerSuccessionPlan {

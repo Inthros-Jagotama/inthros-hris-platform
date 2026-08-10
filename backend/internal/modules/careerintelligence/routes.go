@@ -20,11 +20,15 @@ func RegisterRoutes(r *gin.RouterGroup, handler *Handler) {
 		ci.POST("/interests", handler.CreateCareerInterest)
 		ci.GET("/interests/employee/:employeeId", handler.GetEmployeeCareerInterests)
 
-		// Career Paths (3 endpoints + gap analysis)
+		// Career Paths — strategical planning (enhancement plan §12.9).
+		// Ladder-style (name + steps[]) — endpoint utama FE Career Paths.
 		ci.GET("/paths", handler.ListCareerPaths)
-		ci.POST("/paths", handler.CreateCareerPath)
-		ci.DELETE("/paths/:id", handler.DeleteCareerPath)
+		ci.POST("/paths", handler.CreateCareerPathLadder)
+		// Static path SEBELUM dynamic :id (Gin constraint).
 		ci.GET("/paths/gap-analysis", handler.GetGapAnalysis)
+		ci.GET("/paths/:id", handler.GetCareerPathByID)
+		ci.PUT("/paths/:id", handler.UpdateCareerPath)
+		ci.DELETE("/paths/:id", handler.DeleteCareerPath)
 
 		// Succession Plans (5 endpoints)
 		ci.GET("/successions", handler.ListSuccessionPlans)

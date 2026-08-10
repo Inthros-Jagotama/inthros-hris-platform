@@ -124,6 +124,12 @@ const routes = [
         component: () => import('@/views/modules/EmployeeMovementReports.vue'),
         meta: { title: 'Movement Reports', titleKey: 'employee_movement.reports', descKey: 'employee_movement.reports_description', icon: 'pi pi-chart-bar', module: 'employeemovement' }
       },
+      {
+        path: 'career-intelligence/paths',
+        name: 'CareerPaths',
+        component: () => import('@/views/modules/CareerPaths.vue'),
+        meta: { title: 'Career Paths', titleKey: 'career_paths.title', descKey: 'career_paths.description', icon: 'pi pi-sitemap', module: 'career-intelligence' }
+      },
       // Time & Attendance
       {
         path: 'attendance',

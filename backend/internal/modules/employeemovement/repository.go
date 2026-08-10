@@ -1081,62 +1081,10 @@ func (r *Repository) ExtendContract(ctx context.Context, newContract *EmployeeCo
 }
 
 // =========================================================================
-// Career Path (plan §12.9) — planning/configuration jenjang karier
+// Career Path READ-ONLY (plan §12.9) — kepemilikan CRUD pindah ke modul
+// Career Intelligence (keputusan user 2026-08-10). Modul ini hanya membaca
+// tabel career_paths/career_path_steps untuk promotion eligibility.
 // =========================================================================
-
-// CreateCareerPathTx menyimpan career path beserta steps-nya dalam satu
-// transaksi: path header + seluruh steps harus berhasil atau semuanya batal.
-func (r *Repository) CreateCareerPathTx(ctx context.Context, path *CareerPath, steps []CareerPathStep) error {
-	db, err := r.getDB(ctx)
-	if err != nil {
-		return err
-	}
-
-	tx := db.Begin()
-	if tx.Error != nil {
-		return fmt.Errorf("failed to begin transaction: %w", tx.Error)
-	}
-	defer tx.Rollback()
-
-	if err := tx.Create(path).Error; err != nil {
-		return fmt.Errorf("failed to create career path: %w", err)
-	}
-	if len(steps) > 0 {
-		if err := tx.Create(&steps).Error; err != nil {
-			return fmt.Errorf("failed to create career path steps: %w", err)
-		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("failed to commit career path creation: %w", err)
-	}
-	return nil
-}
-
-// ListCareerPaths mengembalikan daftar career path terurut name ASC dengan
-// pagination. Keyword (opsional) memfilter berdasarkan substring nama path.
-func (r *Repository) ListCareerPaths(ctx context.Context, page, perPage int, keyword string) ([]CareerPath, int64, error) {
-	db, err := r.getDB(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
-	var paths []CareerPath
-	var total int64
-
-	query := db.Model(&CareerPath{})
-	if keyword != "" {
-		query = query.Where("name LIKE ?", "%"+keyword+"%")
-	}
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("failed to count career paths: %w", err)
-	}
-
-	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("name ASC").Find(&paths).Error; err != nil {
-		return nil, 0, fmt.Errorf("failed to list career paths: %w", err)
-	}
-	return paths, total, nil
-}
 
 // FindCareerPathByID mengambil satu career path berdasarkan id.
 func (r *Repository) FindCareerPathByID(ctx context.Context, id uuid.UUID) (*CareerPath, error) {
@@ -1191,77 +1139,3 @@ func (r *Repository) FindCareerPathStepsByPositionID(ctx context.Context, positi
 	return steps, nil
 }
 
-// UpdateCareerPathTx memperbarui header path dan mengganti SELURUH steps-nya
-// dalam satu transaksi (semantik full-replace: steps lama dihapus, steps baru
-// dibuat ulang). Aman karena tidak ada referensi eksternal ke career_path_steps.
-func (r *Repository) UpdateCareerPathTx(ctx context.Context, path *CareerPath, steps []CareerPathStep) error {
-	db, err := r.getDB(ctx)
-	if err != nil {
-		return err
-	}
-
-	tx := db.Begin()
-	if tx.Error != nil {
-		return fmt.Errorf("failed to begin transaction: %w", tx.Error)
-	}
-	defer tx.Rollback()
-
-	// Header path — use a map so Description can be explicitly cleared (NULL)
-	// and IsActive toggled regardless of zero-value semantics in struct updates.
-	// Nil di-normalisasi ke nil interface (bukan typed nil pointer) agar GORM
-	// konsisten menulis NULL ke kolom description.
-	updates := map[string]interface{}{
-		"name":      path.Name,
-		"is_active": path.IsActive,
-	}
-	if path.Description != nil {
-		updates["description"] = *path.Description
-	} else {
-		updates["description"] = nil
-	}
-	if path.UpdatedBy != nil {
-		updates["updated_by"] = path.UpdatedBy.String()
-	} else {
-		updates["updated_by"] = nil
-	}
-	if err := tx.Model(&CareerPath{}).Where("id = ?", path.ID).Updates(updates).Error; err != nil {
-		return fmt.Errorf("failed to update career path: %w", err)
-	}
-
-	// Full-replace steps.
-	if err := tx.Where("career_path_id = ?", path.ID).Delete(&CareerPathStep{}).Error; err != nil {
-		return fmt.Errorf("failed to delete career path steps: %w", err)
-	}
-	if len(steps) > 0 {
-		if err := tx.Create(&steps).Error; err != nil {
-			return fmt.Errorf("failed to recreate career path steps: %w", err)
-		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("failed to commit career path update: %w", err)
-	}
-	return nil
-}
-
-// DeleteCareerPath menghapus career path beserta steps-nya. Steps dihapus
-// eksplisit dulu agar konsisten lintas driver (MySQL/PG CASCADE + SQLite test
-// yang tidak selalu mengaktifkan FK).
-func (r *Repository) DeleteCareerPath(ctx context.Context, id uuid.UUID) error {
-	db, err := r.getDB(ctx)
-	if err != nil {
-		return err
-	}
-
-	if err := db.Where("career_path_id = ?", id).Delete(&CareerPathStep{}).Error; err != nil {
-		return fmt.Errorf("failed to delete career path steps: %w", err)
-	}
-	result := db.Where("id = ?", id).Delete(&CareerPath{})
-	if result.Error != nil {
-		return fmt.Errorf("failed to delete career path: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("career path not found")
-	}
-	return nil
-}

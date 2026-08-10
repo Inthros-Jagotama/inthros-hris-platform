@@ -243,24 +243,36 @@ func TestService_ListCareerInterests_ByEmployee(t *testing.T) {
 // Career Path Service Tests
 // =========================================================================
 
-func TestService_CreateCareerPath_Success(t *testing.T) {
-	svc, _, _, cleanup := newTestService()
+func TestService_CreateCareerPathLadder_Success(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
 	defer cleanup()
 
-	req := CreateCareerPathRequest{
-		SourceTitleID: uuidStr(),
-		TargetTitleID: uuidStr(),
-		PathType:      "PROMOTION",
-		TypicalTenure: 24,
+	posA, posB := seedCareerPathPositions(t, repo)
+	minMonths := 12
+	desc := "Jenjang career IT"
+
+	req := CreateCareerPathLadderRequest{
+		Name:        "Staff to Supervisor",
+		Description: &desc,
+		Steps: []CreateCareerPathStepRequest{
+			{PositionID: posA.String(), Sequence: 1, MinimumServiceMonths: &minMonths},
+			{PositionID: posB.String(), Sequence: 2},
+		},
 	}
 
-	resp, err := svc.CreateCareerPath(ctx(), req)
+	resp, err := svc.CreateCareerPathLadder(ctx(), req)
 	if err != nil {
-		t.Fatalf("CreateCareerPath failed: %v", err)
+		t.Fatalf("CreateCareerPathLadder failed: %v", err)
 	}
 
-	if resp.PathType != "PROMOTION" {
-		t.Errorf("expected path type 'PROMOTION', got '%s'", resp.PathType)
+	if resp.Name != "Staff to Supervisor" {
+		t.Errorf("expected name 'Staff to Supervisor', got '%s'", resp.Name)
+	}
+	if len(resp.Steps) != 2 {
+		t.Errorf("expected 2 steps, got %d", len(resp.Steps))
+	}
+	if resp.Steps[0].PositionName == "" || resp.Steps[1].PositionName == "" {
+		t.Error("expected steps to be enriched with position names")
 	}
 	if resp.ID == "" {
 		t.Error("expected ID to be set")
@@ -275,7 +287,7 @@ func TestService_ListCareerPaths_DefaultPagination(t *testing.T) {
 		createTestCareerPath(repo)
 	}
 
-	resp, err := svc.ListCareerPaths(ctx(), 0, 0)
+	resp, err := svc.ListCareerPaths(ctx(), 0, 0, "")
 	if err != nil {
 		t.Fatalf("ListCareerPaths failed: %v", err)
 	}

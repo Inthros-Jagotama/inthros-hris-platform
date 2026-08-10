@@ -53,14 +53,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		em.GET("/employees/:employeeId/contracts", handler.ListContractsByEmployee)
 	}
 
-	// Career paths (enhancement plan §12.9) — planning/configuration jenjang
-	// karier; endpoint per plan §15: /api/v1/tenant/career-paths.
-	cp := rg.Group("/career-paths")
-	{
-		cp.GET("", handler.ListCareerPaths)
-		cp.POST("", handler.CreateCareerPath)
-		cp.GET("/:id", handler.GetCareerPathByID)
-		cp.PUT("/:id", handler.UpdateCareerPath)
-		cp.DELETE("/:id", handler.DeleteCareerPath)
-	}
+	// Career paths TIDAK lagi di-handle modul ini — kepemilikan penuh pindah ke
+	// modul Career Intelligence (strategical) per keputusan user (2026-08-10):
+	// endpoint /api/v1/tenant/career-intelligence/paths (ladder-style). Modul ini
+	// tetap MEMBACA career_paths/career_path_steps untuk promotion eligibility.
 }

@@ -382,7 +382,8 @@ const allDropdownItems = computed(() => [...coreHRItems.value, ...talentItems.va
     icon: 'pi pi-chart-bar',
     items: [
       { label: t('nav.workforce_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/workforce-intelligence'), moduleSlug: 'workforce-intelligence', permission: 'workforceintelligence.view' },
-      { label: t('nav.career_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/career-intelligence'), moduleSlug: 'career-intelligence', permission: 'careerintelligence.view' }
+      { label: t('nav.career_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/career-intelligence'), moduleSlug: 'career-intelligence', permission: 'careerintelligence.view' },
+      { key: 'career_paths', label: t('career_paths.title'), icon: 'pi pi-sitemap', command: () => router.push('/career-intelligence/paths'), path: '/career-intelligence/paths', moduleSlug: 'career-intelligence', permission: 'careerintelligence.view' }
     ]
   }
 ])  // ── Filtered PanelMenu items — only show visible groups (Settings sudah flat section) ──

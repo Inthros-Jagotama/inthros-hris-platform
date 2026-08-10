@@ -90,6 +90,8 @@
 ## 5. Skenario E — Movement Report & Contract Report (halaman Reports, plan §12.17)
 
 > Prasyarat: module `employeemovement` aktif (menu Reports hanya muncul di Sidebar Career bila module aktif & permission `employeemovement.view`).
+>
+> **Catatan kepemilikan Career Paths (2026-08-10):** Career Paths kini milik modul **Career Intelligence** (strategical) — endpoint `/api/v1/tenant/career-intelligence/paths` (ladder-style), FE route `/career-intelligence/paths`, sidebar di grup Strategic, permission `careerintelligence.view`. Modul Employee Movement hanya membaca career paths untuk promotion eligibility. Plan lengkap: `docs/module-career-intelligence-plan.md` §4/§6/§7.
 
 | # | Langkah | Cara (FE / API) | Hasil yang diharapkan | ✅/❌ | Catatan |
 |---|---|---|---|---|---|

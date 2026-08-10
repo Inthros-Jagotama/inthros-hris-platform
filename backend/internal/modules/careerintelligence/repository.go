@@ -206,24 +206,6 @@ func (r *Repository) FindCareerPathByID(ctx context.Context, id uuid.UUID) (*Car
 	return &cp, nil
 }
 
-// FindCareerPathByName mencari path berdasarkan name (termasuk yang sudah
-// FindCareerPathByName mengembalikan path dengan nama tertentu. Memakai
-// Unscoped agar nama dari path yang sudah soft-deleted tetap terdeteksi dan
-// tetap "dipesan" (menghormati uk_career_paths_name saat buildCareerPathName
-// menentukan nama unik — mencegah unique constraint violation saat nama yang
-// sama hendak dipakai ulang).
-func (r *Repository) FindCareerPathByName(ctx context.Context, name string) (*CareerPath, error) {
-	db, err := r.db(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var cp CareerPath
-	if err := db.Unscoped().First(&cp, "name = ?", name).Error; err != nil {
-		return nil, err
-	}
-	return &cp, nil
-}
-
 // ListCareerPathStepsByPathID mengembalikan steps satu path terurut sequence
 // ascending.
 func (r *Repository) ListCareerPathStepsByPathID(ctx context.Context, pathID uuid.UUID) ([]CareerPathStep, error) {
@@ -261,12 +243,17 @@ func (r *Repository) ListCareerPathStepsByPathIDs(ctx context.Context, pathIDs [
 	return result, nil
 }
 
-func (r *Repository) ListCareerPaths(ctx context.Context, page, perPage int) ([]CareerPath, int64, error) {
+// ListCareerPaths mengembalikan daftar path (is_active = true) terurut name
+// ASC dengan pagination. Keyword opsional memfilter substring nama path.
+func (r *Repository) ListCareerPaths(ctx context.Context, page, perPage int, keyword string) ([]CareerPath, int64, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
 	query := db.Model(&CareerPath{}).Where("is_active = ?", true)
+	if keyword != "" {
+		query = query.Where("name LIKE ?", "%"+keyword+"%")
+	}
 	var total int64
 	query.Count(&total)
 	var list []CareerPath
@@ -275,6 +262,72 @@ func (r *Repository) ListCareerPaths(ctx context.Context, page, perPage int) ([]
 		return nil, 0, err
 	}
 	return list, total, nil
+}
+
+// UpdateCareerPathTx memperbarui header path dan mengganti SELURUH steps-nya
+// dalam satu transaksi (semantik full-replace — pola sama EM). Header memakai
+// map agar Description dapat dikosongkan eksplisit (NULL) dan IsActive
+// di-toggle tanpa ambiguitas zero-value struct update.
+func (r *Repository) UpdateCareerPathTx(ctx context.Context, cp *CareerPath, steps []CareerPathStep) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		updates := map[string]interface{}{
+			"name":      cp.Name,
+			"is_active": cp.IsActive,
+		}
+		if cp.Description != "" {
+			updates["description"] = cp.Description
+		} else {
+			updates["description"] = nil
+		}
+		if err := tx.Model(&CareerPath{}).Where("id = ?", cp.ID).Updates(updates).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("career_path_id = ?", cp.ID).Delete(&CareerPathStep{}).Error; err != nil {
+			return err
+		}
+		for i := range steps {
+			steps[i].CareerPathID = cp.ID
+			if steps[i].ID == uuid.Nil {
+				steps[i].ID = uuid.New()
+			}
+			if err := tx.Create(&steps[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// GetPositionNamesByIDs resolves position titles for a batch of ids — pola
+// sama EM resolveNamesByIDs; dipakai enrichment position_name pada steps.
+func (r *Repository) GetPositionNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		ID   string
+		Name string
+	}
+	var rows []row
+	if err := db.Table("positions").
+		Where("id IN ?", ids).
+		Select("id AS id, title AS name").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, rw := range rows {
+		result[rw.ID] = rw.Name
+	}
+	return result, nil
 }
 
 // DeleteCareerPath menghapus header path (soft delete) beserta steps-nya

@@ -280,84 +280,142 @@ func (s *Service) GetEmployeeCareerInterests(ctx context.Context, employeeID str
 // Career Path
 // =========================================================================
 
-func (s *Service) CreateCareerPath(ctx context.Context, req CreateCareerPathRequest) (*CareerPathResponse, error) {
-	srcID, err := uuid.Parse(req.SourceTitleID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid source_title_id: %w", err)
+// CreateCareerPathLadder membuat jenjang penuh (nama + langkah berurutan) pada
+// skema terpadu. Inilah endpoint utama FE Career Paths (strategical).
+// Validasi: minimal 1 step, sequence unik per path, posisi unik per path, dan
+// semua position_id merujuk posisi yang ada (pola EM §12.9).
+func (s *Service) CreateCareerPathLadder(ctx context.Context, req CreateCareerPathLadderRequest) (*CareerPathResponse, error) {
+	cp := &CareerPath{
+		Name:        req.Name,
+		IsActive:    true,
+		Description: "",
 	}
-	tgtID, err := uuid.Parse(req.TargetTitleID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid target_title_id: %w", err)
+	if req.Description != nil {
+		cp.Description = *req.Description
+	}
+	if req.IsActive != nil {
+		cp.IsActive = *req.IsActive
+	}
+	if cp.ID == uuid.Nil {
+		cp.ID = uuid.New()
 	}
 
-	// Edge CI → path 2-langkah pada skema terpadu: step 1 = source,
-	// step 2 = target dengan seluruh atribut edge CI (path_type, typical_tenure,
-	// requirements, competencies) disimpan pada step target.
-	tenure := req.TypicalTenure
-	cp := &CareerPath{
-		Name:     s.buildCareerPathName(ctx, req),
-		IsActive: true,
-	}
-	steps := []CareerPathStep{
-		{PositionID: srcID, Sequence: 1},
-		{
-			PositionID:    tgtID,
-			Sequence:      2,
-			PathType:      req.PathType,
-			TypicalTenure: &tenure,
-			Requirements:  req.Requirements,
-			Competencies:  req.Competencies,
-		},
+	steps, err := s.buildCareerPathSteps(ctx, cp.ID, req.Steps)
+	if err != nil {
+		return nil, err
 	}
 	if err := s.repo.CreateCareerPathTx(ctx, cp, steps); err != nil {
 		return nil, err
 	}
-
-	s.logger.Info("Career path created",
+	s.logger.Info("Career path (ladder) created",
 		zap.String("path_id", cp.ID.String()),
-		zap.String("path_type", req.PathType),
+		zap.String("name", cp.Name),
+		zap.Int("steps", len(steps)),
 	)
-
-	return s.careerPathToResponse(cp, steps), nil
+	return s.careerPathToResponse(ctx, cp, steps), nil
 }
 
-// buildCareerPathName membuat nama path unik untuk edge CI. Bila klien tidak
-// mengirim name, dipakai "<PATH_TYPE>: <source> → <target>" (fallback ke
-// potongan UUID jika nama posisi tidak tersedia). Akhiran unik ditambahkan
-// bila nama sudah dipakai (menghormati uk_career_paths_name).
-func (s *Service) buildCareerPathName(ctx context.Context, req CreateCareerPathRequest) string {
-	if req.Name != "" {
-		return req.Name
+// GetCareerPathByID mengambil satu path lengkap dengan steps terurut sequence.
+func (s *Service) GetCareerPathByID(ctx context.Context, id string) (*CareerPathResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
 	}
-	srcName, _ := s.repo.GetPositionTitle(ctx, mustUUID(req.SourceTitleID))
-	tgtName, _ := s.repo.GetPositionTitle(ctx, mustUUID(req.TargetTitleID))
-	base := fmt.Sprintf("%s: %s → %s", req.PathType, srcName, tgtName)
-	if base == "" {
-		base = fmt.Sprintf("%s-%s-%s", req.PathType, req.SourceTitleID[:8], req.TargetTitleID[:8])
+	cp, err := s.repo.FindCareerPathByID(ctx, uid)
+	if err != nil {
+		return nil, err
 	}
-	// Pastikan unik: coba base, lalu base-2, base-3, ...
-	candidate := base
-	for i := 2; ; i++ {
-		if _, err := s.repo.FindCareerPathByName(ctx, candidate); err != nil {
-			return candidate
+	steps, err := s.repo.ListCareerPathStepsByPathID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return s.careerPathToResponse(ctx, cp, steps), nil
+}
+
+// UpdateCareerPath memperbarui header path dan mengganti seluruh steps-nya
+// (semantik full-replace).
+func (s *Service) UpdateCareerPath(ctx context.Context, id string, req UpdateCareerPathRequest) (*CareerPathResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	cp, err := s.repo.FindCareerPathByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Name != nil {
+		cp.Name = *req.Name
+	}
+	if req.Description != nil {
+		cp.Description = *req.Description
+	}
+	if req.IsActive != nil {
+		cp.IsActive = *req.IsActive
+	}
+	steps, err := s.buildCareerPathSteps(ctx, cp.ID, req.Steps)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.repo.UpdateCareerPathTx(ctx, cp, steps); err != nil {
+		return nil, err
+	}
+	s.logger.Info("Career path updated",
+		zap.String("path_id", cp.ID.String()),
+		zap.String("name", cp.Name),
+	)
+	return s.careerPathToResponse(ctx, cp, steps), nil
+}
+
+// buildCareerPathSteps membangun model steps dari request ladder dan
+// memvalidasinya: sequence unik, posisi unik, dan semua position_id ada
+// (pola EM buildAndValidateCareerPathSteps).
+func (s *Service) buildCareerPathSteps(ctx context.Context, careerPathID uuid.UUID, reqSteps []CreateCareerPathStepRequest) ([]CareerPathStep, error) {
+	steps := make([]CareerPathStep, 0, len(reqSteps))
+	positionIDs := make([]uuid.UUID, 0, len(reqSteps))
+	seenSeq := map[int]bool{}
+	seenPos := map[string]bool{}
+	for _, rs := range reqSteps {
+		posID, err := uuid.Parse(rs.PositionID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid position_id: %w", err)
 		}
-		candidate = fmt.Sprintf("%s-%d", base, i)
+		if seenSeq[rs.Sequence] {
+			return nil, fmt.Errorf("duplicate sequence %d in career path steps", rs.Sequence)
+		}
+		if seenPos[posID.String()] {
+			return nil, fmt.Errorf("position %s appears more than once in career path", posID.String())
+		}
+		seenSeq[rs.Sequence] = true
+		seenPos[posID.String()] = true
+		positionIDs = append(positionIDs, posID)
+		steps = append(steps, CareerPathStep{
+			ID:                   uuid.New(),
+			CareerPathID:         careerPathID,
+			PositionID:           posID,
+			Sequence:             rs.Sequence,
+			MinimumServiceMonths: rs.MinimumServiceMonths,
+			Requirements:         rs.Requirements,
+		})
 	}
+	// Semua posisi harus eksis di tabel positions (bukan hanya format UUID).
+	names, err := s.repo.GetPositionNamesByIDs(ctx, positionIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(names) != len(positionIDs) {
+		return nil, fmt.Errorf("one or more position ids do not exist")
+	}
+	return steps, nil
 }
 
-func mustUUID(s string) uuid.UUID {
-	uid, _ := uuid.Parse(s)
-	return uid
-}
-
-func (s *Service) ListCareerPaths(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+func (s *Service) ListCareerPaths(ctx context.Context, page, perPage int, keyword string) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
 	if perPage < 1 || perPage > maxPerPage {
 		perPage = defaultPerPage
 	}
-	list, total, err := s.repo.ListCareerPaths(ctx, page, perPage)
+	list, total, err := s.repo.ListCareerPaths(ctx, page, perPage, keyword)
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +430,7 @@ func (s *Service) ListCareerPaths(ctx context.Context, page, perPage int) (*Pagi
 	responses := make([]CareerPathResponse, 0, len(list))
 	for _, cp := range list {
 		steps := stepsByPath[cp.ID]
-		responses = append(responses, *s.careerPathToResponse(&cp, steps))
+		responses = append(responses, *s.careerPathToResponse(ctx, &cp, steps))
 	}
 	return &PaginatedResponse{
 		Success: true, Data: responses, Page: page, PerPage: perPage,
@@ -580,24 +638,34 @@ func careerInterestToResponse(ci *CareerInterest) *CareerInterestResponse {
 // atribut edge (path_type/typical_tenure/requirements/competencies/
 // certifications) diambil dari step target. Steps lain (EM jenjang) tetap
 // ditampilkan apa adanya.
-func (s *Service) careerPathToResponse(cp *CareerPath, steps []CareerPathStep) *CareerPathResponse {
+func (s *Service) careerPathToResponse(ctx context.Context, cp *CareerPath, steps []CareerPathStep) *CareerPathResponse {
 	resp := &CareerPathResponse{
-		ID:         cp.ID.String(),
-		Name:       cp.Name,
-		IsActive:   cp.IsActive,
-		CreatedAt:  cp.CreatedAt,
-		UpdatedAt:  cp.UpdatedAt,
-		Steps:      make([]CareerPathStepResponse, 0, len(steps)),
+		ID:          cp.ID.String(),
+		Name:        cp.Name,
+		Description: cp.Description,
+		IsActive:    cp.IsActive,
+		CreatedAt:   cp.CreatedAt,
+		UpdatedAt:   cp.UpdatedAt,
+		Steps:       make([]CareerPathStepResponse, 0, len(steps)),
 	}
+	// Batch-resolve position names (pola sama EM enrichCareerPathSteps).
+	posIDs := make([]uuid.UUID, 0, len(steps))
+	for _, st := range steps {
+		posIDs = append(posIDs, st.PositionID)
+	}
+	names, _ := s.repo.GetPositionNamesByIDs(ctx, posIDs)
 	for _, st := range steps {
 		stepResp := CareerPathStepResponse{
-			ID:             st.ID.String(),
-			PositionID:     st.PositionID.String(),
-			Sequence:       st.Sequence,
-			PathType:       st.PathType,
-			TypicalTenure:  st.TypicalTenure,
-			Competencies:   st.Competencies,
-			Certifications: st.Certifications,
+			ID:                   st.ID.String(),
+			PositionID:           st.PositionID.String(),
+			PositionName:         names[st.PositionID.String()],
+			Sequence:             st.Sequence,
+			MinimumServiceMonths: st.MinimumServiceMonths,
+			Requirements:         st.Requirements,
+			PathType:             st.PathType,
+			TypicalTenure:        st.TypicalTenure,
+			Competencies:         st.Competencies,
+			Certifications:       st.Certifications,
 		}
 		resp.Steps = append(resp.Steps, stepResp)
 	}

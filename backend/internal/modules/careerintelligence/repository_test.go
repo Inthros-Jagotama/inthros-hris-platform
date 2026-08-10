@@ -337,7 +337,7 @@ func TestRepo_ListCareerPaths_Pagination(t *testing.T) {
 		createTestCareerPath(repo)
 	}
 
-	list, total, err := repo.ListCareerPaths(context.Background(), 1, 10)
+	list, total, err := repo.ListCareerPaths(context.Background(), 1, 10, "")
 	if err != nil {
 		t.Fatalf("ListCareerPaths failed: %v", err)
 	}

@@ -2,6 +2,7 @@ package careerintelligence
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -247,11 +248,14 @@ func TestHandler_GetEmployeeCareerInterests_Success(t *testing.T) {
 // Career Path Handler Tests
 // =========================================================================
 
-func TestHandler_CreateCareerPath_Success(t *testing.T) {
-	router, _, cleanup := setupTestRouter()
+func TestHandler_CreateCareerPathLadder_Success(t *testing.T) {
+	router, repo, cleanup := setupTestRouter()
 	defer cleanup()
 
-	body := `{"source_title_id": "` + uuid.New().String() + `", "target_title_id": "` + uuid.New().String() + `", "path_type": "PROMOTION"}`
+	// Seed tabel positions (validasi ladder memeriksa posisi benar-benar ada).
+	posA, posB := seedCareerPathPositions(t, repo)
+
+	body := fmt.Sprintf(`{"name": "Staff to Supervisor", "steps": [{"position_id": %q, "sequence": 1}, {"position_id": %q, "sequence": 2}]}`, posA.String(), posB.String())
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/api/v1/tenant/career-intelligence/paths", strings.NewReader(body))

@@ -97,9 +97,6 @@ func (m *empMovementModule) Migrate(db *gorm.DB) error {
 		&EmployeeContract{},
 		&EmployeeMovementAudit{},
 		&EmployeeMovementDocument{},
-		// Career path configuration (enhancement plan §12.9).
-		&CareerPath{},
-		&CareerPathStep{},
 	)
 }
 

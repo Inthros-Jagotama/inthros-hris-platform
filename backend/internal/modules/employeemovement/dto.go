@@ -203,64 +203,9 @@ type PaginatedMovementDocumentResponse struct {
 	TotalPages int         `json:"total_pages"`
 }
 
-// =========================================================================
-// Career Path DTOs (plan §12.9) — planning/configuration jenjang karier.
-// =========================================================================
-
-// CreateCareerPathStepRequest satu langkah pada career path. Sequence unik
-// per path (divalidasi service), position_id harus merujuk posisi yang ada.
-type CreateCareerPathStepRequest struct {
-	PositionID           string  `json:"position_id" binding:"required,uuid"`
-	Sequence             int     `json:"sequence" binding:"required,gte=1"`
-	MinimumServiceMonths *int    `json:"minimum_service_months" binding:"omitempty,gte=0"`
-	Requirements         *string `json:"requirements"`
-}
-
-type CreateCareerPathRequest struct {
-	Name        string                        `json:"name" binding:"required"`
-	Description *string                       `json:"description"`
-	IsActive    *bool                         `json:"is_active"`
-	Steps       []CreateCareerPathStepRequest `json:"steps" binding:"required,min=1,dive"`
-}
-
-// UpdateCareerPathRequest menggunakan semantik full-replace: klien mengirim
-// daftar steps lengkap yang diinginkan, server mengganti seluruh steps path
-// (tidak ada per-step id yang dikirim — path adalah konfigurasi, tidak ada
-// referensi lain ke career_path_steps).
-type UpdateCareerPathRequest struct {
-	Name        *string                       `json:"name"`
-	Description *string                       `json:"description"`
-	IsActive    *bool                         `json:"is_active"`
-	Steps       []CreateCareerPathStepRequest `json:"steps" binding:"required,min=1,dive"`
-}
-
-type CareerPathStepResponse struct {
-	ID                   string  `json:"id"`
-	PositionID           string  `json:"position_id"`
-	PositionName         string  `json:"position_name,omitempty"`
-	Sequence             int     `json:"sequence"`
-	MinimumServiceMonths *int    `json:"minimum_service_months,omitempty"`
-	Requirements         *string `json:"requirements,omitempty"`
-}
-
-type CareerPathResponse struct {
-	ID          string                   `json:"id"`
-	Name        string                   `json:"name"`
-	Description *string                  `json:"description,omitempty"`
-	IsActive    bool                     `json:"is_active"`
-	Steps       []CareerPathStepResponse `json:"steps"`
-	CreatedAt   time.Time                `json:"created_at"`
-	UpdatedAt   time.Time                `json:"updated_at"`
-}
-
-type PaginatedCareerPathResponse struct {
-	Success    bool        `json:"success"`
-	Data       interface{} `json:"data"`
-	Page       int         `json:"page"`
-	PerPage    int         `json:"per_page"`
-	Total      int64       `json:"total"`
-	TotalPages int         `json:"total_pages"`
-}
+// Career Path DTOs TIDAK lagi ada di modul ini — kepemilikan career paths
+// pindah ke modul Career Intelligence (keputusan user 2026-08-10). Modul ini
+// tetap membaca tabel career_paths/career_path_steps untuk eligibility.
 
 // =========================================================================
 // Promotion Eligibility DTOs (plan §12.10/§12.11)
@@ -576,35 +521,6 @@ func (d *EmployeeMovementDocument) ToResponse() MovementDocumentResponse {
 	if d.UploadedBy != nil {
 		s := d.UploadedBy.String()
 		r.UploadedBy = &s
-	}
-	return r
-}
-
-func (p *CareerPath) ToResponse() CareerPathResponse {
-	r := CareerPathResponse{
-		ID:        p.ID.String(),
-		Name:      p.Name,
-		IsActive:  p.IsActive,
-		CreatedAt: p.CreatedAt,
-		UpdatedAt: p.UpdatedAt,
-	}
-	if p.Description != nil {
-		r.Description = p.Description
-	}
-	return r
-}
-
-func (s *CareerPathStep) ToResponse() CareerPathStepResponse {
-	r := CareerPathStepResponse{
-		ID:         s.ID.String(),
-		PositionID: s.PositionID.String(),
-		Sequence:   s.Sequence,
-	}
-	if s.MinimumServiceMonths != nil {
-		r.MinimumServiceMonths = s.MinimumServiceMonths
-	}
-	if s.Requirements != nil {
-		r.Requirements = s.Requirements
 	}
 	return r
 }

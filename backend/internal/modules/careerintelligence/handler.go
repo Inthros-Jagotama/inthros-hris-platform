@@ -152,7 +152,8 @@ func (h *Handler) GetEmployeeCareerInterests(c *gin.Context) {
 
 func (h *Handler) ListCareerPaths(c *gin.Context) {
 	page, perPage := parsePagination(c)
-	result, err := h.svc.ListCareerPaths(c.Request.Context(), page, perPage)
+	keyword := c.Query("keyword")
+	result, err := h.svc.ListCareerPaths(c.Request.Context(), page, perPage, keyword)
 	if err != nil {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
@@ -160,17 +161,43 @@ func (h *Handler) ListCareerPaths(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *Handler) CreateCareerPath(c *gin.Context) {
-	var req CreateCareerPathRequest
+// CreateCareerPathLadder menangani POST /career-intelligence/paths dengan
+// body ladder-style (name + steps[]) — endpoint utama FE Career Paths.
+func (h *Handler) CreateCareerPathLadder(c *gin.Context) {
+	var req CreateCareerPathLadderRequest
 	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
-	result, err := h.svc.CreateCareerPath(c.Request.Context(), req)
+	result, err := h.svc.CreateCareerPathLadder(c.Request.Context(), req)
 	if err != nil {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, result, "success.created")
+}
+
+// GetCareerPathByID menangani GET /career-intelligence/paths/:id
+func (h *Handler) GetCareerPathByID(c *gin.Context) {
+	result, err := h.svc.GetCareerPathByID(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		respondError(c, http.StatusNotFound, err.Error())
+		return
+	}
+	respondSuccess(c, result)
+}
+
+// UpdateCareerPath menangani PUT /career-intelligence/paths/:id (full-replace)
+func (h *Handler) UpdateCareerPath(c *gin.Context) {
+	var req UpdateCareerPathRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	result, err := h.svc.UpdateCareerPath(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.UpdatedJSON(c, result, "success.updated")
 }
 
 func (h *Handler) DeleteCareerPath(c *gin.Context) {
