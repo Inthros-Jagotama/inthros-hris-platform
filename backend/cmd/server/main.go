@@ -329,6 +329,49 @@ func (o onPremiseQuotaChecker) MaxEmployees() int {
 // newEmployeeModule membuat employee module. Bila mode on-premise aktif
 // (lic != nil), quota checker max_employees di-injeksi ke employee service
 // agar pembuatan employee ditolak saat batas tercapai.
+// runContractExpirationScheduler menjalankan ProcessContractExpiration harian
+// untuk seluruh tenant aktif (plan §12.13 — Contract Expiry Management).
+// Goroutine + time.Ticker (default 24 jam) tanpa dependency cron baru —
+// keputusan desain P1-8. Pass pertama dijalankan segera saat server start,
+// lalu setiap interval; berhenti ketika proses server selesai (goroutine ikut
+// mati saat main return).
+func runContractExpirationScheduler(dbManager *database.Manager, movSvc *employeemovement.Service, l *zap.Logger, interval time.Duration) {
+	if interval <= 0 {
+		interval = 24 * time.Hour
+	}
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		runContractExpirationPass(dbManager, movSvc, l)
+		for range ticker.C {
+			runContractExpirationPass(dbManager, movSvc, l)
+		}
+	}()
+}
+
+// runContractExpirationPass menjalankan satu pass ProcessContractExpiration
+// untuk setiap company berstatus active di platform DB. Per tenant dipanggil
+// dengan company_id di context (pola sama tenant middleware), sehingga
+// repository tenant di-resolve per company.
+func runContractExpirationPass(dbManager *database.Manager, movSvc *employeemovement.Service, l *zap.Logger) {
+	var companies []company.Company
+	if err := dbManager.PlatformDB().Model(&company.Company{}).
+		Where("status = ?", company.CompanyStatusActive).
+		Find(&companies).Error; err != nil {
+		l.Warn("failed to list active companies for contract expiration scheduler", zap.Error(err))
+		return
+	}
+	for _, c := range companies {
+		ctx := context.WithValue(context.Background(), "company_id", c.ID.String())
+		if err := movSvc.ProcessContractExpiration(ctx); err != nil {
+			l.Warn("contract expiration pass failed",
+				zap.String("company_id", c.ID.String()),
+				zap.Error(err),
+			)
+		}
+	}
+}
+
 func newEmployeeModule(dbManager *database.Manager, l *zap.Logger, lic *onpremise.License) module.Module {
 	m := employee.NewModule(dbManager, l)
 	if lic != nil {
@@ -604,6 +647,10 @@ func main() {
 	approvalSvc.RegisterStatusHandler("employeemovement", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return employeeMovementSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
+
+	// Scheduler harian manajemen kedaluwarsa kontrak (plan §12.13): mark
+	// expired + reminder H-30/14/7/1 ke employee & HR. Goroutine + ticker.
+	runContractExpirationScheduler(dbManager, employeeMovementSvc, l, 24*time.Hour)
 
 	// Construct the attendance service up front (instead of inside
 	// attendance.NewModule) so its push-based approval status handler can be

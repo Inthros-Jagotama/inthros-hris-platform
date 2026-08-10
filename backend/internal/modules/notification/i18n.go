@@ -93,6 +93,26 @@ var catalog = map[string]catalogEntry{
 			httputil.LangID: "Pergerakan karier Anda telah dieksekusi.",
 		},
 	},
+	"CONTRACT_EXPIRING": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Contract Expiring Soon",
+			httputil.LangID: "Kontrak Akan Berakhir",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Contract %s expires on %s. Please prepare the renewal.",
+			httputil.LangID: "Kontrak %s berakhir pada %s. Silakan siapkan perpanjangan.",
+		},
+	},
+	"CONTRACT_EXPIRED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Contract Expired",
+			httputil.LangID: "Kontrak Berakhir",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Contract %s has expired.",
+			httputil.LangID: "Kontrak %s telah berakhir.",
+		},
+	},
 	"OVERTIME_APPROVED": {
 		title: map[httputil.Lang]string{
 			httputil.LangEN: "Overtime Request Approved",

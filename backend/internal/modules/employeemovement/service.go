@@ -1241,6 +1241,134 @@ func (s *Service) ListMovementAudits(ctx context.Context, id string, page, perPa
 }
 
 // =========================================================================
+// Contract Expiry Management (plan §12.13)
+// =========================================================================
+
+// contractExpiryReminderDays adalah jadwal reminder kontrak (plan §12.13):
+// H-30, H-14, H-7, H-1 sebelum end_date.
+var contractExpiryReminderDays = []int{30, 14, 7, 1}
+
+// contractExpiryHRPermission adalah permission yang menandai user sebagai HR
+// untuk penerima reminder kontrak (plan §12.13: "Notification dikirim kepada
+// HR").
+const contractExpiryHRPermission = "employeemovement.view"
+
+// notifyContractEvent mengirim notifikasi kontrak kepada employee pemilik
+// kontrak (via akun user terhubung) DAN seluruh user HR (yang punya
+// permission contractExpiryHRPermission). Best-effort: kegagalan hanya di-log
+// (pola sama notifyMovementOutcome). params diisi mis. nomor kontrak + jumlah
+// hari tersisa.
+func (s *Service) notifyContractEvent(ctx context.Context, contract EmployeeContract, notifType string, params []string) {
+	if s.notifier == nil {
+		return
+	}
+
+	// Kumpulkan penerima dalam satu set user id (dedup) — employee pemilik
+	// kontrak ditambah seluruh user HR (yang punya permission
+	// employeemovement.view). Tanpa dedup, user yang merupakan employee
+	// sekaligus HR (mis. staf HR yang juga punya kontrak) akan menerima
+	// notifikasi dua kali.
+	recipients := make(map[uuid.UUID]struct{})
+
+	if userID, err := s.repo.FindUserIDByEmployeeID(ctx, contract.EmployeeID); err == nil && userID != nil {
+		recipients[*userID] = struct{}{}
+	} else if err != nil {
+		s.logger.Warn("failed to resolve employee user id for contract notification",
+			zap.String("contract_id", contract.ID.String()),
+			zap.Error(err),
+		)
+	}
+
+	hrUserIDs, err := s.repo.FindUserIDsWithPermission(ctx, contractExpiryHRPermission)
+	if err != nil {
+		s.logger.Warn("failed to resolve HR users for contract notification",
+			zap.String("contract_id", contract.ID.String()),
+			zap.Error(err),
+		)
+		return
+	}
+	for _, hrID := range hrUserIDs {
+		recipients[hrID] = struct{}{}
+	}
+
+	for recipientID := range recipients {
+		if err := s.notifier.Notify(ctx, recipientID, notifType, params, "employeemovement", contract.ID); err != nil {
+			s.logger.Warn("failed to send contract notification",
+				zap.String("contract_id", contract.ID.String()),
+				zap.String("recipient", recipientID.String()),
+				zap.String("notif_type", notifType),
+				zap.Error(err),
+			)
+		}
+	}
+}
+
+// addDays mengembalikan tanggal YYYY-MM-DD yang berjarak `days` dari `date`
+// (days negatif = mundur). Dipakai menghitung target reminder H-N.
+func addDays(date string, days int) string {
+	t, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return date
+	}
+	return t.AddDate(0, 0, days).Format("2006-01-02")
+}
+
+// ProcessContractExpiration menjalankan proses harian manajemen kedaluwarsa
+// kontrak (plan §12.13):
+//
+//  1. MARK EXPIRED — kontrak status=active yang end_date < hari ini dipindah
+//     ke status expired, lalu employee & HR dinotifikasi CONTRACT_EXPIRED.
+//  2. REMINDER — untuk tiap jadwal H-30 / H-14 / H-7 / H-1, kontrak active
+//     yang berakhir tepat N hari lagi dinotifikasi CONTRACT_EXPIRING (ke
+//     employee pemilik + user HR).
+//
+// Method ini murni per-tenant (context membawa company_id) dan sengaja TANPA
+// tahu jadwal — scheduler (goroutine + time.Ticker di main.go) yang memanggil
+// method ini harian. Best-effort per kontrak: kegagalan notifikasi satu
+// kontrak tidak menggagalkan sisa proses.
+func (s *Service) ProcessContractExpiration(ctx context.Context) error {
+	today := time.Now().Format("2006-01-02")
+
+	// 1. Mark expired: kontrak active yang sudah lewat end_date.
+	expired, err := s.repo.FindContractsExpiredBefore(ctx, today)
+	if err != nil {
+		return err
+	}
+	if len(expired) > 0 {
+		ids := make([]uuid.UUID, 0, len(expired))
+		for _, c := range expired {
+			ids = append(ids, c.ID)
+		}
+		if err := s.repo.MarkContractsExpired(ctx, ids); err != nil {
+			return err
+		}
+		s.logger.Info("Contracts marked expired", zap.Int("count", len(expired)))
+		for _, c := range expired {
+			s.notifyContractEvent(ctx, c, "CONTRACT_EXPIRED", []string{c.ContractNumber})
+		}
+	}
+
+	// 2. Reminder H-30 / H-14 / H-7 / H-1.
+	for _, days := range contractExpiryReminderDays {
+		target := addDays(today, days)
+		contracts, err := s.repo.FindContractsExpiringOn(ctx, target)
+		if err != nil {
+			s.logger.Warn("failed to list contracts for expiry reminder", zap.Int("days", days), zap.Error(err))
+			continue
+		}
+		for _, c := range contracts {
+			s.logger.Info("Contract expiry reminder",
+				zap.String("contract_id", c.ID.String()),
+				zap.String("contract_number", c.ContractNumber),
+				zap.Int("days_left", days),
+			)
+			s.notifyContractEvent(ctx, c, "CONTRACT_EXPIRING", []string{c.ContractNumber, addDays(today, days)})
+		}
+	}
+	return nil
+}
+
+// =========================================================================
 // Movement Documents (plan §12.15)
 // =========================================================================
 

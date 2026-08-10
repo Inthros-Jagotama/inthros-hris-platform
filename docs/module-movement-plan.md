@@ -1,9 +1,9 @@
 # Employee Movement & Career Management — Development Plan
 
-> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6–7) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
+> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6–8) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21) · ✅ **Enhancement §12 P1 8** (Contract Expiry Management — lihat log §3.22). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
 
 ---
 
@@ -622,6 +622,38 @@ Career timeline read model (plan §12.8) — **tanpa tabel duplikasi** `employee
 
 ---
 
+# 3.22 Log — Enhancement §12 P1 (8) Contract Expiry Management
+
+## 3.22.1 Yang dikerjakan
+
+Scheduled process `ProcessContractExpiration` (plan §12.13) — mark expired otomatis + reminder ke employee & HR:
+
+| File | Perubahan |
+|---|---|
+| `employeemovement/repository.go` | +`FindContractsExpiringOn` (status=active, end_date = target) + `FindContractsExpiredBefore` (status=active, end_date < tanggal) + `MarkContractsExpired` (batch by ids, guard status active) + `FindUserIDsWithPermission` (resolve user HR via permissions + role_has_permissions + model_has_roles/model_has_permissions — UNION, cross-dialect MySQL/Postgres) |
+| `employeemovement/service.go` | +`ProcessContractExpiration(ctx)`: (1) mark expired kontrak active yang end_date < hari ini → notif `CONTRACT_EXPIRED`; (2) reminder H-30/H-14/H-7/H-1 → notif `CONTRACT_EXPIRING` (params: nomor kontrak + tanggal akhir). +helper `notifyContractEvent` (employee pemilik via akun terhubung + seluruh user HR via permission `employeemovement.view`; best-effort) + `addDays` · const `contractExpiryReminderDays` = {30,14,7,1} + `contractExpiryHRPermission` |
+| `notification/i18n.go` | +2 entri catalog: `CONTRACT_EXPIRING` + `CONTRACT_EXPIRED` (EN/ID, %s placeholder nomor kontrak + tanggal) |
+| `cmd/server/main.go` | +`runContractExpirationScheduler` (goroutine + `time.Ticker` 24 jam — **tanpa dependency cron baru**, keputusan user) + `runContractExpirationPass` (iterate company status=active di platform DB, panggil `ProcessContractExpiration` per tenant dgn company_id di context) |
+| `employeemovement/expiry_test.go` (baru) | 3 test: mark expired (past→expired, future tetap active, notif CONTRACT_EXPIRED) · reminder H-30/H-7 dapat notif, H-15 tidak (bukan jadwal) · tanpa notifier tetap jalan |
+
+## 3.22.2 Keputusan desain
+
+1. **Scheduler tanpa dependency baru**: goroutine + `time.Ticker` harian (24 jam) di main.go — keputusan dikonfirmasi user (codebase belum punya infra cron). Pass pertama langsung dijalankan saat server start.
+2. **Reminder berbasis tanggal tepat**: kontrak di-remind hanya pada hari H-30/H-14/H-7/H-1 (bukan rentang) — mencegah notifikasi berulang tiap hari; kontrak di luar jadwal tidak dapat notif.
+3. **Penerima notifikasi**: employee pemilik kontrak (via `employee_accounts` → user) + seluruh user HR (semua yang punya permission `employeemovement.view`). Ini memenuhi "Notification dikirim kepada HR" (plan §12.13) tanpa menambah relasi manager.
+4. **Best-effort per kontrak**: kegagalan notifikasi satu kontrak hanya di-log, tidak menggagalkan sisa proses. `MarkContractsExpired` guard ulang status active di query.
+5. **`ProcessContractExpiration` murni per-tenant** (company_id dari context) dan tanpa tahu jadwal — mudah diuji; scheduler yang menentukan kapan dipanggil.
+6. **Penerima di-dedup**: employee yang sekaligus HR (memegang permission `employeemovement.view`) hanya menerima satu notifikasi (set user id, bukan dua jalur terpisah) — perbaikan dari hasil review.
+7. **Keterbatasan yang disengaja**: (a) reminder berbasis tanggal TEPAT (`end_date = hari ini + N`) — bila server down di H-30, reminder H-30 terlewat dan tidak menyusul (range-based + guard "sudah di-remind" bisa ditambahkan kemudian); (b) kontrak dengan `end_date = hari ini` masih berstatus active sepanjang hari kedaluwarsanya dan baru dipindah ke expired sehari setelahnya (interpretasi end date = hari terakhir kontrak berlaku); (c) `time.Now()` memakai zona waktu server — konsisten selama server TZ disetel ke TZ tenant.
+
+## 3.22.3 Validasi
+
+- `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/... ./internal/modules/notification/...` ✅ · `gofmt` bersih ✅
+- `go test ./internal/modules/employeemovement/... ./internal/modules/notification/...` — semua **PASS** ✅
+- Test baru (3): mark expired + notif CONTRACT_EXPIRED · reminder H-30/H-7 ✓ & H-15 ✗ · tanpa notifier tetap mark expired.
+
+---
+
 # 5. API Plan
 
 ## 5.1 Endpoint Existing (sudah jalan)
@@ -1232,7 +1264,7 @@ position_id
 
 ---
 
-## 12.13 P1 — Contract Expiry Management
+## 12.13 P1 — Contract Expiry Management — ✅ **SELESAI (2026-08-10)** — lihat log §3.22
 
 Existing `employee_contracts` sudah mendukung `previous_contract_id`, `extension_count`, status, dan document URL.
 
@@ -1739,7 +1771,7 @@ C = 2
 | 5 | Movement Audit Trail — ✅ **SELESAI (2026-08-10)** | P0 | DB/BE |
 | 6 | Movement Documents — ✅ **SELESAI (2026-08-10)** | P1 | DB/BE/FE |
 | 7 | Career Timeline — ✅ **SELESAI (2026-08-10)** | P1 | BE/FE |
-| 8 | Contract Expiry | P1 | BE/Job/FE |
+| 8 | Contract Expiry — ✅ **SELESAI (2026-08-10)** | P1 | BE/Job/FE |
 | 9 | Performance Integration | P1 | BE |
 | 10 | Career Path | P1 | DB/BE/FE |
 | 11 | Promotion Eligibility | P1/P2 | BE |

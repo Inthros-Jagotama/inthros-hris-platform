@@ -505,6 +505,102 @@ func (r *Repository) FindAllContractsByEmployeeID(ctx context.Context, employeeI
 }
 
 // =========================================================================
+// Contract Expiry Management (plan §12.13)
+// =========================================================================
+
+// FindContractsExpiringOn mengembalikan kontrak status=active yang berakhir
+// tepat pada tanggal yang diberikan (end_date = date) — dipakai scheduler
+// reminder H-30/H-14/H-7/H-1 (plan §12.13). Tanggal dibandingkan sebagai
+// string YYYY-MM-DD, konsisten dengan format kolom DATE di kedua driver.
+func (r *Repository) FindContractsExpiringOn(ctx context.Context, date string) ([]EmployeeContract, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var contracts []EmployeeContract
+	err = db.Where("status = ? AND end_date = ?", ContractStatusActive, date).
+		Order("end_date ASC").
+		Find(&contracts).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list contracts expiring on %s: %w", date, err)
+	}
+	return contracts, nil
+}
+
+// FindContractsExpiredBefore mengembalikan kontrak status=active yang sudah
+// melewati tanggal akhir (end_date < date) — kandidat dipindah ke status
+// expired oleh scheduler (plan §12.13).
+func (r *Repository) FindContractsExpiredBefore(ctx context.Context, date string) ([]EmployeeContract, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var contracts []EmployeeContract
+	err = db.Where("status = ? AND end_date IS NOT NULL AND end_date < ?", ContractStatusActive, date).
+		Order("end_date ASC").
+		Find(&contracts).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list expired contracts before %s: %w", date, err)
+	}
+	return contracts, nil
+}
+
+// MarkContractsExpired mengubah status kontrak menjadi expired (batch by ids).
+// Dipanggil scheduler setelah FindContractsExpiredBefore: hanya kontrak yang
+// masih berstatus active yang dipindah (guard ulang di query).
+func (r *Repository) MarkContractsExpired(ctx context.Context, ids []uuid.UUID) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.Model(&EmployeeContract{}).
+		Where("id IN ? AND status = ?", ids, ContractStatusActive).
+		Update("status", ContractStatusExpired)
+	if result.Error != nil {
+		return fmt.Errorf("failed to mark contracts expired: %w", result.Error)
+	}
+	return nil
+}
+
+// FindUserIDsWithPermission mengembalikan daftar user id yang memiliki sebuah
+// permission — langsung (model_has_permissions) atau melalui role
+// (model_has_roles + role_has_permissions). Dipakai scheduler untuk mengirim
+// reminder kontrak kepada user HR (plan §12.13: "Notification dikirim kepada
+// HR"). Query UNION berjalan di MySQL & PostgreSQL.
+func (r *Repository) FindUserIDsWithPermission(ctx context.Context, permission string) ([]uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	err = db.Raw(`
+		SELECT DISTINCT mhr.model_id AS id FROM model_has_roles mhr
+		JOIN role_has_permissions rhp ON rhp.role_id = mhr.role_id
+		JOIN permissions p ON p.id = rhp.permission_id
+		WHERE mhr.model_type = 'user' AND p.name = ?
+		UNION
+		SELECT DISTINCT mhp.model_id AS id FROM model_has_permissions mhp
+		JOIN permissions p ON p.id = mhp.permission_id
+		WHERE mhp.model_type = 'user' AND p.name = ?
+	`, permission, permission).Scan(&ids).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve users with permission %s: %w", permission, err)
+	}
+	result := make([]uuid.UUID, 0, len(ids))
+	for _, id := range ids {
+		uid, err := uuid.Parse(id)
+		if err != nil {
+			continue
+		}
+		result = append(result, uid)
+	}
+	return result, nil
+}
+
+// =========================================================================
 // Movement Documents (plan §12.15)
 // =========================================================================
 
