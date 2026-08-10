@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -29,6 +30,11 @@ func createAuditedMovement(t *testing.T, svc *Service, employeeID uuid.UUID) *Em
 	if err != nil {
 		t.Fatalf("failed to reload created movement: %v", err)
 	}
+	// Jeda agar acted_at CREATED pasti berbeda dari operasi berikutnya
+	// (submit/update/execute/cancel). SQLite menyimpan acted_at mikro-detik;
+	// tanpa jeda, dua aksi cepat bisa berbagi timestamp dan urutan audit
+	// (acted_at DESC) jatuh ke tie-break UUID acak (pola sama document_test).
+	time.Sleep(2 * time.Millisecond)
 	return m
 }
 

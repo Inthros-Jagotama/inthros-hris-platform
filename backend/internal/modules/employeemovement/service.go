@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -992,16 +993,25 @@ func movementDeactivatesEmployee(t MovementType) bool {
 	return t == MovementTypeOffboarding || t == MovementTypeRetirement
 }
 
+// normalizeDate memotong nilai tanggal menjadi YYYY-MM-DD. Driver database
+// (MySQL/SQLite) dapat mengembalikan DATETIME/RFC3339 untuk kolom DATE — sama
+// seperti yang sudah diantisipasi dayBefore — sehingga career timeline selalu
+// menampilkan tanggal bersih.
+func normalizeDate(date string) string {
+	if len(date) >= 10 {
+		if _, err := time.Parse("2006-01-02", date[:10]); err == nil {
+			return date[:10]
+		}
+	}
+	return date
+}
+
 // dayBefore returns the date one day before the given date. Accepts both
 // plain YYYY-MM-DD and RFC3339 timestamps (MySQL returns DATETIME values for
 // DATE columns), so movement execution is robust regardless of driver.
 func dayBefore(date string) (string, error) {
 	// Normalize: strip the time portion when an RFC3339 value is stored.
-	if len(date) >= 10 {
-		if _, err := time.Parse("2006-01-02", date[:10]); err == nil {
-			date = date[:10]
-		}
-	}
+	date = normalizeDate(date)
 	d, err := time.Parse("2006-01-02", date)
 	if err != nil {
 		return "", fmt.Errorf("invalid effective_date %q: %w", date, err)
@@ -1319,6 +1329,249 @@ func (s *Service) DeleteMovementDocument(ctx context.Context, id string) error {
 		return fmt.Errorf("invalid document id: %w", err)
 	}
 	return s.repo.DeleteMovementDocument(ctx, uid)
+}
+
+// =========================================================================
+// Career History (plan §12.8) — read model
+// =========================================================================
+
+// movementFromToLabel membangun label perpindahan "dari → ke" dari snapshot
+// names movement (plan §12.5) — mis. "IT → Finance" atau "Staff → Supervisor".
+// Setiap sisi memakai posisi bila ada, fallback organisasi, dan dilewati bila
+// keduanya kosong (mis. movement tanpa from_* saat dibuat dari nol).
+func movementFromToLabel(m *EmployeeMovement) string {
+	from := ""
+	if m.FromPositionName != "" {
+		from = m.FromPositionName
+	} else if m.FromOrganizationName != "" {
+		from = m.FromOrganizationName
+	}
+	to := ""
+	if m.ToPositionName != "" {
+		to = m.ToPositionName
+	} else if m.ToOrganizationName != "" {
+		to = m.ToOrganizationName
+	}
+	switch {
+	case from != "" && to != "":
+		return from + " → " + to
+	case to != "":
+		return to
+	case from != "":
+		return from
+	default:
+		return ""
+	}
+}
+
+// GetCareerHistory menyusun timeline karier seorang karyawan (plan §12.8) dari
+// tiga sumber transaksional — TANPA tabel duplikasi:
+//
+//	employee_movements  → event MOVEMENT (hanya status executed)
+//	employments         → event JOINED (employment pertama) + current position
+//	employee_contracts  → event CONTRACT
+//
+// Timeline terurut kronologis ascending (test §17.6: Join → Promotion →
+// Mutation → ... → Current Position). Nama organisasi/posisi/status
+// employment di-resolve via batch query (G-4); movement memakai snapshot names
+// (plan §12.5) sehingga histori tidak berubah walau master data berganti.
+func (s *Service) GetCareerHistory(ctx context.Context, employeeID string) (*CareerHistoryResponse, error) {
+	uid, err := uuid.Parse(employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee id: %w", err)
+	}
+
+	employments, err := s.repo.FindEmploymentsByEmployeeID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	movements, err := s.repo.FindExecutedMovementsByEmployeeID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	contracts, err := s.repo.FindAllContractsByEmployeeID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	data := CareerHistoryData{
+		EmployeeID: uid.String(),
+		Timeline:   []CareerTimelineEntry{},
+	}
+
+	// Employee display info (G-4) — best-effort.
+	if empInfo, err := s.repo.GetEmployeeInfoByIDs(ctx, []uuid.UUID{uid}); err == nil {
+		if emp, ok := empInfo[uid.String()]; ok {
+			data.EmployeeName = emp.Name
+			data.EmployeeCode = emp.Code
+		}
+	} else {
+		s.logger.Warn("failed to resolve employee info for career history", zap.String("employee_id", employeeID), zap.Error(err))
+	}
+
+	// Resolve org/posisi/status names untuk employment (movement sudah punya
+	// snapshot sendiri).
+	var orgIDs, posIDs, statusIDs []uuid.UUID
+	for _, e := range employments {
+		if e.OrganizationID != nil {
+			orgIDs = append(orgIDs, *e.OrganizationID)
+		}
+		if e.PositionID != nil {
+			posIDs = append(posIDs, *e.PositionID)
+		}
+		if e.EmploymentStatusID != nil {
+			statusIDs = append(statusIDs, *e.EmploymentStatusID)
+		}
+	}
+	orgNames := map[string]string{}
+	posNames := map[string]string{}
+	statusNames := map[string]string{}
+	if n, err := s.repo.GetOrganizationNamesByIDs(ctx, orgIDs); err == nil {
+		orgNames = n
+	} else {
+		s.logger.Warn("failed to resolve organization names for career history", zap.Error(err))
+	}
+	if n, err := s.repo.GetPositionNamesByIDs(ctx, posIDs); err == nil {
+		posNames = n
+	} else {
+		s.logger.Warn("failed to resolve position names for career history", zap.Error(err))
+	}
+	if n, err := s.repo.GetEmploymentStatusNamesByIDs(ctx, statusIDs); err == nil {
+		statusNames = n
+	} else {
+		s.logger.Warn("failed to resolve employment status names for career history", zap.Error(err))
+	}
+
+	// JOINED — dari employment pertama (effective_date terawal).
+	if len(employments) > 0 {
+		first := employments[0]
+		title := ""
+		if first.PositionID != nil {
+			title = posNames[first.PositionID.String()]
+		}
+		if title == "" && first.OrganizationID != nil {
+			title = orgNames[first.OrganizationID.String()]
+		}
+		eid := first.ID.String()
+		data.Timeline = append(data.Timeline, CareerTimelineEntry{
+			Date:         normalizeDate(first.EffectiveDate),
+			EventType:    "JOINED",
+			Title:        title,
+			EmploymentID: &eid,
+		})
+	}
+
+	// MOVEMENT — dari movement yang sudah dieksekusi, urut effective_date ASC.
+	for i := range movements {
+		m := &movements[i]
+		label := movementFromToLabel(m)
+		mt := string(m.MovementType)
+		mid := m.ID.String()
+		entry := CareerTimelineEntry{
+			Date:         normalizeDate(m.EffectiveDate),
+			EventType:    "MOVEMENT",
+			Title:        mt,
+			MovementType: &mt,
+			MovementID:   &mid,
+		}
+		if label != "" {
+			entry.Description = &label
+		}
+		data.Timeline = append(data.Timeline, entry)
+	}
+
+	// CONTRACT — dari employee_contracts, urut start_date ASC.
+	for i := range contracts {
+		c := &contracts[i]
+		ct := string(c.ContractType)
+		cid := c.ID.String()
+		entry := CareerTimelineEntry{
+			Date:         normalizeDate(c.StartDate),
+			EventType:    "CONTRACT",
+			Title:        c.ContractNumber,
+			ContractType: &ct,
+			ContractID:   &cid,
+		}
+		if c.EndDate != nil {
+			desc := normalizeDate(c.StartDate) + " s/d " + normalizeDate(*c.EndDate)
+			entry.Description = &desc
+		}
+		data.Timeline = append(data.Timeline, entry)
+	}
+
+	// Urut kronologis (tanggal ASC). Untuk tanggal sama: JOINED → MOVEMENT →
+	// CONTRACT agar urutan "Join dulu, lalu transaksi, lalu kontrak" stabil.
+	sort.SliceStable(data.Timeline, func(i, j int) bool {
+		if data.Timeline[i].Date != data.Timeline[j].Date {
+			return data.Timeline[i].Date < data.Timeline[j].Date
+		}
+		return careerEventPriority(data.Timeline[i].EventType) < careerEventPriority(data.Timeline[j].EventType)
+	})
+
+	// Current position — employment terbuka terakhir (effective_end_date NULL)
+	// bila ada; fallback employment terakhir menurut effective_date.
+	if pos := s.currentPosition(employments, orgNames, posNames, statusNames); pos != nil {
+		data.CurrentPosition = pos
+	}
+
+	return &CareerHistoryResponse{Success: true, Data: data}, nil
+}
+
+// careerEventPriority mengurutkan event dengan tanggal sama: JOINED pertama,
+// lalu MOVEMENT, lalu CONTRACT.
+func careerEventPriority(eventType string) int {
+	switch eventType {
+	case "JOINED":
+		return 0
+	case "MOVEMENT":
+		return 1
+	default:
+		return 2
+	}
+}
+
+// currentPosition memilih employment aktif terakhir karyawan: yang masih
+// terbuka (effective_end_date NULL) dengan effective_date terbesar; jika
+// tidak ada yang terbuka, pakai employment terakhir menurut effective_date.
+// Mengembalikan nil bila karyawan belum memiliki employment sama sekali.
+func (s *Service) currentPosition(employments []careerEmploymentRow, orgNames, posNames, statusNames map[string]string) *CareerPositionInfo {
+	if len(employments) == 0 {
+		return nil
+	}
+	best := 0
+	for i := range employments {
+		e := &employments[i]
+		// Bandingkan tanggal yang sudah dinormalisasi (YYYY-MM-DD) agar driver
+		// yang mengembalikan DATETIME/RFC3339 tidak memengaruhi urutan.
+		currentBest := &employments[best]
+		if e.EffectiveEndDate == nil && currentBest.EffectiveEndDate != nil {
+			// Employment terbuka selalu menang atas yang sudah ditutup.
+			best = i
+		} else if (e.EffectiveEndDate == nil) == (currentBest.EffectiveEndDate == nil) {
+			// Sama-sama terbuka atau sama-sama tertutup → pilih tanggal terbesar.
+			if normalizeDate(e.EffectiveDate) > normalizeDate(currentBest.EffectiveDate) {
+				best = i
+			}
+		}
+	}
+	e := &employments[best]
+	info := &CareerPositionInfo{
+		EmploymentID:  e.ID.String(),
+		EffectiveDate: normalizeDate(e.EffectiveDate),
+	}
+	if e.OrganizationID != nil {
+		info.OrganizationID = e.OrganizationID.String()
+		info.OrganizationName = orgNames[e.OrganizationID.String()]
+	}
+	if e.PositionID != nil {
+		info.PositionID = e.PositionID.String()
+		info.PositionName = posNames[e.PositionID.String()]
+	}
+	if e.EmploymentStatusID != nil {
+		info.EmploymentStatusID = e.EmploymentStatusID.String()
+		info.EmploymentStatusName = statusNames[e.EmploymentStatusID.String()]
+	}
+	return info
 }
 
 // =========================================================================

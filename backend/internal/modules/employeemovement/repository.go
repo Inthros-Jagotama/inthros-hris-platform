@@ -431,6 +431,80 @@ func (r *Repository) ListAuditsByMovementID(ctx context.Context, movementID uuid
 }
 
 // =========================================================================
+// Career History (plan §12.8) — read model
+// =========================================================================
+
+// careerEmploymentRow memuat kolom employments yang dibutuhkan career history.
+// Struct lokal (bukan model module employee) karena employeemovement memakai
+// narrow-interface pattern: hanya membaca tabel via query langsung, sama
+// seperti PositionConflict / EmploymentEffectiveDateConflict.
+type careerEmploymentRow struct {
+	ID                   uuid.UUID
+	OrganizationID       *uuid.UUID
+	PositionID           *uuid.UUID
+	EmploymentStatusID   *uuid.UUID
+	DecisionLetterNumber string
+	DecisionLetterDate   string
+	EffectiveDate        string
+	EffectiveEndDate     *string
+}
+
+// FindEmploymentsByEmployeeID mengembalikan seluruh riwayat employment seorang
+// karyawan (terurut effective_date ASC) — sumber JOINED + current position
+// pada career timeline (plan §12.8).
+func (r *Repository) FindEmploymentsByEmployeeID(ctx context.Context, employeeID uuid.UUID) ([]careerEmploymentRow, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []careerEmploymentRow
+	err = db.Table("employments").
+		Where("employee_id = ?", employeeID.String()).
+		Order("effective_date ASC, created_at ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list employments for career history: %w", err)
+	}
+	return rows, nil
+}
+
+// FindExecutedMovementsByEmployeeID mengembalikan movement yang sudah
+// dieksekusi seorang karyawan (terurut effective_date ASC) — sumber transaksi
+// career timeline. Hanya status executed: movement draft/approved belum
+// menjadi histori nyata.
+func (r *Repository) FindExecutedMovementsByEmployeeID(ctx context.Context, employeeID uuid.UUID) ([]EmployeeMovement, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var movements []EmployeeMovement
+	err = db.Where("employee_id = ? AND status = ?", employeeID, MovementStatusExecuted).
+		Order("effective_date ASC, created_at ASC").
+		Find(&movements).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list executed movements for career history: %w", err)
+	}
+	return movements, nil
+}
+
+// FindAllContractsByEmployeeID mengembalikan seluruh kontrak seorang karyawan
+// (terurut start_date ASC) — sumber CONTRACT pada career timeline.
+func (r *Repository) FindAllContractsByEmployeeID(ctx context.Context, employeeID uuid.UUID) ([]EmployeeContract, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var contracts []EmployeeContract
+	err = db.Where("employee_id = ?", employeeID).
+		Order("start_date ASC, created_at ASC").
+		Find(&contracts).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list contracts for career history: %w", err)
+	}
+	return contracts, nil
+}
+
+// =========================================================================
 // Movement Documents (plan §12.15)
 // =========================================================================
 

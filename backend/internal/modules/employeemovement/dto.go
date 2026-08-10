@@ -112,6 +112,53 @@ type PaginatedMovementResponse struct {
 }
 
 // =========================================================================
+// Career History DTOs (plan §12.8) — read model dari employee_movements +
+// employments + employee_contracts (tidak ada tabel duplikasi).
+// =========================================================================
+
+// CareerHistoryResponse adalah hasil GET /employees/:id/career-history.
+type CareerHistoryResponse struct {
+	Success bool              `json:"success"`
+	Data    CareerHistoryData `json:"data"`
+}
+
+type CareerHistoryData struct {
+	EmployeeID      string                `json:"employee_id"`
+	EmployeeName    string                `json:"employee_name"`
+	EmployeeCode    string                `json:"employee_code"`
+	CurrentPosition *CareerPositionInfo   `json:"current_position,omitempty"`
+	Timeline        []CareerTimelineEntry `json:"timeline"`
+}
+
+// CareerPositionInfo menggambarkan posisi saat ini karyawan (employment aktif
+// terakhir — effective_end_date NULL, atau terakhir menurut effective_date).
+type CareerPositionInfo struct {
+	EmploymentID         string `json:"employment_id"`
+	EffectiveDate        string `json:"effective_date"`
+	OrganizationID       string `json:"organization_id,omitempty"`
+	OrganizationName     string `json:"organization_name,omitempty"`
+	PositionID           string `json:"position_id,omitempty"`
+	PositionName         string `json:"position_name,omitempty"`
+	EmploymentStatusID   string `json:"employment_status_id,omitempty"`
+	EmploymentStatusName string `json:"employment_status_name,omitempty"`
+}
+
+// CareerTimelineEntry satu kejadian pada timeline: JOINED (dari employment
+// pertama), MOVEMENT (dari movement status executed), atau CONTRACT (dari
+// employee_contracts). Field referensi menunjuk ke sumber baris asli.
+type CareerTimelineEntry struct {
+	Date         string  `json:"date"`
+	EventType    string  `json:"event_type"` // JOINED | MOVEMENT | CONTRACT
+	Title        string  `json:"title"`
+	Description  *string `json:"description,omitempty"`
+	MovementType *string `json:"movement_type,omitempty"`
+	ContractType *string `json:"contract_type,omitempty"`
+	EmploymentID *string `json:"employment_id,omitempty"`
+	MovementID   *string `json:"movement_id,omitempty"`
+	ContractID   *string `json:"contract_id,omitempty"`
+}
+
+// =========================================================================
 // Employee Movement Document DTOs (plan §12.15)
 // =========================================================================
 

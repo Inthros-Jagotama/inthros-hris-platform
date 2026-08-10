@@ -1,9 +1,9 @@
 # Employee Movement & Career Management — Development Plan
 
-> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
+> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6–7) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
 
 ---
 
@@ -591,6 +591,37 @@ Mendukung lebih dari satu dokumen per movement (plan §12.15) — selain decisio
 
 ---
 
+# 3.21 Log — Enhancement §12 P1 (7) Career Timeline
+
+## 3.21.1 Yang dikerjakan
+
+Career timeline read model (plan §12.8) — **tanpa tabel duplikasi** `employee_career_history`:
+
+| File | Perubahan |
+|---|---|
+| `employeemovement/repository.go` | +3 query non-paginated utk timeline: `FindEmploymentsByEmployeeID` (table `employments`, effective_date ASC), `FindExecutedMovementsByEmployeeID` (hanya status `executed`), `FindAllContractsByEmployeeID` (start_date ASC) |
+| `employeemovement/dto.go` | +`CareerHistoryResponse`/`CareerHistoryData` + `CareerPositionInfo` (current position) + `CareerTimelineEntry` (date, event_type, title, description, movement_type/contract_type, referensi id sumber) |
+| `employeemovement/service.go` | +`GetCareerHistory`: baca 3 sumber → resolve nama org/posisi/status employment via batch query (G-4; movement pakai snapshot §12.5) → bangun event JOINED (employment pertama) + MOVEMENT (executed) + CONTRACT → urut kronologis ASC (tanggal sama: JOINED→MOVEMENT→CONTRACT) → hitung current position (employment terbuka terakhir) · +helper `movementFromToLabel` (label "dari → ke" dari snapshot) + `careerEventPriority` + `currentPosition` + `normalizeDate` (kolom DATE bisa dikembalikan driver sbg DATETIME/RFC3339) |
+| `employeemovement/handler.go` + `routes.go` | +`GetCareerHistory` → **`GET /api/v1/tenant/employee-movements/employees/:employeeId/career-history`** |
+| `employeemovement/career_test.go` (baru) | 4 test: timeline lengkap (JOINED→CONTRACT→MOVEMENT + snapshot from→to + current position org/posisi/status) · hanya movement executed yg masuk · current position prefer employment terbuka · handler 200 |
+
+## 3.21.2 Keputusan desain
+
+1. **Read model, bukan tabel baru**: timeline dibentuk dari `employee_movements` + `employments` + `employee_contracts` (keputusan §12.8 / §13 — tidak membuat `employee_career_history`).
+2. **Movement = sumber transaksi**: hanya status `executed` masuk timeline; draft/pending bukan histori nyata.
+3. **JOINED dari employment pertama** (effective_date terawal); current position = employment **terbuka** (effective_end_date NULL) dengan tanggal efektif terbesar, fallback employment terakhir.
+4. **Movement memakai snapshot names** (§12.5) — histori tidak berubah walau master data diganti nama; employment di-resolve via batch query (G-4).
+5. **normalizeDate** dipakai utk semua tanggal respons (kolom DATE dapat dikembalikan driver sbg DATETIME/RFC3339 — sama seperti yg sudah diantisipasi `dayBefore`).
+
+## 3.21.3 Validasi
+
+- `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/...` ✅ · `gofmt` bersih ✅
+- `go test ./internal/modules/employeemovement/...` — semua **PASS** ✅ (deterministik — dijalankan 4x)
+- Test baru (4): JOINED→CONTRACT→MOVEMENT terurut + deskripsi from→to snapshot + referensi id sumber · hanya executed movements · current position prefer employment terbuka · handler `GET /career-history` 200.
+- Perbaikan determinisme: helper `createAuditedMovement` kini memberi jeda 2ms setelah create (pola sama document_test) karena SQLite menyimpan `acted_at` mikro-detik — dua aksi cepat bisa berbagi timestamp dan urutan audit jatuh ke tie-break UUID acak.
+
+---
+
 # 5. API Plan
 
 ## 5.1 Endpoint Existing (sudah jalan)
@@ -1004,7 +1035,7 @@ Implementasi scheduler sebaiknya menjadi feature flag/configuration jika nanti d
 
 ---
 
-## 12.8 P1 — Career Timeline
+## 12.8 P1 — Career Timeline — ✅ **SELESAI (2026-08-10)** — lihat log §3.21
 
 Tambahkan career timeline pada Employee Detail.
 
@@ -1707,7 +1738,7 @@ C = 2
 | 4 | Movement Snapshot — ✅ **SELESAI (2026-08-10)** | P0 | DB/BE |
 | 5 | Movement Audit Trail — ✅ **SELESAI (2026-08-10)** | P0 | DB/BE |
 | 6 | Movement Documents — ✅ **SELESAI (2026-08-10)** | P1 | DB/BE/FE |
-| 7 | Career Timeline | P1 | BE/FE |
+| 7 | Career Timeline — ✅ **SELESAI (2026-08-10)** | P1 | BE/FE |
 | 8 | Contract Expiry | P1 | BE/Job/FE |
 | 9 | Performance Integration | P1 | BE |
 | 10 | Career Path | P1 | DB/BE/FE |

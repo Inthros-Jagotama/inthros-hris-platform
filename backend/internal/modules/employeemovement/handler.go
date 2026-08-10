@@ -219,6 +219,21 @@ func (h *Handler) ListMovementAudits(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// GetCareerHistory menangani GET /api/v1/tenant/employee-movements/employees/:employeeId/career-history
+// (enhancement plan §12.8 — Career Timeline, read model dari movements +
+// employments + contracts).
+func (h *Handler) GetCareerHistory(c *gin.Context) {
+	employeeID := c.Param("employeeId")
+
+	response, err := h.service.GetCareerHistory(c.Request.Context(), employeeID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 // =========================================================================
 // Movement Document Handlers (plan §12.15)
 // =========================================================================
