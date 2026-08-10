@@ -2,6 +2,7 @@ package performance
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -620,6 +621,31 @@ func (r *Repository) ListPerformanceEvaluations(ctx context.Context, employeeID,
 		return nil, 0, err
 	}
 	return list, total, nil
+}
+
+// LatestFinalScoreByEmployee mengambil skor final terbaru evaluasi yang sudah
+// selesai (COMPLETED / ACTUAL_APPROVED) untuk seorang karyawan — dipakai
+// module employeemovement sebagai input promotion eligibility (plan §12.10/
+// §12.11: movement membaca hasil final, tidak menghitung KPI/OKR sendiri).
+// Mengembalikan found=false bila belum ada evaluasi final.
+func (r *Repository) LatestFinalScoreByEmployee(ctx context.Context, employeeID uuid.UUID) (float64, bool, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, false, err
+	}
+	var eval PerformanceEvaluation
+	err = db.WithContext(ctx).
+		Where("employee_id = ?", employeeID.String()).
+		Where("status IN ?", []string{"COMPLETED", "ACTUAL_APPROVED"}).
+		Order("created_at DESC, id DESC").
+		First(&eval).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, false, nil
+		}
+		return 0, false, fmt.Errorf("failed to find latest performance final score: %w", err)
+	}
+	return eval.FinalScore, true, nil
 }
 
 func (r *Repository) UpdatePerformanceEvaluation(ctx context.Context, e *PerformanceEvaluation) error {

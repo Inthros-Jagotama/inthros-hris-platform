@@ -166,6 +166,29 @@ func (a employeeCareerAdapter) SetEmployeeInactive(ctx context.Context, tx *gorm
 	return a.repo.SetEmployeeStatusTx(ctx, tx, employeeID, "inactive")
 }
 
+// performanceEligibilityAdapter implements employeemovement.PerformanceProvider
+// so employee movement can read completed performance evaluation scores for
+// promotion eligibility (plan §12.10/§12.11 — movement hanya membaca hasil
+// final, tidak menghitung KPI/OKR sendiri).
+type performanceEligibilityAdapter struct {
+	repo *performance.Repository
+}
+
+func (a performanceEligibilityAdapter) LatestFinalScore(ctx context.Context, employeeID uuid.UUID) (float64, bool, error) {
+	return a.repo.LatestFinalScoreByEmployee(ctx, employeeID)
+}
+
+// competencyEligibilityAdapter implements employeemovement.CompetencyProvider
+// so employee movement can read the latest competency assessment scores for
+// promotion eligibility (plan §12.10/§12.11).
+type competencyEligibilityAdapter struct {
+	repo *competency.Repository
+}
+
+func (a competencyEligibilityAdapter) LatestScore(ctx context.Context, employeeID uuid.UUID) (float64, bool, error) {
+	return a.repo.LatestScoreByEmployee(ctx, employeeID)
+}
+
 // licenseCreatorAdapter implements company.LicenseCreator using the license service.
 // Digunakan untuk auto-create license saat signup company dengan package.
 type licenseCreatorAdapter struct {
@@ -700,6 +723,15 @@ func main() {
 	approvalSvc.RegisterStatusHandler(performance.ApprovalModuleOKRAssessment, func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return okrSvc.HandleAssessmentApprovalStatusChange(ctx, documentID, string(status), note)
 	})
+
+	// Promotion Eligibility adapters (plan §12.10/§12.11): movement hanya
+	// membaca hasil final Performance Management & Competency Management
+	// sebagai input eligibility/recommendation, tanpa menghitung KPI/OKR
+	// sendiri. Narrow-interface-plus-adapter pattern (pola sama seperti
+	// CareerExecutor, Notifier, ApprovalEngine).
+	employeeMovementSvc.SetPerformanceProvider(performanceEligibilityAdapter{repo: performanceRepo})
+	competencyEligibilityRepo := competency.NewRepository(competency.NewTenantDBResolver(dbManager))
+	employeeMovementSvc.SetCompetencyProvider(competencyEligibilityAdapter{repo: competencyEligibilityRepo})
 
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees

@@ -977,6 +977,29 @@ func (r *Repository) ListCareerPathStepsByPathID(ctx context.Context, pathID uui
 	return steps, nil
 }
 
+// FindCareerPathStepsByPositionID mencari career path yang memiliki langkah
+// dengan position_id tertentu, mengembalikan seluruh steps path tersebut
+// terurut sequence ASC. Dipakai promotion eligibility (plan §12.10) untuk
+// menentukan apakah employee memenuhi syarat naik ke step berikutnya.
+func (r *Repository) FindCareerPathStepsByPositionID(ctx context.Context, positionID uuid.UUID) ([]CareerPathStep, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var steps []CareerPathStep
+	// Cari career_paths is_active = true yang memiliki step dengan position_id ini.
+	subQuery := db.Model(&CareerPath{}).
+		Select("id").
+		Where("is_active = ?", true).
+		Where("id IN ( ? )", db.Table("career_path_steps").Select("career_path_id").Where("position_id = ?", positionID.String()))
+	if err := db.Where("career_path_id IN ( ? )", subQuery).
+		Order("career_path_id, sequence ASC").
+		Find(&steps).Error; err != nil {
+		return nil, fmt.Errorf("failed to find career path steps by position: %w", err)
+	}
+	return steps, nil
+}
+
 // UpdateCareerPathTx memperbarui header path dan mengganti SELURUH steps-nya
 // dalam satu transaksi (semantik full-replace: steps lama dihapus, steps baru
 // dibuat ulang). Aman karena tidak ada referensi eksternal ke career_path_steps.

@@ -32,6 +32,10 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// Career timeline read model (enhancement plan §12.8).
 		em.GET("/employees/:employeeId/career-history", handler.GetCareerHistory)
 
+		// Promotion eligibility (enhancement plan §12.10/§12.11).
+		em.GET("/employees/:employeeId/movement-eligibility", handler.GetMovementEligibility)
+		em.GET("/employees/:employeeId/promotion-eligibility", handler.GetPromotionEligibility)
+
 		// Employee Contracts
 		em.POST("/contracts", handler.CreateContract)
 		em.GET("/contracts", handler.ListContracts)

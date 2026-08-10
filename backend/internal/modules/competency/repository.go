@@ -2,6 +2,7 @@ package competency
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -365,6 +366,30 @@ func (r *Repository) FindAllCompetencyScores(ctx context.Context, page, perPage 
 		return nil, 0, err
 	}
 	return list, total, nil
+}
+
+// LatestScoreByEmployee mengambil skor kompetensi terbaru (assessed_at DESC,
+// fallback created_at DESC) untuk seorang karyawan — dipakai module
+// employeemovement sebagai input promotion eligibility (plan §12.10/§12.11:
+// movement membaca hasil final, tidak menghitung skor sendiri).
+// Mengembalikan found=false bila belum ada penilaian untuk karyawan tsb.
+func (r *Repository) LatestScoreByEmployee(ctx context.Context, employeeID uuid.UUID) (float64, bool, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return 0, false, err
+	}
+	var s CompetencyScore
+	err = db.WithContext(ctx).
+		Where("employee_id = ?", employeeID.String()).
+		Order("COALESCE(assessed_at, created_at) DESC, id DESC").
+		First(&s).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, false, nil
+		}
+		return 0, false, fmt.Errorf("failed to find latest competency score: %w", err)
+	}
+	return s.TotalGradePercentage, true, nil
 }
 
 func (r *Repository) UpdateCompetencyScore(ctx context.Context, s *CompetencyScore) error {

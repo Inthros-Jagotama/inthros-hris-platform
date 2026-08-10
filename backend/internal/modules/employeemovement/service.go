@@ -65,6 +65,22 @@ func (e *MovementValidationError) Error() string {
 	return e.Message
 }
 
+// PerformanceProvider abstracts the performance module so employeemovement
+// can read the latest completed evaluation's final score as eligibility input
+// (plan §12.10: Movement hanya membaca hasil final, tidak menghitung KPI/OKR).
+// Implemented via adapter wrapping performance.Service in main.go.
+type PerformanceProvider interface {
+	LatestFinalScore(ctx context.Context, employeeID uuid.UUID) (float64, bool, error)
+}
+
+// CompetencyProvider abstracts the competency module so employeemovement can
+// read the latest assessment score as eligibility input (plan §12.10/§12.11:
+// Movement hanya membaca hasil final dari competency management).
+// Implemented via adapter wrapping competency.Repository in main.go.
+type CompetencyProvider interface {
+	LatestScore(ctx context.Context, employeeID uuid.UUID) (float64, bool, error)
+}
+
 // MovementConflictError is returned when a movement cannot be created or
 // executed because it conflicts with the current employment state — the
 // target position is already occupied by another employee (plan §12.3) or the
@@ -138,11 +154,13 @@ type CareerExecutor interface {
 
 // Service untuk business logic Employee Movement & Career Management.
 type Service struct {
-	repo           *Repository
-	logger         *zap.Logger
-	approvalEngine ApprovalEngine
-	careerExecutor CareerExecutor
-	notifier       Notifier
+	repo                *Repository
+	logger              *zap.Logger
+	approvalEngine      ApprovalEngine
+	careerExecutor      CareerExecutor
+	notifier            Notifier
+	performanceProvider PerformanceProvider
+	competencyProvider  CompetencyProvider
 }
 
 // NewService membuat Service baru.
@@ -169,6 +187,14 @@ func (s *Service) SetCareerExecutor(ce CareerExecutor) {
 // the movement outcome (docs/module-movement-plan.md §7).
 func (s *Service) SetNotifier(n Notifier) {
 	s.notifier = n
+}
+
+func (s *Service) SetPerformanceProvider(p PerformanceProvider) {
+	s.performanceProvider = p
+}
+
+func (s *Service) SetCompetencyProvider(c CompetencyProvider) {
+	s.competencyProvider = c
 }
 
 // movementAuditJSON membungkus movement menjadi JSON string untuk kolom
@@ -1908,6 +1934,317 @@ func (s *Service) DeleteContract(ctx context.Context, id string) error {
 	}
 
 	return s.repo.DeleteContract(ctx, uid)
+}
+
+// =========================================================================
+// Promotion Eligibility (plan §12.10/§12.11)
+// =========================================================================
+
+const (
+	// Threshold default untuk eligibility. Sesuai contoh plan §12.10:
+	// Minimum Service >= 24 months, Performance Score >= 80, Competency >= 80.
+	// Threshold masa kerja dapat di-override oleh career_path_steps
+	// (minimum_service_months step berikutnya) pada promotion-eligibility.
+	eligibilityDefaultMinServiceMonths = 24
+	eligibilityMinPerformanceScore     = 80.0
+	eligibilityMinCompetencyScore      = 80.0
+)
+
+// GetMovementEligibility mengembalikan ringkasan eligibility umum seorang
+// karyawan: masa kerja (bulan), posisi sekarang, skor performa & kompetensi
+// terakhir (jika tersedia), career path (jika posisi termasuk path), dan
+// hasil rule default (tenure >= 24, performance >= 80, competency >= 80).
+// Provider nil / data tidak tersedia → rule not met dengan detail.
+func (s *Service) GetMovementEligibility(ctx context.Context, employeeID string) (*MovementEligibilityResponse, error) {
+	data, err := s.buildEligibility(ctx, employeeID, false)
+	if err != nil {
+		return nil, err
+	}
+	return &MovementEligibilityResponse{Success: true, Data: *data}, nil
+}
+
+// GetPromotionEligibility mengembalikan eligibility khusus promosi: rule
+// tenure menggunakan minimum_service_months dari step berikutnya dalam career
+// path (jika employee berada dalam path yang aktif), fallback 24 bulan.
+// Menyertakan info target posisi promosi berikutnya.
+func (s *Service) GetPromotionEligibility(ctx context.Context, employeeID string) (*PromotionEligibilityResponse, error) {
+	data, err := s.buildEligibility(ctx, employeeID, true)
+	if err != nil {
+		return nil, err
+	}
+	promo := PromotionEligibilityData{
+		EmployeeID:           data.EmployeeID,
+		EmployeeName:         data.EmployeeName,
+		EmployeeCode:         data.EmployeeCode,
+		TenureMonths:         data.TenureMonths,
+		CurrentPosition:      data.CurrentPosition,
+		MinimumServiceMonths: eligibilityDefaultMinServiceMonths,
+		PerformanceScore:     data.PerformanceScore,
+		CompetencyScore:      data.CompetencyScore,
+	}
+	// Ambil info next step + override minimum_service dari career path
+	// (untuk promotion, tenure target = min_service_months step berikutnya).
+	for _, r := range data.Rules {
+		if r.Code == "career_path" && r.Met && data.CareerPathID != nil {
+			// Cari step berikutnya — data sudah dihitung di buildEligibility.
+			s.findPromotionNextStep(ctx, &promo, *data.CareerPathID, data.CurrentPosition)
+			break
+		}
+	}
+
+	promo.Rules = s.evaluatePromotionRules(data.TenureMonths, promo.MinimumServiceMonths,
+		data.PerformanceScore, data.CompetencyScore)
+	promo.Eligible = true
+	for _, r := range promo.Rules {
+		if !r.Met {
+			promo.Eligible = false
+			break
+		}
+	}
+
+	return &PromotionEligibilityResponse{Success: true, Data: promo}, nil
+}
+
+// buildEligibility adalah helper bersama untuk kedua endpoint eligibility.
+// promotion=false: rule default 24/80/80, tanpa target next step.
+// promotion=true: juga menghitung career path + next step info.
+func (s *Service) buildEligibility(ctx context.Context, employeeID string, promotion bool) (*MovementEligibilityData, error) {
+	uid, err := uuid.Parse(employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee id: %w", err)
+	}
+
+	employments, err := s.repo.FindEmploymentsByEmployeeID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	data := MovementEligibilityData{
+		EmployeeID: uid.String(),
+	}
+
+	// Employee display info (G-4) — best-effort.
+	if empInfo, err := s.repo.GetEmployeeInfoByIDs(ctx, []uuid.UUID{uid}); err == nil {
+		if emp, ok := empInfo[uid.String()]; ok {
+			data.EmployeeName = emp.Name
+			data.EmployeeCode = emp.Code
+		}
+	} else {
+		s.logger.Warn("failed to resolve employee info for eligibility", zap.String("employee_id", employeeID), zap.Error(err))
+	}
+
+	// Posisi sekarang + tenure.
+	var orgIDs, posIDs, statusIDs []uuid.UUID
+	for _, e := range employments {
+		if e.OrganizationID != nil {
+			orgIDs = append(orgIDs, *e.OrganizationID)
+		}
+		if e.PositionID != nil {
+			posIDs = append(posIDs, *e.PositionID)
+		}
+		if e.EmploymentStatusID != nil {
+			statusIDs = append(statusIDs, *e.EmploymentStatusID)
+		}
+	}
+
+	orgNames := map[string]string{}
+	posNames := map[string]string{}
+	statusNames := map[string]string{}
+	if n, err := s.repo.GetOrganizationNamesByIDs(ctx, orgIDs); err == nil {
+		orgNames = n
+	} else {
+		s.logger.Warn("failed to resolve org names for eligibility", zap.Error(err))
+	}
+	if n, err := s.repo.GetPositionNamesByIDs(ctx, posIDs); err == nil {
+		posNames = n
+	} else {
+		s.logger.Warn("failed to resolve position names for eligibility", zap.Error(err))
+	}
+	if n, err := s.repo.GetEmploymentStatusNamesByIDs(ctx, statusIDs); err == nil {
+		statusNames = n
+	} else {
+		s.logger.Warn("failed to resolve employment status names for eligibility", zap.Error(err))
+	}
+
+	data.CurrentPosition = s.currentPosition(employments, orgNames, posNames, statusNames)
+	data.TenureMonths = computeTenureMonths(employments)
+
+	// Career path — apakah posisi sekarang termasuk path aktif?
+	if data.CurrentPosition != nil && data.CurrentPosition.PositionID != "" {
+		if curPosID, err := uuid.Parse(data.CurrentPosition.PositionID); err == nil {
+			if steps, err := s.repo.FindCareerPathStepsByPositionID(ctx, curPosID); err == nil && len(steps) > 0 {
+				// Seluruh steps dari path pertama yang cocok.
+				pathID := steps[0].CareerPathID
+				if pathInfo, err := s.repo.FindCareerPathByID(ctx, pathID); err == nil {
+					s := pathInfo.ID.String()
+					data.CareerPathID = &s
+					s2 := pathInfo.Name
+					data.CareerPathName = &s2
+				}
+			}
+		}
+	}
+
+	// Skor performa & kompetensi — best-effort melalui provider.
+	if s.performanceProvider != nil {
+		if score, found, err := s.performanceProvider.LatestFinalScore(ctx, uid); err == nil && found {
+			data.PerformanceScore = &score
+		} else if err != nil {
+			s.logger.Warn("failed to get performance score for eligibility", zap.String("employee_id", employeeID), zap.Error(err))
+		}
+	}
+	if s.competencyProvider != nil {
+		if score, found, err := s.competencyProvider.LatestScore(ctx, uid); err == nil && found {
+			data.CompetencyScore = &score
+		} else if err != nil {
+			s.logger.Warn("failed to get competency score for eligibility", zap.String("employee_id", employeeID), zap.Error(err))
+		}
+	}
+
+	// Evaluasi rule default.
+	data.Rules = s.evaluateDefaultRules(data.TenureMonths, data.PerformanceScore, data.CompetencyScore)
+
+	// Tambah rule career_path jika posisi ada dalam path aktif.
+	if data.CareerPathID != nil && data.CareerPathName != nil {
+		met := true
+		detail := fmt.Sprintf("Posisi saat ini ada dalam career path '%s'", *data.CareerPathName)
+		data.Rules = append(data.Rules, EligibilityRuleResult{
+			Code: "career_path", Label: "Career Path",
+			Met: met, Detail: &detail,
+		})
+	}
+
+	data.Eligible = true
+	for _, r := range data.Rules {
+		if !r.Met {
+			data.Eligible = false
+			break
+		}
+	}
+
+	return &data, nil
+}
+
+// evaluateDefaultRules membangun rule untuk movement-eligibility: minimum
+// service (default 24), performance (>= 80), competency (>= 80).
+func (s *Service) evaluateDefaultRules(tenureMonths int, performanceScore, competencyScore *float64) []EligibilityRuleResult {
+	rules := make([]EligibilityRuleResult, 0, 3)
+
+	tenureReq := fmt.Sprintf("%d bulan", eligibilityDefaultMinServiceMonths)
+	tenureActual := fmt.Sprintf("%d bulan", tenureMonths)
+	rules = append(rules, EligibilityRuleResult{
+		Code: "minimum_service", Label: "Minimum Masa Kerja",
+		Met:    tenureMonths >= eligibilityDefaultMinServiceMonths,
+		Actual: &tenureActual, Required: &tenureReq,
+	})
+
+	rules = append(rules, buildScoreRule("performance", "Skor Kinerja", performanceScore, eligibilityMinPerformanceScore))
+	rules = append(rules, buildScoreRule("competency", "Skor Kompetensi", competencyScore, eligibilityMinCompetencyScore))
+
+	return rules
+}
+
+// evaluatePromotionRules membangun rule untuk promotion-eligibility:
+// minimum service (dari career path atau default 24), performance, competency.
+func (s *Service) evaluatePromotionRules(tenureMonths, minService int, performanceScore, competencyScore *float64) []EligibilityRuleResult {
+	rules := make([]EligibilityRuleResult, 0, 3)
+
+	tenureReq := fmt.Sprintf("%d bulan", minService)
+	tenureActual := fmt.Sprintf("%d bulan", tenureMonths)
+	rules = append(rules, EligibilityRuleResult{
+		Code: "minimum_service", Label: "Minimum Masa Kerja (Target Promosi)",
+		Met:    tenureMonths >= minService,
+		Actual: &tenureActual, Required: &tenureReq,
+	})
+
+	rules = append(rules, buildScoreRule("performance", "Skor Kinerja", performanceScore, eligibilityMinPerformanceScore))
+	rules = append(rules, buildScoreRule("competency", "Skor Kompetensi", competencyScore, eligibilityMinCompetencyScore))
+
+	return rules
+}
+
+// findPromotionNextStep mencari step berikutnya dalam career path setelah
+// posisi employee sekarang dan mengisi field promotion di PromotionEligibilityData.
+func (s *Service) findPromotionNextStep(ctx context.Context, promo *PromotionEligibilityData, careerPathID string, currentPos *CareerPositionInfo) {
+	pid, err := uuid.Parse(careerPathID)
+	if err != nil {
+		return
+	}
+	steps, err := s.repo.ListCareerPathStepsByPathID(ctx, pid)
+	if err != nil || len(steps) == 0 {
+		return
+	}
+	// Cari indeks step yang match current position.
+	idx := -1
+	for i, st := range steps {
+		if currentPos != nil && st.PositionID.String() == currentPos.PositionID {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 || idx >= len(steps)-1 {
+		// Posisi tidak ditemukan di path atau sudah di step terakhir.
+		return
+	}
+	nextStep := steps[idx+1]
+
+	// Enrich nama posisi target.
+	posNames := map[string]string{}
+	if n, err := s.repo.GetPositionNamesByIDs(ctx, []uuid.UUID{nextStep.PositionID}); err == nil {
+		posNames = n
+	} else {
+		s.logger.Warn("failed to resolve next step position name", zap.Error(err))
+	}
+
+	pn := nextStep.PositionID.String()
+	promo.NextPositionID = &pn
+	if name, ok := posNames[pn]; ok {
+		promo.NextPositionName = &name
+	}
+	seq := nextStep.Sequence
+	promo.NextPositionSeq = &seq
+	promo.MinimumServiceMonths = eligibilityDefaultMinServiceMonths
+	if nextStep.MinimumServiceMonths != nil && *nextStep.MinimumServiceMonths > 0 {
+		promo.MinimumServiceMonths = *nextStep.MinimumServiceMonths
+	}
+}
+
+// computeTenureMonths menghitung masa kerja (dalam bulan) dari employment
+// pertama (effective_date terawal) hingga sekarang.
+func computeTenureMonths(employments []careerEmploymentRow) int {
+	if len(employments) == 0 {
+		return 0
+	}
+	start := employments[0].EffectiveDate
+	startDate, err := time.Parse("2006-01-02", normalizeDate(start))
+	if err != nil {
+		return 0
+	}
+	now := time.Now()
+	months := int(now.Sub(startDate).Hours() / (24 * 30.44))
+	if months < 0 {
+		return 0
+	}
+	return months
+}
+
+// buildScoreRule membuat rule result untuk satu nilai skor (perform/kompetensi)
+// terhadap threshold. Jika nil (data tidak tersedia), met=false + detail.
+func buildScoreRule(code, label string, score *float64, threshold float64) EligibilityRuleResult {
+	if score == nil {
+		msg := "data belum tersedia"
+		return EligibilityRuleResult{
+			Code: code, Label: label,
+			Met: false, Detail: &msg,
+		}
+	}
+	actual := fmt.Sprintf("%.0f", *score)
+	required := fmt.Sprintf("%.0f", threshold)
+	return EligibilityRuleResult{
+		Code: code, Label: label,
+		Met:    *score >= threshold,
+		Actual: &actual, Required: &required,
+	}
 }
 
 // =========================================================================

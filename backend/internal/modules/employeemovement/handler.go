@@ -452,3 +452,33 @@ func (h *Handler) DeleteCareerPath(c *gin.Context) {
 	}
 	httputil.DeletedJSON(c, "success.deleted")
 }
+
+// =========================================================================
+// Promotion Eligibility Handlers (plan §12.10/§12.11)
+// =========================================================================
+
+// GetMovementEligibility menangani GET /api/v1/tenant/employee-movements/employees/:employeeId/movement-eligibility
+func (h *Handler) GetMovementEligibility(c *gin.Context) {
+	employeeID := c.Param("employeeId")
+
+	response, err := h.service.GetMovementEligibility(c.Request.Context(), employeeID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetPromotionEligibility menangani GET /api/v1/tenant/employee-movements/employees/:employeeId/promotion-eligibility
+func (h *Handler) GetPromotionEligibility(c *gin.Context) {
+	employeeID := c.Param("employeeId")
+
+	response, err := h.service.GetPromotionEligibility(c.Request.Context(), employeeID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}

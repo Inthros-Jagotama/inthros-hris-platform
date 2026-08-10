@@ -250,6 +250,70 @@ type PaginatedCareerPathResponse struct {
 }
 
 // =========================================================================
+// Promotion Eligibility DTOs (plan §12.10/§12.11)
+// =========================================================================
+
+// EligibilityRuleResult satu hasil evaluasi rule eligibility. Code dipakai
+// FE untuk identifikasi, Label untuk display, Met menunjukkan apakah rule
+// terpenuhi, Actual/Required sebagai nilai aktual vs target, Detail untuk
+// penjelasan tambahan (misal "belum ada evaluasi selesai").
+type EligibilityRuleResult struct {
+	Code     string  `json:"code"`
+	Label    string  `json:"label"`
+	Met      bool    `json:"met"`
+	Actual   *string `json:"actual,omitempty"`
+	Required *string `json:"required,omitempty"`
+	Detail   *string `json:"detail,omitempty"`
+}
+
+// MovementEligibilityData adalah read model eligibility umum (tidak spesifik
+// tipe movement). Menampilkan masa kerja, skor performa/kompetensi terakhir,
+// posisi sekarang, dan apakah employee berada dalam career path.
+type MovementEligibilityData struct {
+	EmployeeID       string                  `json:"employee_id"`
+	EmployeeName     string                  `json:"employee_name"`
+	EmployeeCode     string                  `json:"employee_code"`
+	TenureMonths     int                     `json:"tenure_months"`
+	CurrentPosition  *CareerPositionInfo     `json:"current_position,omitempty"`
+	PerformanceScore *float64                `json:"performance_score,omitempty"`
+	CompetencyScore  *float64                `json:"competency_score,omitempty"`
+	CareerPathID     *string                 `json:"career_path_id,omitempty"`
+	CareerPathName   *string                 `json:"career_path_name,omitempty"`
+	Rules            []EligibilityRuleResult `json:"rules"`
+	Eligible         bool                    `json:"eligible"`
+}
+
+type MovementEligibilityResponse struct {
+	Success bool                    `json:"success"`
+	Data    MovementEligibilityData `json:"data"`
+}
+
+// PromotionEligibilityData memperluas MovementEligibilityData dengan informasi
+// step berikutnya dalam career path (target posisi promosi, minimum_service
+// months yang dipersyaratkan). Bila posisi employee tidak berada dalam career
+// path, next_position kosong dan minimum_service_months memakai default 24.
+type PromotionEligibilityData struct {
+	EmployeeID           string                  `json:"employee_id"`
+	EmployeeName         string                  `json:"employee_name"`
+	EmployeeCode         string                  `json:"employee_code"`
+	TenureMonths         int                     `json:"tenure_months"`
+	CurrentPosition      *CareerPositionInfo     `json:"current_position,omitempty"`
+	NextPositionID       *string                 `json:"next_position_id,omitempty"`
+	NextPositionName     *string                 `json:"next_position_name,omitempty"`
+	NextPositionSeq      *int                    `json:"next_position_sequence,omitempty"`
+	MinimumServiceMonths int                     `json:"minimum_service_months"`
+	PerformanceScore     *float64                `json:"performance_score,omitempty"`
+	CompetencyScore      *float64                `json:"competency_score,omitempty"`
+	Rules                []EligibilityRuleResult `json:"rules"`
+	Eligible             bool                    `json:"eligible"`
+}
+
+type PromotionEligibilityResponse struct {
+	Success bool                     `json:"success"`
+	Data    PromotionEligibilityData `json:"data"`
+}
+
+// =========================================================================
 // Employee Contract DTOs
 // =========================================================================
 
