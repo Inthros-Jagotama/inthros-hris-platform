@@ -406,7 +406,7 @@ const typeOptions = computed(() => [
 ].map(v => ({ label: typeLabel(v), value: v })))
 
 const statusOptions = computed(() => [
-  'draft', 'pending_approval', 'approved', 'rejected', 'executed', 'cancelled'
+  'draft', 'pending_approval', 'approved', 'rejected', 'executed', 'cancelled', 'cancellation_pending'
 ].map(v => ({ label: statusLabel(v), value: v })))
 
 const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.employee_id })))
@@ -470,6 +470,7 @@ function statusSeverity(status) {
     case 'rejected': return 'danger'
     case 'executed': return 'success'
     case 'cancelled': return 'secondary'
+    case 'cancellation_pending': return 'warning'
     default: return 'secondary'
   }
 }

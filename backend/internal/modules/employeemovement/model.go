@@ -25,12 +25,13 @@ const (
 type MovementStatus string
 
 const (
-	MovementStatusDraft           MovementStatus = "draft"
-	MovementStatusPendingApproval MovementStatus = "pending_approval"
-	MovementStatusApproved        MovementStatus = "approved"
-	MovementStatusRejected        MovementStatus = "rejected" // keputusan plan §11.4: status terpisah utk approval ditolak
-	MovementStatusExecuted        MovementStatus = "executed"
-	MovementStatusCancelled       MovementStatus = "cancelled"
+	MovementStatusDraft                MovementStatus = "draft"
+	MovementStatusPendingApproval      MovementStatus = "pending_approval"
+	MovementStatusApproved             MovementStatus = "approved"
+	MovementStatusRejected             MovementStatus = "rejected" // keputusan plan §11.4: status terpisah utk approval ditolak
+	MovementStatusExecuted             MovementStatus = "executed"
+	MovementStatusCancelled            MovementStatus = "cancelled"
+	MovementStatusCancellationPending  MovementStatus = "cancellation_pending" // plan §12.16: pembatalan movement approved menunggu approval Central Approval
 )
 
 // ContractType enum untuk tipe kontrak.
@@ -89,6 +90,11 @@ type EmployeeMovement struct {
 	ExecutedBy               *uuid.UUID     `gorm:"type:char(36)" json:"executed_by,omitempty"`
 	ExecutedAt               *time.Time     `gorm:"type:timestamp" json:"executed_at,omitempty"`
 	ApprovalInstanceID       *uuid.UUID     `gorm:"type:char(36);index:idx_emp_mvmt_approval_instance" json:"approval_instance_id,omitempty"`
+	// CancellationApprovalInstanceID (plan §12.16): approval instance yang
+	// dibuat untuk cancellation request movement approved. Terpisah dari
+	// ApprovalInstanceID (milik submission) sehingga status callback Central
+	// Approval dapat membedakan hasil approval submission vs pembatalan.
+	CancellationApprovalInstanceID *uuid.UUID `gorm:"type:char(36);index:idx_emp_mvmt_cancellation_instance" json:"cancellation_approval_instance_id,omitempty"`
 	CreatedBy                *uuid.UUID     `gorm:"type:char(36)" json:"created_by,omitempty"`
 	UpdatedBy                *uuid.UUID     `gorm:"type:char(36)" json:"updated_by,omitempty"`
 	CreatedAt                time.Time      `json:"created_at"`
@@ -116,13 +122,15 @@ func (m *EmployeeMovement) BeforeCreate(tx *gorm.DB) error {
 type MovementAuditAction string
 
 const (
-	MovementAuditActionCreated   MovementAuditAction = "CREATED"
-	MovementAuditActionUpdated   MovementAuditAction = "UPDATED"
-	MovementAuditActionSubmitted MovementAuditAction = "SUBMITTED"
-	MovementAuditActionApproved  MovementAuditAction = "APPROVED"
-	MovementAuditActionRejected  MovementAuditAction = "REJECTED"
-	MovementAuditActionCancelled MovementAuditAction = "CANCELLED"
-	MovementAuditActionExecuted  MovementAuditAction = "EXECUTED"
+	MovementAuditActionCreated                MovementAuditAction = "CREATED"
+	MovementAuditActionUpdated                MovementAuditAction = "UPDATED"
+	MovementAuditActionSubmitted              MovementAuditAction = "SUBMITTED"
+	MovementAuditActionApproved               MovementAuditAction = "APPROVED"
+	MovementAuditActionRejected               MovementAuditAction = "REJECTED"
+	MovementAuditActionCancelled              MovementAuditAction = "CANCELLED"
+	MovementAuditActionExecuted               MovementAuditAction = "EXECUTED"
+	MovementAuditActionCancellationRequested  MovementAuditAction = "CANCELLATION_REQUESTED" // plan §12.16
+	MovementAuditActionCancellationRejected   MovementAuditAction = "CANCELLATION_REJECTED"  // plan §12.16
 )
 
 // EmployeeMovementAudit mencatat setiap perubahan lifecycle movement.

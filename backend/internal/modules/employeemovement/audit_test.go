@@ -208,7 +208,7 @@ func TestService_CancelMovement_RecordsAudit(t *testing.T) {
 	employeeID := uuid.New()
 	created := createAuditedMovement(t, svc, employeeID)
 
-	if err := svc.CancelMovement(ctx(), created.ID.String()); err != nil {
+	if _, err := svc.CancelMovement(ctx(), created.ID.String(), CancelMovementRequest{}); err != nil {
 		t.Fatalf("CancelMovement failed: %v", err)
 	}
 
@@ -226,6 +226,81 @@ func TestService_CancelMovement_RecordsAudit(t *testing.T) {
 	}
 	if cancelled.NewStatus == nil || *cancelled.NewStatus != string(MovementStatusCancelled) {
 		t.Errorf("expected new_status cancelled, got %v", cancelled.NewStatus)
+	}
+}
+
+// TestService_CancelMovement_Approved_RecordsCancellationRequestedAudit
+// verifies plan §12.16: an approved movement's cancel request records a
+// CANCELLATION_REQUESTED audit with approved → cancellation_pending.
+func TestService_CancelMovement_Approved_RecordsCancellationRequestedAudit(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	svc.SetApprovalEngine(&fakeApprovalEngine{resolvedFlowID: uuid.New().String()})
+
+	employeeID := uuid.New()
+	created := createAuditedMovement(t, svc, employeeID)
+	created.Status = MovementStatusApproved
+	if err := svc.repo.UpdateMovement(ctx(), created); err != nil {
+		t.Fatalf("failed to set approved: %v", err)
+	}
+
+	if _, err := svc.CancelMovement(ctx(), created.ID.String(), CancelMovementRequest{}); err != nil {
+		t.Fatalf("CancelMovement failed: %v", err)
+	}
+
+	resp, err := svc.ListMovementAudits(ctx(), created.ID.String(), 1, 100)
+	if err != nil {
+		t.Fatalf("ListMovementAudits failed: %v", err)
+	}
+	if resp.Total != 2 {
+		t.Fatalf("expected 2 audit rows (CREATED + CANCELLATION_REQUESTED), got %d", resp.Total)
+	}
+	items := resp.Data.([]MovementAuditResponse)
+	req := items[0]
+	if req.Action != string(MovementAuditActionCancellationRequested) {
+		t.Errorf("expected action CANCELLATION_REQUESTED, got '%s'", req.Action)
+	}
+	if req.OldStatus == nil || *req.OldStatus != string(MovementStatusApproved) {
+		t.Errorf("expected old_status approved, got %v", req.OldStatus)
+	}
+	if req.NewStatus == nil || *req.NewStatus != string(MovementStatusCancellationPending) {
+		t.Errorf("expected new_status cancellation_pending, got %v", req.NewStatus)
+	}
+}
+
+// TestService_HandleCancellationStatusChange_RecordsCancellationRejectedAudit
+// verifies a REJECTED cancellation request records CANCELLATION_REJECTED with
+// cancellation_pending → approved.
+func TestService_HandleCancellationStatusChange_RecordsCancellationRejectedAudit(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	created := createAuditedMovement(t, svc, employeeID)
+	created.Status = MovementStatusCancellationPending
+	if err := svc.repo.UpdateMovement(ctx(), created); err != nil {
+		t.Fatalf("failed to set cancellation_pending: %v", err)
+	}
+
+	if err := svc.HandleCancellationStatusChange(ctx(), created.ID, "REJECTED", "Tidak disetujui"); err != nil {
+		t.Fatalf("HandleCancellationStatusChange failed: %v", err)
+	}
+
+	resp, err := svc.ListMovementAudits(ctx(), created.ID.String(), 1, 100)
+	if err != nil {
+		t.Fatalf("ListMovementAudits failed: %v", err)
+	}
+	items := resp.Data.([]MovementAuditResponse)
+	rejected := items[0]
+	if rejected.Action != string(MovementAuditActionCancellationRejected) {
+		t.Errorf("expected action CANCELLATION_REJECTED, got '%s'", rejected.Action)
+	}
+	if rejected.OldStatus == nil || *rejected.OldStatus != string(MovementStatusCancellationPending) {
+		t.Errorf("expected old_status cancellation_pending, got %v", rejected.OldStatus)
+	}
+	if rejected.NewStatus == nil || *rejected.NewStatus != string(MovementStatusApproved) {
+		t.Errorf("expected new_status approved, got %v", rejected.NewStatus)
 	}
 }
 

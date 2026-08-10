@@ -36,6 +36,12 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		em.GET("/employees/:employeeId/movement-eligibility", handler.GetMovementEligibility)
 		em.GET("/employees/:employeeId/promotion-eligibility", handler.GetPromotionEligibility)
 
+		// Movement & Contract Reports (plan §12.17) — agregasi untuk HR reporting.
+		em.GET("/reports/movements", handler.GetMovementReport)
+		em.GET("/reports/contracts", handler.GetContractReport)
+		// HR Dashboard summary (plan §12.18) — kartu dashboard module ini.
+		em.GET("/dashboard", handler.GetHRDashboard)
+
 		// Employee Contracts
 		em.POST("/contracts", handler.CreateContract)
 		em.GET("/contracts", handler.ListContracts)

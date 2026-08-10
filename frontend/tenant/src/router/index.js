@@ -118,6 +118,12 @@ const routes = [
         component: () => import('@/views/modules/EmployeeContracts.vue'),
         meta: { title: 'Contracts', titleKey: 'employee_movement.contracts', descKey: 'employee_movement.description', icon: 'pi pi-file-edit', module: 'employeemovement' }
       },
+      {
+        path: 'admin/career/reports',
+        name: 'EmployeeMovementReports',
+        component: () => import('@/views/modules/EmployeeMovementReports.vue'),
+        meta: { title: 'Movement Reports', titleKey: 'employee_movement.reports', descKey: 'employee_movement.reports_description', icon: 'pi pi-chart-bar', module: 'employeemovement' }
+      },
       // Time & Attendance
       {
         path: 'attendance',

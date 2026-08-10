@@ -186,6 +186,10 @@ func (s *Service) SetModuleChecker(mc ModuleSubscriptionChecker) {
 // HR configure flows for the two independent KPI approval checkpoints.
 var subscriptionModuleSubslots = map[string][]string{
 	"performance": {"performance_kpi_target", "performance_kpi_realization", "okr_key_result", "okr_assessment"},
+	// plan §12.16: pembatalan movement approved lewat Central Approval sebagai
+	// instance ber-module employeemovement_cancellation (flow terpisah dari
+	// submission movement, bisa memakai approver yang sama/berbeda).
+	"employeemovement": {"employeemovement_cancellation"},
 }
 
 func (s *Service) ListAvailableModules(ctx context.Context) ([]string, error) {
@@ -223,6 +227,7 @@ var subscriptionModuleAliases = map[string]string{
 	"performance_kpi_realization": "performance",
 	"okr_key_result":              "performance",
 	"okr_assessment":              "performance",
+	"employeemovement_cancellation": "employeemovement",
 }
 
 func (s *Service) ensureModuleSubscribed(ctx context.Context, module string) error {

@@ -296,6 +296,10 @@ var localeMessages = map[string]map[Lang]string{
 		LangEN: "Cancelled successfully",
 		LangID: "Berhasil dibatalkan",
 	},
+	"success.cancellation_requested": {
+		LangEN: "Cancellation requested for approval",
+		LangID: "Permintaan pembatalan diajukan untuk persetujuan",
+	},
 	"success.restored": {
 		LangEN: "Restored successfully",
 		LangID: "Berhasil dipulihkan",

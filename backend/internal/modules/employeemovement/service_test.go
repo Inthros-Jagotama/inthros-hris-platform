@@ -928,13 +928,17 @@ func TestService_CancelMovement_Success(t *testing.T) {
 	employeeID := uuid.New()
 	created := createTestMovement(repo, employeeID)
 
-	if err := svc.CancelMovement(ctx(), created.ID.String()); err != nil {
+	resp, err := svc.CancelMovement(ctx(), created.ID.String(), CancelMovementRequest{})
+	if err != nil {
 		t.Fatalf("CancelMovement failed: %v", err)
 	}
 
 	m, _ := repo.FindMovementByID(ctx(), created.ID)
 	if m.Status != MovementStatusCancelled {
 		t.Errorf("expected status 'cancelled', got '%s'", m.Status)
+	}
+	if resp.Status != string(MovementStatusCancelled) {
+		t.Errorf("expected response status 'cancelled', got '%s'", resp.Status)
 	}
 }
 
@@ -947,9 +951,159 @@ func TestService_CancelMovement_Executed_Error(t *testing.T) {
 	created.Status = MovementStatusExecuted
 	repo.UpdateMovement(ctx(), created)
 
-	err := svc.CancelMovement(ctx(), created.ID.String())
+	_, err := svc.CancelMovement(ctx(), created.ID.String(), CancelMovementRequest{})
 	if err == nil {
 		t.Fatal("expected error when cancelling executed movement")
+	}
+}
+
+// TestService_CancelMovement_Approved_CreatesCancellationInstance verifies
+// plan §12.16: cancelling an APPROVED movement routes through the Central
+// Approval module — a new instance for module employeemovement_cancellation is
+// created and the movement enters cancellation_pending (NOT cancelled yet).
+func TestService_CancelMovement_Approved_CreatesCancellationInstance(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{resolvedFlowID: uuid.New().String()}
+	svc.SetApprovalEngine(fake)
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	repo.UpdateMovement(ctx(), created)
+
+	resp, err := svc.CancelMovement(ctx(), created.ID.String(), CancelMovementRequest{})
+	if err != nil {
+		t.Fatalf("CancelMovement (approved) failed: %v", err)
+	}
+
+	if resp.Status != string(MovementStatusCancellationPending) {
+		t.Errorf("expected status 'cancellation_pending', got '%s'", resp.Status)
+	}
+	if resp.CancellationApprovalInstanceID == nil || *resp.CancellationApprovalInstanceID != fake.instanceID {
+		t.Errorf("expected cancellation_approval_instance_id %s, got %v", fake.instanceID, resp.CancellationApprovalInstanceID)
+	}
+	if len(fake.createCalls) != 1 {
+		t.Fatalf("expected 1 CreateApprovalInstance call, got %d", len(fake.createCalls))
+	}
+	if fake.createCalls[0].module != "employeemovement_cancellation" {
+		t.Errorf("expected module 'employeemovement_cancellation', got '%s'", fake.createCalls[0].module)
+	}
+	if fake.createCalls[0].documentID != created.ID.String() {
+		t.Errorf("expected document_id %s, got '%s'", created.ID.String(), fake.createCalls[0].documentID)
+	}
+
+	// Persisted: status + instance id on the row.
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusCancellationPending {
+		t.Errorf("expected persisted status 'cancellation_pending', got '%s'", m.Status)
+	}
+	if m.CancellationApprovalInstanceID == nil || *m.CancellationApprovalInstanceID != uuid.MustParse(fake.instanceID) {
+		t.Errorf("expected persisted cancellation_approval_instance_id %s, got %v", fake.instanceID, m.CancellationApprovalInstanceID)
+	}
+}
+
+// TestService_CancelMovement_Approved_NoEngine_Error verifies the cancellation
+// request requires the approval engine to be wired.
+func TestService_CancelMovement_Approved_NoEngine_Error(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	repo.UpdateMovement(ctx(), created)
+
+	_, err := svc.CancelMovement(ctx(), created.ID.String(), CancelMovementRequest{})
+	if err == nil {
+		t.Fatal("expected error when approval engine is not configured")
+	}
+}
+
+// TestService_CancelMovement_Approved_NoFlow_Error verifies the cancellation
+// request fails when no flow can be resolved for employeemovement_cancellation.
+func TestService_CancelMovement_Approved_NoFlow_Error(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	svc.SetApprovalEngine(&fakeApprovalEngine{}) // no resolvedFlowID
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	repo.UpdateMovement(ctx(), created)
+
+	_, err := svc.CancelMovement(ctx(), created.ID.String(), CancelMovementRequest{})
+	if err == nil {
+		t.Fatal("expected error when no cancellation flow is configured")
+	}
+}
+
+// TestService_HandleCancellationStatusChange_Approved verifies that when the
+// cancellation approval instance resolves APPROVED, the movement is cancelled
+// (plan §12.16).
+func TestService_HandleCancellationStatusChange_Approved(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusCancellationPending
+	repo.UpdateMovement(ctx(), created)
+
+	if err := svc.HandleCancellationStatusChange(ctx(), created.ID, "APPROVED", ""); err != nil {
+		t.Fatalf("HandleCancellationStatusChange failed: %v", err)
+	}
+
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusCancelled {
+		t.Errorf("expected status 'cancelled' after cancellation approved, got '%s'", m.Status)
+	}
+}
+
+// TestService_HandleCancellationStatusChange_Rejected verifies a REJECTED
+// cancellation request returns the movement to approved (plan §12.16).
+func TestService_HandleCancellationStatusChange_Rejected(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusCancellationPending
+	repo.UpdateMovement(ctx(), created)
+
+	if err := svc.HandleCancellationStatusChange(ctx(), created.ID, "REJECTED", "Pembatalan ditolak"); err != nil {
+		t.Fatalf("HandleCancellationStatusChange failed: %v", err)
+	}
+
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusApproved {
+		t.Errorf("expected status back to 'approved' after cancellation rejected, got '%s'", m.Status)
+	}
+	if m.Notes == nil || *m.Notes != "Pembatalan ditolak" {
+		t.Errorf("expected note from rejection, got %v", m.Notes)
+	}
+}
+
+// TestService_HandleCancellationStatusChange_NotPending_Ignored verifies the
+// cancellation callback is a no-op for movements not in cancellation_pending.
+func TestService_HandleCancellationStatusChange_NotPending_Ignored(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	repo.UpdateMovement(ctx(), created)
+
+	if err := svc.HandleCancellationStatusChange(ctx(), created.ID, "APPROVED", ""); err != nil {
+		t.Fatalf("HandleCancellationStatusChange should be a no-op: %v", err)
+	}
+
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusApproved {
+		t.Errorf("expected status to remain 'approved', got '%s'", m.Status)
 	}
 }
 

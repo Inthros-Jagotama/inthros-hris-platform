@@ -274,6 +274,82 @@ func TestRepo_CancelMovement_Executed_Error(t *testing.T) {
 	}
 }
 
+// TestRepo_CancelMovement_Approved_Error verifies plan §12.16: an approved
+// movement cannot be cancelled directly at the repo level — it must go through
+// the cancellation approval flow (SetCancellationRequested).
+func TestRepo_CancelMovement_Approved_Error(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	created := createTestMovement(repo, uuid.New())
+	created.Status = MovementStatusApproved
+	repo.UpdateMovement(ctx, created)
+
+	err := repo.CancelMovement(ctx, created.ID)
+	if err == nil {
+		t.Fatal("expected error when directly cancelling an approved movement")
+	}
+
+	// Status untouched.
+	found, _ := repo.FindMovementByID(ctx, created.ID)
+	if found.Status != MovementStatusApproved {
+		t.Errorf("expected status to remain 'approved', got '%s'", found.Status)
+	}
+}
+
+// TestRepo_SetCancellationRequested_Success verifies the cancellation request
+// persistence (plan §12.16): approved → cancellation_pending + instance id.
+func TestRepo_SetCancellationRequested_Success(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	created := createTestMovement(repo, uuid.New())
+	created.Status = MovementStatusApproved
+	repo.UpdateMovement(ctx, created)
+
+	instanceID := uuid.New()
+	reason := "Dibatalkan atas permintaan manajemen"
+	if err := repo.SetCancellationRequested(ctx, created.ID, instanceID, &reason); err != nil {
+		t.Fatalf("SetCancellationRequested failed: %v", err)
+	}
+
+	found, _ := repo.FindMovementByID(ctx, created.ID)
+	if found.Status != MovementStatusCancellationPending {
+		t.Errorf("expected status 'cancellation_pending', got '%s'", found.Status)
+	}
+	if found.CancellationApprovalInstanceID == nil || *found.CancellationApprovalInstanceID != instanceID {
+		t.Errorf("expected cancellation_approval_instance_id %s, got %v", instanceID, found.CancellationApprovalInstanceID)
+	}
+	if found.Notes == nil || *found.Notes != reason {
+		t.Errorf("expected notes '%s', got %v", reason, found.Notes)
+	}
+}
+
+// TestRepo_SetCancellationRequested_NonApproved_Error verifies only approved
+// movements can enter the cancellation approval flow.
+func TestRepo_SetCancellationRequested_NonApproved_Error(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	created := createTestMovement(repo, uuid.New()) // draft
+
+	err := repo.SetCancellationRequested(ctx, created.ID, uuid.New(), nil)
+	if err == nil {
+		t.Fatal("expected error when requesting cancellation for a non-approved movement")
+	}
+
+	found, _ := repo.FindMovementByID(ctx, created.ID)
+	if found.Status != MovementStatusDraft {
+		t.Errorf("expected status to remain 'draft', got '%s'", found.Status)
+	}
+}
+
 // =========================================================================
 // Employee Contract Repository Tests
 // =========================================================================

@@ -1,9 +1,9 @@
 # Employee Movement & Career Management — Development Plan
 
-> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6–11) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
+> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6–12) ✅ + P2 (13–14) ✅** (backend ✅ + FE halaman Movements/Contracts/detail/reports/dashboard ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21) · ✅ **Enhancement §12 P1 8** (Contract Expiry Management — lihat log §3.22) · ✅ **Enhancement §12 P1 10** (Career Path — lihat log §3.23) · ✅ **Enhancement §12 P1 11** (Promotion Eligibility — lihat log §3.24) · ✅ **Enhancement §12 P1 9** (Performance Integration — KPI/OKR/competency sebagai input eligibility, lihat log §3.25). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21) · ✅ **Enhancement §12 P1 8** (Contract Expiry Management — lihat log §3.22) · ✅ **Enhancement §12 P1 10** (Career Path — lihat log §3.23) · ✅ **Enhancement §12 P1 11** (Promotion Eligibility — lihat log §3.24) · ✅ **Enhancement §12 P1 9** (Performance Integration — KPI/OKR/competency sebagai input eligibility, lihat log §3.25) · ✅ **Enhancement §12 P1 12** (Movement Cancellation Approval via Central Approval — lihat log §3.26) · ✅ **Enhancement §12 P2 13** (Movement Reporting — report promosi/mutasi/kontrak + filter periode/org/posisi, lihat log §3.27) · ✅ **Enhancement §12 P2 14** (Dashboard — kartu HR movement/contract di Dashboard FE, lihat log §3.28). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
 
 ---
 
@@ -745,6 +745,109 @@ Scheduled process `ProcessContractExpiration` (plan §12.13) — mark expired ot
 
 ---
 
+# 3.26 Log Implementasi — Enhancement P1 item 12: Movement Cancellation Approval (2026-08-10)
+
+## 3.26.1 Yang dikerjakan
+
+**Movement Cancellation Approval** (plan §12.16) — pembatalan movement `approved` TIDAK lagi dibatalkan langsung oleh HR; harus melalui **Cancellation Request** yang diproses Central Approval Module:
+
+- **Migration 087** (mysql + postgres, up+down): kolom `cancellation_approval_instance_id` CHAR(36) NULL + index `idx_emp_mvmt_cancellation_instance` di `employee_movements` — menyimpan approval instance Cancellation Request (terpisah dari `approval_instance_id` milik submission).
+- **Status baru**: `cancellation_pending` — movement approved yang sedang menunggu keputusan pembatalan.
+- **Audit actions baru**: `CANCELLATION_REQUESTED` (saat request diajukan) dan `CANCELLATION_REJECTED` (saat ditolak / request dibatalkan → movement kembali approved).
+- **Service `CancelMovement`** dipecah berdasarkan status:
+  - `draft` → dibatalkan langsung oleh HR (repo `CancelMovement` kini draft-only; status approved sengaja dicabut agar kebijakan tidak bisa di-bypass di level repo).
+  - `approved` → buat approval instance baru ber-module `employeemovement_cancellation` (flow di-auto-resolve pola G-3 bila `flow_id` tidak dikirim), movement masuk `cancellation_pending`, instance id + reason tersimpan; audit `CANCELLATION_REQUESTED`.
+  - status lain (executed/rejected/cancelled/pending) → error.
+- **Service `HandleCancellationStatusChange`** — status callback module `employeemovement_cancellation`: `APPROVED` → movement `cancelled` (audit CANCELLED) · `REJECTED`/`CANCELLED` → movement kembali `approved` (audit CANCELLATION_REJECTED). Callback untuk movement non-`cancellation_pending` diabaikan (no-op).
+- **Repo**: `CancelMovement` (draft-only) + `SetCancellationRequested` (approved → cancellation_pending + instance id + notes).
+- **DTO**: `CancelMovementRequest{flow_id, reason}`; `MovementResponse` + `cancellation_approval_instance_id`.
+- **Handler**: body opsional (flow_id/reason); response `success.cancelled` untuk draft vs `success.cancellation_requested` untuk approved (locale baru en/id).
+- **main.go**: `approvalSvc.RegisterStatusHandler("employeemovement_cancellation", ...)` → `HandleCancellationStatusChange`. Approval service: subslot `employeemovement → employeemovement_cancellation` + alias `employeemovement_cancellation → employeemovement` (flow builder & subscription check).
+- **FE**: badge/status/filter `cancellation_pending` + locale en/id `status_cancellation_pending`.
+
+## 3.26.2 Keputusan desain
+
+1. **Module slug terpisah** `employeemovement_cancellation` (bukan memakai `employeemovement` lagi) — instance Cancellation Request harus bisa memakai flow/approver berbeda dari approval submission, dan status callback-nya ditangani handler terpisah agar hasil approval submission vs pembatalan tidak tertukar.
+2. **Draft tetap bisa dibatalkan langsung** — kebijakan §12.16 hanya menyasar movement yang sudah `approved`; movement draft belum memiliki efek employment sehingga tidak perlu approval.
+3. **Repo draft-only** — guard di level persistence (WHERE status = draft) selain di service, sehingga tidak ada jalur yang secara tidak sengaja membatalkan approved tanpa approval.
+4. **Rejected ≠ kembali ke approval path** — saat Cancellation Request ditolak, movement kembali ke `approved` (dapat dieksekusi HR), bukan ke status rejected (yang khusus untuk penolakan submission approval, §11.4).
+5. **Audit & notifikasi** — setiap transisi tercatat di audit trail; employee dinotifikasi saat pembatalan benar-benar terjadi.
+
+## 3.26.3 Validasi
+
+- `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/... ./internal/modules/approval/...` ✅ · `gofmt` (file yang diubah) bersih ✅
+- `go test ./internal/modules/employeemovement/... ./internal/modules/approval/...` — semua **PASS** ✅
+- Test baru (12): service cancel draft (langsung) · cancel executed error · cancel approved → instance `employeemovement_cancellation` + status `cancellation_pending` + instance id tersimpan · cancel approved tanpa engine error · tanpa flow error · `HandleCancellationStatusChange` APPROVED → cancelled · REJECTED → approved · non-`cancellation_pending` no-op · audit CANCELLATION_REQUESTED & CANCELLATION_REJECTED · repo `CancelMovement` approved error · repo `SetCancellationRequested` sukses & non-approved error.
+
+---
+
+# 3.27 Log Implementasi — Enhancement P2 item 13: Movement Reporting (2026-08-10)
+
+## 3.27.1 Yang dikerjakan
+
+**Movement Reporting** (plan §12.17) — dua endpoint agregasi untuk HR reporting, tanpa tabel baru (semua dihitung dari tabel existing `employee_movements` / `employee_contracts`):
+
+- **`GET /api/v1/tenant/employee-movements/reports/movements`** — Movement Report:
+  - Filter opsional: `date_from`/`date_to` (periode berdasarkan `effective_date`), `organization_id`, `position_id`, `employee_id`, `movement_type`, `status`.
+  - Response: `total` + `by_type` (Promosi/Demosi/Mutasi/Perpanjangan Kontrak/Perubahan Status/Pensiun/Offboarding/Lainnya) + `by_status` (draft/approved/executed/dll).
+  - Filter organisasi & posisi mencocokkan salah satu sisi movement (`to_*` ATAU `from_*`) — movement yang melibatkan org/posisi tsb ikut terhitung.
+- **`GET /api/v1/tenant/employee-movements/reports/contracts`** — Contract Report:
+  - Response: `total` + `by_status` (active/expired/extended/terminated) + `expiring` (kontrak aktif yang berakhir dalam 30 hari ke depan — bucket "Expiring < 30 days" plan §12.18).
+- **Repository**: `CountMovementsByType` + `CountMovementsByStatus` (GROUP BY via helper `movementReportBaseQuery` yang menerapkan filter) · `CountContractsByStatus` · `CountExpiringContracts` (status=active, `end_date` dalam rentang [hari ini, +30 hari]). Alias kolom non-reserved (`report_key`/`report_count`) agar aman di MySQL/PostgreSQL/SQLite.
+- **Service**: `GetMovementReport` (parse UUID filter opsional + agregasi) · `GetContractReport`.
+- **Handler + routes**: `GET /reports/movements` + `GET /reports/contracts` di bawah group `employee-movements`.
+- **FE**: halaman baru `EmployeeMovementReports.vue` (route `/admin/career/reports`, menu sidebar "Movement Reports") — filter periode/org/posisi/tipe/status, kartu statistik per tipe movement + breakdown status, kartu Contract Report (active/expiring/expired/extended/terminated). Locale en/id.
+
+## 3.27.2 Keputusan desain
+
+1. **Tanpa tabel baru** — Movement Report & Contract Report dihitung on-the-fly dengan GROUP BY dari tabel existing; tidak ada materialisasi snapshot report (data cukup kecil per tenant untuk agregasi langsung).
+2. **Dua query terpisah (by_type & by_status)** dibanding satu GROUP BY `(type, status)` — peta jawaban langsung terpisah per dimensi tanpa perlu regrouping di service; biaya dua query diabaikan untuk skala tenant.
+3. **Filter org/posisi OR di kedua sisi** (`to_* OR from_*`) — user HR memfilter "movement yang melibatkan organisasi X", baik yang menuju maupun berasal dari X.
+4. **`expiring` sebagai field terpisah**, bukan bagian `by_status` — bucket ini adalah turunan (kontrak aktif + rentang tanggal), bukan status mentah. Perlu dicatat: `expiring` adalah **subset dari `active`** (kontrak active yang berakhir dalam 30 hari), sehingga bila FE menjumlahkan seluruh kartu, jumlahnya akan double-count sebesar `expiring` — FE menampilkan hint "Akan berakhir = kontrak aktif yang berakhir dalam 30 hari" agar konteks subset ini jelas, dan `expiring` bukan status mentah yang bisa di-GROUP BY.
+5. **Alias non-reserved** (`report_key`/`report_count`) — `key`/`count` adalah kata kunci di beberapa driver; alias konservatif membuat query portabel lintas MySQL/PostgreSQL/SQLite test.
+
+## 3.27.3 Validasi
+
+- `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/...` ✅ · `gofmt` (file yang diubah) bersih ✅
+- `go test ./internal/modules/employeemovement/...` — semua **PASS** ✅
+- Test baru (9): repo `CountMovementsByType` (tanpa filter · periode · filter org) · `CountMovementsByStatus` (tanpa filter · filter status) · `CountContractsByStatus` · `CountExpiringContracts` (kontrak aktif dalam window; late & expired diabaikan) · service `GetMovementReport` (total/by_type/by_status · periode+org+posisi · invalid org error) · service `GetContractReport` · handler `GetMovementReport` (200 + struktur + filter) · handler `GetContractReport`.
+- FE: `npm run build` ✅.
+
+---
+
+# 3.28 Log Implementasi — Enhancement P2 item 14: Dashboard (2026-08-10)
+
+## 3.28.1 Yang dikerjakan
+
+**HR Dashboard** (plan §12.18) — kartu ringkasan Employee Movement & Contract di halaman Dashboard utama, didukung satu endpoint agregasi:
+
+- **`GET /api/v1/tenant/employee-movements/dashboard`** — satu panggilan untuk seluruh kartu HR:
+  - `movement_by_type`: jumlah movement per tipe (promotion/demotion/mutation/contract_extension/status_change/retirement/offboarding/other) — semua status.
+  - `pending_approval`: jumlah movement berstatus `pending_approval`.
+  - `effective_this_month`: jumlah movement dengan `effective_date` dalam rentang bulan berjalan (hari 1 s/d hari terakhir bulan).
+  - `contracts`: `active` + `expiring` (active yang berakhir dalam 30 hari) + `expired`.
+- **Repository**: `CountMovementsEffectiveBetween` (rentang effective_date inklusif). Query lain memakai agregasi report §12.17 yang sudah ada (`CountMovementsByType`, `CountMovementsByStatus`, `CountContractsByStatus`, `CountExpiringContracts`) sehingga dashboard dan halaman report selalu konsisten.
+- **Service**: `GetHRDashboard` + helper `lastDayOfMonth` (rentang bulan berjalan).
+- **Handler + routes**: `GET /dashboard` di group `employee-movements`.
+- **FE**: section baru di `Dashboard.vue` yang **modul-gated** (`useActiveModules().hasModule('employeemovement')`): kartu movement per tipe (dengan ikon & warna sesuai tipe), dua highlight card (Pending Approval · Effective This Month), dan ringkasan kontrak (Active / Expiring < 30 hari / Expired) + tombol "View Reports" menuju halaman report. Locale en/id (`dashboard.movement_*`, `dashboard.contract_*`).
+
+## 3.28.2 Keputusan desain
+
+1. **Satu endpoint agregasi** (`GET /dashboard`) dibanding FE memanggil report + menghitung sendiri — kartu dashboard hanya butuh angka ringkas; memakai agregasi report yang sama membuatnya konsisten dengan halaman laporan.
+2. **Modul-gated di FE** — section hanya dirender bila module `employeemovement` aktif (pola sama sidebar `hasModule`); Dashboard tetap berfungsi normal untuk tenant tanpa modul ini.
+3. **`effective_this_month` dihitung di backend** dengan rentang bulan berjalan (bukan filter FE) — tanggal "hari ini" ditentukan server sehingga konsisten lintas zona waktu client.
+4. **Pending approval memakai status `pending_approval`** saja (bukan `cancellation_pending`) — sesuai kartu plan §12.18 "Pending Approval"; pembatalan yang menunggu approval dilaporkan di kartu report, bukan di kartu pending utama.
+5. **Kartu HR best-effort** — kegagalan fetch dashboard tidak menggagalkan halaman utama (hanya toast error; section tetap dirender dengan angka 0).
+
+## 3.28.3 Validasi
+
+- `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/...` ✅ · `gofmt` (file yang diubah) bersih ✅
+- `go test ./internal/modules/employeemovement/... ./internal/modules/employee/... ./internal/modules/approval/... ./internal/modules/notification/...` — semua **PASS** ✅
+- Test baru (3): repo `CountMovementsEffectiveBetween` (rentang Agustus = 2 · window kosong = 0) · service `GetHRDashboard` (by_type · pending_approval · effective_this_month · contract active) · handler `GetHRDashboard` (200 + struktur).
+- FE: `npm run build` ✅.
+
+---
+
 # 5. API Plan
 
 ## 5.1 Endpoint Existing (sudah jalan)
@@ -1463,7 +1566,7 @@ OTHER
 
 ---
 
-## 12.16 P1 — Movement Cancellation After Approval
+## 12.16 P1 — Movement Cancellation After Approval — ✅ **SELESAI (2026-08-10, lihat log §3.26)**
 
 Movement yang sudah approved tidak sebaiknya dapat dibatalkan secara langsung tanpa audit/approval tambahan jika policy HR mensyaratkannya.
 
@@ -1485,9 +1588,17 @@ Namun keputusan §11.1 tetap berlaku untuk execution:
 Approved → HR Execute
 ```
 
+### Implementasi (log §3.26)
+
+- Movement `draft` tetap dibatalkan langsung oleh HR.
+- Movement `approved` dibatalkan lewat **Cancellation Request** ber-module `employeemovement_cancellation` (flow terpisah, bisa approver berbeda) → status `cancellation_pending` → keputusan Central Approval:
+  - `APPROVED` → movement `cancelled`
+  - `REJECTED` / `CANCELLED` → movement kembali `approved`
+- Kolom `cancellation_approval_instance_id` (migration 087) + audit `CANCELLATION_REQUESTED` / `CANCELLATION_REJECTED`.
+
 ---
 
-## 12.17 P2 — Movement Reporting
+## 12.17 P2 — Movement Reporting — ✅ **SELESAI (2026-08-10)** — lihat log §3.27
 
 Tambahkan report:
 
@@ -1538,7 +1649,7 @@ Terminated
 
 ---
 
-## 12.18 P2 — Dashboard
+## 12.18 P2 — Dashboard — ✅ **SELESAI (2026-08-10)** — lihat log §3.28
 
 ### HR Dashboard
 
@@ -1866,9 +1977,9 @@ C = 2
 | 9 | Performance Integration — ✅ **SELESAI (2026-08-10)** | P1 | BE |
 | 10 | Career Path — ✅ **SELESAI (2026-08-10)** | P1 | DB/BE/FE |
 | 11 | Promotion Eligibility — ✅ **SELESAI (2026-08-10)** | P1/P2 | BE |
-| 12 | Movement Cancellation Approval | P2 | Approval/BE |
-| 13 | Reports | P2 | BE/FE |
-| 14 | Dashboard | P2 | BE/FE |
+| 12 | Movement Cancellation Approval | ✅ **SELESAI (2026-08-10)** — via Central Approval: draft langsung, approved → Cancellation Request module `employeemovement_cancellation` → cancellation_pending → cancelled/kembali approved; migration 087 + audit CANCELLATION_REQUESTED/REJECTED (log §3.26) | Approval/BE |
+| 13 | Reports | ✅ **SELESAI (2026-08-10)** — GET `/reports/movements` (total + by_type + by_status, filter periode/org/posisi/employee/tipe/status) + GET `/reports/contracts` (by_status + expiring < 30 hari); FE halaman Movement Reports + kartu statistik (log §3.27) | BE/FE |
+| 14 | Dashboard | ✅ **SELESAI (2026-08-10)** — GET `/employee-movements/dashboard` (movement by type + pending approval + effective this month + contract summary) + section modul-gated di Dashboard FE (log §3.28) | BE/FE |
 
 ---
 

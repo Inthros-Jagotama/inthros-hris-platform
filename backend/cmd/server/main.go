@@ -688,6 +688,14 @@ func main() {
 	approvalSvc.RegisterStatusHandler("employeemovement", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return employeeMovementSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
+	// Cancellation Request module (plan §12.16): pembatalan movement approved
+	// diproses Central Approval sebagai instance terpisah ber-module
+	// employeemovement_cancellation — status callback-nya ditangani
+	// HandleCancellationStatusChange (bukan HandleApprovalStatusChange) supaya
+	// hasil approval submission vs pembatalan tidak tertukar.
+	approvalSvc.RegisterStatusHandler("employeemovement_cancellation", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return employeeMovementSvc.HandleCancellationStatusChange(ctx, documentID, string(status), note)
+	})
 
 	// Scheduler harian manajemen kedaluwarsa kontrak (plan §12.13): mark
 	// expired + reminder H-30/14/7/1 ke employee & HR. Goroutine + ticker.

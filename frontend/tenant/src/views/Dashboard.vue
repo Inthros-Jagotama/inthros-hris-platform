@@ -36,6 +36,97 @@
         </div>
       </div>
     </div>
+
+    <!-- ── Employee Movement & Contracts (plan §12.18 — HR Dashboard) ── -->
+    <div
+      v-if="movementModuleActive && movementLoading"
+      class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 animate-pulse"
+    >
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-4 h-4 rounded bg-gray-200 dark:bg-gray-700"></div>
+        <div class="h-4 w-40 rounded bg-gray-200 dark:bg-gray-700"></div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+        <div v-for="i in 8" :key="i" class="h-16 rounded-lg bg-gray-100 dark:bg-gray-700/50"></div>
+      </div>
+    </div>
+    <div
+      v-if="movementModuleActive && !movementLoading"
+      class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+    >
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+        <div class="flex items-center gap-2">
+          <i class="pi pi-arrows-alt text-sm text-emerald-500"></i>
+          <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('dashboard.movement_title') }}</h2>
+        </div>
+        <Button
+          :label="t('dashboard.view_reports')"
+          icon="pi pi-chart-bar"
+          size="small"
+          text
+          class="!text-xs"
+          @click="$router.push('/admin/career/reports')"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Movement by type -->
+        <div class="lg:col-span-2">
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            <div
+              v-for="mt in movementTypeList"
+              :key="mt.value"
+              class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5 flex items-center justify-between gap-2 hover:shadow-sm dark:hover:shadow-gray-900/50 transition-shadow"
+            >
+              <div class="min-w-0">
+                <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ mt.label }}</p>
+                <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ movementData.movement_by_type?.[mt.value] || 0 }}</p>
+              </div>
+              <i :class="[typeIcon(mt.value), typeIconColor(mt.value)]" class="text-base shrink-0"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending approval + effective this month -->
+        <div class="space-y-3">
+          <div class="rounded-lg border border-amber-300 dark:border-amber-700/50 bg-amber-50/50 dark:bg-amber-900/10 p-3">
+            <p class="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="pi pi-clock text-xs"></i>{{ t('dashboard.movement_pending') }}
+            </p>
+            <p class="text-2xl font-bold text-amber-700 dark:text-amber-300">{{ movementData.pending_approval || 0 }}</p>
+          </div>
+          <div class="rounded-lg border border-sky-300 dark:border-sky-700/50 bg-sky-50/50 dark:bg-sky-900/10 p-3">
+            <p class="text-xs font-medium text-sky-600 dark:text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="pi pi-calendar text-xs"></i>{{ t('dashboard.movement_effective_month') }}
+            </p>
+            <p class="text-2xl font-bold text-sky-700 dark:text-sky-300">{{ movementData.effective_this_month || 0 }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contract summary -->
+      <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="pi pi-file-edit text-xs text-gray-400"></i>
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.contract_title') }}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
+            <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ t('dashboard.contract_active') }}</p>
+            <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ movementData.contracts?.active || 0 }}</p>
+          </div>
+          <div class="rounded-lg border border-amber-300 dark:border-amber-700/50 bg-amber-50/50 dark:bg-amber-900/10 p-2.5">
+            <p class="text-[11px] text-amber-600 dark:text-amber-400">{{ t('dashboard.contract_expiring') }}</p>
+            <p class="text-lg font-bold text-amber-700 dark:text-amber-300">{{ movementData.contracts?.expiring || 0 }}</p>
+          </div>
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
+            <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ t('dashboard.contract_expired') }}</p>
+            <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ movementData.contracts?.expired || 0 }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <!-- Quick Access Modules -->
@@ -72,10 +163,20 @@
   </div>
 </template>
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
+import { getErrorMessage } from '@/services/responseHandler'
+import { useActiveModules } from '@/stores/activeModules'
+import api from '@/services/api'
+
 import SelectButton from 'primevue/selectbutton'
+import Button from 'primevue/button'
+
 const { t } = useI18n()
+const toast = useToast()
+const activeMod = useActiveModules()
+
 const periodFilter = ref('this-month')
 const periodOptions = computed(() => [
   { label: t('dashboard.this_month'), value: 'this-month' },
@@ -109,4 +210,66 @@ const recentActivities = [
   { text: 'Performance reviews Q3 initiated', time: '2 days ago', dotColor: 'bg-violet-400' },
   { text: 'Training session "Leadership 101" scheduled', time: '3 days ago', dotColor: 'bg-orange-400' }
 ]
+
+// ── HR Dashboard: Employee Movement & Contracts (plan §12.18) ──
+const movementModuleActive = ref(false)
+const movementLoading = ref(false)
+const movementData = ref({ movement_by_type: {}, pending_approval: 0, effective_this_month: 0, contracts: {} })
+
+const movementTypeList = computed(() => [
+  'promotion', 'demotion', 'mutation', 'contract_extension', 'status_change', 'retirement', 'offboarding', 'other'
+].map(v => ({ label: typeLabel(v), value: v })))
+
+function typeLabel(type) {
+  const key = `employee_movement.type_${type}`
+  return t(key) !== key ? t(key) : type
+}
+
+function typeIcon(type) {
+  switch (type) {
+    case 'promotion': return 'pi pi-arrow-up'
+    case 'demotion': return 'pi pi-arrow-down'
+    case 'mutation': return 'pi pi-shuffle'
+    case 'contract_extension': return 'pi pi-file-edit'
+    case 'status_change': return 'pi pi-id-card'
+    case 'retirement': return 'pi pi-sun'
+    case 'offboarding': return 'pi pi-sign-out'
+    default: return 'pi pi-circle'
+  }
+}
+
+function typeIconColor(type) {
+  switch (type) {
+    case 'promotion': return 'text-emerald-500'
+    case 'demotion': return 'text-red-500'
+    case 'mutation': return 'text-sky-500'
+    case 'contract_extension': return 'text-amber-500'
+    case 'status_change': return 'text-indigo-500'
+    case 'retirement': return 'text-gray-400'
+    case 'offboarding': return 'text-red-400'
+    default: return 'text-gray-400'
+  }
+}
+
+async function loadMovementDashboard() {
+  movementLoading.value = true
+  try {
+    const res = await api.get('/api/v1/tenant/employee-movements/dashboard')
+    movementData.value = res.data?.data || movementData.value
+  } catch (e) {
+    // Jangan ganggu dashboard utama — kartu HR hanya menampilkan 0 bila gagal.
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_load')), life: 4000 })
+  } finally {
+    movementLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  // Hanya tampilkan kartu HR bila module employeemovement aktif.
+  await activeMod.fetchActiveModules()
+  movementModuleActive.value = activeMod.hasModule('employeemovement')
+  if (movementModuleActive.value) {
+    loadMovementDashboard()
+  }
+})
 </script>

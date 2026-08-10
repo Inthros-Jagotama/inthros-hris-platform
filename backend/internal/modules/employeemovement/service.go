@@ -1211,32 +1211,160 @@ func (s *Service) ExecuteMovement(ctx context.Context, id string, executedBy str
 	return nil
 }
 
-// CancelMovement membatalkan pergerakan (draft atau approved).
-func (s *Service) CancelMovement(ctx context.Context, id string) error {
+// CancelMovement membatalkan pergerakan. Per plan §12.16, perilaku bergantung
+// pada status saat ini:
+//
+//	draft     → dibatalkan langsung oleh HR (repo.CancelMovement draft-only).
+//	approved  → pembatalan menjadi Cancellation Request: approval instance
+//	            baru dibuat di module "employeemovement_cancellation",
+//	            movement masuk status cancellation_pending; hasil akhir
+//	            (cancelled / kembali approved) diputuskan Central Approval
+//	            dan ditangani HandleCancellationStatusChange.
+//	lain      → error (executed/rejected/cancelled/pending tidak bisa dibatalkan).
+//
+// Flow (opsional) di-auto-resolve dari module "employeemovement_cancellation"
+// bila req.FlowID kosong (pola G-3 sama seperti SubmitMovement).
+func (s *Service) CancelMovement(ctx context.Context, id string, req CancelMovementRequest) (*MovementResponse, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
-		return fmt.Errorf("invalid movement id: %w", err)
+		return nil, fmt.Errorf("invalid movement id: %w", err)
 	}
 
 	movement, err := s.repo.FindMovementByID(ctx, uid)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Audit trail (plan §12.6): snapshot sebelum dibatalkan.
 	oldData := movementAuditJSON(movement)
 	oldStatus := statusPtr(movement.Status)
 
-	if err := s.repo.CancelMovement(ctx, uid); err != nil {
+	switch movement.Status {
+	case MovementStatusDraft:
+		if err := s.repo.CancelMovement(ctx, uid); err != nil {
+			return nil, err
+		}
+		// Audit trail (plan §12.6): CANCELLED — newData mencerminkan status
+		// akhir (repo meng-update DB langsung, jadi salinan di memori
+		// disesuaikan); acted_by = user yang cancel (authctx).
+		after := *movement
+		after.Status = MovementStatusCancelled
+		s.recordAudit(ctx, movement.ID, MovementAuditActionCancelled, oldStatus, statusPtr(after.Status), oldData, movementAuditJSON(&after), "", authctx.GetUserID(ctx))
+
+		responses := []MovementResponse{after.ToResponse()}
+		s.enrichMovementResponses(ctx, responses)
+		return &responses[0], nil
+
+	case MovementStatusApproved:
+		// Cancellation Request melalui Central Approval Module (plan §12.16).
+		if s.approvalEngine == nil {
+			return nil, fmt.Errorf("approval engine not configured")
+		}
+		flowID := ""
+		if req.FlowID != nil && *req.FlowID != "" {
+			flowID = *req.FlowID
+		} else if resolved, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, "employeemovement_cancellation"); err == nil {
+			flowID = resolved
+		}
+		if flowID == "" {
+			return nil, fmt.Errorf("approval flow not configured: provide flow_id or activate an approval flow for module employeemovement_cancellation")
+		}
+
+		instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "employeemovement_cancellation", movement.ID.String(), flowID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create cancellation approval instance: %w", err)
+		}
+		parsedInstanceID, parseErr := uuid.Parse(instanceID)
+		if parseErr != nil {
+			return nil, fmt.Errorf("invalid cancellation approval instance id: %w", parseErr)
+		}
+		if err := s.repo.SetCancellationRequested(ctx, uid, parsedInstanceID, req.Reason); err != nil {
+			return nil, err
+		}
+
+		s.logger.Info("Employee movement cancellation requested for approval",
+			zap.String("movement_id", movement.ID.String()),
+			zap.String("instance_id", instanceID),
+		)
+
+		// Audit trail (plan §12.6): CANCELLATION_REQUESTED — newData mencerminkan
+		// status akhir (repo meng-update DB langsung, salinan di memori disesuaikan);
+		// acted_by = user yang mengajukan pembatalan (authctx).
+		after := *movement
+		after.Status = MovementStatusCancellationPending
+		after.CancellationApprovalInstanceID = &parsedInstanceID
+		if req.Reason != nil {
+			after.Notes = req.Reason
+		}
+		s.recordAudit(ctx, movement.ID, MovementAuditActionCancellationRequested, oldStatus, statusPtr(after.Status), oldData, movementAuditJSON(&after), "", authctx.GetUserID(ctx))
+
+		responses := []MovementResponse{after.ToResponse()}
+		s.enrichMovementResponses(ctx, responses)
+		return &responses[0], nil
+
+	default:
+		return nil, fmt.Errorf("movement cannot be cancelled in status '%s'", movement.Status)
+	}
+}
+
+// HandleCancellationStatusChange is invoked by the approval module's push-based
+// status callback when a Cancellation Request instance (module
+// "employeemovement_cancellation") reaches a final state, so the movement's
+// own status follows the cancellation decision (plan §12.16):
+//
+//	APPROVED → movement dibatalkan (status cancelled)
+//	REJECTED → pembatalan ditolak, movement kembali approved
+//	CANCELLED → request dibatalkan, movement kembali approved
+//
+// Callback hanya diproses ketika movement sedang dalam status
+// cancellation_pending; callback basi (untuk movement yang sudah berubah)
+// diabaikan.
+func (s *Service) HandleCancellationStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	movement, err := s.repo.FindMovementByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	if movement.Status != MovementStatusCancellationPending {
+		return nil
+	}
+
+	// Audit trail (plan §12.6): snapshot sebelum status diubah (masih
+	// cancellation_pending).
+	oldData := movementAuditJSON(movement)
+	oldStatus := statusPtr(movement.Status)
+
+	auditAction := MovementAuditActionUpdated
+	switch status {
+	case "APPROVED":
+		movement.Status = MovementStatusCancelled
+		auditAction = MovementAuditActionCancelled
+	case "REJECTED", "CANCELLED":
+		movement.Status = MovementStatusApproved
+		if note != "" {
+			movement.Notes = &note
+		}
+		auditAction = MovementAuditActionCancellationRejected
+	default:
+		return nil
+	}
+
+	s.logger.Info("Employee movement cancellation status updated via approval status handler",
+		zap.String("movement_id", movement.ID.String()),
+		zap.String("cancellation_approval_status", status),
+	)
+	if err := s.repo.UpdateMovement(ctx, movement); err != nil {
 		return err
 	}
 
-	// Audit trail (plan §12.6): CANCELLED — newData mencerminkan status akhir
-	// (repo meng-update DB langsung, jadi salinan di memori disesuaikan);
-	// acted_by = user yang cancel (authctx, bukan updated_by lama).
-	after := *movement
-	after.Status = MovementStatusCancelled
-	s.recordAudit(ctx, movement.ID, MovementAuditActionCancelled, oldStatus, statusPtr(after.Status), oldData, movementAuditJSON(&after), "", authctx.GetUserID(ctx))
+	// Audit trail (plan §12.6): acted_by kosong (aksi datang dari push-callback
+	// Central Approval, bukan user).
+	s.recordAudit(ctx, movement.ID, auditAction, oldStatus, statusPtr(movement.Status), oldData, movementAuditJSON(movement), note, nil)
+
+	// Best-effort notification ke employee pemilik movement.
+	switch movement.Status {
+	case MovementStatusCancelled:
+		s.notifyMovementOutcome(ctx, movement.EmployeeID, "MOVEMENT_REJECTED", "employeemovement", movement.ID)
+	}
 	return nil
 }
 
@@ -1894,6 +2022,166 @@ func (s *Service) ListContracts(ctx context.Context, page, perPage int, status, 
 		Total:      total,
 		TotalPages: totalPages,
 	}, nil
+}
+
+// GetMovementReport mengembalikan Movement Report (plan §12.17): jumlah
+// movement per tipe (promosi/demosi/mutasi/dll) dan per status, dengan filter
+// opsional periode (effective_date), organisasi, posisi, employee, tipe, dan
+// status. Semua filter opsional — kosong berarti semua data.
+func (s *Service) GetMovementReport(ctx context.Context, dateFrom, dateTo, organizationID, positionID, employeeID, movementType, status string) (*MovementReportResponse, error) {
+	// Validasi periode: rentang terbalik (date_from > date_to) tidak bermakna —
+	// tolak dengan 400 (MovementValidationError) alih-alih mengembalikan 0 baris.
+	if dateFrom != "" && dateTo != "" && dateFrom > dateTo {
+		return nil, &MovementValidationError{Message: "date_from cannot be after date_to"}
+	}
+
+	f := MovementReportFilter{
+		DateFrom:     dateFrom,
+		DateTo:       dateTo,
+		MovementType: movementType,
+		Status:       status,
+	}
+	if organizationID != "" {
+		uid, err := uuid.Parse(organizationID)
+		if err != nil {
+			return nil, &MovementValidationError{Message: "invalid organization_id"}
+		}
+		f.OrganizationID = &uid
+	}
+	if positionID != "" {
+		uid, err := uuid.Parse(positionID)
+		if err != nil {
+			return nil, &MovementValidationError{Message: "invalid position_id"}
+		}
+		f.PositionID = &uid
+	}
+	if employeeID != "" {
+		uid, err := uuid.Parse(employeeID)
+		if err != nil {
+			return nil, &MovementValidationError{Message: "invalid employee_id"}
+		}
+		f.EmployeeID = &uid
+	}
+
+	byType, err := s.repo.CountMovementsByType(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	byStatus, err := s.repo.CountMovementsByStatus(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+
+	var total int64
+	for _, c := range byType {
+		total += c
+	}
+
+	return &MovementReportResponse{
+		Success: true,
+		Data: MovementReportData{
+			Total:    total,
+			ByType:   byType,
+			ByStatus: byStatus,
+		},
+	}, nil
+}
+
+// GetContractReport mengembalikan Contract Report (plan §12.17): jumlah
+// kontrak per status (active/expired/extended/terminated) plus jumlah kontrak
+// aktif yang berakhir dalam 30 hari ke depan (expiring — plan §12.18).
+func (s *Service) GetContractReport(ctx context.Context) (*ContractReportResponse, error) {
+	byStatus, err := s.repo.CountContractsByStatus(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var total int64
+	for _, c := range byStatus {
+		total += c
+	}
+
+	today := time.Now().Format("2006-01-02")
+	in30Days := addDays(today, 30)
+	expiring, err := s.repo.CountExpiringContracts(ctx, today, in30Days)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ContractReportResponse{
+		Success: true,
+		Data: ContractReportData{
+			Total:    total,
+			ByStatus: byStatus,
+			Expiring: expiring,
+		},
+	}, nil
+}
+
+// GetHRDashboard mengembalikan data untuk kartu HR Dashboard (plan §12.18)
+// dalam satu panggilan:
+//   - movement_by_type: jumlah movement per tipe (semua status)
+//   - pending_approval: jumlah movement berstatus pending_approval
+//   - effective_this_month: jumlah movement dengan effective_date di bulan berjalan
+//   - contracts: ringkasan kontrak (active / expiring < 30 hari / expired)
+//
+// Memakai agregasi yang sama dengan Movement/Contract Report (§12.17) sehingga
+// kartu dashboard dan halaman report selalu konsisten.
+func (s *Service) GetHRDashboard(ctx context.Context) (*HRDashboardResponse, error) {
+	// Movement per tipe — tanpa filter (semua status).
+	byType, err := s.repo.CountMovementsByType(ctx, MovementReportFilter{})
+	if err != nil {
+		return nil, err
+	}
+
+	// Pending approval.
+	pendingStatus, err := s.repo.CountMovementsByStatus(ctx, MovementReportFilter{Status: string(MovementStatusPendingApproval)})
+	if err != nil {
+		return nil, err
+	}
+	pendingApproval := pendingStatus[string(MovementStatusPendingApproval)]
+
+	// Effective this month — rentang hari pertama s/d terakhir bulan berjalan.
+	now := time.Now()
+	monthStart := now.Format("2006-01") + "-01"
+	monthEnd := lastDayOfMonth(now)
+	effectiveThisMonth, err := s.repo.CountMovementsEffectiveBetween(ctx, monthStart, monthEnd)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ringkasan kontrak.
+	contractByStatus, err := s.repo.CountContractsByStatus(ctx)
+	if err != nil {
+		return nil, err
+	}
+	today := now.Format("2006-01-02")
+	expiring, err := s.repo.CountExpiringContracts(ctx, today, addDays(today, 30))
+	if err != nil {
+		return nil, err
+	}
+
+	return &HRDashboardResponse{
+		Success: true,
+		Data: HRDashboardData{
+			MovementByType:     byType,
+			PendingApproval:    pendingApproval,
+			EffectiveThisMonth: effectiveThisMonth,
+			Contracts: ContractSummaryData{
+				Active:   contractByStatus[string(ContractStatusActive)],
+				Expiring: expiring,
+				Expired:  contractByStatus[string(ContractStatusExpired)],
+			},
+		},
+	}, nil
+}
+
+// lastDayOfMonth mengembalikan tanggal terakhir bulan dari t (YYYY-MM-DD),
+// dipakai menghitung rentang "effective this month" pada HR Dashboard.
+func lastDayOfMonth(t time.Time) string {
+	firstOfNext := time.Date(t.Year(), t.Month()+1, 1, 0, 0, 0, 0, t.Location())
+	last := firstOfNext.AddDate(0, 0, -1)
+	return last.Format("2006-01-02")
 }
 
 // UpdateContract mengupdate kontrak.

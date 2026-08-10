@@ -193,11 +193,24 @@ func (h *Handler) ExecuteMovement(c *gin.Context) {
 }
 
 // CancelMovement menangani POST /api/v1/tenant/employee-movements/movements/:id/cancel
+// (plan §12.16 — Movement Cancellation Approval). Body opsional (flow_id /
+// reason). Draft dibatalkan langsung; approved menjadi Cancellation Request
+// yang diproses Central Approval (respond dengan success.cancellation_requested).
 func (h *Handler) CancelMovement(c *gin.Context) {
 	id := c.Param("id")
 
-	if err := h.service.CancelMovement(c.Request.Context(), id); err != nil {
+	var req CancelMovementRequest
+	// Body opsional — jangan gagal bila kosong / bukan JSON (FE lama mengirim
+	// body `{}`).
+	_ = c.ShouldBindJSON(&req)
+
+	response, err := h.service.CancelMovement(c.Request.Context(), id, req)
+	if err != nil {
 		httputil.ErrorRaw(c, http.StatusConflict, "CANCEL_FAILED", err.Error())
+		return
+	}
+	if response.Status == string(MovementStatusCancellationPending) {
+		httputil.MessageJSON(c, "success.cancellation_requested")
 		return
 	}
 	httputil.MessageJSON(c, "success.cancelled")
@@ -320,6 +333,52 @@ func (h *Handler) ListContracts(c *gin.Context) {
 	search := c.Query("search")
 
 	response, err := h.service.ListContracts(c.Request.Context(), page, perPage, status, search)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetMovementReport menangani GET /api/v1/tenant/employee-movements/reports/movements
+// (plan §12.17 — Movement Report dengan filter periode/org/posisi/employee/tipe/status).
+func (h *Handler) GetMovementReport(c *gin.Context) {
+	response, err := h.service.GetMovementReport(
+		c.Request.Context(),
+		c.Query("date_from"),
+		c.Query("date_to"),
+		c.Query("organization_id"),
+		c.Query("position_id"),
+		c.Query("employee_id"),
+		c.Query("movement_type"),
+		c.Query("status"),
+	)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetContractReport menangani GET /api/v1/tenant/employee-movements/reports/contracts
+// (plan §12.17 — Contract Report: by status + expiring).
+func (h *Handler) GetContractReport(c *gin.Context) {
+	response, err := h.service.GetContractReport(c.Request.Context())
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetHRDashboard menangani GET /api/v1/tenant/employee-movements/dashboard
+// (plan §12.18 — kartu HR Dashboard: movement by type, pending approval,
+// effective this month, ringkasan kontrak).
+func (h *Handler) GetHRDashboard(c *gin.Context) {
+	response, err := h.service.GetHRDashboard(c.Request.Context())
 	if err != nil {
 		httputil.InternalError(c, err.Error())
 		return

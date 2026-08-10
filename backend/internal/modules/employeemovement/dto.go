@@ -38,44 +38,57 @@ type UpdateMovementRequest struct {
 }
 
 type MovementResponse struct {
-	ID                       string     `json:"id"`
-	EmployeeID               string     `json:"employee_id"`
-	EmployeeName             string     `json:"employee_name"`
-	EmployeeCode             string     `json:"employee_code"`
-	MovementType             string     `json:"movement_type"`
-	FromEmploymentID         *string    `json:"from_employment_id,omitempty"`
-	ToEmploymentID           *string    `json:"to_employment_id,omitempty"`
-	FromOrganizationID       *string    `json:"from_organization_id,omitempty"`
-	ToOrganizationID         *string    `json:"to_organization_id,omitempty"`
-	FromOrganizationName     string     `json:"from_organization_name,omitempty"`
-	ToOrganizationName       string     `json:"to_organization_name,omitempty"`
-	FromPositionID           *string    `json:"from_position_id,omitempty"`
-	ToPositionID             *string    `json:"to_position_id,omitempty"`
-	FromPositionName         string     `json:"from_position_name,omitempty"`
-	ToPositionName           string     `json:"to_position_name,omitempty"`
-	FromEmploymentStatusID   *string    `json:"from_employment_status_id,omitempty"`
-	ToEmploymentStatusID     *string    `json:"to_employment_status_id,omitempty"`
-	FromEmploymentStatusName string     `json:"from_employment_status_name,omitempty"`
-	ToEmploymentStatusName   string     `json:"to_employment_status_name,omitempty"`
-	Reason                   *string    `json:"reason,omitempty"`
-	DecisionLetterNumber     string     `json:"decision_letter_number"`
-	DecisionLetterDate       string     `json:"decision_letter_date"`
-	EffectiveDate            string     `json:"effective_date"`
-	Status                   string     `json:"status"`
-	Notes                    *string    `json:"notes,omitempty"`
-	ApprovedBy               *string    `json:"approved_by,omitempty"`
-	ApprovedAt               *time.Time `json:"approved_at,omitempty"`
-	ExecutedBy               *string    `json:"executed_by,omitempty"`
-	ExecutedAt               *time.Time `json:"executed_at,omitempty"`
-	ApprovalInstanceID       *string    `json:"approval_instance_id,omitempty"`
-	CreatedAt                time.Time  `json:"created_at"`
-	UpdatedAt                time.Time  `json:"updated_at"`
+	ID                             string     `json:"id"`
+	EmployeeID                     string     `json:"employee_id"`
+	EmployeeName                   string     `json:"employee_name"`
+	EmployeeCode                   string     `json:"employee_code"`
+	MovementType                   string     `json:"movement_type"`
+	FromEmploymentID               *string    `json:"from_employment_id,omitempty"`
+	ToEmploymentID                 *string    `json:"to_employment_id,omitempty"`
+	FromOrganizationID             *string    `json:"from_organization_id,omitempty"`
+	ToOrganizationID               *string    `json:"to_organization_id,omitempty"`
+	FromOrganizationName           string     `json:"from_organization_name,omitempty"`
+	ToOrganizationName             string     `json:"to_organization_name,omitempty"`
+	FromPositionID                 *string    `json:"from_position_id,omitempty"`
+	ToPositionID                   *string    `json:"to_position_id,omitempty"`
+	FromPositionName               string     `json:"from_position_name,omitempty"`
+	ToPositionName                 string     `json:"to_position_name,omitempty"`
+	FromEmploymentStatusID         *string    `json:"from_employment_status_id,omitempty"`
+	ToEmploymentStatusID           *string    `json:"to_employment_status_id,omitempty"`
+	FromEmploymentStatusName       string     `json:"from_employment_status_name,omitempty"`
+	ToEmploymentStatusName         string     `json:"to_employment_status_name,omitempty"`
+	Reason                         *string    `json:"reason,omitempty"`
+	DecisionLetterNumber           string     `json:"decision_letter_number"`
+	DecisionLetterDate             string     `json:"decision_letter_date"`
+	EffectiveDate                  string     `json:"effective_date"`
+	Status                         string     `json:"status"`
+	Notes                          *string    `json:"notes,omitempty"`
+	ApprovedBy                     *string    `json:"approved_by,omitempty"`
+	ApprovedAt                     *time.Time `json:"approved_at,omitempty"`
+	ExecutedBy                     *string    `json:"executed_by,omitempty"`
+	ExecutedAt                     *time.Time `json:"executed_at,omitempty"`
+	ApprovalInstanceID             *string    `json:"approval_instance_id,omitempty"`
+	CancellationApprovalInstanceID *string    `json:"cancellation_approval_instance_id,omitempty"`
+	CreatedAt                      time.Time  `json:"created_at"`
+	UpdatedAt                      time.Time  `json:"updated_at"`
 }
 
 // SubmitMovementRequest routes a draft movement through the central
 // approval module — the single approval path (manual approve dihapus, G-5).
 type SubmitMovementRequest struct {
 	FlowID *string `json:"flow_id"`
+}
+
+// CancelMovementRequest membawa opsi pembatalan movement (plan §12.16):
+//   - FlowID — opsional; bila kosong, flow aktif untuk module
+//     "employeemovement_cancellation" di-auto-resolve (pola G-3).
+//   - Reason — alasan pembatalan (disimpan ke notes movement + audit).
+//
+// Untuk movement `draft` pembatalan langsung; untuk movement `approved`
+// pembatalan menjadi Cancellation Request yang diproses Central Approval.
+type CancelMovementRequest struct {
+	FlowID *string `json:"flow_id"`
+	Reason *string `json:"reason"`
 }
 
 // MovementAuditResponse membawa satu baris audit trail movement (plan §12.6).
@@ -376,6 +389,61 @@ type PaginatedContractResponse struct {
 }
 
 // =========================================================================
+// Movement & Contract Report DTOs (plan §12.17 — P2 Movement Reporting)
+// =========================================================================
+
+// MovementReportData adalah hasil agregasi Movement Report: total movement
+// plus rincian per tipe (by_type) dan per status (by_status). Kedua peta hanya
+// memuat kunci yang memiliki data pada filter yang dipilih.
+type MovementReportData struct {
+	Total    int64            `json:"total"`
+	ByType   map[string]int64 `json:"by_type"`
+	ByStatus map[string]int64 `json:"by_status"`
+}
+
+type MovementReportResponse struct {
+	Success bool               `json:"success"`
+	Data    MovementReportData `json:"data"`
+}
+
+// ContractReportData adalah hasil agregasi Contract Report: total kontrak
+// (by_status per status) plus jumlah kontrak aktif yang akan berakhir dalam
+// 30 hari ke depan (expiring — bucket "Expiring < 30 days" plan §12.18).
+type ContractReportData struct {
+	Total    int64            `json:"total"`
+	ByStatus map[string]int64 `json:"by_status"`
+	Expiring int64            `json:"expiring"`
+}
+
+type ContractReportResponse struct {
+	Success bool               `json:"success"`
+	Data    ContractReportData `json:"data"`
+}
+
+// ContractSummaryData adalah ringkasan kontrak untuk kartu HR Dashboard
+// (plan §12.18): active, expiring (< 30 hari), expired.
+type ContractSummaryData struct {
+	Active   int64 `json:"active"`
+	Expiring int64 `json:"expiring"`
+	Expired  int64 `json:"expired"`
+}
+
+// HRDashboardData adalah agregasi kartu HR Dashboard (plan §12.18): jumlah
+// movement per tipe, pending approval, effective this month, dan ringkasan
+// kontrak — satu panggilan untuk seluruh kartu HR.
+type HRDashboardData struct {
+	MovementByType     map[string]int64    `json:"movement_by_type"`
+	PendingApproval    int64               `json:"pending_approval"`
+	EffectiveThisMonth int64               `json:"effective_this_month"`
+	Contracts          ContractSummaryData `json:"contracts"`
+}
+
+type HRDashboardResponse struct {
+	Success bool            `json:"success"`
+	Data    HRDashboardData `json:"data"`
+}
+
+// =========================================================================
 // Converter helpers
 // =========================================================================
 
@@ -454,6 +522,10 @@ func (m *EmployeeMovement) ToResponse() MovementResponse {
 	if m.ApprovalInstanceID != nil {
 		s := m.ApprovalInstanceID.String()
 		r.ApprovalInstanceID = &s
+	}
+	if m.CancellationApprovalInstanceID != nil {
+		s := m.CancellationApprovalInstanceID.String()
+		r.CancellationApprovalInstanceID = &s
 	}
 	return r
 }

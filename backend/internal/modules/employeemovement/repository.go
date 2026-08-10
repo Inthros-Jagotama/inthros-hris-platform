@@ -669,6 +669,164 @@ func (r *Repository) DeleteMovementDocument(ctx context.Context, id uuid.UUID) e
 }
 
 // =========================================================================
+// Movement & Contract Reports (plan §12.17 — P2 Movement Reporting)
+// =========================================================================
+
+// MovementReportFilter membawa filter opsional Movement Report (plan §12.17):
+// periode (rentang effective_date), organisasi, posisi, employee, tipe, dan
+// status. Semua field opsional — kosong berarti "semua".
+type MovementReportFilter struct {
+	DateFrom       string
+	DateTo         string
+	OrganizationID *uuid.UUID
+	PositionID     *uuid.UUID
+	EmployeeID     *uuid.UUID
+	MovementType   string
+	Status         string
+}
+
+// reportCountRow adalah target scan untuk query agregasi GROUP BY report.
+// Nama kolom memakai alias non-reserved (report_key/report_count) agar aman
+// di MySQL, PostgreSQL, dan SQLite (test).
+type reportCountRow struct {
+	ReportKey   string
+	ReportCount int64
+}
+
+// movementReportBaseQuery membangun query dasar (Model + filter) yang dipakai
+// bersama oleh agregasi Movement Report. Filter organisasi mencocokkan
+// movement yang melibatkan organisasi pada salah satu sisi (to ATAU from);
+// filter posisi berlaku sama.
+func (r *Repository) movementReportBaseQuery(db *gorm.DB, f MovementReportFilter) *gorm.DB {
+	q := db.Model(&EmployeeMovement{})
+	if f.DateFrom != "" {
+		q = q.Where("effective_date >= ?", f.DateFrom)
+	}
+	if f.DateTo != "" {
+		q = q.Where("effective_date <= ?", f.DateTo)
+	}
+	if f.OrganizationID != nil {
+		q = q.Where("(to_organization_id = ? OR from_organization_id = ?)", f.OrganizationID.String(), f.OrganizationID.String())
+	}
+	if f.PositionID != nil {
+		q = q.Where("(to_position_id = ? OR from_position_id = ?)", f.PositionID.String(), f.PositionID.String())
+	}
+	if f.EmployeeID != nil {
+		q = q.Where("employee_id = ?", f.EmployeeID.String())
+	}
+	if f.MovementType != "" {
+		q = q.Where("movement_type = ?", f.MovementType)
+	}
+	if f.Status != "" {
+		q = q.Where("status = ?", f.Status)
+	}
+	return q
+}
+
+// CountMovementsByType mengembalikan jumlah movement per movement_type sesuai
+// filter — inti Movement Report (plan §12.17: Promosi/Demosi/Mutasi/dll).
+func (r *Repository) CountMovementsByType(ctx context.Context, f MovementReportFilter) (map[string]int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []reportCountRow
+	err = r.movementReportBaseQuery(db, f).
+		Select("movement_type AS report_key, COUNT(*) AS report_count").
+		Group("movement_type").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to count movements by type: %w", err)
+	}
+	result := make(map[string]int64, len(rows))
+	for _, row := range rows {
+		result[row.ReportKey] = row.ReportCount
+	}
+	return result, nil
+}
+
+// CountMovementsByStatus mengembalikan jumlah movement per status sesuai
+// filter (draft/approved/executed/dll) — status breakdown Movement Report.
+func (r *Repository) CountMovementsByStatus(ctx context.Context, f MovementReportFilter) (map[string]int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []reportCountRow
+	err = r.movementReportBaseQuery(db, f).
+		Select("status AS report_key, COUNT(*) AS report_count").
+		Group("status").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to count movements by status: %w", err)
+	}
+	result := make(map[string]int64, len(rows))
+	for _, row := range rows {
+		result[row.ReportKey] = row.ReportCount
+	}
+	return result, nil
+}
+
+// CountContractsByStatus mengembalikan jumlah kontrak per status
+// (active/expired/extended/terminated) — Contract Report (plan §12.17).
+func (r *Repository) CountContractsByStatus(ctx context.Context) (map[string]int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []reportCountRow
+	err = db.Model(&EmployeeContract{}).
+		Select("status AS report_key, COUNT(*) AS report_count").
+		Group("status").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to count contracts by status: %w", err)
+	}
+	result := make(map[string]int64, len(rows))
+	for _, row := range rows {
+		result[row.ReportKey] = row.ReportCount
+	}
+	return result, nil
+}
+
+// CountExpiringContracts menghitung kontrak status=active yang berakhir dalam
+// rentang [from, to] (inklusif) — bucket "Expiring < 30 days" pada Contract
+// Report (plan §12.17/§12.18).
+func (r *Repository) CountExpiringContracts(ctx context.Context, from, to string) (int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	err = db.Model(&EmployeeContract{}).
+		Where("status = ?", ContractStatusActive).
+		Where("end_date IS NOT NULL AND end_date >= ? AND end_date <= ?", from, to).
+		Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed to count expiring contracts: %w", err)
+	}
+	return count, nil
+}
+
+// CountMovementsEffectiveBetween menghitung jumlah movement yang
+// effective_date-nya berada dalam rentang [from, to] (inklusif) — dipakai
+// kartu "Effective This Month" pada HR Dashboard (plan §12.18).
+func (r *Repository) CountMovementsEffectiveBetween(ctx context.Context, from, to string) (int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	err = db.Model(&EmployeeMovement{}).
+		Where("effective_date >= ? AND effective_date <= ?", from, to).
+		Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed to count movements effective in range: %w", err)
+	}
+	return count, nil
+}
+
+// =========================================================================
 // Approval flows
 // =========================================================================
 
@@ -825,19 +983,52 @@ func (r *Repository) ExecuteMovement(ctx context.Context, id uuid.UUID, executed
 	return nil
 }
 
+// CancelMovement membatalkan movement secara langsung. Hanya status `draft`
+// yang boleh dibatalkan langsung oleh HR — movement `approved` harus lewat
+// Cancellation Request Central Approval (plan §12.16), sehingga di sini
+// status approved sengaja TIDAK dicakup (mencegah bypass kebijakan).
 func (r *Repository) CancelMovement(ctx context.Context, id uuid.UUID) error {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return err
 	}
 	result := db.Model(&EmployeeMovement{}).
-		Where("id = ? AND status IN ?", id, []MovementStatus{MovementStatusDraft, MovementStatusApproved}).
+		Where("id = ? AND status = ?", id, MovementStatusDraft).
 		Update("status", MovementStatusCancelled)
 	if result.Error != nil {
 		return fmt.Errorf("failed to cancel movement: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("movement not found or already executed/cancelled")
+		return fmt.Errorf("movement not found or not in draft status")
+	}
+	return nil
+}
+
+// SetCancellationRequested menandai movement yang diajukan pembatalan
+// (plan §12.16): status -> cancellation_pending + menyimpan approval instance
+// id dari Cancellation Request. Hanya status `approved` yang boleh masuk ke
+// jalur ini (guard di query agar tidak menimpa movement yang sudah
+// cancelled/executed/dll).
+func (r *Repository) SetCancellationRequested(ctx context.Context, id uuid.UUID, cancellationInstanceID uuid.UUID, reason *string) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	updates := map[string]interface{}{
+		"status":                            MovementStatusCancellationPending,
+		"cancellation_approval_instance_id": cancellationInstanceID.String(),
+	}
+	if reason != nil {
+		updates["notes"] = *reason
+	}
+	result := db.Model(&EmployeeMovement{}).
+		Where("id = ? AND status = ?", id, MovementStatusApproved).
+		Updates(updates)
+	if result.Error != nil {
+		return fmt.Errorf("failed to request movement cancellation: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("movement not found or not in approved status")
 	}
 	return nil
 }
