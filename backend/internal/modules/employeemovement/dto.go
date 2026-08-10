@@ -112,6 +112,38 @@ type PaginatedMovementResponse struct {
 }
 
 // =========================================================================
+// Employee Movement Document DTOs (plan §12.15)
+// =========================================================================
+
+// CreateMovementDocumentRequest menyimpan metadata dokumen movement. File
+// fisik di-upload terpisah via endpoint upload generik (POST /uploads); di
+// sini hanya file_url hasil upload + metadata yang dikirim.
+type CreateMovementDocumentRequest struct {
+	DocumentType string `json:"document_type" binding:"required,oneof=PROMOTION_SK MUTATION_SK DEMOTION_SK RETIREMENT_LETTER OFFBOARDING_LETTER OTHER"`
+	FileName     string `json:"file_name" binding:"required"`
+	FileURL      string `json:"file_url" binding:"required,startswith=/"`
+}
+
+type MovementDocumentResponse struct {
+	ID           string    `json:"id"`
+	MovementID   string    `json:"movement_id"`
+	DocumentType string    `json:"document_type"`
+	FileName     string    `json:"file_name"`
+	FileURL      string    `json:"file_url"`
+	UploadedBy   *string   `json:"uploaded_by,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type PaginatedMovementDocumentResponse struct {
+	Success    bool        `json:"success"`
+	Data       interface{} `json:"data"`
+	Page       int         `json:"page"`
+	PerPage    int         `json:"per_page"`
+	Total      int64       `json:"total"`
+	TotalPages int         `json:"total_pages"`
+}
+
+// =========================================================================
 // Employee Contract DTOs
 // =========================================================================
 
@@ -279,6 +311,22 @@ func (a *EmployeeMovementAudit) ToResponse() MovementAuditResponse {
 	if a.ActedBy != nil {
 		s := a.ActedBy.String()
 		r.ActedBy = &s
+	}
+	return r
+}
+
+func (d *EmployeeMovementDocument) ToResponse() MovementDocumentResponse {
+	r := MovementDocumentResponse{
+		ID:           d.ID.String(),
+		MovementID:   d.MovementID.String(),
+		DocumentType: string(d.DocumentType),
+		FileName:     d.FileName,
+		FileURL:      d.FileURL,
+		CreatedAt:    d.CreatedAt,
+	}
+	if d.UploadedBy != nil {
+		s := d.UploadedBy.String()
+		r.UploadedBy = &s
 	}
 	return r
 }

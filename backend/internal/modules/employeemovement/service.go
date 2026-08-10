@@ -1231,6 +1231,97 @@ func (s *Service) ListMovementAudits(ctx context.Context, id string, page, perPa
 }
 
 // =========================================================================
+// Movement Documents (plan §12.15)
+// =========================================================================
+
+// CreateMovementDocument menambahkan metadata dokumen ke sebuah movement.
+// Alur upload: file fisik di-upload dulu lewat endpoint upload generik
+// (POST /api/v1/tenant/uploads) yang mengembalikan file_url; service ini
+// hanya memvalidasi movement ada + menyimpan metadata (document_type,
+// file_name, file_url).
+func (s *Service) CreateMovementDocument(ctx context.Context, movementID string, req CreateMovementDocumentRequest) (*MovementDocumentResponse, error) {
+	uid, err := uuid.Parse(movementID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid movement id: %w", err)
+	}
+
+	// Pastikan movement benar-benar ada — selain jadi FK guard, ini memberi
+	// error yang jelas (404/500 bukan FK violation cryptic).
+	if _, err := s.repo.FindMovementByID(ctx, uid); err != nil {
+		return nil, err
+	}
+
+	doc := &EmployeeMovementDocument{
+		MovementID:   uid,
+		DocumentType: MovementDocumentType(req.DocumentType),
+		FileName:     req.FileName,
+		FileURL:      req.FileURL,
+		UploadedBy:   authctx.GetUserID(ctx),
+	}
+	if err := s.repo.CreateMovementDocument(ctx, doc); err != nil {
+		return nil, err
+	}
+
+	s.logger.Info("Employee movement document created",
+		zap.String("movement_id", movementID),
+		zap.String("document_type", req.DocumentType),
+		zap.String("file_name", req.FileName),
+	)
+
+	response := doc.ToResponse()
+	return &response, nil
+}
+
+// ListMovementDocuments mengembalikan daftar dokumen sebuah movement
+// (plan §12.15), terurut created_at DESC dengan pagination.
+func (s *Service) ListMovementDocuments(ctx context.Context, movementID string, page, perPage int) (*PaginatedMovementDocumentResponse, error) {
+	uid, err := uuid.Parse(movementID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid movement id: %w", err)
+	}
+
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 20
+	}
+
+	documents, total, err := s.repo.ListDocumentsByMovementID(ctx, uid, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []MovementDocumentResponse
+	for _, d := range documents {
+		responses = append(responses, d.ToResponse())
+	}
+
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 {
+		totalPages++
+	}
+
+	return &PaginatedMovementDocumentResponse{
+		Success:    true,
+		Data:       responses,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
+}
+
+// DeleteMovementDocument menghapus metadata dokumen movement.
+func (s *Service) DeleteMovementDocument(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid document id: %w", err)
+	}
+	return s.repo.DeleteMovementDocument(ctx, uid)
+}
+
+// =========================================================================
 // Employee Contract
 // =========================================================================
 

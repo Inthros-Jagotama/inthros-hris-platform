@@ -1,9 +1,9 @@
 # Employee Movement & Career Management — Development Plan
 
-> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
+> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
 
 ---
 
@@ -553,6 +553,41 @@ Mencatat seluruh perubahan lifecycle movement sehingga transaksi HR dapat diaudi
 - `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/...` ✅ · `gofmt` bersih ✅
 - `go test ./internal/modules/employeemovement/...` — semua **PASS** ✅
 - Test baru (8): lifecycle CREATED/UPDATED/SUBMITTED/APPROVED/REJECTED/CANCELLED/EXECUTED (status transition + snapshot + reason reject + acted_by executor) · pagination (total/total_pages + newest-first) · handler `GET /audits` 200.
+
+---
+
+# 3.20 Log — Enhancement §12 P1 (6) Movement Documents
+
+## 3.20.1 Yang dikerjakan
+
+Mendukung lebih dari satu dokumen per movement (plan §12.15) — selain decision letter fields yang sudah ada:
+
+| File | Perubahan |
+|---|---|
+| `migrations/tenant/{mysql,postgres}/085_employeemovement_documents.{down.}sql` | Tabel baru `employee_movement_documents`: `id`, `movement_id` (FK → `employee_movements` ON DELETE CASCADE, index), `document_type` (VARCHAR(30): PROMOTION_SK, MUTATION_SK, DEMOTION_SK, RETIREMENT_LETTER, OFFBOARDING_LETTER, OTHER), `file_name`, `file_url` (VARCHAR(255)), `uploaded_by` (CHAR(36), nullable), `created_at` (default CURRENT_TIMESTAMP) |
+| `employeemovement/model.go` | +`EmployeeMovementDocument` + enum `MovementDocumentType`; `BeforeCreate` set ID |
+| `employeemovement/dto.go` | +`CreateMovementDocumentRequest` (document_type oneof + file_name/file_url required; file_url wajib diawali `/`) + `MovementDocumentResponse` + `PaginatedMovementDocumentResponse` + `ToResponse` |
+| `employeemovement/repository.go` | +`CreateMovementDocument` + `ListDocumentsByMovementID` (created_at DESC, pagination) + `FindMovementDocumentByID` + `DeleteMovementDocument` (RowsAffected 0 → not found) |
+| `employeemovement/service.go` | +`CreateMovementDocument` (validasi movement ada + persist metadata + `uploaded_by` dari authctx) + `ListMovementDocuments` (pagination) + `DeleteMovementDocument` |
+| `employeemovement/handler.go` + `routes.go` | +3 endpoint: `GET`/`POST /movements/:id/documents` + `DELETE /movements/:id/documents/:documentId` |
+| `employeemovement/module.go` | `Migrate` AutoMigrate + `&EmployeeMovementDocument{}` |
+| `employeemovement/helpers_test.go` | AutoMigrate test DB + document model |
+| `employeemovement/document_test.go` (baru) | 6 test: create (metadata + movement not found) · list (newest-first + pagination) · delete (sisa dokumen lain tetap ada + not found) · handler POST/GET/DELETE end-to-end |
+
+## 3.20.2 Keputusan desain
+
+1. **File fisik vs metadata dipisah**: upload file lewat endpoint upload generik `POST /api/v1/tenant/uploads` (sudah ada — validasi ekstensi + ukuran, menyimpan ke `{uploadDir}/attachments`, mengembalikan URL publik `/uploads/attachments/{uuid}{ext}`). Tabel baru hanya menyimpan metadata (`file_url`), konsisten dengan pola `employee_contracts.document_url` — tidak ada duplikasi multipart handling di module.
+2. **`file_url` wajib diawali `/`** (binding `startswith=/`) karena URL publik selalu path relatif hasil upload generik.
+3. **Validasi movement ada di service** sebelum insert metadata — selain jadi FK guard, memberi error yang jelas (bukan FK violation cryptic).
+4. **Belum di-audit (plan §12.6 tidak mencakup aksi dokumen)** — lifecycle audit tetap untuk perubahan status movement saja, sesuai plan.
+5. **CASCADE hapus**: dokumen ikut terhapus bila movement dihapus (FK ON DELETE CASCADE).
+
+## 3.20.3 Validasi
+
+- `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/...` ✅ · `gofmt` bersih ✅
+- `go test ./internal/modules/employeemovement/...` — semua **PASS** ✅ (deterministik — dijalankan 3x)
+- Test baru (6): create metadata + movement not found · list newest-first + pagination (total/total_pages) · delete + not found + dokumen lain tetap ada · handler `POST` 201 → `GET` 200 → `DELETE` 200.
+- Catatan: test ordering pakai jeda 2ms antar insert karena SQLite menyimpan `created_at` mikro-detik (dua insert cepat bisa berbagi timestamp → urutan jatuh ke tie-break UUID acak).
 
 ---
 
@@ -1234,7 +1269,7 @@ Pastikan setiap extension:
 
 ---
 
-## 12.15 P1 — Movement Documents
+## 12.15 P1 — Movement Documents — ✅ **SELESAI (2026-08-10)** — lihat log §3.20
 
 Saat ini movement memiliki informasi SK seperti:
 
@@ -1671,7 +1706,7 @@ C = 2
 | 3 | Effective Date Conflict — ✅ **SELESAI (2026-08-10)** | P0 | BE |
 | 4 | Movement Snapshot — ✅ **SELESAI (2026-08-10)** | P0 | DB/BE |
 | 5 | Movement Audit Trail — ✅ **SELESAI (2026-08-10)** | P0 | DB/BE |
-| 6 | Movement Documents | P1 | DB/BE/FE |
+| 6 | Movement Documents — ✅ **SELESAI (2026-08-10)** | P1 | DB/BE/FE |
 | 7 | Career Timeline | P1 | BE/FE |
 | 8 | Contract Expiry | P1 | BE/Job/FE |
 | 9 | Performance Integration | P1 | BE |

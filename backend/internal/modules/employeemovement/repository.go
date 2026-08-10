@@ -431,6 +431,74 @@ func (r *Repository) ListAuditsByMovementID(ctx context.Context, movementID uuid
 }
 
 // =========================================================================
+// Movement Documents (plan §12.15)
+// =========================================================================
+
+// CreateMovementDocument menyimpan metadata satu dokumen movement.
+func (r *Repository) CreateMovementDocument(ctx context.Context, d *EmployeeMovementDocument) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	if err := db.Create(d).Error; err != nil {
+		return fmt.Errorf("failed to create employee movement document: %w", err)
+	}
+	return nil
+}
+
+// ListDocumentsByMovementID mengembalikan dokumen satu movement, terurut
+// created_at DESC (terbaru dulu) dengan pagination.
+func (r *Repository) ListDocumentsByMovementID(ctx context.Context, movementID uuid.UUID, page, perPage int) ([]EmployeeMovementDocument, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var documents []EmployeeMovementDocument
+	var total int64
+
+	query := db.Model(&EmployeeMovementDocument{}).Where("movement_id = ?", movementID)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to count movement documents: %w", err)
+	}
+
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC, id DESC").Find(&documents).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to list movement documents: %w", err)
+	}
+	return documents, total, nil
+}
+
+// FindMovementDocumentByID mengambil satu dokumen movement berdasarkan id.
+func (r *Repository) FindMovementDocumentByID(ctx context.Context, id uuid.UUID) (*EmployeeMovementDocument, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var d EmployeeMovementDocument
+	if err := db.Where("id = ?", id).First(&d).Error; err != nil {
+		return nil, fmt.Errorf("employee movement document not found: %w", err)
+	}
+	return &d, nil
+}
+
+// DeleteMovementDocument menghapus metadata dokumen movement. RowsAffected 0
+// → dokumen tidak ditemukan (atau sudah terhapus via CASCADE).
+func (r *Repository) DeleteMovementDocument(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.Where("id = ?", id).Delete(&EmployeeMovementDocument{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete employee movement document: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("employee movement document not found")
+	}
+	return nil
+}
+
+// =========================================================================
 // Approval flows
 // =========================================================================
 

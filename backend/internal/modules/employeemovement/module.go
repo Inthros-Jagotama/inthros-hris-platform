@@ -96,6 +96,7 @@ func (m *empMovementModule) Migrate(db *gorm.DB) error {
 		&EmployeeMovement{},
 		&EmployeeContract{},
 		&EmployeeMovementAudit{},
+		&EmployeeMovementDocument{},
 	)
 }
 

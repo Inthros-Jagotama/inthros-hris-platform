@@ -220,6 +220,53 @@ func (h *Handler) ListMovementAudits(c *gin.Context) {
 }
 
 // =========================================================================
+// Movement Document Handlers (plan §12.15)
+// =========================================================================
+
+// ListMovementDocuments menangani GET /api/v1/tenant/employee-movements/movements/:id/documents
+func (h *Handler) ListMovementDocuments(c *gin.Context) {
+	id := c.Param("id")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+
+	response, err := h.service.ListMovementDocuments(c.Request.Context(), id, page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// CreateMovementDocument menangani POST /api/v1/tenant/employee-movements/movements/:id/documents
+func (h *Handler) CreateMovementDocument(c *gin.Context) {
+	id := c.Param("id")
+
+	var req CreateMovementDocumentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+
+	response, err := h.service.CreateMovementDocument(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, response, "success.created")
+}
+
+// DeleteMovementDocument menangani DELETE /api/v1/tenant/employee-movements/movements/:id/documents/:documentId
+func (h *Handler) DeleteMovementDocument(c *gin.Context) {
+	documentID := c.Param("documentId")
+
+	if err := h.service.DeleteMovementDocument(c.Request.Context(), documentID); err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
 // Employee Contract Handlers
 // =========================================================================
 

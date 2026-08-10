@@ -20,6 +20,11 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		em.POST("/movements/:id/cancel", handler.CancelMovement)
 		// Audit trail movement (enhancement plan §12.6).
 		em.GET("/movements/:id/audits", handler.ListMovementAudits)
+		// Movement documents (enhancement plan §12.15) — metadata dokumen;
+		// file fisik di-upload via endpoint upload generik.
+		em.GET("/movements/:id/documents", handler.ListMovementDocuments)
+		em.POST("/movements/:id/documents", handler.CreateMovementDocument)
+		em.DELETE("/movements/:id/documents/:documentId", handler.DeleteMovementDocument)
 
 		// Movements by Employee
 		em.GET("/employees/:employeeId/movements", handler.ListMovementsByEmployee)

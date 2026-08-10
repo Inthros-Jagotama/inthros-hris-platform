@@ -158,6 +158,50 @@ func (a *EmployeeMovementAudit) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// 12.15 EmployeeMovementDocument (Movement Documents)
+// =========================================================================
+
+// MovementDocumentType enum untuk jenis dokumen movement
+// (plan §12.15: PROMOTION_SK, MUTATION_SK, DEMOTION_SK, RETIREMENT_LETTER,
+// OFFBOARDING_LETTER, OTHER).
+type MovementDocumentType string
+
+const (
+	MovementDocumentTypePromotionSK       MovementDocumentType = "PROMOTION_SK"
+	MovementDocumentTypeMutationSK        MovementDocumentType = "MUTATION_SK"
+	MovementDocumentTypeDemotionSK        MovementDocumentType = "DEMOTION_SK"
+	MovementDocumentTypeRetirementLetter  MovementDocumentType = "RETIREMENT_LETTER"
+	MovementDocumentTypeOffboardingLetter MovementDocumentType = "OFFBOARDING_LETTER"
+	MovementDocumentTypeOther             MovementDocumentType = "OTHER"
+)
+
+// EmployeeMovementDocument menyimpan metadata dokumen pergerakan karyawan
+// (plan §12.15). File fisik di-upload via endpoint upload generik
+// (POST /api/v1/tenant/uploads) yang mengembalikan file_url publik; tabel ini
+// hanya menyimpan referensi URL + metadata agar satu movement dapat memiliki
+// banyak dokumen (SK promosi, SK mutasi, surat pensiun, dll).
+type EmployeeMovementDocument struct {
+	ID           uuid.UUID            `gorm:"type:char(36);primaryKey" json:"id"`
+	MovementID   uuid.UUID            `gorm:"type:char(36);not null;index:idx_emp_mvmt_doc_movement" json:"movement_id"`
+	DocumentType MovementDocumentType `gorm:"type:varchar(30);not null" json:"document_type"`
+	FileName     string               `gorm:"type:varchar(255);not null" json:"file_name"`
+	FileURL      string               `gorm:"type:varchar(255);not null" json:"file_url"`
+	UploadedBy   *uuid.UUID           `gorm:"type:char(36)" json:"uploaded_by,omitempty"`
+	CreatedAt    time.Time            `json:"created_at"`
+}
+
+func (EmployeeMovementDocument) TableName() string {
+	return "employee_movement_documents"
+}
+
+func (d *EmployeeMovementDocument) BeforeCreate(tx *gorm.DB) error {
+	if d.ID == uuid.Nil {
+		d.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // 12.2 EmployeeContract (PKWT & Perjanjian Kerja)
 // =========================================================================
 
