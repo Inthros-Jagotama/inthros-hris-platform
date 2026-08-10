@@ -98,7 +98,9 @@ func (r *Repository) ListFlows(ctx context.Context, page, perPage int) ([]Approv
 	}
 
 	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&flows).Error; err != nil {
+	if err := query.Preload("Steps", func(db *gorm.DB) *gorm.DB {
+		return db.Where("deleted_at IS NULL").Order("step_order ASC")
+	}).Offset(offset).Limit(perPage).Order("created_at DESC").Find(&flows).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to list flows: %w", err)
 	}
 	return flows, total, nil

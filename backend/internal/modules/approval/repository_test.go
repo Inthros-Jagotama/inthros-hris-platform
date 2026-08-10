@@ -95,20 +95,43 @@ func TestRepo_ListFlows_Pagination(t *testing.T) {
 	repo := NewRepository(dbResolver)
 	ctx := context.Background()
 
-	for i := 0; i < 5; i++ {
-		createTestFlow(repo, "leave")
-	}
+	// Flow 1: no steps. Flow 2: two steps.
+	flow1 := createTestFlow(repo, "leave")
+	flow2 := createTestFlow(repo, "leave")
+	createTestStep(repo, flow2.ID, 1)
+	createTestStep(repo, flow2.ID, 2)
 
 	flows, total, err := repo.ListFlows(ctx, 1, 3)
 	if err != nil {
 		t.Fatalf("ListFlows failed: %v", err)
 	}
 
-	if total != 5 {
-		t.Errorf("expected total 5, got %d", total)
+	if total != 2 {
+		t.Errorf("expected total 2, got %d", total)
 	}
-	if len(flows) != 3 {
-		t.Errorf("expected 3 flows (page 1 of 2), got %d", len(flows))
+	if len(flows) != 2 {
+		t.Errorf("expected 2 flows, got %d", len(flows))
+	}
+	// Steps must be preloaded on the flow that has them so the FE steps
+	// column shows the real count instead of 0.
+	var stepsFlow *ApprovalFlow
+	for i := range flows {
+		if len(flows[i].Steps) > 0 {
+			stepsFlow = &flows[i]
+			break
+		}
+	}
+	if stepsFlow == nil {
+		t.Fatal("expected at least one flow with preloaded steps")
+	}
+	if stepsFlow.ID != flow2.ID {
+		t.Errorf("expected steps to belong to flow2, got %s", stepsFlow.ID)
+	}
+	if len(stepsFlow.Steps) != 2 {
+		t.Errorf("expected 2 steps preloaded on flow2, got %d", len(stepsFlow.Steps))
+	}
+	if flow1.ID == flow2.ID {
+		t.Error("expected distinct flow IDs")
 	}
 }
 
