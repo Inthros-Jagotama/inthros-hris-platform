@@ -18,7 +18,7 @@
       </template>
       <Column field="module" :header="t('approval.module')" style="width:160px">
         <template #body="{data}">
-          <Tag :value="data.module" severity="info" class="!text-xs !px-1.5 !py-0.5" />
+          <Tag :value="moduleLabel(data.module)" severity="info" class="!text-xs !px-1.5 !py-0.5" />
         </template>
       </Column>
       <Column field="name" :header="t('approval.flow_name')">
@@ -56,7 +56,9 @@
         <FormRow :label="t('approval.module')" required :errors="flowErrors?.module?.[0]">
           <Select
             v-model="flowForm.module"
-            :options="availableModules"
+            :options="moduleOptions"
+            optionLabel="label"
+            optionValue="value"
             :placeholder="t('approval.select_module')"
             class="w-full"
             :disabled="flowEditing"
@@ -207,7 +209,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
@@ -276,6 +278,13 @@ const flowEditingId = ref(null)
 const flowSaving = ref(false)
 const flowErrors = ref({})
 const flowForm = ref({ module: '', name: '', version: 1, is_active: true })
+
+function moduleLabel(slug) {
+  const label = t(`approval.module_names.${slug}`)
+  return label !== `approval.module_names.${slug}` ? label : slug
+}
+
+const moduleOptions = computed(() => availableModules.value.map(m => ({ label: moduleLabel(m), value: m })))
 
 function openFlowDialog(item) {
   flowEditing.value = !!item

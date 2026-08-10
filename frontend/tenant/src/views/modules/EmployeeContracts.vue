@@ -270,7 +270,7 @@ const statusOptions = computed(() => [
   'active', 'expired', 'extended', 'terminated'
 ].map(v => ({ label: statusLabel(v), value: v })))
 
-const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.employee_id })))
+const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.id })))
 
 // Kontrak milik employee terpilih (untuk previous_contract), tanpa dirinya sendiri saat edit.
 const previousContractOptions = computed(() => {

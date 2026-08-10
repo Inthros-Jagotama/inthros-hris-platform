@@ -110,19 +110,19 @@ const routes = [
         path: 'admin/career/movements',
         name: 'EmployeeMovements',
         component: () => import('@/views/modules/EmployeeMovements.vue'),
-        meta: { title: 'Movements', titleKey: 'employee_movement.movements', descKey: 'employee_movement.description', icon: 'pi pi-arrows-alt', module: 'employeemovement' }
+        meta: { title: 'Movements', titleKey: 'employee_movement.movements', descKey: 'employee_movement.description', icon: 'pi pi-arrows-alt', module: 'employeemovement', backRoute: '/admin/career/reports', backLabelKey: 'employee_movement.movements_contracts' }
       },
       {
         path: 'admin/career/contracts',
         name: 'EmployeeContracts',
         component: () => import('@/views/modules/EmployeeContracts.vue'),
-        meta: { title: 'Contracts', titleKey: 'employee_movement.contracts', descKey: 'employee_movement.description', icon: 'pi pi-file-edit', module: 'employeemovement' }
+        meta: { title: 'Contracts', titleKey: 'employee_movement.contracts', descKey: 'employee_movement.description', icon: 'pi pi-file-edit', module: 'employeemovement', backRoute: '/admin/career/reports', backLabelKey: 'employee_movement.movements_contracts' }
       },
       {
         path: 'admin/career/reports',
         name: 'EmployeeMovementReports',
         component: () => import('@/views/modules/EmployeeMovementReports.vue'),
-        meta: { title: 'Movement Reports', titleKey: 'employee_movement.reports', descKey: 'employee_movement.reports_description', icon: 'pi pi-chart-bar', module: 'employeemovement' }
+        meta: { title: 'Movements & Contracts', titleKey: 'employee_movement.movements_contracts', descKey: 'employee_movement.reports_description', icon: 'pi pi-chart-bar', module: 'employeemovement' }
       },
       {
         path: 'career-intelligence/paths',

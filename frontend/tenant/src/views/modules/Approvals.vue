@@ -285,6 +285,59 @@
             </div>
           </template>
 
+          <template v-else-if="isEmployeemovementModule">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('employee_movement.employee') }}</p>
+                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ documentDetail?.employee_name || '-' }}</p>
+                <p v-if="documentDetail?.employee_code" class="text-xs text-gray-400">{{ documentDetail.employee_code }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('employee_movement.movement_type') }}</p>
+                <Tag :value="movementTypeLabel(documentDetail?.movement_type)" :severity="movementTypeSeverity(documentDetail?.movement_type)" class="!text-xs" />
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('common.status') }}</p>
+                <Tag :value="movementStatusLabel(documentDetail?.status)" :severity="movementStatusSeverity(documentDetail?.status)" class="!text-xs" />
+              </div>
+              <div v-if="documentDetail?.decision_letter_number" class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('employee_movement.decision_letter_number') }}</p>
+                <p class="text-gray-700 dark:text-gray-200 font-mono text-xs break-all">{{ documentDetail.decision_letter_number }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('employee_movement.decision_letter_date') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatDateOnly(documentDetail?.decision_letter_date) }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('employee_movement.effective_date') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatDateOnly(documentDetail?.effective_date) }}</p>
+              </div>
+
+              <!-- Dari → Ke (enrichment G-4 / snapshot §12.5) -->
+              <div v-if="hasMovementFrom" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-1.5">
+                <p class="text-xs uppercase tracking-wide text-gray-400 font-medium">{{ t('employee_movement.from') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.from_organization_name || '-' }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.from_position_name || '-' }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.from_employment_status_name || '-' }}</p>
+              </div>
+              <div v-if="hasMovementTo" class="rounded-lg border border-emerald-200 dark:border-emerald-900/40 p-3 space-y-1.5">
+                <p class="text-xs uppercase tracking-wide text-emerald-500 font-medium">{{ t('employee_movement.to') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.to_organization_name || '-' }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.to_position_name || '-' }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.to_employment_status_name || '-' }}</p>
+              </div>
+
+              <div v-if="documentDetail?.reason" class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('employee_movement.reason') }}</p>
+                <p class="text-gray-700 dark:text-gray-200 break-words">{{ documentDetail.reason }}</p>
+              </div>
+              <div v-if="documentDetail?.notes" class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('employee_movement.notes') }}</p>
+                <p class="text-gray-700 dark:text-gray-200 break-words">{{ documentDetail.notes }}</p>
+              </div>
+            </div>
+          </template>
+
           <div v-else-if="documentFields.length" class="space-y-2">
             <div v-for="f in documentFields" :key="f.label" class="text-sm">
               <p class="text-xs text-gray-400">{{ f.label }}</p>
@@ -306,7 +359,7 @@
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p class="text-xs text-gray-400">{{ t('approval.module') }}</p>
-              <Tag :value="activeInstance.module" severity="info" class="!text-xs" />
+              <Tag :value="moduleLabel(activeInstance.module)" severity="info" class="!text-xs" />
             </div>
             <div>
               <p class="text-xs text-gray-400">{{ t('common.status') }}</p>
@@ -409,6 +462,11 @@ function formatDateOnly(v) {
   return formatDateGlobal(v, locale.value) || '-'
 }
 
+function moduleLabel(slug) {
+  const label = t(`approval.module_names.${slug}`)
+  return label !== `approval.module_names.${slug}` ? label : slug
+}
+
 const pendingTasks = ref([])
 const pendingTotal = ref(0)
 const tasksLoading = ref(false)
@@ -497,6 +555,53 @@ const isLeaveModule = computed(() => activeInstance.value?.module === 'leave')
 const leaveEmployeeName = ref('')
 const leaveEmployeeCode = ref('')
 const leaveTypeName = ref('')
+
+// ── Employee Movement (mutasi) ──
+const isEmployeemovementModule = computed(() => activeInstance.value?.module === 'employeemovement')
+
+// movementTypeLabel/Severity — bilingual via employee_movement.type_* keys
+// (sama seperti halaman Movements), dengan fallback raw slug.
+function movementTypeLabel(type) {
+  if (!type) return '-'
+  const key = `employee_movement.type_${type}`
+  return t(key) !== key ? t(key) : type
+}
+
+function movementTypeSeverity(type) {
+  switch (type) {
+    case 'promotion': return 'success'
+    case 'demotion': return 'danger'
+    case 'mutation': return 'info'
+    case 'contract_extension': return 'warning'
+    case 'status_change': return 'info'
+    case 'retirement': return 'secondary'
+    case 'offboarding': return 'danger'
+    default: return 'secondary'
+  }
+}
+
+// movementStatusLabel/Severity — bilingual via employee_movement.status_* keys.
+function movementStatusLabel(status) {
+  if (!status) return '-'
+  const key = `employee_movement.status_${status}`
+  return t(key) !== key ? t(key) : status
+}
+
+function movementStatusSeverity(status) {
+  switch (status) {
+    case 'draft': return 'secondary'
+    case 'pending_approval': return 'info'
+    case 'approved': return 'warning'
+    case 'rejected': return 'danger'
+    case 'executed': return 'success'
+    case 'cancelled': return 'secondary'
+    case 'cancellation_pending': return 'warning'
+    default: return 'secondary'
+  }
+}
+
+const hasMovementFrom = computed(() => !!(documentDetail.value && (documentDetail.value.from_organization_name || documentDetail.value.from_position_name || documentDetail.value.from_employment_status_name)))
+const hasMovementTo = computed(() => !!(documentDetail.value && (documentDetail.value.to_organization_name || documentDetail.value.to_position_name || documentDetail.value.to_employment_status_name)))
 
 // ── Attendance (overtime) ──
 const isAttendanceModule = computed(() => activeInstance.value?.module === 'attendance')

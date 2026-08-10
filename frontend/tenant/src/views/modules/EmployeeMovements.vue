@@ -42,7 +42,13 @@
           v-tooltip.left="t('common.reset')"
           @click="resetFilters"
         />
-        <Button :label="t('employee_movement.add_movement')" icon="pi pi-plus" size="small" @click="openDialog()" />
+        <Button
+          v-if="hasPermission('employeemovement.create')"
+          :label="t('employee_movement.add_movement')"
+          icon="pi pi-plus"
+          size="small"
+          @click="openDialog()"
+        />
       </div>
     </div>
 
@@ -99,7 +105,7 @@
       <Column field="status" :header="t('common.status')" style="width:140px">
         <template #body="{data}"><Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" class="!text-xs !px-1.5 !py-0.5" /></template>
       </Column>
-      <Column :header="t('common.actions')" style="width:270px" frozen alignFrozen="right">
+      <Column :header="t('common.actions')" style="width:330px" frozen alignFrozen="right">
         <template #body="{data}">
           <div class="flex items-center justify-end gap-1">
             <Button
@@ -109,6 +115,15 @@
               severity="secondary"
               v-tooltip.left="t('common.view')"
               @click="openDetail(data)"
+            />
+            <Button
+              v-if="data.status === 'draft' && hasPermission('employeemovement.update')"
+              icon="pi pi-pencil"
+              size="small"
+              text
+              severity="secondary"
+              v-tooltip.left="t('common.edit')"
+              @click="openDialog(data)"
             />
             <Button
               v-if="data.status === 'draft'"
@@ -149,12 +164,12 @@
       </Column>
     </DataTable>
 
-    <!-- ── Dialog: Buat Mutasi ── -->
-    <Dialog v-model:visible="dialogVisible" :header="t('employee_movement.add_movement')" modal :style="{ width: '560px' }" @hide="resetForm">
+    <!-- ── Dialog: Buat/Edit Mutasi ── -->
+    <Dialog v-model:visible="dialogVisible" :header="dialogTitle" modal :style="{ width: '560px' }" @hide="resetForm">
       <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('employee_movement.hint_per_type') }}</p>
       <div class="space-y-3">
         <FormRow :label="t('employee_movement.employee')" required :errors="errors?.employee_id">
-          <Select v-model="form.employee_id" :options="employeeOptions" optionLabel="label" optionValue="value" filter showClear class="w-full" :placeholder="t('employee_movement.select_employee')" />
+          <Select v-model="form.employee_id" :options="employeeOptions" optionLabel="label" optionValue="value" filter showClear class="w-full" :disabled="!!editingId" :placeholder="t('employee_movement.select_employee')" />
         </FormRow>
         <FormRow :label="t('employee_movement.movement_type')" required :errors="errors?.movement_type">
           <Select v-model="form.movement_type" :options="typeOptions" optionLabel="label" optionValue="value" class="w-full" />
@@ -193,7 +208,7 @@
     </Dialog>
 
     <!-- ── Dialog: Detail Movement ── -->
-    <Dialog v-model:visible="detailVisible" :header="t('employee_movement.detail_title')" modal :style="{ width: '680px' }" @hide="detailItem = null">
+    <Dialog v-model:visible="detailVisible" :header="t('employee_movement.detail_title')" modal :style="{ width: '760px' }" @hide="detailItem = null">
       <div v-if="detailItem" class="space-y-4">
         <!-- Ringkasan tipe & status -->
         <div class="flex items-center justify-between gap-2 flex-wrap">
@@ -244,9 +259,110 @@
           <ViewLabel v-if="detailItem.approved_at" :label="t('employee_movement.approved_at')" :value="formatDateTime(detailItem.approved_at)" />
           <ViewLabel v-if="detailItem.executed_at" :label="t('employee_movement.executed_at')" :value="formatDateTime(detailItem.executed_at)" />
         </div>
+
+        <!-- Dokumen movement (§12.15) — multi-dokumen: upload via POST /uploads → metadata ke /movements/:id/documents -->
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-paperclip text-sm text-gray-400"></i>
+              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('employee_movement.documents') }}</p>
+              <Tag v-if="movementDocuments.length" :value="String(movementDocuments.length)" severity="secondary" class="!text-[10px] !px-1.5 !py-0" />
+            </div>
+          </div>
+
+          <!-- Upload row -->
+          <div class="flex items-center gap-2 flex-wrap mb-3">
+            <Select
+              v-model="docForm.document_type"
+              :options="documentTypeOptions"
+              optionLabel="label"
+              optionValue="value"
+              :placeholder="t('employee_movement.document_type')"
+              size="small"
+              class="!w-44"
+            />
+            <input ref="docFileInputRef" type="file" class="hidden" @change="onDocFileSelected" />
+            <Button
+              icon="pi pi-paperclip"
+              size="small"
+              severity="secondary"
+              outlined
+              :label="docFile ? docFile.name : t('employee_movement.choose_file')"
+              @click="docFileInputRef?.click()"
+              class="!justify-start !max-w-56 overflow-hidden !text-xs"
+              :disabled="docSaving"
+            />
+            <Button
+              v-if="docFile"
+              icon="pi pi-times"
+              size="small"
+              text
+              severity="danger"
+              :disabled="docSaving"
+              @click="clearDocFile"
+            />
+            <Button
+              :label="t('employee_movement.upload_document')"
+              icon="pi pi-upload"
+              size="small"
+              :loading="docSaving"
+              :disabled="!docForm.document_type || !docFile"
+              class="!whitespace-nowrap shrink-0"
+              @click="uploadMovementDocument"
+            />
+          </div>
+
+          <div v-if="docLoading" class="space-y-2">
+            <div v-for="i in 2" :key="i" class="h-9 rounded bg-gray-100 dark:bg-gray-700/50"></div>
+          </div>
+          <ul v-else-if="movementDocuments.length" class="space-y-1.5">
+            <li
+              v-for="doc in movementDocuments"
+              :key="doc.id"
+              class="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2"
+            >
+              <i class="pi pi-file text-sm text-gray-400 shrink-0"></i>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm text-gray-700 dark:text-gray-200 truncate">{{ doc.file_name }}</p>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <Tag :value="documentTypeLabel(doc.document_type)" severity="info" class="!text-[10px] !px-1 !py-0" />
+                  <span class="text-xs text-gray-400">{{ formatDateTime(doc.created_at) }}</span>
+                </div>
+              </div>
+              <a
+                :href="doc.file_url"
+                target="_blank"
+                rel="noopener"
+                class="text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 text-xs"
+                :title="t('common.view')"
+              >
+                <i class="pi pi-external-link"></i>
+              </a>
+              <Button
+                icon="pi pi-trash"
+                size="small"
+                text
+                severity="danger"
+                class="!w-7 !h-7 shrink-0"
+                :disabled="docDeleting"
+                @click="confirmDeleteDoc(doc)"
+              />
+            </li>
+          </ul>
+          <p v-else class="text-xs text-gray-400 dark:text-gray-500 py-2 text-center">{{ t('employee_movement.no_documents') }}</p>
+        </div>
       </div>
       <template #footer>
         <div class="flex items-center justify-end gap-2 flex-wrap">
+          <Button
+            v-if="detailItem?.status === 'draft' && hasPermission('employeemovement.update')"
+            :label="t('common.edit')"
+            icon="pi pi-pencil"
+            size="small"
+            severity="secondary"
+            text
+            @click="actionFromDetail('edit')"
+          />
           <Button
             v-if="detailItem?.status === 'draft'"
             :label="t('employee_movement.submit')"
@@ -336,6 +452,17 @@
       @confirm="handleDeleteConfirm"
       @cancel="deleteConfirmVisible = false"
     />
+    <ConfirmDeleteDialog
+      v-model:visible="docDeleteVisible"
+      :title="t('employee_movement.confirm_delete_doc_title')"
+      :message="t('employee_movement.confirm_delete_doc_msg')"
+      :loading="docDeleting"
+      :error-msg="docDeleteError"
+      :cancel-label="t('common.no')"
+      :confirm-label="t('common.delete')"
+      @confirm="handleDocDeleteConfirm"
+      @cancel="docDeleteVisible = false"
+    />
   </div>
 </template>
 
@@ -343,6 +470,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/stores/auth'
 import { getErrorMessage, getValidationErrors } from '@/services/responseHandler'
 import { formatDate } from '@/utils/formatDate'
 import api from '@/services/api'
@@ -364,6 +492,7 @@ import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 
 const { t, locale } = useI18n()
 const toast = useToast()
+const { hasPermission } = useAuth()
 
 // ── Daftar ──
 const items = ref([])
@@ -380,11 +509,14 @@ const employees = ref([])
 const organizations = ref([])
 const employmentStatuses = ref([])
 
-// ── Dialog create ──
+// ── Dialog create/edit ──
 const dialogVisible = ref(false)
+const editingId = ref('')
 const saving = ref(false)
 const errors = ref({})
 const form = ref(emptyForm())
+
+const dialogTitle = computed(() => editingId.value ? t('employee_movement.edit_movement') : t('employee_movement.add_movement'))
 
 // ── Konfirmasi aksi ──
 const actionTarget = ref(null)
@@ -399,6 +531,19 @@ const deleteConfirmVisible = ref(false)
 const detailVisible = ref(false)
 const detailItem = ref(null)
 
+// ── Dokumen movement (§12.15) ──
+const movementDocuments = ref([])
+const docLoading = ref(false)
+const docSaving = ref(false)
+const docFile = ref(null)
+const docFileInputRef = ref(null)
+const docForm = ref({ document_type: null })
+const docDeleteVisible = ref(false)
+const docDeleteTarget = ref(null)
+const docDeleteMovementId = ref('')
+const docDeleting = ref(false)
+const docDeleteError = ref('')
+
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 
 const typeOptions = computed(() => [
@@ -409,7 +554,7 @@ const statusOptions = computed(() => [
   'draft', 'pending_approval', 'approved', 'rejected', 'executed', 'cancelled', 'cancellation_pending'
 ].map(v => ({ label: statusLabel(v), value: v })))
 
-const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.employee_id })))
+const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.id })))
 const organizationOptions = computed(() => organizations.value.map(o => ({ label: o.nomenclature || o.full_code, value: o.id })))
 const positionOptions = computed(() => organizations.value.map(o => ({ label: o.nomenclature || o.full_code, value: o.id })))
 
@@ -536,16 +681,33 @@ async function loadReferences() {
   employmentStatuses.value = statusRes.value?.data?.data || []
 }
 
-// ── Create ──
-function openDialog() {
+// ── Create / Edit ──
+function openDialog(item) {
   errors.value = {}
-  form.value = emptyForm()
+  if (item) {
+    editingId.value = item.id
+    form.value = {
+      employee_id: item.employee_id,
+      movement_type: item.movement_type,
+      to_organization_id: item.to_organization_id || null,
+      to_position_id: item.to_position_id || null,
+      to_employment_status_id: item.to_employment_status_id || null,
+      decision_letter_number: item.decision_letter_number || '',
+      decision_letter_date: item.decision_letter_date || '',
+      effective_date: item.effective_date || '',
+      reason: item.reason || ''
+    }
+  } else {
+    editingId.value = ''
+    form.value = emptyForm()
+  }
   dialogVisible.value = true
 }
 
 function resetForm() {
   form.value = emptyForm()
   errors.value = {}
+  editingId.value = ''
 }
 
 function validateForm() {
@@ -571,19 +733,28 @@ async function handleSave() {
   errors.value = validateForm()
   if (Object.keys(errors.value).length > 0) return
   saving.value = true
+  const payload = {
+    employee_id: form.value.employee_id,
+    movement_type: form.value.movement_type,
+    to_organization_id: form.value.to_organization_id || undefined,
+    to_position_id: form.value.to_position_id || undefined,
+    to_employment_status_id: form.value.to_employment_status_id || undefined,
+    decision_letter_number: form.value.decision_letter_number,
+    decision_letter_date: form.value.decision_letter_date,
+    effective_date: form.value.effective_date,
+    reason: form.value.reason || undefined
+  }
   try {
-    await api.post('/api/v1/tenant/employee-movements/movements', {
-      employee_id: form.value.employee_id,
-      movement_type: form.value.movement_type,
-      to_organization_id: form.value.to_organization_id || undefined,
-      to_position_id: form.value.to_position_id || undefined,
-      to_employment_status_id: form.value.to_employment_status_id || undefined,
-      decision_letter_number: form.value.decision_letter_number,
-      decision_letter_date: form.value.decision_letter_date,
-      effective_date: form.value.effective_date,
-      reason: form.value.reason || undefined
-    })
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
+    if (editingId.value) {
+      // employee_id tidak bisa diubah (field di-disable) dan backend
+      // UpdateMovementRequest tidak menerimanya — omit dari payload PUT.
+      const { employee_id, ...updatePayload } = payload
+      await api.put(`/api/v1/tenant/employee-movements/movements/${editingId.value}`, updatePayload)
+      toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.updated'), life: 3000 })
+    } else {
+      await api.post('/api/v1/tenant/employee-movements/movements', payload)
+      toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
+    }
     dialogVisible.value = false
     await loadData()
   } catch (e) {
@@ -678,6 +849,10 @@ function openDeleteConfirm(data) {
 function openDetail(data) {
   detailItem.value = data
   detailVisible.value = true
+  movementDocuments.value = []
+  docForm.value.document_type = null
+  clearDocFile()
+  loadMovementDocuments()
 }
 
 // Aksi dari dalam dialog detail: tutup detail lalu buka konfirmasi yang sama
@@ -691,6 +866,89 @@ function actionFromDetail(action) {
   else if (action === 'execute') openExecuteConfirm(item)
   else if (action === 'cancel') openCancelConfirm(item)
   else if (action === 'delete') openDeleteConfirm(item)
+  else if (action === 'edit') openDialog(item)
+}
+
+// ── Dokumen movement (§12.15) ──
+const documentTypeOptions = computed(() => [
+  'PROMOTION_SK', 'MUTATION_SK', 'DEMOTION_SK', 'RETIREMENT_LETTER', 'OFFBOARDING_LETTER', 'OTHER'
+].map(v => ({ label: documentTypeLabel(v), value: v })))
+
+function documentTypeLabel(type) {
+  const key = `employee_movement.doc_type_${type}`
+  return t(key) !== key ? t(key) : String(type || '').replace(/_/g, ' ')
+}
+
+function onDocFileSelected(e) {
+  docFile.value = e.target.files?.[0] || null
+}
+
+function clearDocFile() {
+  docFile.value = null
+  if (docFileInputRef.value) docFileInputRef.value.value = ''
+}
+
+async function loadMovementDocuments() {
+  if (!detailItem.value) return
+  docLoading.value = true
+  try {
+    const res = await api.get(`/api/v1/tenant/employee-movements/movements/${detailItem.value.id}/documents`)
+    movementDocuments.value = res.data?.data || []
+  } catch (err) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: getErrorMessage(err), life: 4000 })
+  } finally {
+    docLoading.value = false
+  }
+}
+
+async function uploadMovementDocument() {
+  if (!detailItem.value || !docForm.value.document_type || !docFile.value) return
+  docSaving.value = true
+  try {
+    const fd = new FormData()
+    fd.append('file', docFile.value)
+    const up = await api.post('/api/v1/tenant/uploads', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    const url = up.data?.data?.url || ''
+    if (!url) throw new Error(t('employee_movement.upload_failed'))
+    await api.post(`/api/v1/tenant/employee-movements/movements/${detailItem.value.id}/documents`, {
+      document_type: docForm.value.document_type,
+      file_name: docFile.value.name,
+      file_url: url
+    })
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('employee_movement.doc_uploaded'), life: 3000 })
+    docForm.value.document_type = null
+    clearDocFile()
+    loadMovementDocuments()
+  } catch (err) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: getErrorMessage(err), life: 4000 })
+  } finally {
+    docSaving.value = false
+  }
+}
+
+function confirmDeleteDoc(doc) {
+  docDeleteTarget.value = doc
+  docDeleteMovementId.value = detailItem.value?.id || ''
+  docDeleteError.value = ''
+  docDeleteVisible.value = true
+}
+
+async function handleDocDeleteConfirm() {
+  const doc = docDeleteTarget.value
+  if (!doc || !docDeleteMovementId.value) return
+  docDeleting.value = true
+  docDeleteError.value = ''
+  try {
+    await api.delete(`/api/v1/tenant/employee-movements/movements/${docDeleteMovementId.value}/documents/${doc.id}`)
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('employee_movement.doc_deleted'), life: 3000 })
+    movementDocuments.value = movementDocuments.value.filter(d => d.id !== doc.id)
+    docDeleteVisible.value = false
+    docDeleteTarget.value = null
+  } catch (err) {
+    docDeleteError.value = getErrorMessage(err)
+  } finally {
+    docDeleting.value = false
+  }
 }
 
 function formatDateTime(v) {

@@ -1789,7 +1789,7 @@ func (s *Service) GetCareerHistory(ctx context.Context, employeeID string) (*Car
 			ContractID:   &cid,
 		}
 		if c.EndDate != nil {
-			desc := normalizeDate(c.StartDate) + " s/d " + normalizeDate(*c.EndDate)
+			desc := normalizeDate(c.StartDate) + " – " + normalizeDate(*c.EndDate)
 			entry.Description = &desc
 		}
 		data.Timeline = append(data.Timeline, entry)

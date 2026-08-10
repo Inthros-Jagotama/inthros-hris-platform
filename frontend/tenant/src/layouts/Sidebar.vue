@@ -345,9 +345,8 @@ const operationsItems = computed(() => {
   return filterByModule([
     { key: 'attendance', label: t('nav.attendance'), icon: 'pi pi-clock', command: () => router.push('/attendance'), path: '/attendance', moduleSlug: 'attendance', permission: 'attendance.view' },
     { key: 'leave', label: t('nav.leave'), icon: 'pi pi-calendar', command: () => router.push('/leave'), path: '/leave', moduleSlug: 'leave', permission: 'leave.view' },
-    { key: 'movement', label: t('employee_movement.movements'), icon: 'pi pi-arrows-alt', command: () => router.push('/admin/career/movements'), path: '/admin/career/movements', moduleSlug: 'employeemovement', permission: 'employeemovement.view' },
-    { key: 'contracts', label: t('employee_movement.contracts'), icon: 'pi pi-file-edit', command: () => router.push('/admin/career/contracts'), path: '/admin/career/contracts', moduleSlug: 'employeemovement', permission: 'employeemovement.view' },
-    { key: 'reports', label: t('employee_movement.reports'), icon: 'pi pi-chart-bar', command: () => router.push('/admin/career/reports'), path: '/admin/career/reports', moduleSlug: 'employeemovement', permission: 'employeemovement.view' },
+    // Movements & Contracts — hub: klik masuk ke halaman report (ada card navigasi Movements & Contracts).
+    { key: 'movements_contracts', label: t('employee_movement.movements_contracts'), icon: 'pi pi-chart-bar', command: () => router.push('/admin/career/reports'), path: '/admin/career/reports', includePaths: ['/admin/career/movements', '/admin/career/contracts'], moduleSlug: 'employeemovement', permission: 'employeemovement.view' },
     { key: 'approval', label: t('nav.approval'), icon: 'pi pi-check-square', command: () => router.push('/approvals'), path: '/approvals', moduleSlug: 'approval', permission: 'approval.view' },
     { key: 'notification', label: t('nav.notification'), icon: 'pi pi-bell', command: () => router.push('/notifications'), path: '/notifications', moduleSlug: 'notification', permission: 'notification.view' }
   ])
@@ -450,15 +449,24 @@ function isExcludedPath(item) {
   return item.excludePaths.some(p => route.path === p || route.path.startsWith(p + '/') || route.path.startsWith(p + '?'))
 }
 
+// includePaths: daftar path tambahan yang memicu highlight item ini (mis. hub
+// 'Movements & Contracts' tetap aktif saat berada di sub-halaman movements/contracts).
+function isIncludedPath(item) {
+  if (!item.includePaths?.length) return false
+  return item.includePaths.some(p => route.path === p || route.path.startsWith(p + '/') || route.path.startsWith(p + '?'))
+}
+
 function isActive(item) {
   if (!item.path) return false
   if (isExcludedPath(item)) return false
+  if (isIncludedPath(item)) return true
   return route.path.startsWith(item.path)
 }
 
 function isItemActive(item) {
   if (!item.path) return false
   if (isExcludedPath(item)) return false
+  if (isIncludedPath(item)) return true
   // Exact match or starts with path
   if (route.path === item.path) return true
   return route.path.startsWith(item.path + '/') || route.path.startsWith(item.path + '?')

@@ -87,10 +87,11 @@ Modul `backend/internal/modules/employeemovement/` (±3.200 baris) sudah lengkap
 
 ## 3.2 Frontend — ✅ SUDAH IMPLEMENTASI (per 2026-08-10)
 
-- **Halaman Movements** (`/admin/career/movements`, `EmployeeMovements.vue`): daftar enriched (nama employee/org/posisi/status) + filter tipe/status/search + form create per tipe (dropdown employee/org/posisi/status, validasi dinamis G-7) + aksi Submit/Execute/Cancel/Delete + detail dialog (badge `rejected` merah) + aksi dari dalam dialog. (Langkah 10 & 12, log §3.13/§3.15)
+- **Halaman Movements** (`/admin/career/movements`, `EmployeeMovements.vue`): daftar enriched (nama employee/org/posisi/status) + filter tipe/status/search + form create per tipe (dropdown employee/org/posisi/status, validasi dinamis G-7) + aksi Submit/Execute/Cancel/Delete + detail dialog (badge `rejected` merah) + aksi dari dalam dialog + **section Documents** (§12.15): upload multi-dokumen (pilih tipe PROMOTION_SK/MUTATION_SK/dll → pilih file → upload via `POST /uploads` → metadata ke `/movements/:id/documents`), daftar dokumen (nama + tag tipe + tanggal + link + hapus dengan konfirmasi). (Langkah 10 & 12, log §3.13/§3.15; FE dokumen 2026-08-10)
 - **Halaman Contracts** (`/admin/career/contracts`, `EmployeeContracts.vue`): daftar enriched + filter status/search + dialog create/edit + upload dokumen (`POST /uploads` → `document_url`) + extension chain. (Langkah 11, log §3.14)
-- **Halaman Reports** (`/admin/career/reports`, `EmployeeMovementReports.vue`): kartu statistik per tipe + breakdown status + Contract Report (active/expired/extended/terminated + expiring). (P2-13, log §3.27)
+- **Halaman Reports / hub Movements & Contracts** (`/admin/career/reports`, `EmployeeMovementReports.vue`): kartu statistik per tipe + breakdown status + Contract Report (active/expired/extended/terminated + expiring) + **card navigasi Movements & Contracts** (highlight) di atas halaman + **section Career Timeline** (pilih employee → timeline JOINED/MOVEMENT/CONTRACT dikelompokkan per tahun + current position card; §12.8, P1-7). (P2-13, log §3.27)
 - **Dashboard utama** (`Dashboard.vue`): section "Employee Movement" modul-gated (`hasModule('employeemovement')`) — kartu movement per tipe + Pending Approval + Effective This Month + ringkasan kontrak + tombol View Reports + skeleton loading. (P2-14, log §3.28)
+- **Menu gabungan Movements & Contracts**: sidebar kini 1 item "Movements & Contracts" (`includePaths` → tetap highlight di movements/contracts/reports); klik masuk ke halaman hub. (2026-08-10)
 - **Deep-link**: `Notifications.vue` `MOVEMENT_*` → `/admin/career/movements`; `Approvals.vue` `case 'employeemovement'` → detail movement.
 - **Locale**: `employee_movement.*` bilingual en/id lengkap (status/tipe/label/pesan).
 - **Router/sidebar**: route terdaftar + item menu gated module `employeemovement` + permission `employeemovement.view` (pola sidebar).
@@ -1261,7 +1262,7 @@ Belum diimplementasikan — sengaja dijadikan **opsional** sesuai keputusan §11
 
 ---
 
-## 12.8 P1 — Career Timeline — ✅ **SELESAI (2026-08-10)** — lihat log §3.21
+## 12.8 P1 — Career Timeline — ✅ **SELESAI (2026-08-10)** — lihat log §3.21 + **FE: section Career Timeline di halaman hub Movements & Contracts (2026-08-10)**
 
 Tambahkan career timeline pada Employee Detail.
 
@@ -1494,7 +1495,7 @@ Pastikan setiap extension:
 
 ---
 
-## 12.15 P1 — Movement Documents — ✅ **SELESAI (2026-08-10)** — lihat log §3.20
+## 12.15 P1 — Movement Documents — ✅ **SELESAI (2026-08-10)** — lihat log §3.20 + **FE: section Documents di detail dialog Movements (2026-08-10)**
 
 Saat ini movement memiliki informasi SK seperti:
 
