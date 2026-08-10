@@ -223,10 +223,11 @@ type CareerPath struct {
 	Name        string     `gorm:"type:varchar(100);not null;uniqueIndex:uk_career_paths_name" json:"name"`
 	Description *string    `gorm:"type:text" json:"description,omitempty"`
 	IsActive    bool       `gorm:"type:boolean;default:true" json:"is_active"`
-	CreatedBy   *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
-	UpdatedBy   *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	CreatedBy   *uuid.UUID     `gorm:"type:char(36)" json:"created_by,omitempty"`
+	UpdatedBy   *uuid.UUID     `gorm:"type:char(36)" json:"updated_by,omitempty"`
+	DeletedAt   gorm.DeletedAt `gorm:"index:idx_cp_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 func (CareerPath) TableName() string {

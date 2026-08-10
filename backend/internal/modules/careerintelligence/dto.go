@@ -98,7 +98,12 @@ type CareerInterestResponse struct {
 // Career Path DTOs
 // =========================================================================
 
+// CreateCareerPathRequest — CI membuat EDGE karier (source → target) yang pada
+// skema terpadu disimpan sebagai path 2-langkah. Name opsional: bila kosong,
+// service meng-generate "<PATH_TYPE>: <source> → <target>" (menghindari tabrakan
+// uk_career_paths_name dengan menambahkan akhiran unik bila perlu).
 type CreateCareerPathRequest struct {
+	Name          string `json:"name"`
 	SourceTitleID string `json:"source_title_id" binding:"required"`
 	TargetTitleID string `json:"target_title_id" binding:"required"`
 	PathType      string `json:"path_type" binding:"required,oneof=PROMOTION LATERAL DEMOTION CROSSFUNCTIONAL"`
@@ -107,18 +112,31 @@ type CreateCareerPathRequest struct {
 	Competencies  string `json:"competencies"`
 }
 
+type CareerPathStepResponse struct {
+	ID             string `json:"id"`
+	PositionID     string `json:"position_id"`
+	PositionName   string `json:"position_name,omitempty"`
+	Sequence       int    `json:"sequence"`
+	PathType       string `json:"path_type,omitempty"`
+	TypicalTenure  *int   `json:"typical_tenure,omitempty"`
+	Competencies   string `json:"competencies,omitempty"`
+	Certifications string `json:"certifications,omitempty"`
+}
+
 type CareerPathResponse struct {
-	ID            string    `json:"id"`
-	SourceTitleID string    `json:"source_title_id"`
-	TargetTitleID string    `json:"target_title_id"`
-	PathType      string    `json:"path_type"`
-	TypicalTenure int       `json:"typical_tenure"`
-	Requirements  string    `json:"requirements,omitempty"`
-	Competencies  string    `json:"competencies,omitempty"`
-	Certifications string   `json:"certifications,omitempty"`
-	IsActive      bool      `json:"is_active"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID            string                  `json:"id"`
+	Name          string                  `json:"name"`
+	SourceTitleID string                  `json:"source_title_id"`
+	TargetTitleID string                  `json:"target_title_id"`
+	PathType      string                  `json:"path_type"`
+	TypicalTenure int                     `json:"typical_tenure"`
+	Requirements  string                  `json:"requirements,omitempty"`
+	Competencies  string                  `json:"competencies,omitempty"`
+	Certifications string                 `json:"certifications,omitempty"`
+	IsActive      bool                    `json:"is_active"`
+	Steps         []CareerPathStepResponse `json:"steps,omitempty"`
+	CreatedAt     time.Time               `json:"created_at"`
+	UpdatedAt     time.Time               `json:"updated_at"`
 }
 
 // =========================================================================

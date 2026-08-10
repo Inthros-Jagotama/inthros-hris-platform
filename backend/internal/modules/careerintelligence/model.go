@@ -64,22 +64,24 @@ func (ci *CareerInterest) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
-// CareerPath — Career path template defining progression routes
+// CareerPath — Header jenjang karier (SKEMA TERPADU dengan Employee Movement,
+// migration 086). Satu path berisi deretan CareerPathStep yang diurutkan by
+// sequence. Atribut edge career intelligence (path_type, typical_tenure,
+// competencies, certifications) disimpan pada step target (sequence terakhir),
+// sehingga edge CI direpresentasikan sebagai path 2-langkah:
+//   step 1 = source, step 2 = target (dengan atribut CI).
 // =========================================================================
 
 type CareerPath struct {
-	ID            uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
-	SourceTitleID uuid.UUID `gorm:"type:char(36);not null;index:idx_cp_source" json:"source_title_id"`
-	TargetTitleID uuid.UUID `gorm:"type:char(36);not null;index:idx_cp_target" json:"target_title_id"`
-	PathType      string    `gorm:"type:varchar(30);not null" json:"path_type"` // PROMOTION / LATERAL / DEMOTION / CROSSFUNCTIONAL
-	TypicalTenure int       `gorm:"default:0" json:"typical_tenure"` // months
-	Requirements  string    `gorm:"type:text" json:"requirements"`
-	Competencies  string    `gorm:"type:text" json:"competencies"` // JSON list of competency IDs
-	Certifications string   `gorm:"type:text" json:"certifications"`
-	IsActive      bool      `gorm:"default:true" json:"is_active"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `gorm:"index:idx_cp_deleted_at" json:"deleted_at,omitempty"`
+	ID          uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	Name        string    `gorm:"type:varchar(100);uniqueIndex:uk_career_paths_name" json:"name"`
+	Description string    `gorm:"type:text" json:"description"`
+	IsActive    bool      `gorm:"default:true" json:"is_active"`
+	CreatedBy   *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
+	UpdatedBy   *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index:idx_cp_deleted_at" json:"deleted_at,omitempty"`
 }
 
 func (CareerPath) TableName() string { return "career_paths" }
@@ -87,6 +89,38 @@ func (CareerPath) TableName() string { return "career_paths" }
 func (cp *CareerPath) BeforeCreate(tx *gorm.DB) error {
 	if cp.ID == uuid.Nil {
 		cp.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// CareerPathStep — Satu langkah dalam jenjang karier (SKEMA TERPADU).
+// Kolom position_id/sequence/minimum_service_months/requirements dipakai
+// Employee Movement; kolom path_type/typical_tenure/competencies/
+// certifications adalah atribut edge career intelligence yang disimpan pada
+// step target (sequence terakhir) dari path 2-langkah.
+// =========================================================================
+
+type CareerPathStep struct {
+	ID                   uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	CareerPathID         uuid.UUID `gorm:"type:char(36);not null;uniqueIndex:uk_career_path_steps_sequence,priority:1;uniqueIndex:uk_career_path_steps_position,priority:1" json:"career_path_id"`
+	PositionID           uuid.UUID `gorm:"type:char(36);not null;index:idx_career_path_steps_position;uniqueIndex:uk_career_path_steps_position,priority:2" json:"position_id"`
+	Sequence             int       `gorm:"type:int;not null;uniqueIndex:uk_career_path_steps_sequence,priority:2" json:"sequence"`
+	MinimumServiceMonths *int      `gorm:"type:int" json:"minimum_service_months,omitempty"`
+	Requirements         string    `gorm:"type:text" json:"requirements"`
+	PathType             string    `gorm:"type:varchar(30)" json:"path_type"`   // CI: PROMOTION / LATERAL / DEMOTION / CROSSFUNCTIONAL
+	TypicalTenure        *int      `gorm:"type:int" json:"typical_tenure,omitempty"` // CI: months
+	Competencies         string    `gorm:"type:text" json:"competencies"`       // CI: JSON list of competency IDs
+	Certifications       string    `gorm:"type:text" json:"certifications"`     // CI
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
+}
+
+func (CareerPathStep) TableName() string { return "career_path_steps" }
+
+func (s *CareerPathStep) BeforeCreate(tx *gorm.DB) error {
+	if s.ID == uuid.Nil {
+		s.ID = uuid.New()
 	}
 	return nil
 }

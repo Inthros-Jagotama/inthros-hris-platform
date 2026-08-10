@@ -167,15 +167,31 @@ func (r *Repository) GetInterestsByEmployee(ctx context.Context, employeeID uuid
 }
 
 // =========================================================================
-// Career Path
+// Career Path (SKEMA TERPADU — header + steps)
 // =========================================================================
 
-func (r *Repository) CreateCareerPath(ctx context.Context, cp *CareerPath) error {
+// CreateCareerPathTx menyimpan header path + steps dalam satu transaksi
+// (pola sama Employee Movement CreateCareerPathTx).
+func (r *Repository) CreateCareerPathTx(ctx context.Context, cp *CareerPath, steps []CareerPathStep) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	return db.Create(cp).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(cp).Error; err != nil {
+			return err
+		}
+		for i := range steps {
+			steps[i].CareerPathID = cp.ID
+			if steps[i].ID == uuid.Nil {
+				steps[i].ID = uuid.New()
+			}
+			if err := tx.Create(&steps[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r *Repository) FindCareerPathByID(ctx context.Context, id uuid.UUID) (*CareerPath, error) {
@@ -190,6 +206,61 @@ func (r *Repository) FindCareerPathByID(ctx context.Context, id uuid.UUID) (*Car
 	return &cp, nil
 }
 
+// FindCareerPathByName mencari path berdasarkan name (termasuk yang sudah
+// FindCareerPathByName mengembalikan path dengan nama tertentu. Memakai
+// Unscoped agar nama dari path yang sudah soft-deleted tetap terdeteksi dan
+// tetap "dipesan" (menghormati uk_career_paths_name saat buildCareerPathName
+// menentukan nama unik — mencegah unique constraint violation saat nama yang
+// sama hendak dipakai ulang).
+func (r *Repository) FindCareerPathByName(ctx context.Context, name string) (*CareerPath, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var cp CareerPath
+	if err := db.Unscoped().First(&cp, "name = ?", name).Error; err != nil {
+		return nil, err
+	}
+	return &cp, nil
+}
+
+// ListCareerPathStepsByPathID mengembalikan steps satu path terurut sequence
+// ascending.
+func (r *Repository) ListCareerPathStepsByPathID(ctx context.Context, pathID uuid.UUID) ([]CareerPathStep, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var steps []CareerPathStep
+	if err := db.Where("career_path_id = ?", pathID).
+		Order("sequence ASC").Find(&steps).Error; err != nil {
+		return nil, err
+	}
+	return steps, nil
+}
+
+// ListCareerPathStepsByPathIDs mengembalikan steps untuk banyak path sekaligus
+// (batch query untuk ListCareerPaths).
+func (r *Repository) ListCareerPathStepsByPathIDs(ctx context.Context, pathIDs []uuid.UUID) (map[uuid.UUID][]CareerPathStep, error) {
+	if len(pathIDs) == 0 {
+		return map[uuid.UUID][]CareerPathStep{}, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var steps []CareerPathStep
+	if err := db.Where("career_path_id IN ?", pathIDs).
+		Order("sequence ASC").Find(&steps).Error; err != nil {
+		return nil, err
+	}
+	result := make(map[uuid.UUID][]CareerPathStep, len(pathIDs))
+	for _, s := range steps {
+		result[s.CareerPathID] = append(result[s.CareerPathID], s)
+	}
+	return result, nil
+}
+
 func (r *Repository) ListCareerPaths(ctx context.Context, page, perPage int) ([]CareerPath, int64, error) {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -200,32 +271,48 @@ func (r *Repository) ListCareerPaths(ctx context.Context, page, perPage int) ([]
 	query.Count(&total)
 	var list []CareerPath
 	offset := (page - 1) * perPage
-	if err := query.Order("path_type ASC").Offset(offset).Limit(perPage).Find(&list).Error; err != nil {
+	if err := query.Order("name ASC").Offset(offset).Limit(perPage).Find(&list).Error; err != nil {
 		return nil, 0, err
 	}
 	return list, total, nil
 }
 
+// DeleteCareerPath menghapus header path (soft delete) beserta steps-nya
+// (hard delete — steps tidak memiliki soft delete).
 func (r *Repository) DeleteCareerPath(ctx context.Context, id uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {
 		return err
 	}
-	return db.Delete(&CareerPath{}, "id = ?", id).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("career_path_id = ?", id).Delete(&CareerPathStep{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&CareerPath{}, "id = ?", id).Error
+	})
 }
 
+// FindCareerPathsBySource mengembalikan path aktif yang memiliki step dengan
+// position_id = sourceTitleID dan sequence = 1 (langkah pertama) — ekuivalen
+// edge CI "paths yang mulai dari source".
 func (r *Repository) FindCareerPathsBySource(ctx context.Context, sourceTitleID uuid.UUID) ([]CareerPath, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var list []CareerPath
-	if err := db.Where("source_title_id = ? AND is_active = ?", sourceTitleID, true).
-		Find(&list).Error; err != nil {
+	subQuery := db.Model(&CareerPathStep{}).
+		Select("career_path_id").
+		Where("position_id = ? AND sequence = 1", sourceTitleID)
+	if err := db.Model(&CareerPath{}).
+		Where("is_active = ? AND id IN (?)", true, subQuery).
+		Order("name ASC").Find(&list).Error; err != nil {
 		return nil, err
 	}
 	return list, nil
 }
+
+
 
 // =========================================================================
 // Succession Plan

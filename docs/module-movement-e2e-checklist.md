@@ -1,6 +1,6 @@
 # Checklist Verifikasi E2E Manual — Employee Movement & Career Management
 
-> 📅 Dibuat: 2026-08-10 · Basis: Testing Plan §10 `docs/module-movement-plan.md` · Status: **SIAP DIEKSEKUSI** (checklist disusun dari implementasi aktual langkah 1–12; eksekusi menunggu environment tenant + akun dengan permission `employeemovement.*`).
+> 📅 Dibuat: 2026-08-10 · Basis: Testing Plan §10 `docs/module-movement-plan.md` · Status: **SIAP DIEKSEKUSI** (checklist disusun dari implementasi aktual langkah 1–12 + enhancement P1/P2 s.d. item 14 — termasuk reporting §12.17 & dashboard §12.18; eksekusi menunggu environment tenant + akun dengan permission `employeemovement.*`).
 
 ---
 
@@ -10,7 +10,7 @@
 |---|---|---|
 | P1 | Backend berjalan | `make run` atau `go run ./cmd/server --config ./config/config.yaml` → `http://localhost:8080` |
 | P2 | Frontend tenant berjalan | `cd frontend/tenant && npm run dev` → `http://localhost:5174` (proxy `/api` & `/uploads` → `:8080`) |
-| P3 | Database & Redis | MySQL/Postgres tenant (migration s.d. 082 ter-apply) + Redis aktif |
+| P3 | Database & Redis | MySQL/Postgres tenant (migration s.d. **087** ter-apply — termasuk 083 snapshot, 084 audit, 085 documents, 086 career paths, 087 cancellation) + Redis aktif |
 | P4 | Akun tenant | User dengan permission `employeemovement.*` (create/update/delete/execute) + `approval.*` (untuk approve/reject di Central Approval) |
 | P5 | **Approval flow aktif untuk modul `employeemovement`** | Via FE **Approvals → Flows**: buat flow untuk module `employeemovement` + tambah step approver + **set active**. Tanpa ini `submit` gagal (`approval flow not configured...`, G-3). Verifikasi: `GET /api/v1/tenant/approval/active-flow?module=employeemovement` |
 | P6 | Data pendukung | Minimal 1 employee **aktif + punya employment** (org A, posisi P1, status S1, `effective_end_date` kosong), 1–2 organization aktif (summary active), 1 employment status |
@@ -87,7 +87,40 @@
 
 ---
 
-## 5. Regresi & lintas bahasa
+## 5. Skenario E — Movement Report & Contract Report (halaman Reports, plan §12.17)
+
+> Prasyarat: module `employeemovement` aktif (menu Reports hanya muncul di Sidebar Career bila module aktif & permission `employeemovement.view`).
+
+| # | Langkah | Cara (FE / API) | Hasil yang diharapkan | ✅/❌ | Catatan |
+|---|---|---|---|---|---|
+| E1 | Buka halaman Reports | FE: Career → **Reports** (route `/admin/career/reports`, menu sidebar `employee_movement.reports`)<br>API: `GET /reports/movements` + `GET /reports/contracts` (di-load paralel saat mount) | Halaman menampilkan: filter (periode, org, posisi, tipe, status), kartu statistik per tipe movement, breakdown per status, dan kartu Contract Report (Active/Expired/Extended/Terminated) | | |
+| E2 | **Movement Report — tanpa filter** | API: `GET /reports/movements` (tanpa param) | `data.total` = jumlah seluruh movement; `data.by_type` = jumlah per tipe (promotion/demotion/mutation/contract_extension/status_change/retirement/offboarding/other — hanya kunci yang ada datanya); `data.by_status` = jumlah per status (draft/pending_approval/approved/rejected/executed/cancelled/cancellation_pending) | | Konsistensi: `sum(by_type) == total == sum(by_status)` |
+| E3 | **Filter periode** | FE: isi `date_from` & `date_to` → Refresh<br>API: `GET /reports/movements?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD` | Total ter-filter ke movement dengan `effective_date` dalam rentang (inklusif); kartu by_type/by_status ikut ter-filter | | |
+| E4 | **Filter organisasi / posisi** | FE: dropdown Organisasi & Posisi<br>API: `GET /reports/movements?organization_id=...&position_id=...` | Filter mencocokkan `to_*` **ATAU** `from_*` (report mencakup kedua arah); hasil turun sesuai | | |
+| E5 | **Filter tipe + status** | FE: dropdown Tipe & Status<br>API: `GET /reports/movements?movement_type=promotion&status=approved` | Kombinasi filter sekaligus → total sesuai; `by_type`/`by_status` terfilter | | |
+| E6 | **Periode terbalik → 400** | API: `GET /reports/movements?date_from=2026-08-10&date_to=2026-08-01` | Error **400 VALIDATION_ERROR** (`date_from cannot be after date_to`) — bukan 200 dengan 0 baris | | |
+| E7 | **UUID invalid → 400** | API: `GET /reports/movements?organization_id=abc` (atau position/employee) | Error **400 VALIDATION_ERROR** (`invalid organization_id`) | | |
+| E8 | **Contract Report** | API: `GET /reports/contracts` | `data.total` = jumlah kontrak; `data.by_status` (active/expired/extended/terminated); `data.expiring` = kontrak **active** yang berakhir dalam ≤30 hari (subset active — bukan bucket terpisah, tidak menambah total) | | |
+| E9 | Konsistensi kartu FE vs API | Bandingkan kartu di halaman Reports dengan output API di atas | Angka sama; kartu per tipe yang kosong menampilkan 0 (FE menampilkan semua bucket, backend hanya mengembalikan bucket berdata) | | |
+
+---
+
+## 6. Skenario F — HR Dashboard (plan §12.18)
+
+> Prasyarat: module `employeemovement` aktif — section "Employee Movement" di Dashboard utama hanya dirender bila module aktif (`hasModule`).
+
+| # | Langkah | Cara (FE / API) | Hasil yang diharapkan | ✅/❌ | Catatan |
+|---|---|---|---|---|---|
+| F1 | Load Dashboard utama | FE: Dashboard → tunggu section "Employee Movement" muncul (skeleton saat loading) | Section tampil berisi: kartu movement per tipe, highlight **Pending Approval** + **Effective This Month**, ringkasan kontrak (Active/Expiring<30d/Expired) | | |
+| F2 | **Dashboard API** | API: `GET /employee-movements/dashboard` | `data.movement_by_type` (jumlah movement per tipe, semua status) · `data.pending_approval` (status `pending_approval`) · `data.effective_this_month` (effective_date di bulan berjalan, server-time) · `data.contracts.{active,expiring,expired}` | | |
+| F3 | Konsistensi dashboard vs report | Bandingkan `pending_approval` dashboard dengan `GET /reports/movements?status=pending_approval` → total; `effective_this_month` dengan filter `date_from=YYYY-MM-01&date_to=<akhir bulan>` | Angka konsisten (dashboard memakai agregasi yang sama dgn report §12.17) | | |
+| F4 | Tombol **View Reports** | FE: klik tombol di section dashboard | Pindah ke `/admin/career/reports` | | |
+| F5 | **Module-gating** | Nonaktifkan module `employeemovement` (tenant module mgmt) → reload Dashboard | Section "Employee Movement" **tidak muncul**; halaman Reports juga tidak ada di Sidebar | | |
+| F6 | Best-effort fetch | (Opsional) hentikan server sementara lalu load Dashboard | Section tidak merusak Dashboard — data kartu kosong + skeleton selesai; tidak ada unhandled error | | |
+
+---
+
+## 7. Regresi & lintas bahasa
 
 | # | Item | Hasil yang diharapkan | ✅/❌ |
 |---|---|---|---|
@@ -95,10 +128,11 @@
 | R2 | Filter kombinasi Movements | Type + status + search sekaligus → total records konsisten | |
 | R3 | Build & konsol | `npm run build` bersih; tidak ada error/⚠️ di console browser | |
 | R4 | Permission aksi | ⚠️ *Catatan: saat ini FE menampilkan aksi tanpa cek `hasPermission` per tombol — belum jadi gate UI; verifikasi batasan dilakukan di sisi backend (authz). Perbaikan FE bisa dijadwalkan sebagai enhancement.* | |
+| R5 | Reports & dashboard gated module | Halaman Reports (`/admin/career/reports`) & section Dashboard hanya tampil saat module `employeemovement` aktif (F5); tanpa module → item tidak ada di Sidebar, direct-URL tetap di route-guard | | |
 
 ---
 
-## 6. Kriteria Penerimaan (acceptance dari plan §10)
+## 8. Kriteria Penerimaan (acceptance dari plan §10)
 
 - [ ] Transisi status benar: `draft → pending_approval → approved → executed`; `approved → rejected`; `pending_approval/approved → cancelled`; `draft → edit/delete`.
 - [ ] `ExecuteMovement` benar-benar menutup employment lama (`effective_date − 1`) & membuat employment baru (G-1), offboarding/retirement men-set employee `inactive` (B2).
@@ -108,20 +142,23 @@
 - [ ] Contract extension count berantai + previous `extended` (G-6).
 - [ ] Validasi per tipe mengembalikan 400 `VALIDATION_ERROR` (G-7).
 - [ ] Dua halaman FE (`/admin/career/movements`, `/admin/career/contracts`), detail dialog, badge `rejected`, deep-link notifikasi (G-8 + langkah 10–12).
+- [ ] **Movement Report** (`GET /reports/movements`) mengembalikan `total`/`by_type`/`by_status` yang konsisten (`sum(by_type) == total == sum(by_status)`), filter periode/org/posisi/tipe/status benar, dan periode terbalik / UUID invalid → 400 (E2–E7, §12.17).
+- [ ] **Contract Report** (`GET /reports/contracts`) mengembalikan `by_status` + `expiring` sebagai subset `active` ≤ 30 hari (E8, §12.17).
+- [ ] **HR Dashboard** (`GET /employee-movements/dashboard`) menampilkan movement by type, `pending_approval`, `effective_this_month`, ringkasan kontrak; konsisten dengan report & hanya tampil saat module aktif (F2–F5, §12.18).
 - [ ] Unit/service/integration test backend **PASS** (sebagai pelengkap verifikasi manual).
 
 ---
 
-## 7. Bukti yang disarankan untuk disimpan
+## 9. Bukti yang disarankan untuk disimpan
 
-- Screenshot tiap langkah (khususnya A8: `employments[]` sebelum/sesudah execute, dan D1 detail dialog).
+- Screenshot tiap langkah (khususnya A8: `employments[]` sebelum/sesudah execute, D1 detail dialog, E1 halaman Reports, dan F1 section Dashboard).
 - ID movement / contract / approval instance yang diuji.
-- Output cURL untuk langkah kunci (A4 submit, A5 approve, A7 execute, A8 cek employment).
+- Output cURL untuk langkah kunci (A4 submit, A5 approve, A7 execute, A8 cek employment) + output JSON `GET /reports/movements`, `GET /reports/contracts`, `GET /employee-movements/dashboard`.
 - Catatan anomali (bug, pesan error, perilaku tidak sesuai ekspektasi) → laporkan untuk diperbaiki.
 
 ---
 
-## 8. Referensi Endpoint (ringkas)
+## 10. Referensi Endpoint (ringkas)
 
 ```text
 Movement : POST/GET  /api/v1/tenant/employee-movements/movements
@@ -135,4 +172,7 @@ Approval : POST  /api/v1/tenant/approval/instances/:id/actions   {"action":"APPR
 Employee : GET   /api/v1/tenant/employees/:id                     → status + employments[]
 Upload   : POST  /api/v1/tenant/uploads                            (FormData file → data.url)
 Notif    : GET   /api/v1/tenant/notifications                      (type = MOVEMENT_*)
+Report   : GET   /api/v1/tenant/employee-movements/reports/movements   ?date_from&date_to&organization_id&position_id&employee_id&movement_type&status
+           GET   /api/v1/tenant/employee-movements/reports/contracts    → {total, by_status, expiring}
+Dashboard: GET   /api/v1/tenant/employee-movements/dashboard           → {movement_by_type, pending_approval, effective_this_month, contracts}
 ```

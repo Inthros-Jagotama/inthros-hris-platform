@@ -4,6 +4,8 @@
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
 > 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21) · ✅ **Enhancement §12 P1 8** (Contract Expiry Management — lihat log §3.22) · ✅ **Enhancement §12 P1 10** (Career Path — lihat log §3.23) · ✅ **Enhancement §12 P1 11** (Promotion Eligibility — lihat log §3.24) · ✅ **Enhancement §12 P1 9** (Performance Integration — KPI/OKR/competency sebagai input eligibility, lihat log §3.25) · ✅ **Enhancement §12 P1 12** (Movement Cancellation Approval via Central Approval — lihat log §3.26) · ✅ **Enhancement §12 P2 13** (Movement Reporting — report promosi/mutasi/kontrak + filter periode/org/posisi, lihat log §3.27) · ✅ **Enhancement §12 P2 14** (Dashboard — kartu HR movement/contract di Dashboard FE, lihat log §3.28). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
+> ⏳ **Sisa TODO (per review 2026-08-10):** (1) eksekusi manual checklist E2E (menunggu environment) · (2) §12.7 Opsi B scheduler auto-execute movement (opsional, feature flag) · (3) §12.12 validasi eksplisit pasangan `organization_id`–`position_id` pada mutation (opsional) · (4) tabel `career_path_requirements` (opsional, eligibility masih hardcode rule) · (5) kolom `from/to_employment_type_name` pada snapshot (opsional) — semuanya enhancement opsional, bukan blocker.
+> 🔧 **Pasca-verifikasi DB (2026-08-10):** tenant `hris_pt-inthros-jago-utama` kini **86/86 migration ter-apply** (sebelumnya 81/86 — 083–087 pending). Konflik `career_paths` (086 vs 018 career intelligence) **diselesaikan via unifikasi penuh** (lihat log §3.29).
 
 ---
 
@@ -82,12 +84,15 @@ Modul `backend/internal/modules/employeemovement/` (±3.200 baris) sudah lengkap
 - **Menu (server)**: "Career" → Movements & Contracts (routes `/admin/career/*`).
 - **Test**: `handler_test.go`, `service_test.go`, `repository_test.go`, `approval_integration_test.go`.
 
-## 3.2 Frontend — ❌ BELUM (placeholder)
+## 3.2 Frontend — ✅ SUDAH IMPLEMENTASI (per 2026-08-10)
 
-- `frontend/tenant/src/views/modules/EmployeeMovements.vue` = **1 baris placeholder** ("Coming soon"), tidak ada komponen/API call.
-- Router sudah terdaftar: `/employee-movements` (meta module `employee-movement`).
-- Locale hanya 4 key: `employee_movement.title/description/movements/contracts`.
-- `Approvals.vue` sudah punya deep-link `case 'employeemovement'` → `GET /employee-movements/movements/:id` (siap dipakai).
+- **Halaman Movements** (`/admin/career/movements`, `EmployeeMovements.vue`): daftar enriched (nama employee/org/posisi/status) + filter tipe/status/search + form create per tipe (dropdown employee/org/posisi/status, validasi dinamis G-7) + aksi Submit/Execute/Cancel/Delete + detail dialog (badge `rejected` merah) + aksi dari dalam dialog. (Langkah 10 & 12, log §3.13/§3.15)
+- **Halaman Contracts** (`/admin/career/contracts`, `EmployeeContracts.vue`): daftar enriched + filter status/search + dialog create/edit + upload dokumen (`POST /uploads` → `document_url`) + extension chain. (Langkah 11, log §3.14)
+- **Halaman Reports** (`/admin/career/reports`, `EmployeeMovementReports.vue`): kartu statistik per tipe + breakdown status + Contract Report (active/expired/extended/terminated + expiring). (P2-13, log §3.27)
+- **Dashboard utama** (`Dashboard.vue`): section "Employee Movement" modul-gated (`hasModule('employeemovement')`) — kartu movement per tipe + Pending Approval + Effective This Month + ringkasan kontrak + tombol View Reports + skeleton loading. (P2-14, log §3.28)
+- **Deep-link**: `Notifications.vue` `MOVEMENT_*` → `/admin/career/movements`; `Approvals.vue` `case 'employeemovement'` → detail movement.
+- **Locale**: `employee_movement.*` bilingual en/id lengkap (status/tipe/label/pesan).
+- **Router/sidebar**: route terdaftar + item menu gated module `employeemovement` + permission `employeemovement.view` (pola sidebar).
 
 ## 3.3 Selisih migration vs model
 
@@ -98,7 +103,7 @@ Modul `backend/internal/modules/employeemovement/` (±3.200 baris) sudah lengkap
 | `approval_instance_id` | ditambah migration 062 | ada |
 | `extension_count` | ada | ada |
 
-Status model lebih kaya dari komentar migration (wajar karena migration 012 tidak diubah setelah 062). Gap aktual: **`rejected` belum ada di enum model maupun migration** — perlu ditambahkan.
+Status model lebih kaya dari komentar migration (wajar karena migration 012 tidak diubah setelah 062). Gap `rejected` **sudah ditutup**: migration `082_add_rejected_status` (mysql + postgres) + enum model `MovementStatusRejected` + handler approval REJECTED → `rejected` (log §3.4).
 
 ## 3.4 Log Implementasi — Langkah 1 ✅ (migration 082 + enum `rejected`)
 
@@ -848,6 +853,52 @@ Scheduled process `ProcessContractExpiration` (plan §12.13) — mark expired ot
 
 ---
 
+# 3.29 Log Implementasi — UNIFIKASI Career Paths (EM 086 + Career Intelligence 018) + apply migration 083–087 (2026-08-10)
+
+> **Latar:** saat verifikasi langsung ke database ditemukan tenant DB (`hris_pt-inthros-jago-utama`) hanya 81/86 migration ter-apply (083–087 pending), DAN migration 086 `career_paths` berkonflik dengan tabel `career_paths` dari modul Career Intelligence (018) yang memakai `CREATE TABLE IF NOT EXISTS` — jika 086 dijalankan apa adanya, kolom `name` (yang dibutuhkan model EM) tidak akan pernah dibuat. Keputusan user (2026-08-10): **unifikasi penuh** — satu skema `career_paths` + `career_path_steps` untuk kedua modul.
+
+## 3.29.1 Yang dikerjakan
+
+- **Migration 086 di-rewrite** (mysql + postgres, up + down) menjadi skema TERPADU (idempotent):
+  - `career_paths` = header jenjang: `id, name, description, is_active, created_by, updated_by, created_at, updated_at, deleted_at` + `uk_career_paths_name`.
+  - Kolom edge CI lama (`source_title_id, target_title_id, path_type, typical_tenure, requirements, competencies, certifications` + `idx_cp_source/target`) **dihapus** — atribut dipindah ke `career_path_steps`.
+  - `career_path_steps` = langkah terpadu: `position_id, sequence, minimum_service_months, requirements` (EM) + `path_type, typical_tenure, competencies, certifications` (CI, pada step target) + `idx_career_path_steps_position` + unique `(career_path_id, sequence)` & `(career_path_id, position_id)` + FK CASCADE.
+- **Career Intelligence di-refactor** (model/dto/repo/service):
+  - `CareerPath` CI = header (name/description/is_active/soft delete); tambah `CareerPathStep` CI.
+  - Edge CI (`source → target, path_type, typical_tenure, requirements, competencies`) disimpan sebagai **path 2-langkah**: step 1 = source, step 2 = target + atribut edge.
+  - `CreateCareerPathTx` (transaksi header+steps), `ListCareerPathStepsByPathID(s)`, `FindCareerPathsBySource` (via step sequence 1), `DeleteCareerPath` (steps hard + header soft).
+  - `buildCareerPathName` generate nama unik `<PATH_TYPE>: <source> → <target>` bila klien tidak mengirim `name`.
+  - Respons CI backward-compatible: tetap mengekspos `source_title_id/target_title_id/path_type/typical_tenure/requirements/competencies/certifications` (diderivasi dari steps) + tambahan `name` & `steps`.
+- **Test**: fixtures + repo/service tests CI diperbarui ke skema baru (termasuk `TestRepo_FindCareerPathsBySource`); EM `careerpath_test.go` tidak berubah (model EM kompatibel).
+
+## 3.29.2 Apply migration ke tenant & verifikasi DB
+
+- Binary `installer.exe` di-build ulang (embed FS memuat migration baru), lalu:
+  `installer.exe migrate --company=df687f34-e580-40c5-8935-73180fb5fd3c` → **5 migration applied** (083 snapshot, 084 audit, 085 documents, 086 career_paths unifikasi, 087 cancellation).
+- Verifikasi langsung `information_schema`:
+  - `schema_migrations` 083–087 hadir.
+  - `career_paths` = 9 kolom header terpadu (tanpa `source_title_id`).
+  - `career_path_steps` = 12 kolom (EM + CI) + index + FK.
+  - `employee_movements` snapshot 6 kolom ✅ · `employee_movement_audits` ✅ · `employee_movement_documents` ✅ · `cancellation_approval_instance_id` ✅.
+
+## 3.29.3 Validasi
+
+- `go build ./...` ✅ · `go vet` kedua modul ✅.
+- `go test ./internal/modules/careerintelligence/ ./internal/modules/employeemovement/` — semua **PASS** ✅.
+- DB tenant kini **86/86** migration ter-apply.
+
+## 3.29.4 Hasil code review & perbaikan
+
+- **Reviewer finding 1 (data loss di migration 086):** tidak ada data `career_paths` pada semua tenant (0 baris) — tidak ada data yang hilang. Risiko teoritis untuk tenant masa depan dengan data CI didokumentasikan (keputusan unifikasi menerima drop edge lama demi satu sumber kebenaran).
+- **Reviewer finding 2 (soft-delete mismatch):** diperbaiki ✅. CI memakai `gorm.DeletedAt` (soft delete header, `deleted_at` di-set), sedangkan model EM `CareerPath` tidak punya `DeletedAt` → query eligibility EM bisa mengembalikan path yang sudah soft-deleted oleh CI. Perbaikan: tambah `DeletedAt gorm.DeletedAt` + `idx_cp_deleted_at` di model EM `CareerPath` (kolom & index sudah ada di DB dari 018), sehingga semua query EM (list, detail, `FindCareerPathStepsByPositionID`) otomatis memfilter `deleted_at IS NULL`.
+- **Reviewer finding 2b (nama unik vs soft delete):** `FindCareerPathByName` (CI) kini memakai `Unscoped()` agar nama path yang sudah soft-deleted tetap terdeteksi/terpesan — mencegah `uk_career_paths_name` violation saat `buildCareerPathName` memilih nama yang sama dengan path yang baru dihapus.
+- **Reviewer finding 3 (name collision):** sudah aman dari awal — `buildCareerPathName` memakai loop akhiran `-2/-3/...`.
+- **Reviewer finding 4 (ORDER BY sequence):** sudah aman — semua fetch steps (`ListCareerPathStepsByPathID`, `ListCareerPathStepsByPathIDs`, EM `FindCareerPathStepsByPositionID`) memakai `Order("sequence ASC")`.
+- **Reviewer finding 5 (validasi asimetris CI vs EM):** diterima sebagai trade-off desain — CI membuat path 2-step deterministik (source seq 1, target seq 2) yang selalu lolos validasi EM; didokumentasikan sebagai kontrak skema terpadu.
+- Validasi ulang: `go build ./...` ✅ · `go vet` ✅ · `go test ./internal/modules/...` — **17/17 modul PASS** ✅.
+
+---
+
 # 5. API Plan
 
 ## 5.1 Endpoint Existing (sudah jalan)
@@ -871,20 +922,20 @@ DELETE /api/v1/tenant/employee-movements/contracts/:id
 GET   /api/v1/tenant/employee-movements/employees/:employeeId/contracts
 ```
 
-## 5.2 Perubahan yang Direncanakan
+## 5.2 Perubahan yang Direncanakan — ✅ SEMUA SELESAI (per 2026-08-10)
 
-- `GET/POST /movements` — respons + nama-nama (G-4), filter `movement_type`/`status`/`employee_id` + search (G-4).
-- `POST /movements/:id/submit` — `flow_id` opsional (auto-resolve G-3).
-- `POST /movements/:id/execute` — transaksi employment (G-1) + employee non-aktif utk offboarding/retirement (§11.3).
-- `status` model + migration: tambah `rejected` (§11.4); handler approval set status `rejected` saat REJECTED (bukan `cancelled`).
-- `POST /uploads` (generik, sudah ada) — dipakai `contracts.document_url` (G-2/G-6).
-- Notifikasi `MOVEMENT_*` (G-2).
+- ✅ `GET/POST /movements` — respons + nama-nama (G-4), filter `movement_type`/`status`/`search` (G-4).
+- ✅ `POST /movements/:id/submit` — `flow_id` opsional (auto-resolve G-3).
+- ✅ `POST /movements/:id/execute` — transaksi employment (G-1) + employee non-aktif utk offboarding/retirement (§11.3).
+- ✅ `status` model + migration: `rejected` (082, §11.4); handler approval set status `rejected` saat REJECTED (bukan `cancelled`).
+- ✅ `POST /uploads` (generik, sudah ada) — dipakai `contracts.document_url` (G-2/G-6).
+- ✅ Notifikasi `MOVEMENT_*` (G-2).
 
 ---
 
 # 6. Frontend Plan
 
-> Status saat ini: `EmployeeMovements.vue` = placeholder 1 baris. Seluruh poin di bawah **belum ada**.
+> Status saat ini: **SEMUA poin di bawah SELESAI** (per 2026-08-10, log §3.13–§3.15 + P2-13/14). Rincian implementasi aktual ada di §3.2.
 
 ## 6.1 Halaman & Navigasi
 
@@ -929,16 +980,17 @@ GET   /api/v1/tenant/employee-movements/employees/:employeeId/contracts
 
 ---
 
-# 7. Notification Plan
+# 7. Notification Plan — ✅ SELESAI (per 2026-08-10)
 
-| Type | Penerima | Trigger |
-|---|---|---|
-| `MOVEMENT_SUBMITTED` | approver | `SubmitMovement` → instance approval dibuat |
-| `MOVEMENT_APPROVED` | pengaju / employee | instance APPROVED (push-callback) |
-| `MOVEMENT_REJECTED` | pengaju / employee | instance REJECTED |
-| `MOVEMENT_EXECUTED` | employee | `ExecuteMovement` sukses |
+| Type | Penerima | Trigger | Status |
+|---|---|---|---|
+| `MOVEMENT_SUBMITTED` | approver | `SubmitMovement` → instance approval dibuat | ✅ (via assignment Central Approval, log §3.8) |
+| `MOVEMENT_APPROVED` | pengaju / employee | instance APPROVED (push-callback) | ✅ `notifyMovementOutcome` |
+| `MOVEMENT_REJECTED` | pengaju / employee | instance REJECTED (termasuk cancellation diterima) | ✅ `notifyMovementOutcome` |
+| `MOVEMENT_EXECUTED` | employee | `ExecuteMovement` sukses | ✅ `notifyMovementOutcome` |
+| `CONTRACT_EXPIRING` / `CONTRACT_EXPIRED` | employee + HR | scheduler kontrak (H-30/14/7/1) | ✅ (P1-8, log §3.22) |
 
-i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama: `OVERTIME_*`, `LEAVE_*`.)
+i18n en/id + FE deep-link `MOVEMENT_*` → `/admin/career/movements` (Pola sama: `OVERTIME_*`, `LEAVE_*`.)
 
 ---
 
@@ -973,11 +1025,11 @@ i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama
 
 ---
 
-# 10. Testing Plan
+# 10. Testing Plan — ✅ SELESAI (per 2026-08-10)
 
-- **Backend**: unit/service transisi state movement (`draft → pending_approval → approved → executed`, `approved → rejected`, `draft → cancelled`); `ExecuteMovement` benar-benar insert employment baru + tutup lama (`effective_date - 1`); offboarding/retirement → employee `is_active=false`; approve manual sudah tidak ada; contract extend (extension_count berantai, previous → extended); validasi per tipe; auto-resolve flow.
-- **Integration**: instance approval + push-callback + notifikasi `MOVEMENT_*` (termasuk REJECTED → status `rejected`); eksekusi promosi mengubah employment employee; eksekusi manual oleh HR (§11.1).
-- **Frontend**: build bersih, verifikasi manual alur HR (buat draft → submit → approve → execute → cek employment employee) di halaman Movements, dan CRUD kontrak di halaman Contracts terpisah.
+- ✅ **Backend**: unit/service transisi state movement (`draft → pending_approval → approved → executed`, `approved → rejected`, `pending_approval/approved → cancelled`); `ExecuteMovement` benar-benar insert employment baru + tutup lama (`effective_date - 1`); offboarding/retirement → employee non-aktif; approve manual sudah tidak ada (G-5); contract extend (extension_count berantai, previous → extended); validasi per tipe (G-7); auto-resolve flow (G-3); conflict detection (P0-2/3); snapshot (P0-4); audit (P0-5); documents (P1-6); career timeline/eligibility (P1-7/11); contract expiry (P1-8); career path (P1-10); cancellation approval (P1-12); report & dashboard (P2-13/14).
+- ✅ **Integration**: instance approval + push-callback + notifikasi `MOVEMENT_*` (termasuk REJECTED → `rejected`); eksekusi promosi mengubah employment employee; eksekusi manual oleh HR (§11.1).
+- ✅ **Frontend**: `npm run build` bersih di tiap langkah; **checklist verifikasi E2E manual** dibuat (`docs/module-movement-e2e-checklist.md`); ⏳ eksekusi manual menunggu environment tenant + akun ber-permission `employeemovement.*`.
 
 ---
 
@@ -1143,7 +1195,7 @@ dan tidak boleh terdapat dua active employment period yang overlap.
 
 ---
 
-## 12.5 P0 — Movement Snapshot
+## 12.5 P0 — Movement Snapshot — ✅ **SELESAI (2026-08-10)** — lihat log §3.18
 
 Saat ini movement menyimpan foreign key `from_*` dan `to_*`. Karena nama Organization, Position, dan Employment Status dapat berubah, histori movement perlu memiliki snapshot.
 
@@ -1182,7 +1234,7 @@ Jika Position berubah nama pada tahun berikutnya, histori movement tetap menampi
 
 ---
 
-## 12.6 P0 — Movement Audit Trail
+## 12.6 P0 — Movement Audit Trail — ✅ **SELESAI (2026-08-10)** — lihat log §3.19
 
 Employee Movement adalah transaksi HR yang penting dan harus dapat diaudit.
 
@@ -1227,7 +1279,7 @@ Semua perubahan lifecycle movement tercatat.
 
 ---
 
-## 12.7 P1 — Future-Dated Movement Processing
+## 12.7 P1 — Future-Dated Movement Processing — ⏳ **Opsi A SELESAI / Opsi B TODO (opsional)**
 
 Keputusan §11.2 tetap dipertahankan:
 
@@ -1235,7 +1287,7 @@ Keputusan §11.2 tetap dipertahankan:
 
 Enhancement yang disarankan adalah scheduler **opsional**, bukan menggantikan manual execution pada fase existing.
 
-### Opsi A — Manual
+### Opsi A — Manual — ✅ **SELESAI (perilaku existing, §11.1 + log §3.5)**
 
 ```text
 APPROVED
@@ -1245,7 +1297,7 @@ HR Execute
 EXECUTED
 ```
 
-### Opsi B — Scheduled Execution
+### Opsi B — Scheduled Execution — ⏳ **TODO (opsional, feature flag)**
 
 ```text
 APPROVED
@@ -1257,7 +1309,7 @@ ProcessEffectiveMovementsJob
 EXECUTED
 ```
 
-Implementasi scheduler sebaiknya menjadi feature flag/configuration jika nanti diperlukan.
+Belum diimplementasikan — sengaja dijadikan **opsional** sesuai keputusan §11.1 (eksekusi manual oleh HR). Scheduler kontrak (§12.13) sudah ada sebagai referensi pola (goroutine + ticker di `cmd/server/main.go`), sehingga `ProcessEffectiveMovementsJob` mudah ditambahkan bila policy berubah. Implementasi sebaiknya menjadi feature flag/configuration.
 
 ---
 
@@ -1303,7 +1355,7 @@ Movement menjadi sumber transaksi, sedangkan API career-history menjadi read mod
 
 ---
 
-## 12.9 P1 — Career Path — ✅ **SELESAI (2026-08-10)** — lihat log §3.23
+## 12.9 P1 — Career Path — ✅ **SELESAI (2026-08-10)** — lihat log §3.23 + **§3.29 (unifikasi schema dengan Career Intelligence 018)**
 
 Karena module mencakup Career Management, tambahkan konfigurasi career path.
 
@@ -1421,7 +1473,7 @@ sebagai input eligibility/recommendation.
 
 ---
 
-## 12.12 P1 — Mutation Enhancement
+## 12.12 P1 — Mutation Enhancement — ⏳ **SEBAGIAN (validasi konflik ✅, konsistensi pasangan org+posisi ⏳ TODO)**
 
 Mutation harus mendukung perpindahan lengkap:
 
@@ -1452,9 +1504,9 @@ position_id
 
 ### Acceptance Criteria
 
-- Organization dan Position harus konsisten.
-- Target position harus tersedia.
-- Tidak boleh membuat dua active employment pada target position.
+- ⏳ Organization dan Position harus konsisten — **belum ada validasi eksplisit pasangan** `organization_id`–`position_id` (position yang dimasukkan tidak dicek milik organization yang sama). Perlu enhancement bila policy HR mensyaratkan.
+- ✅ Target position harus tersedia — `PositionConflict` (P0-2, §12.3) dicek saat create/update **dan** diulang atomik saat execute.
+- ✅ Tidak boleh membuat dua active employment pada target position — `PositionConflict` + `EmploymentEffectiveDateConflict` (P0-3, §12.4).
 
 ---
 
@@ -1493,7 +1545,7 @@ EXPIRED
 
 ---
 
-## 12.14 P1 — Contract Extension Chain
+## 12.14 P1 — Contract Extension Chain — ✅ **SELESAI (existing, G-6 — lihat log §3.10)**
 
 Pertahankan chain existing:
 
@@ -1514,15 +1566,15 @@ previous_contract_id
 extension_count
 ```
 
-### Enhancement
+### Enhancement — ✅ (semua poin terpenuhi oleh implementasi G-6, log §3.10)
 
 Pastikan setiap extension:
 
-- Memiliki contract number baru jika policy mengharuskan.
-- Memiliki effective date baru.
-- Menyimpan previous contract.
-- Tidak mengubah histori contract sebelumnya.
-- Dapat ditelusuri dari contract terbaru ke awal chain.
+- ✅ Memiliki contract number baru (input form create contract).
+- ✅ Memiliki effective date baru (`start_date` baru).
+- ✅ Menyimpan previous contract (`previous_contract_id`).
+- ✅ Tidak mengubah histori contract sebelumnya (kontrak lama hanya berganti status `extended`; data lain tetap).
+- ✅ Dapat ditelusuri dari contract terbaru ke awal chain (`previous_contract_id` + `extension_count` berantai + `previous_contract_number` di respons).
 
 ---
 
@@ -1677,115 +1729,119 @@ Expired                 5
 
 ---
 
-# 13. Recommended Database Enhancement
+# 13. Recommended Database Enhancement — ✅ (kecuali `career_path_requirements` ⏳ TODO opsional)
 
-## Existing Tables
+## Existing Tables — ✅ (sudah ada sejak migration 012/062)
 
 ```text
 employee_movements
 employee_contracts
 ```
 
-## P0 / P1 New Tables
+## P0 / P1 New Tables — ✅ (migration 084 + 085, mysql + postgres)
 
 ```text
-employee_movement_audits
-employee_movement_documents
+employee_movement_audits        ✅ migration 084 (P0-5, log §3.19)
+employee_movement_documents     ✅ migration 085 (P1-6, log §3.20)
 ```
 
-## Career Management
+## Career Management — ✅ (migration 086 di-rewrite sebagai skema TERPADU, log §3.29)
 
 ```text
-career_paths
-career_path_steps
+career_paths        ✅ migration 086 — header jenjang TERPADU (EM + Career Intelligence 018)
+career_path_steps   ✅ migration 086 — langkah terpadu (EM fields + atribut edge CI)
 ```
 
-## Optional
+> **Keputusan unifikasi (2026-08-10, log §3.29):** `career_paths` adalah SATU sumber kebenaran untuk Employee Movement (P1-10) DAN Career Intelligence (018). Edge CI (`source → target`, `path_type`, `typical_tenure`, `requirements`, `competencies`, `certifications`) direpresentasikan sebagai **path 2-langkah** pada skema terpadu; kolom edge CI lama dihapus dari header dan dipindah ke `career_path_steps`.
+
+## Optional — ⏳ TODO (belum dibuat, sengaja ditunda)
 
 ```text
-career_path_requirements
+career_path_requirements        ⏳ belum ada — eligibility saat ini hardcode rule di service (P1-11)
 ```
 
-Tidak direkomendasikan membuat:
+Tidak direkomendasikan membuat (✓ tetap dihormati):
 
 ```text
 employee_career_history
 ```
 
-karena career history dapat dibentuk dari existing transactional data.
+karena career history dibentuk dari transactional data via `GET /employees/:id/career-history` (P1-7, log §3.21) — tanpa tabel duplikasi.
 
 ---
 
-# 14. Recommended Field Enhancement
+# 14. Recommended Field Enhancement — ✅ (P0-4, migration 083; indexes sudah ada di migration 012)
 
 ## `employee_movements`
 
-Tambahkan snapshot fields:
+Tambahkan snapshot fields — ✅ (migration `083_employeemovement_snapshot`, mysql + postgres):
 
 ```text
-from_organization_name
-from_position_name
-from_employment_status_name
+from_organization_name          ✅
+from_position_name              ✅
+from_employment_status_name     ✅
 
-to_organization_name
-to_position_name
-to_employment_status_name
+to_organization_name            ✅
+to_position_name                ✅
+to_employment_status_name       ✅
 ```
 
-Jika dibutuhkan:
+Jika dibutuhkan (⏳ belum — dapat ditambahkan bila policy HR mensyaratkan):
 
 ```text
 from_employment_type_name
 to_employment_type_name
 ```
 
-### Indexes
-
-Pastikan tersedia index untuk:
+### Indexes — ✅ (sudah ada sejak migration 012)
 
 ```text
-employee_id
-movement_type
-status
-effective_date
-from_organization_id
-to_organization_id
-from_position_id
-to_position_id
+employee_id         ✅ idx_emp_mvmt_employee
+movement_type       ✅ idx_emp_mvmt_type
+status              ✅ idx_emp_mvmt_status
+effective_date      ✅ idx_emp_mvmt_effective
+from_organization_id ✅ idx_emp_mvmt_from_org
+to_organization_id  ✅ idx_emp_mvmt_to_org
+from_position_id    ✅ idx_emp_mvmt_from_pos
+to_position_id      ✅ idx_emp_mvmt_to_pos
 ```
 
 ---
 
-# 15. Enhancement API Plan
+# 15. Enhancement API Plan — ✅ SEMUA ENDPOINT TERIMPLEMENTASI
 
-## Career History
-
-```http
-GET /api/v1/tenant/employees/{employeeId}/career-history
-```
-
-## Eligibility
+## Career History — ✅ (P1-7, log §3.21)
 
 ```http
-GET /api/v1/tenant/employees/{employeeId}/movement-eligibility
-GET /api/v1/tenant/employees/{employeeId}/promotion-eligibility
+GET /api/v1/tenant/employee-movements/employees/{employeeId}/career-history
 ```
 
-## Documents
+> Catatan: path aktual di bawah group `employee-movements` (bukan `/employees/` root) — sesuai routes.go.
+
+## Eligibility — ✅ (P1-11, log §3.24)
 
 ```http
-GET    /api/v1/tenant/employee-movements/{id}/documents
-POST   /api/v1/tenant/employee-movements/{id}/documents
-DELETE /api/v1/tenant/employee-movements/{id}/documents/{documentId}
+GET /api/v1/tenant/employee-movements/employees/{employeeId}/movement-eligibility
+GET /api/v1/tenant/employee-movements/employees/{employeeId}/promotion-eligibility
 ```
 
-## Audit
+## Documents — ✅ (P1-6, log §3.20)
 
 ```http
-GET /api/v1/tenant/employee-movements/{id}/audits
+GET    /api/v1/tenant/employee-movements/movements/{id}/documents
+POST   /api/v1/tenant/employee-movements/movements/{id}/documents
+DELETE /api/v1/tenant/employee-movements/movements/{id}/documents/{documentId}
 ```
 
-## Career Paths
+> Catatan: path aktual menambahkan segmen `movements` — sesuai routes.go.
+
+## Audit — ✅ (P0-5, log §3.19)
+
+```http
+GET /api/v1/tenant/employee-movements/movements/{id}/audits
+```
+
+## Career Paths — ✅ (P1-10, log §3.23)
 
 ```http
 GET    /api/v1/tenant/career-paths
@@ -1795,26 +1851,36 @@ PUT    /api/v1/tenant/career-paths/{id}
 DELETE /api/v1/tenant/career-paths/{id}
 ```
 
----
+## Bonus (report & dashboard, P2-13/14) — ✅
 
-# 16. Enhancement Service Layer
-
-Recommended services:
-
-```text
-MovementExecutionService
-MovementValidationService
-MovementConflictService
-MovementSnapshotService
-MovementAuditService
-MovementDocumentService
-CareerHistoryService
-CareerPathService
-CareerEligibilityService
-ContractExpirationService
+```http
+GET /api/v1/tenant/employee-movements/reports/movements   ?date_from&date_to&organization_id&position_id&employee_id&movement_type&status
+GET /api/v1/tenant/employee-movements/reports/contracts
+GET /api/v1/tenant/employee-movements/dashboard
 ```
 
-### Responsibility
+---
+
+# 16. Enhancement Service Layer — ✅ (diimplementasikan sebagai method pada `Service` tunggal + adapter narrow)
+
+Recommended services — seluruh tanggung jawabnya sudah ada di `employeemovement.Service` (metode terkait di daftar):
+
+```text
+MovementExecutionService     → ExecuteMovement + ExecuteMovementTx (atomic, P0-1)
+MovementValidationService    → validateMovement + validateMovementFields (G-7)
+MovementConflictService      → PositionConflict + EmploymentEffectiveDateConflict (P0-2/3)
+MovementSnapshotService      → fillMovementSnapshot (P0-4)
+MovementAuditService         → recordAudit + ListMovementAudits (P0-5)
+MovementDocumentService      → Create/List/DeleteMovementDocument (P1-6)
+CareerHistoryService         → GetCareerHistory (P1-7)
+CareerPathService            → CRUD career paths + steps (P1-10)
+CareerEligibilityService     → GetMovementEligibility/GetPromotionEligibility (P1-11)
+ContractExpirationService    → ProcessContractExpiration + scheduler (P1-8)
+```
+
+> **Keputusan desain:** modul ini memakai **satu `Service` dengan metode tersegmentasi** (pola existing `internal/modules/*`) + **adapter narrow-interface** (`ApprovalEngine`, `CareerExecutor`, `Notifier`, `PerformanceProvider`, `CompetencyProvider`, `OKRProvider`) — bukan service terpisah per tanggung jawab, agar konsisten dengan arsitektur modul lain di project ini.
+
+### Responsibility — ✅ (terpenuhi, lihat peta di atas)
 
 ```text
 MovementValidationService
@@ -1844,9 +1910,11 @@ Promotion / career eligibility
 
 ---
 
-# 17. Enhancement Testing Plan
+# 17. Enhancement Testing Plan — ✅ SEMUA TEST TERIMPLEMENTASI
 
-## 17.1 Transaction Test
+> Test berada di `backend/internal/modules/employeemovement/`: `service_test.go`, `repository_test.go`, `audit_test.go`, `document_test.go`, `careerpath_test.go`, `eligibility_test.go`, `report_test.go`, `handler_test.go`, `approval_integration_test.go`, `enrichment_test.go`.
+
+## 17.1 Transaction Test — ✅ (`TestExecuteMovement*` di service/repository test, P0-1)
 
 ```text
 Execute Movement
@@ -1855,7 +1923,7 @@ Execute Movement
 → Movement Executed
 ```
 
-Simulasikan failure pada new employment:
+Simulasikan failure pada new employment — ✅ (rollback diuji: old employment utuh, movement tetap approved):
 
 ```text
 Old Employment remains unchanged
@@ -1864,7 +1932,7 @@ Movement remains approved
 
 ---
 
-## 17.2 Position Conflict Test
+## 17.2 Position Conflict Test — ✅ (P0-2)
 
 ```text
 Position A occupied by Employee A
@@ -1878,7 +1946,7 @@ REJECTED / VALIDATION ERROR
 
 ---
 
-## 17.3 Future Date Test
+## 17.3 Future Date Test — ✅ (P0-1/3)
 
 ```text
 Effective Date > Today
@@ -1893,7 +1961,7 @@ but employment only effective from effective_date
 
 ---
 
-## 17.4 Overlap Test
+## 17.4 Overlap Test — ✅ (P0-3, `EmploymentEffectiveDateConflict`)
 
 Test:
 
@@ -1906,7 +1974,7 @@ Pastikan employment periods tidak overlap secara invalid.
 
 ---
 
-## 17.5 Snapshot Test
+## 17.5 Snapshot Test — ✅ (P0-4, `enrichment_test.go` snapshot-aware)
 
 1. Create movement.
 2. Snapshot position name = `Staff`.
@@ -1915,7 +1983,7 @@ Pastikan employment periods tidak overlap secara invalid.
 
 ---
 
-## 17.6 Career History Test
+## 17.6 Career History Test — ✅ (P1-7, `TestService_GetCareerHistory*`)
 
 Pastikan timeline menampilkan:
 
@@ -1931,7 +1999,7 @@ secara kronologis.
 
 ---
 
-## 17.7 Contract Test
+## 17.7 Contract Test — ✅ (G-6, log §3.10)
 
 Test:
 
@@ -1975,7 +2043,7 @@ C = 2
 | 7 | Career Timeline — ✅ **SELESAI (2026-08-10)** | P1 | BE/FE |
 | 8 | Contract Expiry — ✅ **SELESAI (2026-08-10)** | P1 | BE/Job/FE |
 | 9 | Performance Integration — ✅ **SELESAI (2026-08-10)** | P1 | BE |
-| 10 | Career Path — ✅ **SELESAI (2026-08-10)** | P1 | DB/BE/FE |
+| 10 | Career Path — ✅ **SELESAI (2026-08-10)** — skema TERPADU dgn Career Intelligence 018 (log §3.29); migration 086 di-apply | P1 | DB/BE/FE |
 | 11 | Promotion Eligibility — ✅ **SELESAI (2026-08-10)** | P1/P2 | BE |
 | 12 | Movement Cancellation Approval | ✅ **SELESAI (2026-08-10)** — via Central Approval: draft langsung, approved → Cancellation Request module `employeemovement_cancellation` → cancellation_pending → cancelled/kembali approved; migration 087 + audit CANCELLATION_REQUESTED/REJECTED (log §3.26) | Approval/BE |
 | 13 | Reports | ✅ **SELESAI (2026-08-10)** — GET `/reports/movements` (total + by_type + by_status, filter periode/org/posisi/employee/tipe/status) + GET `/reports/contracts` (by_status + expiring < 30 hari); FE halaman Movement Reports + kartu statistik (log §3.27) | BE/FE |

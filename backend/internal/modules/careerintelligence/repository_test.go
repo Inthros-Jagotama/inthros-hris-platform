@@ -280,25 +280,34 @@ func TestRepo_ListCareerInterests_ByEmployee(t *testing.T) {
 // Career Path Repository Tests
 // =========================================================================
 
-func TestRepo_CreateCareerPath_Success(t *testing.T) {
+func TestRepo_CreateCareerPathTx_Success(t *testing.T) {
 	_, dbResolver, cleanup := setupTestDB()
 	defer cleanup()
 	repo := NewRepository(dbResolver)
 
-	cp := &CareerPath{
-		SourceTitleID:  uuid.New(),
-		TargetTitleID:  uuid.New(),
-		PathType:       "PROMOTION",
-		TypicalTenure:  24,
-		IsActive:       true,
+	tenure := 24
+	cp := &CareerPath{Name: "PROMOTION: Staff → Supervisor", IsActive: true}
+	steps := []CareerPathStep{
+		{PositionID: uuid.New(), Sequence: 1},
+		{PositionID: uuid.New(), Sequence: 2, PathType: "PROMOTION", TypicalTenure: &tenure, Requirements: "Bachelor degree"},
 	}
 
-	if err := repo.CreateCareerPath(context.Background(), cp); err != nil {
-		t.Fatalf("CreateCareerPath failed: %v", err)
+	if err := repo.CreateCareerPathTx(context.Background(), cp, steps); err != nil {
+		t.Fatalf("CreateCareerPathTx failed: %v", err)
 	}
 
 	if cp.ID == uuid.Nil {
 		t.Error("expected ID to be auto-generated")
+	}
+	steps, err := repo.ListCareerPathStepsByPathID(context.Background(), cp.ID)
+	if err != nil {
+		t.Fatalf("ListCareerPathStepsByPathID failed: %v", err)
+	}
+	if len(steps) != 2 {
+		t.Errorf("expected 2 steps, got %d", len(steps))
+	}
+	if steps[0].Sequence != 1 || steps[1].Sequence != 2 {
+		t.Errorf("expected sequences 1,2; got %d,%d", steps[0].Sequence, steps[1].Sequence)
 	}
 }
 
@@ -314,8 +323,8 @@ func TestRepo_FindCareerPathByID_Success(t *testing.T) {
 		t.Fatalf("FindCareerPathByID failed: %v", err)
 	}
 
-	if found.PathType != created.PathType {
-		t.Errorf("expected path type '%s', got '%s'", created.PathType, found.PathType)
+	if found.Name != created.Name {
+		t.Errorf("expected name '%s', got '%s'", created.Name, found.Name)
 	}
 }
 
@@ -341,6 +350,34 @@ func TestRepo_ListCareerPaths_Pagination(t *testing.T) {
 	}
 }
 
+func TestRepo_FindCareerPathsBySource_Success(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+
+	src := uuid.New()
+	tenure := 12
+	cp := &CareerPath{Name: "PROMOTION: A → B", IsActive: true}
+	steps := []CareerPathStep{
+		{PositionID: src, Sequence: 1},
+		{PositionID: uuid.New(), Sequence: 2, PathType: "PROMOTION", TypicalTenure: &tenure},
+	}
+	if err := repo.CreateCareerPathTx(context.Background(), cp, steps); err != nil {
+		t.Fatalf("CreateCareerPathTx failed: %v", err)
+	}
+
+	list, err := repo.FindCareerPathsBySource(context.Background(), src)
+	if err != nil {
+		t.Fatalf("FindCareerPathsBySource failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Errorf("expected 1 path from source, got %d", len(list))
+	}
+	if list[0].ID != cp.ID {
+		t.Errorf("expected path %s, got %s", cp.ID, list[0].ID)
+	}
+}
+
 func TestRepo_DeleteCareerPath_Success(t *testing.T) {
 	_, dbResolver, cleanup := setupTestDB()
 	defer cleanup()
@@ -355,6 +392,13 @@ func TestRepo_DeleteCareerPath_Success(t *testing.T) {
 	_, err := repo.FindCareerPathByID(context.Background(), created.ID)
 	if err == nil {
 		t.Fatal("expected error after deleting career path")
+	}
+	steps, err := repo.ListCareerPathStepsByPathID(context.Background(), created.ID)
+	if err != nil {
+		t.Fatalf("ListCareerPathStepsByPathID after delete failed: %v", err)
+	}
+	if len(steps) != 0 {
+		t.Errorf("expected steps deleted, got %d", len(steps))
 	}
 }
 

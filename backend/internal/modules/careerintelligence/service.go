@@ -289,19 +289,65 @@ func (s *Service) CreateCareerPath(ctx context.Context, req CreateCareerPathRequ
 	if err != nil {
 		return nil, fmt.Errorf("invalid target_title_id: %w", err)
 	}
+
+	// Edge CI → path 2-langkah pada skema terpadu: step 1 = source,
+	// step 2 = target dengan seluruh atribut edge CI (path_type, typical_tenure,
+	// requirements, competencies) disimpan pada step target.
+	tenure := req.TypicalTenure
 	cp := &CareerPath{
-		SourceTitleID:  srcID,
-		TargetTitleID:  tgtID,
-		PathType:       req.PathType,
-		TypicalTenure:  req.TypicalTenure,
-		Requirements:   req.Requirements,
-		Competencies:   req.Competencies,
-		IsActive:       true,
+		Name:     s.buildCareerPathName(ctx, req),
+		IsActive: true,
 	}
-	if err := s.repo.CreateCareerPath(ctx, cp); err != nil {
+	steps := []CareerPathStep{
+		{PositionID: srcID, Sequence: 1},
+		{
+			PositionID:    tgtID,
+			Sequence:      2,
+			PathType:      req.PathType,
+			TypicalTenure: &tenure,
+			Requirements:  req.Requirements,
+			Competencies:  req.Competencies,
+		},
+	}
+	if err := s.repo.CreateCareerPathTx(ctx, cp, steps); err != nil {
 		return nil, err
 	}
-	return careerPathToResponse(cp), nil
+
+	s.logger.Info("Career path created",
+		zap.String("path_id", cp.ID.String()),
+		zap.String("path_type", req.PathType),
+	)
+
+	return s.careerPathToResponse(cp, steps), nil
+}
+
+// buildCareerPathName membuat nama path unik untuk edge CI. Bila klien tidak
+// mengirim name, dipakai "<PATH_TYPE>: <source> → <target>" (fallback ke
+// potongan UUID jika nama posisi tidak tersedia). Akhiran unik ditambahkan
+// bila nama sudah dipakai (menghormati uk_career_paths_name).
+func (s *Service) buildCareerPathName(ctx context.Context, req CreateCareerPathRequest) string {
+	if req.Name != "" {
+		return req.Name
+	}
+	srcName, _ := s.repo.GetPositionTitle(ctx, mustUUID(req.SourceTitleID))
+	tgtName, _ := s.repo.GetPositionTitle(ctx, mustUUID(req.TargetTitleID))
+	base := fmt.Sprintf("%s: %s → %s", req.PathType, srcName, tgtName)
+	if base == "" {
+		base = fmt.Sprintf("%s-%s-%s", req.PathType, req.SourceTitleID[:8], req.TargetTitleID[:8])
+	}
+	// Pastikan unik: coba base, lalu base-2, base-3, ...
+	candidate := base
+	for i := 2; ; i++ {
+		if _, err := s.repo.FindCareerPathByName(ctx, candidate); err != nil {
+			return candidate
+		}
+		candidate = fmt.Sprintf("%s-%d", base, i)
+	}
+}
+
+func mustUUID(s string) uuid.UUID {
+	uid, _ := uuid.Parse(s)
+	return uid
 }
 
 func (s *Service) ListCareerPaths(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
@@ -315,9 +361,18 @@ func (s *Service) ListCareerPaths(ctx context.Context, page, perPage int) (*Pagi
 	if err != nil {
 		return nil, err
 	}
+	ids := make([]uuid.UUID, 0, len(list))
+	for _, cp := range list {
+		ids = append(ids, cp.ID)
+	}
+	stepsByPath, err := s.repo.ListCareerPathStepsByPathIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
 	responses := make([]CareerPathResponse, 0, len(list))
 	for _, cp := range list {
-		responses = append(responses, *careerPathToResponse(&cp))
+		steps := stepsByPath[cp.ID]
+		responses = append(responses, *s.careerPathToResponse(&cp, steps))
 	}
 	return &PaginatedResponse{
 		Success: true, Data: responses, Page: page, PerPage: perPage,
@@ -520,20 +575,45 @@ func careerInterestToResponse(ci *CareerInterest) *CareerInterestResponse {
 	}
 }
 
-func careerPathToResponse(cp *CareerPath) *CareerPathResponse {
-	return &CareerPathResponse{
-		ID:            cp.ID.String(),
-		SourceTitleID: cp.SourceTitleID.String(),
-		TargetTitleID: cp.TargetTitleID.String(),
-		PathType:      cp.PathType,
-		TypicalTenure: cp.TypicalTenure,
-		Requirements:  cp.Requirements,
-		Competencies:  cp.Competencies,
-		Certifications: cp.Certifications,
-		IsActive:      cp.IsActive,
-		CreatedAt:     cp.CreatedAt,
-		UpdatedAt:     cp.UpdatedAt,
+// careerPathToResponse membangun respons dari header + steps terpadu.
+// Untuk edge CI (path 2-langkah): source = step 1, target = step terakhir,
+// atribut edge (path_type/typical_tenure/requirements/competencies/
+// certifications) diambil dari step target. Steps lain (EM jenjang) tetap
+// ditampilkan apa adanya.
+func (s *Service) careerPathToResponse(cp *CareerPath, steps []CareerPathStep) *CareerPathResponse {
+	resp := &CareerPathResponse{
+		ID:         cp.ID.String(),
+		Name:       cp.Name,
+		IsActive:   cp.IsActive,
+		CreatedAt:  cp.CreatedAt,
+		UpdatedAt:  cp.UpdatedAt,
+		Steps:      make([]CareerPathStepResponse, 0, len(steps)),
 	}
+	for _, st := range steps {
+		stepResp := CareerPathStepResponse{
+			ID:             st.ID.String(),
+			PositionID:     st.PositionID.String(),
+			Sequence:       st.Sequence,
+			PathType:       st.PathType,
+			TypicalTenure:  st.TypicalTenure,
+			Competencies:   st.Competencies,
+			Certifications: st.Certifications,
+		}
+		resp.Steps = append(resp.Steps, stepResp)
+	}
+	if len(steps) > 0 {
+		resp.SourceTitleID = steps[0].PositionID.String()
+		target := steps[len(steps)-1]
+		resp.TargetTitleID = target.PositionID.String()
+		resp.PathType = target.PathType
+		if target.TypicalTenure != nil {
+			resp.TypicalTenure = *target.TypicalTenure
+		}
+		resp.Requirements = target.Requirements
+		resp.Competencies = target.Competencies
+		resp.Certifications = target.Certifications
+	}
+	return resp
 }
 
 func successionPlanToResponse(sp *CareerSuccessionPlan) *SuccessionPlanResponse {

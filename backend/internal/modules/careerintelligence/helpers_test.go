@@ -22,6 +22,7 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&CareerTalentMap{},
 		&CareerInterest{},
 		&CareerPath{},
+		&CareerPathStep{},
 		&CareerSuccessionPlan{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
@@ -109,16 +110,25 @@ func createTestCareerPath(repo *Repository) *CareerPath {
 	_fixtureCounter++
 	ctx := context.Background()
 	pathTypes := []string{"PROMOTION", "LATERAL", "DEMOTION", "CROSSFUNCTIONAL"}
+	srcID := uuid.New()
+	tgtID := uuid.New()
+	tenure := 24
 	cp := &CareerPath{
-		ID:            uuid.New(),
-		SourceTitleID:  uuid.New(),
-		TargetTitleID:  uuid.New(),
-		PathType:       pathTypes[_fixtureCounter%len(pathTypes)],
-		TypicalTenure:  24,
-		Requirements:   "Bachelor degree, 5 years experience",
-		IsActive:       true,
+		ID:       uuid.New(),
+		Name:     fmt.Sprintf("%s: %d", pathTypes[_fixtureCounter%len(pathTypes)], _fixtureCounter),
+		IsActive: true,
 	}
-	if err := repo.CreateCareerPath(ctx, cp); err != nil {
+	steps := []CareerPathStep{
+		{PositionID: srcID, Sequence: 1},
+		{
+			PositionID:    tgtID,
+			Sequence:      2,
+			PathType:      pathTypes[_fixtureCounter%len(pathTypes)],
+			TypicalTenure: &tenure,
+			Requirements:  "Bachelor degree, 5 years experience",
+		},
+	}
+	if err := repo.CreateCareerPathTx(ctx, cp, steps); err != nil {
 		panic(fmt.Sprintf("failed to create test career path: %v", err))
 	}
 	return cp
