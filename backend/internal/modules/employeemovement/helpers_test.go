@@ -27,6 +27,9 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&EmployeeMovementAudit{},
 		// Movement documents table (enhancement plan §12.15).
 		&EmployeeMovementDocument{},
+		// Career path configuration (enhancement plan §12.9).
+		&CareerPath{},
+		&CareerPathStep{},
 		// Employment table needed by the position/effective-date conflict
 		// checks (enhancement plan §12.3/§12.4) that run during movement
 		// create/execute in service tests.

@@ -42,4 +42,15 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// Contracts by Employee
 		em.GET("/employees/:employeeId/contracts", handler.ListContractsByEmployee)
 	}
+
+	// Career paths (enhancement plan §12.9) — planning/configuration jenjang
+	// karier; endpoint per plan §15: /api/v1/tenant/career-paths.
+	cp := rg.Group("/career-paths")
+	{
+		cp.GET("", handler.ListCareerPaths)
+		cp.POST("", handler.CreateCareerPath)
+		cp.GET("/:id", handler.GetCareerPathByID)
+		cp.PUT("/:id", handler.UpdateCareerPath)
+		cp.DELETE("/:id", handler.DeleteCareerPath)
+	}
 }

@@ -202,6 +202,62 @@ func (d *EmployeeMovementDocument) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// 12.9 CareerPath (Career Path Configuration)
+// =========================================================================
+
+// CareerPath adalah konfigurasi jenjang karier (plan §12.9) — planning /
+// configuration, BUKAN movement transaction. Satu path berisi deretan
+// CareerPathStep berurutan (sequence) yang masing-masing menunjuk ke sebuah
+// posisi (organisasi = posisi), dengan syarat opsional minimum masa kerja
+// dan requirements.
+type CareerPath struct {
+	ID          uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	Name        string     `gorm:"type:varchar(100);not null;uniqueIndex:uk_career_paths_name" json:"name"`
+	Description *string    `gorm:"type:text" json:"description,omitempty"`
+	IsActive    bool       `gorm:"type:boolean;default:true" json:"is_active"`
+	CreatedBy   *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
+	UpdatedBy   *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+func (CareerPath) TableName() string {
+	return "career_paths"
+}
+
+func (p *CareerPath) BeforeCreate(tx *gorm.DB) error {
+	if p.ID == uuid.Nil {
+		p.ID = uuid.New()
+	}
+	return nil
+}
+
+// CareerPathStep adalah satu langkah pada CareerPath. Sequence unik per path
+// (urutan jenjang), position_id unik per path (satu posisi tidak boleh
+// muncul dua kali pada jalur yang sama).
+type CareerPathStep struct {
+	ID                   uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	CareerPathID         uuid.UUID `gorm:"type:char(36);not null;uniqueIndex:uk_career_path_steps_sequence,priority:1;uniqueIndex:uk_career_path_steps_position,priority:1" json:"career_path_id"`
+	PositionID           uuid.UUID `gorm:"type:char(36);not null;index:idx_career_path_steps_position;uniqueIndex:uk_career_path_steps_position,priority:2" json:"position_id"`
+	Sequence             int       `gorm:"type:int;not null;uniqueIndex:uk_career_path_steps_sequence,priority:2" json:"sequence"`
+	MinimumServiceMonths *int      `gorm:"type:int" json:"minimum_service_months,omitempty"`
+	Requirements         *string   `gorm:"type:text" json:"requirements,omitempty"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
+}
+
+func (CareerPathStep) TableName() string {
+	return "career_path_steps"
+}
+
+func (s *CareerPathStep) BeforeCreate(tx *gorm.DB) error {
+	if s.ID == uuid.Nil {
+		s.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // 12.2 EmployeeContract (PKWT & Perjanjian Kerja)
 // =========================================================================
 

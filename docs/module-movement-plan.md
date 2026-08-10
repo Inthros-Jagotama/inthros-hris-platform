@@ -1,9 +1,9 @@
 # Employee Movement & Career Management — Development Plan
 
-> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6–8) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
+> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6–8, 10) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21) · ✅ **Enhancement §12 P1 8** (Contract Expiry Management — lihat log §3.22). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21) · ✅ **Enhancement §12 P1 8** (Contract Expiry Management — lihat log §3.22) · ✅ **Enhancement §12 P1 10** (Career Path — lihat log §3.23). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
 
 ---
 
@@ -654,6 +654,37 @@ Scheduled process `ProcessContractExpiration` (plan §12.13) — mark expired ot
 
 ---
 
+# 3.23 Log Implementasi — Enhancement P1 item 10: Career Path (2026-08-10)
+
+## 3.23.1 Yang dikerjakan
+
+**Career Path** (plan §12.9 + API §15) — konfigurasi/planning jenjang karier, bukan movement transaction.
+
+- **Migration 086_career_paths** (mysql + postgres, up + down):
+  - `career_paths` — id CHAR(36) PK · `name` UNIQUE · `description` · `is_active` · created_by/updated_by · timestamps.
+  - `career_path_steps` — id PK · `career_path_id` FK → `career_paths` **ON DELETE CASCADE** · `position_id` (tanpa FK, pola `employee_movements.from_/to_position_id`) · `sequence` · `minimum_service_months` · `requirements` · **UNIQUE (career_path_id, sequence)** + **UNIQUE (career_path_id, position_id)** + index position_id.
+- **Model**: `CareerPath` + `CareerPathStep` (AutoMigrate module ditambah).
+- **DTO**: `CreateCareerPathRequest` / `UpdateCareerPathRequest` (full-replace steps) / `CareerPathResponse` (dengan `steps` + `position_name` enrichment) / `PaginatedCareerPathResponse`.
+- **Repository**: `CreateCareerPathTx` · `ListCareerPaths` (keyword + pagination) · `FindCareerPathByID` · `ListCareerPathStepsByPathID` (sequence ASC) · `UpdateCareerPathTx` (header + replace seluruh steps, transaksional) · `DeleteCareerPath` (hapus steps eksplisit dulu — konsisten lintas driver, karena SQLite test tidak selalu mengaktifkan FK).
+- **Service**: `CreateCareerPath` · `ListCareerPaths` · `GetCareerPathByID` · `UpdateCareerPath` · `DeleteCareerPath` + helper `buildAndValidateCareerPathSteps` (minimal 1 step · sequence unik per path · posisi unik per path · semua `position_id` harus merujuk posisi yang **benar-benar ada**, bukan hanya format UUID) + `enrichCareerPathSteps` (batch `GetPositionNamesByIDs` → `position_name`, pola G-4).
+- **Handler + routes**: `GET/POST /career-paths` · `GET/PUT/DELETE /career-paths/:id` (per plan §15).
+
+## 3.23.2 Keputusan desain
+
+1. **Full-replace steps pada update** — klien mengirim daftar steps lengkap yang diinginkan; server menghapus seluruh steps lama lalu insert ulang dalam satu transaksi. Aman karena tidak ada referensi eksternal ke `career_path_steps` (path adalah konfigurasi).
+2. **`position_id` tanpa FK** — konsisten dengan `employee_movements.from_/to_position_id`; eksistensi posisi divalidasi di service layer (`GetPositionNamesByIDs`), bukan oleh DB constraint. Menghindari migration fragile bila tenant punya data posisi tidak konsisten.
+3. **UNIQUE (career_path_id, sequence)** mencegah urutan ganda; **UNIQUE (career_path_id, position_id)** mencegah posisi muncul dua kali dalam satu jalur — keduanya juga di-validasi pre-insert di service agar error-nya 400 (validation) bukan 500 (constraint cryptic).
+4. **`CareerPathID` di-generate di service** (bukan menunggu `BeforeCreate`) agar steps membawa FK yang sama sebelum insert — bug awal yang tertangkap test: steps pernah memakai UUID nol sehingga semua path saling collide.
+5. Test list memakai prefix nama unik (`Paginate-*`) karena DB SQLite shared antar-test (pola yang sama dengan flakiness audit/document test).
+
+## 3.23.3 Validasi
+
+- `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/...` ✅ · `gofmt` bersih ✅
+- `go test ./internal/modules/employeemovement/... ./internal/modules/employee/... ./internal/modules/approval/... ./internal/modules/notification/...` — semua **PASS** ✅
+- Test baru (8): create (steps urut + enrich nama posisi) · duplicate sequence ditolak · posisi tak eksis ditolak · list pagination + keyword · get by id · update full-replace · delete (path + steps bersih) · not-found.
+
+---
+
 # 5. API Plan
 
 ## 5.1 Endpoint Existing (sudah jalan)
@@ -1109,7 +1140,7 @@ Movement menjadi sumber transaksi, sedangkan API career-history menjadi read mod
 
 ---
 
-## 12.9 P1 — Career Path
+## 12.9 P1 — Career Path — ✅ **SELESAI (2026-08-10)** — lihat log §3.23
 
 Karena module mencakup Career Management, tambahkan konfigurasi career path.
 
@@ -1773,7 +1804,7 @@ C = 2
 | 7 | Career Timeline — ✅ **SELESAI (2026-08-10)** | P1 | BE/FE |
 | 8 | Contract Expiry — ✅ **SELESAI (2026-08-10)** | P1 | BE/Job/FE |
 | 9 | Performance Integration | P1 | BE |
-| 10 | Career Path | P1 | DB/BE/FE |
+| 10 | Career Path — ✅ **SELESAI (2026-08-10)** | P1 | DB/BE/FE |
 | 11 | Promotion Eligibility | P1/P2 | BE |
 | 12 | Movement Cancellation Approval | P2 | Approval/BE |
 | 13 | Reports | P2 | BE/FE |
