@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 
 	sqlite "github.com/glebarez/sqlite"
+
+	"github.com/inthros/hris-platform/internal/modules/employee"
 )
 
 // setupTestDB creates an in-memory SQLite database and auto-migrates all models.
@@ -21,6 +23,12 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 	if err := db.AutoMigrate(
 		&EmployeeMovement{},
 		&EmployeeContract{},
+		// Audit trail table (enhancement plan §12.6).
+		&EmployeeMovementAudit{},
+		// Employment table needed by the position/effective-date conflict
+		// checks (enhancement plan §12.3/§12.4) that run during movement
+		// create/execute in service tests.
+		&employee.Employment{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
 	}

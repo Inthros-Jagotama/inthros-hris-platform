@@ -2,11 +2,13 @@ package employeemovement
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 
 	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
@@ -62,6 +64,20 @@ func (e *MovementValidationError) Error() string {
 	return e.Message
 }
 
+// MovementConflictError is returned when a movement cannot be created or
+// executed because it conflicts with the current employment state — the
+// target position is already occupied by another employee (plan §12.3) or the
+// effective date overlaps an existing employment period of the same employee
+// (plan §12.4). Handlers map it to a 409 Conflict response so the FE shows a
+// meaningful message instead of a generic 500.
+type MovementConflictError struct {
+	Message string
+}
+
+func (e *MovementConflictError) Error() string {
+	return e.Message
+}
+
 // validateMovementFields enforces per-type required fields (plan G-7):
 //   - mutation            → wajib to_organization_id (dan/atau to_position_id)
 //   - promotion / demotion → wajib to_position_id
@@ -102,15 +118,22 @@ func validateMovementFields(movementType MovementType, toOrganizationID, toPosit
 type CareerExecutor interface {
 	// FindCurrentEmployment returns the employee's currently active employment
 	// (most recent with no effective_end_date), or nil if none.
-	FindCurrentEmployment(ctx context.Context, employeeID uuid.UUID) (*CareerEmployment, error)
+	FindCurrentEmployment(ctx context.Context, tx *gorm.DB, employeeID uuid.UUID) (*CareerEmployment, error)
 	// CloseEmployment sets the employment's effective_end_date to the day
 	// before effectiveDate (so the new employment can take over).
-	CloseEmployment(ctx context.Context, employmentID uuid.UUID, effectiveDate string) error
+	CloseEmployment(ctx context.Context, tx *gorm.DB, employmentID uuid.UUID, effectiveDate string) error
 	// CreateEmployment persists a new employment record and returns its ID.
-	CreateEmployment(ctx context.Context, employeeID uuid.UUID, data CareerEmployment) (uuid.UUID, error)
+	CreateEmployment(ctx context.Context, tx *gorm.DB, employeeID uuid.UUID, data CareerEmployment) (uuid.UUID, error)
 	// SetEmployeeInactive marks an offboarded/retired employee as inactive.
-	SetEmployeeInactive(ctx context.Context, employeeID uuid.UUID) error
+	SetEmployeeInactive(ctx context.Context, tx *gorm.DB, employeeID uuid.UUID) error
 }
+
+// CareerExecutor methods all receive a *gorm.DB transaction (tx) opened by
+// ExecuteMovementTx: every HR data change runs on the caller's transaction so
+// movement execution is atomic (plan §12.2) — if any step fails, the whole
+// execution rolls back (employment unchanged, movement stays approved).
+// Implementations (the adapter in cmd/server/main.go) run their repository
+// calls through the Tx variants of the employee repository.
 
 // Service untuk business logic Employee Movement & Career Management.
 type Service struct {
@@ -147,6 +170,56 @@ func (s *Service) SetNotifier(n Notifier) {
 	s.notifier = n
 }
 
+// movementAuditJSON membungkus movement menjadi JSON string untuk kolom
+// old_data/new_data pada audit trail (plan §12.6). Nilai dikembalikan sebagai
+// *string agar selaras dengan kolom JSON (pola OrganizationHistory /
+// payroll before_json/after_json). nil → nil (tidak ada snapshot).
+func movementAuditJSON(m *EmployeeMovement) *string {
+	if m == nil {
+		return nil
+	}
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil
+	}
+	s := string(b)
+	return &s
+}
+
+// statusPtr returns a pointer to the string form of a movement status, for
+// the audit trail's old_status/new_status columns.
+func statusPtr(s MovementStatus) *string {
+	str := string(s)
+	return &str
+}
+
+// recordAudit mencatat satu perubahan lifecycle movement ke tabel audit trail
+// (plan §12.6: CREATED, UPDATED, SUBMITTED, APPROVED, REJECTED, CANCELLED,
+// EXECUTED). Best-effort: kegagalan menyimpan audit hanya di-log dan TIDAK
+// menggagalkan operasi movement utama (pola organization.captureHistory).
+// actedBy nil untuk aksi yang tidak membawa konteks user (mis. callback).
+func (s *Service) recordAudit(ctx context.Context, movementID uuid.UUID, action MovementAuditAction, oldStatus, newStatus *string, oldData, newData *string, reason string, actedBy *uuid.UUID) {
+	audit := &EmployeeMovementAudit{
+		MovementID: movementID,
+		Action:     action,
+		OldStatus:  oldStatus,
+		NewStatus:  newStatus,
+		OldData:    oldData,
+		NewData:    newData,
+		ActedBy:    actedBy,
+	}
+	if reason != "" {
+		audit.Reason = &reason
+	}
+	if err := s.repo.CreateAudit(ctx, audit); err != nil {
+		s.logger.Warn("Failed to record movement audit",
+			zap.String("movement_id", movementID.String()),
+			zap.String("action", string(action)),
+			zap.Error(err),
+		)
+	}
+}
+
 // notifyMovementOutcome best-effort notification to the movement's employee
 // (mirrors attendance.notifyRequestOutcome / leave.notifyLeaveOutcome).
 func (s *Service) notifyMovementOutcome(ctx context.Context, employeeID uuid.UUID, notifType, referenceType string, referenceID uuid.UUID) {
@@ -179,6 +252,12 @@ func (s *Service) notifyMovementOutcome(ctx context.Context, employeeID uuid.UUI
 // updating a movement. contract_extension also verifies the employee has an
 // active contract (plan G-7). It is called both on create and after an update
 // (movement_type and to_* fields may have changed).
+//
+// Beyond G-7, when the movement carries a target position it also runs the
+// position conflict check (plan §12.3): the target position must not be
+// occupied by another employee's open employment at the effective date. The
+// same check is repeated atomically inside ExecuteMovement — this early check
+// just gives the HR user immediate feedback while drafting.
 func (s *Service) validateMovement(ctx context.Context, m *EmployeeMovement) error {
 	hasActiveContract := false
 	if m.MovementType == MovementTypeContractExtension {
@@ -188,7 +267,20 @@ func (s *Service) validateMovement(ctx context.Context, m *EmployeeMovement) err
 		}
 		hasActiveContract = has
 	}
-	return validateMovementFields(m.MovementType, m.ToOrganizationID, m.ToPositionID, m.ToEmploymentStatusID, hasActiveContract)
+	if err := validateMovementFields(m.MovementType, m.ToOrganizationID, m.ToPositionID, m.ToEmploymentStatusID, hasActiveContract); err != nil {
+		return err
+	}
+
+	if m.ToPositionID != nil && m.MovementType != MovementTypeContractExtension {
+		occupied, err := s.repo.PositionConflict(ctx, nil, *m.ToPositionID, m.EmployeeID, m.EffectiveDate)
+		if err != nil {
+			return fmt.Errorf("failed to check target position conflict: %w", err)
+		}
+		if occupied {
+			return &MovementConflictError{Message: "target position is already occupied by another employee at the effective date"}
+		}
+	}
+	return nil
 }
 
 // =========================================================================
@@ -265,6 +357,10 @@ func (s *Service) CreateMovement(ctx context.Context, req CreateMovementRequest)
 		return nil, err
 	}
 
+	// Persist snapshot names (plan §12.5) so history keeps the master-data
+	// names as they are at creation time.
+	s.fillMovementSnapshot(ctx, movement)
+
 	if err := s.repo.CreateMovement(ctx, movement); err != nil {
 		return nil, err
 	}
@@ -274,6 +370,9 @@ func (s *Service) CreateMovement(ctx context.Context, req CreateMovementRequest)
 		zap.String("movement_type", req.MovementType),
 		zap.String("movement_id", movement.ID.String()),
 	)
+
+	// Audit trail (plan §12.6): CREATED, snapshot awal movement.
+	s.recordAudit(ctx, movement.ID, MovementAuditActionCreated, nil, statusPtr(movement.Status), nil, movementAuditJSON(movement), "", movement.CreatedBy)
 
 	responses := []MovementResponse{movement.ToResponse()}
 	s.enrichMovementResponses(ctx, responses)
@@ -328,8 +427,76 @@ func fillContractEmployeeNames(info map[string]employeeRefInfo, employeeID strin
 	}
 }
 
+// fillMovementSnapshot resolves the display names for the movement's
+// from_*/to_* references and stores them on the movement row itself
+// (plan §12.5). The snapshot is persisted at create/update time so history
+// keeps the master-data names as they were then — renaming an organization,
+// position or employment status later does not rewrite the past.
+//
+// Resolution is best-effort: when a reference id can't be resolved the name
+// is left empty, and response-time enrichment (G-4) fills it from live master
+// data as a fallback.
+func (s *Service) fillMovementSnapshot(ctx context.Context, m *EmployeeMovement) {
+	var orgIDs, posIDs, statusIDs []uuid.UUID
+	if m.FromOrganizationID != nil {
+		orgIDs = append(orgIDs, *m.FromOrganizationID)
+	}
+	if m.ToOrganizationID != nil {
+		orgIDs = append(orgIDs, *m.ToOrganizationID)
+	}
+	if m.FromPositionID != nil {
+		posIDs = append(posIDs, *m.FromPositionID)
+	}
+	if m.ToPositionID != nil {
+		posIDs = append(posIDs, *m.ToPositionID)
+	}
+	if m.FromEmploymentStatusID != nil {
+		statusIDs = append(statusIDs, *m.FromEmploymentStatusID)
+	}
+	if m.ToEmploymentStatusID != nil {
+		statusIDs = append(statusIDs, *m.ToEmploymentStatusID)
+	}
+
+	if names, err := s.repo.GetOrganizationNamesByIDs(ctx, orgIDs); err == nil {
+		if m.FromOrganizationID != nil {
+			m.FromOrganizationName = names[m.FromOrganizationID.String()]
+		}
+		if m.ToOrganizationID != nil {
+			m.ToOrganizationName = names[m.ToOrganizationID.String()]
+		}
+	} else {
+		s.logger.Warn("failed to resolve organization names for movement snapshot", zap.Error(err))
+	}
+
+	if names, err := s.repo.GetPositionNamesByIDs(ctx, posIDs); err == nil {
+		if m.FromPositionID != nil {
+			m.FromPositionName = names[m.FromPositionID.String()]
+		}
+		if m.ToPositionID != nil {
+			m.ToPositionName = names[m.ToPositionID.String()]
+		}
+	} else {
+		s.logger.Warn("failed to resolve position names for movement snapshot", zap.Error(err))
+	}
+
+	if names, err := s.repo.GetEmploymentStatusNamesByIDs(ctx, statusIDs); err == nil {
+		if m.FromEmploymentStatusID != nil {
+			m.FromEmploymentStatusName = names[m.FromEmploymentStatusID.String()]
+		}
+		if m.ToEmploymentStatusID != nil {
+			m.ToEmploymentStatusName = names[m.ToEmploymentStatusID.String()]
+		}
+	} else {
+		s.logger.Warn("failed to resolve employment status names for movement snapshot", zap.Error(err))
+	}
+}
+
 // enrichMovementResponses fills employee/organization/position/status display
 // names on movement responses (single or list) with batch queries (G-4).
+//
+// Snapshot-aware (plan §12.5): names already persisted as movement snapshots
+// (ToResponse carries them from the row) are preserved — live master data is
+// only used as a fallback for rows created before the snapshot migration.
 func (s *Service) enrichMovementResponses(ctx context.Context, responses []MovementResponse) {
 	if len(responses) == 0 {
 		return
@@ -380,43 +547,68 @@ func (s *Service) enrichMovementResponses(ctx context.Context, responses []Movem
 		s.logger.Warn("failed to resolve employee info for movements", zap.Error(err))
 	}
 
-	if names, err := s.repo.GetOrganizationNamesByIDs(ctx, orgList); err == nil {
-		for i := range responses {
-			if responses[i].FromOrganizationID != nil {
-				responses[i].FromOrganizationName = names[*responses[i].FromOrganizationID]
-			}
-			if responses[i].ToOrganizationID != nil {
-				responses[i].ToOrganizationName = names[*responses[i].ToOrganizationID]
-			}
+	// Snapshot-aware (plan §12.5): rows with a persisted snapshot already
+	// carry their names, so the batch query is only needed when some field is
+	// still empty (legacy movements created before migration 083).
+	needsOrgNames, needsPosNames, needsStatusNames := false, false, false
+	for i := range responses {
+		if (responses[i].FromOrganizationID != nil && responses[i].FromOrganizationName == "") ||
+			(responses[i].ToOrganizationID != nil && responses[i].ToOrganizationName == "") {
+			needsOrgNames = true
 		}
-	} else {
-		s.logger.Warn("failed to resolve organization names for movements", zap.Error(err))
+		if (responses[i].FromPositionID != nil && responses[i].FromPositionName == "") ||
+			(responses[i].ToPositionID != nil && responses[i].ToPositionName == "") {
+			needsPosNames = true
+		}
+		if (responses[i].FromEmploymentStatusID != nil && responses[i].FromEmploymentStatusName == "") ||
+			(responses[i].ToEmploymentStatusID != nil && responses[i].ToEmploymentStatusName == "") {
+			needsStatusNames = true
+		}
 	}
 
-	if names, err := s.repo.GetPositionNamesByIDs(ctx, posList); err == nil {
-		for i := range responses {
-			if responses[i].FromPositionID != nil {
-				responses[i].FromPositionName = names[*responses[i].FromPositionID]
+	if needsOrgNames {
+		if names, err := s.repo.GetOrganizationNamesByIDs(ctx, orgList); err == nil {
+			for i := range responses {
+				if responses[i].FromOrganizationID != nil && responses[i].FromOrganizationName == "" {
+					responses[i].FromOrganizationName = names[*responses[i].FromOrganizationID]
+				}
+				if responses[i].ToOrganizationID != nil && responses[i].ToOrganizationName == "" {
+					responses[i].ToOrganizationName = names[*responses[i].ToOrganizationID]
+				}
 			}
-			if responses[i].ToPositionID != nil {
-				responses[i].ToPositionName = names[*responses[i].ToPositionID]
-			}
+		} else {
+			s.logger.Warn("failed to resolve organization names for movements", zap.Error(err))
 		}
-	} else {
-		s.logger.Warn("failed to resolve position names for movements", zap.Error(err))
 	}
 
-	if names, err := s.repo.GetEmploymentStatusNamesByIDs(ctx, statusList); err == nil {
-		for i := range responses {
-			if responses[i].FromEmploymentStatusID != nil {
-				responses[i].FromEmploymentStatusName = names[*responses[i].FromEmploymentStatusID]
+	if needsPosNames {
+		if names, err := s.repo.GetPositionNamesByIDs(ctx, posList); err == nil {
+			for i := range responses {
+				if responses[i].FromPositionID != nil && responses[i].FromPositionName == "" {
+					responses[i].FromPositionName = names[*responses[i].FromPositionID]
+				}
+				if responses[i].ToPositionID != nil && responses[i].ToPositionName == "" {
+					responses[i].ToPositionName = names[*responses[i].ToPositionID]
+				}
 			}
-			if responses[i].ToEmploymentStatusID != nil {
-				responses[i].ToEmploymentStatusName = names[*responses[i].ToEmploymentStatusID]
-			}
+		} else {
+			s.logger.Warn("failed to resolve position names for movements", zap.Error(err))
 		}
-	} else {
-		s.logger.Warn("failed to resolve employment status names for movements", zap.Error(err))
+	}
+
+	if needsStatusNames {
+		if names, err := s.repo.GetEmploymentStatusNamesByIDs(ctx, statusList); err == nil {
+			for i := range responses {
+				if responses[i].FromEmploymentStatusID != nil && responses[i].FromEmploymentStatusName == "" {
+					responses[i].FromEmploymentStatusName = names[*responses[i].FromEmploymentStatusID]
+				}
+				if responses[i].ToEmploymentStatusID != nil && responses[i].ToEmploymentStatusName == "" {
+					responses[i].ToEmploymentStatusName = names[*responses[i].ToEmploymentStatusID]
+				}
+			}
+		} else {
+			s.logger.Warn("failed to resolve employment status names for movements", zap.Error(err))
+		}
 	}
 }
 
@@ -569,6 +761,12 @@ func (s *Service) UpdateMovement(ctx context.Context, id string, req UpdateMovem
 	if err != nil {
 		return nil, err
 	}
+
+	// Audit trail (plan §12.6): simpan snapshot SEBELUM perubahan (masih state
+	// lama — updated_by belum ditimpa user saat ini).
+	oldData := movementAuditJSON(movement)
+	oldStatus := statusPtr(movement.Status)
+
 	movement.UpdatedBy = authctx.GetUserID(ctx)
 
 	if movement.Status != MovementStatusDraft {
@@ -618,9 +816,15 @@ func (s *Service) UpdateMovement(ctx context.Context, id string, req UpdateMovem
 		return nil, err
 	}
 
+	// Refresh snapshot names (plan §12.5) after the to_* fields changed.
+	s.fillMovementSnapshot(ctx, movement)
+
 	if err := s.repo.UpdateMovement(ctx, movement); err != nil {
 		return nil, err
 	}
+
+	// Audit trail (plan §12.6): UPDATED, snapshot sebelum & sesudah.
+	s.recordAudit(ctx, movement.ID, MovementAuditActionUpdated, oldStatus, statusPtr(movement.Status), oldData, movementAuditJSON(movement), "", movement.UpdatedBy)
 
 	responses := []MovementResponse{movement.ToResponse()}
 	s.enrichMovementResponses(ctx, responses)
@@ -684,6 +888,12 @@ func (s *Service) SubmitMovement(ctx context.Context, id string, req SubmitMovem
 	if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
 		movement.ApprovalInstanceID = &parsedInstanceID
 	}
+
+	// Audit trail (plan §12.6): snapshot sebelum status diubah jadi pending
+	// (approval_instance_id sudah set karena memang bagian transisi submit).
+	oldData := movementAuditJSON(movement)
+	oldStatus := statusPtr(movement.Status)
+
 	movement.Status = MovementStatusPendingApproval
 	if err := s.repo.UpdateMovement(ctx, movement); err != nil {
 		return nil, err
@@ -693,6 +903,10 @@ func (s *Service) SubmitMovement(ctx context.Context, id string, req SubmitMovem
 		zap.String("movement_id", movement.ID.String()),
 		zap.String("instance_id", instanceID),
 	)
+
+	// Audit trail (plan §12.6): SUBMITTED — acted_by = user yang submit
+	// (bukan updated_by lama dari create).
+	s.recordAudit(ctx, movement.ID, MovementAuditActionSubmitted, oldStatus, statusPtr(movement.Status), oldData, movementAuditJSON(movement), "", authctx.GetUserID(ctx))
 
 	responses := []MovementResponse{movement.ToResponse()}
 	s.enrichMovementResponses(ctx, responses)
@@ -713,18 +927,27 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		return nil
 	}
 
+	// Audit trail (plan §12.6): snapshot sebelum status diubah (masih
+	// pending_approval).
+	oldData := movementAuditJSON(movement)
+	oldStatus := statusPtr(movement.Status)
+
 	now := time.Now()
+	auditAction := MovementAuditActionUpdated
 	switch status {
 	case "APPROVED":
 		movement.Status = MovementStatusApproved
 		movement.ApprovedAt = &now
+		auditAction = MovementAuditActionApproved
 	case "REJECTED":
 		movement.Status = MovementStatusRejected
 		if note != "" {
 			movement.Notes = &note
 		}
+		auditAction = MovementAuditActionRejected
 	case "CANCELLED":
 		movement.Status = MovementStatusCancelled
+		auditAction = MovementAuditActionCancelled
 	default:
 		return nil
 	}
@@ -736,6 +959,10 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 	if err := s.repo.UpdateMovement(ctx, movement); err != nil {
 		return err
 	}
+
+	// Audit trail (plan §12.6): APPROVED / REJECTED / CANCELLED — acted_by
+	// kosong (aksi datang dari push-callback Central Approval, bukan user).
+	s.recordAudit(ctx, movement.ID, auditAction, oldStatus, statusPtr(movement.Status), oldData, movementAuditJSON(movement), note, nil)
 
 	// Best-effort notification to the movement's employee (plan §7).
 	switch movement.Status {
@@ -782,8 +1009,9 @@ func dayBefore(date string) (string, error) {
 	return d.AddDate(0, 0, -1).Format("2006-01-02"), nil
 }
 
-// ExecuteMovement mengeksekusi pergerakan. Selain mengubah status movement
-// menjadi executed, transaksi HR data juga dijalankan (G-1):
+// ExecuteMovement mengeksekusi pergerakan secara ATOMIC (enhancement plan
+// §12.2). Selain mengubah status movement menjadi executed, transaksi HR data
+// juga dijalankan dalam SATU database transaction (G-1 + P0):
 //   - promotion/demotion/mutation/status_change/other → buat employment baru
 //     (to_* + effective_date), tutup employment aktif lama (effective_end_date
 //     = effective_date - 1), simpan to_employment_id di movement.
@@ -791,6 +1019,15 @@ func dayBefore(date string) (string, error) {
 //     employee non-aktif (keputusan §11.3).
 //   - contract_extension → tanpa perubahan employment.
 //
+// Sebelum perubahan HR dijalankan, dua konflik divalidasi di dalam transaksi:
+//   - §12.3 position conflict — target position tidak boleh terisi employment
+//     terbuka employee lain pada effective date.
+//   - §12.4 effective date conflict — employee tidak boleh memiliki
+//     employment terbuka yang mulai pada/ setelah effective date (mencegah
+//     overlap / backdate).
+//
+// Jika salah satu langkah gagal, seluruh transaksi di-ROLLBACK: employment
+// lama utuh dan movement tetap berstatus approved (bisa di-retry HR).
 // effective_date boleh di masa depan (keputusan §11.2): employment baru
 // disimpan dengan tanggal tsb, employment lama tetap aktif sampai sehari
 // sebelumnya.
@@ -813,29 +1050,78 @@ func (s *Service) ExecuteMovement(ctx context.Context, id string, executedBy str
 		return fmt.Errorf("movement not found or not in approved status")
 	}
 
-	// --- HR data transaction (G-1) ---
-	if movementCreatesEmployment(movement.MovementType) || movementDeactivatesEmployee(movement.MovementType) {
-		if s.careerExecutor == nil {
-			return fmt.Errorf("career executor not configured: cannot execute movement type '%s'", movement.MovementType)
+	createsEmployment := movementCreatesEmployment(movement.MovementType)
+	deactivatesEmployee := movementDeactivatesEmployee(movement.MovementType)
+
+	// Audit trail (plan §12.6): snapshot & status sebelum eksekusi.
+	oldData := movementAuditJSON(movement)
+	oldStatus := statusPtr(movement.Status)
+
+	// contract_extension → tanpa perubahan HR data; update status cukup
+	// atomic dengan satu query (tanpa transaksi lintas modul).
+	if !createsEmployment && !deactivatesEmployee {
+		if err := s.repo.ExecuteMovement(ctx, uid, executorUUID, nil); err != nil {
+			return err
+		}
+		after, err := s.repo.FindMovementByID(ctx, uid)
+		if err == nil {
+			s.recordAudit(ctx, movement.ID, MovementAuditActionExecuted, oldStatus, statusPtr(after.Status), oldData, movementAuditJSON(after), "", &executorUUID)
+		} else {
+			s.logger.Warn("failed to reload movement after execution for audit", zap.String("movement_id", movement.ID.String()), zap.Error(err))
+		}
+		return nil
+	}
+
+	if s.careerExecutor == nil {
+		return fmt.Errorf("career executor not configured: cannot execute movement type '%s'", movement.MovementType)
+	}
+
+	// Transaksi atomik: conflict detection + perubahan HR data + update status
+	// movement dijalankan pada satu transaksi (plan §12.2).
+	err = s.repo.ExecuteMovementTx(ctx, uid, executorUUID, func(tx *gorm.DB) (*uuid.UUID, error) {
+		if createsEmployment && movement.ToPositionID != nil {
+			// §12.3 — target position conflict (hard check, diulang di execute
+			// agar tidak hanya bergantung pada validasi frontend/validasi draft).
+			occupied, err := s.repo.PositionConflict(ctx, tx, *movement.ToPositionID, movement.EmployeeID, movement.EffectiveDate)
+			if err != nil {
+				return nil, fmt.Errorf("failed to check target position conflict: %w", err)
+			}
+			if occupied {
+				return nil, &MovementConflictError{Message: "target position is already occupied by another employee at the effective date"}
+			}
 		}
 
-		current, err := s.careerExecutor.FindCurrentEmployment(ctx, movement.EmployeeID)
+		// §12.4 — effective date conflict: tidak boleh ada employment terbuka
+		// (open-ended) yang dimulai pada/ setelah effective date. Dicek juga
+		// untuk offboarding/retirement agar menutup employment future-dated
+		// tidak menghasilkan periode invalid (end sebelum start-nya sendiri).
+		if createsEmployment || deactivatesEmployee {
+			overlap, err := s.repo.EmploymentEffectiveDateConflict(ctx, tx, movement.EmployeeID, movement.EffectiveDate)
+			if err != nil {
+				return nil, fmt.Errorf("failed to check employment period conflict: %w", err)
+			}
+			if overlap {
+				return nil, &MovementConflictError{Message: "movement effective date overlaps an existing employment period of the employee"}
+			}
+		}
+
+		current, err := s.careerExecutor.FindCurrentEmployment(ctx, tx, movement.EmployeeID)
 		if err != nil {
-			return fmt.Errorf("failed to find current employment: %w", err)
+			return nil, fmt.Errorf("failed to find current employment: %w", err)
 		}
 
 		// Tutup employment aktif lama (effective_end_date = effective_date - 1).
 		if current != nil {
 			endDate, err := dayBefore(movement.EffectiveDate)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			if err := s.careerExecutor.CloseEmployment(ctx, current.ID, endDate); err != nil {
-				return fmt.Errorf("failed to close previous employment: %w", err)
+			if err := s.careerExecutor.CloseEmployment(ctx, tx, current.ID, endDate); err != nil {
+				return nil, fmt.Errorf("failed to close previous employment: %w", err)
 			}
 		}
 
-		if movementCreatesEmployment(movement.MovementType) {
+		if createsEmployment {
 			data := CareerEmployment{
 				OrganizationID:       movement.ToOrganizationID,
 				PositionID:           movement.ToPositionID,
@@ -844,35 +1130,104 @@ func (s *Service) ExecuteMovement(ctx context.Context, id string, executedBy str
 				DecisionLetterDate:   movement.DecisionLetterDate,
 				EffectiveDate:        movement.EffectiveDate,
 			}
-			newEmploymentID, err := s.careerExecutor.CreateEmployment(ctx, movement.EmployeeID, data)
+			newEmploymentID, err := s.careerExecutor.CreateEmployment(ctx, tx, movement.EmployeeID, data)
 			if err != nil {
-				return fmt.Errorf("failed to create new employment: %w", err)
+				return nil, fmt.Errorf("failed to create new employment: %w", err)
 			}
-			movement.ToEmploymentID = &newEmploymentID
+			return &newEmploymentID, nil
 		}
 
-		if movementDeactivatesEmployee(movement.MovementType) {
-			if err := s.careerExecutor.SetEmployeeInactive(ctx, movement.EmployeeID); err != nil {
-				return fmt.Errorf("failed to mark employee inactive: %w", err)
+		if deactivatesEmployee {
+			if err := s.careerExecutor.SetEmployeeInactive(ctx, tx, movement.EmployeeID); err != nil {
+				return nil, fmt.Errorf("failed to mark employee inactive: %w", err)
 			}
 		}
-	}
-
-	if err := s.repo.ExecuteMovement(ctx, uid, executorUUID, movement.ToEmploymentID); err != nil {
+		return nil, nil
+	})
+	if err != nil {
 		return err
 	}
+
+	// Audit trail (plan §12.6): EXECUTED — reload untuk menangkap state
+	// akhir (status executed + to_employment_id hasil eksekusi).
+	after, err := s.repo.FindMovementByID(ctx, uid)
+	if err == nil {
+		s.recordAudit(ctx, movement.ID, MovementAuditActionExecuted, oldStatus, statusPtr(after.Status), oldData, movementAuditJSON(after), "", &executorUUID)
+	} else {
+		s.logger.Warn("failed to reload movement after execution for audit", zap.String("movement_id", movement.ID.String()), zap.Error(err))
+	}
+
 	s.notifyMovementOutcome(ctx, movement.EmployeeID, "MOVEMENT_EXECUTED", "employeemovement", movement.ID)
 	return nil
 }
 
-// CancelMovement membatalkan pergerakan.
+// CancelMovement membatalkan pergerakan (draft atau approved).
 func (s *Service) CancelMovement(ctx context.Context, id string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("invalid movement id: %w", err)
 	}
 
-	return s.repo.CancelMovement(ctx, uid)
+	movement, err := s.repo.FindMovementByID(ctx, uid)
+	if err != nil {
+		return err
+	}
+
+	// Audit trail (plan §12.6): snapshot sebelum dibatalkan.
+	oldData := movementAuditJSON(movement)
+	oldStatus := statusPtr(movement.Status)
+
+	if err := s.repo.CancelMovement(ctx, uid); err != nil {
+		return err
+	}
+
+	// Audit trail (plan §12.6): CANCELLED — newData mencerminkan status akhir
+	// (repo meng-update DB langsung, jadi salinan di memori disesuaikan);
+	// acted_by = user yang cancel (authctx, bukan updated_by lama).
+	after := *movement
+	after.Status = MovementStatusCancelled
+	s.recordAudit(ctx, movement.ID, MovementAuditActionCancelled, oldStatus, statusPtr(after.Status), oldData, movementAuditJSON(&after), "", authctx.GetUserID(ctx))
+	return nil
+}
+
+// ListMovementAudits mengembalikan audit trail satu movement (plan §12.6),
+// terurut acted_at DESC (baru dulu) dengan pagination.
+func (s *Service) ListMovementAudits(ctx context.Context, id string, page, perPage int) (*PaginatedMovementAuditResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid movement id: %w", err)
+	}
+
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 20
+	}
+
+	audits, total, err := s.repo.ListAuditsByMovementID(ctx, uid, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []MovementAuditResponse
+	for _, a := range audits {
+		responses = append(responses, a.ToResponse())
+	}
+
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 {
+		totalPages++
+	}
+
+	return &PaginatedMovementAuditResponse{
+		Success:    true,
+		Data:       responses,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
 }
 
 // =========================================================================

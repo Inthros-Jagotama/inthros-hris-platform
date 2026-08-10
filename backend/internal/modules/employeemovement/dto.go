@@ -78,6 +78,30 @@ type SubmitMovementRequest struct {
 	FlowID *string `json:"flow_id"`
 }
 
+// MovementAuditResponse membawa satu baris audit trail movement (plan §12.6).
+// OldData/NewData adalah JSON snapshot movement sebelum/sesudah aksi.
+type MovementAuditResponse struct {
+	ID         string    `json:"id"`
+	MovementID string    `json:"movement_id"`
+	Action     string    `json:"action"`
+	OldStatus  *string   `json:"old_status,omitempty"`
+	NewStatus  *string   `json:"new_status,omitempty"`
+	OldData    *string   `json:"old_data,omitempty"`
+	NewData    *string   `json:"new_data,omitempty"`
+	Reason     *string   `json:"reason,omitempty"`
+	ActedBy    *string   `json:"acted_by,omitempty"`
+	ActedAt    time.Time `json:"acted_at"`
+}
+
+type PaginatedMovementAuditResponse struct {
+	Success    bool        `json:"success"`
+	Data       interface{} `json:"data"`
+	Page       int         `json:"page"`
+	PerPage    int         `json:"per_page"`
+	Total      int64       `json:"total"`
+	TotalPages int         `json:"total_pages"`
+}
+
 type PaginatedMovementResponse struct {
 	Success    bool        `json:"success"`
 	Data       interface{} `json:"data"`
@@ -190,6 +214,14 @@ func (m *EmployeeMovement) ToResponse() MovementResponse {
 		s := m.ToEmploymentStatusID.String()
 		r.ToEmploymentStatusID = &s
 	}
+	// Snapshot names (plan §12.5) — persisted at creation so history is
+	// immune to later master-data renames.
+	r.FromOrganizationName = m.FromOrganizationName
+	r.FromPositionName = m.FromPositionName
+	r.FromEmploymentStatusName = m.FromEmploymentStatusName
+	r.ToOrganizationName = m.ToOrganizationName
+	r.ToPositionName = m.ToPositionName
+	r.ToEmploymentStatusName = m.ToEmploymentStatusName
 	if m.Reason != nil {
 		r.Reason = m.Reason
 	}
@@ -213,6 +245,40 @@ func (m *EmployeeMovement) ToResponse() MovementResponse {
 	if m.ApprovalInstanceID != nil {
 		s := m.ApprovalInstanceID.String()
 		r.ApprovalInstanceID = &s
+	}
+	return r
+}
+
+func (a *EmployeeMovementAudit) ToResponse() MovementAuditResponse {
+	r := MovementAuditResponse{
+		ID:         a.ID.String(),
+		MovementID: a.MovementID.String(),
+		Action:     string(a.Action),
+		ActedAt:    a.ActedAt,
+	}
+	if a.OldStatus != nil {
+		s := *a.OldStatus
+		r.OldStatus = &s
+	}
+	if a.NewStatus != nil {
+		s := *a.NewStatus
+		r.NewStatus = &s
+	}
+	if a.OldData != nil {
+		s := *a.OldData
+		r.OldData = &s
+	}
+	if a.NewData != nil {
+		s := *a.NewData
+		r.NewData = &s
+	}
+	if a.Reason != nil {
+		s := *a.Reason
+		r.Reason = &s
+	}
+	if a.ActedBy != nil {
+		s := a.ActedBy.String()
+		r.ActedBy = &s
 	}
 	return r
 }

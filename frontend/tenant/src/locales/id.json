@@ -1046,7 +1046,13 @@
     "confirm_delete_msg": "Hapus mutasi draft ini?",
     "select_employee": "Pilih karyawan",
     "field_required": "Field ini wajib diisi",
-    "hint_per_type": "Field wajib tergantung tipe mutasi"
+    "hint_per_type": "Field wajib tergantung tipe mutasi",
+    "detail_title": "Detail Mutasi",
+    "from": "Dari",
+    "to": "Ke",
+    "approved_at": "Disetujui Pada",
+    "executed_at": "Dieksekusi Pada",
+    "created_at": "Dibuat Pada"
   },
   "approval": {
     "title": "Persetujuan",

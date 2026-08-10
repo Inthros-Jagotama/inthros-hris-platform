@@ -1,9 +1,9 @@
 # Employee Movement & Career Management — Development Plan
 
-> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 3/12 selesai** (backend existing ✅ + 3 langkah baru ✅, FE placeholder ❌)
+> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend. **Berikutnya:** 12) FE detail/deep-link/badge · 13) test & verifikasi.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
 
 ---
 
@@ -410,6 +410,150 @@ Belum ada validasi "tipe X wajib field Y":
 
 **Validasi:** `go build` + `go vet` + test employeemovement **PASS** ✅ · `npm run build` FE **PASS** ✅ · JSON locale valid ✅ (tanpa dead key `contracts_coming_soon`)
 
+## 3.15 Log Implementasi Langkah 12 (FE detail dialog movement) — 2026-08-10
+
+**Tujuan:** menyelesaikan langkah 12: detail movement + deep-link notifikasi + badge `rejected`.
+
+### 3.15.1 Audit — sebagian sudah ada
+
+Saat dicek ulang, dua dari tiga item langkah 12 **sudah terimplementasi pada langkah sebelumnya**:
+
+- **Badge status `rejected`** ✅ — `statusSeverity` di `EmployeeMovements.vue` sudah memetakan `rejected → danger` + locale `status_rejected` (masuk bersamaan langkah 10).
+- **Deep-link notifikasi** ✅ — `Notifications.vue` sudah punya case `reference_type == 'employeemovement'` ATAU `type` berawalan `MOVEMENT_` → `/admin/career/movements` (masuk bersamaan langkah 5/G-2). `Approvals.vue` juga sudah punya `case 'employeemovement'` → `GET /employee-movements/movements/:id`.
+
+### 3.15.2 Perubahan FE
+
+- `frontend/tenant/src/views/modules/EmployeeMovements.vue`:
+  - Tombol **View (detail)** (`pi pi-eye`) di kolom aksi setiap baris → membuka **Dialog Detail Movement** (`detailVisible`/`detailItem`, lebar 680px):
+    - Header: Tag tipe movement + Tag status (severity warna sama dengan tabel).
+    - Ringkasan karyawan (nama + kode) & nomor SK (mono, break-all).
+    - Section **Dari → Ke**: box `from_*` (abu-abu) dan box `to_*` (hijau) berisi nama organization/position/employment_status dari respons enriched (G-4); box hanya dirender bila ada data (`hasAnyField`).
+    - Tanggal: decision_letter_date, effective_date (formatDate bilingual), created_at (formatDateTime).
+    - Alasan & catatan (bila ada).
+    - Riwayat approval: `approved_at` / `executed_at` (bila ada) — `approved_by`/`executed_by` UUID tidak ditampilkan (tidak human-readable).
+  - **Aksi dari dalam dialog detail** mengikuti status: `draft` → Submit + Delete; `pending_approval`/`approved` → Cancel; `approved` → Execute; tombol Close. Aksi membuka ConfirmActionDialog/ConfirmDeleteDialog yang sama dengan tabel (reuse `actionTarget`).
+  - Import `ViewLabel.vue` (komponen display key-value yang sudah dipakai `CompanyDetail.vue`).
+- Locale `employee_movement.*` (en/id): +6 key — `detail_title`, `from`, `to`, `approved_at`, `executed_at`, `created_at`.
+
+### 3.15.3 Validasi
+
+- `npm run build` (tenant FE) **PASS** ✅ · JSON locale en/id valid ✅ · tidak ada dead key baru ✅
+
+## 3.16 Log Implementasi Langkah 13 (checklist verifikasi E2E manual) — 2026-08-10
+
+**Tujuan:** menyediakan checklist verifikasi E2E manual sesuai Testing Plan §10 — alur lengkap movement (draft → submit → approve → execute → cek employment), offboarding/retirement, CRUD kontrak (termasuk extension chain), detail/deep-link, dan regresi.
+
+**Deliverable:** `docs/module-movement-e2e-checklist.md` (baru) — berisi:
+
+- **§0 Prasyarat**: menjalankan backend (`make run`) + FE (`npm run dev` :5174), akun tenant ber-permission `employeemovement.*` + `approval.*`, **approval flow aktif untuk module `employeemovement`** (tanpa ini submit gagal, G-3), data pendukung, dan tabel data yang dipakai.
+- **§1 Skenario A (promotion, inti G-1)**: 10 langkah A1–A10 + edge negatif (submit tanpa flow, execute sebelum approved, double execute, approve manual 404). Verifikasi employment via `GET /employees/:id` → `employments[]` (lama `effective_end_date = effective_date − 1`, baru berisi `to_*` + SK + `effective_date`).
+- **§2 Skenario B (offboarding/retirement)**: employee `status = inactive`, tanpa employment baru (§11.3).
+- **§3 Skenario C (CRUD kontrak)**: create PKWT + upload, filter, edit, **extension chain** (G-6: `extension_count` berantai + previous `extended`), delete.
+- **§4 Skenario D (langkah 12)**: detail dialog (badge `rejected`), aksi dari dialog, deep-link notifikasi `MOVEMENT_*` → `/admin/career/movements`, deep-link approval.
+- **§5 Regresi & lintas bahasa**: switch EN/ID, filter kombinasi, build & console bersih, catatan permission FE (tombol aksi belum di-gate `hasPermission` — batasan ada di backend authz).
+- **§6–8**: kriteria penerimaan (acceptance plan §10), bukti yang disimpan, dan referensi endpoint (movement/contract/approval/employee/upload/notification).
+
+**Endpoint diverifikasi terhadap kode:** `POST /approval/instances/:id/actions` body `{"action":"APPROVE"|"REJECT"}` (`approval/dto.go` `SubmitActionRequest`), `GET /approval/active-flow?module=...`, `GET /employees/:id` → `employments[]` (`employee/dto.go` `EmploymentResponse`), `GET /notifications` (type `MOVEMENT_*`).
+
+**Status:** checklist **siap dieksekusi**; eksekusi manual memerlukan environment tenant berjalan + akun ber-permission `employeemovement.*` (catatan §3.5.5: akun tsb belum tersedia saat validasi sebelumnya) — jadi bagian ini **menunggu environment**, bukan perubahan kode.
+
+## 3.17 Log Implementasi — Enhancement §12 P0 1–3 (transactional execute + conflict detection) 2026-08-10
+
+**Tujuan:** menutup tiga gap P0 enhancement plan (§12.2–§12.4): eksekusi atomic, conflict posisi, dan conflict tanggal efektif.
+
+### 3.17.1 Perubahan
+
+| File | Perubahan |
+|---|---|
+| `employeemovement/service.go` | +`MovementConflictError`; interface `CareerExecutor` **tx-aware** (semua method menerima `*gorm.DB`); `validateMovement` + **position conflict check saat create/update** (§12.3 soft-check); `ExecuteMovement` ditulis ulang → `repo.ExecuteMovementTx` dengan closure: conflict checks (§12.3 posisi + §12.4 tanggal) → `FindCurrentEmployment` → `CloseEmployment` → `CreateEmployment`/`SetEmployeeInactive` → return `toEmploymentID`; `contract_extension` tetap jalur non-tx (tanpa HR data change) |
+| `employeemovement/repository.go` | +`ExecuteMovementTx(ctx, id, executedBy, hrChanges func(tx) (*uuid.UUID, error))` — BEGIN → reload movement (guard `approved`) → jalankan HR changes → update `executed` + `to_employment_id` → COMMIT; error → ROLLBACK. +`PositionConflict(ctx, tx, posID, excludeEmp, effectiveDate)` (posisi terisi employee lain saat effective date) +`EmploymentEffectiveDateConflict(ctx, tx, empID, effectiveDate)` (employment terbuka yang mulai ≥ effective date). Keduanya menerima `tx` (nil → koneksi biasa) |
+| `employee/repository.go` | 4 metode di-refactor ke helper bersama + varian **Tx**: `FindActiveEmploymentByEmployeeIDTx`, `CloseEmploymentTx`, `CreateEmploymentTx`, `SetEmployeeStatusTx` — dipakai adapter agar operasi berjalan di transaksi modul employeemovement (satu koneksi, satu unit kerja) |
+| `cmd/server/main.go` | `employeeCareerAdapter` tx-aware (meneruskan `tx` ke varian Tx repository) |
+| `employeemovement/handler.go` | `movementErrStatus` + `MovementConflictError` → **409 `CONFLICT_ERROR`** (create/update/execute); execute membedakan konflik dari `EXECUTE_FAILED` |
+
+### 3.17.2 Aturan conflict yang diimplementasikan
+
+- **Posisi (§12.3)** — `position_id = to_position_id AND employee_id <> employee AND (effective_end_date IS NULL OR effective_end_date >= effective_date)` → terisi → ditolak. Dicek saat draft (create/update) dan **diulang atomik di execute**.
+- **Tanggal efektif (§12.4)** — untuk employee yang sama: ada employment `effective_end_date IS NULL` dengan `effective_date >= movement.effective_date` → overlap (mencakup backdate ke employment aktif maupun tabrakan dengan employment future-dated hasil eksekusi movement lain) → ditolak. Future-dated movement berurutan (chain) tetap diizinkan: eksekusi A (09-01) lalu B (08-15) → B ditolak; sebaliknya B dulu lalu A → A menutup B (08-31) lalu membuat A (09-01) — tanpa overlap.
+- **Guard offboarding/retirement** — cek tanggal efektif juga dijalankan untuk tipe deactivation: mencegah `CloseEmployment` menutup employment future-dated menjadi periode invalid (`effective_end_date` sebelum `effective_date` sendiri) sementara employment aktif sebenarnya tetap terbuka (hasil review kode saat implementasi).
+
+### 3.17.3 Tradeoff & catatan
+
+- Conflict check posisi saat **create** bersifat **blocking** (strict, sesuai acceptance §12.3 "validation dilakukan saat create/submit dan diulang saat execute"). Konsekuensi: skenario swap dua karyawan harus dieksekusi berurutan (buat+execute yang pertama dulu) — belum ada dukungan swap eksplisit (exception §12.3 di-defer).
+- Tipe `mutation` yang hanya mengisi `to_organization_id` (tanpa posisi) tidak bisa dicek occupancy posisi (P1 §12.12 — konsistensi org+posisi belum masuk scope ini).
+- `PositionConflict`/`EmploymentEffectiveDateConflict` memakai raw query ke tabel `employments` (pola enrichment G-4 yang sudah ada), bukan import modul employee.
+- Tidak ada row-locking `FOR UPDATE` (agar kompatibel driver SQLite di test) — anti double-execute dijaga oleh guard `WHERE status = 'approved'` pada update dalam transaksi.
+
+### 3.17.4 Validasi
+
+- `go build ./...` ✅ · `go vet` (employeemovement, employee, cmd/server) ✅
+- `go test` employeemovement / employee / approval — semua **PASS** ✅
+- Test baru (7): create posisi terisi → `MovementConflictError`; create posisi dibebaskan sebelum effective date → lolos; execute posisi terisi → 409 + movement tetap `approved` tanpa perubahan HR; execute tanggal efektif overlap employment future-dated → ditolak; execute backdate → ditolak; **offboarding tabrakan employment future-dated → ditolak** (guard §12.4); **rollback**: gagal create employment → movement tetap `approved` (bukan sebagian `executed`).
+
+---
+
+# 3.18 Log Implementasi — Enhancement P0 item 4: Movement Snapshot (2026-08-10)
+
+## 3.18.1 Yang dikerjakan
+
+Migration + model + service snapshot sehingga histori movement tidak berubah ketika master data Organization/Position/EmploymentStatus diubah namanya (plan §12.5):
+
+| File | Perubahan |
+|---|---|
+| `migrations/tenant/{mysql,postgres}/083_employeemovement_snapshot.{down.}sql` | Migration up/down: 6 kolom baru `from_organization_name`, `from_position_name`, `from_employment_status_name`, `to_organization_name`, `to_position_name`, `to_employment_status_name` (VARCHAR(255), nullable) di `employee_movements` |
+| `employeemovement/model.go` | `EmployeeMovement` + 6 field snapshot (`gorm` column mapped; nullable string) |
+| `employeemovement/dto.go` | `ToResponse()` mengisi 6 field `*Name` langsung dari snapshot row |
+| `employeemovement/service.go` | Helper `fillMovementSnapshot` — resolve nama (batch query `GetOrganizationNamesByIDs`/`GetPositionNamesByIDs`/`GetEmploymentStatusNamesByIDs`) dari `from_*/to_*_id` lalu persist ke row; dipanggil di `CreateMovement` & `UpdateMovement`. `enrichMovementResponses` kini **snapshot-aware**: hanya mengisi nama yang masih kosong (fallback untuk movement lama tanpa snapshot), tidak menimpa nilai snapshot |
+| `employeemovement/enrichment_test.go` | +2 test: snapshot ter-persist saat create (cek DB row & response); snapshot tetap saat master position di-rename setelahnya |
+
+## 3.18.2 Keputusan desain
+
+1. **Snapshot diisi saat create/update** (bukan saat submit/execute) — plan §12.5 "diisi saat movement dibuat/submit"; update draft juga menyegarkan karena `to_*` boleh berubah sebelum submit.
+2. **Best-effort resolution**: bila id referensi tidak ter-resolve (data master terhapus), nama snapshot dibiarkan kosong dan enrichment G-4 mengisi dari live data sebagai fallback — create/update tidak pernah gagal karena nama tidak ketemu.
+3. **Enrichment tidak menimpa snapshot** — setelah migration, daftar/detail tetap memakai nama snapshot (kondisi master saat movement dibuat). Movement lama (snapshot NULL) tetap menampilkan nama live via enrichment.
+4. **Foreign key `from_*/to_*_id` tetap disimpan** — relasi & navigasi tidak berubah (plan §12.5).
+5. `from_employment_type_name`/`to_employment_type_name` (opsional §14) **tidak diimplementasikan** — employment type belum ada di model; dapat ditambahkan belakangan bila kebutuhan muncul.
+
+## 3.18.3 Validasi
+
+- `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/...` ✅ · `gofmt` bersih ✅
+- `go test ./internal/modules/employeemovement/...` — semua **PASS** ✅
+- Test baru (2): `TestService_CreateMovement_SnapshotPersisted` (snapshot tersimpan di row + tampil di respons) · `TestService_Snapshot_ImmutableOnMasterRename` (rename title posisi setelah create → nama snapshot tetap `Software Engineer`).
+
+---
+
+# 3.19 Log Implementasi — Enhancement P0 item 5: Movement Audit Trail (2026-08-10)
+
+## 3.19.1 Yang dikerjakan
+
+Mencatat seluruh perubahan lifecycle movement sehingga transaksi HR dapat diaudit (plan §12.6):
+
+| File | Perubahan |
+|---|---|
+| `migrations/tenant/{mysql,postgres}/084_employeemovement_audit.{down.}sql` | Tabel baru `employee_movement_audits`: `id`, `movement_id` (FK → `employee_movements` ON DELETE CASCADE, index), `action` (index), `old_status`/`new_status` (VARCHAR(20)), `old_data`/`new_data` (JSON snapshot movement sebelum/sesudah), `reason`, `acted_by` (CHAR(36), nullable utk aksi sistem/callback), `acted_at` (default CURRENT_TIMESTAMP) |
+| `employeemovement/model.go` | +`EmployeeMovementAudit` + enum `MovementAuditAction` (CREATED, UPDATED, SUBMITTED, APPROVED, REJECTED, CANCELLED, EXECUTED); `BeforeCreate` set ID + `acted_at` |
+| `employeemovement/dto.go` | +`MovementAuditResponse` + `PaginatedMovementAuditResponse` + `ToResponse` |
+| `employeemovement/repository.go` | +`CreateAudit` (best-effort, tidak menggagalkan operasi utama) + `ListAuditsByMovementID` (acted_at DESC, pagination) |
+| `employeemovement/service.go` | +helper `recordAudit(ctx, movementID, action, oldStatus, newStatus, oldData, newData, reason, actedBy)` + `movementAuditJSON` (marshal movement → JSON snapshot) + `statusPtr`. Dipanggil di: **CreateMovement** (CREATED, new snapshot) · **UpdateMovement** (UPDATED, old+new snapshot) · **SubmitMovement** (SUBMITTED, draft → pending_approval) · **HandleApprovalStatusChange** (APPROVED/REJECTED/CANCELLED, snapshot sebelum + note reject sbg reason; acted_by nil krn aksi dari push-callback) · **ExecuteMovement** (EXECUTED, reload state akhir + acted_by executor; kedua jalur: contract_extension non-tx & transaksi employment) · **CancelMovement** (CANCELLED, newData mencerminkan status akhir) |
+| `employeemovement/handler.go` + `routes.go` | +`ListMovementAudits` → **`GET /api/v1/tenant/employee-movements/movements/:id/audits`** (page/per_page) |
+| `employeemovement/module.go` | `Migrate` AutoMigrate + `&EmployeeMovementAudit{}` |
+| `employeemovement/helpers_test.go` | AutoMigrate test DB + audit model |
+| `employeemovement/audit_test.go` (baru) | 8 test: lifecycle per aksi (create/update/submit/approve/reject/cancel/execute) + pagination (newest-first) + handler GET audits |
+
+## 3.19.2 Keputusan desain
+
+1. **Audit terpisah dari notifikasi**: `recordAudit` best-effort (kegagalan hanya warn log) — mengikuti pola `organization.captureHistory`, bukan menggagalkan operasi movement.
+2. **Snapshot JSON utuh**: `old_data`/`new_data` berisi marshal penuh `EmployeeMovement` (bukan hanya diff) sehingga histori dapat direkonstruksi meskipun row diubah setelahnya.
+3. **acted_by nil untuk push-callback** — aksi APPROVED/REJECTED/CANCELLED datang dari Central Approval (bukan user langsung); CREATED/UPDATED/SUBMITTED/CANCELLED-user memakai `authctx.GetUserID`, EXECUTED memakai id executor dari request.
+4. **FK ON DELETE CASCADE** — audit otomatis terhapus bila movement dihapus (konsisten dengan `employee_id` CASCADE pada movement).
+5. **Endpoint** mengikuti pola route modul: `GET /movements/:id/audits` (bukan `/employee-movements/{id}/audits` di plan §15 yang memakai shorthand path modul).
+
+## 3.19.3 Validasi
+
+- `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/...` ✅ · `gofmt` bersih ✅
+- `go test ./internal/modules/employeemovement/...` — semua **PASS** ✅
+- Test baru (8): lifecycle CREATED/UPDATED/SUBMITTED/APPROVED/REJECTED/CANCELLED/EXECUTED (status transition + snapshot + reason reject + acted_by executor) · pagination (total/total_pages + newest-first) · handler `GET /audits` 200.
+
 ---
 
 # 5. API Plan
@@ -532,8 +676,8 @@ i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama
 | 9 | G-8 samakan slug module & route FE dengan menu server — ✅ **SELESAI (2026-08-10)** | BE/FE | — |
 | 10 | FE: halaman Movements (`/admin/career/movements`) — daftar enriched + filter (type/status/search) + form create per tipe + aksi submit/execute/cancel + delete — ✅ **SELESAI (2026-08-10)** | FE | 2-7, 9 |
 | 11 | FE: halaman Contracts terpisah (`/admin/career/contracts`) — daftar enriched + filter status/search + dialog create/edit + upload dokumen + delete — ✅ **SELESAI (2026-08-10)** | FE | 7 |
-| 12 | FE: aksi submit/execute/cancel + detail + deep-link notifikasi + badge `rejected` | FE | 5 |
-| 13 | Test: unit/service + FE build + verifikasi manual E2E | — | semua |
+| 12 | FE: aksi submit/execute/cancel + detail + deep-link notifikasi + badge `rejected` — ✅ **SELESAI (2026-08-10; deep-link & badge sudah masuk langkah 5/10, detail dialog baru)** | FE | 5 |
+| 13 | Test: unit/service + FE build + verifikasi manual E2E — ✅ **unit/service + build SELESAI** (PASS di tiap langkah); ✅ **checklist E2E dibuat** (`docs/module-movement-e2e-checklist.md`); ⏳ **eksekusi manual** menunggu environment tenant | — | semua |
 
 ---
 
@@ -555,3 +699,1049 @@ i18n en/id di `internal/modules/notification/i18n.go` + FE deep-link. (Pola sama
 | 4 | Status `rejected` | **Tambahkan status terpisah `rejected`** | Migration + enum model `MovementStatusRejected`; `HandleApprovalStatusChange` REJECTED → status `rejected`; FE badge/color baru |
 | 5 | Approve manual (G-5) | **Hapus** — paksa lewat `submit` (satu pintu approval) | Hapus `POST /movements/:id/approve` + `ApproveMovement` service + test-nya |
 | 6 | Navigasi (G-8) | **Dua halaman terpisah** seperti menu server | `EmployeeMovements.vue` (route `/admin/career/movements`) + `EmployeeContracts.vue` baru (route `/admin/career/contracts`); samakan module slug |
+
+---
+
+# 12. Enhancement Plan — Employee Movement & Career Management
+
+> Bagian ini merupakan enhancement lanjutan terhadap implementasi existing. Tidak menggantikan keputusan bisnis pada §11. Enhancement diprioritaskan pada integritas histori employment, validasi movement, career management, dan integrasi dengan modul HRIS lainnya.
+
+## 12.1 Prinsip Enhancement
+
+1. `employee_movements` menjadi sumber histori transaksi perubahan status/posisi employee.
+2. `employments` tetap menjadi sumber current employment.
+3. Movement tidak boleh mengubah histori lama secara destruktif.
+4. Setiap execution harus atomic/transactional.
+5. Future-dated movement tetap diperbolehkan sesuai keputusan §11.2.
+6. Karena model organisasi adalah **organization = position** dan satu position hanya ditempati satu employee, movement harus melakukan conflict detection.
+7. Approval tetap menggunakan Central Approval Module.
+8. Performance, competency, dan career path menjadi sumber informasi/eligibility; movement tetap menjadi transaksi eksekusi.
+9. Seluruh ID menggunakan UUID/CHAR(36) sesuai pola database existing.
+10. Dokumen, audit, dan histori harus tetap tersedia setelah movement dieksekusi.
+
+---
+
+## 12.2 P0 — Transactional Execute Movement
+
+> ✅ **SELESAI (2026-08-10)** — `ExecuteMovement` kini berjalan dalam satu DB transaction (`Repository.ExecuteMovementTx`): conflict detection + close old employment + create new employment + update movement `executed` + commit; kegagalan di langkah mana pun → ROLLBACK (employment lama utuh, movement tetap `approved`, retry oleh HR). Lihat log §3.17.
+
+### Problem
+
+`ExecuteMovement` mengubah employment lama dan membuat employment baru. Proses tersebut harus atomic agar tidak terjadi kondisi sebagian berhasil.
+
+### Target Flow
+
+```text
+Execute Movement
+      ↓
+BEGIN TRANSACTION
+      ↓
+Validate current state
+      ↓
+Validate position / organization conflict
+      ↓
+Close old employment
+      ↓
+Create new employment
+      ↓
+Update movement = executed
+      ↓
+Write audit
+      ↓
+COMMIT
+```
+
+Jika salah satu proses gagal:
+
+```text
+ROLLBACK
+```
+
+### Acceptance Criteria
+
+- Tidak ada employment setengah berubah.
+- Movement hanya menjadi `executed` setelah seluruh perubahan berhasil.
+- Jika insert employment gagal, employment lama tetap utuh.
+- Audit hanya dibuat setelah transaksi berhasil atau menggunakan transactional audit.
+
+---
+
+## 12.3 P0 — Position / Organization Conflict Detection
+
+> ✅ **SELESAI (2026-08-10)** — `PositionConflict` dicek saat create/update (draft) dan **diulang atomik di dalam transaksi execute**: target position tidak boleh terisi employment terbuka employee lain pada effective date. Konflik → error `CONFLICT_ERROR` (409) `MovementConflictError`. Lihat log §3.17.
+
+Dengan konsep bisnis:
+
+```text
+Organization = Position
+1 Position = 1 Employee
+```
+
+maka sebelum movement dieksekusi harus dilakukan validasi target.
+
+### Validation
+
+```text
+Employee A
+    ↓
+Target Position B
+    ↓
+Check active employment
+    ↓
+Position B occupied?
+```
+
+Jika sudah ditempati:
+
+```text
+❌ Position already occupied
+```
+
+### Exception
+
+Conflict dapat dilewati hanya jika movement tersebut secara eksplisit memang melakukan perpindahan employee lama terlebih dahulu dalam satu transaksi bisnis yang valid.
+
+### Acceptance Criteria
+
+- Tidak ada dua employee aktif pada position yang sama.
+- Validation dilakukan saat create/submit dan diulang saat execute.
+- Execute tidak boleh bergantung hanya pada validation frontend.
+
+---
+
+## 12.4 P0 — Effective Date Conflict Detection
+
+> ✅ **SELESAI (2026-08-10)** — `EmploymentEffectiveDateConflict` (di dalam transaksi execute): employee tidak boleh memiliki employment terbuka yang mulai pada/ setelah effective date — mencegah backdate ke employment aktif & tabrakan dengan employment future-dated dari eksekusi sebelumnya. Konflik → 409 `CONFLICT_ERROR`. Lihat log §3.17.
+
+Movement future-dated harus dapat digunakan, tetapi histori employment tidak boleh overlap.
+
+Contoh:
+
+```text
+Movement A
+Promotion
+Effective: 2026-09-01
+```
+
+kemudian:
+
+```text
+Movement B
+Mutation
+Effective: 2026-08-15
+```
+
+Sistem harus mendeteksi apakah kedua movement menghasilkan employment period yang conflict.
+
+### Rule
+
+Untuk employee yang sama:
+
+```text
+employment_from <= employment_to
+```
+
+dan tidak boleh terdapat dua active employment period yang overlap.
+
+### Acceptance Criteria
+
+- Future movement diperbolehkan.
+- Movement dengan effective date conflict ditolak.
+- Recalculation/validation menggunakan tanggal efektif, bukan tanggal approval.
+
+---
+
+## 12.5 P0 — Movement Snapshot
+
+Saat ini movement menyimpan foreign key `from_*` dan `to_*`. Karena nama Organization, Position, dan Employment Status dapat berubah, histori movement perlu memiliki snapshot.
+
+### Recommended Fields
+
+Tambahkan pada `employee_movements`:
+
+```text
+from_organization_name
+from_position_name
+from_employment_status_name
+
+to_organization_name
+to_position_name
+to_employment_status_name
+```
+
+Jika diperlukan:
+
+```text
+from_employment_type_name
+to_employment_type_name
+```
+
+### Tujuan
+
+Jika Position berubah nama pada tahun berikutnya, histori movement tetap menampilkan nama saat transaksi dibuat.
+
+### Acceptance Criteria
+
+- Snapshot diisi saat movement dibuat/submit.
+- Snapshot tidak berubah ketika master data berubah.
+- Foreign key tetap disimpan untuk relasi dan navigasi.
+
+> ✅ **SELESAI (2026-08-10)** — migration `083_employeemovement_snapshot` (mysql + postgres, up + down) menambah 6 kolom `from_*/to_*_name` di `employee_movements`. `fillMovementSnapshot` (service) meresolve nama Organization/Position/EmploymentStatus saat create/update dan mempersist-nya bersama movement; `ToResponse` membaca snapshot dari row; enrichment G-4 kini hanya mengisi nama kosong (fallback untuk movement lama tanpa snapshot) — master data yang diubah setelahnya tidak menulis ulang histori. Lihat log §3.18.
+
+---
+
+## 12.6 P0 — Movement Audit Trail
+
+Employee Movement adalah transaksi HR yang penting dan harus dapat diaudit.
+
+### Recommended Table
+
+```text
+employee_movement_audits
+```
+
+### Fields
+
+| Field | Description |
+|---|---|
+| `id` | UUID |
+| `movement_id` | Employee movement |
+| `action` | Action yang dilakukan |
+| `old_status` | Status sebelumnya |
+| `new_status` | Status setelah action |
+| `old_data` | JSON snapshot sebelum perubahan |
+| `new_data` | JSON snapshot setelah perubahan |
+| `reason` | Alasan |
+| `acted_by` | User |
+| `acted_at` | Timestamp |
+
+### Actions
+
+```text
+CREATED
+UPDATED
+SUBMITTED
+APPROVED
+REJECTED
+CANCELLED
+EXECUTED
+```
+
+### Acceptance Criteria
+
+Semua perubahan lifecycle movement tercatat.
+
+> ✅ **SELESAI (2026-08-10)** — tabel `employee_movement_audits` (migration `084_employeemovement_audit`, mysql + postgres) + `recordAudit` di service mencatat CREATED / UPDATED / SUBMITTED / APPROVED / REJECTED / CANCELLED / EXECUTED dengan `old/new_status` + snapshot JSON `old/new_data`. Endpoint `GET /movements/:id/audits`. Lihat log §3.19.
+
+---
+
+## 12.7 P1 — Future-Dated Movement Processing
+
+Keputusan §11.2 tetap dipertahankan:
+
+> Employment masa depan diperbolehkan dan execution dilakukan manual oleh HR.
+
+Enhancement yang disarankan adalah scheduler **opsional**, bukan menggantikan manual execution pada fase existing.
+
+### Opsi A — Manual
+
+```text
+APPROVED
+   ↓
+HR Execute
+   ↓
+EXECUTED
+```
+
+### Opsi B — Scheduled Execution
+
+```text
+APPROVED
+   ↓
+effective_date reached
+   ↓
+ProcessEffectiveMovementsJob
+   ↓
+EXECUTED
+```
+
+Implementasi scheduler sebaiknya menjadi feature flag/configuration jika nanti diperlukan.
+
+---
+
+## 12.8 P1 — Career Timeline
+
+Tambahkan career timeline pada Employee Detail.
+
+### Endpoint
+
+```http
+GET /api/v1/tenant/employees/{employeeId}/career-history
+```
+
+### Timeline
+
+```text
+2024
+  Joined
+  Staff IT
+
+2025
+  Mutation
+  IT → Finance
+
+2026
+  Promotion
+  Staff → Supervisor
+```
+
+### Data Source
+
+Tidak perlu membuat `employee_career_history` jika informasi sudah dapat dibentuk dari:
+
+```text
+employee_movements
+        +
+employments
+        +
+employee_contracts
+```
+
+Movement menjadi sumber transaksi, sedangkan API career-history menjadi read model/query khusus.
+
+---
+
+## 12.9 P1 — Career Path
+
+Karena module mencakup Career Management, tambahkan konfigurasi career path.
+
+### New Table
+
+```text
+career_paths
+career_path_steps
+```
+
+### Structure
+
+```text
+career_paths
+    │
+    └── career_path_steps
+             │
+             ├── position_id
+             ├── sequence
+             ├── minimum_service_months
+             └── requirements
+```
+
+### Example
+
+```text
+Staff
+  ↓
+Senior Staff
+  ↓
+Supervisor
+  ↓
+Manager
+  ↓
+Senior Manager
+```
+
+### Catatan
+
+Career Path adalah **planning/configuration**, bukan movement transaction.
+
+---
+
+## 12.10 P1 — Promotion Eligibility
+
+Promotion tidak cukup hanya memvalidasi `to_position_id`.
+
+Tambahkan eligibility rule jika business requirement sudah ditetapkan.
+
+### Contoh
+
+```text
+Minimum Service       >= 24 months
+Performance Score     >= 80
+Competency Level      >= 3
+Required Training     = completed
+```
+
+### Flow
+
+```text
+Create Promotion
+       ↓
+Check Eligibility
+       ↓
+Eligible?
+   ┌───┴───┐
+  Yes      No
+   ↓        ↓
+Submit    Reject
+```
+
+### New Table — Optional
+
+```text
+career_path_requirements
+```
+
+atau dapat dikembangkan sebagai konfigurasi `career_path_steps` jika rule masih sederhana.
+
+---
+
+## 12.11 P1 — Performance Integration
+
+Promotion dapat menggunakan hasil Performance Management.
+
+Contoh:
+
+```text
+Employee
+   │
+   ├── KPI Score       87
+   ├── OKR Score       91
+   ├── Competency      85
+   │
+   ▼
+Promotion Eligibility
+   │
+   ▼
+Eligible
+```
+
+### Integration Principle
+
+Employee Movement **tidak menghitung KPI/OKR**.
+
+Movement hanya membaca hasil final dari:
+
+```text
+Performance Management
+Competency Management
+```
+
+sebagai input eligibility/recommendation.
+
+---
+
+## 12.12 P1 — Mutation Enhancement
+
+Mutation harus mendukung perpindahan lengkap:
+
+```text
+FROM
+Organization A
+Position A
+
+        ↓
+
+TO
+Organization B
+Position B
+```
+
+Karena:
+
+```text
+Organization = Position
+```
+
+maka validasi target wajib memeriksa pasangan:
+
+```text
+organization_id
+position_id
+```
+
+### Acceptance Criteria
+
+- Organization dan Position harus konsisten.
+- Target position harus tersedia.
+- Tidak boleh membuat dua active employment pada target position.
+
+---
+
+## 12.13 P1 — Contract Expiry Management
+
+Existing `employee_contracts` sudah mendukung `previous_contract_id`, `extension_count`, status, dan document URL.
+
+Tambahkan scheduled process:
+
+```text
+ProcessContractExpiration
+```
+
+### Reminder
+
+```text
+30 days before
+14 days before
+7 days before
+1 day before
+```
+
+### Status Transition
+
+```text
+ACTIVE
+  ↓ end_date reached
+EXPIRED
+```
+
+### Acceptance Criteria
+
+- Contract expired otomatis dapat terdeteksi.
+- Notification dikirim kepada HR.
+- Employee/manager dapat menerima reminder sesuai permission.
+
+---
+
+## 12.14 P1 — Contract Extension Chain
+
+Pertahankan chain existing:
+
+```text
+Contract A
+    ↓
+extension
+Contract B
+    ↓
+extension
+Contract C
+```
+
+Dengan:
+
+```text
+previous_contract_id
+extension_count
+```
+
+### Enhancement
+
+Pastikan setiap extension:
+
+- Memiliki contract number baru jika policy mengharuskan.
+- Memiliki effective date baru.
+- Menyimpan previous contract.
+- Tidak mengubah histori contract sebelumnya.
+- Dapat ditelusuri dari contract terbaru ke awal chain.
+
+---
+
+## 12.15 P1 — Movement Documents
+
+Saat ini movement memiliki informasi SK seperti:
+
+```text
+decision_letter_number
+decision_letter_date
+```
+
+Untuk mendukung lebih dari satu dokumen, tambahkan:
+
+```text
+employee_movement_documents
+```
+
+### Fields
+
+| Field | Description |
+|---|---|
+| `id` | UUID |
+| `movement_id` | Movement |
+| `document_type` | Jenis dokumen |
+| `file_name` | Nama file |
+| `file_url` | Lokasi file |
+| `uploaded_by` | User |
+| `created_at` | Timestamp |
+
+### Document Type Example
+
+```text
+PROMOTION_SK
+MUTATION_SK
+DEMOTION_SK
+RETIREMENT_LETTER
+OFFBOARDING_LETTER
+OTHER
+```
+
+---
+
+## 12.16 P1 — Movement Cancellation After Approval
+
+Movement yang sudah approved tidak sebaiknya dapat dibatalkan secara langsung tanpa audit/approval tambahan jika policy HR mensyaratkannya.
+
+Recommended future flow:
+
+```text
+APPROVED
+   ↓
+Cancellation Request
+   ↓
+Central Approval Module
+   ↓
+CANCELLED
+```
+
+Namun keputusan §11.1 tetap berlaku untuk execution:
+
+```text
+Approved → HR Execute
+```
+
+---
+
+## 12.17 P2 — Movement Reporting
+
+Tambahkan report:
+
+### Movement Report
+
+```text
+Promotion
+Demotion
+Mutation
+Contract Extension
+Status Change
+Retirement
+Offboarding
+```
+
+Filter:
+
+```text
+Period
+Organization
+Position
+Employee
+Movement Type
+Status
+```
+
+### Career History Report
+
+```text
+Employee
+Join Date
+Position History
+Organization History
+Promotion History
+Mutation History
+Status History
+```
+
+### Contract Report
+
+```text
+Active
+Expiring
+Expired
+Extended
+Terminated
+```
+
+---
+
+## 12.18 P2 — Dashboard
+
+### HR Dashboard
+
+```text
+Employee Movement
+-------------------------
+Promotion             12
+Mutation              20
+Demotion               2
+Status Change          8
+Retirement             3
+Offboarding             5
+
+Pending Approval       10
+Effective This Month    8
+```
+
+### Contract
+
+```text
+Active                150
+Expiring < 30 days     12
+Expired                 5
+```
+
+---
+
+# 13. Recommended Database Enhancement
+
+## Existing Tables
+
+```text
+employee_movements
+employee_contracts
+```
+
+## P0 / P1 New Tables
+
+```text
+employee_movement_audits
+employee_movement_documents
+```
+
+## Career Management
+
+```text
+career_paths
+career_path_steps
+```
+
+## Optional
+
+```text
+career_path_requirements
+```
+
+Tidak direkomendasikan membuat:
+
+```text
+employee_career_history
+```
+
+karena career history dapat dibentuk dari existing transactional data.
+
+---
+
+# 14. Recommended Field Enhancement
+
+## `employee_movements`
+
+Tambahkan snapshot fields:
+
+```text
+from_organization_name
+from_position_name
+from_employment_status_name
+
+to_organization_name
+to_position_name
+to_employment_status_name
+```
+
+Jika dibutuhkan:
+
+```text
+from_employment_type_name
+to_employment_type_name
+```
+
+### Indexes
+
+Pastikan tersedia index untuk:
+
+```text
+employee_id
+movement_type
+status
+effective_date
+from_organization_id
+to_organization_id
+from_position_id
+to_position_id
+```
+
+---
+
+# 15. Enhancement API Plan
+
+## Career History
+
+```http
+GET /api/v1/tenant/employees/{employeeId}/career-history
+```
+
+## Eligibility
+
+```http
+GET /api/v1/tenant/employees/{employeeId}/movement-eligibility
+GET /api/v1/tenant/employees/{employeeId}/promotion-eligibility
+```
+
+## Documents
+
+```http
+GET    /api/v1/tenant/employee-movements/{id}/documents
+POST   /api/v1/tenant/employee-movements/{id}/documents
+DELETE /api/v1/tenant/employee-movements/{id}/documents/{documentId}
+```
+
+## Audit
+
+```http
+GET /api/v1/tenant/employee-movements/{id}/audits
+```
+
+## Career Paths
+
+```http
+GET    /api/v1/tenant/career-paths
+POST   /api/v1/tenant/career-paths
+GET    /api/v1/tenant/career-paths/{id}
+PUT    /api/v1/tenant/career-paths/{id}
+DELETE /api/v1/tenant/career-paths/{id}
+```
+
+---
+
+# 16. Enhancement Service Layer
+
+Recommended services:
+
+```text
+MovementExecutionService
+MovementValidationService
+MovementConflictService
+MovementSnapshotService
+MovementAuditService
+MovementDocumentService
+CareerHistoryService
+CareerPathService
+CareerEligibilityService
+ContractExpirationService
+```
+
+### Responsibility
+
+```text
+MovementValidationService
+    ↓
+Validation business rules
+
+MovementConflictService
+    ↓
+Position / employment overlap
+
+MovementExecutionService
+    ↓
+Atomic employment changes
+
+MovementSnapshotService
+    ↓
+Historical snapshot
+
+MovementAuditService
+    ↓
+Lifecycle audit
+
+CareerEligibilityService
+    ↓
+Promotion / career eligibility
+```
+
+---
+
+# 17. Enhancement Testing Plan
+
+## 17.1 Transaction Test
+
+```text
+Execute Movement
+→ Old Employment Closed
+→ New Employment Created
+→ Movement Executed
+```
+
+Simulasikan failure pada new employment:
+
+```text
+Old Employment remains unchanged
+Movement remains approved
+```
+
+---
+
+## 17.2 Position Conflict Test
+
+```text
+Position A occupied by Employee A
+
+Employee B
+→ Movement to Position A
+
+Expected:
+REJECTED / VALIDATION ERROR
+```
+
+---
+
+## 17.3 Future Date Test
+
+```text
+Effective Date > Today
+```
+
+Expected:
+
+```text
+Approved
+but employment only effective from effective_date
+```
+
+---
+
+## 17.4 Overlap Test
+
+Test:
+
+```text
+Movement A = 01 Jan
+Movement B = 15 Jan
+```
+
+Pastikan employment periods tidak overlap secara invalid.
+
+---
+
+## 17.5 Snapshot Test
+
+1. Create movement.
+2. Snapshot position name = `Staff`.
+3. Rename position menjadi `Senior Staff`.
+4. Movement history tetap menampilkan `Staff`.
+
+---
+
+## 17.6 Career History Test
+
+Pastikan timeline menampilkan:
+
+```text
+Join
+→ Promotion
+→ Mutation
+→ Promotion
+→ Current Position
+```
+
+secara kronologis.
+
+---
+
+## 17.7 Contract Test
+
+Test:
+
+```text
+Contract A
+→ Extension
+→ Contract B
+→ Extension
+→ Contract C
+```
+
+Pastikan:
+
+```text
+A.previous = null
+B.previous = A
+C.previous = B
+```
+
+dan:
+
+```text
+extension_count
+A = 0
+B = 1
+C = 2
+```
+
+---
+
+# 18. Enhancement Development Order
+
+| # | Item | Priority | Area |
+|---|---|---|---|
+| 1 | Transactional Execute Movement — ✅ **SELESAI (2026-08-10)** | P0 | BE |
+| 2 | Position Conflict Detection — ✅ **SELESAI (2026-08-10)** | P0 | BE |
+| 3 | Effective Date Conflict — ✅ **SELESAI (2026-08-10)** | P0 | BE |
+| 4 | Movement Snapshot — ✅ **SELESAI (2026-08-10)** | P0 | DB/BE |
+| 5 | Movement Audit Trail — ✅ **SELESAI (2026-08-10)** | P0 | DB/BE |
+| 6 | Movement Documents | P1 | DB/BE/FE |
+| 7 | Career Timeline | P1 | BE/FE |
+| 8 | Contract Expiry | P1 | BE/Job/FE |
+| 9 | Performance Integration | P1 | BE |
+| 10 | Career Path | P1 | DB/BE/FE |
+| 11 | Promotion Eligibility | P1/P2 | BE |
+| 12 | Movement Cancellation Approval | P2 | Approval/BE |
+| 13 | Reports | P2 | BE/FE |
+| 14 | Dashboard | P2 | BE/FE |
+
+---
+
+# 19. Final Target Architecture
+
+```text
+                         Employee Movement
+                                │
+              ┌─────────────────┼─────────────────┐
+              │                 │                 │
+              ▼                 ▼                 ▼
+         Validation          Approval          Documents
+              │                 │                 │
+              │                 ▼                 │
+              │        Central Approval          │
+              │                 │                 │
+              └─────────────────┼─────────────────┘
+                                ▼
+                         Execute Movement
+                                │
+                         DB Transaction
+                                │
+                 ┌──────────────┴──────────────┐
+                 ▼                             ▼
+        Old Employment                  New Employment
+                 │                             │
+                 └──────────────┬──────────────┘
+                                ▼
+                       Employee Career History
+                                │
+            ┌───────────────────┼───────────────────┐
+            ▼                   ▼                   ▼
+       Performance          Competency         Career Path
+          KPI/OKR                                  │
+            │                                      ▼
+            └──────────────────────────── Promotion
+                                                   │
+                                                   ▼
+                                             Employee Movement
+```
+
+---
+
+# 20. Final Design Principles
+
+1. `employee_movements` adalah **transaction/history**, bukan current employee state.
+2. `employments` adalah sumber current/future employment state.
+3. Movement execution wajib atomic.
+4. Target Position harus divalidasi karena satu Position hanya boleh memiliki satu employee aktif sesuai konsep HRIS.
+5. Future-dated movement diperbolehkan.
+6. Approval tetap menggunakan Central Approval Module.
+7. `rejected` berbeda dari `cancelled`.
+8. Movement yang approved tetap memerlukan execution sesuai keputusan §11.
+9. Snapshot diperlukan untuk menjaga histori terhadap perubahan master Organization/Position/Status.
+10. Audit trail wajib tersedia untuk lifecycle movement.
+11. Career history tidak perlu memiliki tabel duplikasi jika dapat dibentuk dari movement + employment.
+12. Career Path merupakan konfigurasi/perencanaan karier, bukan transaksi movement.
+13. Performance KPI/OKR dapat menjadi input promotion eligibility, bukan dihitung di Movement Module.
+14. Contract extension harus mempertahankan chain melalui `previous_contract_id`.
+15. Contract expiration harus dapat dimonitor dan diberi notification.
+16. Dokumen movement harus mendukung lebih dari satu dokumen.
+17. Semua enhancement tetap mengikuti pola UUID yang sudah digunakan project.
+18. Semua perubahan database harus memiliki migration MySQL dan PostgreSQL jika project mempertahankan dua driver tersebut.
+19. Business rules berada di service layer, bukan controller/frontend.
+20. Frontend hanya menampilkan action yang sesuai permission dan state movement.

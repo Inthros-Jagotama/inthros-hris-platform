@@ -1046,7 +1046,13 @@
     "confirm_delete_msg": "Delete this draft movement?",
     "select_employee": "Select employee",
     "field_required": "This field is required",
-    "hint_per_type": "Required fields depend on the movement type"
+    "hint_per_type": "Required fields depend on the movement type",
+    "detail_title": "Movement Detail",
+    "from": "From",
+    "to": "To",
+    "approved_at": "Approved At",
+    "executed_at": "Executed At",
+    "created_at": "Created At"
   },
   "approval": {
     "title": "Approval",

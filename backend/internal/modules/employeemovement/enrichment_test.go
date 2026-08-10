@@ -244,6 +244,101 @@ func TestService_ListContracts_Enriched(t *testing.T) {
 	}
 }
 
+// TestService_CreateMovement_SnapshotPersisted verifies plan §12.5: the
+// display names resolved at creation time are persisted onto the movement
+// row (from_*/to_*_name columns), not just filled into the response.
+func TestService_CreateMovement_SnapshotPersisted(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	setupEnrichmentRefs(t, dbResolver)
+
+	empID, orgID, posID, statusID := seedEnrichmentRefs(t, dbResolver)
+
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, testLogger())
+
+	resp, err := svc.CreateMovement(ctx(), CreateMovementRequest{
+		EmployeeID:           empID.String(),
+		MovementType:         string(MovementTypePromotion),
+		ToOrganizationID:     strPtr(orgID.String()),
+		ToPositionID:         strPtr(posID.String()),
+		ToEmploymentStatusID: strPtr(statusID.String()),
+		DecisionLetterNumber: "SK-SNAP-1",
+		DecisionLetterDate:   "2026-07-01",
+		EffectiveDate:        "2026-08-01",
+	})
+	if err != nil {
+		t.Fatalf("CreateMovement failed: %v", err)
+	}
+
+	// Response carries the snapshot names.
+	if resp.ToOrganizationName != "Divisi Teknologi Informasi" {
+		t.Errorf("expected to_organization_name snapshot in response, got '%s'", resp.ToOrganizationName)
+	}
+	if resp.ToPositionName != "Software Engineer" {
+		t.Errorf("expected to_position_name snapshot in response, got '%s'", resp.ToPositionName)
+	}
+	if resp.ToEmploymentStatusName != "Permanent" {
+		t.Errorf("expected to_employment_status_name snapshot in response, got '%s'", resp.ToEmploymentStatusName)
+	}
+
+	// The row itself must have the snapshot persisted.
+	var stored EmployeeMovement
+	if err := db.Where("id = ?", resp.ID).First(&stored).Error; err != nil {
+		t.Fatalf("failed to reload movement: %v", err)
+	}
+	if stored.ToOrganizationName != "Divisi Teknologi Informasi" {
+		t.Errorf("expected persisted to_organization_name, got '%s'", stored.ToOrganizationName)
+	}
+	if stored.ToPositionName != "Software Engineer" {
+		t.Errorf("expected persisted to_position_name, got '%s'", stored.ToPositionName)
+	}
+	if stored.ToEmploymentStatusName != "Permanent" {
+		t.Errorf("expected persisted to_employment_status_name, got '%s'", stored.ToEmploymentStatusName)
+	}
+}
+
+// TestService_Snapshot_ImmutableOnMasterRename verifies plan §12.5: renaming
+// the master position after the movement was created does NOT rewrite the
+// movement's history — the persisted snapshot name is returned.
+func TestService_Snapshot_ImmutableOnMasterRename(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	setupEnrichmentRefs(t, dbResolver)
+
+	empID, orgID, posID, statusID := seedEnrichmentRefs(t, dbResolver)
+
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, testLogger())
+
+	created, err := svc.CreateMovement(ctx(), CreateMovementRequest{
+		EmployeeID:           empID.String(),
+		MovementType:         string(MovementTypePromotion),
+		ToOrganizationID:     strPtr(orgID.String()),
+		ToPositionID:         strPtr(posID.String()),
+		ToEmploymentStatusID: strPtr(statusID.String()),
+		DecisionLetterNumber: "SK-SNAP-2",
+		DecisionLetterDate:   "2026-07-01",
+		EffectiveDate:        "2026-08-01",
+	})
+	if err != nil {
+		t.Fatalf("CreateMovement failed: %v", err)
+	}
+
+	// Rename the master position afterwards (the scenario §12.5 protects).
+	if err := db.Exec(`UPDATE positions SET title = ? WHERE id = ?`, "Principal Engineer", posID.String()).Error; err != nil {
+		t.Fatalf("failed to rename position: %v", err)
+	}
+
+	got, err := svc.GetMovementByID(ctx(), created.ID)
+	if err != nil {
+		t.Fatalf("GetMovementByID failed: %v", err)
+	}
+	if got.ToPositionName != "Software Engineer" {
+		t.Errorf("expected snapshot name 'Software Engineer' after master rename, got '%s'", got.ToPositionName)
+	}
+}
+
 // TestService_ListMovements_NoRefs_NoError verifies enrichment is a no-op
 // (not an error) when reference rows don't exist in the DB.
 func TestService_ListMovements_NoRefs_NoError(t *testing.T) {

@@ -18,6 +18,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		em.POST("/movements/:id/submit", handler.SubmitMovement)
 		em.POST("/movements/:id/execute", handler.ExecuteMovement)
 		em.POST("/movements/:id/cancel", handler.CancelMovement)
+		// Audit trail movement (enhancement plan §12.6).
+		em.GET("/movements/:id/audits", handler.ListMovementAudits)
 
 		// Movements by Employee
 		em.GET("/employees/:employeeId/movements", handler.ListMovementsByEmployee)

@@ -17,8 +17,8 @@ type careerTestAdapter struct {
 	repo *employee.Repository
 }
 
-func (a careerTestAdapter) FindCurrentEmployment(ctx context.Context, employeeID uuid.UUID) (*CareerEmployment, error) {
-	e, err := a.repo.FindActiveEmploymentByEmployeeID(ctx, employeeID)
+func (a careerTestAdapter) FindCurrentEmployment(ctx context.Context, tx *gorm.DB, employeeID uuid.UUID) (*CareerEmployment, error) {
+	e, err := a.repo.FindActiveEmploymentByEmployeeIDTx(ctx, tx, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -36,11 +36,11 @@ func (a careerTestAdapter) FindCurrentEmployment(ctx context.Context, employeeID
 	}, nil
 }
 
-func (a careerTestAdapter) CloseEmployment(ctx context.Context, employmentID uuid.UUID, effectiveDate string) error {
-	return a.repo.CloseEmployment(ctx, employmentID, effectiveDate)
+func (a careerTestAdapter) CloseEmployment(ctx context.Context, tx *gorm.DB, employmentID uuid.UUID, effectiveDate string) error {
+	return a.repo.CloseEmploymentTx(ctx, tx, employmentID, effectiveDate)
 }
 
-func (a careerTestAdapter) CreateEmployment(ctx context.Context, employeeID uuid.UUID, data CareerEmployment) (uuid.UUID, error) {
+func (a careerTestAdapter) CreateEmployment(ctx context.Context, tx *gorm.DB, employeeID uuid.UUID, data CareerEmployment) (uuid.UUID, error) {
 	emp := &employee.Employment{
 		EmployeeID:           &employeeID,
 		OrganizationID:       data.OrganizationID,
@@ -50,14 +50,14 @@ func (a careerTestAdapter) CreateEmployment(ctx context.Context, employeeID uuid
 		DecisionLetterDate:   data.DecisionLetterDate,
 		EffectiveDate:        data.EffectiveDate,
 	}
-	if err := a.repo.CreateEmployment(ctx, emp); err != nil {
+	if err := a.repo.CreateEmploymentTx(ctx, tx, emp); err != nil {
 		return uuid.Nil, err
 	}
 	return emp.ID, nil
 }
 
-func (a careerTestAdapter) SetEmployeeInactive(ctx context.Context, employeeID uuid.UUID) error {
-	return a.repo.SetEmployeeStatus(ctx, employeeID, "inactive")
+func (a careerTestAdapter) SetEmployeeInactive(ctx context.Context, tx *gorm.DB, employeeID uuid.UUID) error {
+	return a.repo.SetEmployeeStatusTx(ctx, tx, employeeID, "inactive")
 }
 
 // =========================================================================

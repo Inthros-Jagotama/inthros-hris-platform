@@ -95,6 +95,7 @@ func (m *empMovementModule) Migrate(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&EmployeeMovement{},
 		&EmployeeContract{},
+		&EmployeeMovementAudit{},
 	)
 }
 

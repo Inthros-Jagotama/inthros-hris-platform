@@ -99,9 +99,17 @@
       <Column field="status" :header="t('common.status')" style="width:140px">
         <template #body="{data}"><Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" class="!text-xs !px-1.5 !py-0.5" /></template>
       </Column>
-      <Column :header="t('common.actions')" style="width:230px" frozen alignFrozen="right">
+      <Column :header="t('common.actions')" style="width:270px" frozen alignFrozen="right">
         <template #body="{data}">
           <div class="flex items-center justify-end gap-1">
+            <Button
+              icon="pi pi-eye"
+              size="small"
+              text
+              severity="secondary"
+              v-tooltip.left="t('common.view')"
+              @click="openDetail(data)"
+            />
             <Button
               v-if="data.status === 'draft'"
               :label="t('employee_movement.submit')"
@@ -184,6 +192,100 @@
       </template>
     </Dialog>
 
+    <!-- ── Dialog: Detail Movement ── -->
+    <Dialog v-model:visible="detailVisible" :header="t('employee_movement.detail_title')" modal :style="{ width: '680px' }" @hide="detailItem = null">
+      <div v-if="detailItem" class="space-y-4">
+        <!-- Ringkasan tipe & status -->
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <Tag :value="typeLabel(detailItem.movement_type)" :severity="typeSeverity(detailItem.movement_type)" class="!text-xs !px-1.5 !py-0.5" />
+          <Tag :value="statusLabel(detailItem.status)" :severity="statusSeverity(detailItem.status)" class="!text-xs !px-1.5 !py-0.5" />
+        </div>
+
+        <!-- Karyawan & SK -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ViewLabel :label="t('employee_movement.employee')">
+            <span class="font-medium">{{ detailItem.employee_name || '-' }}</span>
+            <span v-if="detailItem.employee_code" class="ml-1 text-xs text-gray-400">({{ detailItem.employee_code }})</span>
+          </ViewLabel>
+          <ViewLabel :label="t('employee_movement.decision_letter_number')" :value="detailItem.decision_letter_number || '-'" mono breakAll />
+        </div>
+
+        <!-- Dari → Ke -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div v-if="hasAnyField(detailItem, 'from')" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-2">
+            <p class="text-xs uppercase tracking-wide text-gray-400 font-medium">{{ t('employee_movement.from') }}</p>
+            <ViewLabel :label="t('employee_movement.from_organization')" :value="detailItem.from_organization_name || '-'" />
+            <ViewLabel :label="t('employee_movement.from_position')" :value="detailItem.from_position_name || '-'" />
+            <ViewLabel :label="t('employee_movement.from_employment_status')" :value="detailItem.from_employment_status_name || '-'" />
+          </div>
+          <div v-if="hasAnyField(detailItem, 'to')" class="rounded-lg border border-emerald-200 dark:border-emerald-900/40 p-3 space-y-2">
+            <p class="text-xs uppercase tracking-wide text-emerald-500 font-medium">{{ t('employee_movement.to') }}</p>
+            <ViewLabel :label="t('employee_movement.to_organization')" :value="detailItem.to_organization_name || '-'" />
+            <ViewLabel :label="t('employee_movement.to_position')" :value="detailItem.to_position_name || '-'" />
+            <ViewLabel :label="t('employee_movement.to_employment_status')" :value="detailItem.to_employment_status_name || '-'" />
+          </div>
+        </div>
+
+        <!-- Tanggal -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <ViewLabel :label="t('employee_movement.decision_letter_date')" :value="formatDate(detailItem.decision_letter_date, locale)" />
+          <ViewLabel :label="t('employee_movement.effective_date')" :value="formatDate(detailItem.effective_date, locale)" />
+          <ViewLabel :label="t('employee_movement.created_at')" :value="formatDateTime(detailItem.created_at)" />
+        </div>
+
+        <!-- Alasan & catatan -->
+        <div v-if="detailItem.reason || detailItem.notes" class="grid grid-cols-1 gap-3">
+          <ViewLabel v-if="detailItem.reason" :label="t('employee_movement.reason')" :value="detailItem.reason" />
+          <ViewLabel v-if="detailItem.notes" :label="t('employee_movement.notes')" :value="detailItem.notes" />
+        </div>
+
+        <!-- Riwayat approval & eksekusi -->
+        <div v-if="detailItem.approved_at || detailItem.executed_at" class="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-lg bg-gray-50 dark:bg-gray-800/40 p-3">
+          <ViewLabel v-if="detailItem.approved_at" :label="t('employee_movement.approved_at')" :value="formatDateTime(detailItem.approved_at)" />
+          <ViewLabel v-if="detailItem.executed_at" :label="t('employee_movement.executed_at')" :value="formatDateTime(detailItem.executed_at)" />
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2 flex-wrap">
+          <Button
+            v-if="detailItem?.status === 'draft'"
+            :label="t('employee_movement.submit')"
+            icon="pi pi-send"
+            size="small"
+            severity="primary"
+            @click="actionFromDetail('submit')"
+          />
+          <Button
+            v-if="detailItem?.status === 'approved'"
+            :label="t('employee_movement.execute')"
+            icon="pi pi-check"
+            size="small"
+            severity="success"
+            @click="actionFromDetail('execute')"
+          />
+          <Button
+            v-if="detailItem?.status === 'pending_approval' || detailItem?.status === 'approved'"
+            :label="t('employee_movement.cancel')"
+            icon="pi pi-times"
+            size="small"
+            severity="danger"
+            text
+            @click="actionFromDetail('cancel')"
+          />
+          <Button
+            v-if="detailItem?.status === 'draft'"
+            :label="t('common.delete')"
+            icon="pi pi-trash"
+            size="small"
+            severity="danger"
+            text
+            @click="actionFromDetail('delete')"
+          />
+          <Button :label="t('common.close')" severity="secondary" outlined size="small" @click="detailVisible = false" />
+        </div>
+      </template>
+    </Dialog>
+
     <!-- ── Konfirmasi aksi ── -->
     <ConfirmActionDialog
       v-model:visible="submitConfirmVisible"
@@ -256,6 +358,7 @@ import SkeletonTable from '@/components/SkeletonTable.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import DateInput from '@/components/DateInput.vue'
+import ViewLabel from '@/components/ViewLabel.vue'
 import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 
@@ -291,6 +394,10 @@ const submitConfirmVisible = ref(false)
 const executeConfirmVisible = ref(false)
 const cancelConfirmVisible = ref(false)
 const deleteConfirmVisible = ref(false)
+
+// ── Detail ──
+const detailVisible = ref(false)
+const detailItem = ref(null)
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 
@@ -564,6 +671,37 @@ function openDeleteConfirm(data) {
   actionTarget.value = data
   actionError.value = ''
   deleteConfirmVisible.value = true
+}
+
+// ── Detail ──
+function openDetail(data) {
+  detailItem.value = data
+  detailVisible.value = true
+}
+
+// Aksi dari dalam dialog detail: tutup detail lalu buka konfirmasi yang sama
+// dengan yang dipakai di tabel (reuse actionTarget). Item disalin dulu karena
+// `@hide` dialog men-null-kan detailItem.
+function actionFromDetail(action) {
+  const item = detailItem.value
+  if (!item) return
+  detailVisible.value = false
+  if (action === 'submit') openSubmitConfirm(item)
+  else if (action === 'execute') openExecuteConfirm(item)
+  else if (action === 'cancel') openCancelConfirm(item)
+  else if (action === 'delete') openDeleteConfirm(item)
+}
+
+function formatDateTime(v) {
+  if (!v) return '-'
+  const datePart = formatDate(v, locale.value)
+  if (!datePart) return '-'
+  const time = new Date(v).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return `${datePart} ${time}`
+}
+
+function hasAnyField(item, prefix) {
+  return ['organization', 'position', 'employment_status'].some(suffix => !!item?.[`${prefix}_${suffix}_name`])
 }
 
 function handleDeleteConfirm() {

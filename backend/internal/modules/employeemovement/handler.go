@@ -25,14 +25,29 @@ func NewHandler(service *Service) *Handler {
 // =========================================================================
 
 // movementErrStatus maps service errors to HTTP status codes: business
-// validation failures (MovementValidationError, plan G-7) become 400, other
-// errors fall through to the caller's default handling.
+// validation failures (MovementValidationError, plan G-7) become 400, and
+// employment-state conflicts (MovementConflictError, enhancement plan §12.3 /
+// §12.4 — target position occupied or effective date overlap) become 409.
+// Other errors fall through to the caller's default handling.
 func movementErrStatus(err error) (int, bool) {
 	var ve *MovementValidationError
 	if errors.As(err, &ve) {
 		return http.StatusBadRequest, true
 	}
+	var ce *MovementConflictError
+	if errors.As(err, &ce) {
+		return http.StatusConflict, true
+	}
 	return 0, false
+}
+
+// movementErrCode returns the error code that matches the mapped HTTP status
+// (VALIDATION_ERROR for 400, CONFLICT_ERROR for 409).
+func movementErrCode(status int) string {
+	if status == http.StatusConflict {
+		return "CONFLICT_ERROR"
+	}
+	return "VALIDATION_ERROR"
 }
 
 // CreateMovement menangani POST /api/v1/tenant/employee-movements/movements
@@ -45,7 +60,7 @@ func (h *Handler) CreateMovement(c *gin.Context) {
 	response, err := h.service.CreateMovement(c.Request.Context(), req)
 	if err != nil {
 		if status, ok := movementErrStatus(err); ok {
-			httputil.ErrorRaw(c, status, "VALIDATION_ERROR", err.Error())
+			httputil.ErrorRaw(c, status, movementErrCode(status), err.Error())
 			return
 		}
 		httputil.InternalError(c, err.Error())
@@ -110,7 +125,7 @@ func (h *Handler) UpdateMovement(c *gin.Context) {
 	response, err := h.service.UpdateMovement(c.Request.Context(), id, req)
 	if err != nil {
 		if status, ok := movementErrStatus(err); ok {
-			httputil.ErrorRaw(c, status, "VALIDATION_ERROR", err.Error())
+			httputil.ErrorRaw(c, status, movementErrCode(status), err.Error())
 			return
 		}
 		httputil.InternalError(c, err.Error())
@@ -164,6 +179,13 @@ func (h *Handler) ExecuteMovement(c *gin.Context) {
 	}
 
 	if err := h.service.ExecuteMovement(c.Request.Context(), id, userIDStr); err != nil {
+		// Employment-state conflicts (plan §12.3/§12.4) get their own error
+		// code so the FE can distinguish "state conflict" from a generic
+		// execution failure.
+		if status, ok := movementErrStatus(err); ok {
+			httputil.ErrorRaw(c, status, movementErrCode(status), err.Error())
+			return
+		}
 		httputil.ErrorRaw(c, http.StatusConflict, "EXECUTE_FAILED", err.Error())
 		return
 	}
@@ -179,6 +201,22 @@ func (h *Handler) CancelMovement(c *gin.Context) {
 		return
 	}
 	httputil.MessageJSON(c, "success.cancelled")
+}
+
+// ListMovementAudits menangani GET /api/v1/tenant/employee-movements/movements/:id/audits
+// (enhancement plan §12.6 — Movement Audit Trail).
+func (h *Handler) ListMovementAudits(c *gin.Context) {
+	id := c.Param("id")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+
+	response, err := h.service.ListMovementAudits(c.Request.Context(), id, page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // =========================================================================

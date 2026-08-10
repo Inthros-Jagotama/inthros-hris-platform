@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
+
+	"github.com/inthros/hris-platform/internal/modules/employee"
 )
 
 func ctx() context.Context {
@@ -13,7 +16,9 @@ func ctx() context.Context {
 }
 
 // fakeCareerExecutor captures the HR data changes ExecuteMovement pushes
-// through the CareerExecutor interface (plan G-1).
+// through the CareerExecutor interface (plan G-1). The tx parameter is
+// ignored — the fake only records calls. createErr lets tests simulate a
+// mid-transaction failure to verify atomic rollback (plan §12.2).
 type fakeCareerExecutor struct {
 	currentEmployment *CareerEmployment
 	closedID          *uuid.UUID
@@ -22,28 +27,47 @@ type fakeCareerExecutor struct {
 	createdEmployeeID *uuid.UUID
 	createdID         uuid.UUID
 	inactiveEmployee  *uuid.UUID
+	createErr         error
 }
 
-func (f *fakeCareerExecutor) FindCurrentEmployment(_ context.Context, employeeID uuid.UUID) (*CareerEmployment, error) {
+func (f *fakeCareerExecutor) FindCurrentEmployment(_ context.Context, _ *gorm.DB, employeeID uuid.UUID) (*CareerEmployment, error) {
 	return f.currentEmployment, nil
 }
 
-func (f *fakeCareerExecutor) CloseEmployment(_ context.Context, employmentID uuid.UUID, effectiveDate string) error {
+func (f *fakeCareerExecutor) CloseEmployment(_ context.Context, _ *gorm.DB, employmentID uuid.UUID, effectiveDate string) error {
 	f.closedID = &employmentID
 	f.closedEndDate = effectiveDate
 	return nil
 }
 
-func (f *fakeCareerExecutor) CreateEmployment(_ context.Context, employeeID uuid.UUID, data CareerEmployment) (uuid.UUID, error) {
+func (f *fakeCareerExecutor) CreateEmployment(_ context.Context, _ *gorm.DB, employeeID uuid.UUID, data CareerEmployment) (uuid.UUID, error) {
 	f.createdEmployeeID = &employeeID
 	f.createdData = &data
+	if f.createErr != nil {
+		return uuid.Nil, f.createErr
+	}
 	f.createdID = uuid.New()
 	return f.createdID, nil
 }
 
-func (f *fakeCareerExecutor) SetEmployeeInactive(_ context.Context, employeeID uuid.UUID) error {
+func (f *fakeCareerExecutor) SetEmployeeInactive(_ context.Context, _ *gorm.DB, employeeID uuid.UUID) error {
 	f.inactiveEmployee = &employeeID
 	return nil
+}
+
+// seedEmployment inserts a raw employment row via the employee repository into
+// the test DB shared by the movement repository (both resolvers point at the
+// same *gorm.DB from setupTestDB).
+func seedEmployment(t *testing.T, repo *Repository, emp *employee.Employment) {
+	t.Helper()
+	db, err := repo.getDB(ctx())
+	if err != nil {
+		t.Fatalf("failed to get test db: %v", err)
+	}
+	employeeRepo := employee.NewRepository(func(context.Context) (*gorm.DB, error) { return db, nil })
+	if err := employeeRepo.CreateEmployment(ctx(), emp); err != nil {
+		t.Fatalf("CreateEmployment failed: %v", err)
+	}
 }
 
 // =========================================================================
@@ -572,6 +596,287 @@ func TestService_ExecuteMovement_ContractExtension_SkipsEmployment(t *testing.T)
 	m, _ := repo.FindMovementByID(ctx(), created.ID)
 	if m.Status != MovementStatusExecuted {
 		t.Errorf("expected status 'executed', got '%s'", m.Status)
+	}
+}
+
+// =========================================================================
+// Enhancement plan §12.2-§12.4 — transactional execution & conflict detection
+// =========================================================================
+
+// TestService_CreateMovement_PositionConflict_Rejected verifies the draft-time
+// position conflict check (plan §12.3): creating a movement into a position
+// currently held by another employee's open employment is rejected.
+func TestService_CreateMovement_PositionConflict_Rejected(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	positionID := uuid.New()
+	otherEmp := uuid.New()
+	seedEmployment(t, repo, &employee.Employment{
+		EmployeeID:           &otherEmp,
+		PositionID:           &positionID,
+		DecisionLetterNumber: "SK-OTHER",
+		DecisionLetterDate:   "2026-01-01",
+		EffectiveDate:        "2026-01-01",
+	})
+
+	toPos := positionID.String()
+	req := CreateMovementRequest{
+		EmployeeID:           uuid.New().String(),
+		MovementType:         "promotion",
+		ToPositionID:         &toPos,
+		DecisionLetterNumber: "SK-CONFLICT",
+		DecisionLetterDate:   "2026-07-01",
+		EffectiveDate:        "2026-08-01",
+	}
+	_, err := svc.CreateMovement(ctx(), req)
+	if err == nil {
+		t.Fatal("expected conflict error when target position is occupied")
+	}
+	var ce *MovementConflictError
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected MovementConflictError, got %T: %v", err, err)
+	}
+}
+
+// TestService_CreateMovement_PositionConflict_PassesAfterRelieved verifies the
+// same create succeeds when the position is freed before the effective date
+// (employment already closed earlier).
+func TestService_CreateMovement_PositionConflict_PassesAfterRelieved(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	positionID := uuid.New()
+	otherEmp := uuid.New()
+	end := "2026-07-31"
+	seedEmployment(t, repo, &employee.Employment{
+		EmployeeID:           &otherEmp,
+		PositionID:           &positionID,
+		DecisionLetterNumber: "SK-OTHER",
+		DecisionLetterDate:   "2026-01-01",
+		EffectiveDate:        "2026-01-01",
+		EffectiveEndDate:     &end,
+	})
+
+	toPos := positionID.String()
+	req := CreateMovementRequest{
+		EmployeeID:           uuid.New().String(),
+		MovementType:         "promotion",
+		ToPositionID:         &toPos,
+		DecisionLetterNumber: "SK-CONFLICT",
+		DecisionLetterDate:   "2026-07-01",
+		EffectiveDate:        "2026-08-01",
+	}
+	if _, err := svc.CreateMovement(ctx(), req); err != nil {
+		t.Fatalf("movement into position freed before effective date should pass: %v", err)
+	}
+}
+
+// TestService_ExecuteMovement_PositionConflict_Rejected verifies the atomic
+// execute-time position conflict check (plan §12.3): execution is rejected and
+// the movement stays approved when another employee occupies the target
+// position at the effective date.
+func TestService_ExecuteMovement_PositionConflict_Rejected(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	positionID := uuid.New()
+	otherEmp := uuid.New()
+	seedEmployment(t, repo, &employee.Employment{
+		EmployeeID:           &otherEmp,
+		PositionID:           &positionID,
+		DecisionLetterNumber: "SK-OTHER",
+		DecisionLetterDate:   "2026-01-01",
+		EffectiveDate:        "2026-01-01",
+	})
+
+	executor := &fakeCareerExecutor{currentEmployment: &CareerEmployment{ID: uuid.New()}}
+	svc.SetCareerExecutor(executor)
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	created.MovementType = MovementTypePromotion
+	created.ToPositionID = &positionID
+	created.EffectiveDate = "2026-08-01"
+	repo.UpdateMovement(ctx(), created)
+
+	err := svc.ExecuteMovement(ctx(), created.ID.String(), uuidStr())
+	if err == nil {
+		t.Fatal("expected conflict error when target position is occupied")
+	}
+	var ce *MovementConflictError
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected MovementConflictError, got %T: %v", err, err)
+	}
+
+	// Atomic: no HR data change applied, movement still approved.
+	if executor.closedID != nil || executor.createdData != nil {
+		t.Error("conflict must prevent any employment change")
+	}
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusApproved {
+		t.Errorf("expected movement to stay approved, got '%s'", m.Status)
+	}
+}
+
+// TestService_ExecuteMovement_EffectiveDateConflict_Rejected verifies plan
+// §12.4: executing a movement whose effective date overlaps a future-dated
+// open employment of the same employee is rejected atomically.
+func TestService_ExecuteMovement_EffectiveDateConflict_Rejected(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	// Employee already has an open (future-dated) employment starting after
+	// the movement's effective date → the new period would overlap.
+	seedEmployment(t, repo, &employee.Employment{
+		EmployeeID:           &employeeID,
+		DecisionLetterNumber: "SK-FUTURE",
+		DecisionLetterDate:   "2026-06-01",
+		EffectiveDate:        "2026-09-01",
+	})
+
+	executor := &fakeCareerExecutor{currentEmployment: &CareerEmployment{ID: uuid.New()}}
+	svc.SetCareerExecutor(executor)
+
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	created.MovementType = MovementTypePromotion
+	created.ToPositionID = ptrUUID(uuid.New())
+	created.EffectiveDate = "2026-08-15"
+	repo.UpdateMovement(ctx(), created)
+
+	err := svc.ExecuteMovement(ctx(), created.ID.String(), uuidStr())
+	if err == nil {
+		t.Fatal("expected conflict error when effective date overlaps existing employment")
+	}
+	var ce *MovementConflictError
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected MovementConflictError, got %T: %v", err, err)
+	}
+	if executor.closedID != nil || executor.createdData != nil {
+		t.Error("conflict must prevent any employment change")
+	}
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusApproved {
+		t.Errorf("expected movement to stay approved, got '%s'", m.Status)
+	}
+}
+
+// TestService_ExecuteMovement_BackdatedEffectiveDate_Rejected verifies that a
+// movement effective on/before the current employment's start is rejected
+// (would create a backdated/overlapping period — plan §12.4).
+func TestService_ExecuteMovement_BackdatedEffectiveDate_Rejected(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	seedEmployment(t, repo, &employee.Employment{
+		EmployeeID:           &employeeID,
+		DecisionLetterNumber: "SK-CURRENT",
+		DecisionLetterDate:   "2026-01-01",
+		EffectiveDate:        "2026-08-01",
+	})
+
+	executor := &fakeCareerExecutor{currentEmployment: &CareerEmployment{ID: uuid.New()}}
+	svc.SetCareerExecutor(executor)
+
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	created.MovementType = MovementTypePromotion
+	created.ToPositionID = ptrUUID(uuid.New())
+	created.EffectiveDate = "2026-07-01"
+	repo.UpdateMovement(ctx(), created)
+
+	err := svc.ExecuteMovement(ctx(), created.ID.String(), uuidStr())
+	if err == nil {
+		t.Fatal("expected conflict error for backdated effective date")
+	}
+	var ce *MovementConflictError
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected MovementConflictError, got %T: %v", err, err)
+	}
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusApproved {
+		t.Errorf("expected movement to stay approved, got '%s'", m.Status)
+	}
+}
+
+// TestService_ExecuteMovement_Offboarding_FutureEmployment_Rejected verifies
+// the effective-date conflict also guards offboarding/retirement: closing a
+// future-dated open employment at a date before its own start would create an
+// invalid period, so execution is rejected atomically (plan §12.4).
+func TestService_ExecuteMovement_Offboarding_FutureEmployment_Rejected(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	// Employee has a future-dated open employment (from an earlier executed
+	// movement) starting after the offboarding's effective date.
+	seedEmployment(t, repo, &employee.Employment{
+		EmployeeID:           &employeeID,
+		DecisionLetterNumber: "SK-FUTURE",
+		DecisionLetterDate:   "2026-06-01",
+		EffectiveDate:        "2026-09-01",
+	})
+
+	executor := &fakeCareerExecutor{currentEmployment: &CareerEmployment{ID: uuid.New()}}
+	svc.SetCareerExecutor(executor)
+
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	created.MovementType = MovementTypeOffboarding
+	created.EffectiveDate = "2026-08-15"
+	repo.UpdateMovement(ctx(), created)
+
+	err := svc.ExecuteMovement(ctx(), created.ID.String(), uuidStr())
+	if err == nil {
+		t.Fatal("expected conflict error when offboarding collides with a future-dated employment")
+	}
+	var ce *MovementConflictError
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected MovementConflictError, got %T: %v", err, err)
+	}
+	if executor.closedID != nil || executor.inactiveEmployee != nil {
+		t.Error("conflict must prevent any employment/employee change")
+	}
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusApproved {
+		t.Errorf("expected movement to stay approved, got '%s'", m.Status)
+	}
+}
+
+// TestService_ExecuteMovement_Rollback_OnCreateFailure verifies plan §12.2:
+// when creating the new employment fails mid-execution, the transaction rolls
+// back — the movement stays approved (retryable by HR) instead of being left
+// in a partially-executed state.
+func TestService_ExecuteMovement_Rollback_OnCreateFailure(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	executor := &fakeCareerExecutor{
+		currentEmployment: &CareerEmployment{ID: uuid.New()},
+		createErr:         errors.New("simulated employment insert failure"),
+	}
+	svc.SetCareerExecutor(executor)
+
+	employeeID := uuid.New()
+	created := createTestMovement(repo, employeeID)
+	created.Status = MovementStatusApproved
+	created.MovementType = MovementTypePromotion
+	created.ToPositionID = ptrUUID(uuid.New())
+	created.EffectiveDate = "2026-08-01"
+	repo.UpdateMovement(ctx(), created)
+
+	err := svc.ExecuteMovement(ctx(), created.ID.String(), uuidStr())
+	if err == nil {
+		t.Fatal("expected error when employment creation fails")
+	}
+
+	m, _ := repo.FindMovementByID(ctx(), created.ID)
+	if m.Status != MovementStatusApproved {
+		t.Errorf("expected movement to stay approved after rollback, got '%s'", m.Status)
 	}
 }
 

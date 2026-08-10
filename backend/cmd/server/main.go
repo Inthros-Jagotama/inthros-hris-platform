@@ -121,8 +121,8 @@ type employeeCareerAdapter struct {
 	repo *employee.Repository
 }
 
-func (a employeeCareerAdapter) FindCurrentEmployment(ctx context.Context, employeeID uuid.UUID) (*employeemovement.CareerEmployment, error) {
-	e, err := a.repo.FindActiveEmploymentByEmployeeID(ctx, employeeID)
+func (a employeeCareerAdapter) FindCurrentEmployment(ctx context.Context, tx *gorm.DB, employeeID uuid.UUID) (*employeemovement.CareerEmployment, error) {
+	e, err := a.repo.FindActiveEmploymentByEmployeeIDTx(ctx, tx, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -141,12 +141,12 @@ func (a employeeCareerAdapter) FindCurrentEmployment(ctx context.Context, employ
 	return out, nil
 }
 
-func (a employeeCareerAdapter) CloseEmployment(ctx context.Context, employmentID uuid.UUID, effectiveDate string) error {
+func (a employeeCareerAdapter) CloseEmployment(ctx context.Context, tx *gorm.DB, employmentID uuid.UUID, effectiveDate string) error {
 	endDate := effectiveDate
-	return a.repo.CloseEmployment(ctx, employmentID, endDate)
+	return a.repo.CloseEmploymentTx(ctx, tx, employmentID, endDate)
 }
 
-func (a employeeCareerAdapter) CreateEmployment(ctx context.Context, employeeID uuid.UUID, data employeemovement.CareerEmployment) (uuid.UUID, error) {
+func (a employeeCareerAdapter) CreateEmployment(ctx context.Context, tx *gorm.DB, employeeID uuid.UUID, data employeemovement.CareerEmployment) (uuid.UUID, error) {
 	emp := &employee.Employment{
 		EmployeeID:           &employeeID,
 		DecisionLetterNumber: data.DecisionLetterNumber,
@@ -156,14 +156,14 @@ func (a employeeCareerAdapter) CreateEmployment(ctx context.Context, employeeID 
 	emp.OrganizationID = data.OrganizationID
 	emp.PositionID = data.PositionID
 	emp.EmploymentStatusID = data.EmploymentStatusID
-	if err := a.repo.CreateEmployment(ctx, emp); err != nil {
+	if err := a.repo.CreateEmploymentTx(ctx, tx, emp); err != nil {
 		return uuid.Nil, err
 	}
 	return emp.ID, nil
 }
 
-func (a employeeCareerAdapter) SetEmployeeInactive(ctx context.Context, employeeID uuid.UUID) error {
-	return a.repo.SetEmployeeStatus(ctx, employeeID, "inactive")
+func (a employeeCareerAdapter) SetEmployeeInactive(ctx context.Context, tx *gorm.DB, employeeID uuid.UUID) error {
+	return a.repo.SetEmployeeStatusTx(ctx, tx, employeeID, "inactive")
 }
 
 // licenseCreatorAdapter implements company.LicenseCreator using the license service.

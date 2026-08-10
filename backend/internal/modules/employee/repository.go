@@ -125,6 +125,16 @@ func (r *Repository) SetEmployeeStatus(ctx context.Context, id uuid.UUID, status
 	if err != nil {
 		return err
 	}
+	return setEmployeeStatus(db, id, status)
+}
+
+// SetEmployeeStatusTx is the transactional variant of SetEmployeeStatus — runs
+// on the caller's transaction (used by employeemovement.ExecuteMovementTx).
+func (r *Repository) SetEmployeeStatusTx(_ context.Context, db *gorm.DB, id uuid.UUID, status string) error {
+	return setEmployeeStatus(db, id, status)
+}
+
+func setEmployeeStatus(db *gorm.DB, id uuid.UUID, status string) error {
 	result := db.Model(&Employee{}).Where("id = ?", id).Update("status", status)
 	if result.Error != nil {
 		return fmt.Errorf("failed to set employee status: %w", result.Error)
@@ -472,6 +482,17 @@ func (r *Repository) CreateEmployment(ctx context.Context, emp *Employment) erro
 	if err != nil {
 		return err
 	}
+	return createEmployment(db, emp)
+}
+
+// CreateEmploymentTx is the transactional variant of CreateEmployment — runs
+// on the caller's transaction (used by employeemovement.ExecuteMovementTx so
+// the new employment commits/rolls back with the rest of the execution).
+func (r *Repository) CreateEmploymentTx(_ context.Context, db *gorm.DB, emp *Employment) error {
+	return createEmployment(db, emp)
+}
+
+func createEmployment(db *gorm.DB, emp *Employment) error {
 	return db.Create(emp).Error
 }
 
@@ -495,8 +516,20 @@ func (r *Repository) FindActiveEmploymentByEmployeeID(ctx context.Context, emplo
 	if err != nil {
 		return nil, err
 	}
+	return findActiveEmploymentByEmployeeID(db, employeeID)
+}
+
+// FindActiveEmploymentByEmployeeIDTx is the transactional variant of
+// FindActiveEmploymentByEmployeeID — it runs the same lookup on the given
+// *gorm.DB (a transaction opened by a consumer module, e.g. employeemovement's
+// ExecuteMovementTx) so the read is part of the caller's atomic unit of work.
+func (r *Repository) FindActiveEmploymentByEmployeeIDTx(_ context.Context, db *gorm.DB, employeeID uuid.UUID) (*Employment, error) {
+	return findActiveEmploymentByEmployeeID(db, employeeID)
+}
+
+func findActiveEmploymentByEmployeeID(db *gorm.DB, employeeID uuid.UUID) (*Employment, error) {
 	var emp Employment
-	err = db.
+	err := db.
 		Where("employee_id = ? AND effective_end_date IS NULL", employeeID).
 		Order("effective_date DESC, created_at DESC").
 		First(&emp).Error
@@ -526,6 +559,17 @@ func (r *Repository) CloseEmployment(ctx context.Context, id uuid.UUID, effectiv
 	if err != nil {
 		return err
 	}
+	return closeEmployment(db, id, effectiveEndDate)
+}
+
+// CloseEmploymentTx is the transactional variant of CloseEmployment — runs on
+// the caller's transaction so the close is part of the same atomic unit of
+// work (used by employeemovement.ExecuteMovementTx).
+func (r *Repository) CloseEmploymentTx(_ context.Context, db *gorm.DB, id uuid.UUID, effectiveEndDate string) error {
+	return closeEmployment(db, id, effectiveEndDate)
+}
+
+func closeEmployment(db *gorm.DB, id uuid.UUID, effectiveEndDate string) error {
 	result := db.Model(&Employment{}).
 		Where("id = ? AND effective_end_date IS NULL", id).
 		Update("effective_end_date", effectiveEndDate)

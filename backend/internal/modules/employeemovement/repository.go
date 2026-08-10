@@ -391,8 +391,172 @@ func (r *Repository) DeleteContract(ctx context.Context, id uuid.UUID) error {
 }
 
 // =========================================================================
+// Movement Audit Trail (plan §12.6)
+// =========================================================================
+
+// CreateAudit menyimpan satu baris audit trail movement. Kegagalan di sini
+// tidak boleh menggagalkan operasi movement utama (dipanggil best-effort oleh
+// service).
+func (r *Repository) CreateAudit(ctx context.Context, audit *EmployeeMovementAudit) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	if err := db.Create(audit).Error; err != nil {
+		return fmt.Errorf("failed to create employee movement audit: %w", err)
+	}
+	return nil
+}
+
+// ListAuditsByMovementID mengembalikan audit trail satu movement, terurut
+// acted_at DESC (baru dulu).
+func (r *Repository) ListAuditsByMovementID(ctx context.Context, movementID uuid.UUID, page, perPage int) ([]EmployeeMovementAudit, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var audits []EmployeeMovementAudit
+	var total int64
+
+	query := db.Model(&EmployeeMovementAudit{}).Where("movement_id = ?", movementID)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to count movement audits: %w", err)
+	}
+
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("acted_at DESC, id DESC").Find(&audits).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to list movement audits: %w", err)
+	}
+	return audits, total, nil
+}
+
+// =========================================================================
 // Approval flows
 // =========================================================================
+
+// ExecuteMovementTx executes a movement atomically (enhancement plan §12.2):
+// the HR data change supplied by hrChanges (conflict detection + employment /
+// employee updates, run through the career executor's Tx variants) and the
+// movement's own status update happen on ONE database transaction, so a
+// failure anywhere rolls everything back — old employment stays intact and
+// the movement stays approved (retryable by HR).
+//
+// hrChanges receives the transaction and returns the id of the newly created
+// employment (nil when the movement creates none, e.g. offboarding). The
+// callback runs on the same tx used for the movement status update.
+func (r *Repository) ExecuteMovementTx(ctx context.Context, id uuid.UUID, executedBy uuid.UUID, hrChanges func(tx *gorm.DB) (*uuid.UUID, error)) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("failed to begin transaction: %w", tx.Error)
+	}
+	defer tx.Rollback()
+
+	// Reload the movement inside the transaction so the approved-status guard
+	// is checked atomically with the HR data change (blocks double-execute).
+	var m EmployeeMovement
+	if err := tx.Where("id = ?", id).First(&m).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("employee movement not found")
+		}
+		return fmt.Errorf("failed to load movement for execution: %w", err)
+	}
+	if m.Status != MovementStatusApproved {
+		return fmt.Errorf("movement not found or not in approved status")
+	}
+
+	var toEmploymentID *uuid.UUID
+	if hrChanges != nil {
+		toEmploymentID, err = hrChanges(tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	now := time.Now()
+	updates := map[string]interface{}{
+		"status":      MovementStatusExecuted,
+		"executed_by": executedBy.String(),
+		"executed_at": now,
+	}
+	if toEmploymentID != nil {
+		updates["to_employment_id"] = toEmploymentID.String()
+	}
+	if err := tx.Model(&EmployeeMovement{}).
+		Where("id = ? AND status = ?", id, MovementStatusApproved).
+		Updates(updates).Error; err != nil {
+		return fmt.Errorf("failed to execute movement: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("failed to commit movement execution: %w", err)
+	}
+	return nil
+}
+
+// PositionConflict reports whether another employee already occupies the
+// target position at the given effective date (plan §12.3 — 1 position = 1
+// employee). An existing employment conflicts when it is still open at the
+// effective date: no effective_end_date (currently or future-planned) or it
+// closes on/after the movement's effective date. `excludeEmployeeID` skips the
+// movement's own employee (their current employment on the position is not a
+// conflict).
+//
+// `tx` may be nil for the create/update soft-check (a fresh DB connection is
+// resolved); ExecuteMovement passes the open transaction so the check runs
+// atomically with the rest of the execution.
+func (r *Repository) PositionConflict(ctx context.Context, tx *gorm.DB, positionID, excludeEmployeeID uuid.UUID, effectiveDate string) (bool, error) {
+	db := tx
+	if db == nil {
+		var err error
+		db, err = r.getDB(ctx)
+		if err != nil {
+			return false, err
+		}
+	}
+	var count int64
+	err := db.Table("employments").
+		Where("position_id = ? AND employee_id <> ?", positionID.String(), excludeEmployeeID.String()).
+		Where("(effective_end_date IS NULL OR effective_end_date >= ?)", effectiveDate).
+		Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check position conflict: %w", err)
+	}
+	return count > 0, nil
+}
+
+// EmploymentEffectiveDateConflict reports whether creating a new open-ended
+// employment at `effectiveDate` would overlap an existing employment period
+// of the same employee (plan §12.4). Overlap occurs when the employee already
+// has an open employment (effective_end_date IS NULL) that starts on/after
+// the movement's effective date — either a backdated movement into the
+// current employment, or a collision with a future-dated employment created
+// by an earlier execution.
+//
+// `tx` may be nil for reads outside a transaction; ExecuteMovement passes the
+// open transaction so the check runs atomically.
+func (r *Repository) EmploymentEffectiveDateConflict(ctx context.Context, tx *gorm.DB, employeeID uuid.UUID, effectiveDate string) (bool, error) {
+	db := tx
+	if db == nil {
+		var err error
+		db, err = r.getDB(ctx)
+		if err != nil {
+			return false, err
+		}
+	}
+	var count int64
+	err := db.Table("employments").
+		Where("employee_id = ? AND effective_end_date IS NULL AND effective_date >= ?", employeeID.String(), effectiveDate).
+		Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check employment period conflict: %w", err)
+	}
+	return count > 0, nil
+}
 
 // ExecuteMovement menandai movement sebagai executed. Bila toEmploymentID
 // tidak nil, to_employment_id ikut dipersist (hasil eksekusi G-1: employment
