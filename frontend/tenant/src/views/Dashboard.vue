@@ -201,7 +201,7 @@ const quickModules = computed(() => [
   { name: t('dashboard.organization'), icon: 'pi pi-sitemap', route: '/organizations', bg: 'bg-teal-50', color: 'text-teal-600' },
   { name: t('dashboard.reimbursement'), icon: 'pi pi-credit-card', route: '/reimbursements', bg: 'bg-sky-50', color: 'text-sky-600' },
   { name: t('dashboard.workforce_intel'), icon: 'pi pi-chart-bar', route: '/workforce-intelligence', bg: 'bg-slate-50', color: 'text-slate-600' },
-  { name: t('dashboard.career_intel'), icon: 'pi pi-road', route: '/career-intelligence', bg: 'bg-pink-50', color: 'text-pink-600' }
+  { name: t('dashboard.career_intel'), icon: 'pi pi-chart-line', route: '/career-intelligence', bg: 'bg-pink-50', color: 'text-pink-600' }
 ])
 const recentActivities = [
   { text: '15 new employees added this week', time: '2 hours ago', dotColor: 'bg-emerald-400' },

@@ -128,7 +128,7 @@ const routes = [
         path: 'career-intelligence/paths',
         name: 'CareerPaths',
         component: () => import('@/views/modules/CareerPaths.vue'),
-        meta: { title: 'Career Paths', titleKey: 'career_paths.title', descKey: 'career_paths.description', icon: 'pi pi-sitemap', module: 'career-intelligence' }
+        meta: { title: 'Career Paths', titleKey: 'career_paths.title', descKey: 'career_paths.description', icon: 'pi pi-sitemap', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title' }
       },
       // Time & Attendance
       {
@@ -379,7 +379,7 @@ const routes = [
         path: 'career-intelligence',
         name: 'CareerIntelligence',
         component: () => import('@/views/modules/CareerIntelligence.vue'),
-        meta: { title: 'Career Intel', titleKey: 'career_intel.title', descKey: 'career_intel.description', icon: 'pi pi-road', module: 'career-intelligence' }
+        meta: { title: 'Career Intel', titleKey: 'career_intel.title', descKey: 'career_intel.description', icon: 'pi pi-chart-line', module: 'career-intelligence' }
       },
       // Settings — index page menampilkan card sub-menu settings
       { path: 'settings', name: 'SettingsIndex', component: () => import('@/views/settings/SettingsIndex.vue'), meta: { title: 'Settings', titleKey: 'settings.title', descKey: 'settings.description', icon: 'pi pi-cog', module: 'setting' } },

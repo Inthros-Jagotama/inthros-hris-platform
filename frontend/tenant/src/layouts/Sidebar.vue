@@ -115,14 +115,14 @@
         </div>
       </div>
 
-      <!-- Settings Section Title — masuk ke halaman index (card sub-menu) -->
-      <div v-if="settingsItems.length > 0" class="pt-2">
+      <!-- Finance Section Title — flat, pola sama dengan Operations -->
+      <div v-if="financeItems.length > 0" class="pt-2">
         <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-          <i class="pi pi-cog" style="font-size:0.7rem"></i>
-          <span>{{ t('nav.settings') }}</span>
+          <i class="pi pi-dollar" style="font-size:0.7rem"></i>
+          <span>{{ t('nav.finance') }}</span>
         </div>
         <div
-          v-for="item in settingsItems"
+          v-for="item in financeItems"
           :key="item.key || item.label"
           class="ml-2 flex items-center gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
           :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
@@ -133,9 +133,36 @@
         </div>
       </div>
 
-      <!-- Other groups as PanelMenu -->
-      <div class="pt-1">
-        <PanelMenu :model="panelMenuItems" class="border-none !bg-transparent" />
+      <!-- Strategic Section Title — flat, pola sama dengan Operations -->
+      <div v-if="strategicItems.length > 0" class="pt-2">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          <i class="pi pi-chart-bar" style="font-size:0.7rem"></i>
+          <span>{{ t('nav.strategic') }}</span>
+        </div>
+        <div
+          v-for="item in strategicItems"
+          :key="item.key || item.label"
+          class="ml-2 flex items-center gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
+          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+          @click="item.command()"
+        >
+          <i :class="item.icon" class="text-xs"></i>
+          <span>{{ item.label }}</span>
+        </div>
+      </div>
+
+      <!-- Settings — item tunggal tanpa group title (pola Dashboard) -->
+      <div v-if="settingsItems.length > 0" class="pt-2">
+        <router-link
+          v-for="item in settingsItems"
+          :key="item.key || item.label"
+          :to="item.path"
+          class="flex items-center gap-2 px-2.5 py-2 text-sm rounded-md transition-colors"
+          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+        >
+          <i :class="item.icon" style="font-size:0.875rem"></i>
+          <span>{{ item.label }}</span>
+        </router-link>
       </div>
     </nav>
 
@@ -170,7 +197,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import PanelMenu from 'primevue/panelmenu'
 import Tooltip from 'primevue/tooltip'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/stores/auth'
@@ -362,38 +388,20 @@ const allDropdownItems = computed(() => [...coreHRItems.value, ...talentItems.va
     ])
   })
 
-  // ── Panel menu groups for other sections ──
-  const panelGroups = computed(() => [
-  // Finance
-  {
-    key: 'finance',
-    label: t('nav.finance'),
-    icon: 'pi pi-dollar',
-    items: [
-      { label: t('nav.payroll'), icon: 'pi pi-dollar', command: () => router.push('/payroll'), moduleSlug: 'payroll', permission: 'payroll.view' },
-      { label: t('nav.reimbursement'), icon: 'pi pi-credit-card', command: () => router.push('/reimbursements'), moduleSlug: 'reimbursement', permission: 'reimbursement.view' }
-    ]
-  },
-  // Strategic
-  {
-    key: 'strategic',
-    label: t('nav.strategic'),
-    icon: 'pi pi-chart-bar',
-    items: [
-      { label: t('nav.workforce_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/workforce-intelligence'), moduleSlug: 'workforce-intelligence', permission: 'workforceintelligence.view' },
-      { label: t('nav.career_intel'), icon: 'pi pi-chart-bar', command: () => router.push('/career-intelligence'), moduleSlug: 'career-intelligence', permission: 'careerintelligence.view' },
-      { key: 'career_paths', label: t('career_paths.title'), icon: 'pi pi-sitemap', command: () => router.push('/career-intelligence/paths'), path: '/career-intelligence/paths', moduleSlug: 'career-intelligence', permission: 'careerintelligence.view' }
-    ]
-  }
-])  // ── Filtered PanelMenu items — only show visible groups (Settings sudah flat section) ──
-  const panelMenuItems = computed(() => {
-    return panelGroups.value
-      .map(group => {
-        const visibleItems = filterByModule(group.items)
-        if (visibleItems.length === 0) return null
-        return { ...group, items: visibleItems }
-      })
-      .filter(Boolean)
+  // ── Finance items (flat, pola sama dengan Operations) ──
+  const financeItems = computed(() => {
+    return filterByModule([
+      { key: 'payroll', label: t('nav.payroll'), icon: 'pi pi-dollar', command: () => router.push('/payroll'), path: '/payroll', moduleSlug: 'payroll', permission: 'payroll.view' },
+      { key: 'reimbursement', label: t('nav.reimbursement'), icon: 'pi pi-credit-card', command: () => router.push('/reimbursements'), path: '/reimbursements', moduleSlug: 'reimbursement', permission: 'reimbursement.view' }
+    ])
+  })
+
+  // ── Strategic items (flat, pola sama dengan Operations) ──
+  const strategicItems = computed(() => {
+    return filterByModule([
+      { key: 'workforce_intel', label: t('nav.workforce'), icon: 'pi pi-chart-bar', command: () => router.push('/workforce-intelligence'), path: '/workforce-intelligence', moduleSlug: 'workforce-intelligence', permission: 'workforceintelligence.view' },
+      { key: 'career_intel', label: t('nav.career'), icon: 'pi pi-chart-line', command: () => router.push('/career-intelligence'), path: '/career-intelligence', includePaths: ['/career-intelligence/paths'], moduleSlug: 'career-intelligence', permission: 'careerintelligence.view' }
+    ])
   })
 
 // ── Flatten top-level items for collapsed sidebar ──
@@ -425,13 +433,19 @@ const topLevelMenuItems = computed(() => {
     items.push({ ...item, key: 'Operations-' + item.key })
   })
 
-  // Finance — hanya jika ada modul aktif DAN user punya permission view
-  if ((activeMod.hasModule('payroll') && hasPermission('payroll.view')) || (activeMod.hasModule('reimbursement') && hasPermission('reimbursement.view'))) {
-    items.push({ key: 'Finance', label: t('nav.finance'), path: '/payroll', icon: 'pi pi-dollar', command: () => router.push('/payroll') })
+  // Finance — satu ikon per anggota grup (Payroll & Reimbursement)
+  if (activeMod.hasModule('payroll') && hasPermission('payroll.view')) {
+    items.push({ key: 'Finance-Payroll', label: t('nav.payroll'), path: '/payroll', icon: 'pi pi-dollar', command: () => router.push('/payroll') })
   }
-  // Strategic
-  if ((activeMod.hasModule('workforce-intelligence') && hasPermission('workforceintelligence.view')) || (activeMod.hasModule('career-intelligence') && hasPermission('careerintelligence.view'))) {
-    items.push({ key: 'Strategic', label: t('nav.strategic'), path: '/workforce-intelligence', icon: 'pi pi-chart-bar', command: () => router.push('/workforce-intelligence') })
+  if (activeMod.hasModule('reimbursement') && hasPermission('reimbursement.view')) {
+    items.push({ key: 'Finance-Reimbursement', label: t('nav.reimbursement'), path: '/reimbursements', icon: 'pi pi-credit-card', command: () => router.push('/reimbursements') })
+  }
+  // Strategic — satu ikon per anggota grup (Workforce & Career)
+  if (activeMod.hasModule('workforce-intelligence') && hasPermission('workforceintelligence.view')) {
+    items.push({ key: 'Strategic-Workforce', label: t('nav.workforce'), path: '/workforce-intelligence', icon: 'pi pi-chart-bar', command: () => router.push('/workforce-intelligence') })
+  }
+  if (activeMod.hasModule('career-intelligence') && hasPermission('careerintelligence.view')) {
+    items.push({ key: 'Strategic-Career', label: t('nav.career'), path: '/career-intelligence', icon: 'pi pi-chart-line', includePaths: ['/career-intelligence/paths'], command: () => router.push('/career-intelligence') })
   }
   // Settings
   if (activeMod.hasModule('setting') && hasPermission('setting.view')) {
