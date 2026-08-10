@@ -81,6 +81,15 @@ type CompetencyProvider interface {
 	LatestScore(ctx context.Context, employeeID uuid.UUID) (float64, bool, error)
 }
 
+// OKRProvider abstracts the performance (OKR) module so employeemovement can
+// read the latest completed OKR evaluation's final score as eligibility input
+// (plan §12.10/§12.11 — KPI, OKR, dan Competency menjadi input eligibility;
+// movement tidak menghitung skor sendiri). Implemented via adapter wrapping
+// performance.OKRRepository in main.go.
+type OKRProvider interface {
+	LatestScore(ctx context.Context, employeeID uuid.UUID) (float64, bool, error)
+}
+
 // MovementConflictError is returned when a movement cannot be created or
 // executed because it conflicts with the current employment state — the
 // target position is already occupied by another employee (plan §12.3) or the
@@ -161,6 +170,7 @@ type Service struct {
 	notifier            Notifier
 	performanceProvider PerformanceProvider
 	competencyProvider  CompetencyProvider
+	okrProvider         OKRProvider
 }
 
 // NewService membuat Service baru.
@@ -195,6 +205,10 @@ func (s *Service) SetPerformanceProvider(p PerformanceProvider) {
 
 func (s *Service) SetCompetencyProvider(c CompetencyProvider) {
 	s.competencyProvider = c
+}
+
+func (s *Service) SetOKRProvider(o OKRProvider) {
+	s.okrProvider = o
 }
 
 // movementAuditJSON membungkus movement menjadi JSON string untuk kolom
@@ -1941,13 +1955,16 @@ func (s *Service) DeleteContract(ctx context.Context, id string) error {
 // =========================================================================
 
 const (
-	// Threshold default untuk eligibility. Sesuai contoh plan §12.10:
-	// Minimum Service >= 24 months, Performance Score >= 80, Competency >= 80.
-	// Threshold masa kerja dapat di-override oleh career_path_steps
-	// (minimum_service_months step berikutnya) pada promotion-eligibility.
+	// Threshold default untuk eligibility. Sesuai contoh plan §12.10/§12.11:
+	// Minimum Service >= 24 months, Performance (KPI) >= 80, OKR >= 80,
+	// Competency >= 80. Threshold masa kerja dapat di-override oleh
+	// career_path_steps (minimum_service_months step berikutnya) pada
+	// promotion-eligibility. Kebijakan nil-data: rule tanpa data
+	// (Available=false) tidak memblokir eligible (pragmatis).
 	eligibilityDefaultMinServiceMonths = 24
 	eligibilityMinPerformanceScore     = 80.0
 	eligibilityMinCompetencyScore      = 80.0
+	eligibilityMinOKRScore             = 80.0
 )
 
 // GetMovementEligibility mengembalikan ringkasan eligibility umum seorang
@@ -1981,6 +1998,7 @@ func (s *Service) GetPromotionEligibility(ctx context.Context, employeeID string
 		MinimumServiceMonths: eligibilityDefaultMinServiceMonths,
 		PerformanceScore:     data.PerformanceScore,
 		CompetencyScore:      data.CompetencyScore,
+		OKRScore:             data.OKRScore,
 	}
 	// Ambil info next step + override minimum_service dari career path
 	// (untuk promotion, tenure target = min_service_months step berikutnya).
@@ -1993,10 +2011,10 @@ func (s *Service) GetPromotionEligibility(ctx context.Context, employeeID string
 	}
 
 	promo.Rules = s.evaluatePromotionRules(data.TenureMonths, promo.MinimumServiceMonths,
-		data.PerformanceScore, data.CompetencyScore)
+		data.PerformanceScore, data.CompetencyScore, data.OKRScore)
 	promo.Eligible = true
 	for _, r := range promo.Rules {
-		if !r.Met {
+		if r.Available && !r.Met {
 			promo.Eligible = false
 			break
 		}
@@ -2085,7 +2103,9 @@ func (s *Service) buildEligibility(ctx context.Context, employeeID string, promo
 		}
 	}
 
-	// Skor performa & kompetensi — best-effort melalui provider.
+	// Skor performa (KPI), kompetensi, dan OKR — best-effort melalui provider.
+	// Movement hanya membaca hasil final, tidak menghitung KPI/OKR sendiri
+	// (plan §12.11 Integration Principle).
 	if s.performanceProvider != nil {
 		if score, found, err := s.performanceProvider.LatestFinalScore(ctx, uid); err == nil && found {
 			data.PerformanceScore = &score
@@ -2100,9 +2120,16 @@ func (s *Service) buildEligibility(ctx context.Context, employeeID string, promo
 			s.logger.Warn("failed to get competency score for eligibility", zap.String("employee_id", employeeID), zap.Error(err))
 		}
 	}
+	if s.okrProvider != nil {
+		if score, found, err := s.okrProvider.LatestScore(ctx, uid); err == nil && found {
+			data.OKRScore = &score
+		} else if err != nil {
+			s.logger.Warn("failed to get okr score for eligibility", zap.String("employee_id", employeeID), zap.Error(err))
+		}
+	}
 
 	// Evaluasi rule default.
-	data.Rules = s.evaluateDefaultRules(data.TenureMonths, data.PerformanceScore, data.CompetencyScore)
+	data.Rules = s.evaluateDefaultRules(data.TenureMonths, data.PerformanceScore, data.CompetencyScore, data.OKRScore)
 
 	// Tambah rule career_path jika posisi ada dalam path aktif.
 	if data.CareerPathID != nil && data.CareerPathName != nil {
@@ -2111,24 +2138,26 @@ func (s *Service) buildEligibility(ctx context.Context, employeeID string, promo
 		data.Rules = append(data.Rules, EligibilityRuleResult{
 			Code: "career_path", Label: "Career Path",
 			Met: met, Detail: &detail,
+			Available: true,
 		})
 	}
 
+	// Eligible dihitung hanya dari rule yang datanya tersedia (Available=true).
+	// Rule tanpa data (mis. tenant belum menjalankan OKR/performance/competency)
+	// dilaporkan tapi tidak memblokir — kebijakan pragmatis.
 	data.Eligible = true
 	for _, r := range data.Rules {
-		if !r.Met {
+		if r.Available && !r.Met {
 			data.Eligible = false
 			break
 		}
 	}
 
 	return &data, nil
-}
-
-// evaluateDefaultRules membangun rule untuk movement-eligibility: minimum
-// service (default 24), performance (>= 80), competency (>= 80).
-func (s *Service) evaluateDefaultRules(tenureMonths int, performanceScore, competencyScore *float64) []EligibilityRuleResult {
-	rules := make([]EligibilityRuleResult, 0, 3)
+} // evaluateDefaultRules membangun rule untuk movement-eligibility: minimum
+// service (default 24), performance (>= 80), competency (>= 80), OKR (>= 80).
+func (s *Service) evaluateDefaultRules(tenureMonths int, performanceScore, competencyScore, okrScore *float64) []EligibilityRuleResult {
+	rules := make([]EligibilityRuleResult, 0, 4)
 
 	tenureReq := fmt.Sprintf("%d bulan", eligibilityDefaultMinServiceMonths)
 	tenureActual := fmt.Sprintf("%d bulan", tenureMonths)
@@ -2136,18 +2165,21 @@ func (s *Service) evaluateDefaultRules(tenureMonths int, performanceScore, compe
 		Code: "minimum_service", Label: "Minimum Masa Kerja",
 		Met:    tenureMonths >= eligibilityDefaultMinServiceMonths,
 		Actual: &tenureActual, Required: &tenureReq,
+		Available: true,
 	})
 
-	rules = append(rules, buildScoreRule("performance", "Skor Kinerja", performanceScore, eligibilityMinPerformanceScore))
+	rules = append(rules, buildScoreRule("performance", "Skor Kinerja (KPI)", performanceScore, eligibilityMinPerformanceScore))
 	rules = append(rules, buildScoreRule("competency", "Skor Kompetensi", competencyScore, eligibilityMinCompetencyScore))
+	rules = append(rules, buildScoreRule("okr", "Skor OKR", okrScore, eligibilityMinOKRScore))
 
 	return rules
 }
 
 // evaluatePromotionRules membangun rule untuk promotion-eligibility:
-// minimum service (dari career path atau default 24), performance, competency.
-func (s *Service) evaluatePromotionRules(tenureMonths, minService int, performanceScore, competencyScore *float64) []EligibilityRuleResult {
-	rules := make([]EligibilityRuleResult, 0, 3)
+// minimum service (dari career path atau default 24), performance, competency,
+// dan OKR.
+func (s *Service) evaluatePromotionRules(tenureMonths, minService int, performanceScore, competencyScore, okrScore *float64) []EligibilityRuleResult {
+	rules := make([]EligibilityRuleResult, 0, 4)
 
 	tenureReq := fmt.Sprintf("%d bulan", minService)
 	tenureActual := fmt.Sprintf("%d bulan", tenureMonths)
@@ -2155,10 +2187,12 @@ func (s *Service) evaluatePromotionRules(tenureMonths, minService int, performan
 		Code: "minimum_service", Label: "Minimum Masa Kerja (Target Promosi)",
 		Met:    tenureMonths >= minService,
 		Actual: &tenureActual, Required: &tenureReq,
+		Available: true,
 	})
 
-	rules = append(rules, buildScoreRule("performance", "Skor Kinerja", performanceScore, eligibilityMinPerformanceScore))
+	rules = append(rules, buildScoreRule("performance", "Skor Kinerja (KPI)", performanceScore, eligibilityMinPerformanceScore))
 	rules = append(rules, buildScoreRule("competency", "Skor Kompetensi", competencyScore, eligibilityMinCompetencyScore))
+	rules = append(rules, buildScoreRule("okr", "Skor OKR", okrScore, eligibilityMinOKRScore))
 
 	return rules
 }
@@ -2226,16 +2260,18 @@ func computeTenureMonths(employments []careerEmploymentRow) int {
 		return 0
 	}
 	return months
-}
-
-// buildScoreRule membuat rule result untuk satu nilai skor (perform/kompetensi)
-// terhadap threshold. Jika nil (data tidak tersedia), met=false + detail.
+} // buildScoreRule membuat rule result untuk satu nilai skor (perform/kompetensi/
+// OKR) terhadap threshold. Jika nil (data tidak tersedia), rule dilaporkan
+// dengan Available=false (met=false + detail) dan TIDAK ikut menentukan
+// `eligible` — kebijakan pragmatis: tenant yang belum menjalankan modul
+// terkait tidak membuat karyawannya otomatis ineligible.
 func buildScoreRule(code, label string, score *float64, threshold float64) EligibilityRuleResult {
 	if score == nil {
-		msg := "data belum tersedia"
+		msg := "data belum tersedia — rule dilewati dari perhitungan eligible"
 		return EligibilityRuleResult{
 			Code: code, Label: label,
 			Met: false, Detail: &msg,
+			Available: false,
 		}
 	}
 	actual := fmt.Sprintf("%.0f", *score)
@@ -2244,6 +2280,7 @@ func buildScoreRule(code, label string, score *float64, threshold float64) Eligi
 		Code: code, Label: label,
 		Met:    *score >= threshold,
 		Actual: &actual, Required: &required,
+		Available: true,
 	}
 }
 

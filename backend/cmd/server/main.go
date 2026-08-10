@@ -189,6 +189,24 @@ func (a competencyEligibilityAdapter) LatestScore(ctx context.Context, employeeI
 	return a.repo.LatestScoreByEmployee(ctx, employeeID)
 }
 
+// okrEligibilityAdapter implements employeemovement.OKRProvider so employee
+// movement can read the latest completed OKR evaluation's final score for
+// promotion eligibility (plan §12.10/§12.11 — KPI + OKR + Competency sebagai
+// input eligibility). OKR repo methods take a *gorm.DB, so the adapter first
+// resolves the tenant DB via the same performance resolver then delegates.
+type okrEligibilityAdapter struct {
+	repo     performance.OKRRepository
+	resolver func(ctx context.Context) (*gorm.DB, error)
+}
+
+func (a okrEligibilityAdapter) LatestScore(ctx context.Context, employeeID uuid.UUID) (float64, bool, error) {
+	db, err := a.resolver(ctx)
+	if err != nil {
+		return 0, false, err
+	}
+	return a.repo.LatestOKRScoreByEmployee(db, employeeID)
+}
+
 // licenseCreatorAdapter implements company.LicenseCreator using the license service.
 // Digunakan untuk auto-create license saat signup company dengan package.
 type licenseCreatorAdapter struct {
@@ -732,6 +750,7 @@ func main() {
 	employeeMovementSvc.SetPerformanceProvider(performanceEligibilityAdapter{repo: performanceRepo})
 	competencyEligibilityRepo := competency.NewRepository(competency.NewTenantDBResolver(dbManager))
 	employeeMovementSvc.SetCompetencyProvider(competencyEligibilityAdapter{repo: competencyEligibilityRepo})
+	employeeMovementSvc.SetOKRProvider(okrEligibilityAdapter{repo: okrRepo, resolver: performanceResolver})
 
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees

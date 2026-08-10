@@ -1,6 +1,7 @@
 package performance
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -36,6 +37,11 @@ type OKRRepository interface {
 	GetOKREvaluationByID(db *gorm.DB, id uuid.UUID) (*OKREvaluation, error)
 	GetOKREvaluationWithDetails(db *gorm.DB, id uuid.UUID) (*OKREvaluation, error)
 	ListOKREvaluations(db *gorm.DB, employeeID, orgID, periodID *uuid.UUID, status *string, page, perPage int) ([]OKREvaluation, int64, error)
+	// LatestOKRScoreByEmployee mengambil skor final OKR terbaru evaluasi yang
+	// sudah selesai (COMPLETED / APPROVED) untuk seorang karyawan — dipakai
+	// module employeemovement sebagai input promotion eligibility
+	// (plan §12.11: movement membaca hasil final, tidak menghitung skor sendiri).
+	LatestOKRScoreByEmployee(db *gorm.DB, employeeID uuid.UUID) (float64, bool, error)
 	UpdateOKREvaluation(db *gorm.DB, evaluation *OKREvaluation) error
 	DeleteOKREvaluation(db *gorm.DB, id uuid.UUID) error
 
@@ -256,6 +262,22 @@ func (r *okrRepositoryImpl) GetOKREvaluationWithDetails(db *gorm.DB, id uuid.UUI
 		return nil, err
 	}
 	return &evaluation, nil
+}
+
+func (r *okrRepositoryImpl) LatestOKRScoreByEmployee(db *gorm.DB, employeeID uuid.UUID) (float64, bool, error) {
+	var eval OKREvaluation
+	err := db.Model(&OKREvaluation{}).
+		Where("employee_id = ?", employeeID).
+		Where("status IN ?", []string{string(OKRStatusCompleted), string(OKRStatusApproved)}).
+		Order("created_at DESC, id DESC").
+		First(&eval).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, false, nil
+		}
+		return 0, false, err
+	}
+	return eval.FinalScore, true, nil
 }
 
 func (r *okrRepositoryImpl) ListOKREvaluations(db *gorm.DB, employeeID, orgID, periodID *uuid.UUID, status *string, page, perPage int) ([]OKREvaluation, int64, error) {

@@ -1,9 +1,9 @@
 # Employee Movement & Career Management — Development Plan
 
-> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6–8, 10–11) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
+> 📅 Versi plan: 2026-08-10 · Status: **IMPLEMENTASI BERJALAN — langkah 13/13 selesai** + **enhancement §12 P0 (1–5) ✅ + P1 (6–11) ✅** (backend ✅ + FE halaman Movements/Contracts/detail ✅ + checklist E2E dibuat ✅ — eksekusi manual menunggu environment tenant)
 > ✅ **Keputusan bisnis sudah dikonfirmasi user (2026-08-10)** — lihat §11.
 > 🔎 Berdasarkan struktur tabel `012_employee_movement.sql` (mysql + postgres) dan `062_employeemovement_approval_instance.sql`, serta audit modul `backend/internal/modules/employeemovement` dan `frontend/tenant/src/views/modules/EmployeeMovements.vue`.
-> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21) · ✅ **Enhancement §12 P1 8** (Contract Expiry Management — lihat log §3.22) · ✅ **Enhancement §12 P1 10** (Career Path — lihat log §3.23) · ✅ **Enhancement §12 P1 11** (Promotion Eligibility — lihat log §3.24). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
+> 📊 **Progres implementasi (per 2026-08-10):** ✅ 1) migration + enum `rejected` (082) · ✅ 2) G-1 ExecuteMovement transaksi employment · ✅ 3) G-3 auto-resolve flow · ✅ 4) G-4 enriched responses · ✅ 5) G-2 notifikasi `MOVEMENT_*` (termasuk deep-link FE) · ✅ 6) G-5 hapus approve manual · ✅ 7) G-6 contract extension count · ✅ 8) G-7 validasi per tipe · ✅ 9) G-8 slug/route disamakan · ✅ 10) FE halaman Movements + filter backend (termasuk badge `rejected`) · ✅ 11) FE halaman Contracts (daftar enriched + filter + create/edit + upload dokumen) + filter backend · ✅ 12) FE detail dialog movement + aksi dari detail · ✅ 13) checklist verifikasi E2E manual dibuat (`docs/module-movement-e2e-checklist.md`; unit/service & build sudah PASS di tiap langkah) · ✅ **Enhancement §12 P0 1–3** (transactional ExecuteMovement + position conflict + effective-date conflict — lihat log §3.17) · ✅ **Enhancement §12 P0 4** (Movement Snapshot — lihat log §3.18) · ✅ **Enhancement §12 P0 5** (Movement Audit Trail — lihat log §3.19) · ✅ **Enhancement §12 P1 6** (Movement Documents — lihat log §3.20) · ✅ **Enhancement §12 P1 7** (Career Timeline — lihat log §3.21) · ✅ **Enhancement §12 P1 8** (Contract Expiry Management — lihat log §3.22) · ✅ **Enhancement §12 P1 10** (Career Path — lihat log §3.23) · ✅ **Enhancement §12 P1 11** (Promotion Eligibility — lihat log §3.24) · ✅ **Enhancement §12 P1 9** (Performance Integration — KPI/OKR/competency sebagai input eligibility, lihat log §3.25). **Eksekusi E2E manual:** menunggu environment tenant + akun ber-permission `employeemovement.*`.
 
 ---
 
@@ -716,6 +716,35 @@ Scheduled process `ProcessContractExpiration` (plan §12.13) — mark expired ot
 
 ---
 
+# 3.25 Log Implementasi — Enhancement P1 item 9: Performance Integration (2026-08-10)
+
+## 3.25.1 Yang dikerjakan
+
+**Performance Integration** (plan §12.11) — melengkapi input eligibility sehingga movement membaca **KPI + OKR + Competency** sebagai hasil final dari Performance Management & Competency Management (movement tidak menghitung skor sendiri).
+
+- **OKR Score** ditambahkan sebagai input eligibility ketiga (setelah KPI performance dan competency):
+  - `performance.OKRRepository.LatestOKRScoreByEmployee(db, employeeID)` — method baru pada interface + impl: query `okr_evaluations` dengan status **COMPLETED / APPROVED** (hasil final OKR), terbaru, return `FinalScore`. Ditempatkan di interface `OKRRepository` (bukan `Repository` biasa) karena pola OKR memakai `db *gorm.DB` langsung.
+  - `employeemovement.Service` — interface `OKRProvider` + setter `SetOKRProvider`; `buildEligibility` membaca OKR score (best-effort, provider nil → skip).
+  - Rule baru `okr` (threshold `eligibilityMinOKRScore = 80`) ditambahkan ke `evaluateDefaultRules` dan `evaluatePromotionRules` — total 4 rule: minimum_service, performance (KPI), competency, okr.
+  - DTO: field `okr_score` pada `MovementEligibilityData` dan `PromotionEligibilityData`.
+- **Adapter**: `okrEligibilityAdapter` di main.go — karena method OKR repo menerima `*gorm.DB`, adapter me-resolve tenant DB lewat `performanceResolver` lalu mendelegasikan ke `LatestOKRScoreByEmployee`; di-wire via `SetOKRProvider(okrEligibilityAdapter{repo: okrRepo, resolver: performanceResolver})`.
+
+## 3.25.2 Keputusan desain
+
+1. **OKR sebagai rule terpisah** (bukan digabung dengan performance/KPI) — sesuai contoh plan §12.11 yang menampilkan KPI Score, OKR Score, dan Competency sebagai tiga input terpisah.
+2. **Status final OKR**: `COMPLETED` dan `APPROVED` (evaluasi yang sudah melewati approval). `DRAFT/SUBMITTED/KR_*` diabaikan karena belum final — konsisten dengan KPI yang memakai `COMPLETED/ACTUAL_APPROVED`.
+3. **OKR repo butuh `db` eksplisit** — pola OKR module berbeda dari repo KPI (yang memakai resolver per-call); adapter menangani perbedaan ini sehingga `employeemovement` tetap memakai interface narrow (`OKRProvider`) tanpa tahu detail OKR.
+4. Threshold OKR memakai 80 (konsisten dengan performance & competency).
+5. **Kebijakan nil-data PRAGMATIS (perbaikan dari §3.24.2 no.3)** — setelah reviewer menemukan bahwa menjadikan OKR rule ke-4 yang wajib membuat semua karyawan tenant tanpa data OKR jadi ineligible, kebijakan diubah: `EligibilityRuleResult` mendapat field `available`; rule tanpa data (`available=false`) **dilaporkan sebagai informasi tetapi TIDAK memblokir** perhitungan `eligible`. Hanya rule dengan data (`available=true`) yang menentukan `eligible`. Berlaku untuk semua rule skor (performance/OKR/competency). Tenant yang belum menjalankan modul terkait tetap bisa menghasilkan eligible dari data yang tersedia.
+
+## 3.25.3 Validasi
+
+- `go build ./...` ✅ · `go vet ./internal/modules/employeemovement/... ./internal/modules/performance/...` ✅ · `gofmt` (file yang diubah) bersih ✅
+- `go test ./internal/modules/employeemovement/... ./internal/modules/employee/... ./internal/modules/approval/... ./internal/modules/notification/... ./internal/modules/performance/... ./internal/modules/competency/...` — semua **PASS** ✅
+- Test baru (4): OKR score 91 ikut rule met pada movement-eligibility · OKR score 40 → eligible=false · OKR tanpa data (provider nil) tidak memblokir eligible · repo `LatestOKRScoreByEmployee` (COMPLETED terpilih, DRAFT diabaikan, APPROVED terpilih, employee tanpa data → not found).
+
+---
+
 # 5. API Plan
 
 ## 5.1 Endpoint Existing (sudah jalan)
@@ -1254,7 +1283,7 @@ atau dapat dikembangkan sebagai konfigurasi `career_path_steps` jika rule masih 
 
 ---
 
-## 12.11 P1 — Performance Integration
+## 12.11 P1 — Performance Integration — ✅ **SELESAI (2026-08-10)** — lihat log §3.25
 
 Promotion dapat menggunakan hasil Performance Management.
 
@@ -1834,7 +1863,7 @@ C = 2
 | 6 | Movement Documents — ✅ **SELESAI (2026-08-10)** | P1 | DB/BE/FE |
 | 7 | Career Timeline — ✅ **SELESAI (2026-08-10)** | P1 | BE/FE |
 | 8 | Contract Expiry — ✅ **SELESAI (2026-08-10)** | P1 | BE/Job/FE |
-| 9 | Performance Integration | P1 | BE |
+| 9 | Performance Integration — ✅ **SELESAI (2026-08-10)** | P1 | BE |
 | 10 | Career Path — ✅ **SELESAI (2026-08-10)** | P1 | DB/BE/FE |
 | 11 | Promotion Eligibility — ✅ **SELESAI (2026-08-10)** | P1/P2 | BE |
 | 12 | Movement Cancellation Approval | P2 | Approval/BE |

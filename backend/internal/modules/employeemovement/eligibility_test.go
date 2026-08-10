@@ -30,6 +30,16 @@ func (f fakeCompetencyProvider) LatestScore(_ context.Context, _ uuid.UUID) (flo
 	return f.score, f.found, nil
 }
 
+// fakeOKRProvider implements OKRProvider for tests.
+type fakeOKRProvider struct {
+	score float64
+	found bool
+}
+
+func (f fakeOKRProvider) LatestScore(_ context.Context, _ uuid.UUID) (float64, bool, error) {
+	return f.score, f.found, nil
+}
+
 // TestGetMovementEligibility_AllMet verifies all rules met when tenure >= 24
 // months and performance/competency scores >= 80.
 func TestGetMovementEligibility_AllMet(t *testing.T) {
@@ -38,6 +48,7 @@ func TestGetMovementEligibility_AllMet(t *testing.T) {
 
 	svc.SetPerformanceProvider(fakePerformanceProvider{score: 95, found: true})
 	svc.SetCompetencyProvider(fakeCompetencyProvider{score: 88, found: true})
+	svc.SetOKRProvider(fakeOKRProvider{score: 91, found: true})
 
 	employeeID := uuid.New()
 	orgID, posID, statusID := seedCareerReferenceTables(t, repo, employeeID)
@@ -63,9 +74,13 @@ func TestGetMovementEligibility_AllMet(t *testing.T) {
 	if resp.Data.TenureMonths < 24 {
 		t.Errorf("expected tenure >= 24 months, got %d", resp.Data.TenureMonths)
 	}
+	if resp.Data.OKRScore == nil || *resp.Data.OKRScore != 91 {
+		t.Errorf("expected okr_score 91, got %v", resp.Data.OKRScore)
+	}
 	foundEmp := false
 	foundPerf := false
 	foundComp := false
+	foundOKR := false
 	for _, r := range resp.Data.Rules {
 		if r.Code == "minimum_service" && r.Met {
 			foundEmp = true
@@ -76,6 +91,9 @@ func TestGetMovementEligibility_AllMet(t *testing.T) {
 		if r.Code == "competency" && r.Met {
 			foundComp = true
 		}
+		if r.Code == "okr" && r.Met {
+			foundOKR = true
+		}
 	}
 	if !foundEmp {
 		t.Error("expected minimum_service rule met")
@@ -85,6 +103,9 @@ func TestGetMovementEligibility_AllMet(t *testing.T) {
 	}
 	if !foundComp {
 		t.Error("expected competency rule met")
+	}
+	if !foundOKR {
+		t.Error("expected okr rule met")
 	}
 }
 
@@ -164,6 +185,7 @@ func TestGetPromotionEligibility_WithCareerPath(t *testing.T) {
 
 	svc.SetPerformanceProvider(fakePerformanceProvider{score: 90, found: true})
 	svc.SetCompetencyProvider(fakeCompetencyProvider{score: 85, found: true})
+	svc.SetOKRProvider(fakeOKRProvider{score: 91, found: true})
 
 	employeeID := uuid.New()
 	orgID, posID, statusID := seedCareerReferenceTables(t, repo, employeeID)
@@ -228,6 +250,89 @@ func TestGetPromotionEligibility_WithCareerPath(t *testing.T) {
 	// Employee with 3+ years tenure and performance 90 should be eligible.
 	if !resp.Data.Eligible {
 		t.Errorf("expected eligible=true for met-all promotion rules")
+	}
+}
+
+// TestGetMovementEligibility_OKRNotMet verifies the OKR rule marks eligible=false
+// when the OKR score is below threshold (plan §12.11 — OKR sebagai input
+// eligibility bersama KPI & competency).
+func TestGetMovementEligibility_OKRNotMet(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	svc.SetPerformanceProvider(fakePerformanceProvider{score: 90, found: true})
+	svc.SetCompetencyProvider(fakeCompetencyProvider{score: 90, found: true})
+	svc.SetOKRProvider(fakeOKRProvider{score: 40, found: true})
+
+	employeeID := uuid.New()
+	orgID, posID, statusID := seedCareerReferenceTables(t, repo, employeeID)
+	seedEmployment(t, repo, &employee.Employment{
+		EmployeeID:           &employeeID,
+		OrganizationID:       &orgID,
+		PositionID:           &posID,
+		EmploymentStatusID:   &statusID,
+		DecisionLetterNumber: "SK-TL-001",
+		DecisionLetterDate:   "2023-01-01",
+		EffectiveDate:        "2023-01-01",
+	})
+
+	resp, err := svc.GetMovementEligibility(ctx(), employeeID.String())
+	if err != nil {
+		t.Fatalf("GetMovementEligibility failed: %v", err)
+	}
+	if resp.Data.Eligible {
+		t.Error("expected eligible=false when okr score below threshold")
+	}
+	okrMet := false
+	for _, r := range resp.Data.Rules {
+		if r.Code == "okr" && r.Met {
+			okrMet = true
+		}
+	}
+	if okrMet {
+		t.Error("expected okr rule not met")
+	}
+}
+
+// TestGetMovementEligibility_MissingOKRData_DoesNotBlock verifies the
+// pragmatic nil-data policy: OKR rule tanpa data (tenant belum menjalankan
+// OKR) tidak memblokir eligible selama rule lain yang punya data semuanya met.
+func TestGetMovementEligibility_MissingOKRData_DoesNotBlock(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	svc.SetPerformanceProvider(fakePerformanceProvider{score: 90, found: true})
+	svc.SetCompetencyProvider(fakeCompetencyProvider{score: 88, found: true})
+	// OKR provider TIDAK di-set (nil) — tenant belum pakai OKR.
+
+	employeeID := uuid.New()
+	orgID, posID, statusID := seedCareerReferenceTables(t, repo, employeeID)
+	seedEmployment(t, repo, &employee.Employment{
+		EmployeeID:           &employeeID,
+		OrganizationID:       &orgID,
+		PositionID:           &posID,
+		EmploymentStatusID:   &statusID,
+		DecisionLetterNumber: "SK-TL-001",
+		DecisionLetterDate:   "2023-01-01",
+		EffectiveDate:        "2023-01-01",
+	})
+
+	resp, err := svc.GetMovementEligibility(ctx(), employeeID.String())
+	if err != nil {
+		t.Fatalf("GetMovementEligibility failed: %v", err)
+	}
+	if !resp.Data.Eligible {
+		t.Error("expected eligible=true — okr rule tanpa data tidak memblokir")
+	}
+	// Rule OKR tetap dilaporkan sebagai available=false.
+	found := false
+	for _, r := range resp.Data.Rules {
+		if r.Code == "okr" && !r.Available {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected okr rule reported with available=false")
 	}
 }
 

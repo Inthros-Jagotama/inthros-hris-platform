@@ -264,11 +264,16 @@ type EligibilityRuleResult struct {
 	Actual   *string `json:"actual,omitempty"`
 	Required *string `json:"required,omitempty"`
 	Detail   *string `json:"detail,omitempty"`
+	// Available=false berarti data untuk rule ini belum tersedia (mis. tenant
+	// belum menjalankan evaluasi OKR/performance/competency). Rule tanpa data
+	// TIDAK ikut menentukan `eligible` (kebijakan pragmatis) — hanya
+	// dilaporkan sebagai informasi.
+	Available bool `json:"available"`
 }
 
 // MovementEligibilityData adalah read model eligibility umum (tidak spesifik
-// tipe movement). Menampilkan masa kerja, skor performa/kompetensi terakhir,
-// posisi sekarang, dan apakah employee berada dalam career path.
+// tipe movement). Menampilkan masa kerja, skor performa (KPI)/OKR/kompetensi
+// terakhir, posisi sekarang, dan apakah employee berada dalam career path.
 type MovementEligibilityData struct {
 	EmployeeID       string                  `json:"employee_id"`
 	EmployeeName     string                  `json:"employee_name"`
@@ -277,6 +282,7 @@ type MovementEligibilityData struct {
 	CurrentPosition  *CareerPositionInfo     `json:"current_position,omitempty"`
 	PerformanceScore *float64                `json:"performance_score,omitempty"`
 	CompetencyScore  *float64                `json:"competency_score,omitempty"`
+	OKRScore         *float64                `json:"okr_score,omitempty"`
 	CareerPathID     *string                 `json:"career_path_id,omitempty"`
 	CareerPathName   *string                 `json:"career_path_name,omitempty"`
 	Rules            []EligibilityRuleResult `json:"rules"`
@@ -304,6 +310,7 @@ type PromotionEligibilityData struct {
 	MinimumServiceMonths int                     `json:"minimum_service_months"`
 	PerformanceScore     *float64                `json:"performance_score,omitempty"`
 	CompetencyScore      *float64                `json:"competency_score,omitempty"`
+	OKRScore             *float64                `json:"okr_score,omitempty"`
 	Rules                []EligibilityRuleResult `json:"rules"`
 	Eligible             bool                    `json:"eligible"`
 }
