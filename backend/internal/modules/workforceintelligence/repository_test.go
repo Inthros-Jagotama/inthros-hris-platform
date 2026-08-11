@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // =========================================================================
@@ -640,5 +641,175 @@ func TestRepo_GetEmployeesByDepartment_EmptyTable(t *testing.T) {
 	if err != nil {
 		// Expected — employees table doesn't exist in test context
 		t.Logf("GetEmployeesByDepartment returned expected error: %v", err)
+	}
+}
+
+// =========================================================================
+// Candidate Search Repository Tests
+// =========================================================================
+
+// createCandidateSearchTables membuat tabel raw milik modul lain (organization,
+// employee, recruitment) yang di-query Candidate Search secara langsung.
+func createCandidateSearchTables(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	statements := []string{
+		`CREATE TABLE organization_summaries (
+			id CHAR(36) PRIMARY KEY,
+			code VARCHAR(7),
+			decree_no VARCHAR(20),
+			decree_date TEXT,
+			status VARCHAR(20),
+			deleted_at DATETIME NULL
+		)`,
+		`CREATE TABLE organizations (
+			id CHAR(36) PRIMARY KEY,
+			organization_summary_id CHAR(36),
+			code VARCHAR(10),
+			full_code VARCHAR(50),
+			nomenclature VARCHAR(255),
+			parent_id CHAR(36) NULL,
+			deleted_at DATETIME NULL
+		)`,
+		`CREATE TABLE employments (
+			id CHAR(36) PRIMARY KEY,
+			employee_id CHAR(36),
+			organization_id CHAR(36),
+			effective_date TEXT,
+			effective_end_date TEXT NULL
+		)`,
+		`CREATE TABLE candidates (
+			id CHAR(36) PRIMARY KEY,
+			first_name VARCHAR(100),
+			last_name VARCHAR(100),
+			email VARCHAR(255),
+			phone VARCHAR(50),
+			current_company TEXT NULL,
+			current_title TEXT NULL,
+			source VARCHAR(50)
+		)`,
+		`CREATE TABLE job_requisitions (
+			id CHAR(36) PRIMARY KEY,
+			organization_id CHAR(36),
+			title VARCHAR(255),
+			status VARCHAR(20)
+		)`,
+		`CREATE TABLE job_applications (
+			id CHAR(36) PRIMARY KEY,
+			requisition_id CHAR(36),
+			candidate_id CHAR(36),
+			status VARCHAR(50),
+			created_at DATETIME
+		)`,
+	}
+	for _, stmt := range statements {
+		if err := db.Exec(stmt).Error; err != nil {
+			t.Fatalf("failed to create candidate search table: %v\n%s", err, stmt)
+		}
+	}
+}
+
+func TestRepo_CandidateSearchVacantOrgs_OnlyActiveEmpty(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createCandidateSearchTables(t, db)
+	ctx := context.Background()
+
+	summaryActiveID := uuid.New().String()
+	summaryInactiveID := uuid.New().String()
+	orgVacantID := uuid.New().String()
+	orgOccupiedID := uuid.New().String()
+	orgEndedID := uuid.New().String()
+	orgInactiveID := uuid.New().String()
+
+	// Summaries
+	db.Exec("INSERT INTO organization_summaries (id, code, decree_no, decree_date, status) VALUES (?, 'SA-01', 'SK-001', '2024-01-01', 'active')", summaryActiveID)
+	db.Exec("INSERT INTO organization_summaries (id, code, decree_no, decree_date, status) VALUES (?, 'SI-01', 'SK-002', '2024-01-01', 'inactive')", summaryInactiveID)
+
+	// Organizations
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-01', 'SA-01.ORG-01', 'Staff IT')", orgVacantID, summaryActiveID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-02', 'SA-01.ORG-02', 'Supervisor IT')", orgOccupiedID, summaryActiveID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-03', 'SA-01.ORG-03', 'Manager IT')", orgEndedID, summaryActiveID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-04', 'SI-01.ORG-04', 'Staff Finance')", orgInactiveID, summaryInactiveID)
+
+	// Employments: ORG-02 aktif (masih berjalan), ORG-03 sudah berakhir
+	db.Exec("INSERT INTO employments (id, employee_id, organization_id, effective_date, effective_end_date) VALUES (?, ?, ?, '2024-01-01', NULL)", uuid.New().String(), uuid.New().String(), orgOccupiedID)
+	db.Exec("INSERT INTO employments (id, employee_id, organization_id, effective_date, effective_end_date) VALUES (?, ?, ?, '2020-01-01', '2021-01-01')", uuid.New().String(), uuid.New().String(), orgEndedID)
+
+	search := ""
+	rows, total, err := repo.CandidateSearchVacantOrgs(ctx, &search, 1, 20)
+	if err != nil {
+		t.Fatalf("CandidateSearchVacantOrgs failed: %v", err)
+	}
+
+	if total != 2 {
+		t.Errorf("expected 2 vacant orgs (ORG-01 lowong + ORG-03 kontrak berakhir), got %d", total)
+	}
+
+	codes := map[string]bool{}
+	for _, r := range rows {
+		codes[r.OrganizationCode] = true
+	}
+	if !codes["ORG-01"] || !codes["ORG-03"] {
+		t.Errorf("expected ORG-01 & ORG-03 in results, got %v", codes)
+	}
+	if codes["ORG-02"] {
+		t.Error("ORG-02 (masih ada employment aktif) tidak boleh dianggap lowong")
+	}
+	if codes["ORG-04"] {
+		t.Error("ORG-04 (summary inactive) tidak boleh dianggap lowong")
+	}
+
+	// Search filter by nama posisi (hanya org lowong yang cocok; ORG-02 yang
+	// terisi tidak ikut, jadi 'Manager' hanya match ORG-03)
+	s2 := "Manager"
+	_, total2, err := repo.CandidateSearchVacantOrgs(ctx, &s2, 1, 20)
+	if err != nil {
+		t.Fatalf("CandidateSearchVacantOrgs search failed: %v", err)
+	}
+	if total2 != 1 {
+		t.Errorf("expected 1 result for search 'Manager', got %d", total2)
+	}
+}
+
+func TestRepo_CandidateSearchCandidatesByOrgIDs_FiltersRejected(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createCandidateSearchTables(t, db)
+	ctx := context.Background()
+
+	orgID := uuid.New()
+	candOK := uuid.New()
+	candRejected := uuid.New()
+	reqID := uuid.New()
+
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'Andi', 'Wijaya', 'andi@test.local', 'direct')", candOK.String())
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'Budi', 'Santoso', 'budi@test.local', 'referral')", candRejected.String())
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status) VALUES (?, ?, 'Staff IT', 'OPEN')", reqID.String(), orgID.String())
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'SCREENED')", uuid.New().String(), reqID.String(), candOK.String())
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'REJECTED')", uuid.New().String(), reqID.String(), candRejected.String())
+
+	rows, err := repo.CandidateSearchCandidatesByOrgIDs(ctx, []uuid.UUID{orgID})
+	if err != nil {
+		t.Fatalf("CandidateSearchCandidatesByOrgIDs failed: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("expected 1 candidate (rejected excluded), got %d", len(rows))
+	}
+	if rows[0].Email != "andi@test.local" {
+		t.Errorf("expected andi@test.local, got %s", rows[0].Email)
+	}
+	if rows[0].ApplicationStatus != "SCREENED" {
+		t.Errorf("expected application status SCREENED, got %s", rows[0].ApplicationStatus)
+	}
+	if rows[0].RequisitionTitle != "Staff IT" {
+		t.Errorf("expected requisition title 'Staff IT', got %s", rows[0].RequisitionTitle)
+	}
+
+	// Empty orgIDs -> no rows, no error
+	empty, err := repo.CandidateSearchCandidatesByOrgIDs(ctx, nil)
+	if err != nil || empty != nil {
+		t.Errorf("expected nil rows and no error for empty orgIDs, got rows=%v err=%v", empty, err)
 	}
 }

@@ -1104,3 +1104,97 @@ func healthScoreToResponse(hs *WorkforceHealthScore) *HealthScoreResponse {
 	}
 	return r
 }
+
+// =========================================================================
+// Candidate Search
+// =========================================================================
+
+// CandidateSearch mencari posisi kosong (organisasi tanpa employment aktif di
+// bawah Organization Summary active) beserta kandidat recruitment yang melamar
+// ke requisition pada posisi tsb.
+func (s *Service) CandidateSearch(ctx context.Context, search string, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+
+	var searchPtr *string
+	if search != "" {
+		searchPtr = &search
+	}
+
+	rows, total, err := s.repo.CandidateSearchVacantOrgs(ctx, searchPtr, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+
+	orgIDs := make([]uuid.UUID, 0, len(rows))
+	for _, r := range rows {
+		if uid, err := uuid.Parse(r.OrganizationID); err == nil {
+			orgIDs = append(orgIDs, uid)
+		}
+	}
+
+	candRows, err := s.repo.CandidateSearchCandidatesByOrgIDs(ctx, orgIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	candsByOrg := make(map[string][]CandidateSearchCandidate, len(rows))
+	for _, cr := range candRows {
+		// Dedupe per kandidat (satu kandidat bisa melamar ke beberapa requisition
+		// di organisasi yang sama) — ambil aplikasi paling baru.
+		cands := candsByOrg[cr.OrganizationID]
+		dup := false
+		for _, existing := range cands {
+			if existing.ID == cr.ID {
+				dup = true
+				break
+			}
+		}
+		if dup {
+			continue
+		}
+		candsByOrg[cr.OrganizationID] = append(cands, CandidateSearchCandidate{
+			ID:                cr.ID,
+			FirstName:         cr.FirstName,
+			LastName:          cr.LastName,
+			Email:             cr.Email,
+			Phone:             cr.Phone,
+			CurrentTitle:      cr.CurrentTitle,
+			CurrentCompany:    cr.CurrentCompany,
+			Source:            cr.Source,
+			ApplicationStatus: cr.ApplicationStatus,
+			RequisitionTitle:  cr.RequisitionTitle,
+		})
+	}
+
+	responses := make([]CandidateSearchPosition, 0, len(rows))
+	for _, r := range rows {
+		cands := candsByOrg[r.OrganizationID]
+		if cands == nil {
+			cands = []CandidateSearchCandidate{}
+		}
+		responses = append(responses, CandidateSearchPosition{
+			OrganizationID:   r.OrganizationID,
+			OrganizationCode: r.OrganizationCode,
+			OrganizationName: r.OrganizationName,
+			SummaryID:        r.SummaryID,
+			SummaryCode:      r.SummaryCode,
+			SummaryDecreeNo:  r.SummaryDecreeNo,
+			CandidateCount:   len(cands),
+			Candidates:       cands,
+		})
+	}
+
+	return &PaginatedResponse{
+		Success:    true,
+		Data:       responses,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}

@@ -6,6 +6,9 @@ import "github.com/gin-gonic/gin"
 func RegisterRoutes(r *gin.RouterGroup, handler *Handler) {
 	wi := r.Group("/workforce-intelligence")
 	{
+		// Candidate Search — posisi kosong + kandidat recruitment
+		wi.GET("/candidate-search", handler.CandidateSearch)
+
 		// Workforce Planning — Headcount
 		wi.GET("/planning/headcounts", handler.ListHeadcountPlans)
 		wi.POST("/planning/headcounts", handler.CreateHeadcountPlan)

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 func ctx() context.Context {
@@ -729,5 +730,89 @@ func TestService_GetCostPerEmployee_Success(t *testing.T) {
 
 	if resp.AvgCostPerEmployee <= 0 {
 		t.Errorf("expected positive AvgCostPerEmployee, got %.2f", resp.AvgCostPerEmployee)
+	}
+}
+
+// =========================================================================
+// Candidate Search Service Tests
+// =========================================================================
+
+func TestService_CandidateSearch_GroupsCandidatesByPosition(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createCandidateSearchTables(t, db)
+
+	summaryID := uuid.New().String()
+	orgVacantID := uuid.New().String()
+	orgOccupiedID := uuid.New().String()
+	reqID := uuid.New().String()
+	reqClosedID := uuid.New().String()
+	reqDupID := uuid.New().String()
+	candID := uuid.New().String()
+
+	db.Exec("INSERT INTO organization_summaries (id, code, decree_no, decree_date, status) VALUES (?, 'SA-01', 'SK-001', '2024-01-01', 'active')", summaryID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-01', 'SA-01.ORG-01', 'Staff IT')", orgVacantID, summaryID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-02', 'SA-01.ORG-02', 'Supervisor IT')", orgOccupiedID, summaryID)
+	db.Exec("INSERT INTO employments (id, employee_id, organization_id, effective_date, effective_end_date) VALUES (?, ?, ?, '2024-01-01', NULL)", uuid.New().String(), uuid.New().String(), orgOccupiedID)
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, current_title, source) VALUES (?, 'Andi', 'Wijaya', 'andi@test.local', 'Staff IT', 'direct')", candID)
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status) VALUES (?, ?, 'Staff IT', 'OPEN')", reqID, orgVacantID)
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status) VALUES (?, ?, 'Staff IT (FILLED)', 'FILLED')", reqClosedID, orgVacantID)
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status) VALUES (?, ?, 'Staff IT (DUP)', 'OPEN')", reqDupID, orgVacantID)
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'SHORTLISTED')", uuid.New().String(), reqID, candID)
+	// Aplikasi ke requisition yang sudah FILLED — harus TIDAK ikut (filter status req)
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'INTERVIEWED')", uuid.New().String(), reqClosedID, candID)
+	// Aplikasi duplikat ke requisition OPEN lain — harus di-dedupe
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'OFFERED')", uuid.New().String(), reqDupID, candID)
+
+	resp, err := svc.CandidateSearch(ctx(), "", 1, 20)
+	if err != nil {
+		t.Fatalf("CandidateSearch failed: %v", err)
+	}
+
+	data, ok := resp.Data.([]CandidateSearchPosition)
+	if !ok {
+		t.Fatalf("expected data type []CandidateSearchPosition, got %T", resp.Data)
+	}
+	if resp.Total != 1 {
+		t.Fatalf("expected 1 vacant position, got %d", resp.Total)
+	}
+	pos := data[0]
+	if pos.OrganizationID != orgVacantID {
+		t.Errorf("expected position ORG-01, got %s", pos.OrganizationCode)
+	}
+	if pos.SummaryCode != "SA-01" || pos.SummaryDecreeNo != "SK-001" {
+		t.Errorf("unexpected summary info: %s %s", pos.SummaryCode, pos.SummaryDecreeNo)
+	}
+	if pos.CandidateCount != 1 || len(pos.Candidates) != 1 {
+		t.Fatalf("expected 1 candidate, got count=%d len=%d", pos.CandidateCount, len(pos.Candidates))
+	}
+	c := pos.Candidates[0]
+	if c.Email != "andi@test.local" || c.ApplicationStatus != "SHORTLISTED" {
+		t.Errorf("unexpected candidate payload: %s %s", c.Email, c.ApplicationStatus)
+	}
+}
+
+func TestService_CandidateSearch_PaginationDefaults(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createCandidateSearchTables(t, db)
+
+	resp, err := svc.CandidateSearch(ctx(), "", 0, 0)
+	if err != nil {
+		t.Fatalf("CandidateSearch failed: %v", err)
+	}
+	if resp.Page != 1 || resp.PerPage != 20 {
+		t.Errorf("expected default pagination 1/20, got %d/%d", resp.Page, resp.PerPage)
+	}
+	if resp.Data == nil {
+		t.Error("expected non-nil data (empty slice)")
 	}
 }

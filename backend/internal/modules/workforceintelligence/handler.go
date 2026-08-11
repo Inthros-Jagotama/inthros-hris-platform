@@ -687,6 +687,17 @@ func (h *Handler) GetKPIByCode(c *gin.Context) {
 // Helpers
 // =========================================================================
 
+// CandidateSearch menangani GET /workforce-intelligence/candidate-search
+func (h *Handler) CandidateSearch(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	resp, err := h.svc.CandidateSearch(c.Request.Context(), c.Query("search"), page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
 func parsePagination(c *gin.Context) (int, int) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))

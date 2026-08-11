@@ -457,3 +457,35 @@ type SuccessionReadinessResponse struct {
 	Status           string      `json:"status"` // HEALTHY / WARNING / CRITICAL
 	ByDepartment     []DataPoint `json:"by_department"`
 }
+
+// =========================================================================
+// Candidate Search DTOs
+// =========================================================================
+
+// CandidateSearchPosition adalah posisi kosong: organisasi tanpa employment
+// aktif yang berada di bawah Organization Summary berstatus active.
+type CandidateSearchPosition struct {
+	OrganizationID   string                     `json:"organization_id"`
+	OrganizationCode string                     `json:"organization_code"`
+	OrganizationName string                     `json:"organization_name"`
+	SummaryID        string                     `json:"summary_id"`
+	SummaryCode      string                     `json:"summary_code"`
+	SummaryDecreeNo  string                     `json:"summary_decree_no"`
+	CandidateCount   int                        `json:"candidate_count"`
+	Candidates       []CandidateSearchCandidate `json:"candidates"`
+}
+
+// CandidateSearchCandidate adalah kandidat dari pool recruitment yang melamar
+// ke requisition pada organisasi lowong tsb (status aplikasi bukan rejected/withdrawn).
+type CandidateSearchCandidate struct {
+	ID                string  `json:"id"`
+	FirstName         string  `json:"first_name"`
+	LastName          string  `json:"last_name"`
+	Email             string  `json:"email"`
+	Phone             string  `json:"phone,omitempty"`
+	CurrentTitle      *string `json:"current_title,omitempty"`
+	CurrentCompany    *string `json:"current_company,omitempty"`
+	Source            string  `json:"source"`
+	ApplicationStatus string  `json:"application_status"`
+	RequisitionTitle  string  `json:"requisition_title"`
+}

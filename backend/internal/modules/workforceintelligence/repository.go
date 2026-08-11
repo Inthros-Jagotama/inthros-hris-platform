@@ -3,6 +3,7 @@ package workforceintelligence
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -582,4 +583,92 @@ func (r *Repository) GetDepartments(ctx context.Context) ([]DepartmentGap, error
 		})
 	}
 	return gaps, nil
+}
+
+// =========================================================================
+// Candidate Search
+// =========================================================================
+
+type candidateSearchOrgRow struct {
+	OrganizationID   string
+	OrganizationCode string
+	OrganizationName string
+	SummaryID        string
+	SummaryCode      string
+	SummaryDecreeNo  string
+}
+
+type candidateSearchCandidateRow struct {
+	OrganizationID     string
+	ID                 string
+	FirstName          string
+	LastName           string
+	Email              string
+	Phone              string
+	CurrentTitle       *string
+	CurrentCompany     *string
+	Source             string
+	ApplicationStatus  string
+	RequisitionTitle   string
+}
+
+// CandidateSearchVacantOrgs mengembalikan organisasi yang LOWONG: tidak ada
+// employment aktif (effective_date <= hari ini dan effective_end_date NULL/>= hari
+// ini) dan berada di bawah Organization Summary berstatus active. Bisa difilter
+// dengan kata kunci (kode/nama org atau kode/decree summary).
+func (r *Repository) CandidateSearchVacantOrgs(ctx context.Context, search *string, page, perPage int) ([]candidateSearchOrgRow, int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	today := time.Now().Format("2006-01-02")
+
+	query := db.WithContext(ctx).Table("organizations o").
+		Select("o.id AS organization_id, o.code AS organization_code, o.nomenclature AS organization_name, os.id AS summary_id, os.code AS summary_code, os.decree_no AS summary_decree_no").
+		Joins("JOIN organization_summaries os ON os.id = o.organization_summary_id").
+		Where("o.deleted_at IS NULL AND os.deleted_at IS NULL AND os.status = ?", "active").
+		Where("NOT EXISTS (SELECT 1 FROM employments e WHERE e.organization_id = o.id AND e.effective_date <= ? AND (e.effective_end_date IS NULL OR e.effective_end_date >= ?))", today, today)
+
+	if search != nil && *search != "" {
+		s := "%" + *search + "%"
+		query = query.Where("(o.code LIKE ? OR o.full_code LIKE ? OR o.nomenclature LIKE ? OR os.code LIKE ? OR os.decree_no LIKE ?)", s, s, s, s, s)
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to count vacant organizations: %w", err)
+	}
+
+	offset := (page - 1) * perPage
+	var rows []candidateSearchOrgRow
+	if err := query.Offset(offset).Limit(perPage).Order("o.code ASC").Scan(&rows).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to list vacant organizations: %w", err)
+	}
+	return rows, total, nil
+}
+
+// CandidateSearchCandidatesByOrgIDs mengembalikan kandidat recruitment yang
+// melamar ke requisition AKTIF (OPEN/IN_PROGRESS) pada organisasi lowong tsb
+// (status aplikasi bukan REJECTED/WITHDRAWN).
+func (r *Repository) CandidateSearchCandidatesByOrgIDs(ctx context.Context, orgIDs []uuid.UUID) ([]candidateSearchCandidateRow, error) {
+	if len(orgIDs) == 0 {
+		return nil, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []candidateSearchCandidateRow
+	if err := db.WithContext(ctx).Table("candidates c").
+		Select("r.organization_id, c.id, c.first_name, c.last_name, c.email, c.phone, c.current_title, c.current_company, c.source, a.status AS application_status, r.title AS requisition_title").
+		Joins("JOIN job_applications a ON a.candidate_id = c.id").
+		Joins("JOIN job_requisitions r ON r.id = a.requisition_id").
+		Where("r.organization_id IN ?", orgIDs).
+		Where("r.status IN ?", []string{"OPEN", "IN_PROGRESS"}).
+		Where("a.status NOT IN ?", []string{"REJECTED", "WITHDRAWN"}).
+		Order("a.created_at DESC").
+		Scan(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to load candidates for vacant organizations: %w", err)
+	}
+	return rows, nil
 }

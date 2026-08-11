@@ -374,6 +374,13 @@ const routes = [
         component: () => import('@/views/modules/WorkforceIntelligence.vue'),
         meta: { title: 'Workforce Intel', titleKey: 'workforce_intel.title', descKey: 'workforce_intel.description', icon: 'pi pi-chart-bar', module: 'workforce-intelligence' }
       },
+      // Candidate Search — posisi kosong + kandidat recruitment
+      {
+        path: 'workforce-intelligence/candidate-search',
+        name: 'CandidateSearch',
+        component: () => import('@/views/modules/CandidateSearch.vue'),
+        meta: { title: 'Candidate Search', titleKey: 'candidate_search.title', descKey: 'candidate_search.description', icon: 'pi pi-user-plus', module: 'workforce-intelligence', backRoute: '/workforce-intelligence', backLabelKey: 'workforce_intel.title' }
+      },
       // Career Intelligence
       {
         path: 'career-intelligence',
