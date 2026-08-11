@@ -19,6 +19,20 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		trn.PUT("/courses/:id", handler.UpdateCourse)
 		trn.DELETE("/courses/:id", handler.DeleteCourse)
 
+		// Training Providers (P0-BE — plan §11)
+		trn.POST("/providers", handler.CreateProvider)
+		trn.GET("/providers", handler.ListProviders)
+		trn.GET("/providers/:id", handler.GetProviderByID)
+		trn.PUT("/providers/:id", handler.UpdateProvider)
+		trn.DELETE("/providers/:id", handler.DeleteProvider)
+
+		// Training Trainers (P0-BE — plan §12)
+		trn.POST("/trainers", handler.CreateTrainer)
+		trn.GET("/trainers", handler.ListTrainers)
+		trn.GET("/trainers/:id", handler.GetTrainerByID)
+		trn.PUT("/trainers/:id", handler.UpdateTrainer)
+		trn.DELETE("/trainers/:id", handler.DeleteTrainer)
+
 		// Training Sessions
 		trn.POST("/sessions", handler.CreateSession)
 		trn.GET("/sessions", handler.ListSessions)
@@ -26,6 +40,21 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		trn.PUT("/sessions/:id", handler.UpdateSession)
 		trn.PUT("/sessions/:id/status", handler.UpdateSessionStatus)
 		trn.DELETE("/sessions/:id", handler.DeleteSession)
+
+		// Session Trainers (P0-BE — plan §13)
+		trn.GET("/sessions/:id/trainers", handler.ListSessionTrainers)
+		trn.POST("/sessions/:id/trainers", handler.AddSessionTrainer)
+		trn.DELETE("/session-trainers/:id", handler.RemoveSessionTrainer)
+
+		// Attendance (P0-BE — plan §19)
+		trn.GET("/sessions/:id/attendance", handler.ListAttendanceBySession)
+		trn.POST("/sessions/:id/attendance", handler.MarkAttendance)
+		trn.PUT("/attendances/:id", handler.UpdateAttendance)
+
+		// Assessments (P0-BE — plan §21)
+		trn.GET("/sessions/:id/assessments", handler.ListAssessmentsBySession)
+		trn.POST("/sessions/:id/assessments", handler.CreateAssessment)
+		trn.POST("/assessments/:id/results", handler.SubmitAssessmentResult)
 
 		// Training Participants
 		trn.POST("/participants", handler.CreateParticipant)

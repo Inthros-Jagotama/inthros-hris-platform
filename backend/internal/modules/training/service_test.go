@@ -221,6 +221,347 @@ func TestService_MaterialManagement(t *testing.T) {
 	}
 }
 
+// =========================================================================
+// P0-BE: Providers & Trainers (plan §11–§13)
+// =========================================================================
+
+func seedProvider(t *testing.T, svc *Service) string {
+	t.Helper()
+	typ := "EXTERNAL"
+	resp, err := svc.CreateProvider(testCtx(), CreateTrainingProviderRequest{
+		Code: "ABC-INST",
+		Name: "ABC Training Institute",
+		Type: &typ,
+	})
+	if err != nil {
+		t.Fatalf("failed to seed provider: %v", err)
+	}
+	return resp.ID
+}
+
+func seedExternalTrainer(t *testing.T, svc *Service, providerID string) string {
+	t.Helper()
+	resp, err := svc.CreateTrainer(testCtx(), CreateTrainingTrainerRequest{
+		Type:       "EXTERNAL",
+		ProviderID: &providerID,
+		Name:       "External Trainer A",
+	})
+	if err != nil {
+		t.Fatalf("failed to seed trainer: %v", err)
+	}
+	return resp.ID
+}
+
+func TestService_ProviderLifecycle(t *testing.T) {
+	svc := testSvc(t)
+	id := seedProvider(t, svc)
+
+	got, err := svc.GetProviderByID(testCtx(), id)
+	if err != nil {
+		t.Fatalf("GetProviderByID failed: %v", err)
+	}
+	if got.Type != "EXTERNAL" {
+		t.Errorf("expected type EXTERNAL, got %s", got.Type)
+	}
+
+	resp, err := svc.ListProviders(testCtx(), 1, 10)
+	if err != nil {
+		t.Fatalf("ListProviders failed: %v", err)
+	}
+	if resp.Total != 1 {
+		t.Errorf("expected 1 provider, got %d", resp.Total)
+	}
+
+	name := "ABC Training Institute (Updated)"
+	updated, err := svc.UpdateProvider(testCtx(), id, UpdateTrainingProviderRequest{Name: &name})
+	if err != nil {
+		t.Fatalf("UpdateProvider failed: %v", err)
+	}
+	if updated.Name != name {
+		t.Errorf("expected name %s, got %s", name, updated.Name)
+	}
+}
+
+func TestService_TrainerRequiresReferenceByType(t *testing.T) {
+	svc := testSvc(t)
+
+	// INTERNAL tanpa employee_id → error.
+	_, err := svc.CreateTrainer(testCtx(), CreateTrainingTrainerRequest{
+		Type: "INTERNAL",
+		Name: "Internal Trainer",
+	})
+	if err == nil {
+		t.Fatal("expected error for INTERNAL trainer without employee_id")
+	}
+
+	// EXTERNAL tanpa provider_id → error.
+	_, err = svc.CreateTrainer(testCtx(), CreateTrainingTrainerRequest{
+		Type: "EXTERNAL",
+		Name: "External Trainer",
+	})
+	if err == nil {
+		t.Fatal("expected error for EXTERNAL trainer without provider_id")
+	}
+
+	// EXTERNAL dengan provider_id → sukses.
+	providerID := seedProvider(t, svc)
+	trainer, err := svc.CreateTrainer(testCtx(), CreateTrainingTrainerRequest{
+		Type:       "EXTERNAL",
+		ProviderID: &providerID,
+		Name:       "External Trainer OK",
+	})
+	if err != nil {
+		t.Fatalf("CreateTrainer EXTERNAL with provider failed: %v", err)
+	}
+	if trainer.Type != "EXTERNAL" {
+		t.Errorf("expected EXTERNAL, got %s", trainer.Type)
+	}
+}
+
+func TestService_AddAndListSessionTrainers(t *testing.T) {
+	svc := testSvc(t)
+	catID := seedCategory(t, svc)
+	courseID := seedCourse(t, svc, catID)
+	sessID := seedSession(t, svc, courseID)
+	providerID := seedProvider(t, svc)
+	trainerID := seedExternalTrainer(t, svc, providerID)
+
+	added, err := svc.AddSessionTrainer(testCtx(), sessID, AddSessionTrainerRequest{TrainerID: trainerID})
+	if err != nil {
+		t.Fatalf("AddSessionTrainer failed: %v", err)
+	}
+	if added.Role != "MAIN" {
+		t.Errorf("expected default role MAIN, got %s", added.Role)
+	}
+
+	items, err := svc.ListSessionTrainers(testCtx(), sessID)
+	if err != nil {
+		t.Fatalf("ListSessionTrainers failed: %v", err)
+	}
+	if len(items) != 1 {
+		t.Errorf("expected 1 session trainer, got %d", len(items))
+	}
+
+	// Duplikasi trainer pada session yang sama → error.
+	_, err = svc.AddSessionTrainer(testCtx(), sessID, AddSessionTrainerRequest{TrainerID: trainerID})
+	if err == nil {
+		t.Fatal("expected error when assigning the same trainer twice")
+	}
+}
+
+// =========================================================================
+// P0-BE: Enrollment & quota (plan §18/§32)
+// =========================================================================
+
+func TestService_DuplicateParticipantRejected(t *testing.T) {
+	svc := testSvc(t)
+	catID := seedCategory(t, svc)
+	courseID := seedCourse(t, svc, catID)
+	sessID := seedSession(t, svc, courseID)
+	empID := "00000000-0000-0000-0000-000000000020"
+
+	if _, err := svc.CreateParticipant(testCtx(), CreateTrainingParticipantRequest{
+		SessionID: sessID, EmployeeID: empID,
+	}); err != nil {
+		t.Fatalf("first registration failed: %v", err)
+	}
+	_, err := svc.CreateParticipant(testCtx(), CreateTrainingParticipantRequest{
+		SessionID: sessID, EmployeeID: empID,
+	})
+	if err == nil {
+		t.Fatal("expected error for duplicate participant")
+	}
+}
+
+func TestService_ParticipantRegistrationStatus(t *testing.T) {
+	svc := testSvc(t)
+	catID := seedCategory(t, svc)
+	courseID := seedCourse(t, svc, catID)
+	sessID := seedSession(t, svc, courseID)
+	empID := "00000000-0000-0000-0000-000000000021"
+
+	nom := "NOMINATED"
+	p, err := svc.CreateParticipant(testCtx(), CreateTrainingParticipantRequest{
+		SessionID: sessID, EmployeeID: empID, RegistrationStatus: &nom,
+	})
+	if err != nil {
+		t.Fatalf("CreateParticipant NOMINATED failed: %v", err)
+	}
+	if p.RegistrationStatus != "NOMINATED" {
+		t.Errorf("expected NOMINATED, got %s", p.RegistrationStatus)
+	}
+	if p.RegisteredAt != "" {
+		t.Error("NOMINATED should not set registered_at")
+	}
+}
+
+// =========================================================================
+// P0-BE: Session enhancement (plan §14)
+// =========================================================================
+
+func TestService_SessionExternalRequiresProvider(t *testing.T) {
+	svc := testSvc(t)
+	catID := seedCategory(t, svc)
+	courseID := seedCourse(t, svc, catID)
+
+	provType := "EXTERNAL"
+	_, err := svc.CreateSession(testCtx(), CreateTrainingSessionRequest{
+		CourseID:     courseID,
+		SessionCode:  "CLS-EXT-1",
+		TrainerName:  "External Trainer",
+		StartDate:    "2026-09-01",
+		EndDate:      "2026-09-05",
+		ProviderType: &provType,
+	})
+	if err == nil {
+		t.Fatal("expected error for EXTERNAL session without provider_id")
+	}
+
+	providerID := seedProvider(t, svc)
+	sess, err := svc.CreateSession(testCtx(), CreateTrainingSessionRequest{
+		CourseID:     courseID,
+		SessionCode:  "CLS-EXT-2",
+		TrainerName:  "External Trainer",
+		StartDate:    "2026-09-01",
+		EndDate:      "2026-09-05",
+		ProviderType: &provType,
+		ProviderID:   &providerID,
+	})
+	if err != nil {
+		t.Fatalf("CreateSession EXTERNAL with provider failed: %v", err)
+	}
+	if sess.ProviderType != "EXTERNAL" || sess.ProviderID != providerID {
+		t.Errorf("expected EXTERNAL + provider_id, got %s/%s", sess.ProviderType, sess.ProviderID)
+	}
+}
+
+// =========================================================================
+// P0-BE: Attendance (plan §19)
+// =========================================================================
+
+func TestService_AttendanceMarkAndList(t *testing.T) {
+	svc := testSvc(t)
+	catID := seedCategory(t, svc)
+	courseID := seedCourse(t, svc, catID)
+	sessID := seedSession(t, svc, courseID)
+	empID := "00000000-0000-0000-0000-000000000022"
+
+	part, err := svc.CreateParticipant(testCtx(), CreateTrainingParticipantRequest{
+		SessionID: sessID, EmployeeID: empID,
+	})
+	if err != nil {
+		t.Fatalf("CreateParticipant failed: %v", err)
+	}
+
+	late := "LATE"
+	ci := "2026-08-01T08:15:00"
+	att, err := svc.MarkAttendance(testCtx(), sessID, []MarkTrainingAttendanceRequest{
+		{ParticipantID: part.ID, AttendanceDate: "2026-08-01", CheckIn: &ci, Status: &late},
+	})
+	if err != nil {
+		t.Fatalf("MarkAttendance failed: %v", err)
+	}
+	if len(att) != 1 || att[0].Status != "LATE" {
+		t.Errorf("expected 1 LATE attendance, got %+v", att)
+	}
+
+	// Upsert: mark ulang tanggal yang sama tidak membuat baris baru.
+	present := "PRESENT"
+	att2, err := svc.MarkAttendance(testCtx(), sessID, []MarkTrainingAttendanceRequest{
+		{ParticipantID: part.ID, AttendanceDate: "2026-08-01", Status: &present},
+	})
+	if err != nil {
+		t.Fatalf("MarkAttendance upsert failed: %v", err)
+	}
+	if len(att2) != 1 || att2[0].Status != "PRESENT" || att2[0].ID != att[0].ID {
+		t.Errorf("expected upsert same row, got %+v", att2)
+	}
+
+	rows, err := svc.ListAttendanceBySession(testCtx(), sessID)
+	if err != nil {
+		t.Fatalf("ListAttendanceBySession failed: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Errorf("expected 1 attendance row, got %d", len(rows))
+	}
+	if rows[0].EmployeeID != empID {
+		t.Errorf("expected employee %s, got %s", empID, rows[0].EmployeeID)
+	}
+}
+
+// =========================================================================
+// P0-BE: Assessments (plan §21)
+// =========================================================================
+
+func TestService_AssessmentLifecycle(t *testing.T) {
+	svc := testSvc(t)
+	catID := seedCategory(t, svc)
+	courseID := seedCourse(t, svc, catID)
+	sessID := seedSession(t, svc, courseID)
+	empID := "00000000-0000-0000-0000-000000000023"
+
+	part, _ := svc.CreateParticipant(testCtx(), CreateTrainingParticipantRequest{
+		SessionID: sessID, EmployeeID: empID,
+	})
+
+	// passing > max → error.
+	max := 100.0
+	passing := 120.0
+	_, err := svc.CreateAssessment(testCtx(), CreateTrainingAssessmentRequest{
+		SessionID: sessID, Name: "Post Test", MaxScore: &max, PassingScore: &passing,
+	})
+	if err == nil {
+		t.Fatal("expected error when passing_score > max_score")
+	}
+
+	// Valid assessment.
+	passing = 70.0
+	a, err := svc.CreateAssessment(testCtx(), CreateTrainingAssessmentRequest{
+		SessionID: sessID, Name: "Post Test", MaxScore: &max, PassingScore: &passing,
+	})
+	if err != nil {
+		t.Fatalf("CreateAssessment failed: %v", err)
+	}
+	if a.AttemptLimit != 1 {
+		t.Errorf("expected default attempt_limit 1, got %d", a.AttemptLimit)
+	}
+
+	items, err := svc.ListAssessmentsBySession(testCtx(), sessID)
+	if err != nil {
+		t.Fatalf("ListAssessmentsBySession failed: %v", err)
+	}
+	if len(items) != 1 {
+		t.Errorf("expected 1 assessment, got %d", len(items))
+	}
+
+	// Score > max → error.
+	_, err = svc.SubmitAssessmentResult(testCtx(), a.ID, SubmitAssessmentResultRequest{
+		ParticipantID: part.ID, Score: 150,
+	})
+	if err == nil {
+		t.Fatal("expected error when score exceeds max_score")
+	}
+
+	// Passed (score >= passing).
+	res, err := svc.SubmitAssessmentResult(testCtx(), a.ID, SubmitAssessmentResultRequest{
+		ParticipantID: part.ID, Score: 85,
+	})
+	if err != nil {
+		t.Fatalf("SubmitAssessmentResult failed: %v", err)
+	}
+	if !res.Passed || res.Attempt != 1 {
+		t.Errorf("expected passed=true attempt=1, got %+v", res)
+	}
+
+	// Attempt limit 1 → attempt kedua ditolak.
+	_, err = svc.SubmitAssessmentResult(testCtx(), a.ID, SubmitAssessmentResultRequest{
+		ParticipantID: part.ID, Score: 90,
+	})
+	if err == nil {
+		t.Fatal("expected error when attempt limit reached")
+	}
+}
+
 func TestService_PaginationDefaults(t *testing.T) {
 	svc := testSvc(t)
 	desc := "Page test"

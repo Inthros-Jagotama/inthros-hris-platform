@@ -44,6 +44,10 @@ type CreateTrainingCourseRequest struct {
 	Cost           *float64 `json:"cost"`
 	IsCertified    *bool    `json:"is_certified"`
 	ExternalVendor *string  `json:"external_vendor" binding:"omitempty,max=200"`
+	// P0-BE (plan §7)
+	CourseType   *string `json:"course_type" binding:"omitempty,oneof=TECHNICAL SOFT_SKILL COMPLIANCE MANAGEMENT CERTIFICATION OTHER"`
+	DeliveryType *string `json:"delivery_type" binding:"omitempty,oneof=IN_HOUSE EXTERNAL BOTH"`
+	IsMandatory  *bool   `json:"is_mandatory"`
 }
 
 type UpdateTrainingCourseRequest struct {
@@ -57,6 +61,10 @@ type UpdateTrainingCourseRequest struct {
 	IsCertified    *bool    `json:"is_certified"`
 	ExternalVendor *string  `json:"external_vendor" binding:"omitempty,max=200"`
 	IsActive       *bool    `json:"is_active"`
+	// P0-BE (plan §7)
+	CourseType   *string `json:"course_type" binding:"omitempty,oneof=TECHNICAL SOFT_SKILL COMPLIANCE MANAGEMENT CERTIFICATION OTHER"`
+	DeliveryType *string `json:"delivery_type" binding:"omitempty,oneof=IN_HOUSE EXTERNAL BOTH"`
+	IsMandatory  *bool   `json:"is_mandatory"`
 }
 
 type TrainingCourseResponse struct {
@@ -70,9 +78,13 @@ type TrainingCourseResponse struct {
 	Cost           float64   `json:"cost,omitempty"`
 	IsCertified    bool      `json:"is_certified"`
 	ExternalVendor string    `json:"external_vendor,omitempty"`
-	IsActive       bool      `json:"is_active"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	// P0-BE (plan §7)
+	CourseType   string `json:"course_type,omitempty"`
+	DeliveryType string `json:"delivery_type,omitempty"`
+	IsMandatory  bool   `json:"is_mandatory"`
+	IsActive     bool   `json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // =========================================================================
@@ -87,6 +99,14 @@ type CreateTrainingSessionRequest struct {
 	StartDate   string  `json:"start_date" binding:"required"`
 	EndDate     string  `json:"end_date" binding:"required"`
 	MaxQuota    int     `json:"max_quota" binding:"omitempty,min=1"`
+	// P0-BE (plan §14)
+	ProviderType         *string `json:"provider_type" binding:"omitempty,oneof=IN_HOUSE EXTERNAL"`
+	DeliveryMode         *string `json:"delivery_mode" binding:"omitempty,oneof=ONSITE ONLINE HYBRID SELF_PACED"`
+	ProviderID           *string `json:"provider_id"`
+	StartDatetime        *string `json:"start_datetime"`
+	EndDatetime          *string `json:"end_datetime"`
+	MeetingURL           *string `json:"meeting_url"`
+	RegistrationDeadline *string `json:"registration_deadline"`
 }
 
 type UpdateTrainingSessionRequest struct {
@@ -96,10 +116,18 @@ type UpdateTrainingSessionRequest struct {
 	StartDate   *string `json:"start_date"`
 	EndDate     *string `json:"end_date"`
 	MaxQuota    *int    `json:"max_quota" binding:"omitempty,min=1"`
+	// P0-BE (plan §14)
+	ProviderType         *string `json:"provider_type" binding:"omitempty,oneof=IN_HOUSE EXTERNAL"`
+	DeliveryMode         *string `json:"delivery_mode" binding:"omitempty,oneof=ONSITE ONLINE HYBRID SELF_PACED"`
+	ProviderID           *string `json:"provider_id"`
+	StartDatetime        *string `json:"start_datetime"`
+	EndDatetime          *string `json:"end_datetime"`
+	MeetingURL           *string `json:"meeting_url"`
+	RegistrationDeadline *string `json:"registration_deadline"`
 }
 
 type UpdateSessionStatusRequest struct {
-	Status string `json:"status" binding:"required,oneof=SCHEDULED IN_PROGRESS COMPLETED CANCELLED"`
+	Status string `json:"status" binding:"required,oneof=DRAFT SCHEDULED REGISTRATION_OPEN FULL IN_PROGRESS COMPLETED CANCELLED"`
 }
 
 type TrainingSessionResponse struct {
@@ -107,6 +135,14 @@ type TrainingSessionResponse struct {
 	CourseID    string    `json:"course_id"`
 	SessionCode string    `json:"session_code"`
 	TrainerName string    `json:"trainer_name"`
+	// P0-BE (plan §14)
+	ProviderType         string `json:"provider_type,omitempty"`
+	DeliveryMode         string `json:"delivery_mode,omitempty"`
+	ProviderID           string `json:"provider_id,omitempty"`
+	StartDatetime        string `json:"start_datetime,omitempty"`
+	EndDatetime          string `json:"end_datetime,omitempty"`
+	MeetingURL           string `json:"meeting_url,omitempty"`
+	RegistrationDeadline string `json:"registration_deadline,omitempty"`
 	Location    string    `json:"location,omitempty"`
 	StartDate   string    `json:"start_date"`
 	EndDate     string    `json:"end_date"`
@@ -123,22 +159,37 @@ type TrainingSessionResponse struct {
 type CreateTrainingParticipantRequest struct {
 	SessionID  string `json:"session_id" binding:"required"`
 	EmployeeID string `json:"employee_id" binding:"required"`
+	// P0-BE (plan §18) — default REGISTERED bila kosong.
+	RegistrationStatus *string `json:"registration_status" binding:"omitempty,oneof=NOMINATED REQUESTED APPROVED REGISTERED WAITLISTED CANCELLED"`
 }
 
 type UpdateTrainingParticipantRequest struct {
-	AttendanceStatus *string `json:"attendance_status" binding:"omitempty,oneof=PRESENT ABSENT EXCUSED"`
+	AttendanceStatus *string `json:"attendance_status" binding:"omitempty,oneof=PRESENT ABSENT LATE EXCUSED"`
 	Score            *float64 `json:"score"`
+	// P0-BE (plan §18) — completion fields.
+	CompletionStatus *string  `json:"completion_status" binding:"omitempty,oneof=NOT_STARTED IN_PROGRESS COMPLETED FAILED"`
+	FinalScore       *float64 `json:"final_score"`
+	Passed           *bool    `json:"passed"`
+	Remarks          *string  `json:"remarks"`
 }
 
 type TrainingParticipantResponse struct {
-	ID               string    `json:"id"`
-	SessionID        string    `json:"session_id"`
-	EmployeeID       string    `json:"employee_id"`
-	AttendanceStatus string    `json:"attendance_status"`
-	Score            float64   `json:"score"`
-	CompletedAt      string    `json:"completed_at,omitempty"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID                 string    `json:"id"`
+	SessionID          string    `json:"session_id"`
+	EmployeeID         string    `json:"employee_id"`
+	RegistrationStatus string    `json:"registration_status"`
+	RegisteredAt       string    `json:"registered_at,omitempty"`
+	ApprovedAt         string    `json:"approved_at,omitempty"`
+	AttendanceStatus   string    `json:"attendance_status"`
+	Score              float64   `json:"score"`
+	CompletionStatus   string    `json:"completion_status"`
+	CompletionDate     string    `json:"completion_date,omitempty"`
+	FinalScore         float64   `json:"final_score,omitempty"`
+	Passed             bool      `json:"passed,omitempty"`
+	Remarks            string    `json:"remarks,omitempty"`
+	CompletedAt        string    `json:"completed_at,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 // =========================================================================
@@ -148,6 +199,10 @@ type TrainingParticipantResponse struct {
 type CreateTrainingMaterialRequest struct {
 	SessionID string `json:"session_id" binding:"required"`
 	Title     string `json:"title" binding:"required,max=200"`
+	// P0-BE (plan §20)
+	Description   *string `json:"description"`
+	IsRequired    *bool   `json:"is_required"`
+	AvailableFrom *string `json:"available_from"`
 	FileURL   *string `json:"file_url"`
 	FileType  *string `json:"file_type" binding:"omitempty,max=50"`
 	SortOrder *int    `json:"sort_order"`
@@ -155,6 +210,10 @@ type CreateTrainingMaterialRequest struct {
 
 type UpdateTrainingMaterialRequest struct {
 	Title     *string `json:"title" binding:"omitempty,max=200"`
+	// P0-BE (plan §20)
+	Description   *string `json:"description"`
+	IsRequired    *bool   `json:"is_required"`
+	AvailableFrom *string `json:"available_from"`
 	FileURL   *string `json:"file_url"`
 	FileType  *string `json:"file_type" binding:"omitempty,max=50"`
 	SortOrder *int    `json:"sort_order"`
@@ -164,6 +223,10 @@ type TrainingMaterialResponse struct {
 	ID        string    `json:"id"`
 	SessionID string    `json:"session_id"`
 	Title     string    `json:"title"`
+	// P0-BE (plan §20)
+	Description   string `json:"description,omitempty"`
+	IsRequired    bool   `json:"is_required"`
+	AvailableFrom string `json:"available_from,omitempty"`
 	FileURL   string    `json:"file_url,omitempty"`
 	FileType  string    `json:"file_type,omitempty"`
 	SortOrder int       `json:"sort_order"`
@@ -220,6 +283,197 @@ type TrainingCertificateResponse struct {
 	CertificateNo string    `json:"certificate_no"`
 	IssuedDate    string    `json:"issued_date"`
 	ExpiryDate    string    `json:"expiry_date,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Training Provider DTOs (P0-BE — plan §11)
+// =========================================================================
+
+type CreateTrainingProviderRequest struct {
+	Code        string  `json:"code" binding:"required,max=20"`
+	Name        string  `json:"name" binding:"required,max=200"`
+	Type        *string `json:"type" binding:"omitempty,oneof=INTERNAL EXTERNAL"`
+	ContactName *string `json:"contact_name"`
+	Email       *string `json:"email"`
+	Phone       *string `json:"phone"`
+	Address     *string `json:"address"`
+	Website     *string `json:"website"`
+	IsActive    *bool   `json:"is_active"`
+}
+
+type UpdateTrainingProviderRequest struct {
+	Code        *string `json:"code" binding:"omitempty,max=20"`
+	Name        *string `json:"name" binding:"omitempty,max=200"`
+	Type        *string `json:"type" binding:"omitempty,oneof=INTERNAL EXTERNAL"`
+	ContactName *string `json:"contact_name"`
+	Email       *string `json:"email"`
+	Phone       *string `json:"phone"`
+	Address     *string `json:"address"`
+	Website     *string `json:"website"`
+	IsActive    *bool   `json:"is_active"`
+}
+
+type TrainingProviderResponse struct {
+	ID          string    `json:"id"`
+	Code        string    `json:"code"`
+	Name        string    `json:"name"`
+	Type        string    `json:"type"`
+	ContactName string    `json:"contact_name,omitempty"`
+	Email       string    `json:"email,omitempty"`
+	Phone       string    `json:"phone,omitempty"`
+	Address     string    `json:"address,omitempty"`
+	Website     string    `json:"website,omitempty"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Training Trainer DTOs (P0-BE — plan §12)
+// =========================================================================
+
+type CreateTrainingTrainerRequest struct {
+	Type       string  `json:"type" binding:"required,oneof=INTERNAL EXTERNAL"`
+	EmployeeID *string `json:"employee_id"`
+	ProviderID *string `json:"provider_id"`
+	Name       string  `json:"name" binding:"required,max=200"`
+	Email      *string `json:"email"`
+	Phone      *string `json:"phone"`
+	Bio        *string `json:"bio"`
+	IsActive   *bool   `json:"is_active"`
+}
+
+type UpdateTrainingTrainerRequest struct {
+	Type       *string `json:"type" binding:"omitempty,oneof=INTERNAL EXTERNAL"`
+	EmployeeID *string `json:"employee_id"`
+	ProviderID *string `json:"provider_id"`
+	Name       *string `json:"name" binding:"omitempty,max=200"`
+	Email      *string `json:"email"`
+	Phone      *string `json:"phone"`
+	Bio        *string `json:"bio"`
+	IsActive   *bool   `json:"is_active"`
+}
+
+type TrainingTrainerResponse struct {
+	ID         string    `json:"id"`
+	Type       string    `json:"type"`
+	EmployeeID string    `json:"employee_id,omitempty"`
+	ProviderID string    `json:"provider_id,omitempty"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email,omitempty"`
+	Phone      string    `json:"phone,omitempty"`
+	Bio        string    `json:"bio,omitempty"`
+	IsActive   bool      `json:"is_active"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Training Session Trainer DTOs (P0-BE — plan §13)
+// =========================================================================
+
+type AddSessionTrainerRequest struct {
+	TrainerID string  `json:"trainer_id" binding:"required"`
+	Role      *string `json:"role" binding:"omitempty,oneof=MAIN ASSISTANT"`
+}
+
+type TrainingSessionTrainerResponse struct {
+	ID        string    `json:"id"`
+	SessionID string    `json:"session_id"`
+	TrainerID string    `json:"trainer_id"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Training Attendance DTOs (P0-BE — plan §19)
+// =========================================================================
+
+type MarkTrainingAttendanceRequest struct {
+	ParticipantID  string  `json:"participant_id" binding:"required"`
+	AttendanceDate string  `json:"attendance_date" binding:"required"`
+	CheckIn        *string `json:"check_in"`
+	CheckOut       *string `json:"check_out"`
+	Status         *string `json:"status" binding:"omitempty,oneof=PRESENT ABSENT LATE EXCUSED"`
+	Remarks        *string `json:"remarks"`
+}
+
+type UpdateTrainingAttendanceRequest struct {
+	CheckIn  *string `json:"check_in"`
+	CheckOut *string `json:"check_out"`
+	Status   *string `json:"status" binding:"omitempty,oneof=PRESENT ABSENT LATE EXCUSED"`
+	Remarks  *string `json:"remarks"`
+}
+
+type TrainingAttendanceResponse struct {
+	ID             string `json:"id"`
+	ParticipantID  string `json:"participant_id"`
+	AttendanceDate string `json:"attendance_date"`
+	CheckIn        string `json:"check_in,omitempty"`
+	CheckOut       string `json:"check_out,omitempty"`
+	Status         string `json:"status"`
+	Remarks        string `json:"remarks,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// SessionAttendanceRow — baris attendance per peserta dalam satu session
+// (hasil join training_attendances ↔ training_participants).
+type SessionAttendanceRow struct {
+	AttendanceID   string `json:"attendance_id,omitempty"`
+	ParticipantID  string `json:"participant_id"`
+	EmployeeID     string `json:"employee_id"`
+	AttendanceDate string `json:"attendance_date"`
+	Status         string `json:"status"`
+	CheckIn        string `json:"check_in,omitempty"`
+	CheckOut       string `json:"check_out,omitempty"`
+	Remarks        string `json:"remarks,omitempty"`
+}
+
+// =========================================================================
+// Training Assessment DTOs (P0-BE — plan §21)
+// =========================================================================
+
+type CreateTrainingAssessmentRequest struct {
+	SessionID    string   `json:"session_id" binding:"required"`
+	Name         string   `json:"name" binding:"required,max=200"`
+	Type         *string  `json:"type" binding:"omitempty,oneof=PRE_TEST POST_TEST FINAL PRACTICAL OTHER"`
+	MaxScore     *float64 `json:"max_score"`
+	PassingScore *float64 `json:"passing_score"`
+	AttemptLimit *int     `json:"attempt_limit"`
+	IsRequired   *bool    `json:"is_required"`
+}
+
+type TrainingAssessmentResponse struct {
+	ID           string    `json:"id"`
+	SessionID    string    `json:"session_id"`
+	Name         string    `json:"name"`
+	Type         string    `json:"type"`
+	MaxScore     float64   `json:"max_score"`
+	PassingScore float64   `json:"passing_score"`
+	AttemptLimit int       `json:"attempt_limit"`
+	IsRequired   bool      `json:"is_required"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+type SubmitAssessmentResultRequest struct {
+	ParticipantID string  `json:"participant_id" binding:"required"`
+	Score         float64 `json:"score" binding:"required"`
+	CompletedAt   *string `json:"completed_at"`
+}
+
+type TrainingAssessmentResultResponse struct {
+	ID            string    `json:"id"`
+	AssessmentID  string    `json:"assessment_id"`
+	ParticipantID string    `json:"participant_id"`
+	Score         float64   `json:"score"`
+	Passed        bool      `json:"passed"`
+	Attempt       int       `json:"attempt"`
+	CompletedAt   string    `json:"completed_at,omitempty"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }
