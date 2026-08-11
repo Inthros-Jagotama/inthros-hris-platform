@@ -131,12 +131,14 @@ const menuCards = computed(() => [
   { labelKey: 'training.sessions', descKey: 'training.sessions_desc', icon: 'pi pi-calendar', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/training/sessions' },
   { labelKey: 'training.participants', descKey: 'training.participants_desc', icon: 'pi pi-users', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/training/participants' },
   { labelKey: 'training.providers', descKey: 'training.providers_desc', icon: 'pi pi-building', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', route: '/training/providers' },
-  { labelKey: 'training.trainers', descKey: 'training.trainers_desc', icon: 'pi pi-user', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/training/trainers' }
+  { labelKey: 'training.trainers', descKey: 'training.trainers_desc', icon: 'pi pi-user', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/training/trainers' },
+  { labelKey: 'training.planning', descKey: 'training.planning_desc', icon: 'pi pi-calendar-plus', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/training/plans' },
+  { labelKey: 'training.requests', descKey: 'training.requests_desc', icon: 'pi pi-send', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400', route: '/training/requests' },
+  { labelKey: 'training.needs', descKey: 'training.needs_desc', icon: 'pi pi-bullseye', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400', route: '/training/needs' }
 ])
 
-// Fitur P1/P2 — roadmap terlihat jelas di hub (plan §37)
+// Fitur P2 — roadmap terlihat jelas di hub (plan §37)
 const comingSoonCards = computed(() => [
-  { labelKey: 'training.planning', icon: 'pi pi-calendar-plus', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
   { labelKey: 'training.certificates', icon: 'pi pi-id-card', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400' },
   { labelKey: 'training.reports', icon: 'pi pi-chart-bar', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' }
 ])

@@ -155,6 +155,75 @@
           </DataTable>
         </div>
 
+        <!-- ── Costs ── -->
+        <div v-if="activeTab === 'costs'" class="p-4">
+          <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+            <div class="flex items-center gap-2">
+              <span v-if="costs.length" class="text-xs text-gray-400">{{ costs.length }} {{ t('common.items') }}</span>
+              <span v-if="totalCost > 0" class="text-xs font-medium text-emerald-600 dark:text-emerald-400">{{ t('training.total_estimated') }}: {{ formatMoney(totalCost) }}</span>
+            </div>
+            <Button :label="t('training.cost_new')" icon="pi pi-plus" size="small" @click="openCostDialog()" class="ml-auto" />
+          </div>
+          <DataTable :value="costs" size="small" class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" :loading="costsLoading">
+            <template #empty>
+              <div class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
+                <i class="pi pi-dollar text-2xl mb-2 opacity-50"></i>
+                <p class="text-sm">{{ t('training.costs_empty') }}</p>
+              </div>
+            </template>
+            <Column field="cost_type" :header="t('training.cost_type')" style="width:160px">
+              <template #body="{data}"><Tag :value="costTypeLabel(data.cost_type)" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
+            </Column>
+            <Column field="description" :header="t('training.cost_description')">
+              <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.description || '-' }}</span></template>
+            </Column>
+            <Column field="amount" :header="t('training.cost_amount')" style="width:150px">
+              <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.amount ? formatMoney(data.amount) : '-' }}</span></template>
+            </Column>
+            <Column :header="t('common.actions')" style="width:90px" frozen alignFrozen="right">
+              <template #body="{data}">
+                <div class="flex items-center gap-1 justify-end">
+                  <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openCostDialog(data)" />
+                  <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="removeCost(data)" />
+                </div>
+              </template>
+            </Column>
+          </DataTable>
+        </div>
+
+        <!-- ── Documents ── -->
+        <div v-if="activeTab === 'documents'" class="p-4">
+          <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+            <span v-if="documents.length" class="text-xs text-gray-400">{{ documents.length }} {{ t('common.items') }}</span>
+            <Button :label="t('training.document_new')" icon="pi pi-plus" size="small" @click="openDocumentDialog()" class="ml-auto" />
+          </div>
+          <DataTable :value="documents" size="small" class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" :loading="documentsLoading">
+            <template #empty>
+              <div class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
+                <i class="pi pi-file-pdf text-2xl mb-2 opacity-50"></i>
+                <p class="text-sm">{{ t('training.documents_empty') }}</p>
+              </div>
+            </template>
+            <Column field="document_type" :header="t('training.document_type')" style="width:170px">
+              <template #body="{data}"><Tag :value="docTypeLabel(data.document_type)" severity="warning" class="!text-xs !px-1.5 !py-0.5" /></template>
+            </Column>
+            <Column field="file_name" :header="t('training.document_file_name')">
+              <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.file_name || '-' }}</span></template>
+            </Column>
+            <Column field="file_url" :header="t('training.document_file_url')" style="width:220px">
+              <template #body="{data}">
+                <a v-if="data.file_url" :href="data.file_url" target="_blank" class="text-emerald-600 dark:text-emerald-400 hover:underline text-xs"><i class="pi pi-external-link mr-1"></i>{{ t('common.open') }}</a>
+                <span v-else class="text-gray-400">-</span>
+              </template>
+            </Column>
+            <Column :header="t('common.actions')" style="width:70px" frozen alignFrozen="right">
+              <template #body="{data}">
+                <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="removeDocument(data)" />
+              </template>
+            </Column>
+          </DataTable>
+        </div>
+
         <!-- ── Materials ── -->
         <div v-if="activeTab === 'materials'" class="p-4">
           <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
@@ -207,6 +276,48 @@
         </template>
       </Dialog>
 
+      <!-- ── Dialog: cost ── -->
+      <Dialog v-model:visible="costDialogVisible" :header="costEditing ? t('training.cost_edit') : t('training.cost_new')" modal :style="{ width: '480px' }" @hide="resetCostForm">
+        <div class="space-y-4">
+          <FormRow :label="t('training.cost_type')" required :errors="errors?.cost_type">
+            <SelectLabel v-model="costForm.cost_type" :options="costTypeOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.cost_type }" />
+          </FormRow>
+          <FormRow :label="t('training.cost_description')">
+            <TextInput v-model="costForm.description" textarea :rows="2" />
+          </FormRow>
+          <FormRow :label="t('training.cost_amount')">
+            <InputNumber v-model="costForm.amount" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
+          </FormRow>
+        </div>
+        <template #footer>
+          <div class="flex items-center justify-end gap-2">
+            <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="costDialogVisible = false" />
+            <Button :label="costEditing ? t('common.update') : t('common.save')" size="small" :loading="costSaving" :disabled="costSaving" @click="handleSaveCost" />
+          </div>
+        </template>
+      </Dialog>
+
+      <!-- ── Dialog: document ── -->
+      <Dialog v-model:visible="documentDialogVisible" :header="t('training.document_new')" modal :style="{ width: '520px' }" @hide="resetDocumentForm">
+        <div class="space-y-4">
+          <FormRow :label="t('training.document_type')" required :errors="errors?.document_type">
+            <SelectLabel v-model="documentForm.document_type" :options="documentTypeOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.document_type }" />
+          </FormRow>
+          <FormRow :label="t('training.document_file_name')">
+            <TextInput v-model="documentForm.file_name" maxlength="255" :placeholder="t('training.document_file_name')" />
+          </FormRow>
+          <FormRow :label="t('training.document_file_url')" required :errors="errors?.file_url">
+            <TextInput v-model="documentForm.file_url" maxlength="500" :placeholder="t('training.document_file_url_placeholder')" :class="{ 'p-invalid': errors?.file_url }" />
+          </FormRow>
+        </div>
+        <template #footer>
+          <div class="flex items-center justify-end gap-2">
+            <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="documentDialogVisible = false" />
+            <Button :label="t('common.save')" size="small" :loading="documentSaving" :disabled="documentSaving" @click="handleAddDocument" />
+          </div>
+        </template>
+      </Dialog>
+
       <!-- ── Dialog: add material ── -->
       <Dialog v-model:visible="materialDialogVisible" :header="t('training.material_new')" modal :style="{ width: '520px' }">
         <div class="space-y-4">
@@ -250,6 +361,7 @@ import api from '@/services/api'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
+import InputNumber from 'primevue/inputnumber'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import FormRow from '@/components/FormRow.vue'
@@ -275,6 +387,19 @@ const participants = ref([])
 const participantsLoading = ref(false)
 const materials = ref([])
 const materialsLoading = ref(false)
+const costs = ref([])
+const costsLoading = ref(false)
+const documents = ref([])
+const documentsLoading = ref(false)
+
+const costDialogVisible = ref(false)
+const costEditing = ref(false)
+const costEditingId = ref(null)
+const costSaving = ref(false)
+const costForm = ref({ cost_type: null, description: '', amount: null })
+const documentDialogVisible = ref(false)
+const documentSaving = ref(false)
+const documentForm = ref({ document_type: null, file_name: '', file_url: '' })
 
 const courses = ref([])
 const trainersMaster = ref([])
@@ -291,7 +416,9 @@ const errors = ref({})
 const tabs = [
   { key: 'overview', labelKey: 'training.tab_overview' },
   { key: 'participants', labelKey: 'training.participants' },
-  { key: 'materials', labelKey: 'training.materials' }
+  { key: 'materials', labelKey: 'training.materials' },
+  { key: 'costs', labelKey: 'training.tab_costs' },
+  { key: 'documents', labelKey: 'training.tab_documents' }
 ]
 
 const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_id})`, value: e.id })))
@@ -406,6 +533,22 @@ async function loadMaterials() {
   } catch { materials.value = [] } finally { materialsLoading.value = false }
 }
 
+async function loadCosts() {
+  costsLoading.value = true
+  try {
+    const res = await api.get(`/api/v1/tenant/trainings/sessions/${sessionId}/costs`)
+    costs.value = res.data?.data || []
+  } catch { costs.value = [] } finally { costsLoading.value = false }
+}
+
+async function loadDocuments() {
+  documentsLoading.value = true
+  try {
+    const res = await api.get(`/api/v1/tenant/trainings/sessions/${sessionId}/documents`)
+    documents.value = res.data?.data || []
+  } catch { documents.value = [] } finally { documentsLoading.value = false }
+}
+
 async function loadReferences() {
   const [cRes, tRes, eRes] = await Promise.allSettled([
     api.get('/api/v1/tenant/trainings/courses', { params: { per_page: 500 } }),
@@ -501,6 +644,127 @@ async function removeMaterial(item) {
   }
 }
 
+const costTypeOptions = computed(() => ['TRAINER', 'PROVIDER', 'VENUE', 'MATERIAL', 'CERTIFICATION', 'TRAVEL', 'ACCOMMODATION', 'OTHER'].map(v => ({ label: costTypeLabel(v), value: v })))
+const documentTypeOptions = computed(() => ['PROPOSAL', 'QUOTATION', 'ATTENDANCE_SHEET', 'INVOICE', 'CONTRACT', 'TRAINING_REPORT', 'OTHER'].map(v => ({ label: docTypeLabel(v), value: v })))
+
+const totalCost = computed(() => costs.value.reduce((sum, c) => sum + (Number(c.amount) || 0), 0))
+
+function costTypeLabel(type) {
+  const key = `training.cost_type_${String(type || '').toLowerCase()}`
+  return t(key) !== key ? t(key) : type
+}
+function docTypeLabel(type) {
+  const key = `training.document_type_${String(type || '').toLowerCase()}`
+  return t(key) !== key ? t(key) : type
+}
+function formatMoney(v) {
+  try { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v) } catch { return v }
+}
+
+function openCostDialog(item) {
+  errors.value = {}
+  costEditing.value = !!item
+  costEditingId.value = item?.id || null
+  costForm.value = item
+    ? { cost_type: item.cost_type || null, description: item.description || '', amount: item.amount ?? null }
+    : { cost_type: null, description: '', amount: null }
+  costDialogVisible.value = true
+}
+
+function resetCostForm() {
+  costForm.value = { cost_type: null, description: '', amount: null }
+  errors.value = {}
+  costEditing.value = false
+  costEditingId.value = null
+}
+
+async function handleSaveCost() {
+  errors.value = {}
+  if (!costForm.value.cost_type) { errors.value = { cost_type: t('form.required') }; return }
+  costSaving.value = true
+  try {
+    const payload = {
+      cost_type: costForm.value.cost_type,
+      description: costForm.value.description?.trim() || '',
+      amount: costForm.value.amount ?? null
+    }
+    if (costEditing.value) {
+      await api.put(`/api/v1/tenant/trainings/session-costs/${costEditingId.value}`, payload)
+    } else {
+      await api.post(`/api/v1/tenant/trainings/sessions/${sessionId}/costs`, payload)
+    }
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
+    costDialogVisible.value = false
+    await loadCosts()
+  } catch (e) {
+    const fieldErrors = getValidationErrors(e)
+    if (Object.keys(fieldErrors).length > 0) {
+      errors.value = fieldErrors
+    } else {
+      toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+    }
+  } finally {
+    costSaving.value = false
+  }
+}
+
+async function removeCost(item) {
+  try {
+    await api.delete(`/api/v1/tenant/trainings/session-costs/${item.id}`)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.deleted'), life: 3000 })
+    await loadCosts()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  }
+}
+
+function openDocumentDialog() {
+  errors.value = {}
+  documentForm.value = { document_type: null, file_name: '', file_url: '' }
+  documentDialogVisible.value = true
+}
+
+function resetDocumentForm() {
+  documentForm.value = { document_type: null, file_name: '', file_url: '' }
+  errors.value = {}
+}
+
+async function handleAddDocument() {
+  errors.value = {}
+  if (!documentForm.value.document_type) { errors.value = { document_type: t('form.required') }; return }
+  if (!documentForm.value.file_url?.trim()) { errors.value = { file_url: t('form.required') }; return }
+  documentSaving.value = true
+  try {
+    await api.post(`/api/v1/tenant/trainings/sessions/${sessionId}/documents`, {
+      document_type: documentForm.value.document_type,
+      file_name: documentForm.value.file_name?.trim() || '',
+      file_url: documentForm.value.file_url.trim()
+    })
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
+    documentDialogVisible.value = false
+    await loadDocuments()
+  } catch (e) {
+    const fieldErrors = getValidationErrors(e)
+    if (Object.keys(fieldErrors).length > 0) {
+      errors.value = fieldErrors
+    } else {
+      toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+    }
+  } finally {
+    documentSaving.value = false
+  }
+}
+
+async function removeDocument(item) {
+  try {
+    await api.delete(`/api/v1/tenant/trainings/documents/${item.id}`)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.deleted'), life: 3000 })
+    await loadDocuments()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  }
+}
+
 onMounted(() => {
   loadSession()
   loadReferences()
@@ -508,5 +772,7 @@ onMounted(() => {
   loadAssessments()
   loadParticipants()
   loadMaterials()
+  loadCosts()
+  loadDocuments()
 })
 </script>
