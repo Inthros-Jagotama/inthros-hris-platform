@@ -32,8 +32,14 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 	resolver := NewTenantDBResolver(dbManager)
 	repo := NewRepository(resolver)
 	svc := NewService(repo, logger)
-	handler := NewHandler(svc)
+	return NewModuleWithService(logger, svc)
+}
 
+// NewModuleWithService constructs the module from an already-built service
+// (pola leave/payroll/reimbursement) — dipakai di main.go agar status handler
+// approval (training_request) bisa didaftarkan sebelum module di-mount.
+func NewModuleWithService(logger *zap.Logger, svc *Service) module.Module {
+	handler := NewHandler(svc)
 	return &trainingModule{
 		handler: handler,
 		logger:  logger,
@@ -111,6 +117,17 @@ func (m *trainingModule) Migrate(db *gorm.DB) error {
 		&TrainingAttendance{},
 		&TrainingAssessment{},
 		&TrainingAssessmentResult{},
+		// P1-BE (plan §42 P1-BE)
+		&TrainingPlan{},
+		&TrainingPlanItem{},
+		&TrainingNeed{},
+		&TrainingRequest{},
+		&TrainingCourseObjective{},
+		&TrainingCourseCompetency{},
+		&TrainingCoursePrerequisite{},
+		&TrainingMandatory{},
+		&TrainingSessionCost{},
+		&TrainingDocument{},
 	)
 }
 

@@ -3,8 +3,9 @@
 > **Status dokumen**: diselaraskan dengan arsitektur project yang sudah ada
 > (module SDK, SQL migration tenant, Central Approval Engine, RBAC tenant, FE tenant).
 > Phase pengembangan dipisah menjadi track **BE** dan **FE** per fase (lihat §42).
-> **Status implementasi**: `P0-BE` ✅ SELESAI (2026-08-11), `P0-FE` ✅ SELESAI (2026-08-11)
-> — sisanya belum dikerjakan. Lihat **§47 Progress Tracker** untuk status tiap phase.
+> **Status implementasi**: `P0-BE` ✅ SELESAI (2026-08-11), `P0-FE` ✅ SELESAI (2026-08-11),
+> `P1-BE` ✅ SELESAI (2026-08-11) — sisanya belum dikerjakan.
+> Lihat **§47 Progress Tracker** untuk status tiap phase.
 >
 > **Konvensi**: setiap kali satu phase selesai diimplementasikan, status phase tsb
 > **wajib di-update** di §47 + dicatat di §46 — dilakukan segera setelah selesai.
@@ -1511,7 +1512,7 @@ Router, sidebar, locale, dan halaman Vue adalah bagian dari track **FE**.
 
 ## P1 — Planning & Governance (migration 089)
 
-### P1-BE (Backend)
+### P1-BE (Backend) — ✅ SELESAI (2026-08-11)
 
 1. Migration `089_training_planning.sql`:
    - tabel baru: `training_plans`, `training_plan_items`, `training_needs`,
@@ -1666,6 +1667,7 @@ Perubahan terkait di `main.go`:
 | 2026-08-11 | §42 dipecah menjadi track BE dan FE per fase (P0-BE → P0-FE → P1-BE → P1-FE → P2-BE → P2-FE) — migration/model/API/test di BE; hub/router/sidebar/locale/halaman Vue di FE. Belum ada implementasi. |
 | 2026-08-11 | Review pemisahan BE/FE: sinkronkan §6 ↔ §42 (088_training_core / 089_training_planning / 090_training_advanced), tambah `ALTER training_materials` di 088, pindahkan `training_session_costs` & `training_documents` ke 089 (P1-BE) + endpoint Cost/Documents di §34, tambah halaman FE Providers/Trainers/Needs/Requests di §37, klarifikasi stat hub P0-FE (pakai list existing, dashboard penuh di P2) dan deferral tab attendance/assessment ke P1-FE. Belum ada implementasi. |
 | 2026-08-11 | **P0-BE selesai diimplementasikan.** Migration `088_training_core` (MySQL + PostgreSQL, up + down) + model GORM + AutoMigrate + DTO/repo/service/handler/routes (providers, trainers, session_trainers, attendances, assessments, assessment_results + enhancement courses/sessions/participants/materials) + permission granular `seed_rbac.go` + unit test. Build/vet/test ✅; migration tervalidasi di MySQL 8.0.30 & PostgreSQL 18 (idempotent, unique partial, down). Status plan diperbarui (header + §42 + §47 Progress Tracker). |
+| 2026-08-11 | **P1-BE selesai diimplementasikan.** Migration `089_training_planning` (MySQL + PostgreSQL, up/down — tervalidasi: up + idempotent 2× + down bersih) untuk plans, plan_items, needs, requests (approval_instance_id), course objectives/competencies/prerequisites, mandatories, session_costs, documents. Model GORM + AutoMigrate + DTO binding `oneof` lengkap. Service: CRUD plan/plan-item, need (termasuk DeleteNeed soft-delete), request + submit/cancel via Central Approval (`training_request`) dengan auto-resolve flow + auto-enroll participant saat APPROVED, sub-resource course (objective/competency/prerequisite), mandatory, session costs, documents. Wiring `main.go`: `NewModuleWithService` + `SetApprovalEngine(sharedApprovalEngine)` + `SetNotifier(notificationSvc)` + `RegisterStatusHandler("training_request", ...)`. Permission granular `seed_rbac.go` (`plan.manage`, `request.create`, `request.approve`, `report.view`). Test: `plan_p1_test.go` (fakeApprovalEngine pola leave, 21 test — CRUD + approval integration + auto-enroll + cover competency/cost/document sesuai review). Build/vet/test ✅. |
 | 2026-08-11 | **P0-FE selesai diimplementasikan.** Hub `Training.vue` (stat ringkas dari endpoint list + card navigasi + card roadmap P1/P2) + 7 sub-halaman `views/modules/training/` (Categories, Courses, Providers, Trainers, Sessions, SessionDetail tabs Overview/Participants/Materials, Participants) + router `/training/*` dengan `meta.module` + `backRoute` + locale `training.*` lengkap (en/id). `npm run build` ✅ (dist direbuild). Hasil review: filter type provider non-fungsional dihapus (BE `ListProviders` belum dukung `type`), nama course di Participants di-resolve via daftar course, stat hub per_page 500, status CANCELLED tidak tersedia saat create participant. |
 
 ---
@@ -1680,7 +1682,7 @@ Perubahan terkait di `main.go`:
 | --- | --- | --- | --- | --- |
 | P0 | BE | ✅ SELESAI | 2026-08-11 | Migration `088_training_core` (providers, trainers, session_trainers, attendances, assessments, assessment_results + ALTER courses/sessions/participants/materials), model GORM + AutoMigrate, CRUD API provider/trainer + attendance/assessment + enhancement course/session/participant/material, permission granular `seed_rbac.go`, unit test. Build/vet/test ✅, migration tervalidasi MySQL & PostgreSQL. |
 | P0 | FE | ✅ SELESAI | 2026-08-11 | Hub `Training.vue` (stat + card nav) + sub-halaman `views/modules/training/` (Courses, Categories, Providers, Trainers, Sessions, SessionDetail tabs Overview/Participants/Materials, Participants), router `/training/*` + `meta.module`, locale en/id lengkap (enum status, type, mode, role). Build ✅ (dist direbuild). |
-| P1 | BE | ⬜ BELUM | — | Migration `089_training_planning` + Training Request + Central Approval (`training_request`), CRUD plan/need/objective/competency/prerequisite/mandatory/cost/documents. |
+| P1 | BE | ✅ SELESAI | 2026-08-11 | Migration `089_training_planning` (plans, plan_items, needs, requests, objectives, competencies, prerequisites, mandatories, session_costs, documents) tervalidasi MySQL & PostgreSQL; model GORM + AutoMigrate; CRUD plan/plan-item/need(+delete)/request (+ submit/cancel via Central Approval `training_request` — callback approved → auto-enroll participant); sub-resource course objective/competency/prerequisite + mandatory + session costs + documents; wiring `main.go` (NewModuleWithService + SetApprovalEngine + SetNotifier + RegisterStatusHandler); seed_rbac permission granular; unit test + approval integration test (`fakeApprovalEngine`, 21 test baru). Build/vet/test ✅. |
 | P1 | FE | ⬜ BELUM | — | Planning, Training Request + approval flow, tab Attendance/Assessment/Cost/Documents, Training Needs + Mandatory compliance. |
 | P2 | BE | ⬜ BELUM | — | Migration `090_training_advanced` + evaluation form, effectiveness, certification, reporting/history, integrasi Workforce/Career Intelligence. |
 | P2 | FE | ⬜ BELUM | — | Certificates, evaluation form UI, History, Reports, analisis di Workforce/Career Intel. |

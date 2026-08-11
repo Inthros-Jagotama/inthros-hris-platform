@@ -760,6 +760,19 @@ func main() {
 	employeeMovementSvc.SetCompetencyProvider(competencyEligibilityAdapter{repo: competencyEligibilityRepo})
 	employeeMovementSvc.SetOKRProvider(okrEligibilityAdapter{repo: okrRepo, resolver: performanceResolver})
 
+	// Construct the training service up front (instead of inside training.NewModule)
+	// so its push-based approval status handler can be registered with
+	// approvalSvc before the module is mounted (P1-BE plan §15/§45 — Training
+	// Request mengalir melalui Central Approval Engine).
+	trainingResolver := training.NewTenantDBResolver(dbManager)
+	trainingRepo := training.NewRepository(trainingResolver)
+	trainingSvc := training.NewService(trainingRepo, l.Named("training"))
+	trainingSvc.SetApprovalEngine(sharedApprovalEngine)
+	trainingSvc.SetNotifier(notificationSvc)
+	approvalSvc.RegisterStatusHandler("training_request", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return trainingSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
+	})
+
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees
 	// dari file .lic. Pada mode saas, licenseLister memakai company_modules DB.
@@ -848,7 +861,7 @@ func main() {
 			Priority: 12,
 		},
 		module.ModuleRegistration{
-			Module:   training.NewModule(dbManager, l),
+			Module:   training.NewModuleWithService(l, trainingSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 13,
 		},

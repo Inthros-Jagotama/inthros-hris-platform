@@ -39,6 +39,17 @@ func testDB(t *testing.T) *gorm.DB {
 		&TrainingAttendance{},
 		&TrainingAssessment{},
 		&TrainingAssessmentResult{},
+		// P1-BE models
+		&TrainingPlan{},
+		&TrainingPlanItem{},
+		&TrainingNeed{},
+		&TrainingRequest{},
+		&TrainingCourseObjective{},
+		&TrainingCourseCompetency{},
+		&TrainingCoursePrerequisite{},
+		&TrainingMandatory{},
+		&TrainingSessionCost{},
+		&TrainingDocument{},
 	); err != nil {
 		t.Fatalf("failed to migrate test database: %v", err)
 	}

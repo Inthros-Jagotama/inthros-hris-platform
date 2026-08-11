@@ -895,3 +895,548 @@ func (r *Repository) AvgEvaluationRatingBySession(ctx context.Context, sessionID
 	}
 	return avg, nil
 }
+// =========================================================================
+// Training Plans (P1-BE — plan §16)
+// =========================================================================
+
+func (r *Repository) CreatePlan(ctx context.Context, p *TrainingPlan) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(p).Error
+}
+
+func (r *Repository) FindPlanByID(ctx context.Context, id uuid.UUID) (*TrainingPlan, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var p TrainingPlan
+	if err := db.WithContext(ctx).First(&p, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (r *Repository) ListPlans(ctx context.Context, year *int, status *string, page, perPage int) ([]TrainingPlan, int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	q := db.WithContext(ctx).Model(&TrainingPlan{})
+	if year != nil {
+		q = q.Where("year = ?", *year)
+	}
+	if status != nil && *status != "" {
+		q = q.Where("status = ?", *status)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var items []TrainingPlan
+	if err := q.Order("year DESC, created_at DESC").
+		Offset((page - 1) * perPage).Limit(perPage).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *Repository) UpdatePlan(ctx context.Context, p *TrainingPlan) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(p).Error
+}
+
+func (r *Repository) DeletePlan(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingPlan{}, "id = ?", id).Error
+}
+
+// =========================================================================
+// Training Plan Items (P1-BE — plan §16)
+// =========================================================================
+
+func (r *Repository) CreatePlanItem(ctx context.Context, item *TrainingPlanItem) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(item).Error
+}
+
+func (r *Repository) FindPlanItemByID(ctx context.Context, id uuid.UUID) (*TrainingPlanItem, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var item TrainingPlanItem
+	if err := db.WithContext(ctx).First(&item, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+func (r *Repository) ListPlanItems(ctx context.Context, planID uuid.UUID) ([]TrainingPlanItem, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []TrainingPlanItem
+	if err := db.WithContext(ctx).
+		Where("training_plan_id = ?", planID).
+		Order("created_at ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *Repository) UpdatePlanItem(ctx context.Context, item *TrainingPlanItem) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(item).Error
+}
+
+func (r *Repository) DeletePlanItem(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingPlanItem{}, "id = ?", id).Error
+}
+
+// =========================================================================
+// Training Needs (P1-BE — plan §17)
+// =========================================================================
+
+func (r *Repository) CreateNeed(ctx context.Context, n *TrainingNeed) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(n).Error
+}
+
+func (r *Repository) FindNeedByID(ctx context.Context, id uuid.UUID) (*TrainingNeed, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var n TrainingNeed
+	if err := db.WithContext(ctx).First(&n, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &n, nil
+}
+
+func (r *Repository) ListNeeds(ctx context.Context, employeeID, courseID *uuid.UUID, status *string, page, perPage int) ([]TrainingNeed, int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	q := db.WithContext(ctx).Model(&TrainingNeed{})
+	if employeeID != nil {
+		q = q.Where("employee_id = ?", *employeeID)
+	}
+	if courseID != nil {
+		q = q.Where("course_id = ?", *courseID)
+	}
+	if status != nil && *status != "" {
+		q = q.Where("status = ?", *status)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var items []TrainingNeed
+	if err := q.Order("created_at DESC").
+		Offset((page - 1) * perPage).Limit(perPage).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *Repository) UpdateNeed(ctx context.Context, n *TrainingNeed) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(n).Error
+}
+
+// =========================================================================
+// Training Requests (P1-BE — plan §15, Central Approval)
+// =========================================================================
+
+func (r *Repository) CreateRequest(ctx context.Context, req *TrainingRequest) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(req).Error
+}
+
+func (r *Repository) FindRequestByID(ctx context.Context, id uuid.UUID) (*TrainingRequest, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var req TrainingRequest
+	if err := db.WithContext(ctx).First(&req, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
+func (r *Repository) ListRequests(ctx context.Context, employeeID *uuid.UUID, status *string, page, perPage int) ([]TrainingRequest, int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	q := db.WithContext(ctx).Model(&TrainingRequest{})
+	if employeeID != nil {
+		q = q.Where("employee_id = ?", *employeeID)
+	}
+	if status != nil && *status != "" {
+		q = q.Where("status = ?", *status)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var items []TrainingRequest
+	if err := q.Order("created_at DESC").
+		Offset((page - 1) * perPage).Limit(perPage).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *Repository) UpdateRequest(ctx context.Context, req *TrainingRequest) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(req).Error
+}
+
+// =========================================================================
+// Course Sub-resources (P1-BE — plan §8/§9/§10)
+// =========================================================================
+
+func (r *Repository) CreateCourseObjective(ctx context.Context, o *TrainingCourseObjective) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(o).Error
+}
+
+func (r *Repository) FindCourseObjectiveByID(ctx context.Context, id uuid.UUID) (*TrainingCourseObjective, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var o TrainingCourseObjective
+	if err := db.WithContext(ctx).First(&o, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &o, nil
+}
+
+func (r *Repository) ListCourseObjectives(ctx context.Context, courseID uuid.UUID) ([]TrainingCourseObjective, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []TrainingCourseObjective
+	if err := db.WithContext(ctx).
+		Where("course_id = ?", courseID).
+		Order("sort_order ASC, created_at ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *Repository) UpdateCourseObjective(ctx context.Context, o *TrainingCourseObjective) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(o).Error
+}
+
+func (r *Repository) DeleteCourseObjective(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingCourseObjective{}, "id = ?", id).Error
+}
+
+func (r *Repository) CreateCourseCompetency(ctx context.Context, c *TrainingCourseCompetency) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(c).Error
+}
+
+func (r *Repository) FindCourseCompetencyByID(ctx context.Context, id uuid.UUID) (*TrainingCourseCompetency, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var c TrainingCourseCompetency
+	if err := db.WithContext(ctx).First(&c, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (r *Repository) ListCourseCompetencies(ctx context.Context, courseID uuid.UUID) ([]TrainingCourseCompetency, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []TrainingCourseCompetency
+	if err := db.WithContext(ctx).
+		Where("course_id = ?", courseID).
+		Order("created_at ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *Repository) DeleteCourseCompetency(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingCourseCompetency{}, "id = ?", id).Error
+}
+
+func (r *Repository) CreateCoursePrerequisite(ctx context.Context, p *TrainingCoursePrerequisite) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(p).Error
+}
+
+func (r *Repository) FindCoursePrerequisiteByID(ctx context.Context, id uuid.UUID) (*TrainingCoursePrerequisite, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var p TrainingCoursePrerequisite
+	if err := db.WithContext(ctx).First(&p, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (r *Repository) ListCoursePrerequisites(ctx context.Context, courseID uuid.UUID) ([]TrainingCoursePrerequisite, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []TrainingCoursePrerequisite
+	if err := db.WithContext(ctx).
+		Where("course_id = ?", courseID).
+		Order("created_at ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *Repository) DeleteCoursePrerequisite(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingCoursePrerequisite{}, "id = ?", id).Error
+}
+
+// =========================================================================
+// Training Mandatories (P1-BE — plan §25)
+// =========================================================================
+
+func (r *Repository) CreateMandatory(ctx context.Context, m *TrainingMandatory) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(m).Error
+}
+
+func (r *Repository) FindMandatoryByID(ctx context.Context, id uuid.UUID) (*TrainingMandatory, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var m TrainingMandatory
+	if err := db.WithContext(ctx).First(&m, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+func (r *Repository) ListMandatories(ctx context.Context, courseID *uuid.UUID, page, perPage int) ([]TrainingMandatory, int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	q := db.WithContext(ctx).Model(&TrainingMandatory{})
+	if courseID != nil {
+		q = q.Where("course_id = ?", *courseID)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var items []TrainingMandatory
+	if err := q.Order("created_at DESC").
+		Offset((page - 1) * perPage).Limit(perPage).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *Repository) UpdateMandatory(ctx context.Context, m *TrainingMandatory) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(m).Error
+}
+
+func (r *Repository) DeleteMandatory(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingMandatory{}, "id = ?", id).Error
+}
+
+// =========================================================================
+// Training Need — repository P1 (plan §17)
+// =========================================================================
+
+// DeleteNeed — soft delete training need (plan §17: tabel punya deleted_at).
+func (r *Repository) DeleteNeed(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingNeed{}, "id = ?", id).Error
+}
+
+
+// =========================================================================
+// Training Session Costs (P1-BE — plan §26)
+// =========================================================================
+
+func (r *Repository) CreateSessionCost(ctx context.Context, c *TrainingSessionCost) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(c).Error
+}
+
+func (r *Repository) FindSessionCostByID(ctx context.Context, id uuid.UUID) (*TrainingSessionCost, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var c TrainingSessionCost
+	if err := db.WithContext(ctx).First(&c, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (r *Repository) ListSessionCosts(ctx context.Context, sessionID uuid.UUID) ([]TrainingSessionCost, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []TrainingSessionCost
+	if err := db.WithContext(ctx).
+		Where("session_id = ?", sessionID).
+		Order("created_at ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *Repository) UpdateSessionCost(ctx context.Context, c *TrainingSessionCost) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(c).Error
+}
+
+func (r *Repository) DeleteSessionCost(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingSessionCost{}, "id = ?", id).Error
+}
+
+// =========================================================================
+// Training Documents (P1-BE — plan §27)
+// =========================================================================
+
+func (r *Repository) CreateDocument(ctx context.Context, d *TrainingDocument) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(d).Error
+}
+
+func (r *Repository) FindDocumentByID(ctx context.Context, id uuid.UUID) (*TrainingDocument, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var d TrainingDocument
+	if err := db.WithContext(ctx).First(&d, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+
+func (r *Repository) ListDocuments(ctx context.Context, sessionID uuid.UUID) ([]TrainingDocument, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []TrainingDocument
+	if err := db.WithContext(ctx).
+		Where("session_id = ?", sessionID).
+		Order("created_at ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *Repository) DeleteDocument(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingDocument{}, "id = ?", id).Error
+}

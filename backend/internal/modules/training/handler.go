@@ -820,3 +820,548 @@ func parsePagination(c *gin.Context) (int, int) {
 	}
 	return page, perPage
 }
+// =========================================================================
+// Training Plans (P1-BE — plan §16)
+// =========================================================================
+
+func (h *Handler) CreatePlan(c *gin.Context) {
+	var req CreateTrainingPlanRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreatePlan(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListPlans(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	var year *int
+	if y := c.Query("year"); y != "" {
+		if v, err := strconv.Atoi(y); err == nil {
+			year = &v
+		}
+	}
+	status := c.Query("status")
+	var statusPtr *string
+	if status != "" {
+		statusPtr = &status
+	}
+	resp, err := h.svc.ListPlans(c.Request.Context(), year, statusPtr, page, perPage)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetPlanByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetPlanByID(c.Request.Context(), id)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) UpdatePlan(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateTrainingPlanRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdatePlan(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) DeletePlan(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeletePlan(c.Request.Context(), id); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Training Plan Items (P1-BE — plan §16)
+// =========================================================================
+
+func (h *Handler) CreatePlanItem(c *gin.Context) {
+	planID := c.Param("id")
+	var req CreateTrainingPlanItemRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreatePlanItem(c.Request.Context(), planID, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListPlanItems(c *gin.Context) {
+	planID := c.Param("id")
+	resp, err := h.svc.ListPlanItems(c.Request.Context(), planID)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) UpdatePlanItem(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateTrainingPlanItemRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdatePlanItem(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) DeletePlanItem(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeletePlanItem(c.Request.Context(), id); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Training Needs (P1-BE — plan §17)
+// =========================================================================
+
+func (h *Handler) CreateNeed(c *gin.Context) {
+	var req CreateTrainingNeedRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateNeed(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListNeeds(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	empID := c.Query("employee_id")
+	var empPtr *string
+	if empID != "" {
+		empPtr = &empID
+	}
+	courseID := c.Query("course_id")
+	var coursePtr *string
+	if courseID != "" {
+		coursePtr = &courseID
+	}
+	status := c.Query("status")
+	var statusPtr *string
+	if status != "" {
+		statusPtr = &status
+	}
+	resp, err := h.svc.ListNeeds(c.Request.Context(), empPtr, coursePtr, statusPtr, page, perPage)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetNeedByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetNeedByID(c.Request.Context(), id)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) UpdateNeed(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateTrainingNeedRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateNeed(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+// =========================================================================
+// Training Requests (P1-BE — plan §15, Central Approval)
+// =========================================================================
+
+func (h *Handler) CreateRequest(c *gin.Context) {
+	var req CreateTrainingRequestRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateRequest(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListRequests(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	empID := c.Query("employee_id")
+	var empPtr *string
+	if empID != "" {
+		empPtr = &empID
+	}
+	status := c.Query("status")
+	var statusPtr *string
+	if status != "" {
+		statusPtr = &status
+	}
+	resp, err := h.svc.ListRequests(c.Request.Context(), empPtr, statusPtr, page, perPage)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetRequestByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetRequestByID(c.Request.Context(), id)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) SubmitRequest(c *gin.Context) {
+	id := c.Param("id")
+	var req SubmitTrainingRequestRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.SubmitRequest(c.Request.Context(), id, req.FlowID)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) CancelRequest(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.CancelRequest(c.Request.Context(), id)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+// =========================================================================
+// Course Objectives (P1-BE — plan §8)
+// =========================================================================
+
+func (h *Handler) CreateCourseObjective(c *gin.Context) {
+	courseID := c.Param("id")
+	var req CreateCourseObjectiveRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateCourseObjective(c.Request.Context(), courseID, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListCourseObjectives(c *gin.Context) {
+	courseID := c.Param("id")
+	resp, err := h.svc.ListCourseObjectives(c.Request.Context(), courseID)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) UpdateCourseObjective(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateCourseObjectiveRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateCourseObjective(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) DeleteCourseObjective(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteCourseObjective(c.Request.Context(), id); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Course Competencies (P1-BE — plan §9)
+// =========================================================================
+
+func (h *Handler) CreateCourseCompetency(c *gin.Context) {
+	courseID := c.Param("id")
+	var req CreateCourseCompetencyRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateCourseCompetency(c.Request.Context(), courseID, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListCourseCompetencies(c *gin.Context) {
+	courseID := c.Param("id")
+	resp, err := h.svc.ListCourseCompetencies(c.Request.Context(), courseID)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) DeleteCourseCompetency(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteCourseCompetency(c.Request.Context(), id); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Course Prerequisites (P1-BE — plan §10)
+// =========================================================================
+
+func (h *Handler) CreateCoursePrerequisite(c *gin.Context) {
+	courseID := c.Param("id")
+	var req CreateCoursePrerequisiteRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateCoursePrerequisite(c.Request.Context(), courseID, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListCoursePrerequisites(c *gin.Context) {
+	courseID := c.Param("id")
+	resp, err := h.svc.ListCoursePrerequisites(c.Request.Context(), courseID)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) DeleteCoursePrerequisite(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteCoursePrerequisite(c.Request.Context(), id); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Training Mandatories (P1-BE — plan §25)
+// =========================================================================
+
+func (h *Handler) CreateMandatory(c *gin.Context) {
+	var req CreateTrainingMandatoryRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateMandatory(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListMandatories(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	courseID := c.Query("course_id")
+	var coursePtr *string
+	if courseID != "" {
+		coursePtr = &courseID
+	}
+	resp, err := h.svc.ListMandatories(c.Request.Context(), coursePtr, page, perPage)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetMandatoryByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetMandatoryByID(c.Request.Context(), id)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) UpdateMandatory(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateTrainingMandatoryRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateMandatory(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) DeleteNeed(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteNeed(c.Request.Context(), id); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+func (h *Handler) DeleteMandatory(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteMandatory(c.Request.Context(), id); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Training Session Costs (P1-BE — plan §26)
+// =========================================================================
+
+func (h *Handler) CreateSessionCost(c *gin.Context) {
+	sessionID := c.Param("id")
+	var req CreateTrainingSessionCostRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateSessionCost(c.Request.Context(), sessionID, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListSessionCosts(c *gin.Context) {
+	sessionID := c.Param("id")
+	resp, err := h.svc.ListSessionCosts(c.Request.Context(), sessionID)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) UpdateSessionCost(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateTrainingSessionCostRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateSessionCost(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) DeleteSessionCost(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteSessionCost(c.Request.Context(), id); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Training Documents (P1-BE — plan §27)
+// =========================================================================
+
+func (h *Handler) CreateDocument(c *gin.Context) {
+	sessionID := c.Param("id")
+	var req CreateTrainingDocumentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateDocument(c.Request.Context(), sessionID, req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListDocuments(c *gin.Context) {
+	sessionID := c.Param("id")
+	resp, err := h.svc.ListDocuments(c.Request.Context(), sessionID)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) DeleteDocument(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteDocument(c.Request.Context(), id); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}

@@ -490,3 +490,275 @@ type PaginatedResponse struct {
 	Total      int64       `json:"total"`
 	TotalPages int         `json:"total_pages"`
 }
+// =========================================================================
+// Training Plan DTOs (P1-BE — plan §16)
+// =========================================================================
+
+type CreateTrainingPlanRequest struct {
+	Code        string  `json:"code" binding:"required,max=30"`
+	Name        string  `json:"name" binding:"required,max=200"`
+	Year        int     `json:"year" binding:"required,min=2000,max=2100"`
+	Description *string `json:"description"`
+	Status      *string `json:"status" binding:"omitempty,oneof=DRAFT ACTIVE ARCHIVED"`
+}
+
+type UpdateTrainingPlanRequest struct {
+	Code        *string `json:"code" binding:"omitempty,max=30"`
+	Name        *string `json:"name" binding:"omitempty,max=200"`
+	Year        *int    `json:"year" binding:"omitempty,min=2000,max=2100"`
+	Description *string `json:"description"`
+	Status      *string `json:"status" binding:"omitempty,oneof=DRAFT ACTIVE ARCHIVED"`
+}
+
+type TrainingPlanResponse struct {
+	ID          string    `json:"id"`
+	Code        string    `json:"code"`
+	Name        string    `json:"name"`
+	Year        int       `json:"year"`
+	Description string    `json:"description,omitempty"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type CreateTrainingPlanItemRequest struct {
+	CourseID           string   `json:"course_id" binding:"required"`
+	TargetDate         *string  `json:"target_date"`
+	TargetParticipants *int     `json:"target_participants"`
+	EstimatedCost      *float64 `json:"estimated_cost"`
+	Priority           *string  `json:"priority" binding:"omitempty,oneof=LOW MEDIUM HIGH URGENT"`
+}
+
+type UpdateTrainingPlanItemRequest struct {
+	CourseID           *string  `json:"course_id"`
+	TargetDate         *string  `json:"target_date"`
+	TargetParticipants *int     `json:"target_participants"`
+	EstimatedCost      *float64 `json:"estimated_cost"`
+	Priority           *string  `json:"priority" binding:"omitempty,oneof=LOW MEDIUM HIGH URGENT"`
+}
+
+type TrainingPlanItemResponse struct {
+	ID                 string    `json:"id"`
+	TrainingPlanID     string    `json:"training_plan_id"`
+	CourseID           string    `json:"course_id"`
+	TargetDate         string    `json:"target_date,omitempty"`
+	TargetParticipants *int      `json:"target_participants,omitempty"`
+	EstimatedCost      float64   `json:"estimated_cost,omitempty"`
+	Priority           string    `json:"priority"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Training Need DTOs (P1-BE — plan §17)
+// =========================================================================
+
+type CreateTrainingNeedRequest struct {
+	EmployeeID     *string `json:"employee_id"`
+	OrganizationID *string `json:"organization_id"`
+	PositionID     *string `json:"position_id"`
+	CourseID       *string `json:"course_id"`
+	Reason         *string `json:"reason"`
+	Priority       *string `json:"priority" binding:"omitempty,oneof=LOW MEDIUM HIGH URGENT"`
+	SourceType     *string `json:"source_type" binding:"omitempty,oneof=MANUAL PERFORMANCE COMPETENCY CAREER SUCCESSION COMPLIANCE WORKFORCE"`
+	SourceID       *string `json:"source_id"`
+	Status         *string `json:"status" binding:"omitempty,oneof=OPEN PLANNED FULFILLED CANCELLED"`
+}
+
+type UpdateTrainingNeedRequest struct {
+	EmployeeID     *string `json:"employee_id"`
+	OrganizationID *string `json:"organization_id"`
+	PositionID     *string `json:"position_id"`
+	CourseID       *string `json:"course_id"`
+	Reason         *string `json:"reason"`
+	Priority       *string `json:"priority" binding:"omitempty,oneof=LOW MEDIUM HIGH URGENT"`
+	SourceType     *string `json:"source_type" binding:"omitempty,oneof=MANUAL PERFORMANCE COMPETENCY CAREER SUCCESSION COMPLIANCE WORKFORCE"`
+	SourceID       *string `json:"source_id"`
+	Status         *string `json:"status" binding:"omitempty,oneof=OPEN PLANNED FULFILLED CANCELLED"`
+}
+
+type TrainingNeedResponse struct {
+	ID             string    `json:"id"`
+	EmployeeID     string    `json:"employee_id,omitempty"`
+	OrganizationID string    `json:"organization_id,omitempty"`
+	PositionID     string    `json:"position_id,omitempty"`
+	CourseID       string    `json:"course_id,omitempty"`
+	Reason         string    `json:"reason,omitempty"`
+	Priority       string    `json:"priority"`
+	SourceType     string    `json:"source_type"`
+	SourceID       string    `json:"source_id,omitempty"`
+	Status         string    `json:"status"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Training Request DTOs (P1-BE — plan §15, Central Approval)
+// =========================================================================
+
+type CreateTrainingRequestRequest struct {
+	EmployeeID    string  `json:"employee_id" binding:"required"`
+	CourseID      string  `json:"course_id" binding:"required"`
+	SessionID     *string `json:"session_id"`
+	RequestedDate string  `json:"requested_date" binding:"required"`
+	Reason        *string `json:"reason"`
+	Priority      *string `json:"priority" binding:"omitempty,oneof=LOW MEDIUM HIGH URGENT"`
+}
+
+type SubmitTrainingRequestRequest struct {
+	FlowID *string `json:"flow_id"`
+}
+
+type TrainingRequestResponse struct {
+	ID                 string    `json:"id"`
+	EmployeeID         string    `json:"employee_id"`
+	CourseID           string    `json:"course_id"`
+	SessionID          string    `json:"session_id,omitempty"`
+	RequestedDate      string    `json:"requested_date"`
+	Reason             string    `json:"reason,omitempty"`
+	Priority           string    `json:"priority"`
+	Status             string    `json:"status"`
+	ApprovalInstanceID string    `json:"approval_instance_id,omitempty"`
+	ApprovedAt         string    `json:"approved_at,omitempty"`
+	RejectedAt         string    `json:"rejected_at,omitempty"`
+	SupervisorNote     string    `json:"supervisor_note,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Course Sub-resource DTOs (P1-BE — plan §8/§9/§10)
+// =========================================================================
+
+type CreateCourseObjectiveRequest struct {
+	Objective string `json:"objective" binding:"required"`
+	SortOrder *int   `json:"sort_order"`
+}
+
+type UpdateCourseObjectiveRequest struct {
+	Objective *string `json:"objective"`
+	SortOrder *int    `json:"sort_order"`
+}
+
+type CourseObjectiveResponse struct {
+	ID        string    `json:"id"`
+	CourseID  string    `json:"course_id"`
+	Objective string    `json:"objective"`
+	SortOrder int       `json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type CreateCourseCompetencyRequest struct {
+	CompetencyID string `json:"competency_id" binding:"required"`
+	TargetLevel  *int   `json:"target_level"`
+}
+
+type CourseCompetencyResponse struct {
+	ID           string    `json:"id"`
+	CourseID     string    `json:"course_id"`
+	CompetencyID string    `json:"competency_id"`
+	TargetLevel  *int      `json:"target_level,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+type CreateCoursePrerequisiteRequest struct {
+	PrerequisiteType string  `json:"prerequisite_type" binding:"required,oneof=COURSE COMPETENCY CERTIFICATION EXPERIENCE"`
+	PrerequisiteID   *string `json:"prerequisite_id"`
+	IsRequired       *bool   `json:"is_required"`
+}
+
+type CoursePrerequisiteResponse struct {
+	ID               string    `json:"id"`
+	CourseID         string    `json:"course_id"`
+	PrerequisiteType string    `json:"prerequisite_type"`
+	PrerequisiteID   string    `json:"prerequisite_id,omitempty"`
+	IsRequired       bool      `json:"is_required"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Training Mandatory DTOs (P1-BE — plan §25)
+// =========================================================================
+
+type CreateTrainingMandatoryRequest struct {
+	CourseID            string  `json:"course_id" binding:"required"`
+	OrganizationID      *string `json:"organization_id"`
+	PositionID          *string `json:"position_id"`
+	EmploymentStatusID  *string `json:"employment_status_id"`
+	DueDays             *int    `json:"due_days"`
+	ValidityPeriodMonth *int    `json:"validity_period_month"`
+	IsActive            *bool   `json:"is_active"`
+}
+
+type UpdateTrainingMandatoryRequest struct {
+	CourseID            *string `json:"course_id"`
+	OrganizationID      *string `json:"organization_id"`
+	PositionID          *string `json:"position_id"`
+	EmploymentStatusID  *string `json:"employment_status_id"`
+	DueDays             *int    `json:"due_days"`
+	ValidityPeriodMonth *int    `json:"validity_period_month"`
+	IsActive            *bool   `json:"is_active"`
+}
+
+type TrainingMandatoryResponse struct {
+	ID                  string    `json:"id"`
+	CourseID            string    `json:"course_id"`
+	OrganizationID      string    `json:"organization_id,omitempty"`
+	PositionID          string    `json:"position_id,omitempty"`
+	EmploymentStatusID  string    `json:"employment_status_id,omitempty"`
+	DueDays             *int      `json:"due_days,omitempty"`
+	ValidityPeriodMonth *int      `json:"validity_period_month,omitempty"`
+	IsActive            bool      `json:"is_active"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Training Session Cost DTOs (P1-BE — plan §26)
+// =========================================================================
+
+type CreateTrainingSessionCostRequest struct {
+	CostType    string   `json:"cost_type" binding:"required,oneof=TRAINER PROVIDER VENUE MATERIAL CERTIFICATION TRAVEL ACCOMMODATION OTHER"`
+	Description *string  `json:"description"`
+	Amount      *float64 `json:"amount" binding:"omitempty,min=0"`
+}
+
+type UpdateTrainingSessionCostRequest struct {
+	CostType    *string  `json:"cost_type" binding:"omitempty,oneof=TRAINER PROVIDER VENUE MATERIAL CERTIFICATION TRAVEL ACCOMMODATION OTHER"`
+	Description *string  `json:"description"`
+	Amount      *float64 `json:"amount" binding:"omitempty,min=0"`
+}
+
+type TrainingSessionCostResponse struct {
+	ID          string    `json:"id"`
+	SessionID   string    `json:"session_id"`
+	CostType    string    `json:"cost_type"`
+	Description string    `json:"description,omitempty"`
+	Amount      float64   `json:"amount"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Training Document DTOs (P1-BE — plan §27)
+// =========================================================================
+
+type CreateTrainingDocumentRequest struct {
+	DocumentType string `json:"document_type" binding:"required,oneof=PROPOSAL QUOTATION ATTENDANCE_SHEET INVOICE CONTRACT TRAINING_REPORT OTHER"`
+	FileName     string `json:"file_name" binding:"omitempty,max=255"`
+	FileURL      string `json:"file_url" binding:"required"`
+}
+
+type TrainingDocumentResponse struct {
+	ID           string    `json:"id"`
+	SessionID    string    `json:"session_id"`
+	DocumentType string    `json:"document_type"`
+	FileName     string    `json:"file_name,omitempty"`
+	FileURL      string    `json:"file_url"`
+	UploadedBy   string    `json:"uploaded_by,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}

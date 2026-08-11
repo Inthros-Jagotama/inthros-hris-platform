@@ -19,6 +19,20 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		trn.PUT("/courses/:id", handler.UpdateCourse)
 		trn.DELETE("/courses/:id", handler.DeleteCourse)
 
+		// Course sub-resources (P1-BE — plan §8/§9/§10)
+		trn.GET("/courses/:id/objectives", handler.ListCourseObjectives)
+		trn.POST("/courses/:id/objectives", handler.CreateCourseObjective)
+		trn.PUT("/course-objectives/:id", handler.UpdateCourseObjective)
+		trn.DELETE("/course-objectives/:id", handler.DeleteCourseObjective)
+
+		trn.GET("/courses/:id/competencies", handler.ListCourseCompetencies)
+		trn.POST("/courses/:id/competencies", handler.CreateCourseCompetency)
+		trn.DELETE("/course-competencies/:id", handler.DeleteCourseCompetency)
+
+		trn.GET("/courses/:id/prerequisites", handler.ListCoursePrerequisites)
+		trn.POST("/courses/:id/prerequisites", handler.CreateCoursePrerequisite)
+		trn.DELETE("/course-prerequisites/:id", handler.DeleteCoursePrerequisite)
+
 		// Training Providers (P0-BE — plan §11)
 		trn.POST("/providers", handler.CreateProvider)
 		trn.GET("/providers", handler.ListProviders)
@@ -56,6 +70,17 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		trn.POST("/sessions/:id/assessments", handler.CreateAssessment)
 		trn.POST("/assessments/:id/results", handler.SubmitAssessmentResult)
 
+		// Session Costs (P1-BE — plan §26)
+		trn.GET("/sessions/:id/costs", handler.ListSessionCosts)
+		trn.POST("/sessions/:id/costs", handler.CreateSessionCost)
+		trn.PUT("/session-costs/:id", handler.UpdateSessionCost)
+		trn.DELETE("/session-costs/:id", handler.DeleteSessionCost)
+
+		// Session Documents (P1-BE — plan §27)
+		trn.GET("/sessions/:id/documents", handler.ListDocuments)
+		trn.POST("/sessions/:id/documents", handler.CreateDocument)
+		trn.DELETE("/documents/:id", handler.DeleteDocument)
+
 		// Training Participants
 		trn.POST("/participants", handler.CreateParticipant)
 		trn.GET("/participants", handler.ListParticipants)
@@ -82,5 +107,39 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		trn.GET("/certificates/:id", handler.GetCertificateByID)
 		trn.PUT("/certificates/:id", handler.UpdateCertificate)
 		trn.DELETE("/certificates/:id", handler.DeleteCertificate)
+
+		// Training Plans (P1-BE — plan §16)
+		trn.POST("/plans", handler.CreatePlan)
+		trn.GET("/plans", handler.ListPlans)
+		trn.GET("/plans/:id", handler.GetPlanByID)
+		trn.PUT("/plans/:id", handler.UpdatePlan)
+		trn.DELETE("/plans/:id", handler.DeletePlan)
+
+		// Plan items (P1-BE — plan §16)
+		trn.GET("/plans/:id/items", handler.ListPlanItems)
+		trn.POST("/plans/:id/items", handler.CreatePlanItem)
+		trn.PUT("/plan-items/:id", handler.UpdatePlanItem)
+		trn.DELETE("/plan-items/:id", handler.DeletePlanItem)
+
+		// Training Needs (P1-BE — plan §17)
+		trn.POST("/needs", handler.CreateNeed)
+		trn.GET("/needs", handler.ListNeeds)
+		trn.GET("/needs/:id", handler.GetNeedByID)
+		trn.PUT("/needs/:id", handler.UpdateNeed)
+		trn.DELETE("/needs/:id", handler.DeleteNeed)
+
+		// Training Requests (P1-BE — plan §15, Central Approval)
+		trn.POST("/requests", handler.CreateRequest)
+		trn.GET("/requests", handler.ListRequests)
+		trn.GET("/requests/:id", handler.GetRequestByID)
+		trn.POST("/requests/:id/submit", handler.SubmitRequest)
+		trn.POST("/requests/:id/cancel", handler.CancelRequest)
+
+		// Training Mandatories (P1-BE — plan §25)
+		trn.POST("/mandatories", handler.CreateMandatory)
+		trn.GET("/mandatories", handler.ListMandatories)
+		trn.GET("/mandatories/:id", handler.GetMandatoryByID)
+		trn.PUT("/mandatories/:id", handler.UpdateMandatory)
+		trn.DELETE("/mandatories/:id", handler.DeleteMandatory)
 	}
 }

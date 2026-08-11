@@ -16,13 +16,40 @@ const (
 	maxPerPage     = 100
 )
 
+// ApprovalEngine — narrow interface ke Central Approval Engine (pola leave/
+// reimbursement/attendance/employeemovement — plan §15/§45).
+type ApprovalEngine interface {
+	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
+	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
+	// GetActiveFlowIDForModule lets a training request auto-resolve which flow
+	// to route through when the client doesn't supply one explicitly.
+	GetActiveFlowIDForModule(ctx context.Context, module string) (string, error)
+}
+
+// Notifier — narrow interface ke module notification (pola leave).
+type Notifier interface {
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
+}
+
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
+	repo           *Repository
+	logger         *zap.Logger
+	approvalEngine ApprovalEngine
+	notifier       Notifier
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// SetApprovalEngine wires the central approval module into this service.
+func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
+	s.approvalEngine = ae
+}
+
+// SetNotifier wires the notification module into this service.
+func (s *Service) SetNotifier(n Notifier) {
+	s.notifier = n
 }
 
 // =========================================================================
@@ -1941,4 +1968,1220 @@ func (s *Service) SubmitAssessmentResult(ctx context.Context, assessmentID strin
 	}
 	s.logger.Info("Training assessment result submitted", zap.String("assessment_id", assessmentID), zap.String("participant_id", req.ParticipantID))
 	return assessmentResultToResponse(res), nil
+}
+// =========================================================================
+// Training Plans (P1-BE — plan §16)
+// =========================================================================
+
+func (s *Service) CreatePlan(ctx context.Context, req CreateTrainingPlanRequest) (*TrainingPlanResponse, error) {
+	p := &TrainingPlan{
+		Code:   req.Code,
+		Name:   req.Name,
+		Year:   req.Year,
+		Status: PlanStatusDraft,
+	}
+	if req.Description != nil {
+		p.Description = req.Description
+	}
+	if req.Status != nil {
+		p.Status = PlanStatus(*req.Status)
+	}
+	if err := s.repo.CreatePlan(ctx, p); err != nil {
+		return nil, err
+	}
+	s.logger.Info("Training plan created", zap.String("id", p.ID.String()), zap.String("code", p.Code))
+	return planToResponse(p), nil
+}
+
+func (s *Service) GetPlanByID(ctx context.Context, id string) (*TrainingPlanResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	p, err := s.repo.FindPlanByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return planToResponse(p), nil
+}
+
+func (s *Service) ListPlans(ctx context.Context, year *int, status *string, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	plans, total, err := s.repo.ListPlans(ctx, year, status, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]TrainingPlanResponse, 0, len(plans))
+	for _, p := range plans {
+		responses = append(responses, *planToResponse(&p))
+	}
+	return &PaginatedResponse{
+		Success:    true,
+		Data:       responses,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}
+
+func (s *Service) UpdatePlan(ctx context.Context, id string, req UpdateTrainingPlanRequest) (*TrainingPlanResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	p, err := s.repo.FindPlanByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Code != nil {
+		p.Code = *req.Code
+	}
+	if req.Name != nil {
+		p.Name = *req.Name
+	}
+	if req.Year != nil {
+		p.Year = *req.Year
+	}
+	if req.Description != nil {
+		p.Description = req.Description
+	}
+	if req.Status != nil {
+		p.Status = PlanStatus(*req.Status)
+	}
+	if err := s.repo.UpdatePlan(ctx, p); err != nil {
+		return nil, err
+	}
+	return planToResponse(p), nil
+}
+
+func (s *Service) DeletePlan(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeletePlan(ctx, uid)
+}
+
+// =========================================================================
+// Training Plan Items (P1-BE — plan §16)
+// =========================================================================
+
+func (s *Service) CreatePlanItem(ctx context.Context, planID string, req CreateTrainingPlanItemRequest) (*TrainingPlanItemResponse, error) {
+	pid, err := uuid.Parse(planID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid training_plan_id: %w", err)
+	}
+	cid, err := uuid.Parse(req.CourseID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid course_id: %w", err)
+	}
+	if _, err := s.repo.FindPlanByID(ctx, pid); err != nil {
+		return nil, fmt.Errorf("training plan not found: %w", err)
+	}
+	if _, err := s.repo.FindCourseByID(ctx, cid); err != nil {
+		return nil, fmt.Errorf("course not found: %w", err)
+	}
+	item := &TrainingPlanItem{
+		TrainingPlanID: pid,
+		CourseID:       cid,
+		Priority:       PriorityMedium,
+	}
+	if req.TargetDate != nil {
+		item.TargetDate = req.TargetDate
+	}
+	if req.TargetParticipants != nil {
+		item.TargetParticipants = req.TargetParticipants
+	}
+	if req.EstimatedCost != nil {
+		item.EstimatedCost = req.EstimatedCost
+	}
+	if req.Priority != nil {
+		item.Priority = PriorityLevel(*req.Priority)
+	}
+	if err := s.repo.CreatePlanItem(ctx, item); err != nil {
+		return nil, err
+	}
+	return planItemToResponse(item), nil
+}
+
+func (s *Service) ListPlanItems(ctx context.Context, planID string) ([]TrainingPlanItemResponse, error) {
+	pid, err := uuid.Parse(planID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid training_plan_id: %w", err)
+	}
+	items, err := s.repo.ListPlanItems(ctx, pid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]TrainingPlanItemResponse, 0, len(items))
+	for _, i := range items {
+		responses = append(responses, *planItemToResponse(&i))
+	}
+	return responses, nil
+}
+
+func (s *Service) UpdatePlanItem(ctx context.Context, id string, req UpdateTrainingPlanItemRequest) (*TrainingPlanItemResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	item, err := s.repo.FindPlanItemByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.CourseID != nil {
+		cid, err := uuid.Parse(*req.CourseID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid course_id: %w", err)
+		}
+		item.CourseID = cid
+	}
+	if req.TargetDate != nil {
+		item.TargetDate = req.TargetDate
+	}
+	if req.TargetParticipants != nil {
+		item.TargetParticipants = req.TargetParticipants
+	}
+	if req.EstimatedCost != nil {
+		item.EstimatedCost = req.EstimatedCost
+	}
+	if req.Priority != nil {
+		item.Priority = PriorityLevel(*req.Priority)
+	}
+	if err := s.repo.UpdatePlanItem(ctx, item); err != nil {
+		return nil, err
+	}
+	return planItemToResponse(item), nil
+}
+
+func (s *Service) DeletePlanItem(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeletePlanItem(ctx, uid)
+}
+
+// =========================================================================
+// Training Needs (P1-BE — plan §17)
+// =========================================================================
+
+func (s *Service) CreateNeed(ctx context.Context, req CreateTrainingNeedRequest) (*TrainingNeedResponse, error) {
+	n := &TrainingNeed{
+		Priority:   PriorityMedium,
+		SourceType: NeedSourceManual,
+		Status:     NeedStatusOpen,
+	}
+	if err := applyNeedFields(n, req.EmployeeID, req.OrganizationID, req.PositionID, req.CourseID,
+		req.Reason, req.Priority, req.SourceType, req.SourceID, req.Status); err != nil {
+		return nil, err
+	}
+	if err := s.repo.CreateNeed(ctx, n); err != nil {
+		return nil, err
+	}
+	return needToResponse(n), nil
+}
+
+func (s *Service) GetNeedByID(ctx context.Context, id string) (*TrainingNeedResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	n, err := s.repo.FindNeedByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return needToResponse(n), nil
+}
+
+func (s *Service) ListNeeds(ctx context.Context, employeeID, courseID *string, status *string, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	var empUUID, cUUID *uuid.UUID
+	if employeeID != nil && *employeeID != "" {
+		uid, err := uuid.Parse(*employeeID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid employee_id: %w", err)
+		}
+		empUUID = &uid
+	}
+	if courseID != nil && *courseID != "" {
+		uid, err := uuid.Parse(*courseID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid course_id: %w", err)
+		}
+		cUUID = &uid
+	}
+	needs, total, err := s.repo.ListNeeds(ctx, empUUID, cUUID, status, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]TrainingNeedResponse, 0, len(needs))
+	for _, n := range needs {
+		responses = append(responses, *needToResponse(&n))
+	}
+	return &PaginatedResponse{
+		Success:    true,
+		Data:       responses,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}
+
+// DeleteNeed — soft delete training need (plan §17).
+func (s *Service) DeleteNeed(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	if _, err := s.repo.FindNeedByID(ctx, uid); err != nil {
+		return fmt.Errorf("need not found: %w", err)
+	}
+	return s.repo.DeleteNeed(ctx, uid)
+}
+
+func (s *Service) UpdateNeed(ctx context.Context, id string, req UpdateTrainingNeedRequest) (*TrainingNeedResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	n, err := s.repo.FindNeedByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if err := applyNeedFields(n, req.EmployeeID, req.OrganizationID, req.PositionID, req.CourseID,
+		req.Reason, req.Priority, req.SourceType, req.SourceID, req.Status); err != nil {
+		return nil, err
+	}
+	if err := s.repo.UpdateNeed(ctx, n); err != nil {
+		return nil, err
+	}
+	return needToResponse(n), nil
+}
+
+// applyNeedFields — hanya field non-nil yang diubah (aman untuk update parsial).
+func applyNeedFields(n *TrainingNeed, employeeID, organizationID, positionID, courseID, reason,
+	priority, sourceType, sourceID, status *string) error {
+	if employeeID != nil {
+		if *employeeID == "" {
+			n.EmployeeID = nil
+		} else {
+			uid, err := uuid.Parse(*employeeID)
+			if err != nil {
+				return fmt.Errorf("invalid employee_id: %w", err)
+			}
+			n.EmployeeID = &uid
+		}
+	}
+	if organizationID != nil {
+		if *organizationID == "" {
+			n.OrganizationID = nil
+		} else {
+			uid, err := uuid.Parse(*organizationID)
+			if err != nil {
+				return fmt.Errorf("invalid organization_id: %w", err)
+			}
+			n.OrganizationID = &uid
+		}
+	}
+	if positionID != nil {
+		if *positionID == "" {
+			n.PositionID = nil
+		} else {
+			uid, err := uuid.Parse(*positionID)
+			if err != nil {
+				return fmt.Errorf("invalid position_id: %w", err)
+			}
+			n.PositionID = &uid
+		}
+	}
+	if courseID != nil {
+		if *courseID == "" {
+			n.CourseID = nil
+		} else {
+			uid, err := uuid.Parse(*courseID)
+			if err != nil {
+				return fmt.Errorf("invalid course_id: %w", err)
+			}
+			n.CourseID = &uid
+		}
+	}
+	if reason != nil {
+		n.Reason = reason
+	}
+	if priority != nil {
+		n.Priority = PriorityLevel(*priority)
+	}
+	if sourceType != nil {
+		n.SourceType = NeedSourceType(*sourceType)
+	}
+	if sourceID != nil {
+		if *sourceID == "" {
+			n.SourceID = nil
+		} else {
+			uid, err := uuid.Parse(*sourceID)
+			if err != nil {
+				return fmt.Errorf("invalid source_id: %w", err)
+			}
+			n.SourceID = &uid
+		}
+	}
+	if status != nil {
+		n.Status = NeedStatus(*status)
+	}
+	return nil
+}
+
+// =========================================================================
+// Training Requests (P1-BE — plan §15, Central Approval)
+// =========================================================================
+
+func (s *Service) CreateRequest(ctx context.Context, req CreateTrainingRequestRequest) (*TrainingRequestResponse, error) {
+	empID, err := uuid.Parse(req.EmployeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee_id: %w", err)
+	}
+	courseID, err := uuid.Parse(req.CourseID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid course_id: %w", err)
+	}
+	if _, err := s.repo.FindCourseByID(ctx, courseID); err != nil {
+		return nil, fmt.Errorf("course not found: %w", err)
+	}
+	tr := &TrainingRequest{
+		EmployeeID:    empID,
+		CourseID:      courseID,
+		RequestedDate: req.RequestedDate,
+		Priority:      PriorityMedium,
+		Status:        ReqStatusDraft,
+	}
+	if req.SessionID != nil {
+		sid, err := uuid.Parse(*req.SessionID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid session_id: %w", err)
+		}
+		tr.SessionID = &sid
+	}
+	if req.Reason != nil {
+		tr.Reason = req.Reason
+	}
+	if req.Priority != nil {
+		tr.Priority = PriorityLevel(*req.Priority)
+	}
+	if err := s.repo.CreateRequest(ctx, tr); err != nil {
+		return nil, err
+	}
+	return requestToResponse(tr), nil
+}
+
+func (s *Service) GetRequestByID(ctx context.Context, id string) (*TrainingRequestResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	tr, err := s.repo.FindRequestByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return requestToResponse(tr), nil
+}
+
+func (s *Service) ListRequests(ctx context.Context, employeeID *string, status *string, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	var empUUID *uuid.UUID
+	if employeeID != nil && *employeeID != "" {
+		uid, err := uuid.Parse(*employeeID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid employee_id: %w", err)
+		}
+		empUUID = &uid
+	}
+	reqs, total, err := s.repo.ListRequests(ctx, empUUID, status, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]TrainingRequestResponse, 0, len(reqs))
+	for _, r := range reqs {
+		responses = append(responses, *requestToResponse(&r))
+	}
+	return &PaginatedResponse{
+		Success:    true,
+		Data:       responses,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}
+
+// SubmitRequest — buat approval instance via Central Approval (plan §15).
+// Status request berubah menjadi PENDING_APPROVAL setelah instance dibuat.
+func (s *Service) SubmitRequest(ctx context.Context, id string, flowID *string) (*TrainingRequestResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	tr, err := s.repo.FindRequestByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if tr.Status != ReqStatusDraft && tr.Status != ReqStatusRejected {
+		return nil, fmt.Errorf("only DRAFT or REJECTED requests can be submitted")
+	}
+	if s.approvalEngine == nil {
+		return nil, fmt.Errorf("approval engine is not configured")
+	}
+	// Auto-resolve flow bila client tidak mengirim flow_id (pola leave).
+	resolvedFlow := ""
+	if flowID != nil && *flowID != "" {
+		resolvedFlow = *flowID
+	} else if f, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, "training_request"); err == nil {
+		resolvedFlow = f
+	}
+	if resolvedFlow == "" {
+		tr.Status = ReqStatusSubmitted
+		if err := s.repo.UpdateRequest(ctx, tr); err != nil {
+			return nil, err
+		}
+		return requestToResponse(tr), nil
+	}
+	instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "training_request", tr.ID.String(), resolvedFlow)
+	if err != nil {
+		return nil, err
+	}
+	parsed, err := uuid.Parse(instanceID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid approval instance id: %w", err)
+	}
+	tr.ApprovalInstanceID = &parsed
+	tr.Status = ReqStatusPendingApproval
+	if err := s.repo.UpdateRequest(ctx, tr); err != nil {
+		return nil, err
+	}
+	s.logger.Info("Training request submitted for approval", zap.String("id", tr.ID.String()), zap.String("instance_id", instanceID))
+	return requestToResponse(tr), nil
+}
+
+// CancelRequest — batalkan request (tanpa approval instance baru; pola leave cancel).
+func (s *Service) CancelRequest(ctx context.Context, id string) (*TrainingRequestResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	tr, err := s.repo.FindRequestByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if tr.Status == ReqStatusApproved || tr.Status == ReqStatusCancelled {
+		return nil, fmt.Errorf("request cannot be cancelled in status %s", tr.Status)
+	}
+	tr.Status = ReqStatusCancelled
+	if err := s.repo.UpdateRequest(ctx, tr); err != nil {
+		return nil, err
+	}
+	return requestToResponse(tr), nil
+}
+
+// HandleApprovalStatusChange — callback push dari Central Approval (plan §15/§45).
+// APPROVED → status request APPROVED + auto-enroll participant ke session (bila ada).
+// REJECTED → status REJECTED; CANCELLED → status CANCELLED.
+func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	tr, err := s.repo.FindRequestByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	if tr.Status != ReqStatusPendingApproval {
+		return nil
+	}
+	if status == "PENDING" {
+		if note != "" {
+			tr.SupervisorNote = &note
+			return s.repo.UpdateRequest(ctx, tr)
+		}
+		return nil
+	}
+	now := time.Now()
+	switch status {
+	case "APPROVED":
+		tr.Status = ReqStatusApproved
+		tr.ApprovedAt = &now
+		if note != "" {
+			tr.SupervisorNote = &note
+		}
+	case "REJECTED":
+		tr.Status = ReqStatusRejected
+		tr.RejectedAt = &now
+		if note != "" {
+			tr.SupervisorNote = &note
+		}
+	case "CANCELLED":
+		tr.Status = ReqStatusCancelled
+	default:
+		return nil
+	}
+	if err := s.repo.UpdateRequest(ctx, tr); err != nil {
+		return err
+	}
+	s.logger.Info("Training request status updated via approval status handler",
+		zap.String("training_request_id", tr.ID.String()),
+		zap.String("approval_status", status))
+
+	// Auto-enroll participant ke session saat APPROVED (plan §15/§30).
+	if status == "APPROVED" && tr.SessionID != nil && tr.ApprovalInstanceID != nil {
+		if err := s.autoEnrollApprovedRequest(ctx, tr); err != nil {
+			s.logger.Warn("auto-enroll failed after approval", zap.String("training_request_id", tr.ID.String()), zap.Error(err))
+		}
+	}
+	return nil
+}
+
+// autoEnrollApprovedRequest — register employee ke session saat request disetujui.
+func (s *Service) autoEnrollApprovedRequest(ctx context.Context, tr *TrainingRequest) error {
+	existing, err := s.repo.FindParticipantBySessionAndEmployee(ctx, *tr.SessionID, tr.EmployeeID)
+	if err != nil {
+		return err
+	}
+	if existing != nil {
+		return nil // sudah terdaftar — idempotent
+	}
+	sess, err := s.repo.FindSessionByID(ctx, *tr.SessionID)
+	if err != nil {
+		return err
+	}
+	count, err := s.repo.CountParticipantsBySession(ctx, *tr.SessionID)
+	if err != nil {
+		return err
+	}
+	if count >= int64(sess.MaxQuota) {
+		return fmt.Errorf("session quota full (%d/%d)", count, sess.MaxQuota)
+	}
+	now := time.Now()
+	p := &TrainingParticipant{
+		SessionID:          *tr.SessionID,
+		EmployeeID:         tr.EmployeeID,
+		RegistrationStatus: RegStatusApproved,
+		AttendanceStatus:   AttendStatusPresent,
+		CompletionStatus:   CompletionNotStarted,
+		RegisteredAt:       &now,
+		ApprovedAt:         &now,
+	}
+	return s.repo.CreateParticipant(ctx, p)
+}
+
+// =========================================================================
+// Course Objectives (P1-BE — plan §8)
+// =========================================================================
+
+func (s *Service) CreateCourseObjective(ctx context.Context, courseID string, req CreateCourseObjectiveRequest) (*CourseObjectiveResponse, error) {
+	cid, err := uuid.Parse(courseID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid course_id: %w", err)
+	}
+	if _, err := s.repo.FindCourseByID(ctx, cid); err != nil {
+		return nil, fmt.Errorf("course not found: %w", err)
+	}
+	o := &TrainingCourseObjective{CourseID: cid, Objective: req.Objective}
+	if req.SortOrder != nil {
+		o.SortOrder = *req.SortOrder
+	}
+	if err := s.repo.CreateCourseObjective(ctx, o); err != nil {
+		return nil, err
+	}
+	return courseObjectiveToResponse(o), nil
+}
+
+func (s *Service) ListCourseObjectives(ctx context.Context, courseID string) ([]CourseObjectiveResponse, error) {
+	cid, err := uuid.Parse(courseID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid course_id: %w", err)
+	}
+	items, err := s.repo.ListCourseObjectives(ctx, cid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]CourseObjectiveResponse, 0, len(items))
+	for _, o := range items {
+		responses = append(responses, *courseObjectiveToResponse(&o))
+	}
+	return responses, nil
+}
+
+func (s *Service) UpdateCourseObjective(ctx context.Context, id string, req UpdateCourseObjectiveRequest) (*CourseObjectiveResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	o, err := s.repo.FindCourseObjectiveByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Objective != nil {
+		o.Objective = *req.Objective
+	}
+	if req.SortOrder != nil {
+		o.SortOrder = *req.SortOrder
+	}
+	if err := s.repo.UpdateCourseObjective(ctx, o); err != nil {
+		return nil, err
+	}
+	return courseObjectiveToResponse(o), nil
+}
+
+func (s *Service) DeleteCourseObjective(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteCourseObjective(ctx, uid)
+}
+
+// =========================================================================
+// Course Competencies (P1-BE — plan §9)
+// =========================================================================
+
+func (s *Service) CreateCourseCompetency(ctx context.Context, courseID string, req CreateCourseCompetencyRequest) (*CourseCompetencyResponse, error) {
+	cid, err := uuid.Parse(courseID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid course_id: %w", err)
+	}
+	compID, err := uuid.Parse(req.CompetencyID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid competency_id: %w", err)
+	}
+	if _, err := s.repo.FindCourseByID(ctx, cid); err != nil {
+		return nil, fmt.Errorf("course not found: %w", err)
+	}
+	c := &TrainingCourseCompetency{CourseID: cid, CompetencyID: compID}
+	if req.TargetLevel != nil {
+		c.TargetLevel = req.TargetLevel
+	}
+	if err := s.repo.CreateCourseCompetency(ctx, c); err != nil {
+		return nil, err
+	}
+	return courseCompetencyToResponse(c), nil
+}
+
+func (s *Service) ListCourseCompetencies(ctx context.Context, courseID string) ([]CourseCompetencyResponse, error) {
+	cid, err := uuid.Parse(courseID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid course_id: %w", err)
+	}
+	items, err := s.repo.ListCourseCompetencies(ctx, cid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]CourseCompetencyResponse, 0, len(items))
+	for _, c := range items {
+		responses = append(responses, *courseCompetencyToResponse(&c))
+	}
+	return responses, nil
+}
+
+func (s *Service) DeleteCourseCompetency(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteCourseCompetency(ctx, uid)
+}
+
+// =========================================================================
+// Course Prerequisites (P1-BE — plan §10)
+// =========================================================================
+
+func (s *Service) CreateCoursePrerequisite(ctx context.Context, courseID string, req CreateCoursePrerequisiteRequest) (*CoursePrerequisiteResponse, error) {
+	cid, err := uuid.Parse(courseID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid course_id: %w", err)
+	}
+	if _, err := s.repo.FindCourseByID(ctx, cid); err != nil {
+		return nil, fmt.Errorf("course not found: %w", err)
+	}
+	p := &TrainingCoursePrerequisite{
+		CourseID:         cid,
+		PrerequisiteType: PrerequisiteType(req.PrerequisiteType),
+		IsRequired:       true,
+	}
+	if req.PrerequisiteID != nil && *req.PrerequisiteID != "" {
+		pid, err := uuid.Parse(*req.PrerequisiteID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid prerequisite_id: %w", err)
+		}
+		p.PrerequisiteID = &pid
+	}
+	if req.IsRequired != nil {
+		p.IsRequired = *req.IsRequired
+	}
+	if err := s.repo.CreateCoursePrerequisite(ctx, p); err != nil {
+		return nil, err
+	}
+	return coursePrerequisiteToResponse(p), nil
+}
+
+func (s *Service) ListCoursePrerequisites(ctx context.Context, courseID string) ([]CoursePrerequisiteResponse, error) {
+	cid, err := uuid.Parse(courseID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid course_id: %w", err)
+	}
+	items, err := s.repo.ListCoursePrerequisites(ctx, cid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]CoursePrerequisiteResponse, 0, len(items))
+	for _, p := range items {
+		responses = append(responses, *coursePrerequisiteToResponse(&p))
+	}
+	return responses, nil
+}
+
+func (s *Service) DeleteCoursePrerequisite(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteCoursePrerequisite(ctx, uid)
+}
+
+// =========================================================================
+// Training Mandatories (P1-BE — plan §25)
+// =========================================================================
+
+func (s *Service) CreateMandatory(ctx context.Context, req CreateTrainingMandatoryRequest) (*TrainingMandatoryResponse, error) {
+	cid, err := uuid.Parse(req.CourseID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid course_id: %w", err)
+	}
+	if _, err := s.repo.FindCourseByID(ctx, cid); err != nil {
+		return nil, fmt.Errorf("course not found: %w", err)
+	}
+	m := &TrainingMandatory{CourseID: cid, IsActive: true}
+	if err := applyMandatoryFields(m, req.OrganizationID, req.PositionID, req.EmploymentStatusID,
+		req.DueDays, req.ValidityPeriodMonth, req.IsActive); err != nil {
+		return nil, err
+	}
+	if err := s.repo.CreateMandatory(ctx, m); err != nil {
+		return nil, err
+	}
+	return mandatoryToResponse(m), nil
+}
+
+func (s *Service) GetMandatoryByID(ctx context.Context, id string) (*TrainingMandatoryResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	m, err := s.repo.FindMandatoryByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return mandatoryToResponse(m), nil
+}
+
+func (s *Service) ListMandatories(ctx context.Context, courseID *string, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	var cUUID *uuid.UUID
+	if courseID != nil && *courseID != "" {
+		uid, err := uuid.Parse(*courseID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid course_id: %w", err)
+		}
+		cUUID = &uid
+	}
+	items, total, err := s.repo.ListMandatories(ctx, cUUID, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]TrainingMandatoryResponse, 0, len(items))
+	for _, m := range items {
+		responses = append(responses, *mandatoryToResponse(&m))
+	}
+	return &PaginatedResponse{
+		Success:    true,
+		Data:       responses,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}
+
+func (s *Service) UpdateMandatory(ctx context.Context, id string, req UpdateTrainingMandatoryRequest) (*TrainingMandatoryResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	m, err := s.repo.FindMandatoryByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.CourseID != nil {
+		cid, err := uuid.Parse(*req.CourseID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid course_id: %w", err)
+		}
+		m.CourseID = cid
+	}
+	if err := applyMandatoryFields(m, req.OrganizationID, req.PositionID, req.EmploymentStatusID,
+		req.DueDays, req.ValidityPeriodMonth, req.IsActive); err != nil {
+		return nil, err
+	}
+	if err := s.repo.UpdateMandatory(ctx, m); err != nil {
+		return nil, err
+	}
+	return mandatoryToResponse(m), nil
+}
+
+func (s *Service) DeleteMandatory(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteMandatory(ctx, uid)
+}
+
+// applyMandatoryFields — hanya field non-nil yang diubah.
+func applyMandatoryFields(m *TrainingMandatory, organizationID, positionID, employmentStatusID *string,
+	dueDays, validityPeriodMonth *int, isActive *bool) error {
+	if organizationID != nil {
+		if *organizationID == "" {
+			m.OrganizationID = nil
+		} else {
+			uid, err := uuid.Parse(*organizationID)
+			if err != nil {
+				return fmt.Errorf("invalid organization_id: %w", err)
+			}
+			m.OrganizationID = &uid
+		}
+	}
+	if positionID != nil {
+		if *positionID == "" {
+			m.PositionID = nil
+		} else {
+			uid, err := uuid.Parse(*positionID)
+			if err != nil {
+				return fmt.Errorf("invalid position_id: %w", err)
+			}
+			m.PositionID = &uid
+		}
+	}
+	if employmentStatusID != nil {
+		if *employmentStatusID == "" {
+			m.EmploymentStatusID = nil
+		} else {
+			uid, err := uuid.Parse(*employmentStatusID)
+			if err != nil {
+				return fmt.Errorf("invalid employment_status_id: %w", err)
+			}
+			m.EmploymentStatusID = &uid
+		}
+	}
+	if dueDays != nil {
+		m.DueDays = dueDays
+	}
+	if validityPeriodMonth != nil {
+		m.ValidityPeriodMonth = validityPeriodMonth
+	}
+	if isActive != nil {
+		m.IsActive = *isActive
+	}
+	return nil
+}
+
+// =========================================================================
+// Training Session Costs (P1-BE — plan §26)
+// =========================================================================
+
+func (s *Service) CreateSessionCost(ctx context.Context, sessionID string, req CreateTrainingSessionCostRequest) (*TrainingSessionCostResponse, error) {
+	sid, err := uuid.Parse(sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid session_id: %w", err)
+	}
+	if _, err := s.repo.FindSessionByID(ctx, sid); err != nil {
+		return nil, fmt.Errorf("session not found: %w", err)
+	}
+	c := &TrainingSessionCost{SessionID: sid, CostType: CostType(req.CostType)}
+	if req.Description != nil {
+		c.Description = req.Description
+	}
+	if req.Amount != nil {
+		c.Amount = *req.Amount
+	}
+	if err := s.repo.CreateSessionCost(ctx, c); err != nil {
+		return nil, err
+	}
+	return sessionCostToResponse(c), nil
+}
+
+func (s *Service) ListSessionCosts(ctx context.Context, sessionID string) ([]TrainingSessionCostResponse, error) {
+	sid, err := uuid.Parse(sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid session_id: %w", err)
+	}
+	items, err := s.repo.ListSessionCosts(ctx, sid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]TrainingSessionCostResponse, 0, len(items))
+	for _, c := range items {
+		responses = append(responses, *sessionCostToResponse(&c))
+	}
+	return responses, nil
+}
+
+func (s *Service) UpdateSessionCost(ctx context.Context, id string, req UpdateTrainingSessionCostRequest) (*TrainingSessionCostResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	c, err := s.repo.FindSessionCostByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.CostType != nil {
+		c.CostType = CostType(*req.CostType)
+	}
+	if req.Description != nil {
+		c.Description = req.Description
+	}
+	if req.Amount != nil {
+		c.Amount = *req.Amount
+	}
+	if err := s.repo.UpdateSessionCost(ctx, c); err != nil {
+		return nil, err
+	}
+	return sessionCostToResponse(c), nil
+}
+
+func (s *Service) DeleteSessionCost(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteSessionCost(ctx, uid)
+}
+
+// =========================================================================
+// Training Documents (P1-BE — plan §27)
+// =========================================================================
+
+func (s *Service) CreateDocument(ctx context.Context, sessionID string, req CreateTrainingDocumentRequest) (*TrainingDocumentResponse, error) {
+	sid, err := uuid.Parse(sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid session_id: %w", err)
+	}
+	if _, err := s.repo.FindSessionByID(ctx, sid); err != nil {
+		return nil, fmt.Errorf("session not found: %w", err)
+	}
+	d := &TrainingDocument{
+		SessionID:    sid,
+		DocumentType: DocumentType(req.DocumentType),
+		FileName:     &req.FileName,
+		FileURL:      &req.FileURL,
+	}
+	if req.FileName == "" {
+		d.FileName = nil
+	}
+	if err := s.repo.CreateDocument(ctx, d); err != nil {
+		return nil, err
+	}
+	return documentToResponse(d), nil
+}
+
+func (s *Service) ListDocuments(ctx context.Context, sessionID string) ([]TrainingDocumentResponse, error) {
+	sid, err := uuid.Parse(sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid session_id: %w", err)
+	}
+	items, err := s.repo.ListDocuments(ctx, sid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]TrainingDocumentResponse, 0, len(items))
+	for _, d := range items {
+		responses = append(responses, *documentToResponse(&d))
+	}
+	return responses, nil
+}
+
+func (s *Service) DeleteDocument(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteDocument(ctx, uid)
+}
+
+// =========================================================================
+// P1-BE response converters
+// =========================================================================
+
+func planToResponse(p *TrainingPlan) *TrainingPlanResponse {
+	desc := ""
+	if p.Description != nil {
+		desc = *p.Description
+	}
+	return &TrainingPlanResponse{
+		ID:          p.ID.String(),
+		Code:        p.Code,
+		Name:        p.Name,
+		Year:        p.Year,
+		Description: desc,
+		Status:      string(p.Status),
+		CreatedAt:   p.CreatedAt,
+		UpdatedAt:   p.UpdatedAt,
+	}
+}
+
+func planItemToResponse(i *TrainingPlanItem) *TrainingPlanItemResponse {
+	targetDate := ""
+	if i.TargetDate != nil {
+		targetDate = *i.TargetDate
+	}
+	cost := float64(0)
+	if i.EstimatedCost != nil {
+		cost = *i.EstimatedCost
+	}
+	return &TrainingPlanItemResponse{
+		ID:                 i.ID.String(),
+		TrainingPlanID:     i.TrainingPlanID.String(),
+		CourseID:           i.CourseID.String(),
+		TargetDate:         targetDate,
+		TargetParticipants: i.TargetParticipants,
+		EstimatedCost:      cost,
+		Priority:           string(i.Priority),
+		CreatedAt:          i.CreatedAt,
+		UpdatedAt:          i.UpdatedAt,
+	}
+}
+
+func needToResponse(n *TrainingNeed) *TrainingNeedResponse {
+	return &TrainingNeedResponse{
+		ID:             n.ID.String(),
+		EmployeeID:     uuidPtr(n.EmployeeID),
+		OrganizationID: uuidPtr(n.OrganizationID),
+		PositionID:     uuidPtr(n.PositionID),
+		CourseID:       uuidPtr(n.CourseID),
+		Reason:         strPtr(n.Reason),
+		Priority:       string(n.Priority),
+		SourceType:     string(n.SourceType),
+		SourceID:       uuidPtr(n.SourceID),
+		Status:         string(n.Status),
+		CreatedAt:      n.CreatedAt,
+		UpdatedAt:      n.UpdatedAt,
+	}
+}
+
+func requestToResponse(r *TrainingRequest) *TrainingRequestResponse {
+	return &TrainingRequestResponse{
+		ID:                 r.ID.String(),
+		EmployeeID:         r.EmployeeID.String(),
+		CourseID:           r.CourseID.String(),
+		SessionID:          uuidPtr(r.SessionID),
+		RequestedDate:      r.RequestedDate,
+		Reason:             strPtr(r.Reason),
+		Priority:           string(r.Priority),
+		Status:             string(r.Status),
+		ApprovalInstanceID: uuidPtr(r.ApprovalInstanceID),
+		ApprovedAt:         formatTimePtr(r.ApprovedAt),
+		RejectedAt:         formatTimePtr(r.RejectedAt),
+		SupervisorNote:     strPtr(r.SupervisorNote),
+		CreatedAt:          r.CreatedAt,
+		UpdatedAt:          r.UpdatedAt,
+	}
+}
+
+func courseObjectiveToResponse(o *TrainingCourseObjective) *CourseObjectiveResponse {
+	return &CourseObjectiveResponse{
+		ID:        o.ID.String(),
+		CourseID:  o.CourseID.String(),
+		Objective: o.Objective,
+		SortOrder: o.SortOrder,
+		CreatedAt: o.CreatedAt,
+		UpdatedAt: o.UpdatedAt,
+	}
+}
+
+func courseCompetencyToResponse(c *TrainingCourseCompetency) *CourseCompetencyResponse {
+	return &CourseCompetencyResponse{
+		ID:           c.ID.String(),
+		CourseID:     c.CourseID.String(),
+		CompetencyID: c.CompetencyID.String(),
+		TargetLevel:  c.TargetLevel,
+		CreatedAt:    c.CreatedAt,
+		UpdatedAt:    c.UpdatedAt,
+	}
+}
+
+func coursePrerequisiteToResponse(p *TrainingCoursePrerequisite) *CoursePrerequisiteResponse {
+	return &CoursePrerequisiteResponse{
+		ID:               p.ID.String(),
+		CourseID:         p.CourseID.String(),
+		PrerequisiteType: string(p.PrerequisiteType),
+		PrerequisiteID:   uuidPtr(p.PrerequisiteID),
+		IsRequired:       p.IsRequired,
+		CreatedAt:        p.CreatedAt,
+		UpdatedAt:        p.UpdatedAt,
+	}
+}
+
+func mandatoryToResponse(m *TrainingMandatory) *TrainingMandatoryResponse {
+	return &TrainingMandatoryResponse{
+		ID:                  m.ID.String(),
+		CourseID:            m.CourseID.String(),
+		OrganizationID:      uuidPtr(m.OrganizationID),
+		PositionID:          uuidPtr(m.PositionID),
+		EmploymentStatusID:  uuidPtr(m.EmploymentStatusID),
+		DueDays:             m.DueDays,
+		ValidityPeriodMonth: m.ValidityPeriodMonth,
+		IsActive:            m.IsActive,
+		CreatedAt:           m.CreatedAt,
+		UpdatedAt:           m.UpdatedAt,
+	}
+}
+
+func sessionCostToResponse(c *TrainingSessionCost) *TrainingSessionCostResponse {
+	return &TrainingSessionCostResponse{
+		ID:          c.ID.String(),
+		SessionID:   c.SessionID.String(),
+		CostType:    string(c.CostType),
+		Description: strPtr(c.Description),
+		Amount:      c.Amount,
+		CreatedAt:   c.CreatedAt,
+		UpdatedAt:   c.UpdatedAt,
+	}
+}
+
+func documentToResponse(d *TrainingDocument) *TrainingDocumentResponse {
+	return &TrainingDocumentResponse{
+		ID:           d.ID.String(),
+		SessionID:    d.SessionID.String(),
+		DocumentType: string(d.DocumentType),
+		FileName:     strPtr(d.FileName),
+		FileURL:      strPtr(d.FileURL),
+		UploadedBy:   uuidPtr(d.UploadedBy),
+		CreatedAt:    d.CreatedAt,
+		UpdatedAt:    d.UpdatedAt,
+	}
 }

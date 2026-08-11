@@ -435,6 +435,358 @@ func (a *TrainingAttendance) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// P1-BE constants (plan §42 P1-BE)
+// =========================================================================
+
+// PlanStatus — status training plan.
+type PlanStatus string
+
+const (
+	PlanStatusDraft   PlanStatus = "DRAFT"
+	PlanStatusActive  PlanStatus = "ACTIVE"
+	PlanStatusArchived PlanStatus = "ARCHIVED"
+)
+
+// PriorityLevel — prioritas plan item / need / request.
+type PriorityLevel string
+
+const (
+	PriorityLow    PriorityLevel = "LOW"
+	PriorityMedium PriorityLevel = "MEDIUM"
+	PriorityHigh   PriorityLevel = "HIGH"
+	PriorityUrgent PriorityLevel = "URGENT"
+)
+
+// NeedSourceType — sumber kebutuhan training (operasional, bukan Intelligence).
+type NeedSourceType string
+
+const (
+	NeedSourceManual      NeedSourceType = "MANUAL"
+	NeedSourcePerformance NeedSourceType = "PERFORMANCE"
+	NeedSourceCompetency  NeedSourceType = "COMPETENCY"
+	NeedSourceCareer      NeedSourceType = "CAREER"
+	NeedSourceSuccession  NeedSourceType = "SUCCESSION"
+	NeedSourceCompliance  NeedSourceType = "COMPLIANCE"
+	NeedSourceWorkforce   NeedSourceType = "WORKFORCE"
+)
+
+// NeedStatus — status training need.
+type NeedStatus string
+
+const (
+	NeedStatusOpen      NeedStatus = "OPEN"
+	NeedStatusPlanned   NeedStatus = "PLANNED"
+	NeedStatusFulfilled NeedStatus = "FULFILLED"
+	NeedStatusCancelled NeedStatus = "CANCELLED"
+)
+
+// RequestStatus — status training request (Central Approval).
+type RequestStatus string
+
+const (
+	ReqStatusDraft          RequestStatus = "DRAFT"
+	ReqStatusSubmitted      RequestStatus = "SUBMITTED"
+	ReqStatusPendingApproval RequestStatus = "PENDING_APPROVAL"
+	ReqStatusApproved       RequestStatus = "APPROVED"
+	ReqStatusRejected       RequestStatus = "REJECTED"
+	ReqStatusCancelled      RequestStatus = "CANCELLED"
+)
+
+// PrerequisiteType — tipe prerequisite course.
+type PrerequisiteType string
+
+const (
+	PreqTypeCourse        PrerequisiteType = "COURSE"
+	PreqTypeCompetency    PrerequisiteType = "COMPETENCY"
+	PreqTypeCertification PrerequisiteType = "CERTIFICATION"
+	PreqTypeExperience    PrerequisiteType = "EXPERIENCE"
+)
+
+// CostType — tipe biaya session.
+type CostType string
+
+const (
+	CostTypeTrainer       CostType = "TRAINER"
+	CostTypeProvider      CostType = "PROVIDER"
+	CostTypeVenue         CostType = "VENUE"
+	CostTypeMaterial      CostType = "MATERIAL"
+	CostTypeCertification CostType = "CERTIFICATION"
+	CostTypeTravel        CostType = "TRAVEL"
+	CostTypeAccommodation CostType = "ACCOMMODATION"
+	CostTypeOther         CostType = "OTHER"
+)
+
+// DocumentType — tipe dokumen session.
+type DocumentType string
+
+const (
+	DocTypeProposal        DocumentType = "PROPOSAL"
+	DocTypeQuotation       DocumentType = "QUOTATION"
+	DocTypeAttendanceSheet DocumentType = "ATTENDANCE_SHEET"
+	DocTypeInvoice         DocumentType = "INVOICE"
+	DocTypeContract        DocumentType = "CONTRACT"
+	DocTypeTrainingReport  DocumentType = "TRAINING_REPORT"
+	DocTypeOther           DocumentType = "OTHER"
+)
+
+// =========================================================================
+// TrainingPlan — Rencana Pelatihan Tahunan (P1-BE — plan §16)
+// =========================================================================
+
+type TrainingPlan struct {
+	ID          uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	Code        string         `gorm:"type:varchar(30);not null;uniqueIndex:uk_trn_plan_code" json:"code"`
+	Name        string         `gorm:"type:varchar(200);not null" json:"name"`
+	Year        int            `gorm:"type:int;not null;index:idx_trn_plan_year" json:"year"`
+	Description *string        `gorm:"type:text" json:"description,omitempty"`
+	Status      PlanStatus     `gorm:"type:varchar(20);not null;default:DRAFT" json:"status"`
+	DeletedAt   gorm.DeletedAt `gorm:"index:idx_trn_plan_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+}
+
+func (TrainingPlan) TableName() string { return "training_plans" }
+
+func (p *TrainingPlan) BeforeCreate(tx *gorm.DB) error {
+	if p.ID == uuid.Nil {
+		p.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// TrainingPlanItem — item dalam training plan (P1-BE — plan §16)
+// =========================================================================
+
+type TrainingPlanItem struct {
+	ID                uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	TrainingPlanID    uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_plan_item_plan" json:"training_plan_id"`
+	CourseID          uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_plan_item_course" json:"course_id"`
+	TargetDate        *string        `gorm:"type:date" json:"target_date,omitempty"`
+	TargetParticipants *int          `gorm:"type:int" json:"target_participants,omitempty"`
+	EstimatedCost     *float64       `gorm:"type:decimal(14,2)" json:"estimated_cost,omitempty"`
+	Priority          PriorityLevel  `gorm:"type:varchar(20);not null;default:MEDIUM" json:"priority"`
+	DeletedAt         gorm.DeletedAt `gorm:"index:idx_trn_plan_item_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt         time.Time      `json:"created_at"`
+	UpdatedAt         time.Time      `json:"updated_at"`
+}
+
+func (TrainingPlanItem) TableName() string { return "training_plan_items" }
+
+func (i *TrainingPlanItem) BeforeCreate(tx *gorm.DB) error {
+	if i.ID == uuid.Nil {
+		i.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// TrainingNeed — Kebutuhan Training (P1-BE — plan §17)
+// =========================================================================
+
+type TrainingNeed struct {
+	ID             uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID     *uuid.UUID     `gorm:"type:char(36);index:idx_trn_need_employee" json:"employee_id,omitempty"`
+	OrganizationID *uuid.UUID     `gorm:"type:char(36);index:idx_trn_need_org" json:"organization_id,omitempty"`
+	PositionID     *uuid.UUID     `gorm:"type:char(36)" json:"position_id,omitempty"`
+	CourseID       *uuid.UUID     `gorm:"type:char(36);index:idx_trn_need_course" json:"course_id,omitempty"`
+	Reason         *string        `gorm:"type:text" json:"reason,omitempty"`
+	Priority       PriorityLevel  `gorm:"type:varchar(20);not null;default:MEDIUM" json:"priority"`
+	SourceType     NeedSourceType `gorm:"type:varchar(30);not null;default:MANUAL" json:"source_type"`
+	SourceID       *uuid.UUID     `gorm:"type:char(36)" json:"source_id,omitempty"`
+	Status         NeedStatus     `gorm:"type:varchar(20);not null;default:OPEN" json:"status"`
+	DeletedAt      gorm.DeletedAt `gorm:"index:idx_trn_need_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+}
+
+func (TrainingNeed) TableName() string { return "training_needs" }
+
+func (n *TrainingNeed) BeforeCreate(tx *gorm.DB) error {
+	if n.ID == uuid.Nil {
+		n.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// TrainingRequest — Pengajuan Training via Central Approval (P1-BE — plan §15)
+// =========================================================================
+
+type TrainingRequest struct {
+	ID                   uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID           uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_req_employee" json:"employee_id"`
+	CourseID             uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_req_course" json:"course_id"`
+	SessionID            *uuid.UUID     `gorm:"type:char(36)" json:"session_id,omitempty"`
+	RequestedDate        string         `gorm:"type:date;not null" json:"requested_date"`
+	Reason               *string        `gorm:"type:text" json:"reason,omitempty"`
+	Priority             PriorityLevel  `gorm:"type:varchar(20);not null;default:MEDIUM" json:"priority"`
+	Status               RequestStatus  `gorm:"type:varchar(20);not null;default:DRAFT;index:idx_trn_req_status" json:"status"`
+	ApprovalInstanceID   *uuid.UUID     `gorm:"type:char(36);index:idx_trn_req_approval_instance" json:"approval_instance_id,omitempty"`
+	ApprovedAt           *time.Time     `gorm:"type:timestamp" json:"approved_at,omitempty"`
+	RejectedAt           *time.Time     `gorm:"type:timestamp" json:"rejected_at,omitempty"`
+	SupervisorNote       *string        `gorm:"type:text" json:"supervisor_note,omitempty"`
+	DeletedAt            gorm.DeletedAt `gorm:"index:idx_trn_req_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt            time.Time      `json:"created_at"`
+	UpdatedAt            time.Time      `json:"updated_at"`
+}
+
+func (TrainingRequest) TableName() string { return "training_requests" }
+
+func (r *TrainingRequest) BeforeCreate(tx *gorm.DB) error {
+	if r.ID == uuid.Nil {
+		r.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// TrainingCourseObjective — Learning objective per course (P1-BE — plan §8)
+// =========================================================================
+
+type TrainingCourseObjective struct {
+	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	CourseID  uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_obj_course" json:"course_id"`
+	Objective string         `gorm:"type:text;not null" json:"objective"`
+	SortOrder int            `gorm:"type:int;not null;default:0" json:"sort_order"`
+	DeletedAt gorm.DeletedAt `gorm:"index:idx_trn_obj_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+}
+
+func (TrainingCourseObjective) TableName() string { return "training_course_objectives" }
+
+func (o *TrainingCourseObjective) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == uuid.Nil {
+		o.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// TrainingCourseCompetency — relasi course ↔ competencies.id (P1-BE — plan §9)
+// =========================================================================
+
+type TrainingCourseCompetency struct {
+	ID           uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	CourseID     uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_course_comp_course" json:"course_id"`
+	CompetencyID uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_course_comp_comp" json:"competency_id"`
+	TargetLevel  *int           `gorm:"type:int" json:"target_level,omitempty"`
+	DeletedAt    gorm.DeletedAt `gorm:"index:idx_trn_course_comp_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
+func (TrainingCourseCompetency) TableName() string { return "training_course_competencies" }
+
+func (c *TrainingCourseCompetency) BeforeCreate(tx *gorm.DB) error {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// TrainingCoursePrerequisite — Prasyarat course (P1-BE — plan §10)
+// =========================================================================
+
+type TrainingCoursePrerequisite struct {
+	ID                uuid.UUID       `gorm:"type:char(36);primaryKey" json:"id"`
+	CourseID          uuid.UUID       `gorm:"type:char(36);not null;index:idx_trn_preq_course" json:"course_id"`
+	PrerequisiteType  PrerequisiteType `gorm:"type:varchar(20);not null;default:COURSE" json:"prerequisite_type"`
+	PrerequisiteID    *uuid.UUID      `gorm:"type:char(36)" json:"prerequisite_id,omitempty"`
+	IsRequired        bool            `gorm:"not null;default:1" json:"is_required"`
+	DeletedAt         gorm.DeletedAt  `gorm:"index:idx_trn_preq_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
+}
+
+func (TrainingCoursePrerequisite) TableName() string { return "training_course_prerequisites" }
+
+func (p *TrainingCoursePrerequisite) BeforeCreate(tx *gorm.DB) error {
+	if p.ID == uuid.Nil {
+		p.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// TrainingMandatory — Training wajib berdasarkan target (P1-BE — plan §25)
+// =========================================================================
+
+type TrainingMandatory struct {
+	ID                   uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	CourseID             uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_mand_course" json:"course_id"`
+	OrganizationID       *uuid.UUID     `gorm:"type:char(36);index:idx_trn_mand_org" json:"organization_id,omitempty"`
+	PositionID           *uuid.UUID     `gorm:"type:char(36)" json:"position_id,omitempty"`
+	EmploymentStatusID   *uuid.UUID     `gorm:"type:char(36)" json:"employment_status_id,omitempty"`
+	DueDays              *int           `gorm:"type:int" json:"due_days,omitempty"`
+	ValidityPeriodMonth  *int           `gorm:"type:int" json:"validity_period_month,omitempty"`
+	IsActive             bool           `gorm:"not null;default:1" json:"is_active"`
+	DeletedAt            gorm.DeletedAt `gorm:"index:idx_trn_mand_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt            time.Time      `json:"created_at"`
+	UpdatedAt            time.Time      `json:"updated_at"`
+}
+
+func (TrainingMandatory) TableName() string { return "training_mandatories" }
+
+func (m *TrainingMandatory) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil {
+		m.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// TrainingSessionCost — Biaya aktual per session (P1-BE — plan §26)
+// =========================================================================
+
+type TrainingSessionCost struct {
+	ID          uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	SessionID   uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_cost_session" json:"session_id"`
+	CostType    CostType       `gorm:"type:varchar(30);not null;default:OTHER" json:"cost_type"`
+	Description *string        `gorm:"type:text" json:"description,omitempty"`
+	Amount      float64        `gorm:"type:decimal(14,2);not null;default:0" json:"amount"`
+	DeletedAt   gorm.DeletedAt `gorm:"index:idx_trn_cost_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+}
+
+func (TrainingSessionCost) TableName() string { return "training_session_costs" }
+
+func (c *TrainingSessionCost) BeforeCreate(tx *gorm.DB) error {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// TrainingDocument — Dokumen pendukung session (P1-BE — plan §27)
+// =========================================================================
+
+type TrainingDocument struct {
+	ID           uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	SessionID    uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_doc_session" json:"session_id"`
+	DocumentType DocumentType   `gorm:"type:varchar(30);not null;default:OTHER" json:"document_type"`
+	FileName     *string        `gorm:"type:varchar(255)" json:"file_name,omitempty"`
+	FileURL      *string        `gorm:"type:text" json:"file_url,omitempty"`
+	UploadedBy   *uuid.UUID     `gorm:"type:char(36)" json:"uploaded_by,omitempty"`
+	DeletedAt    gorm.DeletedAt `gorm:"index:idx_trn_doc_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
+func (TrainingDocument) TableName() string { return "training_documents" }
+
+func (d *TrainingDocument) BeforeCreate(tx *gorm.DB) error {
+	if d.ID == uuid.Nil {
+		d.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // TrainingAssessment — Definisi assessment per session
 // =========================================================================
 
