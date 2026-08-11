@@ -1218,7 +1218,9 @@ async function loadEffectiveness() {
     if (effectivenessParticipantId.value) {
       effectivenessList.value = rows
     } else {
-      // Filter ke peserta session ini (list global tidak punya filter session di BE)
+      // Filter ke peserta session ini (list global tidak punya filter session di BE —
+      // dibatasi per_page=200; tenant dengan >200 record efektivitas global akan
+      // menampilkan subset. Gunakan filter participant untuk cakupan penuh.)
       const sessionPartIds = new Set(participants.value.map(p => p.id))
       effectivenessList.value = rows.filter(r => sessionPartIds.has(r.participant_id))
     }

@@ -147,9 +147,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// Route statis + sub-resource session form SEBELUM parameterized flat.
 		trn.GET("/evaluation-forms", handler.ListEvaluationForms)
 		trn.POST("/evaluation-forms", handler.CreateEvaluationForm)
-		trn.GET("/evaluation-forms/:id", handler.GetEvaluationForm)
-		trn.PUT("/evaluation-forms/:id", handler.UpdateEvaluationForm)
-		trn.DELETE("/evaluation-forms/:id", handler.DeleteEvaluationForm)
+		trn.GET("/evaluation-forms/:form_id", handler.GetEvaluationForm)
+		trn.PUT("/evaluation-forms/:form_id", handler.UpdateEvaluationForm)
+		trn.DELETE("/evaluation-forms/:form_id", handler.DeleteEvaluationForm)
 		trn.GET("/sessions/:id/evaluation-form", handler.GetEvaluationFormBySession)
 
 		// Evaluation Questions (P2-BE — plan §22)

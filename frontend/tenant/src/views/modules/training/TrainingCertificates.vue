@@ -326,6 +326,9 @@ const certFirst = computed(() => (certPage.value - 1) * perPage.value)
 const certListFirst = computed(() => (certListPage.value - 1) * perPage.value)
 
 const participantOptions = computed(() => participants.value.map(p => ({ label: participantName(p.id), value: p.id })))
+// Catatan: `issuedForParticipant` hanya mengecek halaman sertifikat saat ini (lazy pagination),
+// sehingga peserta yang sudah punya sertifikat di halaman lain tetap muncul — tidak fatal karena
+// endpoint GenerateCertificate bersifat idempotent (update bila sudah ada).
 const completableParticipantOptions = computed(() =>
   participants.value.filter(p => p.completion_status === 'COMPLETED' && !issuedForParticipant(p.id)).map(p => ({ label: participantName(p.id), value: p.id }))
 )

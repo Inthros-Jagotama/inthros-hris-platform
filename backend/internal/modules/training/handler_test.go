@@ -52,6 +52,38 @@ func setupRouter(t *testing.T) (*gin.Engine, *Handler) {
 	return r, handler
 }
 
+// TestRegisterRoutes_NoWildcardConflict memastikan registrasi SELURUH route
+// training (via RegisterRoutes) tidak memicu panic konflik wildcard Gin.
+// Regression guard: pernah panic "':form_id' ... conflicts with existing wildcard
+// ':id' ... /evaluation-forms/:id" saat route questions & CRUD form hidup
+// bersamaan — semua wildcard pada level path yang sama kini bernama konsisten
+// (evaluation-forms memakai :form_id, sisanya :id).
+func TestRegisterRoutes_NoWildcardConflict(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	rg := r.Group("/api/v1/tenant")
+	// Registrasi seluruh route — panic konflik wildcard Gin terjadi di sini
+	// bila ada wildcard berbeda pada level path yang sama.
+	RegisterRoutes(rg, NewHandler(testSvc(t)))
+
+	// Request probe: route list (selalu 200 walaupun kosong) membuktikan
+	// tree Gin ter-resolve tanpa konflik wildcard. Route detail yang
+	// mengembalikan 404 legit (record tidak ada) tidak di-probe.
+	for _, path := range []string{
+		"/api/v1/tenant/trainings/evaluation-forms/00000000-0000-0000-0000-000000000000/questions",
+		"/api/v1/tenant/trainings/courses/00000000-0000-0000-0000-000000000000/objectives",
+		"/api/v1/tenant/trainings/sessions/00000000-0000-0000-0000-000000000000/costs",
+		"/api/v1/tenant/trainings/reports/dashboard",
+	} {
+		req := httptest.NewRequest("GET", path, nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code == http.StatusNotFound {
+			t.Errorf("route %s not reachable (wildcard conflict?)", path)
+		}
+	}
+}
+
 func TestHandler_CreateCategory(t *testing.T) {
 	r, _ := setupRouter(t)
 

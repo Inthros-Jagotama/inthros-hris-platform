@@ -504,24 +504,6 @@ func (h *Handler) GetCertificateByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
-func (h *Handler) UpdateCertificate(c *gin.Context) {
-	id := c.Param("id")
-	var req UpdateTrainingCertificateRequest
-	if !httputil.BindAndValidate(c, &req) {
-		return
-	}
-	resp, err := h.svc.UpdateCertificate(c.Request.Context(), id, req)
-	if err != nil {
-		if err.Error() == "training certificate not found" {
-			httputil.NotFound(c, "")
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
-}
-
 func (h *Handler) DeleteCertificate(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.svc.DeleteCertificate(c.Request.Context(), id); err != nil {
@@ -1385,7 +1367,7 @@ func (h *Handler) CreateEvaluationForm(c *gin.Context) {
 }
 
 func (h *Handler) GetEvaluationForm(c *gin.Context) {
-	resp, err := h.svc.GetEvaluationFormByID(c.Request.Context(), c.Param("id"))
+	resp, err := h.svc.GetEvaluationFormByID(c.Request.Context(), c.Param("form_id"))
 	if err != nil {
 		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
 		return
@@ -1412,7 +1394,7 @@ func (h *Handler) UpdateEvaluationForm(c *gin.Context) {
 	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
-	resp, err := h.svc.UpdateEvaluationForm(c.Request.Context(), c.Param("id"), req)
+	resp, err := h.svc.UpdateEvaluationForm(c.Request.Context(), c.Param("form_id"), req)
 	if err != nil {
 		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
 		return
@@ -1421,7 +1403,7 @@ func (h *Handler) UpdateEvaluationForm(c *gin.Context) {
 }
 
 func (h *Handler) DeleteEvaluationForm(c *gin.Context) {
-	if err := h.svc.DeleteEvaluationForm(c.Request.Context(), c.Param("id")); err != nil {
+	if err := h.svc.DeleteEvaluationForm(c.Request.Context(), c.Param("form_id")); err != nil {
 		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
 		return
 	}

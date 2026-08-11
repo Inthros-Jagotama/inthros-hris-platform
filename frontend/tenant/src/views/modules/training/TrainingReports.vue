@@ -323,10 +323,10 @@ function complianceStatusLabel(s) {
 }
 function complianceStatusSeverity(s) {
   switch (String(s || '').toUpperCase()) {
-    case 'COMPLIANT': return 'success'
+    case 'COMPLETED': return 'success'
+    case 'NOT_COMPLETED': return 'danger'
     case 'OVERDUE': return 'danger'
     case 'PENDING': return 'warning'
-    case 'IN_PROGRESS': return 'info'
     default: return 'secondary'
   }
 }
