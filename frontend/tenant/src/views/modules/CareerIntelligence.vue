@@ -59,7 +59,9 @@ const { t } = useI18n()
 // Career Paths berada di sini (bukan di sidebar) sesuai keputusan pemisahan
 // transactional vs strategical: halaman ini untuk konfigurasi/perencanaan karir.
 const menuCards = computed(() => [
-  { labelKey: 'career_intel.paths', descKey: 'career_paths.description', icon: 'pi pi-sitemap', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/career-intelligence/paths' }
+  { labelKey: 'career_intel.paths', descKey: 'career_paths.description', icon: 'pi pi-sitemap', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/career-intelligence/paths' },
+  // P2-FE integrasi: riwayat pengembangan (course–competency) dari modul Training
+  { labelKey: 'career_intel.development', descKey: 'career_intel.development_desc', icon: 'pi pi-graduation-cap', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/training/history' }
 ])
 
 // Fitur yang sudah terdefinisi di locale tapi halamannya belum dibangun —

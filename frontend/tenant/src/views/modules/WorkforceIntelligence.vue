@@ -60,7 +60,9 @@ const { t } = useI18n()
 // Candidate Search menampilkan posisi kosong (org tanpa employment aktif di
 // bawah Organization Summary active) beserta kandidat recruitment-nya.
 const menuCards = computed(() => [
-  { labelKey: 'candidate_search.title', descKey: 'candidate_search.description', icon: 'pi pi-user-plus', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/workforce-intelligence/candidate-search' }
+  { labelKey: 'candidate_search.title', descKey: 'candidate_search.description', icon: 'pi pi-user-plus', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/workforce-intelligence/candidate-search' },
+  // P2-FE integrasi: analisis training (completion/cost/compliance) dari modul Training
+  { labelKey: 'workforce_intel.training_analysis', descKey: 'workforce_intel.training_analysis_desc', icon: 'pi pi-graduation-cap', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/training/reports' }
 ])
 
 // Fitur yang sudah terdefinisi di locale tapi halamannya belum dibangun —

@@ -427,6 +427,24 @@ const routes = [
         component: () => import('@/views/modules/training/TrainingNeeds.vue'),
         meta: { title: 'Training Needs', titleKey: 'training.needs', descKey: 'training.needs_desc', icon: 'pi pi-bullseye', module: 'training', backRoute: '/training', backLabelKey: 'training.title' }
       },
+      {
+        path: 'training/certificates',
+        name: 'TrainingCertificates',
+        component: () => import('@/views/modules/training/TrainingCertificates.vue'),
+        meta: { title: 'Training Certificates', titleKey: 'training.certificates', descKey: 'training.certificates_desc', icon: 'pi pi-id-card', module: 'training', backRoute: '/training', backLabelKey: 'training.title' }
+      },
+      {
+        path: 'training/history',
+        name: 'TrainingHistory',
+        component: () => import('@/views/modules/training/TrainingHistory.vue'),
+        meta: { title: 'Training History', titleKey: 'training.history', descKey: 'training.history_desc', icon: 'pi pi-history', module: 'training', backRoute: '/training', backLabelKey: 'training.title' }
+      },
+      {
+        path: 'training/reports',
+        name: 'TrainingReports',
+        component: () => import('@/views/modules/training/TrainingReports.vue'),
+        meta: { title: 'Training Reports', titleKey: 'training.reports', descKey: 'training.reports_desc', icon: 'pi pi-chart-bar', module: 'training', backRoute: '/training', backLabelKey: 'training.title' }
+      },
       // Workforce Intelligence
       {
         path: 'workforce-intelligence',

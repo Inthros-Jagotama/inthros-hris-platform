@@ -134,14 +134,14 @@ const menuCards = computed(() => [
   { labelKey: 'training.trainers', descKey: 'training.trainers_desc', icon: 'pi pi-user', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/training/trainers' },
   { labelKey: 'training.planning', descKey: 'training.planning_desc', icon: 'pi pi-calendar-plus', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/training/plans' },
   { labelKey: 'training.requests', descKey: 'training.requests_desc', icon: 'pi pi-send', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400', route: '/training/requests' },
-  { labelKey: 'training.needs', descKey: 'training.needs_desc', icon: 'pi pi-bullseye', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400', route: '/training/needs' }
+  { labelKey: 'training.needs', descKey: 'training.needs_desc', icon: 'pi pi-bullseye', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400', route: '/training/needs' },
+  { labelKey: 'training.certificates', descKey: 'training.certificates_desc', icon: 'pi pi-id-card', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400', route: '/training/certificates' },
+  { labelKey: 'training.history', descKey: 'training.history_desc', icon: 'pi pi-history', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', route: '/training/history' },
+  { labelKey: 'training.reports', descKey: 'training.reports_desc', icon: 'pi pi-chart-bar', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', route: '/training/reports' }
 ])
 
-// Fitur P2 — roadmap terlihat jelas di hub (plan §37)
-const comingSoonCards = computed(() => [
-  { labelKey: 'training.certificates', icon: 'pi pi-id-card', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400' },
-  { labelKey: 'training.reports', icon: 'pi pi-chart-bar', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' }
-])
+// Semua fitur modul sudah memiliki halaman — tidak ada card coming-soon.
+const comingSoonCards = computed(() => [])
 
 onMounted(loadStats)
 </script>

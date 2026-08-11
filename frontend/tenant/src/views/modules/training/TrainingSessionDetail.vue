@@ -256,9 +256,254 @@
             </Column>
           </DataTable>
         </div>
+
+        <!-- ── Evaluation (P2-FE) ── -->
+        <div v-if="activeTab === 'evaluation'" class="p-4">
+          <div v-if="evalFormLoading" class="p-4 space-y-2">
+            <div v-for="i in 3" :key="i" class="h-12 rounded bg-gray-100 dark:bg-gray-700/50 animate-pulse"></div>
+          </div>
+          <template v-else>
+            <!-- Tidak ada form evaluasi untuk session ini -->
+            <div v-if="!evaluationForm" class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
+              <i class="pi pi-clipboard text-3xl mb-2 opacity-50"></i>
+              <p class="text-sm font-medium">{{ t('training.eval_form_not_found') }}</p>
+              <p class="text-xs mt-1 mb-3">{{ t('training.eval_form_not_found_hint') }}</p>
+              <Button :label="t('training.eval_form_create')" icon="pi pi-plus" size="small" @click="openEvalFormDialog()" />
+            </div>
+
+            <!-- Form evaluasi + pertanyaan -->
+            <div v-else class="space-y-4">
+              <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <div class="flex items-start justify-between gap-3 flex-wrap">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ evaluationForm.form.name }}</h3>
+                      <Tag :value="evaluationForm.form.is_active ? t('training.is_active') : t('training.inactive')" :severity="evaluationForm.form.is_active ? 'success' : 'secondary'" class="!text-[10px] !px-1.5 !py-0" />
+                    </div>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ t('training.eval_questions_count', { count: evaluationForm.questions.length }) }}</p>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <Button :label="t('training.eval_question_new')" icon="pi pi-plus" size="small" severity="secondary" outlined @click="openEvalQuestionDialog()" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Daftar pertanyaan -->
+              <DataTable :value="evaluationForm.questions || []" size="small" class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <template #empty>
+                  <div class="text-center py-6 text-sm text-gray-400">{{ t('training.eval_questions_empty') }}</div>
+                </template>
+                <Column field="sort_order" :header="t('training.sort_order')" style="width:80px">
+                  <template #body="{data}"><span class="text-gray-400">{{ data.sort_order }}</span></template>
+                </Column>
+                <Column field="question" :header="t('training.question')">
+                  <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.question }}</span></template>
+                </Column>
+                <Column field="question_type" :header="t('training.question_type')" style="width:160px">
+                  <template #body="{data}"><Tag :value="qTypeLabel(data.question_type)" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
+                </Column>
+                <Column field="is_required" :header="t('training.is_required')" style="width:90px">
+                  <template #body="{data}"><Tag :value="data.is_required ? t('common.yes') : t('common.no')" :severity="data.is_required ? 'danger' : 'secondary'" class="!text-xs !px-1.5 !py-0.5" /></template>
+                </Column>
+                <Column :header="t('common.actions')" style="width:90px" frozen alignFrozen="right">
+                  <template #body="{data}">
+                    <div class="flex items-center gap-1 justify-end">
+                      <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openEvalQuestionDialog(data)" />
+                      <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="removeEvalQuestion(data)" />
+                    </div>
+                  </template>
+                </Column>
+              </DataTable>
+
+              <!-- Submit jawaban per peserta -->
+              <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
+                  <i class="pi pi-pen-to-square text-emerald-500 text-sm"></i>
+                  <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('training.eval_submit_answers') }}</h3>
+                </div>
+                <div class="p-4 space-y-3">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormRow :label="t('training.participant')">
+                      <SelectLabel v-model="answerParticipantId" :options="participantOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" showClear />
+                    </FormRow>
+                  </div>
+                  <div v-if="answerParticipantId && (evaluationForm.questions || []).length" class="space-y-3">
+                    <div v-for="q in evaluationForm.questions" :key="q.id" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                      <p class="text-sm font-medium text-gray-800 dark:text-gray-100">
+                        {{ q.question }}
+                        <span v-if="q.is_required" class="text-rose-500">*</span>
+                      </p>
+                      <!-- RATING -->
+                      <div v-if="q.question_type === 'RATING'" class="mt-2 flex items-center gap-1">
+                        <button
+                          v-for="n in 5"
+                          :key="n"
+                          type="button"
+                          class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                          :class="Number(answers[q.id]) >= n ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-500' : 'bg-gray-100 dark:bg-gray-700/50 text-gray-300 dark:text-gray-600 hover:text-gray-400'"
+                          @click="answers[q.id] = String(n)"
+                        >
+                          <i class="pi pi-star-fill text-sm"></i>
+                        </button>
+                      </div>
+                      <!-- TEXT -->
+                      <div v-else-if="q.question_type === 'TEXT'" class="mt-2">
+                        <TextInput v-model="answers[q.id]" textarea :rows="2" :placeholder="t('training.eval_answer_placeholder')" />
+                      </div>
+                      <!-- SINGLE_CHOICE / MULTIPLE_CHOICE -->
+                      <div v-else class="mt-2">
+                        <SelectLabel
+                          v-if="q.question_type === 'SINGLE_CHOICE'"
+                          v-model="answers[q.id]"
+                          :options="choiceOptions"
+                          optionLabel="label"
+                          optionValue="value"
+                          :placeholder="t('common.select')"
+                          showClear
+                          class="!max-w-sm"
+                        />
+                        <div v-else class="flex items-center gap-4 flex-wrap">
+                          <label v-for="opt in choiceOptions" :key="opt.value" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 cursor-pointer">
+                            <input type="checkbox" :checked="(answers[q.id] || '').split(',').includes(opt.value)" class="accent-emerald-500" @change="toggleChoice(q.id, opt.value)" />
+                            {{ opt.label }}
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-end">
+                      <Button :label="t('training.eval_submit')" icon="pi pi-check" size="small" :loading="answerSaving" :disabled="answerSaving" @click="submitAnswers" />
+                    </div>
+                  </div>
+                  <p v-else-if="answerParticipantId" class="text-xs text-gray-400">{{ t('training.eval_no_questions_hint') }}</p>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- ── Effectiveness (P2-FE) ── -->
+        <div v-if="activeTab === 'effectiveness'" class="p-4">
+          <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+            <div class="flex items-center gap-2 flex-wrap">
+              <SelectLabel v-model="effectivenessParticipantId" :options="participantOptions" optionLabel="label" optionValue="value" filter :placeholder="t('training.filter_all_participants')" class="!w-64" showClear @update:modelValue="onEffectivenessFilterChange" />
+              <span v-if="effectivenessList.length" class="text-xs text-gray-400">{{ effectivenessList.length }} {{ t('common.items') }}</span>
+            </div>
+            <Button :label="t('training.effectiveness_new')" icon="pi pi-plus" size="small" class="ml-auto" @click="openEffectivenessDialog()" />
+          </div>
+          <DataTable :value="effectivenessList" size="small" class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" :loading="effectivenessLoading">
+            <template #empty>
+              <div class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
+                <i class="pi pi-chart-line text-2xl mb-2 opacity-50"></i>
+                <p class="text-sm">{{ t('training.effectiveness_empty') }}</p>
+              </div>
+            </template>
+            <Column field="participant_id" :header="t('training.participant')" style="width:200px">
+              <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ participantLabel(data.participant_id) }}</span></template>
+            </Column>
+            <Column field="assessment_date" :header="t('training.assessment_date')" style="width:130px">
+              <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.assessment_date || '-' }}</span></template>
+            </Column>
+            <Column field="before_score" :header="t('training.before_score')" style="width:110px">
+              <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.before_score ?? '-' }}</span></template>
+            </Column>
+            <Column field="after_score" :header="t('training.after_score')" style="width:110px">
+              <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.after_score ?? '-' }}</span></template>
+            </Column>
+            <Column field="effectiveness_score" :header="t('training.effectiveness_score')" style="width:150px">
+              <template #body="{data}">
+                <Tag v-if="data.effectiveness_score != null" :value="data.effectiveness_score" :severity="effectivenessSeverity(data.effectiveness_score)" class="!text-xs !px-1.5 !py-0.5" />
+                <span v-else class="text-gray-400">-</span>
+              </template>
+            </Column>
+            <Column field="remarks" :header="t('training.remarks')" style="width:220px">
+              <template #body="{data}"><span class="text-gray-600 dark:text-gray-300 line-clamp-1">{{ data.remarks || '-' }}</span></template>
+            </Column>
+            <Column :header="t('common.actions')" style="width:90px" frozen alignFrozen="right">
+              <template #body="{data}">
+                <div class="flex items-center gap-1 justify-end">
+                  <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openEffectivenessDialog(data)" />
+                  <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="removeEffectiveness(data)" />
+                </div>
+              </template>
+            </Column>
+          </DataTable>
+        </div>
       </div>
 
-      <!-- ── Dialog: register participant ── -->
+      <!-- ── Dialog: create evaluation form ── -->
+      <Dialog v-model:visible="evalFormDialogVisible" :header="t('training.eval_form_create')" modal :style="{ width: '480px' }" @hide="resetEvalForm">
+        <div class="space-y-4">
+          <FormRow :label="t('training.eval_form_name')" required :errors="errors?.name">
+            <TextInput v-model="evalForm.name" maxlength="200" :placeholder="t('training.eval_form_name')" :class="{ 'p-invalid': errors?.name }" />
+          </FormRow>
+        </div>
+        <template #footer>
+          <div class="flex items-center justify-end gap-2">
+            <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="evalFormDialogVisible = false" />
+            <Button :label="t('common.save')" size="small" :loading="evalFormSaving" :disabled="evalFormSaving" @click="handleCreateEvalForm" />
+          </div>
+        </template>
+      </Dialog>
+
+      <!-- ── Dialog: evaluation question ── -->
+      <Dialog v-model:visible="evalQuestionDialogVisible" :header="evalQuestionEditing ? t('training.eval_question_edit') : t('training.eval_question_new')" modal :style="{ width: '520px' }" @hide="resetEvalQuestionForm">
+        <div class="space-y-4">
+          <FormRow :label="t('training.question')" required :errors="errors?.question">
+            <TextInput v-model="evalQuestionForm.question" textarea :rows="2" :placeholder="t('training.question')" :class="{ 'p-invalid': errors?.question }" />
+          </FormRow>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormRow :label="t('training.question_type')" required :errors="errors?.question_type">
+              <SelectLabel v-model="evalQuestionForm.question_type" :options="qTypeOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.question_type }" />
+            </FormRow>
+            <FormRow :label="t('training.sort_order')">
+              <InputNumber v-model="evalQuestionForm.sort_order" class="!w-full" :min="0" size="small" />
+            </FormRow>
+          </div>
+          <FormRow :label="t('training.is_required')">
+            <ToggleSwitch v-model="evalQuestionForm.is_required" />
+          </FormRow>
+        </div>
+        <template #footer>
+          <div class="flex items-center justify-end gap-2">
+            <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="evalQuestionDialogVisible = false" />
+            <Button :label="evalQuestionEditing ? t('common.update') : t('common.save')" size="small" :loading="evalQuestionSaving" :disabled="evalQuestionSaving" @click="handleSaveEvalQuestion" />
+          </div>
+        </template>
+      </Dialog>
+
+      <!-- ── Dialog: effectiveness assessment ── -->
+      <Dialog v-model:visible="effectivenessDialogVisible" :header="effectivenessEditing ? t('training.effectiveness_edit') : t('training.effectiveness_new')" modal :style="{ width: '540px' }" @hide="resetEffectivenessForm">
+        <div class="space-y-4">
+          <FormRow :label="t('training.participant')" required :errors="errors?.participant_id">
+            <SelectLabel v-model="effectivenessForm.participant_id" :options="participantOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.participant_id }" />
+          </FormRow>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormRow :label="t('training.assessment_date')" required :errors="errors?.assessment_date">
+              <DateInput v-model="effectivenessForm.assessment_date" :class="{ 'p-invalid': errors?.assessment_date }" />
+            </FormRow>
+            <FormRow :label="t('training.effectiveness_score')">
+              <InputNumber v-model="effectivenessForm.effectiveness_score" class="!w-full" :min="0" :max="100" size="small" />
+            </FormRow>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormRow :label="t('training.before_score')">
+              <InputNumber v-model="effectivenessForm.before_score" class="!w-full" :min="0" :max="100" size="small" />
+            </FormRow>
+            <FormRow :label="t('training.after_score')">
+              <InputNumber v-model="effectivenessForm.after_score" class="!w-full" :min="0" :max="100" size="small" />
+            </FormRow>
+          </div>
+          <FormRow :label="t('training.remarks')">
+            <TextInput v-model="effectivenessForm.remarks" textarea :rows="2" />
+          </FormRow>
+        </div>
+        <template #footer>
+          <div class="flex items-center justify-end gap-2">
+            <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="effectivenessDialogVisible = false" />
+            <Button :label="effectivenessEditing ? t('common.update') : t('common.save')" size="small" :loading="effectivenessSaving" :disabled="effectivenessSaving" @click="handleSaveEffectiveness" />
+          </div>
+        </template>
+      </Dialog>
       <Dialog v-model:visible="participantDialogVisible" :header="t('training.participant_new')" modal :style="{ width: '480px' }">
         <div class="space-y-4">
           <FormRow :label="t('training.employee')" required :errors="errors?.employee_id">
@@ -368,6 +613,7 @@ import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
+import DateInput from '@/components/DateInput.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -418,7 +664,9 @@ const tabs = [
   { key: 'participants', labelKey: 'training.participants' },
   { key: 'materials', labelKey: 'training.materials' },
   { key: 'costs', labelKey: 'training.tab_costs' },
-  { key: 'documents', labelKey: 'training.tab_documents' }
+  { key: 'documents', labelKey: 'training.tab_documents' },
+  { key: 'evaluation', labelKey: 'training.tab_evaluation' },
+  { key: 'effectiveness', labelKey: 'training.tab_effectiveness' }
 ]
 
 const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_id})`, value: e.id })))
@@ -765,14 +1013,304 @@ async function removeDocument(item) {
   }
 }
 
+// ════ P2-FE: Evaluation form & answers ════
+const evalFormLoading = ref(false)
+const evaluationForm = ref(null)
+const evalFormDialogVisible = ref(false)
+const evalFormSaving = ref(false)
+const evalForm = ref({ name: '' })
+const evalQuestionDialogVisible = ref(false)
+const evalQuestionEditing = ref(false)
+const evalQuestionEditingId = ref(null)
+const evalQuestionSaving = ref(false)
+const evalQuestionForm = ref({ question: '', question_type: 'RATING', sort_order: null, is_required: false })
+const answerParticipantId = ref(null)
+const answers = ref({})
+const answerSaving = ref(false)
+
+const qTypeOptions = computed(() => ['RATING', 'TEXT', 'SINGLE_CHOICE', 'MULTIPLE_CHOICE'].map(v => ({ label: qTypeLabel(v), value: v })))
+const choiceOptions = computed(() => [
+  { label: t('training.choice_excellent'), value: 'EXCELLENT' },
+  { label: t('training.choice_good'), value: 'GOOD' },
+  { label: t('training.choice_fair'), value: 'FAIR' },
+  { label: t('training.choice_poor'), value: 'POOR' }
+])
+const participantOptions = computed(() => participants.value.map(p => ({ label: participantLabel(p.id), value: p.id })))
+
+function qTypeLabel(type) {
+  const key = `training.qtype_${String(type || '').toLowerCase()}`
+  return t(key) !== key ? t(key) : type
+}
+function participantLabel(id) {
+  const p = participants.value.find(x => x.id === id)
+  if (!p) return id
+  return employeeName(p.employee_id)
+}
+
+async function loadEvaluationForm() {
+  evalFormLoading.value = true
+  try {
+    const res = await api.get(`/api/v1/tenant/trainings/sessions/${sessionId}/evaluation-form`)
+    evaluationForm.value = res.data?.data || null
+  } catch {
+    evaluationForm.value = null
+  } finally {
+    evalFormLoading.value = false
+  }
+}
+
+function openEvalFormDialog() {
+  errors.value = {}
+  evalForm.value = { name: '' }
+  evalFormDialogVisible.value = true
+}
+
+function resetEvalForm() {
+  evalForm.value = { name: '' }
+  errors.value = {}
+}
+
+async function handleCreateEvalForm() {
+  errors.value = {}
+  if (!evalForm.value.name?.trim()) { errors.value = { name: t('form.required') }; return }
+  evalFormSaving.value = true
+  try {
+    await api.post('/api/v1/tenant/trainings/evaluation-forms', {
+      session_id: sessionId,
+      name: evalForm.value.name.trim(),
+      is_active: true
+    })
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
+    evalFormDialogVisible.value = false
+    await loadEvaluationForm()
+  } catch (e) {
+    const fieldErrors = getValidationErrors(e)
+    if (Object.keys(fieldErrors).length > 0) {
+      errors.value = fieldErrors
+    } else {
+      toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+    }
+  } finally {
+    evalFormSaving.value = false
+  }
+}
+
+function openEvalQuestionDialog(item) {
+  errors.value = {}
+  evalQuestionEditing.value = !!item
+  evalQuestionEditingId.value = item?.id || null
+  evalQuestionForm.value = item
+    ? { question: item.question || '', question_type: item.question_type || 'RATING', sort_order: item.sort_order ?? null, is_required: item.is_required }
+    : { question: '', question_type: 'RATING', sort_order: (evaluationForm.value?.questions?.length || 0) + 1, is_required: false }
+  evalQuestionDialogVisible.value = true
+}
+
+function resetEvalQuestionForm() {
+  evalQuestionForm.value = { question: '', question_type: 'RATING', sort_order: null, is_required: false }
+  errors.value = {}
+  evalQuestionEditing.value = false
+  evalQuestionEditingId.value = null
+}
+
+async function handleSaveEvalQuestion() {
+  errors.value = {}
+  if (!evalQuestionForm.value.question?.trim()) { errors.value = { question: t('form.required') }; return }
+  if (!evalQuestionForm.value.question_type) { errors.value = { question_type: t('form.required') }; return }
+  evalQuestionSaving.value = true
+  try {
+    const payload = {
+      question: evalQuestionForm.value.question.trim(),
+      question_type: evalQuestionForm.value.question_type,
+      sort_order: evalQuestionForm.value.sort_order ?? null,
+      is_required: evalQuestionForm.value.is_required
+    }
+    const formId = evaluationForm.value?.form?.id
+    if (evalQuestionEditing.value) {
+      await api.put(`/api/v1/tenant/trainings/evaluation-questions/${evalQuestionEditingId.value}`, payload)
+    } else if (formId) {
+      await api.post(`/api/v1/tenant/trainings/evaluation-forms/${formId}/questions`, payload)
+    }
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
+    evalQuestionDialogVisible.value = false
+    await loadEvaluationForm()
+  } catch (e) {
+    const fieldErrors = getValidationErrors(e)
+    if (Object.keys(fieldErrors).length > 0) {
+      errors.value = fieldErrors
+    } else {
+      toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+    }
+  } finally {
+    evalQuestionSaving.value = false
+  }
+}
+
+async function removeEvalQuestion(item) {
+  try {
+    await api.delete(`/api/v1/tenant/trainings/evaluation-questions/${item.id}`)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.deleted'), life: 3000 })
+    await loadEvaluationForm()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  }
+}
+
+function toggleChoice(questionId, value) {
+  const current = (answers.value[questionId] || '').split(',').filter(Boolean)
+  const idx = current.indexOf(value)
+  if (idx >= 0) current.splice(idx, 1)
+  else current.push(value)
+  answers.value[questionId] = current.join(',')
+}
+
+async function submitAnswers() {
+  if (!answerParticipantId.value || !evaluationForm.value) return
+  const formId = evaluationForm.value.form.id
+  const payload = {
+    answers: (evaluationForm.value.questions || [])
+      .filter(q => answers.value[q.id] != null && answers.value[q.id] !== '')
+      .map(q => ({ question_id: q.id, answer: String(answers.value[q.id]) }))
+  }
+  if (!payload.answers.length) {
+    toast.add({ severity: 'warn', summary: t('message.warning'), detail: t('training.eval_answers_empty'), life: 3000 })
+    return
+  }
+  answerSaving.value = true
+  try {
+    await api.post(`/api/v1/tenant/trainings/evaluation-forms/${formId}/participants/${answerParticipantId.value}/answers`, payload)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
+    answers.value = {}
+    answerParticipantId.value = null
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  } finally {
+    answerSaving.value = false
+  }
+}
+
+// ════ P2-FE: Effectiveness assessment ════
+const effectivenessParticipantId = ref(null)
+const effectivenessList = ref([])
+const effectivenessLoading = ref(false)
+const effectivenessDialogVisible = ref(false)
+const effectivenessEditing = ref(false)
+const effectivenessEditingId = ref(null)
+const effectivenessSaving = ref(false)
+const effectivenessForm = ref(defaultEffectivenessForm())
+
+function defaultEffectivenessForm() {
+  return { participant_id: null, assessment_date: null, before_score: null, after_score: null, effectiveness_score: null, remarks: '' }
+}
+
+function effectivenessSeverity(score) {
+  if (score >= 80) return 'success'
+  if (score >= 60) return 'warning'
+  return 'danger'
+}
+
+async function loadEffectiveness() {
+  effectivenessLoading.value = true
+  try {
+    const params = { per_page: 200 }
+    if (effectivenessParticipantId.value) params.participant_id = effectivenessParticipantId.value
+    const res = await api.get('/api/v1/tenant/trainings/effectiveness', { params })
+    let rows = res.data?.data || []
+    if (effectivenessParticipantId.value) {
+      effectivenessList.value = rows
+    } else {
+      // Filter ke peserta session ini (list global tidak punya filter session di BE)
+      const sessionPartIds = new Set(participants.value.map(p => p.id))
+      effectivenessList.value = rows.filter(r => sessionPartIds.has(r.participant_id))
+    }
+  } catch {
+    effectivenessList.value = []
+  } finally {
+    effectivenessLoading.value = false
+  }
+}
+
+function onEffectivenessFilterChange() {
+  loadEffectiveness()
+}
+
+function openEffectivenessDialog(item) {
+  errors.value = {}
+  effectivenessEditing.value = !!item
+  effectivenessEditingId.value = item?.id || null
+  effectivenessForm.value = item
+    ? {
+        participant_id: item.participant_id || null,
+        assessment_date: item.assessment_date || null,
+        before_score: item.before_score ?? null,
+        after_score: item.after_score ?? null,
+        effectiveness_score: item.effectiveness_score ?? null,
+        remarks: item.remarks || ''
+      }
+    : defaultEffectivenessForm()
+  effectivenessDialogVisible.value = true
+}
+
+function resetEffectivenessForm() {
+  effectivenessForm.value = defaultEffectivenessForm()
+  errors.value = {}
+  effectivenessEditing.value = false
+  effectivenessEditingId.value = null
+}
+
+async function handleSaveEffectiveness() {
+  errors.value = {}
+  if (!effectivenessForm.value.participant_id) { errors.value = { participant_id: t('form.required') }; return }
+  if (!effectivenessForm.value.assessment_date) { errors.value = { assessment_date: t('form.required') }; return }
+  effectivenessSaving.value = true
+  try {
+    const payload = {
+      participant_id: effectivenessForm.value.participant_id,
+      assessment_date: effectivenessForm.value.assessment_date,
+      before_score: effectivenessForm.value.before_score ?? null,
+      after_score: effectivenessForm.value.after_score ?? null,
+      effectiveness_score: effectivenessForm.value.effectiveness_score ?? null,
+      remarks: effectivenessForm.value.remarks?.trim() || ''
+    }
+    if (effectivenessEditing.value) {
+      await api.put(`/api/v1/tenant/trainings/effectiveness/${effectivenessEditingId.value}`, payload)
+    } else {
+      await api.post('/api/v1/tenant/trainings/effectiveness', payload)
+    }
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
+    effectivenessDialogVisible.value = false
+    await loadEffectiveness()
+  } catch (e) {
+    const fieldErrors = getValidationErrors(e)
+    if (Object.keys(fieldErrors).length > 0) {
+      errors.value = fieldErrors
+    } else {
+      toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+    }
+  } finally {
+    effectivenessSaving.value = false
+  }
+}
+
+async function removeEffectiveness(item) {
+  try {
+    await api.delete(`/api/v1/tenant/trainings/effectiveness/${item.id}`)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.deleted'), life: 3000 })
+    await loadEffectiveness()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  }
+}
+
 onMounted(() => {
   loadSession()
   loadReferences()
   loadTrainers()
   loadAssessments()
-  loadParticipants()
   loadMaterials()
   loadCosts()
   loadDocuments()
+  loadEvaluationForm()
+  // Effectiveness membutuhkan daftar peserta session untuk filter — jalankan setelah participants termuat
+  loadParticipants().finally(() => loadEffectiveness())
 })
 </script>
