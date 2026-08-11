@@ -101,12 +101,13 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		trn.PUT("/evaluations/:id", handler.UpdateEvaluation)
 		trn.DELETE("/evaluations/:id", handler.DeleteEvaluation)
 
-		// Training Certificates
+		// Training Certificates (P2-BE: generate + update file URL)
 		trn.POST("/certificates", handler.CreateCertificate)
 		trn.GET("/certificates", handler.ListCertificates)
 		trn.GET("/certificates/:id", handler.GetCertificateByID)
-		trn.PUT("/certificates/:id", handler.UpdateCertificate)
+		trn.PUT("/certificates/:id", handler.UpdateCertificateFile)
 		trn.DELETE("/certificates/:id", handler.DeleteCertificate)
+		trn.POST("/participants/:id/certificate", handler.GenerateCertificate)
 
 		// Training Plans (P1-BE — plan §16)
 		trn.POST("/plans", handler.CreatePlan)
@@ -141,5 +142,45 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		trn.GET("/mandatories/:id", handler.GetMandatoryByID)
 		trn.PUT("/mandatories/:id", handler.UpdateMandatory)
 		trn.DELETE("/mandatories/:id", handler.DeleteMandatory)
+
+		// ── P2-BE: Evaluation Forms (plan §22) ──
+		// Route statis + sub-resource session form SEBELUM parameterized flat.
+		trn.GET("/evaluation-forms", handler.ListEvaluationForms)
+		trn.POST("/evaluation-forms", handler.CreateEvaluationForm)
+		trn.GET("/evaluation-forms/:id", handler.GetEvaluationForm)
+		trn.PUT("/evaluation-forms/:id", handler.UpdateEvaluationForm)
+		trn.DELETE("/evaluation-forms/:id", handler.DeleteEvaluationForm)
+		trn.GET("/sessions/:id/evaluation-form", handler.GetEvaluationFormBySession)
+
+		// Evaluation Questions (P2-BE — plan §22)
+		trn.GET("/evaluation-forms/:form_id/questions", handler.ListEvaluationQuestions)
+		trn.POST("/evaluation-forms/:form_id/questions", handler.CreateEvaluationQuestion)
+		trn.PUT("/evaluation-questions/:id", handler.UpdateEvaluationQuestion)
+		trn.DELETE("/evaluation-questions/:id", handler.DeleteEvaluationQuestion)
+
+		// Evaluation Answers (P2-BE — plan §22)
+		trn.GET("/evaluation-answers", handler.ListEvaluationAnswers)
+		trn.POST("/evaluation-forms/:form_id/participants/:participant_id/answers", handler.SubmitEvaluationAnswers)
+
+		// Effectiveness Assessments (P2-BE — plan §23)
+		trn.POST("/effectiveness", handler.CreateEffectivenessAssessment)
+		trn.GET("/effectiveness", handler.ListEffectivenessAssessments)
+		trn.GET("/effectiveness/:id", handler.GetEffectivenessAssessment)
+		trn.PUT("/effectiveness/:id", handler.UpdateEffectivenessAssessment)
+		trn.DELETE("/effectiveness/:id", handler.DeleteEffectivenessAssessment)
+
+		// Certifications master (P2-BE — plan §24)
+		trn.POST("/certifications", handler.CreateCertification)
+		trn.GET("/certifications", handler.ListCertifications)
+		trn.GET("/certifications/:id", handler.GetCertification)
+		trn.PUT("/certifications/:id", handler.UpdateCertification)
+		trn.DELETE("/certifications/:id", handler.DeleteCertification)
+
+		// ── P2-BE: Reports & History (route statis SEBELUM /:id — konstrain Gin) ──
+		trn.GET("/history", handler.GetTrainingHistory)
+		trn.GET("/reports/participation", handler.GetParticipationReport)
+		trn.GET("/reports/cost", handler.GetCostReport)
+		trn.GET("/reports/compliance", handler.GetComplianceReport)
+		trn.GET("/reports/dashboard", handler.GetDashboardReport)
 	}
 }

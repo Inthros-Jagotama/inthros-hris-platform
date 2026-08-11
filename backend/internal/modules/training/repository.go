@@ -3,6 +3,7 @@ package training
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -808,7 +809,7 @@ func (r *Repository) ListAttendanceBySession(ctx context.Context, sessionID uuid
 	var rows []attendanceScanRow
 	query := db.WithContext(ctx).
 		Table("training_attendances ta").
-		Select("ta.id AS attendance_id, ta.participant_id, tp.employee_id, " +
+		Select("ta.id AS attendance_id, ta.participant_id, tp.employee_id, "+
 			"ta.attendance_date, ta.status, ta.check_in, ta.check_out, ta.remarks").
 		Joins("JOIN training_participants tp ON tp.id = ta.participant_id").
 		Where("tp.session_id = ?", sessionID).
@@ -895,6 +896,7 @@ func (r *Repository) AvgEvaluationRatingBySession(ctx context.Context, sessionID
 	}
 	return avg, nil
 }
+
 // =========================================================================
 // Training Plans (P1-BE — plan §16)
 // =========================================================================
@@ -1340,7 +1342,6 @@ func (r *Repository) DeleteNeed(ctx context.Context, id uuid.UUID) error {
 	return db.WithContext(ctx).Delete(&TrainingNeed{}, "id = ?", id).Error
 }
 
-
 // =========================================================================
 // Training Session Costs (P1-BE — plan §26)
 // =========================================================================
@@ -1439,4 +1440,487 @@ func (r *Repository) DeleteDocument(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	return db.WithContext(ctx).Delete(&TrainingDocument{}, "id = ?", id).Error
+}
+
+// =========================================================================
+// Evaluation Forms — repository P2 (plan §22)
+// =========================================================================
+
+func (r *Repository) CreateEvaluationForm(ctx context.Context, f *TrainingEvaluationForm) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(f).Error
+}
+
+func (r *Repository) FindEvaluationFormByID(ctx context.Context, id uuid.UUID) (*TrainingEvaluationForm, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var f TrainingEvaluationForm
+	if err := db.WithContext(ctx).Where("id = ?", id).First(&f).Error; err != nil {
+		return nil, err
+	}
+	return &f, nil
+}
+
+func (r *Repository) FindEvaluationFormBySession(ctx context.Context, sessionID uuid.UUID) (*TrainingEvaluationForm, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var f TrainingEvaluationForm
+	if err := db.WithContext(ctx).Where("session_id = ?", sessionID).Order("created_at ASC").First(&f).Error; err != nil {
+		return nil, err
+	}
+	return &f, nil
+}
+
+func (r *Repository) ListEvaluationForms(ctx context.Context, sessionID *uuid.UUID, page, perPage int) ([]TrainingEvaluationForm, int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var forms []TrainingEvaluationForm
+	var total int64
+	query := db.WithContext(ctx).Model(&TrainingEvaluationForm{})
+	if sessionID != nil {
+		query = query.Where("session_id = ?", *sessionID)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&forms).Error; err != nil {
+		return nil, 0, err
+	}
+	return forms, total, nil
+}
+
+func (r *Repository) UpdateEvaluationForm(ctx context.Context, f *TrainingEvaluationForm) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(f).Error
+}
+
+func (r *Repository) DeleteEvaluationForm(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingEvaluationForm{}, "id = ?", id).Error
+}
+
+// =========================================================================
+// Evaluation Questions — repository P2 (plan §22)
+// =========================================================================
+
+func (r *Repository) CreateEvaluationQuestion(ctx context.Context, q *TrainingEvaluationQuestion) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(q).Error
+}
+
+func (r *Repository) FindEvaluationQuestionByID(ctx context.Context, id uuid.UUID) (*TrainingEvaluationQuestion, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var q TrainingEvaluationQuestion
+	if err := db.WithContext(ctx).Where("id = ?", id).First(&q).Error; err != nil {
+		return nil, err
+	}
+	return &q, nil
+}
+
+func (r *Repository) ListEvaluationQuestions(ctx context.Context, formID uuid.UUID) ([]TrainingEvaluationQuestion, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var qs []TrainingEvaluationQuestion
+	if err := db.WithContext(ctx).Where("form_id = ?", formID).Order("sort_order ASC, created_at ASC").Find(&qs).Error; err != nil {
+		return nil, err
+	}
+	return qs, nil
+}
+
+func (r *Repository) UpdateEvaluationQuestion(ctx context.Context, q *TrainingEvaluationQuestion) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(q).Error
+}
+
+func (r *Repository) DeleteEvaluationQuestion(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingEvaluationQuestion{}, "id = ?", id).Error
+}
+
+// =========================================================================
+// Evaluation Answers — repository P2 (plan §22)
+// =========================================================================
+
+// UpsertEvaluationAnswer — satu jawaban per (question_id, participant_id);
+// insert bila belum ada, update bila sudah.
+func (r *Repository) UpsertEvaluationAnswer(ctx context.Context, a *TrainingEvaluationAnswer) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	var existing TrainingEvaluationAnswer
+	err = db.WithContext(ctx).Where("question_id = ? AND participant_id = ?", a.QuestionID, a.ParticipantID).First(&existing).Error
+	if err == nil {
+		existing.Answer = a.Answer
+		return db.WithContext(ctx).Save(&existing).Error
+	}
+	if err != gorm.ErrRecordNotFound {
+		return err
+	}
+	return db.WithContext(ctx).Create(a).Error
+}
+
+func (r *Repository) ListEvaluationAnswers(ctx context.Context, questionID *uuid.UUID, participantID *uuid.UUID) ([]TrainingEvaluationAnswer, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var answers []TrainingEvaluationAnswer
+	query := db.WithContext(ctx).Model(&TrainingEvaluationAnswer{})
+	if questionID != nil {
+		query = query.Where("question_id = ?", *questionID)
+	}
+	if participantID != nil {
+		query = query.Where("participant_id = ?", *participantID)
+	}
+	if err := query.Order("created_at ASC").Find(&answers).Error; err != nil {
+		return nil, err
+	}
+	return answers, nil
+}
+
+// =========================================================================
+// Effectiveness Assessments — repository P2 (plan §23)
+// =========================================================================
+
+func (r *Repository) CreateEffectivenessAssessment(ctx context.Context, a *TrainingEffectivenessAssessment) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(a).Error
+}
+
+func (r *Repository) FindEffectivenessAssessmentByID(ctx context.Context, id uuid.UUID) (*TrainingEffectivenessAssessment, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var a TrainingEffectivenessAssessment
+	if err := db.WithContext(ctx).Where("id = ?", id).First(&a).Error; err != nil {
+		return nil, err
+	}
+	return &a, nil
+}
+
+func (r *Repository) ListEffectivenessAssessments(ctx context.Context, participantID *uuid.UUID, page, perPage int) ([]TrainingEffectivenessAssessment, int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var items []TrainingEffectivenessAssessment
+	var total int64
+	query := db.WithContext(ctx).Model(&TrainingEffectivenessAssessment{})
+	if participantID != nil {
+		query = query.Where("participant_id = ?", *participantID)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("assessment_date DESC").Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *Repository) UpdateEffectivenessAssessment(ctx context.Context, a *TrainingEffectivenessAssessment) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(a).Error
+}
+
+func (r *Repository) DeleteEffectivenessAssessment(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingEffectivenessAssessment{}, "id = ?", id).Error
+}
+
+// =========================================================================
+// Certifications — repository P2 (plan §24)
+// =========================================================================
+
+func (r *Repository) CreateCertification(ctx context.Context, c *TrainingCertification) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(c).Error
+}
+
+func (r *Repository) FindCertificationByID(ctx context.Context, id uuid.UUID) (*TrainingCertification, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var c TrainingCertification
+	if err := db.WithContext(ctx).Where("id = ?", id).First(&c).Error; err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (r *Repository) ListCertifications(ctx context.Context, isActive *bool, page, perPage int) ([]TrainingCertification, int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var items []TrainingCertification
+	var total int64
+	query := db.WithContext(ctx).Model(&TrainingCertification{})
+	if isActive != nil {
+		query = query.Where("is_active = ?", *isActive)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *Repository) UpdateCertification(ctx context.Context, c *TrainingCertification) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(c).Error
+}
+
+func (r *Repository) DeleteCertification(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Delete(&TrainingCertification{}, "id = ?", id).Error
+}
+
+// =========================================================================
+// Certificates — repository P2 (plan §24)
+// =========================================================================
+
+func (r *Repository) FindCertificateByParticipant(ctx context.Context, participantID uuid.UUID) (*TrainingCertificate, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var c TrainingCertificate
+	if err := db.WithContext(ctx).Where("participant_id = ?", participantID).First(&c).Error; err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// round2 membulatkan float ke 2 desimal (helper report).
+func round2(v float64) float64 {
+	return math.Round(v*100) / 100
+}
+
+// =========================================================================
+// Reports & History — repository P2 (plan §38)
+// =========================================================================
+
+// HistoryByEmployee — riwayat training per employee (dengan nama course & session).
+func (r *Repository) HistoryByEmployee(ctx context.Context, employeeID uuid.UUID) ([]TrainingHistoryResponse, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []TrainingHistoryResponse
+	query := `
+		SELECT tp.id AS participant_id, tp.employee_id, tp.session_id,
+		       ts.course_id, c.name AS course_name,
+		       ts.session_code, ts.start_date, ts.end_date,
+		       tp.attendance_status, tp.score, tp.completion_status,
+		       COALESCE(tp.completion_date, '') AS completion_date,
+		       COALESCE(tc.certificate_no, '') AS certificate_no,
+		       COALESCE(tc.id, '') AS certificate_id
+		FROM training_participants tp
+		JOIN training_sessions ts ON ts.id = tp.session_id
+		JOIN training_courses c ON c.id = ts.course_id
+		LEFT JOIN training_certificates tc ON tc.participant_id = tp.id
+		WHERE tp.employee_id = ?
+		ORDER BY ts.start_date DESC`
+	if err := db.WithContext(ctx).Raw(query, employeeID).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// ParticipationReport — semua partisipasi + status.
+func (r *Repository) ParticipationReport(ctx context.Context, sessionStatus *string) ([]ParticipationReportRow, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []ParticipationReportRow
+	query := `
+		SELECT tp.employee_id, e.name AS employee_name,
+		       COALESCE(o.nomenclature, '') AS organization_name,
+		       ts.course_id, c.name AS course_name,
+		       ts.session_code, ts.status AS session_status,
+		       tp.attendance_status, tp.score, tp.completion_status
+		FROM training_participants tp
+		JOIN training_sessions ts ON ts.id = tp.session_id
+		JOIN training_courses c ON c.id = ts.course_id
+		LEFT JOIN employees e ON e.id = tp.employee_id
+		LEFT JOIN employments em ON em.employee_id = tp.employee_id AND em.end_date IS NULL
+		LEFT JOIN organizations o ON o.id = em.organization_id`
+	args := []interface{}{}
+	if sessionStatus != nil && *sessionStatus != "" {
+		query += ` WHERE ts.status = ?`
+		args = append(args, *sessionStatus)
+	}
+	query += ` ORDER BY ts.start_date DESC`
+	if err := db.WithContext(ctx).Raw(query, args...).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// CostReport — biaya per session + cost per participant.
+func (r *Repository) CostReport(ctx context.Context) ([]CostReportRow, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []CostReportRow
+	query := `
+		SELECT ts.id AS session_id, ts.session_code, ts.course_id, c.name AS course_name,
+		       COALESCE(tp.name, '') AS provider_name,
+		       COALESCE((SELECT SUM(amount) FROM training_session_costs sc WHERE sc.session_id = ts.id AND sc.deleted_at IS NULL), 0) AS total_cost,
+		       (SELECT COUNT(*) FROM training_participants tp2 WHERE tp2.session_id = ts.id AND tp2.deleted_at IS NULL) AS participant_count
+		FROM training_sessions ts
+		JOIN training_courses c ON c.id = ts.course_id
+		LEFT JOIN training_providers tp ON tp.id = ts.provider_id
+		WHERE ts.deleted_at IS NULL
+		ORDER BY ts.start_date DESC`
+	if err := db.WithContext(ctx).Raw(query).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	// cost per participant dihitung di service (hindari pembagian 0).
+	return rows, nil
+}
+
+// ComplianceReport — mandatory training compliance per employee.
+// Catatan (deliberate simplification, plan §38): scoping target mandatory
+// (organization_id/position_id/employment_status_id) belum di-enforce di query —
+// setiap employee aktif dipasangkan ke semua mandatory aktif. Disempurnakan di
+// iterasi berikutnya bila kebutuhan compliance by-target muncul.
+func (r *Repository) ComplianceReport(ctx context.Context) ([]ComplianceReportRow, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []ComplianceReportRow
+	query := `
+		SELECT e.id AS employee_id, e.name AS employee_name,
+		       COALESCE(o.nomenclature, '') AS organization_name,
+		       c.id AS course_id, c.name AS course_name,
+		       '' AS due_date,
+		       COALESCE(tp.completion_status, 'NOT_STARTED') AS completion_status,
+		       CASE WHEN tp.id IS NULL THEN 'NOT_COMPLETED' ELSE 'COMPLETED' END AS status
+		FROM training_mandatories tm
+		JOIN training_courses c ON c.id = tm.course_id
+		CROSS JOIN employees e
+		LEFT JOIN employments em ON em.employee_id = e.id AND em.end_date IS NULL
+		LEFT JOIN organizations o ON o.id = em.organization_id
+		LEFT JOIN training_participants tp ON tp.employee_id = e.id AND tp.session_id IN (
+			SELECT id FROM training_sessions WHERE course_id = c.id
+		) AND tp.completion_status = 'COMPLETED'
+		WHERE tm.is_active = TRUE AND tm.deleted_at IS NULL
+		ORDER BY o.nomenclature, e.name`
+	if err := db.WithContext(ctx).Raw(query).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// DashboardReport — ringkasan analitik training.
+func (r *Repository) DashboardReport(ctx context.Context) (*DashboardReport, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := &DashboardReport{}
+	if err := db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM training_courses WHERE deleted_at IS NULL`).Scan(&out.TotalCourses).Error; err != nil {
+		return nil, err
+	}
+	if err := db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM training_sessions WHERE deleted_at IS NULL`).Scan(&out.TotalSessions).Error; err != nil {
+		return nil, err
+	}
+	if err := db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM training_participants WHERE deleted_at IS NULL`).Scan(&out.TotalParticipants).Error; err != nil {
+		return nil, err
+	}
+	if err := db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM training_providers WHERE deleted_at IS NULL`).Scan(&out.TotalProviders).Error; err != nil {
+		return nil, err
+	}
+	if err := db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM training_requests WHERE deleted_at IS NULL`).Scan(&out.TotalRequests).Error; err != nil {
+		return nil, err
+	}
+	if err := db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM training_requests WHERE status = 'APPROVED' AND deleted_at IS NULL`).Scan(&out.ApprovedRequests).Error; err != nil {
+		return nil, err
+	}
+	if err := db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM training_requests WHERE status = 'PENDING_APPROVAL' AND deleted_at IS NULL`).Scan(&out.PendingRequests).Error; err != nil {
+		return nil, err
+	}
+	// Completion rate: peserta COMPLETED / total peserta.
+	if out.TotalParticipants > 0 {
+		var completed int64
+		if err := db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM training_participants WHERE completion_status = 'COMPLETED' AND deleted_at IS NULL`).Scan(&completed).Error; err != nil {
+			return nil, err
+		}
+		out.CompletionRate = round2(float64(completed) / float64(out.TotalParticipants) * 100)
+	}
+	// Pass rate: peserta passed / total peserta.
+	var passed int64
+	if err := db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM training_participants WHERE passed = TRUE AND deleted_at IS NULL`).Scan(&passed).Error; err != nil {
+		return nil, err
+	}
+	if out.TotalParticipants > 0 {
+		out.PassRate = round2(float64(passed) / float64(out.TotalParticipants) * 100)
+	}
+	if err := db.WithContext(ctx).Raw(`SELECT COALESCE(SUM(amount),0) FROM training_session_costs WHERE deleted_at IS NULL`).Scan(&out.TotalTrainingCost).Error; err != nil {
+		return nil, err
+	}
+	if err := db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM training_certificates WHERE deleted_at IS NULL`).Scan(&out.CertificatesIssued).Error; err != nil {
+		return nil, err
+	}
+	return out, nil
 }

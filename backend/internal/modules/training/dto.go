@@ -68,21 +68,21 @@ type UpdateTrainingCourseRequest struct {
 }
 
 type TrainingCourseResponse struct {
-	ID             string    `json:"id"`
-	CategoryID     string    `json:"category_id"`
-	Code           string    `json:"code"`
-	Name           string    `json:"name"`
-	Description    string    `json:"description,omitempty"`
-	DurationHour   float64   `json:"duration_hour,omitempty"`
-	MinScore       float64   `json:"min_score,omitempty"`
-	Cost           float64   `json:"cost,omitempty"`
-	IsCertified    bool      `json:"is_certified"`
-	ExternalVendor string    `json:"external_vendor,omitempty"`
+	ID             string  `json:"id"`
+	CategoryID     string  `json:"category_id"`
+	Code           string  `json:"code"`
+	Name           string  `json:"name"`
+	Description    string  `json:"description,omitempty"`
+	DurationHour   float64 `json:"duration_hour,omitempty"`
+	MinScore       float64 `json:"min_score,omitempty"`
+	Cost           float64 `json:"cost,omitempty"`
+	IsCertified    bool    `json:"is_certified"`
+	ExternalVendor string  `json:"external_vendor,omitempty"`
 	// P0-BE (plan §7)
-	CourseType   string `json:"course_type,omitempty"`
-	DeliveryType string `json:"delivery_type,omitempty"`
-	IsMandatory  bool   `json:"is_mandatory"`
-	IsActive     bool   `json:"is_active"`
+	CourseType   string    `json:"course_type,omitempty"`
+	DeliveryType string    `json:"delivery_type,omitempty"`
+	IsMandatory  bool      `json:"is_mandatory"`
+	IsActive     bool      `json:"is_active"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
@@ -131,25 +131,25 @@ type UpdateSessionStatusRequest struct {
 }
 
 type TrainingSessionResponse struct {
-	ID          string    `json:"id"`
-	CourseID    string    `json:"course_id"`
-	SessionCode string    `json:"session_code"`
-	TrainerName string    `json:"trainer_name"`
+	ID          string `json:"id"`
+	CourseID    string `json:"course_id"`
+	SessionCode string `json:"session_code"`
+	TrainerName string `json:"trainer_name"`
 	// P0-BE (plan §14)
-	ProviderType         string `json:"provider_type,omitempty"`
-	DeliveryMode         string `json:"delivery_mode,omitempty"`
-	ProviderID           string `json:"provider_id,omitempty"`
-	StartDatetime        string `json:"start_datetime,omitempty"`
-	EndDatetime          string `json:"end_datetime,omitempty"`
-	MeetingURL           string `json:"meeting_url,omitempty"`
-	RegistrationDeadline string `json:"registration_deadline,omitempty"`
-	Location    string    `json:"location,omitempty"`
-	StartDate   string    `json:"start_date"`
-	EndDate     string    `json:"end_date"`
-	MaxQuota    int       `json:"max_quota"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ProviderType         string    `json:"provider_type,omitempty"`
+	DeliveryMode         string    `json:"delivery_mode,omitempty"`
+	ProviderID           string    `json:"provider_id,omitempty"`
+	StartDatetime        string    `json:"start_datetime,omitempty"`
+	EndDatetime          string    `json:"end_datetime,omitempty"`
+	MeetingURL           string    `json:"meeting_url,omitempty"`
+	RegistrationDeadline string    `json:"registration_deadline,omitempty"`
+	Location             string    `json:"location,omitempty"`
+	StartDate            string    `json:"start_date"`
+	EndDate              string    `json:"end_date"`
+	MaxQuota             int       `json:"max_quota"`
+	Status               string    `json:"status"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
 }
 
 // =========================================================================
@@ -164,7 +164,7 @@ type CreateTrainingParticipantRequest struct {
 }
 
 type UpdateTrainingParticipantRequest struct {
-	AttendanceStatus *string `json:"attendance_status" binding:"omitempty,oneof=PRESENT ABSENT LATE EXCUSED"`
+	AttendanceStatus *string  `json:"attendance_status" binding:"omitempty,oneof=PRESENT ABSENT LATE EXCUSED"`
 	Score            *float64 `json:"score"`
 	// P0-BE (plan §18) — completion fields.
 	CompletionStatus *string  `json:"completion_status" binding:"omitempty,oneof=NOT_STARTED IN_PROGRESS COMPLETED FAILED"`
@@ -203,35 +203,35 @@ type CreateTrainingMaterialRequest struct {
 	Description   *string `json:"description"`
 	IsRequired    *bool   `json:"is_required"`
 	AvailableFrom *string `json:"available_from"`
-	FileURL   *string `json:"file_url"`
-	FileType  *string `json:"file_type" binding:"omitempty,max=50"`
-	SortOrder *int    `json:"sort_order"`
+	FileURL       *string `json:"file_url"`
+	FileType      *string `json:"file_type" binding:"omitempty,max=50"`
+	SortOrder     *int    `json:"sort_order"`
 }
 
 type UpdateTrainingMaterialRequest struct {
-	Title     *string `json:"title" binding:"omitempty,max=200"`
+	Title *string `json:"title" binding:"omitempty,max=200"`
 	// P0-BE (plan §20)
 	Description   *string `json:"description"`
 	IsRequired    *bool   `json:"is_required"`
 	AvailableFrom *string `json:"available_from"`
-	FileURL   *string `json:"file_url"`
-	FileType  *string `json:"file_type" binding:"omitempty,max=50"`
-	SortOrder *int    `json:"sort_order"`
+	FileURL       *string `json:"file_url"`
+	FileType      *string `json:"file_type" binding:"omitempty,max=50"`
+	SortOrder     *int    `json:"sort_order"`
 }
 
 type TrainingMaterialResponse struct {
-	ID        string    `json:"id"`
-	SessionID string    `json:"session_id"`
-	Title     string    `json:"title"`
+	ID        string `json:"id"`
+	SessionID string `json:"session_id"`
+	Title     string `json:"title"`
 	// P0-BE (plan §20)
-	Description   string `json:"description,omitempty"`
-	IsRequired    bool   `json:"is_required"`
-	AvailableFrom string `json:"available_from,omitempty"`
-	FileURL   string    `json:"file_url,omitempty"`
-	FileType  string    `json:"file_type,omitempty"`
-	SortOrder int       `json:"sort_order"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Description   string    `json:"description,omitempty"`
+	IsRequired    bool      `json:"is_required"`
+	AvailableFrom string    `json:"available_from,omitempty"`
+	FileURL       string    `json:"file_url,omitempty"`
+	FileType      string    `json:"file_type,omitempty"`
+	SortOrder     int       `json:"sort_order"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // =========================================================================
@@ -239,9 +239,9 @@ type TrainingMaterialResponse struct {
 // =========================================================================
 
 type CreateTrainingEvaluationRequest struct {
-	SessionID  string `json:"session_id" binding:"required"`
-	EmployeeID string `json:"employee_id" binding:"required"`
-	Rating     int    `json:"rating" binding:"required,min=1,max=5"`
+	SessionID  string  `json:"session_id" binding:"required"`
+	EmployeeID string  `json:"employee_id" binding:"required"`
+	Rating     int     `json:"rating" binding:"required,min=1,max=5"`
 	Feedback   *string `json:"feedback"`
 }
 
@@ -265,9 +265,9 @@ type TrainingEvaluationResponse struct {
 // =========================================================================
 
 type CreateTrainingCertificateRequest struct {
-	ParticipantID string `json:"participant_id" binding:"required"`
-	CertificateNo string `json:"certificate_no" binding:"required,max=50"`
-	IssuedDate    string `json:"issued_date" binding:"required"`
+	ParticipantID string  `json:"participant_id" binding:"required"`
+	CertificateNo string  `json:"certificate_no" binding:"required,max=50"`
+	IssuedDate    string  `json:"issued_date" binding:"required"`
 	ExpiryDate    *string `json:"expiry_date"`
 }
 
@@ -278,13 +278,15 @@ type UpdateTrainingCertificateRequest struct {
 }
 
 type TrainingCertificateResponse struct {
-	ID            string    `json:"id"`
-	ParticipantID string    `json:"participant_id"`
-	CertificateNo string    `json:"certificate_no"`
-	IssuedDate    string    `json:"issued_date"`
-	ExpiryDate    string    `json:"expiry_date,omitempty"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID                 string    `json:"id"`
+	ParticipantID      string    `json:"participant_id"`
+	CertificationID    string    `json:"certification_id,omitempty"`
+	CertificateNo      string    `json:"certificate_no"`
+	CertificateFileURL string    `json:"certificate_file_url,omitempty"`
+	IssuedDate         string    `json:"issued_date"`
+	ExpiryDate         string    `json:"expiry_date,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 // =========================================================================
@@ -409,13 +411,13 @@ type UpdateTrainingAttendanceRequest struct {
 }
 
 type TrainingAttendanceResponse struct {
-	ID             string `json:"id"`
-	ParticipantID  string `json:"participant_id"`
-	AttendanceDate string `json:"attendance_date"`
-	CheckIn        string `json:"check_in,omitempty"`
-	CheckOut       string `json:"check_out,omitempty"`
-	Status         string `json:"status"`
-	Remarks        string `json:"remarks,omitempty"`
+	ID             string    `json:"id"`
+	ParticipantID  string    `json:"participant_id"`
+	AttendanceDate string    `json:"attendance_date"`
+	CheckIn        string    `json:"check_in,omitempty"`
+	CheckOut       string    `json:"check_out,omitempty"`
+	Status         string    `json:"status"`
+	Remarks        string    `json:"remarks,omitempty"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }
@@ -490,6 +492,7 @@ type PaginatedResponse struct {
 	Total      int64       `json:"total"`
 	TotalPages int         `json:"total_pages"`
 }
+
 // =========================================================================
 // Training Plan DTOs (P1-BE — plan §16)
 // =========================================================================
@@ -761,4 +764,227 @@ type TrainingDocumentResponse struct {
 	UploadedBy   string    `json:"uploaded_by,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Training Evaluation DTOs (P2-BE — plan §22)
+// =========================================================================
+
+type CreateEvaluationFormRequest struct {
+	SessionID string `json:"session_id" binding:"required"`
+	Name      string `json:"name" binding:"required,max=200"`
+	IsActive  *bool  `json:"is_active"`
+}
+
+type UpdateEvaluationFormRequest struct {
+	Name     *string `json:"name" binding:"omitempty,max=200"`
+	IsActive *bool   `json:"is_active"`
+}
+
+type EvaluationFormResponse struct {
+	ID        string    `json:"id"`
+	SessionID string    `json:"session_id"`
+	Name      string    `json:"name"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type CreateEvaluationQuestionRequest struct {
+	Question     string `json:"question" binding:"required"`
+	QuestionType string `json:"question_type" binding:"required,oneof=RATING TEXT SINGLE_CHOICE MULTIPLE_CHOICE"`
+	SortOrder    *int   `json:"sort_order"`
+	IsRequired   *bool  `json:"is_required"`
+}
+
+type UpdateEvaluationQuestionRequest struct {
+	Question     *string `json:"question" binding:"omitempty"`
+	QuestionType *string `json:"question_type" binding:"omitempty,oneof=RATING TEXT SINGLE_CHOICE MULTIPLE_CHOICE"`
+	SortOrder    *int    `json:"sort_order"`
+	IsRequired   *bool   `json:"is_required"`
+}
+
+type EvaluationQuestionResponse struct {
+	ID           string    `json:"id"`
+	FormID       string    `json:"form_id"`
+	Question     string    `json:"question"`
+	QuestionType string    `json:"question_type"`
+	SortOrder    int       `json:"sort_order"`
+	IsRequired   bool      `json:"is_required"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+type SubmitEvaluationAnswersRequest struct {
+	Answers []EvaluationAnswerInput `json:"answers" binding:"required,min=1,dive"`
+}
+
+type EvaluationAnswerInput struct {
+	QuestionID string `json:"question_id" binding:"required"`
+	Answer     string `json:"answer"`
+}
+
+type EvaluationAnswerResponse struct {
+	ID            string    `json:"id"`
+	QuestionID    string    `json:"question_id"`
+	ParticipantID string    `json:"participant_id"`
+	Answer        string    `json:"answer,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type EvaluationFormWithQuestionsResponse struct {
+	Form      EvaluationFormResponse       `json:"form"`
+	Questions []EvaluationQuestionResponse `json:"questions"`
+}
+
+// =========================================================================
+// Training Effectiveness DTOs (P2-BE — plan §23)
+// =========================================================================
+
+type CreateEffectivenessAssessmentRequest struct {
+	ParticipantID      string   `json:"participant_id" binding:"required"`
+	AssessmentDate     string   `json:"assessment_date" binding:"required"`
+	AssessorEmployeeID *string  `json:"assessor_employee_id"`
+	BeforeScore        *float64 `json:"before_score"`
+	AfterScore         *float64 `json:"after_score"`
+	EffectivenessScore *float64 `json:"effectiveness_score"`
+	Remarks            *string  `json:"remarks"`
+}
+
+type UpdateEffectivenessAssessmentRequest struct {
+	AssessmentDate     *string  `json:"assessment_date"`
+	AssessorEmployeeID *string  `json:"assessor_employee_id"`
+	BeforeScore        *float64 `json:"before_score"`
+	AfterScore         *float64 `json:"after_score"`
+	EffectivenessScore *float64 `json:"effectiveness_score"`
+	Remarks            *string  `json:"remarks"`
+}
+
+type EffectivenessAssessmentResponse struct {
+	ID                 string    `json:"id"`
+	ParticipantID      string    `json:"participant_id"`
+	AssessmentDate     string    `json:"assessment_date"`
+	AssessorEmployeeID string    `json:"assessor_employee_id,omitempty"`
+	BeforeScore        *float64  `json:"before_score,omitempty"`
+	AfterScore         *float64  `json:"after_score,omitempty"`
+	EffectivenessScore *float64  `json:"effectiveness_score,omitempty"`
+	Remarks            string    `json:"remarks,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Certification DTOs (P2-BE — plan §24)
+// =========================================================================
+
+type CreateCertificationRequest struct {
+	Code                string  `json:"code" binding:"required,max=30"`
+	Name                string  `json:"name" binding:"required,max=200"`
+	IssuingBody         *string `json:"issuing_body"`
+	ValidityPeriodMonth *int    `json:"validity_period_month"`
+	RenewalRequired     *bool   `json:"renewal_required"`
+	IsActive            *bool   `json:"is_active"`
+}
+
+type UpdateCertificationRequest struct {
+	Code                *string `json:"code" binding:"omitempty,max=30"`
+	Name                *string `json:"name" binding:"omitempty,max=200"`
+	IssuingBody         *string `json:"issuing_body"`
+	ValidityPeriodMonth *int    `json:"validity_period_month"`
+	RenewalRequired     *bool   `json:"renewal_required"`
+	IsActive            *bool   `json:"is_active"`
+}
+
+type CertificationResponse struct {
+	ID                  string    `json:"id"`
+	Code                string    `json:"code"`
+	Name                string    `json:"name"`
+	IssuingBody         string    `json:"issuing_body,omitempty"`
+	ValidityPeriodMonth *int      `json:"validity_period_month,omitempty"`
+	RenewalRequired     bool      `json:"renewal_required"`
+	IsActive            bool      `json:"is_active"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
+}
+
+type GenerateCertificateRequest struct {
+	CertificationID    *string `json:"certification_id"`
+	CertificateFileURL *string `json:"certificate_file_url"`
+	ExpiryDate         *string `json:"expiry_date"`
+}
+
+type UpdateCertificateRequest struct {
+	CertificateFileURL *string `json:"certificate_file_url"`
+	ExpiryDate         *string `json:"expiry_date"`
+}
+
+// =========================================================================
+// Reports & History DTOs (P2-BE — plan §38)
+// =========================================================================
+
+type TrainingHistoryResponse struct {
+	ParticipantID    string  `json:"participant_id"`
+	EmployeeID       string  `json:"employee_id"`
+	CourseID         string  `json:"course_id"`
+	CourseName       string  `json:"course_name"`
+	SessionID        string  `json:"session_id"`
+	SessionCode      string  `json:"session_code"`
+	StartDate        string  `json:"start_date"`
+	EndDate          string  `json:"end_date"`
+	AttendanceStatus string  `json:"attendance_status"`
+	Score            float64 `json:"score"`
+	CompletionStatus string  `json:"completion_status"`
+	CompletionDate   string  `json:"completion_date,omitempty"`
+	CertificateNo    string  `json:"certificate_no,omitempty"`
+	CertificateID    string  `json:"certificate_id,omitempty"`
+}
+
+type ParticipationReportRow struct {
+	EmployeeID       string  `json:"employee_id"`
+	EmployeeName     string  `json:"employee_name"`
+	OrganizationName string  `json:"organization_name,omitempty"`
+	CourseID         string  `json:"course_id"`
+	CourseName       string  `json:"course_name"`
+	SessionCode      string  `json:"session_code"`
+	SessionStatus    string  `json:"session_status"`
+	AttendanceStatus string  `json:"attendance_status"`
+	Score            float64 `json:"score"`
+	CompletionStatus string  `json:"completion_status"`
+}
+
+type CostReportRow struct {
+	SessionID          string  `json:"session_id"`
+	SessionCode        string  `json:"session_code"`
+	CourseID           string  `json:"course_id"`
+	CourseName         string  `json:"course_name"`
+	ProviderName       string  `json:"provider_name,omitempty"`
+	TotalCost          float64 `json:"total_cost"`
+	ParticipantCount   int64   `json:"participant_count"`
+	CostPerParticipant float64 `json:"cost_per_participant"`
+}
+
+type ComplianceReportRow struct {
+	EmployeeID       string `json:"employee_id"`
+	EmployeeName     string `json:"employee_name"`
+	OrganizationName string `json:"organization_name,omitempty"`
+	CourseID         string `json:"course_id"`
+	CourseName       string `json:"course_name"`
+	DueDate          string `json:"due_date,omitempty"`
+	CompletionStatus string `json:"completion_status"`
+	Status           string `json:"status"`
+}
+
+type DashboardReport struct {
+	TotalCourses       int64   `json:"total_courses"`
+	TotalSessions      int64   `json:"total_sessions"`
+	TotalParticipants  int64   `json:"total_participants"`
+	TotalProviders     int64   `json:"total_providers"`
+	TotalRequests      int64   `json:"total_requests"`
+	ApprovedRequests   int64   `json:"approved_requests"`
+	PendingRequests    int64   `json:"pending_requests"`
+	CompletionRate     float64 `json:"completion_rate"`
+	PassRate           float64 `json:"pass_rate"`
+	TotalTrainingCost  float64 `json:"total_training_cost"`
+	CertificatesIssued int64   `json:"certificates_issued"`
 }

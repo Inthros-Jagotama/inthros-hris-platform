@@ -128,6 +128,12 @@ func (m *trainingModule) Migrate(db *gorm.DB) error {
 		&TrainingMandatory{},
 		&TrainingSessionCost{},
 		&TrainingDocument{},
+		// P2-BE (plan §42 P2-BE)
+		&TrainingEvaluationForm{},
+		&TrainingEvaluationQuestion{},
+		&TrainingEvaluationAnswer{},
+		&TrainingEffectivenessAssessment{},
+		&TrainingCertification{},
 	)
 }
 

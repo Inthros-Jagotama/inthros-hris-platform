@@ -820,6 +820,7 @@ func parsePagination(c *gin.Context) (int, int) {
 	}
 	return page, perPage
 }
+
 // =========================================================================
 // Training Plans (P1-BE — plan §16)
 // =========================================================================
@@ -1364,4 +1365,366 @@ func (h *Handler) DeleteDocument(c *gin.Context) {
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Evaluation Forms — handler P2 (plan §22)
+// =========================================================================
+
+func (h *Handler) CreateEvaluationForm(c *gin.Context) {
+	var req CreateEvaluationFormRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateEvaluationForm(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) GetEvaluationForm(c *gin.Context) {
+	resp, err := h.svc.GetEvaluationFormByID(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ListEvaluationForms(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	var sessionID *string
+	if v := c.Query("session_id"); v != "" {
+		sessionID = &v
+	}
+	resp, err := h.svc.ListEvaluationForms(c.Request.Context(), sessionID, page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateEvaluationForm(c *gin.Context) {
+	var req UpdateEvaluationFormRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateEvaluationForm(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteEvaluationForm(c *gin.Context) {
+	if err := h.svc.DeleteEvaluationForm(c.Request.Context(), c.Param("id")); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// GetEvaluationFormBySession — form + questions untuk session.
+func (h *Handler) GetEvaluationFormBySession(c *gin.Context) {
+	resp, err := h.svc.GetEvaluationFormBySession(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// =========================================================================
+// Evaluation Questions — handler P2 (plan §22)
+// =========================================================================
+
+func (h *Handler) CreateEvaluationQuestion(c *gin.Context) {
+	var req CreateEvaluationQuestionRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateEvaluationQuestion(c.Request.Context(), c.Param("form_id"), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListEvaluationQuestions(c *gin.Context) {
+	resp, err := h.svc.ListEvaluationQuestions(c.Request.Context(), c.Param("form_id"))
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateEvaluationQuestion(c *gin.Context) {
+	var req UpdateEvaluationQuestionRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateEvaluationQuestion(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteEvaluationQuestion(c *gin.Context) {
+	if err := h.svc.DeleteEvaluationQuestion(c.Request.Context(), c.Param("id")); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Evaluation Answers — handler P2 (plan §22)
+// =========================================================================
+
+func (h *Handler) SubmitEvaluationAnswers(c *gin.Context) {
+	var req SubmitEvaluationAnswersRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.SubmitEvaluationAnswers(c.Request.Context(), c.Param("form_id"), c.Param("participant_id"), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListEvaluationAnswers(c *gin.Context) {
+	var questionID, participantID *string
+	if v := c.Query("question_id"); v != "" {
+		questionID = &v
+	}
+	if v := c.Query("participant_id"); v != "" {
+		participantID = &v
+	}
+	resp, err := h.svc.ListEvaluationAnswers(c.Request.Context(), questionID, participantID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// =========================================================================
+// Effectiveness Assessments — handler P2 (plan §23)
+// =========================================================================
+
+func (h *Handler) CreateEffectivenessAssessment(c *gin.Context) {
+	var req CreateEffectivenessAssessmentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateEffectivenessAssessment(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) GetEffectivenessAssessment(c *gin.Context) {
+	resp, err := h.svc.GetEffectivenessAssessmentByID(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ListEffectivenessAssessments(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	var participantID *string
+	if v := c.Query("participant_id"); v != "" {
+		participantID = &v
+	}
+	resp, err := h.svc.ListEffectivenessAssessments(c.Request.Context(), participantID, page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateEffectivenessAssessment(c *gin.Context) {
+	var req UpdateEffectivenessAssessmentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateEffectivenessAssessment(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteEffectivenessAssessment(c *gin.Context) {
+	if err := h.svc.DeleteEffectivenessAssessment(c.Request.Context(), c.Param("id")); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Certifications — handler P2 (plan §24)
+// =========================================================================
+
+func (h *Handler) CreateCertification(c *gin.Context) {
+	var req CreateCertificationRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateCertification(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) GetCertification(c *gin.Context) {
+	resp, err := h.svc.GetCertificationByID(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ListCertifications(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	var isActive *bool
+	if v := c.Query("is_active"); v != "" {
+		b := v == "true" || v == "1"
+		isActive = &b
+	}
+	resp, err := h.svc.ListCertifications(c.Request.Context(), isActive, page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateCertification(c *gin.Context) {
+	var req UpdateCertificationRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateCertification(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteCertification(c *gin.Context) {
+	if err := h.svc.DeleteCertification(c.Request.Context(), c.Param("id")); err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Certificates — generate dari completion (P2-BE — plan §24)
+// =========================================================================
+
+func (h *Handler) GenerateCertificate(c *gin.Context) {
+	var req GenerateCertificateRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.GenerateCertificate(c.Request.Context(), c.Param("participant_id"), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) UpdateCertificateFile(c *gin.Context) {
+	var req UpdateCertificateRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateCertificateFile(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorJSON(c, http.StatusNotFound, "NOT_FOUND", err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// =========================================================================
+// Reports & History — handler P2 (plan §38)
+// =========================================================================
+
+func (h *Handler) GetTrainingHistory(c *gin.Context) {
+	employeeID := c.Query("employee_id")
+	if employeeID == "" {
+		httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee_id is required")
+		return
+	}
+	resp, err := h.svc.GetTrainingHistory(c.Request.Context(), employeeID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) GetParticipationReport(c *gin.Context) {
+	var sessionStatus *string
+	if v := c.Query("session_status"); v != "" {
+		sessionStatus = &v
+	}
+	resp, err := h.svc.GetParticipationReport(c.Request.Context(), sessionStatus)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) GetCostReport(c *gin.Context) {
+	resp, err := h.svc.GetCostReport(c.Request.Context())
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) GetComplianceReport(c *gin.Context) {
+	resp, err := h.svc.GetComplianceReport(c.Request.Context())
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) GetDashboardReport(c *gin.Context) {
+	resp, err := h.svc.GetDashboardReport(c.Request.Context())
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
 }

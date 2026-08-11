@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 const (
@@ -162,11 +164,11 @@ func (s *Service) CreateCourse(ctx context.Context, req CreateTrainingCourseRequ
 	}
 
 	course := &TrainingCourse{
-		CategoryID:    catID,
-		Code:          req.Code,
-		Name:          req.Name,
-		IsCertified:   false,
-		IsActive:      true,
+		CategoryID:  catID,
+		Code:        req.Code,
+		Name:        req.Name,
+		IsCertified: false,
+		IsActive:    true,
 	}
 	if req.Description != nil {
 		course.Description = req.Description
@@ -1044,24 +1046,24 @@ func sessionToResponse(s *TrainingSession) *TrainingSessionResponse {
 		loc = *s.Location
 	}
 	return &TrainingSessionResponse{
-		ID:                  s.ID.String(),
-		CourseID:            s.CourseID.String(),
-		SessionCode:         s.SessionCode,
-		TrainerName:         s.TrainerName,
-		ProviderType:        strPtr(s.ProviderType),
-		DeliveryMode:        strPtr(s.DeliveryMode),
-		ProviderID:          uuidPtr(s.ProviderID),
-		StartDatetime:       formatTimePtr(s.StartDatetime),
-		EndDatetime:         formatTimePtr(s.EndDatetime),
-		MeetingURL:          strPtr(s.MeetingURL),
+		ID:                   s.ID.String(),
+		CourseID:             s.CourseID.String(),
+		SessionCode:          s.SessionCode,
+		TrainerName:          s.TrainerName,
+		ProviderType:         strPtr(s.ProviderType),
+		DeliveryMode:         strPtr(s.DeliveryMode),
+		ProviderID:           uuidPtr(s.ProviderID),
+		StartDatetime:        formatTimePtr(s.StartDatetime),
+		EndDatetime:          formatTimePtr(s.EndDatetime),
+		MeetingURL:           strPtr(s.MeetingURL),
 		RegistrationDeadline: formatTimePtr(s.RegistrationDeadline),
-		Location:            loc,
-		StartDate:           s.StartDate,
-		EndDate:             s.EndDate,
-		MaxQuota:            s.MaxQuota,
-		Status:              string(s.Status),
-		CreatedAt:           s.CreatedAt,
-		UpdatedAt:           s.UpdatedAt,
+		Location:             loc,
+		StartDate:            s.StartDate,
+		EndDate:              s.EndDate,
+		MaxQuota:             s.MaxQuota,
+		Status:               string(s.Status),
+		CreatedAt:            s.CreatedAt,
+		UpdatedAt:            s.UpdatedAt,
 	}
 }
 
@@ -1135,7 +1137,7 @@ func certificateToResponse(c *TrainingCertificate) *TrainingCertificateResponse 
 	if c.ExpiryDate != nil {
 		exp = *c.ExpiryDate
 	}
-	return &TrainingCertificateResponse{
+	resp := &TrainingCertificateResponse{
 		ID:            c.ID.String(),
 		ParticipantID: c.ParticipantID.String(),
 		CertificateNo: c.CertificateNo,
@@ -1144,6 +1146,13 @@ func certificateToResponse(c *TrainingCertificate) *TrainingCertificateResponse 
 		CreatedAt:     c.CreatedAt,
 		UpdatedAt:     c.UpdatedAt,
 	}
+	if c.CertificationID != nil {
+		resp.CertificationID = c.CertificationID.String()
+	}
+	if c.CertificateFileURL != nil {
+		resp.CertificateFileURL = *c.CertificateFileURL
+	}
+	return resp
 }
 
 func providerToResponse(p *TrainingProvider) *TrainingProviderResponse {
@@ -1969,6 +1978,7 @@ func (s *Service) SubmitAssessmentResult(ctx context.Context, assessmentID strin
 	s.logger.Info("Training assessment result submitted", zap.String("assessment_id", assessmentID), zap.String("participant_id", req.ParticipantID))
 	return assessmentResultToResponse(res), nil
 }
+
 // =========================================================================
 // Training Plans (P1-BE — plan §16)
 // =========================================================================
@@ -3184,4 +3194,691 @@ func documentToResponse(d *TrainingDocument) *TrainingDocumentResponse {
 		CreatedAt:    d.CreatedAt,
 		UpdatedAt:    d.UpdatedAt,
 	}
+}
+
+// =========================================================================
+// Evaluation Forms (P2-BE — plan §22)
+// =========================================================================
+
+func (s *Service) CreateEvaluationForm(ctx context.Context, req CreateEvaluationFormRequest) (*EvaluationFormResponse, error) {
+	sid, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid session_id: %w", err)
+	}
+	if _, err := s.repo.FindSessionByID(ctx, sid); err != nil {
+		return nil, fmt.Errorf("session not found: %w", err)
+	}
+	f := &TrainingEvaluationForm{SessionID: sid, Name: req.Name, IsActive: true}
+	if req.IsActive != nil {
+		f.IsActive = *req.IsActive
+	}
+	if err := s.repo.CreateEvaluationForm(ctx, f); err != nil {
+		return nil, err
+	}
+	return evaluationFormToResponse(f), nil
+}
+
+func (s *Service) GetEvaluationFormByID(ctx context.Context, id string) (*EvaluationFormResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	f, err := s.repo.FindEvaluationFormByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return evaluationFormToResponse(f), nil
+}
+
+func (s *Service) ListEvaluationForms(ctx context.Context, sessionID *string, page, perPage int) (*PaginatedResponse, error) {
+	var sessUUID *uuid.UUID
+	if sessionID != nil && *sessionID != "" {
+		uid, err := uuid.Parse(*sessionID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid session_id: %w", err)
+		}
+		sessUUID = &uid
+	}
+	forms, total, err := s.repo.ListEvaluationForms(ctx, sessUUID, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]EvaluationFormResponse, 0, len(forms))
+	for _, f := range forms {
+		responses = append(responses, *evaluationFormToResponse(&f))
+	}
+	return &PaginatedResponse{
+		Success:    true,
+		Data:       responses,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}
+
+func (s *Service) UpdateEvaluationForm(ctx context.Context, id string, req UpdateEvaluationFormRequest) (*EvaluationFormResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	f, err := s.repo.FindEvaluationFormByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Name != nil {
+		f.Name = *req.Name
+	}
+	if req.IsActive != nil {
+		f.IsActive = *req.IsActive
+	}
+	if err := s.repo.UpdateEvaluationForm(ctx, f); err != nil {
+		return nil, err
+	}
+	return evaluationFormToResponse(f), nil
+}
+
+func (s *Service) DeleteEvaluationForm(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	if _, err := s.repo.FindEvaluationFormByID(ctx, uid); err != nil {
+		return fmt.Errorf("evaluation form not found: %w", err)
+	}
+	return s.repo.DeleteEvaluationForm(ctx, uid)
+}
+
+// GetEvaluationFormBySession — form + questions untuk session (dipakai FE
+// saat menampilkan form evaluasi di detail session).
+func (s *Service) GetEvaluationFormBySession(ctx context.Context, sessionID string) (*EvaluationFormWithQuestionsResponse, error) {
+	sid, err := uuid.Parse(sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid session_id: %w", err)
+	}
+	f, err := s.repo.FindEvaluationFormBySession(ctx, sid)
+	if err != nil {
+		return nil, err
+	}
+	qs, err := s.repo.ListEvaluationQuestions(ctx, f.ID)
+	if err != nil {
+		return nil, err
+	}
+	resp := &EvaluationFormWithQuestionsResponse{
+		Form:      *evaluationFormToResponse(f),
+		Questions: make([]EvaluationQuestionResponse, 0, len(qs)),
+	}
+	for _, q := range qs {
+		resp.Questions = append(resp.Questions, *evaluationQuestionToResponse(&q))
+	}
+	return resp, nil
+}
+
+// =========================================================================
+// Evaluation Questions (P2-BE — plan §22)
+// =========================================================================
+
+func (s *Service) CreateEvaluationQuestion(ctx context.Context, formID string, req CreateEvaluationQuestionRequest) (*EvaluationQuestionResponse, error) {
+	fid, err := uuid.Parse(formID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid form_id: %w", err)
+	}
+	if _, err := s.repo.FindEvaluationFormByID(ctx, fid); err != nil {
+		return nil, fmt.Errorf("evaluation form not found: %w", err)
+	}
+	q := &TrainingEvaluationQuestion{
+		FormID:       fid,
+		Question:     req.Question,
+		QuestionType: EvaluationQuestionType(req.QuestionType),
+		IsRequired:   true,
+	}
+	if req.SortOrder != nil {
+		q.SortOrder = *req.SortOrder
+	}
+	if req.IsRequired != nil {
+		q.IsRequired = *req.IsRequired
+	}
+	if err := s.repo.CreateEvaluationQuestion(ctx, q); err != nil {
+		return nil, err
+	}
+	return evaluationQuestionToResponse(q), nil
+}
+
+func (s *Service) ListEvaluationQuestions(ctx context.Context, formID string) ([]EvaluationQuestionResponse, error) {
+	fid, err := uuid.Parse(formID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid form_id: %w", err)
+	}
+	qs, err := s.repo.ListEvaluationQuestions(ctx, fid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]EvaluationQuestionResponse, 0, len(qs))
+	for _, q := range qs {
+		responses = append(responses, *evaluationQuestionToResponse(&q))
+	}
+	return responses, nil
+}
+
+func (s *Service) UpdateEvaluationQuestion(ctx context.Context, id string, req UpdateEvaluationQuestionRequest) (*EvaluationQuestionResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	q, err := s.repo.FindEvaluationQuestionByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Question != nil {
+		q.Question = *req.Question
+	}
+	if req.QuestionType != nil {
+		q.QuestionType = EvaluationQuestionType(*req.QuestionType)
+	}
+	if req.SortOrder != nil {
+		q.SortOrder = *req.SortOrder
+	}
+	if req.IsRequired != nil {
+		q.IsRequired = *req.IsRequired
+	}
+	if err := s.repo.UpdateEvaluationQuestion(ctx, q); err != nil {
+		return nil, err
+	}
+	return evaluationQuestionToResponse(q), nil
+}
+
+func (s *Service) DeleteEvaluationQuestion(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	if _, err := s.repo.FindEvaluationQuestionByID(ctx, uid); err != nil {
+		return fmt.Errorf("evaluation question not found: %w", err)
+	}
+	return s.repo.DeleteEvaluationQuestion(ctx, uid)
+}
+
+// =========================================================================
+// Evaluation Answers (P2-BE — plan §22)
+// =========================================================================
+
+// SubmitEvaluationAnswers — simpan jawaban peserta untuk form tertentu.
+// Setiap jawaban di-upsert (satu jawaban per pertanyaan per peserta).
+func (s *Service) SubmitEvaluationAnswers(ctx context.Context, formID string, participantID string, req SubmitEvaluationAnswersRequest) ([]EvaluationAnswerResponse, error) {
+	fid, err := uuid.Parse(formID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid form_id: %w", err)
+	}
+	pid, err := uuid.Parse(participantID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid participant_id: %w", err)
+	}
+	if _, err := s.repo.FindEvaluationFormByID(ctx, fid); err != nil {
+		return nil, fmt.Errorf("evaluation form not found: %w", err)
+	}
+	if _, err := s.repo.FindParticipantByID(ctx, pid); err != nil {
+		return nil, fmt.Errorf("participant not found: %w", err)
+	}
+	responses := make([]EvaluationAnswerResponse, 0, len(req.Answers))
+	for _, in := range req.Answers {
+		qid, err := uuid.Parse(in.QuestionID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid question_id: %w", err)
+		}
+		// Pastikan pertanyaan milik form.
+		q, err := s.repo.FindEvaluationQuestionByID(ctx, qid)
+		if err != nil {
+			return nil, fmt.Errorf("question not found: %w", err)
+		}
+		if q.FormID != fid {
+			return nil, fmt.Errorf("question %s does not belong to form %s", qid, fid)
+		}
+		a := &TrainingEvaluationAnswer{
+			QuestionID:    qid,
+			ParticipantID: pid,
+			Answer:        in.Answer,
+		}
+		if err := s.repo.UpsertEvaluationAnswer(ctx, a); err != nil {
+			return nil, err
+		}
+		responses = append(responses, *evaluationAnswerToResponse(a))
+	}
+	return responses, nil
+}
+
+func (s *Service) ListEvaluationAnswers(ctx context.Context, questionID *string, participantID *string) ([]EvaluationAnswerResponse, error) {
+	var qUUID, pUUID *uuid.UUID
+	if questionID != nil && *questionID != "" {
+		uid, err := uuid.Parse(*questionID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid question_id: %w", err)
+		}
+		qUUID = &uid
+	}
+	if participantID != nil && *participantID != "" {
+		uid, err := uuid.Parse(*participantID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid participant_id: %w", err)
+		}
+		pUUID = &uid
+	}
+	answers, err := s.repo.ListEvaluationAnswers(ctx, qUUID, pUUID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]EvaluationAnswerResponse, 0, len(answers))
+	for _, a := range answers {
+		responses = append(responses, *evaluationAnswerToResponse(&a))
+	}
+	return responses, nil
+}
+
+// =========================================================================
+// Effectiveness Assessments (P2-BE — plan §23)
+// =========================================================================
+
+func (s *Service) CreateEffectivenessAssessment(ctx context.Context, req CreateEffectivenessAssessmentRequest) (*EffectivenessAssessmentResponse, error) {
+	pid, err := uuid.Parse(req.ParticipantID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid participant_id: %w", err)
+	}
+	if _, err := s.repo.FindParticipantByID(ctx, pid); err != nil {
+		return nil, fmt.Errorf("participant not found: %w", err)
+	}
+	a := &TrainingEffectivenessAssessment{
+		ParticipantID:  pid,
+		AssessmentDate: req.AssessmentDate,
+	}
+	if req.AssessorEmployeeID != nil {
+		aid, err := uuid.Parse(*req.AssessorEmployeeID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid assessor_employee_id: %w", err)
+		}
+		a.AssessorEmployeeID = &aid
+	}
+	a.BeforeScore = req.BeforeScore
+	a.AfterScore = req.AfterScore
+	a.EffectivenessScore = req.EffectivenessScore
+	a.Remarks = req.Remarks
+	if err := s.repo.CreateEffectivenessAssessment(ctx, a); err != nil {
+		return nil, err
+	}
+	return effectivenessToResponse(a), nil
+}
+
+func (s *Service) GetEffectivenessAssessmentByID(ctx context.Context, id string) (*EffectivenessAssessmentResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	a, err := s.repo.FindEffectivenessAssessmentByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return effectivenessToResponse(a), nil
+}
+
+func (s *Service) ListEffectivenessAssessments(ctx context.Context, participantID *string, page, perPage int) (*PaginatedResponse, error) {
+	var pUUID *uuid.UUID
+	if participantID != nil && *participantID != "" {
+		uid, err := uuid.Parse(*participantID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid participant_id: %w", err)
+		}
+		pUUID = &uid
+	}
+	items, total, err := s.repo.ListEffectivenessAssessments(ctx, pUUID, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]EffectivenessAssessmentResponse, 0, len(items))
+	for _, a := range items {
+		responses = append(responses, *effectivenessToResponse(&a))
+	}
+	return &PaginatedResponse{
+		Success:    true,
+		Data:       responses,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}
+
+func (s *Service) UpdateEffectivenessAssessment(ctx context.Context, id string, req UpdateEffectivenessAssessmentRequest) (*EffectivenessAssessmentResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	a, err := s.repo.FindEffectivenessAssessmentByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.AssessmentDate != nil {
+		a.AssessmentDate = *req.AssessmentDate
+	}
+	if req.AssessorEmployeeID != nil {
+		if *req.AssessorEmployeeID == "" {
+			a.AssessorEmployeeID = nil
+		} else {
+			aid, err := uuid.Parse(*req.AssessorEmployeeID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid assessor_employee_id: %w", err)
+			}
+			a.AssessorEmployeeID = &aid
+		}
+	}
+	if req.BeforeScore != nil {
+		a.BeforeScore = req.BeforeScore
+	}
+	if req.AfterScore != nil {
+		a.AfterScore = req.AfterScore
+	}
+	if req.EffectivenessScore != nil {
+		a.EffectivenessScore = req.EffectivenessScore
+	}
+	if req.Remarks != nil {
+		a.Remarks = req.Remarks
+	}
+	if err := s.repo.UpdateEffectivenessAssessment(ctx, a); err != nil {
+		return nil, err
+	}
+	return effectivenessToResponse(a), nil
+}
+
+func (s *Service) DeleteEffectivenessAssessment(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	if _, err := s.repo.FindEffectivenessAssessmentByID(ctx, uid); err != nil {
+		return fmt.Errorf("effectiveness assessment not found: %w", err)
+	}
+	return s.repo.DeleteEffectivenessAssessment(ctx, uid)
+}
+
+// =========================================================================
+// Certifications (P2-BE — plan §24)
+// =========================================================================
+
+func (s *Service) CreateCertification(ctx context.Context, req CreateCertificationRequest) (*CertificationResponse, error) {
+	c := &TrainingCertification{Code: req.Code, Name: req.Name, IsActive: true}
+	c.IssuingBody = req.IssuingBody
+	c.ValidityPeriodMonth = req.ValidityPeriodMonth
+	if req.RenewalRequired != nil {
+		c.RenewalRequired = *req.RenewalRequired
+	}
+	if req.IsActive != nil {
+		c.IsActive = *req.IsActive
+	}
+	if err := s.repo.CreateCertification(ctx, c); err != nil {
+		return nil, err
+	}
+	return certificationToResponse(c), nil
+}
+
+func (s *Service) GetCertificationByID(ctx context.Context, id string) (*CertificationResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	c, err := s.repo.FindCertificationByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return certificationToResponse(c), nil
+}
+
+func (s *Service) ListCertifications(ctx context.Context, isActive *bool, page, perPage int) (*PaginatedResponse, error) {
+	items, total, err := s.repo.ListCertifications(ctx, isActive, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]CertificationResponse, 0, len(items))
+	for _, c := range items {
+		responses = append(responses, *certificationToResponse(&c))
+	}
+	return &PaginatedResponse{
+		Success:    true,
+		Data:       responses,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}
+
+func (s *Service) UpdateCertification(ctx context.Context, id string, req UpdateCertificationRequest) (*CertificationResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	c, err := s.repo.FindCertificationByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Code != nil {
+		c.Code = *req.Code
+	}
+	if req.Name != nil {
+		c.Name = *req.Name
+	}
+	if req.IssuingBody != nil {
+		c.IssuingBody = req.IssuingBody
+	}
+	if req.ValidityPeriodMonth != nil {
+		c.ValidityPeriodMonth = req.ValidityPeriodMonth
+	}
+	if req.RenewalRequired != nil {
+		c.RenewalRequired = *req.RenewalRequired
+	}
+	if req.IsActive != nil {
+		c.IsActive = *req.IsActive
+	}
+	if err := s.repo.UpdateCertification(ctx, c); err != nil {
+		return nil, err
+	}
+	return certificationToResponse(c), nil
+}
+
+func (s *Service) DeleteCertification(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	if _, err := s.repo.FindCertificationByID(ctx, uid); err != nil {
+		return fmt.Errorf("certification not found: %w", err)
+	}
+	return s.repo.DeleteCertification(ctx, uid)
+}
+
+// =========================================================================
+// Certificates — generate dari completion (P2-BE — plan §24)
+// =========================================================================
+
+// GenerateCertificate — buat sertifikat dari participant yang COMPLETED.
+// CertificateNo dibuat otomatis (TRN-{participantID:8}).
+func (s *Service) GenerateCertificate(ctx context.Context, participantID string, req GenerateCertificateRequest) (*TrainingCertificateResponse, error) {
+	pid, err := uuid.Parse(participantID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid participant_id: %w", err)
+	}
+	p, err := s.repo.FindParticipantByID(ctx, pid)
+	if err != nil {
+		return nil, fmt.Errorf("participant not found: %w", err)
+	}
+	if p.CompletionStatus != CompletionCompleted {
+		return nil, fmt.Errorf("certificate can only be generated for completed participants")
+	}
+	// Idempotent: bila sudah ada, update saja.
+	cert, err := s.repo.FindCertificateByParticipant(ctx, pid)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	if cert == nil {
+		cert = &TrainingCertificate{ParticipantID: pid}
+	}
+	if cert.CertificateNo == "" {
+		cert.CertificateNo = fmt.Sprintf("TRN-%s", strings.ToUpper(pid.String()[:8]))
+	}
+	if req.CertificationID != nil && *req.CertificationID != "" {
+		cid, err := uuid.Parse(*req.CertificationID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid certification_id: %w", err)
+		}
+		if _, err := s.repo.FindCertificationByID(ctx, cid); err != nil {
+			return nil, fmt.Errorf("certification not found: %w", err)
+		}
+		cert.CertificationID = &cid
+	}
+	cert.CertificateFileURL = req.CertificateFileURL
+	if req.ExpiryDate != nil {
+		cert.ExpiryDate = req.ExpiryDate
+	}
+	now := time.Now()
+	cert.IssuedDate = now.Format("2006-01-02")
+	if cert.ID == uuid.Nil {
+		if err := s.repo.CreateCertificate(ctx, cert); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := s.repo.UpdateCertificate(ctx, cert); err != nil {
+			return nil, err
+		}
+	}
+	return certificateToResponse(cert), nil
+}
+
+func (s *Service) UpdateCertificateFile(ctx context.Context, id string, req UpdateCertificateRequest) (*TrainingCertificateResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	cert, err := s.repo.FindCertificateByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.CertificateFileURL != nil {
+		cert.CertificateFileURL = req.CertificateFileURL
+	}
+	if req.ExpiryDate != nil {
+		cert.ExpiryDate = req.ExpiryDate
+	}
+	if err := s.repo.UpdateCertificate(ctx, cert); err != nil {
+		return nil, err
+	}
+	return certificateToResponse(cert), nil
+}
+
+// =========================================================================
+// Reports & History (P2-BE — plan §38)
+// =========================================================================
+
+func (s *Service) GetTrainingHistory(ctx context.Context, employeeID string) ([]TrainingHistoryResponse, error) {
+	uid, err := uuid.Parse(employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee_id: %w", err)
+	}
+	return s.repo.HistoryByEmployee(ctx, uid)
+}
+
+func (s *Service) GetParticipationReport(ctx context.Context, sessionStatus *string) ([]ParticipationReportRow, error) {
+	return s.repo.ParticipationReport(ctx, sessionStatus)
+}
+
+func (s *Service) GetCostReport(ctx context.Context) ([]CostReportRow, error) {
+	rows, err := s.repo.CostReport(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for i := range rows {
+		if rows[i].ParticipantCount > 0 {
+			rows[i].CostPerParticipant = round2(rows[i].TotalCost / float64(rows[i].ParticipantCount))
+		}
+	}
+	return rows, nil
+}
+
+func (s *Service) GetComplianceReport(ctx context.Context) ([]ComplianceReportRow, error) {
+	return s.repo.ComplianceReport(ctx)
+}
+
+func (s *Service) GetDashboardReport(ctx context.Context) (*DashboardReport, error) {
+	return s.repo.DashboardReport(ctx)
+}
+
+// =========================================================================
+// Converters P2
+// =========================================================================
+
+func evaluationFormToResponse(f *TrainingEvaluationForm) *EvaluationFormResponse {
+	return &EvaluationFormResponse{
+		ID:        f.ID.String(),
+		SessionID: f.SessionID.String(),
+		Name:      f.Name,
+		IsActive:  f.IsActive,
+		CreatedAt: f.CreatedAt,
+		UpdatedAt: f.UpdatedAt,
+	}
+}
+
+func evaluationQuestionToResponse(q *TrainingEvaluationQuestion) *EvaluationQuestionResponse {
+	return &EvaluationQuestionResponse{
+		ID:           q.ID.String(),
+		FormID:       q.FormID.String(),
+		Question:     q.Question,
+		QuestionType: string(q.QuestionType),
+		SortOrder:    q.SortOrder,
+		IsRequired:   q.IsRequired,
+		CreatedAt:    q.CreatedAt,
+		UpdatedAt:    q.UpdatedAt,
+	}
+}
+
+func evaluationAnswerToResponse(a *TrainingEvaluationAnswer) *EvaluationAnswerResponse {
+	return &EvaluationAnswerResponse{
+		ID:            a.ID.String(),
+		QuestionID:    a.QuestionID.String(),
+		ParticipantID: a.ParticipantID.String(),
+		Answer:        a.Answer,
+		CreatedAt:     a.CreatedAt,
+		UpdatedAt:     a.UpdatedAt,
+	}
+}
+
+func effectivenessToResponse(a *TrainingEffectivenessAssessment) *EffectivenessAssessmentResponse {
+	resp := &EffectivenessAssessmentResponse{
+		ID:                 a.ID.String(),
+		ParticipantID:      a.ParticipantID.String(),
+		AssessmentDate:     a.AssessmentDate,
+		BeforeScore:        a.BeforeScore,
+		AfterScore:         a.AfterScore,
+		EffectivenessScore: a.EffectivenessScore,
+		CreatedAt:          a.CreatedAt,
+		UpdatedAt:          a.UpdatedAt,
+	}
+	if a.AssessorEmployeeID != nil {
+		resp.AssessorEmployeeID = a.AssessorEmployeeID.String()
+	}
+	if a.Remarks != nil {
+		resp.Remarks = *a.Remarks
+	}
+	return resp
+}
+
+func certificationToResponse(c *TrainingCertification) *CertificationResponse {
+	resp := &CertificationResponse{
+		ID:                  c.ID.String(),
+		Code:                c.Code,
+		Name:                c.Name,
+		ValidityPeriodMonth: c.ValidityPeriodMonth,
+		RenewalRequired:     c.RenewalRequired,
+		IsActive:            c.IsActive,
+		CreatedAt:           c.CreatedAt,
+		UpdatedAt:           c.UpdatedAt,
+	}
+	if c.IssuingBody != nil {
+		resp.IssuingBody = *c.IssuingBody
+	}
+	return resp
 }

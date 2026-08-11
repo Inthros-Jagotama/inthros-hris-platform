@@ -23,13 +23,13 @@ const (
 type SessionStatus string
 
 const (
-	SessStatusDraft           SessionStatus = "DRAFT"
-	SessStatusScheduled       SessionStatus = "SCHEDULED"
+	SessStatusDraft            SessionStatus = "DRAFT"
+	SessStatusScheduled        SessionStatus = "SCHEDULED"
 	SessStatusRegistrationOpen SessionStatus = "REGISTRATION_OPEN"
-	SessStatusFull            SessionStatus = "FULL"
-	SessStatusInProgress      SessionStatus = "IN_PROGRESS"
-	SessStatusCompleted       SessionStatus = "COMPLETED"
-	SessStatusCancelled       SessionStatus = "CANCELLED"
+	SessStatusFull             SessionStatus = "FULL"
+	SessStatusInProgress       SessionStatus = "IN_PROGRESS"
+	SessStatusCompleted        SessionStatus = "COMPLETED"
+	SessStatusCancelled        SessionStatus = "CANCELLED"
 )
 
 // ProviderType — tipe penyelenggara training (in-house / external).
@@ -149,21 +149,21 @@ func (c *TrainingCategory) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingCourse struct {
-	ID             uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	CategoryID     uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_course_cat" json:"category_id"`
-	Code           string         `gorm:"type:varchar(20);not null;uniqueIndex:idx_trn_course_code" json:"code"`
-	Name           string         `gorm:"type:varchar(200);not null" json:"name"`
-	Description    *string        `gorm:"type:text" json:"description,omitempty"`
-	DurationHour   *float64       `gorm:"type:decimal(8,2)" json:"duration_hour,omitempty"`
-	MinScore       *float64       `gorm:"type:decimal(5,2)" json:"min_score,omitempty"`
-	Cost           *float64       `gorm:"type:decimal(18,2)" json:"cost,omitempty"`
-	IsCertified    bool           `gorm:"not null;default:0" json:"is_certified"`
-	ExternalVendor *string        `gorm:"type:varchar(200)" json:"external_vendor,omitempty"`
+	ID             uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	CategoryID     uuid.UUID `gorm:"type:char(36);not null;index:idx_trn_course_cat" json:"category_id"`
+	Code           string    `gorm:"type:varchar(20);not null;uniqueIndex:idx_trn_course_code" json:"code"`
+	Name           string    `gorm:"type:varchar(200);not null" json:"name"`
+	Description    *string   `gorm:"type:text" json:"description,omitempty"`
+	DurationHour   *float64  `gorm:"type:decimal(8,2)" json:"duration_hour,omitempty"`
+	MinScore       *float64  `gorm:"type:decimal(5,2)" json:"min_score,omitempty"`
+	Cost           *float64  `gorm:"type:decimal(18,2)" json:"cost,omitempty"`
+	IsCertified    bool      `gorm:"not null;default:0" json:"is_certified"`
+	ExternalVendor *string   `gorm:"type:varchar(200)" json:"external_vendor,omitempty"`
 	// P0-BE (plan §7): tipe kursus + default delivery + mandatory flag.
-	CourseType   *CourseType  `gorm:"type:varchar(20)" json:"course_type,omitempty"`
-	DeliveryType *DeliveryType `gorm:"type:varchar(20)" json:"delivery_type,omitempty"`
-	IsMandatory  bool         `gorm:"not null;default:0" json:"is_mandatory"`
-	IsActive     bool         `gorm:"not null;default:1" json:"is_active"`
+	CourseType   *CourseType    `gorm:"type:varchar(20)" json:"course_type,omitempty"`
+	DeliveryType *DeliveryType  `gorm:"type:varchar(20)" json:"delivery_type,omitempty"`
+	IsMandatory  bool           `gorm:"not null;default:0" json:"is_mandatory"`
+	IsActive     bool           `gorm:"not null;default:1" json:"is_active"`
 	DeletedAt    gorm.DeletedAt `gorm:"index:idx_trn_course_deleted_at" json:"deleted_at,omitempty"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
@@ -183,23 +183,23 @@ func (c *TrainingCourse) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingSession struct {
-	ID          uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	CourseID    uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_sess_course" json:"course_id"`
-	SessionCode string         `gorm:"type:varchar(20);not null" json:"session_code"`
-	TrainerName string         `gorm:"type:varchar(200);not null" json:"trainer_name"`
+	ID          uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	CourseID    uuid.UUID `gorm:"type:char(36);not null;index:idx_trn_sess_course" json:"course_id"`
+	SessionCode string    `gorm:"type:varchar(20);not null" json:"session_code"`
+	TrainerName string    `gorm:"type:varchar(200);not null" json:"trainer_name"`
 	// P0-BE (plan §14): penyelenggara + mode delivery + link provider + datetime presisi.
-	ProviderType         *ProviderType `gorm:"type:varchar(20)" json:"provider_type,omitempty"`
-	DeliveryMode         *DeliveryMode `gorm:"type:varchar(20)" json:"delivery_mode,omitempty"`
-	ProviderID           *uuid.UUID    `gorm:"type:char(36);index:idx_trn_sess_provider" json:"provider_id,omitempty"`
-	StartDatetime        *time.Time    `gorm:"type:timestamp" json:"start_datetime,omitempty"`
-	EndDatetime          *time.Time    `gorm:"type:timestamp" json:"end_datetime,omitempty"`
-	MeetingURL           *string       `gorm:"type:text" json:"meeting_url,omitempty"`
-	RegistrationDeadline *time.Time    `gorm:"type:timestamp" json:"registration_deadline,omitempty"`
-	Location             *string       `gorm:"type:varchar(255)" json:"location,omitempty"`
-	StartDate            string        `gorm:"type:date;not null" json:"start_date"`
-	EndDate              string        `gorm:"type:date;not null" json:"end_date"`
-	MaxQuota             int           `gorm:"type:int;not null;default:30" json:"max_quota"`
-	Status               SessionStatus `gorm:"type:varchar(20);not null;default:SCHEDULED;index:idx_trn_sess_status" json:"status"`
+	ProviderType         *ProviderType  `gorm:"type:varchar(20)" json:"provider_type,omitempty"`
+	DeliveryMode         *DeliveryMode  `gorm:"type:varchar(20)" json:"delivery_mode,omitempty"`
+	ProviderID           *uuid.UUID     `gorm:"type:char(36);index:idx_trn_sess_provider" json:"provider_id,omitempty"`
+	StartDatetime        *time.Time     `gorm:"type:timestamp" json:"start_datetime,omitempty"`
+	EndDatetime          *time.Time     `gorm:"type:timestamp" json:"end_datetime,omitempty"`
+	MeetingURL           *string        `gorm:"type:text" json:"meeting_url,omitempty"`
+	RegistrationDeadline *time.Time     `gorm:"type:timestamp" json:"registration_deadline,omitempty"`
+	Location             *string        `gorm:"type:varchar(255)" json:"location,omitempty"`
+	StartDate            string         `gorm:"type:date;not null" json:"start_date"`
+	EndDate              string         `gorm:"type:date;not null" json:"end_date"`
+	MaxQuota             int            `gorm:"type:int;not null;default:30" json:"max_quota"`
+	Status               SessionStatus  `gorm:"type:varchar(20);not null;default:SCHEDULED;index:idx_trn_sess_status" json:"status"`
 	DeletedAt            gorm.DeletedAt `gorm:"index:idx_trn_sess_deleted_at" json:"deleted_at,omitempty"`
 	CreatedAt            time.Time      `json:"created_at"`
 	UpdatedAt            time.Time      `json:"updated_at"`
@@ -222,9 +222,9 @@ func (s *TrainingSession) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingParticipant struct {
-	ID               uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	SessionID        uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_part_sess" json:"session_id"`
-	EmployeeID       uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_part_emp" json:"employee_id"`
+	ID         uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	SessionID  uuid.UUID `gorm:"type:char(36);not null;index:idx_trn_part_sess" json:"session_id"`
+	EmployeeID uuid.UUID `gorm:"type:char(36);not null;index:idx_trn_part_emp" json:"employee_id"`
 	// P0-BE (plan §18): enrollment — registration + completion.
 	RegistrationStatus RegistrationStatus `gorm:"type:varchar(20);not null;default:REGISTERED" json:"registration_status"`
 	RegisteredAt       *time.Time         `gorm:"type:timestamp" json:"registered_at,omitempty"`
@@ -256,19 +256,19 @@ func (p *TrainingParticipant) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingMaterial struct {
-	ID           uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	SessionID    uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_mat_sess" json:"session_id"`
-	Title        string         `gorm:"type:varchar(200);not null" json:"title"`
+	ID        uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	SessionID uuid.UUID `gorm:"type:char(36);not null;index:idx_trn_mat_sess" json:"session_id"`
+	Title     string    `gorm:"type:varchar(200);not null" json:"title"`
 	// P0-BE (plan §20): deskripsi, wajib, ketersediaan.
-	Description   *string    `gorm:"type:text" json:"description,omitempty"`
-	IsRequired    bool       `gorm:"not null;default:0" json:"is_required"`
-	AvailableFrom *time.Time `gorm:"type:timestamp" json:"available_from,omitempty"`
-	FileURL       *string    `gorm:"type:text" json:"file_url,omitempty"`
-	FileType      *string    `gorm:"type:varchar(50)" json:"file_type,omitempty"`
-	SortOrder     int        `gorm:"type:smallint;default:0" json:"sort_order"`
+	Description   *string        `gorm:"type:text" json:"description,omitempty"`
+	IsRequired    bool           `gorm:"not null;default:0" json:"is_required"`
+	AvailableFrom *time.Time     `gorm:"type:timestamp" json:"available_from,omitempty"`
+	FileURL       *string        `gorm:"type:text" json:"file_url,omitempty"`
+	FileType      *string        `gorm:"type:varchar(50)" json:"file_type,omitempty"`
+	SortOrder     int            `gorm:"type:smallint;default:0" json:"sort_order"`
 	DeletedAt     gorm.DeletedAt `gorm:"index:idx_trn_mat_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
 }
 
 func (TrainingMaterial) TableName() string { return "training_materials" }
@@ -309,14 +309,16 @@ func (e *TrainingEvaluation) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingCertificate struct {
-	ID            uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	ParticipantID uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_cert_part" json:"participant_id"`
-	CertificateNo string         `gorm:"type:varchar(50);not null;uniqueIndex:idx_trn_cert_no" json:"certificate_no"`
-	IssuedDate    string         `gorm:"type:date;not null" json:"issued_date"`
-	ExpiryDate    *string        `gorm:"type:date" json:"expiry_date,omitempty"`
-	DeletedAt     gorm.DeletedAt `gorm:"index:idx_trn_cert_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
+	ID                 uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	ParticipantID      uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_cert_part" json:"participant_id"`
+	CertificationID    *uuid.UUID     `gorm:"type:char(36);index:idx_trn_cert_certification" json:"certification_id,omitempty"`
+	CertificateNo      string         `gorm:"type:varchar(50);not null;uniqueIndex:idx_trn_cert_no" json:"certificate_no"`
+	CertificateFileURL *string        `gorm:"type:text" json:"certificate_file_url,omitempty"`
+	IssuedDate         string         `gorm:"type:date;not null" json:"issued_date"`
+	ExpiryDate         *string        `gorm:"type:date" json:"expiry_date,omitempty"`
+	DeletedAt          gorm.DeletedAt `gorm:"index:idx_trn_cert_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
 }
 
 func (TrainingCertificate) TableName() string { return "training_certificates" }
@@ -390,13 +392,13 @@ func (t *TrainingTrainer) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingSessionTrainer struct {
-	ID        uuid.UUID         `gorm:"type:char(36);primaryKey" json:"id"`
-	SessionID uuid.UUID         `gorm:"type:char(36);not null;index:idx_trn_sess_trn_session" json:"session_id"`
-	TrainerID uuid.UUID         `gorm:"type:char(36);not null;index:idx_trn_sess_trn_trainer" json:"trainer_id"`
+	ID        uuid.UUID          `gorm:"type:char(36);primaryKey" json:"id"`
+	SessionID uuid.UUID          `gorm:"type:char(36);not null;index:idx_trn_sess_trn_session" json:"session_id"`
+	TrainerID uuid.UUID          `gorm:"type:char(36);not null;index:idx_trn_sess_trn_trainer" json:"trainer_id"`
 	Role      SessionTrainerRole `gorm:"type:varchar(20);not null;default:MAIN" json:"role"`
 	DeletedAt gorm.DeletedAt     `gorm:"index:idx_trn_sess_trn_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt time.Time         `json:"created_at"`
-	UpdatedAt time.Time         `json:"updated_at"`
+	CreatedAt time.Time          `json:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
 }
 
 func (TrainingSessionTrainer) TableName() string { return "training_session_trainers" }
@@ -413,16 +415,16 @@ func (st *TrainingSessionTrainer) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingAttendance struct {
-	ID             uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	ParticipantID  uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_att_part" json:"participant_id"`
-	AttendanceDate string         `gorm:"type:date;not null" json:"attendance_date"`
-	CheckIn        *time.Time     `gorm:"type:timestamp" json:"check_in,omitempty"`
-	CheckOut       *time.Time     `gorm:"type:timestamp" json:"check_out,omitempty"`
+	ID             uuid.UUID        `gorm:"type:char(36);primaryKey" json:"id"`
+	ParticipantID  uuid.UUID        `gorm:"type:char(36);not null;index:idx_trn_att_part" json:"participant_id"`
+	AttendanceDate string           `gorm:"type:date;not null" json:"attendance_date"`
+	CheckIn        *time.Time       `gorm:"type:timestamp" json:"check_in,omitempty"`
+	CheckOut       *time.Time       `gorm:"type:timestamp" json:"check_out,omitempty"`
 	Status         AttendanceStatus `gorm:"type:varchar(20);not null;default:PRESENT" json:"status"`
-	Remarks        *string        `gorm:"type:text" json:"remarks,omitempty"`
-	DeletedAt      gorm.DeletedAt `gorm:"index:idx_trn_att_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+	Remarks        *string          `gorm:"type:text" json:"remarks,omitempty"`
+	DeletedAt      gorm.DeletedAt   `gorm:"index:idx_trn_att_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt      time.Time        `json:"created_at"`
+	UpdatedAt      time.Time        `json:"updated_at"`
 }
 
 func (TrainingAttendance) TableName() string { return "training_attendances" }
@@ -442,8 +444,8 @@ func (a *TrainingAttendance) BeforeCreate(tx *gorm.DB) error {
 type PlanStatus string
 
 const (
-	PlanStatusDraft   PlanStatus = "DRAFT"
-	PlanStatusActive  PlanStatus = "ACTIVE"
+	PlanStatusDraft    PlanStatus = "DRAFT"
+	PlanStatusActive   PlanStatus = "ACTIVE"
 	PlanStatusArchived PlanStatus = "ARCHIVED"
 )
 
@@ -484,12 +486,12 @@ const (
 type RequestStatus string
 
 const (
-	ReqStatusDraft          RequestStatus = "DRAFT"
-	ReqStatusSubmitted      RequestStatus = "SUBMITTED"
+	ReqStatusDraft           RequestStatus = "DRAFT"
+	ReqStatusSubmitted       RequestStatus = "SUBMITTED"
 	ReqStatusPendingApproval RequestStatus = "PENDING_APPROVAL"
-	ReqStatusApproved       RequestStatus = "APPROVED"
-	ReqStatusRejected       RequestStatus = "REJECTED"
-	ReqStatusCancelled      RequestStatus = "CANCELLED"
+	ReqStatusApproved        RequestStatus = "APPROVED"
+	ReqStatusRejected        RequestStatus = "REJECTED"
+	ReqStatusCancelled       RequestStatus = "CANCELLED"
 )
 
 // PrerequisiteType — tipe prerequisite course.
@@ -559,16 +561,16 @@ func (p *TrainingPlan) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingPlanItem struct {
-	ID                uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	TrainingPlanID    uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_plan_item_plan" json:"training_plan_id"`
-	CourseID          uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_plan_item_course" json:"course_id"`
-	TargetDate        *string        `gorm:"type:date" json:"target_date,omitempty"`
-	TargetParticipants *int          `gorm:"type:int" json:"target_participants,omitempty"`
-	EstimatedCost     *float64       `gorm:"type:decimal(14,2)" json:"estimated_cost,omitempty"`
-	Priority          PriorityLevel  `gorm:"type:varchar(20);not null;default:MEDIUM" json:"priority"`
-	DeletedAt         gorm.DeletedAt `gorm:"index:idx_trn_plan_item_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt         time.Time      `json:"created_at"`
-	UpdatedAt         time.Time      `json:"updated_at"`
+	ID                 uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	TrainingPlanID     uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_plan_item_plan" json:"training_plan_id"`
+	CourseID           uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_plan_item_course" json:"course_id"`
+	TargetDate         *string        `gorm:"type:date" json:"target_date,omitempty"`
+	TargetParticipants *int           `gorm:"type:int" json:"target_participants,omitempty"`
+	EstimatedCost      *float64       `gorm:"type:decimal(14,2)" json:"estimated_cost,omitempty"`
+	Priority           PriorityLevel  `gorm:"type:varchar(20);not null;default:MEDIUM" json:"priority"`
+	DeletedAt          gorm.DeletedAt `gorm:"index:idx_trn_plan_item_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
 }
 
 func (TrainingPlanItem) TableName() string { return "training_plan_items" }
@@ -614,21 +616,21 @@ func (n *TrainingNeed) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingRequest struct {
-	ID                   uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	EmployeeID           uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_req_employee" json:"employee_id"`
-	CourseID             uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_req_course" json:"course_id"`
-	SessionID            *uuid.UUID     `gorm:"type:char(36)" json:"session_id,omitempty"`
-	RequestedDate        string         `gorm:"type:date;not null" json:"requested_date"`
-	Reason               *string        `gorm:"type:text" json:"reason,omitempty"`
-	Priority             PriorityLevel  `gorm:"type:varchar(20);not null;default:MEDIUM" json:"priority"`
-	Status               RequestStatus  `gorm:"type:varchar(20);not null;default:DRAFT;index:idx_trn_req_status" json:"status"`
-	ApprovalInstanceID   *uuid.UUID     `gorm:"type:char(36);index:idx_trn_req_approval_instance" json:"approval_instance_id,omitempty"`
-	ApprovedAt           *time.Time     `gorm:"type:timestamp" json:"approved_at,omitempty"`
-	RejectedAt           *time.Time     `gorm:"type:timestamp" json:"rejected_at,omitempty"`
-	SupervisorNote       *string        `gorm:"type:text" json:"supervisor_note,omitempty"`
-	DeletedAt            gorm.DeletedAt `gorm:"index:idx_trn_req_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt            time.Time      `json:"created_at"`
-	UpdatedAt            time.Time      `json:"updated_at"`
+	ID                 uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	EmployeeID         uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_req_employee" json:"employee_id"`
+	CourseID           uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_req_course" json:"course_id"`
+	SessionID          *uuid.UUID     `gorm:"type:char(36)" json:"session_id,omitempty"`
+	RequestedDate      string         `gorm:"type:date;not null" json:"requested_date"`
+	Reason             *string        `gorm:"type:text" json:"reason,omitempty"`
+	Priority           PriorityLevel  `gorm:"type:varchar(20);not null;default:MEDIUM" json:"priority"`
+	Status             RequestStatus  `gorm:"type:varchar(20);not null;default:DRAFT;index:idx_trn_req_status" json:"status"`
+	ApprovalInstanceID *uuid.UUID     `gorm:"type:char(36);index:idx_trn_req_approval_instance" json:"approval_instance_id,omitempty"`
+	ApprovedAt         *time.Time     `gorm:"type:timestamp" json:"approved_at,omitempty"`
+	RejectedAt         *time.Time     `gorm:"type:timestamp" json:"rejected_at,omitempty"`
+	SupervisorNote     *string        `gorm:"type:text" json:"supervisor_note,omitempty"`
+	DeletedAt          gorm.DeletedAt `gorm:"index:idx_trn_req_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
 }
 
 func (TrainingRequest) TableName() string { return "training_requests" }
@@ -691,14 +693,14 @@ func (c *TrainingCourseCompetency) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingCoursePrerequisite struct {
-	ID                uuid.UUID       `gorm:"type:char(36);primaryKey" json:"id"`
-	CourseID          uuid.UUID       `gorm:"type:char(36);not null;index:idx_trn_preq_course" json:"course_id"`
-	PrerequisiteType  PrerequisiteType `gorm:"type:varchar(20);not null;default:COURSE" json:"prerequisite_type"`
-	PrerequisiteID    *uuid.UUID      `gorm:"type:char(36)" json:"prerequisite_id,omitempty"`
-	IsRequired        bool            `gorm:"not null;default:1" json:"is_required"`
-	DeletedAt         gorm.DeletedAt  `gorm:"index:idx_trn_preq_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt         time.Time       `json:"created_at"`
-	UpdatedAt         time.Time       `json:"updated_at"`
+	ID               uuid.UUID        `gorm:"type:char(36);primaryKey" json:"id"`
+	CourseID         uuid.UUID        `gorm:"type:char(36);not null;index:idx_trn_preq_course" json:"course_id"`
+	PrerequisiteType PrerequisiteType `gorm:"type:varchar(20);not null;default:COURSE" json:"prerequisite_type"`
+	PrerequisiteID   *uuid.UUID       `gorm:"type:char(36)" json:"prerequisite_id,omitempty"`
+	IsRequired       bool             `gorm:"not null;default:1" json:"is_required"`
+	DeletedAt        gorm.DeletedAt   `gorm:"index:idx_trn_preq_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt        time.Time        `json:"created_at"`
+	UpdatedAt        time.Time        `json:"updated_at"`
 }
 
 func (TrainingCoursePrerequisite) TableName() string { return "training_course_prerequisites" }
@@ -715,17 +717,17 @@ func (p *TrainingCoursePrerequisite) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingMandatory struct {
-	ID                   uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	CourseID             uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_mand_course" json:"course_id"`
-	OrganizationID       *uuid.UUID     `gorm:"type:char(36);index:idx_trn_mand_org" json:"organization_id,omitempty"`
-	PositionID           *uuid.UUID     `gorm:"type:char(36)" json:"position_id,omitempty"`
-	EmploymentStatusID   *uuid.UUID     `gorm:"type:char(36)" json:"employment_status_id,omitempty"`
-	DueDays              *int           `gorm:"type:int" json:"due_days,omitempty"`
-	ValidityPeriodMonth  *int           `gorm:"type:int" json:"validity_period_month,omitempty"`
-	IsActive             bool           `gorm:"not null;default:1" json:"is_active"`
-	DeletedAt            gorm.DeletedAt `gorm:"index:idx_trn_mand_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt            time.Time      `json:"created_at"`
-	UpdatedAt            time.Time      `json:"updated_at"`
+	ID                  uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	CourseID            uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_mand_course" json:"course_id"`
+	OrganizationID      *uuid.UUID     `gorm:"type:char(36);index:idx_trn_mand_org" json:"organization_id,omitempty"`
+	PositionID          *uuid.UUID     `gorm:"type:char(36)" json:"position_id,omitempty"`
+	EmploymentStatusID  *uuid.UUID     `gorm:"type:char(36)" json:"employment_status_id,omitempty"`
+	DueDays             *int           `gorm:"type:int" json:"due_days,omitempty"`
+	ValidityPeriodMonth *int           `gorm:"type:int" json:"validity_period_month,omitempty"`
+	IsActive            bool           `gorm:"not null;default:1" json:"is_active"`
+	DeletedAt           gorm.DeletedAt `gorm:"index:idx_trn_mand_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt           time.Time      `json:"created_at"`
+	UpdatedAt           time.Time      `json:"updated_at"`
 }
 
 func (TrainingMandatory) TableName() string { return "training_mandatories" }
@@ -791,17 +793,17 @@ func (d *TrainingDocument) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type TrainingAssessment struct {
-	ID            uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	SessionID     uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_assess_session" json:"session_id"`
-	Name          string         `gorm:"type:varchar(200);not null" json:"name"`
-	Type          AssessmentType `gorm:"type:varchar(20);not null;default:OTHER" json:"type"`
-	MaxScore      float64        `gorm:"type:decimal(8,2);not null;default:100" json:"max_score"`
-	PassingScore  float64        `gorm:"type:decimal(8,2);not null;default:60" json:"passing_score"`
-	AttemptLimit  int            `gorm:"type:int;not null;default:1" json:"attempt_limit"`
-	IsRequired    bool           `gorm:"not null;default:1" json:"is_required"`
-	DeletedAt     gorm.DeletedAt `gorm:"index:idx_trn_assess_deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
+	ID           uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	SessionID    uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_assess_session" json:"session_id"`
+	Name         string         `gorm:"type:varchar(200);not null" json:"name"`
+	Type         AssessmentType `gorm:"type:varchar(20);not null;default:OTHER" json:"type"`
+	MaxScore     float64        `gorm:"type:decimal(8,2);not null;default:100" json:"max_score"`
+	PassingScore float64        `gorm:"type:decimal(8,2);not null;default:60" json:"passing_score"`
+	AttemptLimit int            `gorm:"type:int;not null;default:1" json:"attempt_limit"`
+	IsRequired   bool           `gorm:"not null;default:1" json:"is_required"`
+	DeletedAt    gorm.DeletedAt `gorm:"index:idx_trn_assess_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 func (TrainingAssessment) TableName() string { return "training_assessments" }
@@ -835,6 +837,140 @@ func (TrainingAssessmentResult) TableName() string { return "training_assessment
 func (r *TrainingAssessmentResult) BeforeCreate(tx *gorm.DB) error {
 	if r.ID == uuid.Nil {
 		r.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// Training Evaluation (P2-BE — plan §22)
+// =========================================================================
+
+// EvaluationQuestionType — tipe pertanyaan evaluasi.
+type EvaluationQuestionType string
+
+const (
+	EvalQTypeRating         EvaluationQuestionType = "RATING"
+	EvalQTypeText           EvaluationQuestionType = "TEXT"
+	EvalQTypeSingleChoice   EvaluationQuestionType = "SINGLE_CHOICE"
+	EvalQTypeMultipleChoice EvaluationQuestionType = "MULTIPLE_CHOICE"
+)
+
+// TrainingEvaluationForm — form evaluasi per session (P2-BE — plan §22).
+type TrainingEvaluationForm struct {
+	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	SessionID uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_eval_form_session" json:"session_id"`
+	Name      string         `gorm:"type:varchar(200);not null" json:"name"`
+	IsActive  bool           `gorm:"not null;default:1" json:"is_active"`
+	DeletedAt gorm.DeletedAt `gorm:"index:idx_trn_eval_form_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+}
+
+func (TrainingEvaluationForm) TableName() string { return "training_evaluation_forms" }
+
+func (f *TrainingEvaluationForm) BeforeCreate(tx *gorm.DB) error {
+	if f.ID == uuid.Nil {
+		f.ID = uuid.New()
+	}
+	return nil
+}
+
+// TrainingEvaluationQuestion — pertanyaan dalam form evaluasi.
+type TrainingEvaluationQuestion struct {
+	ID           uuid.UUID              `gorm:"type:char(36);primaryKey" json:"id"`
+	FormID       uuid.UUID              `gorm:"type:char(36);not null;index:idx_trn_eval_question_form" json:"form_id"`
+	Question     string                 `gorm:"type:text;not null" json:"question"`
+	QuestionType EvaluationQuestionType `gorm:"type:varchar(20);not null;default:RATING" json:"question_type"`
+	SortOrder    int                    `gorm:"type:int;not null;default:0" json:"sort_order"`
+	IsRequired   bool                   `gorm:"not null;default:1" json:"is_required"`
+	DeletedAt    gorm.DeletedAt         `gorm:"index:idx_trn_eval_question_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt    time.Time              `json:"created_at"`
+	UpdatedAt    time.Time              `json:"updated_at"`
+}
+
+func (TrainingEvaluationQuestion) TableName() string { return "training_evaluation_questions" }
+
+func (q *TrainingEvaluationQuestion) BeforeCreate(tx *gorm.DB) error {
+	if q.ID == uuid.Nil {
+		q.ID = uuid.New()
+	}
+	return nil
+}
+
+// TrainingEvaluationAnswer — jawaban peserta per pertanyaan.
+type TrainingEvaluationAnswer struct {
+	ID            uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	QuestionID    uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_eval_answer_question" json:"question_id"`
+	ParticipantID uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_eval_answer_participant" json:"participant_id"`
+	Answer        string         `gorm:"type:text" json:"answer,omitempty"`
+	DeletedAt     gorm.DeletedAt `gorm:"index:idx_trn_eval_answer_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+}
+
+func (TrainingEvaluationAnswer) TableName() string { return "training_evaluation_answers" }
+
+func (a *TrainingEvaluationAnswer) BeforeCreate(tx *gorm.DB) error {
+	if a.ID == uuid.Nil {
+		a.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// Training Effectiveness (P2-BE — plan §23)
+// =========================================================================
+
+// TrainingEffectivenessAssessment — mengukur dampak pasca training
+// (before/after score, 30/60/90 hari).
+type TrainingEffectivenessAssessment struct {
+	ID                 uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	ParticipantID      uuid.UUID      `gorm:"type:char(36);not null;index:idx_trn_effect_participant" json:"participant_id"`
+	AssessmentDate     string         `gorm:"type:date;not null" json:"assessment_date"`
+	AssessorEmployeeID *uuid.UUID     `gorm:"type:char(36)" json:"assessor_employee_id,omitempty"`
+	BeforeScore        *float64       `gorm:"type:decimal(5,2)" json:"before_score,omitempty"`
+	AfterScore         *float64       `gorm:"type:decimal(5,2)" json:"after_score,omitempty"`
+	EffectivenessScore *float64       `gorm:"type:decimal(5,2)" json:"effectiveness_score,omitempty"`
+	Remarks            *string        `gorm:"type:text" json:"remarks,omitempty"`
+	DeletedAt          gorm.DeletedAt `gorm:"index:idx_trn_effect_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
+}
+
+func (TrainingEffectivenessAssessment) TableName() string {
+	return "training_effectiveness_assessments"
+}
+
+func (a *TrainingEffectivenessAssessment) BeforeCreate(tx *gorm.DB) error {
+	if a.ID == uuid.Nil {
+		a.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// Certification (P2-BE — plan §24)
+// =========================================================================
+
+// TrainingCertification — master sertifikasi.
+type TrainingCertification struct {
+	ID                  uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
+	Code                string         `gorm:"type:varchar(30);not null;uniqueIndex:uk_trn_certif_code" json:"code"`
+	Name                string         `gorm:"type:varchar(200);not null" json:"name"`
+	IssuingBody         *string        `gorm:"type:varchar(200)" json:"issuing_body,omitempty"`
+	ValidityPeriodMonth *int           `gorm:"type:int" json:"validity_period_month,omitempty"`
+	RenewalRequired     bool           `gorm:"not null;default:0" json:"renewal_required"`
+	IsActive            bool           `gorm:"not null;default:1" json:"is_active"`
+	DeletedAt           gorm.DeletedAt `gorm:"index:idx_trn_certif_deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt           time.Time      `json:"created_at"`
+	UpdatedAt           time.Time      `json:"updated_at"`
+}
+
+func (TrainingCertification) TableName() string { return "training_certifications" }
+
+func (c *TrainingCertification) BeforeCreate(tx *gorm.DB) error {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
 	}
 	return nil
 }
