@@ -282,7 +282,7 @@ func TestService_Reports_Smoke(t *testing.T) {
 	}
 	for _, ddl := range []string{
 		`CREATE TABLE IF NOT EXISTS employees (id TEXT PRIMARY KEY, name TEXT)`, // nolint:gosec
-		`CREATE TABLE IF NOT EXISTS employments (id TEXT PRIMARY KEY, employee_id TEXT, organization_id TEXT, end_date TEXT)`, // nolint:gosec
+		`CREATE TABLE IF NOT EXISTS employments (id TEXT PRIMARY KEY, employee_id TEXT, organization_id TEXT, effective_end_date TEXT)`, // nolint:gosec
 		`CREATE TABLE IF NOT EXISTS organizations (id TEXT PRIMARY KEY, nomenclature TEXT)`, // nolint:gosec
 	} {
 		if err := db.Exec(ddl).Error; err != nil {

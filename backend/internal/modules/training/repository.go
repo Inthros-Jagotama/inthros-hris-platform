@@ -1800,7 +1800,7 @@ func (r *Repository) ParticipationReport(ctx context.Context, sessionStatus *str
 		JOIN training_sessions ts ON ts.id = tp.session_id
 		JOIN training_courses c ON c.id = ts.course_id
 		LEFT JOIN employees e ON e.id = tp.employee_id
-		LEFT JOIN employments em ON em.employee_id = tp.employee_id AND em.end_date IS NULL
+		LEFT JOIN employments em ON em.employee_id = tp.employee_id AND em.effective_end_date IS NULL
 		LEFT JOIN organizations o ON o.id = em.organization_id`
 	args := []interface{}{}
 	if sessionStatus != nil && *sessionStatus != "" {
@@ -1859,7 +1859,7 @@ func (r *Repository) ComplianceReport(ctx context.Context) ([]ComplianceReportRo
 		FROM training_mandatories tm
 		JOIN training_courses c ON c.id = tm.course_id
 		CROSS JOIN employees e
-		LEFT JOIN employments em ON em.employee_id = e.id AND em.end_date IS NULL
+		LEFT JOIN employments em ON em.employee_id = e.id AND em.effective_end_date IS NULL
 		LEFT JOIN organizations o ON o.id = em.organization_id
 		LEFT JOIN training_participants tp ON tp.employee_id = e.id AND tp.session_id IN (
 			SELECT id FROM training_sessions WHERE course_id = c.id
