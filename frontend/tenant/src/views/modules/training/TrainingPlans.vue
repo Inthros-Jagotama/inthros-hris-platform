@@ -205,6 +205,7 @@ const currentPage = ref(1)
 const perPage = ref(15)
 const yearFilter = ref(null)
 const statusFilter = ref(null)
+const currentYear = new Date().getFullYear()
 
 const expandedRows = ref({})
 const planItems = ref({})
@@ -244,7 +245,6 @@ const skeletonColumns = [
 ]
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
-const currentYear = new Date().getFullYear()
 const yearOptions = computed(() => {
   const years = new Set()
   years.add(currentYear)
