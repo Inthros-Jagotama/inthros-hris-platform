@@ -413,8 +413,9 @@ func (r *Repository) GetActiveEmployeeCount(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	var count int64
-	// Read from employees table in tenant DB
-	if err := db.WithContext(ctx).Table("employees").Where("deleted_at IS NULL").Count(&count).Error; err != nil {
+	// Read from employees table in tenant DB — employees tidak memakai soft delete
+// (lihat employee/model.go); kolom status = 'active' adalah penanda aktif.
+	if err := db.WithContext(ctx).Table("employees").Where("status = ?", "active").Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return int(count), nil
@@ -445,7 +446,7 @@ func (r *Repository) GetEmployeesByDepartment(ctx context.Context) ([]DataPoint,
 	if err := db.WithContext(ctx).Table("employees e").
 		Select("o.name, COUNT(e.id) as count").
 		Joins("LEFT JOIN organizations o ON o.id = e.organization_id").
-		Where("e.deleted_at IS NULL").
+		Where("e.status = ?", "active").
 		Group("o.name").
 		Order("count DESC").
 		Find(&rows).Error; err != nil {
@@ -470,7 +471,7 @@ func (r *Repository) GetEmployeeCountByType(ctx context.Context) ([]DataPoint, e
 	var rows []result
 	if err := db.WithContext(ctx).Table("employees").
 		Select("employment_type, COUNT(id) as count").
-		Where("deleted_at IS NULL").
+		Where("status = ?", "active").
 		Group("employment_type").
 		Find(&rows).Error; err != nil {
 		return nil, err
@@ -495,7 +496,7 @@ func (r *Repository) GetMonthlyHeadcountTrend(ctx context.Context, months int) (
 	// Use application-level date extraction for cross-DB compatibility
 	if err := db.WithContext(ctx).Table("employees").
 		Select("SUBSTR(created_at, 1, 7) as year_month, COUNT(id) as count").
-		Where("deleted_at IS NULL").
+		Where("status = ?", "active").
 		Group("year_month").
 		Order("year_month DESC").
 		Limit(months).
@@ -522,7 +523,7 @@ func (r *Repository) GetEmployeeGenderDistribution(ctx context.Context) ([]DataP
 	var rows []result
 	if err := db.WithContext(ctx).Table("employees").
 		Select("gender, COUNT(id) as count").
-		Where("deleted_at IS NULL").
+		Where("status = ?", "active").
 		Group("gender").
 		Find(&rows).Error; err != nil {
 		return nil, err
@@ -544,9 +545,10 @@ func (r *Repository) GetMovementCountByType(ctx context.Context, period string) 
 		Count        int
 	}
 	var rows []result
+	// employee_movements tidak punya kolom deleted_at — cukup status executed.
 	query := db.WithContext(ctx).Table("employee_movements").
 		Select("movement_type, COUNT(id) as count").
-		Where("deleted_at IS NULL AND status = 'executed'")
+		Where("status = 'executed'")
 	if period != "" && len(period) >= 4 {
 		query = query.Where("SUBSTR(created_at, 1, 4) = ?", period[:4])
 	}

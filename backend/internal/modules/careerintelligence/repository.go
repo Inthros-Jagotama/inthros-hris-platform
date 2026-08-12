@@ -413,11 +413,13 @@ func (r *Repository) ListEligibleEmployeesByPositionIDs(ctx context.Context, pos
 	}
 	today := time.Now().Format("2006-01-02")
 	var rows []EligibleEmployeeRow
+	// employees/employments tidak punya kolom deleted_at (lihat employee/model.go
+	// — tanpa soft delete); filter employee aktif pakai e.status.
 	if err := db.Table("employees e").
 		Select("e.id AS employee_id, e.name AS name, em.position_id AS position_id, p.title AS position_name").
-		Joins("JOIN employments em ON em.employee_id = e.id AND em.deleted_at IS NULL").
+		Joins("JOIN employments em ON em.employee_id = e.id").
 		Joins("LEFT JOIN positions p ON p.id = em.position_id").
-		Where("e.deleted_at IS NULL").
+		Where("e.status = ?", "active").
 		Where("em.position_id IN ?", positionIDs).
 		Where("em.effective_date <= ?", today).
 		Where("(em.effective_end_date IS NULL OR em.effective_end_date >= ?)", today).
@@ -561,9 +563,11 @@ func (r *Repository) GetEmployeePosition(ctx context.Context, employeeID uuid.UU
 		PositionTitle string
 	}
 	var res result
+	// employments tidak punya kolom position — ambil title via join positions.
 	if err := db.Table("employees").
-		Select("COALESCE(eo.position, '') as position_title").
-		Joins("LEFT JOIN employments eo ON eo.employee_id = employees.id AND eo.deleted_at IS NULL").
+		Select("COALESCE(p.title, '') as position_title").
+		Joins("LEFT JOIN employments eo ON eo.employee_id = employees.id").
+		Joins("LEFT JOIN positions p ON p.id = eo.position_id").
 		Where("employees.id = ?", employeeID).
 		Scan(&res).Error; err != nil {
 		return "", fmt.Errorf("employee not found: %w", err)

@@ -829,7 +829,7 @@ func TestService_GetRecruitmentAnalytics_ComputesPipeline(t *testing.T) {
 	defer logger.Sync()
 	svc := NewService(repo, logger)
 	createRecruitmentTables(t, db)
-	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, deleted_at DATETIME NULL)`).Error; err != nil {
+	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, status VARCHAR(20) DEFAULT 'active')`).Error; err != nil {
 		t.Fatalf("failed to create employees table: %v", err)
 	}
 
@@ -875,7 +875,7 @@ func TestService_GetRecruitmentAnalytics_EmptyData(t *testing.T) {
 	defer logger.Sync()
 	svc := NewService(repo, logger)
 	createRecruitmentTables(t, db)
-	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, deleted_at DATETIME NULL)`).Error; err != nil {
+	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, status VARCHAR(20) DEFAULT 'active')`).Error; err != nil {
 		t.Fatalf("failed to create employees table: %v", err)
 	}
 
@@ -900,7 +900,7 @@ func TestService_GetGapAnalysis_IncludesRemainingGap(t *testing.T) {
 	svc := NewService(repo, logger)
 	createRecruitmentTables(t, db)
 	// GetGapAnalysis membaca tabel employees (supply) — buat minimal.
-	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, deleted_at DATETIME NULL)`).Error; err != nil {
+	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, status VARCHAR(20) DEFAULT 'active')`).Error; err != nil {
 		t.Fatalf("failed to create employees table: %v", err)
 	}
 
@@ -926,7 +926,7 @@ func TestService_GetGapAnalysis_RemainingGapSubtractsExpectedHires(t *testing.T)
 	defer logger.Sync()
 	svc := NewService(repo, logger)
 	createRecruitmentTables(t, db)
-	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, deleted_at DATETIME NULL)`).Error; err != nil {
+	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, status VARCHAR(20) DEFAULT 'active')`).Error; err != nil {
 		t.Fatalf("failed to create employees table: %v", err)
 	}
 
@@ -974,7 +974,7 @@ func TestService_GetRecruitmentAnalytics_AdvancedMetrics(t *testing.T) {
 	defer logger.Sync()
 	svc := NewService(repo, logger)
 	createRecruitmentAnalyticsTables(t, db)
-	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, deleted_at DATETIME NULL)`).Error; err != nil {
+	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, status VARCHAR(20) DEFAULT 'active')`).Error; err != nil {
 		t.Fatalf("failed to create employees table: %v", err)
 	}
 

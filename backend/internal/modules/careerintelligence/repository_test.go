@@ -413,15 +413,14 @@ func createEligibilityTables(t *testing.T, db *gorm.DB) {
 		`CREATE TABLE employees (
 			id CHAR(36) PRIMARY KEY,
 			name VARCHAR(255),
-			deleted_at DATETIME NULL
+			status VARCHAR(20) DEFAULT 'active'
 		)`,
 		`CREATE TABLE employments (
 			id CHAR(36) PRIMARY KEY,
 			employee_id CHAR(36),
 			position_id CHAR(36),
 			effective_date DATE,
-			effective_end_date DATE NULL,
-			deleted_at DATETIME NULL
+			effective_end_date DATE NULL
 		)`,
 		`CREATE TABLE positions (
 			id CHAR(36) PRIMARY KEY,
