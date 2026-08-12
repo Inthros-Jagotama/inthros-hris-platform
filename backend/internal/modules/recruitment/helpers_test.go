@@ -25,6 +25,8 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&OnboardingTaskTemplate{},
 		&EmployeeOnboarding{},
 		&OnboardingTaskItem{},
+		&RecruitmentStage{},
+		&ApplicationStageHistory{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
 	}

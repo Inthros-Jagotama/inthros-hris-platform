@@ -601,3 +601,66 @@ func (r *Repository) DeleteOnboardingTaskItem(ctx context.Context, id uuid.UUID)
 	}
 	return result.Error
 }
+
+// =========================================================================
+// Recruitment Stages (G-5 — master, seeded)
+// =========================================================================
+
+func (r *Repository) CreateStage(ctx context.Context, s *RecruitmentStage) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(s).Error
+}
+
+func (r *Repository) FindStageByCode(ctx context.Context, code string) (*RecruitmentStage, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var s RecruitmentStage
+	if err := db.WithContext(ctx).Where("code = ?", code).First(&s).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("recruitment stage not found: %s", code)
+		}
+		return nil, err
+	}
+	return &s, nil
+}
+
+func (r *Repository) ListStages(ctx context.Context) ([]RecruitmentStage, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []RecruitmentStage
+	if err := db.WithContext(ctx).Order("sort_order ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// =========================================================================
+// Application Stage History (G-5)
+// =========================================================================
+
+func (r *Repository) CreateStageHistory(ctx context.Context, h *ApplicationStageHistory) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(h).Error
+}
+
+func (r *Repository) ListStageHistoryByApplication(ctx context.Context, applicationID uuid.UUID) ([]ApplicationStageHistory, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []ApplicationStageHistory
+	if err := db.WithContext(ctx).Where("application_id = ?", applicationID).Order("changed_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}

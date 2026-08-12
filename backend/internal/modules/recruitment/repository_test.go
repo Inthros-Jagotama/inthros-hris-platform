@@ -567,3 +567,78 @@ func TestRepo_DeleteOnboardingTaskItem_NotFound(t *testing.T) {
 		t.Fatal("expected error deleting non-existent task item")
 	}
 }
+
+func TestRepository_CreateAndFindStageByCode(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	stage := &RecruitmentStage{Code: "NEW", Name: "New Application", SortOrder: 1}
+	if err := repo.CreateStage(ctx, stage); err != nil {
+		t.Fatalf("CreateStage failed: %v", err)
+	}
+
+	found, err := repo.FindStageByCode(ctx, "NEW")
+	if err != nil {
+		t.Fatalf("FindStageByCode failed: %v", err)
+	}
+	if found.ID != stage.ID {
+		t.Errorf("expected id %s, got %s", stage.ID, found.ID)
+	}
+}
+
+func TestRepository_ListStages(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	repo.CreateStage(ctx, &RecruitmentStage{Code: "NEW", Name: "New", SortOrder: 1})
+	repo.CreateStage(ctx, &RecruitmentStage{Code: "SCREENED", Name: "Screened", SortOrder: 2})
+
+	list, err := repo.ListStages(ctx)
+	if err != nil {
+		t.Fatalf("ListStages failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2 stages, got %d", len(list))
+	}
+}
+
+func TestRepository_CreateAndListStageHistory(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	req := &JobRequisition{OrganizationID: uuid.New(), Title: "Engineer"}
+	repo.CreateRequisition(ctx, req)
+	cand := &Candidate{FirstName: "A", LastName: "B", Email: "ab@test.com"}
+	repo.CreateCandidate(ctx, cand)
+	app := &JobApplication{RequisitionID: req.ID, CandidateID: cand.ID, Status: CandStatusNew}
+	repo.CreateApplication(ctx, app)
+
+	newStage := &RecruitmentStage{Code: "NEW", Name: "New", SortOrder: 1}
+	repo.CreateStage(ctx, newStage)
+	screenedStage := &RecruitmentStage{Code: "SCREENED", Name: "Screened", SortOrder: 2}
+	repo.CreateStage(ctx, screenedStage)
+
+	h := &ApplicationStageHistory{
+		ApplicationID: app.ID,
+		FromStageID:   &newStage.ID,
+		ToStageID:     screenedStage.ID,
+		ChangedAt:     1000,
+	}
+	if err := repo.CreateStageHistory(ctx, h); err != nil {
+		t.Fatalf("CreateStageHistory failed: %v", err)
+	}
+
+	list, err := repo.ListStageHistoryByApplication(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("ListStageHistoryByApplication failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 history row, got %d", len(list))
+	}
+	if list[0].ToStageID != screenedStage.ID {
+		t.Errorf("expected to_stage_id %s, got %s", screenedStage.ID, list[0].ToStageID)
+	}
+}
