@@ -939,6 +939,14 @@ func main() {
 	recruitmentSvc.SetInternalCandidateProvider(internalCandidateAdapter{ciSvc: ciSvc})
 	recruitmentSvc.SetSuccessionGapProvider(successionGapAdapter{ciSvc: ciSvc})
 	recruitmentSvc.SetTrainingHandoffProvider(trainingHandoffAdapter{trainingSvc: trainingSvc})
+	// G-1: wire Central Approval ke recruitment — requisition draft disubmit
+	// melalui sharedApprovalEngine (modul "recruitment"), dan keputusan
+	// APPROVED/REJECTED/CANCELLED dipropagasi balik ke status requisition via
+	// push-callback (pola payroll/leave/employeemovement).
+	recruitmentSvc.SetApprovalEngine(sharedApprovalEngine)
+	approvalSvc.RegisterStatusHandler("recruitment", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return recruitmentSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
+	})
 
 	// S-3: WI candidate search memakai CI untuk internal candidate eligible
 	// (narrow provider — WI tidak menghitung eligibility sendiri).

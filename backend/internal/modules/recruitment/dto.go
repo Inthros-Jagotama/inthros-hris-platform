@@ -38,11 +38,20 @@ type UpdateRequisitionRequest struct {
 	Responsibilities *string  `json:"responsibilities"`
 	SlotsAvailable   *int     `json:"slots_available"`
 	Status           *string  `json:"status" binding:"omitempty,oneof=DRAFT OPEN IN_PROGRESS FILLED CANCELLED"`
+	// Catatan G-1: SUBMITTED/REJECTED tidak boleh di-set manual via update —
+	// keduanya hanya dihasilkan alur approval (submit + push-callback).
 	TargetStartDate  *string  `json:"target_start_date"`
 	ReasonType       *string  `json:"reason_type" binding:"omitempty,oneof=NEW_POSITION REPLACEMENT EXPANSION WORKFORCE_GAP SUCCESSION_GAP"`
 	WorkforceGapID   *string  `json:"workforce_gap_id"`
 	WorkforcePlanID  *string  `json:"workforce_plan_id"`
 	SuccessionPositionID *string `json:"succession_position_id"`
+}
+
+// SubmitRequisitionRequest mengirim requisition draft ke Central Approval
+// (plan G-1). FlowID opsional — bila kosong, flow aktif untuk modul
+// "recruitment" di-auto-resolve (pola employeemovement G-3).
+type SubmitRequisitionRequest struct {
+	FlowID *string `json:"flow_id"`
 }
 
 type RequisitionResponse struct {
@@ -62,6 +71,7 @@ type RequisitionResponse struct {
 	Status            string    `json:"status"`
 	RequestedBy       string    `json:"requested_by,omitempty"`
 	ApprovedBy        string    `json:"approved_by,omitempty"`
+	ApprovalInstanceID string   `json:"approval_instance_id,omitempty"`
 	ReasonType        string    `json:"reason_type,omitempty"`
 	WorkforceGapID    string    `json:"workforce_gap_id,omitempty"`
 	WorkforcePlanID   string    `json:"workforce_plan_id,omitempty"`

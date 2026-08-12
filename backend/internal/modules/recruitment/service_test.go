@@ -1038,3 +1038,240 @@ func TestService_OnboardingComplete_ProviderErrorKeepsCompleted(t *testing.T) {
 		t.Errorf("expected onboarding stays COMPLETED on handoff error, got %s", updated.Status)
 	}
 }
+
+// =========================================================================
+// Module Approval Integration (G-1 — requisition → Central Approval)
+// =========================================================================
+
+type fakeApprovalEngine struct {
+	instanceID    string
+	flowID        string
+	createErr     error
+	createdModule string
+	createdDocID  string
+	createdFlowID string
+}
+
+func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error) {
+	f.createdModule = module
+	f.createdDocID = documentID
+	f.createdFlowID = flowID
+	if f.createErr != nil {
+		return "", f.createErr
+	}
+	return f.instanceID, nil
+}
+
+func (f *fakeApprovalEngine) GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error) {
+	return "PENDING", nil
+}
+
+func (f *fakeApprovalEngine) GetActiveFlowIDForModule(ctx context.Context, module string) (string, error) {
+	if f.flowID == "" {
+		return "", fmt.Errorf("no active flow for module %s", module)
+	}
+	return f.flowID, nil
+}
+
+// seedDraftRequisition membuat requisition DRAFT untuk test approval (G-1).
+func seedDraftRequisition(t *testing.T, svc *Service, ctx context.Context) *RequisitionResponse {
+	t.Helper()
+	resp, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "Software Engineer",
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	return resp
+}
+
+func TestService_SubmitRequisition_CreatesInstance(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	instanceID := uuid.New().String()
+	engine := &fakeApprovalEngine{instanceID: instanceID, flowID: uuid.New().String()}
+	svc.SetApprovalEngine(engine)
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	resp, err := svc.SubmitRequisition(ctx, req.ID, uuid.New().String())
+	if err != nil {
+		t.Fatalf("SubmitRequisition failed: %v", err)
+	}
+	if resp.Status != string(ReqStatusSubmitted) {
+		t.Errorf("expected status SUBMITTED, got %s", resp.Status)
+	}
+	if resp.ApprovalInstanceID != instanceID {
+		t.Errorf("expected approval_instance_id %s, got %s", instanceID, resp.ApprovalInstanceID)
+	}
+	if engine.createdModule != "recruitment" {
+		t.Errorf("expected module 'recruitment', got %q", engine.createdModule)
+	}
+	if engine.createdDocID != req.ID {
+		t.Errorf("expected document_id %s, got %s", req.ID, engine.createdDocID)
+	}
+}
+
+func TestService_SubmitRequisition_AutoResolveFlow(t *testing.T) {
+	// flowID tidak dikirim — flow aktif modul recruitment di-auto-resolve
+	// (pola employeemovement G-3).
+	svc, cleanup := newTestService()
+	defer cleanup()
+	flowID := uuid.New().String()
+	engine := &fakeApprovalEngine{instanceID: uuid.New().String(), flowID: flowID}
+	svc.SetApprovalEngine(engine)
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	resp, err := svc.SubmitRequisition(ctx, req.ID, "")
+	if err != nil {
+		t.Fatalf("SubmitRequisition failed: %v", err)
+	}
+	if resp.Status != string(ReqStatusSubmitted) {
+		t.Errorf("expected status SUBMITTED, got %s", resp.Status)
+	}
+	if engine.createdFlowID != flowID {
+		t.Errorf("expected auto-resolved flow_id %s, got %s", flowID, engine.createdFlowID)
+	}
+}
+
+func TestService_SubmitRequisition_NotDraft(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	// Pindahkan ke OPEN dulu (simulasi non-draft)
+	open := string(ReqStatusOpen)
+	if _, err := svc.UpdateRequisition(ctx, req.ID, UpdateRequisitionRequest{Status: &open}); err != nil {
+		t.Fatalf("UpdateRequisition failed: %v", err)
+	}
+	_, err := svc.SubmitRequisition(ctx, req.ID, uuid.New().String())
+	if err == nil {
+		t.Fatal("expected error submitting non-draft requisition")
+	}
+}
+
+func TestService_SubmitRequisition_NoEngine(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	_, err := svc.SubmitRequisition(ctx, req.ID, uuid.New().String())
+	if err == nil {
+		t.Fatal("expected error when approval engine not wired")
+	}
+}
+
+func TestService_SubmitRequisition_NoFlow(t *testing.T) {
+	// Tidak ada flow aktif (GetActiveFlowIDForModule error) dan client tidak
+	// mengirim flow_id — submit ditolak dengan pesan flow not configured.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String()})
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	_, err := svc.SubmitRequisition(ctx, req.ID, "")
+	if err == nil {
+		t.Fatal("expected error when no approval flow configured")
+	}
+}
+
+func TestService_HandleApprovalStatusChange_ApprovedOpens(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	submitted, err := svc.SubmitRequisition(ctx, req.ID, uuid.New().String())
+	if err != nil {
+		t.Fatalf("SubmitRequisition failed: %v", err)
+	}
+
+	if err := svc.HandleApprovalStatusChange(ctx, uuid.MustParse(submitted.ID), "APPROVED", ""); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+	persisted, err := svc.GetRequisitionByID(ctx, submitted.ID)
+	if err != nil {
+		t.Fatalf("GetRequisitionByID failed: %v", err)
+	}
+	if persisted.Status != string(ReqStatusOpen) {
+		t.Errorf("expected status OPEN after approval, got %s", persisted.Status)
+	}
+}
+
+func TestService_HandleApprovalStatusChange_Rejected(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	submitted, _ := svc.SubmitRequisition(ctx, req.ID, uuid.New().String())
+
+	if err := svc.HandleApprovalStatusChange(ctx, uuid.MustParse(submitted.ID), "REJECTED", "budget not approved"); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+	persisted, _ := svc.GetRequisitionByID(ctx, submitted.ID)
+	if persisted.Status != string(ReqStatusRejected) {
+		t.Errorf("expected status REJECTED, got %s", persisted.Status)
+	}
+}
+
+func TestService_HandleApprovalStatusChange_Cancelled(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	submitted, _ := svc.SubmitRequisition(ctx, req.ID, uuid.New().String())
+
+	if err := svc.HandleApprovalStatusChange(ctx, uuid.MustParse(submitted.ID), "CANCELLED", ""); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+	persisted, _ := svc.GetRequisitionByID(ctx, submitted.ID)
+	if persisted.Status != string(ReqStatusCancelled) {
+		t.Errorf("expected status CANCELLED, got %s", persisted.Status)
+	}
+}
+
+func TestService_HandleApprovalStatusChange_NotSubmittedIsNoop(t *testing.T) {
+	// Callback untuk requisition yang belum SUBMITTED (mis. DRAFT/OPEN)
+	// tidak mengubah status — idempotent, callback ganda aman.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	if err := svc.HandleApprovalStatusChange(ctx, uuid.MustParse(req.ID), "APPROVED", ""); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+	persisted, _ := svc.GetRequisitionByID(ctx, req.ID)
+	if persisted.Status != string(ReqStatusDraft) {
+		t.Errorf("expected status unchanged DRAFT, got %s", persisted.Status)
+	}
+}
+
+func TestService_HandleApprovalStatusChange_UnknownStatusIsNoop(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	submitted, _ := svc.SubmitRequisition(ctx, req.ID, uuid.New().String())
+
+	if err := svc.HandleApprovalStatusChange(ctx, uuid.MustParse(submitted.ID), "WEIRD_STATUS", ""); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+	persisted, _ := svc.GetRequisitionByID(ctx, submitted.ID)
+	if persisted.Status != string(ReqStatusSubmitted) {
+		t.Errorf("expected status unchanged SUBMITTED, got %s", persisted.Status)
+	}
+}

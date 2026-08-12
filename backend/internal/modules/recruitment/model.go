@@ -31,11 +31,16 @@ const (
 type RequisitionStatus string
 
 const (
-	ReqStatusDraft     RequisitionStatus = "DRAFT"
-	ReqStatusOpen      RequisitionStatus = "OPEN"
-	ReqStatusInProgress RequisitionStatus = "IN_PROGRESS"
-	ReqStatusFilled    RequisitionStatus = "FILLED"
-	ReqStatusCancelled RequisitionStatus = "CANCELLED"
+	ReqStatusDraft       RequisitionStatus = "DRAFT"
+	// ReqStatusSubmitted — requisition dirutekan ke Central Approval (G-1).
+	// Transisi DRAFT → SUBMITTED terjadi via submit; hasil APPROVED/REJECTED
+	// didorong balik oleh modul approval (push-callback).
+	ReqStatusSubmitted   RequisitionStatus = "SUBMITTED"
+	ReqStatusOpen        RequisitionStatus = "OPEN"
+	ReqStatusInProgress  RequisitionStatus = "IN_PROGRESS"
+	ReqStatusFilled      RequisitionStatus = "FILLED"
+	ReqStatusRejected    RequisitionStatus = "REJECTED"
+	ReqStatusCancelled   RequisitionStatus = "CANCELLED"
 )
 
 // =========================================================================
@@ -92,6 +97,10 @@ type JobRequisition struct {
 	Status            RequisitionStatus `gorm:"type:varchar(20);default:DRAFT" json:"status"`
 	RequestedBy       *uuid.UUID        `gorm:"type:char(36)" json:"requested_by,omitempty"`
 	ApprovedBy        *uuid.UUID        `gorm:"type:char(36)" json:"approved_by,omitempty"`
+	// ApprovalInstanceID (G-1): id ApprovalInstance di Central Approval yang
+	// memproses requisition ini. Approval module source of truth proses
+	// persetujuan; kolom ini hanya referensi.
+	ApprovalInstanceID *uuid.UUID       `gorm:"type:char(36)" json:"approval_instance_id,omitempty"`
 	ReasonType        string            `gorm:"type:varchar(30)" json:"reason_type"`
 	WorkforceGapID    *uuid.UUID        `gorm:"type:char(36)" json:"workforce_gap_id,omitempty"`
 	WorkforcePlanID   *uuid.UUID        `gorm:"type:char(36)" json:"workforce_plan_id,omitempty"`

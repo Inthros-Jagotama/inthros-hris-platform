@@ -12,6 +12,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		rec.GET("/requisitions/:id", handler.GetRequisitionByID)
 		rec.PUT("/requisitions/:id", handler.UpdateRequisition)
 		rec.DELETE("/requisitions/:id", handler.DeleteRequisition)
+		// G-1: submit requisition draft ke Central Approval (single approval path)
+		rec.POST("/requisitions/:id/submit", handler.SubmitRequisition)
 
 		// Candidates
 		rec.POST("/candidates", handler.CreateCandidate)

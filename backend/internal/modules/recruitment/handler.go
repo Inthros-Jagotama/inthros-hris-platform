@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
@@ -81,6 +82,32 @@ func (h *Handler) DeleteRequisition(c *gin.Context) {
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// SubmitRequisition menangani POST /api/v1/tenant/recruitment/requisitions/:id/submit
+// Routes the requisition through the central approval module (plan G-1).
+func (h *Handler) SubmitRequisition(c *gin.Context) {
+	id := c.Param("id")
+	var req SubmitRequisitionRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	flowID := ""
+	if req.FlowID != nil {
+		flowID = *req.FlowID
+	}
+	resp, err := h.svc.SubmitRequisition(c.Request.Context(), id, flowID)
+	if err != nil {
+		// Approval routing/assignee failures (approval.RoutingError) get a
+		// bilingual 400 so the user sees why their submission didn't reach
+		// an approver instead of a raw internal error.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
 }
 
 // =========================================================================

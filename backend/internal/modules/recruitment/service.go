@@ -84,6 +84,23 @@ type TrainingHandoffProvider interface {
 	CreateOnboardingNeed(ctx context.Context, employeeID, onboardingID uuid.UUID, reason string) error
 }
 
+// ApprovalEngine adalah interface narrow yang dipakai Recruitment untuk
+// merutekan requisition melalui Central Approval (plan G-1). Recruitment TIDAK
+// mengimplementasikan alur approval — ia hanya membuat instance & membaca
+// status; Approval module tetap source of truth. Implementasi di-wire di
+// cmd/server/main.go melalui adapter (approval.Service) — same
+// narrow-interface-plus-adapter pattern payroll/leave/employeemovement.
+type ApprovalEngine interface {
+	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
+	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
+	// GetActiveFlowIDForModule lets a requisition submission auto-resolve which
+	// flow to route through when the client doesn't supply flow_id explicitly
+	// (same pattern leave/employeemovement uses) — without this, a requisition
+	// submitted without a flow_id stays in draft and never reaches the
+	// Approval module.
+	GetActiveFlowIDForModule(ctx context.Context, module string) (string, error)
+}
+
 type Service struct {
 	repo               *Repository
 	logger             *zap.Logger
@@ -91,6 +108,7 @@ type Service struct {
 	internalProvider   InternalCandidateProvider
 	successionProvider     SuccessionGapProvider
 	trainingHandoffProvider TrainingHandoffProvider
+	approvalEngine     ApprovalEngine
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -124,6 +142,13 @@ func (s *Service) SetSuccessionGapProvider(p SuccessionGapProvider) {
 // Training tetap source of truth; Recruitment hanya menghasilkan kebutuhan.
 func (s *Service) SetTrainingHandoffProvider(p TrainingHandoffProvider) {
 	s.trainingHandoffProvider = p
+}
+
+// SetApprovalEngine wires the central approval module into this service
+// (plan G-1) so requisition submissions are routed through it (single approval
+// path — manual approve dihapus, keputusan plan G-1/G-5).
+func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
+	s.approvalEngine = ae
 }
 
 // =========================================================================
@@ -322,6 +347,90 @@ func (s *Service) DeleteRequisition(ctx context.Context, id string) error {
 		return fmt.Errorf("invalid id: %w", err)
 	}
 	return s.repo.DeleteRequisition(ctx, uid)
+}
+
+// SubmitRequisition mengirim requisition draft ke Central Approval (plan G-1):
+// DRAFT → SUBMITTED + approval instance dibuat & approval_instance_id
+// disimpan. Auto-resolve flow aktif untuk modul "recruitment" bila client
+// tidak mengirim flow_id (pola employeemovement G-3).
+func (s *Service) SubmitRequisition(ctx context.Context, id, flowID string) (*RequisitionResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	r, err := s.repo.FindRequisitionByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if r.Status != ReqStatusDraft {
+		return nil, fmt.Errorf("only draft requisitions can be submitted, current status: %s", r.Status)
+	}
+	if s.approvalEngine == nil {
+		return nil, fmt.Errorf("approval engine not configured")
+	}
+
+	// Auto-resolve the active flow when no flow_id is supplied (G-1).
+	if flowID == "" {
+		if resolved, resolveErr := s.approvalEngine.GetActiveFlowIDForModule(ctx, "recruitment"); resolveErr == nil {
+			flowID = resolved
+		}
+	}
+	if flowID == "" {
+		return nil, fmt.Errorf("approval flow not configured: provide flow_id or activate an approval flow for module recruitment")
+	}
+
+	instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "recruitment", r.ID.String(), flowID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create approval instance: %w", err)
+	}
+	if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+		r.ApprovalInstanceID = &parsedInstanceID
+	}
+
+	r.Status = ReqStatusSubmitted
+	if err := s.repo.UpdateRequisition(ctx, r); err != nil {
+		return nil, err
+	}
+
+	s.logger.Info("Requisition submitted for approval",
+		zap.String("requisition_id", r.ID.String()),
+		zap.String("instance_id", instanceID),
+	)
+	return requisitionToResponse(r), nil
+}
+
+// HandleApprovalStatusChange adalah push-callback dari Central Approval (plan
+// G-1): keputusan APPROVED/REJECTED/CANCELLED atas requisition di-propagasi
+// ke status requisition. Hanya requisition berstatus SUBMITTED yang diproses
+// (idempotent — callback ganda tidak menimpa status final).
+func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	r, err := s.repo.FindRequisitionByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	if r.Status != ReqStatusSubmitted {
+		return nil
+	}
+
+	switch status {
+	case "APPROVED":
+		r.Status = ReqStatusOpen
+	case "REJECTED":
+		r.Status = ReqStatusRejected
+		// Catatan: note reject TIDAK dipersist ke kolom Requirements — itu teks
+		// persyaratan job yang asli (menimpanya = korupsi data). Note approval
+		// sudah tersimpan di instance Approval module (source of truth).
+	case "CANCELLED":
+		r.Status = ReqStatusCancelled
+	default:
+		return nil
+	}
+
+	s.logger.Info("Requisition status updated via approval status handler",
+		zap.String("requisition_id", r.ID.String()),
+		zap.String("approval_status", status),
+	)
+	return s.repo.UpdateRequisition(ctx, r)
 }
 
 // =========================================================================
@@ -1226,6 +1335,9 @@ func requisitionToResponse(r *JobRequisition) *RequisitionResponse {
 	}
 	if r.ApprovedBy != nil {
 		resp.ApprovedBy = r.ApprovedBy.String()
+	}
+	if r.ApprovalInstanceID != nil {
+		resp.ApprovalInstanceID = r.ApprovalInstanceID.String()
 	}
 	if r.ReasonType != "" {
 		resp.ReasonType = r.ReasonType

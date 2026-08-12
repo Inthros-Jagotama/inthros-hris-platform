@@ -5,6 +5,7 @@
 > 🔎 **Sumber:** struktur tabel `015_recruitment.sql` (mysql + postgres) + audit `backend/internal/modules/recruitment/` (model.go, service.go, handler.go, routes.go, module.go) + `frontend/tenant/src/views/modules/Recruitment.vue` + `frontend/tenant/src/router/index.js` + cross-reference `docs/module-notification-plan.md` (§5/§9: "Recruitment belum tersentuh" untuk integrasi approval/notifier) + `docs/module-recruitment-strategic-layer-plan.md` (rumah item strategic layer yang dipisah) + `docs/go-module-architecture-report.md` + `docs/project-completion-dashboard.md`.
 > 📊 **Progres implementasi (per 2026-08-12):** ✅ 1) Backend ATS lengkap — 7 GORM entity (`JobRequisition`, `Candidate`, `JobApplication`, `Interview`, `OnboardingTaskTemplate`, `EmployeeOnboarding`, `OnboardingTaskItem`) + enum status · ✅ 2) 33 endpoint CRUD/pipeline di 7 resource group · ✅ 3) Seeder 10 onboarding task template default · ✅ 4) 75 test (handler 28 + repository 27 + service 20) · ✅ 5) pipeline aplikasi (status + timestamp otomatis + auto `slots_filled` saat ACCEPTED) · ❌ 6) Frontend masih placeholder ("Coming soon") — hanya route/menu/locale/dashboard card · ⏳ 7) Integrasi operasional dua arah dengan modul lain (Module Approval, Notifier, Employee, Employee Movement) — **belum ada**; Employee 🔶 sebagian (onboarding menunjuk `employee_id` tanpa FK) · 🚫 8) **Scoping 2026-08-12:** Recruitment = **module operasional** — strategic layer (Workforce Intelligence, Career Intelligence, Succession, Performance, Training, Quality of Hire) **dipisah dari plan ini** — out of scope, dikelola modul masing-masing (§5.2).
 > ⏳ **Sisa TODO (per review 2026-08-12):** seluruh Gap §7 (G-1 s.d. G-12) — prioritas P0: integrasi approval (G-1), enhancement requisition (G-2), offer management (G-3), Recruitment → Employee/Movement (G-4), pipeline stage history (G-5), halaman FE penuh (G-12).
+> ✅ **G-1 selesai (2026-08-12):** requisition → Central Approval (migration 093, interface `ApprovalEngine`, `SubmitRequisition` DRAFT→SUBMITTED, push-callback APPROVED→OPEN / REJECTED / CANCELLED, endpoint `POST /recruitment/requisitions/:id/submit`, wiring main.go) — lihat §G-1. Bagian offer workflow menunggu G-3 (entity `job_offers` belum ada).
 > 🔧 **Catatan konsistensi docs:** `project-completion-dashboard.md` masih mencatat plan ini sebagai "📋 Proposal — belum dieksekusi; backend ATS dasar sudah ada, FE masih Coming soon" — setelah revisi ini, baris tersebut sebaiknya di-update mengikuti ringkasan status di header di atas.
 
 ---
@@ -47,7 +48,7 @@ Recruitment Pipeline
 Status per bagian:
 
 - **ATS dasar (CRUD requisition/candidate/application/interview/onboarding)** — ✅ sudah diimplementasikan (lihat §3.1).
-- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — ⏳ rencana (lihat Gap Analysis §7).
+- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** (2026-08-12); sisanya rencana (lihat Gap Analysis §7).
 
 ---
 
@@ -343,28 +344,27 @@ candidates
 
 > ⚠️ Prioritas diurutkan berdasarkan dampak bisnis. Seluruh gap di bawah adalah **rencana** (belum dieksekusi per 2026-08-12).
 
-## G-1 🔴 MODULE APPROVAL INTEGRATION (requisition + offer)
+## G-1 ✅ MODULE APPROVAL INTEGRATION (requisition ✅ · offer → G-3)
 
-**Status: ⏳ Belum.** Tidak ada `approval_instance_id` dan tidak ada interface `ApprovalEngine` (pola leave/attendance/employeemovement belum diterapkan).
+**Status: ✅ Selesai (2026-08-12) untuk requisition.** Bagian offer menunggu G-3 (entity `job_offers` belum ada).
 
-**Rencana:**
-- Migration: tambah `approval_instance_id` (CHAR(36) NULL) ke `job_requisitions` dan `job_offers` (migration ~091 dst., mysql + postgres).
-- Service: interface `ApprovalEngine` narrow (`CreateApprovalInstance`, `GetApprovalInstanceStatus`, `GetActiveFlowIDForModule`) + `SetApprovalEngine` + `HandleApprovalStatusChange` (push-callback) — pola sama `employeemovement` (log §3.5-§3.8 movement plan).
-- Wiring di `cmd/server/main.go`: `recruitmentSvc.SetApprovalEngine(sharedApprovalEngine)` + `approvalSvc.RegisterStatusHandler("recruitment", ...)`.
-- Workflow requisition:
+**Yang diimplementasikan (requisition):**
+- **Migration `093_recruitment_approval`** (pg + mysql, up/down idempotent): `approval_instance_id` CHAR(36) NULL di `job_requisitions`.
+- **Model:** field `ApprovalInstanceID *uuid.UUID` + status constants baru `SUBMITTED`, `REJECTED` (transisi hanya via alur approval — tidak bisa di-set manual lewat `UpdateRequisitionRequest.status`).
+- **Service:** interface `ApprovalEngine` narrow (`CreateApprovalInstance`, `GetApprovalInstanceStatus`, `GetActiveFlowIDForModule`) + `SetApprovalEngine`; `SubmitRequisition` (DRAFT → SUBMITTED + instance dibuat + `approval_instance_id` tersimpan); `HandleApprovalStatusChange` (push-callback: hanya SUBMITTED diproses — idempotent; APPROVED → OPEN, REJECTED → REJECTED, CANCELLED → CANCELLED, unknown no-op).
+- **Handler/Routes:** `POST /recruitment/requisitions/:id/submit` dengan `approval.EmitRoutingError` (RoutingError → 400 bilingual, pola employeemovement).
+- **Wiring `cmd/server/main.go`:** `recruitmentSvc.SetApprovalEngine(sharedApprovalEngine)` + `approvalSvc.RegisterStatusHandler("recruitment", ...)` (sebelum module mount Priority 11).
+- **Test:** +10 test service (submit: creates instance / auto-resolve flow / not-draft / no-engine / no-flow; handler: approved→open / rejected / cancelled / not-submitted noop / unknown noop).
+
+**Workflow requisition (aktual):**
 
 ```text
 DRAFT → SUBMITTED → (Module Approval) → APPROVED/REJECTED → OPEN
 ```
 
-- Workflow offer:
+Catatan: hasil approval tersimpan di instance Approval module (source of truth); `approval_instance_id` hanya referensi. `approved_by` dipertahankan sebagai legacy. Note reject tidak dipersist ke kolom `requirements` (teks persyaratan job asli) — note tersedia di Approval instance.
 
-```text
-OFFER_DRAFT → SUBMITTED → (Module Approval) → APPROVED → SENT
-```
-
-- **Auto-resolve flow** via `GetActiveFlowIDForModule("recruitment")` bila client tidak mengirim `flow_id` (pola G-3 movement).
-- Hapus/pertahankan `approved_by` hanya sebagai legacy.
+**Sisa G-1 (offer):** workflow offer `OFFER_DRAFT → SUBMITTED → APPROVED → SENT` dieksekusi bersama G-3 (entity `job_offers`).
 
 **Ref:** plan asli §2.2, §10, §27.
 
