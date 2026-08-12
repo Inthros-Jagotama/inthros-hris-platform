@@ -70,38 +70,54 @@ melewati status `OFFERED` di aplikasi lebih dulu, sehingga `AcceptOffer`
 bisa memicu transisi ke `ACCEPTED` dari status non-terminal manapun (bukan
 hanya dari `OFFERED`).
 
-Transisi valid (dari → daftar tujuan yang diizinkan):
+> ⚠️ **Revisi (setelah cross-check dengan test existing):** `TestService_UpdateApplicationStatus`
+> (`service_test.go:638`) dan `TestHandler_UpdateApplicationStatus`
+> (`handler_test.go:342`) melakukan transisi `NEW → SHORTLISTED` langsung
+> (lompat `SCREENED`) dan mengharapkan sukses. Supaya tidak mematahkan test
+> yang sudah ada (dan FE yang mungkin mengandalkan lompat status serupa),
+> state machine **tidak** membatasi progresi maju satu-langkah — yang
+> ditegakkan hanya larangan **mundur** dan larangan keluar dari status
+> terminal.
+
+Urutan progresi (untuk menentukan "maju" vs "mundur"):
 
 ```
-NEW, SCREENED, SHORTLISTED, INTERVIEWED, OFFERED
-    → REJECTED, WITHDRAWN     (boleh dari status non-terminal manapun)
-    → ACCEPTED                (boleh dari status non-terminal manapun — offer
-                                bisa dibuat/diterima tanpa melewati OFFERED
-                                lebih dulu)
-
-Progresi maju satu-langkah (khusus, tidak boleh lompat):
-NEW         → SCREENED
-SCREENED    → SHORTLISTED
-SHORTLISTED → INTERVIEWED
-INTERVIEWED → OFFERED
-
-ACCEPTED, REJECTED, WITHDRAWN → (terminal, tidak ada transisi keluar)
+1=NEW  2=SCREENED  3=SHORTLISTED  4=INTERVIEWED  5=OFFERED
+(ACCEPTED, REJECTED, WITHDRAWN = terminal, di luar urutan angka)
 ```
 
-Implementasi: satu tabel `map[CandidateStatus][]CandidateStatus` berisi
-tujuan yang diizinkan per status asal (union dari progresi maju + `{ACCEPTED,
-REJECTED, WITHDRAWN}` untuk tiap status non-terminal) — tidak perlu
-membedakan "dipanggil dari mana" (manual endpoint vs `AcceptOffer`), cukup
-satu aturan transisi yang berlaku untuk kedua caller.
+Transisi valid:
+
+```
+Dari status non-terminal (NEW/SCREENED/SHORTLISTED/INTERVIEWED/OFFERED)
+ke status non-terminal lain yang urutannya SAMA ATAU LEBIH BESAR → boleh
+(termasuk lompat, mis. NEW → OFFERED). Mundur ke urutan lebih kecil → ditolak.
+
+Dari status non-terminal manapun → ACCEPTED, REJECTED, WITHDRAWN → selalu
+boleh (offer bisa dibuat/diterima tanpa melewati OFFERED lebih dulu; reject/
+withdraw bisa terjadi di tahap manapun).
+
+ACCEPTED, REJECTED, WITHDRAWN → (terminal, tidak ada transisi keluar sama
+sekali, termasuk ke sesama status non-terminal).
+```
+
+Implementasi: helper `isValidTransition(from, to CandidateStatus) bool` —
+bila `to` ∈ `{ACCEPTED, REJECTED, WITHDRAWN}` dan `from` bukan terminal →
+`true`. Bila `from` dan `to` sama-sama non-terminal → `true` hanya jika
+`order[to] >= order[from]` (pakai map urutan di atas). Bila `from` terminal
+→ selalu `false` (kecuali `from == to`, lihat aturan no-op di bawah). Satu
+fungsi ini dipakai oleh `UpdateApplicationStatus` (manual, via endpoint) dan
+`AcceptOffer` (otomatis) — tidak perlu membedakan "dipanggil dari mana".
 
 Transisi ke status yang **sama** (`from == to`) diperlakukan sebagai no-op:
-tidak menulis baris history baru, tidak error. Ini diperlukan supaya
-`AcceptOffer` pada offer kedua di aplikasi yang statusnya sudah `ACCEPTED`
-tetap idempoten seperti perilaku sekarang (`wasAccepted` guard di
+tidak menulis baris history baru, tidak error — berlaku juga untuk status
+terminal (mis. `ACCEPTED → ACCEPTED` no-op, bukan error). Ini diperlukan
+supaya `AcceptOffer` pada offer kedua di aplikasi yang statusnya sudah
+`ACCEPTED` tetap idempoten seperti perilaku sekarang (`wasAccepted` guard di
 `service.go:726`).
 
-Transisi yang tidak ada di daftar (termasuk dari status terminal, atau
-lompat tahap seperti `NEW → ACCEPTED`) mengembalikan error:
+Transisi yang tidak valid (mundur, atau keluar dari status terminal ke
+status non-terminal/terminal lain) mengembalikan error:
 `fmt.Errorf("invalid status transition: %s -> %s", from, to)`.
 
 ## Implementation Point: Single Source of Truth
@@ -189,8 +205,11 @@ gap, bukan hanya mulai dari transisi pertama.
 - **Service** (`service_test.go`):
   - Setiap transisi valid dari daftar di atas → sukses, history baris
     baru tertulis dengan `from`/`to` benar.
-  - Transisi invalid (mis. `NEW → ACCEPTED`, `ACCEPTED → SCREENED`) → error,
-    tidak ada history baru ditulis, `a.Status` tidak berubah.
+  - Transisi invalid (mis. `SHORTLISTED → NEW` (mundur), `ACCEPTED →
+    SCREENED` (keluar dari terminal)) → error, tidak ada history baru
+    ditulis, `a.Status` tidak berubah.
+  - Transisi lompat maju (mis. `NEW → OFFERED`, `NEW → SHORTLISTED` seperti
+    di `TestService_UpdateApplicationStatus` existing) → tetap sukses.
   - Transisi ke status sama → no-op, tidak ada history baru, tidak error.
   - `CreateApplication` menulis baris history pertama (`from: null, to:
     NEW`).
