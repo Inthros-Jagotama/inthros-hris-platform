@@ -3,9 +3,9 @@
 
 **Generated:** 12 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 548
-**Total Endpoints (methods):** 939
-**Total Schemas:** 618
+**Total Paths:** 552
+**Total Endpoints (methods):** 943
+**Total Schemas:** 627
 **Total Tags:** 33
 
 > 🔗 **Index dokumentasi:** [`docs/README.md`](README.md) · **Terkait:** [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)
@@ -14,9 +14,9 @@
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 939/939 | 100% |
-| Endpoints with `description` | 939/939 | 100% |
-| Endpoints with `operationId` | 939/939 | 100% |
+| Endpoints with `summary` | 943/943 | 100% |
+| Endpoints with `description` | 943/943 | 100% |
+| Endpoints with `operationId` | 943/943 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -111,7 +111,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | 2 | Tenant: Training & Development Management | 123 | 64 |
 | 3 | Tenant: Settings | 107 | 44 |
 | 4 | Tenant: Job Management | 96 | 40 |
-| 5 | Tenant: Workforce Intelligence & Strategic Pl... | 69 | 59 |
+| 5 | Tenant: Workforce Intelligence & Strategic Pl... | 70 | 60 |
 | 6 | Tenant: Payroll & Compensation Engine | 47 | 24 |
 | 7 | Tenant: Time & Attendance | 40 | 24 |
 | 8 | Tenant: Employees | 36 | 23 |
@@ -119,7 +119,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | 10 | Tenant: Recruitment & Onboarding (ATS) | 33 | 16 |
 | 11 | Tenant: Employee Movement & Career Management | 25 | 18 |
 | 12 | Tenant: Leave & Time Off | 25 | 14 |
-| 13 | Tenant: Career Intelligence | 21 | 11 |
+| 13 | Tenant: Career Intelligence | 22 | 12 |
 | 14 | Tenant: Organizations | 18 | 11 |
 | 15 | Tenant: Approval | 17 | 11 |
 | 16 | Tenant: Reimbursement & Claim | 15 | 7 |
@@ -139,7 +139,9 @@ Tenant endpoints support validation for Indonesian data formats:
 | 30 | Public | 2 | 2 |
 | 31 | Tenant Auth | 2 | 2 |
 | 32 | Tenant: Company | 2 | 1 |
-| | **TOTAL** | **939** | **548** |
+| 33 | Recruitment | 1 | 1 |
+| 34 | Career Intelligence | 1 | 1 |
+| | **TOTAL** | **943** | **552** |
 
 ## 2. Module Detail
 
@@ -650,8 +652,8 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Tenant: Workforce Intelligence & Strategic Planning
 **Description:** Workforce Intelligence & Strategic Workforce Planning â€” strategic analytics layer for headcount planning, forecasting, gap analysis, KPI monitoring, workforce analytics (headcount, attendance, leave, overtime, payroll, performance, learning, recruitment, movement), capacity planning, cost analytics, risk monitoring, executive dashboards, scenario simulation, organization health scoring, and people analytics (training-vs-performance, overtime-vs-productivity, etc.). Read-only analytics module aggregating data from all operational HR modules.
-**Endpoints:** 69 | **Paths:** 59
-**Methods:** DELETE=3 GET=57 POST=5 PUT=4
+**Endpoints:** 70 | **Paths:** 60
+**Methods:** DELETE=3 GET=58 POST=5 PUT=4
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -663,8 +665,9 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/workforce-intelligence/analytics/overtime` | Overtime analytics dashboard | Analyze overtime patterns: average OT hours, total OT cost, department breakdown, and trend over time. |
 | `GET` | `/api/v1/tenant/workforce-intelligence/analytics/payroll` | Payroll analytics dashboard | Analyze payroll metrics: total payroll cost, average salary, breakdown by department and grade, with trend analysis. |
 | `GET` | `/api/v1/tenant/workforce-intelligence/analytics/performance` | Performance analytics dashboard | Analyze employee performance: average score, top performer percentage, department breakdown, and score distribution. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/analytics/quality-of-hire` | Quality of Hire aggregate metrics | S-6: metrik agregat kualitas hire (WI membaca data operasional lintas modul). Komposit dari interview score (interviews), onboarding completion (pr... |
 | `GET` | `/api/v1/tenant/workforce-intelligence/analytics/recruitment` | Recruitment analytics dashboard | Analyze recruitment efficiency: time to hire, cost per hire, source breakdown, and recruitment funnel metrics. |
-| `GET` | `/api/v1/tenant/workforce-intelligence/candidate-search` | Search candidates for open positions | Cari kandidat recruitment untuk posisi kosong — filter ?position_id / ?status / ?query (non-paginated). |
+| `GET` | `/api/v1/tenant/workforce-intelligence/candidate-search` | Search candidates for open positions | Cari posisi kosong beserta kandidat recruitment yang melamar. S-3: dukungan filter posisi (?position) dan integrasi internal candidate eligible (Ca... |
 | `GET` | `/api/v1/tenant/workforce-intelligence/capacity/bottlenecks` | Bottleneck analysis | Identify capacity bottlenecks across departments. Flags departments with WARNING or CRITICAL utilization levels. |
 | `GET` | `/api/v1/tenant/workforce-intelligence/capacity/dashboard` | Capacity dashboard | Get workforce capacity dashboard: overall utilization rate, available headcount, department breakdown, and bottleneck identification. |
 | `GET` | `/api/v1/tenant/workforce-intelligence/capacity/forecast` | Capacity forecast | Get projected capacity forecast: future utilization, current vs projected needed headcount, and capacity gap analysis by department. |
@@ -1023,8 +1026,8 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Tenant: Career Intelligence
 **Description:** Career Intelligence & Talent Management â€” strategic talent analytics for 9-box talent mapping, career interests tracking, career path gap analysis, and succession planning. Provides talent review data to identify high-potential employees, plan career development, and ensure leadership pipeline readiness.
-**Endpoints:** 21 | **Paths:** 11
-**Methods:** DELETE=3 GET=11 POST=4 PUT=3
+**Endpoints:** 22 | **Paths:** 12
+**Methods:** DELETE=3 GET=12 POST=4 PUT=3
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -1039,6 +1042,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/career-intelligence/paths/{id}` | Update career path | Perbarui jalur karier (nama, steps, path type, masa kerja, requirements). |
 | `GET` | `/api/v1/tenant/career-intelligence/successions` | List succession plans | Retrieve a paginated list of succession plans. Shows which positions have identified successors with readiness levels (READY_NOW, READY_1YR, READY_... |
 | `POST` | `/api/v1/tenant/career-intelligence/successions` | Create succession plan | Create a succession plan for a key position. Identifies a potential successor with readiness level, priority order, target date, and development plan. |
+| `GET` | `/api/v1/tenant/career-intelligence/successions/gaps` | List succession gaps (key positions without ready successor) | S-5: menandai posisi kunci (memiliki succession plan ACTIVE) beserta status succession gap-nya. Position tanpa successor READY_NOW membutuhkan fall... |
 | `GET` | `/api/v1/tenant/career-intelligence/successions/{id}` | Get succession plan by ID | Get detailed information about a specific succession plan including successor details, readiness level, and development plan. |
 | `PUT` | `/api/v1/tenant/career-intelligence/successions/{id}` | Update succession plan | Update an existing succession plan's readiness level, priority order, target date, development plan, and/or notes. |
 | `DELETE` | `/api/v1/tenant/career-intelligence/successions/{id}` | Delete succession plan | Soft-delete a succession plan. |
@@ -1335,3 +1339,19 @@ Tenant endpoints support validation for Indonesian data formats:
 |---|---|---|---|
 | `GET` | `/api/v1/tenant/companies/me` | Get current company detail | Retrieve the profile of the company the authenticated tenant user belongs to. Company is resolved from the tenant context (X-Tenant-ID / JWT claims). |
 | `PUT` | `/api/v1/tenant/companies/me` | Update current company information | Update the tenant's own company profile (email, phone, address, NPWP, NIB). Company is resolved from the tenant context; name/subdomain/domain are ... |
+
+### Recruitment
+**Endpoints:** 1 | **Paths:** 1
+**Methods:** GET=1
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/recruitment/eligible-internal-candidates` | Get eligible internal candidates for target position (S-4) | Mengembalikan employee internal yang eligible untuk sebuah target position, dibaca dari Career Intelligence via interface narrow. CI menentukan eli... |
+
+### Career Intelligence
+**Endpoints:** 1 | **Paths:** 1
+**Methods:** GET=1
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/career-intelligence/paths/{id}/eligible-employees` | Get eligible internal employees for career path target (S-4) | Mengembalikan employee internal yang eligible untuk target position dari career path: employee dengan employment aktif pada source step (semua step... |

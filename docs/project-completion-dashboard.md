@@ -17,8 +17,8 @@
 | **Total Go Files** | **346** (231 source + 115 test) |
 | **Total GORM Entities** | **199** (191 tenant + 8 platform, dari `go-module-architecture-report.md`) |
 | **Total Test Functions** | **~1547+** |
-| **Total OpenAPI Endpoints** | **834** |
-| **Total OpenAPI Schemas** | **521** |
+| **Total OpenAPI Endpoints** | **943** |
+| **Total OpenAPI Schemas** | **627** |
 | **Total OpenAPI Tags** | **33** |
 | **Module Type Filter** | ✅ **3 endpoints** (`/modules`, `/packages`, `/public/packages`) |
 | **Bilingual Support** | ✅ **EN/ID** — Backend 80+ message pairs + Frontend 200+ locale keys, middleware auto-detect, field validation errors |
@@ -170,7 +170,7 @@ Ringkasan status implementasi per dokumen plan modul — diverifikasi terhadap k
 |----------|-------------|:------:|
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
 | `docs/platform-architecture-design.md` | Architecture design (modular monolith, multi-tenant) | ✅ Complete |
-| `docs/openapi-report.md` | OpenAPI comprehensive report (report v22, spec 1.6.3) | ✅ v22 — 939 endpoints, 548 paths, 617 schemas, 33 tags |
+| `docs/openapi-report.md` | OpenAPI comprehensive report (report v22, spec 1.6.3) | ✅ v22 — 943 endpoints, 552 paths, 627 schemas, 33 tags |
 | `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ 199 entities, 961 service methods, 1547 tests |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
@@ -235,8 +235,8 @@ Ringkasan status implementasi per dokumen plan modul — diverifikasi terhadap k
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 939 endpoints |
-| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 939 endpoints |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 943 endpoints |
+| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 943 endpoints |
 | **RBAC Engine** | ✅ **Active** | 4 default roles, **98 permissions (24 resources)**, auto-reload |
 | **On-Premise License Engine** | ✅ **Ready** | `internal/pkg/onpremise/` — RSA `.lic` (expires_at, allowed_modules, max_employees); CLI `licensectl` (gen-key/gen-lic); mode `on_premise` via `HRIS_LICENSE_DEPLOYMENT_MODE` (dormant di mode saas default); lister alternatif PlatformLicenseMiddleware. **`max_employees` di-enforce di `Service.Create()` → 403 `QUOTA_EXCEEDED`** (toast bilingual FE `employee.quota_exceeded`) |
 | **Quota Audit (no bypass)** | ✅ **Audited** | Kuota terpusat di `Service.Create()` — satu-satunya pembuat Employee master. Payroll profiles / onboarding / employee-shift / sub-record TIDAK membuat Employee master (tidak perlu kuota). Frontend hanya 1 caller (`EmployeeForm.savePersonalData`). Jalur masa depan (batch import) otomatis kena kuota. *(Audit 31 Jul 2026)* |

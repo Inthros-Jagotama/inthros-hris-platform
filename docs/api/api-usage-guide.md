@@ -5,7 +5,7 @@
 
 Panduan praktis **cara menggunakan API** HRIS Platform: dari menjalankan server, autentikasi, format request/response, sampai contoh pemanggilan end-to-end (curl).
 
-> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 939 endpoint + skema, lihat:
+> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 943 endpoint + skema, lihat:
 > - [`docs/openapi-report.md`](../openapi-report.md) — laporan komprehensif per modul
 > - `backend/internal/pkg/docs/openapi.json` — OpenAPI 3.0 spec (sumber kebenaran)
 
@@ -115,7 +115,7 @@ Setelah server jalan, dokumentasi API tersedia di:
 |---|---|
 | `http://localhost:8080/docs` | **Scalar UI** — explore & try endpoint langsung dari browser |
 | `http://localhost:8080/openapi.json` | OpenAPI 3.0 spec mentah (JSON) |
-| `docs/openapi-report.md` | Laporan markdown statis (939 endpoint, 548 paths, 617 schemas, 33 tag) |
+| `docs/openapi-report.md` | Laporan markdown statis (943 endpoint, 552 paths, 627 schemas, 33 tag) |
 
 ---
 
@@ -469,21 +469,34 @@ curl -X POST http://localhost:8080/api/v1/tenant/employees \
 | Settings / Master data | `GET /api/v1/tenant/settings/banks`, `.../religions`, `.../zones`, `.../company-holidays` |
 | Job Management | `GET/POST /api/v1/tenant/job-management/titles`, `.../values/tree` |
 | Training & Development | `GET/POST /api/v1/tenant/trainings/categories`, `.../courses`, `.../plans`, `.../needs`, `.../requests`, `.../providers`, `.../trainers`, `.../sessions`, `.../evaluation-forms`, `.../certifications`, `GET .../reports/participation`, `.../history` → lihat §8.8 |
-| Career Intelligence | `GET/POST /api/v1/tenant/career-intelligence/paths`, `.../talent-maps`, `.../interests`, `.../successions`, `GET .../paths/gap-analysis` |
+| Career Intelligence | `GET/POST /api/v1/tenant/career-intelligence/paths`, `.../talent-maps`, `.../interests`, `.../successions`, `GET .../successions/gaps`, `GET .../paths/gap-analysis` → lihat §8.10 |
 | Payroll | `GET /api/v1/tenant/payroll/...` |
 | Leave | `GET/POST /api/v1/tenant/leave/types`, `.../requests`, `.../balances`, `GET /api/v1/tenant/leave/calendar`, `GET /api/v1/tenant/leave/reports/usage` → lihat §8.7 |
 | Performance — Master Data | `GET/POST /api/v1/tenant/performance/periods`, `.../ratings`, `.../indicator-formulas`, `.../logs` |
 | Performance — KPI | `GET/POST /api/v1/tenant/performance/kpi/templates`, `.../kpi/indicators`, `.../kpi/evaluations`, `.../kpi/dashboard/hr` |
 | Performance — OKR | `GET/POST /api/v1/tenant/performance/okr/templates`, `.../okr/objectives`, `.../okr/key-results`, `.../okr/evaluations`, `.../okr/dashboard/hr` |
-| Workforce Intelligence | `GET /api/v1/tenant/workforce-intelligence/executive/summary` |
+| Competency | `GET/POST /api/v1/tenant/competency/competencies`, `.../competence-values`, `.../event-targets`, `.../events`, `.../scores`, `GET .../scores/{scoreId}/details` |
+| Workforce Intelligence | `GET /api/v1/tenant/workforce-intelligence/executive/summary`, `GET .../analytics/quality-of-hire` → lihat §8.9 |
 | Package (subscribe) | `POST /api/v1/tenant/packages/:id/subscribe` |
 | Company self-service | `GET/PUT /api/v1/tenant/companies/me` |
 | Module aktif | `GET /api/v1/tenant/company-modules` |
+| Organization Summaries | `GET/POST /api/v1/tenant/organization-summaries`, `GET .../stats`, `GET/PUT/DELETE .../{id}` |
 | Approval Engine | `GET/POST /api/v1/tenant/approval/flows`, `GET /api/v1/tenant/approval/available-modules`, `POST /api/v1/tenant/approval/instances/:id/actions` |
 | Employee Movement | `GET/POST /api/v1/tenant/employee-movements/movements`, `POST .../movements/:id/submit`, `.../:id/execute`, `GET .../employees/:employeeId/career-history`, `.../movement-eligibility`, `.../promotion-eligibility`, `GET .../reports/movements`, `.../reports/contracts`, `.../dashboard` |
 | Attendance | `GET/POST /api/v1/tenant/attendance/shifts`, `.../locations`, `.../events`, `GET .../sessions`, `.../calendar`, `.../summary`, `.../reports/sessions`, `POST/GET .../corrections`, `POST .../overtime-requests`, `.../overtime-requests/assign`, `.../overtime-requests/:id/actual`, `GET .../overtime-requests/assignable-employees` |
 | Notification | `GET /api/v1/tenant/notifications`, `.../unread-count`, `PATCH .../:id/read`, `POST .../read-all` |
+| Reimbursements | `GET/POST /api/v1/tenant/reimbursements/types`, `.../requests`, `PUT .../requests/{id}/status`, `GET/POST .../requests/{requestId}/items` |
 | User Accounts | `GET /api/v1/tenant/user-accounts/me`, `POST .../employees/:employeeId`, `GET .../employees/:employeeId`, `POST .../employees/:employeeId/resend` |
+
+**Platform Admin (contoh endpoint):**
+
+| Modul | Contoh Endpoint |
+|---|---|
+| Licenses | `GET/POST /api/v1/platform/licenses`, `GET/PUT/DELETE .../{id}` |
+| Modules | `GET/POST /api/v1/platform/modules`, `GET/PUT .../{id}`, `POST .../{id}/activate`, `.../{id}/deactivate`, `GET .../{id}/companies` |
+| Monitoring | `GET /api/v1/platform/monitoring/health`, `.../pool`, `.../seed-status`, `.../tenants`, `GET .../tenants/{id}` |
+| RBAC | `GET/POST /api/v1/platform/rbac/roles`, `GET/PUT/DELETE .../roles/{id}`, `POST .../roles/{id}/permissions`, `DELETE .../roles/{id}/permissions/{permissionId}`, `GET/POST .../permissions`, `DELETE .../permissions/{id}` |
+| Packages | `GET/POST /api/v1/platform/packages`, `GET/PUT/DELETE .../{id}`, `POST .../{id}/publish`, `.../{id}/unpublish`, `GET .../{id}/validate` |
 
 > 🔍 Daftar lengkap per modul: lihat [`docs/openapi-report.md`](../openapi-report.md).
 
@@ -1326,7 +1339,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/trainings/plans \
 
 **Step 2 — Catat kebutuhan pelatihan (Training Need):**
 
-Kebutuhan bisa di-input manual atau berasal dari sumber lain (performance/competency/career).
+Kebutuhan bisa di-input manual atau berasal dari sumber lain (performance/competency/career/succession/workforce/onboarding).
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/tenant/trainings/needs \
@@ -1342,6 +1355,8 @@ curl -X POST http://localhost:8080/api/v1/tenant/trainings/needs \
   }'
 # → 201 { "success": true, "data": { "id": "<need-uuid>", "status": "OPEN", ... } }
 ```
+
+> 💡 **Catatan `source_type` (enum lengkap):** `MANUAL`, `PERFORMANCE`, `COMPETENCY`, `CAREER`, `SUCCESSION`, `COMPLIANCE`, `WORKFORCE`, **`ONBOARDING`** (S-7). Nilai `ONBOARDING` **tidak perlu di-input manual** — dibuat otomatis oleh sistem saat onboarding bertransisi ke `COMPLETED` (handoff **Recruitment → Training**), dengan anti-duplikat per employee/course. Manual `source_type` umumnya dipakai untuk `MANUAL`, `PERFORMANCE`, `COMPETENCY`, atau `CAREER`.
 
 **Step 3 — Buat course di dalam kategori:**
 
@@ -1511,6 +1526,126 @@ curl "http://localhost:8080/api/v1/tenant/trainings/reports/dashboard" \
 > 💡 Alur **Central Approval**: buat request → `POST /requests/:id/submit` (kirim ke approval engine) → approver bertindak via `/approval/instances/:id/actions` — lihat [8.5](#85-contoh-penggunaan-approval-engine--employee-movement). Untuk perpindahan karyawan (promosi/mutasi) lihat juga contoh employee movement di [8.5](#85-contoh-penggunaan-approval-engine--employee-movement), dan karier karyawan (career history, eligibility promosi) di endpoint `/api/v1/tenant/employee-movements/employees/:employeeId/*`.
 
 ---
+
+### 8.9 Contoh Penggunaan: Workforce Intelligence — Quality of Hire
+
+Alur penggunaan metrik **Quality of Hire (S-6)**: Workforce Intelligence **membaca** data operasional lintas modul (Recruitment/Training/Performance menyediakan data) dan menghitung skor komposit kualitas hire — dari interview score, onboarding completion (proxy probation), performance evaluasi terbaru, sampai retention. Endpoint berada di `/api/v1/tenant/workforce-intelligence/analytics/*` dan memerlukan `Authorization: Bearer <tenant_token>`.
+
+```
+Data operasional (interviews, onboarding, performance evaluations, employment) → Quality of Hire (overall + breakdown by source/requisition/organization)
+```
+
+> **Prasyarat:** `TENANT_TOKEN` dari login tenant (lihat Step 3 di 8.1), serta data hire yang sudah ada: kandidat ACCEPTED (`job_applications`), interview dengan score (`interviews`), onboarding (`onboarding`), evaluasi performance, dan data employment. Modul Workforce Intelligence harus aktif (license) untuk tenant.
+
+**Step 1 — Lihat metrik agregat Quality of Hire:**
+
+```bash
+curl -X GET http://localhost:8080/api/v1/tenant/workforce-intelligence/analytics/quality-of-hire \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → 200 { "success": true, "data": {
+#     "overall_score": 78.5,
+#     "hires_analyzed": 12,
+#     "recruitment_match_score": 0,
+#     "interview_score": 81.2,
+#     "assessment_score": 0,
+#     "onboarding_completion_rate": 75.0,
+#     "performance_score": 79.0,
+#     "retention_rate": 83.3,
+#     "by_source": [
+#       { "key": "JOB_PORTAL", "hires": 5, "score": 76.4 },
+#       { "key": "REFERRAL", "hires": 4, "score": 84.1 },
+#       { "key": "SOCIAL_MEDIA", "hires": 3, "score": 72.8 }
+#     ],
+#     "by_requisition": [
+#       { "key": "<requisition-uuid>", "hires": 6, "score": 80.2 },
+#       { "key": "<requisition-uuid>", "hires": 6, "score": 76.8 }
+#     ],
+#     "by_organization": [
+#       { "key": "<org-uuid>", "hires": 8, "score": 79.6 },
+#       { "key": "<org-uuid>", "hires": 4, "score": 76.3 }
+#     ]
+#   } }
+```
+
+**Step 2 — Interpretasi komponen skor:**
+
+| Field | Sumber data | Catatan |
+|---|---|---|
+| `interview_score` | Rata-rata `interviews.score` per hire | Semakin tinggi semakin baik |
+| `onboarding_completion_rate` | % hire dengan onboarding `COMPLETED` | Proxy masa percobaan |
+| `performance_score` | Rata-rata `performance_evaluations.final_score` (evaluasi selesai) | Skor evaluasi terbaru |
+| `retention_rate` | % hire dengan employment aktif (`effective_end_date IS NULL`) | Retensi karyawan baru |
+| `recruitment_match_score` / `assessment_score` | **Placeholder `0`** | Data kompetensi kandidat (G-9) & assessment belum dikumpulkan |
+
+**Step 3 — Bandingkan dengan Executive Summary untuk konteks lebih luas:**
+
+```bash
+curl -X GET http://localhost:8080/api/v1/tenant/workforce-intelligence/executive/summary \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+```
+
+> 💡 **Catatan:** `overall_score` adalah rata-rata komponen yang **tersedia** (interview, onboarding, performance, retention) — komponen placeholder tidak ikut dihitung. Breakdown `by_source` membantu menilai channel rekrutmen mana yang menghasilkan hire berkualitas, sedangkan `by_requisition`/`by_organization` untuk analisis per kebutuhan/unit.
+
+### 8.10 Contoh Penggunaan: Career Intelligence — Succession Gaps & Fallback External Recruitment
+
+Alur penggunaan **Succession Gaps (S-5)**: Career Intelligence menandai **posisi kunci** (memiliki ≥1 succession plan ACTIVE) yang tidak punya successor siap (`READY_NOW`). Posisi seperti itu membutuhkan **fallback external recruitment** — requisition dibuat dengan `reason_type=SUCCESSION_GAP` + `succession_position_id`. Endpoint berada di `/api/v1/tenant/career-intelligence/successions/*` dan `/api/v1/tenant/recruitment/*`.
+
+```
+Succession plans (ACTIVE) → deteksi posisi kunci tanpa successor READY_NOW → gap (requires_external_recruitment=true) → Job Requisition fallback (reason_type=SUCCESSION_GAP)
+```
+
+> **Prasyarat:** `TENANT_TOKEN` dari login tenant (lihat Step 3 di 8.1), succession plan ACTIVE untuk posisi kunci (`career-intelligence/successions`), serta data employee dengan readiness (`READY_NOW`/lainnya). Modul Career Intelligence & Recruitment harus aktif (license) untuk tenant.
+
+**Step 1 — Lihat daftar succession gaps:**
+
+```bash
+curl -X GET http://localhost:8080/api/v1/tenant/career-intelligence/successions/gaps \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → 200 { "success": true, "data": [
+#     {
+#       "position_id": "<position-uuid>",
+#       "position_title": "Direktur Operasional",
+#       "organization_id": "<org-uuid>",
+#       "successor_count": 2,
+#       "ready_now_count": 0,
+#       "has_ready_successor": false,
+#       "requires_external_recruitment": true
+#     },
+#     {
+#       "position_id": "<position-uuid>",
+#       "position_title": "Head of Engineering",
+#       "organization_id": "<org-uuid>",
+#       "successor_count": 3,
+#       "ready_now_count": 1,
+#       "has_ready_successor": true,
+#       "requires_external_recruitment": false
+#     }
+#   ] }
+```
+
+**Step 2 — Identifikasi posisi yang butuh fallback external recruitment:**
+
+Filter hasil di mana `requires_external_recruitment: true` (tidak ada satu pun successor `READY_NOW`). Pada contoh di atas, **Direktur Operasional** adalah kandidat fallback.
+
+**Step 3 — Buat Job Requisition fallback (reason_type=SUCCESSION_GAP):**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tenant/recruitment/requisitions \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "organization_id": "<org-uuid>",
+    "position_id": "<position-uuid>",
+    "title": "Direktur Operasional",
+    "reason_type": "SUCCESSION_GAP",
+    "succession_position_id": "<position-uuid>",
+    "slots_available": 1,
+    "target_start_date": "2026-10-01"
+  }'
+# → 201 { "success": true, "data": { "id": "<requisition-uuid>", "reason_type": "SUCCESSION_GAP", ... } }
+```
+
+> 💡 **Catatan:** `succession_position_id` menautkan requisition ke posisi kunci (`positions.id`) yang gap-nya ditandai S-5. Nilai `reason_type` lain: `NEW_POSITION`, `REPLACEMENT`, `EXPANSION`, `WORKFORCE_GAP`. Setelah requisition disetujui, alur rekrutmen lanjut seperti biasa (candidate → interview → offer → onboarding) — dan Quality of Hire di §8.9 akan mengevaluasi hasilnya.
 
 ## 9. Error Codes
 
