@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/inthros/hris-platform/internal/modules/competency"
 	"github.com/inthros/hris-platform/internal/modules/setting"
 )
 
@@ -307,6 +308,69 @@ func (CandidateWorkExperience) TableName() string {
 func (e *CandidateWorkExperience) BeforeCreate(tx *gorm.DB) error {
 	if e.ID == uuid.Nil {
 		e.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// CandidateSkill (G-6 — skill kandidat, referensi competency.Competency)
+// =========================================================================
+// competency_id NOT NULL — beda dari candidate_educations yang nullable;
+// skill tanpa referensi competency tidak actionable untuk candidate
+// matching (G-9). Tidak ada Skill Master terpisah — reuse competencies
+// master yang sudah ada (job_management/performance juga memakainya).
+
+type CandidateSkill struct {
+	ID           uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	CandidateID  uuid.UUID `gorm:"type:char(36);not null;index:idx_cand_skill_candidate" json:"candidate_id"`
+	CompetencyID uuid.UUID `gorm:"type:char(36);not null;index:idx_cand_skill_competency" json:"competency_id"`
+	Level        *int      `gorm:"type:smallint" json:"level,omitempty"`
+	Notes        string    `gorm:"type:text" json:"notes,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+
+	// Relasi read-only (competency module) — dipakai untuk expand
+	// CompetencyName di response, tidak diserialisasi langsung (pola
+	// CandidateEducation.EducationMajor).
+	Competency *competency.Competency `gorm:"foreignKey:CompetencyID" json:"-"`
+}
+
+func (CandidateSkill) TableName() string {
+	return "candidate_skills"
+}
+
+func (s *CandidateSkill) BeforeCreate(tx *gorm.DB) error {
+	if s.ID == uuid.Nil {
+		s.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// CandidateCertification (G-6 — sertifikasi kandidat, tanpa master)
+// =========================================================================
+// Tidak ada Certification Master di sistem — field bebas.
+
+type CandidateCertification struct {
+	ID                  uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	CandidateID         uuid.UUID `gorm:"type:char(36);not null;index:idx_cand_cert_candidate" json:"candidate_id"`
+	Name                string    `gorm:"type:varchar(255);not null" json:"name"`
+	IssuingOrganization *string   `gorm:"type:varchar(255)" json:"issuing_organization,omitempty"`
+	IssueDate           *string   `gorm:"type:date" json:"issue_date,omitempty"`
+	ExpiryDate          *string   `gorm:"type:date" json:"expiry_date,omitempty"`
+	CredentialURL       *string   `gorm:"type:text" json:"credential_url,omitempty"`
+	Notes               string    `gorm:"type:text" json:"notes,omitempty"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
+}
+
+func (CandidateCertification) TableName() string {
+	return "candidate_certifications"
+}
+
+func (c *CandidateCertification) BeforeCreate(tx *gorm.DB) error {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
 	}
 	return nil
 }
