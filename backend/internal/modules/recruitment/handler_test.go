@@ -904,3 +904,88 @@ func TestHandler_UpdateApplicationStatus_InvalidTransitionReturns400(t *testing.
 		t.Fatalf("expected 400 for transition out of terminal status, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestHandler_CreateCandidateEducation(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Edu", LastName: "Handler", Email: "eduhandler@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/educations", CreateCandidateEducationRequest{
+		InstitutionName: "Universitas Test",
+	})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_ListCandidateEducations(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "List", LastName: "EduH", Email: "listeduh@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/educations", CreateCandidateEducationRequest{InstitutionName: "SMA 1"})
+
+	w := performRequest(r, "GET", "/api/v1/tenant/recruitment/candidates/"+cid+"/educations", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_UpdateAndDeleteCandidateEducation(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Upd", LastName: "EduH", Email: "updeduh@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	eW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/educations", CreateCandidateEducationRequest{InstitutionName: "Original"})
+	var eResp map[string]interface{}
+	json.Unmarshal(eW.Body.Bytes(), &eResp)
+	eid := eResp["data"].(map[string]interface{})["id"].(string)
+
+	newName := "Updated"
+	w := performRequest(r, "PUT", "/api/v1/tenant/recruitment/educations/"+eid, UpdateCandidateEducationRequest{InstitutionName: &newName})
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	w2 := performRequest(r, "DELETE", "/api/v1/tenant/recruitment/educations/"+eid, nil)
+	if w2.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w2.Code)
+	}
+}
+
+func TestHandler_CreateCandidateWorkExperience(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Exp", LastName: "Handler", Email: "exphandler@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/work-experiences", CreateCandidateWorkExperienceRequest{
+		CompanyName: "Acme", JobTitle: "Engineer", StartDate: "2020-01-01",
+	})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
