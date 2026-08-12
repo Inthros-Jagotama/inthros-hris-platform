@@ -55,6 +55,22 @@
         </template>
       </Column>
 
+      <Column :header="t('requisitions.requisition_number')" style="width: 160px">
+        <template #body="{ data }">
+          <span class="text-xs font-mono text-gray-600 dark:text-gray-300">{{ data.requisition_number || '—' }}</span>
+        </template>
+      </Column>
+
+      <Column :header="t('requisitions.priority')" style="width: 110px">
+        <template #body="{ data }">
+          <Tag
+            :value="t('requisitions.priority_' + (data.priority || 'medium').toLowerCase())"
+            :severity="prioritySeverity(data.priority)"
+            class="!text-xs !px-1.5 !py-0.5"
+          />
+        </template>
+      </Column>
+
       <Column :header="t('requisitions.slots')" style="width: 120px">
         <template #body="{ data }">
           <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ data.slots_filled }}/{{ data.slots_available }}</span>
@@ -148,6 +164,22 @@
         </FormRow>
         <FormRow :label="t('requisitions.slots_available')">
           <InputNumber v-model="form.slots_available" :min="1" class="!w-full" />
+        </FormRow>
+
+        <FormRow :label="t('requisitions.requisition_number')">
+          <TextInput v-model="form.requisition_number" :placeholder="t('requisitions.requisition_number_placeholder')" class="!w-full" />
+          <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">{{ t('requisitions.requisition_number_hint') }}</p>
+        </FormRow>
+        <FormRow :label="t('requisitions.priority')">
+          <SelectLabel
+            v-model="form.priority"
+            :options="priorityOptions"
+            optionLabel="label"
+            optionValue="value"
+            :placeholder="t('common.select')"
+            class="!w-full"
+            showClear
+          />
         </FormRow>
 
         <FormRow :label="t('requisitions.reason_type')">
@@ -266,10 +298,12 @@ const organizations = ref([])
 const positions = ref([])
 
 const skeletonColumns = [
-  { field: 'title', header: 'Title', width: '40%' },
-  { field: 'slots', header: 'Slots', width: '15%' },
-  { field: 'reason', header: 'Reason', width: '20%' },
-  { field: 'status', header: 'Status', width: '15%' }
+  { field: 'title', header: 'Title', width: '30%' },
+  { field: 'requisition_number', header: 'Requisition No.', width: '12%' },
+  { field: 'priority', header: 'Priority', width: '10%' },
+  { field: 'slots', header: 'Slots', width: '10%' },
+  { field: 'reason', header: 'Reason', width: '14%' },
+  { field: 'status', header: 'Status', width: '10%' }
 ]
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
@@ -278,12 +312,16 @@ const statusOptions = computed(() => ['DRAFT', 'SUBMITTED', 'OPEN', 'IN_PROGRESS
 
 const reasonOptions = computed(() => ['NEW_POSITION', 'REPLACEMENT', 'EXPANSION', 'WORKFORCE_GAP', 'SUCCESSION_GAP'].map(v => ({ label: t(`requisitions.reason_${v.toLowerCase()}`), value: v })))
 
+const priorityOptions = computed(() => ['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map(v => ({ label: t(`requisitions.priority_${v.toLowerCase()}`), value: v })))
+
 const organizationOptions = computed(() => organizations.value.map(o => ({ label: o.name, value: o.id })))
 const positionOptions = computed(() => positions.value.map(p => ({ label: p.nomenclature || p.full_code, value: p.id })))
 
 const emptyForm = () => ({
   organization_id: null,
   title: '',
+  requisition_number: '',
+  priority: null,
   department: '',
   employment_type: '',
   location: '',
@@ -321,6 +359,16 @@ function statusSeverity(status) {
     case 'DRAFT': return 'secondary'
     case 'REJECTED': return 'danger'
     case 'CANCELLED': return 'danger'
+    default: return 'secondary'
+  }
+}
+
+function prioritySeverity(priority) {
+  switch (priority) {
+    case 'URGENT': return 'danger'
+    case 'HIGH': return 'warn'
+    case 'MEDIUM': return 'info'
+    case 'LOW': return 'secondary'
     default: return 'secondary'
   }
 }
