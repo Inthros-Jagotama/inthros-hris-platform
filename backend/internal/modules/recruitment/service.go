@@ -1082,6 +1082,9 @@ func (s *Service) UpdateCandidate(ctx context.Context, id string, req UpdateCand
 	if req.Notes != nil {
 		c.Notes = *req.Notes
 	}
+	if req.CandidateNumber != nil {
+		c.CandidateNumber = *req.CandidateNumber
+	}
 	// G-4: candidate_type + employee_id (internal hire).
 	if err := applyCandidateTypeFields(c, req.CandidateType, req.EmployeeID); err != nil {
 		return nil, err

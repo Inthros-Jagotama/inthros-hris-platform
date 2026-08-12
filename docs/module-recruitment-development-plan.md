@@ -479,7 +479,7 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 **Ref:** plan asli §20, §50, §57.
 
-## G-6 ✅ CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate) — sub-project 1/3: candidate_number + educations + work_experiences
+## G-6 🔶 CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate) — sub-project 1/3: candidate_number + educations + work_experiences
 
 **Status: ✅ Selesai (2026-08-12) — PARTIAL COMPLETION, sub-project 1 of 3 planned.** Kolom `candidate_number` + tabel `candidate_educations` + tabel `candidate_work_experiences` ✅; sisa scope (status, source_id, skills, certifications, documents, consents) deferred ke sub-project berikutnya.
 
@@ -490,9 +490,9 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
   - Tabel baru `candidate_work_experiences` — `id, candidate_id (FK), company_name, job_title, employment_type, start_date, end_date, is_current, description, created_at, updated_at`; index `idx_wx_cand`.
 - **Model:** `CandidateEducation` + `CandidateWorkExperience` structs + `CandidateNumber` field di `Candidate`; relation fields `Education *setting.Education` dan `EducationMajor *setting.EducationMajor` pada `CandidateEducation` (mirroring `EmployeeEducation` pattern).
 - **Service:** CRUD methods untuk kedua entitas + `generateCandidateNumber()` helper; wired ke `CreateCandidate` auto-generate.
-- **Handler/Routes:** 8 endpoint CRUD — `POST/GET /recruitment/candidates/:candidate_id/educations`, `PUT/DELETE /recruitment/educations/:id`, `POST/GET /recruitment/candidates/:candidate_id/work-experiences`, `PUT/DELETE /recruitment/work-experiences/:id` (mirroring `Interview`/`OnboardingTaskTemplate` pattern).
+- **Handler/Routes:** 8 endpoint CRUD — `POST/GET /recruitment/candidates/:id/educations`, `PUT/DELETE /recruitment/educations/:id`, `POST/GET /recruitment/candidates/:id/work-experiences`, `PUT/DELETE /recruitment/work-experiences/:id` (mirroring `Interview`/`OnboardingTaskTemplate` pattern; path param `:id` bukan `:candidate_id` — Gin panic kalau dua route berbagi posisi segment path dengan nama wildcard berbeda, dan `/candidates/:id` sudah ada duluan).
 - **DTO:** `CandidateEducationRequest/Response` + `CandidateWorkExperienceRequest/Response`; add `candidate_number` ke `CandidateResponse`.
-- **Test:** +17 test (repository: educations + work_experiences CRUD roundtrip; service: both entities CRUD + candidate_number auto-gen format + override; handler: both entities create/list/update/delete + 404 on unknown candidate); total recruitment: **160** (handler 28 + repository 27 + service 105).
+- **Test:** +16 test (repository +4: educations + work_experiences CRUD roundtrip; service +8: both entities CRUD + candidate_number auto-gen format + override; handler +4: both entities create/list/update/delete); total recruitment: **160** (handler 28 + repository 27 + service 105).
 
 **Rencana (sisa G-6 — deferred ke sub-project berikutnya):**
 - `candidates.status` (availability status ACTIVE/BLACKLISTED/dst.) — **skipped**: tidak jelas kebutuhan bisnis, potensi redundan dengan application-level status.
@@ -600,14 +600,14 @@ PUT    /api/v1/tenant/recruitment/candidates/{id}
 DELETE /api/v1/tenant/recruitment/candidates/{id}
 
 ## Candidate Educations (G-6)
-POST   /api/v1/tenant/recruitment/candidates/{candidate_id}/educations
-GET    /api/v1/tenant/recruitment/candidates/{candidate_id}/educations
+POST   /api/v1/tenant/recruitment/candidates/{id}/educations
+GET    /api/v1/tenant/recruitment/candidates/{id}/educations
 PUT    /api/v1/tenant/recruitment/educations/{id}
 DELETE /api/v1/tenant/recruitment/educations/{id}
 
 ## Candidate Work Experiences (G-6)
-POST   /api/v1/tenant/recruitment/candidates/{candidate_id}/work-experiences
-GET    /api/v1/tenant/recruitment/candidates/{candidate_id}/work-experiences
+POST   /api/v1/tenant/recruitment/candidates/{id}/work-experiences
+GET    /api/v1/tenant/recruitment/candidates/{id}/work-experiences
 PUT    /api/v1/tenant/recruitment/work-experiences/{id}
 DELETE /api/v1/tenant/recruitment/work-experiences/{id}
 
@@ -994,7 +994,7 @@ Status per 2026-08-12 (✅ = sudah, ⬜ = target enhancement). Scope: **operasio
 - [ ] Screening tersedia.
 - [ ] Assessment tersedia.
 - [ ] Interview mendukung multi-interviewer + scorecard.
-- [ ] Candidate memiliki profile terstruktur (education/experience/skills/certification/document).
+- [ ] Candidate memiliki profile terstruktur (education/experience/skills/certification/document) — 🔶 sebagian: education/experience ✅ (G-6 sub-project 1), skills/certifications/documents ❌.
 - [ ] Candidate mendukung internal/external.
 - [ ] External candidate dapat menjadi Employee.
 - [ ] Internal candidate menggunakan Employee Movement.

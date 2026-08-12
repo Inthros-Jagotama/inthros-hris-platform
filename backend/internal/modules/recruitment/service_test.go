@@ -2332,6 +2332,28 @@ func TestService_CreateCandidate_AutoGeneratesCandidateNumber(t *testing.T) {
 	}
 }
 
+func TestService_UpdateCandidate_AppliesCandidateNumber(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, err := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Update", LastName: "Num", Email: "updatenum@test.com"})
+	if err != nil {
+		t.Fatalf("CreateCandidate failed: %v", err)
+	}
+
+	newNumber := "CAND-CUSTOM-0001"
+	updated, err := svc.UpdateCandidate(ctx, cand.ID, UpdateCandidateRequest{
+		CandidateNumber: &newNumber,
+	})
+	if err != nil {
+		t.Fatalf("UpdateCandidate failed: %v", err)
+	}
+	if updated.CandidateNumber != newNumber {
+		t.Errorf("expected candidate_number %q, got %q", newNumber, updated.CandidateNumber)
+	}
+}
+
 func TestService_CreateCandidateEducation(t *testing.T) {
 	svc, cleanup := newTestService()
 	defer cleanup()
