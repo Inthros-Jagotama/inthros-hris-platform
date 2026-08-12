@@ -64,13 +64,14 @@ const menuCards = computed(() => [
   // S-4: Internal Candidates — eligible via career path (Career Intelligence)
   { labelKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/recruitment/internal-candidates' },
   // G-3: Job Offers — offer management + approval workflow
-  { labelKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/recruitment/offers' }
+  { labelKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/recruitment/offers' },
+  // G-4: Onboarding — employee hasil offer + status (COMPLETED → training handoff S-7)
+  { labelKey: 'recruitment.onboarding', descKey: 'onboarding.description', icon: 'pi pi-rocket', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/recruitment/onboarding' }
 ])
 
 const comingSoonCards = computed(() => [
   { labelKey: 'recruitment.candidates', icon: 'pi pi-users', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
   { labelKey: 'recruitment.applications', icon: 'pi pi-send', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-  { labelKey: 'recruitment.interviews', icon: 'pi pi-comments', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
-  { labelKey: 'recruitment.onboarding', icon: 'pi pi-rocket', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' }
+  { labelKey: 'recruitment.interviews', icon: 'pi pi-comments', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' }
 ])
 </script>

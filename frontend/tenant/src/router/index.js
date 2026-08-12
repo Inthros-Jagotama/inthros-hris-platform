@@ -374,6 +374,13 @@ const routes = [
         component: () => import('@/views/modules/Offers.vue'),
         meta: { title: 'Job Offers', titleKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
       },
+      // Onboarding — G-4: employee hasil offer (recruited_from_application_id) + status (S-7 handoff)
+      {
+        path: 'recruitment/onboarding',
+        name: 'Onboarding',
+        component: () => import('@/views/modules/Onboarding.vue'),
+        meta: { title: 'Onboarding', titleKey: 'recruitment.onboarding', descKey: 'onboarding.description', icon: 'pi pi-rocket', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
+      },
       // Reimbursement
       {
         path: 'reimbursements',
