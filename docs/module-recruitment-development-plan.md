@@ -500,13 +500,13 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 **Yang diimplementasikan (sub-project 2):**
 - **Migration `099_recruitment_candidate_skills_certifications`** (pg + mysql, up/down idempotent):
-  - Tabel baru `candidate_skills` — `id, candidate_id (FK), competency_id (FK → setting.competencies — existing master), level INT (1-5), created_at, updated_at`; index `idx_skill_cand`; NOT NULL constraints + referential integrity.
-  - Tabel baru `candidate_certifications` — `id, candidate_id (FK), name VARCHAR(255) NN (free-text, no master), issuer VARCHAR(255) NULL, issue_date DATE NULL, expiry_date DATE NULL, credential_url TEXT NULL, created_at, updated_at`; index `idx_cert_cand`; no master reference (Certification Master belum ada di codebase).
-- **Model:** `CandidateSkill` + `CandidateCertification` structs; relation field `Competency *setting.Competency` pada `CandidateSkill` (mirroring competency referencing pattern).
-- **Service:** CRUD methods untuk kedua entitas; validasi level 1-5 (stored as `*int` per design — no enum, no constraint DB-side, level validation di service saja).
+  - Tabel baru `candidate_skills` — `id, candidate_id (FK), competency_id (FK → competency.Competency — existing master), level SMALLINT NULL (Go: *int), notes TEXT NULL, created_at, updated_at`; index `idx_cand_skill_candidate` + `idx_cand_skill_competency`; NOT NULL constraints + referential integrity.
+  - Tabel baru `candidate_certifications` — `id, candidate_id (FK), name VARCHAR(255) NN (free-text, no master), issuing_organization VARCHAR(255) NULL, issue_date DATE NULL, expiry_date DATE NULL, credential_url TEXT NULL, notes TEXT NULL, created_at, updated_at`; index `idx_cand_cert_candidate`; no master reference (Certification Master belum ada di codebase).
+- **Model:** `CandidateSkill` + `CandidateCertification` structs; relation field `Competency *competency.Competency` pada `CandidateSkill` (mirroring competency referencing pattern; `competencies` table dimiliki modul `competency`, bukan `setting`).
+- **Service:** CRUD methods untuk kedua entitas; tidak ada validasi range level (1-5 adalah konvensi terdokumentasi, tidak di-enforce di layer manapun — sesuai keputusan desain).
 - **Handler/Routes:** 8 endpoint CRUD — `POST/GET /recruitment/candidates/:id/skills`, `PUT/DELETE /recruitment/skills/:id`, `POST/GET /recruitment/candidates/:id/certifications`, `PUT/DELETE /recruitment/certifications/:id` (identik pola G-6 sub-1 education/work-experience; path param `:id`).
-- **DTO:** `CandidateSkillRequest/Response` + `CandidateCertificationRequest/Response`.
-- **Test:** +10 test (repository +4: skills + certifications CRUD; service +4: both entities CRUD + level validation 1-5; handler +2: skill + certification create). Total recruitment: **171** (handler 38 + repository 38 + service 95).
+- **DTO:** `CreateCandidateSkillRequest`, `UpdateCandidateSkillRequest`, `CandidateSkillResponse` + `CreateCandidateCertificationRequest`, `UpdateCandidateCertificationRequest`, `CandidateCertificationResponse`.
+- **Test:** +10 test (repository +4: skills + certifications CRUD; service +4: create-skill + unknown-candidate guard + unknown-competency guard + create-certification; handler +2: skill + certification create). Total recruitment: **171** (handler 38 + repository 38 + service 95).
 
 **Rencana (sisa G-6 sub-project 3 — deferred):**
 - `candidates.status` (availability status ACTIVE/BLACKLISTED/dst.) — **skipped**: tidak jelas kebutuhan bisnis, potensi redundan dengan application-level status.
@@ -514,7 +514,7 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 - `candidate_documents` — **deferred**: concerns compliance/file-storage, pertimbangan keamanan sendiri (plan §17), ditangani sub-project terpisah.
 - `candidate_consents` — **deferred**: compliance + GDPR concerns, sub-project terpisah.
 
-**Ref:** design spec `docs/superpowers/specs/2026-08-12-candidate-profile-basics-design.md`; migration 099 (skills/certifications); plan asli §13-§19.
+**Ref:** design spec sub-project 1 `docs/superpowers/specs/2026-08-12-candidate-profile-basics-design.md`; design spec sub-project 2 `docs/superpowers/specs/2026-08-12-candidate-skills-certifications-design.md`; migration 099 (skills/certifications); plan asli §13-§19.
 
 ## G-7 🟡 SCREENING & ASSESSMENT
 
