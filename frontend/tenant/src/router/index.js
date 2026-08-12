@@ -367,6 +367,13 @@ const routes = [
         component: () => import('@/views/modules/InternalCandidates.vue'),
         meta: { title: 'Internal Candidates', titleKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
       },
+      // Job Offers — G-3 (offer management + approval workflow)
+      {
+        path: 'recruitment/offers',
+        name: 'Offers',
+        component: () => import('@/views/modules/Offers.vue'),
+        meta: { title: 'Job Offers', titleKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
+      },
       // Reimbursement
       {
         path: 'reimbursements',

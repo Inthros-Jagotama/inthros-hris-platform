@@ -62,7 +62,9 @@ const menuCards = computed(() => [
   // S-1/S-5: Job Requisitions — reason_type WORKFORCE_GAP / SUCCESSION_GAP
   { labelKey: 'recruitment.requisitions', descKey: 'requisitions.description', icon: 'pi pi-briefcase', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/recruitment/requisitions' },
   // S-4: Internal Candidates — eligible via career path (Career Intelligence)
-  { labelKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/recruitment/internal-candidates' }
+  { labelKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/recruitment/internal-candidates' },
+  // G-3: Job Offers — offer management + approval workflow
+  { labelKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/recruitment/offers' }
 ])
 
 const comingSoonCards = computed(() => [
