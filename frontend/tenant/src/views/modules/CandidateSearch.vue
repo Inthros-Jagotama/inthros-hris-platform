@@ -80,17 +80,74 @@
         </template>
       </Column>
 
+      <!-- S-3: internal candidates eligible (Career Intelligence) -->
+      <Column :header="t('candidate_search.internal_candidates')" style="width: 170px">
+        <template #body="{ data }">
+          <Tag
+            :value="data.internal_candidate_count || 0"
+            :severity="data.internal_candidate_count > 0 ? 'warn' : 'secondary'"
+            class="!text-xs !px-2 !py-0.5"
+            icon="pi pi-user"
+          />
+        </template>
+      </Column>
+
       <template #expansion="{ data }">
-        <div class="px-5 py-3 bg-gray-50 dark:bg-gray-800/50">
-          <div v-if="data.candidates.length === 0" class="text-sm text-gray-400 dark:text-gray-500 py-2">
-            {{ t('candidate_search.no_candidates') }}
+        <div class="px-5 py-3 bg-gray-50 dark:bg-gray-800/50 space-y-3">
+          <!-- Internal candidates (S-3/S-4) -->
+          <div>
+            <p class="text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <i class="pi pi-user text-xs"></i>{{ t('candidate_search.internal_candidates') }}
+            </p>
+            <div v-if="!data.internal_candidates || data.internal_candidates.length === 0" class="text-sm text-gray-400 dark:text-gray-500 py-1">
+              {{ t('candidate_search.no_internal_candidates') }}
+            </div>
+            <DataTable
+              v-else
+              :value="data.internal_candidates"
+              size="small"
+              class="!text-sm border border-violet-200 dark:border-violet-700/50 rounded-lg overflow-hidden"
+            >
+              <Column :header="t('candidate_search.employee')">
+                <template #body="{ data: ic }">
+                  <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 flex items-center justify-center text-[11px] font-semibold shrink-0">
+                      {{ internalInitials(ic) }}
+                    </div>
+                    <div class="min-w-0">
+                      <p class="font-medium text-gray-800 dark:text-gray-100 truncate">{{ ic.name || '—' }}</p>
+                      <p class="text-xs text-gray-400 dark:text-gray-500 truncate font-mono">{{ ic.employee_id }}</p>
+                    </div>
+                  </div>
+                </template>
+              </Column>
+              <Column :header="t('candidate_search.current_position')">
+                <template #body="{ data: ic }">
+                  <span class="text-gray-600 dark:text-gray-300">{{ ic.current_position_name || '—' }}</span>
+                </template>
+              </Column>
+              <Column :header="t('candidate_search.step_sequence')" style="width: 120px">
+                <template #body="{ data: ic }">
+                  <Tag :value="ic.source_step_sequence ?? 0" severity="info" class="!text-xs !px-2 !py-0.5" />
+                </template>
+              </Column>
+            </DataTable>
           </div>
-          <DataTable
-            v-else
-            :value="data.candidates"
-            size="small"
-            class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
-          >
+
+          <!-- External candidates (pool recruitment) -->
+          <div>
+            <p class="text-xs font-semibold text-sky-600 dark:text-sky-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <i class="pi pi-users text-xs"></i>{{ t('candidate_search.external_candidates') }}
+            </p>
+            <div v-if="data.candidates.length === 0" class="text-sm text-gray-400 dark:text-gray-500 py-1">
+              {{ t('candidate_search.no_candidates') }}
+            </div>
+            <DataTable
+              v-else
+              :value="data.candidates"
+              size="small"
+              class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+            >
             <Column :header="t('candidate_search.candidates')">
               <template #body="{ data: c }">
                 <div class="flex items-center gap-2">
@@ -124,6 +181,7 @@
               </template>
             </Column>
           </DataTable>
+          </div>
         </div>
       </template>
     </DataTable>
@@ -165,6 +223,10 @@ const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 
 function initials(c) {
   return ((c.first_name || '?').charAt(0) + (c.last_name || '').charAt(0)).toUpperCase()
+}
+
+function internalInitials(ic) {
+  return (ic.name || '?').charAt(0).toUpperCase()
 }
 
 function candidateStatusSeverity(status) {

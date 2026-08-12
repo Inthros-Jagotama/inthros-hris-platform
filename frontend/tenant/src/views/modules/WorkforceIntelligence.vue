@@ -61,6 +61,8 @@ const { t } = useI18n()
 // bawah Organization Summary active) beserta kandidat recruitment-nya.
 const menuCards = computed(() => [
   { labelKey: 'candidate_search.title', descKey: 'candidate_search.description', icon: 'pi pi-user-plus', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/workforce-intelligence/candidate-search' },
+  // Recruitment Analytics — S-2/S-3: remaining gap, expected hires, time to hire/fill, OAR, source conversion
+  { labelKey: 'recruitment_analytics.title', descKey: 'recruitment_analytics.description', icon: 'pi pi-chart-line', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/workforce-intelligence/recruitment-analytics' },
   // Quality of Hire — metrik agregat kualitas hire (S-6: interview/onboarding/performance/retention)
   { labelKey: 'quality_of_hire.title', descKey: 'quality_of_hire.description', icon: 'pi pi-bullseye', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/workforce-intelligence/quality-of-hire' },
   // P2-FE integrasi: analisis training (completion/cost/compliance) dari modul Training

@@ -353,6 +353,20 @@ const routes = [
         component: () => import('@/views/modules/Recruitment.vue'),
         meta: { title: 'Recruitment', titleKey: 'recruitment.title', descKey: 'recruitment.description', icon: 'pi pi-user-plus', module: 'recruitment' }
       },
+      // Job Requisitions — S-1 (workforce gap) / S-5 (succession gap) reason_type
+      {
+        path: 'recruitment/requisitions',
+        name: 'Requisitions',
+        component: () => import('@/views/modules/Requisitions.vue'),
+        meta: { title: 'Job Requisitions', titleKey: 'recruitment.requisitions', descKey: 'requisitions.description', icon: 'pi pi-briefcase', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
+      },
+      // Internal Candidates — S-4 (eligible via career path dari Career Intelligence)
+      {
+        path: 'recruitment/internal-candidates',
+        name: 'InternalCandidates',
+        component: () => import('@/views/modules/InternalCandidates.vue'),
+        meta: { title: 'Internal Candidates', titleKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
+      },
       // Reimbursement
       {
         path: 'reimbursements',
@@ -466,12 +480,26 @@ const routes = [
         component: () => import('@/views/modules/QualityOfHire.vue'),
         meta: { title: 'Quality of Hire', titleKey: 'quality_of_hire.title', descKey: 'quality_of_hire.description', icon: 'pi pi-bullseye', module: 'workforce-intelligence', backRoute: '/workforce-intelligence', backLabelKey: 'workforce_intel.title' }
       },
+      // Recruitment Analytics — S-2 (remaining gap, expected hires) + S-3 (time to hire/fill, OAR, source conversion)
+      {
+        path: 'workforce-intelligence/recruitment-analytics',
+        name: 'RecruitmentAnalytics',
+        component: () => import('@/views/modules/RecruitmentAnalytics.vue'),
+        meta: { title: 'Recruitment Analytics', titleKey: 'recruitment_analytics.title', descKey: 'recruitment_analytics.description', icon: 'pi pi-chart-line', module: 'workforce-intelligence', backRoute: '/workforce-intelligence', backLabelKey: 'workforce_intel.title' }
+      },
       // Career Intelligence
       {
         path: 'career-intelligence',
         name: 'CareerIntelligence',
         component: () => import('@/views/modules/CareerIntelligence.vue'),
         meta: { title: 'Career Intel', titleKey: 'career_intel.title', descKey: 'career_intel.description', icon: 'pi pi-chart-line', module: 'career-intelligence' }
+      },
+      // Succession Gaps — S-5 (posisi kunci tanpa successor siap → external recruitment)
+      {
+        path: 'career-intelligence/successions',
+        name: 'SuccessionGaps',
+        component: () => import('@/views/modules/SuccessionGaps.vue'),
+        meta: { title: 'Succession Gaps', titleKey: 'succession_gaps.title', descKey: 'succession_gaps.description', icon: 'pi pi-users', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title' }
       },
       // Settings — index page menampilkan card sub-menu settings
       { path: 'settings', name: 'SettingsIndex', component: () => import('@/views/settings/SettingsIndex.vue'), meta: { title: 'Settings', titleKey: 'settings.title', descKey: 'settings.description', icon: 'pi pi-cog', module: 'setting' } },

@@ -174,7 +174,7 @@ const courseOptions = computed(() => courses.value.map(c => ({ label: `${c.code}
 const organizationOptions = computed(() => organizations.value.map(o => ({ label: o.name, value: o.id })))
 const positionOptions = computed(() => positions.value.map(p => ({ label: p.nomenclature || p.full_code, value: p.id })))
 const priorityOptions = computed(() => ['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map(v => ({ label: priorityLabel(v), value: v })))
-const sourceOptions = computed(() => ['MANUAL', 'PERFORMANCE', 'COMPETENCY', 'CAREER', 'SUCCESSION', 'COMPLIANCE', 'WORKFORCE'].map(v => ({ label: sourceLabel(v), value: v })))
+const sourceOptions = computed(() => ['MANUAL', 'PERFORMANCE', 'COMPETENCY', 'CAREER', 'SUCCESSION', 'COMPLIANCE', 'WORKFORCE', 'ONBOARDING'].map(v => ({ label: sourceLabel(v), value: v })))
 const statusOptions = computed(() => ['OPEN', 'PLANNED', 'FULFILLED', 'CANCELLED'].map(v => ({ label: statusLabel(v), value: v })))
 
 function priorityLabel(p) {
