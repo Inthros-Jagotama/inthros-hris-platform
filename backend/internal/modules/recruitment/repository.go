@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/inthros/hris-platform/internal/modules/competency"
 )
 
 type Repository struct {
@@ -783,6 +785,141 @@ func (r *Repository) DeleteCandidateWorkExperience(ctx context.Context, id uuid.
 	result := db.WithContext(ctx).Delete(&CandidateWorkExperience{}, id)
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("candidate work experience not found")
+	}
+	return result.Error
+}
+
+// =========================================================================
+// Candidate Skills (G-6)
+// =========================================================================
+
+func (r *Repository) CreateCandidateSkill(ctx context.Context, s *CandidateSkill) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(s).Error
+}
+
+func (r *Repository) FindCandidateSkillByID(ctx context.Context, id uuid.UUID) (*CandidateSkill, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var s CandidateSkill
+	if err := db.WithContext(ctx).Preload("Competency").First(&s, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("candidate skill not found")
+		}
+		return nil, err
+	}
+	return &s, nil
+}
+
+func (r *Repository) ListCandidateSkills(ctx context.Context, candidateID uuid.UUID) ([]CandidateSkill, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CandidateSkill
+	if err := db.WithContext(ctx).Preload("Competency").Where("candidate_id = ?", candidateID).Order("created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateCandidateSkill(ctx context.Context, s *CandidateSkill) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	// Omit associations so a Save never re-derives CompetencyID from a stale
+	// preloaded Competency pointer (FindCandidateSkillByID preloads Competency).
+	return db.WithContext(ctx).Omit(clause.Associations).Save(s).Error
+}
+
+func (r *Repository) DeleteCandidateSkill(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&CandidateSkill{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("candidate skill not found")
+	}
+	return result.Error
+}
+
+func (r *Repository) FindCompetencyByID(ctx context.Context, id uuid.UUID) (*competency.Competency, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var c competency.Competency
+	if err := db.WithContext(ctx).First(&c, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("competency not found")
+		}
+		return nil, err
+	}
+	return &c, nil
+}
+
+// =========================================================================
+// Candidate Certifications (G-6)
+// =========================================================================
+
+func (r *Repository) CreateCandidateCertification(ctx context.Context, c *CandidateCertification) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(c).Error
+}
+
+func (r *Repository) FindCandidateCertificationByID(ctx context.Context, id uuid.UUID) (*CandidateCertification, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var c CandidateCertification
+	if err := db.WithContext(ctx).First(&c, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("candidate certification not found")
+		}
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (r *Repository) ListCandidateCertifications(ctx context.Context, candidateID uuid.UUID) ([]CandidateCertification, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CandidateCertification
+	if err := db.WithContext(ctx).Where("candidate_id = ?", candidateID).Order("created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateCandidateCertification(ctx context.Context, c *CandidateCertification) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(c).Error
+}
+
+func (r *Repository) DeleteCandidateCertification(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&CandidateCertification{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("candidate certification not found")
 	}
 	return result.Error
 }

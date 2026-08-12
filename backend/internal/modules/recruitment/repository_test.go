@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+
+	"github.com/inthros/hris-platform/internal/modules/competency"
 )
 
 func newTestRepository() (*Repository, func()) {
@@ -734,5 +736,116 @@ func TestRepository_CreateAndListCandidateWorkExperience(t *testing.T) {
 	}
 	if len(list) != 1 || list[0].CompanyName != "Acme Corp" {
 		t.Errorf("expected 1 row with company 'Acme Corp', got %+v", list)
+	}
+}
+
+func TestRepository_CreateAndFindCandidateSkill(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "Skill", LastName: "Test", Email: "skilltest@test.com"}
+	repo.CreateCandidate(ctx, cand)
+	comp := &competency.Competency{Name: "Go Programming"}
+	if err := db.Create(comp).Error; err != nil {
+		t.Fatalf("failed to seed competency: %v", err)
+	}
+
+	skill := &CandidateSkill{CandidateID: cand.ID, CompetencyID: comp.ID}
+	if err := repo.CreateCandidateSkill(ctx, skill); err != nil {
+		t.Fatalf("CreateCandidateSkill failed: %v", err)
+	}
+
+	found, err := repo.FindCandidateSkillByID(ctx, skill.ID)
+	if err != nil {
+		t.Fatalf("FindCandidateSkillByID failed: %v", err)
+	}
+	if found.CompetencyID != comp.ID {
+		t.Errorf("expected competency_id %s, got %s", comp.ID, found.CompetencyID)
+	}
+}
+
+func TestRepository_ListCandidateSkills(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "List", LastName: "Skill", Email: "listskill@test.com"}
+	repo.CreateCandidate(ctx, cand)
+	comp1 := &competency.Competency{Name: "Go"}
+	comp2 := &competency.Competency{Name: "SQL"}
+	if err := db.Create(comp1).Error; err != nil {
+		t.Fatalf("failed to seed competency comp1: %v", err)
+	}
+	if err := db.Create(comp2).Error; err != nil {
+		t.Fatalf("failed to seed competency comp2: %v", err)
+	}
+
+	repo.CreateCandidateSkill(ctx, &CandidateSkill{CandidateID: cand.ID, CompetencyID: comp1.ID})
+	repo.CreateCandidateSkill(ctx, &CandidateSkill{CandidateID: cand.ID, CompetencyID: comp2.ID})
+
+	list, err := repo.ListCandidateSkills(ctx, cand.ID)
+	if err != nil {
+		t.Fatalf("ListCandidateSkills failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2 skills, got %d", len(list))
+	}
+}
+
+func TestRepository_UpdateAndDeleteCandidateSkill(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "Upd", LastName: "Skill", Email: "updskill@test.com"}
+	repo.CreateCandidate(ctx, cand)
+	comp := &competency.Competency{Name: "Go"}
+	if err := db.Create(comp).Error; err != nil {
+		t.Fatalf("failed to seed competency: %v", err)
+	}
+	skill := &CandidateSkill{CandidateID: cand.ID, CompetencyID: comp.ID}
+	repo.CreateCandidateSkill(ctx, skill)
+
+	level := 4
+	skill.Level = &level
+	if err := repo.UpdateCandidateSkill(ctx, skill); err != nil {
+		t.Fatalf("UpdateCandidateSkill failed: %v", err)
+	}
+	found, _ := repo.FindCandidateSkillByID(ctx, skill.ID)
+	if found.Level == nil || *found.Level != level {
+		t.Errorf("expected level %d, got %v", level, found.Level)
+	}
+
+	if err := repo.DeleteCandidateSkill(ctx, skill.ID); err != nil {
+		t.Fatalf("DeleteCandidateSkill failed: %v", err)
+	}
+	if _, err := repo.FindCandidateSkillByID(ctx, skill.ID); err == nil {
+		t.Error("expected error finding deleted skill, got nil")
+	}
+}
+
+func TestRepository_CreateAndListCandidateCertification(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "Cert", LastName: "Test", Email: "certtest@test.com"}
+	repo.CreateCandidate(ctx, cand)
+
+	cert := &CandidateCertification{CandidateID: cand.ID, Name: "AWS Certified Solutions Architect"}
+	if err := repo.CreateCandidateCertification(ctx, cert); err != nil {
+		t.Fatalf("CreateCandidateCertification failed: %v", err)
+	}
+
+	list, err := repo.ListCandidateCertifications(ctx, cand.ID)
+	if err != nil {
+		t.Fatalf("ListCandidateCertifications failed: %v", err)
+	}
+	if len(list) != 1 || list[0].Name != "AWS Certified Solutions Architect" {
+		t.Errorf("expected 1 cert named 'AWS Certified Solutions Architect', got %+v", list)
 	}
 }
