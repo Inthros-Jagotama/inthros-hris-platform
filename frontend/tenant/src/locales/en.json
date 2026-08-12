@@ -53,6 +53,7 @@
     "close": "Close",
     "confirm": "Confirm",
     "refresh": "Refresh",
+    "retry": "Retry",
     "months": "months",
     "view": "View",
     "open": "Open",
@@ -148,7 +149,10 @@
     "contract_active": "Active",
     "contract_expiring": "Expiring < 30 days",
     "contract_expired": "Expired",
-    "view_reports": "View Reports"
+    "view_reports": "View Reports",
+    "quality_of_hire_title": "Quality of Hire",
+    "quality_of_hire_desc": "Composite quality of accepted hires from operational data.",
+    "view_analytics": "View Analytics"
   },
   "org_summary": {
     "title": "Organization Summary",
@@ -1792,7 +1796,6 @@
     "description": "Analytics, planning, and strategic workforce insights.",
     "dashboard": "Dashboard",
     "headcount_planning": "Headcount Planning",
-    "analytics": "Analytics",
     "risk": "Risk Dashboard",
     "executive": "Executive Dashboard",
     "scenarios": "Scenario Planning",
@@ -1821,6 +1824,29 @@
     "status_ACCEPTED": "Accepted",
     "status_REJECTED": "Rejected",
     "status_WITHDRAWN": "Withdrawn"
+  },
+  "quality_of_hire": {
+    "title": "Quality of Hire",
+    "description": "Composite quality metrics of accepted hires from operational data.",
+    "subtitle": "Aggregated from interviews, onboarding, performance, and active employment data.",
+    "empty_title": "No hires analyzed yet",
+    "empty_desc": "Accept at least one candidate to see composite quality metrics by source, requisition, and organization.",
+    "overall_score": "Overall Score",
+    "hires_analyzed": "Hires Analyzed",
+    "interview_score": "Interview Score",
+    "performance_score": "Performance Score",
+    "onboarding_completion": "Onboarding Completion",
+    "retention_rate": "Retention Rate",
+    "recruitment_match": "Recruitment Match",
+    "assessment_score": "Assessment Score",
+    "placeholder_note": "Awaiting candidate competency & assessment data",
+    "tab_source": "By Source",
+    "tab_requisition": "By Requisition",
+    "tab_organization": "By Organization",
+    "no_breakdown": "No breakdown data yet",
+    "breakdown_key": "Key",
+    "breakdown_hires": "Hires",
+    "breakdown_score": "Avg Score"
   },
   "career_intel": {
     "title": "Career Intelligence",

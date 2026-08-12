@@ -53,6 +53,7 @@
     "close": "Tutup",
     "confirm": "Konfirmasi",
     "refresh": "Muat Ulang",
+    "retry": "Coba Lagi",
     "months": "bulan",
     "view": "Lihat",
     "open": "Buka",
@@ -148,7 +149,10 @@
     "contract_active": "Aktif",
     "contract_expiring": "Akan Berakhir < 30 hari",
     "contract_expired": "Kadaluarsa",
-    "view_reports": "Lihat Laporan"
+    "view_reports": "Lihat Laporan",
+    "quality_of_hire_title": "Kualitas Perekrutan",
+    "quality_of_hire_desc": "Kualitas komposit kandidat yang diterima dari data operasional.",
+    "view_analytics": "Lihat Analitik"
   },
   "org_summary": {
     "title": "Ringkasan Organisasi",
@@ -1792,7 +1796,6 @@
     "description": "Analitik, perencanaan, dan wawasan tenaga kerja strategis.",
     "dashboard": "Dasbor",
     "headcount_planning": "Perencanaan Headcount",
-    "analytics": "Analitik",
     "risk": "Dasbor Risiko",
     "executive": "Dasbor Eksekutif",
     "scenarios": "Perencanaan Skenario",
@@ -1821,6 +1824,29 @@
     "status_ACCEPTED": "Diterima",
     "status_REJECTED": "Ditolak",
     "status_WITHDRAWN": "Mengundurkan Diri"
+  },
+  "quality_of_hire": {
+    "title": "Kualitas Perekrutan",
+    "description": "Metrik komposit kualitas kandidat yang diterima dari data operasional.",
+    "subtitle": "Agregasi dari data wawancara, onboarding, kinerja, dan masa kerja aktif.",
+    "empty_title": "Belum ada kandidat yang dianalisis",
+    "empty_desc": "Terima minimal satu kandidat untuk melihat metrik kualitas komposit berdasarkan sumber, requisisi, dan organisasi.",
+    "overall_score": "Skor Keseluruhan",
+    "hires_analyzed": "Hire Dianalisis",
+    "interview_score": "Skor Wawancara",
+    "performance_score": "Skor Kinerja",
+    "onboarding_completion": "Kelulusan Onboarding",
+    "retention_rate": "Tingkat Retensi",
+    "recruitment_match": "Kecocokan Rekrutmen",
+    "assessment_score": "Skor Asesmen",
+    "placeholder_note": "Menunggu data kompetensi kandidat & asesmen",
+    "tab_source": "Per Sumber",
+    "tab_requisition": "Per Requisisi",
+    "tab_organization": "Per Organisasi",
+    "no_breakdown": "Belum ada data rincian",
+    "breakdown_key": "Kunci",
+    "breakdown_hires": "Hire",
+    "breakdown_score": "Skor Rata-rata"
   },
   "career_intel": {
     "title": "Intel Karir",

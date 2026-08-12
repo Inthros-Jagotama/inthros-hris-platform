@@ -179,6 +179,7 @@ Modul `backend/internal/modules/careerintelligence/` (5 sub-module, 21 endpoint)
 - Breakdown: **by_source, by_requisition, by_organization** (skor komposit per hire = rata-rata komponen berdata; hire tanpa data tidak muncul di breakdown). `RecruitmentMatchScore` & `AssessmentScore` tetap **placeholder 0** — data kompetensi kandidat (G-9) & assessment belum dikumpulkan Recruitment (pola sama S-3).
 - Repo WI: `GetQualityOfHireHires` (query join candidates/job_requisitions/employee_onboardings + subquery interviews/performance_evaluations/employments, NULL-safe lintas dialek).
 - Test: +5 (WI 132 → 137) termasuk partial-data consistency (overall == breakdown). OpenAPI: 1 endpoint + 2 schema (`QualityOfHireResponse`, `QualityOfHireBreakdown`).
+- **Frontend tenant ✅:** halaman `workforce-intelligence/quality-of-hire` (`QualityOfHire.vue` — KPI cards overall/hires/interview/performance/onboarding/retention + placeholder match/assessment, breakdown tabs by source/requisition/organization, empty & error state, dark mode) + section ringkas di Dashboard (gated module `workforce-intelligence` aktif, link "View Analytics") + card menu di hub Workforce Intelligence (menggantikan card "Analytics" coming-soon). Skala skor 0–100 terverifikasi dari fixture test backend.
 
 **Ref:** plan asli recruitment §55 · `workforce-intelligence-training-enhancement-plan.md`.
 

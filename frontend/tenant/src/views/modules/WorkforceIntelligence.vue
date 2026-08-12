@@ -61,6 +61,8 @@ const { t } = useI18n()
 // bawah Organization Summary active) beserta kandidat recruitment-nya.
 const menuCards = computed(() => [
   { labelKey: 'candidate_search.title', descKey: 'candidate_search.description', icon: 'pi pi-user-plus', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/workforce-intelligence/candidate-search' },
+  // Quality of Hire — metrik agregat kualitas hire (S-6: interview/onboarding/performance/retention)
+  { labelKey: 'quality_of_hire.title', descKey: 'quality_of_hire.description', icon: 'pi pi-bullseye', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/workforce-intelligence/quality-of-hire' },
   // P2-FE integrasi: analisis training (completion/cost/compliance) dari modul Training
   { labelKey: 'workforce_intel.training_analysis', descKey: 'workforce_intel.training_analysis_desc', icon: 'pi pi-graduation-cap', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/training/reports' }
 ])
@@ -69,7 +71,6 @@ const menuCards = computed(() => [
 // ditampilkan sebagai card "Coming soon" agar roadmap modul terlihat jelas.
 const comingSoonCards = computed(() => [
   { labelKey: 'workforce_intel.headcount_planning', icon: 'pi pi-arrows-alt', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-  { labelKey: 'workforce_intel.analytics', icon: 'pi pi-chart-line', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
   { labelKey: 'workforce_intel.risk', icon: 'pi pi-exclamation-triangle', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' },
   { labelKey: 'workforce_intel.executive', icon: 'pi pi-desktop', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400' },
   { labelKey: 'workforce_intel.scenarios', icon: 'pi pi-clone', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' }

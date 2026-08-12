@@ -459,6 +459,13 @@ const routes = [
         component: () => import('@/views/modules/CandidateSearch.vue'),
         meta: { title: 'Candidate Search', titleKey: 'candidate_search.title', descKey: 'candidate_search.description', icon: 'pi pi-user-plus', module: 'workforce-intelligence', backRoute: '/workforce-intelligence', backLabelKey: 'workforce_intel.title' }
       },
+      // Quality of Hire — metrik agregat kualitas hire (S-6)
+      {
+        path: 'workforce-intelligence/quality-of-hire',
+        name: 'QualityOfHire',
+        component: () => import('@/views/modules/QualityOfHire.vue'),
+        meta: { title: 'Quality of Hire', titleKey: 'quality_of_hire.title', descKey: 'quality_of_hire.description', icon: 'pi pi-bullseye', module: 'workforce-intelligence', backRoute: '/workforce-intelligence', backLabelKey: 'workforce_intel.title' }
+      },
       // Career Intelligence
       {
         path: 'career-intelligence',

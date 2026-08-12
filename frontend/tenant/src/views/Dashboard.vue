@@ -127,6 +127,63 @@
       </div>
     </div>
 
+    <!-- ── Quality of Hire (S-6 — Workforce Intelligence) ── -->
+    <div
+      v-if="wiModuleActive && qohLoading"
+      class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 animate-pulse"
+    >
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-4 h-4 rounded bg-gray-200 dark:bg-gray-700"></div>
+        <div class="h-4 w-44 rounded bg-gray-200 dark:bg-gray-700"></div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+        <div v-for="i in 5" :key="i" class="h-16 rounded-lg bg-gray-100 dark:bg-gray-700/50"></div>
+      </div>
+    </div>
+    <div
+      v-if="wiModuleActive && !qohLoading && qohData.hires_analyzed > 0"
+      class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+    >
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+        <div class="flex items-center gap-2">
+          <i class="pi pi-bullseye text-sm text-emerald-500"></i>
+          <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('dashboard.quality_of_hire_title') }}</h2>
+          <span class="text-[11px] text-gray-400 dark:text-gray-500 hidden sm:inline">{{ t('dashboard.quality_of_hire_desc') }}</span>
+        </div>
+        <Button
+          :label="t('dashboard.view_analytics')"
+          icon="pi pi-chart-bar"
+          size="small"
+          text
+          class="!text-xs"
+          @click="$router.push('/workforce-intelligence/quality-of-hire')"
+        />
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+        <div class="rounded-lg border border-emerald-200 dark:border-emerald-700/50 bg-emerald-50/50 dark:bg-emerald-900/10 p-2.5">
+          <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.overall_score') }}</p>
+          <p class="text-lg font-bold text-emerald-600 dark:text-emerald-400">{{ fmtScore(qohData.overall_score) }}</p>
+        </div>
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
+          <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.hires_analyzed') }}</p>
+          <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ qohData.hires_analyzed }}</p>
+        </div>
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
+          <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.interview_score') }}</p>
+          <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ fmtScore(qohData.interview_score) }}</p>
+        </div>
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
+          <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.onboarding_completion') }}</p>
+          <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ fmtPct(qohData.onboarding_completion_rate) }}</p>
+        </div>
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
+          <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.retention_rate') }}</p>
+          <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ fmtPct(qohData.retention_rate) }}</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <!-- Quick Access Modules -->
@@ -211,6 +268,32 @@ const recentActivities = [
   { text: 'Training session "Leadership 101" scheduled', time: '3 days ago', dotColor: 'bg-orange-400' }
 ]
 
+// ── Quality of Hire (S-6): ringkasan ringkas di dashboard, gated WI module ──
+const wiModuleActive = ref(false)
+const qohLoading = ref(false)
+const qohData = ref({ overall_score: 0, hires_analyzed: 0, interview_score: 0, onboarding_completion_rate: 0, retention_rate: 0 })
+
+function fmtScore(v) {
+  return (Number(v) || 0).toFixed(1)
+}
+
+function fmtPct(v) {
+  return `${(Number(v) || 0).toFixed(1)}%`
+}
+
+async function loadQualityOfHire() {
+  qohLoading.value = true
+  try {
+    const res = await api.get('/api/v1/tenant/workforce-intelligence/analytics/quality-of-hire')
+    qohData.value = res.data?.data || qohData.value
+  } catch (e) {
+    // Jangan ganggu dashboard utama — kartu hanya disembunyikan bila gagal.
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_load')), life: 4000 })
+  } finally {
+    qohLoading.value = false
+  }
+}
+
 // ── HR Dashboard: Employee Movement & Contracts (plan §12.18) ──
 const movementModuleActive = ref(false)
 const movementLoading = ref(false)
@@ -270,6 +353,11 @@ onMounted(async () => {
   movementModuleActive.value = activeMod.hasModule('employeemovement')
   if (movementModuleActive.value) {
     loadMovementDashboard()
+  }
+  // Kartu Quality of Hire hanya tampil bila module workforce-intelligence aktif.
+  wiModuleActive.value = activeMod.hasModule('workforce-intelligence')
+  if (wiModuleActive.value) {
+    loadQualityOfHire()
   }
 })
 </script>
