@@ -85,6 +85,52 @@ type TrainingHandoffProvider interface {
 	CreateOnboardingNeed(ctx context.Context, employeeID, onboardingID uuid.UUID, reason string) error
 }
 
+// EmployeeProvider adalah interface narrow yang dipakai Recruitment untuk
+// membuat employee baru dari offer eksternal yang diterima (plan G-4).
+// Recruitment TIDAK membuat employee sendiri — ia menyerahkan data hire ke
+// Employee module via adapter (employee.Service) dan menyimpan referensi
+// employee.recruited_from_application_id. Best-effort: kegagalan provider
+// tidak menggagalkan accept offer (di-log).
+type EmployeeProvider interface {
+	// CreateHiredEmployee membuat employee baru dari kandidat eksternal yang
+	// menerima offer; mengembalikan employee UUID.
+	CreateHiredEmployee(ctx context.Context, in EmployeeHireInput) (string, error)
+}
+
+// EmployeeHireInput membawa data minimal hire eksternal (G-4) — Recruitment
+// tidak mengirim field employee lain; Employee module yang melengkapi.
+type EmployeeHireInput struct {
+	ApplicationID  string
+	CandidateID    string
+	Name           string
+	Email          string
+	Phone          string
+	StartDate      string
+	EmploymentType string
+	OrganizationID string
+	PositionID     string
+	Salary         float64
+}
+
+// MovementProvider adalah interface narrow yang dipakai Recruitment untuk
+// meneruskan hasil seleksi internal (offer diterima) ke Employee Movement
+// (plan G-4 — internal hire → promotion/mutation), bukan employee baru.
+type MovementProvider interface {
+	// CreateHiredMovement membuat movement internal hire untuk employee yang
+	// menang seleksi (candidate_type=INTERNAL).
+	CreateHiredMovement(ctx context.Context, in MovementHireInput) error
+}
+
+// MovementHireInput membawa data minimal movement internal hire (G-4).
+type MovementHireInput struct {
+	EmployeeID     string
+	ApplicationID  string
+	OrganizationID string
+	PositionID     string
+	EffectiveDate  string
+	Reason         string
+}
+
 // ApprovalEngine adalah interface narrow yang dipakai Recruitment untuk
 // merutekan requisition melalui Central Approval (plan G-1). Recruitment TIDAK
 // mengimplementasikan alur approval — ia hanya membuat instance & membaca
@@ -110,6 +156,11 @@ type Service struct {
 	successionProvider     SuccessionGapProvider
 	trainingHandoffProvider TrainingHandoffProvider
 	approvalEngine     ApprovalEngine
+	// G-4: handoff offer diterima → Employee (eksternal) / Employee Movement
+	// (internal). Recruitment TIDAK membuat employee/movement sendiri — modul
+	// terkait yang mengeksekusi via interface narrow (pola S-1..S-7).
+	employeeProvider  EmployeeProvider
+	movementProvider  MovementProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -150,6 +201,23 @@ func (s *Service) SetTrainingHandoffProvider(p TrainingHandoffProvider) {
 // path — manual approve dihapus, keputusan plan G-1/G-5).
 func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 	s.approvalEngine = ae
+}
+
+// SetEmployeeProvider wires the Employee module into this service (plan G-4)
+// so an accepted external offer creates an employee with the
+// recruited_from_application_id reference (Employee → Application →
+// Requisition → Position traceability). Best-effort: bila provider nil,
+// accept offer tetap berhasil — employee creation hanya di-log.
+func (s *Service) SetEmployeeProvider(p EmployeeProvider) {
+	s.employeeProvider = p
+}
+
+// SetMovementProvider wires the Employee Movement module into this service
+// (plan G-4) so an accepted internal offer forwards the selection result to a
+// movement (promotion/mutation) instead of creating a new employee.
+// Best-effort: bila provider nil, accept offer tetap berhasil.
+func (s *Service) SetMovementProvider(p MovementProvider) {
+	s.movementProvider = p
 }
 
 // =========================================================================
@@ -662,17 +730,29 @@ func (s *Service) AcceptOffer(ctx context.Context, id string) (*OfferResponse, e
 			s.logger.Warn("offer accepted but application update failed",
 				zap.String("offer_id", o.ID.String()), zap.String("application_id", a.ID.String()), zap.Error(err))
 		}
-		if !wasAccepted {
-			if req, reqErr := s.repo.FindRequisitionByID(ctx, a.RequisitionID); reqErr == nil && req != nil {
-				req.SlotsFilled++
-				if req.SlotsFilled >= req.SlotsAvailable {
-					req.Status = ReqStatusFilled
-				}
-				if err := s.repo.UpdateRequisition(ctx, req); err != nil {
-					s.logger.Warn("offer accepted but requisition slots update failed",
-						zap.String("requisition_id", req.ID.String()), zap.Error(err))
-				}
+		req, _ := s.repo.FindRequisitionByID(ctx, a.RequisitionID)
+		if !wasAccepted && req != nil {
+			req.SlotsFilled++
+			if req.SlotsFilled >= req.SlotsAvailable {
+				req.Status = ReqStatusFilled
 			}
+			if err := s.repo.UpdateRequisition(ctx, req); err != nil {
+				s.logger.Warn("offer accepted but requisition slots update failed",
+					zap.String("requisition_id", req.ID.String()), zap.Error(err))
+			}
+		}
+
+		// G-4: handoff Recruitment → Employee / Employee Movement. External
+		// (candidate_type EXTERNAL) → Employee module membuat employee baru
+		// dengan referensi recruited_from_application_id. Internal
+		// (candidate_type INTERNAL ber-employee_id) → diteruskan ke Employee
+		// Movement (promotion/mutation), bukan employee baru. Guard transisi
+		// status: hanya dijalankan saat aplikasi BARU menjadi ACCEPTED, supaya
+		// accept offer kedua di aplikasi yang sama tidak membuat employee/
+		// movement duplikat (idempotensi yang sama dengan slots_filled G-3).
+		// Best-effort: kegagalan downstream TIDAK menggagalkan accept offer.
+		if !wasAccepted {
+			s.handoffHiredEmployee(ctx, o, a, req)
 		}
 	}
 
@@ -855,6 +935,10 @@ func (s *Service) CreateCandidate(ctx context.Context, req CreateCandidateReques
 	if req.Notes != "" {
 		c.Notes = req.Notes
 	}
+	// G-4: candidate_type + employee_id (internal hire).
+	if err := applyCandidateTypeFields(c, req.CandidateType, req.EmployeeID); err != nil {
+		return nil, err
+	}
 	if err := s.repo.CreateCandidate(ctx, c); err != nil {
 		return nil, err
 	}
@@ -939,6 +1023,10 @@ func (s *Service) UpdateCandidate(ctx context.Context, id string, req UpdateCand
 	}
 	if req.Notes != nil {
 		c.Notes = *req.Notes
+	}
+	// G-4: candidate_type + employee_id (internal hire).
+	if err := applyCandidateTypeFields(c, req.CandidateType, req.EmployeeID); err != nil {
+		return nil, err
 	}
 	if err := s.repo.UpdateCandidate(ctx, c); err != nil {
 		return nil, err
@@ -1695,6 +1783,104 @@ func generateRequisitionNumber() string {
 	return fmt.Sprintf("REQ-%s-%s", time.Now().Format("200601"), strings.ToUpper(uuid.New().String()[:8]))
 }
 
+// handoffHiredEmployee (G-4) meneruskan hasil hire dari offer yang diterima:
+// kandidat EXTERNAL → Employee module membuat employee baru (referensi
+// recruited_from_application_id); kandidat INTERNAL ber-employee_id →
+// Employee Movement (promotion/mutation). Best-effort — provider nil atau
+// error downstream hanya di-log, accept offer tidak pernah gagal karenanya.
+// Dipanggil hanya saat aplikasi bertransisi ke ACCEPTED (guard di AcceptOffer)
+// supaya idempotent terhadap accept offer kedua di aplikasi yang sama.
+func (s *Service) handoffHiredEmployee(ctx context.Context, o *JobOffer, a *JobApplication, req *JobRequisition) {
+	cand, err := s.repo.FindCandidateByID(ctx, a.CandidateID)
+	if err != nil || cand == nil {
+		s.logger.Warn("offer accepted but candidate lookup failed; skipping employee handoff",
+			zap.String("offer_id", o.ID.String()), zap.String("application_id", a.ID.String()), zap.Error(err))
+		return
+	}
+
+	orgID, posID := "", ""
+	if req != nil {
+		orgID = req.OrganizationID.String()
+		if req.PositionID != nil {
+			posID = req.PositionID.String()
+		}
+	}
+
+	if cand.CandidateType == "INTERNAL" && cand.EmployeeID != nil {
+		// Internal hire — diteruskan ke Employee Movement, bukan employee baru.
+		if s.movementProvider == nil {
+			s.logger.Warn("movement provider not wired; skipping internal movement handoff",
+				zap.String("application_id", a.ID.String()))
+			return
+		}
+		if err := s.movementProvider.CreateHiredMovement(ctx, MovementHireInput{
+			EmployeeID:     cand.EmployeeID.String(),
+			ApplicationID:  a.ID.String(),
+			OrganizationID: orgID,
+			PositionID:     posID,
+			EffectiveDate:  o.StartDate,
+			Reason:         "internal hire via accepted recruitment offer",
+		}); err != nil {
+			s.logger.Warn("offer accepted but internal movement creation failed",
+				zap.String("offer_id", o.ID.String()), zap.String("employee_id", cand.EmployeeID.String()), zap.Error(err))
+			return
+		}
+		s.logger.Info("Internal movement created from accepted offer",
+			zap.String("offer_id", o.ID.String()), zap.String("employee_id", cand.EmployeeID.String()))
+		return
+	}
+
+	// External hire — Employee module membuat employee baru.
+	if s.employeeProvider == nil {
+		s.logger.Warn("employee provider not wired; skipping employee creation",
+			zap.String("application_id", a.ID.String()))
+		return
+	}
+	employeeID, err := s.employeeProvider.CreateHiredEmployee(ctx, EmployeeHireInput{
+		ApplicationID:  a.ID.String(),
+		CandidateID:    cand.ID.String(),
+		Name:           strings.TrimSpace(cand.FirstName + " " + cand.LastName),
+		Email:          cand.Email,
+		Phone:          cand.Phone,
+		StartDate:      o.StartDate,
+		EmploymentType: o.EmploymentType,
+		OrganizationID: orgID,
+		PositionID:     posID,
+		Salary:         o.Salary,
+	})
+	if err != nil {
+		s.logger.Warn("offer accepted but employee creation failed",
+			zap.String("offer_id", o.ID.String()), zap.String("application_id", a.ID.String()), zap.Error(err))
+		return
+	}
+	s.logger.Info("Employee created from accepted offer",
+		zap.String("offer_id", o.ID.String()), zap.String("application_id", a.ID.String()), zap.String("employee_id", employeeID))
+}
+
+// applyCandidateTypeFields (G-4) mengatur candidate_type (default EXTERNAL)
+// dan employee_id (referensi employee untuk kandidat INTERNAL) pada kandidat.
+// Bila type diubah ke EXTERNAL, referensi employee_id dibersihkan — jalur
+// handoff offer (G-4) ditentukan oleh candidate_type, bukan employee_id.
+func applyCandidateTypeFields(c *Candidate, candidateType, employeeID *string) error {
+	if candidateType != nil && *candidateType != "" {
+		c.CandidateType = *candidateType
+		if *candidateType == "EXTERNAL" {
+			c.EmployeeID = nil
+		}
+	}
+	if c.CandidateType == "" {
+		c.CandidateType = "EXTERNAL"
+	}
+	if employeeID != nil && *employeeID != "" {
+		id, err := uuid.Parse(*employeeID)
+		if err != nil {
+			return fmt.Errorf("invalid employee_id: %w", err)
+		}
+		c.EmployeeID = &id
+	}
+	return nil
+}
+
 // generateOfferNumber (G-3) membuat nomor offer otomatis dengan format
 // OFF-YYYYMM-XXXXXXXX (pola sama generateRequisitionNumber G-2).
 func generateOfferNumber() string {
@@ -1809,8 +1995,13 @@ func candidateToResponse(c *Candidate) *CandidateResponse {
 		Address:   c.Address,
 		Source:    c.Source,
 		Notes:     c.Notes,
-		CreatedAt: c.CreatedAt,
-		UpdatedAt: c.UpdatedAt,
+		// G-4: jenis kandidat + referensi employee (internal hire).
+		CandidateType: c.CandidateType,
+		CreatedAt:     c.CreatedAt,
+		UpdatedAt:     c.UpdatedAt,
+	}
+	if c.EmployeeID != nil {
+		resp.EmployeeID = c.EmployeeID.String()
 	}
 	if c.CurrentCompany != nil {
 		resp.CurrentCompany = *c.CurrentCompany

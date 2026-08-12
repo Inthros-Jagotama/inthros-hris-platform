@@ -24,6 +24,9 @@ type CreateEmployeeRequest struct {
 	Instagram       *string `json:"ig" binding:"omitempty,max=255"`
 	ReligionID      *string `json:"religion_id" binding:"omitempty"`
 	MaritalStatusID *string `json:"marital_status_id" binding:"omitempty"`
+	// G-4: referensi job_applications saat employee dibuat dari offer
+	// recruitment eksternal yang diterima.
+	RecruitedFromApplicationID *string `json:"recruited_from_application_id" binding:"omitempty"`
 }
 
 type UpdateEmployeeRequest struct {
@@ -287,7 +290,9 @@ type EmployeeResponse struct {
 	MaritalStatusID string     `json:"marital_status_id,omitempty"`
 	ProfilePicture  string     `json:"profile_picture,omitempty"`
 	Status          string     `json:"status"`
-	CreatedAt       time.Time  `json:"created_at"`
+	// G-4: referensi balik ke aplikasi recruitment asal.
+	RecruitedFromApplicationID string     `json:"recruited_from_application_id,omitempty"`
+	CreatedAt                  time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 
 	// Sub-modules
@@ -549,6 +554,9 @@ func (e *Employee) ToResponse() EmployeeResponse {
 	}
 	if e.ProfilePicture != nil {
 		r.ProfilePicture = *e.ProfilePicture
+	}
+	if e.RecruitedFromApplicationID != nil {
+		r.RecruitedFromApplicationID = e.RecruitedFromApplicationID.String()
 	}
 
 	// Sub-modules

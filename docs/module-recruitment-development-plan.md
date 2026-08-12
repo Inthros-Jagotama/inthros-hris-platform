@@ -4,10 +4,11 @@
 > ✅ **Fakta aktual (audit 2026-08-12):** modul ini **bukan greenfield** — backend ATS dasar sudah diimplementasikan penuh (7 entity, 33 endpoint, 75 test) dan FE masih placeholder "Coming soon". Bagian "target" di dokumen ini (offer, stage history, screening, assessment, scorecard, approval, candidate enhancement, dst.) adalah **rencana enhancement**, bukan status.
 > 🔎 **Sumber:** struktur tabel `015_recruitment.sql` (mysql + postgres) + audit `backend/internal/modules/recruitment/` (model.go, service.go, handler.go, routes.go, module.go) + `frontend/tenant/src/views/modules/Recruitment.vue` + `frontend/tenant/src/router/index.js` + cross-reference `docs/module-notification-plan.md` (§5/§9: "Recruitment belum tersentuh" untuk integrasi approval/notifier) + `docs/module-recruitment-strategic-layer-plan.md` (rumah item strategic layer yang dipisah) + `docs/go-module-architecture-report.md` + `docs/project-completion-dashboard.md`.
 > 📊 **Progres implementasi (per 2026-08-12):** ✅ 1) Backend ATS lengkap — 7 GORM entity (`JobRequisition`, `Candidate`, `JobApplication`, `Interview`, `OnboardingTaskTemplate`, `EmployeeOnboarding`, `OnboardingTaskItem`) + enum status · ✅ 2) 33 endpoint CRUD/pipeline di 7 resource group · ✅ 3) Seeder 10 onboarding task template default · ✅ 4) 75 test (handler 28 + repository 27 + service 20) · ✅ 5) pipeline aplikasi (status + timestamp otomatis + auto `slots_filled` saat ACCEPTED) · ❌ 6) Frontend masih placeholder ("Coming soon") — hanya route/menu/locale/dashboard card · ⏳ 7) Integrasi operasional dua arah dengan modul lain (Module Approval, Notifier, Employee, Employee Movement) — **belum ada**; Employee 🔶 sebagian (onboarding menunjuk `employee_id` tanpa FK) · 🚫 8) **Scoping 2026-08-12:** Recruitment = **module operasional** — strategic layer (Workforce Intelligence, Career Intelligence, Succession, Performance, Training, Quality of Hire) **dipisah dari plan ini** — out of scope, dikelola modul masing-masing (§5.2).
-> ⏳ **Sisa TODO (per review 2026-08-12):** Gap §7 G-4 s.d. G-12 — prioritas P0 berikutnya: Recruitment → Employee/Movement (G-4), pipeline stage history (G-5), halaman FE penuh (G-12).
+> ⏳ **Sisa TODO (per review 2026-08-12):** Gap §7 G-5 s.d. G-12 — prioritas P0 berikutnya: pipeline stage history (G-5), halaman FE penuh (G-12).
 > ✅ **G-1 selesai (2026-08-12):** requisition → Central Approval (migration 093, interface `ApprovalEngine`, `SubmitRequisition` DRAFT→SUBMITTED, push-callback APPROVED→OPEN / REJECTED / CANCELLED, endpoint `POST /recruitment/requisitions/:id/submit`, wiring main.go) — lihat §G-1. Bagian offer workflow menunggu G-3 (entity `job_offers` belum ada).
 > ✅ **G-2 selesai (2026-08-12):** requisition enhancement (migration 094: `requisition_number` auto REQ-YYYYMM-XXXXXXXX, `priority` LOW/MEDIUM/HIGH/URGENT default MEDIUM, `position_id` referensi master position, `opened_at` diset otomatis saat OPEN) — lihat §G-2. `approval_status` TIDAK ditambahkan (G-1 sudah meng-cover via status requisition + approval_instance_id).
-> ✅ **G-3 selesai (2026-08-12):** offer management (migration 095 tabel `job_offers`; workflow DRAFT → PENDING_APPROVAL → APPROVED → SENT → ACCEPTED/REJECTED/EXPIRED/WITHDRAWN via Central Approval modul `recruitment_offer`; accept menautkan application ACCEPTED + `slots_filled`++ dengan guard idempotensi; expired guard) — lihat §G-3. BE lengkap (123 test), FE menunggu G-12.
+> ✅ **G-3 selesai (2026-08-12):** offer management (migration 095 tabel `job_offers`; workflow DRAFT → PENDING_APPROVAL → APPROVED → SENT → ACCEPTED/REJECTED/EXPIRED/WITHDRAWN via Central Approval modul `recruitment_offer`; accept menautkan application ACCEPTED + `slots_filled`++ dengan guard idempotensi; expired guard) — lihat §G-3. BE + FE lengkap (128 test).
+> ✅ **G-4 selesai (2026-08-12):** Recruitment → Employee / Employee Movement (migration 096: `employee.recruited_from_application_id` + `candidates.candidate_type`/`employee_id`; offer eksternal diterima → Employee module membuat employee baru dengan referensi; kandidat INTERNAL → diteruskan ke Employee Movement promotion/mutation; guard idempotensi no-duplicate-handoff) — lihat §G-4. BE lengkap (128 test), FE onboarding tetap manual.
 > 🔧 **Catatan konsistensi docs:** `project-completion-dashboard.md` masih mencatat plan ini sebagai "📋 Proposal — belum dieksekusi; backend ATS dasar sudah ada, FE masih Coming soon" — setelah revisi ini, baris tersebut sebaiknya di-update mengikuti ringkasan status di header di atas.
 
 ---
@@ -50,7 +51,7 @@ Recruitment Pipeline
 Status per bagian:
 
 - **ATS dasar (CRUD requisition/candidate/application/interview/onboarding)** — ✅ sudah diimplementasikan (lihat §3.1).
-- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** + **G-2 requisition enhancement ✅** + **G-3 offer management ✅** (2026-08-12); sisanya rencana (lihat Gap Analysis §7).
+- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** + **G-2 requisition enhancement ✅** + **G-3 offer management ✅** + **G-4 Recruitment → Employee/Movement ✅** (2026-08-12); sisanya rencana (lihat Gap Analysis §7).
 
 ---
 
@@ -344,7 +345,7 @@ candidates
 
 # 7. Gap Analysis & Enhancement Plan
 
-> ⚠️ Prioritas diurutkan berdasarkan dampak bisnis. G-1 s.d. G-3 ✅ (2026-08-12); gap di bawah sisanya rencana (belum dieksekusi).
+> ⚠️ Prioritas diurutkan berdasarkan dampak bisnis. G-1 s.d. G-4 ✅ (2026-08-12); gap di bawah sisanya rencana (belum dieksekusi).
 
 ## G-1 ✅ MODULE APPROVAL INTEGRATION (requisition ✅ · offer → G-3)
 
@@ -419,14 +420,35 @@ Catatan: `offer accepted` menghasilkan Employee (external, G-4) atau Employee Mo
 
 **Ref:** plan asli §26-§27.
 
-## G-4 🔴 RECRUITMENT → EMPLOYEE / EMPLOYEE MOVEMENT
+## G-4 ✅ RECRUITMENT → EMPLOYEE / EMPLOYEE MOVEMENT
 
-**Status: ⏳ Belum.**
+**Status: ✅ Selesai (2026-08-12) — BE lengkap; FE onboarding belum memakai alur otomatis (tetap manual via employee list).**
 
-**Rencana:**
-- **External:** offer accepted → create employee; simpan reference `employee.recruited_from_application_id` (atau equivalent sesuai Employee module) agar `Employee → Application → Requisition → Position` dapat ditelusuri.
-- **Internal (`candidate_type = INTERNAL`, `employee_id`):** Recruitment tidak membuat employee baru — hasil seleksi diteruskan ke **Employee Movement** (`Recruitment → Selection → Accepted → Employee Movement → New Organization/Position`).
-- Onboarding existing sudah mendukung `employee_onboardings.application_id` + `employee_id` (fondasi Recruitment → Onboarding ada).
+**Yang diimplementasikan:**
+- **Migration `096_recruitment_employee_handoff`** (pg + mysql, up/down idempotent):
+  - `employee.recruited_from_application_id` CHAR(36) NULL → referensi balik ke aplikasi recruitment asal (`Employee → Application → Requisition → Position` traceability).
+  - `candidates.candidate_type` VARCHAR(20) NOT NULL DEFAULT `'EXTERNAL'` (EXTERNAL | INTERNAL).
+  - `candidates.employee_id` CHAR(36) NULL → referensi employee untuk kandidat INTERNAL.
+- **Employee module:** model/DTO/response `RecruitedFromApplicationID` — tersimpan saat create + terekspos di response (via `ToResponse`).
+- **Recruitment:**
+  - `Candidate.CandidateType` (default EXTERNAL) + `Candidate.EmployeeID`; `Create/UpdateCandidateRequest` menerima `candidate_type` + `employee_id` (helper `applyCandidateTypeFields` — referensi employee dibersihkan bila type diubah ke EXTERNAL).
+  - Interface narrow `EmployeeProvider.CreateHiredEmployee` + `MovementProvider.CreateHiredMovement` + setters (pola S-1..S-7 — Recruitment TIDAK membuat employee/movement sendiri).
+  - **`AcceptOffer` → `handoffHiredEmployee`:**
+    - **External** (`candidate_type=EXTERNAL`) → Employee module membuat employee baru (nama/email/phone dari kandidat + `recruited_from_application_id`), `EmployeeID` auto `EMP-XXXXXXXX` di adapter.
+    - **Internal** (`candidate_type=INTERNAL` + `employee_id`) → diteruskan ke **Employee Movement** (promotion bila posisi target terisi, mutation bila hanya organisasi; SK `SK-MOV-YYYYMM-XXXXXXXX` auto; effective date dari `offer.start_date`) — bukan employee baru.
+    - **Guard transisi status** (`!wasAccepted`): handoff hanya saat aplikasi BARU menjadi ACCEPTED — offer kedua di aplikasi yang sama tidak membuat employee/movement duplikat (idempotensi mirror slots_filled G-3).
+    - **Best-effort:** provider nil / error downstream hanya di-log warning — accept offer tidak pernah gagal karenanya.
+- **Wiring `cmd/server/main.go`:** `employeeHireAdapter` (employee.Service instance terpisah, pola employeeCareerRepo) + `movementHireAdapter` (employeeMovementSvc) + `SetEmployeeProvider`/`SetMovementProvider` sebelum module mount.
+- **Test:** recruitment +5 (external→employee, internal→movement, no-provider fail-safe, candidate internal create/update + employee_id cleared on EXTERNAL, **no duplicate handoff on second offer**); employee +1 (`recruited_from_application_id` persisted). Recruitment total: **128**.
+
+**Alur aktual:**
+
+```text
+External:  Offer Accepted → (Employee module) → Employee baru + recruited_from_application_id
+Internal:  Offer Accepted → (Employee Movement) → promotion/mutation DRAFT untuk employee yang sudah ada
+```
+
+Catatan: Onboarding existing sudah mendukung `employee_onboardings.application_id` + `employee_id` — employee eksternal hasil G-4 siap dirujuk onboarding. Movement internal dibuat status DRAFT di module movement (HR menyelesaikan alur approval movement).
 
 **Ref:** plan asli §19, §28-§30.
 

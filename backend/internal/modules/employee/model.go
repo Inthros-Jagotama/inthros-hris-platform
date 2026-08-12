@@ -33,7 +33,11 @@ type Employee struct {
 	ReligionID      *uuid.UUID `gorm:"type:char(36);index" json:"religion_id,omitempty"`
 	MaritalStatusID *uuid.UUID `gorm:"type:char(36);index" json:"marital_status_id,omitempty"`
 	Status          string     `gorm:"type:varchar(20);default:active" json:"status"`
-	CreatedBy       *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
+	// G-4: referensi job_applications saat employee dibuat dari offer
+	// recruitment eksternal yang diterima — menelusuri
+	// Employee → Application → Requisition → Position.
+	RecruitedFromApplicationID *uuid.UUID `gorm:"type:char(36);index" json:"recruited_from_application_id,omitempty"`
+	CreatedBy                  *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
 	UpdatedBy       *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`

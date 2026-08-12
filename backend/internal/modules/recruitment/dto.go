@@ -155,6 +155,10 @@ type CreateCandidateRequest struct {
 	LinkedInURL    *string `json:"linkedin_url"`
 	Source         *string `json:"source" binding:"omitempty,max=50"`
 	Notes          string  `json:"notes"`
+	// G-4: jenis kandidat (EXTERNAL default | INTERNAL) + referensi employee
+	// untuk kandidat internal (hasil seleksi → Employee Movement).
+	CandidateType *string `json:"candidate_type" binding:"omitempty,oneof=EXTERNAL INTERNAL"`
+	EmployeeID    *string `json:"employee_id" binding:"omitempty"`
 }
 
 type UpdateCandidateRequest struct {
@@ -170,6 +174,9 @@ type UpdateCandidateRequest struct {
 	LinkedInURL    *string `json:"linkedin_url"`
 	Source         *string `json:"source" binding:"omitempty,max=50"`
 	Notes          *string `json:"notes"`
+	// G-4: jenis kandidat + referensi employee (internal hire).
+	CandidateType *string `json:"candidate_type" binding:"omitempty,oneof=EXTERNAL INTERNAL"`
+	EmployeeID    *string `json:"employee_id" binding:"omitempty"`
 }
 
 type CandidateResponse struct {
@@ -186,6 +193,9 @@ type CandidateResponse struct {
 	LinkedInURL    string    `json:"linkedin_url,omitempty"`
 	Source         string    `json:"source"`
 	Notes          string    `json:"notes"`
+	// G-4: jenis kandidat + referensi employee (internal hire).
+	CandidateType  string    `json:"candidate_type"`
+	EmployeeID     string    `json:"employee_id,omitempty"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }

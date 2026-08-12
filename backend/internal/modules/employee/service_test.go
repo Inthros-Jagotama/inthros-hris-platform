@@ -530,3 +530,35 @@ func TestService_GetEmployeeWithSubModules(t *testing.T) {
 		t.Errorf("expected 1 document, got %d", len(fullEmp.Documents))
 	}
 }
+
+// G-4: employee dibuat dari offer recruitment eksternal yang diterima —
+// referensi recruited_from_application_id tersimpan & terekspos di response
+// (Employee → Application → Requisition → Position traceability).
+func TestService_Create_WithRecruitedFromApplicationID(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	appID := uuid.New().String()
+	resp, err := svc.Create(ctx, CreateEmployeeRequest{
+		EmployeeID:                 "HIRE-001",
+		Name:                       "Hired From Offer",
+		Email:                      strPtr("hired.offer@test.com"),
+		RecruitedFromApplicationID: &appID,
+	})
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+	if resp.RecruitedFromApplicationID != appID {
+		t.Errorf("expected recruited_from_application_id %s, got %s", appID, resp.RecruitedFromApplicationID)
+	}
+
+	// Persisted juga (baca ulang).
+	persisted, err := svc.GetByID(ctx, resp.ID)
+	if err != nil {
+		t.Fatalf("GetByID failed: %v", err)
+	}
+	if persisted.RecruitedFromApplicationID != appID {
+		t.Errorf("expected persisted recruited_from_application_id %s, got %s", appID, persisted.RecruitedFromApplicationID)
+	}
+}

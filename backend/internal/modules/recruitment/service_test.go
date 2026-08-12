@@ -1796,3 +1796,238 @@ func TestService_DeleteOffer_OnlyDraft(t *testing.T) {
 		t.Errorf("expected draft offer deletable, got error: %v", err)
 	}
 }
+
+// =========================================================================
+// G-4 — Recruitment → Employee / Employee Movement
+// =========================================================================
+
+// fakeEmployeeProvider mencatat panggilan CreateHiredEmployee (G-4).
+type fakeEmployeeProvider struct {
+	callCount int
+	called    bool
+	input     EmployeeHireInput
+	respID    string
+	errResp   error
+}
+
+func (f *fakeEmployeeProvider) CreateHiredEmployee(ctx context.Context, in EmployeeHireInput) (string, error) {
+	f.callCount++
+	f.called = true
+	f.input = in
+	if f.errResp != nil {
+		return "", f.errResp
+	}
+	return f.respID, nil
+}
+
+// fakeMovementProvider mencatat panggilan CreateHiredMovement (G-4).
+type fakeMovementProvider struct {
+	called  bool
+	input   MovementHireInput
+	errResp error
+}
+
+func (f *fakeMovementProvider) CreateHiredMovement(ctx context.Context, in MovementHireInput) error {
+	f.called = true
+	f.input = in
+	return f.errResp
+}
+
+func TestService_AcceptOffer_External_CreatesEmployee(t *testing.T) {
+	// G-4: offer eksternal diterima → Employee module dipanggil (bukan movement),
+	// dengan application_id & data kandidat yang benar.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	hire := &fakeEmployeeProvider{respID: uuid.New().String()}
+	mov := &fakeMovementProvider{}
+	svc.SetEmployeeProvider(hire)
+	svc.SetMovementProvider(mov)
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	offerID := approveAndSendOffer(t, svc, ctx, offer.ID)
+
+	if _, err := svc.AcceptOffer(ctx, offerID); err != nil {
+		t.Fatalf("AcceptOffer failed: %v", err)
+	}
+	if !hire.called {
+		t.Fatal("expected employee provider called for external hire")
+	}
+	if mov.called {
+		t.Fatal("expected movement provider NOT called for external hire")
+	}
+	if hire.input.ApplicationID != offer.ApplicationID {
+		t.Errorf("expected application_id %s, got %s", offer.ApplicationID, hire.input.ApplicationID)
+	}
+	if hire.input.Name == "" {
+		t.Error("expected candidate name in hire input")
+	}
+	if hire.input.CandidateID == "" {
+		t.Error("expected candidate_id in hire input")
+	}
+}
+
+func TestService_AcceptOffer_Internal_CreatesMovement(t *testing.T) {
+	// G-4: kandidat INTERNAL (employee_id terisi) → Employee Movement dipanggil
+	// (bukan employee baru), dengan employee_id yang benar.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	hire := &fakeEmployeeProvider{respID: uuid.New().String()}
+	mov := &fakeMovementProvider{}
+	svc.SetEmployeeProvider(hire)
+	svc.SetMovementProvider(mov)
+	ctx := context.Background()
+
+	internalEmpID := uuid.New().String()
+	internalCand, err := svc.CreateCandidate(ctx, CreateCandidateRequest{
+		FirstName: "Budi", LastName: "Internal", Email: "budi.internal@test.com",
+		CandidateType: strPtr("INTERNAL"),
+		EmployeeID:    &internalEmpID,
+	})
+	if err != nil {
+		t.Fatalf("CreateCandidate internal failed: %v", err)
+	}
+	if internalCand.CandidateType != "INTERNAL" {
+		t.Errorf("expected candidate_type INTERNAL, got %s", internalCand.CandidateType)
+	}
+	if internalCand.EmployeeID != internalEmpID {
+		t.Errorf("expected employee_id %s, got %s", internalEmpID, internalCand.EmployeeID)
+	}
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(), Title: "Internal Engineer",
+	})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{
+		RequisitionID: req.ID, CandidateID: internalCand.ID,
+	})
+	offer, err := svc.CreateOffer(ctx, CreateOfferRequest{
+		ApplicationID: app.ID, EmploymentType: "FULL_TIME",
+		StartDate: time.Now().AddDate(0, 0, 30).Format("2006-01-02"),
+	})
+	if err != nil {
+		t.Fatalf("CreateOffer failed: %v", err)
+	}
+	offerID := approveAndSendOffer(t, svc, ctx, offer.ID)
+
+	if _, err := svc.AcceptOffer(ctx, offerID); err != nil {
+		t.Fatalf("AcceptOffer failed: %v", err)
+	}
+	if !mov.called {
+		t.Fatal("expected movement provider called for internal hire")
+	}
+	if hire.called {
+		t.Fatal("expected employee provider NOT called for internal hire")
+	}
+	if mov.input.EmployeeID != internalEmpID {
+		t.Errorf("expected movement employee_id %s, got %s", internalEmpID, mov.input.EmployeeID)
+	}
+	if mov.input.ApplicationID != app.ID {
+		t.Errorf("expected movement application_id %s, got %s", app.ID, mov.input.ApplicationID)
+	}
+}
+
+func TestService_AcceptOffer_NoProviders_StillSucceeds(t *testing.T) {
+	// G-4 fail-safe: provider tidak di-wire → accept offer tetap berhasil.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	offerID := approveAndSendOffer(t, svc, ctx, offer.ID)
+
+	accepted, err := svc.AcceptOffer(ctx, offerID)
+	if err != nil {
+		t.Fatalf("AcceptOffer failed without providers: %v", err)
+	}
+	if accepted.Status != string(OfferStatusAccepted) {
+		t.Errorf("expected ACCEPTED, got %s", accepted.Status)
+	}
+}
+
+func TestService_Candidate_InternalCreateAndUpdate(t *testing.T) {
+	// G-4: kandidat bisa dibuat internal lalu di-update (candidate_type + employee_id).
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	empID := uuid.New().String()
+	created, err := svc.CreateCandidate(ctx, CreateCandidateRequest{
+		FirstName: "Sari", LastName: "Internal", Email: "sari.internal@test.com",
+		CandidateType: strPtr("INTERNAL"),
+		EmployeeID:    &empID,
+	})
+	if err != nil {
+		t.Fatalf("CreateCandidate failed: %v", err)
+	}
+	if created.CandidateType != "INTERNAL" {
+		t.Errorf("expected INTERNAL, got %s", created.CandidateType)
+	}
+
+	// Update ke EXTERNAL membersihkan referensi employee_id (jalur handoff G-4
+	// ditentukan candidate_type — referensi tidak bermakna untuk eksternal).
+	external := "EXTERNAL"
+	updated, err := svc.UpdateCandidate(ctx, created.ID, UpdateCandidateRequest{
+		CandidateType: &external,
+	})
+	if err != nil {
+		t.Fatalf("UpdateCandidate failed: %v", err)
+	}
+	if updated.CandidateType != "EXTERNAL" {
+		t.Errorf("expected EXTERNAL after update, got %s", updated.CandidateType)
+	}
+	if updated.EmployeeID != "" {
+		t.Errorf("expected employee_id cleared on EXTERNAL, got %s", updated.EmployeeID)
+	}
+
+	// Default create = EXTERNAL (tanpa candidate_type).
+	def, err := svc.CreateCandidate(ctx, CreateCandidateRequest{
+		FirstName: "Dewi", LastName: "Default", Email: "dewi.default@test.com",
+	})
+	if err != nil {
+		t.Fatalf("CreateCandidate default failed: %v", err)
+	}
+	if def.CandidateType != "EXTERNAL" {
+		t.Errorf("expected default EXTERNAL, got %s", def.CandidateType)
+	}
+}
+
+func TestService_AcceptOffer_SecondOffer_NoDuplicateHandoff(t *testing.T) {
+	// G-4 idempotensi: aplikasi sudah ACCEPTED (offer pertama) — offer kedua di
+	// aplikasi yang sama yang di-accept TIDAK memanggil employee provider lagi
+	// (guard transisi status, mirror bug slots_filled G-3).
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	hire := &fakeEmployeeProvider{respID: uuid.New().String()}
+	svc.SetEmployeeProvider(hire)
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	firstID := approveAndSendOffer(t, svc, ctx, offer.ID)
+	if _, err := svc.AcceptOffer(ctx, firstID); err != nil {
+		t.Fatalf("first AcceptOffer failed: %v", err)
+	}
+	if hire.called != true {
+		t.Fatal("expected employee provider called on first accept")
+	}
+
+	// Offer kedua di aplikasi yang sama (aplikasi sudah ACCEPTED).
+	second, err := svc.CreateOffer(ctx, CreateOfferRequest{
+		ApplicationID: offer.ApplicationID, EmploymentType: "FULL_TIME",
+		StartDate: time.Now().AddDate(0, 0, 30).Format("2006-01-02"),
+	})
+	if err != nil {
+		t.Fatalf("CreateOffer second failed: %v", err)
+	}
+	secondID := approveAndSendOffer(t, svc, ctx, second.ID)
+	if _, err := svc.AcceptOffer(ctx, secondID); err != nil {
+		t.Fatalf("second AcceptOffer failed: %v", err)
+	}
+
+	if hire.callCount != 1 {
+		t.Fatalf("expected employee provider called exactly once, got %d", hire.callCount)
+	}
+}

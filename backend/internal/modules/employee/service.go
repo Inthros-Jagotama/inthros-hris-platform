@@ -129,6 +129,14 @@ func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*Emplo
 		}
 		emp.MaritalStatusID = &id
 	}
+	// G-4: referensi balik ke aplikasi recruitment asal (offer eksternal diterima).
+	if req.RecruitedFromApplicationID != nil && *req.RecruitedFromApplicationID != "" {
+		id, err := uuid.Parse(*req.RecruitedFromApplicationID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid recruited_from_application_id: %w", err)
+		}
+		emp.RecruitedFromApplicationID = &id
+	}
 
 	if err := s.repo.CreateEmployee(ctx, emp); err != nil {
 		return nil, err

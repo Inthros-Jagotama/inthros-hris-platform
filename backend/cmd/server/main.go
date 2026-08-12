@@ -9,6 +9,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strings"
 	"log"
 	"os"
 	"time"
@@ -297,6 +298,73 @@ func (a workforceGapAdapter) HiringGapForOrganization(ctx context.Context, orgID
 		}
 	}
 	return 0, nil
+}
+
+// employeeHireAdapter implements recruitment.EmployeeProvider (plan G-4):
+// offer eksternal yang diterima → Employee module membuat employee baru dengan
+// referensi recruited_from_application_id (Employee → Application →
+// Requisition → Position traceability). Recruitment TIDAK membuat employee
+// sendiri — Employee tetap source of truth. Best-effort: kegagalan hanya
+// di-log, accept offer tidak pernah gagal karenanya.
+type employeeHireAdapter struct {
+	svc *employee.Service
+}
+
+// hireStrPtr mengembalikan pointer string bila tidak kosong (nil untuk kosong).
+func hireStrPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// CreateHiredEmployee membuat employee dari kandidat eksternal yang menerima
+// offer. EmployeeID (no induk) digenerate otomatis pola EMP-XXXXXXXX.
+func (a employeeHireAdapter) CreateHiredEmployee(ctx context.Context, in recruitment.EmployeeHireInput) (string, error) {
+	resp, err := a.svc.Create(ctx, employee.CreateEmployeeRequest{
+		EmployeeID:                 "EMP-" + strings.ToUpper(uuid.New().String()[:8]),
+		Name:                       in.Name,
+		PhoneNumber:                hireStrPtr(in.Phone),
+		Email:                      hireStrPtr(in.Email),
+		RecruitedFromApplicationID: hireStrPtr(in.ApplicationID),
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.ID, nil
+}
+
+// movementHireAdapter implements recruitment.MovementProvider (plan G-4):
+// hasil seleksi internal (offer diterima, candidate_type=INTERNAL) diteruskan
+// ke Employee Movement (promotion bila posisi target terisi, mutation bila
+// hanya organisasi) — bukan employee baru. Recruitment TIDAK membuat movement
+// sendiri; Employee Movement tetap source of truth.
+type movementHireAdapter struct {
+	svc *employeemovement.Service
+}
+
+// CreateHiredMovement membuat movement internal hire (status DRAFT di module
+// movement) dengan SK number auto-generated pola SK-MOV-YYYYMM-XXXXXXXX.
+func (a movementHireAdapter) CreateHiredMovement(ctx context.Context, in recruitment.MovementHireInput) error {
+	movementType := "mutation"
+	if in.PositionID != "" {
+		movementType = "promotion"
+	}
+	effectiveDate := in.EffectiveDate
+	if effectiveDate == "" {
+		effectiveDate = time.Now().Format("2006-01-02")
+	}
+	_, err := a.svc.CreateMovement(ctx, employeemovement.CreateMovementRequest{
+		EmployeeID:           in.EmployeeID,
+		MovementType:         movementType,
+		ToOrganizationID:     hireStrPtr(in.OrganizationID),
+		ToPositionID:         hireStrPtr(in.PositionID),
+		Reason:               hireStrPtr(in.Reason),
+		DecisionLetterNumber: fmt.Sprintf("SK-MOV-%s-%s", time.Now().Format("200601"), strings.ToUpper(uuid.New().String()[:8])),
+		DecisionLetterDate:   time.Now().Format("2006-01-02"),
+		EffectiveDate:        effectiveDate,
+	})
+	return err
 }
 
 // performanceEligibilityAdapter implements employeemovement.PerformanceProvider
@@ -939,6 +1007,14 @@ func main() {
 	recruitmentSvc.SetInternalCandidateProvider(internalCandidateAdapter{ciSvc: ciSvc})
 	recruitmentSvc.SetSuccessionGapProvider(successionGapAdapter{ciSvc: ciSvc})
 	recruitmentSvc.SetTrainingHandoffProvider(trainingHandoffAdapter{trainingSvc: trainingSvc})
+	// G-4: wire handoff offer diterima → Employee (eksternal) / Employee
+	// Movement (internal). Recruitment TIDAK membuat employee/movement sendiri;
+	// modul terkait yang mengeksekusi via adapter narrow (pola S-1..S-7).
+	// employeeHireSvc dibuat terpisah (pola employeeCareerRepo) supaya tidak
+	// perlu membongkar internal wiring module employee.
+	employeeHireSvc := employee.NewService(employee.NewRepository(employee.NewTenantDBResolver(dbManager)), l.Named("employee-hire"))
+	recruitmentSvc.SetEmployeeProvider(employeeHireAdapter{svc: employeeHireSvc})
+	recruitmentSvc.SetMovementProvider(movementHireAdapter{svc: employeeMovementSvc})
 	// G-1: wire Central Approval ke recruitment — requisition draft disubmit
 	// melalui sharedApprovalEngine (modul "recruitment"), dan keputusan
 	// APPROVED/REJECTED/CANCELLED dipropagasi balik ke status requisition via

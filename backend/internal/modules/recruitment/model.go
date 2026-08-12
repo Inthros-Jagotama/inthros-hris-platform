@@ -219,6 +219,11 @@ type Candidate struct {
 	LinkedInURL   *string        `gorm:"type:text" json:"linkedin_url,omitempty"`
 	Source        string         `gorm:"type:varchar(50);default:direct" json:"source"`
 	Notes         string         `gorm:"type:text" json:"notes"`
+	// G-4: jenis kandidat — EXTERNAL (default, dibuatkan employee baru saat
+	// offer diterima) atau INTERNAL (menunjuk employee_id yang sudah ada;
+	// hasil seleksi diteruskan ke Employee Movement, bukan employee baru).
+	CandidateType string         `gorm:"type:varchar(20);default:EXTERNAL;index:idx_cand_type" json:"candidate_type"`
+	EmployeeID    *uuid.UUID     `gorm:"type:char(36);index:idx_cand_employee" json:"employee_id,omitempty"`
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 }
