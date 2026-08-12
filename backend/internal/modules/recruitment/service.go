@@ -2268,12 +2268,14 @@ func (s *Service) UpdateCandidateEducation(ctx context.Context, id string, req U
 	if req.EducationID != nil {
 		if *req.EducationID == "" {
 			e.EducationID = nil
+			e.Education = nil // drop preloaded assoc so GORM doesn't resurrect the FK from it on Save
 		} else {
 			eduID, err := uuid.Parse(*req.EducationID)
 			if err != nil {
 				return nil, fmt.Errorf("invalid education_id: %w", err)
 			}
 			e.EducationID = &eduID
+			e.Education = nil // also drop here — let the re-fetch after save reload it fresh, don't risk a stale/mismatched pointer
 		}
 	}
 	if req.InstitutionName != nil {
@@ -2282,12 +2284,14 @@ func (s *Service) UpdateCandidateEducation(ctx context.Context, id string, req U
 	if req.EducationMajorID != nil {
 		if *req.EducationMajorID == "" {
 			e.EducationMajorID = nil
+			e.EducationMajor = nil // drop preloaded assoc so GORM doesn't resurrect the FK from it on Save
 		} else {
 			majorID, err := uuid.Parse(*req.EducationMajorID)
 			if err != nil {
 				return nil, fmt.Errorf("invalid education_major_id: %w", err)
 			}
 			e.EducationMajorID = &majorID
+			e.EducationMajor = nil // also drop here — let the re-fetch after save reload it fresh, don't risk a stale/mismatched pointer
 		}
 	}
 	if req.Major != nil {

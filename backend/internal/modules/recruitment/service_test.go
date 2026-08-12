@@ -10,6 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/modules/setting"
 )
 
 func newTestService() (*Service, func()) {
@@ -2414,5 +2416,78 @@ func TestService_CreateCandidateWorkExperience(t *testing.T) {
 	}
 	if resp.CompanyName != "Acme" {
 		t.Errorf("expected company 'Acme', got %s", resp.CompanyName)
+	}
+}
+
+// TestService_UpdateCandidateEducation_ClearEducationMajorID is a regression
+// test for a bug where clearing education_major_id via UpdateCandidateEducation
+// was silently reverted: FindCandidateEducationByID preloads the
+// EducationMajor association, and GORM's SaveBeforeAssociations callback
+// re-derives the belongs-to FK from that still-populated association on
+// Save, overwriting the intended nil. The fix nils out e.EducationMajor
+// (service.go) and Omit(clause.Associations) on Save (repository.go).
+func TestService_UpdateCandidateEducation_ClearEducationMajorID(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+
+	major := &setting.EducationMajor{
+		ID:   uuid.New(),
+		Code: "IT",
+		Name: "Informatics",
+	}
+	if err := db.Create(major).Error; err != nil {
+		t.Fatalf("failed to seed education major: %v", err)
+	}
+
+	cand, err := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Clear", LastName: "Major", Email: "clearmajor@test.com"})
+	if err != nil {
+		t.Fatalf("CreateCandidate failed: %v", err)
+	}
+
+	majorIDStr := major.ID.String()
+	created, err := svc.CreateCandidateEducation(ctx, cand.ID, CreateCandidateEducationRequest{
+		InstitutionName:  "Universitas Test",
+		EducationMajorID: &majorIDStr,
+	})
+	if err != nil {
+		t.Fatalf("CreateCandidateEducation failed: %v", err)
+	}
+	if created.EducationMajorID != majorIDStr {
+		t.Fatalf("expected education_major_id %s, got %s", majorIDStr, created.EducationMajorID)
+	}
+	if created.MajorName != "Informatics" {
+		t.Fatalf("expected major_name 'Informatics', got %q", created.MajorName)
+	}
+
+	empty := ""
+	updated, err := svc.UpdateCandidateEducation(ctx, created.ID, UpdateCandidateEducationRequest{EducationMajorID: &empty})
+	if err != nil {
+		t.Fatalf("UpdateCandidateEducation failed: %v", err)
+	}
+	if updated.EducationMajorID != "" {
+		t.Errorf("expected education_major_id cleared, got %q", updated.EducationMajorID)
+	}
+	if updated.MajorName != "" {
+		t.Errorf("expected major_name cleared, got %q", updated.MajorName)
+	}
+
+	// Re-fetch independently to confirm the clear persisted in the DB, not
+	// just in the in-memory response.
+	list, err := svc.ListCandidateEducations(ctx, cand.ID)
+	if err != nil {
+		t.Fatalf("ListCandidateEducations failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 education, got %d", len(list))
+	}
+	if list[0].EducationMajorID != "" {
+		t.Errorf("expected persisted education_major_id cleared, got %q", list[0].EducationMajorID)
+	}
+	if list[0].MajorName != "" {
+		t.Errorf("expected persisted major_name cleared, got %q", list[0].MajorName)
 	}
 }

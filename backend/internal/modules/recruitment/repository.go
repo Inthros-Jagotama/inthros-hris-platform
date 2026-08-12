@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Repository struct {
@@ -709,7 +710,10 @@ func (r *Repository) UpdateCandidateEducation(ctx context.Context, e *CandidateE
 	if err != nil {
 		return err
 	}
-	return db.WithContext(ctx).Save(e).Error
+	// Omit associations so a Save never writes to setting.Education/EducationMajor
+	// (owned by another module) and never re-derives a FK from a stale preloaded
+	// association (defense in depth alongside the service-layer nil-out).
+	return db.WithContext(ctx).Omit(clause.Associations).Save(e).Error
 }
 
 func (r *Repository) DeleteCandidateEducation(ctx context.Context, id uuid.UUID) error {

@@ -8,6 +8,8 @@ import (
 	"gorm.io/gorm"
 
 	sqlite "github.com/glebarez/sqlite"
+
+	"github.com/inthros/hris-platform/internal/modules/setting"
 )
 
 func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func()) {
@@ -29,6 +31,7 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&ApplicationStageHistory{},
 		&CandidateEducation{},
 		&CandidateWorkExperience{},
+		&setting.EducationMajor{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
 	}
