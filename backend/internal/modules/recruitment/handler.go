@@ -403,6 +403,100 @@ func (h *Handler) DeleteCandidateWorkExperience(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+func (h *Handler) CreateCandidateSkill(c *gin.Context) {
+	candidateID := c.Param("id")
+	var req CreateCandidateSkillRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateCandidateSkill(c.Request.Context(), candidateID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListCandidateSkills(c *gin.Context) {
+	candidateID := c.Param("id")
+	resp, err := h.svc.ListCandidateSkills(c.Request.Context(), candidateID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateCandidateSkill(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateCandidateSkillRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateCandidateSkill(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteCandidateSkill(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteCandidateSkill(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+func (h *Handler) CreateCandidateCertification(c *gin.Context) {
+	candidateID := c.Param("id")
+	var req CreateCandidateCertificationRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateCandidateCertification(c.Request.Context(), candidateID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListCandidateCertifications(c *gin.Context) {
+	candidateID := c.Param("id")
+	resp, err := h.svc.ListCandidateCertifications(c.Request.Context(), candidateID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateCandidateCertification(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateCandidateCertificationRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateCandidateCertification(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteCandidateCertification(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteCandidateCertification(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
 // GetEligibleInternalCandidates menangani GET /recruitment/eligible-internal-candidates
 // (plan S-4) — membaca employee internal yang eligible untuk target position
 // dari Career Intelligence (CI menentukan eligibility; Recruitment hanya

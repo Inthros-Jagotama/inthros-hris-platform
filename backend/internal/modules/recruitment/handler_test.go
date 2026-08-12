@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/modules/competency"
 )
 
 func setupTestRouter() (*gin.Engine, *Handler, func()) {
@@ -984,6 +986,57 @@ func TestHandler_CreateCandidateWorkExperience(t *testing.T) {
 
 	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/work-experiences", CreateCandidateWorkExperienceRequest{
 		CompanyName: "Acme", JobTitle: "Engineer", StartDate: "2020-01-01",
+	})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_CreateCandidateSkill(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	handler := NewHandler(svc)
+	r := gin.New()
+	rg := r.Group("/api/v1/tenant")
+	RegisterRoutes(rg, handler)
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Skill", LastName: "Handler", Email: "skillhandler@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	comp := &competency.Competency{Name: "Go"}
+	if err := db.Create(comp).Error; err != nil {
+		t.Fatalf("failed to seed competency: %v", err)
+	}
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/skills", CreateCandidateSkillRequest{
+		CompetencyID: comp.ID.String(),
+	})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_CreateCandidateCertification(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Cert", LastName: "Handler", Email: "certhandler@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/certifications", CreateCandidateCertificationRequest{
+		Name: "AWS SAA",
 	})
 	if w.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
