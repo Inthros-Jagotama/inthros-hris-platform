@@ -1,6 +1,7 @@
 package recruitment
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -380,7 +381,21 @@ func (h *Handler) UpdateApplicationStatus(c *gin.Context) {
 	}
 	resp, err := h.svc.UpdateApplicationStatus(c.Request.Context(), id, req.Status, req.RejectionReason, req.Notes)
 	if err != nil {
+		if errors.Is(err, ErrInvalidStatusTransition) {
+			httputil.BadRequest(c, err.Error())
+			return
+		}
 		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) GetApplicationHistory(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetApplicationHistory(c.Request.Context(), id)
+	if err != nil {
+		httputil.NotFound(c, "")
 		return
 	}
 	httputil.SuccessJSON(c, resp)

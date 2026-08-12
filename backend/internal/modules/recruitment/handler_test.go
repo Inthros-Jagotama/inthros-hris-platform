@@ -744,3 +744,77 @@ func TestHandler_DeleteOnboardingTaskItem(t *testing.T) {
 		t.Fatalf("expected 404, got %d", w.Code)
 	}
 }
+
+func TestHandler_GetApplicationHistory(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	reqW := performRequest(r, "POST", "/api/v1/tenant/recruitment/requisitions", CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(), Title: "My Req",
+	})
+	var reqResp map[string]interface{}
+	json.Unmarshal(reqW.Body.Bytes(), &reqResp)
+	rid := reqResp["data"].(map[string]interface{})["id"].(string)
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Hist", LastName: "Test", Email: "hist@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	appW := performRequest(r, "POST", "/api/v1/tenant/recruitment/applications", CreateApplicationRequest{
+		RequisitionID: rid, CandidateID: cid,
+	})
+	var appResp map[string]interface{}
+	json.Unmarshal(appW.Body.Bytes(), &appResp)
+	appID := appResp["data"].(map[string]interface{})["id"].(string)
+
+	w := performRequest(r, "GET", "/api/v1/tenant/recruitment/applications/"+appID+"/history", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_GetApplicationHistory_NotFound(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	w := performRequest(r, "GET", "/api/v1/tenant/recruitment/applications/"+uuid.New().String()+"/history", nil)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+func TestHandler_UpdateApplicationStatus_InvalidTransitionReturns400(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	reqW := performRequest(r, "POST", "/api/v1/tenant/recruitment/requisitions", CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(), Title: "My Req",
+	})
+	var reqResp map[string]interface{}
+	json.Unmarshal(reqW.Body.Bytes(), &reqResp)
+	rid := reqResp["data"].(map[string]interface{})["id"].(string)
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Bad", LastName: "Transition", Email: "badtrans@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	appW := performRequest(r, "POST", "/api/v1/tenant/recruitment/applications", CreateApplicationRequest{
+		RequisitionID: rid, CandidateID: cid,
+	})
+	var appResp map[string]interface{}
+	json.Unmarshal(appW.Body.Bytes(), &appResp)
+	appID := appResp["data"].(map[string]interface{})["id"].(string)
+
+	performRequest(r, "PUT", "/api/v1/tenant/recruitment/applications/"+appID+"/status", UpdateApplicationStatusRequest{Status: "REJECTED"})
+
+	w := performRequest(r, "PUT", "/api/v1/tenant/recruitment/applications/"+appID+"/status", UpdateApplicationStatusRequest{Status: "SCREENED"})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for transition out of terminal status, got %d: %s", w.Code, w.Body.String())
+	}
+}

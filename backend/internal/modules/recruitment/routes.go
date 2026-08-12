@@ -43,6 +43,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		rec.GET("/applications", handler.ListApplications)
 		rec.GET("/applications/:id", handler.GetApplicationByID)
 		rec.PUT("/applications/:id/status", handler.UpdateApplicationStatus)
+		rec.GET("/applications/:id/history", handler.GetApplicationHistory)
 		rec.DELETE("/applications/:id", handler.DeleteApplication)
 
 		// Interviews
