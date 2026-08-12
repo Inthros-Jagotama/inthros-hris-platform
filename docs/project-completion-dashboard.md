@@ -130,6 +130,7 @@ Ringkasan status implementasi per dokumen plan modul — diverifikasi terhadap k
 | [`module-leave-plan.md`](module-leave-plan.md) | 🟡 **Sebagian** | Phase 1–3 & 5 ✅; FE-1/2 ✅. Belum (Phase 4/6–10): accrual engine, adjustment HR, carry forward, expiry, sub-flow cancellation, team calendar, manager/HR dashboard |
 | [`module-attendance-plan.md`](module-attendance-plan.md) | 🟡 **Sebagian** | Mayoritas ✅ (geofence, session calc, corrections, overtime 2-alur, leave integration, notif) + FE-1–5 ✅. Belum: Absent/Exempt detection (butuh scheduled job), Manager/HR Dashboard & Team Calendar, Payroll integration (Phase 13), WRONG_CHECKIN/CHECKOUT otomatis |
 | [`career-intelligence-training-enhancement-plan.md`](career-intelligence-training-enhancement-plan.md) | 📋 **Proposal** | 11 fitur enhancement (training profile, gap, recommendation, readiness, dll.) — belum dieksekusi |
+| [`module-recruitment-development-plan.md`](module-recruitment-development-plan.md) | 📋 **Proposal** | Blueprint Integrated Recruitment (refactor job requisition, integrasi Workforce Intel/Approval/Employee Movement, candidate enhancement, onboarding) — belum dieksekusi; backend ATS dasar sudah ada, FE masih "Coming soon" |
 | [`workforce-intelligence-training-enhancement-plan.md`](workforce-intelligence-training-enhancement-plan.md) | 📋 **Proposal** | 13 fitur enhancement (training demand, coverage, cost, readiness, risk, dll.) — belum dieksekusi |
 
 ---
