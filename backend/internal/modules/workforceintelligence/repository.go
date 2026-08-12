@@ -775,6 +775,57 @@ func round1(v float64) float64 {
 }
 
 // =========================================================================
+// Quality of Hire reads (S-6)
+// =========================================================================
+
+// QualityOfHireRow adalah satu hire (aplikasi ACCEPTED) beserta data kualitas
+// yang tersedia lintas modul: interview score, status onboarding (proxy
+// probation), performance final score, dan retensi employment. Komponen match
+// score & assessment tidak ada di sini (G-9 & assessment belum dikumpulkan) —
+// dihitung 0 di service (placeholder, pola sama S-3).
+type QualityOfHireRow struct {
+	ApplicationID    string
+	Source           string
+	RequisitionID    string
+	OrganizationID   string
+	EmployeeID       string
+	OnboardingStatus string
+	InterviewScore   float64
+	PerformanceScore float64
+	RetainedCount    int64
+}
+
+// GetQualityOfHireHires mengembalikan baris hire (job_applications ACCEPTED)
+// dengan skor interview (AVG interviews.score per aplikasi), status onboarding
+// (employee_onboardings via application_id — proxy hasil probation), skor
+// performa (performance_evaluations final_score evaluasi selesai), dan jumlah
+// employment aktif (effective_end_date IS NULL) untuk retensi. Komponen yang
+// belum ada datanya otomatis 0/NULL-safe — tidak menggagalkan query.
+func (r *Repository) GetQualityOfHireHires(ctx context.Context) ([]QualityOfHireRow, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []QualityOfHireRow
+	query := db.WithContext(ctx).Table("job_applications a").
+		Select("a.id AS application_id, COALESCE(c.source, '') AS source, a.requisition_id AS requisition_id, "+
+			"COALESCE(r.organization_id, '') AS organization_id, "+
+			"COALESCE(eo.employee_id, '') AS employee_id, COALESCE(eo.status, '') AS onboarding_status, "+
+			"(SELECT COALESCE(AVG(i.score), 0) FROM interviews i WHERE i.application_id = a.id AND i.score IS NOT NULL) AS interview_score, "+
+			"(SELECT COALESCE(pe.final_score, 0) FROM performance_evaluations pe WHERE pe.employee_id = eo.employee_id AND pe.status IN (?, ?) ORDER BY pe.updated_at DESC, pe.id DESC LIMIT 1) AS performance_score, "+
+			"(SELECT COUNT(*) FROM employments em WHERE em.employee_id = eo.employee_id AND em.deleted_at IS NULL AND em.effective_end_date IS NULL) AS retained_count",
+			"ACTUAL_APPROVED", "COMPLETED").
+		Joins("JOIN candidates c ON c.id = a.candidate_id").
+		Joins("LEFT JOIN job_requisitions r ON r.id = a.requisition_id").
+		Joins("LEFT JOIN employee_onboardings eo ON eo.application_id = a.id").
+		Where("a.status = ?", "ACCEPTED")
+	if err := query.Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// =========================================================================
 // Candidate Search
 // =========================================================================
 

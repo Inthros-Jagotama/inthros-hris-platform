@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -437,6 +438,104 @@ func (s *Service) GetRecruitmentAnalytics(ctx context.Context) (*RecruitmentAnal
 		FilledPositions:     gapResp.FilledPositions,
 		RemainingGap:        gapResp.RemainingGap,
 		Pipeline:            pipeline,
+	}, nil
+}
+
+// GetQualityOfHire (S-6) menghitung metrik agregat kualitas hire dari data
+// operasional lintas modul (WI membaca; Recruitment/Training/Performance hanya
+// menyediakan data):
+//   - Interview Score      — AVG interviews.score per hire (aplikasi ACCEPTED)
+//   - Probation (proxy)    — employee_onboardings.status == COMPLETED
+//   - Performance          — performance_evaluations.final_score (evaluasi
+//                             ACTUAL_APPROVED/COMPLETED, skor maksimal)
+//   - Retention            — employment aktif (effective_end_date IS NULL)
+// RecruitmentMatchScore & AssessmentScore tetap 0 (placeholder): data kompetensi
+// kandidat (G-9) & assessment belum dikumpulkan — pola sama S-3. Setiap komponen
+// dihitung hanya dari hire yang punya data tsb; overall = rata-rata komponen
+// yang tersedia. Breakdown by source/requisition/organization memakai skor
+// komposit per hire.
+func (s *Service) GetQualityOfHire(ctx context.Context) (*QualityOfHireResponse, error) {
+	rows, err := s.repo.GetQualityOfHireHires(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Agregat komponen — hanya hire yang punya data komponen tsb.
+	var interviewSum, perfSum float64
+	var interviewCount, perfCount, onboardingCount, onboardingDone int
+	var empCount, retainedCount int
+
+	// Breakdown aggregator per dimensi (key → akumulator) + akumulator overall
+	// (rata-rata skor komposit per hire — definisi sama dengan breakdown agar
+	// headline metric konsisten dengan breakdown yang ditampilkan berdampingan).
+	bySource := map[string]*groupAcc{}
+	byReq := map[string]*groupAcc{}
+	byOrg := map[string]*groupAcc{}
+	var compositeSum float64
+	var compositeCount int
+
+	for _, row := range rows {
+		if row.InterviewScore > 0 {
+			interviewSum += row.InterviewScore
+			interviewCount++
+		}
+		if row.OnboardingStatus != "" {
+			onboardingCount++
+			if row.OnboardingStatus == "COMPLETED" {
+				onboardingDone++
+			}
+		}
+		if row.PerformanceScore > 0 {
+			perfSum += row.PerformanceScore
+			perfCount++
+		}
+		if row.EmployeeID != "" {
+			empCount++
+			if row.RetainedCount > 0 {
+				retainedCount++
+			}
+		}
+
+		// Skor komposit hire = rata-rata komponen yang tersedia (lihat helper).
+		composite, ok := qualityComposite(row)
+		if !ok {
+			continue
+		}
+		compositeSum += composite
+		compositeCount++
+		for _, entry := range []struct {
+			key string
+			acc map[string]*groupAcc
+		}{
+			{row.Source, bySource},
+			{row.RequisitionID, byReq},
+			{row.OrganizationID, byOrg},
+		} {
+			if entry.key == "" {
+				continue
+			}
+			a := entry.acc[entry.key]
+			if a == nil {
+				a = &groupAcc{}
+				entry.acc[entry.key] = a
+			}
+			a.hires++
+			a.sum += composite
+		}
+	}
+
+	return &QualityOfHireResponse{
+		OverallScore:             avgOrZero(compositeSum, compositeCount),
+		HiresAnalyzed:            len(rows),
+		RecruitmentMatchScore:    0, // placeholder: data kompetensi kandidat (G-9) belum ada
+		InterviewScore:           avgOrZero(interviewSum, interviewCount),
+		AssessmentScore:          0, // placeholder: assessment score belum dikumpulkan
+		OnboardingCompletionRate: pctOrZero(onboardingDone, onboardingCount),
+		PerformanceScore:         avgOrZero(perfSum, perfCount),
+		RetentionRate:            pctOrZero(retainedCount, empCount),
+		BySource:                 breakdownList(bySource),
+		ByRequisition:            breakdownList(byReq),
+		ByOrganization:           breakdownList(byOrg),
 	}, nil
 }
 
@@ -1109,6 +1208,87 @@ func calcTotalPages(total int64, perPage int) int {
 		return 1
 	}
 	return pages
+}
+
+// =========================================================================
+// Quality of Hire helpers (S-6)
+// =========================================================================
+
+// groupAcc adalah akumulator breakdown Quality of Hire per dimensi (source,
+// requisition, organization): jumlah hire yang punya skor komposit + akumulasi
+// skor untuk rata-rata.
+type groupAcc struct {
+	hires int
+	sum   float64
+}
+
+// qualityComposite menghitung skor komposit (0-100) satu hire = rata-rata
+// komponen yang tersedia: interview (>0), onboarding (status terisi;
+// COMPLETED=100), performance (>0), retention (employee terisi; retained=100).
+// Mengembalikan (0, false) bila tidak ada satupun komponen yang punya data.
+func qualityComposite(row QualityOfHireRow) (float64, bool) {
+	var sum float64
+	var count int
+	if row.InterviewScore > 0 {
+		sum += row.InterviewScore
+		count++
+	}
+	if row.OnboardingStatus != "" {
+		if row.OnboardingStatus == "COMPLETED" {
+			sum += 100
+		}
+		count++
+	}
+	if row.PerformanceScore > 0 {
+		sum += row.PerformanceScore
+		count++
+	}
+	if row.EmployeeID != "" {
+		if row.RetainedCount > 0 {
+			sum += 100
+		}
+		count++
+	}
+	if count == 0 {
+		return 0, false
+	}
+	return round1(sum / float64(count)), true
+}
+
+func avgOrZero(sum float64, count int) float64 {
+	if count <= 0 {
+		return 0
+	}
+	return round1(sum / float64(count))
+}
+
+func pctOrZero(done, total int) float64 {
+	if total <= 0 {
+		return 0
+	}
+	return round1(float64(done) / float64(total) * 100)
+}
+
+// breakdownList mengubah akumulator grup menjadi list terurut (hires DESC).
+// Hires mencatat hire yang punya skor komposit (≥1 komponen berdata) — hire
+// tanpa data sama sekali tidak muncul di breakdown (tapi tetap dihitung di
+// HiresAnalyzed).
+func breakdownList(acc map[string]*groupAcc) []QualityOfHireBreakdown {
+	list := make([]QualityOfHireBreakdown, 0, len(acc))
+	for key, a := range acc {
+		score := 0.0
+		if a.hires > 0 {
+			score = round1(a.sum / float64(a.hires))
+		}
+		list = append(list, QualityOfHireBreakdown{Key: key, Hires: a.hires, Score: score})
+	}
+	sort.Slice(list, func(i, j int) bool {
+		if list[i].Hires == list[j].Hires {
+			return list[i].Key < list[j].Key
+		}
+		return list[i].Hires > list[j].Hires
+	})
+	return list
 }
 
 func parseDateOrNow(dateStr string) time.Time {

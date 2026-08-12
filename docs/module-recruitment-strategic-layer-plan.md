@@ -4,7 +4,7 @@
 > ✅ **Fakta aktual (audit 2026-08-12):** kedua module strategis sudah terimplementasi penuh di sisi backend — **Workforce Intelligence** (gap analysis supply vs demand, projections/hiring needs, `analytics/recruitment`, `candidate-search`) dan **Career Intelligence** (talent maps, career interests, career paths, gap analysis, succession plans). Yang **belum ada** di sisi strategis: integrasi dua arah terstruktur dengan Recruitment (workforce gap → requisition, expected hires → remaining gap, internal candidate via career path, succession fallback, Quality of Hire).
 > 🔎 **Sumber:** `docs/module-recruitment-development-plan.md` §5.2 (Out of Scope) + `docs/workforce-intelligence-training-enhancement-plan.md` + `docs/module-career-intelligence-plan.md` + audit `backend/internal/modules/workforceintelligence/` (routes.go: `analytics/recruitment` L42, `candidate-search` L10, people-analytics L95-101) + `backend/internal/modules/careerintelligence/` + `docs/project-completion-dashboard.md`.
 > 📊 **Progres per 2026-08-12:** ✅ Workforce Intelligence backend (7 entity, 68 endpoint, 108 test — gap analysis, projections, candidate-search, people-analytics) · ✅ Career Intelligence backend (5 sub-module, 21 endpoint: talent maps, interests, career paths, gap analysis, succession) · 🔶 Workforce Intelligence sebagian mengonsumsi data recruitment via `analytics/recruitment` & `candidate-search` (konsumsi sepihak, tanpa flow balik) · ⏳ Integrasi dua arah dengan Recruitment belum ada.
-> ⏳ **Sisa TODO:** Gap §6 — tersisa S-6, S-7 (S-1 workforce gap → requisition ✅, S-2 expected hires → remaining gap ✅, S-3 candidate search & recruitment analytics ✅, S-4 internal candidate via career path ✅, S-5 succession fallback ✅ — 12 Agu 2026); prioritas P0 berikutnya: S-6 Quality of Hire.
+> ⏳ **Sisa TODO:** Gap §6 — tersisa S-7 (S-1 workforce gap → requisition ✅, S-2 expected hires → remaining gap ✅, S-3 candidate search & recruitment analytics ✅, S-4 internal candidate via career path ✅, S-5 succession fallback ✅, S-6 Quality of Hire ✅ — 12 Agu 2026); prioritas berikutnya: S-7 onboarding → training handoff.
 > 🔧 **Catatan konsistensi docs:** plan ini adalah **"rumah" bagi seluruh item strategis** yang dipisah dari `module-recruitment-development-plan.md` §5.2. Jangan kembalikan item di bawah ini ke plan Recruitment — Recruitment hanya menyediakan data operasional.
 
 ---
@@ -167,12 +167,18 @@ Modul `backend/internal/modules/careerintelligence/` (5 sub-module, 21 endpoint)
 
 ## S-6 🟡 QUALITY OF HIRE (WI/CI metrik agregat)
 
-**Status: ⏳ Belum.** Data tersedia (recruitment scores + probation + performance + retention); metrik agregat belum dibangun.
+**Status: ✅ SELESAI (12 Agu 2026).**
 
-**Rencana (kepemilikan Workforce Intelligence):**
-- `Quality of Hire = Recruitment Match Score + Interview Score + Assessment Score + Probation Result + Performance + Retention`.
-- Breakdown: `Hiring Source, Requisition, Organization, Position, Period`.
-- Output: korelasi source-vs-retention (`people-analytics/source-vs-retention` sudah ada sebagai dasar) diperluas menjadi metrik Quality of Hire.
+**Implementasi (kepemilikan Workforce Intelligence — WI membaca data operasional):**
+- `GET /workforce-intelligence/analytics/quality-of-hire` — metrik agregat kualitas hire dari data **nyata** lintas modul (WI hanya membaca; Recruitment/Training/Performance menyediakan data):
+  - **Interview Score** — AVG `interviews.score` per hire (aplikasi ACCEPTED).
+  - **Probation (proxy)** — `employee_onboardings.status == COMPLETED` (onboarding completion rate).
+  - **Performance** — `performance_evaluations.final_score` **evaluasi terbaru** (ORDER BY updated_at DESC LIMIT 1; status ACTUAL_APPROVED/COMPLETED) — bukan MAX historis.
+  - **Retention** — employment aktif (`employments.effective_end_date IS NULL`).
+  - `OverallScore` = rata-rata **skor komposit per hire** (definisi sama dengan breakdown — konsisten bahkan pada data parsial); `hires_analyzed` = jumlah hire yang dianalisis.
+- Breakdown: **by_source, by_requisition, by_organization** (skor komposit per hire = rata-rata komponen berdata; hire tanpa data tidak muncul di breakdown). `RecruitmentMatchScore` & `AssessmentScore` tetap **placeholder 0** — data kompetensi kandidat (G-9) & assessment belum dikumpulkan Recruitment (pola sama S-3).
+- Repo WI: `GetQualityOfHireHires` (query join candidates/job_requisitions/employee_onboardings + subquery interviews/performance_evaluations/employments, NULL-safe lintas dialek).
+- Test: +5 (WI 132 → 137) termasuk partial-data consistency (overall == breakdown). OpenAPI: 1 endpoint + 2 schema (`QualityOfHireResponse`, `QualityOfHireBreakdown`).
 
 **Ref:** plan asli recruitment §55 · `workforce-intelligence-training-enhancement-plan.md`.
 
@@ -213,7 +219,7 @@ GET    /api/v1/tenant/career-intelligence/talent-maps
 ```http
 ## Workforce Intelligence (kepemilikan WI)
 GET    /workforce-intelligence/hiring-plan                       ← S-1/S-2 (hiring need + remaining gap)
-GET    /workforce-intelligence/analytics/quality-of-hire         ← S-6
+GET    /workforce-intelligence/analytics/quality-of-hire         ← S-6 ✅ (interview + onboarding + performance + retention, breakdown by source/req/org)
 GET    /workforce-intelligence/analytics/recruitment?metric=time-to-hire ← S-3
 
 ## Career Intelligence (kepemilikan CI)
@@ -268,7 +274,7 @@ workforce_quality_of_hire
 4. ~~S-5 Succession fallback → external recruitment~~ ✅ 12 Agu 2026
 
 ## P1 — Metrik & analitik
-5. S-6 Quality of Hire
+5. ~~S-6 Quality of Hire~~ ✅ 12 Agu 2026
 6. ~~S-3 Enhancement candidate-search & recruitment analytics~~ ✅ 12 Agu 2026
 
 ## P2 — Handoff & polish
@@ -285,7 +291,7 @@ STEP 2  ✅ S-2  Expected hires → remaining gap (WI konsumsi accepted offers) 
 STEP 3  ✅ S-4  Internal candidate via career path (eligible-employees + invite to apply) — SELESAI 12 Agu 2026
 STEP 4  ✅ S-3  Enhancement candidate-search (filter posisi + internal candidate eligible) & recruitment analytics (Time to Hire/Fill, Offer Acceptance, Source Conversion) — SELESAI 12 Agu 2026
 STEP 5  ✅ S-5  Succession fallback → external recruitment (successions/gaps + reason SUCCESSION_GAP + migration 092) — SELESAI 12 Agu 2026
-STEP 6  S-6  Quality of Hire
+STEP 6  ✅ S-6  Quality of Hire (analytics/quality-of-hire: interview + onboarding proxy + performance + retention, breakdown by source/requisition/org) — SELESAI 12 Agu 2026
 STEP 7  S-7  Onboarding → training handoff
 STEP 8  Testing & E2E (strategic layer)
 ```
@@ -301,7 +307,7 @@ STEP 8  Testing & E2E (strategic layer)
 - [x] CI menyediakan daftar employee eligible untuk internal application (S-4). ✅ 12 Agu 2026
 - [x] Candidate search mendukung filter posisi + internal candidate eligible; recruitment analytics menghitung Time to Hire/Fill, Offer Acceptance Rate, Source Conversion (S-3). ✅ 12 Agu 2026
 - [x] Succession gap menghasilkan kebutuhan external recruitment (S-5): `GET /successions/gaps` menandai posisi kunci tanpa successor READY_NOW; requisition `reason_type=SUCCESSION_GAP` + `succession_position_id` (migration 092) sebagai fallback. ✅ 12 Agu 2026
-- [ ] Metrik Quality of Hire tersedia (S-6).
+- [x] Metrik Quality of Hire tersedia (S-6): `GET /analytics/quality-of-hire` — interview + onboarding completion (proxy probation) + performance + retention, breakdown by source/requisition/organization; match & assessment placeholder (G-9 & data assessment belum ada). ✅ 12 Agu 2026
 - [ ] Kebutuhan training pasca-onboarding diteruskan ke Training module (S-7).
 - [ ] Tidak ada logika strategis yang bocor ke Recruitment (boundary terjaga).
 - [ ] Integration test: Workforce Gap → Requisition · Accepted Offer → Remaining Gap · Career Path → Internal Application · Succession → External Recruitment.

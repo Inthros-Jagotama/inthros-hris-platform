@@ -258,6 +258,18 @@ func (h *Handler) GetRecruitmentAnalytics(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+// GetQualityOfHire (S-6) menghitung metrik agregat kualitas hire dari data
+// operasional lintas modul (WI membaca; Recruitment/Training/Performance hanya
+// menyediakan data).
+func (h *Handler) GetQualityOfHire(c *gin.Context) {
+	resp, err := h.svc.GetQualityOfHire(c.Request.Context())
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) GetMovementAnalytics(c *gin.Context) {
 	period := c.DefaultQuery("period", "")
 	resp, err := h.svc.GetMovementAnalytics(c.Request.Context(), period)

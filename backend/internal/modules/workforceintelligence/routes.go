@@ -40,6 +40,7 @@ func RegisterRoutes(r *gin.RouterGroup, handler *Handler) {
 		wi.GET("/analytics/performance", handler.GetPerformanceAnalytics)
 		wi.GET("/analytics/learning", handler.GetLearningAnalytics)
 		wi.GET("/analytics/recruitment", handler.GetRecruitmentAnalytics)
+		wi.GET("/analytics/quality-of-hire", handler.GetQualityOfHire)
 		wi.GET("/analytics/movement", handler.GetMovementAnalytics)
 
 		// Capacity

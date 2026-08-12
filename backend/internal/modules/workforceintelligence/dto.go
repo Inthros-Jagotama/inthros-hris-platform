@@ -221,6 +221,40 @@ type SourceConversionMetric struct {
 	ConversionRate float64 `json:"conversion_rate"`
 }
 
+// =========================================================================
+// Quality of Hire DTOs (S-6)
+// =========================================================================
+
+// QualityOfHireResponse — metrik agregat kualitas hire (S-6). Komposit dihitung
+// dari komponen yang datanya tersedia: interview (interviews.score), probation
+// (proxy onboarding COMPLETED), performance (final_score evaluasi selesai),
+// retention (employment aktif). RecruitmentMatchScore & AssessmentScore tetap
+// placeholder 0 — data kompetensi kandidat (G-9) & assessment belum dikumpulkan
+// Recruitment (pola sama S-3).
+type QualityOfHireResponse struct {
+	OverallScore              float64                    `json:"overall_score"`
+	HiresAnalyzed             int                        `json:"hires_analyzed"`
+	RecruitmentMatchScore     float64                    `json:"recruitment_match_score"`
+	InterviewScore            float64                    `json:"interview_score"`
+	AssessmentScore           float64                    `json:"assessment_score"`
+	OnboardingCompletionRate  float64                    `json:"onboarding_completion_rate"`
+	PerformanceScore          float64                    `json:"performance_score"`
+	RetentionRate             float64                    `json:"retention_rate"`
+	BySource                  []QualityOfHireBreakdown   `json:"by_source"`
+	ByRequisition             []QualityOfHireBreakdown   `json:"by_requisition"`
+	ByOrganization            []QualityOfHireBreakdown   `json:"by_organization"`
+}
+
+// QualityOfHireBreakdown — agregasi per dimensi breakdown (source/requisition/
+// organization): jumlah hire yang punya skor komposit (≥1 komponen berdata) +
+// rata-rata skor komposit grup. Hire tanpa data sama sekali tidak muncul di
+// breakdown (tetap dihitung di HiresAnalyzed).
+type QualityOfHireBreakdown struct {
+	Key   string  `json:"key"`
+	Hires int     `json:"hires"`
+	Score float64 `json:"score"`
+}
+
 type MovementAnalytics struct {
 	PromotionCount int           `json:"promotion_count"`
 	MutationCount  int           `json:"mutation_count"`

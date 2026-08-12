@@ -1191,3 +1191,153 @@ func mustUUID(t *testing.T, s string) uuid.UUID {
 	}
 	return uid
 }
+
+// =========================================================================
+// Quality of Hire (S-6) Repository Tests
+// =========================================================================
+
+// createQualityOfHireTables membuat tabel lintas modul yang dibaca WI untuk
+// metrik Quality of Hire (S-6): candidates + job_requisitions + job_applications
+// + interviews + employee_onboardings + performance_evaluations + employments.
+func createQualityOfHireTables(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	statements := []string{
+		`CREATE TABLE candidates (
+			id CHAR(36) PRIMARY KEY,
+			first_name VARCHAR(100),
+			last_name VARCHAR(100),
+			email VARCHAR(255),
+			source VARCHAR(50)
+		)`,
+		`CREATE TABLE job_requisitions (
+			id CHAR(36) PRIMARY KEY,
+			organization_id CHAR(36),
+			title VARCHAR(255),
+			status VARCHAR(20)
+		)`,
+		`CREATE TABLE job_applications (
+			id CHAR(36) PRIMARY KEY,
+			requisition_id CHAR(36),
+			candidate_id CHAR(36),
+			status VARCHAR(50),
+			created_at DATETIME
+		)`,
+		`CREATE TABLE interviews (
+			id CHAR(36) PRIMARY KEY,
+			application_id CHAR(36),
+			score DECIMAL(5,2) NULL
+		)`,
+		`CREATE TABLE employee_onboardings (
+			id CHAR(36) PRIMARY KEY,
+			application_id CHAR(36),
+			employee_id CHAR(36),
+			status VARCHAR(20)
+		)`,
+		`CREATE TABLE performance_evaluations (
+			id CHAR(36) PRIMARY KEY,
+			employee_id CHAR(36),
+			final_score DECIMAL(5,2),
+			status VARCHAR(20),
+			updated_at DATETIME NULL
+		)`,
+		`CREATE TABLE employments (
+			id CHAR(36) PRIMARY KEY,
+			employee_id CHAR(36),
+			effective_end_date TEXT NULL,
+			deleted_at DATETIME NULL
+		)`,
+	}
+	for _, stmt := range statements {
+		if err := db.Exec(stmt).Error; err != nil {
+			t.Fatalf("failed to create quality-of-hire table: %v\n%s", err, stmt)
+		}
+	}
+}
+
+func TestRepo_GetQualityOfHireHires_Composites(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createQualityOfHireTables(t, db)
+	ctx := context.Background()
+
+	orgA := uuid.New()
+	orgB := uuid.New()
+	reqA := uuid.New()
+	reqB := uuid.New()
+	candReferral := uuid.New()
+	candJobBoard := uuid.New()
+	empA := uuid.New()
+	empB := uuid.New()
+
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'A', 'A', 'a@x.com', 'referral')", candReferral.String())
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'B', 'B', 'b@x.com', 'job_board')", candJobBoard.String())
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status) VALUES (?, ?, 'Eng', 'FILLED')", reqA.String(), orgA.String())
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status) VALUES (?, ?, 'Ops', 'FILLED')", reqB.String(), orgB.String())
+
+	// Hire 1: referral — interview 80, onboarding COMPLETED, perf 85 (evaluasi
+	// terbaru menang atas evaluasi lama 90), retained
+	appA := uuid.New()
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'ACCEPTED')", appA.String(), reqA.String(), candReferral.String())
+	db.Exec("INSERT INTO interviews (id, application_id, score) VALUES (?, ?, 80)", uuid.New().String(), appA.String())
+	db.Exec("INSERT INTO employee_onboardings (id, application_id, employee_id, status) VALUES (?, ?, ?, 'COMPLETED')", uuid.New().String(), appA.String(), empA.String())
+	db.Exec("INSERT INTO performance_evaluations (id, employee_id, final_score, status, updated_at) VALUES (?, ?, 90, 'COMPLETED', '2024-06-01')", uuid.New().String(), empA.String())
+	db.Exec("INSERT INTO performance_evaluations (id, employee_id, final_score, status, updated_at) VALUES (?, ?, 85, 'COMPLETED', '2025-06-01')", uuid.New().String(), empA.String())
+	db.Exec("INSERT INTO employments (id, employee_id, effective_end_date) VALUES (?, ?, NULL)", uuid.New().String(), empA.String())
+
+	// Hire 2: job_board — interview 70, onboarding PENDING, perf 75, TIDAK retained
+	appB := uuid.New()
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'ACCEPTED')", appB.String(), reqB.String(), candJobBoard.String())
+	db.Exec("INSERT INTO interviews (id, application_id, score) VALUES (?, ?, 70)", uuid.New().String(), appB.String())
+	db.Exec("INSERT INTO employee_onboardings (id, application_id, employee_id, status) VALUES (?, ?, ?, 'PENDING')", uuid.New().String(), appB.String(), empB.String())
+	db.Exec("INSERT INTO performance_evaluations (id, employee_id, final_score, status, updated_at) VALUES (?, ?, 75, 'COMPLETED', '2025-06-01')", uuid.New().String(), empB.String())
+	db.Exec("INSERT INTO employments (id, employee_id, effective_end_date) VALUES (?, ?, '2025-01-01')", uuid.New().String(), empB.String())
+
+	// Bukan hire (REJECTED) — tidak boleh muncul
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'REJECTED')", uuid.New().String(), reqA.String(), candReferral.String())
+
+	rows, err := repo.GetQualityOfHireHires(ctx)
+	if err != nil {
+		t.Fatalf("GetQualityOfHireHires failed: %v", err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("expected 2 hires (ACCEPTED only), got %d", len(rows))
+	}
+	byApp := map[string]QualityOfHireRow{}
+	for _, r := range rows {
+		byApp[r.ApplicationID] = r
+	}
+	rA, ok := byApp[appA.String()]
+	if !ok {
+		t.Fatal("expected hire A in rows")
+	}
+	if rA.InterviewScore != 80 || rA.PerformanceScore != 85 || rA.OnboardingStatus != "COMPLETED" || rA.RetainedCount != 1 {
+		t.Errorf("expected hire A interview=80 perf=85 onboarding=COMPLETED retained=1, got %+v", rA)
+	}
+	if rA.Source != "referral" || rA.OrganizationID != orgA.String() || rA.RequisitionID != reqA.String() {
+		t.Errorf("expected hire A source/org/req linkage, got %+v", rA)
+	}
+	rB, ok := byApp[appB.String()]
+	if !ok {
+		t.Fatal("expected hire B in rows")
+	}
+	if rB.RetainedCount != 0 {
+		t.Errorf("expected hire B not retained, got %+v", rB)
+	}
+}
+
+func TestRepo_GetQualityOfHireHires_Empty(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createQualityOfHireTables(t, db)
+	ctx := context.Background()
+
+	rows, err := repo.GetQualityOfHireHires(ctx)
+	if err != nil {
+		t.Fatalf("GetQualityOfHireHires failed: %v", err)
+	}
+	if len(rows) != 0 {
+		t.Errorf("expected 0 rows on empty data, got %d", len(rows))
+	}
+}

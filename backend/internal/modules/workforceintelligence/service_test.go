@@ -1186,3 +1186,175 @@ func TestService_CandidateSearch_ProviderNil_EmptyInternal(t *testing.T) {
 	}
 }
 
+// =========================================================================
+// Quality of Hire (S-6) Service Tests
+// =========================================================================
+
+func TestService_GetQualityOfHire_CompositeAndBreakdown(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createQualityOfHireTables(t, db)
+	ctx := ctx()
+
+	orgA := uuid.New()
+	reqA := uuid.New()
+	candReferral := uuid.New()
+	candJobBoard := uuid.New()
+	empA := uuid.New()
+	empB := uuid.New()
+
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'A', 'A', 'a@x.com', 'referral')", candReferral.String())
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'B', 'B', 'b@x.com', 'job_board')", candJobBoard.String())
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status) VALUES (?, ?, 'Eng', 'FILLED')", reqA.String(), orgA.String())
+
+	// Hire 1 (referral): interview 80, onboarding COMPLETED, perf 85, retained
+	appA := uuid.New()
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'ACCEPTED')", appA.String(), reqA.String(), candReferral.String())
+	db.Exec("INSERT INTO interviews (id, application_id, score) VALUES (?, ?, 80)", uuid.New().String(), appA.String())
+	db.Exec("INSERT INTO employee_onboardings (id, application_id, employee_id, status) VALUES (?, ?, ?, 'COMPLETED')", uuid.New().String(), appA.String(), empA.String())
+	db.Exec("INSERT INTO performance_evaluations (id, employee_id, final_score, status, updated_at) VALUES (?, ?, 85, 'COMPLETED', '2025-06-01')", uuid.New().String(), empA.String())
+	db.Exec("INSERT INTO employments (id, employee_id, effective_end_date) VALUES (?, ?, NULL)", uuid.New().String(), empA.String())
+
+	// Hire 2 (job_board): interview 70, onboarding PENDING, perf 75, not retained
+	appB := uuid.New()
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'ACCEPTED')", appB.String(), reqA.String(), candJobBoard.String())
+	db.Exec("INSERT INTO interviews (id, application_id, score) VALUES (?, ?, 70)", uuid.New().String(), appB.String())
+	db.Exec("INSERT INTO employee_onboardings (id, application_id, employee_id, status) VALUES (?, ?, ?, 'PENDING')", uuid.New().String(), appB.String(), empB.String())
+	db.Exec("INSERT INTO performance_evaluations (id, employee_id, final_score, status, updated_at) VALUES (?, ?, 75, 'COMPLETED', '2025-06-01')", uuid.New().String(), empB.String())
+	db.Exec("INSERT INTO employments (id, employee_id, effective_end_date) VALUES (?, ?, '2025-01-01')", uuid.New().String(), empB.String())
+
+	resp, err := svc.GetQualityOfHire(ctx)
+	if err != nil {
+		t.Fatalf("GetQualityOfHire failed: %v", err)
+	}
+	if resp.HiresAnalyzed != 2 {
+		t.Errorf("expected 2 hires analyzed, got %d", resp.HiresAnalyzed)
+	}
+	// Interview avg = (80+70)/2 = 75
+	if resp.InterviewScore != 75 {
+		t.Errorf("expected interview score 75, got %v", resp.InterviewScore)
+	}
+	// Onboarding completion = 1/2 = 50
+	if resp.OnboardingCompletionRate != 50 {
+		t.Errorf("expected onboarding completion 50, got %v", resp.OnboardingCompletionRate)
+	}
+	// Performance avg = (85+75)/2 = 80
+	if resp.PerformanceScore != 80 {
+		t.Errorf("expected performance score 80, got %v", resp.PerformanceScore)
+	}
+	// Retention = 1/2 = 50
+	if resp.RetentionRate != 50 {
+		t.Errorf("expected retention 50, got %v", resp.RetentionRate)
+	}
+	// Overall = avg(75, 50, 80, 50) = 63.75 → 63.8
+	if resp.OverallScore != 63.8 {
+		t.Errorf("expected overall 63.8, got %v", resp.OverallScore)
+	}
+	// Placeholder tetap 0
+	if resp.RecruitmentMatchScore != 0 || resp.AssessmentScore != 0 {
+		t.Errorf("expected match/assessment placeholder 0, got %v/%v", resp.RecruitmentMatchScore, resp.AssessmentScore)
+	}
+	// Breakdown by source: referral=1 hire score komposit hire1, job_board=1 hire
+	if len(resp.BySource) != 2 {
+		t.Fatalf("expected 2 sources in breakdown, got %d", len(resp.BySource))
+	}
+	byKey := map[string]QualityOfHireBreakdown{}
+	for _, b := range resp.BySource {
+		byKey[b.Key] = b
+	}
+	// hire1 komposit = (80+100+85+100)/4 = 91.25 → 91.3; hire2 = (70+0+75+0)/4 = 36.25 → 36.3
+	if s, ok := byKey["referral"]; !ok || s.Hires != 1 || s.Score != 91.3 {
+		t.Errorf("expected referral breakdown hires=1 score=91.3, got %+v", byKey["referral"])
+	}
+	if s, ok := byKey["job_board"]; !ok || s.Hires != 1 || s.Score != 36.3 {
+		t.Errorf("expected job_board breakdown hires=1 score=36.3, got %+v", byKey["job_board"])
+	}
+	// ByRequisition harus 1 entri (keduanya reqA)
+	if len(resp.ByRequisition) != 1 || resp.ByRequisition[0].Hires != 2 {
+		t.Errorf("expected 1 requisition breakdown with 2 hires, got %+v", resp.ByRequisition)
+	}
+}
+
+func TestService_GetQualityOfHire_PartialData_OverallConsistentWithBreakdown(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createQualityOfHireTables(t, db)
+	ctx := ctx()
+
+	orgA := uuid.New()
+	reqA := uuid.New()
+	candFull := uuid.New()
+	candPartial := uuid.New()
+	empA := uuid.New()
+
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'A', 'A', 'a@x.com', 'referral')", candFull.String())
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'B', 'B', 'b@x.com', 'referral')", candPartial.String())
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status) VALUES (?, ?, 'Eng', 'FILLED')", reqA.String(), orgA.String())
+
+	// Hire 1: data lengkap → komposit (80+100+85+100)/4 = 91.3
+	appA := uuid.New()
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'ACCEPTED')", appA.String(), reqA.String(), candFull.String())
+	db.Exec("INSERT INTO interviews (id, application_id, score) VALUES (?, ?, 80)", uuid.New().String(), appA.String())
+	db.Exec("INSERT INTO employee_onboardings (id, application_id, employee_id, status) VALUES (?, ?, ?, 'COMPLETED')", uuid.New().String(), appA.String(), empA.String())
+	db.Exec("INSERT INTO performance_evaluations (id, employee_id, final_score, status, updated_at) VALUES (?, ?, 85, 'COMPLETED', '2025-06-01')", uuid.New().String(), empA.String())
+	db.Exec("INSERT INTO employments (id, employee_id, effective_end_date) VALUES (?, ?, NULL)", uuid.New().String(), empA.String())
+
+	// Hire 2: HANYA interview 60 (tanpa onboarding/perf/employee) → komposit 60
+	appB := uuid.New()
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'ACCEPTED')", appB.String(), reqA.String(), candPartial.String())
+	db.Exec("INSERT INTO interviews (id, application_id, score) VALUES (?, ?, 60)", uuid.New().String(), appB.String())
+
+	resp, err := svc.GetQualityOfHire(ctx)
+	if err != nil {
+		t.Fatalf("GetQualityOfHire failed: %v", err)
+	}
+	// Overall = avg(91.3, 60) = 75.65 → 75.7 — KONSISTEN dengan breakdown
+	// (jangan rata-rata komponen agregat yang akan memberi hasil berbeda).
+	if resp.OverallScore != 75.7 {
+		t.Errorf("expected overall 75.7 (avg per-hire composite), got %v", resp.OverallScore)
+	}
+	// Interview aggregate tetap dihitung dari hire yang punya data interview.
+	if resp.InterviewScore != 70 {
+		t.Errorf("expected interview avg (80+60)/2=70, got %v", resp.InterviewScore)
+	}
+	if len(resp.BySource) != 1 {
+		t.Fatalf("expected 1 source breakdown, got %d", len(resp.BySource))
+	}
+	// Breakdown score = avg komposit hire dalam grup = sama dengan overall.
+	if resp.BySource[0].Score != resp.OverallScore {
+		t.Errorf("expected by_source score == overall (%v), got %v", resp.OverallScore, resp.BySource[0].Score)
+	}
+	if resp.BySource[0].Hires != 2 {
+		t.Errorf("expected 2 hires in source breakdown, got %d", resp.BySource[0].Hires)
+	}
+}
+
+func TestService_GetQualityOfHire_Empty(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createQualityOfHireTables(t, db)
+
+	resp, err := svc.GetQualityOfHire(ctx())
+	if err != nil {
+		t.Fatalf("GetQualityOfHire failed: %v", err)
+	}
+	if resp.HiresAnalyzed != 0 || resp.OverallScore != 0 {
+		t.Errorf("expected zeros on empty data, got hires=%d overall=%v", resp.HiresAnalyzed, resp.OverallScore)
+	}
+	if len(resp.BySource) != 0 || len(resp.ByRequisition) != 0 || len(resp.ByOrganization) != 0 {
+		t.Errorf("expected empty breakdowns, got %+v", resp)
+	}
+}
+

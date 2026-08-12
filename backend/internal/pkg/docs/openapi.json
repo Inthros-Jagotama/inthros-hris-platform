@@ -18831,6 +18831,33 @@
         "description": "Analyze recruitment efficiency: time to hire, cost per hire, source breakdown, and recruitment funnel metrics."
       }
     },
+    "/api/v1/tenant/workforce-intelligence/analytics/quality-of-hire": {
+      "get": {
+        "tags": [
+          "Tenant: Workforce Intelligence & Strategic Planning"
+        ],
+        "summary": "Quality of Hire aggregate metrics",
+        "operationId": "wfAnalyticsQualityOfHire",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualityOfHireResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "S-6: metrik agregat kualitas hire (WI membaca data operasional lintas modul). Komposit dari interview score (interviews), onboarding completion (proxy probation), performance final_score, dan retention (employment aktif); breakdown by source, requisition, dan organization. RecruitmentMatchScore & AssessmentScore placeholder 0 (data kompetensi G-9 & assessment belum dikumpulkan)."
+      }
+    },
     "/api/v1/tenant/workforce-intelligence/analytics/movement": {
       "get": {
         "tags": [
@@ -52024,6 +52051,86 @@
             "type": "number",
             "format": "float",
             "description": "Persentase kandidat→hire per channel"
+          }
+        }
+      },
+      "QualityOfHireResponse": {
+        "type": "object",
+        "properties": {
+          "overall_score": {
+            "type": "number",
+            "format": "float",
+            "description": "Rata-rata komponen yang tersedia (interview, onboarding, performance, retention) — S-6"
+          },
+          "hires_analyzed": {
+            "type": "integer",
+            "description": "Jumlah aplikasi ACCEPTED yang dianalisis"
+          },
+          "recruitment_match_score": {
+            "type": "number",
+            "format": "float",
+            "description": "Placeholder — data kompetensi kandidat (G-9) belum ada"
+          },
+          "interview_score": {
+            "type": "number",
+            "format": "float",
+            "description": "Rata-rata interviews.score per hire"
+          },
+          "assessment_score": {
+            "type": "number",
+            "format": "float",
+            "description": "Placeholder — assessment score belum dikumpulkan"
+          },
+          "onboarding_completion_rate": {
+            "type": "number",
+            "format": "float",
+            "description": "Persentase hire dengan onboarding COMPLETED (proxy probation)"
+          },
+          "performance_score": {
+            "type": "number",
+            "format": "float",
+            "description": "Rata-rata performance_evaluations.final_score (evaluasi selesai)"
+          },
+          "retention_rate": {
+            "type": "number",
+            "format": "float",
+            "description": "Persentase hire dengan employment aktif (effective_end_date IS NULL)"
+          },
+          "by_source": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualityOfHireBreakdown"
+            }
+          },
+          "by_requisition": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualityOfHireBreakdown"
+            }
+          },
+          "by_organization": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualityOfHireBreakdown"
+            }
+          }
+        }
+      },
+      "QualityOfHireBreakdown": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Nilai dimensi breakdown (source/requisition/organization)"
+          },
+          "hires": {
+            "type": "integer",
+            "description": "Jumlah hire dalam grup"
+          },
+          "score": {
+            "type": "number",
+            "format": "float",
+            "description": "Skor komposit rata-rata grup"
           }
         }
       },
