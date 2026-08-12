@@ -212,11 +212,14 @@ Modul `backend/internal/modules/recruitment/` (±2.800 baris kode non-test; tota
 - **Test**: 75 = `handler_test.go` 28 + `repository_test.go` 27 + `service_test.go` 20. (`README` menulis "66 unit test (27/23/16)" — angka akurat per audit file adalah **75**; selisih karena penghitungan berubah seiring penambahan test.)
 - **RBAC**: `tenantseed/seed_rbac.go` mendaftarkan resource `recruitment` dengan aksi `view, create, update, delete` — **`interview` dan `onboard` ada di module.go tapi tidak di-seed** (perlu sinkronisasi saat enhancement).
 
-## 3.2 Frontend — ❌ BELUM (placeholder)
+## 3.2 Frontend — 🔶 SEBAGIAN (hub + beberapa halaman sudah, sisanya placeholder)
 
-- `frontend/tenant/src/views/modules/Recruitment.vue` — hanya placeholder **"Coming soon"** (spinner + judul statis).
-- Yang **sudah ada**: route `/recruitment` (router/index.js:349-354, meta title/desc bilingual), item sidebar grup Talent (`Sidebar.vue:365`, module-gated `recruitment` + permission `recruitment.view`), locale keys `recruitment.*` EN/ID, kartu quick-access di Dashboard (`Dashboard.vue:200`).
-- Tidak ada halaman: requisition list/form, candidate profile, aplikasi pipeline, interview, onboarding, analytics.
+> ✅ **Update 2026-08-12 (sore):** menyusul commit `20a9b74` (G-1 submit), `1f1f1e7`/`b2a80d9` (G-2 priority/requisition_number/opened_at), `91ca3f9` (G-3 `Offers.vue`), `85ed0a6` (G-4 `Onboarding.vue`), `9d2b3c0` (badge From Offer di `Employees.vue`) — frontend Recruitment **bukan lagi placeholder tunggal**.
+
+- Halaman **sudah ada**: `Requisitions.vue` (list/create/edit + submit + priority/requisition_number/opened_at), `Offers.vue` (draft → submit → approval → send → accept/reject/withdraw), `Onboarding.vue` (list employee onboarding + badge "From Offer" + status PENDING→IN_PROGRESS→COMPLETED + create dialog dengan auto-suggest employee dari offer diterima), `CandidateSearch.vue`, `InternalCandidates.vue`, `RecruitmentAnalytics.vue` (lihat §5.2/strategic layer plan untuk dua yang terakhir).
+- `Recruitment.vue` (hub): sudah menampilkan kartu menu ke halaman-halaman di atas; sisanya (Interview, Screening, Assessment, Candidate profile) masih kartu **"Coming soon"**.
+- Yang sudah ada dari awal: route `/recruitment` (router/index.js), item sidebar grup Talent (`Sidebar.vue`, module-gated `recruitment` + permission `recruitment.view`), locale keys `recruitment.*` EN/ID, kartu quick-access di Dashboard (`Dashboard.vue`).
+- Tidak ada halaman: candidate profile terstruktur (education/experience/skills/cert/document), aplikasi pipeline (kanban board), interview (kalender/scorecard), screening/assessment.
 
 ## 3.3 Integrasi lintas modul — ⏳ BELUM
 
@@ -422,7 +425,7 @@ Catatan: `offer accepted` menghasilkan Employee (external, G-4) atau Employee Mo
 
 ## G-4 ✅ RECRUITMENT → EMPLOYEE / EMPLOYEE MOVEMENT
 
-**Status: ✅ Selesai (2026-08-12) — BE lengkap; FE onboarding belum memakai alur otomatis (tetap manual via employee list).**
+**Status: ✅ Selesai (2026-08-12) — BE + FE lengkap.** `Onboarding.vue` (commit `85ed0a6`) sudah memakai alur otomatis: dropdown aplikasi ACCEPTED (exclude yang sudah punya onboarding), dropdown employee bertanda ★ From Offer, auto-suggest employee via `recruited_from_application_id` saat aplikasi dipilih. Badge "From Offer" juga tampil di `Employees.vue` (commit `9d2b3c0`).
 
 **Yang diimplementasikan:**
 - **Migration `096_recruitment_employee_handoff`** (pg + mysql, up/down idempotent):
@@ -439,7 +442,7 @@ Catatan: `offer accepted` menghasilkan Employee (external, G-4) atau Employee Mo
     - **Guard transisi status** (`!wasAccepted`): handoff hanya saat aplikasi BARU menjadi ACCEPTED — offer kedua di aplikasi yang sama tidak membuat employee/movement duplikat (idempotensi mirror slots_filled G-3).
     - **Best-effort:** provider nil / error downstream hanya di-log warning — accept offer tidak pernah gagal karenanya.
 - **Wiring `cmd/server/main.go`:** `employeeHireAdapter` (employee.Service instance terpisah, pola employeeCareerRepo) + `movementHireAdapter` (employeeMovementSvc) + `SetEmployeeProvider`/`SetMovementProvider` sebelum module mount.
-- **Test:** recruitment +5 (external→employee, internal→movement, no-provider fail-safe, candidate internal create/update + employee_id cleared on EXTERNAL, **no duplicate handoff on second offer**); employee +1 (`recruited_from_application_id` persisted). Recruitment total: **128**.
+- **Test:** recruitment +5 (external→employee, internal→movement, no-provider fail-safe, candidate internal create/update + employee_id cleared on EXTERNAL, **no duplicate handoff on second offer**); employee +1 (`recruited_from_application_id` persisted). Recruitment total: **128** (handler 28 + repository 27 + service 73).
 
 **Alur aktual:**
 
@@ -452,16 +455,27 @@ Catatan: Onboarding existing sudah mendukung `employee_onboardings.application_i
 
 **Ref:** plan asli §19, §28-§30.
 
-## G-5 🔴 PIPELINE STAGE HISTORY (audit trail & time metrics)
+## G-5 ✅ PIPELINE STAGE HISTORY (audit trail & time metrics)
 
-**Status: ⏳ Sebagian.** `job_applications.status` + timestamp per stage sudah ada; **history/audit trail belum ada**.
+**Status: ✅ Selesai (2026-08-12).**
 
-**Rencana:**
-- `recruitment_stages` (master stage, seeded): `APPLIED, SCREENING, SHORTLISTED, ASSESSMENT, INTERVIEW, FINAL_REVIEW, OFFER, HIRED, REJECTED, WITHDRAWN`.
-- `job_application_stage_histories`: `id, application_id, from_stage_id nullable, to_stage_id, changed_by, changed_at, notes`.
-- Tujuan: audit trail, `Time to Stage`, `Time to Hire`, pipeline analytics.
-- Setiap perubahan stage wajib menulis history (bukan sekadar update `status`).
-- Validasi transisi stage (jangan asal set status; gunakan transition service + history).
+**Yang diimplementasikan:**
+- **Migration `097_recruitment_stage_history`** (pg + mysql, up/down idempotent): dua tabel baru — `recruitment_stages` (master stage: `id, name, sort_order, description`; seeded 8 stage per `CandidateStatus`: NEW, SCREENED, SHORTLISTED, INTERVIEWED, OFFERED, ACCEPTED, REJECTED, WITHDRAWN) + `job_application_stage_histories` (audit trail: `id, application_id, from_stage_id nullable, to_stage_id, changed_by, changed_at, notes`; index `idx_hist_app` + `idx_hist_stage`).
+- **Model:** `RecruitmentStage` + `JobApplicationStageHistory`; enum `CandidateStatus` diperbarui (field `from_stage_id`/`to_stage_id` → UUID).
+- **Service:** state machine `transitionApplicationStatus` — validasi transisi (forward jumps allowed, backward/from-terminal rejected, same-status no-op) + mandatory history write; wired ke `UpdateApplicationStatus`, `AcceptOffer`, dan `CreateApplication` (writes initial NEW history row); sentinel error `ErrInvalidStatusTransition`.
+- **Handler/Routes:** `GET /recruitment/applications/:id/history` — return `[]JobApplicationStageHistory` dengan detail stage + `changed_by` user info.
+- **Wiring `cmd/server/main.go`:** error mapping `ErrInvalidStatusTransition` → HTTP 400.
+- **Module seeder:** idempotent `RecruitmentStageSeeder` — 8 stages (NEW, SCREENED, SHORTLISTED, INTERVIEWED, OFFERED, ACCEPTED, REJECTED, WITHDRAWN).
+- **Test:** +15 test service (transition validation, history write, forward jump, backward reject, same-status noop, initial NEW row, accept offer history, handler route); total recruitment: **143** (handler 28 + repository 27 + service 88).
+
+**Workflow aplikasi (audit trail aktual):**
+
+```text
+NEW → SCREENED → SHORTLISTED → INTERVIEWED → OFFERED → ACCEPTED
+   ↘ (each stage wrote to job_application_stage_histories)
+```
+
+Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW); setiap transisi tulis row baru dengan user & timestamp otomatis. Validasi mencegah backtrack dan duplikat transisi dalam proses sebelum finalkan.
 
 **Ref:** plan asli §20, §50, §57.
 
@@ -530,19 +544,23 @@ Catatan: Onboarding existing sudah mendukung `employee_onboardings.application_i
 
 **Ref:** plan asli §37.
 
-## G-12 🔴 FRONTEND RECRUITMENT (halaman penuh)
+## G-12 🔶 FRONTEND RECRUITMENT (halaman penuh — sebagian sudah)
 
-**Status: ❌ Placeholder ("Coming soon").**
+**Status: 🔶 Sebagian.** Hub + Requisitions + Offers + Onboarding sudah ada (lihat §3.2); Candidates/Applications/Interviews/Screening/Assessment masih "Coming soon".
 
-**Rencana (mengikuti pola FE modul lain — bilingual + dark mode + `ConfirmDeleteDialog` + skeleton):**
-- **Hub Recruitment** (`Recruitment.vue` ditulis ulang — pola `AttendanceAdmin.vue`/`Training.vue`): kartu sub-menu Requisitions / Candidates / Applications / Interviews / Offers / Onboarding + summary cards (Open Requisitions, Candidates, Applications, Interviews, Offers, Hires, Time to Hire).
-- **Requisitions**: list + create/edit dialog + approval status badge + close action.
-- **Candidates**: list + profile (personal, contact, resume, education, experience, skills, certifications, applications); internal candidate → current employee/org/position (akses mengikuti permission).
-- **Applications**: pipeline board (Applied → Screening → Assessment → Interview → Final Review → Offer → Hired) — drag/drop hanya memanggil transition service backend; detail + stage history + screening/assessment/interview/offer list.
-- **Interviews**: kalender + schedule + interviewer + scorecard + feedback + result.
-- **Offers**: draft → approval → preview → send → acceptance.
-- **Onboarding**: templates + employee onboardings + task items checklist.
-- **Notifications**: deep-link tipe notifikasi recruitment (setelah G-1/G-3 ada).
+**Sudah ada:**
+- [x] **Hub Recruitment** (`Recruitment.vue`): kartu sub-menu ke halaman yang sudah ada + "Coming soon" untuk sisanya.
+- [x] **Requisitions**: list + create/edit dialog + submit + priority/requisition_number/opened_at + status badge.
+- [x] **Offers**: draft → submit → approval → send → accept/reject/withdraw.
+- [x] **Onboarding**: list employee onboarding + status PENDING→IN_PROGRESS→COMPLETED + badge From Offer + create dialog dengan auto-suggest employee dari offer.
+
+**Rencana (sisa — mengikuti pola FE modul lain: bilingual + dark mode + `ConfirmDeleteDialog` + skeleton):**
+- **Candidates**: list + profile (personal, contact, resume, education, experience, skills, certifications, applications); internal candidate → current employee/org/position (akses mengikuti permission). Menunggu G-6.
+- **Applications**: pipeline board (Applied → Screening → Assessment → Interview → Final Review → Offer → Hired) — drag/drop hanya memanggil transition service backend; detail + stage history + screening/assessment/interview/offer list. Menunggu G-5.
+- **Interviews**: kalender + schedule + interviewer + scorecard + feedback + result. Menunggu G-8.
+- **Screening/Assessment**: menunggu G-7.
+- **Summary cards** di hub (Open Requisitions, Candidates, Applications, Interviews, Offers, Hires, Time to Hire): menunggu G-11 (analytics).
+- **Notifications**: deep-link tipe notifikasi recruitment (setelah G-19/notification infra terpasang).
 
 **Ref:** plan asli §43-§45.
 
@@ -550,7 +568,7 @@ Catatan: Onboarding existing sudah mendukung `employee_onboardings.application_i
 
 # 8. API Plan
 
-## 8.1 Existing (33 endpoint — sudah ada)
+## 8.1 Existing (34 endpoint — sudah ada)
 
 ```http
 ## Requisitions
@@ -573,6 +591,7 @@ POST   /api/v1/tenant/recruitment/applications
 GET    /api/v1/tenant/recruitment/applications/{id}
 PUT    /api/v1/tenant/recruitment/applications/{id}/status
 DELETE /api/v1/tenant/recruitment/applications/{id}
+GET    /api/v1/tenant/recruitment/applications/{id}/history
 
 ## Interviews
 GET    /api/v1/tenant/recruitment/interviews
@@ -610,7 +629,6 @@ GET    /recruitment/requisitions/{id}/requirements  ← G-9
 GET    /recruitment/requisitions/{id}/competencies  ← G-9
 POST   /recruitment/applications/{id}/stage         ← G-5 (transition + history)
 POST   /recruitment/applications/{id}/screen        ← G-7
-GET    /recruitment/applications/{id}/history       ← G-5
 GET    /recruitment/candidates/{id}/profile         ← G-6 (educations/experiences/skills/certs/documents)
 POST   /recruitment/applications/{id}/assessments   ← G-7
 GET    /recruitment/assessments                     ← G-7
@@ -664,7 +682,7 @@ Permission harus mengikuti pola permission module existing (resource + action, s
 ## 10.1 Status aktual
 
 - Route `/recruitment` + menu sidebar + locale + dashboard card ✅ (lihat §3.2).
-- Halaman `Recruitment.vue` ❌ placeholder — belum ada satu pun halaman fungsional.
+- Halaman fungsional yang sudah ada: `Requisitions.vue`, `Offers.vue`, `Onboarding.vue`, `CandidateSearch.vue`, `InternalCandidates.vue`, `RecruitmentAnalytics.vue`. `Recruitment.vue` (hub) menampilkan kartu ke halaman-halaman ini + "Coming soon" untuk sisanya (lihat §3.2, G-12).
 
 ## 10.2 Target
 
@@ -946,7 +964,7 @@ Status per 2026-08-12 (✅ = sudah, ⬜ = target enhancement). Scope: **operasio
 - [ ] Requisition menggunakan Organization/Position master (`position_id`).
 - [ ] Requisition menggunakan Module Approval.
 - [ ] Offer menjadi entity sendiri + Module Approval.
-- [ ] Stage transition memiliki history.
+- [x] Stage transition memiliki history.
 - [ ] Screening tersedia.
 - [ ] Assessment tersedia.
 - [ ] Interview mendukung multi-interviewer + scorecard.
@@ -954,13 +972,13 @@ Status per 2026-08-12 (✅ = sudah, ⬜ = target enhancement). Scope: **operasio
 - [ ] Candidate mendukung internal/external.
 - [ ] External candidate dapat menjadi Employee.
 - [ ] Internal candidate menggunakan Employee Movement.
-- [ ] Offer accepted dapat membuat onboarding.
+- [x] Offer accepted dapat membuat onboarding (G-4: External → Employee, Internal → Employee Movement; onboarding FE sudah pakai alur auto-suggest).
 - [ ] Candidate dapat dinilai terhadap competency requirement.
 - [ ] Recruitment analytics tersedia.
 - [ ] Permission lengkap + sinkron (module.go vs seed_rbac: `interview`/`onboard`).
 - [ ] Audit trail tersedia.
 - [ ] Notification tersedia.
-- [ ] Frontend Recruitment selesai (semua halaman).
+- [ ] Frontend Recruitment selesai (semua halaman) — 🔶 sebagian: Requisitions/Offers/Onboarding ✅, Candidates/Applications/Interviews/Screening/Assessment ❌ (lihat G-12).
 - [ ] Unit/integration/E2E external & internal hiring selesai.
 - [ ] Migration & backward compatibility diverifikasi.
 
