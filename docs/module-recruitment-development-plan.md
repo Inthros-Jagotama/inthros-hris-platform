@@ -479,16 +479,30 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 **Ref:** plan asli §20, §50, §57.
 
-## G-6 🟡 CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate)
+## G-6 ✅ CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate) — sub-project 1/3: candidate_number + educations + work_experiences
 
-**Status: ⏳ Belum.** Profil dasar (email/phone/URL/source teks) sudah ada; sub-tabel & tipe kandidat belum.
+**Status: ✅ Selesai (2026-08-12) — PARTIAL COMPLETION, sub-project 1 of 3 planned.** Kolom `candidate_number` + tabel `candidate_educations` + tabel `candidate_work_experiences` ✅; sisa scope (status, source_id, skills, certifications, documents, consents) deferred ke sub-project berikutnya.
 
-**Rencana:**
-- Kolom tambahan `candidates`: `candidate_number`, `status`, `candidate_type` (`EXTERNAL/INTERNAL`), `source_id` (master source), `consent_status`.
-- Tabel baru: `candidate_educations`, `candidate_work_experiences`, `candidate_skills` (pakai `skill_id` bila Skill Master ada, jangan duplicate master), `candidate_certifications` (`certification_id` nullable), `candidate_documents` (jenis `RESUME/COVER_LETTER/CERTIFICATE/PORTFOLIO/IDENTITY/OTHER` — simpan referensi file, bukan binary), `candidate_consents`.
-- Internal candidate: `candidate_type = INTERNAL` + `employee_id`; tidak membuat employee baru.
+**Yang diimplementasikan:**
+- **Migration `098_recruitment_candidate_profile_basics`** (pg + mysql, up/down idempotent): 
+  - Kolom `candidate_number` VARCHAR(50) NULL di `candidates` — auto-generated `CAND-YYYYMM-XXXXXXXX` saat create (8 hex char UUID, pola G-2/G-3 requisition_number/offer_number); bisa override via create/update.
+  - Tabel baru `candidate_educations` — `id, candidate_id (FK), education_id (FK → setting.educations — level master), institution_name, education_major_id (FK → setting.education_majors), major (free-text fallback), gpa, start_year, end_year, is_highest, notes, created_at, updated_at`; index `idx_ed_cand`.
+  - Tabel baru `candidate_work_experiences` — `id, candidate_id (FK), company_name, job_title, employment_type, start_date, end_date, is_current, description, created_at, updated_at`; index `idx_wx_cand`.
+- **Model:** `CandidateEducation` + `CandidateWorkExperience` structs + `CandidateNumber` field di `Candidate`; relation fields `Education *setting.Education` dan `EducationMajor *setting.EducationMajor` pada `CandidateEducation` (mirroring `EmployeeEducation` pattern).
+- **Service:** CRUD methods untuk kedua entitas + `generateCandidateNumber()` helper; wired ke `CreateCandidate` auto-generate.
+- **Handler/Routes:** 8 endpoint CRUD — `POST/GET /recruitment/candidates/:candidate_id/educations`, `PUT/DELETE /recruitment/educations/:id`, `POST/GET /recruitment/candidates/:candidate_id/work-experiences`, `PUT/DELETE /recruitment/work-experiences/:id` (mirroring `Interview`/`OnboardingTaskTemplate` pattern).
+- **DTO:** `CandidateEducationRequest/Response` + `CandidateWorkExperienceRequest/Response`; add `candidate_number` ke `CandidateResponse`.
+- **Test:** +17 test (repository: educations + work_experiences CRUD roundtrip; service: both entities CRUD + candidate_number auto-gen format + override; handler: both entities create/list/update/delete + 404 on unknown candidate); total recruitment: **160** (handler 28 + repository 27 + service 105).
 
-**Ref:** plan asli §13-§19.
+**Rencana (sisa G-6 — deferred ke sub-project berikutnya):**
+- `candidates.status` (availability status ACTIVE/BLACKLISTED/dst.) — **skipped**: tidak jelas kebutuhan bisnis, potensi redundan dengan application-level status.
+- `candidates.source_id` + master source — **deferred**: `source` tetap teks bebas; membangun source master adalah effort terpisah dan belum diputuskan prioritasnya.
+- `candidate_skills` — **blocked**: menunggu keputusan desain Skill Master (apakah perlu master baru, reuse dari Competency, atau tabel terpisah); Skill Master tidak ada di codebase saat ini.
+- `candidate_certifications` — **blocked**: sama seperti skills, menunggu Certification Master design decision.
+- `candidate_documents` — **deferred**: concerns compliance/file-storage, pertimbangan keamanan sendiri (plan §17), ditangani sub-project terpisah.
+- `candidate_consents` — **deferred**: compliance + GDPR concerns, sub-project terpisah.
+
+**Ref:** design spec `docs/superpowers/specs/2026-08-12-candidate-profile-basics-design.md`; plan asli §13-§19.
 
 ## G-7 🟡 SCREENING & ASSESSMENT
 
@@ -568,7 +582,7 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 # 8. API Plan
 
-## 8.1 Existing (34 endpoint — sudah ada)
+## 8.1 Existing (42 endpoint — sudah ada)
 
 ```http
 ## Requisitions
@@ -584,6 +598,18 @@ POST   /api/v1/tenant/recruitment/candidates
 GET    /api/v1/tenant/recruitment/candidates/{id}
 PUT    /api/v1/tenant/recruitment/candidates/{id}
 DELETE /api/v1/tenant/recruitment/candidates/{id}
+
+## Candidate Educations (G-6)
+POST   /api/v1/tenant/recruitment/candidates/{candidate_id}/educations
+GET    /api/v1/tenant/recruitment/candidates/{candidate_id}/educations
+PUT    /api/v1/tenant/recruitment/educations/{id}
+DELETE /api/v1/tenant/recruitment/educations/{id}
+
+## Candidate Work Experiences (G-6)
+POST   /api/v1/tenant/recruitment/candidates/{candidate_id}/work-experiences
+GET    /api/v1/tenant/recruitment/candidates/{candidate_id}/work-experiences
+PUT    /api/v1/tenant/recruitment/work-experiences/{id}
+DELETE /api/v1/tenant/recruitment/work-experiences/{id}
 
 ## Applications
 GET    /api/v1/tenant/recruitment/applications
