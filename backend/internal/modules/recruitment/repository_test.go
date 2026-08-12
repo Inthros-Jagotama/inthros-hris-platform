@@ -642,3 +642,97 @@ func TestRepository_CreateAndListStageHistory(t *testing.T) {
 		t.Errorf("expected to_stage_id %s, got %s", screenedStage.ID, list[0].ToStageID)
 	}
 }
+
+// =========================================================================
+// Candidate Education / Work Experience Repository Tests (G-6)
+// =========================================================================
+
+func TestRepository_CreateAndFindCandidateEducation(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "Edu", LastName: "Test", Email: "edutest@test.com"}
+	repo.CreateCandidate(ctx, cand)
+
+	edu := &CandidateEducation{CandidateID: cand.ID, InstitutionName: "Universitas Test"}
+	if err := repo.CreateCandidateEducation(ctx, edu); err != nil {
+		t.Fatalf("CreateCandidateEducation failed: %v", err)
+	}
+
+	found, err := repo.FindCandidateEducationByID(ctx, edu.ID)
+	if err != nil {
+		t.Fatalf("FindCandidateEducationByID failed: %v", err)
+	}
+	if found.InstitutionName != "Universitas Test" {
+		t.Errorf("expected institution 'Universitas Test', got %s", found.InstitutionName)
+	}
+}
+
+func TestRepository_ListCandidateEducations(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "List", LastName: "Edu", Email: "listedu@test.com"}
+	repo.CreateCandidate(ctx, cand)
+	repo.CreateCandidateEducation(ctx, &CandidateEducation{CandidateID: cand.ID, InstitutionName: "SMA 1"})
+	repo.CreateCandidateEducation(ctx, &CandidateEducation{CandidateID: cand.ID, InstitutionName: "Universitas A"})
+
+	list, err := repo.ListCandidateEducations(ctx, cand.ID)
+	if err != nil {
+		t.Fatalf("ListCandidateEducations failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2 education rows, got %d", len(list))
+	}
+}
+
+func TestRepository_UpdateAndDeleteCandidateEducation(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "Upd", LastName: "Edu", Email: "updedu@test.com"}
+	repo.CreateCandidate(ctx, cand)
+	edu := &CandidateEducation{CandidateID: cand.ID, InstitutionName: "Original"}
+	repo.CreateCandidateEducation(ctx, edu)
+
+	edu.InstitutionName = "Updated"
+	if err := repo.UpdateCandidateEducation(ctx, edu); err != nil {
+		t.Fatalf("UpdateCandidateEducation failed: %v", err)
+	}
+	found, _ := repo.FindCandidateEducationByID(ctx, edu.ID)
+	if found.InstitutionName != "Updated" {
+		t.Errorf("expected 'Updated', got %s", found.InstitutionName)
+	}
+
+	if err := repo.DeleteCandidateEducation(ctx, edu.ID); err != nil {
+		t.Fatalf("DeleteCandidateEducation failed: %v", err)
+	}
+	if _, err := repo.FindCandidateEducationByID(ctx, edu.ID); err == nil {
+		t.Error("expected error finding deleted education, got nil")
+	}
+}
+
+func TestRepository_CreateAndListCandidateWorkExperience(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "Exp", LastName: "Test", Email: "exptest@test.com"}
+	repo.CreateCandidate(ctx, cand)
+
+	exp := &CandidateWorkExperience{CandidateID: cand.ID, CompanyName: "Acme Corp", JobTitle: "Engineer", StartDate: "2020-01-01"}
+	if err := repo.CreateCandidateWorkExperience(ctx, exp); err != nil {
+		t.Fatalf("CreateCandidateWorkExperience failed: %v", err)
+	}
+
+	list, err := repo.ListCandidateWorkExperiences(ctx, cand.ID)
+	if err != nil {
+		t.Fatalf("ListCandidateWorkExperiences failed: %v", err)
+	}
+	if len(list) != 1 || list[0].CompanyName != "Acme Corp" {
+		t.Errorf("expected 1 row with company 'Acme Corp', got %+v", list)
+	}
+}

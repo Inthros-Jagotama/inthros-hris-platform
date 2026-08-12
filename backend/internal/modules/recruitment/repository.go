@@ -664,3 +664,121 @@ func (r *Repository) ListStageHistoryByApplication(ctx context.Context, applicat
 	}
 	return list, nil
 }
+
+// =========================================================================
+// Candidate Educations (G-6)
+// =========================================================================
+
+func (r *Repository) CreateCandidateEducation(ctx context.Context, e *CandidateEducation) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(e).Error
+}
+
+func (r *Repository) FindCandidateEducationByID(ctx context.Context, id uuid.UUID) (*CandidateEducation, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var e CandidateEducation
+	if err := db.WithContext(ctx).Preload("EducationMajor").First(&e, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("candidate education not found")
+		}
+		return nil, err
+	}
+	return &e, nil
+}
+
+func (r *Repository) ListCandidateEducations(ctx context.Context, candidateID uuid.UUID) ([]CandidateEducation, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CandidateEducation
+	if err := db.WithContext(ctx).Preload("EducationMajor").Where("candidate_id = ?", candidateID).Order("created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateCandidateEducation(ctx context.Context, e *CandidateEducation) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(e).Error
+}
+
+func (r *Repository) DeleteCandidateEducation(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&CandidateEducation{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("candidate education not found")
+	}
+	return result.Error
+}
+
+// =========================================================================
+// Candidate Work Experiences (G-6)
+// =========================================================================
+
+func (r *Repository) CreateCandidateWorkExperience(ctx context.Context, e *CandidateWorkExperience) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(e).Error
+}
+
+func (r *Repository) FindCandidateWorkExperienceByID(ctx context.Context, id uuid.UUID) (*CandidateWorkExperience, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var e CandidateWorkExperience
+	if err := db.WithContext(ctx).First(&e, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("candidate work experience not found")
+		}
+		return nil, err
+	}
+	return &e, nil
+}
+
+func (r *Repository) ListCandidateWorkExperiences(ctx context.Context, candidateID uuid.UUID) ([]CandidateWorkExperience, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CandidateWorkExperience
+	if err := db.WithContext(ctx).Where("candidate_id = ?", candidateID).Order("start_date DESC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateCandidateWorkExperience(ctx context.Context, e *CandidateWorkExperience) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(e).Error
+}
+
+func (r *Repository) DeleteCandidateWorkExperience(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&CandidateWorkExperience{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("candidate work experience not found")
+	}
+	return result.Error
+}
