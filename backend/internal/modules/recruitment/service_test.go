@@ -638,7 +638,7 @@ func TestService_UpdateApplicationStatus(t *testing.T) {
 		RequisitionID: req.ID, CandidateID: cand.ID,
 	})
 
-	updated, err := svc.UpdateApplicationStatus(ctx, app.ID, "SHORTLISTED", "", "")
+	updated, err := svc.UpdateApplicationStatus(ctx, app.ID, "SHORTLISTED", "", "", nil)
 	if err != nil {
 		t.Fatalf("UpdateApplicationStatus failed: %v", err)
 	}
@@ -658,7 +658,7 @@ func TestService_UpdateApplicationStatus_ForwardJumpAllowed(t *testing.T) {
 
 	// NEW -> OFFERED direct jump must remain allowed (state machine allows
 	// forward jumps between non-terminal stages).
-	updated, err := svc.UpdateApplicationStatus(ctx, app.ID, "OFFERED", "", "")
+	updated, err := svc.UpdateApplicationStatus(ctx, app.ID, "OFFERED", "", "", nil)
 	if err != nil {
 		t.Fatalf("expected forward jump to succeed, got error: %v", err)
 	}
@@ -676,11 +676,11 @@ func TestService_UpdateApplicationStatus_BackwardRejected(t *testing.T) {
 	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "back@test.com"})
 	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
 
-	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "SHORTLISTED", "", ""); err != nil {
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "SHORTLISTED", "", "", nil); err != nil {
 		t.Fatalf("setup transition failed: %v", err)
 	}
 
-	_, err := svc.UpdateApplicationStatus(ctx, app.ID, "NEW", "", "")
+	_, err := svc.UpdateApplicationStatus(ctx, app.ID, "NEW", "", "", nil)
 	if err == nil {
 		t.Fatal("expected error for backward transition SHORTLISTED -> NEW, got nil")
 	}
@@ -698,11 +698,11 @@ func TestService_UpdateApplicationStatus_FromTerminalRejected(t *testing.T) {
 	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "term@test.com"})
 	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
 
-	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "REJECTED", "", ""); err != nil {
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "REJECTED", "", "", nil); err != nil {
 		t.Fatalf("setup transition failed: %v", err)
 	}
 
-	_, err := svc.UpdateApplicationStatus(ctx, app.ID, "SCREENED", "", "")
+	_, err := svc.UpdateApplicationStatus(ctx, app.ID, "SCREENED", "", "", nil)
 	if !errors.Is(err, ErrInvalidStatusTransition) {
 		t.Errorf("expected ErrInvalidStatusTransition from terminal status, got: %v", err)
 	}
@@ -717,7 +717,7 @@ func TestService_UpdateApplicationStatus_SameStatusNoop(t *testing.T) {
 	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "noop@test.com"})
 	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
 
-	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "NEW", "", ""); err != nil {
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "NEW", "", "", nil); err != nil {
 		t.Fatalf("same-status transition should be a no-op, got error: %v", err)
 	}
 
@@ -765,7 +765,7 @@ func TestService_UpdateApplicationStatus_WritesHistory(t *testing.T) {
 	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "wh@test.com"})
 	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
 
-	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "SCREENED", "", "moved to screening"); err != nil {
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "SCREENED", "", "moved to screening", nil); err != nil {
 		t.Fatalf("UpdateApplicationStatus failed: %v", err)
 	}
 
@@ -925,7 +925,7 @@ func TestService_CreateEmployeeOnboarding(t *testing.T) {
 		RequisitionID: req.ID, CandidateID: cand.ID,
 	})
 	// Accept candidate
-	svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", "")
+	svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", "", nil)
 
 	resp, err := svc.CreateEmployeeOnboarding(ctx, CreateEmployeeOnboardingRequest{
 		EmployeeID:    createTestUUID(),
@@ -1829,7 +1829,7 @@ func TestService_AcceptOffer_NoDoubleIncrementSlotsFilled(t *testing.T) {
 	}
 
 	// Aplikasi di-ACCEPTED manual dulu (jalur G-1 — sudah increment).
-	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", ""); err != nil {
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", "", nil); err != nil {
 		t.Fatalf("UpdateApplicationStatus failed: %v", err)
 	}
 	reqBefore, _ := svc.GetRequisitionByID(ctx, app.RequisitionID)
@@ -1862,7 +1862,7 @@ func TestService_UpdateApplicationStatus_RepeatedAcceptedNoDoubleIncrement(t *te
 	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "repeat-accept@test.com"})
 	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
 
-	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", ""); err != nil {
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", "", nil); err != nil {
 		t.Fatalf("first ACCEPTED transition failed: %v", err)
 	}
 	reqAfterFirst, _ := svc.GetRequisitionByID(ctx, req.ID)
@@ -1871,7 +1871,7 @@ func TestService_UpdateApplicationStatus_RepeatedAcceptedNoDoubleIncrement(t *te
 		t.Fatalf("expected slots_filled=1 after first ACCEPTED call, got %d", slotsAfterFirst)
 	}
 
-	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", ""); err != nil {
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", "", nil); err != nil {
 		t.Fatalf("second (no-op) ACCEPTED transition failed: %v", err)
 	}
 	reqAfterSecond, _ := svc.GetRequisitionByID(ctx, req.ID)
@@ -1939,7 +1939,7 @@ func TestService_AcceptOffer_TransitionFails_SkipsSideEffects(t *testing.T) {
 	// isValidStatusTransition rejects any transition out of a terminal
 	// status, so transitionApplicationStatus(..., CandStatusAccepted, ...)
 	// will fail inside AcceptOffer below.
-	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "REJECTED", "", ""); err != nil {
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "REJECTED", "", "", nil); err != nil {
 		t.Fatalf("setup REJECTED transition failed: %v", err)
 	}
 	reqBefore, _ := svc.GetRequisitionByID(ctx, app.RequisitionID)

@@ -1243,7 +1243,7 @@ func (s *Service) transitionApplicationStatus(ctx context.Context, a *JobApplica
 	return nil
 }
 
-func (s *Service) UpdateApplicationStatus(ctx context.Context, id, status, reason, notes string) (*ApplicationResponse, error) {
+func (s *Service) UpdateApplicationStatus(ctx context.Context, id, status, reason, notes string, changedBy *uuid.UUID) (*ApplicationResponse, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid id: %w", err)
@@ -1255,7 +1255,7 @@ func (s *Service) UpdateApplicationStatus(ctx context.Context, id, status, reaso
 
 	wasAlreadyAccepted := a.Status == CandStatusAccepted
 
-	if err := s.transitionApplicationStatus(ctx, a, CandidateStatus(status), nil, notes); err != nil {
+	if err := s.transitionApplicationStatus(ctx, a, CandidateStatus(status), changedBy, notes); err != nil {
 		return nil, err
 	}
 	if reason != "" {

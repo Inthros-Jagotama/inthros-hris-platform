@@ -30,3 +30,17 @@ CREATE TABLE IF NOT EXISTS job_application_stage_histories (
 
 CREATE INDEX idx_ash_app ON job_application_stage_histories (application_id);
 CREATE INDEX idx_ash_changed_at ON job_application_stage_histories (changed_at);
+
+-- Seed default recruitment stages (mirrors recModule.Seed() in module.go,
+-- which is never invoked for tenant DBs — see G-5 final review). INSERT
+-- IGNORE combined with the UNIQUE key on `code` keeps this idempotent
+-- across re-runs and doesn't clobber rows edited after seeding.
+INSERT IGNORE INTO recruitment_stages (id, code, name, sort_order) VALUES
+    ('9c1f1a10-0001-4a10-8b1a-000000000001', 'NEW', 'New Application', 1),
+    ('9c1f1a10-0001-4a10-8b1a-000000000002', 'SCREENED', 'Screened', 2),
+    ('9c1f1a10-0001-4a10-8b1a-000000000003', 'SHORTLISTED', 'Shortlisted', 3),
+    ('9c1f1a10-0001-4a10-8b1a-000000000004', 'INTERVIEWED', 'Interviewed', 4),
+    ('9c1f1a10-0001-4a10-8b1a-000000000005', 'OFFERED', 'Offered', 5),
+    ('9c1f1a10-0001-4a10-8b1a-000000000006', 'ACCEPTED', 'Accepted', 6),
+    ('9c1f1a10-0001-4a10-8b1a-000000000007', 'REJECTED', 'Rejected', 7),
+    ('9c1f1a10-0001-4a10-8b1a-000000000008', 'WITHDRAWN', 'Withdrawn', 8);

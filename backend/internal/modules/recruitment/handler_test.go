@@ -28,6 +28,31 @@ func setupTestRouter() (*gin.Engine, *Handler, func()) {
 	return r, handler, cleanup
 }
 
+// setupTestRouterWithUserID mirrors setupTestRouter but installs a
+// middleware that sets Gin's "user_id" context key, the same key the real
+// auth middleware (internal/pkg/middleware/auth.go) populates from JWT
+// claims. Handlers read it via c.GetString("user_id") (see Fix 2, G-5 final
+// review — changed_by plumbing).
+func setupTestRouterWithUserID(userID string) (*gin.Engine, *Handler, func()) {
+	gin.SetMode(gin.TestMode)
+	db, dbResolver, cleanup := setupTestDB()
+	repo := NewRepository(dbResolver)
+	logger := zap.NewNop()
+	svc := NewService(repo, logger)
+	seedDefaultRecruitmentStages(db)
+	handler := NewHandler(svc)
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", userID)
+		c.Next()
+	})
+	rg := r.Group("/api/v1/tenant")
+	RegisterRoutes(rg, handler)
+
+	return r, handler, cleanup
+}
+
 func performRequest(r *gin.Engine, method, path string, body interface{}) *httptest.ResponseRecorder {
 	var reqBody []byte
 	if body != nil {
@@ -345,6 +370,67 @@ func TestHandler_UpdateApplicationStatus(t *testing.T) {
 	})
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestHandler_UpdateApplicationStatus_ChangedByFromContext verifies Fix 2
+// (G-5 final review): a manual PUT .../status with "user_id" set in the
+// Gin context (as the real auth middleware does from JWT claims) produces
+// a history row whose changed_by matches that user id.
+func TestHandler_UpdateApplicationStatus_ChangedByFromContext(t *testing.T) {
+	actorID := uuid.New().String()
+	r, _, cleanup := setupTestRouterWithUserID(actorID)
+	defer cleanup()
+
+	reqW := performRequest(r, "POST", "/api/v1/tenant/recruitment/requisitions", CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(), Title: "My Req",
+	})
+	var reqResp map[string]interface{}
+	json.Unmarshal(reqW.Body.Bytes(), &reqResp)
+	rid := reqResp["data"].(map[string]interface{})["id"].(string)
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "ChangedBy", LastName: "Test", Email: "changedby@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	appW := performRequest(r, "POST", "/api/v1/tenant/recruitment/applications", CreateApplicationRequest{
+		RequisitionID: rid, CandidateID: cid,
+	})
+	var appResp map[string]interface{}
+	json.Unmarshal(appW.Body.Bytes(), &appResp)
+	appID := appResp["data"].(map[string]interface{})["id"].(string)
+
+	w := performRequest(r, "PUT", "/api/v1/tenant/recruitment/applications/"+appID+"/status", UpdateApplicationStatusRequest{
+		Status: "SHORTLISTED",
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	histW := performRequest(r, "GET", "/api/v1/tenant/recruitment/applications/"+appID+"/history", nil)
+	if histW.Code != http.StatusOK {
+		t.Fatalf("expected 200 on history, got %d: %s", histW.Code, histW.Body.String())
+	}
+	var histResp map[string]interface{}
+	json.Unmarshal(histW.Body.Bytes(), &histResp)
+	rows, ok := histResp["data"].([]interface{})
+	if !ok || len(rows) == 0 {
+		t.Fatalf("expected non-empty history data, got: %s", histW.Body.String())
+	}
+
+	var found bool
+	for _, row := range rows {
+		m := row.(map[string]interface{})
+		if cb, ok := m["changed_by"].(string); ok && cb == actorID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected a history row with changed_by=%s, got: %s", actorID, histW.Body.String())
 	}
 }
 

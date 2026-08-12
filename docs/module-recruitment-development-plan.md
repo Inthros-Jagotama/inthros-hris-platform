@@ -460,12 +460,12 @@ Catatan: Onboarding existing sudah mendukung `employee_onboardings.application_i
 **Status: ✅ Selesai (2026-08-12).**
 
 **Yang diimplementasikan:**
-- **Migration `097_recruitment_stage_history`** (pg + mysql, up/down idempotent): dua tabel baru — `recruitment_stages` (master stage: `id, name, sort_order, description`; seeded 8 stage per `CandidateStatus`: NEW, SCREENED, SHORTLISTED, INTERVIEWED, OFFERED, ACCEPTED, REJECTED, WITHDRAWN) + `job_application_stage_histories` (audit trail: `id, application_id, from_stage_id nullable, to_stage_id, changed_by, changed_at, notes`; index `idx_hist_app` + `idx_hist_stage`).
-- **Model:** `RecruitmentStage` + `JobApplicationStageHistory`; enum `CandidateStatus` diperbarui (field `from_stage_id`/`to_stage_id` → UUID).
+- **Migration `097_recruitment_stage_history`** (pg + mysql, up/down idempotent): dua tabel baru — `recruitment_stages` (master stage: `id, code, name, sort_order, created_at, updated_at`, `code` UNIQUE; seeded 8 stage per `CandidateStatus`: NEW, SCREENED, SHORTLISTED, INTERVIEWED, OFFERED, ACCEPTED, REJECTED, WITHDRAWN — seed ditulis langsung di migration SQL via `INSERT ... ON CONFLICT (code) DO NOTHING` / `INSERT IGNORE`, lihat catatan seeder di bawah) + `job_application_stage_histories` (audit trail: `id, application_id, from_stage_id nullable, to_stage_id, changed_by, changed_at, notes`; index `idx_ash_app` + `idx_ash_changed_at`).
+- **Model:** `RecruitmentStage` + `ApplicationStageHistory`; enum `CandidateStatus` (8 nilai existing) **tidak diubah** — `from_stage_id`/`to_stage_id` pada history adalah kolom UUID terpisah yang mereferensikan `recruitment_stages`, bukan perubahan pada enum itu sendiri.
 - **Service:** state machine `transitionApplicationStatus` — validasi transisi (forward jumps allowed, backward/from-terminal rejected, same-status no-op) + mandatory history write; wired ke `UpdateApplicationStatus`, `AcceptOffer`, dan `CreateApplication` (writes initial NEW history row); sentinel error `ErrInvalidStatusTransition`.
-- **Handler/Routes:** `GET /recruitment/applications/:id/history` — return `[]JobApplicationStageHistory` dengan detail stage + `changed_by` user info.
-- **Wiring `cmd/server/main.go`:** error mapping `ErrInvalidStatusTransition` → HTTP 400.
-- **Module seeder:** idempotent `RecruitmentStageSeeder` — 8 stages (NEW, SCREENED, SHORTLISTED, INTERVIEWED, OFFERED, ACCEPTED, REJECTED, WITHDRAWN).
+- **Handler/Routes:** `GET /recruitment/applications/:id/history` — return `[]ApplicationStageHistory` dengan detail stage + `changed_by` (UUID string aktor, non-nil untuk transisi manual via `UpdateApplicationStatus`; nil untuk transisi sistem seperti `AcceptOffer`).
+- **Error mapping:** `ErrInvalidStatusTransition` → HTTP 400 di-handle langsung di `handler.go` (bukan `cmd/server/main.go`, yang tidak disentuh fitur ini).
+- **Seeder:** karena `Module.Seed()` (di `module.go`) tidak pernah dipanggil untuk tenant DB (lihat catatan wiring di §3.x/general), 8 stage default di-seed langsung di migration SQL (idempotent per-row via unique `code`) alih-alih lewat kode Go.
 - **Test:** +15 test service (transition validation, history write, forward jump, backward reject, same-status noop, initial NEW row, accept offer history, handler route); total recruitment: **143** (handler 28 + repository 27 + service 88).
 
 **Workflow aplikasi (audit trail aktual):**

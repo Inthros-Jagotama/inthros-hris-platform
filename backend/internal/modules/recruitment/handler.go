@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
@@ -379,7 +380,13 @@ func (h *Handler) UpdateApplicationStatus(c *gin.Context) {
 	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
-	resp, err := h.svc.UpdateApplicationStatus(c.Request.Context(), id, req.Status, req.RejectionReason, req.Notes)
+	var changedBy *uuid.UUID
+	if userIDStr := c.GetString("user_id"); userIDStr != "" {
+		if uid, err := uuid.Parse(userIDStr); err == nil {
+			changedBy = &uid
+		}
+	}
+	resp, err := h.svc.UpdateApplicationStatus(c.Request.Context(), id, req.Status, req.RejectionReason, req.Notes, changedBy)
 	if err != nil {
 		if errors.Is(err, ErrInvalidStatusTransition) {
 			httputil.BadRequest(c, err.Error())
