@@ -947,6 +947,13 @@ func main() {
 	approvalSvc.RegisterStatusHandler("recruitment", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return recruitmentSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
+	// G-3: wire Central Approval ke offer management — offer draft disubmit
+	// melalui sharedApprovalEngine (modul "recruitment_offer") dan keputusan
+	// APPROVED/REJECTED/CANCELLED dipropagasi balik ke status offer via
+	// push-callback HandleOfferApprovalStatusChange.
+	approvalSvc.RegisterStatusHandler("recruitment_offer", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return recruitmentSvc.HandleOfferApprovalStatusChange(ctx, documentID, string(status), note)
+	})
 
 	// S-3: WI candidate search memakai CI untuk internal candidate eligible
 	// (narrow provider — WI tidak menghitung eligibility sendiri).

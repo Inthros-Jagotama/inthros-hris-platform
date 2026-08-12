@@ -392,6 +392,339 @@ func (s *Service) DeleteRequisition(ctx context.Context, id string) error {
 	return s.repo.DeleteRequisition(ctx, uid)
 }
 
+// =========================================================================
+// Job Offers (G-3)
+// =========================================================================
+
+func (s *Service) CreateOffer(ctx context.Context, req CreateOfferRequest) (*OfferResponse, error) {
+	appID, err := uuid.Parse(req.ApplicationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid application_id: %w", err)
+	}
+	// Validasi aplikasi ada (kandidat + requisition).
+	if _, err := s.repo.FindApplicationByID(ctx, appID); err != nil {
+		return nil, fmt.Errorf("application not found: %w", err)
+	}
+	o := &JobOffer{
+		ApplicationID:  appID,
+		EmploymentType: req.EmploymentType,
+		Salary:         req.Salary,
+		Allowances:     req.Allowances,
+		Benefits:       req.Benefits,
+		StartDate:      req.StartDate,
+		ExpiryDate:     req.ExpiryDate,
+		Status:         OfferStatusDraft,
+	}
+	o.OfferNumber = generateOfferNumber()
+	if err := s.repo.CreateOffer(ctx, o); err != nil {
+		return nil, err
+	}
+	s.logger.Info("Offer created", zap.String("id", o.ID.String()), zap.String("application_id", o.ApplicationID.String()))
+	return offerToResponse(o), nil
+}
+
+func (s *Service) GetOfferByID(ctx context.Context, id string) (*OfferResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	o, err := s.repo.FindOfferByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return offerToResponse(o), nil
+}
+
+func (s *Service) ListOffers(ctx context.Context, applicationID, status *string, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	var appUUID *uuid.UUID
+	if applicationID != nil && *applicationID != "" {
+		uid, _ := uuid.Parse(*applicationID)
+		appUUID = &uid
+	}
+	list, total, err := s.repo.ListOffers(ctx, appUUID, status, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]OfferResponse, 0, len(list))
+	for _, o := range list {
+		responses = append(responses, *offerToResponse(&o))
+	}
+	return &PaginatedResponse{
+		Success: true, Data: responses, Page: page, PerPage: perPage,
+		Total: total, TotalPages: calcTotalPages(total, perPage),
+	}, nil
+}
+
+func (s *Service) UpdateOffer(ctx context.Context, id string, req UpdateOfferRequest) (*OfferResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	o, err := s.repo.FindOfferByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	// Hanya draft yang bisa diedit (setelah submit/sent terkunci).
+	if o.Status != OfferStatusDraft {
+		return nil, fmt.Errorf("only draft offers can be updated, current status: %s", o.Status)
+	}
+	if req.EmploymentType != nil {
+		o.EmploymentType = *req.EmploymentType
+	}
+	if req.Salary != nil {
+		o.Salary = *req.Salary
+	}
+	if req.Allowances != nil {
+		o.Allowances = *req.Allowances
+	}
+	if req.Benefits != nil {
+		o.Benefits = *req.Benefits
+	}
+	if req.StartDate != nil {
+		o.StartDate = *req.StartDate
+	}
+	if req.ExpiryDate != nil {
+		o.ExpiryDate = *req.ExpiryDate
+	}
+	if err := s.repo.UpdateOffer(ctx, o); err != nil {
+		return nil, err
+	}
+	return offerToResponse(o), nil
+}
+
+func (s *Service) DeleteOffer(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	o, err := s.repo.FindOfferByID(ctx, uid)
+	if err != nil {
+		return err
+	}
+	if o.Status != OfferStatusDraft {
+		return fmt.Errorf("only draft offers can be deleted, current status: %s", o.Status)
+	}
+	return s.repo.DeleteOffer(ctx, uid)
+}
+
+// SubmitOffer mengirim offer draft ke Central Approval (plan G-3):
+// DRAFT → PENDING_APPROVAL + approval instance dibuat & approval_instance_id
+// disimpan. Auto-resolve flow aktif untuk modul "recruitment_offer" bila
+// client tidak mengirim flow_id (pola G-1 requisition).
+func (s *Service) SubmitOffer(ctx context.Context, id, flowID string) (*OfferResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	o, err := s.repo.FindOfferByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if o.Status != OfferStatusDraft {
+		return nil, fmt.Errorf("only draft offers can be submitted, current status: %s", o.Status)
+	}
+	if s.approvalEngine == nil {
+		return nil, fmt.Errorf("approval engine not configured")
+	}
+
+	// Auto-resolve the active flow when no flow_id is supplied (G-3).
+	if flowID == "" {
+		if resolved, resolveErr := s.approvalEngine.GetActiveFlowIDForModule(ctx, "recruitment_offer"); resolveErr == nil {
+			flowID = resolved
+		}
+	}
+	if flowID == "" {
+		return nil, fmt.Errorf("approval flow not configured: provide flow_id or activate an approval flow for module recruitment_offer")
+	}
+
+	instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "recruitment_offer", o.ID.String(), flowID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create approval instance: %w", err)
+	}
+	if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+		o.ApprovalInstanceID = &parsedInstanceID
+	}
+
+	o.Status = OfferStatusPendingApproval
+	if err := s.repo.UpdateOffer(ctx, o); err != nil {
+		return nil, err
+	}
+
+	s.logger.Info("Offer submitted for approval",
+		zap.String("offer_id", o.ID.String()),
+		zap.String("instance_id", instanceID),
+	)
+	return offerToResponse(o), nil
+}
+
+// HandleOfferApprovalStatusChange adalah push-callback dari Central Approval
+// (plan G-3): APPROVED/REJECTED/CANCELLED atas offer di-propagasi ke status
+// offer. Hanya offer PENDING_APPROVAL yang diproses (idempotent).
+func (s *Service) HandleOfferApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	o, err := s.repo.FindOfferByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	if o.Status != OfferStatusPendingApproval {
+		return nil
+	}
+
+	switch status {
+	case "APPROVED":
+		o.Status = OfferStatusApproved
+	case "REJECTED":
+		o.Status = OfferStatusRejected
+		// Catatan: note reject TIDAK dipersist ke kolom Benefits (teks benefit
+		// asli) — note approval tersimpan di instance Approval module.
+	case "CANCELLED":
+		o.Status = OfferStatusWithdrawn
+	default:
+		return nil
+	}
+
+	s.logger.Info("Offer status updated via approval status handler",
+		zap.String("offer_id", o.ID.String()),
+		zap.String("approval_status", status),
+	)
+	return s.repo.UpdateOffer(ctx, o)
+}
+
+// SendOffer mengirim offer yang sudah APPROVED ke kandidat: APPROVED → SENT
+// + sent_at. Offer yang belum approved tidak bisa dikirim.
+func (s *Service) SendOffer(ctx context.Context, id string) (*OfferResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	o, err := s.repo.FindOfferByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if o.Status != OfferStatusApproved {
+		return nil, fmt.Errorf("only approved offers can be sent, current status: %s", o.Status)
+	}
+	now := time.Now().UnixNano()
+	o.Status = OfferStatusSent
+	o.SentAt = &now
+	if err := s.repo.UpdateOffer(ctx, o); err != nil {
+		return nil, err
+	}
+	s.logger.Info("Offer sent", zap.String("offer_id", o.ID.String()))
+	return offerToResponse(o), nil
+}
+
+// AcceptOffer mencatat penerimaan kandidat: SENT → ACCEPTED + accepted_at.
+// Offer yang sudah melewati expiry_date tidak bisa diterima (business rule
+// G-3). Penerimaan otomatis memajukan aplikasi ke ACCEPTED dan menaikkan
+// slots_filled requisition (pola yang sama dengan UpdateApplicationStatus).
+func (s *Service) AcceptOffer(ctx context.Context, id string) (*OfferResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	o, err := s.repo.FindOfferByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if o.Status != OfferStatusSent {
+		return nil, fmt.Errorf("only sent offers can be accepted, current status: %s", o.Status)
+	}
+	// Business rule: offer expired tidak dapat diterima.
+	if isOfferExpired(o.ExpiryDate) {
+		// Tandai expired + tolak aksi.
+		o.Status = OfferStatusExpired
+		_ = s.repo.UpdateOffer(ctx, o)
+		return nil, fmt.Errorf("offer has expired and cannot be accepted")
+	}
+	now := time.Now().UnixNano()
+	o.Status = OfferStatusAccepted
+	o.AcceptedAt = &now
+	if err := s.repo.UpdateOffer(ctx, o); err != nil {
+		return nil, err
+	}
+
+	// Majukan aplikasi ke ACCEPTED + slots_filled requisition (pola G-1
+	// UpdateApplicationStatus ACCEPTED — single source of truth). Guard
+	// transisi status: hanya increment slots_filled bila aplikasi belum
+	// ACCEPTED, supaya accept offer kedua di aplikasi yang sama (atau
+	// accept setelah ACCEPTED manual) tidak double-count satu kandidat.
+	if a, findErr := s.repo.FindApplicationByID(ctx, o.ApplicationID); findErr == nil && a != nil {
+		wasAccepted := a.Status == CandStatusAccepted
+		a.Status = CandStatusAccepted
+		a.AcceptedAt = &now
+		if err := s.repo.UpdateApplication(ctx, a); err != nil {
+			s.logger.Warn("offer accepted but application update failed",
+				zap.String("offer_id", o.ID.String()), zap.String("application_id", a.ID.String()), zap.Error(err))
+		}
+		if !wasAccepted {
+			if req, reqErr := s.repo.FindRequisitionByID(ctx, a.RequisitionID); reqErr == nil && req != nil {
+				req.SlotsFilled++
+				if req.SlotsFilled >= req.SlotsAvailable {
+					req.Status = ReqStatusFilled
+				}
+				if err := s.repo.UpdateRequisition(ctx, req); err != nil {
+					s.logger.Warn("offer accepted but requisition slots update failed",
+						zap.String("requisition_id", req.ID.String()), zap.Error(err))
+				}
+			}
+		}
+	}
+
+	s.logger.Info("Offer accepted", zap.String("offer_id", o.ID.String()))
+	return offerToResponse(o), nil
+}
+
+// RejectOffer mencatat penolakan kandidat: SENT → REJECTED + rejected_at.
+func (s *Service) RejectOffer(ctx context.Context, id string) (*OfferResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	o, err := s.repo.FindOfferByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if o.Status != OfferStatusSent {
+		return nil, fmt.Errorf("only sent offers can be rejected, current status: %s", o.Status)
+	}
+	now := time.Now().UnixNano()
+	o.Status = OfferStatusRejected
+	o.RejectedAt = &now
+	if err := s.repo.UpdateOffer(ctx, o); err != nil {
+		return nil, err
+	}
+	s.logger.Info("Offer rejected by candidate", zap.String("offer_id", o.ID.String()))
+	return offerToResponse(o), nil
+}
+
+// WithdrawOffer menarik kembali offer: DRAFT/APPROVED → WITHDRAWN (recruiter
+// membatalkan sebelum/sesudah approval tapi belum dikirim).
+func (s *Service) WithdrawOffer(ctx context.Context, id string) (*OfferResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	o, err := s.repo.FindOfferByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if o.Status != OfferStatusDraft && o.Status != OfferStatusApproved && o.Status != OfferStatusPendingApproval {
+		return nil, fmt.Errorf("offer cannot be withdrawn from status: %s", o.Status)
+	}
+	o.Status = OfferStatusWithdrawn
+	if err := s.repo.UpdateOffer(ctx, o); err != nil {
+		return nil, err
+	}
+	s.logger.Info("Offer withdrawn", zap.String("offer_id", o.ID.String()))
+	return offerToResponse(o), nil
+}
+
 // SubmitRequisition mengirim requisition draft ke Central Approval (plan G-1):
 // DRAFT → SUBMITTED + approval instance dibuat & approval_instance_id
 // disimpan. Auto-resolve flow aktif untuk modul "recruitment" bila client
@@ -1362,6 +1695,28 @@ func generateRequisitionNumber() string {
 	return fmt.Sprintf("REQ-%s-%s", time.Now().Format("200601"), strings.ToUpper(uuid.New().String()[:8]))
 }
 
+// generateOfferNumber (G-3) membuat nomor offer otomatis dengan format
+// OFF-YYYYMM-XXXXXXXX (pola sama generateRequisitionNumber G-2).
+func generateOfferNumber() string {
+	return fmt.Sprintf("OFF-%s-%s", time.Now().Format("200601"), strings.ToUpper(uuid.New().String()[:8]))
+}
+
+// isOfferExpired (G-3) membandingkan expiry_date (YYYY-MM-DD) dengan hari ini.
+// Expiry kosong = tidak ada batas (tidak pernah expired).
+func isOfferExpired(expiryDate string) bool {
+	if expiryDate == "" {
+		return false
+	}
+	expiry, err := time.Parse("2006-01-02", expiryDate)
+	if err != nil {
+		// Format tak dikenal — jangan blokir accept (fail-open).
+		return false
+	}
+	today := time.Now().Format("2006-01-02")
+	todayParsed, _ := time.Parse("2006-01-02", today)
+	return expiry.Before(todayParsed)
+}
+
 // =========================================================================
 // Response converters
 // =========================================================================
@@ -1419,6 +1774,27 @@ func requisitionToResponse(r *JobRequisition) *RequisitionResponse {
 	}
 	if r.TargetStartDate != nil {
 		resp.TargetStartDate = *r.TargetStartDate
+	}
+	return resp
+}
+
+func offerToResponse(o *JobOffer) *OfferResponse {
+	resp := &OfferResponse{
+		ID:             o.ID.String(),
+		ApplicationID:  o.ApplicationID.String(),
+		OfferNumber:    o.OfferNumber,
+		EmploymentType: o.EmploymentType,
+		Salary:         o.Salary,
+		Allowances:     o.Allowances,
+		Benefits:       o.Benefits,
+		StartDate:      o.StartDate,
+		ExpiryDate:     o.ExpiryDate,
+		Status:         string(o.Status),
+		CreatedAt:      o.CreatedAt,
+		UpdatedAt:      o.UpdatedAt,
+	}
+	if o.ApprovalInstanceID != nil {
+		resp.ApprovalInstanceID = o.ApprovalInstanceID.String()
 	}
 	return resp
 }

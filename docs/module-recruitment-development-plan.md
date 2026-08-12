@@ -4,9 +4,10 @@
 > ✅ **Fakta aktual (audit 2026-08-12):** modul ini **bukan greenfield** — backend ATS dasar sudah diimplementasikan penuh (7 entity, 33 endpoint, 75 test) dan FE masih placeholder "Coming soon". Bagian "target" di dokumen ini (offer, stage history, screening, assessment, scorecard, approval, candidate enhancement, dst.) adalah **rencana enhancement**, bukan status.
 > 🔎 **Sumber:** struktur tabel `015_recruitment.sql` (mysql + postgres) + audit `backend/internal/modules/recruitment/` (model.go, service.go, handler.go, routes.go, module.go) + `frontend/tenant/src/views/modules/Recruitment.vue` + `frontend/tenant/src/router/index.js` + cross-reference `docs/module-notification-plan.md` (§5/§9: "Recruitment belum tersentuh" untuk integrasi approval/notifier) + `docs/module-recruitment-strategic-layer-plan.md` (rumah item strategic layer yang dipisah) + `docs/go-module-architecture-report.md` + `docs/project-completion-dashboard.md`.
 > 📊 **Progres implementasi (per 2026-08-12):** ✅ 1) Backend ATS lengkap — 7 GORM entity (`JobRequisition`, `Candidate`, `JobApplication`, `Interview`, `OnboardingTaskTemplate`, `EmployeeOnboarding`, `OnboardingTaskItem`) + enum status · ✅ 2) 33 endpoint CRUD/pipeline di 7 resource group · ✅ 3) Seeder 10 onboarding task template default · ✅ 4) 75 test (handler 28 + repository 27 + service 20) · ✅ 5) pipeline aplikasi (status + timestamp otomatis + auto `slots_filled` saat ACCEPTED) · ❌ 6) Frontend masih placeholder ("Coming soon") — hanya route/menu/locale/dashboard card · ⏳ 7) Integrasi operasional dua arah dengan modul lain (Module Approval, Notifier, Employee, Employee Movement) — **belum ada**; Employee 🔶 sebagian (onboarding menunjuk `employee_id` tanpa FK) · 🚫 8) **Scoping 2026-08-12:** Recruitment = **module operasional** — strategic layer (Workforce Intelligence, Career Intelligence, Succession, Performance, Training, Quality of Hire) **dipisah dari plan ini** — out of scope, dikelola modul masing-masing (§5.2).
-> ⏳ **Sisa TODO (per review 2026-08-12):** seluruh Gap §7 (G-1 s.d. G-12) — prioritas P0: integrasi approval (G-1), enhancement requisition (G-2), offer management (G-3), Recruitment → Employee/Movement (G-4), pipeline stage history (G-5), halaman FE penuh (G-12).
+> ⏳ **Sisa TODO (per review 2026-08-12):** Gap §7 G-4 s.d. G-12 — prioritas P0 berikutnya: Recruitment → Employee/Movement (G-4), pipeline stage history (G-5), halaman FE penuh (G-12).
 > ✅ **G-1 selesai (2026-08-12):** requisition → Central Approval (migration 093, interface `ApprovalEngine`, `SubmitRequisition` DRAFT→SUBMITTED, push-callback APPROVED→OPEN / REJECTED / CANCELLED, endpoint `POST /recruitment/requisitions/:id/submit`, wiring main.go) — lihat §G-1. Bagian offer workflow menunggu G-3 (entity `job_offers` belum ada).
 > ✅ **G-2 selesai (2026-08-12):** requisition enhancement (migration 094: `requisition_number` auto REQ-YYYYMM-XXXXXXXX, `priority` LOW/MEDIUM/HIGH/URGENT default MEDIUM, `position_id` referensi master position, `opened_at` diset otomatis saat OPEN) — lihat §G-2. `approval_status` TIDAK ditambahkan (G-1 sudah meng-cover via status requisition + approval_instance_id).
+> ✅ **G-3 selesai (2026-08-12):** offer management (migration 095 tabel `job_offers`; workflow DRAFT → PENDING_APPROVAL → APPROVED → SENT → ACCEPTED/REJECTED/EXPIRED/WITHDRAWN via Central Approval modul `recruitment_offer`; accept menautkan application ACCEPTED + `slots_filled`++ dengan guard idempotensi; expired guard) — lihat §G-3. BE lengkap (123 test), FE menunggu G-12.
 > 🔧 **Catatan konsistensi docs:** `project-completion-dashboard.md` masih mencatat plan ini sebagai "📋 Proposal — belum dieksekusi; backend ATS dasar sudah ada, FE masih Coming soon" — setelah revisi ini, baris tersebut sebaiknya di-update mengikuti ringkasan status di header di atas.
 
 ---
@@ -49,7 +50,7 @@ Recruitment Pipeline
 Status per bagian:
 
 - **ATS dasar (CRUD requisition/candidate/application/interview/onboarding)** — ✅ sudah diimplementasikan (lihat §3.1).
-- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** + **G-2 requisition enhancement ✅** (2026-08-12); sisanya rencana (lihat Gap Analysis §7).
+- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** + **G-2 requisition enhancement ✅** + **G-3 offer management ✅** (2026-08-12); sisanya rencana (lihat Gap Analysis §7).
 
 ---
 
@@ -343,7 +344,7 @@ candidates
 
 # 7. Gap Analysis & Enhancement Plan
 
-> ⚠️ Prioritas diurutkan berdasarkan dampak bisnis. Seluruh gap di bawah adalah **rencana** (belum dieksekusi per 2026-08-12).
+> ⚠️ Prioritas diurutkan berdasarkan dampak bisnis. G-1 s.d. G-3 ✅ (2026-08-12); gap di bawah sisanya rencana (belum dieksekusi).
 
 ## G-1 ✅ MODULE APPROVAL INTEGRATION (requisition ✅ · offer → G-3)
 
@@ -387,22 +388,34 @@ Catatan: hasil approval tersimpan di instance Approval module (source of truth);
 
 **Ref:** plan asli §7, §8, §50.
 
-## G-3 🔴 OFFER MANAGEMENT (entity baru)
+## G-3 ✅ OFFER MANAGEMENT (entity baru)
 
-**Status: ⏳ Belum — entity `job_offers` tidak ada sama sekali.**
+**Status: ✅ Selesai (2026-08-12) — BE lengkap; FE menunggu G-12.**
 
-**Rencana (fields minimal):**
+**Yang diimplementasikan:**
+- **Migration `095_recruitment_offer`** (pg + mysql, up/down idempotent): tabel baru `job_offers` — `id`, `application_id` (FK → `job_applications`), `offer_number`, `employment_type`, `salary`, `allowances`, `benefits`, `start_date`, `expiry_date`, `status` (default DRAFT), `sent_at`/`accepted_at`/`rejected_at` (bigint unix nano), `approval_instance_id` (CHAR(36) NULL), timestamps; index `idx_offer_app` + `idx_offer_status`.
+- **Model:** `JobOffer` + enum `OfferStatus` (`DRAFT, PENDING_APPROVAL, APPROVED, SENT, ACCEPTED, REJECTED, EXPIRED, WITHDRAWN`).
+- **Service:**
+  - `CreateOffer` — auto `offer_number` `OFF-YYYYMM-XXXXXXXX` (8 hex char, pola G-2) + validasi application exists.
+  - `UpdateOffer` / `DeleteOffer` — hanya offer **DRAFT** yang bisa diedit/dihapus.
+  - `SubmitOffer` — DRAFT → PENDING_APPROVAL via Central Approval modul **`recruitment_offer`** + auto-resolve flow aktif (pola G-1 requisition).
+  - `HandleOfferApprovalStatusChange` — push-callback (hanya PENDING_APPROVAL diproses, idempotent): APPROVED → APPROVED, REJECTED → REJECTED, CANCELLED → WITHDRAWN.
+  - `SendOffer` — APPROVED → SENT (+`sent_at`).
+  - `AcceptOffer` — SENT → ACCEPTED (+`accepted_at`) dengan **guard expired** (offer melewati `expiry_date` tidak dapat diterima → otomatis EXPIRED); penerimaan menautkan balik ke application (→ ACCEPTED) dan **`slots_filled`++** requisition (→ FILLED bila penuh) dengan **guard idempotensi**: tidak double-count bila application sudah ACCEPTED (jalur manual `UpdateApplicationStatus` / offer lain).
+  - `RejectOffer` — SENT → REJECTED (+`rejected_at`, catatan kandidat menolak).
+  - `WithdrawOffer` — DRAFT/APPROVED → WITHDRAWN (recruiter menarik).
+- **Handler/Routes:** CRUD `/recruitment/offers` + `POST /offers/:id/{submit,send,accept,reject,withdraw}`.
+- **Wiring `cmd/server/main.go`:** `approvalSvc.RegisterStatusHandler("recruitment_offer", ...)`.
+- **Test:** +12 service test (create + format OFF- 19 char, invalid application, submit creates instance + auto-resolve flow, approval callback rejected, chain approval→send→accept (application ACCEPTED + slots_filled), expired accept guard, reject, withdraw, update/delete only-draft, **no double-increment slots_filled**). Total recruitment test: **123**.
+
+**Workflow offer (aktual):**
 
 ```text
-id, application_id, offer_number, employment_type, salary, allowances, benefits,
-start_date, expiry_date, status, sent_at, accepted_at, rejected_at, approval_instance_id, timestamps
+DRAFT → (Submit) → PENDING_APPROVAL → (Module Approval) → APPROVED → (Send) → SENT → (Candidate) → ACCEPTED / REJECTED / EXPIRED
+         └────────────── (Withdraw) → WITHDRAWN ──────────────────────────┘
 ```
 
-Status: `DRAFT, PENDING_APPROVAL, APPROVED, SENT, ACCEPTED, REJECTED, EXPIRED, WITHDRAWN`.
-
-Flow: `Recruiter → Offer Draft → Module Approval → Approved → Offer Sent → Candidate → Accepted`.
-
-Business rules: hanya candidate eligible yang menerima offer; offer expired tidak dapat diterima; offer accepted menghasilkan Employee (external) atau Employee Movement (internal).
+Catatan: `offer accepted` menghasilkan Employee (external, G-4) atau Employee Movement (internal, G-4). `accepted` menautkan application ke ACCEPTED + increment `slots_filled` — fondasi G-4.
 
 **Ref:** plan asli §26-§27.
 

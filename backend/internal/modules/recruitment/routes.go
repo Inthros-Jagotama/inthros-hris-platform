@@ -15,6 +15,19 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// G-1: submit requisition draft ke Central Approval (single approval path)
 		rec.POST("/requisitions/:id/submit", handler.SubmitRequisition)
 
+		// Job Offers (G-3)
+		rec.POST("/offers", handler.CreateOffer)
+		rec.GET("/offers", handler.ListOffers)
+		rec.GET("/offers/:id", handler.GetOfferByID)
+		rec.PUT("/offers/:id", handler.UpdateOffer)
+		rec.DELETE("/offers/:id", handler.DeleteOffer)
+		// G-3: workflow offer — submit ke Central Approval + transisi status
+		rec.POST("/offers/:id/submit", handler.SubmitOffer)
+		rec.POST("/offers/:id/send", handler.SendOffer)
+		rec.POST("/offers/:id/accept", handler.AcceptOffer)
+		rec.POST("/offers/:id/reject", handler.RejectOffer)
+		rec.POST("/offers/:id/withdraw", handler.WithdrawOffer)
+
 		// Candidates
 		rec.POST("/candidates", handler.CreateCandidate)
 		rec.GET("/candidates", handler.ListCandidates)

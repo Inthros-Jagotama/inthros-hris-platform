@@ -21,6 +21,7 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&Candidate{},
 		&JobApplication{},
 		&Interview{},
+		&JobOffer{},
 		&OnboardingTaskTemplate{},
 		&EmployeeOnboarding{},
 		&OnboardingTaskItem{},

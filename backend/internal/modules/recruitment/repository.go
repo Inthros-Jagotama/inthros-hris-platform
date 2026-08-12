@@ -92,6 +92,77 @@ func (r *Repository) DeleteRequisition(ctx context.Context, id uuid.UUID) error 
 }
 
 // =========================================================================
+// Job Offers (G-3)
+// =========================================================================
+
+func (r *Repository) CreateOffer(ctx context.Context, o *JobOffer) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(o).Error
+}
+
+func (r *Repository) FindOfferByID(ctx context.Context, id uuid.UUID) (*JobOffer, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var o JobOffer
+	if err := db.WithContext(ctx).First(&o, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("offer not found")
+		}
+		return nil, err
+	}
+	return &o, nil
+}
+
+func (r *Repository) ListOffers(ctx context.Context, applicationID *uuid.UUID, status *string, page, perPage int) ([]JobOffer, int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var list []JobOffer
+	var total int64
+	query := db.WithContext(ctx).Model(&JobOffer{})
+	if applicationID != nil {
+		query = query.Where("application_id = ?", *applicationID)
+	}
+	if status != nil && *status != "" {
+		query = query.Where("status = ?", *status)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&list).Error; err != nil {
+		return nil, 0, err
+	}
+	return list, total, nil
+}
+
+func (r *Repository) UpdateOffer(ctx context.Context, o *JobOffer) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(o).Error
+}
+
+func (r *Repository) DeleteOffer(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&JobOffer{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("offer not found")
+	}
+	return result.Error
+}
+
+// =========================================================================
 // Candidates
 // =========================================================================
 

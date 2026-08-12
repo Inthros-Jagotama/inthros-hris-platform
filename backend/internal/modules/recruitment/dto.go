@@ -94,6 +94,51 @@ type RequisitionResponse struct {
 }
 
 // =========================================================================
+// Job Offer DTOs (G-3)
+// =========================================================================
+
+type CreateOfferRequest struct {
+	ApplicationID  string  `json:"application_id" binding:"required"`
+	EmploymentType string  `json:"employment_type" binding:"omitempty,max=50"`
+	Salary         float64 `json:"salary"`
+	Allowances     float64 `json:"allowances"`
+	Benefits       string  `json:"benefits"`
+	StartDate      string  `json:"start_date" binding:"omitempty,max=10"`
+	ExpiryDate     string  `json:"expiry_date" binding:"omitempty,max=10"`
+}
+
+type UpdateOfferRequest struct {
+	EmploymentType *string  `json:"employment_type" binding:"omitempty,max=50"`
+	Salary         *float64 `json:"salary"`
+	Allowances     *float64 `json:"allowances"`
+	Benefits       *string  `json:"benefits"`
+	StartDate      *string  `json:"start_date" binding:"omitempty,max=10"`
+	ExpiryDate     *string  `json:"expiry_date" binding:"omitempty,max=10"`
+}
+
+// SubmitOfferRequest mengirim offer draft ke Central Approval (G-3). FlowID
+// opsional — bila kosong, flow aktif modul "recruitment_offer" di-auto-resolve.
+type SubmitOfferRequest struct {
+	FlowID *string `json:"flow_id"`
+}
+
+type OfferResponse struct {
+	ID                 string    `json:"id"`
+	ApplicationID      string    `json:"application_id"`
+	OfferNumber        string    `json:"offer_number,omitempty"`
+	EmploymentType     string    `json:"employment_type"`
+	Salary             float64   `json:"salary"`
+	Allowances         float64   `json:"allowances"`
+	Benefits           string    `json:"benefits"`
+	StartDate          string    `json:"start_date"`
+	ExpiryDate         string    `json:"expiry_date"`
+	Status             string    `json:"status"`
+	ApprovalInstanceID string    `json:"approval_instance_id,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+// =========================================================================
 // Candidate DTOs
 // =========================================================================
 

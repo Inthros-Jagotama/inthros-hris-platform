@@ -111,6 +111,138 @@ func (h *Handler) SubmitRequisition(c *gin.Context) {
 }
 
 // =========================================================================
+// Job Offers (G-3)
+// =========================================================================
+
+func (h *Handler) CreateOffer(c *gin.Context) {
+	var req CreateOfferRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateOffer(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListOffers(c *gin.Context) {
+	page, perPage := parsePagination(c)
+	applicationID := c.Query("application_id")
+	status := c.Query("status")
+	var appPtr *string
+	if applicationID != "" {
+		appPtr = &applicationID
+	}
+	resp, err := h.svc.ListOffers(c.Request.Context(), appPtr, &status, page, perPage)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetOfferByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetOfferByID(c.Request.Context(), id)
+	if err != nil {
+		httputil.NotFound(c, "")
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateOffer(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateOfferRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateOffer(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteOffer(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteOffer(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// SubmitOffer menangani POST /api/v1/tenant/recruitment/offers/:id/submit
+// Routes the offer through the central approval module (plan G-3).
+func (h *Handler) SubmitOffer(c *gin.Context) {
+	id := c.Param("id")
+	var req SubmitOfferRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	flowID := ""
+	if req.FlowID != nil {
+		flowID = *req.FlowID
+	}
+	resp, err := h.svc.SubmitOffer(c.Request.Context(), id, flowID)
+	if err != nil {
+		// Approval routing/assignee failures (approval.RoutingError) get a
+		// bilingual 400 so the user sees why their submission didn't reach
+		// an approver instead of a raw internal error.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) SendOffer(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.SendOffer(c.Request.Context(), id)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) AcceptOffer(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.AcceptOffer(c.Request.Context(), id)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) RejectOffer(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.RejectOffer(c.Request.Context(), id)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) WithdrawOffer(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.WithdrawOffer(c.Request.Context(), id)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// =========================================================================
 // Candidates
 // =========================================================================
 

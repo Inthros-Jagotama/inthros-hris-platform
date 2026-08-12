@@ -3,7 +3,9 @@ package recruitment
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -1456,5 +1458,341 @@ func TestService_UpdateRequisition_SetPriorityAndNumber(t *testing.T) {
 	}
 	if updated.RequisitionNumber != number {
 		t.Errorf("expected requisition_number %q, got %q", number, updated.RequisitionNumber)
+	}
+}
+
+// =========================================================================
+// G-3 - Job Offer management
+// =========================================================================
+
+// seedOffer membuat requisition + candidate + application, lalu offer DRAFT
+// dengan expiry date yang dikirim pemanggil (untuk test expired).
+func seedOffer(t *testing.T, svc *Service, ctx context.Context, expiry string) *OfferResponse {
+	return seedOfferWithEmail(t, svc, ctx, expiry, "john.offer@test.com")
+}
+
+func seedOfferWithEmail(t *testing.T, svc *Service, ctx context.Context, expiry, email string) *OfferResponse {
+	t.Helper()
+	req, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(), Title: "Software Engineer",
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	cand, err := svc.CreateCandidate(ctx, CreateCandidateRequest{
+		FirstName: "John", LastName: "Doe", Email: email,
+	})
+	if err != nil {
+		t.Fatalf("CreateCandidate failed: %v", err)
+	}
+	app, err := svc.CreateApplication(ctx, CreateApplicationRequest{
+		RequisitionID: req.ID, CandidateID: cand.ID,
+	})
+	if err != nil {
+		t.Fatalf("CreateApplication failed: %v", err)
+	}
+	offer, err := svc.CreateOffer(ctx, CreateOfferRequest{
+		ApplicationID: app.ID, EmploymentType: "FULL_TIME",
+		Salary: 10000000, StartDate: "2026-09-01", ExpiryDate: expiry,
+	})
+	if err != nil {
+		t.Fatalf("CreateOffer failed: %v", err)
+	}
+	return offer
+}
+
+func seedDraftOffer(t *testing.T, svc *Service, ctx context.Context) *OfferResponse {
+	t.Helper()
+	return seedOffer(t, svc, ctx, time.Now().AddDate(0, 0, 30).Format("2006-01-02"))
+}
+
+// approveAndSendOffer memajukan offer DRAFT -> APPROVED -> SENT (G-3).
+func approveAndSendOffer(t *testing.T, svc *Service, ctx context.Context, offerID string) string {
+	t.Helper()
+	submitted, err := svc.SubmitOffer(ctx, offerID, uuid.New().String())
+	if err != nil {
+		t.Fatalf("SubmitOffer failed: %v", err)
+	}
+	if err := svc.HandleOfferApprovalStatusChange(ctx, uuid.MustParse(submitted.ID), "APPROVED", ""); err != nil {
+		t.Fatalf("HandleOfferApprovalStatusChange failed: %v", err)
+	}
+	if _, err := svc.SendOffer(ctx, submitted.ID); err != nil {
+		t.Fatalf("SendOffer failed: %v", err)
+	}
+	return submitted.ID
+}
+
+func TestService_CreateOffer(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	if offer.Status != string(OfferStatusDraft) {
+		t.Errorf("expected status DRAFT, got %s", offer.Status)
+	}
+	if offer.OfferNumber == "" {
+		t.Error("expected auto-generated offer_number")
+	}
+	if !strings.HasPrefix(offer.OfferNumber, "OFF-") {
+		t.Errorf("expected OFF- prefix, got %s", offer.OfferNumber)
+	}
+	if len(offer.OfferNumber) != 19 {
+		t.Errorf("expected offer_number length 19, got %d (%s)", len(offer.OfferNumber), offer.OfferNumber)
+	}
+}
+
+func TestService_CreateOffer_InvalidApplication(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	_, err := svc.CreateOffer(context.Background(), CreateOfferRequest{
+		ApplicationID: uuid.New().String(),
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid application_id")
+	}
+}
+
+func TestService_SubmitOffer_CreatesInstance(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	instanceID := uuid.New().String()
+	engine := &fakeApprovalEngine{instanceID: instanceID, flowID: uuid.New().String()}
+	svc.SetApprovalEngine(engine)
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	resp, err := svc.SubmitOffer(ctx, offer.ID, uuid.New().String())
+	if err != nil {
+		t.Fatalf("SubmitOffer failed: %v", err)
+	}
+	if resp.Status != string(OfferStatusPendingApproval) {
+		t.Errorf("expected status PENDING_APPROVAL, got %s", resp.Status)
+	}
+	if resp.ApprovalInstanceID != instanceID {
+		t.Errorf("expected approval_instance_id %s, got %s", instanceID, resp.ApprovalInstanceID)
+	}
+	if engine.createdModule != "recruitment_offer" {
+		t.Errorf("expected module 'recruitment_offer', got %q", engine.createdModule)
+	}
+	if engine.createdDocID != offer.ID {
+		t.Errorf("expected document_id %s, got %s", offer.ID, engine.createdDocID)
+	}
+}
+
+func TestService_SubmitOffer_AutoResolveFlow(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	flowID := uuid.New().String()
+	engine := &fakeApprovalEngine{instanceID: uuid.New().String(), flowID: flowID}
+	svc.SetApprovalEngine(engine)
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	resp, err := svc.SubmitOffer(ctx, offer.ID, "")
+	if err != nil {
+		t.Fatalf("SubmitOffer auto-resolve failed: %v", err)
+	}
+	if resp.Status != string(OfferStatusPendingApproval) {
+		t.Errorf("expected status PENDING_APPROVAL, got %s", resp.Status)
+	}
+	if engine.createdFlowID != flowID {
+		t.Errorf("expected auto-resolved flow_id %s, got %s", flowID, engine.createdFlowID)
+	}
+}
+
+func TestService_HandleOfferApprovalStatusChange_Rejected(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	submitted, err := svc.SubmitOffer(ctx, offer.ID, uuid.New().String())
+	if err != nil {
+		t.Fatalf("SubmitOffer failed: %v", err)
+	}
+	if err := svc.HandleOfferApprovalStatusChange(ctx, uuid.MustParse(submitted.ID), "REJECTED", "salary too high"); err != nil {
+		t.Fatalf("HandleOfferApprovalStatusChange failed: %v", err)
+	}
+	persisted, _ := svc.GetOfferByID(ctx, submitted.ID)
+	if persisted.Status != string(OfferStatusRejected) {
+		t.Errorf("expected status REJECTED after approval reject, got %s", persisted.Status)
+	}
+}
+
+func TestService_OfferApproval_Sent_Accepted(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	submitted, err := svc.SubmitOffer(ctx, offer.ID, uuid.New().String())
+	if err != nil {
+		t.Fatalf("SubmitOffer failed: %v", err)
+	}
+	if err := svc.HandleOfferApprovalStatusChange(ctx, uuid.MustParse(submitted.ID), "APPROVED", ""); err != nil {
+		t.Fatalf("HandleOfferApprovalStatusChange failed: %v", err)
+	}
+	persisted, _ := svc.GetOfferByID(ctx, submitted.ID)
+	if persisted.Status != string(OfferStatusApproved) {
+		t.Errorf("expected status APPROVED after approval, got %s", persisted.Status)
+	}
+
+	sent, err := svc.SendOffer(ctx, submitted.ID)
+	if err != nil {
+		t.Fatalf("SendOffer failed: %v", err)
+	}
+	if sent.Status != string(OfferStatusSent) {
+		t.Errorf("expected status SENT, got %s", sent.Status)
+	}
+
+	accepted, err := svc.AcceptOffer(ctx, submitted.ID)
+	if err != nil {
+		t.Fatalf("AcceptOffer failed: %v", err)
+	}
+	if accepted.Status != string(OfferStatusAccepted) {
+		t.Errorf("expected status ACCEPTED, got %s", accepted.Status)
+	}
+
+	app, err := svc.GetApplicationByID(ctx, accepted.ApplicationID)
+	if err != nil {
+		t.Fatalf("GetApplicationByID failed: %v", err)
+	}
+	if app.Status != string(CandStatusAccepted) {
+		t.Errorf("expected application ACCEPTED, got %s", app.Status)
+	}
+	req, err := svc.GetRequisitionByID(ctx, app.RequisitionID)
+	if err != nil {
+		t.Fatalf("GetRequisitionByID failed: %v", err)
+	}
+	if req.SlotsFilled < 1 {
+		t.Errorf("expected slots_filled >= 1 after offer accept, got %d", req.SlotsFilled)
+	}
+}
+
+func TestService_AcceptOffer_NoDoubleIncrementSlotsFilled(t *testing.T) {
+	// Idempotensi (G-3): aplikasi sudah ACCEPTED (jalur manual
+	// UpdateApplicationStatus) lalu AcceptOffer — slots_filled TIDAK boleh
+	// naik dua kali untuk satu kandidat.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	app, err := svc.GetApplicationByID(ctx, offer.ApplicationID)
+	if err != nil {
+		t.Fatalf("GetApplicationByID failed: %v", err)
+	}
+
+	// Aplikasi di-ACCEPTED manual dulu (jalur G-1 — sudah increment).
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", ""); err != nil {
+		t.Fatalf("UpdateApplicationStatus failed: %v", err)
+	}
+	reqBefore, _ := svc.GetRequisitionByID(ctx, app.RequisitionID)
+	slotsBefore := reqBefore.SlotsFilled
+
+	// Offer tetap bisa di-accept (status offer SENT) — tidak boleh menambah slot.
+	offerID := approveAndSendOffer(t, svc, ctx, offer.ID)
+	accepted, err := svc.AcceptOffer(ctx, offerID)
+	if err != nil {
+		t.Fatalf("AcceptOffer failed: %v", err)
+	}
+	if accepted.Status != string(OfferStatusAccepted) {
+		t.Errorf("expected status ACCEPTED, got %s", accepted.Status)
+	}
+	reqAfter, _ := svc.GetRequisitionByID(ctx, app.RequisitionID)
+	if reqAfter.SlotsFilled != slotsBefore {
+		t.Errorf("expected slots_filled unchanged (%d), got %d", slotsBefore, reqAfter.SlotsFilled)
+	}
+}
+
+func TestService_AcceptOffer_Expired(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	past := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
+	offer := seedOffer(t, svc, ctx, past)
+	offerID := approveAndSendOffer(t, svc, ctx, offer.ID)
+
+	_, err := svc.AcceptOffer(ctx, offerID)
+	if err == nil {
+		t.Fatal("expected error accepting expired offer")
+	}
+	persisted, _ := svc.GetOfferByID(ctx, offerID)
+	if persisted.Status != string(OfferStatusExpired) {
+		t.Errorf("expected status EXPIRED after expired accept attempt, got %s", persisted.Status)
+	}
+}
+
+func TestService_RejectOffer(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	offerID := approveAndSendOffer(t, svc, ctx, offer.ID)
+
+	rejected, err := svc.RejectOffer(ctx, offerID)
+	if err != nil {
+		t.Fatalf("RejectOffer failed: %v", err)
+	}
+	if rejected.Status != string(OfferStatusRejected) {
+		t.Errorf("expected status REJECTED, got %s", rejected.Status)
+	}
+}
+
+func TestService_WithdrawOffer(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	withdrawn, err := svc.WithdrawOffer(ctx, offer.ID)
+	if err != nil {
+		t.Fatalf("WithdrawOffer failed: %v", err)
+	}
+	if withdrawn.Status != string(OfferStatusWithdrawn) {
+		t.Errorf("expected status WITHDRAWN, got %s", withdrawn.Status)
+	}
+}
+
+func TestService_UpdateOffer_OnlyDraft(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	offerID := approveAndSendOffer(t, svc, ctx, offer.ID)
+
+	_, err := svc.UpdateOffer(ctx, offerID, UpdateOfferRequest{})
+	if err == nil {
+		t.Fatal("expected error updating non-draft offer")
+	}
+}
+
+func TestService_DeleteOffer_OnlyDraft(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	offerID := approveAndSendOffer(t, svc, ctx, offer.ID)
+
+	if err := svc.DeleteOffer(ctx, offerID); err == nil {
+		t.Fatal("expected error deleting non-draft offer")
+	}
+
+	// Draft masih bisa dihapus.
+	other := seedOfferWithEmail(t, svc, ctx, time.Now().AddDate(0, 0, 30).Format("2006-01-02"), "john.other@test.com")
+	if err := svc.DeleteOffer(ctx, other.ID); err != nil {
+		t.Errorf("expected draft offer deletable, got error: %v", err)
 	}
 }

@@ -147,6 +147,61 @@ func (r *JobRequisition) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// OfferStatus (G-3 — offer management)
+// =========================================================================
+
+type OfferStatus string
+
+const (
+	OfferStatusDraft           OfferStatus = "DRAFT"
+	OfferStatusPendingApproval OfferStatus = "PENDING_APPROVAL"
+	OfferStatusApproved        OfferStatus = "APPROVED"
+	OfferStatusSent            OfferStatus = "SENT"
+	OfferStatusAccepted        OfferStatus = "ACCEPTED"
+	OfferStatusRejected        OfferStatus = "REJECTED"
+	OfferStatusExpired         OfferStatus = "EXPIRED"
+	OfferStatusWithdrawn       OfferStatus = "WITHDRAWN"
+)
+
+// =========================================================================
+// JobOffer (G-3 — Penawaran Kerja)
+// =========================================================================
+// Offer dibuat dari application (kandidat + requisition), dirutekan melalui
+// Central Approval (workflow OFFER_DRAFT → SUBMITTED → APPROVED → SENT),
+// lalu kandidat menerima/menolak. Status ACCEPTED menautkan kembali ke
+// application (ACCEPTED + slots_filled increment) — fondasi G-4 (employee).
+
+type JobOffer struct {
+	ID                uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	ApplicationID     uuid.UUID  `gorm:"type:char(36);not null;index:idx_offer_app" json:"application_id"`
+	OfferNumber       string     `gorm:"type:varchar(50)" json:"offer_number,omitempty"`
+	EmploymentType    string     `gorm:"type:varchar(50)" json:"employment_type"`
+	Salary            float64    `gorm:"type:decimal(15,2);default:0" json:"salary"`
+	Allowances        float64    `gorm:"type:decimal(15,2);default:0" json:"allowances"`
+	Benefits          string     `gorm:"type:text" json:"benefits"`
+	StartDate         string     `gorm:"type:varchar(10)" json:"start_date"`
+	ExpiryDate        string     `gorm:"type:varchar(10)" json:"expiry_date"`
+	Status            OfferStatus `gorm:"type:varchar(30);default:DRAFT;index:idx_offer_status" json:"status"`
+	SentAt            *int64     `gorm:"type:bigint;default:0" json:"-"`
+	AcceptedAt        *int64     `gorm:"type:bigint;default:0" json:"-"`
+	RejectedAt        *int64     `gorm:"type:bigint;default:0" json:"-"`
+	ApprovalInstanceID *uuid.UUID `gorm:"type:char(36)" json:"approval_instance_id,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+}
+
+func (JobOffer) TableName() string {
+	return "job_offers"
+}
+
+func (o *JobOffer) BeforeCreate(tx *gorm.DB) error {
+	if o.ID == uuid.Nil {
+		o.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // Candidate (Kandidat Pelamar)
 // =========================================================================
 
