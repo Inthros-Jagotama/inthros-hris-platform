@@ -1243,8 +1243,7 @@ func createQualityOfHireTables(t *testing.T, db *gorm.DB) {
 		`CREATE TABLE employments (
 			id CHAR(36) PRIMARY KEY,
 			employee_id CHAR(36),
-			effective_end_date TEXT NULL,
-			deleted_at DATETIME NULL
+			effective_end_date TEXT NULL
 		)`,
 	}
 	for _, stmt := range statements {

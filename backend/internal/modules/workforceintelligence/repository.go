@@ -813,7 +813,7 @@ func (r *Repository) GetQualityOfHireHires(ctx context.Context) ([]QualityOfHire
 			"COALESCE(eo.employee_id, '') AS employee_id, COALESCE(eo.status, '') AS onboarding_status, "+
 			"(SELECT COALESCE(AVG(i.score), 0) FROM interviews i WHERE i.application_id = a.id AND i.score IS NOT NULL) AS interview_score, "+
 			"(SELECT COALESCE(pe.final_score, 0) FROM performance_evaluations pe WHERE pe.employee_id = eo.employee_id AND pe.status IN (?, ?) ORDER BY pe.updated_at DESC, pe.id DESC LIMIT 1) AS performance_score, "+
-			"(SELECT COUNT(*) FROM employments em WHERE em.employee_id = eo.employee_id AND em.deleted_at IS NULL AND em.effective_end_date IS NULL) AS retained_count",
+			"(SELECT COUNT(*) FROM employments em WHERE em.employee_id = eo.employee_id AND em.effective_end_date IS NULL) AS retained_count",
 			"ACTUAL_APPROVED", "COMPLETED").
 		Joins("JOIN candidates c ON c.id = a.candidate_id").
 		Joins("LEFT JOIN job_requisitions r ON r.id = a.requisition_id").
