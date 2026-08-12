@@ -4,7 +4,7 @@
 > ✅ **Fakta aktual (audit 2026-08-12):** kedua module strategis sudah terimplementasi penuh di sisi backend — **Workforce Intelligence** (gap analysis supply vs demand, projections/hiring needs, `analytics/recruitment`, `candidate-search`) dan **Career Intelligence** (talent maps, career interests, career paths, gap analysis, succession plans). Yang **belum ada** di sisi strategis: integrasi dua arah terstruktur dengan Recruitment (workforce gap → requisition, expected hires → remaining gap, internal candidate via career path, succession fallback, Quality of Hire).
 > 🔎 **Sumber:** `docs/module-recruitment-development-plan.md` §5.2 (Out of Scope) + `docs/workforce-intelligence-training-enhancement-plan.md` + `docs/module-career-intelligence-plan.md` + audit `backend/internal/modules/workforceintelligence/` (routes.go: `analytics/recruitment` L42, `candidate-search` L10, people-analytics L95-101) + `backend/internal/modules/careerintelligence/` + `docs/project-completion-dashboard.md`.
 > 📊 **Progres per 2026-08-12:** ✅ Workforce Intelligence backend (7 entity, 68 endpoint, 108 test — gap analysis, projections, candidate-search, people-analytics) · ✅ Career Intelligence backend (5 sub-module, 21 endpoint: talent maps, interests, career paths, gap analysis, succession) · 🔶 Workforce Intelligence sebagian mengonsumsi data recruitment via `analytics/recruitment` & `candidate-search` (konsumsi sepihak, tanpa flow balik) · ⏳ Integrasi dua arah dengan Recruitment belum ada.
-> ⏳ **Sisa TODO:** Gap §6 — tersisa S-7 (S-1 workforce gap → requisition ✅, S-2 expected hires → remaining gap ✅, S-3 candidate search & recruitment analytics ✅, S-4 internal candidate via career path ✅, S-5 succession fallback ✅, S-6 Quality of Hire ✅ — 12 Agu 2026); prioritas berikutnya: S-7 onboarding → training handoff.
+> ✅ **SELESAI SEMUA (12 Agu 2026):** S-1 workforce gap → requisition ✅ · S-2 expected hires → remaining gap ✅ · S-3 candidate search & recruitment analytics ✅ · S-4 internal candidate via career path ✅ · S-5 succession fallback ✅ · S-6 Quality of Hire ✅ · S-7 onboarding → training handoff ✅ — **strategic layer 7/7 selesai.**
 > 🔧 **Catatan konsistensi docs:** plan ini adalah **"rumah" bagi seluruh item strategis** yang dipisah dari `module-recruitment-development-plan.md` §5.2. Jangan kembalikan item di bawah ini ke plan Recruitment — Recruitment hanya menyediakan data operasional.
 
 ---
@@ -184,12 +184,14 @@ Modul `backend/internal/modules/careerintelligence/` (5 sub-module, 21 endpoint)
 
 ## S-7 🟢 ONBOARDING → TRAINING HANDOFF
 
-**Status: ⏳ Belum.**
+**Status: ✅ SELESAI (12 Agu 2026).**
 
-**Rencana (handoff, bukan eksekusi):**
-- Setelah onboarding selesai, kebutuhan training/development diteruskan ke **Training module** (`Employee → Position → Required Training`).
-- Recruitment/Onboarding **tidak mengeksekusi training** — hanya menghasilkan kebutuhan (prinsip plan Recruitment §4.4).
-- Kepemilikan penuh ada di Training module; WI dapat menganalisis hasilnya (training demand/gap — `workforce-intelligence-training-enhancement-plan.md`).
+**Implementasi (handoff, bukan eksekusi — arah kebalikan dari S-1/S-4/S-5):**
+- Saat `employee_onboardings` bertransisi ke **COMPLETED**, Recruitment **meneruskan kebutuhan training** ke Training module via interface narrow `recruitment.TrainingHandoffProvider` (`CreateOnboardingNeed`) + adapter `trainingHandoffAdapter{trainingSvc}` di `cmd/server/main.go`. Recruitment **tidak mengeksekusi training** — hanya menghasilkan kebutuhan (prinsip plan Recruitment §4.4).
+- Training module menambah source **`ONBOARDING`** (`NeedSourceOnboarding`) — training need dibuat dengan `source_type=ONBOARDING`, `source_id=employee_onboardings.id` (asal kebutuhan terlacak ke onboarding spesifik), `status=OPEN`, `priority=MEDIUM`, reason default "Onboarding completed — training plan handoff". Service `training.CreateOnboardingNeed`.
+- Fail-safe (pola sama S-1/S-4/S-5): provider nil → onboarding tetap selesai, handoff hanya di-log; provider error → onboarding tetap COMPLETED (handoff gagal tidak menggagalkan operasi). Hanya trigger saat status **bertransisi** ke COMPLETED (pola prevStatus, sama S-1/S-5 prevReason) — update berulang status COMPLETED (mis. ubah notes) **tidak** membuat TrainingNeed duplikat.
+- Kepemilikan penuh tetap di Training module; WI dapat menganalisis hasilnya (training demand/gap — `workforce-intelligence-training-enhancement-plan.md`).
+- Test: +7 (Training 2 service — source/reason + persistensi; Recruitment 5 service — trigger, repeated-COMPLETED tanpa duplikat, non-COMPLETED tanpa handoff, provider nil, provider error). OpenAPI: enum `ONBOARDING` + description di Create/UpdateTrainingNeedRequest.
 
 **Ref:** plan asli recruitment §32 · `workforce-intelligence-training-enhancement-plan.md`.
 
@@ -278,7 +280,7 @@ workforce_quality_of_hire
 6. ~~S-3 Enhancement candidate-search & recruitment analytics~~ ✅ 12 Agu 2026
 
 ## P2 — Handoff & polish
-7. S-7 Onboarding → training handoff
+7. ~~S-7 Onboarding → training handoff~~ ✅ 12 Agu 2026
 8. Dashboard "Hiring Plan vs Actual" (WI)
 
 ---
@@ -292,7 +294,7 @@ STEP 3  ✅ S-4  Internal candidate via career path (eligible-employees + invite
 STEP 4  ✅ S-3  Enhancement candidate-search (filter posisi + internal candidate eligible) & recruitment analytics (Time to Hire/Fill, Offer Acceptance, Source Conversion) — SELESAI 12 Agu 2026
 STEP 5  ✅ S-5  Succession fallback → external recruitment (successions/gaps + reason SUCCESSION_GAP + migration 092) — SELESAI 12 Agu 2026
 STEP 6  ✅ S-6  Quality of Hire (analytics/quality-of-hire: interview + onboarding proxy + performance + retention, breakdown by source/requisition/org) — SELESAI 12 Agu 2026
-STEP 7  S-7  Onboarding → training handoff
+STEP 7  ✅ S-7  Onboarding → training handoff (TrainingNeed source ONBOARDING via interface narrow) — SELESAI 12 Agu 2026
 STEP 8  Testing & E2E (strategic layer)
 ```
 
@@ -308,7 +310,7 @@ STEP 8  Testing & E2E (strategic layer)
 - [x] Candidate search mendukung filter posisi + internal candidate eligible; recruitment analytics menghitung Time to Hire/Fill, Offer Acceptance Rate, Source Conversion (S-3). ✅ 12 Agu 2026
 - [x] Succession gap menghasilkan kebutuhan external recruitment (S-5): `GET /successions/gaps` menandai posisi kunci tanpa successor READY_NOW; requisition `reason_type=SUCCESSION_GAP` + `succession_position_id` (migration 092) sebagai fallback. ✅ 12 Agu 2026
 - [x] Metrik Quality of Hire tersedia (S-6): `GET /analytics/quality-of-hire` — interview + onboarding completion (proxy probation) + performance + retention, breakdown by source/requisition/organization; match & assessment placeholder (G-9 & data assessment belum ada). ✅ 12 Agu 2026
-- [ ] Kebutuhan training pasca-onboarding diteruskan ke Training module (S-7).
+- [x] Kebutuhan training pasca-onboarding diteruskan ke Training module (S-7): `TrainingHandoffProvider` + `TrainingNeed` source ONBOARDING (source_id = employee_onboardings.id) saat onboarding COMPLETED; fail-safe nil/error. ✅ 12 Agu 2026
 - [ ] Tidak ada logika strategis yang bocor ke Recruitment (boundary terjaga).
 - [ ] Integration test: Workforce Gap → Requisition · Accepted Offer → Remaining Gap · Career Path → Internal Application · Succession → External Recruitment.
 
@@ -324,4 +326,4 @@ Recruitment            → mencari dan memilih kandidat (operasional — plan te
 Career Intelligence    → menganalisis career, talent, gap, succession (strategis)
 ```
 
-Backend kedua module strategis sudah lengkap; fokus berikutnya adalah **integrasi dua arah** dengan Recruitment (S-1 → S-7) — lihat Gap §4 dan urutan implementasi §9.
+Backend kedua module strategis sudah lengkap dan **integrasi dua arah dengan Recruitment (S-1 → S-7) sudah selesai seluruhnya (12 Agu 2026)** — lihat Gap §4 dan urutan implementasi §9.

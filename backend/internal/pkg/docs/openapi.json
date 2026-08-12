@@ -59359,12 +59359,15 @@
               "CAREER",
               "SUCCESSION",
               "COMPLIANCE",
-              "WORKFORCE"
-            ]
+              "WORKFORCE",
+              "ONBOARDING"
+            ],
+            "description": "ONBOARDING = handoff dari Recruitment saat onboarding selesai (S-7)"
           },
           "source_id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "Referensi sumber (untuk ONBOARDING = employee_onboardings.id)"
           },
           "status": {
             "type": "string",
@@ -59417,12 +59420,15 @@
               "CAREER",
               "SUCCESSION",
               "COMPLIANCE",
-              "WORKFORCE"
-            ]
+              "WORKFORCE",
+              "ONBOARDING"
+            ],
+            "description": "ONBOARDING = handoff dari Recruitment saat onboarding selesai (S-7)"
           },
           "source_id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "Referensi sumber (untuk ONBOARDING = employee_onboardings.id)"
           },
           "status": {
             "type": "string",

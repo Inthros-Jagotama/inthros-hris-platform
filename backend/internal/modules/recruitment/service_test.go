@@ -893,3 +893,148 @@ func TestService_ListCandidates_Search(t *testing.T) {
 		t.Errorf("expected 1 result for 'bob', got %d", resp.Total)
 	}
 }
+
+// =========================================================================
+// Onboarding → Training Handoff (S-7 strategic layer)
+// =========================================================================
+
+type fakeTrainingHandoff struct {
+	calls    int
+	empID    uuid.UUID
+	onbID    uuid.UUID
+	err      error
+}
+
+func (f *fakeTrainingHandoff) CreateOnboardingNeed(ctx context.Context, employeeID, onboardingID uuid.UUID, reason string) error {
+	f.calls++
+	f.empID = employeeID
+	f.onbID = onboardingID
+	return f.err
+}
+
+// seedOnboarding mengembalikan EmployeeOnboarding PENDING untuk test handoff.
+func seedOnboarding(t *testing.T, svc *Service, ctx context.Context) *EmployeeOnboardingResponse {
+	t.Helper()
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(), Title: "Engineer",
+	})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{
+		FirstName: "John", LastName: "Doe", Email: "john@handoff.com",
+	})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{
+		RequisitionID: req.ID, CandidateID: cand.ID,
+	})
+	onb, err := svc.CreateEmployeeOnboarding(ctx, CreateEmployeeOnboardingRequest{
+		EmployeeID:    createTestUUID(),
+		ApplicationID: app.ID,
+		StartDate:     "2026-08-01",
+	})
+	if err != nil {
+		t.Fatalf("CreateEmployeeOnboarding failed: %v", err)
+	}
+	return onb
+}
+
+func TestService_OnboardingComplete_TriggersTrainingHandoff(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	provider := &fakeTrainingHandoff{}
+	svc.SetTrainingHandoffProvider(provider)
+	ctx := context.Background()
+
+	onb := seedOnboarding(t, svc, ctx)
+	status := "COMPLETED"
+	updated, err := svc.UpdateEmployeeOnboarding(ctx, onb.ID, UpdateEmployeeOnboardingRequest{Status: &status})
+	if err != nil {
+		t.Fatalf("UpdateEmployeeOnboarding failed: %v", err)
+	}
+	if updated.Status != "COMPLETED" {
+		t.Errorf("expected status COMPLETED, got %s", updated.Status)
+	}
+	if provider.calls != 1 {
+		t.Fatalf("expected 1 handoff call, got %d", provider.calls)
+	}
+	if provider.onbID.String() != onb.ID || provider.empID.String() != onb.EmployeeID {
+		t.Errorf("expected handoff with onboarding %s + employee %s, got %s/%s",
+			onb.ID, onb.EmployeeID, provider.onbID, provider.empID)
+	}
+}
+
+func TestService_OnboardingRepeatedCompleted_NoDuplicateHandoff(t *testing.T) {
+	// Handoff hanya saat BERTRANSISI ke COMPLETED — update kedua dengan status
+	// yang sama (mis. update notes) tidak membuat TrainingNeed duplikat.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	provider := &fakeTrainingHandoff{}
+	svc.SetTrainingHandoffProvider(provider)
+	ctx := context.Background()
+
+	onb := seedOnboarding(t, svc, ctx)
+	status := "COMPLETED"
+	notes := "updated note"
+	if _, err := svc.UpdateEmployeeOnboarding(ctx, onb.ID, UpdateEmployeeOnboardingRequest{Status: &status}); err != nil {
+		t.Fatalf("first complete failed: %v", err)
+	}
+	if provider.calls != 1 {
+		t.Fatalf("expected 1 handoff after first completion, got %d", provider.calls)
+	}
+	// Update ulang dengan status COMPLETED (notes berubah) — tidak boleh handoff lagi.
+	if _, err := svc.UpdateEmployeeOnboarding(ctx, onb.ID, UpdateEmployeeOnboardingRequest{Status: &status, Notes: &notes}); err != nil {
+		t.Fatalf("second complete update failed: %v", err)
+	}
+	if provider.calls != 1 {
+		t.Errorf("expected still 1 handoff on repeated COMPLETED update, got %d", provider.calls)
+	}
+}
+
+func TestService_OnboardingNotCompleted_NoHandoff(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	provider := &fakeTrainingHandoff{}
+	svc.SetTrainingHandoffProvider(provider)
+	ctx := context.Background()
+
+	onb := seedOnboarding(t, svc, ctx)
+	status := "IN_PROGRESS"
+	if _, err := svc.UpdateEmployeeOnboarding(ctx, onb.ID, UpdateEmployeeOnboardingRequest{Status: &status}); err != nil {
+		t.Fatalf("UpdateEmployeeOnboarding failed: %v", err)
+	}
+	if provider.calls != 0 {
+		t.Errorf("expected no handoff for non-completed status, got %d calls", provider.calls)
+	}
+}
+
+func TestService_OnboardingComplete_NoProviderFallsBack(t *testing.T) {
+	// Provider tidak di-wire (nil) — onboarding tetap selesai tanpa error;
+	// handoff hanya di-log (fail-safe plan S-7).
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	onb := seedOnboarding(t, svc, ctx)
+	status := "COMPLETED"
+	updated, err := svc.UpdateEmployeeOnboarding(ctx, onb.ID, UpdateEmployeeOnboardingRequest{Status: &status})
+	if err != nil {
+		t.Fatalf("UpdateEmployeeOnboarding failed without provider: %v", err)
+	}
+	if updated.Status != "COMPLETED" {
+		t.Errorf("expected status COMPLETED without provider, got %s", updated.Status)
+	}
+}
+
+func TestService_OnboardingComplete_ProviderErrorKeepsCompleted(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetTrainingHandoffProvider(&fakeTrainingHandoff{err: fmt.Errorf("training unavailable")})
+	ctx := context.Background()
+
+	onb := seedOnboarding(t, svc, ctx)
+	status := "COMPLETED"
+	updated, err := svc.UpdateEmployeeOnboarding(ctx, onb.ID, UpdateEmployeeOnboardingRequest{Status: &status})
+	if err != nil {
+		t.Fatalf("UpdateEmployeeOnboarding failed on handoff error: %v", err)
+	}
+	if updated.Status != "COMPLETED" {
+		t.Errorf("expected onboarding stays COMPLETED on handoff error, got %s", updated.Status)
+	}
+}

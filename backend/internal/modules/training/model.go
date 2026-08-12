@@ -470,6 +470,7 @@ const (
 	NeedSourceSuccession  NeedSourceType = "SUCCESSION"
 	NeedSourceCompliance  NeedSourceType = "COMPLIANCE"
 	NeedSourceWorkforce   NeedSourceType = "WORKFORCE"
+	NeedSourceOnboarding  NeedSourceType = "ONBOARDING"
 )
 
 // NeedStatus — status training need.

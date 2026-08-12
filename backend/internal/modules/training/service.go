@@ -2198,6 +2198,32 @@ func (s *Service) CreateNeed(ctx context.Context, req CreateTrainingNeedRequest)
 	return needToResponse(n), nil
 }
 
+// CreateOnboardingNeed (S-7 — onboarding → training handoff) membuat kebutuhan
+// training untuk employee yang baru menyelesaikan onboarding. Dipanggil oleh
+// Recruitment via interface narrow (adapter di cmd/server/main.go) — Training
+// tetap source of truth training; Recruitment hanya menghasilkan kebutuhan
+// (handoff), tidak mengeksekusi training. source_id = employee_onboarding.id
+// sehingga asal kebutuhan terlacak ke onboarding spesifik.
+func (s *Service) CreateOnboardingNeed(ctx context.Context, employeeID, onboardingID uuid.UUID, reason string) (*TrainingNeedResponse, error) {
+	r := reason
+	if r == "" {
+		r = "Onboarding completed — training plan handoff"
+	}
+	srcID := onboardingID
+	n := &TrainingNeed{
+		EmployeeID: &employeeID,
+		Priority:   PriorityMedium,
+		SourceType: NeedSourceOnboarding,
+		SourceID:   &srcID,
+		Status:     NeedStatusOpen,
+		Reason:     &r,
+	}
+	if err := s.repo.CreateNeed(ctx, n); err != nil {
+		return nil, err
+	}
+	return needToResponse(n), nil
+}
+
 func (s *Service) GetNeedByID(ctx context.Context, id string) (*TrainingNeedResponse, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {

@@ -71,12 +71,26 @@ type SuccessionGapProvider interface {
 	SuccessionGapForPosition(ctx context.Context, positionID uuid.UUID) (bool, error)
 }
 
+// TrainingHandoffProvider adalah interface narrow yang dipakai Recruitment
+// untuk meneruskan kebutuhan training/development ke Training module setelah
+// onboarding selesai (plan S-7 — onboarding → training handoff). Recruitment
+// TIDAK mengeksekusi training — ia hanya menghasilkan kebutuhan (handoff);
+// Training tetap source of truth. Implementasi di-wire di cmd/server/main.go
+// melalui adapter (training.Service). Bila provider nil, onboarding tetap
+// bisa diselesaikan tanpa error (fail-safe) — handoff hanya di-log.
+type TrainingHandoffProvider interface {
+	// CreateOnboardingNeed membuat training need source ONBOARDING untuk
+	// employee yang baru menyelesaikan onboarding.
+	CreateOnboardingNeed(ctx context.Context, employeeID, onboardingID uuid.UUID, reason string) error
+}
+
 type Service struct {
 	repo               *Repository
 	logger             *zap.Logger
 	gapProvider        WorkforceGapProvider
 	internalProvider   InternalCandidateProvider
-	successionProvider SuccessionGapProvider
+	successionProvider     SuccessionGapProvider
+	trainingHandoffProvider TrainingHandoffProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -103,6 +117,13 @@ func (s *Service) SetInternalCandidateProvider(p InternalCandidateProvider) {
 // ready successor.
 func (s *Service) SetSuccessionGapProvider(p SuccessionGapProvider) {
 	s.successionProvider = p
+}
+
+// SetTrainingHandoffProvider wires the Training module into this service
+// (plan S-7) so onboarding completion forwards a training need (handoff) —
+// Training tetap source of truth; Recruitment hanya menghasilkan kebutuhan.
+func (s *Service) SetTrainingHandoffProvider(p TrainingHandoffProvider) {
+	s.trainingHandoffProvider = p
 }
 
 // =========================================================================
@@ -910,6 +931,7 @@ func (s *Service) UpdateEmployeeOnboarding(ctx context.Context, id string, req U
 			o.BuddyID = &uid
 		}
 	}
+	prevStatus := o.Status
 	if req.Status != nil {
 		o.Status = *req.Status
 		if *req.Status == "COMPLETED" {
@@ -923,7 +945,39 @@ func (s *Service) UpdateEmployeeOnboarding(ctx context.Context, id string, req U
 	if err := s.repo.UpdateEmployeeOnboarding(ctx, o); err != nil {
 		return nil, err
 	}
+	// S-7: handoff kebutuhan training HANYA saat onboarding BERTRANSIISI menjadi
+	// COMPLETED (prevStatus != COMPLETED) — update berulang status COMPLETED
+	// (mis. update notes pada onboarding yang sudah selesai) tidak membuat
+	// TrainingNeed duplikat. Fail-safe: provider nil/error tidak menggagalkan
+	// penyelesaian onboarding.
+	if req.Status != nil && *req.Status == "COMPLETED" && prevStatus != "COMPLETED" {
+		s.handoffOnboardingTraining(ctx, o)
+	}
 	return onboardingToResponse(o), nil
+}
+
+// handoffOnboardingTraining (S-7) meneruskan kebutuhan training ke Training
+// module via interface narrow setelah onboarding selesai. Recruitment hanya
+// menghasilkan kebutuhan (handoff) — tidak mengeksekusi training. Reason
+// dikirim kosong; Training module yang mengisi default (satu sumber kebenaran
+// string di training.CreateOnboardingNeed — hindari drift antar-modul).
+func (s *Service) handoffOnboardingTraining(ctx context.Context, o *EmployeeOnboarding) {
+	if s.trainingHandoffProvider == nil {
+		s.logger.Warn("training handoff provider not wired; onboarding completed without training need",
+			zap.String("onboarding_id", o.ID.String()),
+			zap.String("employee_id", o.EmployeeID.String()))
+		return
+	}
+	if err := s.trainingHandoffProvider.CreateOnboardingNeed(ctx, o.EmployeeID, o.ID, ""); err != nil {
+		s.logger.Warn("training handoff failed; onboarding remains completed",
+			zap.String("onboarding_id", o.ID.String()),
+			zap.String("employee_id", o.EmployeeID.String()),
+			zap.Error(err))
+		return
+	}
+	s.logger.Info("Training handoff created after onboarding completion",
+		zap.String("onboarding_id", o.ID.String()),
+		zap.String("employee_id", o.EmployeeID.String()))
 }
 
 func (s *Service) DeleteEmployeeOnboarding(ctx context.Context, id string) error {

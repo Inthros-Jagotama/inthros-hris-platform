@@ -238,6 +238,22 @@ func (a wiInternalCandidateAdapter) EligibleCandidatesForPositions(ctx context.C
 
 // workforceGapAdapter implements recruitment.WorkforceGapProvider using the
 // Workforce Intelligence service (plan S-1 — workforce gap → requisition).
+// trainingHandoffAdapter menghubungkan Recruitment ke Training module
+// (plan S-7 — onboarding → training handoff). Recruitment TIDAK mengeksekusi
+// training — ia hanya menghasilkan kebutuhan saat onboarding selesai; Training
+// tetap source of truth. Arah kebalikan dari adapter S-1/S-4/S-5 (di sini
+// Training yang menerima handoff, bukan Recruitment yang membaca).
+type trainingHandoffAdapter struct {
+	trainingSvc *training.Service
+}
+
+// CreateOnboardingNeed membungkus Training CreateOnboardingNeed: membuat
+// training need source ONBOARDING untuk employee yang menyelesaikan onboarding.
+func (a trainingHandoffAdapter) CreateOnboardingNeed(ctx context.Context, employeeID, onboardingID uuid.UUID, reason string) error {
+	_, err := a.trainingSvc.CreateOnboardingNeed(ctx, employeeID, onboardingID, reason)
+	return err
+}
+
 // successionGapAdapter menghubungkan Career Intelligence ke Recruitment
 // (plan S-5 — succession plan → fallback external recruitment). Recruitment
 // TIDAK menghitung readiness succession sendiri; ia hanya membaca penanda gap
@@ -922,6 +938,7 @@ func main() {
 	recruitmentSvc.SetWorkforceGapProvider(workforceGapAdapter{wiSvc: wiSvc})
 	recruitmentSvc.SetInternalCandidateProvider(internalCandidateAdapter{ciSvc: ciSvc})
 	recruitmentSvc.SetSuccessionGapProvider(successionGapAdapter{ciSvc: ciSvc})
+	recruitmentSvc.SetTrainingHandoffProvider(trainingHandoffAdapter{trainingSvc: trainingSvc})
 
 	// S-3: WI candidate search memakai CI untuk internal candidate eligible
 	// (narrow provider — WI tidak menghitung eligibility sendiri).

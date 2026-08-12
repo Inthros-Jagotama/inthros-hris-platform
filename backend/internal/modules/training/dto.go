@@ -563,7 +563,7 @@ type CreateTrainingNeedRequest struct {
 	CourseID       *string `json:"course_id"`
 	Reason         *string `json:"reason"`
 	Priority       *string `json:"priority" binding:"omitempty,oneof=LOW MEDIUM HIGH URGENT"`
-	SourceType     *string `json:"source_type" binding:"omitempty,oneof=MANUAL PERFORMANCE COMPETENCY CAREER SUCCESSION COMPLIANCE WORKFORCE"`
+	SourceType     *string `json:"source_type" binding:"omitempty,oneof=MANUAL PERFORMANCE COMPETENCY CAREER SUCCESSION COMPLIANCE WORKFORCE ONBOARDING"`
 	SourceID       *string `json:"source_id"`
 	Status         *string `json:"status" binding:"omitempty,oneof=OPEN PLANNED FULFILLED CANCELLED"`
 }
@@ -575,7 +575,7 @@ type UpdateTrainingNeedRequest struct {
 	CourseID       *string `json:"course_id"`
 	Reason         *string `json:"reason"`
 	Priority       *string `json:"priority" binding:"omitempty,oneof=LOW MEDIUM HIGH URGENT"`
-	SourceType     *string `json:"source_type" binding:"omitempty,oneof=MANUAL PERFORMANCE COMPETENCY CAREER SUCCESSION COMPLIANCE WORKFORCE"`
+	SourceType     *string `json:"source_type" binding:"omitempty,oneof=MANUAL PERFORMANCE COMPETENCY CAREER SUCCESSION COMPLIANCE WORKFORCE ONBOARDING"`
 	SourceID       *string `json:"source_id"`
 	Status         *string `json:"status" binding:"omitempty,oneof=OPEN PLANNED FULFILLED CANCELLED"`
 }

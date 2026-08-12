@@ -760,3 +760,56 @@ func TestService_Mandatory_CRUD(t *testing.T) {
 	}
 }
 
+// =========================================================================
+// Onboarding → Training Handoff (S-7) Service Tests
+// =========================================================================
+
+func TestService_CreateOnboardingNeed_SetsSourceAndReason(t *testing.T) {
+	svc := testSvc(t)
+	ctx := testCtx()
+
+	empID := uuid.New()
+	onbID := uuid.New()
+	resp, err := svc.CreateOnboardingNeed(ctx, empID, onbID, "")
+	if err != nil {
+		t.Fatalf("CreateOnboardingNeed failed: %v", err)
+	}
+	if resp.SourceType != string(NeedSourceOnboarding) {
+		t.Errorf("expected source_type ONBOARDING, got %s", resp.SourceType)
+	}
+	if resp.SourceID != onbID.String() {
+		t.Errorf("expected source_id %s (onboarding id), got %s", onbID.String(), resp.SourceID)
+	}
+	if resp.EmployeeID != empID.String() {
+		t.Errorf("expected employee_id %s, got %s", empID.String(), resp.EmployeeID)
+	}
+	if resp.Status != "OPEN" {
+		t.Errorf("expected status OPEN, got %s", resp.Status)
+	}
+	if resp.Reason == "" {
+		t.Error("expected default reason to be set")
+	}
+
+	// Verifikasi tersimpan di DB (bukan hanya response in-memory).
+	found, err := svc.GetNeedByID(ctx, resp.ID)
+	if err != nil {
+		t.Fatalf("GetNeedByID failed: %v", err)
+	}
+	if found.SourceType != string(NeedSourceOnboarding) || found.SourceID != onbID.String() {
+		t.Errorf("expected persisted need source ONBOARDING + source_id, got %+v", found)
+	}
+}
+
+func TestService_CreateOnboardingNeed_CustomReason(t *testing.T) {
+	svc := testSvc(t)
+	ctx := testCtx()
+
+	resp, err := svc.CreateOnboardingNeed(ctx, uuid.New(), uuid.New(), "IT orientation required")
+	if err != nil {
+		t.Fatalf("CreateOnboardingNeed failed: %v", err)
+	}
+	if resp.Reason != "IT orientation required" {
+		t.Errorf("expected custom reason, got %s", resp.Reason)
+	}
+}
+
