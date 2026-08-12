@@ -24,19 +24,42 @@ Auto-generated on create, format `CAND-YYYYMM-XXXXXXXX`, following the exact exi
 
 ### `candidate_educations` (new table)
 
+Mirrors the existing `EmployeeEducation` pattern (`backend/internal/modules/employee/model.go:148-163`) rather than inventing a new shape: `level` references the existing seeded `setting.Education` master (rows are exactly `SD/SMP/SMA/D3/S1/S2/S3/...`, see `tenantseed/seed_data.go`), and `major` references the existing seeded `setting.EducationMajor` master, both nullable with a free-text fallback for values not present in the master (same dual `*ID` + free-text-string pattern `EmployeeEducation` already uses for major).
+
 | Column | Type | Notes |
 |---|---|---|
 | `id` | CHAR(36) PK | |
 | `candidate_id` | CHAR(36) NOT NULL | FK → `candidates`, index |
-| `level` | VARCHAR(20) NOT NULL | `SD, SMP, SMA, D3, S1, S2, S3, OTHER` |
+| `education_id` | CHAR(36) NULL | FK → `setting.educations` (the level master: SD/SMP/SMA/D3/S1/S2/S3/...) — nullable since not every historical record will match a master row |
 | `institution_name` | VARCHAR(255) NOT NULL | |
-| `major` | VARCHAR(255) NULL | |
+| `education_major_id` | CHAR(36) NULL | FK → `setting.education_majors` |
+| `major` | VARCHAR(255) NULL | free-text fallback when the major isn't in the master (mirrors `EmployeeEducation.Major`) |
 | `gpa` | DECIMAL(3,2) NULL | |
 | `start_year` | INT NULL | |
 | `end_year` | INT NULL | |
 | `is_highest` | BOOLEAN NOT NULL DEFAULT false | marks the candidate's highest completed education among their rows (no DB-level single-row enforcement — service layer may optionally unset others on write, but this is not required for this iteration; a candidate may have zero or more than one marked `true` if the caller sets it inconsistently) |
 | `notes` | TEXT NULL | |
 | `created_at`, `updated_at` | TIMESTAMP | |
+
+GORM model should include the same read-only relation fields `EmployeeEducation` uses: `Education *setting.Education` and `EducationMajor *setting.EducationMajor` (both `gorm:"foreignKey:..."`, `json:"-"` — not serialized directly). The response DTO instead exposes flattened expanded names, mirroring `employee.EducationResponse` (`dto.go:228-236`) exactly:
+
+```go
+type CandidateEducationResponse struct {
+	ID               string `json:"id"`
+	EducationID      string `json:"education_id,omitempty"`
+	EducationMajorID string `json:"education_major_id,omitempty"`
+	MajorName        string `json:"major_name,omitempty"` // resolved from EducationMajor.Name when education_major_id is set
+	InstitutionName  string `json:"institution_name"`
+	Major            string `json:"major,omitempty"`       // free-text fallback
+	GPA              string `json:"gpa,omitempty"`
+	StartYear        int    `json:"start_year,omitempty"`
+	EndYear          int    `json:"end_year,omitempty"`
+	IsHighest        bool   `json:"is_highest"`
+	Notes            string `json:"notes,omitempty"`
+}
+```
+
+`candidate_work_experiences` has no analogous master reference (employer/job-title have no master table in this codebase) — its design stays as specified below, unrelated to this change.
 
 ### `candidate_work_experiences` (new table)
 
