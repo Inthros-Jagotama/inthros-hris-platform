@@ -273,6 +273,58 @@ func (a *JobApplication) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// RecruitmentStage (G-5 — master stage, seeded dari CandidateStatus)
+// =========================================================================
+// Seeded 1:1 dari 8 CandidateStatus existing (bukan taxonomy baru) — lihat
+// docs/superpowers/specs/2026-08-12-recruitment-stage-history-design.md.
+
+type RecruitmentStage struct {
+	ID        uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	Code      string    `gorm:"type:varchar(20);not null;uniqueIndex:uq_recruitment_stages_code" json:"code"`
+	Name      string    `gorm:"type:varchar(100);not null" json:"name"`
+	SortOrder int       `gorm:"type:int;default:0" json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (RecruitmentStage) TableName() string {
+	return "recruitment_stages"
+}
+
+func (s *RecruitmentStage) BeforeCreate(tx *gorm.DB) error {
+	if s.ID == uuid.Nil {
+		s.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// ApplicationStageHistory (G-5 — audit trail transisi status aplikasi)
+// =========================================================================
+
+type ApplicationStageHistory struct {
+	ID            uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	ApplicationID uuid.UUID  `gorm:"type:char(36);not null;index:idx_ash_app" json:"application_id"`
+	FromStageID   *uuid.UUID `gorm:"type:char(36)" json:"from_stage_id,omitempty"`
+	ToStageID     uuid.UUID  `gorm:"type:char(36);not null" json:"to_stage_id"`
+	ChangedBy     *uuid.UUID `gorm:"type:char(36)" json:"changed_by,omitempty"`
+	Notes         string     `gorm:"type:text" json:"notes"`
+	ChangedAt     int64      `gorm:"type:bigint;not null;index:idx_ash_changed_at" json:"changed_at"`
+	CreatedAt     time.Time  `json:"created_at"`
+}
+
+func (ApplicationStageHistory) TableName() string {
+	return "job_application_stage_histories"
+}
+
+func (h *ApplicationStageHistory) BeforeCreate(tx *gorm.DB) error {
+	if h.ID == uuid.Nil {
+		h.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // Interview (Wawancara)
 // =========================================================================
 
