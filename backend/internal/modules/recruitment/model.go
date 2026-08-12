@@ -5,6 +5,8 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/inthros/hris-platform/internal/modules/setting"
 )
 
 // =========================================================================
@@ -218,6 +220,7 @@ type Candidate struct {
 	PortfolioURL  *string        `gorm:"type:text" json:"portfolio_url,omitempty"`
 	LinkedInURL   *string        `gorm:"type:text" json:"linkedin_url,omitempty"`
 	Source        string         `gorm:"type:varchar(50);default:direct" json:"source"`
+	CandidateNumber string         `gorm:"type:varchar(50)" json:"candidate_number,omitempty"`
 	Notes         string         `gorm:"type:text" json:"notes"`
 	// G-4: jenis kandidat — EXTERNAL (default, dibuatkan employee baru saat
 	// offer diterima) atau INTERNAL (menunjuk employee_id yang sudah ada;
@@ -235,6 +238,75 @@ func (Candidate) TableName() string {
 func (c *Candidate) BeforeCreate(tx *gorm.DB) error {
 	if c.ID == uuid.Nil {
 		c.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// CandidateEducation (G-6 — riwayat pendidikan kandidat)
+// =========================================================================
+// education_id/education_major_id merujuk ke master setting.Education/
+// EducationMajor (pola sama employee.EmployeeEducation) — nullable dengan
+// fallback teks bebas (Major) untuk nilai yang belum ada di master.
+
+type CandidateEducation struct {
+	ID               uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	CandidateID      uuid.UUID  `gorm:"type:char(36);not null;index:idx_cand_edu_candidate" json:"candidate_id"`
+	EducationID      *uuid.UUID `gorm:"type:char(36)" json:"education_id,omitempty"`
+	InstitutionName  string     `gorm:"type:varchar(255);not null" json:"institution_name"`
+	EducationMajorID *uuid.UUID `gorm:"type:char(36)" json:"education_major_id,omitempty"`
+	Major            *string    `gorm:"type:varchar(255)" json:"major,omitempty"`
+	GPA              *float64   `gorm:"type:decimal(3,2)" json:"gpa,omitempty"`
+	StartYear        *int       `gorm:"type:int" json:"start_year,omitempty"`
+	EndYear          *int       `gorm:"type:int" json:"end_year,omitempty"`
+	IsHighest        bool       `gorm:"type:boolean;default:false" json:"is_highest"`
+	Notes            string     `gorm:"type:text" json:"notes,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+
+	// Relasi read-only (settings module) — dipakai untuk expand MajorName di
+	// response, tidak diserialisasi langsung (pola employee.EmployeeEducation).
+	Education      *setting.Education      `gorm:"foreignKey:EducationID" json:"-"`
+	EducationMajor *setting.EducationMajor `gorm:"foreignKey:EducationMajorID" json:"-"`
+}
+
+func (CandidateEducation) TableName() string {
+	return "candidate_educations"
+}
+
+func (e *CandidateEducation) BeforeCreate(tx *gorm.DB) error {
+	if e.ID == uuid.Nil {
+		e.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// CandidateWorkExperience (G-6 — riwayat pekerjaan kandidat)
+// =========================================================================
+// Tanpa master employer/job-title (tidak ada di sistem) — field teks bebas.
+
+type CandidateWorkExperience struct {
+	ID             uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	CandidateID    uuid.UUID  `gorm:"type:char(36);not null;index:idx_cand_exp_candidate" json:"candidate_id"`
+	CompanyName    string     `gorm:"type:varchar(255);not null" json:"company_name"`
+	JobTitle       string     `gorm:"type:varchar(255);not null" json:"job_title"`
+	EmploymentType *string    `gorm:"type:varchar(50)" json:"employment_type,omitempty"`
+	StartDate      string     `gorm:"type:date;not null" json:"start_date"`
+	EndDate        *string    `gorm:"type:date" json:"end_date,omitempty"`
+	IsCurrent      bool       `gorm:"type:boolean;default:false" json:"is_current"`
+	Description    string     `gorm:"type:text" json:"description,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+func (CandidateWorkExperience) TableName() string {
+	return "candidate_work_experiences"
+}
+
+func (e *CandidateWorkExperience) BeforeCreate(tx *gorm.DB) error {
+	if e.ID == uuid.Nil {
+		e.ID = uuid.New()
 	}
 	return nil
 }
