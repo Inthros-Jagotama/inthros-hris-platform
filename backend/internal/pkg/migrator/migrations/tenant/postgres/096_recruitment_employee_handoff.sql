@@ -18,7 +18,7 @@
 --
 -- Idempotent: ADD COLUMN IF NOT EXISTS.
 
-ALTER TABLE employee
+ALTER TABLE employees
     ADD COLUMN IF NOT EXISTS recruited_from_application_id CHAR(36) NULL;
 
 ALTER TABLE candidates

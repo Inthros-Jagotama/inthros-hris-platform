@@ -22,11 +22,11 @@ SET @add_recruited_from_application_id = IF(
   EXISTS(
     SELECT 1 FROM information_schema.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'employee'
+      AND TABLE_NAME = 'employees'
       AND COLUMN_NAME = 'recruited_from_application_id'
   ),
   'DO 0',
-  'ALTER TABLE employee ADD COLUMN recruited_from_application_id CHAR(36) NULL'
+  'ALTER TABLE employees ADD COLUMN recruited_from_application_id CHAR(36) NULL'
 );
 PREPARE stmt FROM @add_recruited_from_application_id;
 EXECUTE stmt;
