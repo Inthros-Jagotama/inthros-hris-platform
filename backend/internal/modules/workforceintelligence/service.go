@@ -17,12 +17,43 @@ const (
 )
 
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
+	repo               *Repository
+	logger             *zap.Logger
+	internalEligProvider InternalEligibilityProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// =========================================================================
+// Internal Candidate Eligibility Provider (S-3)
+// =========================================================================
+
+// EligibleInternalCandidate adalah employee internal yang eligible untuk
+// sebuah target position (hasil perhitungan Career Intelligence — WI hanya
+// meneruskan, tidak menghitung eligibility sendiri).
+type EligibleInternalCandidate struct {
+	EmployeeID          string
+	Name                string
+	CurrentPositionID   string
+	CurrentPositionName string
+	SourceStepSequence  int
+}
+
+// InternalEligibilityProvider adalah interface narrow yang dipakai WI untuk
+// membaca employee internal yang eligible bagi posisi-posisi lowong pada
+// candidate search (plan S-3 — integrasi internal candidate eligible).
+// Implementasi di-wire di cmd/server/main.go melalui adapter
+// (careerintelligence.Service). Bila provider nil, list kosong (fail-safe).
+// Kunci map = target position ID (uuid string).
+type InternalEligibilityProvider interface {
+	EligibleCandidatesForPositions(ctx context.Context, targetPositionIDs []uuid.UUID) (map[string][]EligibleInternalCandidate, error)
+}
+
+// SetInternalEligibilityProvider wires Career Intelligence ke candidate search.
+func (s *Service) SetInternalEligibilityProvider(p InternalEligibilityProvider) {
+	s.internalEligProvider = p
 }
 
 // =========================================================================
@@ -341,10 +372,10 @@ func (s *Service) GetHeadcountAnalytics(ctx context.Context) (*HeadcountAnalytic
 }
 
 // GetRecruitmentAnalytics menghitung metrik pipeline recruitment dari data
-// operasional (S-2 — expected hires → remaining gap): open positions,
-// accepted offers (expected hires), filled positions, dan pipeline per status.
-// TimeToHire / CostPerHire tetap placeholder (butuh data durasi & biaya
-// per-hire yang belum dikumpulkan Recruitment).
+// operasional (S-2 — expected hires → remaining gap) plus metrik advanced
+// (S-3): Time to Hire, Time to Fill, Offer Acceptance Rate, Source
+// Conversion. CandidateMatchScore & CostPerHire tetap placeholder — data
+// kompetensi kandidat (G-9) dan biaya per-hire belum dikumpulkan.
 func (s *Service) GetRecruitmentAnalytics(ctx context.Context) (*RecruitmentAnalytics, error) {
 	// Gap analysis periode berjalan sudah menghitung expected hires, open
 	// positions, filled positions & remaining gap — reuse, hindari double-read.
@@ -362,19 +393,68 @@ func (s *Service) GetRecruitmentAnalytics(ctx context.Context) (*RecruitmentAnal
 		pipeline = []DataPoint{}
 	}
 
-	// Funnel memakai data pipeline yang sama (field historis); TimeToHire /
-	// CostPerHire tetap placeholder (butuh data durasi & biaya per-hire).
+	// S-3: metrik advanced dihitung dari data operasional recruitment.
+	timeToHire, _ := s.repo.GetRecruitmentTimeToHire(ctx)
+	offerAccept, _ := s.repo.GetRecruitmentOfferAcceptance(ctx)
+	timeToFill := s.computeTimeToFill(ctx)
+	sourceRows, _ := s.repo.GetRecruitmentSourceConversion(ctx)
+
+	bySource := make([]DataPoint, 0, len(sourceRows))
+	sourceConv := make([]SourceConversionMetric, 0, len(sourceRows))
+	for _, sr := range sourceRows {
+		bySource = append(bySource, DataPoint{Label: sr.Source, Value: float64(sr.Candidates)})
+		rate := 0.0
+		if sr.Candidates > 0 {
+			rate = round1(float64(sr.Hires) / float64(sr.Candidates) * 100)
+		}
+		sourceConv = append(sourceConv, SourceConversionMetric{
+			Source:         sr.Source,
+			Candidates:     int(sr.Candidates),
+			Hires:          int(sr.Hires),
+			ConversionRate: rate,
+		})
+	}
+
+	offerAcceptanceRate := 0.0
+	if offerAccept.Offered > 0 {
+		offerAcceptanceRate = round1(float64(offerAccept.Accepted) / float64(offerAccept.Offered) * 100)
+	}
+
+	// Funnel memakai data pipeline yang sama (field historis).
 	return &RecruitmentAnalytics{
-		TimeToHire:      45.5,
-		CostPerHire:     2500000,
-		BySource:        []DataPoint{},
-		Funnel:          pipeline,
-		ExpectedHires:   gapResp.ExpectedHires,
-		OpenPositions:   gapResp.OpenPositions,
-		FilledPositions: gapResp.FilledPositions,
-		RemainingGap:    gapResp.RemainingGap,
-		Pipeline:        pipeline,
+		TimeToHire:          timeToHire,
+		TimeToFill:          timeToFill,
+		OfferAcceptanceRate: offerAcceptanceRate,
+		// CandidateMatchScore & CostPerHire placeholder: butuh data kompetensi
+		// kandidat (G-9) & biaya per-hire yang belum dikumpulkan Recruitment.
+		CandidateMatchScore: 0,
+		CostPerHire:         2500000,
+		BySource:            bySource,
+		SourceConversion:    sourceConv,
+		Funnel:              pipeline,
+		ExpectedHires:       gapResp.ExpectedHires,
+		OpenPositions:       gapResp.OpenPositions,
+		FilledPositions:     gapResp.FilledPositions,
+		RemainingGap:        gapResp.RemainingGap,
+		Pipeline:            pipeline,
 	}, nil
+}
+
+// computeTimeToFill menghitung rata-rata Time to Fill (hari) dari requisition
+// FILLED: selisih closed_at (ms) terhadap created_at (timestamp) — dihitung
+// di aplikasi agar kompatibel lintas dialek database. Catatan: closed_at
+// disimpan sebagai epoch ms (UTC); created_at TIMESTAMP dibaca sebagai UTC
+// (asumsi session time_zone UTC) sehingga selisihnya konsisten.
+func (s *Service) computeTimeToFill(ctx context.Context) float64 {
+	rows, err := s.repo.GetRecruitmentFilledRequisitionDurations(ctx)
+	if err != nil || len(rows) == 0 {
+		return 0
+	}
+	var total float64
+	for _, row := range rows {
+		total += float64(row.ClosedAt - row.CreatedAt.UnixMilli())
+	}
+	return round1(total / float64(len(rows)) / 86400000.0)
 }
 
 func (s *Service) GetMovementAnalytics(ctx context.Context, period string) (*MovementAnalytics, error) {
@@ -1163,8 +1243,9 @@ func healthScoreToResponse(hs *WorkforceHealthScore) *HealthScoreResponse {
 
 // CandidateSearch mencari posisi kosong (organisasi tanpa employment aktif di
 // bawah Organization Summary active) beserta kandidat recruitment yang melamar
-// ke requisition pada posisi tsb.
-func (s *Service) CandidateSearch(ctx context.Context, search string, page, perPage int) (*PaginatedResponse, error) {
+// ke requisition pada posisi tsb. S-3: mendukung filter posisi dan integrasi
+// internal candidate eligible (Career Intelligence via narrow provider).
+func (s *Service) CandidateSearch(ctx context.Context, search, position string, page, perPage int) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
@@ -1172,12 +1253,15 @@ func (s *Service) CandidateSearch(ctx context.Context, search string, page, perP
 		perPage = defaultPerPage
 	}
 
-	var searchPtr *string
+	var searchPtr, positionPtr *string
 	if search != "" {
 		searchPtr = &search
 	}
+	if position != "" {
+		positionPtr = &position
+	}
 
-	rows, total, err := s.repo.CandidateSearchVacantOrgs(ctx, searchPtr, page, perPage)
+	rows, total, err := s.repo.CandidateSearchVacantOrgs(ctx, searchPtr, positionPtr, page, perPage)
 	if err != nil {
 		return nil, err
 	}
@@ -1188,6 +1272,9 @@ func (s *Service) CandidateSearch(ctx context.Context, search string, page, perP
 			orgIDs = append(orgIDs, uid)
 		}
 	}
+
+	// S-3: internal candidate eligible per posisi lowong (Career Intelligence).
+	internalByOrg := s.resolveEligibleInternalCandidates(ctx, orgIDs)
 
 	candRows, err := s.repo.CandidateSearchCandidatesByOrgIDs(ctx, orgIDs)
 	if err != nil {
@@ -1229,15 +1316,21 @@ func (s *Service) CandidateSearch(ctx context.Context, search string, page, perP
 		if cands == nil {
 			cands = []CandidateSearchCandidate{}
 		}
+		internals := internalByOrg[r.OrganizationID]
+		if internals == nil {
+			internals = []CandidateSearchInternalCandidate{}
+		}
 		responses = append(responses, CandidateSearchPosition{
-			OrganizationID:   r.OrganizationID,
-			OrganizationCode: r.OrganizationCode,
-			OrganizationName: r.OrganizationName,
-			SummaryID:        r.SummaryID,
-			SummaryCode:      r.SummaryCode,
-			SummaryDecreeNo:  r.SummaryDecreeNo,
-			CandidateCount:   len(cands),
-			Candidates:       cands,
+			OrganizationID:        r.OrganizationID,
+			OrganizationCode:      r.OrganizationCode,
+			OrganizationName:      r.OrganizationName,
+			SummaryID:             r.SummaryID,
+			SummaryCode:           r.SummaryCode,
+			SummaryDecreeNo:       r.SummaryDecreeNo,
+			CandidateCount:        len(cands),
+			Candidates:            cands,
+			InternalCandidateCount: len(internals),
+			InternalCandidates:    internals,
 		})
 	}
 
@@ -1249,4 +1342,68 @@ func (s *Service) CandidateSearch(ctx context.Context, search string, page, perP
 		Total:      total,
 		TotalPages: calcTotalPages(total, perPage),
 	}, nil
+}
+
+// resolveEligibleInternalCandidates meminta Career Intelligence (via narrow
+// provider) employee internal yang eligible untuk position-position pada
+// organisasi lowong; hasil dikelompokkan per organization_id. Fail-safe:
+// provider nil / error / tanpa positions → peta kosong.
+func (s *Service) resolveEligibleInternalCandidates(ctx context.Context, orgIDs []uuid.UUID) map[string][]CandidateSearchInternalCandidate {
+	result := map[string][]CandidateSearchInternalCandidate{}
+	if s.internalEligProvider == nil || len(orgIDs) == 0 {
+		return result
+	}
+
+	posRows, err := s.repo.CandidateSearchPositionsByOrgIDs(ctx, orgIDs)
+	if err != nil {
+		s.logger.Warn("candidate-search: failed to load positions for internal candidates",
+			zap.Error(err))
+		return result
+	}
+	if len(posRows) == 0 {
+		return result
+	}
+
+	posIDs := make([]uuid.UUID, 0, len(posRows))
+	for _, pr := range posRows {
+		if uid, err := uuid.Parse(pr.ID); err == nil {
+			posIDs = append(posIDs, uid)
+		}
+	}
+
+	elig, err := s.internalEligProvider.EligibleCandidatesForPositions(ctx, posIDs)
+	if err != nil {
+		s.logger.Warn("candidate-search: internal eligibility provider failed; returning without internal candidates",
+			zap.Error(err))
+		return result
+	}
+
+	orgByPos := make(map[string]string, len(posRows))
+	for _, pr := range posRows {
+		orgByPos[pr.ID] = pr.OrganizationID
+	}
+	// Dedupe per employee per org: satu employee bisa eligible via beberapa
+	// position/path pada org yang sama — konsisten dengan dedupe kandidat
+	// eksternal di CandidateSearch.
+	seen := map[string]map[string]bool{} // orgID -> employeeID
+	for posID, cands := range elig {
+		orgID := orgByPos[posID]
+		if seen[orgID] == nil {
+			seen[orgID] = map[string]bool{}
+		}
+		for _, c := range cands {
+			if seen[orgID][c.EmployeeID] {
+				continue
+			}
+			seen[orgID][c.EmployeeID] = true
+			result[orgID] = append(result[orgID], CandidateSearchInternalCandidate{
+				EmployeeID:          c.EmployeeID,
+				Name:                c.Name,
+				CurrentPositionID:   c.CurrentPositionID,
+				CurrentPositionName: c.CurrentPositionName,
+				SourceStepSequence:  c.SourceStepSequence,
+			})
+		}
+	}
+	return result
 }

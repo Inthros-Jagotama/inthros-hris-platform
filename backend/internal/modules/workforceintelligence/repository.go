@@ -3,6 +3,7 @@ package workforceintelligence
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -668,6 +669,112 @@ func (r *Repository) GetRecruitmentPipeline(ctx context.Context) ([]RecruitmentP
 }
 
 // =========================================================================
+// Recruitment Analytics reads (S-3)
+// =========================================================================
+
+// GetRecruitmentTimeToHire mengembalikan rata-rata Time to Hire dalam hari:
+// selisih accepted_at - applied_at (ms) untuk aplikasi berstatus ACCEPTED.
+// Tidak ada aplikasi ter-hire → 0 (fail-safe, tidak error).
+func (r *Repository) GetRecruitmentTimeToHire(ctx context.Context) (float64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var avgMS float64
+	if err := db.WithContext(ctx).Table("job_applications").
+		Select("COALESCE(AVG(accepted_at - applied_at), 0)").
+		Where("status = ? AND applied_at > 0 AND accepted_at > 0", "ACCEPTED").
+		Scan(&avgMS).Error; err != nil {
+		return 0, err
+	}
+	return round1(avgMS / 86400000.0), nil
+}
+
+// FilledRequisitionDuration adalah durasi pengisian satu requisition FILLED
+// (closed_at ms vs created_at timestamp). Dihitung di aplikasi agar kompatibel
+// lintas dialek (BIGINT vs TIMESTAMP).
+type FilledRequisitionDuration struct {
+	ClosedAt  int64
+	CreatedAt time.Time
+}
+
+// GetRecruitmentFilledRequisitionDurations mengembalikan pasangan
+// closed_at/created_at requisition FILLED untuk menghitung Time to Fill.
+func (r *Repository) GetRecruitmentFilledRequisitionDurations(ctx context.Context) ([]FilledRequisitionDuration, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []FilledRequisitionDuration
+	if err := db.WithContext(ctx).Table("job_requisitions").
+		Select("closed_at, created_at").
+		Where("status = ? AND closed_at IS NOT NULL AND closed_at > 0", "FILLED").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// RecruitmentOfferAcceptance adalah pasangan jumlah offer yang dibuat vs
+// jumlah offer yang diterima (ACCEPTED).
+type RecruitmentOfferAcceptance struct {
+	Accepted int64
+	Offered  int64
+}
+
+// GetRecruitmentOfferAcceptance menghitung Offer Acceptance Rate:
+// accepted (status ACCEPTED) vs offered (offered_at terisi atau status
+// OFFERED/ACCEPTED).
+func (r *Repository) GetRecruitmentOfferAcceptance(ctx context.Context) (RecruitmentOfferAcceptance, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return RecruitmentOfferAcceptance{}, err
+	}
+	var row RecruitmentOfferAcceptance
+	if err := db.WithContext(ctx).Table("job_applications").
+		Select("COUNT(CASE WHEN status = ? THEN 1 END) AS accepted, COUNT(CASE WHEN offered_at > 0 OR status IN (?, ?) THEN 1 END) AS offered",
+			"ACCEPTED", "OFFERED", "ACCEPTED").
+		Scan(&row).Error; err != nil {
+		return RecruitmentOfferAcceptance{}, err
+	}
+	return row, nil
+}
+
+// RecruitmentSourceConversion adalah satu baris konversi per source kandidat:
+// jumlah kandidat (distinct) dan jumlah hire (aplikasi ACCEPTED).
+type RecruitmentSourceConversion struct {
+	Source     string
+	Candidates int64
+	Hires      int64
+}
+
+// GetRecruitmentSourceConversion menghitung Source Conversion per channel
+// rekrutmen (candidates.source) → kandidat + hire, untuk conversion rate
+// dan distribusi by source. Catatan: candidates di-DISTINCT, hires tidak
+// (satu kandidat dengan >1 aplikasi ACCEPTED menghitung >1 hire — konsisten
+// dengan semantik "accepted offer").
+func (r *Repository) GetRecruitmentSourceConversion(ctx context.Context) ([]RecruitmentSourceConversion, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []RecruitmentSourceConversion
+	if err := db.WithContext(ctx).Table("candidates c").
+		Select("c.source, COUNT(DISTINCT c.id) AS candidates, COUNT(CASE WHEN a.status = ? THEN 1 END) AS hires", "ACCEPTED").
+		Joins("LEFT JOIN job_applications a ON a.candidate_id = c.id").
+		Group("c.source").
+		Order("candidates DESC").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func round1(v float64) float64 {
+	return math.Round(v*10) / 10
+}
+
+// =========================================================================
 // Candidate Search
 // =========================================================================
 
@@ -678,6 +785,13 @@ type candidateSearchOrgRow struct {
 	SummaryID        string
 	SummaryCode      string
 	SummaryDecreeNo  string
+}
+
+type candidateSearchPositionRow struct {
+	OrganizationID string
+	ID             string
+	Title          string
+	IsActive       bool
 }
 
 type candidateSearchCandidateRow struct {
@@ -697,8 +811,9 @@ type candidateSearchCandidateRow struct {
 // CandidateSearchVacantOrgs mengembalikan organisasi yang LOWONG: tidak ada
 // employment aktif (effective_date <= hari ini dan effective_end_date NULL/>= hari
 // ini) dan berada di bawah Organization Summary berstatus active. Bisa difilter
-// dengan kata kunci (kode/nama org atau kode/decree summary).
-func (r *Repository) CandidateSearchVacantOrgs(ctx context.Context, search *string, page, perPage int) ([]candidateSearchOrgRow, int64, error) {
+// dengan kata kunci (kode/nama org atau kode/decree summary) dan/atau filter
+// posisi (nama/kode organisasi — posisi yang sedang dicari kandidatnya, S-3).
+func (r *Repository) CandidateSearchVacantOrgs(ctx context.Context, search, position *string, page, perPage int) ([]candidateSearchOrgRow, int64, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -715,6 +830,10 @@ func (r *Repository) CandidateSearchVacantOrgs(ctx context.Context, search *stri
 		s := "%" + *search + "%"
 		query = query.Where("(o.code LIKE ? OR o.full_code LIKE ? OR o.nomenclature LIKE ? OR os.code LIKE ? OR os.decree_no LIKE ?)", s, s, s, s, s)
 	}
+	if position != nil && *position != "" {
+		p := "%" + *position + "%"
+		query = query.Where("(o.nomenclature LIKE ? OR o.code LIKE ?)", p, p)
+	}
 
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
@@ -727,6 +846,28 @@ func (r *Repository) CandidateSearchVacantOrgs(ctx context.Context, search *stri
 		return nil, 0, fmt.Errorf("failed to list vacant organizations: %w", err)
 	}
 	return rows, total, nil
+}
+
+// CandidateSearchPositionsByOrgIDs mengembalikan daftar position (katalog
+// positions milik modul organization) yang aktif pada organisasi lowong —
+// dipakai untuk mencocokkan target career path (S-3 integrasi internal
+// candidate eligible, data sumber Career Intelligence).
+func (r *Repository) CandidateSearchPositionsByOrgIDs(ctx context.Context, orgIDs []uuid.UUID) ([]candidateSearchPositionRow, error) {
+	if len(orgIDs) == 0 {
+		return nil, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []candidateSearchPositionRow
+	if err := db.WithContext(ctx).Table("positions").
+		Select("organization_id, id, title, is_active").
+		Where("organization_id IN ? AND is_active = 1", orgIDs).
+		Scan(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to load positions for vacant organizations: %w", err)
+	}
+	return rows, nil
 }
 
 // CandidateSearchCandidatesByOrgIDs mengembalikan kandidat recruitment yang

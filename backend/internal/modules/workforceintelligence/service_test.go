@@ -768,7 +768,7 @@ func TestService_CandidateSearch_GroupsCandidatesByPosition(t *testing.T) {
 	// Aplikasi duplikat ke requisition OPEN lain — harus di-dedupe
 	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'OFFERED')", uuid.New().String(), reqDupID, candID)
 
-	resp, err := svc.CandidateSearch(ctx(), "", 1, 20)
+	resp, err := svc.CandidateSearch(ctx(), "", "", 1, 20)
 	if err != nil {
 		t.Fatalf("CandidateSearch failed: %v", err)
 	}
@@ -805,7 +805,7 @@ func TestService_CandidateSearch_PaginationDefaults(t *testing.T) {
 	svc := NewService(repo, logger)
 	createCandidateSearchTables(t, db)
 
-	resp, err := svc.CandidateSearch(ctx(), "", 0, 0)
+	resp, err := svc.CandidateSearch(ctx(), "", "", 0, 0)
 	if err != nil {
 		t.Fatalf("CandidateSearch failed: %v", err)
 	}
@@ -959,6 +959,230 @@ func TestService_GetGapAnalysis_RemainingGapSubtractsExpectedHires(t *testing.T)
 	}
 	if resp.RemainingGap < 0 {
 		t.Errorf("expected remaining_gap >= 0, got %d", resp.RemainingGap)
+	}
+}
+
+// =========================================================================
+// Recruitment Analytics advanced metrics (S-3)
+// =========================================================================
+
+func TestService_GetRecruitmentAnalytics_AdvancedMetrics(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createRecruitmentAnalyticsTables(t, db)
+	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, deleted_at DATETIME NULL)`).Error; err != nil {
+		t.Fatalf("failed to create employees table: %v", err)
+	}
+
+	orgID := uuid.New().String()
+	reqID := uuid.New().String()
+	reqFilled := uuid.New().String()
+	// Requisition FILLED: created 2026-01-01, closed 10 hari kemudian (ms)
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled, closed_at, created_at) VALUES (?, ?, 'Staff IT', 'FILLED', 2, 2, 1768089600000, '2026-01-01 00:00:00')", reqFilled, orgID)
+	// Requisition OPEN (pipeline tetap terbaca)
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled) VALUES (?, ?, 'Staff IT (OPEN)', 'OPEN', 3, 0)", reqID, orgID)
+
+	c1 := uuid.New().String() // referral, hire 12 hari
+	c2 := uuid.New().String() // referral, tanpa aplikasi
+	c3 := uuid.New().String() // linkedin, hire 1 hari
+	c4 := uuid.New().String() // direct, offer ditolak (OFFERED)
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'A', 'B', 'a@t.local', 'referral')", c1)
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'C', 'D', 'c@t.local', 'referral')", c2)
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'E', 'F', 'e@t.local', 'linkedin')", c3)
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'G', 'H', 'g@t.local', 'direct')", c4)
+	d := int64(86400000)
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status, applied_at, offered_at, accepted_at) VALUES (?, ?, ?, 'ACCEPTED', ?, ?, ?)", uuid.New().String(), reqID, c1, 1767225600000, 1767225600000+10*d, 1767225600000+12*d)
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status, applied_at, offered_at, accepted_at) VALUES (?, ?, ?, 'ACCEPTED', ?, ?, ?)", uuid.New().String(), reqID, c3, 1767225600000, 1767225600000+d, 1767225600000+d)
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status, applied_at, offered_at) VALUES (?, ?, ?, 'OFFERED', ?, ?)", uuid.New().String(), reqID, c4, 1767225600000, 1767225600000+2*d)
+
+	resp, err := svc.GetRecruitmentAnalytics(ctx())
+	if err != nil {
+		t.Fatalf("GetRecruitmentAnalytics failed: %v", err)
+	}
+	// Time to Hire: (12 + 1)/2 = 6.5 hari
+	if resp.TimeToHire != 6.5 {
+		t.Errorf("expected time_to_hire 6.5, got %v", resp.TimeToHire)
+	}
+	// Time to Fill: 10 hari
+	if resp.TimeToFill != 10 {
+		t.Errorf("expected time_to_fill 10, got %v", resp.TimeToFill)
+	}
+	// Offer Acceptance Rate: 2 dari 3 offer = 66.7%
+	if resp.OfferAcceptanceRate != 66.7 {
+		t.Errorf("expected offer_acceptance_rate 66.7, got %v", resp.OfferAcceptanceRate)
+	}
+	// Source Conversion
+	bySource := map[string]SourceConversionMetric{}
+	for _, s := range resp.SourceConversion {
+		bySource[s.Source] = s
+	}
+	if bySource["referral"].Candidates != 2 || bySource["referral"].Hires != 1 || bySource["referral"].ConversionRate != 50 {
+		t.Errorf("unexpected referral conversion: %+v", bySource["referral"])
+	}
+	if bySource["linkedin"].Candidates != 1 || bySource["linkedin"].Hires != 1 || bySource["linkedin"].ConversionRate != 100 {
+		t.Errorf("unexpected linkedin conversion: %+v", bySource["linkedin"])
+	}
+	if bySource["direct"].Candidates != 1 || bySource["direct"].Hires != 0 || bySource["direct"].ConversionRate != 0 {
+		t.Errorf("unexpected direct conversion: %+v", bySource["direct"])
+	}
+	// BySource mengikuti jumlah kandidat per channel
+	if len(resp.BySource) != 3 {
+		t.Errorf("expected 3 by_source entries, got %d", len(resp.BySource))
+	}
+}
+
+// =========================================================================
+// Candidate Search S-3: filter posisi & internal candidate eligible
+// =========================================================================
+
+// fakeEligProvider mengimplementasikan InternalEligibilityProvider untuk test.
+type fakeEligProvider struct {
+	byPos map[string][]EligibleInternalCandidate
+}
+
+func (f fakeEligProvider) EligibleCandidatesForPositions(_ context.Context, ids []uuid.UUID) (map[string][]EligibleInternalCandidate, error) {
+	out := map[string][]EligibleInternalCandidate{}
+	for _, id := range ids {
+		if cands, ok := f.byPos[id.String()]; ok {
+			out[id.String()] = cands
+		}
+	}
+	return out, nil
+}
+
+func TestService_CandidateSearch_PositionFilter(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createCandidateSearchTables(t, db)
+
+	summaryID := uuid.New().String()
+	orgIT := uuid.New().String()
+	orgSales := uuid.New().String()
+	db.Exec("INSERT INTO organization_summaries (id, code, decree_no, decree_date, status) VALUES (?, 'SA-01', 'SK-001', '2024-01-01', 'active')", summaryID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-01', 'SA-01.ORG-01', 'Staff IT')", orgIT, summaryID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-02', 'SA-01.ORG-02', 'Sales Executive')", orgSales, summaryID)
+
+	resp, err := svc.CandidateSearch(ctx(), "", "Staff", 1, 20)
+	if err != nil {
+		t.Fatalf("CandidateSearch failed: %v", err)
+	}
+	if resp.Total != 1 {
+		t.Fatalf("expected 1 vacant position matching 'Staff', got %d", resp.Total)
+	}
+	data := resp.Data.([]CandidateSearchPosition)
+	if data[0].OrganizationID != orgIT {
+		t.Errorf("expected Staff IT org, got %s", data[0].OrganizationName)
+	}
+}
+
+func TestService_CandidateSearch_InternalCandidates(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createCandidateSearchTables(t, db)
+
+	summaryID := uuid.New().String()
+	orgVacant := uuid.New().String()
+	posID := uuid.New().String()
+	db.Exec("INSERT INTO organization_summaries (id, code, decree_no, decree_date, status) VALUES (?, 'SA-01', 'SK-001', '2024-01-01', 'active')", summaryID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-01', 'SA-01.ORG-01', 'Staff IT')", orgVacant, summaryID)
+	db.Exec("INSERT INTO positions (id, organization_id, title, is_active) VALUES (?, ?, 'Staff IT', 1)", posID, orgVacant)
+
+	svc.SetInternalEligibilityProvider(fakeEligProvider{byPos: map[string][]EligibleInternalCandidate{
+		posID: {
+			{EmployeeID: "emp-1", Name: "Budi Santoso", CurrentPositionID: "pos-src", CurrentPositionName: "Supervisor IT", SourceStepSequence: 1},
+		},
+	}})
+
+	resp, err := svc.CandidateSearch(ctx(), "", "", 1, 20)
+	if err != nil {
+		t.Fatalf("CandidateSearch failed: %v", err)
+	}
+	data := resp.Data.([]CandidateSearchPosition)
+	if len(data) != 1 {
+		t.Fatalf("expected 1 vacant position, got %d", len(data))
+	}
+	pos := data[0]
+	if pos.InternalCandidateCount != 1 || len(pos.InternalCandidates) != 1 {
+		t.Fatalf("expected 1 internal candidate, got count=%d len=%d", pos.InternalCandidateCount, len(pos.InternalCandidates))
+	}
+	if pos.InternalCandidates[0].Name != "Budi Santoso" || pos.InternalCandidates[0].SourceStepSequence != 1 {
+		t.Errorf("unexpected internal candidate payload: %+v", pos.InternalCandidates[0])
+	}
+}
+
+func TestService_CandidateSearch_InternalCandidates_DedupedPerOrg(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createCandidateSearchTables(t, db)
+
+	summaryID := uuid.New().String()
+	orgVacant := uuid.New().String()
+	posA := uuid.New().String()
+	posB := uuid.New().String()
+	db.Exec("INSERT INTO organization_summaries (id, code, decree_no, decree_date, status) VALUES (?, 'SA-01', 'SK-001', '2024-01-01', 'active')", summaryID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-01', 'SA-01.ORG-01', 'Staff IT')", orgVacant, summaryID)
+	// Dua position pada org yang sama, keduanya eligible untuk employee yang sama
+	db.Exec("INSERT INTO positions (id, organization_id, title, is_active) VALUES (?, ?, 'Staff IT', 1)", posA, orgVacant)
+	db.Exec("INSERT INTO positions (id, organization_id, title, is_active) VALUES (?, ?, 'Staff IT (B)', 1)", posB, orgVacant)
+
+	svc.SetInternalEligibilityProvider(fakeEligProvider{byPos: map[string][]EligibleInternalCandidate{
+		posA: {{EmployeeID: "emp-1", Name: "Budi Santoso", SourceStepSequence: 1}},
+		posB: {{EmployeeID: "emp-1", Name: "Budi Santoso", SourceStepSequence: 2}},
+	}})
+
+	resp, err := svc.CandidateSearch(ctx(), "", "", 1, 20)
+	if err != nil {
+		t.Fatalf("CandidateSearch failed: %v", err)
+	}
+	data := resp.Data.([]CandidateSearchPosition)
+	pos := data[0]
+	if pos.InternalCandidateCount != 1 || len(pos.InternalCandidates) != 1 {
+		t.Fatalf("expected 1 internal candidate after dedupe, got count=%d len=%d", pos.InternalCandidateCount, len(pos.InternalCandidates))
+	}
+}
+
+func TestService_CandidateSearch_ProviderNil_EmptyInternal(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createCandidateSearchTables(t, db)
+
+	summaryID := uuid.New().String()
+	orgVacant := uuid.New().String()
+	db.Exec("INSERT INTO organization_summaries (id, code, decree_no, decree_date, status) VALUES (?, 'SA-01', 'SK-001', '2024-01-01', 'active')", summaryID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-01', 'SA-01.ORG-01', 'Staff IT')", orgVacant, summaryID)
+
+	// Tanpa SetInternalEligibilityProvider → internal candidates kosong (fail-safe).
+	resp, err := svc.CandidateSearch(ctx(), "", "", 1, 20)
+	if err != nil {
+		t.Fatalf("CandidateSearch failed: %v", err)
+	}
+	data := resp.Data.([]CandidateSearchPosition)
+	if len(data) != 1 {
+		t.Fatalf("expected 1 vacant position, got %d", len(data))
+	}
+	pos := data[0]
+	if pos.InternalCandidateCount != 0 || len(pos.InternalCandidates) != 0 {
+		t.Errorf("expected empty internal candidates without provider, got %+v", pos.InternalCandidates)
 	}
 }
 

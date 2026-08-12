@@ -4,7 +4,7 @@
 > ✅ **Fakta aktual (audit 2026-08-12):** kedua module strategis sudah terimplementasi penuh di sisi backend — **Workforce Intelligence** (gap analysis supply vs demand, projections/hiring needs, `analytics/recruitment`, `candidate-search`) dan **Career Intelligence** (talent maps, career interests, career paths, gap analysis, succession plans). Yang **belum ada** di sisi strategis: integrasi dua arah terstruktur dengan Recruitment (workforce gap → requisition, expected hires → remaining gap, internal candidate via career path, succession fallback, Quality of Hire).
 > 🔎 **Sumber:** `docs/module-recruitment-development-plan.md` §5.2 (Out of Scope) + `docs/workforce-intelligence-training-enhancement-plan.md` + `docs/module-career-intelligence-plan.md` + audit `backend/internal/modules/workforceintelligence/` (routes.go: `analytics/recruitment` L42, `candidate-search` L10, people-analytics L95-101) + `backend/internal/modules/careerintelligence/` + `docs/project-completion-dashboard.md`.
 > 📊 **Progres per 2026-08-12:** ✅ Workforce Intelligence backend (7 entity, 68 endpoint, 108 test — gap analysis, projections, candidate-search, people-analytics) · ✅ Career Intelligence backend (5 sub-module, 21 endpoint: talent maps, interests, career paths, gap analysis, succession) · 🔶 Workforce Intelligence sebagian mengonsumsi data recruitment via `analytics/recruitment` & `candidate-search` (konsumsi sepihak, tanpa flow balik) · ⏳ Integrasi dua arah dengan Recruitment belum ada.
-> ⏳ **Sisa TODO:** Gap §6 — tersisa S-3, S-5, S-6, S-7 (S-1 workforce gap → requisition ✅, S-2 expected hires → remaining gap ✅, S-4 internal candidate via career path ✅ — 12 Agu 2026); prioritas P0 berikutnya: S-5 succession fallback.
+> ⏳ **Sisa TODO:** Gap §6 — tersisa S-5, S-6, S-7 (S-1 workforce gap → requisition ✅, S-2 expected hires → remaining gap ✅, S-3 candidate search & recruitment analytics ✅, S-4 internal candidate via career path ✅ — 12 Agu 2026); prioritas P0 berikutnya: S-5 succession fallback.
 > 🔧 **Catatan konsistensi docs:** plan ini adalah **"rumah" bagi seluruh item strategis** yang dipisah dari `module-recruitment-development-plan.md` §5.2. Jangan kembalikan item di bawah ini ke plan Recruitment — Recruitment hanya menyediakan data operasional.
 
 ---
@@ -130,12 +130,12 @@ Modul `backend/internal/modules/careerintelligence/` (5 sub-module, 21 endpoint)
 
 ## S-3 🟢 CANDIDATE SEARCH & RECRUITMENT ANALYTICS (WI konsumsi)
 
-**Status: 🔶 Sebagian (backend sudah ada).**
+**Status: ✅ SELESAI (12 Agu 2026).**
 
-**Rencana:**
-- `GET /workforce-intelligence/candidate-search` — posisi kosong + kandidat recruitment: **sudah ada**; enhancement: filter kompetensi/posisi & integrasi "internal candidate eligible".
-- `GET /workforce-intelligence/analytics/recruitment` — sudah ada; enhancement metrik: `Time to Hire, Time to Fill, Offer Acceptance Rate, Source Conversion, Candidate Match Score`.
-- Tidak ada perubahan di sisi Recruitment — konsumsi data tetap sepihak.
+**Implementasi:**
+- `GET /workforce-intelligence/candidate-search` — enhancement: filter **posisi** (`?position` — nama/kode organisasi lowong) + integrasi **internal candidate eligible** (Career Intelligence via interface narrow `InternalEligibilityProvider` + adapter `wiInternalCandidateAdapter` di main.go): per posisi lowong ditampilkan `internal_candidate_count` + `internal_candidates` (employee internal yang eligible via career path, di-dedupe per employee). Provider nil → kosong (fail-safe). **Filter kompetensi ditunda** — kandidat eksternal belum punya data kompetensi (G-9 belum diimplementasikan).
+- `GET /workforce-intelligence/analytics/recruitment` — metrik **nyata**: `Time to Hire` (avg accepted_at−applied_at), `Time to Fill` (avg closed_at−created_at requisition FILLED), `Offer Acceptance Rate` (accepted/offered), `Source Conversion` (kandidat→hire per `candidates.source`) + `by_source`; `Candidate Match Score` & `Cost per Hire` tetap placeholder (data kompetensi kandidat G-9 & biaya belum dikumpulkan).
+- Tanpa perubahan di sisi Recruitment — konsumsi data tetap sepihak (WI membaca tabel operasional + CI via provider narrow). +12 test (WI 120 → 132); OpenAPI disinkronkan (fix dokumentasi candidate-search yang stale).
 
 **Ref:** plan asli recruitment §37-§39 · `module-recruitment-development-plan.md` G-11.
 
@@ -265,7 +265,7 @@ workforce_quality_of_hire
 
 ## P1 — Metrik & analitik
 5. S-6 Quality of Hire
-6. S-3 Enhancement candidate-search & recruitment analytics
+6. ~~S-3 Enhancement candidate-search & recruitment analytics~~ ✅ 12 Agu 2026
 
 ## P2 — Handoff & polish
 7. S-7 Onboarding → training handoff
@@ -279,9 +279,9 @@ workforce_quality_of_hire
 STEP 1  ✅ S-1  Workforce gap → requisition (interface narrow + migration workforce_gap_id) — SELESAI 12 Agu 2026
 STEP 2  ✅ S-2  Expected hires → remaining gap (WI konsumsi accepted offers) — SELESAI 12 Agu 2026
 STEP 3  ✅ S-4  Internal candidate via career path (eligible-employees + invite to apply) — SELESAI 12 Agu 2026
-STEP 4  S-5  Succession fallback → external recruitment
-STEP 5  S-6  Quality of Hire
-STEP 6  S-3  Enhancement candidate-search & recruitment analytics
+STEP 4  ✅ S-3  Enhancement candidate-search (filter posisi + internal candidate eligible) & recruitment analytics (Time to Hire/Fill, Offer Acceptance, Source Conversion) — SELESAI 12 Agu 2026
+STEP 5  S-5  Succession fallback → external recruitment
+STEP 6  S-6  Quality of Hire
 STEP 7  S-7  Onboarding → training handoff
 STEP 8  Testing & E2E (strategic layer)
 ```
@@ -295,6 +295,7 @@ STEP 8  Testing & E2E (strategic layer)
 - [x] Requisition dapat menautkan `workforce_gap_id` (S-1). ✅ 12 Agu 2026
 - [x] WI menghitung `Remaining Workforce Gap` dari expected hires (S-2). ✅ 12 Agu 2026
 - [x] CI menyediakan daftar employee eligible untuk internal application (S-4). ✅ 12 Agu 2026
+- [x] Candidate search mendukung filter posisi + internal candidate eligible; recruitment analytics menghitung Time to Hire/Fill, Offer Acceptance Rate, Source Conversion (S-3). ✅ 12 Agu 2026
 - [ ] Succession gap menghasilkan kebutuhan external recruitment (S-5).
 - [ ] Metrik Quality of Hire tersedia (S-6).
 - [ ] Kebutuhan training pasca-onboarding diteruskan ke Training module (S-7).

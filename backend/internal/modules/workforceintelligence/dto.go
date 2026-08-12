@@ -196,8 +196,12 @@ type LearningAnalytics struct {
 
 type RecruitmentAnalytics struct {
 	TimeToHire    float64       `json:"time_to_hire"`
+	TimeToFill    float64       `json:"time_to_fill"`
+	OfferAcceptanceRate float64 `json:"offer_acceptance_rate"`
+	CandidateMatchScore float64 `json:"candidate_match_score"`
 	CostPerHire   float64       `json:"cost_per_hire"`
 	BySource      []DataPoint   `json:"by_source"`
+	SourceConversion []SourceConversionMetric `json:"source_conversion"`
 	Funnel        []DataPoint   `json:"funnel"`
 	// S-2: komponen hiring pipeline (Recruitment → WI)
 	ExpectedHires   int       `json:"expected_hires"`
@@ -205,6 +209,16 @@ type RecruitmentAnalytics struct {
 	FilledPositions int       `json:"filled_positions"`
 	RemainingGap    int       `json:"remaining_gap"`
 	Pipeline        []DataPoint `json:"pipeline"`
+}
+
+// SourceConversionMetric adalah konversi kandidat→hire per channel rekrutmen
+// (S-3): candidates (distinct), hires (aplikasi ACCEPTED), dan conversion rate
+// (%).
+type SourceConversionMetric struct {
+	Source         string  `json:"source"`
+	Candidates     int     `json:"candidates"`
+	Hires          int     `json:"hires"`
+	ConversionRate float64 `json:"conversion_rate"`
 }
 
 type MovementAnalytics struct {
@@ -484,6 +498,22 @@ type CandidateSearchPosition struct {
 	SummaryDecreeNo  string                     `json:"summary_decree_no"`
 	CandidateCount   int                        `json:"candidate_count"`
 	Candidates       []CandidateSearchCandidate `json:"candidates"`
+	// S-3: integrasi internal candidate eligible (Career Intelligence) —
+	// employee internal yang eligible via career path menuju position pada
+	// posisi lowong tsb. Kosong bila provider belum di-wire atau tidak ada.
+	InternalCandidateCount int                             `json:"internal_candidate_count"`
+	InternalCandidates     []CandidateSearchInternalCandidate `json:"internal_candidates"`
+}
+
+// CandidateSearchInternalCandidate adalah employee internal yang eligible
+// (perhitungan Career Intelligence — S-3/S-4) untuk posisi pada organisasi
+// lowong, melengkapi kandidat eksternal dari pool recruitment.
+type CandidateSearchInternalCandidate struct {
+	EmployeeID          string `json:"employee_id"`
+	Name                string `json:"name"`
+	CurrentPositionID   string `json:"current_position_id,omitempty"`
+	CurrentPositionName string `json:"current_position_name,omitempty"`
+	SourceStepSequence  int    `json:"source_step_sequence"`
 }
 
 // CandidateSearchCandidate adalah kandidat dari pool recruitment yang melamar

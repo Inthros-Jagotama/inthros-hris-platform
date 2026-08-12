@@ -700,6 +700,12 @@ func createCandidateSearchTables(t *testing.T, db *gorm.DB) {
 			status VARCHAR(50),
 			created_at DATETIME
 		)`,
+		`CREATE TABLE positions (
+			id CHAR(36) PRIMARY KEY,
+			organization_id CHAR(36),
+			title VARCHAR(200),
+			is_active TINYINT(1) DEFAULT 1
+		)`,
 	}
 	for _, stmt := range statements {
 		if err := db.Exec(stmt).Error; err != nil {
@@ -864,7 +870,7 @@ func TestRepo_CandidateSearchVacantOrgs_OnlyActiveEmpty(t *testing.T) {
 	db.Exec("INSERT INTO employments (id, employee_id, organization_id, effective_date, effective_end_date) VALUES (?, ?, ?, '2020-01-01', '2021-01-01')", uuid.New().String(), uuid.New().String(), orgEndedID)
 
 	search := ""
-	rows, total, err := repo.CandidateSearchVacantOrgs(ctx, &search, 1, 20)
+	rows, total, err := repo.CandidateSearchVacantOrgs(ctx, &search, nil, 1, 20)
 	if err != nil {
 		t.Fatalf("CandidateSearchVacantOrgs failed: %v", err)
 	}
@@ -890,7 +896,7 @@ func TestRepo_CandidateSearchVacantOrgs_OnlyActiveEmpty(t *testing.T) {
 	// Search filter by nama posisi (hanya org lowong yang cocok; ORG-02 yang
 	// terisi tidak ikut, jadi 'Manager' hanya match ORG-03)
 	s2 := "Manager"
-	_, total2, err := repo.CandidateSearchVacantOrgs(ctx, &s2, 1, 20)
+	_, total2, err := repo.CandidateSearchVacantOrgs(ctx, &s2, nil, 1, 20)
 	if err != nil {
 		t.Fatalf("CandidateSearchVacantOrgs search failed: %v", err)
 	}
@@ -939,4 +945,249 @@ func TestRepo_CandidateSearchCandidatesByOrgIDs_FiltersRejected(t *testing.T) {
 	if err != nil || empty != nil {
 		t.Errorf("expected nil rows and no error for empty orgIDs, got rows=%v err=%v", empty, err)
 	}
+}
+
+// =========================================================================
+// Recruitment Analytics reads (S-3)
+// =========================================================================
+
+// createRecruitmentAnalyticsTables membuat tabel recruitment dengan kolom
+// timestamp lengkap (applied_at/accepted_at/offered_at/closed_at/created_at)
+// + candidates untuk metrik advanced S-3.
+func createRecruitmentAnalyticsTables(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	statements := []string{
+		`CREATE TABLE job_requisitions (
+			id CHAR(36) PRIMARY KEY,
+			organization_id CHAR(36),
+			title VARCHAR(255),
+			status VARCHAR(20),
+			slots_available INT DEFAULT 1,
+			slots_filled INT DEFAULT 0,
+			closed_at BIGINT DEFAULT 0,
+			created_at DATETIME
+		)`,
+		`CREATE TABLE candidates (
+			id CHAR(36) PRIMARY KEY,
+			first_name VARCHAR(100),
+			last_name VARCHAR(100),
+			email VARCHAR(255),
+			source VARCHAR(50)
+		)`,
+		`CREATE TABLE job_applications (
+			id CHAR(36) PRIMARY KEY,
+			requisition_id CHAR(36),
+			candidate_id CHAR(36),
+			status VARCHAR(50),
+			applied_at BIGINT DEFAULT 0,
+			offered_at BIGINT DEFAULT 0,
+			accepted_at BIGINT DEFAULT 0,
+			created_at DATETIME
+		)`,
+	}
+	for _, stmt := range statements {
+		if err := db.Exec(stmt).Error; err != nil {
+			t.Fatalf("failed to create recruitment analytics table: %v\n%s", err, stmt)
+		}
+	}
+}
+
+func TestRepo_GetRecruitmentTimeToHire_AvgDays(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createRecruitmentAnalyticsTables(t, db)
+	ctx := context.Background()
+
+	reqID := uuid.New().String()
+	cand := uuid.New().String()
+	d := int64(86400000) // 1 hari dalam ms
+	// 12 hari + 1 hari → avg 6.5 hari
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status, applied_at, accepted_at) VALUES (?, ?, ?, 'ACCEPTED', ?, ?)", uuid.New().String(), reqID, cand, 1767225600000, 1767225600000+12*d)
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status, applied_at, accepted_at) VALUES (?, ?, ?, 'ACCEPTED', ?, ?)", uuid.New().String(), reqID, cand, 1767225600000, 1767225600000+d)
+	// Non-hired tidak boleh masuk perhitungan
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status, applied_at, accepted_at) VALUES (?, ?, ?, 'OFFERED', ?, ?)", uuid.New().String(), reqID, cand, 1767225600000, 1767225600000+2*d)
+
+	got, err := repo.GetRecruitmentTimeToHire(ctx)
+	if err != nil {
+		t.Fatalf("GetRecruitmentTimeToHire failed: %v", err)
+	}
+	if got != 6.5 {
+		t.Errorf("expected time to hire 6.5 days, got %v", got)
+	}
+}
+
+func TestRepo_GetRecruitmentTimeToHire_NoHires(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createRecruitmentAnalyticsTables(t, db)
+	ctx := context.Background()
+
+	reqID := uuid.New().String()
+	cand := uuid.New().String()
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'NEW')", uuid.New().String(), reqID, cand)
+
+	got, err := repo.GetRecruitmentTimeToHire(ctx)
+	if err != nil {
+		t.Fatalf("GetRecruitmentTimeToHire failed: %v", err)
+	}
+	if got != 0 {
+		t.Errorf("expected 0 time to hire with no hires, got %v", got)
+	}
+}
+
+func TestRepo_GetRecruitmentOfferAcceptance_Counts(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createRecruitmentAnalyticsTables(t, db)
+	ctx := context.Background()
+
+	reqID := uuid.New().String()
+	cand := uuid.New().String()
+	d := int64(86400000)
+	// 2 ACCEPTED + 2 OFFERED (belum diterima) + 1 NEW → accepted=2, offered=4
+	for i := 0; i < 2; i++ {
+		db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status, offered_at, accepted_at) VALUES (?, ?, ?, 'ACCEPTED', ?, ?)", uuid.New().String(), reqID, cand, 1767225600000, 1767225600000+d)
+	}
+	for i := 0; i < 2; i++ {
+		db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status, offered_at) VALUES (?, ?, ?, 'OFFERED', ?)", uuid.New().String(), reqID, cand, 1767225600000)
+	}
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, 'NEW')", uuid.New().String(), reqID, cand)
+
+	got, err := repo.GetRecruitmentOfferAcceptance(ctx)
+	if err != nil {
+		t.Fatalf("GetRecruitmentOfferAcceptance failed: %v", err)
+	}
+	if got.Accepted != 2 || got.Offered != 4 {
+		t.Errorf("expected accepted=2 offered=4, got %+v", got)
+	}
+}
+
+func TestRepo_GetRecruitmentSourceConversion_ByChannel(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createRecruitmentAnalyticsTables(t, db)
+	ctx := context.Background()
+
+	reqID := uuid.New().String()
+	c1 := uuid.New().String() // referral, di-hire
+	c2 := uuid.New().String() // referral, tanpa aplikasi
+	c3 := uuid.New().String() // linkedin, di-hire
+	c4 := uuid.New().String() // direct, tanpa hire
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'A', 'B', 'a@t.local', 'referral')", c1)
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'C', 'D', 'c@t.local', 'referral')", c2)
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'E', 'F', 'e@t.local', 'linkedin')", c3)
+	db.Exec("INSERT INTO candidates (id, first_name, last_name, email, source) VALUES (?, 'G', 'H', 'g@t.local', 'direct')", c4)
+	d := int64(86400000)
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status, applied_at, accepted_at) VALUES (?, ?, ?, 'ACCEPTED', ?, ?)", uuid.New().String(), reqID, c1, 1767225600000, 1767225600000+d)
+	db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status, applied_at, accepted_at) VALUES (?, ?, ?, 'ACCEPTED', ?, ?)", uuid.New().String(), reqID, c3, 1767225600000, 1767225600000+d)
+
+	rows, err := repo.GetRecruitmentSourceConversion(ctx)
+	if err != nil {
+		t.Fatalf("GetRecruitmentSourceConversion failed: %v", err)
+	}
+	bySource := map[string]RecruitmentSourceConversion{}
+	for _, r := range rows {
+		bySource[r.Source] = r
+	}
+	if bySource["referral"].Candidates != 2 || bySource["referral"].Hires != 1 {
+		t.Errorf("expected referral 2 candidates/1 hire, got %+v", bySource["referral"])
+	}
+	if bySource["linkedin"].Candidates != 1 || bySource["linkedin"].Hires != 1 {
+		t.Errorf("expected linkedin 1 candidate/1 hire, got %+v", bySource["linkedin"])
+	}
+	if bySource["direct"].Candidates != 1 || bySource["direct"].Hires != 0 {
+		t.Errorf("expected direct 1 candidate/0 hire, got %+v", bySource["direct"])
+	}
+}
+
+func TestRepo_GetRecruitmentFilledRequisitionDurations_ReturnsClosed(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createRecruitmentAnalyticsTables(t, db)
+	ctx := context.Background()
+
+	orgID := uuid.New().String()
+	// FILLED dengan closed_at & created_at → ikut dihitung
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, closed_at, created_at) VALUES (?, ?, 'A', 'FILLED', 1768089600000, '2026-01-01 00:00:00')", uuid.New().String(), orgID)
+	// OPEN & FILLED tanpa closed_at → tidak dihitung
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, closed_at, created_at) VALUES (?, ?, 'B', 'FILLED', 0, '2026-01-01 00:00:00')", uuid.New().String(), orgID)
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, created_at) VALUES (?, ?, 'C', 'OPEN', '2026-01-01 00:00:00')", uuid.New().String(), orgID)
+
+	rows, err := repo.GetRecruitmentFilledRequisitionDurations(ctx)
+	if err != nil {
+		t.Fatalf("GetRecruitmentFilledRequisitionDurations failed: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("expected 1 FILLED requisition with closed_at, got %d", len(rows))
+	}
+	if rows[0].ClosedAt != 1768089600000 {
+		t.Errorf("expected closed_at 1768089600000, got %d", rows[0].ClosedAt)
+	}
+}
+
+func TestRepo_CandidateSearchVacantOrgs_PositionFilter(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createCandidateSearchTables(t, db)
+	ctx := context.Background()
+
+	summaryID := uuid.New().String()
+	orgIT := uuid.New().String()
+	orgSales := uuid.New().String()
+	db.Exec("INSERT INTO organization_summaries (id, code, decree_no, decree_date, status) VALUES (?, 'SA-01', 'SK-001', '2024-01-01', 'active')", summaryID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-01', 'SA-01.ORG-01', 'Staff IT')", orgIT, summaryID)
+	db.Exec("INSERT INTO organizations (id, organization_summary_id, code, full_code, nomenclature) VALUES (?, ?, 'ORG-02', 'SA-01.ORG-02', 'Sales Executive')", orgSales, summaryID)
+
+	pos := "Staff"
+	rows, total, err := repo.CandidateSearchVacantOrgs(ctx, nil, &pos, 1, 20)
+	if err != nil {
+		t.Fatalf("CandidateSearchVacantOrgs failed: %v", err)
+	}
+	if total != 1 || len(rows) != 1 || rows[0].OrganizationID != orgIT {
+		t.Fatalf("expected only Staff IT (1), got total=%d rows=%+v", total, rows)
+	}
+}
+
+func TestRepo_CandidateSearchPositionsByOrgIDs_ActiveOnly(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createCandidateSearchTables(t, db)
+	ctx := context.Background()
+
+	orgID := uuid.New().String()
+	otherOrg := uuid.New().String()
+	db.Exec("INSERT INTO positions (id, organization_id, title, is_active) VALUES (?, ?, 'Staff IT', 1)", uuid.New().String(), orgID)
+	db.Exec("INSERT INTO positions (id, organization_id, title, is_active) VALUES (?, ?, 'Supervisor IT', 0)", uuid.New().String(), orgID)
+	db.Exec("INSERT INTO positions (id, organization_id, title, is_active) VALUES (?, ?, 'Lain', 1)", uuid.New().String(), otherOrg)
+
+	rows, err := repo.CandidateSearchPositionsByOrgIDs(ctx, []uuid.UUID{mustUUID(t, orgID)})
+	if err != nil {
+		t.Fatalf("CandidateSearchPositionsByOrgIDs failed: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("expected 1 active position for org, got %d", len(rows))
+	}
+	if rows[0].Title != "Staff IT" {
+		t.Errorf("expected position 'Staff IT', got %s", rows[0].Title)
+	}
+	empty, err := repo.CandidateSearchPositionsByOrgIDs(ctx, nil)
+	if err != nil || empty != nil {
+		t.Errorf("expected nil rows for empty orgIDs, got %v %v", empty, err)
+	}
+}
+
+func mustUUID(t *testing.T, s string) uuid.UUID {
+	t.Helper()
+	uid, err := uuid.Parse(s)
+	if err != nil {
+		t.Fatalf("invalid uuid %s: %v", s, err)
+	}
+	return uid
 }

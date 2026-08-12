@@ -199,6 +199,43 @@ func (a internalCandidateAdapter) EligibleEmployeesForPosition(ctx context.Conte
 	return out, nil
 }
 
+// wiInternalCandidateAdapter implements
+// workforceintelligence.InternalEligibilityProvider using the Career
+// Intelligence service (plan S-3 — integrasi internal candidate eligible di
+// candidate search). WI meminta CI untuk setiap target position; CI yang
+// menghitung eligibility (career path), WI hanya meneruskan hasilnya.
+type wiInternalCandidateAdapter struct {
+	ciSvc  *careerintelligence.Service
+	logger *zap.Logger
+}
+
+// EligibleCandidatesForPositions membungkus CI GetEligibleEmployeesByPosition
+// untuk daftar target position dan memetakan hasilnya per position ID.
+// Satu position gagal tidak menggagalkan keseluruhan batch — error dicatat dan
+// position tsb dilewati (partial result, pola skip-and-continue CI sendiri).
+func (a wiInternalCandidateAdapter) EligibleCandidatesForPositions(ctx context.Context, targetPositionIDs []uuid.UUID) (map[string][]workforceintelligence.EligibleInternalCandidate, error) {
+	out := make(map[string][]workforceintelligence.EligibleInternalCandidate, len(targetPositionIDs))
+	for _, posID := range targetPositionIDs {
+		resp, err := a.ciSvc.GetEligibleEmployeesByPosition(ctx, posID.String())
+		if err != nil {
+			a.logger.Warn("candidate-search: skip position in internal eligibility batch",
+				zap.String("position_id", posID.String()),
+				zap.Error(err))
+			continue
+		}
+		for _, e := range resp {
+			out[posID.String()] = append(out[posID.String()], workforceintelligence.EligibleInternalCandidate{
+				EmployeeID:          e.EmployeeID,
+				Name:                e.Name,
+				CurrentPositionID:   e.CurrentPositionID,
+				CurrentPositionName: e.CurrentPositionName,
+				SourceStepSequence:  e.SourceStepSequence,
+			})
+		}
+	}
+	return out, nil
+}
+
 // workforceGapAdapter implements recruitment.WorkforceGapProvider using the
 // Workforce Intelligence service (plan S-1 — workforce gap → requisition).
 // Recruitment membaca hiring need dari WI; Recruitment TIDAK menghitung gap
@@ -851,6 +888,12 @@ func main() {
 	// careerintelligence.NewModule) so it can back the recruitment module's
 	// narrow InternalCandidateProvider (plan S-4 — internal candidate via
 	// career path) with the same service instance the module's routes use.
+	// (wiInternalCandidateAdapter di-wire setelah ciSvc dibentuk di bawah.)
+
+	// Construct the career intelligence service up front (instead of inside
+	// careerintelligence.NewModule) so it can back the recruitment module's
+	// narrow InternalCandidateProvider (plan S-4 — internal candidate via
+	// career path) with the same service instance the module's routes use.
 	ciResolver := careerintelligence.NewTenantDBResolver(dbManager)
 	ciRepo := careerintelligence.NewRepository(ciResolver)
 	ciSvc := careerintelligence.NewService(ciRepo, l.Named("careerintelligence"))
@@ -864,6 +907,10 @@ func main() {
 	recruitmentSvc := recruitment.NewService(recruitmentRepo, l.Named("recruitment"))
 	recruitmentSvc.SetWorkforceGapProvider(workforceGapAdapter{wiSvc: wiSvc})
 	recruitmentSvc.SetInternalCandidateProvider(internalCandidateAdapter{ciSvc: ciSvc})
+
+	// S-3: WI candidate search memakai CI untuk internal candidate eligible
+	// (narrow provider — WI tidak menghitung eligibility sendiri).
+	wiSvc.SetInternalEligibilityProvider(wiInternalCandidateAdapter{ciSvc: ciSvc, logger: l.Named("wi-internal-candidate-adapter")})
 
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees

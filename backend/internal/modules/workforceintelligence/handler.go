@@ -690,9 +690,11 @@ func (h *Handler) GetKPIByCode(c *gin.Context) {
 // =========================================================================
 
 // CandidateSearch menangani GET /workforce-intelligence/candidate-search
+// Param: search (kata kunci umum), position (filter posisi — nama/kode
+// organisasi), page, per_page.
 func (h *Handler) CandidateSearch(c *gin.Context) {
 	page, perPage := parsePagination(c)
-	resp, err := h.svc.CandidateSearch(c.Request.Context(), c.Query("search"), page, perPage)
+	resp, err := h.svc.CandidateSearch(c.Request.Context(), c.Query("search"), c.Query("position"), page, perPage)
 	if err != nil {
 		httputil.InternalError(c, err.Error())
 		return

@@ -40103,61 +40103,84 @@
       "get": {
         "operationId": "candidateSearch",
         "summary": "Search candidates for open positions",
-        "description": "Cari kandidat recruitment untuk posisi kosong — filter ?position_id / ?status / ?query (non-paginated).",
+        "description": "Cari posisi kosong beserta kandidat recruitment yang melamar. S-3: dukungan filter posisi (?position) dan integrasi internal candidate eligible (Career Intelligence) per posisi. Paginated (?page / ?per_page).",
         "tags": [
           "Tenant: Workforce Intelligence & Strategic Planning"
         ],
         "parameters": [
           {
-            "name": "position_id",
+            "name": "search",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string"
+            },
+            "description": "Kata kunci umum (kode/nama org atau kode/decree summary)"
+          },
+          {
+            "name": "position",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter posisi (nama/kode organisasi lowong) — S-3"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
             }
           },
           {
-            "name": "status",
+            "name": "per_page",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "query",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
+              "type": "integer",
+              "default": 20
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "List of matching candidates",
+            "description": "Paginated list of vacant positions with candidates",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "example": true
+                      "type": "boolean"
                     },
                     "data": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/CandidateResponse"
+                        "$ref": "#/components/schemas/CandidateSearchPosition"
                       }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "total_pages": {
+                      "type": "integer"
                     }
                   }
                 }
               }
             }
           },
-          "400": {
-            "description": "Bad request / Validation error"
+          "500": {
+            "description": "Internal server error"
           }
         },
         "security": [
@@ -51864,16 +51887,39 @@
         "properties": {
           "time_to_hire": {
             "type": "number",
-            "format": "float"
+            "format": "float",
+            "description": "Rata-rata hari dari applied_at ke accepted_at (S-3)"
+          },
+          "time_to_fill": {
+            "type": "number",
+            "format": "float",
+            "description": "Rata-rata hari pengisian requisition FILLED (S-3)"
+          },
+          "offer_acceptance_rate": {
+            "type": "number",
+            "format": "float",
+            "description": "Persentase offer yang diterima (S-3)"
+          },
+          "candidate_match_score": {
+            "type": "number",
+            "format": "float",
+            "description": "Placeholder — butuh data kompetensi kandidat (G-9)"
           },
           "cost_per_hire": {
             "type": "number",
-            "format": "float"
+            "format": "float",
+            "description": "Placeholder — butuh data biaya per-hire"
           },
           "by_source": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "source_conversion": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceConversionMetric"
             }
           },
           "funnel": {
@@ -51903,6 +51949,129 @@
             "items": {
               "$ref": "#/components/schemas/DataPoint"
             }
+          }
+        }
+      },
+      "SourceConversionMetric": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Channel rekrutmen (direct, referral, linkedin, dst.)"
+          },
+          "candidates": {
+            "type": "integer"
+          },
+          "hires": {
+            "type": "integer"
+          },
+          "conversion_rate": {
+            "type": "number",
+            "format": "float",
+            "description": "Persentase kandidat→hire per channel"
+          }
+        }
+      },
+      "CandidateSearchPosition": {
+        "type": "object",
+        "properties": {
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organization_code": {
+            "type": "string"
+          },
+          "organization_name": {
+            "type": "string"
+          },
+          "summary_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "summary_code": {
+            "type": "string"
+          },
+          "summary_decree_no": {
+            "type": "string"
+          },
+          "candidate_count": {
+            "type": "integer"
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateSearchCandidate"
+            }
+          },
+          "internal_candidate_count": {
+            "type": "integer",
+            "description": "Jumlah internal candidate eligible (S-3, Career Intelligence)"
+          },
+          "internal_candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateSearchInternalCandidate"
+            }
+          }
+        }
+      },
+      "CandidateSearchCandidate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "current_title": {
+            "type": "string"
+          },
+          "current_company": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "application_status": {
+            "type": "string"
+          },
+          "requisition_title": {
+            "type": "string"
+          }
+        }
+      },
+      "CandidateSearchInternalCandidate": {
+        "type": "object",
+        "properties": {
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "current_position_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "current_position_name": {
+            "type": "string"
+          },
+          "source_step_sequence": {
+            "type": "integer"
           }
         }
       },
