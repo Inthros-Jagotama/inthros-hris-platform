@@ -283,6 +283,63 @@ type CandidateWorkExperienceResponse struct {
 }
 
 // =========================================================================
+// Candidate Skill DTOs (G-6)
+// =========================================================================
+
+type CreateCandidateSkillRequest struct {
+	CompetencyID string `json:"competency_id" binding:"required"`
+	Level        *int   `json:"level"`
+	Notes        string `json:"notes"`
+}
+
+type UpdateCandidateSkillRequest struct {
+	Level *int    `json:"level"`
+	Notes *string `json:"notes"`
+}
+
+type CandidateSkillResponse struct {
+	ID             string `json:"id"`
+	CandidateID    string `json:"candidate_id"`
+	CompetencyID   string `json:"competency_id"`
+	CompetencyName string `json:"competency_name,omitempty"`
+	Level          int    `json:"level,omitempty"`
+	Notes          string `json:"notes,omitempty"`
+}
+
+// =========================================================================
+// Candidate Certification DTOs (G-6)
+// =========================================================================
+
+type CreateCandidateCertificationRequest struct {
+	Name                string  `json:"name" binding:"required,max=255"`
+	IssuingOrganization *string `json:"issuing_organization" binding:"omitempty,max=255"`
+	IssueDate           *string `json:"issue_date" binding:"omitempty,max=10"`
+	ExpiryDate          *string `json:"expiry_date" binding:"omitempty,max=10"`
+	CredentialURL       *string `json:"credential_url"`
+	Notes               string  `json:"notes"`
+}
+
+type UpdateCandidateCertificationRequest struct {
+	Name                *string `json:"name" binding:"omitempty,max=255"`
+	IssuingOrganization *string `json:"issuing_organization" binding:"omitempty,max=255"`
+	IssueDate           *string `json:"issue_date" binding:"omitempty,max=10"`
+	ExpiryDate          *string `json:"expiry_date" binding:"omitempty,max=10"`
+	CredentialURL       *string `json:"credential_url"`
+	Notes               *string `json:"notes"`
+}
+
+type CandidateCertificationResponse struct {
+	ID                  string `json:"id"`
+	CandidateID         string `json:"candidate_id"`
+	Name                string `json:"name"`
+	IssuingOrganization string `json:"issuing_organization,omitempty"`
+	IssueDate           string `json:"issue_date,omitempty"`
+	ExpiryDate          string `json:"expiry_date,omitempty"`
+	CredentialURL       string `json:"credential_url,omitempty"`
+	Notes               string `json:"notes,omitempty"`
+}
+
+// =========================================================================
 // Job Application DTOs
 // =========================================================================
 

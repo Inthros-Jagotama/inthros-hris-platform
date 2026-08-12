@@ -2472,6 +2472,213 @@ func candidateWorkExperienceToResponse(e *CandidateWorkExperience) *CandidateWor
 	return resp
 }
 
+// =========================================================================
+// Candidate Skills (G-6)
+// =========================================================================
+
+func (s *Service) CreateCandidateSkill(ctx context.Context, candidateID string, req CreateCandidateSkillRequest) (*CandidateSkillResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	if _, err := s.repo.FindCandidateByID(ctx, candUUID); err != nil {
+		return nil, fmt.Errorf("candidate not found: %w", err)
+	}
+	compUUID, err := uuid.Parse(req.CompetencyID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid competency_id: %w", err)
+	}
+	if _, err := s.repo.FindCompetencyByID(ctx, compUUID); err != nil {
+		return nil, fmt.Errorf("competency not found: %w", err)
+	}
+
+	sk := &CandidateSkill{
+		CandidateID:  candUUID,
+		CompetencyID: compUUID,
+		Level:        req.Level,
+		Notes:        req.Notes,
+	}
+	if err := s.repo.CreateCandidateSkill(ctx, sk); err != nil {
+		return nil, err
+	}
+	created, err := s.repo.FindCandidateSkillByID(ctx, sk.ID)
+	if err != nil {
+		return nil, err
+	}
+	return candidateSkillToResponse(created), nil
+}
+
+func (s *Service) ListCandidateSkills(ctx context.Context, candidateID string) ([]CandidateSkillResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	list, err := s.repo.ListCandidateSkills(ctx, candUUID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]CandidateSkillResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *candidateSkillToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) UpdateCandidateSkill(ctx context.Context, id string, req UpdateCandidateSkillRequest) (*CandidateSkillResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	sk, err := s.repo.FindCandidateSkillByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Level != nil {
+		sk.Level = req.Level
+	}
+	if req.Notes != nil {
+		sk.Notes = *req.Notes
+	}
+	if err := s.repo.UpdateCandidateSkill(ctx, sk); err != nil {
+		return nil, err
+	}
+	updated, err := s.repo.FindCandidateSkillByID(ctx, sk.ID)
+	if err != nil {
+		return nil, err
+	}
+	return candidateSkillToResponse(updated), nil
+}
+
+func (s *Service) DeleteCandidateSkill(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteCandidateSkill(ctx, uid)
+}
+
+func candidateSkillToResponse(s *CandidateSkill) *CandidateSkillResponse {
+	resp := &CandidateSkillResponse{
+		ID:           s.ID.String(),
+		CandidateID:  s.CandidateID.String(),
+		CompetencyID: s.CompetencyID.String(),
+		Notes:        s.Notes,
+	}
+	if s.Competency != nil {
+		resp.CompetencyName = s.Competency.Name
+	}
+	if s.Level != nil {
+		resp.Level = *s.Level
+	}
+	return resp
+}
+
+// =========================================================================
+// Candidate Certifications (G-6)
+// =========================================================================
+
+func (s *Service) CreateCandidateCertification(ctx context.Context, candidateID string, req CreateCandidateCertificationRequest) (*CandidateCertificationResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	if _, err := s.repo.FindCandidateByID(ctx, candUUID); err != nil {
+		return nil, fmt.Errorf("candidate not found: %w", err)
+	}
+	c := &CandidateCertification{
+		CandidateID:         candUUID,
+		Name:                req.Name,
+		IssuingOrganization: req.IssuingOrganization,
+		IssueDate:           req.IssueDate,
+		ExpiryDate:          req.ExpiryDate,
+		CredentialURL:       req.CredentialURL,
+		Notes:               req.Notes,
+	}
+	if err := s.repo.CreateCandidateCertification(ctx, c); err != nil {
+		return nil, err
+	}
+	return candidateCertificationToResponse(c), nil
+}
+
+func (s *Service) ListCandidateCertifications(ctx context.Context, candidateID string) ([]CandidateCertificationResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	list, err := s.repo.ListCandidateCertifications(ctx, candUUID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]CandidateCertificationResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *candidateCertificationToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) UpdateCandidateCertification(ctx context.Context, id string, req UpdateCandidateCertificationRequest) (*CandidateCertificationResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	c, err := s.repo.FindCandidateCertificationByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Name != nil {
+		c.Name = *req.Name
+	}
+	if req.IssuingOrganization != nil {
+		c.IssuingOrganization = req.IssuingOrganization
+	}
+	if req.IssueDate != nil {
+		c.IssueDate = req.IssueDate
+	}
+	if req.ExpiryDate != nil {
+		c.ExpiryDate = req.ExpiryDate
+	}
+	if req.CredentialURL != nil {
+		c.CredentialURL = req.CredentialURL
+	}
+	if req.Notes != nil {
+		c.Notes = *req.Notes
+	}
+	if err := s.repo.UpdateCandidateCertification(ctx, c); err != nil {
+		return nil, err
+	}
+	return candidateCertificationToResponse(c), nil
+}
+
+func (s *Service) DeleteCandidateCertification(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteCandidateCertification(ctx, uid)
+}
+
+func candidateCertificationToResponse(c *CandidateCertification) *CandidateCertificationResponse {
+	resp := &CandidateCertificationResponse{
+		ID:          c.ID.String(),
+		CandidateID: c.CandidateID.String(),
+		Name:        c.Name,
+		Notes:       c.Notes,
+	}
+	if c.IssuingOrganization != nil {
+		resp.IssuingOrganization = *c.IssuingOrganization
+	}
+	if c.IssueDate != nil {
+		resp.IssueDate = *c.IssueDate
+	}
+	if c.ExpiryDate != nil {
+		resp.ExpiryDate = *c.ExpiryDate
+	}
+	if c.CredentialURL != nil {
+		resp.CredentialURL = *c.CredentialURL
+	}
+	return resp
+}
+
 func applicationToResponse(a *JobApplication) *ApplicationResponse {
 	return &ApplicationResponse{
 		ID:              a.ID.String(),

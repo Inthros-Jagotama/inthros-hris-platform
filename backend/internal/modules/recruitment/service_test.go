@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
+	"github.com/inthros/hris-platform/internal/modules/competency"
 	"github.com/inthros/hris-platform/internal/modules/setting"
 )
 
@@ -2511,5 +2512,79 @@ func TestService_UpdateCandidateEducation_ClearEducationMajorID(t *testing.T) {
 	}
 	if list[0].MajorName != "" {
 		t.Errorf("expected persisted major_name cleared, got %q", list[0].MajorName)
+	}
+}
+
+// =========================================================================
+// Candidate Skill / Certification Service Tests (G-6, Task 4)
+// =========================================================================
+
+func TestService_CreateCandidateSkill(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Skill", LastName: "Svc", Email: "skillsvc@test.com"})
+	comp := &competency.Competency{Name: "Go"}
+	if err := db.Create(comp).Error; err != nil {
+		t.Fatalf("failed to seed competency: %v", err)
+	}
+
+	resp, err := svc.CreateCandidateSkill(ctx, cand.ID, CreateCandidateSkillRequest{CompetencyID: comp.ID.String()})
+	if err != nil {
+		t.Fatalf("CreateCandidateSkill failed: %v", err)
+	}
+	if resp.CompetencyName != "Go" {
+		t.Errorf("expected competency_name 'Go', got %s", resp.CompetencyName)
+	}
+}
+
+func TestService_CreateCandidateSkill_UnknownCandidate(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+	comp := &competency.Competency{Name: "Go"}
+	if err := db.Create(comp).Error; err != nil {
+		t.Fatalf("failed to seed competency: %v", err)
+	}
+
+	_, err := svc.CreateCandidateSkill(ctx, uuid.New().String(), CreateCandidateSkillRequest{CompetencyID: comp.ID.String()})
+	if err == nil {
+		t.Fatal("expected error for unknown candidate, got nil")
+	}
+}
+
+func TestService_CreateCandidateSkill_UnknownCompetency(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Skill2", LastName: "Svc", Email: "skillsvc2@test.com"})
+
+	_, err := svc.CreateCandidateSkill(ctx, cand.ID, CreateCandidateSkillRequest{CompetencyID: uuid.New().String()})
+	if err == nil {
+		t.Fatal("expected error for unknown competency, got nil")
+	}
+}
+
+func TestService_CreateCandidateCertification(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Cert", LastName: "Svc", Email: "certsvc@test.com"})
+
+	resp, err := svc.CreateCandidateCertification(ctx, cand.ID, CreateCandidateCertificationRequest{Name: "AWS SAA"})
+	if err != nil {
+		t.Fatalf("CreateCandidateCertification failed: %v", err)
+	}
+	if resp.Name != "AWS SAA" {
+		t.Errorf("expected name 'AWS SAA', got %s", resp.Name)
 	}
 }
