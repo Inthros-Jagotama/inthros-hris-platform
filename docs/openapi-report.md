@@ -1,11 +1,11 @@
-= HRIS Platform — OpenAPI Comprehensive Report (v21) =
+= HRIS Platform — OpenAPI Comprehensive Report (v22) =
 
 
-**Generated:** 09 August 2026
+**Generated:** 12 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 485
-**Total Endpoints (methods):** 834
-**Total Schemas:** 522
+**Total Paths:** 548
+**Total Endpoints (methods):** 939
+**Total Schemas:** 618
 **Total Tags:** 33
 
 > 🔗 **Index dokumentasi:** [`docs/README.md`](README.md) · **Terkait:** [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)
@@ -14,9 +14,9 @@
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 834/834 | 100% |
-| Endpoints with `description` | 834/834 | 100% |
-| Endpoints with `operationId` | 834/834 | 100% |
+| Endpoints with `summary` | 939/939 | 100% |
+| Endpoints with `description` | 939/939 | 100% |
+| Endpoints with `operationId` | 939/939 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -107,21 +107,21 @@ Tenant endpoints support validation for Indonesian data formats:
 
 | # | Tag | Endpoints | Paths |
 |---|---|---|---|
-| 1 | Tenant: Performance Management | 146 | 103 |
-| 2 | Tenant: Settings | 107 | 44 |
-| 3 | Tenant: Job Management | 96 | 40 |
-| 4 | Tenant: Workforce Intelligence & Strategic Pl... | 68 | 58 |
-| 5 | Tenant: Payroll & Compensation Engine | 47 | 24 |
-| 6 | Tenant: Employees | 36 | 23 |
-| 7 | Tenant: Time & Attendance | 36 | 20 |
-| 8 | Tenant: Competency Management | 35 | 15 |
-| 9 | Tenant: Training & Development Management | 35 | 15 |
+| 1 | Tenant: Performance Management | 147 | 104 |
+| 2 | Tenant: Training & Development Management | 123 | 64 |
+| 3 | Tenant: Settings | 107 | 44 |
+| 4 | Tenant: Job Management | 96 | 40 |
+| 5 | Tenant: Workforce Intelligence & Strategic Pl... | 69 | 59 |
+| 6 | Tenant: Payroll & Compensation Engine | 47 | 24 |
+| 7 | Tenant: Time & Attendance | 40 | 24 |
+| 8 | Tenant: Employees | 36 | 23 |
+| 9 | Tenant: Competency Management | 35 | 15 |
 | 10 | Tenant: Recruitment & Onboarding (ATS) | 33 | 16 |
-| 11 | Tenant: Leave & Time Off | 25 | 14 |
-| 12 | Tenant: Career Intelligence | 19 | 11 |
-| 13 | Tenant: Organizations | 18 | 11 |
-| 14 | Tenant: Approval | 17 | 11 |
-| 15 | Tenant: Employee Movement & Career Management | 16 | 10 |
+| 11 | Tenant: Employee Movement & Career Management | 25 | 18 |
+| 12 | Tenant: Leave & Time Off | 25 | 14 |
+| 13 | Tenant: Career Intelligence | 21 | 11 |
+| 14 | Tenant: Organizations | 18 | 11 |
+| 15 | Tenant: Approval | 17 | 11 |
 | 16 | Tenant: Reimbursement & Claim | 15 | 7 |
 | 17 | Platform: Companies | 11 | 8 |
 | 18 | Platform: RBAC Management | 10 | 6 |
@@ -139,14 +139,14 @@ Tenant endpoints support validation for Indonesian data formats:
 | 30 | Public | 2 | 2 |
 | 31 | Tenant Auth | 2 | 2 |
 | 32 | Tenant: Company | 2 | 1 |
-| | **TOTAL** | **834** | **485** |
+| | **TOTAL** | **939** | **548** |
 
 ## 2. Module Detail
 
 ### Tenant: Performance Management
 **Description:** Performance Management â€” BSC (Balanced Scorecard) based KPI and performance evaluation module. Includes performance periods, BSC perspectives, KPI templates and indicators, employee evaluations, and individual performance targets with full status workflow (DRAFT->PLAN_SUBMITTED->PLAN_APPROVED->ACTUAL_SUBMITTED->ACTUAL_APPROVED->COMPLETED).
-**Endpoints:** 146 | **Paths:** 103
-**Methods:** DELETE=22 GET=53 POST=42 PUT=29
+**Endpoints:** 147 | **Paths:** 104
+**Methods:** DELETE=22 GET=53 POST=43 PUT=29
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -234,6 +234,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/performance/kpi/templates/{id}` | Get KPI template by ID | Retrieve a specific KPI template by its unique ID, including associated indicators. |
 | `PUT` | `/api/v1/tenant/performance/kpi/templates/{id}` | Update KPI template | Update a KPI template's name, description, or status. Status can be transitioned between DRAFT, PUBLISHED, and ARCHIVED. |
 | `DELETE` | `/api/v1/tenant/performance/kpi/templates/{id}` | Delete KPI template | Permanently delete a KPI template. Indicators linked to this template may also be removed. |
+| `POST` | `/api/v1/tenant/performance/kpi/templates/{id}/duplicate` | Duplicate KPI template | Salin template KPI beserta seluruh indikator & bobotnya menjadi template baru (draft). |
 | `GET` | `/api/v1/tenant/performance/logs` | List performance audit logs | Ambil daftar audit trail perubahan data performance dengan pagination. |
 | `GET` | `/api/v1/tenant/performance/logs/{id}` | Get performance log by ID | Ambil satu audit trail berdasarkan ID. |
 | `POST` | `/api/v1/tenant/performance/okr/attachments` | Create OKR attachment | Lampirkan file bukti/dokumen pendukung pada evaluation detail OKR. |
@@ -296,6 +297,137 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/performance/ratings/{id}` | Get performance rating by ID | Ambil satu rating skala penilaian. |
 | `PUT` | `/api/v1/tenant/performance/ratings/{id}` | Update performance rating | Perbarui rating skala penilaian. |
 | `DELETE` | `/api/v1/tenant/performance/ratings/{id}` | Delete performance rating | Hapus satu rating skala penilaian. |
+
+### Tenant: Training & Development Management
+**Description:** End-to-end training and development management including course catalog, session scheduling, participant registration, attendance tracking, materials, evaluations, and certificate issuance
+**Endpoints:** 123 | **Paths:** 64
+**Methods:** DELETE=23 GET=48 POST=31 PUT=21
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/tenant/trainings/assessments/{id}/results` | Submit assessment result | Input nilai peserta untuk satu assessment (penanda passed dihitung dari passing score). |
+| `PUT` | `/api/v1/tenant/trainings/attendances/{id}` | Update training attendance | Perbarui waktu check-in/check-out atau status kehadiran peserta. |
+| `POST` | `/api/v1/tenant/trainings/categories` | Create training category | Create a new training category (e.g. Technical, Soft Skill, Leadership, Compliance). Categories are used to group related training courses. |
+| `GET` | `/api/v1/tenant/trainings/categories` | List training categories | Retrieve a paginated list of training categories, ordered by code. Categories group training courses by subject area (Technical, Soft Skill, Leader... |
+| `GET` | `/api/v1/tenant/trainings/categories/{id}` | Get training category by ID | Retrieve detailed information about a specific training category including its code, name, description, and active status. |
+| `PUT` | `/api/v1/tenant/trainings/categories/{id}` | Update training category | Update an existing training category. Fields that are not provided will remain unchanged. |
+| `DELETE` | `/api/v1/tenant/trainings/categories/{id}` | Delete training category | Soft-delete a training category. The category will be marked as deleted but retained in the database for historical purposes. |
+| `POST` | `/api/v1/tenant/trainings/certificates` | Issue training certificate | Issue a certificate to a training participant. Requires a unique certificate number and issued date. Optionally set an expiry date. |
+| `GET` | `/api/v1/tenant/trainings/certificates` | List training certificates | Retrieve a paginated list of issued certificates. Filter by participant_id to view all certificates for a specific participant. |
+| `GET` | `/api/v1/tenant/trainings/certificates/{id}` | Get training certificate by ID | Retrieve a specific training certificate by its unique ID, including certificate number and validity period. |
+| `PUT` | `/api/v1/tenant/trainings/certificates/{id}` | Update training certificate | Update a training certificate's number, issued date, or expiry date. |
+| `DELETE` | `/api/v1/tenant/trainings/certificates/{id}` | Delete training certificate | Delete a training certificate record. |
+| `POST` | `/api/v1/tenant/trainings/certifications` | Create training certification | Buat data training certification baru. |
+| `GET` | `/api/v1/tenant/trainings/certifications` | List training certification | Ambil daftar training certification dengan pagination. |
+| `GET` | `/api/v1/tenant/trainings/certifications/{id}` | Get training certification by ID | Ambil satu master sertifikasi (badan penerbit, masa berlaku) berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/trainings/certifications/{id}` | Update training certification | Perbarui data training certification. |
+| `DELETE` | `/api/v1/tenant/trainings/certifications/{id}` | Delete training certification | Hapus satu training certification. |
+| `DELETE` | `/api/v1/tenant/trainings/course-competencies/{id}` | Delete course competency | Lepas pemetaan kompetensi dari course. |
+| `PUT` | `/api/v1/tenant/trainings/course-objectives/{id}` | Update course objective | Perbarui teks atau urutan objective course. |
+| `DELETE` | `/api/v1/tenant/trainings/course-objectives/{id}` | Delete course objective | Hapus satu objective dari course. |
+| `DELETE` | `/api/v1/tenant/trainings/course-prerequisites/{id}` | Delete course prerequisite | Hapus satu prasyarat dari course. |
+| `POST` | `/api/v1/tenant/trainings/courses` | Create training course | Create a new training course under a specific category. Each course has a unique code and can include duration, cost, and minimum score requirements. |
+| `GET` | `/api/v1/tenant/trainings/courses` | List training courses | Retrieve a paginated list of training courses. Optionally filter by category_id to view courses within a specific category. |
+| `GET` | `/api/v1/tenant/trainings/courses/{id}` | Get training course by ID | Retrieve detailed information about a specific training course including category, duration, cost, and certification settings. |
+| `PUT` | `/api/v1/tenant/trainings/courses/{id}` | Update training course | Update an existing training course. Only provided fields will be updated. |
+| `DELETE` | `/api/v1/tenant/trainings/courses/{id}` | Delete training course | Soft-delete a training course. Associated sessions and materials are not deleted. |
+| `GET` | `/api/v1/tenant/trainings/courses/{id}/competencies` | List course competencies | Ambil daftar kompetensi yang dipetakan ke course (non-paginated). |
+| `POST` | `/api/v1/tenant/trainings/courses/{id}/competencies` | Create course competency | Petakan kompetensi (target level) ke sebuah course. |
+| `GET` | `/api/v1/tenant/trainings/courses/{id}/objectives` | List course objectives | Ambil daftar objective sebuah course (non-paginated). |
+| `POST` | `/api/v1/tenant/trainings/courses/{id}/objectives` | Create course objective | Tambah objective (tujuan pembelajaran) pada sebuah course. |
+| `GET` | `/api/v1/tenant/trainings/courses/{id}/prerequisites` | List course prerequisites | Ambil daftar prasyarat sebuah course (non-paginated). |
+| `POST` | `/api/v1/tenant/trainings/courses/{id}/prerequisites` | Create course prerequisite | Tambah prasyarat (COURSE/COMPETENCY/CERTIFICATION/EXPERIENCE) pada course. |
+| `DELETE` | `/api/v1/tenant/trainings/documents/{id}` | Delete session document | Hapus satu dokumen session. |
+| `POST` | `/api/v1/tenant/trainings/effectiveness` | Create effectiveness assessment | Buat data effectiveness assessment baru. |
+| `GET` | `/api/v1/tenant/trainings/effectiveness` | List effectiveness assessment | Ambil daftar effectiveness assessment dengan pagination. |
+| `GET` | `/api/v1/tenant/trainings/effectiveness/{id}` | Get effectiveness assessment by ID | Ambil satu penilaian efektivitas pelatihan (before/after score) berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/trainings/effectiveness/{id}` | Update effectiveness assessment | Perbarui data effectiveness assessment. |
+| `DELETE` | `/api/v1/tenant/trainings/effectiveness/{id}` | Delete effectiveness assessment | Hapus satu effectiveness assessment. |
+| `GET` | `/api/v1/tenant/trainings/evaluation-answers` | List evaluation answers | Ambil daftar jawaban evaluasi (filter ?form_id / ?participant_id) dengan pagination. |
+| `GET` | `/api/v1/tenant/trainings/evaluation-forms` | List evaluation forms | Ambil daftar form evaluasi pelatihan dengan pagination. |
+| `POST` | `/api/v1/tenant/trainings/evaluation-forms` | Create evaluation form | Buat form evaluasi untuk session (nama + status aktif). |
+| `GET` | `/api/v1/tenant/trainings/evaluation-forms/{form_id}` | Get evaluation form by ID | Ambil satu form evaluasi berikut daftar pertanyaannya. |
+| `PUT` | `/api/v1/tenant/trainings/evaluation-forms/{form_id}` | Update evaluation form | Perbarui nama/status form evaluasi. |
+| `DELETE` | `/api/v1/tenant/trainings/evaluation-forms/{form_id}` | Delete evaluation form | Hapus form evaluasi beserta pertanyaannya. |
+| `POST` | `/api/v1/tenant/trainings/evaluation-forms/{form_id}/participants/{participant_id}/answers` | Submit evaluation answers | Kirim jawaban evaluasi peserta untuk satu form evaluasi. |
+| `GET` | `/api/v1/tenant/trainings/evaluation-forms/{form_id}/questions` | List evaluation questions | Ambil daftar pertanyaan sebuah form evaluasi (non-paginated). |
+| `POST` | `/api/v1/tenant/trainings/evaluation-forms/{form_id}/questions` | Create evaluation question | Tambah pertanyaan (RATING/TEXT/SINGLE_CHOICE/MULTIPLE_CHOICE) ke form. |
+| `PUT` | `/api/v1/tenant/trainings/evaluation-questions/{id}` | Update evaluation question | Perbarui pertanyaan, tipe, urutan, atau flag wajib. |
+| `DELETE` | `/api/v1/tenant/trainings/evaluation-questions/{id}` | Delete evaluation question | Hapus satu pertanyaan dari form evaluasi. |
+| `POST` | `/api/v1/tenant/trainings/evaluations` | Create training evaluation | Submit a training evaluation/feedback for a session. Rating must be between 1 and 5, with optional textual feedback. |
+| `GET` | `/api/v1/tenant/trainings/evaluations` | List training evaluations | Retrieve a paginated list of training evaluations. Filter by session_id for session feedback or employee_id for personal evaluation history. |
+| `GET` | `/api/v1/tenant/trainings/evaluations/{id}` | Get training evaluation by ID | Retrieve a specific training evaluation including rating and feedback details. |
+| `PUT` | `/api/v1/tenant/trainings/evaluations/{id}` | Update training evaluation | Update a training evaluation's rating or feedback text. |
+| `DELETE` | `/api/v1/tenant/trainings/evaluations/{id}` | Delete training evaluation | Remove a training evaluation from the system. |
+| `GET` | `/api/v1/tenant/trainings/history` | Get training history | Riwayat pelatihan karyawan — filter ?employee_id (non-paginated). |
+| `POST` | `/api/v1/tenant/trainings/mandatories` | Create training mandatory | Buat data training mandatory baru. |
+| `GET` | `/api/v1/tenant/trainings/mandatories` | List training mandatory | Ambil daftar training mandatory dengan pagination. |
+| `GET` | `/api/v1/tenant/trainings/mandatories/{id}` | Get training mandatory by ID | Ambil satu kebijakan pelatihan wajib berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/trainings/mandatories/{id}` | Update training mandatory | Perbarui data training mandatory. |
+| `DELETE` | `/api/v1/tenant/trainings/mandatories/{id}` | Delete training mandatory | Hapus satu training mandatory. |
+| `POST` | `/api/v1/tenant/trainings/materials` | Create training material | Add a new material (file, document, or resource) to a training session. Supports file URLs and type classification. |
+| `GET` | `/api/v1/tenant/trainings/materials` | List training materials by session | List all materials attached to a training session. Requires session_id as a query parameter. Results are ordered by sort_order. |
+| `PUT` | `/api/v1/tenant/trainings/materials/{id}` | Update training material | Update a training material's title, file URL, file type, or sort order. |
+| `DELETE` | `/api/v1/tenant/trainings/materials/{id}` | Delete training material | Remove a training material from the session. |
+| `POST` | `/api/v1/tenant/trainings/needs` | Create training need | Buat data training need baru. |
+| `GET` | `/api/v1/tenant/trainings/needs` | List training need | Ambil daftar training need dengan pagination. |
+| `GET` | `/api/v1/tenant/trainings/needs/{id}` | Get training need by ID | Ambil satu kebutuhan pelatihan berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/trainings/needs/{id}` | Update training need | Perbarui data training need. |
+| `DELETE` | `/api/v1/tenant/trainings/needs/{id}` | Delete training need | Hapus satu training need. |
+| `POST` | `/api/v1/tenant/trainings/participants` | Register training participant | Register an employee as a participant in a training session. Validates that the session is not cancelled and has available quota. |
+| `GET` | `/api/v1/tenant/trainings/participants` | List training participants | Retrieve a paginated list of training participants. Filter by session_id to view all participants in a session, or by employee_id to view an employ... |
+| `GET` | `/api/v1/tenant/trainings/participants/{id}` | Get training participant by ID | Retrieve participant details including attendance status, score, and completion date. |
+| `PUT` | `/api/v1/tenant/trainings/participants/{id}` | Update training participant | Update a participant's attendance status (PRESENT, ABSENT, EXCUSED) or score. Setting a score automatically marks the participant as completed with... |
+| `DELETE` | `/api/v1/tenant/trainings/participants/{id}` | Delete training participant | Remove a participant from a training session. |
+| `POST` | `/api/v1/tenant/trainings/participants/{id}/certificate` | Generate participant certificate | Generate/isi sertifikat untuk satu peserta (nomor, file_url, tanggal terbit). |
+| `PUT` | `/api/v1/tenant/trainings/plan-items/{id}` | Update plan item | Perbarui item rencana pelatihan. |
+| `DELETE` | `/api/v1/tenant/trainings/plan-items/{id}` | Delete plan item | Hapus satu item dari rencana pelatihan. |
+| `POST` | `/api/v1/tenant/trainings/plans` | Create training plan | Buat data training plan baru. |
+| `GET` | `/api/v1/tenant/trainings/plans` | List training plan | Ambil daftar training plan dengan pagination. |
+| `GET` | `/api/v1/tenant/trainings/plans/{id}` | Get training plan by ID | Ambil satu rencana pelatihan (tahunan) berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/trainings/plans/{id}` | Update training plan | Perbarui data training plan. |
+| `DELETE` | `/api/v1/tenant/trainings/plans/{id}` | Delete training plan | Hapus satu training plan. |
+| `GET` | `/api/v1/tenant/trainings/plans/{id}/items` | List plan items | Ambil daftar item (course target) dalam sebuah training plan (non-paginated). |
+| `POST` | `/api/v1/tenant/trainings/plans/{id}/items` | Create plan item | Tambah item rencana (course, target peserta, estimasi biaya, prioritas) ke plan. |
+| `POST` | `/api/v1/tenant/trainings/providers` | Create training provider | Buat data training provider baru. |
+| `GET` | `/api/v1/tenant/trainings/providers` | List training provider | Ambil daftar training provider dengan pagination. |
+| `GET` | `/api/v1/tenant/trainings/providers/{id}` | Get training provider by ID | Ambil satu provider pelatihan (vendor internal/eksternal) berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/trainings/providers/{id}` | Update training provider | Perbarui data training provider. |
+| `DELETE` | `/api/v1/tenant/trainings/providers/{id}` | Delete training provider | Hapus satu training provider. |
+| `GET` | `/api/v1/tenant/trainings/reports/compliance` | Get compliance report | Laporan kepatuhan pelatihan wajib (mandatory) per karyawan. |
+| `GET` | `/api/v1/tenant/trainings/reports/cost` | Get cost report | Laporan biaya pelatihan per session — filter ?year / ?course_id. |
+| `GET` | `/api/v1/tenant/trainings/reports/dashboard` | Get training dashboard report | Ringkasan kartu dashboard training: total kursus/sesi/peserta, request approval, completion & pass rate, total biaya, sertifikat terbit. |
+| `GET` | `/api/v1/tenant/trainings/reports/participation` | Get participation report | Laporan partisipasi pelatihan (per karyawan) — filter ?session_id / ?course_id. |
+| `POST` | `/api/v1/tenant/trainings/requests` | Create training request | Buat permintaan pelatihan karyawan (diarahkan ke Central Approval). |
+| `GET` | `/api/v1/tenant/trainings/requests` | List training requests | Ambil daftar permintaan pelatihan dengan pagination. |
+| `GET` | `/api/v1/tenant/trainings/requests/{id}` | Get training request by ID | Ambil satu permintaan pelatihan berdasarkan ID. |
+| `POST` | `/api/v1/tenant/trainings/requests/{id}/cancel` | Cancel training request | Batalkan permintaan pelatihan (status draft/approved). |
+| `POST` | `/api/v1/tenant/trainings/requests/{id}/submit` | Submit training request for approval | Kirim permintaan pelatihan ke alur persetujuan (Central Approval). |
+| `PUT` | `/api/v1/tenant/trainings/session-costs/{id}` | Update session cost | Perbarui tipe/deskripsi/nominal biaya session. |
+| `DELETE` | `/api/v1/tenant/trainings/session-costs/{id}` | Delete session cost | Hapus satu komponen biaya session. |
+| `DELETE` | `/api/v1/tenant/trainings/session-trainers/{id}` | Remove session trainer | Lepas penugasan trainer dari session. |
+| `POST` | `/api/v1/tenant/trainings/sessions` | Create training session | Schedule a new training session/class for a course. Defines the trainer, date range, location, and maximum participant quota. |
+| `GET` | `/api/v1/tenant/trainings/sessions` | List training sessions | Retrieve a paginated list of training sessions. Supports filtering by course_id and status (SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED). |
+| `GET` | `/api/v1/tenant/trainings/sessions/{id}` | Get training session by ID | Retrieve detailed information about a specific training session including course, trainer, schedule, quota, and current status. |
+| `PUT` | `/api/v1/tenant/trainings/sessions/{id}` | Update training session | Update an existing training session's schedule, trainer, location, or quota. |
+| `DELETE` | `/api/v1/tenant/trainings/sessions/{id}` | Delete training session | Soft-delete a training session. Participants are not automatically removed. |
+| `GET` | `/api/v1/tenant/trainings/sessions/{id}/assessments` | List session assessments | Ambil daftar assessment (pre-test/post-test/final/practical) sebuah session (non-paginated). |
+| `POST` | `/api/v1/tenant/trainings/sessions/{id}/assessments` | Create session assessment | Buat assessment baru untuk session (tipe, skor maksimum, passing score, dll). |
+| `GET` | `/api/v1/tenant/trainings/sessions/{id}/attendance` | List session attendance | Ambil daftar kehadiran peserta dalam session (non-paginated). |
+| `POST` | `/api/v1/tenant/trainings/sessions/{id}/attendance` | Mark training attendance | Catat kehadiran peserta (check-in/check-out, status PRESENT/ABSENT/LATE/EXCUSED) pada tanggal tertentu. |
+| `GET` | `/api/v1/tenant/trainings/sessions/{id}/costs` | List session costs | Ambil daftar biaya session (TRAINER/PROVIDER/VENUE/MATERIAL/dll) (non-paginated). |
+| `POST` | `/api/v1/tenant/trainings/sessions/{id}/costs` | Create session cost | Catat komponen biaya pada sebuah session pelatihan. |
+| `GET` | `/api/v1/tenant/trainings/sessions/{id}/documents` | List session documents | Ambil daftar dokumen session (proposal, quotation, invoice, dll) (non-paginated). |
+| `POST` | `/api/v1/tenant/trainings/sessions/{id}/documents` | Create session document | Lampirkan dokumen (metadata + file_url) ke sebuah session. |
+| `GET` | `/api/v1/tenant/trainings/sessions/{id}/evaluation-form` | Get evaluation form by session | Ambil form evaluasi aktif yang dipakai sebuah session (non-paginated). |
+| `PUT` | `/api/v1/tenant/trainings/sessions/{id}/status` | Update training session status | Transition a training session through its lifecycle: SCHEDULED -> IN_PROGRESS -> COMPLETED or CANCELLED. Status changes affect participant registra... |
+| `GET` | `/api/v1/tenant/trainings/sessions/{id}/trainers` | List session trainers | Ambil daftar trainer yang ditugaskan pada session (non-paginated). |
+| `POST` | `/api/v1/tenant/trainings/sessions/{id}/trainers` | Add session trainer | Tugaskan trainer (role MAIN/ASSISTANT) ke session. |
+| `POST` | `/api/v1/tenant/trainings/trainers` | Create training trainer | Buat data training trainer baru. |
+| `GET` | `/api/v1/tenant/trainings/trainers` | List training trainer | Ambil daftar training trainer dengan pagination. |
+| `GET` | `/api/v1/tenant/trainings/trainers/{id}` | Get training trainer by ID | Ambil satu trainer pelatihan (internal/eksternal) berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/trainings/trainers/{id}` | Update training trainer | Perbarui data training trainer. |
+| `DELETE` | `/api/v1/tenant/trainings/trainers/{id}` | Delete training trainer | Hapus satu training trainer. |
 
 ### Tenant: Settings
 **Description:** Settings & Master Data Reference -- manage zones, provinces, regencies, districts, villages, educations, religions, marital statuses, relationship types, banks, employment statuses, nationalities, job families, and salary grades. CRUD operations for all tenant reference data, education majors.
@@ -518,8 +650,8 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Tenant: Workforce Intelligence & Strategic Planning
 **Description:** Workforce Intelligence & Strategic Workforce Planning â€” strategic analytics layer for headcount planning, forecasting, gap analysis, KPI monitoring, workforce analytics (headcount, attendance, leave, overtime, payroll, performance, learning, recruitment, movement), capacity planning, cost analytics, risk monitoring, executive dashboards, scenario simulation, organization health scoring, and people analytics (training-vs-performance, overtime-vs-productivity, etc.). Read-only analytics module aggregating data from all operational HR modules.
-**Endpoints:** 68 | **Paths:** 58
-**Methods:** DELETE=3 GET=56 POST=5 PUT=4
+**Endpoints:** 69 | **Paths:** 59
+**Methods:** DELETE=3 GET=57 POST=5 PUT=4
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -532,6 +664,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/workforce-intelligence/analytics/payroll` | Payroll analytics dashboard | Analyze payroll metrics: total payroll cost, average salary, breakdown by department and grade, with trend analysis. |
 | `GET` | `/api/v1/tenant/workforce-intelligence/analytics/performance` | Performance analytics dashboard | Analyze employee performance: average score, top performer percentage, department breakdown, and score distribution. |
 | `GET` | `/api/v1/tenant/workforce-intelligence/analytics/recruitment` | Recruitment analytics dashboard | Analyze recruitment efficiency: time to hire, cost per hire, source breakdown, and recruitment funnel metrics. |
+| `GET` | `/api/v1/tenant/workforce-intelligence/candidate-search` | Search candidates for open positions | Cari kandidat recruitment untuk posisi kosong — filter ?position_id / ?status / ?query (non-paginated). |
 | `GET` | `/api/v1/tenant/workforce-intelligence/capacity/bottlenecks` | Bottleneck analysis | Identify capacity bottlenecks across departments. Flags departments with WARNING or CRITICAL utilization levels. |
 | `GET` | `/api/v1/tenant/workforce-intelligence/capacity/dashboard` | Capacity dashboard | Get workforce capacity dashboard: overall utilization rate, available headcount, department breakdown, and bottleneck identification. |
 | `GET` | `/api/v1/tenant/workforce-intelligence/capacity/forecast` | Capacity forecast | Get projected capacity forecast: future utilization, current vs projected needed headcount, and capacity gap analysis by department. |
@@ -646,6 +779,54 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/payroll/salary-components/{id}` | Update salary component | Update an existing salary components record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `DELETE` | `/api/v1/tenant/payroll/salary-components/{id}` | Delete salary component | Delete a salary components record by its unique ID. This action may be reversible depending on system configuration. |
 
+### Tenant: Time & Attendance
+**Description:** Time and attendance management including company settings, shifts, employee shift assignments, geofence locations, check-in/check-out events, daily work sessions, overtime requests, and exempt positions
+**Endpoints:** 40 | **Paths:** 24
+**Methods:** DELETE=4 GET=21 POST=10 PUT=5
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/attendance/calendar` | Get employee attendance calendar | Ambil sesi kerja harian satu karyawan dalam rentang tanggal (untuk tampilan kalender). Query employee_id, from, dan to wajib diisi. |
+| `POST` | `/api/v1/tenant/attendance/corrections` | Create attendance correction request | Ajukan koreksi kehadiran (check-in/check-out salah atau tidak tercatat). Request diproses lewat alur persetujuan bila flow_id diberikan. |
+| `GET` | `/api/v1/tenant/attendance/corrections` | List attendance correction requests | Daftar pengajuan koreksi kehadiran, dapat difilter per karyawan (paginated). |
+| `GET` | `/api/v1/tenant/attendance/corrections/{id}` | Get attendance correction request by ID | Ambil detail satu pengajuan koreksi kehadiran berdasarkan ID. |
+| `GET` | `/api/v1/tenant/attendance/employee-shifts` | List employee shift assignments | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/employee-shifts` | Assign a shift to an employee | Create a new employee shifts record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Get employee shift assignment by ID | Get details of a specific attendance record. |
+| `PUT` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Update employee shift assignment | Update an attendance record. |
+| `DELETE` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Delete employee shift assignment | Remove an attendance record. |
+| `GET` | `/api/v1/tenant/attendance/events` | List attendance events (check-in/out) | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/events` | Create an attendance event (check-in/out) | Create a new events record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/attendance/events/{id}` | Get event by ID | Get details of a specific attendance record. |
+| `GET` | `/api/v1/tenant/attendance/exempt-positions` | List exempt positions (positions not requiring attendance) | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/exempt-positions` | Create an exempt position | Create a new exempt positions record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Get exempt position by ID | Get details of a specific attendance record. |
+| `PUT` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Update an exempt position | Update an attendance record. |
+| `DELETE` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Delete an exempt position | Remove an attendance record. |
+| `GET` | `/api/v1/tenant/attendance/locations` | List attendance locations (geofence) | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/locations` | Create an attendance location (geofence) | Create a new locations record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/attendance/locations/{id}` | Get location by ID | Get details of a specific attendance record. |
+| `PUT` | `/api/v1/tenant/attendance/locations/{id}` | Update a location | Update an attendance record. |
+| `DELETE` | `/api/v1/tenant/attendance/locations/{id}` | Delete a location | Remove an attendance record. |
+| `GET` | `/api/v1/tenant/attendance/overtime-requests` | List overtime requests | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/overtime-requests` | Create an overtime request | Create a new overtime requests record. Validates required fields and returns the created resource with its assigned ID. |
+| `POST` | `/api/v1/tenant/attendance/overtime-requests/assign` | Assign overtime request | Buat overtime alur ASSIGNED: tetapkan karyawan + jadwal kerja lembur. |
+| `GET` | `/api/v1/tenant/attendance/overtime-requests/assignable-employees` | List assignable employees for overtime | Daftar karyawan yang dapat diberi overtime (dua-alur ASSIGNED) — filter ?date (non-paginated). |
+| `GET` | `/api/v1/tenant/attendance/overtime-requests/{id}` | Get overtime request by ID | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/overtime-requests/{id}/actual` | Submit overtime actual | Input jam lembur aktual (start/end aktual + catatan) untuk overtime yang disetujui. |
+| `POST` | `/api/v1/tenant/attendance/overtime-requests/{id}/cancel` | Cancel overtime request | Batalkan overtime request (draft/approved). |
+| `GET` | `/api/v1/tenant/attendance/reports/sessions` | Get attendance report (all employees) | Laporan sesi kehadiran semua karyawan dalam rentang tanggal (non-paginated). Query from dan to wajib diisi. |
+| `GET` | `/api/v1/tenant/attendance/sessions` | List daily work sessions | Get details of a specific attendance record. |
+| `GET` | `/api/v1/tenant/attendance/sessions/detail` | Get session detail for an employee on a specific date | Get details of a specific attendance record. |
+| `GET` | `/api/v1/tenant/attendance/settings` | Get company attendance settings | Get details of a specific attendance record. |
+| `PUT` | `/api/v1/tenant/attendance/settings` | Upsert company attendance settings | Update an attendance record. |
+| `GET` | `/api/v1/tenant/attendance/shifts` | List company shifts | Get details of a specific attendance record. |
+| `POST` | `/api/v1/tenant/attendance/shifts` | Create a company shift | Create a new shifts record. Validates required fields and returns the created resource with its assigned ID. |
+| `GET` | `/api/v1/tenant/attendance/shifts/{id}` | Get shift by ID | Get details of a specific attendance record. |
+| `PUT` | `/api/v1/tenant/attendance/shifts/{id}` | Update a shift | Update an attendance record. |
+| `DELETE` | `/api/v1/tenant/attendance/shifts/{id}` | Delete a shift | Remove an attendance record. |
+| `GET` | `/api/v1/tenant/attendance/summary` | Get employee attendance summary | Rekap kehadiran satu karyawan dalam rentang tanggal (present, late, missing check-in/out, day off, leave, total work & overtime minutes). Query emp... |
+
 ### Tenant: Employees
 **Description:** Employee management with 8 sub-modules (addresses, emergency contacts, families, educations, experiences, documents, insurances, employments)
 **Endpoints:** 36 | **Paths:** 23
@@ -690,50 +871,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/employees/{id}/photo` | Upload employee profile photo | Upload a profile photo for an employee. Accepts JPG, PNG, GIF, WebP files up to 2MB. The photo is stored on the server and the employee's profile_p... |
 | `DELETE` | `/api/v1/tenant/employees/{id}/photo` | Delete employee profile photo | Remove the profile photo from an employee. Deletes the file from the server and clears the profile_picture field. |
 
-### Tenant: Time & Attendance
-**Description:** Time and attendance management including company settings, shifts, employee shift assignments, geofence locations, check-in/check-out events, daily work sessions, overtime requests, and exempt positions
-**Endpoints:** 36 | **Paths:** 20
-**Methods:** DELETE=4 GET=20 POST=7 PUT=5
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/tenant/attendance/calendar` | Get employee attendance calendar | Ambil sesi kerja harian satu karyawan dalam rentang tanggal (untuk tampilan kalender). Query employee_id, from, dan to wajib diisi. |
-| `POST` | `/api/v1/tenant/attendance/corrections` | Create attendance correction request | Ajukan koreksi kehadiran (check-in/check-out salah atau tidak tercatat). Request diproses lewat alur persetujuan bila flow_id diberikan. |
-| `GET` | `/api/v1/tenant/attendance/corrections` | List attendance correction requests | Daftar pengajuan koreksi kehadiran, dapat difilter per karyawan (paginated). |
-| `GET` | `/api/v1/tenant/attendance/corrections/{id}` | Get attendance correction request by ID | Ambil detail satu pengajuan koreksi kehadiran berdasarkan ID. |
-| `GET` | `/api/v1/tenant/attendance/employee-shifts` | List employee shift assignments | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/employee-shifts` | Assign a shift to an employee | Create a new employee shifts record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Get employee shift assignment by ID | Get details of a specific attendance record. |
-| `PUT` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Update employee shift assignment | Update an attendance record. |
-| `DELETE` | `/api/v1/tenant/attendance/employee-shifts/{id}` | Delete employee shift assignment | Remove an attendance record. |
-| `GET` | `/api/v1/tenant/attendance/events` | List attendance events (check-in/out) | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/events` | Create an attendance event (check-in/out) | Create a new events record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/events/{id}` | Get event by ID | Get details of a specific attendance record. |
-| `GET` | `/api/v1/tenant/attendance/exempt-positions` | List exempt positions (positions not requiring attendance) | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/exempt-positions` | Create an exempt position | Create a new exempt positions record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Get exempt position by ID | Get details of a specific attendance record. |
-| `PUT` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Update an exempt position | Update an attendance record. |
-| `DELETE` | `/api/v1/tenant/attendance/exempt-positions/{id}` | Delete an exempt position | Remove an attendance record. |
-| `GET` | `/api/v1/tenant/attendance/locations` | List attendance locations (geofence) | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/locations` | Create an attendance location (geofence) | Create a new locations record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/locations/{id}` | Get location by ID | Get details of a specific attendance record. |
-| `PUT` | `/api/v1/tenant/attendance/locations/{id}` | Update a location | Update an attendance record. |
-| `DELETE` | `/api/v1/tenant/attendance/locations/{id}` | Delete a location | Remove an attendance record. |
-| `GET` | `/api/v1/tenant/attendance/overtime-requests` | List overtime requests | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/overtime-requests` | Create an overtime request | Create a new overtime requests record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/overtime-requests/{id}` | Get overtime request by ID | Get details of a specific attendance record. |
-| `GET` | `/api/v1/tenant/attendance/reports/sessions` | Get attendance report (all employees) | Laporan sesi kehadiran semua karyawan dalam rentang tanggal (non-paginated). Query from dan to wajib diisi. |
-| `GET` | `/api/v1/tenant/attendance/sessions` | List daily work sessions | Get details of a specific attendance record. |
-| `GET` | `/api/v1/tenant/attendance/sessions/detail` | Get session detail for an employee on a specific date | Get details of a specific attendance record. |
-| `GET` | `/api/v1/tenant/attendance/settings` | Get company attendance settings | Get details of a specific attendance record. |
-| `PUT` | `/api/v1/tenant/attendance/settings` | Upsert company attendance settings | Update an attendance record. |
-| `GET` | `/api/v1/tenant/attendance/shifts` | List company shifts | Get details of a specific attendance record. |
-| `POST` | `/api/v1/tenant/attendance/shifts` | Create a company shift | Create a new shifts record. Validates required fields and returns the created resource with its assigned ID. |
-| `GET` | `/api/v1/tenant/attendance/shifts/{id}` | Get shift by ID | Get details of a specific attendance record. |
-| `PUT` | `/api/v1/tenant/attendance/shifts/{id}` | Update a shift | Update an attendance record. |
-| `DELETE` | `/api/v1/tenant/attendance/shifts/{id}` | Delete a shift | Remove an attendance record. |
-| `GET` | `/api/v1/tenant/attendance/summary` | Get employee attendance summary | Rekap kehadiran satu karyawan dalam rentang tanggal (present, late, missing check-in/out, day off, leave, total work & overtime minutes). Query emp... |
-
 ### Tenant: Competency Management
 **Description:** Competency management including master competencies, values, events, targets, scores, and score details
 **Endpoints:** 35 | **Paths:** 15
@@ -777,49 +914,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/competency/values/{id}` | Update competency value | Update an existing values record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `DELETE` | `/api/v1/tenant/competency/values/{id}` | Delete competency value | Delete a values record by its unique ID. This action may be reversible depending on system configuration. |
 
-### Tenant: Training & Development Management
-**Description:** End-to-end training and development management including course catalog, session scheduling, participant registration, attendance tracking, materials, evaluations, and certificate issuance
-**Endpoints:** 35 | **Paths:** 15
-**Methods:** DELETE=7 GET=13 POST=7 PUT=8
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/tenant/trainings/categories` | Create training category | Create a new training category (e.g. Technical, Soft Skill, Leadership, Compliance). Categories are used to group related training courses. |
-| `GET` | `/api/v1/tenant/trainings/categories` | List training categories | Retrieve a paginated list of training categories, ordered by code. Categories group training courses by subject area (Technical, Soft Skill, Leader... |
-| `GET` | `/api/v1/tenant/trainings/categories/{id}` | Get training category by ID | Retrieve detailed information about a specific training category including its code, name, description, and active status. |
-| `PUT` | `/api/v1/tenant/trainings/categories/{id}` | Update training category | Update an existing training category. Fields that are not provided will remain unchanged. |
-| `DELETE` | `/api/v1/tenant/trainings/categories/{id}` | Delete training category | Soft-delete a training category. The category will be marked as deleted but retained in the database for historical purposes. |
-| `POST` | `/api/v1/tenant/trainings/certificates` | Issue training certificate | Issue a certificate to a training participant. Requires a unique certificate number and issued date. Optionally set an expiry date. |
-| `GET` | `/api/v1/tenant/trainings/certificates` | List training certificates | Retrieve a paginated list of issued certificates. Filter by participant_id to view all certificates for a specific participant. |
-| `GET` | `/api/v1/tenant/trainings/certificates/{id}` | Get training certificate by ID | Retrieve a specific training certificate by its unique ID, including certificate number and validity period. |
-| `PUT` | `/api/v1/tenant/trainings/certificates/{id}` | Update training certificate | Update a training certificate's number, issued date, or expiry date. |
-| `DELETE` | `/api/v1/tenant/trainings/certificates/{id}` | Delete training certificate | Delete a training certificate record. |
-| `POST` | `/api/v1/tenant/trainings/courses` | Create training course | Create a new training course under a specific category. Each course has a unique code and can include duration, cost, and minimum score requirements. |
-| `GET` | `/api/v1/tenant/trainings/courses` | List training courses | Retrieve a paginated list of training courses. Optionally filter by category_id to view courses within a specific category. |
-| `GET` | `/api/v1/tenant/trainings/courses/{id}` | Get training course by ID | Retrieve detailed information about a specific training course including category, duration, cost, and certification settings. |
-| `PUT` | `/api/v1/tenant/trainings/courses/{id}` | Update training course | Update an existing training course. Only provided fields will be updated. |
-| `DELETE` | `/api/v1/tenant/trainings/courses/{id}` | Delete training course | Soft-delete a training course. Associated sessions and materials are not deleted. |
-| `POST` | `/api/v1/tenant/trainings/evaluations` | Create training evaluation | Submit a training evaluation/feedback for a session. Rating must be between 1 and 5, with optional textual feedback. |
-| `GET` | `/api/v1/tenant/trainings/evaluations` | List training evaluations | Retrieve a paginated list of training evaluations. Filter by session_id for session feedback or employee_id for personal evaluation history. |
-| `GET` | `/api/v1/tenant/trainings/evaluations/{id}` | Get training evaluation by ID | Retrieve a specific training evaluation including rating and feedback details. |
-| `PUT` | `/api/v1/tenant/trainings/evaluations/{id}` | Update training evaluation | Update a training evaluation's rating or feedback text. |
-| `DELETE` | `/api/v1/tenant/trainings/evaluations/{id}` | Delete training evaluation | Remove a training evaluation from the system. |
-| `POST` | `/api/v1/tenant/trainings/materials` | Create training material | Add a new material (file, document, or resource) to a training session. Supports file URLs and type classification. |
-| `GET` | `/api/v1/tenant/trainings/materials` | List training materials by session | List all materials attached to a training session. Requires session_id as a query parameter. Results are ordered by sort_order. |
-| `PUT` | `/api/v1/tenant/trainings/materials/{id}` | Update training material | Update a training material's title, file URL, file type, or sort order. |
-| `DELETE` | `/api/v1/tenant/trainings/materials/{id}` | Delete training material | Remove a training material from the session. |
-| `POST` | `/api/v1/tenant/trainings/participants` | Register training participant | Register an employee as a participant in a training session. Validates that the session is not cancelled and has available quota. |
-| `GET` | `/api/v1/tenant/trainings/participants` | List training participants | Retrieve a paginated list of training participants. Filter by session_id to view all participants in a session, or by employee_id to view an employ... |
-| `GET` | `/api/v1/tenant/trainings/participants/{id}` | Get training participant by ID | Retrieve participant details including attendance status, score, and completion date. |
-| `PUT` | `/api/v1/tenant/trainings/participants/{id}` | Update training participant | Update a participant's attendance status (PRESENT, ABSENT, EXCUSED) or score. Setting a score automatically marks the participant as completed with... |
-| `DELETE` | `/api/v1/tenant/trainings/participants/{id}` | Delete training participant | Remove a participant from a training session. |
-| `POST` | `/api/v1/tenant/trainings/sessions` | Create training session | Schedule a new training session/class for a course. Defines the trainer, date range, location, and maximum participant quota. |
-| `GET` | `/api/v1/tenant/trainings/sessions` | List training sessions | Retrieve a paginated list of training sessions. Supports filtering by course_id and status (SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED). |
-| `GET` | `/api/v1/tenant/trainings/sessions/{id}` | Get training session by ID | Retrieve detailed information about a specific training session including course, trainer, schedule, quota, and current status. |
-| `PUT` | `/api/v1/tenant/trainings/sessions/{id}` | Update training session | Update an existing training session's schedule, trainer, location, or quota. |
-| `DELETE` | `/api/v1/tenant/trainings/sessions/{id}` | Delete training session | Soft-delete a training session. Participants are not automatically removed. |
-| `PUT` | `/api/v1/tenant/trainings/sessions/{id}/status` | Update training session status | Transition a training session through its lifecycle: SCHEDULED -> IN_PROGRESS -> COMPLETED or CANCELLED. Status changes affect participant registra... |
-
 ### Tenant: Recruitment & Onboarding (ATS)
 **Description:** Recruitment & Onboarding (ATS) â€” job requisitions, candidate management, applications, interviews, and employee onboarding workflows
 **Endpoints:** 33 | **Paths:** 16
@@ -861,6 +955,39 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/recruitment/requisitions/{id}` | Update job requisition | Update job requisition fields. Only provided fields will be updated |
 | `DELETE` | `/api/v1/tenant/recruitment/requisitions/{id}` | Delete job requisition | Permanently delete a job requisition |
 
+### Tenant: Employee Movement & Career Management
+**Description:** Employee career movements management including promotions, demotions, mutations, contract extensions (PKWT), retirements, offboarding, and employment contract management
+**Endpoints:** 25 | **Paths:** 18
+**Methods:** DELETE=3 GET=14 POST=6 PUT=2
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/employee-movements/contracts` | List employee contracts | Retrieve a paginated list of employee movement resources. |
+| `POST` | `/api/v1/tenant/employee-movements/contracts` | Create employee contract | Create a new employee movement resource. |
+| `GET` | `/api/v1/tenant/employee-movements/contracts/{id}` | Get contract by ID | Retrieve a paginated list of employee movement resources. |
+| `PUT` | `/api/v1/tenant/employee-movements/contracts/{id}` | Update contract | Update an existing contracts record by its unique ID. Accepts partial updates; only provided fields will be modified. |
+| `DELETE` | `/api/v1/tenant/employee-movements/contracts/{id}` | Delete contract | Delete a contracts record by its unique ID. This action may be reversible depending on system configuration. |
+| `GET` | `/api/v1/tenant/employee-movements/dashboard` | Get employee movement HR dashboard | Ringkasan kartu HR: movement per tipe, pending approval, effective bulan ini, dan ringkasan kontrak. |
+| `GET` | `/api/v1/tenant/employee-movements/employees/{employeeId}/career-history` | Get employee career history | Timeline karier karyawan (JOINED/MOVEMENT/CONTRACT) + posisi saat ini. |
+| `GET` | `/api/v1/tenant/employee-movements/employees/{employeeId}/contracts` | List contracts by employee | Retrieve a paginated list of employee movement resources. |
+| `GET` | `/api/v1/tenant/employee-movements/employees/{employeeId}/movement-eligibility` | Get movement eligibility | Evaluasi kelayakan perpindahan umum: masa kerja, skor performa/KPI/OKR/kompetensi, posisi dalam career path, dan hasil rule. |
+| `GET` | `/api/v1/tenant/employee-movements/employees/{employeeId}/movements` | List movements by employee | Retrieve a paginated list of employee movement resources. |
+| `GET` | `/api/v1/tenant/employee-movements/employees/{employeeId}/promotion-eligibility` | Get promotion eligibility | Evaluasi kelayakan promosi: posisi target berikutnya dalam career path, minimum service months, skor, dan hasil rule. |
+| `GET` | `/api/v1/tenant/employee-movements/movements` | List employee movements | Retrieve a paginated list of employee movement resources. |
+| `POST` | `/api/v1/tenant/employee-movements/movements` | Create employee movement | Create a new employee movement resource. |
+| `GET` | `/api/v1/tenant/employee-movements/movements/{id}` | Get movement by ID | Retrieve a paginated list of employee movement resources. |
+| `PUT` | `/api/v1/tenant/employee-movements/movements/{id}` | Update movement | Update an existing movements record by its unique ID. Accepts partial updates; only provided fields will be modified. |
+| `DELETE` | `/api/v1/tenant/employee-movements/movements/{id}` | Delete movement | Delete a movements record by its unique ID. This action may be reversible depending on system configuration. |
+| `GET` | `/api/v1/tenant/employee-movements/movements/{id}/audits` | List movement audits | Audit trail perubahan sebuah movement (create/update/submit/execute/cancel) dengan pagination. |
+| `POST` | `/api/v1/tenant/employee-movements/movements/{id}/cancel` | Cancel movement | Create a new employee movement resource. |
+| `GET` | `/api/v1/tenant/employee-movements/movements/{id}/documents` | List movement documents | Ambil daftar dokumen (SK, surat) sebuah movement dengan pagination. |
+| `POST` | `/api/v1/tenant/employee-movements/movements/{id}/documents` | Create movement document | Simpan metadata dokumen movement (file fisik di-upload via endpoint upload generik). |
+| `DELETE` | `/api/v1/tenant/employee-movements/movements/{id}/documents/{documentId}` | Delete movement document | Hapus satu dokumen dari movement. |
+| `POST` | `/api/v1/tenant/employee-movements/movements/{id}/execute` | Execute movement | Create a new employee movement resource. |
+| `POST` | `/api/v1/tenant/employee-movements/movements/{id}/submit` | Submit employee movement for approval | Kirim movement berstatus draft ke alur persetujuan (approval flow) terpusat. Setelah disetujui, approval engine akan mengeksekusi perpindahan. |
+| `GET` | `/api/v1/tenant/employee-movements/reports/contracts` | Get contract report | Agregasi laporan kontrak: total per status + jumlah kontrak akan berakhir dalam 30 hari. |
+| `GET` | `/api/v1/tenant/employee-movements/reports/movements` | Get movement report | Agregasi laporan movement: total per tipe dan per status — filter ?from_date / ?to_date. |
+
 ### Tenant: Leave & Time Off
 **Description:** Leave and time off management including leave types, accrual policies, leave reasons, leave requests, leave request details, and employee leave balances
 **Endpoints:** 25 | **Paths:** 14
@@ -896,8 +1023,8 @@ Tenant endpoints support validation for Indonesian data formats:
 
 ### Tenant: Career Intelligence
 **Description:** Career Intelligence & Talent Management â€” strategic talent analytics for 9-box talent mapping, career interests tracking, career path gap analysis, and succession planning. Provides talent review data to identify high-potential employees, plan career development, and ensure leadership pipeline readiness.
-**Endpoints:** 19 | **Paths:** 11
-**Methods:** DELETE=3 GET=10 POST=4 PUT=2
+**Endpoints:** 21 | **Paths:** 11
+**Methods:** DELETE=3 GET=11 POST=4 PUT=3
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -908,6 +1035,8 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/tenant/career-intelligence/paths` | Create career path | Define a career path between two position titles. Specifies the path type (PROMOTION/LATERAL/DEMOTION/CROSSFUNCTIONAL), typical tenure, requirement... |
 | `GET` | `/api/v1/tenant/career-intelligence/paths/gap-analysis` | Career gap analysis | Analyze the gap between an employee's current qualifications and the requirements of a target position title. Returns matched skills, total require... |
 | `DELETE` | `/api/v1/tenant/career-intelligence/paths/{id}` | Delete career path | Hapus satu jalur karier (career path). |
+| `GET` | `/api/v1/tenant/career-intelligence/paths/{id}` | Get career path by ID | Ambil satu jalur karier (ladder-style: name + steps[]) berdasarkan ID. |
+| `PUT` | `/api/v1/tenant/career-intelligence/paths/{id}` | Update career path | Perbarui jalur karier (nama, steps, path type, masa kerja, requirements). |
 | `GET` | `/api/v1/tenant/career-intelligence/successions` | List succession plans | Retrieve a paginated list of succession plans. Shows which positions have identified successors with readiness levels (READY_NOW, READY_1YR, READY_... |
 | `POST` | `/api/v1/tenant/career-intelligence/successions` | Create succession plan | Create a succession plan for a key position. Identifies a potential successor with readiness level, priority order, target date, and development plan. |
 | `GET` | `/api/v1/tenant/career-intelligence/successions/{id}` | Get succession plan by ID | Get detailed information about a specific succession plan including successor details, readiness level, and development plan. |
@@ -971,30 +1100,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/tenant/approval/instances/{id}/actions` | Submit approval action (approve/reject) | Create a new approval resource. |
 | `POST` | `/api/v1/tenant/approval/instances/{id}/cancel` | Cancel approval instance | Cancel an active approval instance. This will void all pending tasks and mark the instance as CANCELLED. Only instances in PENDING status can be ca... |
 | `GET` | `/api/v1/tenant/approval/tasks/pending` | List my pending approval tasks | Retrieve a paginated list of approval resources. |
-
-### Tenant: Employee Movement & Career Management
-**Description:** Employee career movements management including promotions, demotions, mutations, contract extensions (PKWT), retirements, offboarding, and employment contract management
-**Endpoints:** 16 | **Paths:** 10
-**Methods:** DELETE=2 GET=6 POST=6 PUT=2
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/tenant/employee-movements/contracts` | List employee contracts | Retrieve a paginated list of employee movement resources. |
-| `POST` | `/api/v1/tenant/employee-movements/contracts` | Create employee contract | Create a new employee movement resource. |
-| `GET` | `/api/v1/tenant/employee-movements/contracts/{id}` | Get contract by ID | Retrieve a paginated list of employee movement resources. |
-| `PUT` | `/api/v1/tenant/employee-movements/contracts/{id}` | Update contract | Update an existing contracts record by its unique ID. Accepts partial updates; only provided fields will be modified. |
-| `DELETE` | `/api/v1/tenant/employee-movements/contracts/{id}` | Delete contract | Delete a contracts record by its unique ID. This action may be reversible depending on system configuration. |
-| `GET` | `/api/v1/tenant/employee-movements/employees/{employeeId}/contracts` | List contracts by employee | Retrieve a paginated list of employee movement resources. |
-| `GET` | `/api/v1/tenant/employee-movements/employees/{employeeId}/movements` | List movements by employee | Retrieve a paginated list of employee movement resources. |
-| `GET` | `/api/v1/tenant/employee-movements/movements` | List employee movements | Retrieve a paginated list of employee movement resources. |
-| `POST` | `/api/v1/tenant/employee-movements/movements` | Create employee movement | Create a new employee movement resource. |
-| `GET` | `/api/v1/tenant/employee-movements/movements/{id}` | Get movement by ID | Retrieve a paginated list of employee movement resources. |
-| `PUT` | `/api/v1/tenant/employee-movements/movements/{id}` | Update movement | Update an existing movements record by its unique ID. Accepts partial updates; only provided fields will be modified. |
-| `DELETE` | `/api/v1/tenant/employee-movements/movements/{id}` | Delete movement | Delete a movements record by its unique ID. This action may be reversible depending on system configuration. |
-| `POST` | `/api/v1/tenant/employee-movements/movements/{id}/approve` | Approve movement | Create a new employee movement resource. |
-| `POST` | `/api/v1/tenant/employee-movements/movements/{id}/cancel` | Cancel movement | Create a new employee movement resource. |
-| `POST` | `/api/v1/tenant/employee-movements/movements/{id}/execute` | Execute movement | Create a new employee movement resource. |
-| `POST` | `/api/v1/tenant/employee-movements/movements/{id}/submit` | Submit employee movement for approval | Kirim movement berstatus draft ke alur persetujuan (approval flow) terpusat. Setelah disetujui, approval engine akan mengeksekusi perpindahan. |
 
 ### Tenant: Reimbursement & Claim
 **Description:** Reimbursement & claim management including reimbursement types, requests, items, and payment processing

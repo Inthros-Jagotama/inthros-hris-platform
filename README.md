@@ -162,16 +162,17 @@ hris-platform/
 │   │   │   ├── employee/             #   Employee CRUD + 8 sub-modules
 │   │   │   ├── jobmanagement/        #   Job Management (18 entities)
 │   │   │   ├── competency/           #   Competency Management (7 entities)
-│   │   │   ├── employeemovement/     #   Employee Movement & Career Management (2 entities)
-│   │   │   ├── attendance/           #   Time & Attendance (10 entities, 30 endpoints)
-│   │   │   ├── approval/             #   Approval Engine (5 entities, 15 endpoints)
-│   │   │   ├── payroll/              #   Payroll & Compensation Engine (21 entities)
-│   │   │   ├── leave/                #   Leave & Time Off (6 entities, 21 endpoints)
-│   │   │   ├── performance/          #   Performance Management (15 entities, 117 endpoints, 55 tests)
-│   │   │   ├── recruitment/          #   Recruitment & Onboarding ATS (7 entities, 33 endpoints, 66 tests)
-│   │   │   ├── training/            #   Training & Development (7 entities, 35 endpoints, 31 tests)
-│   │   │   ├── careerintelligence/   #   Career Intelligence & Talent Management (4 entities, 19 endpoints, 65 tests)
-│   │   │   ├── workforceintelligence/#   Workforce Intelligence & Strategic Planning (analytics layer)│   │   │   ├── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints)
+│   │   │   ├── employeemovement/     #   Employee Movement & Career Management (6 entities, 25 endpoints, 150 tests)
+│   │   │   ├── attendance/           #   Time & Attendance (11 entities, 40 endpoints, 146 tests)
+│   │   │   ├── approval/             #   Approval Engine (6 entities, 17 endpoints, 105 tests)
+│   │   │   ├── payroll/              #   Payroll & Compensation Engine (21 entities, 47 endpoints)
+│   │   │   ├── leave/                #   Leave & Time Off (7 entities, 25 endpoints, 79 tests)
+│   │   │   ├── performance/          #   Performance Management (17 entities, 147 endpoints, 125 tests)
+│   │   │   ├── recruitment/          #   Recruitment & Onboarding ATS (7 entities, 33 endpoints, 75 tests)
+│   │   │   ├── training/            #   Training & Development (28 entities, 123 endpoints, 71 tests)
+│   │   │   ├── careerintelligence/   #   Career Intelligence & Talent Management (5 entities, 21 endpoints, 66 tests)
+│   │   │   ├── workforceintelligence/#   Workforce Intelligence & Strategic Planning (7 entities, 69 endpoints, 112 tests)
+│   │   │   ├── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints, 67 tests)
 │   │   │   └── setting/              #   Settings — 19 reference CRUDs (Zones, Provinces, Regencies, Districts, Villages, Educations, Education Majors, Religions, MaritalStatuses, RelationshipTypes, Banks, EmploymentStatuses, Nationalities, JobFamilies, SalaryGrades, TER, PTKP, Insurances, Company Holidays)
 │   │   └── pkg/                      # Shared Kernel│       │   ├── config/               # Viper configuration loader
 │       │   ├── database/             # Multi-tenant DB manager
@@ -500,7 +501,7 @@ Semua perubahan role/permission akan otomatis me-reload enforcer (`Service.Sync(
 
 | Action | Company Status | Tenant Connection | Tenant Database |
 |--------|---------------|-------------------|-----------------|
-| `Create` | `active` | `is_active = true` | ✅ Created + migrated (175 tables) |
+| `Create` | `active` | `is_active = true` | ✅ Created + migrated (199 tables) |
 | `Suspend` | `suspended` | `is_active = false` + cache cleared | ✅ Data preserved |
 | `Activate` | `active` | `is_active = true` + cache cleared | ✅ Reconnected |
 | `Soft Delete` | (hidden via `deleted_at`) | `is_active = false` + cache cleared | ✅ Data preserved |
@@ -1639,12 +1640,12 @@ POST /api/v1/platform/companies
    ├── b. Connect sebagai superuser (root@localhost)
    ├── c. Buat database tenant (CREATE DATABASE IF NOT EXISTS)
    ├── d. Simpan TenantConnection ke platform DB (ID = companyID)
-   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 75 tenant SQL migrations (175 tables)
+   ├── e. Connect ke tenant DB via GORM    └── f. Jalankan 89 tenant SQL migrations (199 tables)
 5. Jika provisioning berhasil → company status: active
 6. Jika provisioning gagal → company status: suspended (data tetap tersimpan)
 ```
 
-### Tenant Migration Files (75 files → 175 tables)
+### Tenant Migration Files (89 files → 199 tables)
 
 | File | Isi |
 |------|-----|
@@ -1673,9 +1674,9 @@ POST /api/v1/platform/companies
 | `023_user_accounts.sql` | Employee user accounts (login access for employees) |
 | `024_education_majors.sql` | Education majors master (jurusan pendidikan) |
 
-> **Catatan:** Total 176 tabel termasuk `schema_migrations` (175 tabel tenant + schema_migrations, auto-created oleh migrator engine).
+> **Catatan:** Total 200 tabel termasuk `schema_migrations` (199 tabel tenant + schema_migrations, auto-created oleh migrator engine).
 
-### Daftar Lengkap 175 Tabel Tenant (+ schema_migrations = 176)
+### Daftar Lengkap 199 Tabel Tenant (+ schema_migrations = 200)
 
 **Approval (5):**
 `approval_actions`, `approval_flow_steps`, `approval_flows`, `approval_instances`, `approval_tasks`
@@ -1768,8 +1769,8 @@ POST /api/v1/platform/companies
 | Company status | ✅ **active** | API mengembalikan `status: "active"` |
 | Tenant database | ✅ Created | `hris_final-provision-test` |
 | Tenant connection | ✅ Saved | Record di `tenant_connections` tersimpan |
-| Migrations | ✅ **75 files** | 001 → 076 sukses semua (nomor 044 tidak ada) |
-| Total tables | ✅ **175 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
+| Migrations | ✅ **89 files** | 001 → 090 sukses semua (nomor 044 tidak ada) |
+| Total tables | ✅ **199 tables** | Setiap migrasi menciptakan tabel sesuai DDL |
 | Server log | ✅ Clean | "Tenant provisioning completed successfully" |
 
 #### API Test Response
@@ -1849,9 +1850,9 @@ POST /api/v1/platform/companies
 |---|------|------|
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
-| ✅ | Project completion dashboard (25 modules — 19 tenant + 6 platform, 1357 tests, 175 tables) | `docs/project-completion-dashboard.md` |
-| ✅ | OpenAPI comprehensive report (834 endpoints, 485 paths, 522 schemas, 33 tags) | `docs/openapi-report.md` |
-| ✅ | Go module architecture report (173 entities, 823 service methods, 1357 tests) | `docs/go-module-architecture-report.md` |
+| ✅ | Project completion dashboard (25 modules — 19 tenant + 6 platform, 1547 tests, 199 tables) | `docs/project-completion-dashboard.md` |
+| ✅ | OpenAPI comprehensive report (939 endpoints, 548 paths, 617 schemas, 33 tags) | `docs/openapi-report.md` |
+| ✅ | Go module architecture report (199 entities, 961 service methods, 1547 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
 | ✅ | README utama proyek | `README.md` |
@@ -1944,7 +1945,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**834 endpoints**, 485 paths, 522 schemas, 33 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**939 endpoints**, 548 paths, 617 schemas, 33 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 
@@ -1990,10 +1991,10 @@ gorm.io/gorm v1.30.0                      # ORM
 | # | Item | Detail |
 |---|------|--------|
 | ✅ | Provisioning Engine | Database creation + TenantConnection save |
-| ✅ | Tenant SQL Migrations | 150 files per dialect (75 up + 75 down) → 175 tables |
+| ✅ | Tenant SQL Migrations | 178 files per dialect (89 up + 89 down) → 199 tables |
 | ✅ | Multi-statement MySQL support | `multiStatements=true` di DSN |
 | ✅ | Error handling / graceful failure | Company status = `suspended` jika provisioning gagal |
-| ✅ | End-to-end test | Company active ✅, 175 tables ✅, MySQL |
+| ✅ | End-to-end test | Company active ✅, 199 tables ✅, MySQL |
 
 ### ✅ Tenant Lifecycle Management
 
@@ -2144,9 +2145,9 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 | [`docs/database-schema.md`](docs/database-schema.md) | Struktur database & ERD — Platform DB (11 tabel) + Tenant DB (173 tabel), relasi FK, konvensi kolom |
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap (satu-satunya dokumen arsitektur) |
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (report v20, spec 1.6.3 — 832 endpoints, 483 paths, 521 schemas, 33 tags) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (report v22, spec 1.6.3 — 939 endpoints, 548 paths, 617 schemas, 33 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (137 entities, 622 service methods, 1265 tests) |
-| [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (25 modules, 1357 tests, 175 tables) |
+| [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (25 modules, 1547 tests, 199 tables) |
 | [`docs/panduan-uiux-hris-enterprise.md`](docs/panduan-uiux-hris-enterprise.md) | Standar UI/UX enterprise (modal-first, high-density, prompt AI, warna badge) |
 | [`docs/frontend-development-plan.md`](docs/frontend-development-plan.md) | Roadmap implementasi frontend Platform Admin & Tenant |
 | [`docs/job-management-score-analysis.md`](docs/job-management-score-analysis.md) | Analisa perhitungan Job Management Score (dirujuk `calculator.go`) |

@@ -15,8 +15,8 @@
 | **Tenant Modules** | **16** complete (15 business + Settings with 18 reference CRUDs) *(+3 modul tambahan terdaftar di `main.go`: rbac, useraccount & notification — dihitung terpisah; total 19 folder modul tenant, lihat `go-module-architecture-report.md`)* |
 | **Platform Modules** | **6** complete + **2** shared packages |
 | **Total Go Files** | **346** (231 source + 115 test) |
-| **Total GORM Entities** | **173** (165 tenant + 8 platform, dari `go-module-architecture-report.md`) |
-| **Total Test Functions** | **~1357+** |
+| **Total GORM Entities** | **199** (191 tenant + 8 platform, dari `go-module-architecture-report.md`) |
+| **Total Test Functions** | **~1547+** |
 | **Total OpenAPI Endpoints** | **834** |
 | **Total OpenAPI Schemas** | **521** |
 | **Total OpenAPI Tags** | **33** |
@@ -28,7 +28,7 @@
 | **Frontend Build** | ✅ **Clean** — zero warnings |
 | **Migration Files** | **150 per dialect** (75 up + 75 down) |
 | **Database Drivers** | PostgreSQL & MySQL |
-| **Total Tenant Tables** | **175** (+ schema_migrations = 176) |
+| **Total Tenant Tables** | **199** (+ schema_migrations = 200) |
 
 ---
 
@@ -138,7 +138,7 @@
 | **Career Intelligence** | **65** | 6.5% | Repository (23), service (20), handler (22) |
 | **Organization** | 0 | 0% | (basic CRUD — minimal tests) |
 | | | | |
-| **GRAND TOTAL** | **~1357** | **100%** | *(termasuk shared packages & middleware — per-modul lihat kolom Tests di tabel atas)* |
+| **GRAND TOTAL** | **~1547** | **100%** | *(termasuk shared packages & middleware — per-modul lihat kolom Tests di tabel atas)* |
 
 > ℹ️ **Angka resmi terkini** (entities, service/repo/handler methods, route regs, test per modul) ada di [`go-module-architecture-report.md`](go-module-architecture-report.md) — di-generate dari analisis statis kode (`python scripts/generate_go_module_report.py`). Baris per-modul di tabel atas adalah snapshot per tanggal completion; jika ada selisih, gunakan report arsitektur sebagai sumber kebenaran.
 
@@ -150,8 +150,8 @@
 |----------|-------------|:------:|
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
 | `docs/platform-architecture-design.md` | Architecture design (modular monolith, multi-tenant) | ✅ Complete |
-| `docs/openapi-report.md` | OpenAPI comprehensive report (report v19, spec 1.6.3) | ✅ v19 — 821 endpoints, 473 paths, 513 schemas, 32 tags |
-| `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ Updated with Settings module (130 entities, 550 service methods, 1029 tests) |
+| `docs/openapi-report.md` | OpenAPI comprehensive report (report v22, spec 1.6.3) | ✅ v22 — 939 endpoints, 548 paths, 617 schemas, 33 tags |
+| `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ 199 entities, 961 service methods, 1547 tests |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
 | `docs/project-completion-dashboard.md` | **This document** | ✅ **Updated — Phase 1 Frontend added** |
@@ -186,7 +186,7 @@
 | **Tenant migration files (MySQL)** | **150** (75 up + 75 down) | `001_master_data` → `076_notification_params` |
 | **Tenant migration files (Postgres)** | **150** (75 up + 75 down) | Same as MySQL, dialect-adapted (penomoran 001–076; nomor 044 tidak ada) |
 | **Platform migration files** | **9 DDL** (+7 down = 16) | Platform: 001–007, 012, 013; seeders terpisah (2 file) |
-| **Total tenant tables** | **175** | Across all 75 migrations |
+| **Total tenant tables** | **199** | Across all 89 migrations |
 | **Total with schema_migrations** | **176** | Auto-included by migrator engine |
 | **Database drivers** | **2** | PostgreSQL 16+ & MySQL 8+ |
 | **Migration engine** | ✅ | SQL-based, embedded, transaction-safe. Terbaru: `021_insurances` (tabel insurances resmi, sebelumnya AutoMigrate) + `022_users` (Level 2 Tenant RBAC identity) |
@@ -215,8 +215,8 @@
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 834 endpoints |
-| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 834 endpoints |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 939 endpoints |
+| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 939 endpoints |
 | **RBAC Engine** | ✅ **Active** | 4 default roles, **98 permissions (24 resources)**, auto-reload |
 | **On-Premise License Engine** | ✅ **Ready** | `internal/pkg/onpremise/` — RSA `.lic` (expires_at, allowed_modules, max_employees); CLI `licensectl` (gen-key/gen-lic); mode `on_premise` via `HRIS_LICENSE_DEPLOYMENT_MODE` (dormant di mode saas default); lister alternatif PlatformLicenseMiddleware. **`max_employees` di-enforce di `Service.Create()` → 403 `QUOTA_EXCEEDED`** (toast bilingual FE `employee.quota_exceeded`) |
 | **Quota Audit (no bypass)** | ✅ **Audited** | Kuota terpusat di `Service.Create()` — satu-satunya pembuat Employee master. Payroll profiles / onboarding / employee-shift / sub-record TIDAK membuat Employee master (tidak perlu kuota). Frontend hanya 1 caller (`EmployeeForm.savePersonalData`). Jalur masa depan (batch import) otomatis kena kuota. *(Audit 31 Jul 2026)* |
@@ -307,7 +307,7 @@
 | Task | Priority | Notes | Status |
 |------|:--------:|-------|:------:|
 | Workforce Intelligence & Strategic Planning | 🟢 High | 11 submodules, 7 entities, 70+ endpoints | ✅ **Done (25 Jul 2026)** |
-| Career Intelligence & Talent Management | 🟢 High | 4 entities, 19 endpoints, 9-box grid, career paths, succession planning | ✅ **Done (26 Jul 2026)** |
+| Career Intelligence & Talent Management | 🟢 High | 5 entities, 21 endpoints, 9-box grid, career paths, succession planning | ✅ **Done (26 Jul 2026)** |
 
 ### Phase 5b: Polish
 

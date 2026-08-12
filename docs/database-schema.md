@@ -10,7 +10,7 @@ Dokumen ini menjelaskan struktur database HRIS Platform: arsitektur dua-database
 | Database | Isi | Jumlah Tabel |
 |---|---|---|
 | **Platform DB** | Data multi-tenant: companies, modul, lisensi, paket, RBAC platform | 11 |
-| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 175 |
+| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 199 |
 
 > Sumber kebenaran: file migrasi SQL di `backend/internal/pkg/migrator/migrations/` (dialect `postgres/` & `mysql/` identik).
 
@@ -176,7 +176,7 @@ erDiagram
 
 Satu database terisolasi **per company** (database per tenant). Struktur identik untuk semua tenant (dibuat saat provisioning company).
 
-Total **175 tabel** dikelompokkan dalam 19 modul:
+Total **199 tabel** dikelompokkan dalam 19 modul:
 
 > ℹ️ **Catatan:** pengelompokan di sini berbasis **domain tabel** (mis. Performance dipecah jadi KPI & OKR, RBAC digabung dengan Auth) — bukan folder kode. Jumlah **folder modul tenant** di kode = **19** (termasuk `notification`, `rbac`, `useraccount`), lihat [`go-module-architecture-report.md`](go-module-architecture-report.md).
 
@@ -720,7 +720,7 @@ erDiagram
 | `attendance_face_captures` | 11 | employee_id->employees |
 | `attendance_events` | 20 | employee_id->employees, device_id->attendance_device_captures, face_capture_id->attendance_face_captures |
 | `attendance_sessions` | 23 | employee_id->employees, shift_id->attendance_company_shifts, checkin_event_id->attendance_events, checkout_event_id->attendance_events |
-| `attendance_overtime_requests` | 16 | employee_id->employees |
+| `attendance_overtime_requests` | 29 | employee_id->employees |
 | `attendance_exempt_positions` | 9 | organization_id->organizations |
 | `attendance_correction_requests` | 13 | employee_id->employees, attendance_session_id->attendance_sessions |
 
@@ -873,6 +873,19 @@ erDiagram
         CHAR approval_instance_id
         INT actual_minutes
         INT calculated_minutes
+        VARCHAR flow_type
+        CHAR assigned_by
+        TIMESTAMP assigned_at
+        TIMESTAMP actual_start_time_local
+        TIMESTAMP actual_end_time_local
+        VARCHAR actual_note
+        VARCHAR attachment_url
+        CHAR actual_approval_instance_id
+        TIMESTAMP actual_submitted_at
+        CHAR actual_approved_by
+        TIMESTAMP actual_approved_at
+        CHAR cancelled_by
+        TIMESTAMP cancelled_at
     }
     attendance_exempt_positions {
         CHAR id
@@ -2135,7 +2148,7 @@ erDiagram
 
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
-| `employee_movements` | 26 | employee_id->employees, from_employment_id->employments, to_employment_id->employments, from_organization_id->organizations, to_organization_id->organizations, from_position_id->positions, to_position_id->positions, from_employment_status_id->employment_statuses, to_employment_status_id->employment_statuses |
+| `employee_movements` | 33 | employee_id->employees, from_employment_id->employments, to_employment_id->employments, from_organization_id->organizations, to_organization_id->organizations, from_position_id->positions, to_position_id->positions, from_employment_status_id->employment_statuses, to_employment_status_id->employment_statuses |
 | `employee_contracts` | 16 | employee_id->employees, previous_contract_id->employee_contracts |
 
 ### ERD — Employee Movement
@@ -2169,6 +2182,13 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
         CHAR approval_instance_id
+        VARCHAR from_organization_name
+        VARCHAR from_position_name
+        VARCHAR from_employment_status_name
+        VARCHAR to_organization_name
+        VARCHAR to_position_name
+        VARCHAR to_employment_status_name
+        CHAR cancellation_approval_instance_id
     }
     employee_contracts {
         CHAR id
@@ -2261,7 +2281,7 @@ erDiagram
 |---|---|---|
 | `performance_periods` | 9 | - |
 | `performance_perspectives` | 6 | - |
-| `performance_templates` | 10 | period_id->performance_periods |
+| `performance_templates` | 12 | period_id->performance_periods |
 | `performance_indicators` | 18 | - |
 | `performance_evaluations` | 22 | rating_id->performance_ratings |
 | `performance_evaluation_details` | 16 | indicator_id->performance_indicators |
@@ -2311,6 +2331,8 @@ erDiagram
         CHAR period_id
         DATE effective_date
         DATE expired_date
+        CHAR created_by
+        UUID created_by_org_id
     }
     performance_indicators {
         CHAR id
@@ -2519,7 +2541,7 @@ erDiagram
 
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
-| `okr_templates` | 11 | organization_id->organizations, period_id->performance_periods |
+| `okr_templates` | 13 | organization_id->organizations, period_id->performance_periods |
 | `okr_objectives` | 10 | template_id->okr_templates |
 | `okr_key_results` | 17 | objective_id->okr_objectives |
 | `okr_evaluations` | 19 | employee_id->employees, organization_id->organizations, period_id->performance_periods, template_id->okr_templates, rating_id->performance_ratings |
@@ -2544,6 +2566,8 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
         TIMESTAMP deleted_at
+        CHAR created_by
+        UUID created_by_org_id
     }
     okr_objectives {
         CHAR id
@@ -2796,12 +2820,12 @@ erDiagram
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
 | `training_categories` | 8 | - |
-| `training_courses` | 14 | - |
-| `training_sessions` | 12 | - |
-| `training_participants` | 9 | - |
-| `training_materials` | 9 | - |
+| `training_courses` | 17 | - |
+| `training_sessions` | 19 | - |
+| `training_participants` | 17 | - |
+| `training_materials` | 12 | - |
 | `training_evaluations` | 8 | - |
-| `training_certificates` | 8 | - |
+| `training_certificates` | 10 | - |
 
 ### ERD — Training
 
@@ -2832,6 +2856,9 @@ erDiagram
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        VARCHAR course_type
+        VARCHAR delivery_type
+        BOOLEAN is_mandatory
     }
     training_sessions {
         CHAR id
@@ -2846,6 +2873,13 @@ erDiagram
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        VARCHAR provider_type
+        VARCHAR delivery_mode
+        CHAR provider_id
+        TIMESTAMP start_datetime
+        TIMESTAMP end_datetime
+        TEXT meeting_url
+        TIMESTAMP registration_deadline
     }
     training_participants {
         CHAR id
@@ -2857,6 +2891,14 @@ erDiagram
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        VARCHAR registration_status
+        TIMESTAMP registered_at
+        TIMESTAMP approved_at
+        VARCHAR completion_status
+        DATE completion_date
+        DECIMAL final_score
+        BOOLEAN passed
+        TEXT remarks
     }
     training_materials {
         CHAR id
@@ -2868,6 +2910,9 @@ erDiagram
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        TEXT description
+        BOOLEAN is_required
+        TIMESTAMP available_from
     }
     training_evaluations {
         CHAR id
@@ -2888,6 +2933,8 @@ erDiagram
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR certification_id
+        TEXT certificate_file_url
     }
 ```
 
@@ -3002,7 +3049,7 @@ erDiagram
 |---|---|---|
 | `career_talent_maps` | 12 | - |
 | `career_interests` | 12 | - |
-| `career_paths` | 12 | - |
+| `career_paths` | 16 | - |
 | `career_succession_plans` | 12 | - |
 
 ### ERD — Career Intelligence
@@ -3050,6 +3097,10 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
         TIMESTAMP deleted_at
+        VARCHAR name
+        TEXT description
+        CHAR created_by
+        CHAR updated_by
     }
     career_succession_plans {
         CHAR id
@@ -3081,7 +3132,7 @@ erDiagram
 
 ## Migrasi & Dialect
 
-- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 75 file up + 75 file down per dialect (300 total).
+- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 89 file up + 89 file down per dialect (356 total).
 - Migrasi **platform** bersifat cross-dialect di `migrations/platform/`.
 - Tabel tambahan platform (`packages`, `package_modules`) dibuat via GORM `AutoMigrate`.
 - Dijalankan otomatis saat **provisioning company** (tenant DB dibuat + migrasi + seed).

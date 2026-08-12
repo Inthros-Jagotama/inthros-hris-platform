@@ -5,7 +5,7 @@
 
 Panduan praktis **cara menggunakan API** HRIS Platform: dari menjalankan server, autentikasi, format request/response, sampai contoh pemanggilan end-to-end (curl).
 
-> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 834 endpoint + skema, lihat:
+> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 939 endpoint + skema, lihat:
 > - [`docs/openapi-report.md`](../openapi-report.md) — laporan komprehensif per modul
 > - `backend/internal/pkg/docs/openapi.json` — OpenAPI 3.0 spec (sumber kebenaran)
 
@@ -115,7 +115,7 @@ Setelah server jalan, dokumentasi API tersedia di:
 |---|---|
 | `http://localhost:8080/docs` | **Scalar UI** — explore & try endpoint langsung dari browser |
 | `http://localhost:8080/openapi.json` | OpenAPI 3.0 spec mentah (JSON) |
-| `docs/openapi-report.md` | Laporan markdown statis (832 endpoint, 483 paths, 521 schemas, 33 tag) |
+| `docs/openapi-report.md` | Laporan markdown statis (939 endpoint, 548 paths, 617 schemas, 33 tag) |
 
 ---
 
@@ -468,6 +468,8 @@ curl -X POST http://localhost:8080/api/v1/tenant/employees \
 |---|---|
 | Settings / Master data | `GET /api/v1/tenant/settings/banks`, `.../religions`, `.../zones`, `.../company-holidays` |
 | Job Management | `GET/POST /api/v1/tenant/job-management/titles`, `.../values/tree` |
+| Training & Development | `GET/POST /api/v1/tenant/trainings/categories`, `.../courses`, `.../plans`, `.../needs`, `.../requests`, `.../providers`, `.../trainers`, `.../sessions`, `.../evaluation-forms`, `.../certifications`, `GET .../reports/participation`, `.../history` → lihat §8.8 |
+| Career Intelligence | `GET/POST /api/v1/tenant/career-intelligence/paths`, `.../talent-maps`, `.../interests`, `.../successions`, `GET .../paths/gap-analysis` |
 | Payroll | `GET /api/v1/tenant/payroll/...` |
 | Leave | `GET/POST /api/v1/tenant/leave/types`, `.../requests`, `.../balances`, `GET /api/v1/tenant/leave/calendar`, `GET /api/v1/tenant/leave/reports/usage` → lihat §8.7 |
 | Performance — Master Data | `GET/POST /api/v1/tenant/performance/periods`, `.../ratings`, `.../indicator-formulas`, `.../logs` |
@@ -478,8 +480,8 @@ curl -X POST http://localhost:8080/api/v1/tenant/employees \
 | Company self-service | `GET/PUT /api/v1/tenant/companies/me` |
 | Module aktif | `GET /api/v1/tenant/company-modules` |
 | Approval Engine | `GET/POST /api/v1/tenant/approval/flows`, `GET /api/v1/tenant/approval/available-modules`, `POST /api/v1/tenant/approval/instances/:id/actions` |
-| Employee Movement | `GET/POST /api/v1/tenant/employee-movements/movements`, `POST /api/v1/tenant/employee-movements/movements/:id/submit`, `.../:id/approve`, `.../:id/execute` |
-| Attendance | `GET/POST /api/v1/tenant/attendance/shifts`, `.../locations`, `.../events`, `GET .../sessions`, `.../calendar`, `.../summary`, `.../reports/sessions`, `POST/GET .../corrections` |
+| Employee Movement | `GET/POST /api/v1/tenant/employee-movements/movements`, `POST .../movements/:id/submit`, `.../:id/execute`, `GET .../employees/:employeeId/career-history`, `.../movement-eligibility`, `.../promotion-eligibility`, `GET .../reports/movements`, `.../reports/contracts`, `.../dashboard` |
+| Attendance | `GET/POST /api/v1/tenant/attendance/shifts`, `.../locations`, `.../events`, `GET .../sessions`, `.../calendar`, `.../summary`, `.../reports/sessions`, `POST/GET .../corrections`, `POST .../overtime-requests`, `.../overtime-requests/assign`, `.../overtime-requests/:id/actual`, `GET .../overtime-requests/assignable-employees` |
 | Notification | `GET /api/v1/tenant/notifications`, `.../unread-count`, `PATCH .../:id/read`, `POST .../read-all` |
 | User Accounts | `GET /api/v1/tenant/user-accounts/me`, `POST .../employees/:employeeId`, `GET .../employees/:employeeId`, `POST .../employees/:employeeId/resend` |
 
@@ -1293,6 +1295,220 @@ curl "http://localhost:8080/api/v1/tenant/leave/reports/usage?from=2026-07-01&to
 > Query `from` dan `to` **wajib** diisi. Response non-paginated; bentuk item sama dengan `GET /api/v1/tenant/leave/requests` (`LeaveRequestResponse`). Jika perlu dikelompokkan per jenis cuti, cukup agregasi `leave_type_id` di sisi klien.
 
 > 💡 Alur lengkap cuti (buat jenis → buat request → setujui via Approval Engine → cek balance) mengikuti pola yang sama dengan contoh di §8.3–§8.6; `calendar` & `reports/usage` adalah endpoint *read-only* untuk tampilan & laporan.
+
+---
+
+### 8.8 Contoh Penggunaan: Training & Development (End-to-End)
+
+Alur lengkap pengelolaan **Training & Development**: dari perencanaan (plan + need) sampai operasional (session, attendance, assessment) dan evaluasi (form evaluasi, efektivitas, sertifikat). Semua endpoint berada di `/api/v1/tenant/trainings/*` dan memerlukan `Authorization: Bearer <tenant_token>`.
+
+```
+Training Plan (tahunan) → Training Need → Course & Category → Session → Attendance & Assessment → Evaluation Form → Efektivitas & Sertifikat → Laporan
+```
+
+> **Prasyarat:** `TENANT_TOKEN` dari login tenant (lihat Step 3 di 8.1), serta UUID `organization_id` / `position_id` dan `employee_id` yang sudah ada. Modul Training harus aktif (license) untuk tenant.
+
+**Step 1 — Buat rencana pelatihan tahunan (Training Plan):**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/plans \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "PLN-2026",
+    "name": "Rencana Pelatihan 2026",
+    "year": 2026,
+    "description": "Program pengembangan kompetensi tahunan",
+    "status": "ACTIVE"
+  }'
+# → 201 { "success": true, "data": { "id": "<plan-uuid>", "status": "ACTIVE", ... } }
+```
+
+**Step 2 — Catat kebutuhan pelatihan (Training Need):**
+
+Kebutuhan bisa di-input manual atau berasal dari sumber lain (performance/competency/career).
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/needs \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "organization_id": "<org-uuid>",
+    "course_id": "<course-uuid>",
+    "reason": "Gap kompetensi tim penjualan",
+    "priority": "HIGH",
+    "source_type": "COMPETENCY",
+    "status": "OPEN"
+  }'
+# → 201 { "success": true, "data": { "id": "<need-uuid>", "status": "OPEN", ... } }
+```
+
+**Step 3 — Buat course di dalam kategori:**
+
+```bash
+# Buat kategori dulu
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/categories \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "code": "SOFT", "name": "Soft Skill", "description": "Pengembangan soft skill" }'
+
+# Lalu buat course
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/courses \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category_id": "<category-uuid>",
+    "code": "NEG-101",
+    "name": "Negotiation Skills",
+    "duration_hour": 16,
+    "min_score": 70,
+    "course_type": "SOFT_SKILL",
+    "delivery_type": "IN_HOUSE",
+    "is_certified": true
+  }'
+# → 201 { "success": true, "data": { "id": "<course-uuid>", ... } }
+
+# (Opsional) Tambah objective & prasyarat course
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/courses/<course-uuid>/objectives \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "objective": "Mampu melakukan negosiasi kontrak", "sort_order": 1 }'
+
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/courses/<course-uuid>/prerequisites \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "prerequisite_type": "COMPETENCY", "is_required": true }'
+```
+
+**Step 4 — Buat session pelatihan (jadwal + trainer):**
+
+```bash
+# Daftarkan provider & trainer
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/providers \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "code": "VND-01", "name": "Training House ID", "type": "EXTERNAL" }'
+
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/trainers \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "type": "EXTERNAL", "provider_id": "<provider-uuid>", "name": "Bpk. Andi Trainer" }'
+
+# Buat session
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/sessions \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "course_id": "<course-uuid>",
+    "session_code": "NEG-101-AUG",
+    "trainer_name": "Bpk. Andi Trainer",
+    "location": "Jakarta",
+    "start_date": "2026-08-17",
+    "end_date": "2026-08-19",
+    "max_quota": 20,
+    "delivery_mode": "ONSITE",
+    "provider_type": "EXTERNAL"
+  }'
+# → 201 { "success": true, "data": { "id": "<session-uuid>", "status": "DRAFT", ... } }
+```
+
+**Step 5 — Daftarkan peserta & catat kehadiran:**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/participants \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "session_id": "<session-uuid>", "employee_id": "<employee-uuid>" }'
+
+# Catat kehadiran per hari
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/sessions/<session-uuid>/attendance \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "participant_id": "<participant-uuid>", "attendance_date": "2026-08-17", "status": "PRESENT", "check_in": "08:00", "check_out": "17:00" }'
+
+# Buat assessment & input nilai peserta
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/sessions/<session-uuid>/assessments \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Post-Test Negosiasi", "type": "POST_TEST", "max_score": 100, "passing_score": 70, "is_required": true }'
+
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/assessments/<assessment-uuid>/results \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "participant_id": "<participant-uuid>", "score": 85 }'
+```
+
+**Step 6 — Evaluasi pelatihan (form + jawaban + efektivitas):**
+
+```bash
+# Buat form evaluasi untuk session
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/evaluation-forms \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "session_id": "<session-uuid>", "name": "Evaluasi Pelatihan Negosiasi", "is_active": true }'
+
+# Tambah pertanyaan
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/evaluation-forms/<form-uuid>/questions \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "question": "Seberapa relevan materi dengan pekerjaan?", "question_type": "RATING", "is_required": true }'
+
+# Peserta mengisi jawaban
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/evaluation-forms/<form-uuid>/participants/<participant-uuid>/answers \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "answers": [ { "question_id": "<question-uuid>", "answer": "5" } ] }'
+
+# Penilaian efektivitas (before/after score) oleh atasan
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/effectiveness \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "participant_id": "<participant-uuid>",
+    "assessment_date": "2026-09-01",
+    "before_score": 60,
+    "after_score": 85
+  }'
+```
+
+**Step 7 — Terbitkan sertifikat & lihat laporan:**
+
+```bash
+# Generate sertifikat untuk peserta (isikan nomor + file URL hasil upload)
+curl -X POST http://localhost:8080/api/v1/tenant/trainings/participants/<participant-uuid>/certificate \
+  -H "Authorization: Bearer $TENANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "certification_id": "<certification-uuid>", "certificate_file_url": "/uploads/certs/neg-101-a.pdf", "expiry_date": "2028-08-19" }'
+
+# Riwayat pelatihan karyawan
+curl "http://localhost:8080/api/v1/tenant/trainings/history?employee_id=<employee-uuid>" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+
+# Laporan partisipasi & biaya (HR)
+curl "http://localhost:8080/api/v1/tenant/trainings/reports/participation?course_id=<course-uuid>" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+curl "http://localhost:8080/api/v1/tenant/trainings/reports/cost?year=2026" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+
+# Kartu dashboard training
+curl "http://localhost:8080/api/v1/tenant/trainings/reports/dashboard" \
+  -H "Authorization: Bearer $TENANT_TOKEN"
+# → { "success": true, "data": { "total_courses": 12, "total_sessions": 8, "completion_rate": 91.5, ... } }
+```
+
+**Catatan tambahan Training:**
+
+| Endpoint | Deskripsi |
+|---|---|
+| `POST /api/v1/tenant/trainings/requests` (+ `/:id/submit`, `/:id/cancel`) | Permintaan pelatihan karyawan — diproses lewat **Central Approval** (module `training_request`) |
+| `GET/POST /api/v1/tenant/trainings/mandatories` | Kebijakan pelatihan wajib per organisasi/posisi (compliance) |
+| `GET /api/v1/tenant/trainings/plans/:id/items`, `POST .../items` | Item rencana (course target + estimasi biaya) dalam plan tahunan |
+| `GET/POST /api/v1/tenant/trainings/sessions/:id/costs` | Komponen biaya per session (biaya trainer, venue, materi, dll) |
+| `GET/POST /api/v1/tenant/trainings/sessions/:id/documents` | Dokumen session (proposal, quotation, invoice, kontrak) |
+| `GET/POST /api/v1/tenant/trainings/certifications` | Master sertifikasi (badan penerbit, masa berlaku, renewal) |
+| `GET /api/v1/tenant/trainings/reports/compliance` | Laporan kepatuhan pelatihan wajib per karyawan |
+
+> 💡 Alur **Central Approval**: buat request → `POST /requests/:id/submit` (kirim ke approval engine) → approver bertindak via `/approval/instances/:id/actions` — lihat [8.5](#85-contoh-penggunaan-approval-engine--employee-movement). Untuk perpindahan karyawan (promosi/mutasi) lihat juga contoh employee movement di [8.5](#85-contoh-penggunaan-approval-engine--employee-movement), dan karier karyawan (career history, eligibility promosi) di endpoint `/api/v1/tenant/employee-movements/employees/:employeeId/*`.
 
 ---
 

@@ -873,7 +873,7 @@ POST /api/v1/platform/companies
    ├── c. Buat database tenant (CREATE DATABASE IF NOT EXISTS)
    ├── d. Simpan TenantConnection ke platform DB (ID = companyID)
    ├── e. Connect ke tenant DB via GORM
-   └── f. Jalankan 75 tenant SQL migrations (175 tables)
+   └── f. Jalankan 89 tenant SQL migrations (199 tables)
 5. Jika provisioning berhasil → company status: active
 6. Jika provisioning gagal → company status: suspended (data tetap tersimpan)
 ```
@@ -1056,8 +1056,8 @@ Body: {"name": "Final Provision Test", "email": "final@test.com", "phone": "0217
 | Company status | ✅ **active** | Company ter-create dengan status active (bukan suspended) |
 | Tenant database | ✅ Created | `hris_final-provision-test` ter-create di MySQL |
 | Tenant connection | ✅ Saved | Record di `hris_platform.tenant_connections` tersimpan |
-| Migrations | ✅ **75 files** | Semua migration sukses: 001 → 076 |
-| Total tables | ✅ **175 tables** | Semua tabel ter-create sesuai migration files |
+| Migrations | ✅ **89 files** | Semua migration sukses: 001 → 090 |
+| Total tables | ✅ **199 tables** | Semua tabel ter-create sesuai migration files |
 | Server log | ✅ Clean | Tidak ada error — "Migrations completed", "Tenant provisioning completed successfully" |
 
 #### API Test Response
@@ -1084,7 +1084,7 @@ graph LR
     C -->|Error: Access denied| D[Fix: root credentials]
     D -->|Error: multiStatements| E[Fix: multiStatements=true]
     E -->|Error: FK dependency| F[Fix: FK di 008 ALTER TABLE]
-    F -->|✅ SUCCESS| G[Company active, 175 tables]
+    F -->|✅ SUCCESS| G[Company active, 199 tables]
 ```
 
 ---
@@ -1095,7 +1095,7 @@ graph LR
 
 | Method | Endpoint | Deskripsi |
 |---|---|---|
-| `POST` | `/api/v1/platform/companies` | Create company + provision tenant DB (175 tables) |
+| `POST` | `/api/v1/platform/companies` | Create company + provision tenant DB (199 tables) |
 | `GET` | `/api/v1/platform/companies` | List all companies |
 | `GET` | `/api/v1/platform/companies/:id` | Get company detail |
 | `PUT` | `/api/v1/platform/companies/:id` | Update company info |
@@ -1132,7 +1132,7 @@ Setiap company/tenant memiliki lifecycle yang dikelola melalui endpoint tenant m
 
 | Action | HTTP Method | Endpoint | DB Cleanup |
 |--------|------------|----------|------------|
-| **Provision** | `POST` | `/companies` | ✅ Create DB + migrate (175 tables) |
+| **Provision** | `POST` | `/companies` | ✅ Create DB + migrate (199 tables) |
 | **Suspend** | `POST` | `/companies/:id/suspend` | ✅ Deactivate connection + clear cache |
 | **Activate** | `POST` | `/companies/:id/activate` | ✅ Reactivate connection + clear cache |
 | **Soft Delete** | `DELETE` | `/companies/:id` | ✅ Deactivate connection |
