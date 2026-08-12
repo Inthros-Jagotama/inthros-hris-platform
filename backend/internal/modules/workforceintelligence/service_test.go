@@ -816,3 +816,149 @@ func TestService_CandidateSearch_PaginationDefaults(t *testing.T) {
 		t.Error("expected non-nil data (empty slice)")
 	}
 }
+
+// =========================================================================
+// Recruitment Analytics (S-2 — expected hires → remaining gap)
+// =========================================================================
+
+func TestService_GetRecruitmentAnalytics_ComputesPipeline(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createRecruitmentTables(t, db)
+	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, deleted_at DATETIME NULL)`).Error; err != nil {
+		t.Fatalf("failed to create employees table: %v", err)
+	}
+
+	orgID := uuid.New().String()
+	// OPEN requisition: 3 slots, 1 filled → 2 open
+	reqOpen := uuid.New().String()
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled) VALUES (?, ?, 'A', 'OPEN', 3, 1)", reqOpen, orgID)
+	// FILLED requisition: 2 slots filled
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled) VALUES (?, ?, 'B', 'FILLED', 2, 2)", uuid.New().String(), orgID)
+	// Aplikasi: 2 NEW + 1 ACCEPTED pada requisition aktif
+	cand := uuid.New().String()
+	for _, st := range []string{"NEW", "NEW", "ACCEPTED"} {
+		db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, ?)", uuid.New().String(), reqOpen, cand, st)
+	}
+
+	resp, err := svc.GetRecruitmentAnalytics(ctx())
+	if err != nil {
+		t.Fatalf("GetRecruitmentAnalytics failed: %v", err)
+	}
+	if resp.OpenPositions != 2 {
+		t.Errorf("expected 2 open positions, got %d", resp.OpenPositions)
+	}
+	if resp.FilledPositions != 2 {
+		t.Errorf("expected 2 filled positions, got %d", resp.FilledPositions)
+	}
+	if resp.ExpectedHires != 1 {
+		t.Errorf("expected 1 expected hire (ACCEPTED), got %d", resp.ExpectedHires)
+	}
+	if resp.Pipeline == nil || len(resp.Pipeline) == 0 {
+		t.Fatal("expected non-empty pipeline")
+	}
+	// Funnel mengikuti pipeline
+	if len(resp.Funnel) != len(resp.Pipeline) {
+		t.Errorf("expected funnel == pipeline length, got %d vs %d", len(resp.Funnel), len(resp.Pipeline))
+	}
+}
+
+func TestService_GetRecruitmentAnalytics_EmptyData(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createRecruitmentTables(t, db)
+	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, deleted_at DATETIME NULL)`).Error; err != nil {
+		t.Fatalf("failed to create employees table: %v", err)
+	}
+
+	resp, err := svc.GetRecruitmentAnalytics(ctx())
+	if err != nil {
+		t.Fatalf("GetRecruitmentAnalytics failed: %v", err)
+	}
+	if resp.OpenPositions != 0 || resp.ExpectedHires != 0 || resp.FilledPositions != 0 {
+		t.Errorf("expected all zeros on empty data, got %+v", resp)
+	}
+	if resp.Pipeline == nil {
+		t.Error("expected non-nil empty pipeline slice")
+	}
+}
+
+func TestService_GetGapAnalysis_IncludesRemainingGap(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createRecruitmentTables(t, db)
+	// GetGapAnalysis membaca tabel employees (supply) — buat minimal.
+	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, deleted_at DATETIME NULL)`).Error; err != nil {
+		t.Fatalf("failed to create employees table: %v", err)
+	}
+
+	// Supply 0 (tidak ada employee). Demand default 5% dari supply = 0.
+	// Tanpa forecast, demand = 0 → gap 0 → remaining gap 0.
+	resp, err := svc.GetGapAnalysis(ctx(), "2026-08")
+	if err != nil {
+		t.Fatalf("GetGapAnalysis failed: %v", err)
+	}
+	if resp.RemainingGap != 0 {
+		t.Errorf("expected remaining_gap 0 (no shortage), got %d", resp.RemainingGap)
+	}
+	if resp.ExpectedHires != 0 {
+		t.Errorf("expected expected_hires 0, got %d", resp.ExpectedHires)
+	}
+}
+
+func TestService_GetGapAnalysis_RemainingGapSubtractsExpectedHires(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	createRecruitmentTables(t, db)
+	if err := db.Exec(`CREATE TABLE employees (id CHAR(36) PRIMARY KEY, deleted_at DATETIME NULL)`).Error; err != nil {
+		t.Fatalf("failed to create employees table: %v", err)
+	}
+
+	// Supply 5 employee, demand 0 (tanpa forecast → demand = supply*1.05 = 5
+	// (int(5.25)=5)) → gap = 5-5 = 0. Tidak membentuk shortage.
+	for i := 0; i < 5; i++ {
+		db.Exec("INSERT INTO employees (id) VALUES (?)", uuid.New().String())
+	}
+
+	// Accepted offer = 2 (expected hires)
+	reqOpen := uuid.New().String()
+	orgID := uuid.New().String()
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled) VALUES (?, ?, 'A', 'OPEN', 5, 0)", reqOpen, orgID)
+	cand := uuid.New().String()
+	for _, st := range []string{"ACCEPTED", "ACCEPTED"} {
+		db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, ?)", uuid.New().String(), reqOpen, cand, st)
+	}
+
+	resp, err := svc.GetGapAnalysis(ctx(), "2026-08")
+	if err != nil {
+		t.Fatalf("GetGapAnalysis failed: %v", err)
+	}
+	// Demand fallback = int(5 * 1.05) = 5 → gap = 0 (OPTIMAL), bukan shortage.
+	// Expected hires tetap ter-expose di response.
+	if resp.ExpectedHires != 2 {
+		t.Errorf("expected expected_hires 2, got %d", resp.ExpectedHires)
+	}
+	if resp.OpenPositions != 5 {
+		t.Errorf("expected open_positions 5, got %d", resp.OpenPositions)
+	}
+	if resp.RemainingGap < 0 {
+		t.Errorf("expected remaining_gap >= 0, got %d", resp.RemainingGap)
+	}
+}
+

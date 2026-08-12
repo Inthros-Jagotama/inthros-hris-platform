@@ -250,10 +250,12 @@ func (h *Handler) GetLearningAnalytics(c *gin.Context) {
 }
 
 func (h *Handler) GetRecruitmentAnalytics(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": RecruitmentAnalytics{
-		TimeToHire:  45.5,
-		CostPerHire: 2500000,
-	}})
+	resp, err := h.svc.GetRecruitmentAnalytics(c.Request.Context())
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
 }
 
 func (h *Handler) GetMovementAnalytics(c *gin.Context) {

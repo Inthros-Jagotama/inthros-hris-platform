@@ -708,6 +708,133 @@ func createCandidateSearchTables(t *testing.T, db *gorm.DB) {
 	}
 }
 
+// =========================================================================
+// Recruitment pipeline reads (S-2)
+// =========================================================================
+
+// createRecruitmentTables membuat tabel job_requisitions + job_applications
+// dengan kolom lengkap (slots_available, slots_filled) untuk test S-2.
+func createRecruitmentTables(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	statements := []string{
+		`CREATE TABLE job_requisitions (
+			id CHAR(36) PRIMARY KEY,
+			organization_id CHAR(36),
+			title VARCHAR(255),
+			status VARCHAR(20),
+			slots_available INT DEFAULT 1,
+			slots_filled INT DEFAULT 0
+		)`,
+		`CREATE TABLE job_applications (
+			id CHAR(36) PRIMARY KEY,
+			requisition_id CHAR(36),
+			candidate_id CHAR(36),
+			status VARCHAR(50),
+			created_at DATETIME
+		)`,
+	}
+	for _, stmt := range statements {
+		if err := db.Exec(stmt).Error; err != nil {
+			t.Fatalf("failed to create recruitment table: %v\n%s", err, stmt)
+		}
+	}
+}
+
+func TestRepo_GetRecruitmentOpenPositions_SumsActiveSlots(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createRecruitmentTables(t, db)
+	ctx := context.Background()
+
+	orgID := uuid.New().String()
+	// OPEN: 3 slots, 1 filled → 2 open
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled) VALUES (?, ?, 'A', 'OPEN', 3, 1)", uuid.New().String(), orgID)
+	// IN_PROGRESS: 2 slots, 0 filled → 2 open
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled) VALUES (?, ?, 'B', 'IN_PROGRESS', 2, 0)", uuid.New().String(), orgID)
+	// FILLED & DRAFT: tidak dihitung
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled) VALUES (?, ?, 'C', 'FILLED', 5, 5)", uuid.New().String(), orgID)
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled) VALUES (?, ?, 'D', 'DRAFT', 1, 0)", uuid.New().String(), orgID)
+
+	got, err := repo.GetRecruitmentOpenPositions(ctx)
+	if err != nil {
+		t.Fatalf("GetRecruitmentOpenPositions failed: %v", err)
+	}
+	if got != 4 {
+		t.Errorf("expected 4 open positions (2+2), got %d", got)
+	}
+}
+
+func TestRepo_GetRecruitmentAcceptedOffers_CountsAccepted(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createRecruitmentTables(t, db)
+	ctx := context.Background()
+
+	reqID := uuid.New().String()
+	cand := uuid.New().String()
+	for _, st := range []string{"NEW", "OFFERED", "ACCEPTED", "ACCEPTED", "REJECTED", "WITHDRAWN"} {
+		db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, ?)", uuid.New().String(), reqID, cand, st)
+	}
+
+	got, err := repo.GetRecruitmentAcceptedOffers(ctx)
+	if err != nil {
+		t.Fatalf("GetRecruitmentAcceptedOffers failed: %v", err)
+	}
+	if got != 2 {
+		t.Errorf("expected 2 accepted offers, got %d", got)
+	}
+}
+
+func TestRepo_GetRecruitmentFilledPositions_SumsFilled(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createRecruitmentTables(t, db)
+	ctx := context.Background()
+
+	orgID := uuid.New().String()
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled) VALUES (?, ?, 'A', 'FILLED', 3, 3)", uuid.New().String(), orgID)
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled) VALUES (?, ?, 'B', 'FILLED', 2, 1)", uuid.New().String(), orgID)
+	db.Exec("INSERT INTO job_requisitions (id, organization_id, title, status, slots_available, slots_filled) VALUES (?, ?, 'C', 'OPEN', 5, 1)", uuid.New().String(), orgID)
+
+	got, err := repo.GetRecruitmentFilledPositions(ctx)
+	if err != nil {
+		t.Fatalf("GetRecruitmentFilledPositions failed: %v", err)
+	}
+	// Hanya status FILLED dijumlah: 3 + 1 = 4 (OPEN tidak dihitung)
+	if got != 4 {
+		t.Errorf("expected 4 filled positions, got %d", got)
+	}
+}
+
+func TestRepo_GetRecruitmentPipeline_GroupsByStatus(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createRecruitmentTables(t, db)
+	ctx := context.Background()
+
+	reqID := uuid.New().String()
+	cand := uuid.New().String()
+	for _, st := range []string{"NEW", "NEW", "SCREENED", "OFFERED", "ACCEPTED"} {
+		db.Exec("INSERT INTO job_applications (id, requisition_id, candidate_id, status) VALUES (?, ?, ?, ?)", uuid.New().String(), reqID, cand, st)
+	}
+
+	rows, err := repo.GetRecruitmentPipeline(ctx)
+	if err != nil {
+		t.Fatalf("GetRecruitmentPipeline failed: %v", err)
+	}
+	counts := map[string]int{}
+	for _, r := range rows {
+		counts[r.Status] = r.Count
+	}
+	if counts["NEW"] != 2 || counts["SCREENED"] != 1 || counts["OFFERED"] != 1 || counts["ACCEPTED"] != 1 {
+		t.Errorf("unexpected pipeline counts: %v", counts)
+	}
+}
+
 func TestRepo_CandidateSearchVacantOrgs_OnlyActiveEmpty(t *testing.T) {
 	db, dbResolver, cleanup := setupTestDB()
 	defer cleanup()

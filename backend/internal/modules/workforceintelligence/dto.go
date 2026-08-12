@@ -68,12 +68,17 @@ type ForecastResponse struct {
 }
 
 type GapAnalysisResponse struct {
-	Period         string                `json:"period"`
-	Supply         int                   `json:"supply"`
-	Demand         int                   `json:"demand"`
-	Gap            int                   `json:"gap"`
-	Status         string                `json:"status"` // SURPLUS / SHORTAGE / OPTIMAL
-	Departments    []DepartmentGap       `json:"departments,omitempty"`
+	Period          string                `json:"period"`
+	Supply          int                   `json:"supply"`
+	Demand          int                   `json:"demand"`
+	Gap             int                   `json:"gap"`
+	Status          string                `json:"status"` // SURPLUS / SHORTAGE / OPTIMAL
+	Departments     []DepartmentGap       `json:"departments,omitempty"`
+	// S-2: komponen hiring pipeline (Recruitment → WI)
+	ExpectedHires   int                   `json:"expected_hires"`    // accepted offers
+	OpenPositions   int                   `json:"open_positions"`    // slot requisition aktif
+	FilledPositions int                   `json:"filled_positions"`  // slot requisition FILLED
+	RemainingGap    int                   `json:"remaining_gap"`     // shortage − expected hires
 }
 
 type DepartmentGap struct {
@@ -194,6 +199,12 @@ type RecruitmentAnalytics struct {
 	CostPerHire   float64       `json:"cost_per_hire"`
 	BySource      []DataPoint   `json:"by_source"`
 	Funnel        []DataPoint   `json:"funnel"`
+	// S-2: komponen hiring pipeline (Recruitment → WI)
+	ExpectedHires   int       `json:"expected_hires"`
+	OpenPositions   int       `json:"open_positions"`
+	FilledPositions int       `json:"filled_positions"`
+	RemainingGap    int       `json:"remaining_gap"`
+	Pipeline        []DataPoint `json:"pipeline"`
 }
 
 type MovementAnalytics struct {

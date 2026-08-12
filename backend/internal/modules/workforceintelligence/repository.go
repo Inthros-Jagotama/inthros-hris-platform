@@ -586,6 +586,88 @@ func (r *Repository) GetDepartments(ctx context.Context) ([]DepartmentGap, error
 }
 
 // =========================================================================
+// Recruitment pipeline reads (S-2 — expected hires → remaining gap)
+// =========================================================================
+// WI mengonsumsi data operasional Recruitment (job_requisitions +
+// job_applications) untuk menghitung komponen hiring pipeline yang
+// memperkaya gap analysis: open positions, accepted offers (expected hires),
+// filled positions, dan pipeline per status.
+
+type RecruitmentPipelineRow struct {
+	Status string
+	Count  int
+}
+
+// GetRecruitmentOpenPositions mengembalikan total slot terbuka dari requisition
+// yang masih aktif (OPEN / IN_PROGRESS): sum(slots_available - slots_filled).
+func (r *Repository) GetRecruitmentOpenPositions(ctx context.Context) (int, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var total int64
+	if err := db.WithContext(ctx).Table("job_requisitions").
+		Select("COALESCE(SUM(slots_available - slots_filled), 0)").
+		Where("status IN ?", []string{"OPEN", "IN_PROGRESS"}).
+		Scan(&total).Error; err != nil {
+		return 0, err
+	}
+	return int(total), nil
+}
+
+// GetRecruitmentAcceptedOffers mengembalikan jumlah aplikasi yang offer-nya
+// diterima (status ACCEPTED) — ini adalah expected hires yang akan mengurangi
+// remaining workforce gap.
+func (r *Repository) GetRecruitmentAcceptedOffers(ctx context.Context) (int, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	if err := db.WithContext(ctx).Table("job_applications").
+		Where("status = ?", "ACCEPTED").
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return int(count), nil
+}
+
+// GetRecruitmentFilledPositions mengembalikan total posisi yang sudah terisi
+// (sum slots_filled pada requisition berstatus FILLED).
+func (r *Repository) GetRecruitmentFilledPositions(ctx context.Context) (int, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var total int64
+	if err := db.WithContext(ctx).Table("job_requisitions").
+		Select("COALESCE(SUM(slots_filled), 0)").
+		Where("status = ?", "FILLED").
+		Scan(&total).Error; err != nil {
+		return 0, err
+	}
+	return int(total), nil
+}
+
+// GetRecruitmentPipeline mengembalikan jumlah aplikasi per status
+// (NEW, SCREENED, SHORTLISTED, INTERVIEWED, OFFERED, ACCEPTED, REJECTED,
+// WITHDRAWN) untuk funnel recruitment.
+func (r *Repository) GetRecruitmentPipeline(ctx context.Context) ([]RecruitmentPipelineRow, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []RecruitmentPipelineRow
+	if err := db.WithContext(ctx).Table("job_applications").
+		Select("status, COUNT(*) AS count").
+		Group("status").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// =========================================================================
 // Candidate Search
 // =========================================================================
 

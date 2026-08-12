@@ -51464,6 +51464,22 @@
                 }
               }
             }
+          },
+          "expected_hires": {
+            "type": "integer",
+            "description": "Accepted offers dari Recruitment (S-2)"
+          },
+          "open_positions": {
+            "type": "integer",
+            "description": "Slot terbuka requisition aktif (S-2)"
+          },
+          "filled_positions": {
+            "type": "integer",
+            "description": "Slot terisi requisition FILLED (S-2)"
+          },
+          "remaining_gap": {
+            "type": "integer",
+            "description": "Shortage setelah dikurangi expected hires (S-2)"
           }
         }
       },
@@ -51767,6 +51783,28 @@
             }
           },
           "funnel": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            }
+          },
+          "expected_hires": {
+            "type": "integer",
+            "description": "Accepted offers (S-2)"
+          },
+          "open_positions": {
+            "type": "integer",
+            "description": "Slot terbuka requisition aktif (S-2)"
+          },
+          "filled_positions": {
+            "type": "integer",
+            "description": "Slot terisi requisition FILLED (S-2)"
+          },
+          "remaining_gap": {
+            "type": "integer",
+            "description": "Shortage setelah expected hires (S-2)"
+          },
+          "pipeline": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DataPoint"

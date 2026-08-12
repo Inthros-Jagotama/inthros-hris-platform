@@ -244,13 +244,28 @@ func (s *Service) GetGapAnalysis(ctx context.Context, period string) (*GapAnalys
 		}
 	}
 
+	// S-2: enrich dengan komponen hiring pipeline dari Recruitment.
+	// Expected hires (accepted offers) mengurangi shortage → remaining gap.
+	expectedHires, _ := s.repo.GetRecruitmentAcceptedOffers(ctx)
+	openPositions, _ := s.repo.GetRecruitmentOpenPositions(ctx)
+	filledPositions, _ := s.repo.GetRecruitmentFilledPositions(ctx)
+	hiringNeed := -gap // gap negatif = shortage; hiring need positif
+	remainingGap := hiringNeed - expectedHires
+	if remainingGap < 0 {
+		remainingGap = 0
+	}
+
 	return &GapAnalysisResponse{
-		Period:      period,
-		Supply:      supply,
-		Demand:      demand,
-		Gap:         gap * -1, // Positive = hiring need
-		Status:      status,
-		Departments: deptGaps,
+		Period:          period,
+		Supply:          supply,
+		Demand:          demand,
+		Gap:             gap * -1, // Positive = hiring need
+		Status:          status,
+		Departments:     deptGaps,
+		ExpectedHires:   expectedHires,
+		OpenPositions:   openPositions,
+		FilledPositions: filledPositions,
+		RemainingGap:    remainingGap,
 	}, nil
 }
 
@@ -322,6 +337,43 @@ func (s *Service) GetHeadcountAnalytics(ctx context.Context) (*HeadcountAnalytic
 		ByEmploymentType: byType,
 		ByGender:         byGender,
 		Trend:            trend,
+	}, nil
+}
+
+// GetRecruitmentAnalytics menghitung metrik pipeline recruitment dari data
+// operasional (S-2 — expected hires → remaining gap): open positions,
+// accepted offers (expected hires), filled positions, dan pipeline per status.
+// TimeToHire / CostPerHire tetap placeholder (butuh data durasi & biaya
+// per-hire yang belum dikumpulkan Recruitment).
+func (s *Service) GetRecruitmentAnalytics(ctx context.Context) (*RecruitmentAnalytics, error) {
+	// Gap analysis periode berjalan sudah menghitung expected hires, open
+	// positions, filled positions & remaining gap — reuse, hindari double-read.
+	gapResp, err := s.GetGapAnalysis(ctx, time.Now().Format("2006-01"))
+	if err != nil {
+		return nil, err
+	}
+
+	pipelineRows, _ := s.repo.GetRecruitmentPipeline(ctx)
+	pipeline := make([]DataPoint, 0, len(pipelineRows))
+	for _, pr := range pipelineRows {
+		pipeline = append(pipeline, DataPoint{Label: pr.Status, Value: float64(pr.Count)})
+	}
+	if pipeline == nil {
+		pipeline = []DataPoint{}
+	}
+
+	// Funnel memakai data pipeline yang sama (field historis); TimeToHire /
+	// CostPerHire tetap placeholder (butuh data durasi & biaya per-hire).
+	return &RecruitmentAnalytics{
+		TimeToHire:      45.5,
+		CostPerHire:     2500000,
+		BySource:        []DataPoint{},
+		Funnel:          pipeline,
+		ExpectedHires:   gapResp.ExpectedHires,
+		OpenPositions:   gapResp.OpenPositions,
+		FilledPositions: gapResp.FilledPositions,
+		RemainingGap:    gapResp.RemainingGap,
+		Pipeline:        pipeline,
 	}, nil
 }
 
