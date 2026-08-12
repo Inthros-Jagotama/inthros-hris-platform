@@ -765,16 +765,26 @@ func (s *Service) AcceptOffer(ctx context.Context, id string) (*OfferResponse, e
 	// accept setelah ACCEPTED manual) tidak double-count satu kandidat.
 	if a, findErr := s.repo.FindApplicationByID(ctx, o.ApplicationID); findErr == nil && a != nil {
 		wasAccepted := a.Status == CandStatusAccepted
-		if err := s.transitionApplicationStatus(ctx, a, CandStatusAccepted, nil, ""); err != nil {
+		transitionErr := s.transitionApplicationStatus(ctx, a, CandStatusAccepted, nil, "")
+		if transitionErr != nil {
 			s.logger.Warn("offer accepted but application transition failed",
-				zap.String("offer_id", o.ID.String()), zap.String("application_id", a.ID.String()), zap.Error(err))
+				zap.String("offer_id", o.ID.String()), zap.String("application_id", a.ID.String()), zap.Error(transitionErr))
 		}
 		if err := s.repo.UpdateApplication(ctx, a); err != nil {
 			s.logger.Warn("offer accepted but application update failed",
 				zap.String("offer_id", o.ID.String()), zap.String("application_id", a.ID.String()), zap.Error(err))
 		}
+		// didTransition: satu-satunya sinyal yang boleh dipakai untuk
+		// men-trigger efek samping "aplikasi baru saja jadi ACCEPTED".
+		// wasAccepted saja tidak cukup — bila transitionApplicationStatus
+		// gagal (mis. aplikasi sudah REJECTED/WITHDRAWN, state machine
+		// menolak), a.Status TIDAK berubah, tapi wasAccepted (dihitung
+		// sebelum pemanggilan) tetap false. Tanpa guard transitionErr,
+		// slots_filled dan handoffHiredEmployee bisa jalan untuk aplikasi
+		// yang statusnya sebenarnya masih REJECTED/WITHDRAWN.
+		didTransition := transitionErr == nil && !wasAccepted
 		req, _ := s.repo.FindRequisitionByID(ctx, a.RequisitionID)
-		if !wasAccepted && req != nil {
+		if didTransition && req != nil {
 			req.SlotsFilled++
 			if req.SlotsFilled >= req.SlotsAvailable {
 				req.Status = ReqStatusFilled
@@ -794,7 +804,7 @@ func (s *Service) AcceptOffer(ctx context.Context, id string) (*OfferResponse, e
 		// accept offer kedua di aplikasi yang sama tidak membuat employee/
 		// movement duplikat (idempotensi yang sama dengan slots_filled G-3).
 		// Best-effort: kegagalan downstream TIDAK menggagalkan accept offer.
-		if !wasAccepted {
+		if didTransition {
 			s.handoffHiredEmployee(ctx, o, a, req)
 		}
 	}

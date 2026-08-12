@@ -1913,6 +1913,72 @@ func TestService_AcceptOffer_WritesHistory(t *testing.T) {
 	}
 }
 
+func TestService_AcceptOffer_TransitionFails_SkipsSideEffects(t *testing.T) {
+	// Regression (code review finding): if transitionApplicationStatus fails
+	// inside AcceptOffer (e.g. application already in a terminal status
+	// other than ACCEPTED, so the state machine rejects the -> ACCEPTED
+	// transition), the slots_filled increment and the G-4 employee/movement
+	// handoff must NOT run — wasAccepted alone is not a sufficient guard,
+	// since it's computed before the (possibly failing) transition attempt.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	hire := &fakeEmployeeProvider{respID: uuid.New().String()}
+	mov := &fakeMovementProvider{}
+	svc.SetEmployeeProvider(hire)
+	svc.SetMovementProvider(mov)
+	ctx := context.Background()
+
+	offer := seedDraftOffer(t, svc, ctx)
+	app, err := svc.GetApplicationByID(ctx, offer.ApplicationID)
+	if err != nil {
+		t.Fatalf("GetApplicationByID failed: %v", err)
+	}
+
+	// Force the application into a terminal status that is NOT ACCEPTED.
+	// isValidStatusTransition rejects any transition out of a terminal
+	// status, so transitionApplicationStatus(..., CandStatusAccepted, ...)
+	// will fail inside AcceptOffer below.
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "REJECTED", "", ""); err != nil {
+		t.Fatalf("setup REJECTED transition failed: %v", err)
+	}
+	reqBefore, _ := svc.GetRequisitionByID(ctx, app.RequisitionID)
+	slotsBefore := reqBefore.SlotsFilled
+
+	offerID := approveAndSendOffer(t, svc, ctx, offer.ID)
+
+	// AcceptOffer itself must still succeed (offer state machine only cares
+	// about OfferStatusSent) — it's the application-side side effects that
+	// must be skipped.
+	accepted, err := svc.AcceptOffer(ctx, offerID)
+	if err != nil {
+		t.Fatalf("AcceptOffer failed: %v", err)
+	}
+	if accepted.Status != string(OfferStatusAccepted) {
+		t.Errorf("expected offer status ACCEPTED, got %s", accepted.Status)
+	}
+
+	appAfter, err := svc.GetApplicationByID(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetApplicationByID failed: %v", err)
+	}
+	if appAfter.Status != "REJECTED" {
+		t.Errorf("expected application status to remain REJECTED, got %s", appAfter.Status)
+	}
+
+	reqAfter, _ := svc.GetRequisitionByID(ctx, app.RequisitionID)
+	if reqAfter.SlotsFilled != slotsBefore {
+		t.Errorf("expected slots_filled unchanged (%d), got %d", slotsBefore, reqAfter.SlotsFilled)
+	}
+
+	if hire.called {
+		t.Error("expected employee provider NOT called when application transition failed")
+	}
+	if mov.called {
+		t.Error("expected movement provider NOT called when application transition failed")
+	}
+}
+
 func TestService_AcceptOffer_Expired(t *testing.T) {
 	svc, cleanup := newTestService()
 	defer cleanup()
