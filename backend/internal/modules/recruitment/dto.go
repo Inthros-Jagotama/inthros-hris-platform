@@ -157,8 +157,9 @@ type CreateCandidateRequest struct {
 	Notes          string  `json:"notes"`
 	// G-4: jenis kandidat (EXTERNAL default | INTERNAL) + referensi employee
 	// untuk kandidat internal (hasil seleksi → Employee Movement).
-	CandidateType *string `json:"candidate_type" binding:"omitempty,oneof=EXTERNAL INTERNAL"`
-	EmployeeID    *string `json:"employee_id" binding:"omitempty"`
+	CandidateType   *string `json:"candidate_type" binding:"omitempty,oneof=EXTERNAL INTERNAL"`
+	EmployeeID      *string `json:"employee_id" binding:"omitempty"`
+	CandidateNumber *string `json:"candidate_number" binding:"omitempty,max=50"`
 }
 
 type UpdateCandidateRequest struct {
@@ -175,8 +176,9 @@ type UpdateCandidateRequest struct {
 	Source         *string `json:"source" binding:"omitempty,max=50"`
 	Notes          *string `json:"notes"`
 	// G-4: jenis kandidat + referensi employee (internal hire).
-	CandidateType *string `json:"candidate_type" binding:"omitempty,oneof=EXTERNAL INTERNAL"`
-	EmployeeID    *string `json:"employee_id" binding:"omitempty"`
+	CandidateType   *string `json:"candidate_type" binding:"omitempty,oneof=EXTERNAL INTERNAL"`
+	EmployeeID      *string `json:"employee_id" binding:"omitempty"`
+	CandidateNumber *string `json:"candidate_number" binding:"omitempty,max=50"`
 }
 
 type CandidateResponse struct {
@@ -194,10 +196,90 @@ type CandidateResponse struct {
 	Source         string    `json:"source"`
 	Notes          string    `json:"notes"`
 	// G-4: jenis kandidat + referensi employee (internal hire).
-	CandidateType  string    `json:"candidate_type"`
-	EmployeeID     string    `json:"employee_id,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	CandidateType   string    `json:"candidate_type"`
+	EmployeeID      string    `json:"employee_id,omitempty"`
+	CandidateNumber string    `json:"candidate_number,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Candidate Education DTOs (G-6)
+// =========================================================================
+
+type CreateCandidateEducationRequest struct {
+	EducationID      *string  `json:"education_id" binding:"omitempty"`
+	InstitutionName  string   `json:"institution_name" binding:"required,max=255"`
+	EducationMajorID *string  `json:"education_major_id" binding:"omitempty"`
+	Major            *string  `json:"major" binding:"omitempty,max=255"`
+	GPA              *float64 `json:"gpa"`
+	StartYear        *int     `json:"start_year"`
+	EndYear          *int     `json:"end_year"`
+	IsHighest        bool     `json:"is_highest"`
+	Notes            string   `json:"notes"`
+}
+
+type UpdateCandidateEducationRequest struct {
+	EducationID      *string  `json:"education_id"`
+	InstitutionName  *string  `json:"institution_name" binding:"omitempty,max=255"`
+	EducationMajorID *string  `json:"education_major_id"`
+	Major            *string  `json:"major" binding:"omitempty,max=255"`
+	GPA              *float64 `json:"gpa"`
+	StartYear        *int     `json:"start_year"`
+	EndYear          *int     `json:"end_year"`
+	IsHighest        *bool    `json:"is_highest"`
+	Notes            *string  `json:"notes"`
+}
+
+type CandidateEducationResponse struct {
+	ID               string  `json:"id"`
+	CandidateID      string  `json:"candidate_id"`
+	EducationID      string  `json:"education_id,omitempty"`
+	EducationMajorID string  `json:"education_major_id,omitempty"`
+	MajorName        string  `json:"major_name,omitempty"`
+	InstitutionName  string  `json:"institution_name"`
+	Major            string  `json:"major,omitempty"`
+	GPA              float64 `json:"gpa,omitempty"`
+	StartYear        int     `json:"start_year,omitempty"`
+	EndYear          int     `json:"end_year,omitempty"`
+	IsHighest        bool    `json:"is_highest"`
+	Notes            string  `json:"notes,omitempty"`
+}
+
+// =========================================================================
+// Candidate Work Experience DTOs (G-6)
+// =========================================================================
+
+type CreateCandidateWorkExperienceRequest struct {
+	CompanyName    string  `json:"company_name" binding:"required,max=255"`
+	JobTitle       string  `json:"job_title" binding:"required,max=255"`
+	EmploymentType *string `json:"employment_type" binding:"omitempty,max=50"`
+	StartDate      string  `json:"start_date" binding:"required,max=10"`
+	EndDate        *string `json:"end_date" binding:"omitempty,max=10"`
+	IsCurrent      bool    `json:"is_current"`
+	Description    string  `json:"description"`
+}
+
+type UpdateCandidateWorkExperienceRequest struct {
+	CompanyName    *string `json:"company_name" binding:"omitempty,max=255"`
+	JobTitle       *string `json:"job_title" binding:"omitempty,max=255"`
+	EmploymentType *string `json:"employment_type" binding:"omitempty,max=50"`
+	StartDate      *string `json:"start_date" binding:"omitempty,max=10"`
+	EndDate        *string `json:"end_date" binding:"omitempty,max=10"`
+	IsCurrent      *bool   `json:"is_current"`
+	Description    *string `json:"description"`
+}
+
+type CandidateWorkExperienceResponse struct {
+	ID             string `json:"id"`
+	CandidateID    string `json:"candidate_id"`
+	CompanyName    string `json:"company_name"`
+	JobTitle       string `json:"job_title"`
+	EmploymentType string `json:"employment_type,omitempty"`
+	StartDate      string `json:"start_date"`
+	EndDate        string `json:"end_date,omitempty"`
+	IsCurrent      bool   `json:"is_current"`
+	Description    string `json:"description,omitempty"`
 }
 
 // =========================================================================

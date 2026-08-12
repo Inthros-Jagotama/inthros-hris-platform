@@ -967,6 +967,11 @@ func (s *Service) CreateCandidate(ctx context.Context, req CreateCandidateReques
 		Address:   req.Address,
 		Source:    "direct",
 	}
+	if req.CandidateNumber != nil && *req.CandidateNumber != "" {
+		c.CandidateNumber = *req.CandidateNumber
+	} else {
+		c.CandidateNumber = generateCandidateNumber()
+	}
 	if req.CurrentCompany != nil {
 		c.CurrentCompany = req.CurrentCompany
 	}
@@ -2043,6 +2048,13 @@ func generateOfferNumber() string {
 	return fmt.Sprintf("OFF-%s-%s", time.Now().Format("200601"), strings.ToUpper(uuid.New().String()[:8]))
 }
 
+// generateCandidateNumber (G-6) membuat nomor kandidat otomatis dengan
+// format CAND-YYYYMM-XXXXXXXX (pola sama generateRequisitionNumber G-2 /
+// generateOfferNumber G-3).
+func generateCandidateNumber() string {
+	return fmt.Sprintf("CAND-%s-%s", time.Now().Format("200601"), strings.ToUpper(uuid.New().String()[:8]))
+}
+
 // isOfferExpired (G-3) membandingkan expiry_date (YYYY-MM-DD) dengan hari ini.
 // Expiry kosong = tidak ada batas (tidak pernah expired).
 func isOfferExpired(expiryDate string) bool {
@@ -2152,9 +2164,10 @@ func candidateToResponse(c *Candidate) *CandidateResponse {
 		Source:    c.Source,
 		Notes:     c.Notes,
 		// G-4: jenis kandidat + referensi employee (internal hire).
-		CandidateType: c.CandidateType,
-		CreatedAt:     c.CreatedAt,
-		UpdatedAt:     c.UpdatedAt,
+		CandidateType:   c.CandidateType,
+		CandidateNumber: c.CandidateNumber,
+		CreatedAt:       c.CreatedAt,
+		UpdatedAt:       c.UpdatedAt,
 	}
 	if c.EmployeeID != nil {
 		resp.EmployeeID = c.EmployeeID.String()
@@ -2173,6 +2186,281 @@ func candidateToResponse(c *Candidate) *CandidateResponse {
 	}
 	if c.LinkedInURL != nil {
 		resp.LinkedInURL = *c.LinkedInURL
+	}
+	return resp
+}
+
+// =========================================================================
+// Candidate Educations (G-6)
+// =========================================================================
+
+func (s *Service) CreateCandidateEducation(ctx context.Context, candidateID string, req CreateCandidateEducationRequest) (*CandidateEducationResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	if _, err := s.repo.FindCandidateByID(ctx, candUUID); err != nil {
+		return nil, fmt.Errorf("candidate not found: %w", err)
+	}
+
+	e := &CandidateEducation{
+		CandidateID:     candUUID,
+		InstitutionName: req.InstitutionName,
+		GPA:             req.GPA,
+		StartYear:       req.StartYear,
+		EndYear:         req.EndYear,
+		IsHighest:       req.IsHighest,
+		Notes:           req.Notes,
+	}
+	if req.EducationID != nil && *req.EducationID != "" {
+		eduID, err := uuid.Parse(*req.EducationID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid education_id: %w", err)
+		}
+		e.EducationID = &eduID
+	}
+	if req.EducationMajorID != nil && *req.EducationMajorID != "" {
+		majorID, err := uuid.Parse(*req.EducationMajorID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid education_major_id: %w", err)
+		}
+		e.EducationMajorID = &majorID
+	}
+	if req.Major != nil {
+		e.Major = req.Major
+	}
+
+	if err := s.repo.CreateCandidateEducation(ctx, e); err != nil {
+		return nil, err
+	}
+	created, err := s.repo.FindCandidateEducationByID(ctx, e.ID)
+	if err != nil {
+		return nil, err
+	}
+	return candidateEducationToResponse(created), nil
+}
+
+func (s *Service) ListCandidateEducations(ctx context.Context, candidateID string) ([]CandidateEducationResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	list, err := s.repo.ListCandidateEducations(ctx, candUUID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]CandidateEducationResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *candidateEducationToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) UpdateCandidateEducation(ctx context.Context, id string, req UpdateCandidateEducationRequest) (*CandidateEducationResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	e, err := s.repo.FindCandidateEducationByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.EducationID != nil {
+		if *req.EducationID == "" {
+			e.EducationID = nil
+		} else {
+			eduID, err := uuid.Parse(*req.EducationID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid education_id: %w", err)
+			}
+			e.EducationID = &eduID
+		}
+	}
+	if req.InstitutionName != nil {
+		e.InstitutionName = *req.InstitutionName
+	}
+	if req.EducationMajorID != nil {
+		if *req.EducationMajorID == "" {
+			e.EducationMajorID = nil
+		} else {
+			majorID, err := uuid.Parse(*req.EducationMajorID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid education_major_id: %w", err)
+			}
+			e.EducationMajorID = &majorID
+		}
+	}
+	if req.Major != nil {
+		e.Major = req.Major
+	}
+	if req.GPA != nil {
+		e.GPA = req.GPA
+	}
+	if req.StartYear != nil {
+		e.StartYear = req.StartYear
+	}
+	if req.EndYear != nil {
+		e.EndYear = req.EndYear
+	}
+	if req.IsHighest != nil {
+		e.IsHighest = *req.IsHighest
+	}
+	if req.Notes != nil {
+		e.Notes = *req.Notes
+	}
+	if err := s.repo.UpdateCandidateEducation(ctx, e); err != nil {
+		return nil, err
+	}
+	updated, err := s.repo.FindCandidateEducationByID(ctx, e.ID)
+	if err != nil {
+		return nil, err
+	}
+	return candidateEducationToResponse(updated), nil
+}
+
+func (s *Service) DeleteCandidateEducation(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteCandidateEducation(ctx, uid)
+}
+
+func candidateEducationToResponse(e *CandidateEducation) *CandidateEducationResponse {
+	resp := &CandidateEducationResponse{
+		ID:              e.ID.String(),
+		CandidateID:     e.CandidateID.String(),
+		InstitutionName: e.InstitutionName,
+		IsHighest:       e.IsHighest,
+		Notes:           e.Notes,
+	}
+	if e.EducationID != nil {
+		resp.EducationID = e.EducationID.String()
+	}
+	if e.EducationMajorID != nil {
+		resp.EducationMajorID = e.EducationMajorID.String()
+	}
+	if e.EducationMajor != nil {
+		resp.MajorName = e.EducationMajor.Name
+	}
+	if e.Major != nil {
+		resp.Major = *e.Major
+	}
+	if e.GPA != nil {
+		resp.GPA = *e.GPA
+	}
+	if e.StartYear != nil {
+		resp.StartYear = *e.StartYear
+	}
+	if e.EndYear != nil {
+		resp.EndYear = *e.EndYear
+	}
+	return resp
+}
+
+// =========================================================================
+// Candidate Work Experiences (G-6)
+// =========================================================================
+
+func (s *Service) CreateCandidateWorkExperience(ctx context.Context, candidateID string, req CreateCandidateWorkExperienceRequest) (*CandidateWorkExperienceResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	if _, err := s.repo.FindCandidateByID(ctx, candUUID); err != nil {
+		return nil, fmt.Errorf("candidate not found: %w", err)
+	}
+	e := &CandidateWorkExperience{
+		CandidateID:    candUUID,
+		CompanyName:    req.CompanyName,
+		JobTitle:       req.JobTitle,
+		EmploymentType: req.EmploymentType,
+		StartDate:      req.StartDate,
+		EndDate:        req.EndDate,
+		IsCurrent:      req.IsCurrent,
+		Description:    req.Description,
+	}
+	if err := s.repo.CreateCandidateWorkExperience(ctx, e); err != nil {
+		return nil, err
+	}
+	return candidateWorkExperienceToResponse(e), nil
+}
+
+func (s *Service) ListCandidateWorkExperiences(ctx context.Context, candidateID string) ([]CandidateWorkExperienceResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	list, err := s.repo.ListCandidateWorkExperiences(ctx, candUUID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]CandidateWorkExperienceResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *candidateWorkExperienceToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) UpdateCandidateWorkExperience(ctx context.Context, id string, req UpdateCandidateWorkExperienceRequest) (*CandidateWorkExperienceResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	e, err := s.repo.FindCandidateWorkExperienceByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.CompanyName != nil {
+		e.CompanyName = *req.CompanyName
+	}
+	if req.JobTitle != nil {
+		e.JobTitle = *req.JobTitle
+	}
+	if req.EmploymentType != nil {
+		e.EmploymentType = req.EmploymentType
+	}
+	if req.StartDate != nil {
+		e.StartDate = *req.StartDate
+	}
+	if req.EndDate != nil {
+		e.EndDate = req.EndDate
+	}
+	if req.IsCurrent != nil {
+		e.IsCurrent = *req.IsCurrent
+	}
+	if req.Description != nil {
+		e.Description = *req.Description
+	}
+	if err := s.repo.UpdateCandidateWorkExperience(ctx, e); err != nil {
+		return nil, err
+	}
+	return candidateWorkExperienceToResponse(e), nil
+}
+
+func (s *Service) DeleteCandidateWorkExperience(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteCandidateWorkExperience(ctx, uid)
+}
+
+func candidateWorkExperienceToResponse(e *CandidateWorkExperience) *CandidateWorkExperienceResponse {
+	resp := &CandidateWorkExperienceResponse{
+		ID:          e.ID.String(),
+		CandidateID: e.CandidateID.String(),
+		CompanyName: e.CompanyName,
+		JobTitle:    e.JobTitle,
+		StartDate:   e.StartDate,
+		IsCurrent:   e.IsCurrent,
+		Description: e.Description,
+	}
+	if e.EmploymentType != nil {
+		resp.EmploymentType = *e.EmploymentType
+	}
+	if e.EndDate != nil {
+		resp.EndDate = *e.EndDate
 	}
 	return resp
 }

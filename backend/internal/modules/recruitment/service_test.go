@@ -2301,3 +2301,118 @@ func TestService_AcceptOffer_SecondOffer_NoDuplicateHandoff(t *testing.T) {
 		t.Fatalf("expected employee provider called exactly once, got %d", hire.callCount)
 	}
 }
+
+// =========================================================================
+// Candidate Profile Basics Service Tests (G-6)
+// =========================================================================
+
+func TestService_GenerateCandidateNumber_Format(t *testing.T) {
+	num := generateCandidateNumber()
+	if !strings.HasPrefix(num, "CAND-") {
+		t.Errorf("expected prefix CAND-, got %s", num)
+	}
+	if len(num) != len("CAND-200601-XXXXXXXX") {
+		t.Errorf("expected length %d, got %d (%s)", len("CAND-200601-XXXXXXXX"), len(num), num)
+	}
+}
+
+func TestService_CreateCandidate_AutoGeneratesCandidateNumber(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, err := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Auto", LastName: "Num", Email: "autonum@test.com"})
+	if err != nil {
+		t.Fatalf("CreateCandidate failed: %v", err)
+	}
+	if !strings.HasPrefix(cand.CandidateNumber, "CAND-") {
+		t.Errorf("expected auto-generated candidate_number, got %q", cand.CandidateNumber)
+	}
+}
+
+func TestService_CreateCandidateEducation(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Edu", LastName: "Svc", Email: "edusvc@test.com"})
+
+	resp, err := svc.CreateCandidateEducation(ctx, cand.ID, CreateCandidateEducationRequest{
+		InstitutionName: "Universitas Indonesia",
+	})
+	if err != nil {
+		t.Fatalf("CreateCandidateEducation failed: %v", err)
+	}
+	if resp.InstitutionName != "Universitas Indonesia" {
+		t.Errorf("expected institution 'Universitas Indonesia', got %s", resp.InstitutionName)
+	}
+}
+
+func TestService_CreateCandidateEducation_UnknownCandidate(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := svc.CreateCandidateEducation(ctx, uuid.New().String(), CreateCandidateEducationRequest{InstitutionName: "X"})
+	if err == nil {
+		t.Fatal("expected error for unknown candidate, got nil")
+	}
+}
+
+func TestService_ListCandidateEducations(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "List", LastName: "Svc", Email: "listsvc@test.com"})
+	svc.CreateCandidateEducation(ctx, cand.ID, CreateCandidateEducationRequest{InstitutionName: "SMA 1"})
+	svc.CreateCandidateEducation(ctx, cand.ID, CreateCandidateEducationRequest{InstitutionName: "Universitas A"})
+
+	list, err := svc.ListCandidateEducations(ctx, cand.ID)
+	if err != nil {
+		t.Fatalf("ListCandidateEducations failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2, got %d", len(list))
+	}
+}
+
+func TestService_UpdateAndDeleteCandidateEducation(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Upd", LastName: "Svc", Email: "updsvc@test.com"})
+	created, _ := svc.CreateCandidateEducation(ctx, cand.ID, CreateCandidateEducationRequest{InstitutionName: "Original"})
+
+	newName := "Updated"
+	updated, err := svc.UpdateCandidateEducation(ctx, created.ID, UpdateCandidateEducationRequest{InstitutionName: &newName})
+	if err != nil {
+		t.Fatalf("UpdateCandidateEducation failed: %v", err)
+	}
+	if updated.InstitutionName != "Updated" {
+		t.Errorf("expected 'Updated', got %s", updated.InstitutionName)
+	}
+
+	if err := svc.DeleteCandidateEducation(ctx, created.ID); err != nil {
+		t.Fatalf("DeleteCandidateEducation failed: %v", err)
+	}
+}
+
+func TestService_CreateCandidateWorkExperience(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Exp", LastName: "Svc", Email: "expsvc@test.com"})
+
+	resp, err := svc.CreateCandidateWorkExperience(ctx, cand.ID, CreateCandidateWorkExperienceRequest{
+		CompanyName: "Acme", JobTitle: "Engineer", StartDate: "2020-01-01",
+	})
+	if err != nil {
+		t.Fatalf("CreateCandidateWorkExperience failed: %v", err)
+	}
+	if resp.CompanyName != "Acme" {
+		t.Errorf("expected company 'Acme', got %s", resp.CompanyName)
+	}
+}
