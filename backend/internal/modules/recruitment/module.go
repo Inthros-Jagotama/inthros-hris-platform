@@ -103,6 +103,8 @@ func (m *recModule) Migrate(db *gorm.DB) error {
 		&OnboardingTaskTemplate{},
 		&EmployeeOnboarding{},
 		&OnboardingTaskItem{},
+		&RecruitmentStage{},
+		&ApplicationStageHistory{},
 	)
 }
 
@@ -127,6 +129,28 @@ func (m *recModule) Seed(db *gorm.DB) error {
 		}
 		for _, t := range defaults {
 			if err := db.Create(&t).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	var stageCount int64
+	if err := db.Model(&RecruitmentStage{}).Count(&stageCount).Error; err != nil {
+		return err
+	}
+	if stageCount == 0 {
+		stages := []RecruitmentStage{
+			{Code: "NEW", Name: "New Application", SortOrder: 1},
+			{Code: "SCREENED", Name: "Screened", SortOrder: 2},
+			{Code: "SHORTLISTED", Name: "Shortlisted", SortOrder: 3},
+			{Code: "INTERVIEWED", Name: "Interviewed", SortOrder: 4},
+			{Code: "OFFERED", Name: "Offered", SortOrder: 5},
+			{Code: "ACCEPTED", Name: "Accepted", SortOrder: 6},
+			{Code: "REJECTED", Name: "Rejected", SortOrder: 7},
+			{Code: "WITHDRAWN", Name: "Withdrawn", SortOrder: 8},
+		}
+		for _, st := range stages {
+			if err := db.Create(&st).Error; err != nil {
 				return err
 			}
 		}
