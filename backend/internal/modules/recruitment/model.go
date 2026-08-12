@@ -44,6 +44,19 @@ const (
 )
 
 // =========================================================================
+// RequisitionPriority (G-2 — job requisition enhancement)
+// =========================================================================
+
+type RequisitionPriority string
+
+const (
+	ReqPriorityLow    RequisitionPriority = "LOW"
+	ReqPriorityMedium RequisitionPriority = "MEDIUM"
+	ReqPriorityHigh   RequisitionPriority = "HIGH"
+	ReqPriorityUrgent RequisitionPriority = "URGENT"
+)
+
+// =========================================================================
 // RequisitionReason — alasan pembuatan requisition (strategic layer)
 // =========================================================================
 // WORKFORCE_GAP menautkan requisition ke hiring need dari Workforce
@@ -84,6 +97,14 @@ type JobRequisition struct {
 	ID                uuid.UUID         `gorm:"type:char(36);primaryKey" json:"id"`
 	OrganizationID    uuid.UUID         `gorm:"type:char(36);not null;index:idx_req_org" json:"organization_id"`
 	Title             string            `gorm:"type:varchar(255);not null" json:"title"`
+	// RequisitionNumber (G-2): nomor requisition auto-generated REQ-YYYYMM-XXXX
+	// (pola nomor dokumen TRN-* training) — diisi di service bila client kosong.
+	RequisitionNumber string            `gorm:"type:varchar(50)" json:"requisition_number,omitempty"`
+	// Priority (G-2): LOW | MEDIUM | HIGH | URGENT (default MEDIUM).
+	Priority          RequisitionPriority `gorm:"type:varchar(10);default:MEDIUM" json:"priority"`
+	// PositionID (G-2): referensi master position (tabel positions). Tanpa FK
+	// karena modul Organization tidak mengekspos CRUD position — referensi saja.
+	PositionID        *uuid.UUID        `gorm:"type:char(36)" json:"position_id,omitempty"`
 	Department        string            `gorm:"type:varchar(150)" json:"department"`
 	EmploymentType    string            `gorm:"type:varchar(50)" json:"employment_type"`
 	Location          string            `gorm:"type:varchar(255)" json:"location"`
@@ -107,6 +128,9 @@ type JobRequisition struct {
 	SuccessionPositionID *uuid.UUID     `gorm:"type:char(36)" json:"succession_position_id,omitempty"`
 	TargetStartDate   *string           `gorm:"type:date" json:"target_start_date,omitempty"`
 	ClosedAt          *int64            `gorm:"type:bigint;default:0" json:"-"`
+	// OpenedAt (G-2): unix nano saat requisition menjadi OPEN — diset otomatis
+	// saat approval APPROVED (G-1) atau transisi status manual ke OPEN.
+	OpenedAt          *int64            `gorm:"type:bigint;default:0" json:"-"`
 	CreatedAt         time.Time         `json:"created_at"`
 	UpdatedAt         time.Time         `json:"updated_at"`
 }

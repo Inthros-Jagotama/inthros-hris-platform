@@ -9,6 +9,11 @@ import "time"
 type CreateRequisitionRequest struct {
 	OrganizationID   string  `json:"organization_id" binding:"required"`
 	Title            string  `json:"title" binding:"required,max=255"`
+	// G-2: requisition_number opsional — bila kosong auto-generated
+	// REQ-YYYYMM-XXXX oleh service.
+	RequisitionNumber string `json:"requisition_number" binding:"omitempty,max=50"`
+	Priority         *string `json:"priority" binding:"omitempty,oneof=LOW MEDIUM HIGH URGENT"`
+	PositionID       *string `json:"position_id"`
 	Department       string  `json:"department" binding:"omitempty,max=150"`
 	EmploymentType   string  `json:"employment_type" binding:"omitempty,max=50"`
 	Location         string  `json:"location" binding:"omitempty,max=255"`
@@ -28,6 +33,9 @@ type CreateRequisitionRequest struct {
 
 type UpdateRequisitionRequest struct {
 	Title            *string  `json:"title" binding:"omitempty,max=255"`
+	RequisitionNumber *string `json:"requisition_number" binding:"omitempty,max=50"`
+	Priority         *string  `json:"priority" binding:"omitempty,oneof=LOW MEDIUM HIGH URGENT"`
+	PositionID       *string  `json:"position_id"`
 	Department       *string  `json:"department" binding:"omitempty,max=150"`
 	EmploymentType   *string  `json:"employment_type" binding:"omitempty,max=50"`
 	Location         *string  `json:"location" binding:"omitempty,max=255"`
@@ -58,6 +66,10 @@ type RequisitionResponse struct {
 	ID                string    `json:"id"`
 	OrganizationID    string    `json:"organization_id"`
 	Title             string    `json:"title"`
+	RequisitionNumber string    `json:"requisition_number,omitempty"`
+	Priority          string    `json:"priority"`
+	PositionID        string    `json:"position_id,omitempty"`
+	OpenedAt          *int64    `json:"opened_at,omitempty"`
 	Department        string    `json:"department,omitempty"`
 	EmploymentType    string    `json:"employment_type,omitempty"`
 	Location          string    `json:"location,omitempty"`

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -173,6 +174,25 @@ func (s *Service) CreateRequisition(ctx context.Context, req CreateRequisitionRe
 		Responsibilities: req.Responsibilities,
 		SlotsAvailable:  1,
 	}
+	// G-2: priority default MEDIUM bila client tidak mengirim.
+	if req.Priority != nil {
+		r.Priority = RequisitionPriority(*req.Priority)
+	} else {
+		r.Priority = ReqPriorityMedium
+	}
+	// G-2: position_id (referensi master position, opsional).
+	if req.PositionID != nil && *req.PositionID != "" {
+		if uid, perr := uuid.Parse(*req.PositionID); perr == nil {
+			r.PositionID = &uid
+		}
+	}
+	// G-2: requisition_number auto-generated bila client kosong
+	// (format REQ-YYYYMM-XXXX, pola nomor dokumen TRN-* training).
+	if req.RequisitionNumber != "" {
+		r.RequisitionNumber = req.RequisitionNumber
+	} else {
+		r.RequisitionNumber = generateRequisitionNumber()
+	}
 	if req.SlotsAvailable != nil {
 		r.SlotsAvailable = *req.SlotsAvailable
 	}
@@ -261,6 +281,21 @@ func (s *Service) UpdateRequisition(ctx context.Context, id string, req UpdateRe
 	if req.Title != nil {
 		r.Title = *req.Title
 	}
+	if req.RequisitionNumber != nil {
+		r.RequisitionNumber = *req.RequisitionNumber
+	}
+	if req.Priority != nil {
+		r.Priority = RequisitionPriority(*req.Priority)
+	}
+	if req.PositionID != nil {
+		if *req.PositionID == "" {
+			r.PositionID = nil
+		} else if uid, perr := uuid.Parse(*req.PositionID); perr == nil {
+			// Invalid non-empty UUID diabaikan (jangan simpan uuid.Nil) — pola
+			// sama dengan Create path.
+			r.PositionID = &uid
+		}
+	}
 	if req.Department != nil {
 		r.Department = *req.Department
 	}
@@ -288,8 +323,16 @@ func (s *Service) UpdateRequisition(ctx context.Context, id string, req UpdateRe
 	if req.SlotsAvailable != nil {
 		r.SlotsAvailable = *req.SlotsAvailable
 	}
+	prevStatus := r.Status
 	if req.Status != nil {
 		r.Status = RequisitionStatus(*req.Status)
+	}
+	// G-2: opened_at diset otomatis saat requisition bertransisi menjadi OPEN
+	// (dari non-OPEN). Approval APPROVED juga memicu ini via callback (lihat
+	// HandleApprovalStatusChange).
+	if r.Status == ReqStatusOpen && prevStatus != ReqStatusOpen {
+		now := time.Now().UnixNano()
+		r.OpenedAt = &now
 	}
 	if req.TargetStartDate != nil {
 		r.TargetStartDate = req.TargetStartDate
@@ -415,6 +458,9 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 	switch status {
 	case "APPROVED":
 		r.Status = ReqStatusOpen
+		// G-2: opened_at diset saat requisition dibuka oleh approval.
+		now := time.Now().UnixNano()
+		r.OpenedAt = &now
 	case "REJECTED":
 		r.Status = ReqStatusRejected
 		// Catatan: note reject TIDAK dipersist ke kolom Requirements — itu teks
@@ -1307,6 +1353,15 @@ func calcTotalPages(total int64, perPage int) int {
 	return pages
 }
 
+// generateRequisitionNumber (G-2) membuat nomor requisition otomatis dengan
+// format REQ-YYYYMM-XXXXXXXX (pola nomor dokumen TRN-* training: prefix + 8
+// karakter acak UUID yang di-upper — konsisten dengan training.CertificateNo).
+// 8 hex char = 32 bit, cukup untuk uniqueness praktis per bulan tanpa
+// sequence table.
+func generateRequisitionNumber() string {
+	return fmt.Sprintf("REQ-%s-%s", time.Now().Format("200601"), strings.ToUpper(uuid.New().String()[:8]))
+}
+
 // =========================================================================
 // Response converters
 // =========================================================================
@@ -1316,6 +1371,8 @@ func requisitionToResponse(r *JobRequisition) *RequisitionResponse {
 		ID:                r.ID.String(),
 		OrganizationID:    r.OrganizationID.String(),
 		Title:             r.Title,
+		RequisitionNumber: r.RequisitionNumber,
+		Priority:          string(r.Priority),
 		Department:        r.Department,
 		EmploymentType:    r.EmploymentType,
 		Location:          r.Location,
@@ -1329,6 +1386,15 @@ func requisitionToResponse(r *JobRequisition) *RequisitionResponse {
 		Status:            string(r.Status),
 		CreatedAt:         r.CreatedAt,
 		UpdatedAt:         r.UpdatedAt,
+	}
+	if r.PositionID != nil {
+		resp.PositionID = r.PositionID.String()
+	}
+	// GORM read-back default:0 membuat OpenedAt pointer non-nil bernilai 0 pada
+	// draft — perlakukan 0 sebagai belum dibuka (omit), konsisten dengan
+	// ClosedAt yang json:"-".
+	if r.OpenedAt != nil && *r.OpenedAt != 0 {
+		resp.OpenedAt = r.OpenedAt
 	}
 	if r.RequestedBy != nil {
 		resp.RequestedBy = r.RequestedBy.String()

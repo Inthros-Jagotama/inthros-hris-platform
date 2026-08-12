@@ -1275,3 +1275,186 @@ func TestService_HandleApprovalStatusChange_UnknownStatusIsNoop(t *testing.T) {
 		t.Errorf("expected status unchanged SUBMITTED, got %s", persisted.Status)
 	}
 }
+
+// =========================================================================
+// Requisition Enhancement (G-2 — number, priority, position, opened_at)
+// =========================================================================
+
+func TestService_CreateRequisition_AutoGeneratesNumber(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	resp, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "Software Engineer",
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	if resp.RequisitionNumber == "" {
+		t.Fatal("expected auto-generated requisition_number")
+	}
+	// Format REQ-YYYYMM-XXXXXXXX (19 char)
+	if len(resp.RequisitionNumber) != 19 || resp.RequisitionNumber[:4] != "REQ-" {
+		t.Errorf("unexpected requisition_number format: %q", resp.RequisitionNumber)
+	}
+}
+
+func TestService_CreateRequisition_RespectsExplicitNumberAndPriority(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	explicit := "REQ-202601-ABCD1234"
+	priority := string(ReqPriorityUrgent)
+	posID := createTestUUID()
+	resp, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID:    createTestOrgID(),
+		Title:             "Software Engineer",
+		RequisitionNumber: explicit,
+		Priority:          &priority,
+		PositionID:        &posID,
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	if resp.RequisitionNumber != explicit {
+		t.Errorf("expected requisition_number %q, got %q", explicit, resp.RequisitionNumber)
+	}
+	if resp.Priority != priority {
+		t.Errorf("expected priority %q, got %q", priority, resp.Priority)
+	}
+	if resp.PositionID != posID {
+		t.Errorf("expected position_id %s, got %s", posID, resp.PositionID)
+	}
+}
+
+func TestService_CreateRequisition_DefaultPriorityMedium(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	resp, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "Software Engineer",
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	if resp.Priority != string(ReqPriorityMedium) {
+		t.Errorf("expected default priority MEDIUM, got %q", resp.Priority)
+	}
+}
+
+func TestService_UpdateRequisition_SetsOpenedAtOnOpen(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	created, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "Software Engineer",
+	})
+	if created.OpenedAt != nil {
+		t.Fatal("expected opened_at nil for draft")
+	}
+
+	open := string(ReqStatusOpen)
+	updated, err := svc.UpdateRequisition(ctx, created.ID, UpdateRequisitionRequest{Status: &open})
+	if err != nil {
+		t.Fatalf("UpdateRequisition failed: %v", err)
+	}
+	if updated.Status != string(ReqStatusOpen) {
+		t.Errorf("expected status OPEN, got %s", updated.Status)
+	}
+	if updated.OpenedAt == nil || *updated.OpenedAt == 0 {
+		t.Error("expected opened_at set when requisition becomes OPEN")
+	}
+
+	// Round-trip: persisted di DB
+	persisted, _ := svc.GetRequisitionByID(ctx, created.ID)
+	if persisted.OpenedAt == nil {
+		t.Error("expected opened_at persisted in DB")
+	}
+}
+
+func TestService_ApprovalApproved_SetsOpenedAt(t *testing.T) {
+	// G-1 + G-2: approval APPROVED membuka requisition → opened_at diset otomatis.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	submitted, err := svc.SubmitRequisition(ctx, req.ID, uuid.New().String())
+	if err != nil {
+		t.Fatalf("SubmitRequisition failed: %v", err)
+	}
+	if submitted.OpenedAt != nil {
+		t.Fatal("expected opened_at nil while submitted")
+	}
+
+	if err := svc.HandleApprovalStatusChange(ctx, uuid.MustParse(submitted.ID), "APPROVED", ""); err != nil {
+		t.Fatalf("HandleApprovalStatusChange failed: %v", err)
+	}
+	persisted, _ := svc.GetRequisitionByID(ctx, submitted.ID)
+	if persisted.Status != string(ReqStatusOpen) {
+		t.Errorf("expected status OPEN after approval, got %s", persisted.Status)
+	}
+	if persisted.OpenedAt == nil || *persisted.OpenedAt == 0 {
+		t.Error("expected opened_at set by approval APPROVED")
+	}
+}
+
+func TestService_UpdateRequisition_ClearPositionID(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	posID := createTestUUID()
+	created, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "Software Engineer",
+		PositionID:     &posID,
+	})
+	if created.PositionID != posID {
+		t.Fatalf("expected position_id %s, got %s", posID, created.PositionID)
+	}
+
+	empty := ""
+	updated, err := svc.UpdateRequisition(ctx, created.ID, UpdateRequisitionRequest{PositionID: &empty})
+	if err != nil {
+		t.Fatalf("UpdateRequisition failed: %v", err)
+	}
+	if updated.PositionID != "" {
+		t.Errorf("expected cleared position_id, got %q", updated.PositionID)
+	}
+}
+
+func TestService_UpdateRequisition_SetPriorityAndNumber(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	created, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "Software Engineer",
+	})
+
+	priority := string(ReqPriorityHigh)
+	number := "REQ-202602-12345678"
+	updated, err := svc.UpdateRequisition(ctx, created.ID, UpdateRequisitionRequest{
+		Priority:          &priority,
+		RequisitionNumber: &number,
+	})
+	if err != nil {
+		t.Fatalf("UpdateRequisition failed: %v", err)
+	}
+	if updated.Priority != priority {
+		t.Errorf("expected priority %q, got %q", priority, updated.Priority)
+	}
+	if updated.RequisitionNumber != number {
+		t.Errorf("expected requisition_number %q, got %q", number, updated.RequisitionNumber)
+	}
+}

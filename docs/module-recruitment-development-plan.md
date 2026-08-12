@@ -6,6 +6,7 @@
 > 📊 **Progres implementasi (per 2026-08-12):** ✅ 1) Backend ATS lengkap — 7 GORM entity (`JobRequisition`, `Candidate`, `JobApplication`, `Interview`, `OnboardingTaskTemplate`, `EmployeeOnboarding`, `OnboardingTaskItem`) + enum status · ✅ 2) 33 endpoint CRUD/pipeline di 7 resource group · ✅ 3) Seeder 10 onboarding task template default · ✅ 4) 75 test (handler 28 + repository 27 + service 20) · ✅ 5) pipeline aplikasi (status + timestamp otomatis + auto `slots_filled` saat ACCEPTED) · ❌ 6) Frontend masih placeholder ("Coming soon") — hanya route/menu/locale/dashboard card · ⏳ 7) Integrasi operasional dua arah dengan modul lain (Module Approval, Notifier, Employee, Employee Movement) — **belum ada**; Employee 🔶 sebagian (onboarding menunjuk `employee_id` tanpa FK) · 🚫 8) **Scoping 2026-08-12:** Recruitment = **module operasional** — strategic layer (Workforce Intelligence, Career Intelligence, Succession, Performance, Training, Quality of Hire) **dipisah dari plan ini** — out of scope, dikelola modul masing-masing (§5.2).
 > ⏳ **Sisa TODO (per review 2026-08-12):** seluruh Gap §7 (G-1 s.d. G-12) — prioritas P0: integrasi approval (G-1), enhancement requisition (G-2), offer management (G-3), Recruitment → Employee/Movement (G-4), pipeline stage history (G-5), halaman FE penuh (G-12).
 > ✅ **G-1 selesai (2026-08-12):** requisition → Central Approval (migration 093, interface `ApprovalEngine`, `SubmitRequisition` DRAFT→SUBMITTED, push-callback APPROVED→OPEN / REJECTED / CANCELLED, endpoint `POST /recruitment/requisitions/:id/submit`, wiring main.go) — lihat §G-1. Bagian offer workflow menunggu G-3 (entity `job_offers` belum ada).
+> ✅ **G-2 selesai (2026-08-12):** requisition enhancement (migration 094: `requisition_number` auto REQ-YYYYMM-XXXXXXXX, `priority` LOW/MEDIUM/HIGH/URGENT default MEDIUM, `position_id` referensi master position, `opened_at` diset otomatis saat OPEN) — lihat §G-2. `approval_status` TIDAK ditambahkan (G-1 sudah meng-cover via status requisition + approval_instance_id).
 > 🔧 **Catatan konsistensi docs:** `project-completion-dashboard.md` masih mencatat plan ini sebagai "📋 Proposal — belum dieksekusi; backend ATS dasar sudah ada, FE masih Coming soon" — setelah revisi ini, baris tersebut sebaiknya di-update mengikuti ringkasan status di header di atas.
 
 ---
@@ -48,7 +49,7 @@ Recruitment Pipeline
 Status per bagian:
 
 - **ATS dasar (CRUD requisition/candidate/application/interview/onboarding)** — ✅ sudah diimplementasikan (lihat §3.1).
-- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** (2026-08-12); sisanya rencana (lihat Gap Analysis §7).
+- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** + **G-2 requisition enhancement ✅** (2026-08-12); sisanya rencana (lihat Gap Analysis §7).
 
 ---
 
@@ -368,24 +369,21 @@ Catatan: hasil approval tersimpan di instance Approval module (source of truth);
 
 **Ref:** plan asli §2.2, §10, §27.
 
-## G-2 🔴 JOB REQUISITION ENHANCEMENT (master position + operational fields)
+## G-2 ✅ JOB REQUISITION ENHANCEMENT (master position + operational fields)
 
-**Status: ⏳ Belum.** `organization_id` sudah ada; sisanya belum.
+**Status: ✅ Selesai (2026-08-12).**
 
-**Rencana (enhancement fields):**
+**Yang diimplementasikan:**
+- **Migration `094_recruitment_requisition_enhancement`** (pg + mysql, up/down idempotent): 4 kolom di `job_requisitions` — `requisition_number` VARCHAR(50) NULL, `priority` VARCHAR(10) NOT NULL DEFAULT 'MEDIUM', `position_id` CHAR(36) NULL, `opened_at` BIGINT NULL.
+- **`requisition_number`** — auto-generated `REQ-YYYYMM-XXXXXXXX` saat create (8 hex char UUID, pola nomor dokumen `TRN-*` training); bisa override via create/update.
+- **`priority`** — LOW | MEDIUM | HIGH | URGENT (binding `oneof`), default MEDIUM bila client kosong.
+- **`position_id`** — referensi master position (tabel `positions`); tanpa FK/validasi karena modul Organization tidak mengekspos CRUD position (referensi saja).
+- **`opened_at`** — unix nano, diset otomatis saat requisition **bertransisi menjadi OPEN** (via approval APPROVED callback G-1 maupun update status manual); nilai 0 (GORM read-back default) diperlakukan sebagai belum dibuka di response.
+- **`approval_status` TIDAK ditambahkan** — G-1 sudah meng-cover via status requisition (SUBMITTED/OPEN/REJECTED) + `approval_instance_id`; menambah kolom terpisah = duplikasi.
+- `reason_type` enum existing dipertahankan (sudah mencakup NEW_POSITION/REPLACEMENT/EXPANSION/WORKFORCE_GAP/SUCCESSION_GAP) — BACKFILL/INTERNAL_MOVEMENT dari rencana awal tidak ditambahkan agar tidak merusak data & FE existing.
+- **Test:** +7 service test (auto-gen number + format, explicit number/priority/position, default priority, opened_at on open, approval approved → opened_at, clear position_id, set priority+number).
 
-```text
-requisition_number
-reason_type            NEW_POSITION | REPLACEMENT | BACKFILL | EXPANSION | INTERNAL_MOVEMENT
-priority               LOW | MEDIUM | HIGH | URGENT
-position_id            nullable (bila position terpisah)
-approval_status
-opened_at
-```
-
-- Jangan menyimpan `department`/`title` sebagai master bebas bila sudah tersedia di Organization/Position; Recruitment membaca `Position Title / Organization / Employment Type / Hierarchy / Competency Requirement` dari master.
-- Business rule: requisition tidak dapat dibuka sebelum approval selesai; `slots_filled <= slots_available`.
-- `workforce_gap_id` / `workforce_plan_id` **tidak termasuk** — workforce gap / hiring need adalah output Workforce Intelligence (out of scope, §5.2).
+**Business rules:** requisition dibuka melalui approval (G-1 single approval path); `slots_filled <= slots_available` sudah di-enforce (auto-increment saat ACCEPTED + auto-FILLED, §G-1 existing). `workforce_gap_id`/`workforce_plan_id` tidak termasuk scope G-2 (output Workforce Intelligence).
 
 **Ref:** plan asli §7, §8, §50.
 
