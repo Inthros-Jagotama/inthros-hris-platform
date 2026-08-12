@@ -10,7 +10,7 @@ Dokumen ini menjelaskan struktur database HRIS Platform: arsitektur dua-database
 | Database | Isi | Jumlah Tabel |
 |---|---|---|
 | **Platform DB** | Data multi-tenant: companies, modul, lisensi, paket, RBAC platform | 11 |
-| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 199 |
+| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 202 |
 
 > Sumber kebenaran: file migrasi SQL di `backend/internal/pkg/migrator/migrations/` (dialect `postgres/` & `mysql/` identik).
 
@@ -2692,8 +2692,12 @@ erDiagram
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
 | `job_requisitions` | 20 | - |
-| `candidates` | 15 | - |
+| `candidates` | 18 | - |
+| `candidate_educations` | 13 | candidates.id |
+| `candidate_work_experiences` | 11 | candidates.id |
 | `job_applications` | 15 | - |
+| `recruitment_stages` | 6 | - |
+| `job_application_stage_histories` | 8 | job_applications.id, recruitment_stages.id |
 | `interviews` | 14 | - |
 | `onboarding_task_templates` | 9 | - |
 | `employee_onboardings` | 10 | - |
@@ -2741,6 +2745,37 @@ erDiagram
         TEXT notes
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        VARCHAR candidate_type
+        CHAR employee_id
+        VARCHAR candidate_number
+    }
+    candidate_educations {
+        CHAR id
+        CHAR candidate_id
+        CHAR education_id
+        VARCHAR institution_name
+        CHAR education_major_id
+        VARCHAR major
+        DECIMAL gpa
+        INT start_year
+        INT end_year
+        BOOLEAN is_highest
+        TEXT notes
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    candidate_work_experiences {
+        CHAR id
+        CHAR candidate_id
+        VARCHAR company_name
+        VARCHAR job_title
+        VARCHAR employment_type
+        DATE start_date
+        DATE end_date
+        BOOLEAN is_current
+        TEXT description
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
     }
     job_applications {
         CHAR id
@@ -2758,6 +2793,24 @@ erDiagram
         TEXT notes
         TIMESTAMP created_at
         TIMESTAMP updated_at
+    }
+    recruitment_stages {
+        CHAR id
+        VARCHAR code
+        VARCHAR name
+        INT sort_order
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    job_application_stage_histories {
+        CHAR id
+        CHAR application_id
+        CHAR from_stage_id
+        CHAR to_stage_id
+        CHAR changed_by
+        TEXT notes
+        BIGINT changed_at
+        TIMESTAMP created_at
     }
     interviews {
         CHAR id
