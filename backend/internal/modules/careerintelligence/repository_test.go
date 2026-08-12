@@ -652,3 +652,150 @@ func TestRepo_DeleteSuccessionPlan_Success(t *testing.T) {
 		t.Fatal("expected error after deleting succession plan")
 	}
 }
+
+// =========================================================================
+// Succession Gap (S-5) Repository Tests
+// =========================================================================
+
+// createSuccessionGapTables membuat tabel positions (dengan organization_id)
+// untuk test S-5 — tabel positions lintas modul, bukan milik CI.
+func createSuccessionGapTables(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	if err := db.Exec(`CREATE TABLE positions (
+		id CHAR(36) PRIMARY KEY,
+		title VARCHAR(200),
+		organization_id CHAR(36)
+	)`).Error; err != nil {
+		t.Fatalf("failed to create positions table: %v", err)
+	}
+}
+
+func seedSuccessionPlans(t *testing.T, db *gorm.DB, positionID uuid.UUID, readiness ...string) {
+	t.Helper()
+	for _, level := range readiness {
+		sp := &CareerSuccessionPlan{
+			PositionID:     positionID,
+			SuccessorID:    uuid.New(),
+			ReadinessLevel: level,
+			Status:         "ACTIVE",
+		}
+		if err := db.Create(sp).Error; err != nil {
+			t.Fatalf("failed to seed succession plan: %v", err)
+		}
+	}
+}
+
+func TestRepo_ListSuccessionGapPositions_GroupByPosition(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createSuccessionGapTables(t, db)
+	ctx := context.Background()
+
+	orgID := uuid.New()
+	posGap := uuid.New()    // tanpa successor READY_NOW → gap
+	posReady := uuid.New()  // ada successor READY_NOW → bukan gap
+	posOther := uuid.New()  // punya plan tapi position tanpa join
+	for _, p := range []uuid.UUID{posGap, posReady} {
+		db.Exec("INSERT INTO positions (id, title, organization_id) VALUES (?, ?, ?)",
+			p.String(), "Key Position", orgID.String())
+	}
+
+	seedSuccessionPlans(t, db, posGap, "READY_1YR", "POTENTIAL")
+	seedSuccessionPlans(t, db, posReady, "READY_NOW", "READY_1YR")
+	seedSuccessionPlans(t, db, posOther, "READY_2YR")
+
+	rows, err := repo.ListSuccessionGapPositions(ctx)
+	if err != nil {
+		t.Fatalf("ListSuccessionGapPositions failed: %v", err)
+	}
+	if len(rows) != 3 {
+		t.Fatalf("expected 3 aggregated positions, got %d", len(rows))
+	}
+	byID := map[string]SuccessionGapRow{}
+	for _, r := range rows {
+		byID[r.PositionID] = r
+	}
+	gapRow, ok := byID[posGap.String()]
+	if !ok {
+		t.Fatal("expected gap position in rows")
+	}
+	if gapRow.SuccessorCount != 2 || gapRow.ReadyNowCount != 0 {
+		t.Errorf("expected gap pos successor=2 ready_now=0, got %d/%d", gapRow.SuccessorCount, gapRow.ReadyNowCount)
+	}
+	readyRow, ok := byID[posReady.String()]
+	if !ok {
+		t.Fatal("expected ready position in rows")
+	}
+	if readyRow.SuccessorCount != 2 || readyRow.ReadyNowCount != 1 {
+		t.Errorf("expected ready pos successor=2 ready_now=1, got %d/%d", readyRow.SuccessorCount, readyRow.ReadyNowCount)
+	}
+	if gapRow.PositionTitle != "Key Position" || gapRow.OrganizationID != orgID.String() {
+		t.Errorf("expected position join fields, got title=%q org=%q", gapRow.PositionTitle, gapRow.OrganizationID)
+	}
+}
+
+func TestRepo_ListSuccessionGapPositions_ExcludesInactive(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createSuccessionGapTables(t, db)
+	ctx := context.Background()
+
+	pos := uuid.New()
+	// Plan dengan status COMPLETED → bukan posisi kunci aktif, tidak dihitung.
+	sp := &CareerSuccessionPlan{
+		PositionID:     pos,
+		SuccessorID:    uuid.New(),
+		ReadinessLevel: "READY_1YR",
+		Status:         "COMPLETED",
+	}
+	if err := db.Create(sp).Error; err != nil {
+		t.Fatalf("failed to seed completed plan: %v", err)
+	}
+
+	rows, err := repo.ListSuccessionGapPositions(ctx)
+	if err != nil {
+		t.Fatalf("ListSuccessionGapPositions failed: %v", err)
+	}
+	if len(rows) != 0 {
+		t.Errorf("expected 0 rows for inactive plans, got %d", len(rows))
+	}
+}
+
+func TestRepo_CheckSuccessionGapByPosition(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	posGap := uuid.New()
+	posReady := uuid.New()
+	posNoPlan := uuid.New()
+	seedSuccessionPlans(t, db, posGap, "READY_1YR", "POTENTIAL")
+	seedSuccessionPlans(t, db, posReady, "READY_NOW")
+
+	gap, err := repo.CheckSuccessionGapByPosition(ctx, posGap)
+	if err != nil {
+		t.Fatalf("CheckSuccessionGapByPosition failed: %v", err)
+	}
+	if !gap {
+		t.Error("expected gap=true for position without ready successor")
+	}
+
+	ready, err := repo.CheckSuccessionGapByPosition(ctx, posReady)
+	if err != nil {
+		t.Fatalf("CheckSuccessionGapByPosition failed: %v", err)
+	}
+	if ready {
+		t.Error("expected gap=false for position with READY_NOW successor")
+	}
+
+	noPlan, err := repo.CheckSuccessionGapByPosition(ctx, posNoPlan)
+	if err != nil {
+		t.Fatalf("CheckSuccessionGapByPosition failed: %v", err)
+	}
+	if noPlan {
+		t.Error("expected gap=false for position without any succession plan")
+	}
+}

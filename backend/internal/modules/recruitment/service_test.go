@@ -90,6 +90,133 @@ func TestService_UpdateRequisition(t *testing.T) {
 }
 
 // =========================================================================
+// Succession Gap → Fallback External Recruitment (S-5 strategic layer)
+// =========================================================================
+
+type fakeSuccessionProvider struct {
+	isGap bool
+	err   error
+}
+
+func (f fakeSuccessionProvider) SuccessionGapForPosition(ctx context.Context, positionID uuid.UUID) (bool, error) {
+	return f.isGap, f.err
+}
+
+func TestService_CreateRequisition_SuccessionGap_Validated(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetSuccessionGapProvider(fakeSuccessionProvider{isGap: true})
+	ctx := context.Background()
+
+	reason := string(ReqReasonSuccessionGap)
+	posID := createTestUUID()
+	resp, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID:      createTestOrgID(),
+		Title:               "CTO (fallback external)",
+		ReasonType:          &reason,
+		SuccessionPositionID: &posID,
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	if resp.ReasonType != reason {
+		t.Errorf("expected reason_type %q, got %q", reason, resp.ReasonType)
+	}
+	if resp.SuccessionPositionID != posID {
+		t.Errorf("expected succession_position_id %s, got %s", posID, resp.SuccessionPositionID)
+	}
+
+	// Round-trip: re-read dari repo memastikan kolom benar-benar tersimpan di
+	// DB (bukan hanya muncul di response dari objek in-memory).
+	persisted, err := svc.GetRequisitionByID(ctx, resp.ID)
+	if err != nil {
+		t.Fatalf("GetRequisitionByID failed: %v", err)
+	}
+	if persisted.SuccessionPositionID != posID {
+		t.Errorf("expected succession_position_id %s persisted in DB, got %s", posID, persisted.SuccessionPositionID)
+	}
+	if persisted.ReasonType != reason {
+		t.Errorf("expected reason_type %q persisted in DB, got %q", reason, persisted.ReasonType)
+	}
+}
+
+func TestService_CreateRequisition_SuccessionGap_NoProviderFallsBack(t *testing.T) {
+	// Provider tidak di-wire (nil) — requisition SUCCESSION_GAP tetap dibuat
+	// tanpa error, referensi succession_position_id tetap tersimpan (fail-safe).
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	reason := string(ReqReasonSuccessionGap)
+	posID := createTestUUID()
+	resp, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID:      createTestOrgID(),
+		Title:               "CTO (fallback external)",
+		ReasonType:          &reason,
+		SuccessionPositionID: &posID,
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	if resp.SuccessionPositionID != posID {
+		t.Errorf("expected succession_position_id preserved without provider, got %s", resp.SuccessionPositionID)
+	}
+}
+
+func TestService_CreateRequisition_SuccessionGap_ProviderErrorKeepsGoing(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetSuccessionGapProvider(fakeSuccessionProvider{isGap: false, err: fmt.Errorf("ci unavailable")})
+	ctx := context.Background()
+
+	reason := string(ReqReasonSuccessionGap)
+	posID := createTestUUID()
+	resp, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID:      createTestOrgID(),
+		Title:               "CTO (fallback external)",
+		ReasonType:          &reason,
+		SuccessionPositionID: &posID,
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed on provider error: %v", err)
+	}
+	if resp.SuccessionPositionID != posID {
+		t.Errorf("expected succession_position_id preserved on provider error, got %s", resp.SuccessionPositionID)
+	}
+}
+
+func TestService_UpdateRequisition_ChangeReasonToSuccessionGap(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetSuccessionGapProvider(fakeSuccessionProvider{isGap: true})
+	ctx := context.Background()
+
+	created, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "CTO",
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+
+	reason := string(ReqReasonSuccessionGap)
+	posID := createTestUUID()
+	updated, err := svc.UpdateRequisition(ctx, created.ID, UpdateRequisitionRequest{
+		ReasonType:          &reason,
+		SuccessionPositionID: &posID,
+	})
+	if err != nil {
+		t.Fatalf("UpdateRequisition failed: %v", err)
+	}
+	if updated.ReasonType != reason {
+		t.Errorf("expected reason_type %q, got %q", reason, updated.ReasonType)
+	}
+	if updated.SuccessionPositionID != posID {
+		t.Errorf("expected succession_position_id %s, got %s", posID, updated.SuccessionPositionID)
+	}
+}
+
+// =========================================================================
 // Workforce Gap → Requisition (S-1 strategic layer)
 // =========================================================================
 

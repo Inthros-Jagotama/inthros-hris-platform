@@ -39,19 +39,23 @@ const (
 )
 
 // =========================================================================
-// RequisitionReason — alasan pembuatan requisition (S-1 strategic layer)
+// RequisitionReason — alasan pembuatan requisition (strategic layer)
 // =========================================================================
 // WORKFORCE_GAP menautkan requisition ke hiring need dari Workforce
 // Intelligence (workforce_gap_id / workforce_plan_id). Recruitment membaca
 // hiring need dari WI via interface narrow — tidak menghitung gap sendiri.
+// SUCCESSION_GAP (S-5) menautkan requisition ke posisi kunci tanpa successor
+// siap dari Career Intelligence (succession_position_id) — recruitment menjadi
+// fallback external recruitment; CI yang menandai gap.
 
 type RequisitionReason string
 
 const (
-	ReqReasonNewPosition  RequisitionReason = "NEW_POSITION"
-	ReqReasonReplacement  RequisitionReason = "REPLACEMENT"
-	ReqReasonExpansion    RequisitionReason = "EXPANSION"
-	ReqReasonWorkforceGap RequisitionReason = "WORKFORCE_GAP"
+	ReqReasonNewPosition     RequisitionReason = "NEW_POSITION"
+	ReqReasonReplacement     RequisitionReason = "REPLACEMENT"
+	ReqReasonExpansion       RequisitionReason = "EXPANSION"
+	ReqReasonWorkforceGap    RequisitionReason = "WORKFORCE_GAP"
+	ReqReasonSuccessionGap   RequisitionReason = "SUCCESSION_GAP"
 )
 
 // =========================================================================
@@ -91,6 +95,7 @@ type JobRequisition struct {
 	ReasonType        string            `gorm:"type:varchar(30)" json:"reason_type"`
 	WorkforceGapID    *uuid.UUID        `gorm:"type:char(36)" json:"workforce_gap_id,omitempty"`
 	WorkforcePlanID   *uuid.UUID        `gorm:"type:char(36)" json:"workforce_plan_id,omitempty"`
+	SuccessionPositionID *uuid.UUID     `gorm:"type:char(36)" json:"succession_position_id,omitempty"`
 	TargetStartDate   *string           `gorm:"type:date" json:"target_start_date,omitempty"`
 	ClosedAt          *int64            `gorm:"type:bigint;default:0" json:"-"`
 	CreatedAt         time.Time         `json:"created_at"`

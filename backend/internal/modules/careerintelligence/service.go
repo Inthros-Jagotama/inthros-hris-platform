@@ -696,6 +696,45 @@ func (s *Service) DeleteSuccessionPlan(ctx context.Context, id string) error {
 	return s.repo.DeleteSuccessionPlan(ctx, uid)
 }
 
+// GetSuccessionGaps (S-5) menandai posisi kunci tanpa successor siap (succession
+// gap). Posisi kunci = posisi yang memiliki ≥1 succession plan ACTIVE. Gap
+// terjadi ketika TIDAK ada satupun successor dengan readiness READY_NOW —
+// artinya suksesi internal tidak tersedia dan external recruitment menjadi
+// fallback. Mengembalikan seluruh posisi kunci + status gap (bukan hanya gap),
+// sehingga konsumen bisa melihat coverage suksesi sekaligus kebutuhan fallback.
+func (s *Service) GetSuccessionGaps(ctx context.Context) ([]SuccessionGapResponse, error) {
+	rows, err := s.repo.ListSuccessionGapPositions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]SuccessionGapResponse, 0, len(rows))
+	for _, row := range rows {
+		hasReady := row.ReadyNowCount > 0
+		responses = append(responses, SuccessionGapResponse{
+			PositionID:                  row.PositionID,
+			PositionTitle:               row.PositionTitle,
+			OrganizationID:              row.OrganizationID,
+			SuccessorCount:              row.SuccessorCount,
+			ReadyNowCount:               row.ReadyNowCount,
+			HasReadySuccessor:           hasReady,
+			RequiresExternalRecruitment: !hasReady,
+		})
+	}
+	return responses, nil
+}
+
+// CheckSuccessionGapByPosition (S-5) mengembalikan true bila posisi adalah
+// posisi kunci tanpa successor siap (succession gap) — dipakai Recruitment
+// sebagai fallback external recruitment melalui narrow interface
+// SuccessionGapProvider (wiring di cmd/server/main.go).
+func (s *Service) CheckSuccessionGapByPosition(ctx context.Context, positionID string) (bool, error) {
+	uid, err := uuid.Parse(positionID)
+	if err != nil {
+		return false, fmt.Errorf("invalid position_id: %w", err)
+	}
+	return s.repo.CheckSuccessionGapByPosition(ctx, uid)
+}
+
 // =========================================================================
 // Helpers
 // =========================================================================

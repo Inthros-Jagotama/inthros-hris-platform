@@ -33,9 +33,12 @@ func RegisterRoutes(r *gin.RouterGroup, handler *Handler) {
 		ci.PUT("/paths/:id", handler.UpdateCareerPath)
 		ci.DELETE("/paths/:id", handler.DeleteCareerPath)
 
-		// Succession Plans (5 endpoints)
+		// Succession Plans (5 endpoints + S-5 gaps)
 		ci.GET("/successions", handler.ListSuccessionPlans)
 		ci.POST("/successions", handler.CreateSuccessionPlan)
+		// S-5: succession gap (posisi kunci tanpa successor siap) — static
+		// path SEBELUM dynamic :id (Gin constraint).
+		ci.GET("/successions/gaps", handler.GetSuccessionGaps)
 		ci.GET("/successions/:id", handler.GetSuccessionPlanByID)
 		ci.PUT("/successions/:id", handler.UpdateSuccessionPlan)
 		ci.DELETE("/successions/:id", handler.DeleteSuccessionPlan)

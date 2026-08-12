@@ -21187,6 +21187,45 @@
         "description": "Create a succession plan for a key position. Identifies a potential successor with readiness level, priority order, target date, and development plan."
       }
     },
+    "/api/v1/tenant/career-intelligence/successions/gaps": {
+      "get": {
+        "tags": [
+          "Tenant: Career Intelligence"
+        ],
+        "summary": "List succession gaps (key positions without ready successor)",
+        "operationId": "ciListSuccessionGaps",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SuccessionGapResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "S-5: menandai posisi kunci (memiliki succession plan ACTIVE) beserta status succession gap-nya. Position tanpa successor READY_NOW membutuhkan fallback external recruitment (requires_external_recruitment=true) — dikonsumsi Recruitment sebagai reason_type=SUCCESSION_GAP."
+      }
+    },
     "/api/v1/tenant/career-intelligence/successions/{id}": {
       "get": {
         "tags": [
@@ -48241,9 +48280,10 @@
               "NEW_POSITION",
               "REPLACEMENT",
               "EXPANSION",
-              "WORKFORCE_GAP"
+              "WORKFORCE_GAP",
+              "SUCCESSION_GAP"
             ],
-            "description": "Alasan pembuatan requisition. WORKFORCE_GAP menautkan ke hiring need Workforce Intelligence (plan S-1)"
+            "description": "Alasan pembuatan requisition. WORKFORCE_GAP menautkan ke hiring need Workforce Intelligence (plan S-1); SUCCESSION_GAP = fallback external recruitment untuk posisi kunci tanpa successor siap (plan S-5)"
           },
           "workforce_gap_id": {
             "type": "string",
@@ -48254,6 +48294,11 @@
             "type": "string",
             "format": "uuid",
             "description": "Referensi headcount plan (period) tempat gap teridentifikasi (S-1)"
+          },
+          "succession_position_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Referensi posisi kunci (positions.id) tanpa successor siap — fallback external recruitment (S-5)"
           }
         },
         "required": [
@@ -48330,9 +48375,10 @@
               "NEW_POSITION",
               "REPLACEMENT",
               "EXPANSION",
-              "WORKFORCE_GAP"
+              "WORKFORCE_GAP",
+              "SUCCESSION_GAP"
             ],
-            "description": "Alasan pembuatan requisition (S-1)"
+            "description": "Alasan pembuatan requisition (S-1/S-5)"
           },
           "workforce_gap_id": {
             "type": "string",
@@ -48343,6 +48389,11 @@
             "type": "string",
             "format": "uuid",
             "description": "Referensi headcount plan (S-1)"
+          },
+          "succession_position_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Referensi posisi kunci tanpa successor siap — fallback external recruitment (S-5)"
           }
         }
       },
@@ -48417,7 +48468,7 @@
           },
           "reason_type": {
             "type": "string",
-            "description": "Alasan pembuatan requisition (S-1)"
+            "description": "Alasan pembuatan requisition (S-1/S-5)"
           },
           "workforce_gap_id": {
             "type": "string",
@@ -48426,6 +48477,10 @@
           "workforce_plan_id": {
             "type": "string",
             "description": "Referensi headcount plan (S-1)"
+          },
+          "succession_position_id": {
+            "type": "string",
+            "description": "Referensi posisi kunci tanpa successor siap — fallback external recruitment (S-5)"
           },
           "target_start_date": {
             "type": "string",
@@ -53357,6 +53412,41 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "SuccessionGapResponse": {
+        "type": "object",
+        "properties": {
+          "position_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Posisi kunci (positions.id) yang direncanakan suksesinya"
+          },
+          "position_title": {
+            "type": "string",
+            "description": "Nama posisi"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Organisasi pemilik posisi"
+          },
+          "successor_count": {
+            "type": "integer",
+            "description": "Jumlah successor terencana (plan ACTIVE)"
+          },
+          "ready_now_count": {
+            "type": "integer",
+            "description": "Jumlah successor dengan readiness READY_NOW"
+          },
+          "has_ready_successor": {
+            "type": "boolean",
+            "description": "True bila ada successor siap (READY_NOW)"
+          },
+          "requires_external_recruitment": {
+            "type": "boolean",
+            "description": "True bila suksesi internal tidak tersedia — fallback external recruitment diperlukan (S-5)"
           }
         }
       },

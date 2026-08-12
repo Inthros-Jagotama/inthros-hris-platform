@@ -56,11 +56,27 @@ type InternalCandidate struct {
 	PathName            string
 }
 
+// SuccessionGapProvider adalah interface narrow yang dipakai Recruitment untuk
+// memvalidasi fallback external recruitment (plan S-5 — succession plan →
+// fallback external recruitment). Recruitment TIDAK menghitung readiness
+// succession sendiri — CI yang menandai posisi kunci tanpa successor siap;
+// Recruitment hanya membaca hasilnya untuk requisition reason_type=
+// SUCCESSION_GAP. Implementasi di-wire di cmd/server/main.go melalui adapter
+// (careerintelligence.Service). Bila provider nil, requisition tetap bisa
+// dibuat tanpa error (fail-safe) — kolom succession_position_id tetap tersimpan.
+type SuccessionGapProvider interface {
+	// SuccessionGapForPosition mengembalikan true bila posisi adalah posisi
+	// kunci tanpa successor siap (readiness READY_NOW) sehingga membutuhkan
+	// fallback external recruitment.
+	SuccessionGapForPosition(ctx context.Context, positionID uuid.UUID) (bool, error)
+}
+
 type Service struct {
-	repo              *Repository
-	logger            *zap.Logger
-	gapProvider       WorkforceGapProvider
-	internalProvider  InternalCandidateProvider
+	repo               *Repository
+	logger             *zap.Logger
+	gapProvider        WorkforceGapProvider
+	internalProvider   InternalCandidateProvider
+	successionProvider SuccessionGapProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -79,6 +95,14 @@ func (s *Service) SetWorkforceGapProvider(p WorkforceGapProvider) {
 // target position (via career path) without Recruitment computing eligibility.
 func (s *Service) SetInternalCandidateProvider(p InternalCandidateProvider) {
 	s.internalProvider = p
+}
+
+// SetSuccessionGapProvider wires the Career Intelligence module into this
+// service (plan S-5) so requisitions with reason_type=SUCCESSION_GAP can be
+// validated as fallback external recruitment for a key position without a
+// ready successor.
+func (s *Service) SetSuccessionGapProvider(p SuccessionGapProvider) {
+	s.successionProvider = p
 }
 
 // =========================================================================
@@ -124,10 +148,16 @@ func (s *Service) CreateRequisition(ctx context.Context, req CreateRequisitionRe
 		uid, _ := uuid.Parse(*req.WorkforcePlanID)
 		r.WorkforcePlanID = &uid
 	}
+	if req.SuccessionPositionID != nil {
+		uid, _ := uuid.Parse(*req.SuccessionPositionID)
+		r.SuccessionPositionID = &uid
+	}
 	// S-1: auto-resolve hiring need dari Workforce Intelligence ketika
 	// requisition dibuat dengan reason WORKFORCE_GAP dan slots tidak
 	// ditentukan eksplisit. Gagal resolve = tetap lanjut dengan default.
 	s.resolveWorkforceGapSlots(ctx, r, req.SlotsAvailable)
+	// S-5: validasi fallback external recruitment untuk reason SUCCESSION_GAP.
+	s.validateSuccessionGapFallback(ctx, r)
 	if err := s.repo.CreateRequisition(ctx, r); err != nil {
 		return nil, err
 	}
@@ -239,12 +269,25 @@ func (s *Service) UpdateRequisition(ctx context.Context, id string, req UpdateRe
 			r.WorkforcePlanID = &uid
 		}
 	}
+	if req.SuccessionPositionID != nil {
+		if *req.SuccessionPositionID == "" {
+			r.SuccessionPositionID = nil
+		} else {
+			uid, _ := uuid.Parse(*req.SuccessionPositionID)
+			r.SuccessionPositionID = &uid
+		}
+	}
 	// S-1: resolve hiring need HANYA saat reason bertransisi menjadi
 	// WORKFORCE_GAP (bukan sudah WORKFORCE_GAP) — sehingga update field lain
 	// (title, status, dll.) pada requisition yang sudah tertaut gap tidak
 	// menimpa slots_available yang tersimpan.
 	if req.ReasonType != nil && *req.ReasonType == string(ReqReasonWorkforceGap) && prevReason != string(ReqReasonWorkforceGap) {
 		s.resolveWorkforceGapSlots(ctx, r, req.SlotsAvailable)
+	}
+	// S-5: validasi fallback external recruitment saat reason bertransisi
+	// menjadi SUCCESSION_GAP (pola sama dengan resolve S-1).
+	if req.ReasonType != nil && *req.ReasonType == string(ReqReasonSuccessionGap) && prevReason != string(ReqReasonSuccessionGap) {
+		s.validateSuccessionGapFallback(ctx, r)
 	}
 	if err := s.repo.UpdateRequisition(ctx, r); err != nil {
 		return nil, err
@@ -1023,6 +1066,52 @@ func (s *Service) resolveWorkforceGapSlots(ctx context.Context, r *JobRequisitio
 }
 
 // =========================================================================
+// Succession Gap fallback (S-5 — CI → Recruitment)
+// =========================================================================
+
+// validateSuccessionGapFallback memvalidasi requisition reason SUCCESSION_GAP
+// terhadap Career Intelligence: apakah succession_position_id benar-benar
+// posisi kunci tanpa successor siap. Fail-safe: provider nil atau error tidak
+// menggagalkan operasi — hanya dicatat di log; requisition tetap tersimpan
+// dengan succession_position_id sebagai referensi fallback.
+func (s *Service) validateSuccessionGapFallback(ctx context.Context, r *JobRequisition) {
+	if r.ReasonType != string(ReqReasonSuccessionGap) {
+		return
+	}
+	// Catatan: di create-path r.ID masih uuid.Nil (BeforeCreate berjalan di dalam
+	// repo.CreateRequisition), jadi log memakai organization_id + position
+	// (pola sama resolveWorkforceGapSlots S-1).
+	if r.SuccessionPositionID == nil {
+		s.logger.Warn("SUCCESSION_GAP requisition without succession_position_id; fallback not linked",
+			zap.String("organization_id", r.OrganizationID.String()))
+		return
+	}
+	if s.successionProvider == nil {
+		s.logger.Warn("succession gap provider not wired; fallback unvalidated",
+			zap.String("organization_id", r.OrganizationID.String()),
+			zap.String("succession_position_id", r.SuccessionPositionID.String()))
+		return
+	}
+	isGap, err := s.successionProvider.SuccessionGapForPosition(ctx, *r.SuccessionPositionID)
+	if err != nil {
+		s.logger.Warn("succession gap provider failed; fallback unvalidated",
+			zap.String("organization_id", r.OrganizationID.String()),
+			zap.String("succession_position_id", r.SuccessionPositionID.String()),
+			zap.Error(err))
+		return
+	}
+	if isGap {
+		s.logger.Info("Succession gap fallback validated — external recruitment for key position",
+			zap.String("organization_id", r.OrganizationID.String()),
+			zap.String("succession_position_id", r.SuccessionPositionID.String()))
+	} else {
+		s.logger.Warn("SUCCESSION_GAP requisition but position has a ready successor; fallback may not be needed",
+			zap.String("organization_id", r.OrganizationID.String()),
+			zap.String("succession_position_id", r.SuccessionPositionID.String()))
+	}
+}
+
+// =========================================================================
 // Internal Candidate (S-4 — CI → Recruitment)
 // =========================================================================
 
@@ -1092,6 +1181,9 @@ func requisitionToResponse(r *JobRequisition) *RequisitionResponse {
 	}
 	if r.WorkforcePlanID != nil {
 		resp.WorkforcePlanID = r.WorkforcePlanID.String()
+	}
+	if r.SuccessionPositionID != nil {
+		resp.SuccessionPositionID = r.SuccessionPositionID.String()
 	}
 	if r.TargetStartDate != nil {
 		resp.TargetStartDate = *r.TargetStartDate

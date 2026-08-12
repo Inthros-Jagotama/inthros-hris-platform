@@ -250,6 +250,17 @@ func (h *Handler) ListSuccessionPlans(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// GetSuccessionGaps (S-5) menandai posisi kunci tanpa successor siap — basis
+// fallback external recruitment.
+func (h *Handler) GetSuccessionGaps(c *gin.Context) {
+	result, err := h.svc.GetSuccessionGaps(c.Request.Context())
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondSuccess(c, result)
+}
+
 func (h *Handler) CreateSuccessionPlan(c *gin.Context) {
 	var req CreateSuccessionPlanRequest
 	if !httputil.BindAndValidate(c, &req) {

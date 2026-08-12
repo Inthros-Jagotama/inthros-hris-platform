@@ -562,3 +562,116 @@ func TestService_GetEligibleEmployeesByPosition_NoPathReturnsEmpty(t *testing.T)
 func uuidStr() string {
 	return uuid.New().String()
 }
+
+// =========================================================================
+// Succession Gap (S-5) Service Tests
+// =========================================================================
+
+func TestService_GetSuccessionGaps_FlagsExternalRecruitment(t *testing.T) {
+	svc, repo, db, cleanup := newTestService()
+	defer cleanup()
+	ctx := ctx()
+
+	if err := db.Exec(`CREATE TABLE positions (
+		id CHAR(36) PRIMARY KEY,
+		title VARCHAR(200),
+		organization_id CHAR(36)
+	)`).Error; err != nil {
+		t.Fatalf("failed to create positions table: %v", err)
+	}
+	orgID := uuid.New()
+	posGap := uuid.New()
+	posReady := uuid.New()
+	db.Exec("INSERT INTO positions (id, title, organization_id) VALUES (?, 'CTO', ?)", posGap.String(), orgID.String())
+	db.Exec("INSERT INTO positions (id, title, organization_id) VALUES (?, 'CFO', ?)", posReady.String(), orgID.String())
+
+	// posGap: successor belum siap → requires_external_recruitment = true
+	repo.CreateSuccessionPlan(ctx, &CareerSuccessionPlan{
+		PositionID: posGap, SuccessorID: uuid.New(), ReadinessLevel: "READY_1YR", Status: "ACTIVE",
+	})
+	// posReady: ada successor READY_NOW → tidak butuh fallback
+	repo.CreateSuccessionPlan(ctx, &CareerSuccessionPlan{
+		PositionID: posReady, SuccessorID: uuid.New(), ReadinessLevel: "READY_NOW", Status: "ACTIVE",
+	})
+
+	gaps, err := svc.GetSuccessionGaps(ctx)
+	if err != nil {
+		t.Fatalf("GetSuccessionGaps failed: %v", err)
+	}
+	if len(gaps) != 2 {
+		t.Fatalf("expected 2 key positions, got %d", len(gaps))
+	}
+	byID := map[string]SuccessionGapResponse{}
+	for _, g := range gaps {
+		byID[g.PositionID] = g
+	}
+	if g, ok := byID[posGap.String()]; !ok || !g.RequiresExternalRecruitment {
+		t.Error("expected gap position to require external recruitment")
+	}
+	if g, ok := byID[posGap.String()]; ok && g.HasReadySuccessor {
+		t.Error("expected gap position to have no ready successor")
+	}
+	if g, ok := byID[posReady.String()]; !ok || g.RequiresExternalRecruitment {
+		t.Error("expected ready position to NOT require external recruitment")
+	}
+}
+
+func TestService_GetSuccessionGaps_Empty(t *testing.T) {
+	svc, _, db, cleanup := newTestService()
+	defer cleanup()
+	if err := db.Exec(`CREATE TABLE positions (
+		id CHAR(36) PRIMARY KEY,
+		title VARCHAR(200),
+		organization_id CHAR(36)
+	)`).Error; err != nil {
+		t.Fatalf("failed to create positions table: %v", err)
+	}
+
+	gaps, err := svc.GetSuccessionGaps(ctx())
+	if err != nil {
+		t.Fatalf("GetSuccessionGaps failed: %v", err)
+	}
+	if len(gaps) != 0 {
+		t.Errorf("expected empty list, got %d", len(gaps))
+	}
+}
+
+func TestService_CheckSuccessionGapByPosition(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+	ctx := ctx()
+
+	posGap := uuid.New()
+	posReady := uuid.New()
+	repo.CreateSuccessionPlan(ctx, &CareerSuccessionPlan{
+		PositionID: posGap, SuccessorID: uuid.New(), ReadinessLevel: "POTENTIAL", Status: "ACTIVE",
+	})
+	repo.CreateSuccessionPlan(ctx, &CareerSuccessionPlan{
+		PositionID: posReady, SuccessorID: uuid.New(), ReadinessLevel: "READY_NOW", Status: "ACTIVE",
+	})
+
+	gap, err := svc.CheckSuccessionGapByPosition(ctx, posGap.String())
+	if err != nil {
+		t.Fatalf("CheckSuccessionGapByPosition failed: %v", err)
+	}
+	if !gap {
+		t.Error("expected gap=true for position without ready successor")
+	}
+
+	ready, err := svc.CheckSuccessionGapByPosition(ctx, posReady.String())
+	if err != nil {
+		t.Fatalf("CheckSuccessionGapByPosition failed: %v", err)
+	}
+	if ready {
+		t.Error("expected gap=false for position with READY_NOW successor")
+	}
+}
+
+func TestService_CheckSuccessionGapByPosition_InvalidID(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	if _, err := svc.CheckSuccessionGapByPosition(ctx(), "not-a-uuid"); err == nil {
+		t.Error("expected error for invalid position_id")
+	}
+}

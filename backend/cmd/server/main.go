@@ -238,6 +238,20 @@ func (a wiInternalCandidateAdapter) EligibleCandidatesForPositions(ctx context.C
 
 // workforceGapAdapter implements recruitment.WorkforceGapProvider using the
 // Workforce Intelligence service (plan S-1 — workforce gap → requisition).
+// successionGapAdapter menghubungkan Career Intelligence ke Recruitment
+// (plan S-5 — succession plan → fallback external recruitment). Recruitment
+// TIDAK menghitung readiness succession sendiri; ia hanya membaca penanda gap
+// dari CI untuk requisition reason_type=SUCCESSION_GAP.
+type successionGapAdapter struct {
+	ciSvc *careerintelligence.Service
+}
+
+// SuccessionGapForPosition membungkus CI CheckSuccessionGapByPosition: true
+// bila posisi kunci tidak memiliki successor siap (READY_NOW).
+func (a successionGapAdapter) SuccessionGapForPosition(ctx context.Context, positionID uuid.UUID) (bool, error) {
+	return a.ciSvc.CheckSuccessionGapByPosition(ctx, positionID.String())
+}
+
 // Recruitment membaca hiring need dari WI; Recruitment TIDAK menghitung gap
 // sendiri. Hanya dipakai saat requisition dibuat dengan reason_type
 // WORKFORCE_GAP dan slots_available tidak ditentukan eksplisit.
@@ -907,6 +921,7 @@ func main() {
 	recruitmentSvc := recruitment.NewService(recruitmentRepo, l.Named("recruitment"))
 	recruitmentSvc.SetWorkforceGapProvider(workforceGapAdapter{wiSvc: wiSvc})
 	recruitmentSvc.SetInternalCandidateProvider(internalCandidateAdapter{ciSvc: ciSvc})
+	recruitmentSvc.SetSuccessionGapProvider(successionGapAdapter{ciSvc: ciSvc})
 
 	// S-3: WI candidate search memakai CI untuk internal candidate eligible
 	// (narrow provider — WI tidak menghitung eligibility sendiri).

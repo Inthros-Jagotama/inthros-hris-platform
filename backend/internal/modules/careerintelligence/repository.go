@@ -486,6 +486,68 @@ func (r *Repository) DeleteSuccessionPlan(ctx context.Context, id uuid.UUID) err
 	return db.Delete(&CareerSuccessionPlan{}, "id = ?", id).Error
 }
 
+// SuccessionGapRow adalah agregasi per posisi kunci (positions) yang memiliki
+// succession plan ACTIVE: jumlah successor terencana + berapa yang siap
+// (READY_NOW). Dipakai S-5 untuk menandai posisi kunci tanpa successor siap.
+type SuccessionGapRow struct {
+	PositionID      string
+	PositionTitle   string
+	OrganizationID  string
+	SuccessorCount  int
+	ReadyNowCount   int
+}
+
+// ListSuccessionGapPositions mengembalikan posisi kunci (positions yang memiliki
+// ≥1 succession plan ACTIVE) beserta statistik successor-nya, TANPA memfilter
+// readiness — service yang menentukan gap (tidak ada successor READY_NOW).
+// Join positions untuk title + organization_id (cross-module read, sama pola
+// GetPositionNamesByIDs).
+func (r *Repository) ListSuccessionGapPositions(ctx context.Context) ([]SuccessionGapRow, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []SuccessionGapRow
+	if err := db.Table("career_succession_plans sp").
+		Select("sp.position_id AS position_id, COALESCE(p.title, '') AS position_title, COALESCE(p.organization_id, '') AS organization_id, COUNT(*) AS successor_count, COALESCE(SUM(CASE WHEN sp.readiness_level = ? THEN 1 ELSE 0 END), 0) AS ready_now_count", "READY_NOW").
+		Joins("LEFT JOIN positions p ON p.id = sp.position_id").
+		Where("sp.status = ?", "ACTIVE").
+		Where("sp.deleted_at IS NULL").
+		Group("sp.position_id, p.title, p.organization_id").
+		Order("position_title ASC").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// CheckSuccessionGapByPosition mengembalikan true bila posisi adalah posisi
+// kunci dengan succession gap — yaitu memiliki ≥1 succession plan ACTIVE dan
+// TIDAK ada satupun successor dengan readiness READY_NOW. Dipakai S-5 oleh
+// Recruitment (via narrow provider) untuk fallback external recruitment.
+func (r *Repository) CheckSuccessionGapByPosition(ctx context.Context, positionID uuid.UUID) (bool, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return false, err
+	}
+	var count int64
+	if err := db.Model(&CareerSuccessionPlan{}).
+		Where("position_id = ? AND status = ? AND deleted_at IS NULL", positionID, "ACTIVE").
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	if count == 0 {
+		return false, nil
+	}
+	var readyNow int64
+	if err := db.Model(&CareerSuccessionPlan{}).
+		Where("position_id = ? AND status = ? AND deleted_at IS NULL AND readiness_level = ?", positionID, "ACTIVE", "READY_NOW").
+		Count(&readyNow).Error; err != nil {
+		return false, err
+	}
+	return readyNow == 0, nil
+}
+
 // =========================================================================
 // Employee queries (cross-module)
 // =========================================================================
