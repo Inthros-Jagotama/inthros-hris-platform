@@ -227,6 +227,20 @@ type ApplicationResponse struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
+type StageRef struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
+type StageHistoryResponse struct {
+	ID        string    `json:"id"`
+	FromStage *StageRef `json:"from_stage"`
+	ToStage   StageRef  `json:"to_stage"`
+	ChangedBy string    `json:"changed_by,omitempty"`
+	Notes     string    `json:"notes,omitempty"`
+	ChangedAt int64     `json:"changed_at"`
+}
+
 // =========================================================================
 // Interview DTOs
 // =========================================================================

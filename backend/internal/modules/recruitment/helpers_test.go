@@ -45,6 +45,31 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 	return db, dbResolver, cleanup
 }
 
+// seedDefaultRecruitmentStages seeds the standard recruitment stage catalog
+// (G-5 state machine). Required for tests that exercise
+// transitionApplicationStatus / CreateApplication initial history /
+// GetApplicationHistory, since setupTestDB only migrates the schema and
+// does not seed rows. Not called by setupTestDB itself because some
+// repository tests create their own stage rows and would collide with the
+// unique index on recruitment_stages.code.
+func seedDefaultRecruitmentStages(db *gorm.DB) {
+	defaultStages := []RecruitmentStage{
+		{Code: "NEW", Name: "New", SortOrder: 1},
+		{Code: "SCREENED", Name: "Screened", SortOrder: 2},
+		{Code: "SHORTLISTED", Name: "Shortlisted", SortOrder: 3},
+		{Code: "INTERVIEWED", Name: "Interviewed", SortOrder: 4},
+		{Code: "OFFERED", Name: "Offered", SortOrder: 5},
+		{Code: "ACCEPTED", Name: "Accepted", SortOrder: 6},
+		{Code: "REJECTED", Name: "Rejected", SortOrder: 7},
+		{Code: "WITHDRAWN", Name: "Withdrawn", SortOrder: 8},
+	}
+	for i := range defaultStages {
+		if err := db.Create(&defaultStages[i]).Error; err != nil {
+			panic(fmt.Sprintf("failed to seed recruitment stage %s: %v", defaultStages[i].Code, err))
+		}
+	}
+}
+
 func createTestUUID() string {
 	return uuid.New().String()
 }

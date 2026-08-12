@@ -2,6 +2,7 @@ package recruitment
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -12,10 +13,12 @@ import (
 )
 
 func newTestService() (*Service, func()) {
-	_, dbResolver, cleanup := setupTestDB()
+	db, dbResolver, cleanup := setupTestDB()
 	repo := NewRepository(dbResolver)
 	logger := zap.NewNop()
 	svc := NewService(repo, logger)
+	seedDefaultRecruitmentStages(db)
+
 	return svc, func() { cleanup() }
 }
 
@@ -641,6 +644,144 @@ func TestService_UpdateApplicationStatus(t *testing.T) {
 	}
 	if updated.Status != "SHORTLISTED" {
 		t.Errorf("expected 'SHORTLISTED', got '%s'", updated.Status)
+	}
+}
+
+func TestService_UpdateApplicationStatus_ForwardJumpAllowed(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "fwd@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	// NEW -> OFFERED direct jump must remain allowed (state machine allows
+	// forward jumps between non-terminal stages).
+	updated, err := svc.UpdateApplicationStatus(ctx, app.ID, "OFFERED", "", "")
+	if err != nil {
+		t.Fatalf("expected forward jump to succeed, got error: %v", err)
+	}
+	if updated.Status != "OFFERED" {
+		t.Errorf("expected OFFERED, got %s", updated.Status)
+	}
+}
+
+func TestService_UpdateApplicationStatus_BackwardRejected(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "back@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "SHORTLISTED", "", ""); err != nil {
+		t.Fatalf("setup transition failed: %v", err)
+	}
+
+	_, err := svc.UpdateApplicationStatus(ctx, app.ID, "NEW", "", "")
+	if err == nil {
+		t.Fatal("expected error for backward transition SHORTLISTED -> NEW, got nil")
+	}
+	if !errors.Is(err, ErrInvalidStatusTransition) {
+		t.Errorf("expected ErrInvalidStatusTransition, got: %v", err)
+	}
+}
+
+func TestService_UpdateApplicationStatus_FromTerminalRejected(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "term@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "REJECTED", "", ""); err != nil {
+		t.Fatalf("setup transition failed: %v", err)
+	}
+
+	_, err := svc.UpdateApplicationStatus(ctx, app.ID, "SCREENED", "", "")
+	if !errors.Is(err, ErrInvalidStatusTransition) {
+		t.Errorf("expected ErrInvalidStatusTransition from terminal status, got: %v", err)
+	}
+}
+
+func TestService_UpdateApplicationStatus_SameStatusNoop(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "noop@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "NEW", "", ""); err != nil {
+		t.Fatalf("same-status transition should be a no-op, got error: %v", err)
+	}
+
+	hist, err := svc.GetApplicationHistory(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetApplicationHistory failed: %v", err)
+	}
+	// Only the initial NEW history row from CreateApplication — the no-op
+	// NEW->NEW call must not add a second row.
+	if len(hist) != 1 {
+		t.Errorf("expected 1 history row (initial only), got %d", len(hist))
+	}
+}
+
+func TestService_CreateApplication_WritesInitialHistory(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "init@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	hist, err := svc.GetApplicationHistory(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetApplicationHistory failed: %v", err)
+	}
+	if len(hist) != 1 {
+		t.Fatalf("expected 1 initial history row, got %d", len(hist))
+	}
+	if hist[0].FromStage != nil {
+		t.Errorf("expected initial history from_stage nil, got %v", hist[0].FromStage)
+	}
+	if hist[0].ToStage.Code != "NEW" {
+		t.Errorf("expected initial history to_stage NEW, got %s", hist[0].ToStage.Code)
+	}
+}
+
+func TestService_UpdateApplicationStatus_WritesHistory(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "wh@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "SCREENED", "", "moved to screening"); err != nil {
+		t.Fatalf("UpdateApplicationStatus failed: %v", err)
+	}
+
+	hist, err := svc.GetApplicationHistory(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetApplicationHistory failed: %v", err)
+	}
+	if len(hist) != 2 {
+		t.Fatalf("expected 2 history rows (initial + transition), got %d", len(hist))
+	}
+	last := hist[len(hist)-1]
+	if last.FromStage == nil || last.FromStage.Code != "NEW" || last.ToStage.Code != "SCREENED" {
+		t.Errorf("expected NEW->SCREENED, got from=%v to=%s", last.FromStage, last.ToStage.Code)
+	}
+	if last.Notes != "moved to screening" {
+		t.Errorf("expected notes preserved, got %q", last.Notes)
 	}
 }
 
@@ -1706,6 +1847,69 @@ func TestService_AcceptOffer_NoDoubleIncrementSlotsFilled(t *testing.T) {
 	reqAfter, _ := svc.GetRequisitionByID(ctx, app.RequisitionID)
 	if reqAfter.SlotsFilled != slotsBefore {
 		t.Errorf("expected slots_filled unchanged (%d), got %d", slotsBefore, reqAfter.SlotsFilled)
+	}
+}
+
+func TestService_UpdateApplicationStatus_RepeatedAcceptedNoDoubleIncrement(t *testing.T) {
+	// Idempotensi (G-5): panggilan manual PUT .../status ACCEPTED yang kedua
+	// kali (aplikasi sudah ACCEPTED) adalah no-op transition dan TIDAK boleh
+	// menambah slots_filled lagi.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "B", Email: "repeat-accept@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", ""); err != nil {
+		t.Fatalf("first ACCEPTED transition failed: %v", err)
+	}
+	reqAfterFirst, _ := svc.GetRequisitionByID(ctx, req.ID)
+	slotsAfterFirst := reqAfterFirst.SlotsFilled
+	if slotsAfterFirst != 1 {
+		t.Fatalf("expected slots_filled=1 after first ACCEPTED call, got %d", slotsAfterFirst)
+	}
+
+	if _, err := svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", ""); err != nil {
+		t.Fatalf("second (no-op) ACCEPTED transition failed: %v", err)
+	}
+	reqAfterSecond, _ := svc.GetRequisitionByID(ctx, req.ID)
+	if reqAfterSecond.SlotsFilled != slotsAfterFirst {
+		t.Errorf("expected slots_filled unchanged after repeated ACCEPTED call (%d), got %d", slotsAfterFirst, reqAfterSecond.SlotsFilled)
+	}
+}
+
+func TestService_AcceptOffer_WritesHistory(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+
+	// seedDraftOffer + approveAndSendOffer are existing test helpers in this
+	// file (used by TestService_AcceptOffer_NoDoubleIncrementSlotsFilled)
+	// that create a requisition+candidate+application+draft offer and drive
+	// it to SENT via the approval flow — reuse them instead of re-deriving
+	// the submit/approve/send sequence.
+	offer := seedDraftOffer(t, svc, ctx)
+	app, err := svc.GetApplicationByID(ctx, offer.ApplicationID)
+	if err != nil {
+		t.Fatalf("GetApplicationByID failed: %v", err)
+	}
+	offerID := approveAndSendOffer(t, svc, ctx, offer.ID)
+
+	if _, err := svc.AcceptOffer(ctx, offerID); err != nil {
+		t.Fatalf("AcceptOffer failed: %v", err)
+	}
+
+	hist, err := svc.GetApplicationHistory(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetApplicationHistory failed: %v", err)
+	}
+	last := hist[len(hist)-1]
+	if last.ToStage.Code != "ACCEPTED" {
+		t.Errorf("expected last history to_stage ACCEPTED, got %s", last.ToStage.Code)
 	}
 }
 

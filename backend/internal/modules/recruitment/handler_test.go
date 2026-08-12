@@ -14,10 +14,11 @@ import (
 
 func setupTestRouter() (*gin.Engine, *Handler, func()) {
 	gin.SetMode(gin.TestMode)
-	_, dbResolver, cleanup := setupTestDB()
+	db, dbResolver, cleanup := setupTestDB()
 	repo := NewRepository(dbResolver)
 	logger := zap.NewNop()
 	svc := NewService(repo, logger)
+	seedDefaultRecruitmentStages(db)
 	handler := NewHandler(svc)
 
 	r := gin.New()

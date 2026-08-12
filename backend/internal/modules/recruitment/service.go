@@ -2,6 +2,7 @@ package recruitment
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -16,6 +17,46 @@ const (
 	defaultPerPage = 20
 	maxPerPage     = 100
 )
+
+var ErrInvalidStatusTransition = errors.New("invalid status transition")
+
+// applicationStageOrder define urutan progresi status non-terminal (G-5).
+// Status terminal (ACCEPTED/REJECTED/WITHDRAWN) sengaja tidak masuk sini —
+// diperlakukan khusus di isValidStatusTransition.
+var applicationStageOrder = map[CandidateStatus]int{
+	CandStatusNew:         1,
+	CandStatusScreened:    2,
+	CandStatusShortlisted: 3,
+	CandStatusInterviewed: 4,
+	CandStatusOffered:     5,
+}
+
+func isTerminalStatus(s CandidateStatus) bool {
+	return s == CandStatusAccepted || s == CandStatusRejected || s == CandStatusWithdrawn
+}
+
+// isValidStatusTransition menegakkan state machine G-5:
+//   - from == to                         → true (no-op, ditangani caller)
+//   - from terminal                      → false (tidak ada transisi keluar)
+//   - to ∈ {ACCEPTED, REJECTED, WITHDRAWN} dan from non-terminal → true
+//   - from & to sama-sama non-terminal    → true hanya jika order[to] >= order[from]
+func isValidStatusTransition(from, to CandidateStatus) bool {
+	if from == to {
+		return true
+	}
+	if isTerminalStatus(from) {
+		return false
+	}
+	if isTerminalStatus(to) {
+		return true
+	}
+	fromOrder, fromOK := applicationStageOrder[from]
+	toOrder, toOK := applicationStageOrder[to]
+	if !fromOK || !toOK {
+		return false
+	}
+	return toOrder >= fromOrder
+}
 
 // WorkforceGapProvider adalah interface narrow yang dipakai Recruitment untuk
 // membaca hiring need dari Workforce Intelligence (plan S-1 — workforce gap →
@@ -724,8 +765,10 @@ func (s *Service) AcceptOffer(ctx context.Context, id string) (*OfferResponse, e
 	// accept setelah ACCEPTED manual) tidak double-count satu kandidat.
 	if a, findErr := s.repo.FindApplicationByID(ctx, o.ApplicationID); findErr == nil && a != nil {
 		wasAccepted := a.Status == CandStatusAccepted
-		a.Status = CandStatusAccepted
-		a.AcceptedAt = &now
+		if err := s.transitionApplicationStatus(ctx, a, CandStatusAccepted, nil, ""); err != nil {
+			s.logger.Warn("offer accepted but application transition failed",
+				zap.String("offer_id", o.ID.String()), zap.String("application_id", a.ID.String()), zap.Error(err))
+		}
 		if err := s.repo.UpdateApplication(ctx, a); err != nil {
 			s.logger.Warn("offer accepted but application update failed",
 				zap.String("offer_id", o.ID.String()), zap.String("application_id", a.ID.String()), zap.Error(err))
@@ -1077,6 +1120,18 @@ func (s *Service) CreateApplication(ctx context.Context, req CreateApplicationRe
 	if err := s.repo.CreateApplication(ctx, a); err != nil {
 		return nil, err
 	}
+	if newStage, stageErr := s.repo.FindStageByCode(ctx, string(CandStatusNew)); stageErr == nil {
+		if err := s.repo.CreateStageHistory(ctx, &ApplicationStageHistory{
+			ApplicationID: a.ID,
+			FromStageID:   nil,
+			ToStageID:     newStage.ID,
+			ChangedAt:     time.Now().UnixNano(),
+		}); err != nil {
+			s.logger.Warn("failed to write initial stage history", zap.String("application_id", a.ID.String()), zap.Error(err))
+		}
+	} else {
+		s.logger.Warn("failed to look up NEW stage for initial history", zap.String("application_id", a.ID.String()), zap.Error(stageErr))
+	}
 	s.logger.Info("Job application created", zap.String("id", a.ID.String()))
 	return applicationToResponse(a), nil
 }
@@ -1123,6 +1178,61 @@ func (s *Service) ListApplications(ctx context.Context, requisitionID, candidate
 	}, nil
 }
 
+// transitionApplicationStatus memvalidasi transisi (state machine G-5),
+// menulis baris job_application_stage_histories, dan meng-update field
+// status + timestamp stage pada a (in-memory) — caller bertanggung jawab
+// memanggil repo.UpdateApplication untuk menyimpannya. Dipakai oleh
+// UpdateApplicationStatus (manual) dan AcceptOffer (otomatis, G-3/G-4) agar
+// tidak ada perubahan status yang lolos tanpa histori.
+func (s *Service) transitionApplicationStatus(ctx context.Context, a *JobApplication, newStatus CandidateStatus, changedBy *uuid.UUID, notes string) error {
+	from := a.Status
+	if !isValidStatusTransition(from, newStatus) {
+		return fmt.Errorf("%w: %s -> %s", ErrInvalidStatusTransition, from, newStatus)
+	}
+	if from == newStatus {
+		return nil // no-op — idempotent, tidak menulis history baru
+	}
+
+	fromStage, err := s.repo.FindStageByCode(ctx, string(from))
+	if err != nil {
+		return fmt.Errorf("recruitment stage lookup failed for %s: %w", from, err)
+	}
+	toStage, err := s.repo.FindStageByCode(ctx, string(newStatus))
+	if err != nil {
+		return fmt.Errorf("recruitment stage lookup failed for %s: %w", newStatus, err)
+	}
+
+	now := time.Now().UnixNano()
+	hist := &ApplicationStageHistory{
+		ApplicationID: a.ID,
+		FromStageID:   &fromStage.ID,
+		ToStageID:     toStage.ID,
+		ChangedBy:     changedBy,
+		Notes:         notes,
+		ChangedAt:     now,
+	}
+	if err := s.repo.CreateStageHistory(ctx, hist); err != nil {
+		return fmt.Errorf("failed to write stage history: %w", err)
+	}
+
+	a.Status = newStatus
+	switch newStatus {
+	case CandStatusScreened:
+		a.ScreenedAt = &now
+	case CandStatusShortlisted:
+		a.ShortlistedAt = &now
+	case CandStatusOffered:
+		a.OfferedAt = &now
+	case CandStatusAccepted:
+		a.AcceptedAt = &now
+	case CandStatusRejected:
+		a.RejectedAt = &now
+	case CandStatusWithdrawn:
+		a.WithdrawnAt = &now
+	}
+	return nil
+}
+
 func (s *Service) UpdateApplicationStatus(ctx context.Context, id, status, reason, notes string) (*ApplicationResponse, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -1133,8 +1243,11 @@ func (s *Service) UpdateApplicationStatus(ctx context.Context, id, status, reaso
 		return nil, err
 	}
 
-	now := time.Now().UnixNano()
-	a.Status = CandidateStatus(status)
+	wasAlreadyAccepted := a.Status == CandStatusAccepted
+
+	if err := s.transitionApplicationStatus(ctx, a, CandidateStatus(status), nil, notes); err != nil {
+		return nil, err
+	}
 	if reason != "" {
 		a.RejectionReason = reason
 	}
@@ -1142,16 +1255,11 @@ func (s *Service) UpdateApplicationStatus(ctx context.Context, id, status, reaso
 		a.Notes = notes
 	}
 
-	switch CandidateStatus(status) {
-	case CandStatusScreened:
-		a.ScreenedAt = &now
-	case CandStatusShortlisted:
-		a.ShortlistedAt = &now
-	case CandStatusOffered:
-		a.OfferedAt = &now
-	case CandStatusAccepted:
-		a.AcceptedAt = &now
-		// Update requisition slots filled
+	// ACCEPTED: pertahankan efek samping slots_filled existing (di luar
+	// tanggung jawab transitionApplicationStatus, yang hanya urus status +
+	// history). Guard wasAlreadyAccepted agar panggilan ACCEPTED berulang
+	// (no-op transition) tidak double-increment slots_filled.
+	if CandidateStatus(status) == CandStatusAccepted && !wasAlreadyAccepted {
 		req, findErr := s.repo.FindRequisitionByID(ctx, a.RequisitionID)
 		if findErr == nil && req != nil {
 			req.SlotsFilled++
@@ -1162,10 +1270,6 @@ func (s *Service) UpdateApplicationStatus(ctx context.Context, id, status, reaso
 				s.logger.Warn("failed to update requisition slots_filled", zap.String("requisition_id", req.ID.String()), zap.Error(err))
 			}
 		}
-	case CandStatusRejected:
-		a.RejectedAt = &now
-	case CandStatusWithdrawn:
-		a.WithdrawnAt = &now
 	}
 
 	if err := s.repo.UpdateApplication(ctx, a); err != nil {
@@ -1173,6 +1277,48 @@ func (s *Service) UpdateApplicationStatus(ctx context.Context, id, status, reaso
 	}
 	s.logger.Info("Application status updated", zap.String("id", a.ID.String()), zap.String("status", string(a.Status)))
 	return applicationToResponse(a), nil
+}
+
+func (s *Service) GetApplicationHistory(ctx context.Context, applicationID string) ([]StageHistoryResponse, error) {
+	appUID, err := uuid.Parse(applicationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid application id: %w", err)
+	}
+	if _, err := s.repo.FindApplicationByID(ctx, appUID); err != nil {
+		return nil, err
+	}
+	rows, err := s.repo.ListStageHistoryByApplication(ctx, appUID)
+	if err != nil {
+		return nil, err
+	}
+	stages, err := s.repo.ListStages(ctx)
+	if err != nil {
+		return nil, err
+	}
+	byID := make(map[uuid.UUID]RecruitmentStage, len(stages))
+	for _, st := range stages {
+		byID[st.ID] = st
+	}
+
+	out := make([]StageHistoryResponse, 0, len(rows))
+	for _, r := range rows {
+		resp := StageHistoryResponse{
+			ID:        r.ID.String(),
+			ToStage:   StageRef{Code: byID[r.ToStageID].Code, Name: byID[r.ToStageID].Name},
+			Notes:     r.Notes,
+			ChangedAt: r.ChangedAt,
+		}
+		if r.FromStageID != nil {
+			if st, ok := byID[*r.FromStageID]; ok {
+				resp.FromStage = &StageRef{Code: st.Code, Name: st.Name}
+			}
+		}
+		if r.ChangedBy != nil {
+			resp.ChangedBy = r.ChangedBy.String()
+		}
+		out = append(out, resp)
+	}
+	return out, nil
 }
 
 func (s *Service) DeleteApplication(ctx context.Context, id string) error {
