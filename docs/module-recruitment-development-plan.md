@@ -241,7 +241,7 @@ Modul `backend/internal/modules/recruitment/` (±2.800 baris kode non-test; tota
 | §4.4 "interviews belum mendukung multi-interviewer scorecard" | Benar — single interviewer + single `score`/`feedback`; gap: interviewers + scorecards |
 | §23-§24 interview enhancement | Belum ada `interviewers`/`interview_scorecards`/`interview_scorecard_items` |
 | §26-§27 offer management | **Belum ada entity `job_offers` sama sekali** |
-| §20 recruitment_stages + stage history | **Belum ada** kedua tabel |
+| §20 recruitment_stages + stage history | **Sudah ada** (G-5, 2026-08-12) — 2 tabel + state machine + endpoint history |
 | §13-§19 candidate enhancement | Belum ada sub-tabel education/work experience/skills/certification/document; `source` masih teks bebas |
 | §7 requisition enhancement | Belum ada `requisition_number`, `reason_type`, `priority`, `position_id`, `approval_status` (plan lama juga menyebut `workforce_gap_id`/`workforce_plan_id` — kini **out of scope** WI, §5.2) |
 | §31 onboarding template enhancement | Belum ada scope `organization_id/position_id/employment_type` pada template |
@@ -556,7 +556,7 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 **Rencana (sisa — mengikuti pola FE modul lain: bilingual + dark mode + `ConfirmDeleteDialog` + skeleton):**
 - **Candidates**: list + profile (personal, contact, resume, education, experience, skills, certifications, applications); internal candidate → current employee/org/position (akses mengikuti permission). Menunggu G-6.
-- **Applications**: pipeline board (Applied → Screening → Assessment → Interview → Final Review → Offer → Hired) — drag/drop hanya memanggil transition service backend; detail + stage history + screening/assessment/interview/offer list. Menunggu G-5.
+- **Applications**: pipeline board (Applied → Screening → Assessment → Interview → Final Review → Offer → Hired) — drag/drop hanya memanggil transition service backend; detail + stage history (G-5 ✅) + screening/assessment/interview/offer list. Menunggu G-7/G-8.
 - **Interviews**: kalender + schedule + interviewer + scorecard + feedback + result. Menunggu G-8.
 - **Screening/Assessment**: menunggu G-7.
 - **Summary cards** di hub (Open Requisitions, Candidates, Applications, Interviews, Offers, Hires, Time to Hire): menunggu G-11 (analytics).
