@@ -1862,6 +1862,7 @@
     "status_rejected": "Ditolak",
     "status_cancelled": "Dibatalkan",
     "target_start_date": "Mulai Target",
+    "opened_at": "Dibuka Pada",
     "org": "Organisasi",
     "department": "Departemen",
     "department_placeholder": "mis. Engineering",

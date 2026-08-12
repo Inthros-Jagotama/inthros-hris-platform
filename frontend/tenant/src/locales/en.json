@@ -1862,6 +1862,7 @@
     "status_rejected": "Rejected",
     "status_cancelled": "Cancelled",
     "target_start_date": "Target Start",
+    "opened_at": "Opened At",
     "org": "Organization",
     "department": "Department",
     "department_placeholder": "e.g. Engineering",

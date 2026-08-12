@@ -103,6 +103,13 @@
         </template>
       </Column>
 
+      <!-- G-2: opened_at — kapan requisition dibuka (approval/manual) -->
+      <Column :header="t('requisitions.opened_at')" style="width: 150px">
+        <template #body="{ data }">
+          <span class="text-xs text-gray-600 dark:text-gray-300">{{ formatOpenedAt(data.opened_at) }}</span>
+        </template>
+      </Column>
+
       <!-- G-1: aksi — submit draft ke Central Approval -->
       <Column :header="t('common.actions')" :exportable="false" style="width: 100px">
         <template #body="{ data }">
@@ -298,12 +305,13 @@ const organizations = ref([])
 const positions = ref([])
 
 const skeletonColumns = [
-  { field: 'title', header: 'Title', width: '30%' },
-  { field: 'requisition_number', header: 'Requisition No.', width: '12%' },
-  { field: 'priority', header: 'Priority', width: '10%' },
-  { field: 'slots', header: 'Slots', width: '10%' },
-  { field: 'reason', header: 'Reason', width: '14%' },
-  { field: 'status', header: 'Status', width: '10%' }
+  { field: 'title', header: 'Title', width: '25%' },
+  { field: 'requisition_number', header: 'Requisition No.', width: '11%' },
+  { field: 'priority', header: 'Priority', width: '9%' },
+  { field: 'slots', header: 'Slots', width: '9%' },
+  { field: 'reason', header: 'Reason', width: '12%' },
+  { field: 'status', header: 'Status', width: '9%' },
+  { field: 'opened_at', header: 'Opened At', width: '12%' }
 ]
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
@@ -371,6 +379,15 @@ function prioritySeverity(priority) {
     case 'LOW': return 'secondary'
     default: return 'secondary'
   }
+}
+
+function formatOpenedAt(value) {
+  // opened_at dikirim backend sebagai unix NANO detik (time.Now().UnixNano())
+  // → bagi 1.000.000 dulu sebelum new Date() (menerima milidetik).
+  if (!value) return '—'
+  const ms = Number(value) / 1000000
+  if (!Number.isFinite(ms) || ms <= 0) return '—'
+  return new Date(ms).toLocaleString()
 }
 
 function openSubmitDialog(row) {
