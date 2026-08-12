@@ -56,7 +56,7 @@ frontend/
 - [x] Redirect ke dashboard setelah login
 - [x] Auto-redirect ke login jika token expired
 
-### B.2. Dashboard Page ✅ (Existing - Perlu Penyempurnaan)
+### B.2. Dashboard Page ✅ (Existing - Enhanced)
 - [x] KPI Cards (Total Companies, Active Tenants, Users, Modules, Connections, Health)
 - [x] Recent Companies list
 - [x] System Health (DB, Cache, Pool Stats)
@@ -112,7 +112,7 @@ frontend/
 - [x] **Tambahkan:** License key column + copy button (clipboard API)
 - [x] **Tambahkan:** Expiration date warning (Tag: "Expiring Soon" jika ≤30 hari, "Expired" jika sudah lewat)
 
-### B.7. Monitoring Page ✅ (Existing)
+### B.7. Monitoring Page ✅ (Existing - Enhanced)
 - [x] Platform health status
 - [x] Database connectivity per tenant
 - [x] Pool stats
