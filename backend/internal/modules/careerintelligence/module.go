@@ -43,6 +43,19 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 	}
 }
 
+// NewModuleWithService mounts the Career Intelligence module's routes using an
+// already-constructed Service, so callers (e.g. main.go) can back narrow
+// consumer interfaces (e.g. recruitment.InternalCandidateProvider — plan S-4)
+// against the same service instance before the module is wrapped.
+func NewModuleWithService(logger *zap.Logger, svc *Service) module.Module {
+	handler := NewHandler(svc)
+
+	return &ciModule{
+		handler: handler,
+		logger:  logger,
+	}
+}
+
 type ciModule struct {
 	handler *Handler
 	logger  *zap.Logger

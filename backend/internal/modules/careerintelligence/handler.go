@@ -208,6 +208,17 @@ func (h *Handler) DeleteCareerPath(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+// GetEligibleEmployees menangani GET /career-intelligence/paths/:id/eligible-employees
+// (S-4 — internal candidate eligibility via career path).
+func (h *Handler) GetEligibleEmployees(c *gin.Context) {
+	result, err := h.svc.GetEligibleEmployeesForPath(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondSuccess(c, result)
+}
+
 func (h *Handler) GetGapAnalysis(c *gin.Context) {
 	req := GapAnalysisRequest{
 		EmployeeID:    c.Query("employee_id"),

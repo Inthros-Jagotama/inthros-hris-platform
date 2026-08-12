@@ -29,10 +29,38 @@ type WorkforceGapProvider interface {
 	HiringGapForOrganization(ctx context.Context, orgID uuid.UUID) (int, error)
 }
 
+// InternalCandidateProvider adalah interface narrow yang dipakai Recruitment
+// untuk membaca employee internal yang eligible bagi sebuah target position
+// dari Career Intelligence (plan S-4 — internal candidate via career path).
+// Recruitment TIDAK menentukan career eligibility — CI yang menghitung;
+// Recruitment hanya memproses aplikasi internal. Implementasi di-wire di
+// cmd/server/main.go melalui adapter (careerintelligence.Service). Bila
+// provider nil, list eligible dikembalikan kosong (fail-safe).
+type InternalCandidateProvider interface {
+	// EligibleEmployeesForPosition mengembalikan daftar employee internal yang
+	// memegang source step dari career path menuju targetPositionID.
+	EligibleEmployeesForPosition(ctx context.Context, targetPositionID uuid.UUID) ([]InternalCandidate, error)
+}
+
+// InternalCandidate adalah employee internal yang eligible untuk posisi target
+// (hasil perhitungan CI — Recruitment hanya meneruskan).
+type InternalCandidate struct {
+	EmployeeID          string
+	Name                string
+	CurrentPositionID   string
+	CurrentPositionName string
+	SourceStepSequence  int
+	TargetPositionID    string
+	TargetPositionName  string
+	PathID              string
+	PathName            string
+}
+
 type Service struct {
-	repo        *Repository
-	logger      *zap.Logger
-	gapProvider WorkforceGapProvider
+	repo              *Repository
+	logger            *zap.Logger
+	gapProvider       WorkforceGapProvider
+	internalProvider  InternalCandidateProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -44,6 +72,13 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 // auto-resolve slots_available from WI's hiring need.
 func (s *Service) SetWorkforceGapProvider(p WorkforceGapProvider) {
 	s.gapProvider = p
+}
+
+// SetInternalCandidateProvider wires the Career Intelligence module into this
+// service (plan S-4) so recruiters can read internal candidates eligible for a
+// target position (via career path) without Recruitment computing eligibility.
+func (s *Service) SetInternalCandidateProvider(p InternalCandidateProvider) {
+	s.internalProvider = p
 }
 
 // =========================================================================
@@ -985,6 +1020,27 @@ func (s *Service) resolveWorkforceGapSlots(ctx context.Context, r *JobRequisitio
 			zap.String("organization_id", r.OrganizationID.String()),
 			zap.Int("slots_available", r.SlotsAvailable))
 	}
+}
+
+// =========================================================================
+// Internal Candidate (S-4 — CI → Recruitment)
+// =========================================================================
+
+// GetEligibleInternalCandidates mengembalikan employee internal yang eligible
+// untuk sebuah target position, dibaca dari Career Intelligence via interface
+// narrow (plan S-4). Recruitment tidak menghitung eligibility sendiri. Bila
+// provider belum di-wire, dikembalikan list kosong (fail-safe).
+func (s *Service) GetEligibleInternalCandidates(ctx context.Context, targetPositionID string) ([]InternalCandidate, error) {
+	uid, err := uuid.Parse(targetPositionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid position_id: %w", err)
+	}
+	if s.internalProvider == nil {
+		s.logger.Warn("internal candidate provider not wired; returning empty list",
+			zap.String("target_position_id", targetPositionID))
+		return []InternalCandidate{}, nil
+	}
+	return s.internalProvider.EligibleEmployeesForPosition(ctx, uid)
 }
 
 // =========================================================================

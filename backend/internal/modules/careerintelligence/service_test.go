@@ -434,6 +434,130 @@ func TestService_DeleteSuccessionPlan_Success(t *testing.T) {
 	}
 }
 
+// =========================================================================
+// Internal Candidate Eligibility (S-4)
+// =========================================================================
+
+func TestService_GetEligibleEmployeesForPath_Success(t *testing.T) {
+	svc, repo, db, cleanup := newTestService()
+	defer cleanup()
+	createEligibilityTables(t, db)
+	ctx := ctx()
+
+	// Path: Staff (1) → Supervisor (2) → Manager (3 = target)
+	srcStaff := uuid.New()
+	srcSupervisor := uuid.New()
+	targetManager := uuid.New()
+	cp := &CareerPath{Name: "PROMOTION: Staff → Manager", IsActive: true}
+	steps := []CareerPathStep{
+		{PositionID: srcStaff, Sequence: 1},
+		{PositionID: srcSupervisor, Sequence: 2},
+		{PositionID: targetManager, Sequence: 3, PathType: "PROMOTION"},
+	}
+	if err := repo.CreateCareerPathTx(ctx, cp, steps); err != nil {
+		t.Fatalf("CreateCareerPathTx failed: %v", err)
+	}
+
+	// Employee A di posisi Staff (source), Employee B di posisi Supervisor (source)
+	past := "2020-01-01"
+	for _, emp := range []struct {
+		id   uuid.UUID
+		name string
+		pos  uuid.UUID
+	}{{uuid.New(), "Andi", srcStaff}, {uuid.New(), "Budi", srcSupervisor}} {
+		db.Exec("INSERT INTO employees (id, name) VALUES (?, ?)", emp.id.String(), emp.name)
+		db.Exec("INSERT INTO employments (id, employee_id, position_id, effective_date, effective_end_date) VALUES (?, ?, ?, ?, NULL)", uuid.New().String(), emp.id.String(), emp.pos.String(), past)
+	}
+
+	result, err := svc.GetEligibleEmployeesForPath(ctx, cp.ID.String())
+	if err != nil {
+		t.Fatalf("GetEligibleEmployeesForPath failed: %v", err)
+	}
+	if len(result) != 2 {
+		t.Fatalf("expected 2 eligible employees, got %d", len(result))
+	}
+	for _, e := range result {
+		if e.TargetPositionID != targetManager.String() {
+			t.Errorf("expected target %s, got %s", targetManager, e.TargetPositionID)
+		}
+		if e.PathID != cp.ID.String() {
+			t.Errorf("expected path %s, got %s", cp.ID, e.PathID)
+		}
+	}
+}
+
+func TestService_GetEligibleEmployeesForPath_RequiresTwoSteps(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	cp := &CareerPath{Name: "SINGLE STEP", IsActive: true}
+	steps := []CareerPathStep{
+		{PositionID: uuid.New(), Sequence: 1},
+	}
+	if err := repo.CreateCareerPathTx(ctx(), cp, steps); err != nil {
+		t.Fatalf("CreateCareerPathTx failed: %v", err)
+	}
+
+	_, err := svc.GetEligibleEmployeesForPath(ctx(), cp.ID.String())
+	if err == nil {
+		t.Fatal("expected error for path with < 2 steps")
+	}
+}
+
+func TestService_GetEligibleEmployeesForPath_NotFound(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+	_, err := svc.GetEligibleEmployeesForPath(ctx(), uuid.New().String())
+	if err == nil {
+		t.Fatal("expected error for non-existent path")
+	}
+}
+
+func TestService_GetEligibleEmployeesByPosition_Success(t *testing.T) {
+	svc, repo, db, cleanup := newTestService()
+	defer cleanup()
+	createEligibilityTables(t, db)
+	ctx := ctx()
+
+	srcStaff := uuid.New()
+	targetManager := uuid.New()
+	cp := &CareerPath{Name: "PROMOTION: Staff → Manager", IsActive: true}
+	steps := []CareerPathStep{
+		{PositionID: srcStaff, Sequence: 1},
+		{PositionID: targetManager, Sequence: 2, PathType: "PROMOTION"},
+	}
+	if err := repo.CreateCareerPathTx(ctx, cp, steps); err != nil {
+		t.Fatalf("CreateCareerPathTx failed: %v", err)
+	}
+
+	emp := uuid.New()
+	db.Exec("INSERT INTO employees (id, name) VALUES (?, 'Andi')", emp.String())
+	db.Exec("INSERT INTO employments (id, employee_id, position_id, effective_date, effective_end_date) VALUES (?, ?, ?, '2020-01-01', NULL)", uuid.New().String(), emp.String(), srcStaff.String())
+
+	result, err := svc.GetEligibleEmployeesByPosition(ctx, targetManager.String())
+	if err != nil {
+		t.Fatalf("GetEligibleEmployeesByPosition failed: %v", err)
+	}
+	if len(result) != 1 {
+		t.Fatalf("expected 1 eligible employee for target, got %d", len(result))
+	}
+	if result[0].EmployeeID != emp.String() {
+		t.Errorf("expected employee %s, got %s", emp, result[0].EmployeeID)
+	}
+}
+
+func TestService_GetEligibleEmployeesByPosition_NoPathReturnsEmpty(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+	result, err := svc.GetEligibleEmployeesByPosition(ctx(), uuid.New().String())
+	if err != nil {
+		t.Fatalf("GetEligibleEmployeesByPosition failed: %v", err)
+	}
+	if result == nil || len(result) != 0 {
+		t.Errorf("expected empty result, got %v", result)
+	}
+}
+
 // uuidStr generates a random UUID string for test use.
 func uuidStr() string {
 	return uuid.New().String()

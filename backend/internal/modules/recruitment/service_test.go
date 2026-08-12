@@ -274,6 +274,64 @@ func TestService_UpdateRequisition_UnrelatedUpdateKeepsGapSlots(t *testing.T) {
 	}
 }
 
+// =========================================================================
+// Internal Candidate (S-4 — CI → Recruitment)
+// =========================================================================
+
+type fakeInternalCandidateProvider struct {
+	candidates []InternalCandidate
+	err        error
+}
+
+func (f fakeInternalCandidateProvider) EligibleEmployeesForPosition(ctx context.Context, targetPositionID uuid.UUID) ([]InternalCandidate, error) {
+	return f.candidates, f.err
+}
+
+func TestService_GetEligibleInternalCandidates_NoProviderReturnsEmpty(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	result, err := svc.GetEligibleInternalCandidates(ctx, uuid.New().String())
+	if err != nil {
+		t.Fatalf("GetEligibleInternalCandidates failed: %v", err)
+	}
+	if result == nil || len(result) != 0 {
+		t.Errorf("expected empty list without provider, got %v", result)
+	}
+}
+
+func TestService_GetEligibleInternalCandidates_InvalidPosition(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	_, err := svc.GetEligibleInternalCandidates(context.Background(), "bad-uuid")
+	if err == nil {
+		t.Fatal("expected error for invalid position_id")
+	}
+}
+
+func TestService_GetEligibleInternalCandidates_WithProvider(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetInternalCandidateProvider(fakeInternalCandidateProvider{
+		candidates: []InternalCandidate{
+			{EmployeeID: uuid.New().String(), Name: "Andi", CurrentPositionName: "Staff IT"},
+		},
+	})
+	ctx := context.Background()
+
+	result, err := svc.GetEligibleInternalCandidates(ctx, uuid.New().String())
+	if err != nil {
+		t.Fatalf("GetEligibleInternalCandidates failed: %v", err)
+	}
+	if len(result) != 1 {
+		t.Fatalf("expected 1 candidate from provider, got %d", len(result))
+	}
+	if result[0].Name != "Andi" {
+		t.Errorf("expected candidate Andi, got %s", result[0].Name)
+	}
+}
+
 func TestService_UpdateRequisition_ClearWorkforceGapID(t *testing.T) {
 	svc, cleanup := newTestService()
 	defer cleanup()

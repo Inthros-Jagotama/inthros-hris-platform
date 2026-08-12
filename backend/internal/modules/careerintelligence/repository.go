@@ -3,6 +3,7 @@ package careerintelligence
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -363,6 +364,68 @@ func (r *Repository) FindCareerPathsBySource(ctx context.Context, sourceTitleID 
 		return nil, err
 	}
 	return list, nil
+}
+
+// FindCareerPathsByTarget mengembalikan path aktif yang memiliki step dengan
+// position_id = targetTitleID pada sequence = max (langkah terakhir) — dipakai
+// S-4 untuk menemukan jenjang karier yang menuju ke posisi lowongan.
+func (r *Repository) FindCareerPathsByTarget(ctx context.Context, targetTitleID uuid.UUID) ([]CareerPath, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CareerPath
+	// Step target = step dengan sequence maksimal pada path yang memiliki
+	// position_id = targetTitleID.
+	subQuery := db.Model(&CareerPathStep{}).
+		Select("DISTINCT s1.career_path_id").
+		Table("career_path_steps s1").
+		Where("s1.position_id = ?", targetTitleID).
+		Where("s1.sequence = (SELECT MAX(s2.sequence) FROM career_path_steps s2 WHERE s2.career_path_id = s1.career_path_id)")
+	if err := db.Model(&CareerPath{}).
+		Where("is_active = ? AND id IN (?)", true, subQuery).
+		Order("name ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// EligibleEmployeeRow adalah baris hasil query employee yang saat ini (employment
+// aktif) memegang posisi tertentu — dipakai S-4 internal candidate eligibility.
+type EligibleEmployeeRow struct {
+	EmployeeID   string
+	Name         string
+	PositionID   string
+	PositionName string
+}
+
+// ListEligibleEmployeesByPositionIDs mengembalikan employee dengan employment
+// aktif (effective_date <= hari ini, effective_end_date NULL/>= hari ini,
+// bukan soft-delete) yang memegang salah satu posisi dalam daftar. Dipakai S-4:
+// employee pada source step career path adalah kandidat internal menuju target.
+func (r *Repository) ListEligibleEmployeesByPositionIDs(ctx context.Context, positionIDs []uuid.UUID) ([]EligibleEmployeeRow, error) {
+	if len(positionIDs) == 0 {
+		return []EligibleEmployeeRow{}, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	today := time.Now().Format("2006-01-02")
+	var rows []EligibleEmployeeRow
+	if err := db.Table("employees e").
+		Select("e.id AS employee_id, e.name AS name, em.position_id AS position_id, p.title AS position_name").
+		Joins("JOIN employments em ON em.employee_id = e.id AND em.deleted_at IS NULL").
+		Joins("LEFT JOIN positions p ON p.id = em.position_id").
+		Where("e.deleted_at IS NULL").
+		Where("em.position_id IN ?", positionIDs).
+		Where("em.effective_date <= ?", today).
+		Where("(em.effective_end_date IS NULL OR em.effective_end_date >= ?)", today).
+		Order("e.name ASC").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
 }
 
 

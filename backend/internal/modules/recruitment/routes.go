@@ -20,6 +20,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		rec.PUT("/candidates/:id", handler.UpdateCandidate)
 		rec.DELETE("/candidates/:id", handler.DeleteCandidate)
 
+		// S-4: internal candidate eligibility (CI → Recruitment)
+		rec.GET("/eligible-internal-candidates", handler.GetEligibleInternalCandidates)
+
 		// Job Applications
 		rec.POST("/applications", handler.CreateApplication)
 		rec.GET("/applications", handler.ListApplications)

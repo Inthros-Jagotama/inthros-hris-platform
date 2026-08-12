@@ -4,7 +4,7 @@
 > ✅ **Fakta aktual (audit 2026-08-12):** kedua module strategis sudah terimplementasi penuh di sisi backend — **Workforce Intelligence** (gap analysis supply vs demand, projections/hiring needs, `analytics/recruitment`, `candidate-search`) dan **Career Intelligence** (talent maps, career interests, career paths, gap analysis, succession plans). Yang **belum ada** di sisi strategis: integrasi dua arah terstruktur dengan Recruitment (workforce gap → requisition, expected hires → remaining gap, internal candidate via career path, succession fallback, Quality of Hire).
 > 🔎 **Sumber:** `docs/module-recruitment-development-plan.md` §5.2 (Out of Scope) + `docs/workforce-intelligence-training-enhancement-plan.md` + `docs/module-career-intelligence-plan.md` + audit `backend/internal/modules/workforceintelligence/` (routes.go: `analytics/recruitment` L42, `candidate-search` L10, people-analytics L95-101) + `backend/internal/modules/careerintelligence/` + `docs/project-completion-dashboard.md`.
 > 📊 **Progres per 2026-08-12:** ✅ Workforce Intelligence backend (7 entity, 68 endpoint, 108 test — gap analysis, projections, candidate-search, people-analytics) · ✅ Career Intelligence backend (5 sub-module, 21 endpoint: talent maps, interests, career paths, gap analysis, succession) · 🔶 Workforce Intelligence sebagian mengonsumsi data recruitment via `analytics/recruitment` & `candidate-search` (konsumsi sepihak, tanpa flow balik) · ⏳ Integrasi dua arah dengan Recruitment belum ada.
-> ⏳ **Sisa TODO:** Gap §6 — tersisa S-3, S-4, S-5, S-6, S-7 (S-1 workforce gap → requisition ✅ + S-2 expected hires → remaining gap ✅, 12 Agu 2026); prioritas P0 berikutnya: S-4 internal candidate via career path, S-5 succession fallback.
+> ⏳ **Sisa TODO:** Gap §6 — tersisa S-3, S-5, S-6, S-7 (S-1 workforce gap → requisition ✅, S-2 expected hires → remaining gap ✅, S-4 internal candidate via career path ✅ — 12 Agu 2026); prioritas P0 berikutnya: S-5 succession fallback.
 > 🔧 **Catatan konsistensi docs:** plan ini adalah **"rumah" bagi seluruh item strategis** yang dipisah dari `module-recruitment-development-plan.md` §5.2. Jangan kembalikan item di bawah ini ke plan Recruitment — Recruitment hanya menyediakan data operasional.
 
 ---
@@ -141,12 +141,15 @@ Modul `backend/internal/modules/careerintelligence/` (5 sub-module, 21 endpoint)
 
 ## S-4 🟡 INTERNAL CANDIDATE VIA CAREER PATH (CI → Recruitment)
 
-**Status: ⏳ Belum.**
+**Status: ✅ Selesai (12 Agu 2026).**
 
-**Rencana (kepemilikan Career Intelligence):**
-- CI menyediakan **eligibility internal candidate**: `Position Vacancy → Career Path → Gap Analysis → Eligible Employees`.
-- Recruiter dapat **`Invite to Apply`** / membuat **internal application** — Recruitment mengeksekusi; CI menentukan eligibility (strategis).
-- Recruitment **tidak menentukan career eligibility** — ia hanya memproses aplikasi internal (lihat plan Recruitment G-6/G-4).
+**Implementasi (kepemilikan Career Intelligence):**
+- CI menyediakan **eligibility internal candidate**: `Position Vacancy → Career Path → Eligible Employees` — employee dengan employment aktif pada source step (semua step sebelum target) dari career path menuju posisi lowongan.
+- Endpoint CI: `GET /career-intelligence/paths/{id}/eligible-employees` (service `GetEligibleEmployeesForPath`; target = step terakhir).
+- Interface narrow `recruitment.InternalCandidateProvider` (`EligibleEmployeesForPosition`) + adapter `internalCandidateAdapter{ciSvc}` di `cmd/server/main.go` (pola sama S-1).
+- Endpoint Recruitment: `GET /recruitment/eligible-internal-candidates?position_id=...` — recruiter membaca eligible employee dari CI; Recruitment **tidak menghitung career eligibility** (fail-safe: provider nil → list kosong).
+- Repo CI: `FindCareerPathsByTarget` (path menuju posisi, step terakhir) + `ListEligibleEmployeesByPositionIDs` (employment aktif, non soft-delete).
+- Test: +12 (CI 4 repo + 5 service; recruitment 3 service). OpenAPI: 2 endpoint + 2 schema.
 
 **Ref:** plan asli recruitment §34-§36 · `module-career-intelligence-plan.md` §4.
 
@@ -257,7 +260,7 @@ workforce_quality_of_hire
 ## P0 — Integrasi strategis inti
 1. ~~S-1 Workforce gap → requisition (WI → Recruitment)~~ ✅ 12 Agu 2026
 2. ~~S-2 Expected hires → remaining workforce gap (Recruitment → WI)~~ ✅ 12 Agu 2026
-3. S-4 Internal candidate via career path (CI → Recruitment)
+3. ~~S-4 Internal candidate via career path (CI → Recruitment)~~ ✅ 12 Agu 2026
 4. S-5 Succession fallback → external recruitment
 
 ## P1 — Metrik & analitik
@@ -275,7 +278,7 @@ workforce_quality_of_hire
 ```text
 STEP 1  ✅ S-1  Workforce gap → requisition (interface narrow + migration workforce_gap_id) — SELESAI 12 Agu 2026
 STEP 2  ✅ S-2  Expected hires → remaining gap (WI konsumsi accepted offers) — SELESAI 12 Agu 2026
-STEP 3  S-4  Internal candidate via career path (eligible-employees + invite to apply)
+STEP 3  ✅ S-4  Internal candidate via career path (eligible-employees + invite to apply) — SELESAI 12 Agu 2026
 STEP 4  S-5  Succession fallback → external recruitment
 STEP 5  S-6  Quality of Hire
 STEP 6  S-3  Enhancement candidate-search & recruitment analytics
@@ -291,7 +294,7 @@ STEP 8  Testing & E2E (strategic layer)
 - [x] Career Intelligence backend (talent maps, interests, career paths, gap analysis, succession plans).
 - [x] Requisition dapat menautkan `workforce_gap_id` (S-1). ✅ 12 Agu 2026
 - [x] WI menghitung `Remaining Workforce Gap` dari expected hires (S-2). ✅ 12 Agu 2026
-- [ ] CI menyediakan daftar employee eligible untuk internal application (S-4).
+- [x] CI menyediakan daftar employee eligible untuk internal application (S-4). ✅ 12 Agu 2026
 - [ ] Succession gap menghasilkan kebutuhan external recruitment (S-5).
 - [ ] Metrik Quality of Hire tersedia (S-6).
 - [ ] Kebutuhan training pasca-onboarding diteruskan ke Training module (S-7).

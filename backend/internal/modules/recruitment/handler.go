@@ -148,6 +148,24 @@ func (h *Handler) DeleteCandidate(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+// GetEligibleInternalCandidates menangani GET /recruitment/eligible-internal-candidates
+// (plan S-4) — membaca employee internal yang eligible untuk target position
+// dari Career Intelligence (CI menentukan eligibility; Recruitment hanya
+// mengeksekusi aplikasi internal).
+func (h *Handler) GetEligibleInternalCandidates(c *gin.Context) {
+	positionID := c.Query("position_id")
+	if positionID == "" {
+		httputil.BadRequest(c, "position_id is required")
+		return
+	}
+	result, err := h.svc.GetEligibleInternalCandidates(c.Request.Context(), positionID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, result)
+}
+
 // =========================================================================
 // Job Applications
 // =========================================================================

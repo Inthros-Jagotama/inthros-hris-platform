@@ -129,6 +129,26 @@ type CareerPathResponse struct {
 }
 
 // =========================================================================
+// Internal Candidate Eligibility DTOs (S-4 — CI → Recruitment)
+// =========================================================================
+
+// EligibleEmployeeResponse adalah employee internal yang eligible untuk posisi
+// lowongan: saat ini memegang salah satu source step dari career path menuju
+// target position (S-4 — Position Vacancy → Career Path → Eligible Employees).
+// CI menentukan eligibility; Recruitment hanya mengeksekusi aplikasi internal.
+type EligibleEmployeeResponse struct {
+	EmployeeID         string `json:"employee_id"`
+	Name               string `json:"name"`
+	CurrentPositionID  string `json:"current_position_id"`
+	CurrentPositionName string `json:"current_position_name,omitempty"`
+	SourceStepSequence int    `json:"source_step_sequence"`
+	TargetPositionID   string `json:"target_position_id"`
+	TargetPositionName string `json:"target_position_name,omitempty"`
+	PathID             string `json:"path_id"`
+	PathName           string `json:"path_name,omitempty"`
+}
+
+// =========================================================================
 // Career Path Ladder DTOs (enhancement plan §12.9 — strategical planning)
 //
 // Setelah unifikasi kepemilikan career paths ke module Career Intelligence,

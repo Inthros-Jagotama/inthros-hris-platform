@@ -27,6 +27,9 @@ func RegisterRoutes(r *gin.RouterGroup, handler *Handler) {
 		// Static path SEBELUM dynamic :id (Gin constraint).
 		ci.GET("/paths/gap-analysis", handler.GetGapAnalysis)
 		ci.GET("/paths/:id", handler.GetCareerPathByID)
+		// S-4: internal candidate eligibility — Gin :id match satu segmen,
+		// jadi /paths/:id/eligible-employees tidak konflik dengan /paths/:id.
+		ci.GET("/paths/:id/eligible-employees", handler.GetEligibleEmployees)
 		ci.PUT("/paths/:id", handler.UpdateCareerPath)
 		ci.DELETE("/paths/:id", handler.DeleteCareerPath)
 

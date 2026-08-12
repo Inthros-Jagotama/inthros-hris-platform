@@ -14852,6 +14852,53 @@
         }
       }
     },
+    "/api/v1/tenant/recruitment/eligible-internal-candidates": {
+      "get": {
+        "operationId": "recruitmentEligibleInternalCandidates",
+        "summary": "Get eligible internal candidates for target position (S-4)",
+        "description": "Mengembalikan employee internal yang eligible untuk sebuah target position, dibaca dari Career Intelligence via interface narrow. CI menentukan eligibility (employee pada source step career path menuju target); Recruitment hanya mengeksekusi aplikasi internal.",
+        "tags": [
+          "Recruitment"
+        ],
+        "parameters": [
+          {
+            "name": "position_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InternalCandidate"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/tenant/recruitment/applications": {
       "post": {
         "summary": "Create job application",
@@ -28615,6 +28662,53 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/tenant/career-intelligence/paths/{id}/eligible-employees": {
+      "get": {
+        "operationId": "careerPathEligibleEmployees",
+        "summary": "Get eligible internal employees for career path target (S-4)",
+        "description": "Mengembalikan employee internal yang eligible untuk target position dari career path: employee dengan employment aktif pada source step (semua step sebelum step terakhir). CI menentukan eligibility; Recruitment hanya mengeksekusi aplikasi internal.",
+        "tags": [
+          "Career Intelligence"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EligibleEmployeeResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request / Validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/public/account/setup-password": {
@@ -53094,6 +53188,78 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "EligibleEmployeeResponse": {
+        "type": "object",
+        "properties": {
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "current_position_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "current_position_name": {
+            "type": "string"
+          },
+          "source_step_sequence": {
+            "type": "integer"
+          },
+          "target_position_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target_position_name": {
+            "type": "string"
+          },
+          "path_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "path_name": {
+            "type": "string"
+          }
+        }
+      },
+      "InternalCandidate": {
+        "type": "object",
+        "properties": {
+          "employee_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "current_position_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "current_position_name": {
+            "type": "string"
+          },
+          "source_step_sequence": {
+            "type": "integer"
+          },
+          "target_position_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target_position_name": {
+            "type": "string"
+          },
+          "path_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "path_name": {
+            "type": "string"
           }
         }
       },

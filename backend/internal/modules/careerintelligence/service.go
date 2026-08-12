@@ -3,6 +3,7 @@ package careerintelligence
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -477,6 +478,107 @@ func (s *Service) GetGapAnalysis(ctx context.Context, req GapAnalysisRequest) (*
 		},
 		EstimatedTimeline: "12-18 months",
 	}, nil
+}
+
+// =========================================================================
+// Internal Candidate Eligibility (S-4 — CI → Recruitment)
+// =========================================================================
+
+// GetEligibleEmployeesForPath mengembalikan employee internal yang eligible
+// untuk target position dari sebuah career path: employee dengan employment
+// aktif yang saat ini memegang posisi pada source step (semua step sebelum
+// step terakhir) dari path tersebut. Target = step terakhir. CI menentukan
+// eligibility — Recruitment tidak menghitung sendiri (plan S-4).
+func (s *Service) GetEligibleEmployeesForPath(ctx context.Context, pathID string) ([]EligibleEmployeeResponse, error) {
+	uid, err := uuid.Parse(pathID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path_id: %w", err)
+	}
+	cp, err := s.repo.FindCareerPathByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	steps, err := s.repo.ListCareerPathStepsByPathID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if len(steps) < 2 {
+		return nil, fmt.Errorf("career path must have at least 2 steps (source + target) to compute eligibility")
+	}
+	// Step terakhir = target; semua step sebelumnya = source steps.
+	target := steps[len(steps)-1]
+	sourceSteps := steps[:len(steps)-1]
+
+	sourcePositionIDs := make([]uuid.UUID, 0, len(sourceSteps))
+	for _, st := range sourceSteps {
+		sourcePositionIDs = append(sourcePositionIDs, st.PositionID)
+	}
+	rows, err := s.repo.ListEligibleEmployeesByPositionIDs(ctx, sourcePositionIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Resolve nama target + source positions.
+	allIDs := append(sourcePositionIDs, target.PositionID)
+	names, err := s.repo.GetPositionNamesByIDs(ctx, allIDs)
+	if err != nil {
+		return nil, err
+	}
+	// Peta posisi → sequence (untuk source_step_sequence per employee).
+	seqByPosition := make(map[string]int, len(sourceSteps))
+	for _, st := range sourceSteps {
+		seqByPosition[st.PositionID.String()] = st.Sequence
+	}
+
+	responses := make([]EligibleEmployeeResponse, 0, len(rows))
+	for _, rw := range rows {
+		responses = append(responses, EligibleEmployeeResponse{
+			EmployeeID:          rw.EmployeeID,
+			Name:                rw.Name,
+			CurrentPositionID:   rw.PositionID,
+			CurrentPositionName: rw.PositionName,
+			SourceStepSequence:  seqByPosition[rw.PositionID],
+			TargetPositionID:    target.PositionID.String(),
+			TargetPositionName:  names[target.PositionID.String()],
+			PathID:              cp.ID.String(),
+			PathName:            cp.Name,
+		})
+	}
+	return responses, nil
+}
+
+// GetEligibleEmployeesByPosition mengembalikan employee eligible untuk sebuah
+// target position — menjembatani recruitment.InternalCandidateProvider (plan
+// S-4): mencari semua career path aktif yang menuju posisi tsb, lalu
+// mengumpulkan eligible employees dari seluruh path tersebut.
+func (s *Service) GetEligibleEmployeesByPosition(ctx context.Context, targetPositionID string) ([]EligibleEmployeeResponse, error) {
+	targetID, err := uuid.Parse(targetPositionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid position_id: %w", err)
+	}
+	paths, err := s.repo.FindCareerPathsByTarget(ctx, targetID)
+	if err != nil {
+		return nil, err
+	}
+	var result []EligibleEmployeeResponse
+	for _, p := range paths {
+		emps, err := s.GetEligibleEmployeesForPath(ctx, p.ID.String())
+		if err != nil {
+			// Path tanpa ≥2 steps dilewati (bukan kegagalan total); error lain
+			// (mis. DB) tetap dicatat agar tidak tersembunyi.
+			if !strings.Contains(err.Error(), "at least 2 steps") {
+				s.logger.Warn("skip career path in eligible-employees aggregation",
+					zap.String("path_id", p.ID.String()),
+					zap.Error(err))
+			}
+			continue
+		}
+		result = append(result, emps...)
+	}
+	if result == nil {
+		result = []EligibleEmployeeResponse{}
+	}
+	return result, nil
 }
 
 // =========================================================================

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // =========================================================================
@@ -347,6 +348,142 @@ func TestRepo_ListCareerPaths_Pagination(t *testing.T) {
 	}
 	if len(list) != 3 {
 		t.Errorf("expected 3 items, got %d", len(list))
+	}
+}
+
+func TestRepo_FindCareerPathsByTarget_Success(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+
+	target := uuid.New()
+	cp := &CareerPath{Name: "PROMOTION: A → B → C", IsActive: true}
+	steps := []CareerPathStep{
+		{PositionID: uuid.New(), Sequence: 1},
+		{PositionID: uuid.New(), Sequence: 2},
+		{PositionID: target, Sequence: 3, PathType: "PROMOTION"},
+	}
+	if err := repo.CreateCareerPathTx(context.Background(), cp, steps); err != nil {
+		t.Fatalf("CreateCareerPathTx failed: %v", err)
+	}
+
+	list, err := repo.FindCareerPathsByTarget(context.Background(), target)
+	if err != nil {
+		t.Fatalf("FindCareerPathsByTarget failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Errorf("expected 1 path targeting position, got %d", len(list))
+	}
+	if list[0].ID != cp.ID {
+		t.Errorf("expected path %s, got %s", cp.ID, list[0].ID)
+	}
+}
+
+func TestRepo_FindCareerPathsByTarget_IgnoresMidStep(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+
+	midStep := uuid.New()
+	cp := &CareerPath{Name: "PROMOTION: A → B → C", IsActive: true}
+	steps := []CareerPathStep{
+		{PositionID: midStep, Sequence: 1},
+		{PositionID: uuid.New(), Sequence: 2},
+		{PositionID: uuid.New(), Sequence: 3},
+	}
+	if err := repo.CreateCareerPathTx(context.Background(), cp, steps); err != nil {
+		t.Fatalf("CreateCareerPathTx failed: %v", err)
+	}
+
+	// midStep bukan step terakhir → path tidak boleh terpilih sebagai target.
+	list, err := repo.FindCareerPathsByTarget(context.Background(), midStep)
+	if err != nil {
+		t.Fatalf("FindCareerPathsByTarget failed: %v", err)
+	}
+	if len(list) != 0 {
+		t.Errorf("expected 0 paths (mid-step bukan target), got %d", len(list))
+	}
+}
+
+// createEligibilityTables membuat tabel employees + employments + positions
+// untuk test S-4 eligible employees.
+func createEligibilityTables(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	statements := []string{
+		`CREATE TABLE employees (
+			id CHAR(36) PRIMARY KEY,
+			name VARCHAR(255),
+			deleted_at DATETIME NULL
+		)`,
+		`CREATE TABLE employments (
+			id CHAR(36) PRIMARY KEY,
+			employee_id CHAR(36),
+			position_id CHAR(36),
+			effective_date DATE,
+			effective_end_date DATE NULL,
+			deleted_at DATETIME NULL
+		)`,
+		`CREATE TABLE positions (
+			id CHAR(36) PRIMARY KEY,
+			title VARCHAR(200)
+		)`,
+	}
+	for _, stmt := range statements {
+		if err := db.Exec(stmt).Error; err != nil {
+			t.Fatalf("failed to create eligibility table: %v\n%s", err, stmt)
+		}
+	}
+}
+
+func TestRepo_ListEligibleEmployeesByPositionIDs_ActiveOnly(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createEligibilityTables(t, db)
+	ctx := context.Background()
+
+	posSource := uuid.New()
+	posOther := uuid.New()
+	past := "2020-01-01"
+
+	// Employee aktif di posisi source
+	empActive := uuid.New()
+	db.Exec("INSERT INTO employees (id, name) VALUES (?, 'Andi')", empActive.String())
+	db.Exec("INSERT INTO employments (id, employee_id, position_id, effective_date, effective_end_date) VALUES (?, ?, ?, ?, NULL)", uuid.New().String(), empActive.String(), posSource.String(), past)
+	// Employee dengan kontrak sudah berakhir → TIDAK eligible
+	empExpired := uuid.New()
+	db.Exec("INSERT INTO employees (id, name) VALUES (?, 'Budi')", empExpired.String())
+	db.Exec("INSERT INTO employments (id, employee_id, position_id, effective_date, effective_end_date) VALUES (?, ?, ?, ?, ?)", uuid.New().String(), empExpired.String(), posSource.String(), past, "2021-01-01")
+	// Employee di posisi lain → TIDAK eligible untuk posSource
+	empOther := uuid.New()
+	db.Exec("INSERT INTO employees (id, name) VALUES (?, 'Citra')", empOther.String())
+	db.Exec("INSERT INTO employments (id, employee_id, position_id, effective_date, effective_end_date) VALUES (?, ?, ?, ?, NULL)", uuid.New().String(), empOther.String(), posOther.String(), past)
+
+	rows, err := repo.ListEligibleEmployeesByPositionIDs(ctx, []uuid.UUID{posSource})
+	if err != nil {
+		t.Fatalf("ListEligibleEmployeesByPositionIDs failed: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("expected 1 eligible employee (active only), got %d", len(rows))
+	}
+	if rows[0].EmployeeID != empActive.String() {
+		t.Errorf("expected employee %s, got %s", empActive, rows[0].EmployeeID)
+	}
+	if rows[0].PositionID != posSource.String() {
+		t.Errorf("expected position %s, got %s", posSource, rows[0].PositionID)
+	}
+}
+
+func TestRepo_ListEligibleEmployeesByPositionIDs_EmptyIDs(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	rows, err := repo.ListEligibleEmployeesByPositionIDs(context.Background(), []uuid.UUID{})
+	if err != nil {
+		t.Fatalf("ListEligibleEmployeesByPositionIDs failed: %v", err)
+	}
+	if len(rows) != 0 {
+		t.Errorf("expected 0 rows for empty ids, got %d", len(rows))
 	}
 }
 
