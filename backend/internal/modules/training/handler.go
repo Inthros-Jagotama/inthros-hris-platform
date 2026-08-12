@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
@@ -1046,6 +1047,12 @@ func (h *Handler) SubmitRequest(c *gin.Context) {
 	}
 	resp, err := h.svc.SubmitRequest(c.Request.Context(), id, req.FlowID)
 	if err != nil {
+		// Approval routing/assignee failures (approval.RoutingError) get a
+		// bilingual 400 so the user sees why their submission didn't reach
+		// an approver instead of a raw error.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
 		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
 		return
 	}

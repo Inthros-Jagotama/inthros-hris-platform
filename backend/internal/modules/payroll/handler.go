@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
@@ -565,6 +566,12 @@ func (h *Handler) UpdatePayrollRunStatus(c *gin.Context) {
 	}
 	resp, err := h.service.UpdatePayrollRunStatus(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
+		// Approval routing/assignee failures (approval.RoutingError) get a
+		// bilingual 400 so the user sees why the run didn't reach an
+		// approver instead of a raw internal error.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}

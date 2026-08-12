@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
@@ -229,6 +230,12 @@ func (h *Handler) CreateLeaveRequest(c *gin.Context) {
 	}
 	resp, err := h.svc.CreateLeaveRequest(c.Request.Context(), req)
 	if err != nil {
+		// Approval routing/assignee failures (approval.RoutingError) get a
+		// bilingual 400 so the user sees why their leave didn't reach an
+		// approver instead of a raw internal error.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
 		return
 	}

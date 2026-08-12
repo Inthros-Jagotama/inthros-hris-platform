@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/modules/approval"
 )
 
 // setupTestRouter creates a Gin engine with the employee movement routes registered.
@@ -35,6 +37,62 @@ func setupTestRouter() (*gin.Engine, *Repository, func()) {
 // =========================================================================
 // Movement Handler Tests
 // =========================================================================
+
+// TestHandler_SubmitMovement_ApprovalRoutingErrorBilingual verifies that an
+// approval routing failure (e.g. "no supervisor found ... is vacant") is
+// emitted as a bilingual 400 APPROVAL_ROUTING_FAILED following the request
+// language instead of a raw internal error.
+func TestHandler_SubmitMovement_ApprovalRoutingErrorBilingual(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+
+	svc.SetApprovalEngine(&fakeApprovalEngine{
+		resolvedFlowID: uuid.New().String(),
+		createErr: &approval.RoutingError{
+			Key:    "approval.no_supervisor_vacant",
+			Params: []string{"Persetujuan Supervisor"},
+		},
+	})
+	handler := NewHandler(svc)
+
+	r := gin.New()
+	r.POST("/movements/:id/submit", handler.SubmitMovement)
+
+	empID := uuid.New()
+	movement := createTestMovement(repo, empID)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/movements/"+movement.ID.String()+"/submit", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept-Language", "id")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+	var body map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("invalid JSON response: %v", err)
+	}
+	errObj, ok := body["error"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("missing error object: %+v", body)
+	}
+	if errObj["code"] != "APPROVAL_ROUTING_FAILED" {
+		t.Errorf("expected code APPROVAL_ROUTING_FAILED, got %v", errObj["code"])
+	}
+	msg, _ := errObj["message"].(string)
+	if !strings.Contains(msg, "Supervisor tidak ditemukan") {
+		t.Errorf("expected Indonesian supervisor message, got: %s", msg)
+	}
+}
 
 func TestHandler_CreateMovement_Success(t *testing.T) {
 	router, _, cleanup := setupTestRouter()

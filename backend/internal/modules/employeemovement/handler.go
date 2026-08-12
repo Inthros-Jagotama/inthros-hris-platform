@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
@@ -156,6 +157,12 @@ func (h *Handler) SubmitMovement(c *gin.Context) {
 
 	response, err := h.service.SubmitMovement(c.Request.Context(), id, req)
 	if err != nil {
+		// Approval routing/assignee failures (approval.RoutingError) get a
+		// bilingual 400 so the user sees why their submission didn't reach
+		// an approver instead of a raw internal error.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
 		httputil.InternalError(c, err.Error())
 		return
 	}
@@ -206,6 +213,12 @@ func (h *Handler) CancelMovement(c *gin.Context) {
 
 	response, err := h.service.CancelMovement(c.Request.Context(), id, req)
 	if err != nil {
+		// Cancellation requests route through the central approval module
+		// too — routing failures surface bilingually, everything else keeps
+		// the existing CANCEL_FAILED contract.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
 		httputil.ErrorRaw(c, http.StatusConflict, "CANCEL_FAILED", err.Error())
 		return
 	}

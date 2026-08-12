@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
@@ -154,6 +155,12 @@ func (h *Handler) UpdateReimbursementRequestStatus(c *gin.Context) {
 	}
 	resp, err := h.svc.UpdateReimbursementRequestStatus(c.Request.Context(), id, req.Status, req.Note, req.Amount, req.FlowID)
 	if err != nil {
+		// Approval routing/assignee failures (approval.RoutingError) get a
+		// bilingual 400 so the user sees why their submission didn't reach
+		// an approver instead of a raw internal error.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
 		httputil.InternalError(c, err.Error())
 		return
 	}

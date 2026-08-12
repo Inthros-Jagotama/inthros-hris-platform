@@ -1,7 +1,6 @@
 package performance
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -1097,13 +1096,12 @@ func (h *Handler) CompleteEvaluation(c *gin.Context) {
 
 // emitKPIStatusError responds with a bilingual error for KPI status/approval
 // actions. Approval routing/assignee-resolution failures surface as
-// approval.RoutingError (carrying a translation key + params) and are emitted
-// via httputil.ErrorJSON so the message follows the request language; anything
-// else falls back to the raw error, keeping existing behavior unchanged.
+// approval.RoutingError and are emitted via the shared approval.EmitRoutingError
+// helper (400 APPROVAL_ROUTING_FAILED, message follows the request language);
+// anything else falls back to the raw error with the legacy INVALID_STATUS
+// code, keeping existing behavior unchanged.
 func emitKPIStatusError(c *gin.Context, err error) {
-	var re *approval.RoutingError
-	if errors.As(err, &re) {
-		httputil.ErrorJSON(c, http.StatusBadRequest, "INVALID_STATUS", re.Key, re.Params...)
+	if approval.EmitRoutingError(c, err) {
 		return
 	}
 	httputil.ErrorRaw(c, http.StatusBadRequest, "INVALID_STATUS", err.Error())

@@ -2,12 +2,14 @@ package payroll
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
+	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
@@ -929,6 +931,15 @@ func (s *Service) UpdatePayrollRunStatus(ctx context.Context, id string, req Upd
 		if s.approvalEngine != nil && req.FlowID != nil && *req.FlowID != "" {
 			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "payroll", pr.ID.String(), *req.FlowID)
 			if err != nil {
+				// Routing/assignee-resolution failures (approval.RoutingError)
+				// mean the configured flow can't reach an approver — fail
+				// loudly instead of silently advancing the run (same policy
+				// as KPI target submission). Any other approval error stays
+				// best-effort: log and continue.
+				var re *approval.RoutingError
+				if errors.As(err, &re) {
+					return nil, err
+				}
 				s.logger.Warn("Failed to create approval instance for payroll run, continuing without approval",
 					zap.String("run_id", pr.ID.String()),
 					zap.Error(err),

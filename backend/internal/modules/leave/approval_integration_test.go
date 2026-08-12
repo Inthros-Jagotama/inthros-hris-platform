@@ -2,11 +2,14 @@ package leave
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/inthros/hris-platform/internal/modules/approval"
 )
 
 // fakeApprovalEngine is a test double for ApprovalEngine.
@@ -86,6 +89,73 @@ func TestService_CreateLeaveRequest_WithApprovalEngine_CreatesInstance(t *testin
 	}
 	if fake.createCalls[0].module != "leave" || fake.createCalls[0].flowID != flowID {
 		t.Errorf("unexpected call params: %+v", fake.createCalls[0])
+	}
+}
+
+// TestService_CreateLeaveRequest_ApprovalRoutingErrorFailsLoudly guards the
+// fail-loudly policy: when the approval engine rejects routing (e.g. the
+// configured flow can't resolve an approver), the leave request must NOT be
+// silently created — the RoutingError is propagated so the handler can show a
+// bilingual message instead of a request that sits at SUBMITTED forever.
+func TestService_CreateLeaveRequest_ApprovalRoutingErrorFailsLoudly(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{
+		createErr: &approval.RoutingError{Key: "approval.flow_inactive"},
+	}
+	svc.SetApprovalEngine(fake)
+
+	lType := createTestLeaveType(repo)
+	flowID := uuidStr()
+
+	req := CreateLeaveRequest{
+		EmployeeID:       uuidStr(),
+		LeaveTypeID:      lType.ID.String(),
+		RequestStartDate: "2026-01-15",
+		RequestEndDate:   "2026-01-16",
+		RequestedDays:    2,
+		FlowID:           &flowID,
+	}
+
+	_, err := svc.CreateLeaveRequest(ctx(), req)
+	if err == nil {
+		t.Fatal("expected error when approval routing fails")
+	}
+	var re *approval.RoutingError
+	if !errors.As(err, &re) {
+		t.Fatalf("expected approval.RoutingError, got: %v", err)
+	}
+}
+
+// TestService_CreateLeaveRequest_NonRoutingApprovalErrorStillSwallowed keeps
+// the best-effort contract for non-routing approval failures (DB errors,
+// parse errors, ...): the request is still created, just without approval.
+func TestService_CreateLeaveRequest_NonRoutingApprovalErrorStillSwallowed(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{createErr: fmt.Errorf("database connection lost")}
+	svc.SetApprovalEngine(fake)
+
+	lType := createTestLeaveType(repo)
+	flowID := uuidStr()
+
+	req := CreateLeaveRequest{
+		EmployeeID:       uuidStr(),
+		LeaveTypeID:      lType.ID.String(),
+		RequestStartDate: "2026-01-15",
+		RequestEndDate:   "2026-01-16",
+		RequestedDays:    2,
+		FlowID:           &flowID,
+	}
+
+	resp, err := svc.CreateLeaveRequest(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateLeaveRequest should not fail on non-routing approval error: %v", err)
+	}
+	if resp.Status != "SUBMITTED" {
+		t.Errorf("expected status SUBMITTED without approval, got '%s'", resp.Status)
 	}
 }
 

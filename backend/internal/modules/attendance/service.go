@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
@@ -850,6 +851,15 @@ func (s *Service) CreateOvertimeRequest(ctx context.Context, req CreateOvertimeR
 		if flowID != "" {
 			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "attendance", overtime.ID.String(), flowID)
 			if err != nil {
+				// Routing/assignee-resolution failures (approval.RoutingError)
+				// mean the configured flow can't reach an approver — fail
+				// loudly instead of silently creating a request that sits at
+				// SUBMITTED forever (same policy as KPI target submission).
+				// Any other approval error stays best-effort: log and continue.
+				var re *approval.RoutingError
+				if errors.As(err, &re) {
+					return nil, err
+				}
 				s.logger.Warn("Failed to create approval instance for overtime request, continuing without approval",
 					zap.String("overtime_request_id", overtime.ID.String()),
 					zap.Error(err),
@@ -1089,6 +1099,13 @@ func (s *Service) SubmitActualOvertime(ctx context.Context, id uuid.UUID, req Su
 		if flowID != "" {
 			instanceID, cerr := s.approvalEngine.CreateApprovalInstance(ctx, "attendance", overtime.ID.String(), flowID)
 			if cerr != nil {
+				// Fail loudly on routing/assignee-resolution failures (the
+				// configured flow can't reach an approver); keep the actual
+				// values saved but surface the bilingual RoutingError.
+				var re *approval.RoutingError
+				if errors.As(cerr, &re) {
+					return nil, cerr
+				}
 				s.logger.Warn("failed to create actual approval instance for overtime",
 					zap.String("overtime_request_id", overtime.ID.String()),
 					zap.Error(cerr))
@@ -1395,6 +1412,13 @@ func (s *Service) CreateCorrectionRequest(ctx context.Context, req CreateCorrect
 		if flowID != "" {
 			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "attendance", c.ID.String(), flowID)
 			if err != nil {
+				// Fail loudly on routing/assignee-resolution failures (the
+				// configured flow can't reach an approver); any other approval
+				// error stays best-effort: log and continue.
+				var re *approval.RoutingError
+				if errors.As(err, &re) {
+					return nil, err
+				}
 				s.logger.Warn("Failed to create approval instance for correction request, continuing without approval",
 					zap.String("correction_request_id", c.ID.String()),
 					zap.Error(err),

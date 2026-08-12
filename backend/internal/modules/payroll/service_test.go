@@ -2,11 +2,14 @@ package payroll
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/modules/approval"
 )
 
 // =============================================================================
@@ -445,9 +448,13 @@ func TestService_CreatePayrollRun(t *testing.T) {
 // mockApprovalEngine is a minimal ApprovalEngine stub for payroll service tests.
 type mockApprovalEngine struct {
 	instanceID string
+	createErr  error
 }
 
 func (m *mockApprovalEngine) CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error) {
+	if m.createErr != nil {
+		return "", m.createErr
+	}
 	return m.instanceID, nil
 }
 
@@ -634,5 +641,78 @@ func TestService_ListPph21TaxBrackets(t *testing.T) {
 
 	if resp.Total != 2 {
 		t.Errorf("expected total 2, got %d", resp.Total)
+	}
+}
+
+// TestService_UpdatePayrollRunStatus_ApprovalRoutingErrorFailsLoudly guards
+// the fail-loudly policy: when the approval engine rejects routing, the
+// RoutingError is propagated (instead of silently advancing to REVIEWED) so
+// the handler can show a bilingual message.
+func TestService_UpdatePayrollRunStatus_ApprovalRoutingErrorFailsLoudly(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	svc.SetApprovalEngine(&mockApprovalEngine{
+		createErr: &approval.RoutingError{
+			Key:    "approval.no_assignees",
+			Params: []string{"Persetujuan Supervisor"},
+		},
+	})
+
+	period, _ := svc.CreatePayrollPeriod(ctx, CreatePayrollPeriodRequest{
+		PeriodYear: 2026, PeriodMonth: 4,
+		StartDate: "2026-04-01", EndDate: "2026-04-30", AsOfDate: "2026-04-30",
+	})
+
+	run, _ := svc.CreatePayrollRun(ctx, CreatePayrollRunRequest{
+		PayrollPeriodID: period.ID,
+		RunCode:         "RUN-APR-2026",
+	})
+
+	flowID := uuid.New().String()
+	_, err := svc.UpdatePayrollRunStatus(ctx, run.ID, UpdatePayrollRunStatusRequest{
+		Status: "CALCULATED",
+		FlowID: &flowID,
+	})
+	if err == nil {
+		t.Fatal("expected error when approval routing fails")
+	}
+	var re *approval.RoutingError
+	if !errors.As(err, &re) {
+		t.Fatalf("expected approval.RoutingError, got: %v", err)
+	}
+}
+
+// TestService_UpdatePayrollRunStatus_NonRoutingApprovalErrorStillSwallowed
+// keeps the best-effort contract for non-routing approval failures: the run
+// advances to REVIEWED without an approval step.
+func TestService_UpdatePayrollRunStatus_NonRoutingApprovalErrorStillSwallowed(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	svc.SetApprovalEngine(&mockApprovalEngine{createErr: errors.New("database connection lost")})
+
+	period, _ := svc.CreatePayrollPeriod(ctx, CreatePayrollPeriodRequest{
+		PeriodYear: 2026, PeriodMonth: 4,
+		StartDate: "2026-04-01", EndDate: "2026-04-30", AsOfDate: "2026-04-30",
+	})
+
+	run, _ := svc.CreatePayrollRun(ctx, CreatePayrollRunRequest{
+		PayrollPeriodID: period.ID,
+		RunCode:         "RUN-APR-2026",
+	})
+
+	flowID := uuid.New().String()
+	updated, err := svc.UpdatePayrollRunStatus(ctx, run.ID, UpdatePayrollRunStatusRequest{
+		Status: "CALCULATED",
+		FlowID: &flowID,
+	})
+	if err != nil {
+		t.Fatalf("should not fail on non-routing approval error: %v", err)
+	}
+	if updated.Status != "REVIEWED" {
+		t.Errorf("expected status REVIEWED without approval, got '%s'", updated.Status)
 	}
 }

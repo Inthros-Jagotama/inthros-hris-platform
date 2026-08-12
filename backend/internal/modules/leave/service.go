@@ -2,12 +2,15 @@ package leave
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/modules/approval"
 )
 
 const (
@@ -566,6 +569,15 @@ func (s *Service) CreateLeaveRequest(ctx context.Context, req CreateLeaveRequest
 		if flowID != "" {
 			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "leave", lr.ID.String(), flowID)
 			if err != nil {
+				// Routing/assignee-resolution failures (approval.RoutingError)
+				// mean the configured flow can't reach an approver — fail
+				// loudly instead of silently creating a request that sits at
+				// SUBMITTED forever (same policy as KPI target submission).
+				// Any other approval error stays best-effort: log and continue.
+				var re *approval.RoutingError
+				if errors.As(err, &re) {
+					return nil, err
+				}
 				s.logger.Warn("Failed to create approval instance for leave request, continuing without approval",
 					zap.String("leave_request_id", lr.ID.String()),
 					zap.Error(err),

@@ -1,6 +1,13 @@
 package approval
 
-import "github.com/inthros/hris-platform/internal/pkg/httputil"
+import (
+	"errors"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/inthros/hris-platform/internal/pkg/httputil"
+)
 
 // RoutingError is a user-facing approval routing / assignee-resolution
 // failure. It carries a translation key (plus optional params) so consumer
@@ -31,4 +38,20 @@ func newRoutingError(key string, params ...string) *RoutingError {
 		Params: params,
 		msg:    httputil.Translate(httputil.LangEN, key, params...),
 	}
+}
+
+// EmitRoutingError writes a bilingual error response (HTTP 400, error code
+// APPROVAL_ROUTING_FAILED) when err classifies as a *RoutingError, and
+// reports whether it did. Consumer handlers (leave, reimbursement, employee
+// movement, payroll, KPI) call this first on errors coming back from the
+// approval engine: when it returns true they return immediately, otherwise
+// they fall back to their own error handling — keeping non-routing errors
+// (DB failures, parse errors, ...) on their existing path.
+func EmitRoutingError(c *gin.Context, err error) bool {
+	var re *RoutingError
+	if !errors.As(err, &re) {
+		return false
+	}
+	httputil.ErrorJSON(c, http.StatusBadRequest, "APPROVAL_ROUTING_FAILED", re.Key, re.Params...)
+	return true
 }

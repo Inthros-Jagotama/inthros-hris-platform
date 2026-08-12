@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+
+	"github.com/inthros/hris-platform/internal/modules/approval"
 )
 
 // fakeApprovalEngine is a test double for ApprovalEngine.
@@ -88,6 +90,73 @@ func TestService_CreateOvertimeRequest_WithApprovalEngine_CreatesInstance(t *tes
 	}
 	if fake.createCalls[0].module != "attendance" || fake.createCalls[0].flowID != flowID {
 		t.Errorf("unexpected call params: %+v", fake.createCalls[0])
+	}
+}
+
+// TestService_CreateOvertimeRequest_ApprovalRoutingErrorFailsLoudly guards
+// the fail-loudly policy: when the approval engine rejects routing, the
+// RoutingError is propagated (instead of silently creating a request that
+// sits at SUBMITTED forever) so the handler can show a bilingual message.
+func TestService_CreateOvertimeRequest_ApprovalRoutingErrorFailsLoudly(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{
+		createErr: &approval.RoutingError{
+			Key:    "approval.no_supervisor_vacant",
+			Params: []string{"Persetujuan Supervisor"},
+		},
+	}
+	svc.SetApprovalEngine(fake)
+
+	flowID := uuid.New().String()
+	req := CreateOvertimeRequest{
+		EmployeeID:       uuid.New().String(),
+		WorkDate:         "2026-01-15",
+		StartTimeLocal:   "2026-01-15T18:00:00+07:00",
+		EndTimeLocal:     "2026-01-15T20:00:00+07:00",
+		RequestedMinutes: 120,
+		Reason:           "Deadline crunch",
+		FlowID:           &flowID,
+	}
+
+	_, err := svc.CreateOvertimeRequest(ctx(), req)
+	if err == nil {
+		t.Fatal("expected error when approval routing fails")
+	}
+	var re *approval.RoutingError
+	if !errors.As(err, &re) {
+		t.Fatalf("expected approval.RoutingError, got: %v", err)
+	}
+}
+
+// TestService_CreateOvertimeRequest_NonRoutingApprovalErrorStillSwallowed
+// keeps the best-effort contract for non-routing approval failures: the
+// request is still created, just without approval.
+func TestService_CreateOvertimeRequest_NonRoutingApprovalErrorStillSwallowed(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{createErr: errors.New("database connection lost")}
+	svc.SetApprovalEngine(fake)
+
+	flowID := uuid.New().String()
+	req := CreateOvertimeRequest{
+		EmployeeID:       uuid.New().String(),
+		WorkDate:         "2026-01-15",
+		StartTimeLocal:   "2026-01-15T18:00:00+07:00",
+		EndTimeLocal:     "2026-01-15T20:00:00+07:00",
+		RequestedMinutes: 120,
+		Reason:           "Deadline crunch",
+		FlowID:           &flowID,
+	}
+
+	resp, err := svc.CreateOvertimeRequest(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateOvertimeRequest should not fail on non-routing approval error: %v", err)
+	}
+	if resp.Status != "SUBMITTED" {
+		t.Errorf("expected status SUBMITTED without approval, got '%s'", resp.Status)
 	}
 }
 

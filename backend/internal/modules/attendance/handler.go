@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
@@ -348,6 +349,12 @@ func (h *Handler) CreateOvertimeRequest(c *gin.Context) {
 	}
 	resp, err := h.service.CreateOvertimeRequest(c.Request.Context(), req)
 	if err != nil {
+		// Approval routing/assignee failures (approval.RoutingError) get a
+		// bilingual 400 so the user sees why their overtime didn't reach an
+		// approver instead of a raw internal error.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -416,6 +423,11 @@ func (h *Handler) CancelOvertimeRequest(c *gin.Context) {
 // writeOvertimeError memetakan error layanan alur dua-tahap lembur (§32b) ke
 // status HTTP yang tepat.
 func writeOvertimeError(c *gin.Context, err error) {
+	// Approval routing/assignee failures surface bilingually before the
+	// regular error classification.
+	if approval.EmitRoutingError(c, err) {
+		return
+	}
 	switch {
 	case errors.Is(err, gorm.ErrRecordNotFound):
 		httputil.NotFound(c, err.Error())
@@ -464,6 +476,12 @@ func (h *Handler) CreateCorrectionRequest(c *gin.Context) {
 	}
 	resp, err := h.service.CreateCorrectionRequest(c.Request.Context(), req)
 	if err != nil {
+		// Approval routing/assignee failures (approval.RoutingError) get a
+		// bilingual 400 so the user sees why their correction didn't reach
+		// an approver instead of a raw internal error.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
 	}

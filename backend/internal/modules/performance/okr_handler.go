@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
 
@@ -816,6 +817,11 @@ func (h *OKRHandler) SubmitKeyResults(c *gin.Context) {
 
 	result, err := h.service.SubmitKeyResults(c.Request.Context(), db, evaluationID, userID)
 	if err != nil {
+		// Approval routing/assignee failures (approval.RoutingError) get a
+		// bilingual 400 instead of a raw error.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
 		httputil.BadRequest(c, err.Error())
 		return
 	}
@@ -893,6 +899,11 @@ func (h *OKRHandler) SubmitEvaluation(c *gin.Context) {
 
 	result, err := h.service.SubmitEvaluation(c.Request.Context(), db, evaluationID, userID)
 	if err != nil {
+		// Approval routing/assignee failures (approval.RoutingError) get a
+		// bilingual 400 instead of a raw error.
+		if approval.EmitRoutingError(c, err) {
+			return
+		}
 		httputil.BadRequest(c, err.Error())
 		return
 	}

@@ -2,9 +2,12 @@ package reimbursement
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
+
+	"github.com/inthros/hris-platform/internal/modules/approval"
 )
 
 // fakeApprovalEngine is a test double for ApprovalEngine.
@@ -161,5 +164,59 @@ func TestService_HandleApprovalStatusChange_NotPendingApproval_NoOp(t *testing.T
 	}
 	if updated.Status != "DRAFT" {
 		t.Errorf("expected status to remain DRAFT, got '%s'", updated.Status)
+	}
+}
+
+// TestService_UpdateReimbursementRequestStatus_ApprovalRoutingErrorFailsLoudly
+// guards the fail-loudly policy: when the approval engine rejects routing, the
+// RoutingError is propagated (instead of silently continuing as SUBMITTED) so
+// the handler can show a bilingual message.
+func TestService_UpdateReimbursementRequestStatus_ApprovalRoutingErrorFailsLoudly(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{
+		createErr: &approval.RoutingError{
+			Key:    "approval.zero_approvers",
+			Params: []string{"Persetujuan Supervisor", "1"},
+		},
+	}
+	svc.SetApprovalEngine(fake)
+
+	rType := createTestReimbursementType(repo)
+	empID := uuid.New()
+	created := createTestReimbursementRequest(repo, empID, rType.ID)
+
+	flowID := uuidStr()
+	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil, &flowID)
+	if err == nil {
+		t.Fatal("expected error when approval routing fails")
+	}
+	var re *approval.RoutingError
+	if !errors.As(err, &re) {
+		t.Fatalf("expected approval.RoutingError, got: %v", err)
+	}
+}
+
+// TestService_UpdateReimbursementRequestStatus_NonRoutingApprovalErrorStillSwallowed
+// keeps the best-effort contract for non-routing approval failures.
+func TestService_UpdateReimbursementRequestStatus_NonRoutingApprovalErrorStillSwallowed(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{createErr: errors.New("database connection lost")}
+	svc.SetApprovalEngine(fake)
+
+	rType := createTestReimbursementType(repo)
+	empID := uuid.New()
+	created := createTestReimbursementRequest(repo, empID, rType.ID)
+
+	flowID := uuidStr()
+	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil, &flowID)
+	if err != nil {
+		t.Fatalf("should not fail on non-routing approval error: %v", err)
+	}
+	if updated.Status != "SUBMITTED" {
+		t.Errorf("expected status SUBMITTED without approval, got '%s'", updated.Status)
 	}
 }

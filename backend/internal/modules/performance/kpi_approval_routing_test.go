@@ -246,8 +246,8 @@ func TestEmitKPIStatusError_RoutingErrorBilingual(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing error object: %+v", body)
 	}
-	if errObj["code"] != "INVALID_STATUS" {
-		t.Errorf("expected code INVALID_STATUS, got %v", errObj["code"])
+	if errObj["code"] != "APPROVAL_ROUTING_FAILED" {
+		t.Errorf("expected code APPROVAL_ROUTING_FAILED, got %v", errObj["code"])
 	}
 	msg, _ := errObj["message"].(string)
 	if !strings.Contains(msg, "Supervisor tidak ditemukan untuk langkah \"Persetujuan Supervisor\"") {
