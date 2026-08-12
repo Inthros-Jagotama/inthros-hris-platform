@@ -187,6 +187,12 @@ frontend/
 - [x] **All remaining views** — Integrasi useSkeletonPage ke Users, Modules, Licenses, Packages, Rbac, Profile
 - [x] **Transition fade** — `<Transition name="fade">` antara skeleton dan konten
 
+### B.13. Struktur Layout Platform Admin ✅ (Selesai — sinkron 12 Agu 2026)
+**Komponen:** `layouts/AppLayout.vue` (64 baris), `layouts/HeaderBar.vue` (96), `layouts/Sidebar.vue` (69)
+- [x] **AppLayout.vue** — root `flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900` → Sidebar collapsible + HeaderBar + `<main>` (scroll); page title & description bilingual via `route.meta.titleKey`/`descKey` (fallback hardcoded `meta.title`/`meta.description`); `handleLogout` → `logout()` + push `/login`
+- [x] **HeaderBar.vue** — tombol toggle sidebar (`pi-bars`), theme switcher (moon/sun, tooltip bilingual `dashboard.light_mode`/`dark_mode`), language switcher (globe + kode `EN`/`ID`), indikator Live (dot hijau), user menu (Avatar → Profile `/profile` + Logout, label `auth.login.profile`/`auth.login.logout`)
+- [x] **Sidebar.vue** — 8 menu flat: Dashboard, Companies, Users, Modules, Licenses, Packages, Rbac, Monitoring (ikon + `labelKey` bilingual); collapsible `w-56` ↔ `w-16` (icon-only + `v-tooltip.left` saat collapsed); dark mode classes; active state via `route.path.startsWith(path)`
+
 ---
 
 ## C. Phase 2: Tenant — Module Views
@@ -201,6 +207,27 @@ frontend/
 - [x] **Skeleton components** — Copied SkeletonCard, SkeletonTable, useSkeletonPage to tenant frontend
 - [x] **Sidebar company name** — Dynamic company_name from `GET /api/v1/platform/users/:id` fetch + local ref (fallback: 'Company' / 'HRIS Platform')
 - [x] **Sidebar PanelMenu dark hover** — Custom `:deep(.p-dark ...)` for green hover in dark mode
+
+**AppLayout.vue** (75 baris):
+- [x] Root `flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900` → Sidebar collapsible + HeaderBar + `<main>` scroll
+- [x] Page title/desc bilingual via `route.meta.titleKey`/`descKey` (fallback hardcoded); kasus khusus route `JobValuesType` → label/desc tipe dari `utils/jobValues.js` (`jobValueTypeLabel`/`jobValueTypeDesc`)
+- [x] `onMounted` → `activeMod.fetchActiveModules()` (sumber gating modul sidebar)
+- [x] `handleLogout` → `logout()` + push `/login`
+
+**HeaderBar.vue** (373 baris):
+- [x] **Breadcrumb 6 pola** — tombol kembali bilingual + `pi-chevron-right` + judul halaman: Org Summary→Organization (via `summary_id`), Employees→form employee, Job Management→manage, Job Values→tipe, Settings→sub-setting, My Tasks→Approval Flows
+- [x] **Breadcrumb generic** — route dengan `meta.backRoute` + `meta.backLabelKey` → tombol kembali otomatis (dipakai modul movement/training/dll.)
+- [x] **Bell notifikasi + Popover** — badge unread-count (cap `99+`), daftar notif terbaru (title/body/relative time, dot hijau belum-dibaca), mark-all-read, link "Lihat semua" → `/notifications`; polling `setInterval` 60s via `stores/notifications.js`
+- [x] **Theme switcher** — moon/sun tooltip bilingual; **language switcher** — globe + kode `EN`/`ID`; indikator Live (dot hijau)
+- [x] **User menu** — Avatar (nama dari `authState.user.name`, fallback 'Admin') → menu Profile + Logout
+
+**Sidebar.vue** (545 baris):
+- [x] **5 group menu** — Core HR (Org Summary, Employees, Job Management), Talent (Competency, Performance, Training, Recruitment), Operations (Attendance, Leave, Movements & Contracts, Approval, Notifications), Finance (Payroll, Reimbursement), Strategic (Workforce Intel, Career Intel) + Settings item tunggal
+- [x] **Module gating** — tiap item `moduleSlug` + `permission` → `filterByModule()` = `activeMod.hasModule(slug)` + `hasPermission(permission)`
+- [x] **Active state pintar** — `includePaths` (hub tetap highlight di sub-halaman, mis. Movements & Contracts) & `excludePaths` (parent tidak highlight saat child aktif)
+- [x] **Collapsed mode** — flatten semua item top-level (item ber-children hanya child-nya agar ikon tidak duplikat), icon-only + tooltip
+- [x] **Group accordion** — `openMenus` ref + `toggleMenu(key)`; auto-open saat salah satu child aktif
+- [x] **PanelMenu styling** — `:deep(.p-panelmenu-*)` compact (padding 0.5rem, font 0.8125rem), hover hijau `#f0fdf4` (light) + `rgba(16,185,129,0.1)` (dark)
 
 ### C.2. Dashboard ✅ (Existing - Enhanced)
 - [x] KPI Cards (Total Employees, Active Today, On Leave, Pending Approvals)

@@ -1187,13 +1187,13 @@ frontend/platform-admin/src/
 ├── App.vue                    # Root — Toast + ConfirmDialog
 ├── main.js                    # PrimeVue, Tailwind, Router, Pinia
 ├── assets/css/                # Global CSS (slug-animation.css)
-├── components/                # 9 reusable form components
-├── composables/               # useI18n, useNotification, useSlugify
-├── layouts/                   # AppLayout, HeaderBar (lang switcher), Sidebar
-├── locales/                   # en.json, id.json (200+ keys)
-├── router/index.js            # 9 routes + auth guard
+├── components/                # 11 reusable form/components (CompanyActions, Skeleton, dll)
+├── composables/               # useI18n, useSkeletonPage, useSlugify
+├── layouts/                   # AppLayout (bilingual title), HeaderBar (theme/lang/Live/user menu), Sidebar (8 menu collapsible)
+├── locales/                   # en.json, id.json (391 keys)
+├── router/index.js            # 11 routes (login + 10 halaman) + auth guard
 ├── services/                  # api.js (axios) + responseHandler.js
-├── stores/                    # auth.js + language.js (Pinia)
+├── stores/                    # auth.js + language.js + theme.js (Pinia)
 └── views/                     # 9 halaman
 ```
 
