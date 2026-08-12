@@ -39,6 +39,22 @@ const (
 )
 
 // =========================================================================
+// RequisitionReason — alasan pembuatan requisition (S-1 strategic layer)
+// =========================================================================
+// WORKFORCE_GAP menautkan requisition ke hiring need dari Workforce
+// Intelligence (workforce_gap_id / workforce_plan_id). Recruitment membaca
+// hiring need dari WI via interface narrow — tidak menghitung gap sendiri.
+
+type RequisitionReason string
+
+const (
+	ReqReasonNewPosition  RequisitionReason = "NEW_POSITION"
+	ReqReasonReplacement  RequisitionReason = "REPLACEMENT"
+	ReqReasonExpansion    RequisitionReason = "EXPANSION"
+	ReqReasonWorkforceGap RequisitionReason = "WORKFORCE_GAP"
+)
+
+// =========================================================================
 // InterviewStatus
 // =========================================================================
 
@@ -72,6 +88,9 @@ type JobRequisition struct {
 	Status            RequisitionStatus `gorm:"type:varchar(20);default:DRAFT" json:"status"`
 	RequestedBy       *uuid.UUID        `gorm:"type:char(36)" json:"requested_by,omitempty"`
 	ApprovedBy        *uuid.UUID        `gorm:"type:char(36)" json:"approved_by,omitempty"`
+	ReasonType        string            `gorm:"type:varchar(30)" json:"reason_type"`
+	WorkforceGapID    *uuid.UUID        `gorm:"type:char(36)" json:"workforce_gap_id,omitempty"`
+	WorkforcePlanID   *uuid.UUID        `gorm:"type:char(36)" json:"workforce_plan_id,omitempty"`
 	TargetStartDate   *string           `gorm:"type:date" json:"target_start_date,omitempty"`
 	ClosedAt          *int64            `gorm:"type:bigint;default:0" json:"-"`
 	CreatedAt         time.Time         `json:"created_at"`

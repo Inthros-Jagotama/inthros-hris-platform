@@ -519,3 +519,4 @@ Pola FE mengikuti `CareerPaths.vue` (DataTable lazy + SkeletonTable + ConfirmDel
 - **Performance Management** — KPI/OKR/competency menjadi **input** untuk talent mapping (9-box) dan eligibility. Career Intelligence tidak menghitung skor.
 - **Organization / Job Management** — `position_id` pada steps/talent map/succession merujuk tabel `positions`; eksistensi divalidasi via `GetPositionNamesByIDs`/`GetPositionTitle`.
 - **Employee** — `employee_id` pada talent map/interest/succession merujuk karyawan.
+- **Recruitment (operasional)** — integrasi strategis (internal candidate via career path, succession fallback → external recruitment) dikelola di **`docs/module-recruitment-strategic-layer-plan.md`** (S-4/S-5); Recruitment hanya mengeksekusi, tidak menentukan eligibility (scoping 2026-08-12).

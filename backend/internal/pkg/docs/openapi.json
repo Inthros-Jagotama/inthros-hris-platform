@@ -48117,6 +48117,26 @@
             "type": "string",
             "format": "date",
             "description": "Target start date for the position"
+          },
+          "reason_type": {
+            "type": "string",
+            "enum": [
+              "NEW_POSITION",
+              "REPLACEMENT",
+              "EXPANSION",
+              "WORKFORCE_GAP"
+            ],
+            "description": "Alasan pembuatan requisition. WORKFORCE_GAP menautkan ke hiring need Workforce Intelligence (plan S-1)"
+          },
+          "workforce_gap_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Referensi gap analysis Workforce Intelligence yang memicu requisition (S-1)"
+          },
+          "workforce_plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Referensi headcount plan (period) tempat gap teridentifikasi (S-1)"
           }
         },
         "required": [
@@ -48186,6 +48206,26 @@
             "type": "string",
             "format": "date",
             "description": "Target start date"
+          },
+          "reason_type": {
+            "type": "string",
+            "enum": [
+              "NEW_POSITION",
+              "REPLACEMENT",
+              "EXPANSION",
+              "WORKFORCE_GAP"
+            ],
+            "description": "Alasan pembuatan requisition (S-1)"
+          },
+          "workforce_gap_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Referensi gap analysis Workforce Intelligence (S-1)"
+          },
+          "workforce_plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Referensi headcount plan (S-1)"
           }
         }
       },
@@ -48257,6 +48297,18 @@
           "approved_by": {
             "type": "string",
             "description": "Approver UUID"
+          },
+          "reason_type": {
+            "type": "string",
+            "description": "Alasan pembuatan requisition (S-1)"
+          },
+          "workforce_gap_id": {
+            "type": "string",
+            "description": "Referensi gap analysis Workforce Intelligence (S-1)"
+          },
+          "workforce_plan_id": {
+            "type": "string",
+            "description": "Referensi headcount plan (S-1)"
           },
           "target_start_date": {
             "type": "string",

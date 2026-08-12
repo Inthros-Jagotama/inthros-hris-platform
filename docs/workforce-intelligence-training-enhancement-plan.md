@@ -756,3 +756,29 @@ Workforce Readiness
 Training Risk
 Training Forecast
 ```
+
+---
+
+# 25. Integrasi dengan Recruitment — Strategic Layer
+
+> Referensi silang ke **`docs/module-recruitment-strategic-layer-plan.md`** (scoping 2026-08-12).
+
+Plan ini berfokus pada **training analytics** di Workforce Intelligence. Item strategis WI yang berkaitan dengan **Recruitment (operasional)** — workforce gap → hiring need → requisition, expected hires → remaining workforce gap, candidate search, dan Quality of Hire — **tidak** dikelola di sini, melainkan di **`docs/module-recruitment-strategic-layer-plan.md`**:
+
+```text
+Strategic Layer Integration Plan (S-1 s.d. S-7)
+├── S-1  Workforce Gap → Requisition          (workforce_gap_id, hiring need)
+├── S-2  Expected Hires → Remaining Gap       (WI mengonsumsi accepted offers)
+├── S-3  Candidate Search & Recruitment Analytics
+└── S-6  Quality of Hire                      (recruitment score + probation + performance + retention)
+```
+
+Hubungan kedua dokumen:
+
+```text
+Workforce Intelligence
+├── Training analytics        → plan ini (workforce-intelligence-training-enhancement-plan.md)
+└── Recruitment analytics     → module-recruitment-strategic-layer-plan.md (S-1/S-2/S-3/S-6)
+```
+
+Recruitment tetap **module operasional** (plan terpisah: `docs/module-recruitment-development-plan.md`) — ia hanya menyediakan data; WI yang menghitung kebutuhan workforce & hiring need.

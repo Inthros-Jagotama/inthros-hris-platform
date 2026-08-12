@@ -1,35 +1,19 @@
 # Recruitment & Onboarding — Development Plan
 
-> **Baseline:** `015_recruitment.sql`
-> **Goal:** mengembangkan Recruitment dari simple ATS menjadi **Integrated Recruitment Module** yang terhubung dengan Workforce Intelligence, Organization/Position, Module Approval, Employee, Employee Movement, Competency, Training, Performance, Career Intelligence, Career Path, dan Succession Planning.
+> 📅 Revisi struktur: 2026-08-12 (sinkron dengan template plan modul lain) · Status: **PROPOSAL — Integrated Recruitment Module (operasional)** (backend ATS dasar ✅ selesai Juli 2026 — README: 31 Jul, dashboard: 26 Jul; FE ❌ placeholder, integrasi operasional ⏳ belum dieksekusi)
+> ✅ **Fakta aktual (audit 2026-08-12):** modul ini **bukan greenfield** — backend ATS dasar sudah diimplementasikan penuh (7 entity, 33 endpoint, 75 test) dan FE masih placeholder "Coming soon". Bagian "target" di dokumen ini (offer, stage history, screening, assessment, scorecard, approval, candidate enhancement, dst.) adalah **rencana enhancement**, bukan status.
+> 🔎 **Sumber:** struktur tabel `015_recruitment.sql` (mysql + postgres) + audit `backend/internal/modules/recruitment/` (model.go, service.go, handler.go, routes.go, module.go) + `frontend/tenant/src/views/modules/Recruitment.vue` + `frontend/tenant/src/router/index.js` + cross-reference `docs/module-notification-plan.md` (§5/§9: "Recruitment belum tersentuh" untuk integrasi approval/notifier) + `docs/module-recruitment-strategic-layer-plan.md` (rumah item strategic layer yang dipisah) + `docs/go-module-architecture-report.md` + `docs/project-completion-dashboard.md`.
+> 📊 **Progres implementasi (per 2026-08-12):** ✅ 1) Backend ATS lengkap — 7 GORM entity (`JobRequisition`, `Candidate`, `JobApplication`, `Interview`, `OnboardingTaskTemplate`, `EmployeeOnboarding`, `OnboardingTaskItem`) + enum status · ✅ 2) 33 endpoint CRUD/pipeline di 7 resource group · ✅ 3) Seeder 10 onboarding task template default · ✅ 4) 75 test (handler 28 + repository 27 + service 20) · ✅ 5) pipeline aplikasi (status + timestamp otomatis + auto `slots_filled` saat ACCEPTED) · ❌ 6) Frontend masih placeholder ("Coming soon") — hanya route/menu/locale/dashboard card · ⏳ 7) Integrasi operasional dua arah dengan modul lain (Module Approval, Notifier, Employee, Employee Movement) — **belum ada**; Employee 🔶 sebagian (onboarding menunjuk `employee_id` tanpa FK) · 🚫 8) **Scoping 2026-08-12:** Recruitment = **module operasional** — strategic layer (Workforce Intelligence, Career Intelligence, Succession, Performance, Training, Quality of Hire) **dipisah dari plan ini** — out of scope, dikelola modul masing-masing (§5.2).
+> ⏳ **Sisa TODO (per review 2026-08-12):** seluruh Gap §7 (G-1 s.d. G-12) — prioritas P0: integrasi approval (G-1), enhancement requisition (G-2), offer management (G-3), Recruitment → Employee/Movement (G-4), pipeline stage history (G-5), halaman FE penuh (G-12).
+> 🔧 **Catatan konsistensi docs:** `project-completion-dashboard.md` masih mencatat plan ini sebagai "📋 Proposal — belum dieksekusi; backend ATS dasar sudah ada, FE masih Coming soon" — setelah revisi ini, baris tersebut sebaiknya di-update mengikuti ringkasan status di header di atas.
 
 ---
 
-# 1. Executive Summary
+# 1. Objective
 
-Struktur existing sudah mempunyai fondasi ATS:
-
-```text
-job_requisitions
-candidates
-job_applications
-interviews
-onboarding_task_templates
-employee_onboardings
-onboarding_task_items
-```
-
-`job_requisitions` saat ini sudah menyimpan `organization_id`, title, department, employment type, salary range, slots, status, requester, approval, dan target start date. `candidates` menyimpan profil dasar kandidat dan sumber kandidat. `job_applications` menghubungkan kandidat dengan requisition dan menyimpan status pipeline dasar. `interviews` sudah mendukung interviewer, jadwal, lokasi/link, score, dan feedback.
-
-Namun target sistem adalah:
+Mengembangkan Recruitment dari **simple ATS** (sudah ada) menjadi **Integrated Recruitment Module (operasional)** yang terhubung dengan Organization/Position, Module Approval, Employee, Employee Movement, Onboarding, dan Competency (untuk candidate matching). **Layer strategis** (Workforce Intelligence, Career Intelligence, Succession, Performance, Training, Quality of Hire) **tidak termasuk scope** modul ini — lihat §5.2.
 
 ```text
-Workforce Intelligence
-        │
-        ▼
-Workforce Gap / Hiring Need
-        │
-        ▼
 Job Requisition
         │
         ▼
@@ -58,115 +42,236 @@ Recruitment Pipeline
           └─────┬─────┘
                 ▼
             Onboarding
-                │
-                ▼
-             Training
-                │
-                ▼
-           Performance
-                │
-                ▼
-       Career Intelligence
+```
+
+Status per bagian:
+
+- **ATS dasar (CRUD requisition/candidate/application/interview/onboarding)** — ✅ sudah diimplementasikan (lihat §3.1).
+- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — ⏳ rencana (lihat Gap Analysis §7).
+
+---
+
+# 2. Existing Database Structure
+
+Sumber: `backend/internal/pkg/migrator/migrations/tenant/mysql/015_recruitment.sql` (+ postgres). Terdapat **7 tabel**, semua PK `CHAR(36)`, timestamp `TIMESTAMP(6)`, tanpa soft delete (`deleted_at`).
+
+## 2.1 Tabel `job_requisitions` (lowongan)
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | CHAR(36) PK | |
+| `organization_id` | CHAR(36) NN | org pemilik lowongan (index `idx_req_org`) |
+| `title` | VARCHAR(255) NN | |
+| `department` | VARCHAR(150) NULL | teks bebas (bukan master) |
+| `employment_type` | VARCHAR(50) NULL | |
+| `location` | VARCHAR(255) NULL | |
+| `min_salary` / `max_salary` | DECIMAL(15,2) | default 0 |
+| `description`, `requirements`, `responsibilities` | TEXT NULL | |
+| `slots_available` | INT NN default 1 | |
+| `slots_filled` | INT NN default 0 | |
+| `status` | VARCHAR(20) NN default `DRAFT` | enum model: `DRAFT, OPEN, IN_PROGRESS, FILLED, CANCELLED` |
+| `requested_by` / `approved_by` | CHAR(36) NULL | legacy (bukan source of truth approval) |
+| `target_start_date` | DATE NULL | |
+| `closed_at` | BIGINT NULL default 0 | |
+
+Index: `idx_req_org (organization_id)`.
+
+## 2.2 Tabel `candidates`
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | CHAR(36) PK | |
+| `first_name` / `last_name` | VARCHAR(100) NN | |
+| `email` | VARCHAR(255) NN | UNIQUE `idx_cand_email` — validasi duplicate email di service |
+| `phone` | VARCHAR(50) NULL | |
+| `address` | TEXT NULL | |
+| `current_company` / `current_title` | VARCHAR(255) NULL | |
+| `resume_url` / `portfolio_url` / `linkedin_url` | TEXT NULL | |
+| `source` | VARCHAR(50) NN default `direct` | teks bebas (bukan master) |
+| `notes` | TEXT NULL | |
+
+Profil dasar (tanpa sub-tabel edukasi/pengalaman/skill/sertifikat/dokumen).
+
+## 2.3 Tabel `job_applications` (pipeline)
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | CHAR(36) PK | |
+| `requisition_id` | CHAR(36) NN | index `idx_app_req` |
+| `candidate_id` | CHAR(36) NN | index `idx_app_cand` |
+| `status` | VARCHAR(50) NN default `NEW` | enum model `CandidateStatus`: `NEW, SCREENED, SHORTLISTED, INTERVIEWED, OFFERED, ACCEPTED, REJECTED, WITHDRAWN` (index `idx_app_status`) |
+| `applied_at` | BIGINT NN default 0 | epoch nanos |
+| `screened_at`, `shortlisted_at`, `offered_at`, `accepted_at`, `rejected_at`, `withdrawn_at` | BIGINT NULL default 0 | timestamp per stage, diisi otomatis oleh service |
+| `rejection_reason`, `notes` | TEXT NULL | |
+
+## 2.4 Tabel `interviews`
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | CHAR(36) PK | |
+| `application_id` | CHAR(36) NN | index `idx_int_app` |
+| `interviewer_id` | CHAR(36) NN | **single interviewer** (multi-interviewer belum didukung) |
+| `stage` | VARCHAR(50) NN | default `FIRST_INTERVIEW` |
+| `scheduled_at` | BIGINT NN default 0 | |
+| `duration_minutes` | INT NN default 60 | |
+| `location` | VARCHAR(255) NULL, `meeting_link` TEXT NULL | |
+| `status` | VARCHAR(20) NN default `SCHEDULED` | `SCHEDULED, COMPLETED, CANCELLED, RESCHEDULED` |
+| `score` | DECIMAL(5,2) NULL | single score |
+| `feedback` | TEXT NULL | |
+| `completed_at` | BIGINT NULL default 0 | |
+
+## 2.5 Tabel `onboarding_task_templates`
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | CHAR(36) PK | |
+| `name` | VARCHAR(255) NN | |
+| `description` | TEXT NULL | |
+| `category` | VARCHAR(50) NULL | |
+| `day_offset` | INT NN default 0 | |
+| `assigned_role` | VARCHAR(50) NULL | |
+| `is_mandatory` | TINYINT(1) NN default 1 | |
+
+## 2.6 Tabel `employee_onboardings`
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | CHAR(36) PK | |
+| `employee_id` | CHAR(36) NN | index `idx_onb_emp` (tanpa FK constraint) |
+| `application_id` | CHAR(36) NN | index `idx_onb_app` |
+| `start_date` | DATE NN | |
+| `status` | VARCHAR(20) NN default `PENDING` | `PENDING → ... → COMPLETED` (service set `completed_at`) |
+| `buddy_id` | CHAR(36) NULL | |
+| `completed_at` | BIGINT NULL default 0 | |
+| `notes` | TEXT NULL | |
+
+## 2.7 Tabel `onboarding_task_items`
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | CHAR(36) PK | |
+| `employee_onboarding_id` | CHAR(36) NN | index `idx_onb_task_item` |
+| `template_id` | CHAR(36) NULL | referensi template (nullable untuk task custom) |
+| `name` | VARCHAR(255) NN | |
+| `description` | TEXT NULL | |
+| `assigned_to` | CHAR(36) NULL | |
+| `due_date` | BIGINT NULL default 0 | |
+| `is_completed` | TINYINT(1) NN default 0 | |
+| `completed_at` | BIGINT NULL default 0 | |
+| `notes` | TEXT NULL | |
+
+Relasi inti:
+
+```text
+job_requisitions ◄── job_applications ──► candidates
+                              │
+                              ▼
+                         interviews
+                              │
+                              ▼
+              ┌───────────────┴──────────────┐
+              ▼                              ▼
+   employee_onboardings ──► onboarding_task_items
+              │                    │
+              ▼                    ▼
+        (employee_id)       (template_id → onboarding_task_templates)
 ```
 
 ---
 
-# 2. Business Principles
+# 3. Status Aktual
 
-## 2.1 Recruitment bukan master Position
+## 3.1 Backend — ✅ SUDAH IMPLEMENTASI (per 31 Jul 2026; audit 2026-08-12)
 
-Karena konsep HRIS:
+Modul `backend/internal/modules/recruitment/` (±2.800 baris kode non-test; total ±4.700 dengan test) sudah lengkap sebagai **ATS dasar**:
 
-```text
-Organization = Position
-```
+- **Model** (`model.go`): 7 GORM entity + enum `RequisitionStatus` (`DRAFT/OPEN/IN_PROGRESS/FILLED/CANCELLED`), `CandidateStatus` (`NEW/SCREENED/SHORTLISTED/INTERVIEWED/OFFERED/ACCEPTED/REJECTED/WITHDRAWN`), `InterviewStatus` (`SCHEDULED/COMPLETED/CANCELLED/RESCHEDULED`); semua PK `CHAR(36)` + `BeforeCreate` UUID.
+- **Repository / Service / Handler**: CRUD lengkap per entity. Fitur service yang perlu dicatat:
+  - `CreateApplication` → status `NEW` + `applied_at`, validasi requisition & candidate ada.
+  - `UpdateApplicationStatus` → set timestamp stage otomatis (`ScreenedAt/ShortlistedAt/OfferedAt/AcceptedAt/RejectedAt/WithdrawnAt`); saat **ACCEPTED** otomatis `slots_filled++` dan requisition jadi `FILLED` bila slot terpenuhi.
+  - `CreateEmployeeOnboarding` → **auto-generate task items** dari seluruh template aktif.
+  - `UpdateInterview` dengan status `COMPLETED` → set `completed_at`; `UpdateEmployeeOnboarding` status `COMPLETED` → set `completed_at`; `UpdateOnboardingTaskItem` `is_completed=true` → set `completed_at`.
+- **Routes** (`routes.go`): **33 endpoint** di 7 resource group (prefix `/api/v1/tenant/recruitment`):
 
-Recruitment tidak membuat master position/organization baru.
+| Resource | Endpoint |
+|---|---|
+| Requisitions | `POST/GET /requisitions`, `GET/PUT/DELETE /requisitions/:id` (5) |
+| Candidates | `POST/GET /candidates`, `GET/PUT/DELETE /candidates/:id` (5) |
+| Applications | `POST/GET /applications`, `GET/DELETE /applications/:id`, `PUT /applications/:id/status` (5) |
+| Interviews | `POST/GET /interviews`, `GET/PUT/DELETE /interviews/:id` (5) |
+| Onboarding Task Templates | `POST/GET /onboarding-task-templates`, `PUT/DELETE /onboarding-task-templates/:id` (4) |
+| Employee Onboardings | `POST/GET /employee-onboardings`, `GET/PUT/DELETE /employee-onboardings/:id` (5) |
+| Onboarding Task Items | `POST /onboarding-task-items`, `GET /employee-onboardings/:id/task-items`, `PUT/DELETE /onboarding-task-items/:id` (4) |
 
-Recruitment menggunakan:
+- **Module** (`module.go`): slug `recruitment`, version `1.0.0`, `DependsOn: organization, employee, setting`; permissions `recruitment.view/create/update/delete/interview/onboard`; menu `/admin/recruitment` (Requisitions, Candidates, Applications, Interviews, Onboarding); `AutoMigrate` 7 model; **seed 10 onboarding template default** (Personal Data Completion, Employment Contract Signing, IT Account Provisioning, BPJS Registration, Bank Account Setup, Orientation & Department Introduction, Policy Review & Acknowledgment, First Week Check-in, Training Plan Setup, Probation Review Preparation).
+- **Wiring** (`cmd/server/main.go:854`): `recruitment.NewModule(dbManager, l)` — **plain mount, tanpa ApprovalEngine dan tanpa Notifier**.
+- **Test**: 75 = `handler_test.go` 28 + `repository_test.go` 27 + `service_test.go` 20. (`README` menulis "66 unit test (27/23/16)" — angka akurat per audit file adalah **75**; selisih karena penghitungan berubah seiring penambahan test.)
+- **RBAC**: `tenantseed/seed_rbac.go` mendaftarkan resource `recruitment` dengan aksi `view, create, update, delete` — **`interview` dan `onboard` ada di module.go tapi tidak di-seed** (perlu sinkronisasi saat enhancement).
 
-```text
-organization_id
-```
+## 3.2 Frontend — ❌ BELUM (placeholder)
 
-atau `position_id` jika pada implementasi Organization/Position sudah dipisahkan.
+- `frontend/tenant/src/views/modules/Recruitment.vue` — hanya placeholder **"Coming soon"** (spinner + judul statis).
+- Yang **sudah ada**: route `/recruitment` (router/index.js:349-354, meta title/desc bilingual), item sidebar grup Talent (`Sidebar.vue:365`, module-gated `recruitment` + permission `recruitment.view`), locale keys `recruitment.*` EN/ID, kartu quick-access di Dashboard (`Dashboard.vue:200`).
+- Tidak ada halaman: requisition list/form, candidate profile, aplikasi pipeline, interview, onboarding, analytics.
 
-Master tetap berada pada module Organization/Job Management.
+## 3.3 Integrasi lintas modul — ⏳ BELUM
 
----
+| Integrasi | Status | Catatan |
+|---|---|---|
+| Module Approval (requisition/offer) | ⏳ Belum | notification plan §5/§9: "Recruitment belum tersentuh — belum ada integrasi approval sama sekali"; tidak ada `approval_instance_id` |
+| Notification (`Notifier`) | ⏳ Belum | tidak ada interface `Notifier`/`SetNotifier` di service |
+| Workforce Intelligence | 🚫 Out of scope | WI mengonsumsi candidates via `GET /workforce-intelligence/candidate-search` & `analytics/recruitment` (konsumsi sepihak di sisi WI); recruitment tidak mengirim data kembali (§5.2) |
+| Employee | 🔶 Sebagian | `employee_onboardings.employee_id` (tanpa FK); tidak ada pembuatan employee dari offer/accepted application |
+| Employee Movement | ⏳ Belum | tidak ada alur internal candidate → movement |
+| Competency | ⏳ Belum | referensi untuk candidate matching (G-9) |
+| Career Intelligence / Succession / Performance / Training | 🚫 Out of scope | strategic layer — dikelola plan modul masing-masing (§5.2) |
 
-## 2.2 Recruitment bukan Approval Engine
+## 3.4 Selisih plan lama vs aktual (penting)
 
-Approval seluruh proses mengikuti **Module Approval**.
-
-Minimal:
-
-```text
-Job Requisition Approval
-Offer Approval
-```
-
-Jangan membuat approval engine baru di Recruitment.
-
-Field legacy seperti:
-
-```text
-approved_by
-```
-
-boleh dipertahankan sementara untuk backward compatibility, tetapi bukan lagi source of truth approval.
-
----
-
-## 2.3 Recruitment bukan Employee Movement
-
-Untuk kandidat internal:
-
-```text
-Recruitment
-    ↓
-Selection
-    ↓
-Accepted
-    ↓
-Employee Movement
-```
-
-Recruitment tidak membuat employee baru untuk internal candidate.
+| Bagian plan lama | Kondisi aktual |
+|---|---|
+| §4.3 "job_applications perlu ditingkatkan menjadi pipeline" | **Sudah pipeline** — `status` + timestamp per stage + auto slot. Gap yang tersisa: **stage history** (audit trail), bukan status itu sendiri |
+| §4.4 "interviews belum mendukung multi-interviewer scorecard" | Benar — single interviewer + single `score`/`feedback`; gap: interviewers + scorecards |
+| §23-§24 interview enhancement | Belum ada `interviewers`/`interview_scorecards`/`interview_scorecard_items` |
+| §26-§27 offer management | **Belum ada entity `job_offers` sama sekali** |
+| §20 recruitment_stages + stage history | **Belum ada** kedua tabel |
+| §13-§19 candidate enhancement | Belum ada sub-tabel education/work experience/skills/certification/document; `source` masih teks bebas |
+| §7 requisition enhancement | Belum ada `requisition_number`, `reason_type`, `priority`, `position_id`, `approval_status` (plan lama juga menyebut `workforce_gap_id`/`workforce_plan_id` — kini **out of scope** WI, §5.2) |
+| §31 onboarding template enhancement | Belum ada scope `organization_id/position_id/employment_type` pada template |
+| §46 seeder | Seed onboarding template ✅; seeder stage/source/assessment-type belum ada |
 
 ---
 
-## 2.4 Recruitment bukan Training
+# 4. Business Principles (target — dipertahankan dari plan asli)
 
-Recruitment hanya menghasilkan kebutuhan onboarding/development.
+## 4.1 Recruitment bukan master Position
 
-```text
-Recruitment
-    ↓
-Employee
-    ↓
-Onboarding
-    ↓
-Training
-```
+Karena konsep HRIS `Organization = Position`, Recruitment tidak membuat master position/organization baru — menggunakan `organization_id` (sudah ada) atau `position_id` (bila Organization/Position dipisahkan). Master tetap di module Organization/Job Management.
 
-Training tetap menjadi source of truth untuk training.
+## 4.2 Recruitment bukan Approval Engine
 
----
+Approval seluruh proses mengikuti **Module Approval** — minimal `Job Requisition Approval` dan `Offer Approval`. Field legacy `approved_by` boleh dipertahankan untuk backward compatibility, tetapi bukan source of truth approval.
 
-## 2.5 Career Intelligence bersifat strategis
+## 4.3 Recruitment bukan Employee Movement
 
-Career Intelligence sudah dirancang sebagai strategic layer untuk career path, gap analysis, talent map, dan succession; Employee Movement tetap transactional.
+Untuk kandidat internal (`Recruitment → Selection → Accepted → Employee Movement`), Recruitment tidak membuat employee baru.
 
-Recruitment menggunakan output Career Intelligence untuk internal candidate recommendation, bukan mengeksekusi career movement.
+## 4.4 Recruitment bukan Training
+
+Recruitment hanya menghasilkan kebutuhan onboarding/development; Training tetap source of truth training.
+
+## 4.5 Recruitment = module operasional (strategic layer di luar scope)
+
+Recruitment adalah **module operasional**: mencari & memilih kandidat, memproses aplikasi → interview → offer → onboarding. Layer strategis — **Workforce Intelligence** (kebutuhan workforce / hiring need, forecasting) dan **Career Intelligence** (career path, gap analysis, talent map, succession, eligibility internal) — **di luar scope** modul ini dan dikelola modul masing-masing (§5.2). Recruitment hanya **mengonsumsi output**-nya secara referensial, tidak mengeksekusi.
 
 ---
 
-# 3. Target Module Boundary
+# 5. Target Module Boundary
+
+## 5.1 Cakupan module (operasional)
 
 ```text
 RECRUITMENT
-├── Workforce Hiring Need
 ├── Job Requisition
 ├── Recruitment Approval
 ├── Candidate
@@ -187,143 +292,42 @@ ONBOARDING
 
 Jika Onboarding nantinya menjadi module terpisah, tabel onboarding dapat dipindahkan secara bertahap tanpa mengubah flow Recruitment.
 
----
+## 5.2 Out of Scope — Strategic Layer (dikelola plan `module-recruitment-strategic-layer-plan.md`)
 
-# 4. Existing Database Baseline
+> Keputusan scoping (2026-08-12): Recruitment = **module operasional**. Item berikut **dipisah dari plan ini** karena berada di layer strategis (Workforce Intelligence / Career Intelligence) atau di luar tanggung jawab Recruitment — seluruh detail enhancement, gap, dan API-nya dikelola di **[`docs/module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md)** (S-1 s.d. S-7):
 
-## 4.1 `job_requisitions`
+| Item strategis | Pemilik | Plan pengelola |
+|---|---|---|
+| Workforce forecasting, workforce gap / hiring need, "Required − Current − Expected Hires = Remaining Gap" | Workforce Intelligence | [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) S-1/S-2 + `docs/workforce-intelligence-training-enhancement-plan.md` |
+| Career path, career interest, talent map (9-box), gap analysis karier, succession planning, eligibility internal candidate | Career Intelligence | [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) S-4/S-5 + `docs/module-career-intelligence-plan.md` |
+| Quality of Hire (probation + performance + retention) | Workforce / Career Intelligence | [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) S-6 |
+| Pelaksanaan training & development | Module Training | [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) S-7 |
 
-Existing:
-
-```text
-id
-organization_id
-title
-department
-employment_type
-location
-min_salary
-max_salary
-description
-requirements
-responsibilities
-slots_available
-slots_filled
-status
-requested_by
-approved_by
-target_start_date
-closed_at
-created_at
-updated_at
-```
-
-Struktur tersebut sudah cukup sebagai dasar, tetapi perlu diubah agar terintegrasi dengan master Organization/Position dan Workforce Intelligence.
+Recruitment tetap menyediakan **data operasional** yang dibutuhkan layer strategis (requisition, pipeline, offer, hire, onboarding), tetapi **tidak** memiliki logika strategis apa pun. Seluruh item di tabel atas didokumentasikan secara lengkap di **[`docs/module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md)**.
 
 ---
 
-## 4.2 `candidates`
-
-Existing:
-
-```text
-id
-first_name
-last_name
-email
-phone
-address
-current_company
-current_title
-resume_url
-portfolio_url
-linkedin_url
-source
-notes
-created_at
-updated_at
-```
-
-Saat ini kandidat masih berupa profil dasar.
-
----
-
-## 4.3 `job_applications`
-
-Existing:
-
-```text
-id
-requisition_id
-candidate_id
-status
-applied_at
-screened_at
-shortlisted_at
-offered_at
-accepted_at
-rejected_at
-withdrawn_at
-rejection_reason
-notes
-created_at
-updated_at
-```
-
-Perlu ditingkatkan menjadi pipeline yang memiliki stage history dan assessment/interview result.
-
----
-
-## 4.4 `interviews`
-
-Existing:
-
-```text
-id
-application_id
-interviewer_id
-stage
-scheduled_at
-duration_minutes
-location
-meeting_link
-status
-score
-feedback
-completed_at
-created_at
-updated_at
-```
-
-Struktur sudah mendukung interview dasar, tetapi belum mendukung multi-interviewer scorecard secara terstruktur.
-
----
-
-# 5. Target Database Architecture
+# 6. Target Database Architecture
 
 ```text
 job_requisitions
       │
       ├── job_requisition_requirements
       ├── job_requisition_competencies
-      └── recruitment approval
+      └── recruitment approval (approval_instance_id)
       │
       ▼
 job_applications
       │
       ├── application_stage_histories
-      ├── screening
-      ├── assessments
+      ├── application_screenings
+      ├── recruitment_assessments (+ participants/results)
       ├── interviews
       │      ├── interviewers
-      │      └── scorecards
+      │      └── interview_scorecards (+ items)
       │
       └── job_offers
-```
 
-Candidate:
-
-```text
 candidates
    ├── candidate_educations
    ├── candidate_work_experiences
@@ -335,1561 +339,355 @@ candidates
 
 ---
 
-# 6. Phase 0 — Preparation
+# 7. Gap Analysis & Enhancement Plan
 
-## Task
+> ⚠️ Prioritas diurutkan berdasarkan dampak bisnis. Seluruh gap di bawah adalah **rencana** (belum dieksekusi per 2026-08-12).
 
-- Review migration existing.
-- Identifikasi model/entity existing.
-- Identifikasi repository/service/controller existing.
-- Identifikasi route dan permission existing.
-- Identifikasi pola UUID/CHAR(36).
-- Identifikasi tenant DB pattern.
-- Identifikasi module approval API.
-- Identifikasi Organization/Position API.
-- Identifikasi Employee API.
-- Identifikasi Competency API.
-- Identifikasi Workforce Intelligence API.
-- Identifikasi Career Intelligence API.
-- Identifikasi Employee Movement API.
-- Identifikasi Training API.
-- Identifikasi Performance API.
+## G-1 🔴 MODULE APPROVAL INTEGRATION (requisition + offer)
 
-## Rule
+**Status: ⏳ Belum.** Tidak ada `approval_instance_id` dan tidak ada interface `ApprovalEngine` (pola leave/attendance/employeemovement belum diterapkan).
 
-Semua PK baru menggunakan:
+**Rencana:**
+- Migration: tambah `approval_instance_id` (CHAR(36) NULL) ke `job_requisitions` dan `job_offers` (migration ~091 dst., mysql + postgres).
+- Service: interface `ApprovalEngine` narrow (`CreateApprovalInstance`, `GetApprovalInstanceStatus`, `GetActiveFlowIDForModule`) + `SetApprovalEngine` + `HandleApprovalStatusChange` (push-callback) — pola sama `employeemovement` (log §3.5-§3.8 movement plan).
+- Wiring di `cmd/server/main.go`: `recruitmentSvc.SetApprovalEngine(sharedApprovalEngine)` + `approvalSvc.RegisterStatusHandler("recruitment", ...)`.
+- Workflow requisition:
 
 ```text
-UUID / CHAR(36)
+DRAFT → SUBMITTED → (Module Approval) → APPROVED/REJECTED → OPEN
 ```
 
-mengikuti pola database existing.
+- Workflow offer:
 
----
+```text
+OFFER_DRAFT → SUBMITTED → (Module Approval) → APPROVED → SENT
+```
 
-# 7. Phase 1 — Refactor Job Requisition
+- **Auto-resolve flow** via `GetActiveFlowIDForModule("recruitment")` bila client tidak mengirim `flow_id` (pola G-3 movement).
+- Hapus/pertahankan `approved_by` hanya sebagai legacy.
 
-## 7.1 Objective
+**Ref:** plan asli §2.2, §10, §27.
 
-Mengubah requisition dari lowongan sederhana menjadi hiring request yang terintegrasi.
+## G-2 🔴 JOB REQUISITION ENHANCEMENT (master position + operational fields)
 
-## Enhancement fields
+**Status: ⏳ Belum.** `organization_id` sudah ada; sisanya belum.
 
-Tambahkan:
+**Rencana (enhancement fields):**
 
 ```text
 requisition_number
-workforce_gap_id       nullable
-workforce_plan_id      nullable
-reason_type
-priority
-position_id            nullable jika position terpisah
+reason_type            NEW_POSITION | REPLACEMENT | BACKFILL | EXPANSION | INTERNAL_MOVEMENT
+priority               LOW | MEDIUM | HIGH | URGENT
+position_id            nullable (bila position terpisah)
 approval_status
 opened_at
-closed_at
 ```
 
-### `reason_type`
+- Jangan menyimpan `department`/`title` sebagai master bebas bila sudah tersedia di Organization/Position; Recruitment membaca `Position Title / Organization / Employment Type / Hierarchy / Competency Requirement` dari master.
+- Business rule: requisition tidak dapat dibuka sebelum approval selesai; `slots_filled <= slots_available`.
+- `workforce_gap_id` / `workforce_plan_id` **tidak termasuk** — workforce gap / hiring need adalah output Workforce Intelligence (out of scope, §5.2).
+
+**Ref:** plan asli §7, §8, §50.
+
+## G-3 🔴 OFFER MANAGEMENT (entity baru)
+
+**Status: ⏳ Belum — entity `job_offers` tidak ada sama sekali.**
+
+**Rencana (fields minimal):**
 
 ```text
-NEW_POSITION
-REPLACEMENT
-BACKFILL
-WORKFORCE_GAP
-EXPANSION
-INTERNAL_MOVEMENT
+id, application_id, offer_number, employment_type, salary, allowances, benefits,
+start_date, expiry_date, status, sent_at, accepted_at, rejected_at, approval_instance_id, timestamps
 ```
 
-### `priority`
+Status: `DRAFT, PENDING_APPROVAL, APPROVED, SENT, ACCEPTED, REJECTED, EXPIRED, WITHDRAWN`.
 
-```text
-LOW
-MEDIUM
-HIGH
-URGENT
+Flow: `Recruiter → Offer Draft → Module Approval → Approved → Offer Sent → Candidate → Accepted`.
+
+Business rules: hanya candidate eligible yang menerima offer; offer expired tidak dapat diterima; offer accepted menghasilkan Employee (external) atau Employee Movement (internal).
+
+**Ref:** plan asli §26-§27.
+
+## G-4 🔴 RECRUITMENT → EMPLOYEE / EMPLOYEE MOVEMENT
+
+**Status: ⏳ Belum.**
+
+**Rencana:**
+- **External:** offer accepted → create employee; simpan reference `employee.recruited_from_application_id` (atau equivalent sesuai Employee module) agar `Employee → Application → Requisition → Position` dapat ditelusuri.
+- **Internal (`candidate_type = INTERNAL`, `employee_id`):** Recruitment tidak membuat employee baru — hasil seleksi diteruskan ke **Employee Movement** (`Recruitment → Selection → Accepted → Employee Movement → New Organization/Position`).
+- Onboarding existing sudah mendukung `employee_onboardings.application_id` + `employee_id` (fondasi Recruitment → Onboarding ada).
+
+**Ref:** plan asli §19, §28-§30.
+
+## G-5 🔴 PIPELINE STAGE HISTORY (audit trail & time metrics)
+
+**Status: ⏳ Sebagian.** `job_applications.status` + timestamp per stage sudah ada; **history/audit trail belum ada**.
+
+**Rencana:**
+- `recruitment_stages` (master stage, seeded): `APPLIED, SCREENING, SHORTLISTED, ASSESSMENT, INTERVIEW, FINAL_REVIEW, OFFER, HIRED, REJECTED, WITHDRAWN`.
+- `job_application_stage_histories`: `id, application_id, from_stage_id nullable, to_stage_id, changed_by, changed_at, notes`.
+- Tujuan: audit trail, `Time to Stage`, `Time to Hire`, pipeline analytics.
+- Setiap perubahan stage wajib menulis history (bukan sekadar update `status`).
+- Validasi transisi stage (jangan asal set status; gunakan transition service + history).
+
+**Ref:** plan asli §20, §50, §57.
+
+## G-6 🟡 CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate)
+
+**Status: ⏳ Belum.** Profil dasar (email/phone/URL/source teks) sudah ada; sub-tabel & tipe kandidat belum.
+
+**Rencana:**
+- Kolom tambahan `candidates`: `candidate_number`, `status`, `candidate_type` (`EXTERNAL/INTERNAL`), `source_id` (master source), `consent_status`.
+- Tabel baru: `candidate_educations`, `candidate_work_experiences`, `candidate_skills` (pakai `skill_id` bila Skill Master ada, jangan duplicate master), `candidate_certifications` (`certification_id` nullable), `candidate_documents` (jenis `RESUME/COVER_LETTER/CERTIFICATE/PORTFOLIO/IDENTITY/OTHER` — simpan referensi file, bukan binary), `candidate_consents`.
+- Internal candidate: `candidate_type = INTERNAL` + `employee_id`; tidak membuat employee baru.
+
+**Ref:** plan asli §13-§19.
+
+## G-7 🟡 SCREENING & ASSESSMENT
+
+**Status: ⏳ Belum — kedua tabel belum ada.**
+
+**Rencana:**
+- `application_screenings`: `id, application_id, screened_by, screened_at, score, result (PASS/FAIL/HOLD), notes`.
+- Assessment: `recruitment_assessments`, `assessment_participants`, `assessment_results` — jenis `TECHNICAL, PSYCHOLOGICAL, COGNITIVE, PERSONALITY, CASE_STUDY, CODING, LANGUAGE, OTHER`; hasil `score, result, recommendation`.
+
+**Ref:** plan asli §21-§22.
+
+## G-8 🟡 INTERVIEW MULTI-INTERVIEWER & SCORECARD
+
+**Status: ⏳ Belum.** Interview tunggal (satu `interviewer_id`, satu `score`, `feedback`) sudah ada.
+
+**Rencana:**
+- `interviewers` (satu interview → banyak interviewer: HR + User + Manager).
+- `interview_scorecards` + `interview_scorecard_items` — contoh bobot: `Technical Skill 30%, Problem Solving 20%, Communication 20%, Leadership 15%, Culture Fit 15%`; skala `1-5` atau `0-100`, normalisasi di service layer.
+- Endpoint `POST /interviews/:id/complete` untuk menutup interview + aggregate score.
+
+**Ref:** plan asli §23-§24.
+
+## G-9 🟡 CANDIDATE MATCHING & REQUISITION COMPETENCY
+
+**Status: ⏳ Belum.**
+
+**Rencana:**
+- `job_requisition_requirements`: `id, requisition_id, requirement_type, name, description, minimum_value, maximum_value, is_required, sort_order`.
+- `job_requisition_competencies`: `id, requisition_id, competency_id, required_level, is_required, weight` — basis candidate matching (contoh: `PHP L4 Required`, `Laravel L4 Required`, `PostgreSQL L3 Required`, `Leadership L2 Optional`).
+- Candidate Matching memakai `Job Requirement + Competency + Education + Experience + Skill + Certification + Assessment + Interview` → `candidate_match_score` (contoh Budi 92% / Andi 87% / Dedi 76%). Match score **bukan keputusan otomatis** — recruiter dapat override dengan alasan tercatat.
+- Bandingkan `Candidate Competency vs Position Competency` dari Job Management/Position.
+
+**Ref:** plan asli §11-§12, §25, §33.
+
+## G-10 🟢 ONBOARDING ENHANCEMENT (template scoped)
+
+**Status: ⏳ Sebagian.** Template + auto task items sudah ada; scope per org/position/employment_type belum.
+
+**Rencana:**
+- Tambah `organization_id nullable`, `position_id nullable`, `employment_type nullable` pada `onboarding_task_templates` agar template dapat dibedakan (mis. Software Engineer → Laptop, Repository Access, Security Training, Technical Orientation, Team Introduction).
+- Alur tetap: `job_application → employee → employee_onboarding`; `CreateEmployeeOnboarding` memilih template yang cocok (fallback template global).
+
+**Ref:** plan asli §30-§31.
+
+## G-11 🟡 RECRUITMENT ANALYTICS
+
+**Status: ⏳ Belum.** Tidak ada endpoint analytics recruitment sendiri.
+
+**Rencana:**
+- Minimal: `Open Requisitions, Applications, Candidates, Shortlisted, Interviews, Offers, Hires, Rejected, Withdrawn`.
+- Advanced: `Time to Hire, Time to Fill, Time to Stage, Offer Acceptance Rate, Application Conversion Rate, Source Conversion, Candidate Match Score`.
+- Data operasional recruitment tetap tersedia untuk dibaca Workforce Intelligence (konsumsi sepihak di sisi WI — out of scope plan ini, §5.2).
+
+**Ref:** plan asli §37.
+
+## G-12 🔴 FRONTEND RECRUITMENT (halaman penuh)
+
+**Status: ❌ Placeholder ("Coming soon").**
+
+**Rencana (mengikuti pola FE modul lain — bilingual + dark mode + `ConfirmDeleteDialog` + skeleton):**
+- **Hub Recruitment** (`Recruitment.vue` ditulis ulang — pola `AttendanceAdmin.vue`/`Training.vue`): kartu sub-menu Requisitions / Candidates / Applications / Interviews / Offers / Onboarding + summary cards (Open Requisitions, Candidates, Applications, Interviews, Offers, Hires, Time to Hire).
+- **Requisitions**: list + create/edit dialog + approval status badge + close action.
+- **Candidates**: list + profile (personal, contact, resume, education, experience, skills, certifications, applications); internal candidate → current employee/org/position (akses mengikuti permission).
+- **Applications**: pipeline board (Applied → Screening → Assessment → Interview → Final Review → Offer → Hired) — drag/drop hanya memanggil transition service backend; detail + stage history + screening/assessment/interview/offer list.
+- **Interviews**: kalender + schedule + interviewer + scorecard + feedback + result.
+- **Offers**: draft → approval → preview → send → acceptance.
+- **Onboarding**: templates + employee onboardings + task items checklist.
+- **Notifications**: deep-link tipe notifikasi recruitment (setelah G-1/G-3 ada).
+
+**Ref:** plan asli §43-§45.
+
+---
+
+# 8. API Plan
+
+## 8.1 Existing (33 endpoint — sudah ada)
+
+```http
+## Requisitions
+GET    /api/v1/tenant/recruitment/requisitions
+POST   /api/v1/tenant/recruitment/requisitions
+GET    /api/v1/tenant/recruitment/requisitions/{id}
+PUT    /api/v1/tenant/recruitment/requisitions/{id}
+DELETE /api/v1/tenant/recruitment/requisitions/{id}
+
+## Candidates
+GET    /api/v1/tenant/recruitment/candidates
+POST   /api/v1/tenant/recruitment/candidates
+GET    /api/v1/tenant/recruitment/candidates/{id}
+PUT    /api/v1/tenant/recruitment/candidates/{id}
+DELETE /api/v1/tenant/recruitment/candidates/{id}
+
+## Applications
+GET    /api/v1/tenant/recruitment/applications
+POST   /api/v1/tenant/recruitment/applications
+GET    /api/v1/tenant/recruitment/applications/{id}
+PUT    /api/v1/tenant/recruitment/applications/{id}/status
+DELETE /api/v1/tenant/recruitment/applications/{id}
+
+## Interviews
+GET    /api/v1/tenant/recruitment/interviews
+POST   /api/v1/tenant/recruitment/interviews
+GET    /api/v1/tenant/recruitment/interviews/{id}
+PUT    /api/v1/tenant/recruitment/interviews/{id}
+DELETE /api/v1/tenant/recruitment/interviews/{id}
+
+## Onboarding Task Templates
+GET    /api/v1/tenant/recruitment/onboarding-task-templates
+POST   /api/v1/tenant/recruitment/onboarding-task-templates
+PUT    /api/v1/tenant/recruitment/onboarding-task-templates/{id}
+DELETE /api/v1/tenant/recruitment/onboarding-task-templates/{id}
+
+## Employee Onboardings
+GET    /api/v1/tenant/recruitment/employee-onboardings
+POST   /api/v1/tenant/recruitment/employee-onboardings
+GET    /api/v1/tenant/recruitment/employee-onboardings/{id}
+PUT    /api/v1/tenant/recruitment/employee-onboardings/{id}
+DELETE /api/v1/tenant/recruitment/employee-onboardings/{id}
+
+## Onboarding Task Items
+GET    /api/v1/tenant/recruitment/employee-onboardings/{id}/task-items
+POST   /api/v1/tenant/recruitment/onboarding-task-items
+PUT    /api/v1/tenant/recruitment/onboarding-task-items/{id}
+DELETE /api/v1/tenant/recruitment/onboarding-task-items/{id}
+```
+
+## 8.2 Target tambahan (rencana — per Gap §7)
+
+```http
+POST   /recruitment/requisitions/{id}/submit        ← G-1 (kirim ke Module Approval)
+POST   /recruitment/requisitions/{id}/close         ← G-2
+GET    /recruitment/requisitions/{id}/requirements  ← G-9
+GET    /recruitment/requisitions/{id}/competencies  ← G-9
+POST   /recruitment/applications/{id}/stage         ← G-5 (transition + history)
+POST   /recruitment/applications/{id}/screen        ← G-7
+GET    /recruitment/applications/{id}/history       ← G-5
+GET    /recruitment/candidates/{id}/profile         ← G-6 (educations/experiences/skills/certs/documents)
+POST   /recruitment/applications/{id}/assessments   ← G-7
+GET    /recruitment/assessments                     ← G-7
+POST   /recruitment/interviews/{id}/complete        ← G-8
+GET    /recruitment/interviews/{id}/scorecards      ← G-8
+GET    /recruitment/offers                          ← G-3
+POST   /recruitment/offers                          ← G-3
+POST   /recruitment/offers/{id}/submit|send|accept|reject  ← G-1/G-3
+GET    /recruitment/analytics/*                     ← G-11
 ```
 
 ---
 
-# 8. Organization / Position Integration
+# 9. Permissions & Authorization (target)
 
-## Rule
+## 9.1 Permissions aktual
 
-Jangan menyimpan:
+Module `module.go` mendaftarkan 6 permission: `recruitment.view/create/update/delete/interview/onboard`. Tenant RBAC seed (`seed_rbac.go`) hanya menyediakan 4: `recruitment.view/create/update/delete` — **perlu sinkronisasi** (`interview`/`onboard` ditambahkan saat enhancement dieksekusi).
 
-```text
-department = "IT"
-title = "Software Engineer"
-```
-
-sebagai master bebas jika data tersebut sudah tersedia pada Organization/Position.
-
-Gunakan:
-
-```text
-organization_id
-position_id
-```
-
-sesuai struktur master existing.
-
-Recruitment membaca:
-
-```text
-Position Title
-Organization
-Employment Type
-Hierarchy
-Competency Requirement
-Career Path
-```
-
-dari master masing-masing.
-
----
-
-# 9. Phase 2 — Workforce Intelligence Integration
-
-## Flow
-
-```text
-Workforce Intelligence
-        ↓
-Required Workforce
-        ↓
-Current Workforce
-        ↓
-Workforce Gap
-        ↓
-Hiring Recommendation
-        ↓
-Job Requisition
-```
-
-Contoh:
-
-```text
-Required: 6
-Current: 4
-Gap: 2
-```
-
-Recruitment:
-
-```text
-slots_available = 2
-reason_type = WORKFORCE_GAP
-```
-
-## Data reference
-
-```text
-workforce_gap_id
-workforce_plan_id
-```
-
-nullable agar requisition manual tetap dapat dibuat.
-
----
-
-# 10. Phase 3 — Module Approval Integration
-
-## Job Requisition
-
-```text
-DRAFT
-  ↓
-SUBMITTED
-  ↓
-APPROVAL
-  ↓
-APPROVED / REJECTED
-  ↓
-OPEN
-```
-
-Approval diproses oleh Module Approval.
-
-## Offer
-
-```text
-OFFER_DRAFT
-  ↓
-SUBMITTED
-  ↓
-APPROVAL
-  ↓
-APPROVED
-  ↓
-SENT
-```
-
-Recruitment hanya membaca status approval dan meneruskan workflow.
-
----
-
-# 11. Phase 4 — Job Requisition Requirements
-
-Tambahkan:
-
-```text
-job_requisition_requirements
-```
-
-Contoh:
-
-```text
-education
-experience
-age
-language
-availability
-other
-```
-
-Fields:
-
-```text
-id
-requisition_id
-requirement_type
-name
-description
-minimum_value
-maximum_value
-is_required
-sort_order
-created_at
-updated_at
-```
-
-Semua ID UUID.
-
----
-
-# 12. Phase 5 — Job Requisition Competency
-
-Tambahkan:
-
-```text
-job_requisition_competencies
-```
-
-Fields:
-
-```text
-id
-requisition_id
-competency_id
-required_level
-is_required
-weight
-created_at
-updated_at
-```
-
-Contoh:
-
-```text
-PHP           Level 4   Required
-Laravel       Level 4   Required
-PostgreSQL    Level 3   Required
-Leadership    Level 2   Optional
-```
-
-Ini menjadi basis Candidate Matching.
-
----
-
-# 13. Phase 6 — Candidate Enhancement
-
-Existing candidate dipertahankan.
-
-Tambahkan:
-
-```text
-candidate_number
-status
-candidate_type
-source_id
-consent_status
-```
-
-### Candidate Type
-
-```text
-EXTERNAL
-INTERNAL
-```
-
-### Source Type
-
-```text
-DIRECT
-CAREER_SITE
-REFERRAL
-LINKEDIN
-AGENCY
-INTERNAL_MOBILITY
-CAREER_POOL
-OTHER
-```
-
----
-
-# 14. Candidate Education
-
-Buat:
-
-```text
-candidate_educations
-```
-
-Fields:
-
-```text
-id
-candidate_id
-institution
-education_level
-field_of_study
-start_date
-end_date
-grade
-description
-created_at
-updated_at
-```
-
----
-
-# 15. Candidate Work Experience
-
-Buat:
-
-```text
-candidate_work_experiences
-```
-
-Fields:
-
-```text
-id
-candidate_id
-company
-position
-start_date
-end_date
-is_current
-description
-created_at
-updated_at
-```
-
----
-
-# 16. Candidate Skills
-
-Buat:
-
-```text
-candidate_skills
-```
-
-Fields:
-
-```text
-id
-candidate_id
-skill_name
-skill_level
-years_experience
-created_at
-updated_at
-```
-
-Jika Skill Master sudah tersedia, gunakan:
-
-```text
-skill_id
-```
-
-jangan membuat master duplicate.
-
----
-
-# 17. Candidate Certification
-
-Buat:
-
-```text
-candidate_certifications
-```
-
-Fields:
-
-```text
-id
-candidate_id
-certification_id nullable
-name
-issuer
-certificate_number
-issued_date
-expired_date
-document_id nullable
-created_at
-updated_at
-```
-
----
-
-# 18. Candidate Documents
-
-Buat:
-
-```text
-candidate_documents
-```
-
-Jenis:
-
-```text
-RESUME
-COVER_LETTER
-CERTIFICATE
-PORTFOLIO
-IDENTITY
-OTHER
-```
-
-Jangan menyimpan file binary langsung pada database.
-
-Gunakan file storage/reference mengikuti pola existing application.
-
----
-
-# 19. Candidate Internal
-
-Internal candidate harus mendukung:
-
-```text
-candidate_type = INTERNAL
-employee_id = existing employee
-```
-
-Flow:
-
-```text
-Employee
-   ↓
-Career Intelligence
-   ↓
-Eligible Candidate
-   ↓
-Recruitment Application
-```
-
-Tidak membuat employee baru.
-
----
-
-# 20. Phase 7 — Recruitment Pipeline
-
-Existing `job_applications.status` diubah menjadi current stage.
-
-Buat:
-
-```text
-recruitment_stages
-```
-
-Default:
-
-```text
-APPLIED
-SCREENING
-SHORTLISTED
-ASSESSMENT
-INTERVIEW
-FINAL_REVIEW
-OFFER
-HIRED
-REJECTED
-WITHDRAWN
-```
-
-Buat:
-
-```text
-job_application_stage_histories
-```
-
-Fields:
-
-```text
-id
-application_id
-from_stage_id nullable
-to_stage_id
-changed_by
-changed_at
-notes
-```
-
-Tujuan:
-
-```text
-Audit Trail
-Time to Stage
-Time to Hire
-Pipeline Analytics
-```
-
----
-
-# 21. Phase 8 — Screening
-
-Buat:
-
-```text
-application_screenings
-```
-
-Fields:
-
-```text
-id
-application_id
-screened_by
-screened_at
-score
-result
-notes
-```
-
-Result:
-
-```text
-PASS
-FAIL
-HOLD
-```
-
----
-
-# 22. Phase 9 — Assessment
-
-Buat:
-
-```text
-recruitment_assessments
-assessment_participants
-assessment_results
-```
-
-Jenis:
-
-```text
-TECHNICAL
-PSYCHOLOGICAL
-COGNITIVE
-PERSONALITY
-CASE_STUDY
-CODING
-LANGUAGE
-OTHER
-```
-
-Assessment dapat menghasilkan:
-
-```text
-score
-result
-recommendation
-```
-
----
-
-# 23. Phase 10 — Interview Enhancement
-
-Existing interview dipertahankan.
-
-Tambahkan konsep:
-
-```text
-interviewers
-interview_scorecards
-interview_scorecard_items
-```
-
-Satu interview dapat memiliki banyak interviewer.
-
-```text
-Interview
- ├── HR
- ├── User
- └── Manager
-```
-
-Setiap interviewer memiliki scorecard sendiri.
-
----
-
-# 24. Interview Scorecard
-
-Contoh:
-
-```text
-Technical Skill       30%
-Problem Solving       20%
-Communication         20%
-Leadership            15%
-Culture Fit           15%
-```
-
-Score:
-
-```text
-1 - 5
-```
-
-atau:
-
-```text
-0 - 100
-```
-
-Normalisasi dilakukan di service layer.
-
----
-
-# 25. Phase 11 — Candidate Matching
-
-Candidate Matching menggunakan:
-
-```text
-Job Requirement
-+
-Competency
-+
-Education
-+
-Experience
-+
-Skill
-+
-Certification
-+
-Assessment
-+
-Interview
-```
-
-Output:
-
-```text
-candidate_match_score
-```
-
-Contoh:
-
-```text
-Budi       92%
-Andi       87%
-Dedi       76%
-```
-
-Jangan menggunakan match score sebagai keputusan otomatis.
-
-Recruiter tetap dapat override dengan alasan yang tercatat.
-
----
-
-# 26. Phase 12 — Offer Management
-
-Buat:
-
-```text
-job_offers
-```
-
-Fields minimal:
-
-```text
-id
-application_id
-offer_number
-employment_type
-salary
-allowances
-benefits
-start_date
-expiry_date
-status
-sent_at
-accepted_at
-rejected_at
-created_at
-updated_at
-```
-
-Status:
-
-```text
-DRAFT
-PENDING_APPROVAL
-APPROVED
-SENT
-ACCEPTED
-REJECTED
-EXPIRED
-WITHDRAWN
-```
-
----
-
-# 27. Offer Approval
-
-Flow:
-
-```text
-Recruiter
-   ↓
-Offer Draft
-   ↓
-Module Approval
-   ↓
-Approved
-   ↓
-Offer Sent
-   ↓
-Candidate
-   ↓
-Accepted
-```
-
----
-
-# 28. Phase 13 — Recruitment → Employee
-
-External candidate:
-
-```text
-Candidate
-   ↓
-Application
-   ↓
-Offer Accepted
-   ↓
-Create Employee
-```
-
-Simpan reference:
-
-```text
-employee.recruited_from_application_id
-```
-
-atau equivalent reference sesuai Employee module.
-
-Tujuan:
-
-```text
-Employee
-   ↓
-Application
-   ↓
-Requisition
-   ↓
-Position
-```
-
-dapat ditelusuri kembali.
-
----
-
-# 29. Phase 14 — Internal Recruitment → Employee Movement
-
-Internal:
-
-```text
-Existing Employee
-       ↓
-Internal Application
-       ↓
-Selection
-       ↓
-Offer / Decision
-       ↓
-Employee Movement
-       ↓
-New Organization / Position
-```
-
-Recruitment tidak membuat employee baru.
-
-Employee Movement tetap menjadi transactional execution layer.
-
----
-
-# 30. Phase 15 — Recruitment → Onboarding
-
-Saat offer accepted:
-
-```text
-job_application
-        ↓
-employee
-        ↓
-employee_onboarding
-```
-
-Existing `employee_onboardings` sudah memiliki:
-
-```text
-employee_id
-application_id
-start_date
-status
-buddy_id
-```
-
-sehingga fondasinya sudah mendukung hubungan Recruitment → Onboarding.
-
----
-
-# 31. Onboarding Template Enhancement
-
-Existing template memiliki:
-
-```text
-name
-description
-category
-day_offset
-assigned_role
-is_mandatory
-```
-
-
-
-Enhance agar template dapat dibedakan berdasarkan:
-
-```text
-organization_id nullable
-position_id nullable
-employment_type nullable
-```
-
-Contoh:
-
-```text
-Software Engineer
-    ↓
-Laptop
-Repository Access
-Security Training
-Technical Orientation
-Team Introduction
-```
-
----
-
-# 32. Phase 16 — Recruitment → Training
-
-Setelah employee onboarding:
-
-```text
-Employee
-   ↓
-Position
-   ↓
-Required Training
-   ↓
-Training Module
-```
-
-Training tetap operational source of truth.
-
-Recruitment/Onboarding hanya membuat reference atau requirement.
-
----
-
-# 33. Phase 17 — Recruitment → Competency
-
-Position:
-
-```text
-Software Engineer
-```
-
-Requirement:
-
-```text
-PHP Level 4
-Laravel Level 4
-PostgreSQL Level 3
-```
-
-Recruitment menggunakan competency requirement dari Position/Job Management atau requisition-specific override.
-
-Candidate assessment dapat dibandingkan:
-
-```text
-Candidate Competency
-vs
-Position Competency
-```
-
----
-
-# 34. Phase 18 — Recruitment → Career Intelligence
-
-Career Intelligence dapat memberikan internal candidate:
-
-```text
-Position Vacancy
-      ↓
-Career Path
-      ↓
-Gap Analysis
-      ↓
-Eligible Employees
-```
-
-Contoh:
-
-```text
-IT Supervisor
-
-Budi    94%
-Andi    87%
-Dedi    76%
-```
-
-Recruiter dapat:
-
-```text
-Invite to Apply
-```
-
-atau:
-
-```text
-Create Internal Application
-```
-
-Recruitment tidak menentukan career eligibility sendiri.
-
----
-
-# 35. Phase 19 — Recruitment → Succession Planning
-
-Jika position adalah critical/key position:
-
-```text
-Succession Plan
-      ↓
-Successor Candidates
-      ↓
-Recruitment
-```
-
-Jika successor internal tidak tersedia:
-
-```text
-Succession Gap
-      ↓
-External Recruitment
-```
-
-Ini memungkinkan recruitment menjadi fallback untuk succession planning.
-
----
-
-# 36. Phase 20 — Recruitment → Performance
-
-Setelah employee hired:
-
-```text
-Recruitment
-   ↓
-Employee
-   ↓
-Performance
-```
-
-Career/Workforce Intelligence dapat mengukur:
-
-```text
-Quality of Hire
-```
-
-berdasarkan:
-
-```text
-Hiring Source
-Recruitment Score
-Probation Result
-Performance Result
-Retention
-```
-
-Recruitment tidak mengubah Performance score.
-
----
-
-# 37. Recruitment Analytics
-
-Minimal metrics:
-
-```text
-Open Requisitions
-Applications
-Candidates
-Shortlisted
-Interviews
-Offers
-Hires
-Rejected
-Withdrawn
-```
-
-Advanced:
-
-```text
-Time to Hire
-Time to Fill
-Time to Stage
-Offer Acceptance Rate
-Application Conversion Rate
-Source Conversion
-Candidate Match Score
-Quality of Hire
-```
-
----
-
-# 38. Workforce Intelligence Output
-
-Recruitment menyediakan data:
-
-```text
-Open Positions
-Recruitment Pipeline
-Expected Hires
-Accepted Offers
-Filled Positions
-```
-
-Workforce Intelligence dapat menghitung:
-
-```text
-Required Workforce
--
-Current Workforce
--
-Expected Hires
-=
-Remaining Workforce Gap
-```
-
-Contoh:
-
-```text
-Required       100
-Current         90
-Accepted Offer   2
-
-Remaining Gap = 8
-```
-
----
-
-# 39. Career Intelligence Output
-
-Recruitment menerima:
-
-```text
-Career Eligibility
-Career Path
-Competency Gap
-Succession Candidates
-Talent Pool
-```
-
-Recruitment dapat menampilkan:
-
-```text
-Internal Candidates
-External Candidates
-```
-
-dengan source yang jelas.
-
----
-
-# 40. Permissions
-
-Rekomendasi:
+## 9.2 Target permissions granular (rekomendasi — plan asli §40)
 
 ```text
 recruitment.view
-recruitment.requisition.view
-recruitment.requisition.manage
-recruitment.requisition.submit
-recruitment.candidate.view
-recruitment.candidate.manage
-recruitment.application.view
-recruitment.application.manage
+recruitment.requisition.view / manage / submit
+recruitment.candidate.view / manage
+recruitment.application.view / manage
 recruitment.screening.manage
 recruitment.assessment.manage
-recruitment.interview.view
-recruitment.interview.manage
-recruitment.offer.view
-recruitment.offer.manage
-recruitment.offer.submit
+recruitment.interview.view / manage
+recruitment.offer.view / manage / submit
 recruitment.analytics.view
-recruitment.onboarding.view
-recruitment.onboarding.manage
+recruitment.onboarding.view / manage
 ```
 
-Permission harus mengikuti pola permission module existing.
+Permission harus mengikuti pola permission module existing (resource + action, seeded di `tenantseed/`).
+
+## 9.3 Authorization roles (rekomendasi — plan asli §41)
+
+| Role | Cakupan |
+|---|---|
+| **Requester (User)** | Create/edit/submit requisition sesuai organization scope |
+| **Recruiter** | Candidate, Application, Screening, Interview, Offer |
+| **Hiring Manager** | View assigned requisition, review candidate, interview, beri rekomendasi |
+| **HR** | Full Recruitment + Onboarding + Offer |
+| **Employee (internal recruitment)** | View own application, withdraw application |
 
 ---
 
-# 41. Authorization
+# 10. Frontend Plan
 
-## Requisition
+## 10.1 Status aktual
 
-User dapat:
+- Route `/recruitment` + menu sidebar + locale + dashboard card ✅ (lihat §3.2).
+- Halaman `Recruitment.vue` ❌ placeholder — belum ada satu pun halaman fungsional.
 
-```text
-View
-Create
-Edit
-Submit
-```
+## 10.2 Target
 
-sesuai organization scope.
-
-## Recruiter
-
-```text
-Candidate
-Application
-Screening
-Interview
-Offer
-```
-
-## Hiring Manager
-
-```text
-View assigned requisition
-Review candidate
-Interview
-Give recommendation
-```
-
-## HR
-
-```text
-Full Recruitment
-Onboarding
-Offer
-```
-
-## Employee
-
-Untuk internal recruitment:
-
-```text
-View own application
-Withdraw application
-```
-
-sesuai business rule.
+- **Recruitment Dashboard**: widgets Open Requisitions, Candidates, Applications, Interviews, Offers, Hires, Time to Hire.
+- **Requisition**: list, create, detail, edit, approval status, pipeline.
+- **Candidate**: list, profile (resume, experience, education, skills, certification, applications); internal → current employee/org/position.
+- **Application**: pipeline board (kanban) — drag/drop hanya memanggil backend transition service.
+- **Interview**: calendar, schedule, interviewer, scorecard, feedback, result.
+- **Offer**: draft, approval, preview, send, acceptance.
+- **Onboarding**: templates + per-employee checklist.
+- **Analytics**: funnel + time metrics + source analytics.
+- Seluruh halaman mengikuti pola FE existing: bilingual `t()` + dark mode + `ConfirmDeleteDialog` + `SkeletonTable`/`useSkeletonPage` + `DateInput`/`TimeInput`/`SelectLabel`/`ToggleSwitch`.
 
 ---
 
-# 42. API Plan
+# 11. Seeder Plan
 
-## Requisition
-
-```http
-GET    /recruitment/requisitions
-POST   /recruitment/requisitions
-GET    /recruitment/requisitions/{id}
-PUT    /recruitment/requisitions/{id}
-POST   /recruitment/requisitions/{id}/submit
-POST   /recruitment/requisitions/{id}/close
-```
-
-## Candidate
-
-```http
-GET    /recruitment/candidates
-POST   /recruitment/candidates
-GET    /recruitment/candidates/{id}
-PUT    /recruitment/candidates/{id}
-```
-
-## Application
-
-```http
-GET    /recruitment/applications
-POST   /recruitment/applications
-GET    /recruitment/applications/{id}
-POST   /recruitment/applications/{id}/stage
-POST   /recruitment/applications/{id}/screen
-```
-
-## Interview
-
-```http
-GET    /recruitment/interviews
-POST   /recruitment/interviews
-PUT    /recruitment/interviews/{id}
-POST   /recruitment/interviews/{id}/complete
-```
-
-## Assessment
-
-```http
-GET    /recruitment/assessments
-POST   /recruitment/assessments
-POST   /recruitment/applications/{id}/assessments
-```
-
-## Offer
-
-```http
-GET    /recruitment/offers
-POST   /recruitment/offers
-POST   /recruitment/offers/{id}/submit
-POST   /recruitment/offers/{id}/send
-POST   /recruitment/offers/{id}/accept
-POST   /recruitment/offers/{id}/reject
-```
+- ✅ **Sudah ada**: 10 onboarding task template default (`module.go` `Seed`, idempotent).
+- ⏳ **Rencana** (saat G terkait dieksekusi): `RecruitmentStageSeeder`, `RecruitmentSourceSeeder`, `RecruitmentAssessmentTypeSeeder`, `RecruitmentRequirementTypeSeeder` (mengikuti pola existing `tenantseed/`).
+- Jangan membuat seeder untuk data transactional (`candidate`, `application`, `interview`, `offer`) kecuali development/demo seeder.
 
 ---
 
-# 43. Frontend Plan
+# 12. Migration Plan
 
-## Recruitment Dashboard
-
-Widgets:
-
-```text
-Open Requisitions
-Candidates
-Applications
-Interviews
-Offers
-Hires
-Time to Hire
-```
-
-## Requisition
+- ✅ **Sudah ada**: `015_recruitment.sql` (mysql + postgres) — 7 tabel dasar.
+- ⏳ **Rencana** (nomor migration menyesuaikan urutan existing — 091+):
 
 ```text
-List
-Create
-Detail
-Edit
-Approval Status
-Pipeline
+M1  Enhance job_requisitions   (requisition_number, reason_type, priority, position_id,
+                                 approval_status, opened_at, approval_instance_id)
+M2  Enhance candidates         (candidate_number, status, candidate_type, source_id, consent_status)
+M3  Create job_offers          (+ approval_instance_id)
+M4  Create recruitment_stages + job_application_stage_histories
+M5  Create job_requisition_requirements + job_requisition_competencies
+M6  Create candidate_educations, candidate_work_experiences, candidate_skills,
+     candidate_certifications, candidate_documents, candidate_consents
+M7  Create application_screenings
+M8  Create recruitment_assessments, assessment_participants, assessment_results
+M9  Create interviewers, interview_scorecards, interview_scorecard_items
+M10 Enhance onboarding_task_templates (organization_id, position_id, employment_type nullable)
 ```
 
-## Candidate
-
-```text
-Candidate List
-Candidate Profile
-Resume
-Experience
-Education
-Skills
-Certification
-Applications
-```
-
-## Application
-
-Pipeline:
-
-```text
-Applied
-   ↓
-Screening
-   ↓
-Assessment
-   ↓
-Interview
-   ↓
-Final Review
-   ↓
-Offer
-   ↓
-Hired
-```
-
-## Interview
-
-```text
-Calendar
-Schedule
-Interviewer
-Scorecard
-Feedback
-Result
-```
-
-## Offer
-
-```text
-Offer Draft
-Approval
-Offer Preview
-Send
-Acceptance
-```
+Semua migration dibuat berpasangan mysql + postgres (+ `.down.sql` bila pola existing membutuhkan), idempotent.
 
 ---
 
-# 44. Candidate Profile
+# 13. Data Migration
 
-Candidate detail ideal:
-
-```text
-Profile
-├── Personal
-├── Contact
-├── Resume
-├── Education
-├── Experience
-├── Skills
-├── Certifications
-├── Applications
-├── Assessments
-├── Interviews
-└── Offers
-```
-
-Untuk internal:
-
-```text
-Current Employee
-Current Organization
-Current Position
-Performance
-Competency
-Career Eligibility
-```
-
-akses data mengikuti permission.
+- `job_requisitions.title/department/employment_type` existing: dipetakan ke master Organization/Position bila tersedia (jangan dihapus — backward compatible).
+- `candidates.source` (teks bebas): dipertahankan, dimigrasikan ke source master saat dibuat.
+- `job_applications.status` existing: dipetakan ke `recruitment_stages`; **history lama tidak dibuat fiktif** jika tidak tersedia.
 
 ---
 
-# 45. Recruitment Pipeline UI
-
-Contoh:
-
-```text
-┌──────────┬───────────┬────────────┬────────────┬─────────┐
-│ Applied  │ Screening │ Assessment │ Interview  │ Offer   │
-├──────────┼───────────┼────────────┼────────────┼─────────┤
-│ Budi     │ Andi      │ Dedi       │ Sari       │ Joko    │
-│ Asep     │ Rina      │            │ Toni       │         │
-└──────────┴───────────┴────────────┴────────────┴─────────┘
-```
-
-Drag/drop hanya mengubah stage melalui backend transition service.
-
----
-
-# 46. Seeder Plan
-
-Seeder dapat dibuat untuk:
-
-```text
-Recruitment Stage
-Recruitment Source
-Requirement Type
-Assessment Type
-Interview Stage
-Offer Status
-Requisition Reason
-Priority
-```
-
-Contoh:
-
-```text
-RecruitmentStageSeeder
-RecruitmentSourceSeeder
-RecruitmentAssessmentTypeSeeder
-RecruitmentRequirementTypeSeeder
-```
-
-Seeder mengikuti pola existing project.
-
-Jangan membuat seeder untuk transactional data:
-
-```text
-candidate
-application
-interview
-offer
-```
-
-kecuali untuk development/demo seeder.
-
----
-
-# 47. Migration Plan
-
-## Migration 1
-
-Enhance:
-
-```text
-job_requisitions
-```
-
-## Migration 2
-
-Enhance:
-
-```text
-candidates
-```
-
-## Migration 3
-
-Enhance:
-
-```text
-job_applications
-```
-
-## Migration 4
-
-Create:
-
-```text
-job_requisition_requirements
-job_requisition_competencies
-```
-
-## Migration 5
-
-Create:
-
-```text
-recruitment_stages
-job_application_stage_histories
-```
-
-## Migration 6
-
-Create:
-
-```text
-candidate_educations
-candidate_work_experiences
-candidate_skills
-candidate_certifications
-candidate_documents
-```
-
-## Migration 7
-
-Create:
-
-```text
-application_screenings
-```
-
-## Migration 8
-
-Create:
-
-```text
-recruitment_assessments
-assessment_participants
-assessment_results
-```
-
-## Migration 9
-
-Enhance interview:
-
-```text
-interviewers
-interview_scorecards
-interview_scorecard_items
-```
-
-## Migration 10
-
-Create:
-
-```text
-job_offers
-```
-
-## Migration 11
-
-Onboarding enhancement:
-
-```text
-organization/position-specific template
-```
-
----
-
-# 48. Data Migration
-
-Existing:
-
-```text
-job_requisitions.title
-job_requisitions.department
-job_requisitions.employment_type
-```
-
-harus dipetakan ke master yang tersedia.
-
-Candidate existing:
-
-```text
-source
-```
-
-tetap dipertahankan dan dimigrasikan ke source master jika source master dibuat.
-
-Application existing:
-
-```text
-status
-```
-
-dipetakan ke:
-
-```text
-recruitment_stages
-```
-
-History lama tidak boleh dibuat secara fiktif jika tidak tersedia.
-
----
-
-# 49. Backend Architecture
-
-Rekomendasi:
+# 14. Backend Architecture (rekomendasi)
 
 ```text
 Recruitment
@@ -1905,369 +703,95 @@ Recruitment
 │
 ├── Application
 │   ├── CreateRequisition
-│   ├── SubmitRequisition
-│   ├── MoveApplicationStage
+│   ├── SubmitRequisition        ← G-1
+│   ├── MoveApplicationStage     ← G-5
 │   ├── ScheduleInterview
-│   ├── CompleteInterview
-│   ├── CreateOffer
-│   └── AcceptOffer
+│   ├── CompleteInterview        ← G-8
+│   ├── CreateOffer              ← G-3
+│   └── AcceptOffer              ← G-3/G-4
 │
 └── Integration
     ├── Organization
-    ├── Workforce Intelligence
-    ├── Approval
-    ├── Employee
-    ├── Movement
-    ├── Competency
-    ├── Training
-    └── Career Intelligence
+    ├── Approval                 ← G-1
+    ├── Employee                 ← G-4
+    ├── Movement                 ← G-4
+    └── Competency               ← G-9
 ```
+
+Pola interface narrow (tanpa import modul langsung) + wiring di `cmd/server/main.go` — mengikuti `employeemovement.CareerExecutor`, `leave.AttendanceSessionUpdater`, `payrollApprovalAdapter`, dst.
 
 ---
 
-# 50. Business Rules
+# 15. Business Rules (target)
 
 ## Requisition
-
 1. Requisition harus memiliki organization/position.
 2. Requisition tidak dapat dibuka sebelum approval selesai.
-3. Slots tidak boleh negatif.
-4. `slots_filled <= slots_available`.
-5. Requisition dapat ditutup jika seluruh slot terpenuhi atau dibatalkan.
+3. Slots tidak boleh negatif; `slots_filled <= slots_available`.
+4. Requisition dapat ditutup jika seluruh slot terpenuhi atau dibatalkan.
 
 ## Application
-
 1. Candidate dapat memiliki banyak application.
 2. Candidate tidak boleh duplicate application aktif untuk requisition yang sama.
 3. Stage transition harus tervalidasi.
 4. Setiap perubahan stage harus memiliki history.
 
 ## Interview
-
 1. Interview harus memiliki application.
 2. Interview harus memiliki interviewer.
-3. Interview yang completed dapat memiliki score.
+3. Interview completed dapat memiliki score.
 4. Multi-interviewer harus didukung.
 
 ## Offer
-
 1. Hanya candidate yang eligible yang dapat menerima offer.
 2. Offer harus melalui approval.
-3. Offer accepted menghasilkan employee atau Employee Movement sesuai candidate type.
+3. Offer accepted menghasilkan employee (external) atau Employee Movement (internal).
 4. Offer expired tidak dapat diterima.
 
 ## Internal Candidate
-
-```text
-candidate_type = INTERNAL
-```
-
-harus memiliki:
-
-```text
-employee_id
-```
-
-dan tidak membuat employee baru.
+- `candidate_type = INTERNAL` harus memiliki `employee_id` dan tidak membuat employee baru.
 
 ---
 
-# 51. Testing Plan
+# 16. Testing Plan
 
-## Unit Test
+## Unit Test (per entity)
+- **Requisition**: create, update, submit (G-1), approval status, close, slot validation.
+- **Candidate**: create, duplicate email, update, document.
+- **Application**: create, duplicate active application, stage transition + history (G-5), rejection, withdrawal.
+- **Interview**: schedule, reschedule, complete (G-8), scorecard, multiple interviewers.
+- **Offer** (G-3): create, approval, send, accept, reject, expire.
+- **Screening/Assessment** (G-7): pass/fail/hold, participant, result.
 
-### Requisition
+## Integration Test
+```text
+Requisition → Module Approval (G-1)       Application → Interview
+Application → Offer → Employee (G-3/G-4)  Internal Application → Employee Movement (G-4)
+Offer Accepted → Onboarding
+```
 
-- create
-- update
-- submit
-- approval status
-- close
-- slot validation
-
-### Candidate
-
-- create
-- duplicate email
-- update
-- document
-
-### Application
-
-- create
-- duplicate active application
-- stage transition
-- rejection
-- withdrawal
-
-### Interview
-
-- schedule
-- reschedule
-- complete
-- scorecard
-- multiple interviewers
-
-### Offer
-
-- create
-- approval
-- send
-- accept
-- reject
-- expire
+## E2E Test
+- **External Hiring**: `Create Requisition → Submit → Approve → Publish → Candidate Apply → Screening → Assessment → Interview → Final Selection → Offer → Approval → Accepted → Employee Created → Onboarding`.
+- **Internal Hiring**: `Internal Application (candidate_type = INTERNAL) → Selection → Offer/Decision → Employee Movement → New Position → Onboarding`.
 
 ---
 
-# 52. Integration Test
+# 17. Security & Privacy
 
-Test:
-
-```text
-Workforce Gap
-    ↓
-Requisition
-```
-
-```text
-Requisition
-    ↓
-Module Approval
-```
-
-```text
-Application
-    ↓
-Interview
-```
-
-```text
-Application
-    ↓
-Offer
-    ↓
-Employee
-```
-
-```text
-Internal Application
-    ↓
-Employee Movement
-```
-
-```text
-Offer Accepted
-    ↓
-Onboarding
-```
-
-```text
-Employee
-    ↓
-Training
-```
-
-```text
-Career Intelligence
-    ↓
-Internal Candidate
-    ↓
-Recruitment
-```
+Candidate data mengandung data pribadi. Wajib:
+- role-based access; organization scope; audit log; document access control; consent tracking; secure file storage; masking data pada role tertentu; tidak menampilkan candidate data ke user tanpa permission.
+- Data sensitif jangan disimpan jika tidak diperlukan untuk proses recruitment.
 
 ---
 
-# 53. E2E Test
+# 18. Audit Trail
 
-## External Hiring
-
-```text
-Create Workforce Gap
-↓
-Create Requisition
-↓
-Submit
-↓
-Approve
-↓
-Publish
-↓
-Candidate Apply
-↓
-Screening
-↓
-Assessment
-↓
-Interview
-↓
-Final Selection
-↓
-Offer
-↓
-Approval
-↓
-Offer Accepted
-↓
-Employee Created
-↓
-Onboarding
-↓
-Training
-```
-
-## Internal Hiring
-
-```text
-Position Vacancy
-↓
-Career Intelligence
-↓
-Eligible Employee
-↓
-Internal Application
-↓
-Selection
-↓
-Offer / Decision
-↓
-Employee Movement
-↓
-New Position
-↓
-Onboarding / Development
-```
-
----
-
-# 54. Recruitment Analytics
-
-## Funnel
-
-```text
-Applications
-    ↓
-Screened
-    ↓
-Shortlisted
-    ↓
-Assessment
-    ↓
-Interview
-    ↓
-Offer
-    ↓
-Accepted
-    ↓
-Hired
-```
-
-Metrics:
-
-```text
-Conversion Rate
-Rejection Rate
-Withdrawal Rate
-Offer Acceptance Rate
-```
-
-## Time Metrics
-
-```text
-Time to Screen
-Time to Interview
-Time to Offer
-Time to Hire
-Time to Fill
-```
-
-## Source Analytics
-
-```text
-Source
-Applications
-Shortlisted
-Interviews
-Offers
-Hires
-Quality of Hire
-```
-
----
-
-# 55. Quality of Hire
-
-Setelah employee masuk:
-
-```text
-Recruitment
-      ↓
-Employee
-      ↓
-Probation
-      ↓
-Performance
-```
-
-Career/Workforce Intelligence dapat menghitung:
-
-```text
-Quality of Hire
-```
-
-berdasarkan:
-
-```text
-Recruitment Match Score
-Interview Score
-Assessment Score
-Probation Result
-Performance
-Retention
-```
-
-Recruitment menyimpan source data; intelligence menghitung analytical score.
-
----
-
-# 56. Security & Privacy
-
-Candidate data mengandung data pribadi.
-
-Wajib:
-
-- role-based access;
-- organization scope;
-- audit log;
-- document access control;
-- consent tracking;
-- secure file storage;
-- masking data pada role tertentu;
-- tidak menampilkan candidate data ke user tanpa permission.
-
-Data sensitif jangan disimpan jika tidak diperlukan untuk proses recruitment.
-
----
-
-# 57. Audit Trail
-
-Audit minimal untuk:
-
-```text
-Requisition
-Application
-Stage Transition
-Screening
-Interview
-Assessment
-Offer
-Onboarding
-```
+Audit minimal untuk: Requisition, Application, Stage Transition, Screening, Interview, Assessment, Offer, Onboarding.
 
 Contoh:
 
 ```text
-Application
-Budi
+Application: Budi
 SCREENING → INTERVIEW
 Changed by: Recruiter
 Date: ...
@@ -2276,141 +800,71 @@ Reason: Passed screening
 
 ---
 
-# 58. Notification
+# 19. Notification (setelah G-1/G-3)
 
-Integrasi notification:
+Integrasi notification (pola `MOVEMENT_*` / `OVERTIME_*`):
 
 ```text
-Requisition Submitted
-Requisition Approved
-Requisition Rejected
-Interview Scheduled
-Interview Rescheduled
-Assessment Assigned
-Offer Approval Required
-Offer Approved
-Offer Sent
-Offer Accepted
-Onboarding Started
+REQUISITION_SUBMITTED / APPROVED / REJECTED
+INTERVIEW_SCHEDULED / RESCHEDULED
+ASSESSMENT_ASSIGNED
+OFFER_APPROVAL_REQUIRED / OFFER_APPROVED / OFFER_SENT / OFFER_ACCEPTED
+ONBOARDING_STARTED
 ```
 
-Channel mengikuti notification infrastructure existing.
+Channel mengikuti notification infrastructure existing (modul `notification`, deep-link di `Notifications.vue`).
 
 ---
 
-# 59. Development Priority
+# 20. Development Priority
 
-## P0 — Core Integrated Recruitment
-
-1. Requisition refactor
-2. Organization/Position integration
-3. Module Approval integration
-4. Candidate enhancement
-5. Application pipeline
-6. Stage history
-7. Screening
-8. Interview enhancement
-9. Offer
-10. Recruitment → Employee
-11. Onboarding integration
+## P0 — Core Integrated Recruitment (gap kritis)
+1. ✅ ATS dasar (sudah selesai — §3.1)
+2. G-1 Module Approval integration
+3. G-2 Requisition enhancement (master position)
+4. G-3 Offer management
+5. G-4 Recruitment → Employee / Employee Movement
+6. G-5 Pipeline stage history
+7. G-12 Frontend halaman penuh
 
 ## P1 — Intelligent Recruitment
+8. G-6 Candidate enhancement (profil terstruktur + internal)
+9. G-7 Screening & assessment
+10. G-8 Interview multi-interviewer & scorecard
+11. G-9 Requisition competency + candidate matching
+12. G-11 Analytics
 
-12. Requisition competency
-13. Candidate competency/skills
-14. Assessment
-15. Candidate matching
-16. Workforce Intelligence integration
-17. Career Intelligence integration
-18. Internal recruitment
-19. Employee Movement integration
-20. Training integration
+## P2 — Advanced
+13. Candidate Pool / Tags / Talent Pool
+14. Referral management
+15. Candidate ranking
 
-## P2 — Advanced Recruitment
-
-21. Candidate Pool
-22. Candidate Tags
-23. Talent Pool
-24. Referral management
-25. Candidate ranking
-26. Quality of Hire
-27. Advanced analytics
-28. Recruitment forecasting
+> Quality of Hire & Recruitment forecasting dipindah ke layer Workforce / Career Intelligence (out of scope — §5.2).
 
 ---
 
-# 60. Recommended Implementation Order
+# 21. Recommended Implementation Order
 
 ```text
-STEP 1
-Database & Migration
-        ↓
-STEP 2
-Models / Repository
-        ↓
-STEP 3
-Requisition
-        ↓
-STEP 4
-Approval
-        ↓
-STEP 5
-Candidate
-        ↓
-STEP 6
-Application Pipeline
-        ↓
-STEP 7
-Screening
-        ↓
-STEP 8
-Interview
-        ↓
-STEP 9
-Assessment
-        ↓
-STEP 10
-Offer
-        ↓
-STEP 11
-Employee Integration
-        ↓
-STEP 12
-Onboarding
-        ↓
-STEP 13
-Competency Integration
-        ↓
-STEP 14
-Workforce Intelligence
-        ↓
-STEP 15
-Career Intelligence
-        ↓
-STEP 16
-Employee Movement
-        ↓
-STEP 17
-Training
-        ↓
-STEP 18
-Analytics
-        ↓
-STEP 19
-Testing
+STEP 1  G-1  Module Approval integration (pola employeemovement: interface + wiring + migration)
+STEP 2  G-2  Requisition enhancement (master position)
+STEP 3  G-5  Pipeline stage history (recruitment_stages + histories)
+STEP 4  G-3  Offer management
+STEP 5  G-4  Recruitment → Employee / Employee Movement
+STEP 6  G-6  Candidate enhancement
+STEP 7  G-7  Screening & assessment
+STEP 8  G-8  Interview scorecard
+STEP 9  G-9  Competency & candidate matching
+STEP 10 G-11 Analytics
+STEP 11 G-12 Frontend (setelah API lengkap)
+STEP 12 Testing & E2E
 ```
 
 ---
 
-# 61. Final Architecture
+# 22. Final Architecture
 
 ```text
-                 WORKFORCE INTELLIGENCE
-                          │
-                          ▼
-                   Workforce Gap
-                          │
-                          ▼
                  ┌─────────────────┐
                  │ JOB REQUISITION │
                  └────────┬────────┘
@@ -2441,122 +895,62 @@ Testing
                 └─────────┬─────────┘
                           ▼
                      ONBOARDING
-                          │
-                          ▼
-                       TRAINING
-                          │
-                          ▼
-                     PERFORMANCE
-                          │
-                          ▼
-                 CAREER INTELLIGENCE
-                          │
-              ┌───────────┼───────────┐
-              ▼           ▼           ▼
-         Career Path   Talent Map  Succession
 ```
+
+> 🚫 Layer strategis (Workforce Intelligence, Career Intelligence, Succession, Performance) berada di luar diagram ini — dikelola modul masing-masing (§5.2).
 
 ---
 
-# 62. Definition of Done
+# 23. Definition of Done
 
-Recruitment enhancement dianggap selesai apabila:
+Status per 2026-08-12 (✅ = sudah, ⬜ = target enhancement). Scope: **operasional** — item strategic layer (WI/CI/Succession/Quality of Hire) tidak tercantum (§5.2):
 
-- [ ] Requisition menggunakan Organization/Position master.
-- [ ] Requisition dapat berasal dari Workforce Gap.
+- [x] Backend ATS dasar (7 entity, 33 endpoint, 75 test).
+- [x] Application memiliki pipeline status + timestamp per stage.
+- [x] Interview mendukung score/feedback/complete.
+- [x] Onboarding template + auto task items.
+- [x] Seeder onboarding template.
+- [ ] Requisition menggunakan Organization/Position master (`position_id`).
 - [ ] Requisition menggunakan Module Approval.
-- [ ] Candidate memiliki profile terstruktur.
-- [ ] Candidate mendukung internal/external.
-- [ ] Application memiliki pipeline.
+- [ ] Offer menjadi entity sendiri + Module Approval.
 - [ ] Stage transition memiliki history.
 - [ ] Screening tersedia.
 - [ ] Assessment tersedia.
-- [ ] Interview mendukung multi-interviewer.
-- [ ] Interview menggunakan scorecard.
-- [ ] Offer menjadi entity sendiri.
-- [ ] Offer menggunakan Module Approval.
+- [ ] Interview mendukung multi-interviewer + scorecard.
+- [ ] Candidate memiliki profile terstruktur (education/experience/skills/certification/document).
+- [ ] Candidate mendukung internal/external.
 - [ ] External candidate dapat menjadi Employee.
 - [ ] Internal candidate menggunakan Employee Movement.
 - [ ] Offer accepted dapat membuat onboarding.
-- [ ] Onboarding dapat terhubung dengan Training.
-- [ ] Requisition dapat menggunakan competency requirement.
 - [ ] Candidate dapat dinilai terhadap competency requirement.
-- [ ] Career Intelligence dapat memberikan internal candidate.
-- [ ] Workforce Intelligence dapat memberikan hiring need.
-- [ ] Recruitment menyediakan data kembali ke Workforce Intelligence.
-- [ ] Recruitment menyediakan data kembali ke Career Intelligence.
-- [ ] Permission lengkap.
+- [ ] Recruitment analytics tersedia.
+- [ ] Permission lengkap + sinkron (module.go vs seed_rbac: `interview`/`onboard`).
 - [ ] Audit trail tersedia.
 - [ ] Notification tersedia.
-- [ ] Unit test selesai.
-- [ ] Integration test selesai.
-- [ ] E2E external hiring selesai.
-- [ ] E2E internal hiring selesai.
-- [ ] Migration dan backward compatibility diverifikasi.
+- [ ] Frontend Recruitment selesai (semua halaman).
+- [ ] Unit/integration/E2E external & internal hiring selesai.
+- [ ] Migration & backward compatibility diverifikasi.
 
 ---
 
-# 63. Kesimpulan
+# 24. Kesimpulan
 
-Target akhir bukan sekadar:
-
-```text
-ATS
-```
-
-tetapi:
+Target akhir bukan sekadar **ATS** tetapi **Integrated Recruitment (operasional)** yang menjadi penghubung:
 
 ```text
-Integrated Recruitment
+Requisition → Approval → Hire → Employee / Movement → Onboarding
 ```
 
-yang menjadi penghubung antara:
+Prinsip pembagian responsibility (strategic layer di luar scope — §5.2):
 
 ```text
-Workforce Planning
-        ↓
-Hiring
-        ↓
-Employee
-        ↓
-Onboarding
-        ↓
-Training
-        ↓
-Performance
-        ↓
-Career
+Recruitment            → mencari dan memilih kandidat (operasional)
+Module Approval        → mengelola approval
+Employee               → menjadi master employee
+Employee Movement      → mengeksekusi perpindahan internal
+Onboarding             → mempersiapkan employee baru
+Workforce Intelligence → menentukan kebutuhan workforce   (out of scope — §5.2)
+Career Intelligence    → menganalisis career, talent, gap, succession (out of scope — §5.2)
 ```
 
-Dengan demikian Recruitment menjadi bagian dari **Employee Lifecycle** sekaligus menjadi execution layer untuk memenuhi kebutuhan workforce.
-
-Prinsip pembagian responsibility:
-
-```text
-Workforce Intelligence
-→ menentukan kebutuhan workforce
-
-Recruitment
-→ mencari dan memilih kandidat
-
-Module Approval
-→ mengelola approval
-
-Employee
-→ menjadi master employee
-
-Employee Movement
-→ mengeksekusi perpindahan internal
-
-Onboarding
-→ mempersiapkan employee baru
-
-Training
-→ mengelola development/training
-
-Performance
-→ menilai performance
-
-Career Intelligence
-→ menganalisis career, talent, gap, dan succession
-```
+Dengan backend ATS yang sudah ada sebagai fondasi, langkah berikutnya difokuskan pada integrasi operasional (Module Approval → Offer → Employee/Movement → pipeline history) dan halaman frontend penuh — lihat Gap Analysis §7 dan urutan implementasi §21.

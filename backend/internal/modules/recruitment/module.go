@@ -40,6 +40,18 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 	}
 }
 
+// NewModuleWithService mounts the recruitment module's routes using an
+// already-constructed Service, so callers (e.g. main.go) can wire a narrow
+// WorkforceGapProvider (plan S-1) into the service before it's wrapped.
+func NewModuleWithService(logger *zap.Logger, svc *Service) module.Module {
+	handler := NewHandler(svc)
+
+	return &recModule{
+		handler: handler,
+		logger:  logger,
+	}
+}
+
 type recModule struct {
 	handler *Handler
 	logger  *zap.Logger

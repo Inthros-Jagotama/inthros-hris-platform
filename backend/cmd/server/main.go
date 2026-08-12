@@ -166,6 +166,39 @@ func (a employeeCareerAdapter) SetEmployeeInactive(ctx context.Context, tx *gorm
 	return a.repo.SetEmployeeStatusTx(ctx, tx, employeeID, "inactive")
 }
 
+// workforceGapAdapter implements recruitment.WorkforceGapProvider using the
+// Workforce Intelligence service (plan S-1 — workforce gap → requisition).
+// Recruitment membaca hiring need dari WI; Recruitment TIDAK menghitung gap
+// sendiri. Hanya dipakai saat requisition dibuat dengan reason_type
+// WORKFORCE_GAP dan slots_available tidak ditentukan eksplisit.
+type workforceGapAdapter struct {
+	wiSvc *workforceintelligence.Service
+}
+
+// HiringGapForOrganization mengembalikan hiring need (shortage) untuk sebuah
+// organisasi pada periode aktif. Gap WI: negatif di level department = shortage
+// (hiring need = -Gap); agregat positif = hiring need. Org tanpa gap = 0.
+//
+// Catatan: GetGapAnalysis menghitung gap per-department dengan membagi rata
+// supply/demand total ke jumlah department (even split, integer division) —
+// nilai per-org bersifat perkiraan dan bisa 0 akibat pembulatan meskipun ada
+// shortage agregat. Saat WI memiliki data headcount plan per-org yang akurat
+// (WorkforcePlanningHeadcount), adapter ini bisa diperhalus membaca gap
+// langsung dari plan tsb (S-2/S-3 enhancement).
+func (a workforceGapAdapter) HiringGapForOrganization(ctx context.Context, orgID uuid.UUID) (int, error) {
+	period := time.Now().Format("2006-01")
+	resp, err := a.wiSvc.GetGapAnalysis(ctx, period)
+	if err != nil {
+		return 0, err
+	}
+	for _, d := range resp.Departments {
+		if d.OrganizationID == orgID.String() && d.Gap < 0 {
+			return -d.Gap, nil
+		}
+	}
+	return 0, nil
+}
+
 // performanceEligibilityAdapter implements employeemovement.PerformanceProvider
 // so employee movement can read completed performance evaluation scores for
 // promotion eligibility (plan §12.10/§12.11 — movement hanya membaca hasil
@@ -773,6 +806,23 @@ func main() {
 		return trainingSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
 
+	// Construct the workforce intelligence service up front (instead of inside
+	// workforceintelligence.NewModule) so it can back the recruitment module's
+	// narrow WorkforceGapProvider (plan S-1 — workforce gap → requisition)
+	// with the same service instance the module's routes use.
+	wiResolver := workforceintelligence.NewTenantDBResolver(dbManager)
+	wiRepo := workforceintelligence.NewRepository(wiResolver)
+	wiSvc := workforceintelligence.NewService(wiRepo, l.Named("workforceintelligence"))
+
+	// Construct the recruitment service up front (instead of inside
+	// recruitment.NewModule) so its narrow WorkforceGapProvider (plan S-1)
+	// can be wired before the module is mounted. Recruitment hanya membaca
+	// hiring need dari WI — tidak menghitung gap sendiri.
+	recruitmentResolver := recruitment.NewTenantDBResolver(dbManager)
+	recruitmentRepo := recruitment.NewRepository(recruitmentResolver)
+	recruitmentSvc := recruitment.NewService(recruitmentRepo, l.Named("recruitment"))
+	recruitmentSvc.SetWorkforceGapProvider(workforceGapAdapter{wiSvc: wiSvc})
+
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees
 	// dari file .lic. Pada mode saas, licenseLister memakai company_modules DB.
@@ -851,7 +901,7 @@ func main() {
 			Priority: 10,
 		},
 		module.ModuleRegistration{
-			Module:   recruitment.NewModule(dbManager, l),
+			Module:   recruitment.NewModuleWithService(l, recruitmentSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 11,
 		},
@@ -866,7 +916,7 @@ func main() {
 			Priority: 13,
 		},
 		module.ModuleRegistration{
-			Module:   workforceintelligence.NewModule(dbManager, l),
+			Module:   workforceintelligence.NewModuleWithService(l, wiSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 14,
 		},

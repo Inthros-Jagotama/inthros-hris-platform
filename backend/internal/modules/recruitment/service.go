@@ -16,13 +16,34 @@ const (
 	maxPerPage     = 100
 )
 
+// WorkforceGapProvider adalah interface narrow yang dipakai Recruitment untuk
+// membaca hiring need dari Workforce Intelligence (plan S-1 — workforce gap →
+// requisition). Recruitment TIDAK menghitung gap sendiri; ia hanya membaca
+// hasil perhitungan WI. Implementasi di-wire di cmd/server/main.go melalui
+// adapter (workforceintelligence.Service). Bila provider nil, requisition
+// tetap bisa dibuat dengan slots_available default tanpa error.
+type WorkforceGapProvider interface {
+	// HiringGapForOrganization mengembalikan jumlah hiring need (shortage)
+	// untuk sebuah organisasi. Nilai positif = jumlah slot yang harus
+	// di-recruit; 0 = tidak ada shortage.
+	HiringGapForOrganization(ctx context.Context, orgID uuid.UUID) (int, error)
+}
+
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
+	repo        *Repository
+	logger      *zap.Logger
+	gapProvider WorkforceGapProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// SetWorkforceGapProvider wires the Workforce Intelligence module into this
+// service (plan S-1) so requisitions with reason_type=WORKFORCE_GAP can
+// auto-resolve slots_available from WI's hiring need.
+func (s *Service) SetWorkforceGapProvider(p WorkforceGapProvider) {
+	s.gapProvider = p
 }
 
 // =========================================================================
@@ -57,6 +78,21 @@ func (s *Service) CreateRequisition(ctx context.Context, req CreateRequisitionRe
 	if req.TargetStartDate != nil {
 		r.TargetStartDate = req.TargetStartDate
 	}
+	if req.ReasonType != nil {
+		r.ReasonType = *req.ReasonType
+	}
+	if req.WorkforceGapID != nil {
+		uid, _ := uuid.Parse(*req.WorkforceGapID)
+		r.WorkforceGapID = &uid
+	}
+	if req.WorkforcePlanID != nil {
+		uid, _ := uuid.Parse(*req.WorkforcePlanID)
+		r.WorkforcePlanID = &uid
+	}
+	// S-1: auto-resolve hiring need dari Workforce Intelligence ketika
+	// requisition dibuat dengan reason WORKFORCE_GAP dan slots tidak
+	// ditentukan eksplisit. Gagal resolve = tetap lanjut dengan default.
+	s.resolveWorkforceGapSlots(ctx, r, req.SlotsAvailable)
 	if err := s.repo.CreateRequisition(ctx, r); err != nil {
 		return nil, err
 	}
@@ -146,6 +182,34 @@ func (s *Service) UpdateRequisition(ctx context.Context, id string, req UpdateRe
 	}
 	if req.TargetStartDate != nil {
 		r.TargetStartDate = req.TargetStartDate
+	}
+	// Catat reason lama SEBELUM diubah, untuk deteksi transisi ke WORKFORCE_GAP.
+	prevReason := r.ReasonType
+	if req.ReasonType != nil {
+		r.ReasonType = *req.ReasonType
+	}
+	if req.WorkforceGapID != nil {
+		if *req.WorkforceGapID == "" {
+			r.WorkforceGapID = nil
+		} else {
+			uid, _ := uuid.Parse(*req.WorkforceGapID)
+			r.WorkforceGapID = &uid
+		}
+	}
+	if req.WorkforcePlanID != nil {
+		if *req.WorkforcePlanID == "" {
+			r.WorkforcePlanID = nil
+		} else {
+			uid, _ := uuid.Parse(*req.WorkforcePlanID)
+			r.WorkforcePlanID = &uid
+		}
+	}
+	// S-1: resolve hiring need HANYA saat reason bertransisi menjadi
+	// WORKFORCE_GAP (bukan sudah WORKFORCE_GAP) — sehingga update field lain
+	// (title, status, dll.) pada requisition yang sudah tertaut gap tidak
+	// menimpa slots_available yang tersimpan.
+	if req.ReasonType != nil && *req.ReasonType == string(ReqReasonWorkforceGap) && prevReason != string(ReqReasonWorkforceGap) {
+		s.resolveWorkforceGapSlots(ctx, r, req.SlotsAvailable)
 	}
 	if err := s.repo.UpdateRequisition(ctx, r); err != nil {
 		return nil, err
@@ -891,6 +955,39 @@ func (s *Service) DeleteOnboardingTaskItem(ctx context.Context, id string) error
 }
 
 // =========================================================================
+// Workforce Gap resolution (S-1)
+// =========================================================================
+
+// resolveWorkforceGapSlots mengisi slots_available dari hiring need Workforce
+// Intelligence ketika requisition (create/update) memakai reason WORKFORCE_GAP
+// dan slots tidak ditentukan eksplisit. Fail-safe: provider nil atau error
+// tidak menggagalkan operasi — slots tetap bernilai default/eksisting.
+func (s *Service) resolveWorkforceGapSlots(ctx context.Context, r *JobRequisition, explicitSlots *int) {
+	if r.ReasonType != string(ReqReasonWorkforceGap) {
+		return
+	}
+	if explicitSlots != nil {
+		return
+	}
+	if s.gapProvider == nil {
+		return
+	}
+	need, err := s.gapProvider.HiringGapForOrganization(ctx, r.OrganizationID)
+	if err != nil {
+		s.logger.Warn("workforce gap provider failed; keeping default slots",
+			zap.String("organization_id", r.OrganizationID.String()),
+			zap.Error(err))
+		return
+	}
+	if need > 0 {
+		r.SlotsAvailable = need
+		s.logger.Info("Workforce gap slots auto-resolved",
+			zap.String("organization_id", r.OrganizationID.String()),
+			zap.Int("slots_available", r.SlotsAvailable))
+	}
+}
+
+// =========================================================================
 // Helpers
 // =========================================================================
 
@@ -930,6 +1027,15 @@ func requisitionToResponse(r *JobRequisition) *RequisitionResponse {
 	}
 	if r.ApprovedBy != nil {
 		resp.ApprovedBy = r.ApprovedBy.String()
+	}
+	if r.ReasonType != "" {
+		resp.ReasonType = r.ReasonType
+	}
+	if r.WorkforceGapID != nil {
+		resp.WorkforceGapID = r.WorkforceGapID.String()
+	}
+	if r.WorkforcePlanID != nil {
+		resp.WorkforcePlanID = r.WorkforcePlanID.String()
 	}
 	if r.TargetStartDate != nil {
 		resp.TargetStartDate = *r.TargetStartDate

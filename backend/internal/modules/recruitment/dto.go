@@ -20,6 +20,9 @@ type CreateRequisitionRequest struct {
 	SlotsAvailable   *int    `json:"slots_available"`
 	RequestedBy      *string `json:"requested_by"`
 	TargetStartDate  *string `json:"target_start_date"`
+	ReasonType       *string `json:"reason_type" binding:"omitempty,oneof=NEW_POSITION REPLACEMENT EXPANSION WORKFORCE_GAP"`
+	WorkforceGapID   *string `json:"workforce_gap_id"`
+	WorkforcePlanID  *string `json:"workforce_plan_id"`
 }
 
 type UpdateRequisitionRequest struct {
@@ -35,6 +38,9 @@ type UpdateRequisitionRequest struct {
 	SlotsAvailable   *int     `json:"slots_available"`
 	Status           *string  `json:"status" binding:"omitempty,oneof=DRAFT OPEN IN_PROGRESS FILLED CANCELLED"`
 	TargetStartDate  *string  `json:"target_start_date"`
+	ReasonType       *string  `json:"reason_type" binding:"omitempty,oneof=NEW_POSITION REPLACEMENT EXPANSION WORKFORCE_GAP"`
+	WorkforceGapID   *string  `json:"workforce_gap_id"`
+	WorkforcePlanID  *string  `json:"workforce_plan_id"`
 }
 
 type RequisitionResponse struct {
@@ -54,6 +60,9 @@ type RequisitionResponse struct {
 	Status            string    `json:"status"`
 	RequestedBy       string    `json:"requested_by,omitempty"`
 	ApprovedBy        string    `json:"approved_by,omitempty"`
+	ReasonType        string    `json:"reason_type,omitempty"`
+	WorkforceGapID    string    `json:"workforce_gap_id,omitempty"`
+	WorkforcePlanID   string    `json:"workforce_plan_id,omitempty"`
 	TargetStartDate   string    `json:"target_start_date,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`

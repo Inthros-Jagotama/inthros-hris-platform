@@ -2,6 +2,7 @@ package recruitment
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -85,6 +86,218 @@ func TestService_UpdateRequisition(t *testing.T) {
 	}
 	if updated.Title != "New Title" {
 		t.Errorf("expected 'New Title', got '%s'", updated.Title)
+	}
+}
+
+// =========================================================================
+// Workforce Gap → Requisition (S-1 strategic layer)
+// =========================================================================
+
+type fakeGapProvider struct {
+	need int
+	err  error
+}
+
+func (f fakeGapProvider) HiringGapForOrganization(ctx context.Context, orgID uuid.UUID) (int, error) {
+	return f.need, f.err
+}
+
+func TestService_CreateRequisition_WorkforceGap_AutoResolveSlots(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetWorkforceGapProvider(fakeGapProvider{need: 3})
+	ctx := context.Background()
+
+	reason := string(ReqReasonWorkforceGap)
+	gapID := createTestUUID()
+	planID := createTestUUID()
+	resp, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID:  createTestOrgID(),
+		Title:           "Ops Staff",
+		ReasonType:      &reason,
+		WorkforceGapID:  &gapID,
+		WorkforcePlanID: &planID,
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	if resp.ReasonType != reason {
+		t.Errorf("expected reason_type %q, got %q", reason, resp.ReasonType)
+	}
+	if resp.SlotsAvailable != 3 {
+		t.Errorf("expected slots auto-resolved to 3, got %d", resp.SlotsAvailable)
+	}
+	if resp.WorkforceGapID != gapID {
+		t.Errorf("expected workforce_gap_id %s, got %s", gapID, resp.WorkforceGapID)
+	}
+	if resp.WorkforcePlanID != planID {
+		t.Errorf("expected workforce_plan_id %s, got %s", planID, resp.WorkforcePlanID)
+	}
+}
+
+func TestService_CreateRequisition_WorkforceGap_NoProviderFallsBack(t *testing.T) {
+	// Provider tidak di-wire (nil) — requisition WORKFORCE_GAP tetap dibuat
+	// dengan slots default, tidak error (fail-safe plan S-1).
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	reason := string(ReqReasonWorkforceGap)
+	resp, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "Ops Staff",
+		ReasonType:     &reason,
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	if resp.SlotsAvailable != 1 {
+		t.Errorf("expected default slots 1 without provider, got %d", resp.SlotsAvailable)
+	}
+}
+
+func TestService_CreateRequisition_WorkforceGap_ProviderErrorKeepsDefault(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetWorkforceGapProvider(fakeGapProvider{need: 0, err: fmt.Errorf("wi unavailable")})
+	ctx := context.Background()
+
+	reason := string(ReqReasonWorkforceGap)
+	resp, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "Ops Staff",
+		ReasonType:     &reason,
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	if resp.SlotsAvailable != 1 {
+		t.Errorf("expected default slots 1 on provider error, got %d", resp.SlotsAvailable)
+	}
+}
+
+func TestService_CreateRequisition_WorkforceGap_ExplicitSlotsWins(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetWorkforceGapProvider(fakeGapProvider{need: 5})
+	ctx := context.Background()
+
+	reason := string(ReqReasonWorkforceGap)
+	resp, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID:  createTestOrgID(),
+		Title:           "Ops Staff",
+		ReasonType:      &reason,
+		SlotsAvailable:  intPtr(2),
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	if resp.SlotsAvailable != 2 {
+		t.Errorf("expected explicit slots 2 to win, got %d", resp.SlotsAvailable)
+	}
+}
+
+func TestService_UpdateRequisition_ChangeReasonToWorkforceGap(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	created, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "Ops Staff",
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	if created.ReasonType != "" {
+		t.Errorf("expected empty reason_type by default, got %q", created.ReasonType)
+	}
+
+	svc.SetWorkforceGapProvider(fakeGapProvider{need: 4})
+	reason := string(ReqReasonWorkforceGap)
+	gapID := createTestUUID()
+	updated, err := svc.UpdateRequisition(ctx, created.ID, UpdateRequisitionRequest{
+		ReasonType:     &reason,
+		WorkforceGapID: &gapID,
+	})
+	if err != nil {
+		t.Fatalf("UpdateRequisition failed: %v", err)
+	}
+	if updated.ReasonType != reason {
+		t.Errorf("expected reason_type %q, got %q", reason, updated.ReasonType)
+	}
+	if updated.SlotsAvailable != 4 {
+		t.Errorf("expected slots auto-resolved to 4 on reason change, got %d", updated.SlotsAvailable)
+	}
+	if updated.WorkforceGapID != gapID {
+		t.Errorf("expected workforce_gap_id %s, got %s", gapID, updated.WorkforceGapID)
+	}
+}
+
+func TestService_UpdateRequisition_UnrelatedUpdateKeepsGapSlots(t *testing.T) {
+	// Regression: requisition yang SUDAH reason_type=WORKFORCE_GAP (slots
+	// auto-resolved 3) lalu di-update field lain (title) tanpa slots —
+	// slots_available harus TETAP 3, bukan di-resolve ulang dari provider.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	svc.SetWorkforceGapProvider(fakeGapProvider{need: 3})
+	reason := string(ReqReasonWorkforceGap)
+	created, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "Ops Staff",
+		ReasonType:     &reason,
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	if created.SlotsAvailable != 3 {
+		t.Fatalf("expected auto-resolved slots 3, got %d", created.SlotsAvailable)
+	}
+
+	// Provider berubah jadi hiring need 9 — update title TIDAK boleh
+	// menimpa slots 3.
+	svc.SetWorkforceGapProvider(fakeGapProvider{need: 9})
+	newTitle := "Ops Staff (Updated)"
+	updated, err := svc.UpdateRequisition(ctx, created.ID, UpdateRequisitionRequest{
+		Title: &newTitle,
+	})
+	if err != nil {
+		t.Fatalf("UpdateRequisition failed: %v", err)
+	}
+	if updated.Title != newTitle {
+		t.Errorf("expected title updated, got %q", updated.Title)
+	}
+	if updated.SlotsAvailable != 3 {
+		t.Errorf("expected slots to stay 3 on unrelated update, got %d", updated.SlotsAvailable)
+	}
+}
+
+func TestService_UpdateRequisition_ClearWorkforceGapID(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	gapID := createTestUUID()
+	created, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(),
+		Title:          "Ops Staff",
+		WorkforceGapID: &gapID,
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+
+	empty := ""
+	updated, err := svc.UpdateRequisition(ctx, created.ID, UpdateRequisitionRequest{
+		WorkforceGapID: &empty,
+	})
+	if err != nil {
+		t.Fatalf("UpdateRequisition failed: %v", err)
+	}
+	if updated.WorkforceGapID != "" {
+		t.Errorf("expected cleared workforce_gap_id, got %q", updated.WorkforceGapID)
 	}
 }
 
