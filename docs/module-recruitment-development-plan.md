@@ -479,11 +479,15 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 **Ref:** plan asli §20, §50, §57.
 
-## G-6 🔶 CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate) — sub-project 1/3: candidate_number + educations + work_experiences
+## G-6 🔶 CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate) — sub-project 1/3 ✅ + sub-project 2/3 ✅ (sisa: documents/consents)
 
-**Status: ✅ Selesai (2026-08-12) — PARTIAL COMPLETION, sub-project 1 of 3 planned.** Kolom `candidate_number` + tabel `candidate_educations` + tabel `candidate_work_experiences` ✅; sisa scope (status, source_id, skills, certifications, documents, consents) deferred ke sub-project berikutnya.
+**Status: ✅ Selesai (2026-08-12) — PARTIAL COMPLETION, sub-project 1+2 of 3 completed.** 
 
-**Yang diimplementasikan:**
+**Sub-project 1 (2026-08-12):** Kolom `candidate_number` + tabel `candidate_educations` + tabel `candidate_work_experiences` ✅ (migration 098).
+
+**Sub-project 2 (2026-08-12):** Tabel `candidate_skills` + tabel `candidate_certifications` ✅ (migration 099); sisa scope (status, source_id, documents, consents) deferred ke sub-project 3.
+
+**Yang diimplementasikan (sub-project 1):**
 - **Migration `098_recruitment_candidate_profile_basics`** (pg + mysql, up/down idempotent): 
   - Kolom `candidate_number` VARCHAR(50) NULL di `candidates` — auto-generated `CAND-YYYYMM-XXXXXXXX` saat create (8 hex char UUID, pola G-2/G-3 requisition_number/offer_number); bisa override via create/update.
   - Tabel baru `candidate_educations` — `id, candidate_id (FK), education_id (FK → setting.educations — level master), institution_name, education_major_id (FK → setting.education_majors), major (free-text fallback), gpa, start_year, end_year, is_highest, notes, created_at, updated_at`; index `idx_ed_cand`.
@@ -492,17 +496,25 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 - **Service:** CRUD methods untuk kedua entitas + `generateCandidateNumber()` helper; wired ke `CreateCandidate` auto-generate.
 - **Handler/Routes:** 8 endpoint CRUD — `POST/GET /recruitment/candidates/:id/educations`, `PUT/DELETE /recruitment/educations/:id`, `POST/GET /recruitment/candidates/:id/work-experiences`, `PUT/DELETE /recruitment/work-experiences/:id` (mirroring `Interview`/`OnboardingTaskTemplate` pattern; path param `:id` bukan `:candidate_id` — Gin panic kalau dua route berbagi posisi segment path dengan nama wildcard berbeda, dan `/candidates/:id` sudah ada duluan).
 - **DTO:** `CandidateEducationRequest/Response` + `CandidateWorkExperienceRequest/Response`; add `candidate_number` ke `CandidateResponse`.
-- **Test:** +17 test (repository +4: educations + work_experiences CRUD roundtrip; service +9: both entities CRUD + candidate_number auto-gen format + override + explicit update; handler +4: both entities create/list/update/delete); total recruitment: **161** (handler 28 + repository 27 + service 106).
+- **Test:** +17 test (repository +4: educations + work_experiences CRUD roundtrip; service +9: both entities CRUD + candidate_number auto-gen format + override + explicit update; handler +4: both entities create/list/update/delete).
 
-**Rencana (sisa G-6 — deferred ke sub-project berikutnya):**
+**Yang diimplementasikan (sub-project 2):**
+- **Migration `099_recruitment_candidate_skills_certifications`** (pg + mysql, up/down idempotent):
+  - Tabel baru `candidate_skills` — `id, candidate_id (FK), competency_id (FK → setting.competencies — existing master), level INT (1-5), created_at, updated_at`; index `idx_skill_cand`; NOT NULL constraints + referential integrity.
+  - Tabel baru `candidate_certifications` — `id, candidate_id (FK), name VARCHAR(255) NN (free-text, no master), issuer VARCHAR(255) NULL, issue_date DATE NULL, expiry_date DATE NULL, credential_url TEXT NULL, created_at, updated_at`; index `idx_cert_cand`; no master reference (Certification Master belum ada di codebase).
+- **Model:** `CandidateSkill` + `CandidateCertification` structs; relation field `Competency *setting.Competency` pada `CandidateSkill` (mirroring competency referencing pattern).
+- **Service:** CRUD methods untuk kedua entitas; validasi level 1-5 (stored as `*int` per design — no enum, no constraint DB-side, level validation di service saja).
+- **Handler/Routes:** 8 endpoint CRUD — `POST/GET /recruitment/candidates/:id/skills`, `PUT/DELETE /recruitment/skills/:id`, `POST/GET /recruitment/candidates/:id/certifications`, `PUT/DELETE /recruitment/certifications/:id` (identik pola G-6 sub-1 education/work-experience; path param `:id`).
+- **DTO:** `CandidateSkillRequest/Response` + `CandidateCertificationRequest/Response`.
+- **Test:** +8 test (repository +4: skills + certifications CRUD; service +4: both entities CRUD + level validation 1-5).
+
+**Rencana (sisa G-6 sub-project 3 — deferred):**
 - `candidates.status` (availability status ACTIVE/BLACKLISTED/dst.) — **skipped**: tidak jelas kebutuhan bisnis, potensi redundan dengan application-level status.
 - `candidates.source_id` + master source — **deferred**: `source` tetap teks bebas; membangun source master adalah effort terpisah dan belum diputuskan prioritasnya.
-- `candidate_skills` — **blocked**: menunggu keputusan desain Skill Master (apakah perlu master baru, reuse dari Competency, atau tabel terpisah); Skill Master tidak ada di codebase saat ini.
-- `candidate_certifications` — **blocked**: sama seperti skills, menunggu Certification Master design decision.
 - `candidate_documents` — **deferred**: concerns compliance/file-storage, pertimbangan keamanan sendiri (plan §17), ditangani sub-project terpisah.
 - `candidate_consents` — **deferred**: compliance + GDPR concerns, sub-project terpisah.
 
-**Ref:** design spec `docs/superpowers/specs/2026-08-12-candidate-profile-basics-design.md`; plan asli §13-§19.
+**Ref:** design spec `docs/superpowers/specs/2026-08-12-candidate-profile-basics-design.md`; migration 099 (skills/certifications); plan asli §13-§19.
 
 ## G-7 🟡 SCREENING & ASSESSMENT
 
@@ -582,7 +594,7 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 # 8. API Plan
 
-## 8.1 Existing (42 endpoint — sudah ada)
+## 8.1 Existing (50 endpoint — sudah ada)
 
 ```http
 ## Requisitions
@@ -599,17 +611,29 @@ GET    /api/v1/tenant/recruitment/candidates/{id}
 PUT    /api/v1/tenant/recruitment/candidates/{id}
 DELETE /api/v1/tenant/recruitment/candidates/{id}
 
-## Candidate Educations (G-6)
+## Candidate Educations (G-6 sub-project 1)
 POST   /api/v1/tenant/recruitment/candidates/{id}/educations
 GET    /api/v1/tenant/recruitment/candidates/{id}/educations
 PUT    /api/v1/tenant/recruitment/educations/{id}
 DELETE /api/v1/tenant/recruitment/educations/{id}
 
-## Candidate Work Experiences (G-6)
+## Candidate Work Experiences (G-6 sub-project 1)
 POST   /api/v1/tenant/recruitment/candidates/{id}/work-experiences
 GET    /api/v1/tenant/recruitment/candidates/{id}/work-experiences
 PUT    /api/v1/tenant/recruitment/work-experiences/{id}
 DELETE /api/v1/tenant/recruitment/work-experiences/{id}
+
+## Candidate Skills (G-6 sub-project 2)
+POST   /api/v1/tenant/recruitment/candidates/{id}/skills
+GET    /api/v1/tenant/recruitment/candidates/{id}/skills
+PUT    /api/v1/tenant/recruitment/skills/{id}
+DELETE /api/v1/tenant/recruitment/skills/{id}
+
+## Candidate Certifications (G-6 sub-project 2)
+POST   /api/v1/tenant/recruitment/candidates/{id}/certifications
+GET    /api/v1/tenant/recruitment/candidates/{id}/certifications
+PUT    /api/v1/tenant/recruitment/certifications/{id}
+DELETE /api/v1/tenant/recruitment/certifications/{id}
 
 ## Applications
 GET    /api/v1/tenant/recruitment/applications
@@ -994,7 +1018,7 @@ Status per 2026-08-12 (✅ = sudah, ⬜ = target enhancement). Scope: **operasio
 - [ ] Screening tersedia.
 - [ ] Assessment tersedia.
 - [ ] Interview mendukung multi-interviewer + scorecard.
-- [ ] Candidate memiliki profile terstruktur (education/experience/skills/certification/document) — 🔶 sebagian: education/experience ✅ (G-6 sub-project 1), skills/certifications/documents ❌.
+- [ ] Candidate memiliki profile terstruktur (education/experience/skills/certification/document) — 🔶 sebagian: education/experience/skills/certifications ✅ (G-6 sub-project 1+2), documents ❌.
 - [ ] Candidate mendukung internal/external.
 - [ ] External candidate dapat menjadi Employee.
 - [ ] Internal candidate menggunakan Employee Movement.
