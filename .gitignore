@@ -57,3 +57,6 @@ __pycache__/
 *.pyc
 # runtime uploads (attachment files)
 backend/uploads/
+
+# Superpowers subagent-driven-development scratch workspace
+.superpowers/
