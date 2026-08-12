@@ -496,7 +496,7 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 - **Service:** CRUD methods untuk kedua entitas + `generateCandidateNumber()` helper; wired ke `CreateCandidate` auto-generate.
 - **Handler/Routes:** 8 endpoint CRUD — `POST/GET /recruitment/candidates/:id/educations`, `PUT/DELETE /recruitment/educations/:id`, `POST/GET /recruitment/candidates/:id/work-experiences`, `PUT/DELETE /recruitment/work-experiences/:id` (mirroring `Interview`/`OnboardingTaskTemplate` pattern; path param `:id` bukan `:candidate_id` — Gin panic kalau dua route berbagi posisi segment path dengan nama wildcard berbeda, dan `/candidates/:id` sudah ada duluan).
 - **DTO:** `CandidateEducationRequest/Response` + `CandidateWorkExperienceRequest/Response`; add `candidate_number` ke `CandidateResponse`.
-- **Test:** +17 test (repository +4: educations + work_experiences CRUD roundtrip; service +9: both entities CRUD + candidate_number auto-gen format + override + explicit update; handler +4: both entities create/list/update/delete).
+- **Test:** +17 test (repository +4: educations + work_experiences CRUD roundtrip; service +9: both entities CRUD + candidate_number auto-gen format + override + explicit update; handler +4: both entities create/list/update/delete). Total recruitment: **161** (handler 36 + repository 34 + service 91).
 
 **Yang diimplementasikan (sub-project 2):**
 - **Migration `099_recruitment_candidate_skills_certifications`** (pg + mysql, up/down idempotent):
@@ -506,7 +506,7 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 - **Service:** CRUD methods untuk kedua entitas; validasi level 1-5 (stored as `*int` per design — no enum, no constraint DB-side, level validation di service saja).
 - **Handler/Routes:** 8 endpoint CRUD — `POST/GET /recruitment/candidates/:id/skills`, `PUT/DELETE /recruitment/skills/:id`, `POST/GET /recruitment/candidates/:id/certifications`, `PUT/DELETE /recruitment/certifications/:id` (identik pola G-6 sub-1 education/work-experience; path param `:id`).
 - **DTO:** `CandidateSkillRequest/Response` + `CandidateCertificationRequest/Response`.
-- **Test:** +8 test (repository +4: skills + certifications CRUD; service +4: both entities CRUD + level validation 1-5).
+- **Test:** +10 test (repository +4: skills + certifications CRUD; service +4: both entities CRUD + level validation 1-5; handler +2: skill + certification create). Total recruitment: **171** (handler 38 + repository 38 + service 95).
 
 **Rencana (sisa G-6 sub-project 3 — deferred):**
 - `candidates.status` (availability status ACTIVE/BLACKLISTED/dst.) — **skipped**: tidak jelas kebutuhan bisnis, potensi redundan dengan application-level status.
