@@ -4,7 +4,7 @@
 > **Terkait:** [`panduan-uiux-hris-enterprise.md`](panduan-uiux-hris-enterprise.md) · [`project-completion-dashboard.md`](project-completion-dashboard.md) · [`api/api-usage-guide.md`](api/api-usage-guide.md)
 
 **Generated:** 27 July 2026
-**Last Updated:** 9 August 2026 (Leave & Time Off FE-1/FE-2 marked done — My Leave Dashboard + Admin Configuration; Performance Management KPI + OKR + Performance Scoring Configuration sudah selesai sebelumnya)
+**Last Updated:** 12 August 2026 (Sinkronisasi status dengan implementasi aktual: Attendance, Employee Movement, Approval Engine, Training & Development, Notifications, Career Paths, Candidate Search ditandai selesai/parsial; angka backend per modul disinkronkan dengan `go-module-architecture-report.md`)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios
 
 ---
@@ -29,11 +29,11 @@ frontend/
     ├── src/
     │   ├── App.vue          # Root - Toast + ConfirmDialog
     │   ├── main.js          # Entry point
-    │   ├── router/index.js  # Routes for all 15 modules
+    │   ├── router/index.js  # Routes for all tenant modules (100+ routes)
     │   ├── layouts/         # AppLayout, HeaderBar, Sidebar
     │   └── views/
     │       ├── Dashboard.vue
-    │       └── modules/     # 15 module views (mostly placeholders)
+    │       └── modules/     # Views per modul tenant (mayoritas sudah terimplementasi)
     └── package.json
 ```
 
@@ -142,7 +142,7 @@ frontend/
 - [x] `useSlugify` composable (shared slugify logic antara Packages & Modules)
 - [x] Slug animasi CSS global (slug-animation.css)
 
-### B.9. RBAC Management Page 🔴 (BARU - Done)
+### B.9. RBAC Management Page ✅ (BARU - Done)
 - [x] Daftar roles (DataTable)
 - [x] Create role dialog (name, slug auto-generate dari useSlugify, description)
 - [x] Role detail page (permissions matrix — grouped by module/resource)
@@ -195,7 +195,7 @@ frontend/
 - [x] Sidebar with all module links
 - [x] HeaderBar with user info
 - [x] Responsive sidebar (collapsible)
-- [x] 15 module routes registered
+- [x] 100+ module routes registered (seluruh modul tenant)
 - [x] Dashboard with KPI cards + quick access
 - [x] **Dark mode** — All layout components dark mode classes (bg, text, border)
 - [x] **Skeleton components** — Copied SkeletonCard, SkeletonTable, useSkeletonPage to tenant frontend
@@ -407,30 +407,30 @@ frontend/
 - [ ] Competency Events + Targets CRUD
 - [ ] Competency Scores + Details CRUD
 
-### C.12. Employee Movement 🔴 (BARU)
-**Backend:** 15 endpoints
-- [ ] Movements list (DataTable with status workflow)
-- [ ] Create Movement (type: promotion/demotion/mutation, etc.)
-- [ ] Approve / Execute / Cancel workflow buttons
-- [ ] Contracts CRUD (PKWT/PKWTT)
+### C.12. Employee Movement ✅ (Selesai — sinkron 12 Agu 2026)
+**Backend:** 25 endpoints — movement CRUD + submit (Central Approval), execute, cancel, audits, movement documents, career history, movement/promotion eligibility, contract CRUD, movement & contract reports, HR dashboard
+**Frontend:**
+- [x] `EmployeeMovements.vue` — daftar & CRUD movement (workflow: draft → pending_approval → approved → executed), submit ke approval engine, execute/cancel
+- [x] `EmployeeContracts.vue` — kontrak CRUD (PKWT/PKWTT/daily) + extension count
+- [x] `EmployeeMovementReports.vue` — kartu laporan movement & kontrak (`GET /reports/movements`, `/reports/contracts`, `/dashboard`)
+- [x] Routes `admin/career/movements`, `admin/career/contracts`, `admin/career/reports` (menu "Movements & Contracts") + locale keys EN/ID
 
-### C.13. Time & Attendance 🔴 (BARU)
-**Backend:** 30 endpoints (10 entities)
-- [ ] Company Settings
-- [ ] Shifts CRUD
-- [ ] Employee Shifts assignment
-- [ ] Attendance Events (check-in/out log)
-- [ ] Daily Sessions view
-- [ ] Overtime Requests CRUD
-- [ ] Location management (geofence)
-- [ ] Exempt Positions
+### C.13. Time & Attendance ✅ (Selesai — sinkron 12 Agu 2026)
+**Backend:** 40 endpoints (11 entities) — company settings, shifts, employee shifts, locations (geofence), events, sessions, calendar, summary, reports, overtime requests (dua alur SELF/ASSIGNED), corrections, exempt positions
+**Frontend (13 view):**
+- [x] `Attendance.vue` — kalender kehadiran + rekap summary + koreksi (employee)
+- [x] `AttendanceAdmin.vue` — index kartu sub-menu
+- [x] `AttendanceSettings.vue`, `AttendanceShifts.vue`, `AttendanceEmployeeShifts.vue`, `AttendanceLocations.vue`, `AttendanceExemptPositions.vue` — konfigurasi
+- [x] `AttendanceOvertime.vue` — request overtime (SELF + ASSIGNED + isian aktual)
+- [x] `AttendanceCorrections.vue` — pengajuan koreksi kehadiran
+- [x] `AttendanceEvents.vue`, `AttendanceSessions.vue`, `AttendanceReports.vue` — event log, daily sessions, laporan HR
 
-### C.14. Approval Engine 🔴 (BARU)
-**Backend:** 15 endpoints
-- [ ] Approval Flows CRUD (with multi-step)
-- [ ] My Tasks (pending approvals list)
-- [ ] Approval Instances history
-- [ ] Approve / Reject actions
+### C.14. Approval Engine ✅ (Selesai — sinkron 12 Agu 2026)
+**Backend:** 17 endpoints — flows (multi-step), instances, tasks, actions (approve/reject), available-modules, active-flow resolver
+**Frontend:**
+- [x] `Approvals.vue` — my tasks (pending approvals) + instance history + approve/reject actions
+- [x] `ApprovalFlows.vue` — flow builder (multi-step) + aktivasi flow
+- [x] Route `approvals` & `approvals/flows` + menu sidebar + locale keys EN/ID
 
 ### C.15. Payroll & Compensation 🔴 (BARU)
 **Backend:** 47 endpoints (21 entities)
@@ -505,34 +505,29 @@ Memungkinkan final score KPI per Organization dihitung dari kombinasi berbobot b
 - [ ] Items per request
 - [ ] Status workflow buttons
 
-### C.20. Training & Development 🔴 (BARU)
-**Backend:** 35 endpoints
-- [ ] Categories CRUD
-- [ ] Courses CRUD
-- [ ] Sessions CRUD
-- [ ] Participants registration
-- [ ] Evaluations
-- [ ] Certificates
+### C.20. Training & Development ✅ (Selesai — sinkron 12 Agu 2026; P0–P2 FE)
+**Backend:** 123 endpoints — P0 core (categories, courses, sessions, participants, materials, evaluations, certificates, providers, trainers, session trainers/attendance/assessments), P1 planning & governance (plans + items, needs, requests + submit/cancel via Central Approval, mandatories, session costs/documents), P2 advanced (evaluation forms/questions/answers, effectiveness, certifications, history, reports)
+**Frontend (14 view):**
+- [x] `Training.vue` — index kartu sub-menu
+- [x] `TrainingCategories.vue`, `TrainingCourses.vue`, `TrainingProviders.vue`, `TrainingTrainers.vue` — master data
+- [x] `TrainingSessions.vue` + `TrainingSessionDetail.vue` — jadwal & detail session (attendance, assessment, trainers, costs, documents)
+- [x] `TrainingParticipants.vue` — registrasi peserta + hasil
+- [x] `TrainingPlans.vue`, `TrainingRequests.vue`, `TrainingNeeds.vue` — planning & governance
+- [x] `TrainingCertificates.vue`, `TrainingHistory.vue`, `TrainingReports.vue` — sertifikat, riwayat, laporan (participation/cost/compliance/dashboard)
 
-### C.21. Workforce Intelligence 🔴 (BARU)
-**Backend:** 68 endpoints (analytics layer)
-- [ ] Dashboard (KPI summaries)
-- [ ] Headcount Planning
-- [ ] Analytics dashboards (headcount, attendance, leave, payroll, etc.)
-- [ ] Risk Dashboard
-- [ ] Executive Dashboard
-- [ ] Scenario Planning
-- [ ] Organization Health metrics
-- [ ] People Analytics charts
+### C.21. Workforce Intelligence 🟡 (Parsial — sinkron 12 Agu 2026)
+**Backend:** 69 endpoints (analytics layer) — candidate-search, planning/headcounts, executive summary, analytics (headcount/attendance/leave/payroll), risk, organization health
+**Frontend:**
+- [x] `WorkforceIntelligence.vue` — index kartu sub-menu (dashboard analytics)
+- [x] `CandidateSearch.vue` — posisi kosong + kandidat recruitment (`GET /workforce-intelligence/candidate-search`)
+- [ ] Sub-halaman analytics (headcount planning, risk, executive, scenario, organization health, people analytics) — masih "Coming soon"
 
-### C.22. Career Intelligence 🔴 (BARU)
-**Backend:** 19 endpoints
-- [ ] 9-Box Talent Grid visualization
-- [ ] Talent Maps CRUD
-- [ ] Career Interests
-- [ ] Career Paths
-- [ ] Gap Analysis view
-- [ ] Succession Plans CRUD
+### C.22. Career Intelligence 🟡 (Parsial — sinkron 12 Agu 2026)
+**Backend:** 21 endpoints — talent maps + grid, career interests, career paths (ladder-style: name + steps), gap analysis, succession plans
+**Frontend:**
+- [x] `CareerIntelligence.vue` — index kartu sub-menu
+- [x] `CareerPaths.vue` — career paths ladder-style, route `career-intelligence/paths`
+- [ ] Sub-halaman (9-box talent grid, talent maps, career interests, gap analysis, succession plans) — masih "Coming soon"
 
 ### C.23. Package Subscription (Tenant) 🔴 (BARU)
 - [ ] Browse published packages (GET /api/v1/public/packages)
@@ -542,6 +537,18 @@ Memungkinkan final score KPI per Organization dihitung dari kombinasi berbobot b
 - [ ] Subscribe button → POST /api/v1/tenant/packages/:id/subscribe
 - [ ] Unsubscribe button → POST /api/v1/tenant/packages/:id/unsubscribe
 - [ ] Activated modules list (dari response subscribe)
+
+### C.24. Notifications ✅ (Selesai — sinkron 12 Agu 2026)
+**Backend:** module `notification` (4 endpoints) — feed, unread-count, mark read (per-item & read-all), dikirim otomatis oleh modul lain (mis. Approval)
+**Frontend:**
+- [x] `Notifications.vue` — feed notifikasi (filter `is_read`, paginated), badge unread-count, tandai dibaca per item & read-all
+- [x] Route `notifications` + menu sidebar + locale keys EN/ID
+
+### C.25. Tenant RBAC — Roles & Permissions ✅ (Selesai — sinkron 12 Agu 2026)
+**Backend:** endpoint `tenant/rbac/*` — roles, permissions, assign permissions ke role, assign roles ke user
+**Frontend:**
+- [x] `settings/RolesPermissions.vue` — daftar role + permission, assign permission per role, assign role ke user
+- [x] Route `settings/rbac` + card di SettingsIndex + locale keys EN/ID
 
 ---
 
@@ -930,7 +937,7 @@ Response handler → toast.show("Berhasil dibuat")
 | P0 | Organization Management (Tree + CRUD) | 🟡 Medium | ✅ Done |
 | P0 | Setting Module — All 19 Reference CRUDs (incl. TER & PTKP & Company Holidays) | 🟡 Medium | ✅ Done |
 | P0 | Employee Management (Wizard) | 🔴 Complex | 🟡 8/9 Steps ✅ |
-| P1 | Leave & Attendance | 🟡 Medium | 🟡 Partial — Attendance FE-1 s.d. FE-5 ✅, Leave FE-1 & FE-2 ✅ |
+| P1 | Leave & Attendance | 🟡 Medium | ✅ **Done (Attendance 13 view + Leave FE-1/FE-2)** |
 | P1 | Payroll (read-only payslip) | 🟡 Medium | 🔴 TODO |
 | P2 | Job Management | 🔴 Complex | ✅ **Done (05 Agu 2026)** |
 | P2 | Competency Management | 🔴 Complex | 🔴 TODO |
@@ -939,18 +946,18 @@ Response handler → toast.show("Berhasil dibuat")
 | Priority | Feature | Kompleksitas | Status |
 |:--------:|---------|:------------:|:------:|
 | P1 | Performance Management (KPI + OKR) | 🔴 Complex | ✅ **Done (07 Agu 2026)** |
-| P1 | Performance Scoring Configuration (KPI Phase 5 FE) | 🟡 Medium | 🔴 TODO — backend selesai |
+| P1 | Performance Scoring Configuration (KPI Phase 5 FE) | 🟡 Medium | ✅ **Done (07 Agu 2026)** |
 | P1 | Recruitment (ATS Pipeline) | 🔴 Complex | 🔴 TODO |
-| P2 | Approval Engine (Flow Builder) | 🔴 Complex | 🔴 TODO |
-| P2 | Employee Movement (Workflow) | 🟡 Medium | 🔴 TODO |
-| P2 | Training Management | 🟡 Medium | 🔴 TODO |
+| P2 | Approval Engine (Flow Builder) | 🔴 Complex | ✅ **Done (12 Agu 2026)** |
+| P2 | Employee Movement (Workflow) | 🟡 Medium | ✅ **Done (12 Agu 2026)** |
+| P2 | Training Management | 🟡 Medium | ✅ **Done (12 Agu 2026)** |
 | P2 | Reimbursement | 🟡 Medium | 🔴 TODO |
 
 ### Phase 5 — Intelligence & Subscription — Estimasi: 2-3 minggu
 | Priority | Feature | Kompleksitas | Status |
 |:--------:|---------|:------------:|:------:|
-| P1 | Workforce Intelligence Dashboards | 🔴 Complex | 🔴 TODO |
-| P1 | Career Intelligence (9-box Grid) | 🔴 Complex | 🔴 TODO |
+| P1 | Workforce Intelligence Dashboards | 🔴 Complex | 🟡 Partial (index + candidate-search) |
+| P1 | Career Intelligence (9-box Grid) | 🔴 Complex | 🟡 Partial (index + career-paths) |
 | P1 | Package Subscription (Tenant) | 🟡 Medium | 🔴 TODO |
 
 ---
