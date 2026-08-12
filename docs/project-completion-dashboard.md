@@ -116,6 +116,24 @@
 
 ---
 
+## 📋 Module Development Plan Status
+
+Ringkasan status implementasi per dokumen plan modul — diverifikasi terhadap kode & masing-masing file plan per **12 Agu 2026**. Detail lengkap ada di file plan-nya.
+
+| Plan | Status | Sisa Pekerjaan |
+|------|:------:|----------------|
+| [`performance-management-kpi-plan.md`](performance-management-kpi-plan.md) | ✅ **Selesai** | KPI Phase 1–4 (2026-08-06) + Scoring Phase 5 (07 Agu) + Seeder Phase 6 + Approval Integration & Two-Phase Target/Realization Phase 8 + Program Component/Bottom-Up Subordinate Scoring & OKR Self-Assessment Phase 9 (08 Agu) — backend & FE selesai; plan OKR & frontend KPI/OKR sudah di-archive |
+| `module-training-development-plan.md` *(di-archive: `docs/archive/`)* | ✅ **100% Selesai** | P0–P2 BE+FE selesai (2026-08-11): migration 088/089/090, CRUD lengkap, Central Approval, sertifikat, reports/history, 14 view FE — tanpa TODO tersisa |
+| [`module-movement-plan.md`](module-movement-plan.md) | 🟢 **Hampir Selesai** | 13/13 langkah + enhancement §12 P0–P2 ✅ (backend + FE Movements/Contracts/detail/reports/dashboard). Sisa: eksekusi E2E manual (menunggu environment tenant + akun `employeemovement.*`) + 4 enhancement opsional (bukan blocker) |
+| [`module-notification-plan.md`](module-notification-plan.md) | 🟡 **Sebagian** | Phase 1–4 ✅ + FE-1/2 ✅. Belum: Phase 5 — outcome notification payroll/employeemovement/reimbursement + recruitment; FE-3 deep-link per `reference_type` |
+| [`module-career-intelligence-plan.md`](module-career-intelligence-plan.md) | 🟡 **Sebagian** | Backend ✅ penuh (talent maps, interests, career paths, gap analysis, succession plans). Belum: halaman FE Talent Maps/Interests/Gap Analysis/Succession Plans (baru career paths) |
+| [`module-leave-plan.md`](module-leave-plan.md) | 🟡 **Sebagian** | Phase 1–3 & 5 ✅; FE-1/2 ✅. Belum (Phase 4/6–10): accrual engine, adjustment HR, carry forward, expiry, sub-flow cancellation, team calendar, manager/HR dashboard |
+| [`module-attendance-plan.md`](module-attendance-plan.md) | 🟡 **Sebagian** | Mayoritas ✅ (geofence, session calc, corrections, overtime 2-alur, leave integration, notif) + FE-1–5 ✅. Belum: Absent/Exempt detection (butuh scheduled job), Manager/HR Dashboard & Team Calendar, Payroll integration (Phase 13), WRONG_CHECKIN/CHECKOUT otomatis |
+| [`career-intelligence-training-enhancement-plan.md`](career-intelligence-training-enhancement-plan.md) | 📋 **Proposal** | 11 fitur enhancement (training profile, gap, recommendation, readiness, dll.) — belum dieksekusi |
+| [`workforce-intelligence-training-enhancement-plan.md`](workforce-intelligence-training-enhancement-plan.md) | 📋 **Proposal** | 13 fitur enhancement (training demand, coverage, cost, readiness, risk, dll.) — belum dieksekusi |
+
+---
+
 ## 🧪 Test Coverage Summary
 
 | Module | Tests | % of Total | Key Test Areas |
