@@ -86,7 +86,37 @@
           <span class="text-xs text-gray-600 dark:text-gray-300">{{ data.target_start_date || '—' }}</span>
         </template>
       </Column>
+
+      <!-- G-1: aksi — submit draft ke Central Approval -->
+      <Column :header="t('common.actions')" :exportable="false" style="width: 100px">
+        <template #body="{ data }">
+          <Button
+            v-if="data.status === 'DRAFT'"
+            :label="t('requisitions.submit')"
+            icon="pi pi-send"
+            size="small"
+            severity="info"
+            outlined
+            class="!text-xs !px-2.5 !py-1"
+            @click="openSubmitDialog(data)"
+          />
+          <span v-else class="text-xs text-gray-400 dark:text-gray-500 italic">—</span>
+        </template>
+      </Column>
     </DataTable>
+
+    <!-- G-1: dialog konfirmasi submit ke Central Approval -->
+    <ConfirmActionDialog
+      v-model:visible="submitDialogVisible"
+      :title="t('requisitions.submit_confirm_title')"
+      :message="t('requisitions.submit_confirm_message', { title: pendingSubmit?.title || '' })"
+      :confirm-label="t('requisitions.submit')"
+      :loading="submitting"
+      :error-msg="submitError"
+      icon="pi pi-send"
+      severity="info"
+      @confirm="submitRequisition()"
+    />
 
     <!-- Dialog: buat requisition (S-1/S-5 — reason_type WORKFORCE_GAP / SUCCESSION_GAP) -->
     <Dialog v-model:visible="dialogVisible" :header="t('requisitions.new_requisition')" :modal="true" class="!w-[min(95vw,640px)]">
@@ -175,7 +205,7 @@
           <InputNumber v-model="form.max_salary" :min="0" mode="currency" currency="IDR" locale="id-ID" class="!w-full" />
         </FormRow>
 
-        <FormRow :label="t('requisitions.description')" class="md:col-span-2">
+        <FormRow :label="t('requisitions.description_label')" class="md:col-span-2">
           <Textarea v-model="form.description" :rows="2" class="!w-full" />
         </FormRow>
         <FormRow :label="t('requisitions.requirements')" class="md:col-span-2">
@@ -214,18 +244,23 @@ import DateInput from '@/components/DateInput.vue'
 import InputNumber from 'primevue/inputnumber'
 import Textarea from 'primevue/textarea'
 import SkeletonTable from '@/components/SkeletonTable.vue'
+import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
 
 const { t } = useI18n()
 const toast = useToast()
 
 const loading = ref(true)
 const saving = ref(false)
+const submitting = ref(false)
+const submitError = ref('')
 const items = ref([])
 const totalRecords = ref(0)
 const currentPage = ref(1)
 const perPage = ref(10)
 const statusFilter = ref(null)
 const dialogVisible = ref(false)
+const submitDialogVisible = ref(false)
+const pendingSubmit = ref(null)
 
 const organizations = ref([])
 const positions = ref([])
@@ -239,7 +274,7 @@ const skeletonColumns = [
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 
-const statusOptions = computed(() => ['DRAFT', 'OPEN', 'IN_PROGRESS', 'FILLED', 'CANCELLED'].map(v => ({ label: t(`requisitions.status_${v.toLowerCase()}`), value: v })))
+const statusOptions = computed(() => ['DRAFT', 'SUBMITTED', 'OPEN', 'IN_PROGRESS', 'FILLED', 'REJECTED', 'CANCELLED'].map(v => ({ label: t(`requisitions.status_${v.toLowerCase()}`), value: v })))
 
 const reasonOptions = computed(() => ['NEW_POSITION', 'REPLACEMENT', 'EXPANSION', 'WORKFORCE_GAP', 'SUCCESSION_GAP'].map(v => ({ label: t(`requisitions.reason_${v.toLowerCase()}`), value: v })))
 
@@ -282,9 +317,35 @@ function statusSeverity(status) {
     case 'OPEN': return 'success'
     case 'IN_PROGRESS': return 'info'
     case 'FILLED': return 'help'
+    case 'SUBMITTED': return 'info'
     case 'DRAFT': return 'secondary'
+    case 'REJECTED': return 'danger'
     case 'CANCELLED': return 'danger'
     default: return 'secondary'
+  }
+}
+
+function openSubmitDialog(row) {
+  pendingSubmit.value = row
+  submitError.value = ''
+  submitDialogVisible.value = true
+}
+
+async function submitRequisition() {
+  if (!pendingSubmit.value) return
+  submitting.value = true
+  submitError.value = ''
+  try {
+    // flow_id kosong → backend auto-resolve flow aktif modul recruitment (G-1)
+    await api.post(`/api/v1/tenant/recruitment/requisitions/${pendingSubmit.value.id}/submit`, {})
+    submitDialogVisible.value = false
+    pendingSubmit.value = null
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('requisitions.submitted'), life: 3000 })
+    loadData()
+  } catch (e) {
+    submitError.value = getErrorMessage(e, t('message.failed_to_save'))
+  } finally {
+    submitting.value = false
   }
 }
 

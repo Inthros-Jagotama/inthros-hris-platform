@@ -1847,9 +1847,11 @@
     "reason_workforce_gap": "Workforce Gap",
     "reason_succession_gap": "Succession Gap",
     "status_draft": "Draft",
+    "status_submitted": "Submitted",
     "status_open": "Open",
     "status_in_progress": "In Progress",
     "status_filled": "Filled",
+    "status_rejected": "Rejected",
     "status_cancelled": "Cancelled",
     "target_start_date": "Target Start",
     "org": "Organization",
@@ -1863,7 +1865,7 @@
     "title_placeholder": "e.g. Senior Software Engineer",
     "min_salary": "Min Salary",
     "max_salary": "Max Salary",
-    "description": "Description",
+    "description_label": "Description",
     "requirements": "Requirements",
     "responsibilities": "Responsibilities",
     "gap_hint": "Workforce Gap reason — leave slots empty to auto-fill from Workforce Intelligence hiring need.",
@@ -1875,7 +1877,11 @@
     "succession_position_id": "Key Position",
     "created": "Requisition created successfully",
     "org_required": "Organization is required",
-    "title_required": "Title is required"
+    "title_required": "Title is required",
+    "submit": "Submit",
+    "submit_confirm_title": "Submit for Approval",
+    "submit_confirm_message": "Send \"{{title}}\" through the approval workflow? It will be locked until approved or rejected.",
+    "submitted": "Requisition submitted for approval"
   },
   "internal_candidates": {
     "title": "Internal Candidates",

@@ -1847,9 +1847,11 @@
     "reason_workforce_gap": "Workforce Gap",
     "reason_succession_gap": "Suksesi Gap",
     "status_draft": "Draf",
+    "status_submitted": "Diajukan",
     "status_open": "Terbuka",
     "status_in_progress": "Berjalan",
     "status_filled": "Terisi",
+    "status_rejected": "Ditolak",
     "status_cancelled": "Dibatalkan",
     "target_start_date": "Mulai Target",
     "org": "Organisasi",
@@ -1863,7 +1865,7 @@
     "title_placeholder": "mis. Senior Software Engineer",
     "min_salary": "Gaji Min",
     "max_salary": "Gaji Maks",
-    "description": "Deskripsi",
+    "description_label": "Deskripsi",
     "requirements": "Persyaratan",
     "responsibilities": "Tanggung Jawab",
     "gap_hint": "Alasan Workforce Gap — biarkan slot kosong untuk auto-isi dari hiring need Workforce Intelligence.",
@@ -1875,7 +1877,11 @@
     "succession_position_id": "Posisi Kunci",
     "created": "Requisisi berhasil dibuat",
     "org_required": "Organisasi wajib diisi",
-    "title_required": "Judul wajib diisi"
+    "title_required": "Judul wajib diisi",
+    "submit": "Ajukan",
+    "submit_confirm_title": "Ajukan untuk Persetujuan",
+    "submit_confirm_message": "Kirim \"{{title}}\" melalui alur persetujuan? Requisisi akan terkunci sampai disetujui atau ditolak.",
+    "submitted": "Requisisi diajukan untuk persetujuan"
   },
   "internal_candidates": {
     "title": "Kandidat Internal",
