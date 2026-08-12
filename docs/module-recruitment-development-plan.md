@@ -492,7 +492,7 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 - **Service:** CRUD methods untuk kedua entitas + `generateCandidateNumber()` helper; wired ke `CreateCandidate` auto-generate.
 - **Handler/Routes:** 8 endpoint CRUD — `POST/GET /recruitment/candidates/:id/educations`, `PUT/DELETE /recruitment/educations/:id`, `POST/GET /recruitment/candidates/:id/work-experiences`, `PUT/DELETE /recruitment/work-experiences/:id` (mirroring `Interview`/`OnboardingTaskTemplate` pattern; path param `:id` bukan `:candidate_id` — Gin panic kalau dua route berbagi posisi segment path dengan nama wildcard berbeda, dan `/candidates/:id` sudah ada duluan).
 - **DTO:** `CandidateEducationRequest/Response` + `CandidateWorkExperienceRequest/Response`; add `candidate_number` ke `CandidateResponse`.
-- **Test:** +16 test (repository +4: educations + work_experiences CRUD roundtrip; service +8: both entities CRUD + candidate_number auto-gen format + override; handler +4: both entities create/list/update/delete); total recruitment: **160** (handler 28 + repository 27 + service 105).
+- **Test:** +17 test (repository +4: educations + work_experiences CRUD roundtrip; service +9: both entities CRUD + candidate_number auto-gen format + override + explicit update; handler +4: both entities create/list/update/delete); total recruitment: **161** (handler 28 + repository 27 + service 106).
 
 **Rencana (sisa G-6 — deferred ke sub-project berikutnya):**
 - `candidates.status` (availability status ACTIVE/BLACKLISTED/dst.) — **skipped**: tidak jelas kebutuhan bisnis, potensi redundan dengan application-level status.
