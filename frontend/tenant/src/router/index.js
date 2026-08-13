@@ -360,6 +360,19 @@ const routes = [
         component: () => import('@/views/modules/recruitment/Requisitions.vue'),
         meta: { title: 'Job Requisitions', titleKey: 'recruitment.requisitions', descKey: 'requisitions.description', icon: 'pi pi-briefcase', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
       },
+      // Applications — pipeline (list + detail: history/screening/assessment/interviews/match score)
+      {
+        path: 'recruitment/applications',
+        name: 'Applications',
+        component: () => import('@/views/modules/recruitment/Applications.vue'),
+        meta: { title: 'Applications', titleKey: 'recruitment.applications', descKey: 'applications.description', icon: 'pi pi-send', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
+      },
+      {
+        path: 'recruitment/applications/:id',
+        name: 'ApplicationDetail',
+        component: () => import('@/views/modules/recruitment/ApplicationDetail.vue'),
+        meta: { title: 'Application Detail', titleKey: 'applications.detail', module: 'recruitment', backRoute: '/recruitment/applications', backLabelKey: 'recruitment.applications' }
+      },
       // Candidates — G-6 profile (educations/experiences/skills/certifications/documents/consents)
       {
         path: 'recruitment/candidates',
