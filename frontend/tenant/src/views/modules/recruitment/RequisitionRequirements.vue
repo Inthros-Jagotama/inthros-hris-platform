@@ -77,7 +77,7 @@
           <div v-if="competencyItems.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             <div v-for="item in competencyItems" :key="item.id" class="flex items-center gap-2 px-3 py-2.5">
               <div class="min-w-0 flex-1">
-                <p class="text-sm text-gray-800 dark:text-gray-100">{{ competencyName(item.competency_id) }}</p>
+                <p class="text-sm text-gray-800 dark:text-gray-100">{{ competencyName(item) }}</p>
                 <p v-if="item.required_level || item.weight" class="text-xs text-gray-400">
                   <span v-if="item.required_level">{{ t('requisitions.required_level') }} {{ item.required_level }}</span>
                   <span v-if="item.weight"> · {{ t('requisitions.weight') }} {{ item.weight }}%</span>
@@ -92,7 +92,7 @@
             <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-dashed border-amber-200 dark:border-amber-700/40 rounded-lg">
               <div v-for="item in jobManagementCompetencies" :key="item.id" class="flex items-center gap-2 px-3 py-2.5">
                 <div class="min-w-0 flex-1">
-                  <p class="text-sm text-gray-700 dark:text-gray-300">{{ competencyName(item.competency_id) }}</p>
+                  <p class="text-sm text-gray-700 dark:text-gray-300">{{ competencyName(item) }}</p>
                   <p v-if="item.weight" class="text-xs text-gray-400">{{ t('requisitions.weight') }} {{ item.weight }}%</p>
                 </div>
               </div>
@@ -156,9 +156,13 @@ const newCompetency = ref({})
 
 const competencyOptions = computed(() => competencyMaster.value.map(c => ({ label: c.name, value: c.id })))
 
-function competencyName(id) {
-  const c = competencyMaster.value.find(x => x.id === id)
-  return c ? c.name : id
+// item.competency_name (backend-resolved, requisition's own competencies)
+// diprioritaskan; fallback ke lookup client-side dari competencyMaster
+// (dipakai oleh baris Job Management yang tidak punya competency_name).
+function competencyName(item) {
+  if (item.competency_name) return item.competency_name
+  const c = competencyMaster.value.find(x => x.id === item.competency_id)
+  return c ? c.name : item.competency_id
 }
 
 function cleanItemPayload(payload) {

@@ -3707,6 +3707,9 @@ func requisitionCompetencyToResponse(c *JobRequisitionCompetency) *RequisitionCo
 		CreatedAt:     c.CreatedAt,
 		UpdatedAt:     c.UpdatedAt,
 	}
+	if c.Competency != nil {
+		resp.CompetencyName = c.Competency.Name
+	}
 	if c.RequiredLevel != nil {
 		resp.RequiredLevel = *c.RequiredLevel
 	}

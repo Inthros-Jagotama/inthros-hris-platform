@@ -3332,6 +3332,9 @@ func TestService_ListUpdateDeleteRequisitionCompetency(t *testing.T) {
 	if len(list) != 1 {
 		t.Errorf("expected 1, got %d", len(list))
 	}
+	if list[0].CompetencyName != "Go" {
+		t.Errorf("expected competency_name 'Go' resolved from the preloaded Competency relation, got %q", list[0].CompetencyName)
+	}
 
 	level := 4
 	updated, err := svc.UpdateRequisitionCompetency(ctx, created.ID, UpdateRequisitionCompetencyRequest{RequiredLevel: &level})

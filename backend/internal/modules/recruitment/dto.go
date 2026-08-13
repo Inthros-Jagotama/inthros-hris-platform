@@ -568,14 +568,15 @@ type UpdateRequisitionCompetencyRequest struct {
 }
 
 type RequisitionCompetencyResponse struct {
-	ID            string    `json:"id"`
-	RequisitionID string    `json:"requisition_id"`
-	CompetencyID  string    `json:"competency_id"`
-	RequiredLevel int       `json:"required_level,omitempty"`
-	IsRequired    bool      `json:"is_required"`
-	Weight        float64   `json:"weight,omitempty"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID             string    `json:"id"`
+	RequisitionID  string    `json:"requisition_id"`
+	CompetencyID   string    `json:"competency_id"`
+	CompetencyName string    `json:"competency_name,omitempty"`
+	RequiredLevel  int       `json:"required_level,omitempty"`
+	IsRequired     bool      `json:"is_required"`
+	Weight         float64   `json:"weight,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // =========================================================================
