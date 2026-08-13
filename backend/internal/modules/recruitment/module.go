@@ -111,6 +111,9 @@ func (m *recModule) Migrate(db *gorm.DB) error {
 		&CandidateCertification{},
 		&CandidateDocument{},
 		&CandidateConsent{},
+		&ApplicationScreening{},
+		&RecruitmentAssessment{},
+		&AssessmentParticipant{},
 	)
 }
 

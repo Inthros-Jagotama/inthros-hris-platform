@@ -67,6 +67,22 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		rec.PUT("/applications/:id/status", handler.UpdateApplicationStatus)
 		rec.GET("/applications/:id/history", handler.GetApplicationHistory)
 		rec.DELETE("/applications/:id", handler.DeleteApplication)
+		// G-7 sub-project 1: screening (many-per-application, no auto status transition)
+		rec.POST("/applications/:id/screenings", handler.CreateApplicationScreening)
+		rec.GET("/applications/:id/screenings", handler.ListApplicationScreenings)
+		rec.PUT("/screenings/:id", handler.UpdateApplicationScreening)
+		rec.DELETE("/screenings/:id", handler.DeleteApplicationScreening)
+
+			// G-7 sub-project 2: assessments (batch session) + participants
+			rec.POST("/assessments", handler.CreateAssessment)
+			rec.GET("/assessments", handler.ListAssessments)
+			rec.GET("/assessments/:id", handler.GetAssessmentByID)
+			rec.PUT("/assessments/:id", handler.UpdateAssessment)
+			rec.DELETE("/assessments/:id", handler.DeleteAssessment)
+			rec.POST("/assessments/:id/participants", handler.AddAssessmentParticipant)
+			rec.GET("/assessments/:id/participants", handler.ListAssessmentParticipants)
+			rec.PUT("/assessment-participants/:id", handler.UpdateAssessmentParticipant)
+			rec.DELETE("/assessment-participants/:id", handler.DeleteAssessmentParticipant)
 
 		// Interviews
 		rec.POST("/interviews", handler.CreateInterview)

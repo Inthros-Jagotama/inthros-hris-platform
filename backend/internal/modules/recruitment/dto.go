@@ -426,6 +426,97 @@ type StageHistoryResponse struct {
 }
 
 // =========================================================================
+// Application Screening DTOs (G-7 sub-project 1)
+// =========================================================================
+
+type CreateApplicationScreeningRequest struct {
+	ScreenedBy string   `json:"screened_by"`
+	ScreenedAt int64    `json:"screened_at"`
+	Score      *float64 `json:"score"`
+	Result     string   `json:"result" binding:"omitempty,oneof=PASS FAIL HOLD"`
+	Notes      string   `json:"notes"`
+}
+
+type UpdateApplicationScreeningRequest struct {
+	ScreenedBy *string  `json:"screened_by"`
+	ScreenedAt *int64   `json:"screened_at"`
+	Score      *float64 `json:"score"`
+	Result     *string  `json:"result" binding:"omitempty,oneof=PASS FAIL HOLD"`
+	Notes      *string  `json:"notes"`
+}
+
+type ApplicationScreeningResponse struct {
+	ID            string    `json:"id"`
+	ApplicationID string    `json:"application_id"`
+	ScreenedBy    string    `json:"screened_by,omitempty"`
+	ScreenedAt    int64     `json:"screened_at"`
+	Score         float64   `json:"score,omitempty"`
+	Result        string    `json:"result"`
+	Notes         string    `json:"notes,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// =========================================================================
+// Recruitment Assessment DTOs (G-7 sub-project 2)
+// =========================================================================
+
+type CreateAssessmentRequest struct {
+	RequisitionID string `json:"requisition_id"`
+	Name          string `json:"name" binding:"required,max=255"`
+	Type          string `json:"type" binding:"omitempty,oneof=TECHNICAL PSYCHOLOGICAL COGNITIVE PERSONALITY CASE_STUDY CODING LANGUAGE OTHER"`
+	ScheduledAt   int64  `json:"scheduled_at"`
+	Location      string `json:"location"`
+	MeetingLink   string `json:"meeting_link"`
+	Notes         string `json:"notes"`
+}
+
+type UpdateAssessmentRequest struct {
+	Name        *string `json:"name" binding:"omitempty,max=255"`
+	Type        *string `json:"type" binding:"omitempty,oneof=TECHNICAL PSYCHOLOGICAL COGNITIVE PERSONALITY CASE_STUDY CODING LANGUAGE OTHER"`
+	ScheduledAt *int64  `json:"scheduled_at"`
+	Location    *string `json:"location"`
+	MeetingLink *string `json:"meeting_link"`
+	Notes       *string `json:"notes"`
+}
+
+type AssessmentResponse struct {
+	ID            string    `json:"id"`
+	RequisitionID string    `json:"requisition_id,omitempty"`
+	Name          string    `json:"name"`
+	Type          string    `json:"type"`
+	ScheduledAt   int64     `json:"scheduled_at"`
+	Location      string    `json:"location,omitempty"`
+	MeetingLink   string    `json:"meeting_link,omitempty"`
+	Notes         string    `json:"notes,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type AddAssessmentParticipantRequest struct {
+	ApplicationID string `json:"application_id" binding:"required"`
+}
+
+type UpdateAssessmentParticipantRequest struct {
+	Status         *string  `json:"status" binding:"omitempty,oneof=INVITED COMPLETED NO_SHOW"`
+	Score          *float64 `json:"score"`
+	Result         *string  `json:"result" binding:"omitempty,oneof=PASS FAIL HOLD"`
+	Recommendation *string  `json:"recommendation"`
+}
+
+type AssessmentParticipantResponse struct {
+	ID             string    `json:"id"`
+	AssessmentID   string    `json:"assessment_id"`
+	ApplicationID  string    `json:"application_id"`
+	Status         string    `json:"status"`
+	Score          float64   `json:"score,omitempty"`
+	Result         string    `json:"result,omitempty"`
+	Recommendation string    `json:"recommendation,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// =========================================================================
 // Interview DTOs
 // =========================================================================
 

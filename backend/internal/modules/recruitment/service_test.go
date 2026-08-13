@@ -2705,3 +2705,340 @@ func TestService_ListCandidateConsents(t *testing.T) {
 		t.Errorf("expected 2, got %d", len(list))
 	}
 }
+
+func newTestApplicationForScreening(t *testing.T, svc *Service, ctx context.Context, email string) *ApplicationResponse {
+	t.Helper()
+	req, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	cand, err := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Scr", LastName: "Svc", Email: email})
+	if err != nil {
+		t.Fatalf("CreateCandidate failed: %v", err)
+	}
+	app, err := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+	if err != nil {
+		t.Fatalf("CreateApplication failed: %v", err)
+	}
+	return app
+}
+
+func TestService_CreateApplicationScreening(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	app := newTestApplicationForScreening(t, svc, ctx, "screenapp1@test.com")
+
+	resp, err := svc.CreateApplicationScreening(ctx, app.ID, CreateApplicationScreeningRequest{Result: "PASS"})
+	if err != nil {
+		t.Fatalf("CreateApplicationScreening failed: %v", err)
+	}
+	if resp.Result != "PASS" {
+		t.Errorf("expected result PASS, got %s", resp.Result)
+	}
+}
+
+func TestService_CreateApplicationScreening_DefaultResult(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	app := newTestApplicationForScreening(t, svc, ctx, "screenapp2@test.com")
+
+	resp, err := svc.CreateApplicationScreening(ctx, app.ID, CreateApplicationScreeningRequest{})
+	if err != nil {
+		t.Fatalf("CreateApplicationScreening failed: %v", err)
+	}
+	if resp.Result != "HOLD" {
+		t.Errorf("expected default result HOLD, got %s", resp.Result)
+	}
+}
+
+func TestService_CreateApplicationScreening_UnknownApplication(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := svc.CreateApplicationScreening(ctx, uuid.New().String(), CreateApplicationScreeningRequest{Result: "PASS"})
+	if err == nil {
+		t.Fatal("expected error for unknown application, got nil")
+	}
+}
+
+func TestService_ListApplicationScreenings(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	app := newTestApplicationForScreening(t, svc, ctx, "screenapp3@test.com")
+	svc.CreateApplicationScreening(ctx, app.ID, CreateApplicationScreeningRequest{Result: "HOLD"})
+	svc.CreateApplicationScreening(ctx, app.ID, CreateApplicationScreeningRequest{Result: "PASS"})
+
+	list, err := svc.ListApplicationScreenings(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("ListApplicationScreenings failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2, got %d", len(list))
+	}
+}
+
+func TestService_UpdateAndDeleteApplicationScreening(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	app := newTestApplicationForScreening(t, svc, ctx, "screenapp4@test.com")
+	created, err := svc.CreateApplicationScreening(ctx, app.ID, CreateApplicationScreeningRequest{Result: "HOLD"})
+	if err != nil {
+		t.Fatalf("CreateApplicationScreening failed: %v", err)
+	}
+
+	newResult := "FAIL"
+	updated, err := svc.UpdateApplicationScreening(ctx, created.ID, UpdateApplicationScreeningRequest{Result: &newResult})
+	if err != nil {
+		t.Fatalf("UpdateApplicationScreening failed: %v", err)
+	}
+	if updated.Result != "FAIL" {
+		t.Errorf("expected FAIL, got %s", updated.Result)
+	}
+
+	if err := svc.DeleteApplicationScreening(ctx, created.ID); err != nil {
+		t.Fatalf("DeleteApplicationScreening failed: %v", err)
+	}
+}
+
+func TestService_UpdateApplicationScreening_DoesNotTransitionApplicationStatus(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	app := newTestApplicationForScreening(t, svc, ctx, "screenapp5@test.com")
+	_, err := svc.CreateApplicationScreening(ctx, app.ID, CreateApplicationScreeningRequest{Result: "PASS"})
+	if err != nil {
+		t.Fatalf("CreateApplicationScreening failed: %v", err)
+	}
+
+	got, err := svc.GetApplicationByID(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetApplicationByID failed: %v", err)
+	}
+	if got.Status != "NEW" {
+		t.Errorf("expected status to remain NEW (screening should not auto-transition), got %s", got.Status)
+	}
+}
+
+func TestService_CreateAssessment(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	resp, err := svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "Technical Test Batch March", Type: "TECHNICAL"})
+	if err != nil {
+		t.Fatalf("CreateAssessment failed: %v", err)
+	}
+	if resp.Name != "Technical Test Batch March" || resp.Type != "TECHNICAL" {
+		t.Errorf("unexpected response: %+v", resp)
+	}
+}
+
+func TestService_CreateAssessment_DefaultType(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	resp, err := svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "No Type"})
+	if err != nil {
+		t.Fatalf("CreateAssessment failed: %v", err)
+	}
+	if resp.Type != "OTHER" {
+		t.Errorf("expected default type OTHER, got %s", resp.Type)
+	}
+}
+
+func TestService_CreateAssessment_WithRequisition(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+
+	resp, err := svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "Batch", RequisitionID: req.ID})
+	if err != nil {
+		t.Fatalf("CreateAssessment failed: %v", err)
+	}
+	if resp.RequisitionID != req.ID {
+		t.Errorf("expected requisition_id %s, got %s", req.ID, resp.RequisitionID)
+	}
+}
+
+func TestService_CreateAssessment_UnknownRequisition(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "Batch", RequisitionID: uuid.New().String()})
+	if err == nil {
+		t.Fatal("expected error for unknown requisition, got nil")
+	}
+}
+
+func TestService_ListAssessments(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "A"})
+	svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "B"})
+
+	list, err := svc.ListAssessments(ctx)
+	if err != nil {
+		t.Fatalf("ListAssessments failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2, got %d", len(list))
+	}
+}
+
+func TestService_UpdateAndDeleteAssessment(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	created, err := svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "Original"})
+	if err != nil {
+		t.Fatalf("CreateAssessment failed: %v", err)
+	}
+
+	newName := "Renamed"
+	updated, err := svc.UpdateAssessment(ctx, created.ID, UpdateAssessmentRequest{Name: &newName})
+	if err != nil {
+		t.Fatalf("UpdateAssessment failed: %v", err)
+	}
+	if updated.Name != "Renamed" {
+		t.Errorf("expected Renamed, got %s", updated.Name)
+	}
+
+	if err := svc.DeleteAssessment(ctx, created.ID); err != nil {
+		t.Fatalf("DeleteAssessment failed: %v", err)
+	}
+}
+
+func TestService_AddAssessmentParticipant(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	assess, _ := svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "Batch"})
+	app := newTestApplicationForScreening(t, svc, ctx, "assesspart1@test.com")
+
+	resp, err := svc.AddAssessmentParticipant(ctx, assess.ID, AddAssessmentParticipantRequest{ApplicationID: app.ID})
+	if err != nil {
+		t.Fatalf("AddAssessmentParticipant failed: %v", err)
+	}
+	if resp.Status != "INVITED" {
+		t.Errorf("expected default status INVITED, got %s", resp.Status)
+	}
+}
+
+func TestService_AddAssessmentParticipant_UnknownAssessment(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	app := newTestApplicationForScreening(t, svc, ctx, "assesspart2@test.com")
+
+	_, err := svc.AddAssessmentParticipant(ctx, uuid.New().String(), AddAssessmentParticipantRequest{ApplicationID: app.ID})
+	if err == nil {
+		t.Fatal("expected error for unknown assessment, got nil")
+	}
+}
+
+func TestService_AddAssessmentParticipant_UnknownApplication(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	assess, _ := svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "Batch"})
+
+	_, err := svc.AddAssessmentParticipant(ctx, assess.ID, AddAssessmentParticipantRequest{ApplicationID: uuid.New().String()})
+	if err == nil {
+		t.Fatal("expected error for unknown application, got nil")
+	}
+}
+
+func TestService_ListAssessmentParticipants(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	assess, _ := svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "Batch"})
+	app1 := newTestApplicationForScreening(t, svc, ctx, "assesspart3@test.com")
+	app2 := newTestApplicationForScreening(t, svc, ctx, "assesspart4@test.com")
+	svc.AddAssessmentParticipant(ctx, assess.ID, AddAssessmentParticipantRequest{ApplicationID: app1.ID})
+	svc.AddAssessmentParticipant(ctx, assess.ID, AddAssessmentParticipantRequest{ApplicationID: app2.ID})
+
+	list, err := svc.ListAssessmentParticipants(ctx, assess.ID)
+	if err != nil {
+		t.Fatalf("ListAssessmentParticipants failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2, got %d", len(list))
+	}
+}
+
+func TestService_UpdateAndDeleteAssessmentParticipant(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	assess, _ := svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "Batch"})
+	app := newTestApplicationForScreening(t, svc, ctx, "assesspart5@test.com")
+	created, err := svc.AddAssessmentParticipant(ctx, assess.ID, AddAssessmentParticipantRequest{ApplicationID: app.ID})
+	if err != nil {
+		t.Fatalf("AddAssessmentParticipant failed: %v", err)
+	}
+
+	status := "COMPLETED"
+	result := "PASS"
+	score := 88.5
+	updated, err := svc.UpdateAssessmentParticipant(ctx, created.ID, UpdateAssessmentParticipantRequest{
+		Status: &status, Result: &result, Score: &score,
+	})
+	if err != nil {
+		t.Fatalf("UpdateAssessmentParticipant failed: %v", err)
+	}
+	if updated.Status != "COMPLETED" || updated.Result != "PASS" || updated.Score != 88.5 {
+		t.Errorf("unexpected response: %+v", updated)
+	}
+
+	if err := svc.DeleteAssessmentParticipant(ctx, created.ID); err != nil {
+		t.Fatalf("DeleteAssessmentParticipant failed: %v", err)
+	}
+}
+
+func TestService_AddAssessmentParticipant_DoesNotTransitionApplicationStatus(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	assess, _ := svc.CreateAssessment(ctx, CreateAssessmentRequest{Name: "Batch"})
+	app := newTestApplicationForScreening(t, svc, ctx, "assesspart6@test.com")
+	created, err := svc.AddAssessmentParticipant(ctx, assess.ID, AddAssessmentParticipantRequest{ApplicationID: app.ID})
+	if err != nil {
+		t.Fatalf("AddAssessmentParticipant failed: %v", err)
+	}
+	result := "PASS"
+	if _, err := svc.UpdateAssessmentParticipant(ctx, created.ID, UpdateAssessmentParticipantRequest{Result: &result}); err != nil {
+		t.Fatalf("UpdateAssessmentParticipant failed: %v", err)
+	}
+
+	got, err := svc.GetApplicationByID(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetApplicationByID failed: %v", err)
+	}
+	if got.Status != "NEW" {
+		t.Errorf("expected status to remain NEW (assessment should not auto-transition), got %s", got.Status)
+	}
+}

@@ -1006,3 +1006,176 @@ func (r *Repository) ListCandidateConsents(ctx context.Context, candidateID uuid
 	}
 	return list, nil
 }
+
+// =========================================================================
+// Application Screenings (G-7 sub-project 1)
+// =========================================================================
+
+func (r *Repository) CreateApplicationScreening(ctx context.Context, s *ApplicationScreening) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(s).Error
+}
+
+func (r *Repository) FindApplicationScreeningByID(ctx context.Context, id uuid.UUID) (*ApplicationScreening, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var s ApplicationScreening
+	if err := db.WithContext(ctx).First(&s, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("application screening not found")
+		}
+		return nil, err
+	}
+	return &s, nil
+}
+
+func (r *Repository) ListApplicationScreenings(ctx context.Context, applicationID uuid.UUID) ([]ApplicationScreening, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []ApplicationScreening
+	if err := db.WithContext(ctx).Where("application_id = ?", applicationID).Order("created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateApplicationScreening(ctx context.Context, s *ApplicationScreening) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(s).Error
+}
+
+func (r *Repository) DeleteApplicationScreening(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&ApplicationScreening{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("application screening not found")
+	}
+	return result.Error
+}
+
+// =========================================================================
+// Recruitment Assessments + Participants (G-7 sub-project 2)
+// =========================================================================
+
+func (r *Repository) CreateAssessment(ctx context.Context, a *RecruitmentAssessment) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(a).Error
+}
+
+func (r *Repository) FindAssessmentByID(ctx context.Context, id uuid.UUID) (*RecruitmentAssessment, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var a RecruitmentAssessment
+	if err := db.WithContext(ctx).First(&a, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("assessment not found")
+		}
+		return nil, err
+	}
+	return &a, nil
+}
+
+func (r *Repository) ListAssessments(ctx context.Context) ([]RecruitmentAssessment, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []RecruitmentAssessment
+	if err := db.WithContext(ctx).Order("created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateAssessment(ctx context.Context, a *RecruitmentAssessment) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(a).Error
+}
+
+func (r *Repository) DeleteAssessment(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&RecruitmentAssessment{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("assessment not found")
+	}
+	return result.Error
+}
+
+func (r *Repository) CreateAssessmentParticipant(ctx context.Context, p *AssessmentParticipant) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(p).Error
+}
+
+func (r *Repository) FindAssessmentParticipantByID(ctx context.Context, id uuid.UUID) (*AssessmentParticipant, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var p AssessmentParticipant
+	if err := db.WithContext(ctx).First(&p, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("assessment participant not found")
+		}
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (r *Repository) ListAssessmentParticipants(ctx context.Context, assessmentID uuid.UUID) ([]AssessmentParticipant, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []AssessmentParticipant
+	if err := db.WithContext(ctx).Where("assessment_id = ?", assessmentID).Order("created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateAssessmentParticipant(ctx context.Context, p *AssessmentParticipant) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(p).Error
+}
+
+func (r *Repository) DeleteAssessmentParticipant(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&AssessmentParticipant{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("assessment participant not found")
+	}
+	return result.Error
+}

@@ -1179,3 +1179,101 @@ func TestHandler_ListCandidateConsents(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func createTestApplicationForScreening(r *gin.Engine, email string) string {
+	reqW := performRequest(r, "POST", "/api/v1/tenant/recruitment/requisitions", CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(), Title: "Engineer",
+	})
+	var reqResp map[string]interface{}
+	json.Unmarshal(reqW.Body.Bytes(), &reqResp)
+	reqID := reqResp["data"].(map[string]interface{})["id"].(string)
+
+	candW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Scr", LastName: "H", Email: email,
+	})
+	var candResp map[string]interface{}
+	json.Unmarshal(candW.Body.Bytes(), &candResp)
+	candID := candResp["data"].(map[string]interface{})["id"].(string)
+
+	appW := performRequest(r, "POST", "/api/v1/tenant/recruitment/applications", CreateApplicationRequest{
+		RequisitionID: reqID, CandidateID: candID,
+	})
+	var appResp map[string]interface{}
+	json.Unmarshal(appW.Body.Bytes(), &appResp)
+	return appResp["data"].(map[string]interface{})["id"].(string)
+}
+
+func TestHandler_CreateApplicationScreening(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	appID := createTestApplicationForScreening(r, "screenh1@test.com")
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/applications/"+appID+"/screenings", CreateApplicationScreeningRequest{
+		Result: "PASS",
+	})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_ListApplicationScreenings(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	appID := createTestApplicationForScreening(r, "screenh2@test.com")
+	performRequest(r, "POST", "/api/v1/tenant/recruitment/applications/"+appID+"/screenings", CreateApplicationScreeningRequest{Result: "HOLD"})
+
+	w := performRequest(r, "GET", "/api/v1/tenant/recruitment/applications/"+appID+"/screenings", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_CreateAssessment(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/assessments", CreateAssessmentRequest{
+		Name: "Technical Test Batch March", Type: "TECHNICAL",
+	})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_CreateAssessment_InvalidType(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/assessments", CreateAssessmentRequest{
+		Name: "Bad Type", Type: "NOT_A_REAL_TYPE",
+	})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_AddAndListAssessmentParticipants(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	assessW := performRequest(r, "POST", "/api/v1/tenant/recruitment/assessments", CreateAssessmentRequest{Name: "Batch"})
+	var assessResp map[string]interface{}
+	json.Unmarshal(assessW.Body.Bytes(), &assessResp)
+	assessID := assessResp["data"].(map[string]interface{})["id"].(string)
+
+	appID := createTestApplicationForScreening(r, "assesspart-h1@test.com")
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/assessments/"+assessID+"/participants", AddAssessmentParticipantRequest{
+		ApplicationID: appID,
+	})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+
+	listW := performRequest(r, "GET", "/api/v1/tenant/recruitment/assessments/"+assessID+"/participants", nil)
+	if listW.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", listW.Code, listW.Body.String())
+	}
+}

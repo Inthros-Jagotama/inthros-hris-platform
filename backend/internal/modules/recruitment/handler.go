@@ -544,6 +544,155 @@ func (h *Handler) DeleteCandidateDocument(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+func (h *Handler) CreateApplicationScreening(c *gin.Context) {
+	applicationID := c.Param("id")
+	var req CreateApplicationScreeningRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateApplicationScreening(c.Request.Context(), applicationID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListApplicationScreenings(c *gin.Context) {
+	applicationID := c.Param("id")
+	resp, err := h.svc.ListApplicationScreenings(c.Request.Context(), applicationID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateApplicationScreening(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateApplicationScreeningRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateApplicationScreening(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteApplicationScreening(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteApplicationScreening(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+func (h *Handler) CreateAssessment(c *gin.Context) {
+	var req CreateAssessmentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateAssessment(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListAssessments(c *gin.Context) {
+	resp, err := h.svc.ListAssessments(c.Request.Context())
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) GetAssessmentByID(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.GetAssessmentByID(c.Request.Context(), id)
+	if err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateAssessment(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateAssessmentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateAssessment(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteAssessment(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteAssessment(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+func (h *Handler) AddAssessmentParticipant(c *gin.Context) {
+	assessmentID := c.Param("id")
+	var req AddAssessmentParticipantRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.AddAssessmentParticipant(c.Request.Context(), assessmentID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListAssessmentParticipants(c *gin.Context) {
+	assessmentID := c.Param("id")
+	resp, err := h.svc.ListAssessmentParticipants(c.Request.Context(), assessmentID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateAssessmentParticipant(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateAssessmentParticipantRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateAssessmentParticipant(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteAssessmentParticipant(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteAssessmentParticipant(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
 // GetEligibleInternalCandidates menangani GET /recruitment/eligible-internal-candidates
 // (plan S-4) — membaca employee internal yang eligible untuk target position
 // dari Career Intelligence (CI menentukan eligibility; Recruitment hanya

@@ -36,6 +36,9 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&CandidateCertification{},
 		&CandidateDocument{},
 		&CandidateConsent{},
+		&ApplicationScreening{},
+		&RecruitmentAssessment{},
+		&AssessmentParticipant{},
 		&setting.EducationMajor{},
 		&competency.Competency{},
 	); err != nil {

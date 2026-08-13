@@ -521,6 +521,96 @@ func (h *ApplicationStageHistory) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// ApplicationScreening (G-7 sub-project 1 — catatan screening pipeline)
+// =========================================================================
+// Many-per-application (pola sama dengan Interview) — bukan upsert. Murni
+// catatan pendukung: create/update TIDAK memicu transisi status
+// job_applications atau menulis ApplicationStageHistory (G-5); recruiter
+// tetap mengubah status aplikasi manual lewat endpoint status existing.
+
+type ApplicationScreening struct {
+	ID            uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	ApplicationID uuid.UUID  `gorm:"type:char(36);not null;index:idx_screen_app" json:"application_id"`
+	ScreenedBy    *uuid.UUID `gorm:"type:char(36)" json:"screened_by,omitempty"`
+	ScreenedAt    int64      `gorm:"type:bigint;not null;default:0" json:"-"`
+	Score         *float64   `gorm:"type:decimal(5,2)" json:"score,omitempty"`
+	Result        string     `gorm:"type:varchar(10);not null;default:HOLD" json:"result"`
+	Notes         string     `gorm:"type:text" json:"notes"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+}
+
+func (ApplicationScreening) TableName() string {
+	return "application_screenings"
+}
+
+func (s *ApplicationScreening) BeforeCreate(tx *gorm.DB) error {
+	if s.ID == uuid.Nil {
+		s.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// RecruitmentAssessment + AssessmentParticipant (G-7 sub-project 2)
+// =========================================================================
+// RecruitmentAssessment = sesi/batch tes (mis. "Technical Test Batch
+// Maret"), tidak terikat 1 application — bisa diikuti banyak kandidat.
+// AssessmentParticipant = kandidat (via application_id) yang mengikuti sesi;
+// hasil (score/result/recommendation) 1:1 dengan participant, digabung ke
+// tabel yang sama (bukan tabel assessment_results terpisah — YAGNI, tidak
+// ada kebutuhan multi-assessor/multi-attempt). Sama seperti
+// ApplicationScreening: TIDAK memicu transisi status job_applications atau
+// menulis ApplicationStageHistory (G-5).
+
+type RecruitmentAssessment struct {
+	ID            uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	RequisitionID *uuid.UUID `gorm:"type:char(36);index:idx_assess_req" json:"requisition_id,omitempty"`
+	Name          string     `gorm:"type:varchar(255);not null" json:"name"`
+	Type          string     `gorm:"type:varchar(20);not null;default:OTHER" json:"type"`
+	ScheduledAt   int64      `gorm:"type:bigint;not null;default:0" json:"-"`
+	Location      string     `gorm:"type:varchar(255)" json:"location"`
+	MeetingLink   *string    `gorm:"type:text" json:"meeting_link,omitempty"`
+	Notes         string     `gorm:"type:text" json:"notes"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+}
+
+func (RecruitmentAssessment) TableName() string {
+	return "recruitment_assessments"
+}
+
+func (a *RecruitmentAssessment) BeforeCreate(tx *gorm.DB) error {
+	if a.ID == uuid.Nil {
+		a.ID = uuid.New()
+	}
+	return nil
+}
+
+type AssessmentParticipant struct {
+	ID             uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	AssessmentID   uuid.UUID `gorm:"type:char(36);not null;index:idx_partic_assess" json:"assessment_id"`
+	ApplicationID  uuid.UUID `gorm:"type:char(36);not null;index:idx_partic_app" json:"application_id"`
+	Status         string    `gorm:"type:varchar(20);not null;default:INVITED" json:"status"`
+	Score          *float64  `gorm:"type:decimal(5,2)" json:"score,omitempty"`
+	Result         *string   `gorm:"type:varchar(10)" json:"result,omitempty"`
+	Recommendation string    `gorm:"type:text" json:"recommendation"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (AssessmentParticipant) TableName() string {
+	return "assessment_participants"
+}
+
+func (p *AssessmentParticipant) BeforeCreate(tx *gorm.DB) error {
+	if p.ID == uuid.Nil {
+		p.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // Interview (Wawancara)
 // =========================================================================
 

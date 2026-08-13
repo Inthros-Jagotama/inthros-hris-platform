@@ -2912,3 +2912,343 @@ func taskItemToResponse(t *OnboardingTaskItem) *OnboardingTaskItemResponse {
 	}
 	return resp
 }
+
+// =========================================================================
+// Application Screenings (G-7 sub-project 1)
+// =========================================================================
+
+func (s *Service) CreateApplicationScreening(ctx context.Context, applicationID string, req CreateApplicationScreeningRequest) (*ApplicationScreeningResponse, error) {
+	appUUID, err := uuid.Parse(applicationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid application_id: %w", err)
+	}
+	if _, err := s.repo.FindApplicationByID(ctx, appUUID); err != nil {
+		return nil, fmt.Errorf("application not found: %w", err)
+	}
+
+	result := req.Result
+	if result == "" {
+		result = "HOLD"
+	}
+	var screenedBy *uuid.UUID
+	if req.ScreenedBy != "" {
+		id, err := uuid.Parse(req.ScreenedBy)
+		if err != nil {
+			return nil, fmt.Errorf("invalid screened_by: %w", err)
+		}
+		screenedBy = &id
+	}
+	sc := &ApplicationScreening{
+		ApplicationID: appUUID,
+		ScreenedBy:    screenedBy,
+		ScreenedAt:    req.ScreenedAt,
+		Score:         req.Score,
+		Result:        result,
+		Notes:         req.Notes,
+	}
+	if err := s.repo.CreateApplicationScreening(ctx, sc); err != nil {
+		return nil, err
+	}
+	return applicationScreeningToResponse(sc), nil
+}
+
+func (s *Service) ListApplicationScreenings(ctx context.Context, applicationID string) ([]ApplicationScreeningResponse, error) {
+	appUUID, err := uuid.Parse(applicationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid application_id: %w", err)
+	}
+	list, err := s.repo.ListApplicationScreenings(ctx, appUUID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ApplicationScreeningResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *applicationScreeningToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) UpdateApplicationScreening(ctx context.Context, id string, req UpdateApplicationScreeningRequest) (*ApplicationScreeningResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	sc, err := s.repo.FindApplicationScreeningByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.ScreenedBy != nil {
+		if *req.ScreenedBy == "" {
+			sc.ScreenedBy = nil
+		} else {
+			id, err := uuid.Parse(*req.ScreenedBy)
+			if err != nil {
+				return nil, fmt.Errorf("invalid screened_by: %w", err)
+			}
+			sc.ScreenedBy = &id
+		}
+	}
+	if req.ScreenedAt != nil {
+		sc.ScreenedAt = *req.ScreenedAt
+	}
+	if req.Score != nil {
+		sc.Score = req.Score
+	}
+	if req.Result != nil {
+		sc.Result = *req.Result
+	}
+	if req.Notes != nil {
+		sc.Notes = *req.Notes
+	}
+	if err := s.repo.UpdateApplicationScreening(ctx, sc); err != nil {
+		return nil, err
+	}
+	return applicationScreeningToResponse(sc), nil
+}
+
+func (s *Service) DeleteApplicationScreening(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteApplicationScreening(ctx, uid)
+}
+
+// =========================================================================
+// Recruitment Assessments + Participants (G-7 sub-project 2)
+// =========================================================================
+
+func (s *Service) CreateAssessment(ctx context.Context, req CreateAssessmentRequest) (*AssessmentResponse, error) {
+	var reqUUID *uuid.UUID
+	if req.RequisitionID != "" {
+		id, err := uuid.Parse(req.RequisitionID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid requisition_id: %w", err)
+		}
+		if _, err := s.repo.FindRequisitionByID(ctx, id); err != nil {
+			return nil, fmt.Errorf("requisition not found: %w", err)
+		}
+		reqUUID = &id
+	}
+	assessType := req.Type
+	if assessType == "" {
+		assessType = "OTHER"
+	}
+	var meetingLink *string
+	if req.MeetingLink != "" {
+		meetingLink = &req.MeetingLink
+	}
+	a := &RecruitmentAssessment{
+		RequisitionID: reqUUID,
+		Name:          req.Name,
+		Type:          assessType,
+		ScheduledAt:   req.ScheduledAt,
+		Location:      req.Location,
+		MeetingLink:   meetingLink,
+		Notes:         req.Notes,
+	}
+	if err := s.repo.CreateAssessment(ctx, a); err != nil {
+		return nil, err
+	}
+	return assessmentToResponse(a), nil
+}
+
+func (s *Service) ListAssessments(ctx context.Context) ([]AssessmentResponse, error) {
+	list, err := s.repo.ListAssessments(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]AssessmentResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *assessmentToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) GetAssessmentByID(ctx context.Context, id string) (*AssessmentResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	a, err := s.repo.FindAssessmentByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	return assessmentToResponse(a), nil
+}
+
+func (s *Service) UpdateAssessment(ctx context.Context, id string, req UpdateAssessmentRequest) (*AssessmentResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	a, err := s.repo.FindAssessmentByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Name != nil {
+		a.Name = *req.Name
+	}
+	if req.Type != nil {
+		a.Type = *req.Type
+	}
+	if req.ScheduledAt != nil {
+		a.ScheduledAt = *req.ScheduledAt
+	}
+	if req.Location != nil {
+		a.Location = *req.Location
+	}
+	if req.MeetingLink != nil {
+		a.MeetingLink = req.MeetingLink
+	}
+	if req.Notes != nil {
+		a.Notes = *req.Notes
+	}
+	if err := s.repo.UpdateAssessment(ctx, a); err != nil {
+		return nil, err
+	}
+	return assessmentToResponse(a), nil
+}
+
+func (s *Service) DeleteAssessment(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteAssessment(ctx, uid)
+}
+
+func (s *Service) AddAssessmentParticipant(ctx context.Context, assessmentID string, req AddAssessmentParticipantRequest) (*AssessmentParticipantResponse, error) {
+	assessUUID, err := uuid.Parse(assessmentID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid assessment_id: %w", err)
+	}
+	if _, err := s.repo.FindAssessmentByID(ctx, assessUUID); err != nil {
+		return nil, err
+	}
+	appUUID, err := uuid.Parse(req.ApplicationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid application_id: %w", err)
+	}
+	if _, err := s.repo.FindApplicationByID(ctx, appUUID); err != nil {
+		return nil, fmt.Errorf("application not found: %w", err)
+	}
+	p := &AssessmentParticipant{
+		AssessmentID:  assessUUID,
+		ApplicationID: appUUID,
+		Status:        "INVITED",
+	}
+	if err := s.repo.CreateAssessmentParticipant(ctx, p); err != nil {
+		return nil, err
+	}
+	return assessmentParticipantToResponse(p), nil
+}
+
+func (s *Service) ListAssessmentParticipants(ctx context.Context, assessmentID string) ([]AssessmentParticipantResponse, error) {
+	assessUUID, err := uuid.Parse(assessmentID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid assessment_id: %w", err)
+	}
+	list, err := s.repo.ListAssessmentParticipants(ctx, assessUUID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]AssessmentParticipantResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *assessmentParticipantToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) UpdateAssessmentParticipant(ctx context.Context, id string, req UpdateAssessmentParticipantRequest) (*AssessmentParticipantResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	p, err := s.repo.FindAssessmentParticipantByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Status != nil {
+		p.Status = *req.Status
+	}
+	if req.Score != nil {
+		p.Score = req.Score
+	}
+	if req.Result != nil {
+		p.Result = req.Result
+	}
+	if req.Recommendation != nil {
+		p.Recommendation = *req.Recommendation
+	}
+	if err := s.repo.UpdateAssessmentParticipant(ctx, p); err != nil {
+		return nil, err
+	}
+	return assessmentParticipantToResponse(p), nil
+}
+
+func (s *Service) DeleteAssessmentParticipant(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteAssessmentParticipant(ctx, uid)
+}
+
+func assessmentToResponse(a *RecruitmentAssessment) *AssessmentResponse {
+	resp := &AssessmentResponse{
+		ID:          a.ID.String(),
+		Name:        a.Name,
+		Type:        a.Type,
+		ScheduledAt: a.ScheduledAt,
+		Location:    a.Location,
+		Notes:       a.Notes,
+		CreatedAt:   a.CreatedAt,
+		UpdatedAt:   a.UpdatedAt,
+	}
+	if a.RequisitionID != nil {
+		resp.RequisitionID = a.RequisitionID.String()
+	}
+	if a.MeetingLink != nil {
+		resp.MeetingLink = *a.MeetingLink
+	}
+	return resp
+}
+
+func assessmentParticipantToResponse(p *AssessmentParticipant) *AssessmentParticipantResponse {
+	resp := &AssessmentParticipantResponse{
+		ID:             p.ID.String(),
+		AssessmentID:   p.AssessmentID.String(),
+		ApplicationID:  p.ApplicationID.String(),
+		Status:         p.Status,
+		Recommendation: p.Recommendation,
+		CreatedAt:      p.CreatedAt,
+		UpdatedAt:      p.UpdatedAt,
+	}
+	if p.Score != nil {
+		resp.Score = *p.Score
+	}
+	if p.Result != nil {
+		resp.Result = *p.Result
+	}
+	return resp
+}
+
+func applicationScreeningToResponse(sc *ApplicationScreening) *ApplicationScreeningResponse {
+	resp := &ApplicationScreeningResponse{
+		ID:            sc.ID.String(),
+		ApplicationID: sc.ApplicationID.String(),
+		ScreenedAt:    sc.ScreenedAt,
+		Result:        sc.Result,
+		Notes:         sc.Notes,
+		CreatedAt:     sc.CreatedAt,
+		UpdatedAt:     sc.UpdatedAt,
+	}
+	if sc.ScreenedBy != nil {
+		resp.ScreenedBy = sc.ScreenedBy.String()
+	}
+	if sc.Score != nil {
+		resp.Score = *sc.Score
+	}
+	return resp
+}

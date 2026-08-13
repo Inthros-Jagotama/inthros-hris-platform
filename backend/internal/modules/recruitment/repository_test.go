@@ -969,3 +969,207 @@ func TestRepository_ListCandidateConsents_OrderedByChangedAt(t *testing.T) {
 		t.Errorf("expected ascending changed_at order [1000, 2000], got [%d, %d]", list[0].ChangedAt, list[1].ChangedAt)
 	}
 }
+
+func TestRepository_CreateAndFindApplicationScreening(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+	c := &Candidate{FirstName: "Scr", LastName: "Test", Email: "scr@test.com"}
+	repo.CreateCandidate(ctx, c)
+	a := &JobApplication{RequisitionID: r.ID, CandidateID: c.ID, Status: CandStatusNew}
+	repo.CreateApplication(ctx, a)
+
+	sc := &ApplicationScreening{ApplicationID: a.ID, Result: "PASS"}
+	if err := repo.CreateApplicationScreening(ctx, sc); err != nil {
+		t.Fatalf("CreateApplicationScreening failed: %v", err)
+	}
+
+	found, err := repo.FindApplicationScreeningByID(ctx, sc.ID)
+	if err != nil {
+		t.Fatalf("FindApplicationScreeningByID failed: %v", err)
+	}
+	if found.Result != "PASS" {
+		t.Errorf("expected result PASS, got %s", found.Result)
+	}
+}
+
+func TestRepository_ListApplicationScreenings(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+	c := &Candidate{FirstName: "List", LastName: "Scr", Email: "listscr@test.com"}
+	repo.CreateCandidate(ctx, c)
+	a := &JobApplication{RequisitionID: r.ID, CandidateID: c.ID, Status: CandStatusNew}
+	repo.CreateApplication(ctx, a)
+
+	repo.CreateApplicationScreening(ctx, &ApplicationScreening{ApplicationID: a.ID, Result: "HOLD"})
+	repo.CreateApplicationScreening(ctx, &ApplicationScreening{ApplicationID: a.ID, Result: "PASS"})
+
+	list, err := repo.ListApplicationScreenings(ctx, a.ID)
+	if err != nil {
+		t.Fatalf("ListApplicationScreenings failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2 screenings, got %d", len(list))
+	}
+}
+
+func TestRepository_UpdateAndDeleteApplicationScreening(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+	c := &Candidate{FirstName: "Upd", LastName: "Scr", Email: "updscr@test.com"}
+	repo.CreateCandidate(ctx, c)
+	a := &JobApplication{RequisitionID: r.ID, CandidateID: c.ID, Status: CandStatusNew}
+	repo.CreateApplication(ctx, a)
+	sc := &ApplicationScreening{ApplicationID: a.ID, Result: "HOLD"}
+	repo.CreateApplicationScreening(ctx, sc)
+
+	sc.Result = "FAIL"
+	if err := repo.UpdateApplicationScreening(ctx, sc); err != nil {
+		t.Fatalf("UpdateApplicationScreening failed: %v", err)
+	}
+	found, _ := repo.FindApplicationScreeningByID(ctx, sc.ID)
+	if found.Result != "FAIL" {
+		t.Errorf("expected FAIL, got %s", found.Result)
+	}
+
+	if err := repo.DeleteApplicationScreening(ctx, sc.ID); err != nil {
+		t.Fatalf("DeleteApplicationScreening failed: %v", err)
+	}
+	if _, err := repo.FindApplicationScreeningByID(ctx, sc.ID); err == nil {
+		t.Error("expected error finding deleted screening, got nil")
+	}
+}
+
+func TestRepository_CreateAndFindAssessment(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	a := &RecruitmentAssessment{Name: "Technical Test Batch March", Type: "TECHNICAL"}
+	if err := repo.CreateAssessment(ctx, a); err != nil {
+		t.Fatalf("CreateAssessment failed: %v", err)
+	}
+
+	found, err := repo.FindAssessmentByID(ctx, a.ID)
+	if err != nil {
+		t.Fatalf("FindAssessmentByID failed: %v", err)
+	}
+	if found.Name != "Technical Test Batch March" {
+		t.Errorf("expected name 'Technical Test Batch March', got %s", found.Name)
+	}
+}
+
+func TestRepository_ListAssessments(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	repo.CreateAssessment(ctx, &RecruitmentAssessment{Name: "Assessment A", Type: "CODING"})
+	repo.CreateAssessment(ctx, &RecruitmentAssessment{Name: "Assessment B", Type: "COGNITIVE"})
+
+	list, err := repo.ListAssessments(ctx)
+	if err != nil {
+		t.Fatalf("ListAssessments failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2 assessments, got %d", len(list))
+	}
+}
+
+func TestRepository_UpdateAndDeleteAssessment(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	a := &RecruitmentAssessment{Name: "Original", Type: "OTHER"}
+	repo.CreateAssessment(ctx, a)
+
+	a.Name = "Updated"
+	if err := repo.UpdateAssessment(ctx, a); err != nil {
+		t.Fatalf("UpdateAssessment failed: %v", err)
+	}
+	found, _ := repo.FindAssessmentByID(ctx, a.ID)
+	if found.Name != "Updated" {
+		t.Errorf("expected 'Updated', got %s", found.Name)
+	}
+
+	if err := repo.DeleteAssessment(ctx, a.ID); err != nil {
+		t.Fatalf("DeleteAssessment failed: %v", err)
+	}
+	if _, err := repo.FindAssessmentByID(ctx, a.ID); err == nil {
+		t.Error("expected error finding deleted assessment, got nil")
+	}
+}
+
+func TestRepository_CreateAndListAssessmentParticipants(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+	c := &Candidate{FirstName: "Part", LastName: "Test", Email: "part@test.com"}
+	repo.CreateCandidate(ctx, c)
+	app := &JobApplication{RequisitionID: r.ID, CandidateID: c.ID, Status: CandStatusNew}
+	repo.CreateApplication(ctx, app)
+
+	assess := &RecruitmentAssessment{Name: "Batch", Type: "CODING"}
+	repo.CreateAssessment(ctx, assess)
+
+	p := &AssessmentParticipant{AssessmentID: assess.ID, ApplicationID: app.ID}
+	if err := repo.CreateAssessmentParticipant(ctx, p); err != nil {
+		t.Fatalf("CreateAssessmentParticipant failed: %v", err)
+	}
+
+	list, err := repo.ListAssessmentParticipants(ctx, assess.ID)
+	if err != nil {
+		t.Fatalf("ListAssessmentParticipants failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Errorf("expected 1 participant, got %d", len(list))
+	}
+}
+
+func TestRepository_UpdateAndDeleteAssessmentParticipant(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+	c := &Candidate{FirstName: "Upd", LastName: "Part", Email: "updpart@test.com"}
+	repo.CreateCandidate(ctx, c)
+	app := &JobApplication{RequisitionID: r.ID, CandidateID: c.ID, Status: CandStatusNew}
+	repo.CreateApplication(ctx, app)
+	assess := &RecruitmentAssessment{Name: "Batch", Type: "CODING"}
+	repo.CreateAssessment(ctx, assess)
+	p := &AssessmentParticipant{AssessmentID: assess.ID, ApplicationID: app.ID}
+	repo.CreateAssessmentParticipant(ctx, p)
+
+	p.Status = "COMPLETED"
+	if err := repo.UpdateAssessmentParticipant(ctx, p); err != nil {
+		t.Fatalf("UpdateAssessmentParticipant failed: %v", err)
+	}
+	found, _ := repo.FindAssessmentParticipantByID(ctx, p.ID)
+	if found.Status != "COMPLETED" {
+		t.Errorf("expected COMPLETED, got %s", found.Status)
+	}
+
+	if err := repo.DeleteAssessmentParticipant(ctx, p.ID); err != nil {
+		t.Fatalf("DeleteAssessmentParticipant failed: %v", err)
+	}
+	if _, err := repo.FindAssessmentParticipantByID(ctx, p.ID); err == nil {
+		t.Error("expected error finding deleted participant, got nil")
+	}
+}
