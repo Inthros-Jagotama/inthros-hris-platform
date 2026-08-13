@@ -360,6 +360,13 @@ const routes = [
         component: () => import('@/views/modules/recruitment/Requisitions.vue'),
         meta: { title: 'Job Requisitions', titleKey: 'recruitment.requisitions', descKey: 'requisitions.description', icon: 'pi pi-briefcase', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
       },
+      // Requisition Requirements & Competencies — G-9 sub-1 (+ Job Management fallback, G-9 sub-3)
+      {
+        path: 'recruitment/requisitions/:id/requirements',
+        name: 'RequisitionRequirements',
+        component: () => import('@/views/modules/recruitment/RequisitionRequirements.vue'),
+        meta: { title: 'Requirements & Competencies', titleKey: 'requisitions.requirements_competencies', module: 'recruitment', backRoute: '/recruitment/requisitions', backLabelKey: 'recruitment.requisitions' }
+      },
       // Applications — pipeline (list + detail: history/screening/assessment/interviews/match score)
       {
         path: 'recruitment/applications',

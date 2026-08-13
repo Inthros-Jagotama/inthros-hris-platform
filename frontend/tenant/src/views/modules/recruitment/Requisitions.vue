@@ -110,25 +110,38 @@
         </template>
       </Column>
 
-      <!-- G-1: aksi — draft bisa diubah/dihapus + submit ke Central Approval; G-9 sub-1: requirements/competencies -->
-      <Column :header="t('common.actions')" :exportable="false" style="width: 230px">
+      <!-- G-9 sub-1: requirements/competencies — kolom sendiri, bukan gabung ke Actions -->
+      <Column :header="t('requisitions.requirements_competencies')" :exportable="false" style="width: 130px">
         <template #body="{ data }">
-          <div class="flex items-center gap-1 justify-end">
-            <Button icon="pi pi-list-check" size="small" text severity="secondary" v-tooltip.left="t('requisitions.requirements_competencies')" @click="openRequirementsDialog(data)" />
-            <template v-if="data.status === 'DRAFT'">
-              <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openDialog(data)" />
-              <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" />
-              <Button
-                :label="t('requisitions.submit')"
-                icon="pi pi-send"
-                size="small"
-                severity="info"
-                outlined
-                class="!text-xs !px-2.5 !py-1"
-                @click="openSubmitDialog(data)"
-              />
-            </template>
+          <Button
+            :label="t('requisitions.requirements_tab')"
+            icon="pi pi-list-check"
+            size="small"
+            text
+            severity="secondary"
+            class="!text-xs"
+            @click="router.push(`/recruitment/requisitions/${data.id}/requirements`)"
+          />
+        </template>
+      </Column>
+
+      <!-- G-1: aksi — draft bisa diubah/dihapus + submit ke Central Approval -->
+      <Column :header="t('common.actions')" :exportable="false" style="width: 170px">
+        <template #body="{ data }">
+          <div v-if="data.status === 'DRAFT'" class="flex items-center gap-1 justify-end">
+            <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openDialog(data)" />
+            <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" />
+            <Button
+              :label="t('requisitions.submit')"
+              icon="pi pi-send"
+              size="small"
+              severity="info"
+              outlined
+              class="!text-xs !px-2.5 !py-1"
+              @click="openSubmitDialog(data)"
+            />
           </div>
+          <span v-else class="text-xs text-gray-400 dark:text-gray-500 italic">—</span>
         </template>
       </Column>
     </DataTable>
@@ -277,108 +290,12 @@
       @confirm="handleDelete()"
     />
 
-    <!-- G-9 sub-project 1: requirements + competencies (fondasi candidate matching) -->
-    <Dialog v-model:visible="requirementsDialogVisible" :header="t('requisitions.requirements_competencies')" :modal="true" class="!w-[min(95vw,760px)]">
-      <p v-if="requirementsTarget" class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ requirementsTarget.title }}</p>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <!-- Requirements -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('requisitions.requirements_tab') }}</h4>
-            <Button :label="t('common.add')" icon="pi pi-plus" text size="small" class="!text-xs" @click="openAddRequirement()" />
-          </div>
-          <div v-if="requirements.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <div v-for="item in requirements" :key="item.id" class="flex items-center gap-2 px-3 py-2">
-              <div class="min-w-0 flex-1">
-                <p class="text-sm text-gray-800 dark:text-gray-100">{{ item.name }}</p>
-                <p class="text-xs text-gray-400">{{ item.requirement_type }}<span v-if="item.minimum_value || item.maximum_value"> · {{ item.minimum_value ?? '?' }}–{{ item.maximum_value ?? '?' }}</span></p>
-              </div>
-              <Tag v-if="item.is_required" :value="t('requisitions.required')" severity="danger" class="!text-[10px] !px-1.5 !py-0" />
-              <Button icon="pi pi-trash" text severity="danger" size="small" class="!w-6 !h-6" @click="removeRequirement(item)" />
-            </div>
-          </div>
-          <!-- Job Management default (fallback read-only, hanya tampil kalau requisition belum punya override sendiri) -->
-          <template v-else-if="jobManagementEducationExperiences.length">
-            <p class="text-[11px] text-amber-600 dark:text-amber-400 mb-1.5"><i class="pi pi-info-circle mr-1"></i>{{ t('requisitions.from_job_management') }}</p>
-            <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-dashed border-amber-200 dark:border-amber-700/40 rounded-lg">
-              <div v-for="item in jobManagementEducationExperiences" :key="item.id" class="px-3 py-2">
-                <p class="text-sm text-gray-700 dark:text-gray-300">{{ item.education_name || item.experience_name || item.nomenclature }}</p>
-                <p v-if="item.education_name && item.experience_name" class="text-xs text-gray-400">{{ item.experience_name }}</p>
-              </div>
-            </div>
-          </template>
-          <p v-else class="text-xs text-gray-400 py-2">{{ t('requisitions.requirements_empty') }}</p>
-
-          <div v-if="addRequirementVisible" class="mt-2 space-y-2 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-            <TextInput v-model="newRequirement.requirement_type" :placeholder="t('requisitions.requirement_type')" class="!w-full" />
-            <TextInput v-model="newRequirement.name" :placeholder="t('requisitions.requirement_name')" class="!w-full" />
-            <div class="grid grid-cols-2 gap-2">
-              <InputNumber v-model="newRequirement.minimum_value" :placeholder="t('requisitions.minimum_value')" class="!w-full" />
-              <InputNumber v-model="newRequirement.maximum_value" :placeholder="t('requisitions.maximum_value')" class="!w-full" />
-            </div>
-            <div class="flex items-center justify-end gap-2">
-              <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="addRequirementVisible = false" />
-              <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="itemSaving" @click="saveRequirement()" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Competencies -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('requisitions.competencies_tab') }}</h4>
-            <Button :label="t('common.add')" icon="pi pi-plus" text size="small" class="!text-xs" @click="openAddCompetency()" />
-          </div>
-          <div v-if="competencyItems.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <div v-for="item in competencyItems" :key="item.id" class="flex items-center gap-2 px-3 py-2">
-              <div class="min-w-0 flex-1">
-                <p class="text-sm text-gray-800 dark:text-gray-100">{{ competencyName(item.competency_id) }}</p>
-                <p v-if="item.required_level || item.weight" class="text-xs text-gray-400">
-                  <span v-if="item.required_level">{{ t('requisitions.required_level') }} {{ item.required_level }}</span>
-                  <span v-if="item.weight"> · {{ t('requisitions.weight') }} {{ item.weight }}%</span>
-                </p>
-              </div>
-              <Button icon="pi pi-trash" text severity="danger" size="small" class="!w-6 !h-6" @click="removeCompetency(item)" />
-            </div>
-          </div>
-          <!-- Job Management default (fallback read-only — sumber yang dipakai match score G-9 bila requisition ini belum punya override) -->
-          <template v-else-if="jobManagementCompetencies.length">
-            <p class="text-[11px] text-amber-600 dark:text-amber-400 mb-1.5"><i class="pi pi-info-circle mr-1"></i>{{ t('requisitions.from_job_management') }}</p>
-            <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-dashed border-amber-200 dark:border-amber-700/40 rounded-lg">
-              <div v-for="item in jobManagementCompetencies" :key="item.id" class="flex items-center gap-2 px-3 py-2">
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm text-gray-700 dark:text-gray-300">{{ competencyName(item.competency_id) }}</p>
-                  <p v-if="item.weight" class="text-xs text-gray-400">{{ t('requisitions.weight') }} {{ item.weight }}%</p>
-                </div>
-              </div>
-            </div>
-          </template>
-          <p v-else class="text-xs text-gray-400 py-2">{{ t('requisitions.competencies_empty') }}</p>
-
-          <div v-if="addCompetencyVisible" class="mt-2 space-y-2 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-            <SelectLabel v-model="newCompetency.competency_id" :options="competencyOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" class="!w-full" showClear />
-            <div class="grid grid-cols-2 gap-2">
-              <InputNumber v-model="newCompetency.required_level" :placeholder="t('requisitions.required_level')" :min="1" :max="5" class="!w-full" />
-              <InputNumber v-model="newCompetency.weight" :placeholder="t('requisitions.weight')" :min="0" :max="100" class="!w-full" />
-            </div>
-            <div class="flex items-center justify-end gap-2">
-              <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="addCompetencyVisible = false" />
-              <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="itemSaving" @click="saveCompetency()" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <Button :label="t('common.close')" severity="secondary" outlined size="small" @click="requirementsDialogVisible = false" />
-      </template>
-    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
 import { useToast } from 'primevue/usetoast'
 import { formatDate } from '@/utils/formatDate'
@@ -400,6 +317,7 @@ import SkeletonTable from '@/components/SkeletonTable.vue'
 import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 
+const router = useRouter()
 const { t, locale } = useI18n()
 const toast = useToast()
 
@@ -671,155 +589,5 @@ function onFilterChange() {
 onMounted(() => {
   loadData()
   loadOptions()
-  loadCompetencyMaster()
 })
-
-// ── G-9 sub-project 1: requirements + competencies ──
-const requirementsDialogVisible = ref(false)
-const requirementsTarget = ref(null)
-const requirements = ref([])
-const competencyItems = ref([])
-const competencyMaster = ref([])
-const jobManagementEducationExperiences = ref([])
-const jobManagementCompetencies = ref([])
-const itemSaving = ref(false)
-const addRequirementVisible = ref(false)
-const newRequirement = ref({})
-const addCompetencyVisible = ref(false)
-const newCompetency = ref({})
-
-const competencyOptions = computed(() => competencyMaster.value.map(c => ({ label: c.name, value: c.id })))
-
-function competencyName(id) {
-  const c = competencyMaster.value.find(x => x.id === id)
-  return c ? c.name : id
-}
-
-function cleanItemPayload(payload) {
-  const out = { ...payload }
-  Object.keys(out).forEach(k => {
-    if (out[k] === '' || out[k] === null || out[k] === undefined) delete out[k]
-  })
-  return out
-}
-
-async function loadCompetencyMaster() {
-  try {
-    const res = await api.get('/api/v1/tenant/competency/competencies', { params: { per_page: 500 } })
-    competencyMaster.value = res.data?.data || []
-  } catch {
-    competencyMaster.value = []
-  }
-}
-
-async function openRequirementsDialog(row) {
-  requirementsTarget.value = row
-  addRequirementVisible.value = false
-  addCompetencyVisible.value = false
-  requirementsDialogVisible.value = true
-  await Promise.all([loadRequirements(), loadCompetencyItems(), loadJobManagementFallback()])
-}
-
-// Fallback read-only (keputusan user: "Job Management jadi default, override
-// tetap di Recruitment") — dipanggil hanya untuk ditampilkan saat requisition
-// belum punya requirement/competency sendiri; sumber sesungguhnya untuk match
-// score dihitung backend (GetCandidateMatchScore, G-9).
-async function loadJobManagementFallback() {
-  const orgId = requirementsTarget.value?.organization_id
-  if (!orgId) {
-    jobManagementEducationExperiences.value = []
-    jobManagementCompetencies.value = []
-    return
-  }
-  try {
-    const [eduRes, compRes] = await Promise.allSettled([
-      api.get('/api/v1/tenant/job-management/education-experiences', { params: { organization_id: orgId, per_page: 100 } }),
-      api.get('/api/v1/tenant/job-management/potency-competencies', { params: { organization_id: orgId, per_page: 100 } })
-    ])
-    jobManagementEducationExperiences.value = eduRes.status === 'fulfilled' ? (eduRes.value.data?.data || []) : []
-    jobManagementCompetencies.value = compRes.status === 'fulfilled' ? (compRes.value.data?.data || []) : []
-  } catch {
-    jobManagementEducationExperiences.value = []
-    jobManagementCompetencies.value = []
-  }
-}
-
-async function loadRequirements() {
-  try {
-    const res = await api.get(`/api/v1/tenant/recruitment/requisitions/${requirementsTarget.value.id}/requirements`)
-    requirements.value = res.data?.data || []
-  } catch {
-    requirements.value = []
-  }
-}
-async function loadCompetencyItems() {
-  try {
-    const res = await api.get(`/api/v1/tenant/recruitment/requisitions/${requirementsTarget.value.id}/competencies`)
-    competencyItems.value = res.data?.data || []
-  } catch {
-    competencyItems.value = []
-  }
-}
-
-function openAddRequirement() {
-  newRequirement.value = { requirement_type: '', name: '', minimum_value: null, maximum_value: null }
-  addRequirementVisible.value = true
-}
-async function saveRequirement() {
-  if (!newRequirement.value.requirement_type?.trim() || !newRequirement.value.name?.trim()) {
-    toast.add({ severity: 'warn', summary: t('message.warning'), detail: t('message.failed_to_save'), life: 4000 })
-    return
-  }
-  itemSaving.value = true
-  try {
-    await api.post(`/api/v1/tenant/recruitment/requisitions/${requirementsTarget.value.id}/requirements`, cleanItemPayload(newRequirement.value))
-    addRequirementVisible.value = false
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('candidates.item_added'), life: 3000 })
-    loadRequirements()
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_save')), life: 5000 })
-  } finally {
-    itemSaving.value = false
-  }
-}
-async function removeRequirement(item) {
-  try {
-    await api.delete(`/api/v1/tenant/recruitment/requirements/${item.id}`)
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('candidates.item_deleted'), life: 3000 })
-    loadRequirements()
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_save')), life: 5000 })
-  }
-}
-
-function openAddCompetency() {
-  newCompetency.value = { competency_id: null, required_level: null, weight: null }
-  addCompetencyVisible.value = true
-}
-async function saveCompetency() {
-  if (!newCompetency.value.competency_id) {
-    toast.add({ severity: 'warn', summary: t('message.warning'), detail: t('message.failed_to_save'), life: 4000 })
-    return
-  }
-  itemSaving.value = true
-  try {
-    await api.post(`/api/v1/tenant/recruitment/requisitions/${requirementsTarget.value.id}/competencies`, cleanItemPayload(newCompetency.value))
-    addCompetencyVisible.value = false
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('candidates.item_added'), life: 3000 })
-    loadCompetencyItems()
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_save')), life: 5000 })
-  } finally {
-    itemSaving.value = false
-  }
-}
-async function removeCompetency(item) {
-  try {
-    await api.delete(`/api/v1/tenant/recruitment/requisition-competencies/${item.id}`)
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('candidates.item_deleted'), life: 3000 })
-    loadCompetencyItems()
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_save')), life: 5000 })
-  }
-}
 </script>
