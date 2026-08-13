@@ -484,7 +484,7 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 **Ref:** plan asli §20, §50, §57.
 
-## G-6 🔶 CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate) — sub-project 1/3 ✅ + sub-project 2/3 ✅ + sub-project 3a ✅ + sub-project 3b ✅ (sisa: status/source_id)
+## G-6 ✅ CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate) — sub-project 1/3 ✅ + sub-project 2/3 ✅ + sub-project 3a ✅ + sub-project 3b ✅ (sisa: status/source_id, skipped/deferred)
 
 **Status: ✅ Selesai (2026-08-13) — semua sub-table G-6 yang direncanakan sudah selesai (sub-project 1+2+3a+3b); sisa scope hanya `candidates.status` + `source_id`, keduanya sudah diputuskan skip/deferred sejak brainstorming sub-project 1 (bukan pekerjaan yang masih dijadwalkan).**
 
