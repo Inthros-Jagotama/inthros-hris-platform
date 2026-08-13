@@ -77,29 +77,23 @@
 
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('training.course_edit') : t('training.course_new')" modal :style="{ width: '640px' }" @hide="resetForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('training.code')" required :errors="errors?.code">
-            <TextInput v-model="form.code" maxlength="20" :placeholder="t('training.code_placeholder')" :class="{ 'p-invalid': errors?.code }" />
-          </FormRow>
-          <FormRow :label="t('training.category')" required :errors="errors?.category_id">
-            <SelectLabel v-model="form.category_id" :options="categoryOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.category_id }" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('training.category')" required :errors="errors?.category_id">
+          <SelectLabel v-model="form.category_id" :options="categoryOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.category_id }" />
+        </FormRow>
         <FormRow :label="t('common.name')" required :errors="errors?.name">
           <TextInput v-model="form.name" maxlength="200" :placeholder="t('common.name')" :class="{ 'p-invalid': errors?.name }" />
         </FormRow>
         <FormRow :label="t('common.description')" :errors="errors?.description">
           <TextInput v-model="form.description" textarea :rows="2" />
         </FormRow>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormRow :label="t('training.course_type')">
             <SelectLabel v-model="form.course_type" :options="courseTypeOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
           </FormRow>
           <FormRow :label="t('training.delivery_type')">
-            <SelectLabel v-model="form.delivery_type" :options="deliveryTypeOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
+            <div class="flex flex-wrap gap-3">
+              <RadioLabel v-for="opt in deliveryTypeOptions" :key="opt.value" v-model="form.delivery_type" :value="opt.value" :label="opt.label" :id="'course-delivery-' + opt.value" />
+            </div>
           </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <FormRow :label="t('training.duration_hour')" :errors="errors?.duration_hour">
             <InputNumber v-model="form.duration_hour" class="!w-full" :min="0" :maxFractionDigits="1" size="small" />
           </FormRow>
@@ -109,18 +103,27 @@
           <FormRow :label="t('training.cost')" :errors="errors?.cost">
             <InputNumber v-model="form.cost" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
           </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-          <FormRow :label="t('training.is_certified')">
+          <div class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
+            <div>
+              <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('training.is_certified') }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('training.is_certified_desc') }}</p>
+            </div>
             <ToggleSwitch v-model="form.is_certified" />
-          </FormRow>
-          <FormRow :label="t('training.is_mandatory')">
+          </div>
+          <div class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
+            <div>
+              <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('training.is_mandatory') }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('training.is_mandatory_desc') }}</p>
+            </div>
             <ToggleSwitch v-model="form.is_mandatory" />
-          </FormRow>
-          <FormRow :label="t('training.is_active')">
+          </div>
+          <div class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
+            <div>
+              <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('training.is_active') }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('training.is_active_desc') }}</p>
+            </div>
             <ToggleSwitch v-model="form.is_active" />
-          </FormRow>
-        </div>
+          </div>
       </div>
       <template #footer>
         <div class="flex items-center justify-end gap-2">
@@ -161,6 +164,7 @@ import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
+import RadioLabel from '@/components/RadioLabel.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -222,7 +226,7 @@ function formatMoney(v) {
 
 function defaultForm() {
   return {
-    code: '', category_id: null, name: '', description: '',
+    category_id: null, name: '', description: '',
     course_type: null, delivery_type: null,
     duration_hour: null, min_score: null, cost: null,
     is_certified: false, is_mandatory: false, is_active: true
@@ -272,7 +276,6 @@ function openDialog(item) {
   errors.value = {}
   form.value = item
     ? {
-        code: item.code || '',
         category_id: item.category_id || null,
         name: item.name || '',
         description: item.description || '',
@@ -298,13 +301,11 @@ function resetForm() {
 
 async function handleSave() {
   errors.value = {}
-  if (!form.value.code?.trim()) { errors.value = { code: t('form.required') }; return }
   if (!form.value.name?.trim()) { errors.value = { name: t('form.required') }; return }
   if (!form.value.category_id) { errors.value = { category_id: t('form.required') }; return }
   saving.value = true
   try {
     const payload = {
-      code: form.value.code.trim(),
       category_id: form.value.category_id,
       name: form.value.name.trim(),
       description: form.value.description?.trim() || '',

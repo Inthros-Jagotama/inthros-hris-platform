@@ -158,14 +158,24 @@ func (s *Service) CreateCourse(ctx context.Context, req CreateTrainingCourseRequ
 	if err != nil {
 		return nil, fmt.Errorf("invalid category_id: %w", err)
 	}
-	// Verify category exists
-	if _, err := s.repo.FindCategoryByID(ctx, catID); err != nil {
+	// Verify category exists (kode kategorinya dipakai sebagai prefix kode kursus)
+	cat, err := s.repo.FindCategoryByID(ctx, catID)
+	if err != nil {
 		return nil, fmt.Errorf("category not found: %w", err)
+	}
+
+	// Kode kursus: bila tidak dikirim, di-generate otomatis {KODE_KATEGORI}-{sekuens}.
+	code := strings.TrimSpace(req.Code)
+	if code == "" {
+		code, err = s.repo.NextCourseCode(ctx, cat.Code)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	course := &TrainingCourse{
 		CategoryID:  catID,
-		Code:        req.Code,
+		Code:        code,
 		Name:        req.Name,
 		IsCertified: false,
 		IsActive:    true,

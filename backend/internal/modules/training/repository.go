@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -97,6 +99,41 @@ func (r *Repository) CreateCourse(ctx context.Context, c *TrainingCourse) error 
 		return err
 	}
 	return db.WithContext(ctx).Create(c).Error
+}
+
+// NextCourseCode menghasilkan kode kursus otomatis dengan pola {KODE_KATEGORI}-{NNN}
+// (mis. TECH-001). Sekuens dihitung dari kode kursus yang sudah ada dengan prefix
+// yang sama (global, bukan per-kategori) sehingga kode tetap unik pada unique index.
+func (r *Repository) NextCourseCode(ctx context.Context, categoryCode string) (string, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	prefix := strings.ToUpper(strings.TrimSpace(categoryCode))
+	if prefix == "" {
+		prefix = "TRN"
+	}
+	// Batasi prefix agar panjang kode (varchar(20)) tidak terlampaui: 16 + "-" + 3 digit.
+	if len(prefix) > 16 {
+		prefix = prefix[:16]
+	}
+
+	var codes []string
+	if err := db.WithContext(ctx).Model(&TrainingCourse{}).
+		Where("code LIKE ?", prefix+"-%").
+		Pluck("code", &codes).Error; err != nil {
+		return "", err
+	}
+
+	maxSeq := 0
+	for _, c := range codes {
+		n, err := strconv.Atoi(strings.TrimPrefix(c, prefix+"-"))
+		if err == nil && n > maxSeq {
+			maxSeq = n
+		}
+	}
+	return fmt.Sprintf("%s-%03d", prefix, maxSeq+1), nil
 }
 
 func (r *Repository) FindCourseByID(ctx context.Context, id uuid.UUID) (*TrainingCourse, error) {

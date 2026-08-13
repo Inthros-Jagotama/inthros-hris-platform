@@ -36,7 +36,9 @@ type TrainingCategoryResponse struct {
 
 type CreateTrainingCourseRequest struct {
 	CategoryID     string   `json:"category_id" binding:"required"`
-	Code           string   `json:"code" binding:"required,max=20"`
+	// Code opsional — bila kosong akan di-generate otomatis oleh service
+	// (pola {KODE_KATEGORI}-{sekuens}, mis. TECH-001).
+	Code           string   `json:"code" binding:"omitempty,max=20"`
 	Name           string   `json:"name" binding:"required,max=200"`
 	Description    *string  `json:"description"`
 	DurationHour   *float64 `json:"duration_hour"`

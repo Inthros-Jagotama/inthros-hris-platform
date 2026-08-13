@@ -34,6 +34,48 @@ func TestService_CourseRequiresCategory(t *testing.T) {
 	}
 }
 
+func TestService_CourseAutoCode(t *testing.T) {
+	svc := testSvc(t)
+	catID := seedCategory(t, svc) // kategori dengan kode "TECH"
+
+	// Tanpa code → di-generate otomatis {KODE_KATEGORI}-{sekuens}
+	resp1, err := svc.CreateCourse(testCtx(), CreateTrainingCourseRequest{
+		CategoryID: catID,
+		Name:       "Course A",
+	})
+	if err != nil {
+		t.Fatalf("failed to create course without code: %v", err)
+	}
+	if resp1.Code != "TECH-001" {
+		t.Fatalf("expected auto code TECH-001, got %s", resp1.Code)
+	}
+
+	// Course kedua → sekuens bertambah
+	resp2, err := svc.CreateCourse(testCtx(), CreateTrainingCourseRequest{
+		CategoryID: catID,
+		Name:       "Course B",
+	})
+	if err != nil {
+		t.Fatalf("failed to create second course without code: %v", err)
+	}
+	if resp2.Code != "TECH-002" {
+		t.Fatalf("expected auto code TECH-002, got %s", resp2.Code)
+	}
+
+	// Code eksplisit tetap dihormati
+	resp3, err := svc.CreateCourse(testCtx(), CreateTrainingCourseRequest{
+		CategoryID: catID,
+		Code:       "CUSTOM-01",
+		Name:       "Course C",
+	})
+	if err != nil {
+		t.Fatalf("failed to create course with explicit code: %v", err)
+	}
+	if resp3.Code != "CUSTOM-01" {
+		t.Fatalf("expected explicit code CUSTOM-01, got %s", resp3.Code)
+	}
+}
+
 func TestService_SessionStatusFlow(t *testing.T) {
 	svc := testSvc(t)
 	catID := seedCategory(t, svc)

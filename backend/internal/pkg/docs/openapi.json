@@ -52151,7 +52151,6 @@
         "type": "object",
         "required": [
           "category_id",
-          "code",
           "name"
         ],
         "properties": {
@@ -52163,7 +52162,7 @@
           "code": {
             "type": "string",
             "maxLength": 20,
-            "description": "Course code"
+            "description": "Course code (optional; auto-generated as {CATEGORY_CODE}-{seq} when omitted)"
           },
           "name": {
             "type": "string",
