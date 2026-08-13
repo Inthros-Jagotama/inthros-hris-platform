@@ -1181,6 +1181,110 @@ func (r *Repository) DeleteAssessmentParticipant(ctx context.Context, id uuid.UU
 }
 
 // =========================================================================
+// Recruitment Analytics (G-11) — pure read aggregation, no new tables
+// =========================================================================
+
+func (r *Repository) CountRequisitionsByStatus(ctx context.Context, status string) (int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	err = db.WithContext(ctx).Model(&JobRequisition{}).Where("status = ?", status).Count(&count).Error
+	return count, err
+}
+
+func (r *Repository) CountCandidates(ctx context.Context) (int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	err = db.WithContext(ctx).Model(&Candidate{}).Count(&count).Error
+	return count, err
+}
+
+func (r *Repository) CountInterviews(ctx context.Context) (int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	err = db.WithContext(ctx).Model(&Interview{}).Count(&count).Error
+	return count, err
+}
+
+func (r *Repository) CountOffersByStatus(ctx context.Context, status string) (int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	err = db.WithContext(ctx).Model(&JobOffer{}).Where("status = ?", status).Count(&count).Error
+	return count, err
+}
+
+func (r *Repository) CountOffers(ctx context.Context) (int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	err = db.WithContext(ctx).Model(&JobOffer{}).Count(&count).Error
+	return count, err
+}
+
+// ListApplicationsForAnalytics returns applications within an optional
+// applied_at range (nil bounds = unbounded), unpaginated — used to compute
+// per-status counts, time-to-hire, and conversion rate in the service layer.
+func (r *Repository) ListApplicationsForAnalytics(ctx context.Context, from, to *int64) ([]JobApplication, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	query := db.WithContext(ctx).Model(&JobApplication{})
+	if from != nil {
+		query = query.Where("applied_at >= ?", *from)
+	}
+	if to != nil {
+		query = query.Where("applied_at <= ?", *to)
+	}
+	var list []JobApplication
+	if err := query.Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// ApplicationSourceRow pairs an application's status with its candidate's
+// source (candidates.source, free-text) — used for source conversion.
+type ApplicationSourceRow struct {
+	Status string
+	Source string
+}
+
+func (r *Repository) ListApplicationSourcesForAnalytics(ctx context.Context, from, to *int64) ([]ApplicationSourceRow, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	query := db.WithContext(ctx).Table("job_applications").
+		Select("job_applications.status AS status, candidates.source AS source").
+		Joins("JOIN candidates ON candidates.id = job_applications.candidate_id")
+	if from != nil {
+		query = query.Where("job_applications.applied_at >= ?", *from)
+	}
+	if to != nil {
+		query = query.Where("job_applications.applied_at <= ?", *to)
+	}
+	var rows []ApplicationSourceRow
+	if err := query.Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// =========================================================================
 // Job Requisition Requirements + Competencies (G-9 sub-project 1)
 // =========================================================================
 

@@ -3550,3 +3550,155 @@ func TestService_CreateEmployeeOnboarding_ScopedTemplateExcludedWhenOrgMismatche
 		t.Errorf("expected 1 task item (global only, org-scoped excluded), got %d", len(items))
 	}
 }
+
+func TestService_GetRecruitmentAnalyticsSummary_Counts(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+
+	openReq, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Open Req", SlotsAvailable: intPtr(5)})
+	if _, err := svc.UpdateRequisition(ctx, openReq.ID, UpdateRequisitionRequest{Status: strPtr("OPEN")}); err != nil {
+		t.Fatalf("UpdateRequisition to OPEN failed: %v", err)
+	}
+
+	cand1, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "A", LastName: "One", Email: "a1@test.com", Source: strPtr("referral")})
+	cand2, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "B", LastName: "Two", Email: "a2@test.com", Source: strPtr("referral")})
+	cand3, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "C", LastName: "Three", Email: "a3@test.com", Source: strPtr("linkedin")})
+
+	app1, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: openReq.ID, CandidateID: cand1.ID})
+	app2, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: openReq.ID, CandidateID: cand2.ID})
+	app3, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: openReq.ID, CandidateID: cand3.ID})
+
+	svc.UpdateApplicationStatus(ctx, app1.ID, "ACCEPTED", "", "", nil)
+	svc.UpdateApplicationStatus(ctx, app2.ID, "SHORTLISTED", "", "", nil)
+	svc.UpdateApplicationStatus(ctx, app3.ID, "REJECTED", "reason", "", nil)
+
+	resp, err := svc.GetRecruitmentAnalyticsSummary(ctx, nil, nil)
+	if err != nil {
+		t.Fatalf("GetRecruitmentAnalyticsSummary failed: %v", err)
+	}
+	if resp.OpenRequisitions != 1 {
+		t.Errorf("expected 1 open requisition, got %d", resp.OpenRequisitions)
+	}
+	if resp.Candidates != 3 {
+		t.Errorf("expected 3 candidates, got %d", resp.Candidates)
+	}
+	if resp.Applications != 3 {
+		t.Errorf("expected 3 applications, got %d", resp.Applications)
+	}
+	if resp.Hires != 1 {
+		t.Errorf("expected 1 hire, got %d", resp.Hires)
+	}
+	if resp.Shortlisted != 1 {
+		t.Errorf("expected 1 shortlisted, got %d", resp.Shortlisted)
+	}
+	if resp.Rejected != 1 {
+		t.Errorf("expected 1 rejected, got %d", resp.Rejected)
+	}
+	if resp.ApplicationConversionRate == nil || *resp.ApplicationConversionRate < 0.33 || *resp.ApplicationConversionRate > 0.34 {
+		t.Errorf("expected conversion rate ~0.333, got %v", resp.ApplicationConversionRate)
+	}
+
+	// source_conversion: 2 referral (1 hired), 1 linkedin (0 hired)
+	var referral, linkedin *SourceConversionEntry
+	for i := range resp.SourceConversion {
+		switch resp.SourceConversion[i].Source {
+		case "referral":
+			referral = &resp.SourceConversion[i]
+		case "linkedin":
+			linkedin = &resp.SourceConversion[i]
+		}
+	}
+	if referral == nil || referral.Applications != 2 || referral.Hires != 1 {
+		t.Errorf("unexpected referral source stats: %+v", referral)
+	}
+	if linkedin == nil || linkedin.Applications != 1 || linkedin.Hires != 0 {
+		t.Errorf("unexpected linkedin source stats: %+v", linkedin)
+	}
+}
+
+func TestService_GetRecruitmentAnalyticsSummary_TimeToHireAndOfferAcceptance(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "T", LastName: "H", Email: "th@test.com"})
+	app, err := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+	if err != nil {
+		t.Fatalf("CreateApplication failed: %v", err)
+	}
+	appUUID, _ := uuid.Parse(app.ID)
+	dbApp, _ := repo.FindApplicationByID(ctx, appUUID)
+	oneDayNanos := int64(24 * 60 * 60 * 1e9)
+	dbApp.AppliedAt = 1_000_000_000_000
+	accepted := dbApp.AppliedAt + oneDayNanos*5
+	dbApp.AcceptedAt = &accepted
+	dbApp.Status = CandStatusAccepted
+	repo.UpdateApplication(ctx, dbApp)
+
+	offer1 := &JobOffer{ApplicationID: appUUID, Status: OfferStatusAccepted}
+	offer2 := &JobOffer{ApplicationID: appUUID, Status: OfferStatusRejected}
+	repo.CreateOffer(ctx, offer1)
+	repo.CreateOffer(ctx, offer2)
+
+	resp, err := svc.GetRecruitmentAnalyticsSummary(ctx, nil, nil)
+	if err != nil {
+		t.Fatalf("GetRecruitmentAnalyticsSummary failed: %v", err)
+	}
+	if resp.TimeToHireDays == nil || *resp.TimeToHireDays < 4.9 || *resp.TimeToHireDays > 5.1 {
+		t.Errorf("expected time_to_hire_days ~5, got %v", resp.TimeToHireDays)
+	}
+	if resp.OfferAcceptanceRate == nil || *resp.OfferAcceptanceRate < 0.49 || *resp.OfferAcceptanceRate > 0.51 {
+		t.Errorf("expected offer_acceptance_rate ~0.5, got %v", resp.OfferAcceptanceRate)
+	}
+	if resp.Offers != 2 {
+		t.Errorf("expected 2 offers, got %d", resp.Offers)
+	}
+}
+
+func TestService_GetRecruitmentAnalyticsSummary_EmptyDataNoDivideByZero(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	resp, err := svc.GetRecruitmentAnalyticsSummary(ctx, nil, nil)
+	if err != nil {
+		t.Fatalf("GetRecruitmentAnalyticsSummary failed: %v", err)
+	}
+	if resp.Applications != 0 || resp.TimeToHireDays != nil || resp.OfferAcceptanceRate != nil || resp.ApplicationConversionRate != nil {
+		t.Errorf("expected all-nil/zero on empty data, got %+v", resp)
+	}
+}
+
+func TestService_GetRecruitmentAnalyticsSummary_DateRangeFilter(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "D", LastName: "R", Email: "dr@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+	appUUID, _ := uuid.Parse(app.ID)
+	dbApp, _ := repo.FindApplicationByID(ctx, appUUID)
+	dbApp.AppliedAt = 5_000_000_000_000
+	repo.UpdateApplication(ctx, dbApp)
+
+	from := int64(6_000_000_000_000)
+	resp, err := svc.GetRecruitmentAnalyticsSummary(ctx, &from, nil)
+	if err != nil {
+		t.Fatalf("GetRecruitmentAnalyticsSummary failed: %v", err)
+	}
+	if resp.Applications != 0 {
+		t.Errorf("expected 0 applications after 'from' filter excludes the only application, got %d", resp.Applications)
+	}
+}

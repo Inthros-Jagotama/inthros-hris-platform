@@ -601,6 +601,47 @@ type MatchScoreResponse struct {
 }
 
 // =========================================================================
+// Recruitment Analytics DTOs (G-11)
+// =========================================================================
+
+type SourceConversionEntry struct {
+	Source         string  `json:"source"`
+	Applications   int64   `json:"applications"`
+	Hires          int64   `json:"hires"`
+	ConversionRate float64 `json:"conversion_rate"`
+}
+
+type AnalyticsSummaryResponse struct {
+	OpenRequisitions int64 `json:"open_requisitions"`
+	Candidates       int64 `json:"candidates"`
+	Applications     int64 `json:"applications"`
+	Shortlisted      int64 `json:"shortlisted"`
+	Interviews       int64 `json:"interviews"`
+	Offers           int64 `json:"offers"`
+	Hires            int64 `json:"hires"`
+	Rejected         int64 `json:"rejected"`
+	Withdrawn        int64 `json:"withdrawn"`
+
+	// TimeToHireDays: rata-rata (accepted_at - applied_at) dalam hari, atas
+	// application ACCEPTED dengan kedua timestamp terisi. Nil bila tidak ada
+	// data yang memenuhi.
+	TimeToHireDays *float64 `json:"time_to_hire_days,omitempty"`
+	// OfferAcceptanceRate: ACCEPTED / (ACCEPTED + REJECTED) offer. Nil bila
+	// tidak ada offer ACCEPTED/REJECTED sama sekali.
+	OfferAcceptanceRate *float64 `json:"offer_acceptance_rate,omitempty"`
+	// ApplicationConversionRate: application ACCEPTED / total application.
+	// Nil bila tidak ada application.
+	ApplicationConversionRate *float64 `json:"application_conversion_rate,omitempty"`
+
+	SourceConversion []SourceConversionEntry `json:"source_conversion"`
+
+	// Note: field lain di plan asli (Time to Fill, Time to Stage, Candidate
+	// Match Score aggregate) sengaja TIDAK dihitung di sini — lihat catatan
+	// desain §G-11 di module-recruitment-development-plan.md.
+	Note string `json:"note,omitempty"`
+}
+
+// =========================================================================
 // Interview DTOs
 // =========================================================================
 

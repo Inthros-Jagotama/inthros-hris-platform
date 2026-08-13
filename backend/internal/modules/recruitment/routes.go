@@ -69,6 +69,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// S-4: internal candidate eligibility (CI → Recruitment)
 		rec.GET("/eligible-internal-candidates", handler.GetEligibleInternalCandidates)
 
+		// G-11: recruitment analytics summary
+		rec.GET("/analytics/summary", handler.GetRecruitmentAnalyticsSummary)
+
 		// Job Applications
 		rec.POST("/applications", handler.CreateApplication)
 		rec.GET("/applications", handler.ListApplications)
@@ -84,16 +87,16 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		rec.PUT("/screenings/:id", handler.UpdateApplicationScreening)
 		rec.DELETE("/screenings/:id", handler.DeleteApplicationScreening)
 
-			// G-7 sub-project 2: assessments (batch session) + participants
-			rec.POST("/assessments", handler.CreateAssessment)
-			rec.GET("/assessments", handler.ListAssessments)
-			rec.GET("/assessments/:id", handler.GetAssessmentByID)
-			rec.PUT("/assessments/:id", handler.UpdateAssessment)
-			rec.DELETE("/assessments/:id", handler.DeleteAssessment)
-			rec.POST("/assessments/:id/participants", handler.AddAssessmentParticipant)
-			rec.GET("/assessments/:id/participants", handler.ListAssessmentParticipants)
-			rec.PUT("/assessment-participants/:id", handler.UpdateAssessmentParticipant)
-			rec.DELETE("/assessment-participants/:id", handler.DeleteAssessmentParticipant)
+		// G-7 sub-project 2: assessments (batch session) + participants
+		rec.POST("/assessments", handler.CreateAssessment)
+		rec.GET("/assessments", handler.ListAssessments)
+		rec.GET("/assessments/:id", handler.GetAssessmentByID)
+		rec.PUT("/assessments/:id", handler.UpdateAssessment)
+		rec.DELETE("/assessments/:id", handler.DeleteAssessment)
+		rec.POST("/assessments/:id/participants", handler.AddAssessmentParticipant)
+		rec.GET("/assessments/:id/participants", handler.ListAssessmentParticipants)
+		rec.PUT("/assessment-participants/:id", handler.UpdateAssessmentParticipant)
+		rec.DELETE("/assessment-participants/:id", handler.DeleteAssessmentParticipant)
 
 		// Interviews
 		rec.POST("/interviews", handler.CreateInterview)

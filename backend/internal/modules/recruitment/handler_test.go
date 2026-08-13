@@ -1433,3 +1433,23 @@ func TestHandler_GetCandidateMatchScore(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestHandler_GetRecruitmentAnalyticsSummary(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	w := performRequest(r, "GET", "/api/v1/tenant/recruitment/analytics/summary", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_GetRecruitmentAnalyticsSummary_WithDateRange(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	w := performRequest(r, "GET", "/api/v1/tenant/recruitment/analytics/summary?from=1000&to=9999999999999999", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}

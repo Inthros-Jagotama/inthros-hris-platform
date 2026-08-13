@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -3286,6 +3287,131 @@ func (s *Service) DeleteAssessmentParticipant(ctx context.Context, id string) er
 		return fmt.Errorf("invalid id: %w", err)
 	}
 	return s.repo.DeleteAssessmentParticipant(ctx, uid)
+}
+
+// =========================================================================
+// Recruitment Analytics (G-11)
+// =========================================================================
+// Pure read aggregation over existing operational data — no new tables.
+// Time to Fill, Time to Stage, and aggregate Candidate Match Score are
+// deliberately NOT included: Time to Fill would need job_requisitions.
+// closed_at, which exists in the schema but is never set anywhere in the
+// codebase today (dead field) — an accurate number needs a requisition-
+// close endpoint wiring that field first, out of scope here.
+
+const nanosPerDay = float64(24 * 60 * 60 * 1e9)
+
+func (s *Service) GetRecruitmentAnalyticsSummary(ctx context.Context, from, to *int64) (*AnalyticsSummaryResponse, error) {
+	resp := &AnalyticsSummaryResponse{
+		SourceConversion: []SourceConversionEntry{},
+		Note:             "time_to_fill and time_to_stage are not included — see G-11 design notes in module-recruitment-development-plan.md",
+	}
+
+	openReq, err := s.repo.CountRequisitionsByStatus(ctx, string(ReqStatusOpen))
+	if err != nil {
+		return nil, err
+	}
+	resp.OpenRequisitions = openReq
+
+	candidates, err := s.repo.CountCandidates(ctx)
+	if err != nil {
+		return nil, err
+	}
+	resp.Candidates = candidates
+
+	interviews, err := s.repo.CountInterviews(ctx)
+	if err != nil {
+		return nil, err
+	}
+	resp.Interviews = interviews
+
+	totalOffers, err := s.repo.CountOffers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	resp.Offers = totalOffers
+	acceptedOffers, err := s.repo.CountOffersByStatus(ctx, string(OfferStatusAccepted))
+	if err != nil {
+		return nil, err
+	}
+	rejectedOffers, err := s.repo.CountOffersByStatus(ctx, string(OfferStatusRejected))
+	if err != nil {
+		return nil, err
+	}
+	if acceptedOffers+rejectedOffers > 0 {
+		rate := float64(acceptedOffers) / float64(acceptedOffers+rejectedOffers)
+		resp.OfferAcceptanceRate = &rate
+	}
+
+	applications, err := s.repo.ListApplicationsForAnalytics(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
+	resp.Applications = int64(len(applications))
+
+	var hireDaysSum float64
+	var hireDaysCount int64
+	for _, app := range applications {
+		switch app.Status {
+		case CandStatusShortlisted:
+			resp.Shortlisted++
+		case CandStatusAccepted:
+			resp.Hires++
+			if app.AppliedAt > 0 && app.AcceptedAt != nil && *app.AcceptedAt > app.AppliedAt {
+				hireDaysSum += float64(*app.AcceptedAt-app.AppliedAt) / nanosPerDay
+				hireDaysCount++
+			}
+		case CandStatusRejected:
+			resp.Rejected++
+		case CandStatusWithdrawn:
+			resp.Withdrawn++
+		}
+	}
+	if hireDaysCount > 0 {
+		avg := hireDaysSum / float64(hireDaysCount)
+		resp.TimeToHireDays = &avg
+	}
+	if resp.Applications > 0 {
+		rate := float64(resp.Hires) / float64(resp.Applications)
+		resp.ApplicationConversionRate = &rate
+	}
+
+	sourceRows, err := s.repo.ListApplicationSourcesForAnalytics(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
+	type sourceAgg struct {
+		total int64
+		hired int64
+	}
+	bySource := make(map[string]*sourceAgg)
+	for _, row := range sourceRows {
+		src := row.Source
+		if src == "" {
+			src = "unknown"
+		}
+		agg, ok := bySource[src]
+		if !ok {
+			agg = &sourceAgg{}
+			bySource[src] = agg
+		}
+		agg.total++
+		if row.Status == string(CandStatusAccepted) {
+			agg.hired++
+		}
+	}
+	for src, agg := range bySource {
+		entry := SourceConversionEntry{Source: src, Applications: agg.total, Hires: agg.hired}
+		if agg.total > 0 {
+			entry.ConversionRate = float64(agg.hired) / float64(agg.total)
+		}
+		resp.SourceConversion = append(resp.SourceConversion, entry)
+	}
+	sort.Slice(resp.SourceConversion, func(i, j int) bool {
+		return resp.SourceConversion[i].Source < resp.SourceConversion[j].Source
+	})
+
+	return resp, nil
 }
 
 // =========================================================================

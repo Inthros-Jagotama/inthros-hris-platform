@@ -887,6 +887,26 @@ func (h *Handler) GetCandidateMatchScore(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+func (h *Handler) GetRecruitmentAnalyticsSummary(c *gin.Context) {
+	var from, to *int64
+	if v := c.Query("from"); v != "" {
+		if parsed, err := strconv.ParseInt(v, 10, 64); err == nil {
+			from = &parsed
+		}
+	}
+	if v := c.Query("to"); v != "" {
+		if parsed, err := strconv.ParseInt(v, 10, 64); err == nil {
+			to = &parsed
+		}
+	}
+	resp, err := h.svc.GetRecruitmentAnalyticsSummary(c.Request.Context(), from, to)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 // GetEligibleInternalCandidates menangani GET /recruitment/eligible-internal-candidates
 // (plan S-4) — membaca employee internal yang eligible untuk target position
 // dari Career Intelligence (CI menentukan eligibility; Recruitment hanya
