@@ -407,6 +407,35 @@ func (d *CandidateDocument) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// CandidateConsent (G-6 — audit log consent pemrosesan data pribadi)
+// =========================================================================
+// Append-only — tidak ada Update/Delete. changed_by = staff yang mencatat
+// (sistem ini tidak punya portal publik untuk kandidat, jadi consent
+// didokumentasikan HR/recruiter, bukan self-service). action GRANTED/
+// REVOKED di-enforce di layer Gin binding, bukan DB constraint.
+
+type CandidateConsent struct {
+	ID          uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	CandidateID uuid.UUID  `gorm:"type:char(36);not null;index:idx_cand_consent_candidate" json:"candidate_id"`
+	Action      string     `gorm:"type:varchar(20);not null" json:"action"`
+	Notes       string     `gorm:"type:text" json:"notes,omitempty"`
+	ChangedBy   *uuid.UUID `gorm:"type:char(36)" json:"changed_by,omitempty"`
+	ChangedAt   int64      `gorm:"type:bigint;not null" json:"changed_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
+func (CandidateConsent) TableName() string {
+	return "candidate_consents"
+}
+
+func (c *CandidateConsent) BeforeCreate(tx *gorm.DB) error {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // JobApplication (Lamaran Pekerjaan)
 // =========================================================================
 
