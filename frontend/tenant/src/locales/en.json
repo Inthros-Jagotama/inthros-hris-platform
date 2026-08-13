@@ -1917,7 +1917,19 @@
     "edit_requisition": "Edit Requisition",
     "updated": "Requisition updated successfully",
     "confirm_delete_title": "Confirm delete",
-    "confirm_delete_message": "Delete requisition \"{{title}}\"? This action cannot be undone."
+    "confirm_delete_message": "Delete requisition \"{{title}}\"? This action cannot be undone.",
+    "requirements_competencies": "Requirements & Competencies",
+    "requirements_tab": "Requirements",
+    "requirements_empty": "No requirements defined yet",
+    "requirement_type": "Requirement Type (e.g. EDUCATION, EXPERIENCE_YEARS)",
+    "requirement_name": "Requirement Name",
+    "minimum_value": "Min Value",
+    "maximum_value": "Max Value",
+    "required": "Required",
+    "competencies_tab": "Competencies",
+    "competencies_empty": "No competencies defined yet",
+    "required_level": "Required Level",
+    "weight": "Weight"
   },
   "applications": {
     "description": "Manage the candidate pipeline — status, stage history, screening, assessment, interviews, and match score.",

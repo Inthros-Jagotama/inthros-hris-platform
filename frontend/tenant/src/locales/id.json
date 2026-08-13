@@ -1917,7 +1917,19 @@
     "edit_requisition": "Ubah Requisisi",
     "updated": "Requisisi berhasil diperbarui",
     "confirm_delete_title": "Konfirmasi hapus",
-    "confirm_delete_message": "Hapus requisisi \"{{title}}\"? Tindakan ini tidak dapat dibatalkan."
+    "confirm_delete_message": "Hapus requisisi \"{{title}}\"? Tindakan ini tidak dapat dibatalkan.",
+    "requirements_competencies": "Requirement & Kompetensi",
+    "requirements_tab": "Requirement",
+    "requirements_empty": "Belum ada requirement",
+    "requirement_type": "Tipe Requirement (mis. EDUCATION, EXPERIENCE_YEARS)",
+    "requirement_name": "Nama Requirement",
+    "minimum_value": "Nilai Min",
+    "maximum_value": "Nilai Maks",
+    "required": "Wajib",
+    "competencies_tab": "Kompetensi",
+    "competencies_empty": "Belum ada kompetensi",
+    "required_level": "Level Dibutuhkan",
+    "weight": "Bobot"
   },
   "applications": {
     "description": "Kelola pipeline kandidat — status, riwayat tahap, screening, assessment, wawancara, dan match score.",
