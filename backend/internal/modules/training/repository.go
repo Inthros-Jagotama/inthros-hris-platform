@@ -36,6 +36,32 @@ func (r *Repository) CreateCategory(ctx context.Context, c *TrainingCategory) er
 	return db.WithContext(ctx).Create(c).Error
 }
 
+// NextCategoryCode menghasilkan kode kategori otomatis dengan pola CAT-{NNN}
+// (mis. CAT-001). Sekuens dihitung dari kode kategori yang sudah ada sehingga
+// tetap unik pada unique index.
+func (r *Repository) NextCategoryCode(ctx context.Context) (string, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	var codes []string
+	if err := db.WithContext(ctx).Model(&TrainingCategory{}).
+		Where("code LIKE ?", "CAT-%").
+		Pluck("code", &codes).Error; err != nil {
+		return "", err
+	}
+
+	maxSeq := 0
+	for _, c := range codes {
+		n, err := strconv.Atoi(strings.TrimPrefix(c, "CAT-"))
+		if err == nil && n > maxSeq {
+			maxSeq = n
+		}
+	}
+	return fmt.Sprintf("CAT-%03d", maxSeq+1), nil
+}
+
 func (r *Repository) FindCategoryByID(ctx context.Context, id uuid.UUID) (*TrainingCategory, error) {
 	db, err := r.db(ctx)
 	if err != nil {

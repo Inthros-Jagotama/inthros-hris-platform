@@ -59,8 +59,18 @@ func (s *Service) SetNotifier(n Notifier) {
 // =========================================================================
 
 func (s *Service) CreateCategory(ctx context.Context, req CreateTrainingCategoryRequest) (*TrainingCategoryResponse, error) {
+	// Kode kategori: bila tidak dikirim, di-generate otomatis CAT-{sekuens}.
+	code := strings.TrimSpace(req.Code)
+	if code == "" {
+		var err error
+		code, err = s.repo.NextCategoryCode(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	cat := &TrainingCategory{
-		Code:     req.Code,
+		Code:     code,
 		Name:     req.Name,
 		IsActive: true,
 	}

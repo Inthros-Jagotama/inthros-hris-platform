@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /d/dev/HRIS/backend/internal/modules/recruitment && grep -n \"RecruitmentStage\\\\|CreateStage\" repository_test.go | head -40 && echo ----MODULE && grep -rn \"RecruitmentStage\" module.go ../../../ --include=module.go | head)",
+      "Read(//d//**)",
+      "Bash(git commit -m ' *)",
+      "Bash(git commit *)",
+      "Bash(bash \"C:/Users/AZ23/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development/scripts/review-package\" docs/superpowers/plans/2026-08-12-recruitment-stage-history.md f763feba103894ddf2106cf767044fa7dd3e9354 HEAD)",
+      "Bash(bash \"C:/Users/AZ23/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development/scripts/task-brief\" docs/superpowers/plans/2026-08-12-recruitment-stage-history.md 6)",
+      "Bash(bash \"C:/Users/AZ23/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development/scripts/review-package\" docs/superpowers/plans/2026-08-12-candidate-profile-basics.md ac377b01d6cc112bd6d3403837050e58b20a1d0f HEAD)",
+      "Bash(gofmt -l internal/modules/recruitment/model.go)",
+      "Bash(gofmt -d internal/modules/recruitment/model.go)",
+      "Bash(git show *)",
+      "Bash(gofmt -l /tmp/old_model.go)",
+      "Bash(echo \"exit:$?\")",
+      "Read(//tmp/**)",
+      "Bash(bash \"C:/Users/AZ23/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development/scripts/task-brief\" docs/superpowers/plans/2026-08-12-candidate-profile-basics.md 3)",
+      "Bash(bash \"C:/Users/AZ23/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development/scripts/review-package\" docs/superpowers/plans/2026-08-12-candidate-profile-basics.md 56211a21e73c1cd6719f74e7868e9264c7f757b7 HEAD)",
+      "Bash(bash \"C:/Users/AZ23/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development/scripts/sdd-workspace\" docs/superpowers/plans/2026-08-12-candidate-skills-certifications.md)",
+      "Bash(bash \"C:/Users/AZ23/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development/scripts/task-brief\" docs/superpowers/plans/2026-08-12-candidate-skills-certifications.md 1)",
+      "PowerShell(Get-ChildItem \"D:\\\\dev\\\\HRIS\\\\backend\\\\internal\\\\pkg\\\\migrator\\\\migrations\\\\tenant\\\\postgres\\\\\" | Where-Object { $_.Name -match \"^099\" } | Select-Object Name)",
+      "PowerShell(Get-ChildItem \"D:\\\\dev\\\\HRIS\\\\backend\\\\internal\\\\pkg\\\\migrator\\\\migrations\\\\tenant\\\\mysql\\\\\" | Where-Object { $_.Name -match \"^099\" } | Select-Object Name)",
+      "Bash(bash \"C:/Users/AZ23/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development/scripts/review-package\" docs/superpowers/plans/2026-08-12-candidate-skills-certifications.md 9edffc5dcf0a5b9cb116d859cb5c537a37681bd6 HEAD)",
+      "Bash(bash \"C:/Users/AZ23/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development/scripts/task-brief\" docs/superpowers/plans/2026-08-12-candidate-skills-certifications.md 2)",
+      "Bash(bash \"C:/Users/AZ23/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development/scripts/task-brief\" docs/superpowers/plans/2026-08-12-candidate-documents.md 1)"
+    ]
+  }
+}

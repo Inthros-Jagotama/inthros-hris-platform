@@ -54,18 +54,19 @@
 
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('training.category_edit') : t('training.category_new')" modal :style="{ width: '520px' }" @hide="resetForm">
       <div class="space-y-4">
-        <FormRow :label="t('training.code')" required :errors="errors?.code">
-          <TextInput v-model="form.code" maxlength="20" :placeholder="t('training.code_placeholder')" :class="{ 'p-invalid': errors?.code }" />
-        </FormRow>
         <FormRow :label="t('common.name')" required :errors="errors?.name">
           <TextInput v-model="form.name" maxlength="150" :placeholder="t('common.name')" :class="{ 'p-invalid': errors?.name }" />
         </FormRow>
         <FormRow :label="t('common.description')" :errors="errors?.description">
           <TextInput v-model="form.description" textarea :rows="2" />
         </FormRow>
-        <FormRow :label="t('training.is_active')">
+        <div class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
+          <div>
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('training.is_active') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('training.category_is_active_desc') }}</p>
+          </div>
           <ToggleSwitch v-model="form.is_active" />
-        </FormRow>
+        </div>
       </div>
       <template #footer>
         <div class="flex items-center justify-end gap-2">
@@ -136,7 +137,7 @@ const skeletonColumns = [
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 
 function defaultForm() {
-  return { code: '', name: '', description: '', is_active: true }
+  return { name: '', description: '', is_active: true }
 }
 
 async function loadData() {
@@ -166,7 +167,7 @@ function openDialog(item) {
   editingId.value = item?.id || null
   errors.value = {}
   form.value = item
-    ? { code: item.code || '', name: item.name || '', description: item.description || '', is_active: !!item.is_active }
+    ? { name: item.name || '', description: item.description || '', is_active: !!item.is_active }
     : defaultForm()
   dialogVisible.value = true
 }
@@ -180,12 +181,10 @@ function resetForm() {
 
 async function handleSave() {
   errors.value = {}
-  if (!form.value.code?.trim()) { errors.value = { code: t('form.required') }; return }
   if (!form.value.name?.trim()) { errors.value = { name: t('form.required') }; return }
   saving.value = true
   try {
     const payload = {
-      code: form.value.code.trim(),
       name: form.value.name.trim(),
       description: form.value.description?.trim() || '',
       is_active: form.value.is_active

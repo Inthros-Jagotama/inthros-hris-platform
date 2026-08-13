@@ -1009,6 +1009,7 @@
     "is_certified_desc": "This course provides a certificate upon completion.",
     "is_mandatory_desc": "Must be attended by all assigned employees.",
     "is_active_desc": "Course is active and available for scheduling.",
+    "category_is_active_desc": "Category is active and available for new courses.",
     "inactive": "Inactive",
     "is_required": "Required",
     "required": "Required",

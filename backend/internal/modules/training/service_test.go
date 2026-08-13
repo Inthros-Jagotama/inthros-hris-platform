@@ -20,6 +20,44 @@ func TestService_CreateCategory_Validation(t *testing.T) {
 	}
 }
 
+func TestService_CategoryAutoCode(t *testing.T) {
+	svc := testSvc(t)
+
+	// Tanpa code → di-generate otomatis CAT-{sekuens}
+	resp1, err := svc.CreateCategory(testCtx(), CreateTrainingCategoryRequest{
+		Name: "Category A",
+	})
+	if err != nil {
+		t.Fatalf("failed to create category without code: %v", err)
+	}
+	if resp1.Code != "CAT-001" {
+		t.Fatalf("expected auto code CAT-001, got %s", resp1.Code)
+	}
+
+	// Kategori kedua → sekuens bertambah
+	resp2, err := svc.CreateCategory(testCtx(), CreateTrainingCategoryRequest{
+		Name: "Category B",
+	})
+	if err != nil {
+		t.Fatalf("failed to create second category without code: %v", err)
+	}
+	if resp2.Code != "CAT-002" {
+		t.Fatalf("expected auto code CAT-002, got %s", resp2.Code)
+	}
+
+	// Code eksplisit tetap dihormati
+	resp3, err := svc.CreateCategory(testCtx(), CreateTrainingCategoryRequest{
+		Code: "FIN",
+		Name: "Finance",
+	})
+	if err != nil {
+		t.Fatalf("failed to create category with explicit code: %v", err)
+	}
+	if resp3.Code != "FIN" {
+		t.Fatalf("expected explicit code FIN, got %s", resp3.Code)
+	}
+}
+
 func TestService_CourseRequiresCategory(t *testing.T) {
 	svc := testSvc(t)
 

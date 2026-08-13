@@ -1009,6 +1009,7 @@
     "is_certified_desc": "Kursus ini memberikan sertifikat setelah selesai.",
     "is_mandatory_desc": "Wajib diikuti oleh seluruh karyawan yang ditugaskan.",
     "is_active_desc": "Kursus aktif dan dapat digunakan untuk penjadwalan.",
+    "category_is_active_desc": "Kategori aktif dan dapat digunakan untuk kursus baru.",
     "inactive": "Nonaktif",
     "is_required": "Wajib",
     "required": "Wajib",

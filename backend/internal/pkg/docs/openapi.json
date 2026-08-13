@@ -52049,14 +52049,13 @@
       "CreateTrainingCategoryRequest": {
         "type": "object",
         "required": [
-          "code",
           "name"
         ],
         "properties": {
           "code": {
             "type": "string",
             "maxLength": 20,
-            "description": "Category code"
+            "description": "Category code (optional; auto-generated as CAT-{seq} when omitted)"
           },
           "name": {
             "type": "string",
