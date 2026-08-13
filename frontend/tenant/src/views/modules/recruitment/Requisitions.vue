@@ -298,6 +298,16 @@
               <Button icon="pi pi-trash" text severity="danger" size="small" class="!w-6 !h-6" @click="removeRequirement(item)" />
             </div>
           </div>
+          <!-- Job Management default (fallback read-only, hanya tampil kalau requisition belum punya override sendiri) -->
+          <template v-else-if="jobManagementEducationExperiences.length">
+            <p class="text-[11px] text-amber-600 dark:text-amber-400 mb-1.5"><i class="pi pi-info-circle mr-1"></i>{{ t('requisitions.from_job_management') }}</p>
+            <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-dashed border-amber-200 dark:border-amber-700/40 rounded-lg">
+              <div v-for="item in jobManagementEducationExperiences" :key="item.id" class="px-3 py-2">
+                <p class="text-sm text-gray-700 dark:text-gray-300">{{ item.education_name || item.experience_name || item.nomenclature }}</p>
+                <p v-if="item.education_name && item.experience_name" class="text-xs text-gray-400">{{ item.experience_name }}</p>
+              </div>
+            </div>
+          </template>
           <p v-else class="text-xs text-gray-400 py-2">{{ t('requisitions.requirements_empty') }}</p>
 
           <div v-if="addRequirementVisible" class="mt-2 space-y-2 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
@@ -332,6 +342,18 @@
               <Button icon="pi pi-trash" text severity="danger" size="small" class="!w-6 !h-6" @click="removeCompetency(item)" />
             </div>
           </div>
+          <!-- Job Management default (fallback read-only — sumber yang dipakai match score G-9 bila requisition ini belum punya override) -->
+          <template v-else-if="jobManagementCompetencies.length">
+            <p class="text-[11px] text-amber-600 dark:text-amber-400 mb-1.5"><i class="pi pi-info-circle mr-1"></i>{{ t('requisitions.from_job_management') }}</p>
+            <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-dashed border-amber-200 dark:border-amber-700/40 rounded-lg">
+              <div v-for="item in jobManagementCompetencies" :key="item.id" class="flex items-center gap-2 px-3 py-2">
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm text-gray-700 dark:text-gray-300">{{ competencyName(item.competency_id) }}</p>
+                  <p v-if="item.weight" class="text-xs text-gray-400">{{ t('requisitions.weight') }} {{ item.weight }}%</p>
+                </div>
+              </div>
+            </div>
+          </template>
           <p v-else class="text-xs text-gray-400 py-2">{{ t('requisitions.competencies_empty') }}</p>
 
           <div v-if="addCompetencyVisible" class="mt-2 space-y-2 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
@@ -658,6 +680,8 @@ const requirementsTarget = ref(null)
 const requirements = ref([])
 const competencyItems = ref([])
 const competencyMaster = ref([])
+const jobManagementEducationExperiences = ref([])
+const jobManagementCompetencies = ref([])
 const itemSaving = ref(false)
 const addRequirementVisible = ref(false)
 const newRequirement = ref({})
@@ -693,7 +717,31 @@ async function openRequirementsDialog(row) {
   addRequirementVisible.value = false
   addCompetencyVisible.value = false
   requirementsDialogVisible.value = true
-  await Promise.all([loadRequirements(), loadCompetencyItems()])
+  await Promise.all([loadRequirements(), loadCompetencyItems(), loadJobManagementFallback()])
+}
+
+// Fallback read-only (keputusan user: "Job Management jadi default, override
+// tetap di Recruitment") — dipanggil hanya untuk ditampilkan saat requisition
+// belum punya requirement/competency sendiri; sumber sesungguhnya untuk match
+// score dihitung backend (GetCandidateMatchScore, G-9).
+async function loadJobManagementFallback() {
+  const orgId = requirementsTarget.value?.organization_id
+  if (!orgId) {
+    jobManagementEducationExperiences.value = []
+    jobManagementCompetencies.value = []
+    return
+  }
+  try {
+    const [eduRes, compRes] = await Promise.allSettled([
+      api.get('/api/v1/tenant/job-management/education-experiences', { params: { organization_id: orgId, per_page: 100 } }),
+      api.get('/api/v1/tenant/job-management/potency-competencies', { params: { organization_id: orgId, per_page: 100 } })
+    ])
+    jobManagementEducationExperiences.value = eduRes.status === 'fulfilled' ? (eduRes.value.data?.data || []) : []
+    jobManagementCompetencies.value = compRes.status === 'fulfilled' ? (compRes.value.data?.data || []) : []
+  } catch {
+    jobManagementEducationExperiences.value = []
+    jobManagementCompetencies.value = []
+  }
 }
 
 async function loadRequirements() {

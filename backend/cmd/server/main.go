@@ -334,6 +334,43 @@ func (a employeeHireAdapter) CreateHiredEmployee(ctx context.Context, in recruit
 	return resp.ID, nil
 }
 
+// jobManagementCompetencyAdapter implements recruitment.JobManagementProvider
+// (plan G-9): reads Job Management's organization-level competencies
+// (job_management_potency_competencies) as the match-score fallback when a
+// requisition has no job_requisition_competencies override of its own.
+// Recruitment does NOT duplicate Job Management's data — it only reads it.
+type jobManagementCompetencyAdapter struct {
+	svc *jobmanagement.Service
+}
+
+func (a jobManagementCompetencyAdapter) ListOrganizationCompetencies(ctx context.Context, organizationID string) ([]recruitment.JobManagementCompetencyRef, error) {
+	resp, err := a.svc.ListJobPotencyCompetencies(ctx, 1, 1000, organizationID)
+	if err != nil {
+		return nil, err
+	}
+	rows, ok := resp.Data.([]jobmanagement.JobPotencyCompetencyResponse)
+	if !ok {
+		return nil, nil
+	}
+	out := make([]recruitment.JobManagementCompetencyRef, 0, len(rows))
+	for _, row := range rows {
+		if row.CompetencyID == "" {
+			continue
+		}
+		compID, err := uuid.Parse(row.CompetencyID)
+		if err != nil {
+			continue
+		}
+		ref := recruitment.JobManagementCompetencyRef{CompetencyID: compID}
+		if row.Weight > 0 {
+			w := row.Weight
+			ref.Weight = &w
+		}
+		out = append(out, ref)
+	}
+	return out, nil
+}
+
 // movementHireAdapter implements recruitment.MovementProvider (plan G-4):
 // hasil seleksi internal (offer diterima, candidate_type=INTERNAL) diteruskan
 // ke Employee Movement (promotion bila posisi target terisi, mutation bila
@@ -1015,6 +1052,12 @@ func main() {
 	employeeHireSvc := employee.NewService(employee.NewRepository(employee.NewTenantDBResolver(dbManager)), l.Named("employee-hire"))
 	recruitmentSvc.SetEmployeeProvider(employeeHireAdapter{svc: employeeHireSvc})
 	recruitmentSvc.SetMovementProvider(movementHireAdapter{svc: employeeMovementSvc})
+	// G-9: wire Job Management as the candidate match-score fallback source
+	// (user decision: "Job Management jadi default, override tetap di
+	// Recruitment") — jobManagementSvc dibuat terpisah (pola employeeHireSvc)
+	// supaya tidak perlu membongkar internal wiring module jobmanagement.
+	jobManagementSvc := jobmanagement.NewService(jobmanagement.NewRepository(jobmanagement.NewTenantDBResolver(dbManager)), l.Named("jobmanagement-recruitment"))
+	recruitmentSvc.SetJobManagementProvider(jobManagementCompetencyAdapter{svc: jobManagementSvc})
 	// G-1: wire Central Approval ke recruitment — requisition draft disubmit
 	// melalui sharedApprovalEngine (modul "recruitment"), dan keputusan
 	// APPROVED/REJECTED/CANCELLED dipropagasi balik ke status requisition via

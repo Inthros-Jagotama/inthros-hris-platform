@@ -1929,7 +1929,8 @@
     "competencies_tab": "Competencies",
     "competencies_empty": "No competencies defined yet",
     "required_level": "Required Level",
-    "weight": "Weight"
+    "weight": "Weight",
+    "from_job_management": "No override for this requisition — showing the organization default from Job Management (also used as the match score fallback)."
   },
   "applications": {
     "description": "Manage the candidate pipeline — status, stage history, screening, assessment, interviews, and match score.",

@@ -1929,7 +1929,8 @@
     "competencies_tab": "Kompetensi",
     "competencies_empty": "Belum ada kompetensi",
     "required_level": "Level Dibutuhkan",
-    "weight": "Bobot"
+    "weight": "Bobot",
+    "from_job_management": "Belum ada override untuk requisition ini — menampilkan default organisasi dari Job Management (juga dipakai sebagai fallback match score)."
   },
   "applications": {
     "description": "Kelola pipeline kandidat — status, riwayat tahap, screening, assessment, wawancara, dan match score.",

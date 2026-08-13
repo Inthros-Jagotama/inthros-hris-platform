@@ -3826,3 +3826,113 @@ func TestService_SubmitRequisition_NoNotifierNoRequestedBy(t *testing.T) {
 		t.Fatalf("SubmitRequisition without notifier failed: %v", err)
 	}
 }
+
+// fakeJobManagementProvider — test double for JobManagementProvider (G-9
+// match-score fallback). callCount lets tests assert the provider was (or
+// was NOT) invoked, e.g. to verify a requisition's own override takes
+// priority over the Job Management fallback.
+type fakeJobManagementProvider struct {
+	refs      []JobManagementCompetencyRef
+	err       error
+	callCount int
+}
+
+func (f *fakeJobManagementProvider) ListOrganizationCompetencies(ctx context.Context, organizationID string) ([]JobManagementCompetencyRef, error) {
+	f.callCount++
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.refs, nil
+}
+
+func TestService_GetCandidateMatchScore_FallsBackToJobManagementWhenNoOverride(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+
+	comp := &competency.Competency{Name: "Go"}
+	db.Create(comp)
+
+	provider := &fakeJobManagementProvider{refs: []JobManagementCompetencyRef{
+		{CompetencyID: comp.ID, Weight: floatPtr(100)},
+	}}
+	svc.SetJobManagementProvider(provider)
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Fallback", LastName: "Test", Email: "fallback@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+	level := 3
+	svc.CreateCandidateSkill(ctx, cand.ID, CreateCandidateSkillRequest{CompetencyID: comp.ID.String(), Level: &level})
+
+	// Requisition has NO job_requisition_competencies of its own — expect fallback.
+	resp, err := svc.GetCandidateMatchScore(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetCandidateMatchScore failed: %v", err)
+	}
+	if provider.callCount != 1 {
+		t.Errorf("expected Job Management provider called once, got %d", provider.callCount)
+	}
+	if resp.Score == nil || *resp.Score < 99.9 || *resp.Score > 100.1 {
+		t.Errorf("expected score ~100 (no required_level from Job Management -> defaults to 1, candidate has skill), got %v", resp.Score)
+	}
+	if resp.Note == "" {
+		t.Error("expected a note indicating the score came from Job Management fallback")
+	}
+	if len(resp.Breakdown) != 1 || resp.Breakdown[0].CompetencyName != "Go" {
+		t.Errorf("expected breakdown to resolve competency name from Job Management ref, got %+v", resp.Breakdown)
+	}
+}
+
+func TestService_GetCandidateMatchScore_RequisitionOverrideTakesPriorityOverJobManagement(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+
+	comp := &competency.Competency{Name: "Go"}
+	db.Create(comp)
+
+	provider := &fakeJobManagementProvider{refs: []JobManagementCompetencyRef{
+		{CompetencyID: comp.ID, Weight: floatPtr(100)},
+	}}
+	svc.SetJobManagementProvider(provider)
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Override", LastName: "Test", Email: "override@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+	svc.CreateRequisitionCompetency(ctx, req.ID, CreateRequisitionCompetencyRequest{CompetencyID: comp.ID.String(), Weight: floatPtr(50)})
+
+	resp, err := svc.GetCandidateMatchScore(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetCandidateMatchScore failed: %v", err)
+	}
+	if provider.callCount != 0 {
+		t.Errorf("expected Job Management provider NOT called when requisition has its own override, got %d calls", provider.callCount)
+	}
+	_ = resp
+}
+
+func TestService_GetCandidateMatchScore_NoOverrideNoJobManagementProvider(t *testing.T) {
+	// Tanpa job_requisition_competencies dan tanpa provider Job Management
+	// (nil, belum di-wire) -> tetap graceful, bukan error.
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "NoProvider", LastName: "Test", Email: "noprovider@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	resp, err := svc.GetCandidateMatchScore(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetCandidateMatchScore failed: %v", err)
+	}
+	if resp.Score != nil {
+		t.Errorf("expected nil score, got %v", *resp.Score)
+	}
+}

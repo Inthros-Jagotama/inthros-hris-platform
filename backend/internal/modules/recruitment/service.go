@@ -192,6 +192,35 @@ type ApprovalEngine interface {
 	GetActiveFlowIDForModule(ctx context.Context, module string) (string, error)
 }
 
+// JobManagementCompetencyRef adalah baris kompetensi organisasi dari modul
+// Job Management (job_management_potency_competencies) — dipakai sebagai
+// fallback G-9 match score ketika requisition belum punya override sendiri
+// di job_requisition_competencies. RequiredLevel sengaja tidak ada di sini
+// (Job Management tidak menyimpan level per kompetensi) — treated sebagai
+// nil (default 1) oleh formula match score, sama seperti kompetensi
+// requisition manual tanpa required_level.
+type JobManagementCompetencyRef struct {
+	CompetencyID uuid.UUID
+	Weight       *float64
+}
+
+// JobManagementProvider adalah interface narrow yang dipakai Recruitment
+// untuk membaca kompetensi organisasi dari Job Management (plan G-9 —
+// requirement user: "Job Management jadi default, override tetap di
+// Recruitment"). Recruitment TIDAK menduplikasi data Job Management — ia
+// hanya fallback-read via adapter ketika requisition tidak punya
+// job_requisition_competencies sendiri. Best-effort: provider nil atau error
+// tidak menggagalkan match score, hanya membuatnya kosong.
+type JobManagementProvider interface {
+	// ListOrganizationCompetencies mengembalikan kompetensi+bobot yang
+	// terdaftar di Job Management untuk organization_id tertentu (job
+	// requisition's organization_id — konsep "Organization = Position" HRIS
+	// ini menjadikan organization_id requisition sebagai titik sambung yang
+	// sama dengan yang dipakai Job Management, BUKAN job_requisitions.position_id
+	// yang tidak pernah diisi FE).
+	ListOrganizationCompetencies(ctx context.Context, organizationID string) ([]JobManagementCompetencyRef, error)
+}
+
 type Service struct {
 	repo                    *Repository
 	logger                  *zap.Logger
@@ -206,6 +235,8 @@ type Service struct {
 	employeeProvider EmployeeProvider
 	movementProvider MovementProvider
 	notifier         Notifier
+	// G-9: fallback match score ke kompetensi organisasi Job Management.
+	jobManagementProvider JobManagementProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -276,6 +307,14 @@ func (s *Service) SetEmployeeProvider(p EmployeeProvider) {
 // Best-effort: bila provider nil, accept offer tetap berhasil.
 func (s *Service) SetMovementProvider(p MovementProvider) {
 	s.movementProvider = p
+}
+
+// SetJobManagementProvider wires the Job Management module into this service
+// (plan G-9) so candidate match score can fall back to Job Management's
+// organization-level competencies when a requisition has no
+// job_requisition_competencies override of its own.
+func (s *Service) SetJobManagementProvider(p JobManagementProvider) {
+	s.jobManagementProvider = p
 }
 
 // =========================================================================
@@ -3683,9 +3722,25 @@ func requisitionCompetencyToResponse(c *JobRequisitionCompetency) *RequisitionCo
 // Advisory-only: dihitung on-the-fly, tidak disimpan/dipersist, tidak
 // menentukan keputusan apapun secara otomatis — recruiter tetap yang
 // memutuskan. Formula: Σ(weight × min(candidate_level/required_level, 1))
-// / Σ(weight) × 100, dibatasi ke job_requisition_competencies (bukan
-// requirement/education/experience/assessment/interview — keputusan
-// brainstorming: skala berbeda-beda dan sulit dibandingkan apple-to-apple).
+// / Σ(weight) × 100, dibatasi ke competency (bukan requirement/education/
+// experience/assessment/interview — keputusan brainstorming: skala
+// berbeda-beda dan sulit dibandingkan apple-to-apple).
+//
+// Sumber kompetensi (keputusan user, brainstorming G-9 lanjutan): requisition
+// override (job_requisition_competencies) diprioritaskan; kalau requisition
+// belum punya override sendiri, fallback ke kompetensi organisasi Job
+// Management (via JobManagementProvider, keyed by requisition.organization_id
+// — konsep "Organization = Position" HRIS ini, BUKAN job_requisitions.
+// position_id yang tidak pernah diisi FE).
+
+// effectiveCompetency menyeragamkan sumber kompetensi (requisition override
+// vs Job Management fallback) sebelum masuk perhitungan weighted average.
+type effectiveCompetency struct {
+	CompetencyID   uuid.UUID
+	CompetencyName string
+	RequiredLevel  *int
+	Weight         *float64
+}
 
 func (s *Service) GetCandidateMatchScore(ctx context.Context, applicationID string) (*MatchScoreResponse, error) {
 	appUUID, err := uuid.Parse(applicationID)
@@ -3708,8 +3763,48 @@ func (s *Service) GetCandidateMatchScore(ctx context.Context, applicationID stri
 	if err != nil {
 		return nil, err
 	}
-	if len(reqCompetencies) == 0 {
-		resp.Note = "requisition has no competencies defined; nothing to match"
+
+	var effective []effectiveCompetency
+	if len(reqCompetencies) > 0 {
+		for _, rc := range reqCompetencies {
+			compName := ""
+			if rc.Competency != nil {
+				compName = rc.Competency.Name
+			}
+			effective = append(effective, effectiveCompetency{
+				CompetencyID:   rc.CompetencyID,
+				CompetencyName: compName,
+				RequiredLevel:  rc.RequiredLevel,
+				Weight:         rc.Weight,
+			})
+		}
+	} else if s.jobManagementProvider != nil {
+		// Fallback: requisition belum punya override → baca default
+		// organisasi dari Job Management.
+		if req, rerr := s.repo.FindRequisitionByID(ctx, app.RequisitionID); rerr == nil {
+			refs, jerr := s.jobManagementProvider.ListOrganizationCompetencies(ctx, req.OrganizationID.String())
+			if jerr == nil && len(refs) > 0 {
+				for _, ref := range refs {
+					compName := ""
+					if comp, cerr := s.repo.FindCompetencyByID(ctx, ref.CompetencyID); cerr == nil {
+						compName = comp.Name
+					}
+					effective = append(effective, effectiveCompetency{
+						CompetencyID:   ref.CompetencyID,
+						CompetencyName: compName,
+						RequiredLevel:  nil, // Job Management tidak menyimpan level → default 1
+						Weight:         ref.Weight,
+					})
+				}
+				resp.Note = "competencies sourced from Job Management (organization default); requisition has no override of its own"
+			}
+		}
+	}
+
+	if len(effective) == 0 {
+		if resp.Note == "" {
+			resp.Note = "no competencies defined for this requisition (neither its own override nor a Job Management default); nothing to match"
+		}
 		return resp, nil
 	}
 
@@ -3725,16 +3820,16 @@ func (s *Service) GetCandidateMatchScore(ctx context.Context, applicationID stri
 	}
 
 	var weightedSum, weightTotal float64
-	for _, rc := range reqCompetencies {
+	for _, ec := range effective {
 		requiredLevel := 1
-		if rc.RequiredLevel != nil {
-			requiredLevel = *rc.RequiredLevel
+		if ec.RequiredLevel != nil {
+			requiredLevel = *ec.RequiredLevel
 		}
 		weight := 1.0
-		if rc.Weight != nil {
-			weight = *rc.Weight
+		if ec.Weight != nil {
+			weight = *ec.Weight
 		}
-		candidateLevel := skillByCompetency[rc.CompetencyID]
+		candidateLevel := skillByCompetency[ec.CompetencyID]
 
 		ratio := 0.0
 		if requiredLevel > 0 {
@@ -3748,13 +3843,9 @@ func (s *Service) GetCandidateMatchScore(ctx context.Context, applicationID stri
 		weightedSum += contribution
 		weightTotal += weight
 
-		compName := ""
-		if rc.Competency != nil {
-			compName = rc.Competency.Name
-		}
 		resp.Breakdown = append(resp.Breakdown, MatchScoreCompetencyBreakdown{
-			CompetencyID:   rc.CompetencyID.String(),
-			CompetencyName: compName,
+			CompetencyID:   ec.CompetencyID.String(),
+			CompetencyName: ec.CompetencyName,
 			RequiredLevel:  requiredLevel,
 			CandidateLevel: candidateLevel,
 			Weight:         weight,

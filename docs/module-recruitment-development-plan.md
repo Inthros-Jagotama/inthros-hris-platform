@@ -579,7 +579,7 @@ Semua sub-table G-6 yang direncanakan (educations, work_experiences, skills, cer
 
 **Ref:** plan asli §23-§24.
 
-## G-9 ✅ CANDIDATE MATCHING & REQUISITION COMPETENCY — sub-project 1 ✅ (requirement/competency tables) + sub-project 2 ✅ (match score)
+## G-9 ✅ CANDIDATE MATCHING & REQUISITION COMPETENCY — sub-project 1 ✅ (requirement/competency tables) + sub-project 2 ✅ (match score) + sub-project 3 ✅ (Job Management fallback)
 
 **Status: ✅ Selesai (2026-08-13).**
 
@@ -602,7 +602,19 @@ Semua sub-table G-6 yang direncanakan (educations, work_experiences, skills, cer
 - **Handler/Route:** `GET /recruitment/applications/:id/match-score`.
 - **Test:** +5 (service +4: weighted average, no-competencies-nil-score, unknown-application guard, overqualified-capped-at-100; handler +1: end-to-end match-score call). Total recruitment: **254** (handler 55 + repository 62 + service 137).
 
-**Ref:** plan asli §11-§12, §25, §33.
+**Yang diimplementasikan (sub-project 3 — Job Management fallback, 2026-08-14):**
+- **Latar belakang:** user sudah punya modul **Job Management** yang mengisi kompetensi (`job_management_potency_competencies`, weight) dan requirement (education/education major/work experience/job field via `job_management_education_experiences` + pivot) — ditemukan dan diintegrasikan setelah G-9 sub-1/2 selesai. **Titik sambungnya `organization_id`, BUKAN `position_id`**: Job Management scope semua entity-nya ke `organization_id` (konsep "Organization = Position" HRIS ini), dan `job_requisitions.organization_id` **sudah wajib terisi** di form — sementara `job_requisitions.position_id` yang tadinya dikira jadi jembatan ternyata **dead field**, tidak pernah dipakai di `Requisitions.vue`.
+- **Keputusan user (bukan asumsi):** Job Management jadi **default**, override tetap bisa dibuat di `job_requisition_competencies`/`_requirements` milik Recruitment sendiri — bukan migrasi total ke Job Management, bukan juga dibiarkan duplikat tanpa sambungan.
+- **Backend — match score fallback (mempengaruhi kalkulasi G-9 sub-2):**
+  - Interface narrow baru `JobManagementProvider` (`ListOrganizationCompetencies(ctx, organizationID) ([]JobManagementCompetencyRef, error)`) — pola sama `EmployeeProvider`/`ApprovalEngine` (adapter di `cmd/server/main.go`, `jobManagementCompetencyAdapter` membungkus `jobmanagement.Service` instance terpisah, pola `employeeHireSvc`).
+  - `GetCandidateMatchScore`: requisition **override** (`job_requisition_competencies`) diprioritaskan bila ada isinya; kalau kosong, fallback ke `jobManagementProvider.ListOrganizationCompetencies(requisition.OrganizationID)`. `RequiredLevel` dari Job Management selalu nil → default 1 (Job Management tidak menyimpan level per kompetensi, cuma weight) — formula weighted-average yang sama dipakai ulang tanpa perubahan skala. `resp.Note` menandai sumber skor ("...sourced from Job Management (organization default)...") supaya recruiter tahu ini bukan override requisition sendiri.
+  - Best-effort: provider nil/error tidak menggagalkan match score — hanya membuatnya kosong dengan note penjelasan.
+- **Frontend:**
+  - Dialog **Requirements & Competencies** (`Requisitions.vue`) — kalau requisition belum punya requirement/competency override sendiri, tampilkan data Job Management (`GET /job-management/education-experiences?organization_id=`, `GET /job-management/potency-competencies?organization_id=`) sebagai **read-only fallback** bertanda "dari Job Management" (border dashed amber, beda visual dari data sendiri yang solid).
+  - Tab **Match Score** (`ApplicationDetail.vue`) — menampilkan `matchScore.note` di bawah skor (bukan cuma saat skor kosong) supaya sumber fallback terlihat juga ketika skor berhasil dihitung dari Job Management.
+- **Test:** +3 service (fallback dipakai + provider dipanggil ketika requisition tanpa override; provider **TIDAK** dipanggil ketika requisition sudah punya override sendiri — verifikasi prioritas; graceful nil-score ketika tidak ada override maupun provider). Total recruitment: **270** (handler 57 + repository 62 + service 151).
+
+**Ref:** plan asli §11-§12, §25, §33; integrasi Job Management ditemukan & dieksekusi 2026-08-14 setelah G-9 awalnya ditandai selesai 2026-08-13.
 
 ## G-10 ✅ ONBOARDING ENHANCEMENT (template scoped)
 
@@ -658,7 +670,7 @@ Semua sub-table G-6 yang direncanakan (educations, work_experiences, skills, cer
     - **Interviews** — list + schedule dialog (interviewer dari dropdown employee, tanggal via `DateInput` day-level — **jam wawancara tidak didukung di form ini**, `scheduled_at` disimpan sebagai midnight hari terpilih; keterbatasan yang disengaja untuk membatasi scope form) + tombol **Manage** membuka dialog nested: interviewers (add/list/remove, G-8), scorecard (add/list/remove, G-8), dan tombol **Complete Interview** (`POST /interviews/:id/complete`, G-8 — menghitung weighted average otomatis).
     - **Match Score** — baca-saja, `GET /applications/:id/match-score` (G-9 sub-2), tampilkan skor keseluruhan + breakdown per competency.
   - Hub card `Applications` dipindah dari "Coming soon" ke menu aktif; card `Interviews` terpisah **dihapus** dari hub (sudah tercakup di dalam `ApplicationDetail.vue`, bukan halaman berdiri sendiri).
-- [x] **Requirements & Competencies FE (G-12 susulan, 2026-08-13)**: sebelumnya backend G-9 sub-1 (`job_requisition_requirements`/`job_requisition_competencies`) sudah lengkap sejak commit `b5051d3` tapi **tidak ada FE-nya sama sekali** — celah yang tidak eksplisit tercatat saat brainstorming G-12 awal, ditemukan & ditambal belakangan. Tombol baru (ikon `pi-list-check`) di kolom Actions `Requisitions.vue` (tersedia untuk semua status requisition, tidak dibatasi DRAFT) membuka dialog **"Requirements & Competencies"** dengan 2 section side-by-side: Requirements (add: requirement_type free-text, name, min/max value; list+delete) dan Competencies (add: dropdown competency dari master `competency.competencies`, required_level, weight; list+delete). Bukan halaman/route detail terpisah — cukup dialog dari list existing karena datanya kecil per requisition.
+- [x] **Requirements & Competencies FE (G-12 susulan, 2026-08-13; Job Management fallback ditambahkan 2026-08-14)**: sebelumnya backend G-9 sub-1 (`job_requisition_requirements`/`job_requisition_competencies`) sudah lengkap sejak commit `b5051d3` tapi **tidak ada FE-nya sama sekali** — celah yang tidak eksplisit tercatat saat brainstorming G-12 awal, ditemukan & ditambal belakangan. Tombol baru (ikon `pi-list-check`) di kolom Actions `Requisitions.vue` (tersedia untuk semua status requisition, tidak dibatasi DRAFT) membuka dialog **"Requirements & Competencies"** dengan 2 section side-by-side: Requirements (add: requirement_type free-text, name, min/max value; list+delete) dan Competencies (add: dropdown competency dari master `competency.competencies`, required_level, weight; list+delete). Bukan halaman/route detail terpisah — cukup dialog dari list existing karena datanya kecil per requisition. **Susulan G-9 sub-3 (2026-08-14):** kalau requisition belum punya requirement/competency sendiri, dialog ini menampilkan default dari Job Management (read-only, border dashed amber) — lihat §G-9 sub-project 3.
 
 **Rencana (di luar scope G-12, tidak dijadwalkan):**
 - **Notifications**: deep-link tipe notifikasi recruitment (setelah G-19/notification infra terpasang) — bukan bagian G-12, dikelola plan notifikasi terpisah.

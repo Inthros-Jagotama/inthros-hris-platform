@@ -128,6 +128,7 @@
             <div v-if="matchScore.score !== null && matchScore.score !== undefined" class="mb-4">
               <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ t('applications.overall_match') }}</p>
               <p class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{{ Math.round(matchScore.score) }}%</p>
+              <p v-if="matchScore.note" class="text-xs text-amber-600 dark:text-amber-400 mt-1"><i class="pi pi-info-circle mr-1"></i>{{ matchScore.note }}</p>
             </div>
             <p v-else class="text-sm text-gray-400 mb-4">{{ matchScore.note || t('applications.match_score_empty') }}</p>
             <div v-if="matchScore.breakdown && matchScore.breakdown.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
