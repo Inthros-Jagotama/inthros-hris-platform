@@ -479,15 +479,17 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 **Ref:** plan asli §20, §50, §57.
 
-## G-6 🔶 CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate) — sub-project 1/3 ✅ + sub-project 2/3 ✅ + sub-project 3a ✅ (sisa: status/source_id/consents)
+## G-6 🔶 CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate) — sub-project 1/3 ✅ + sub-project 2/3 ✅ + sub-project 3a ✅ + sub-project 3b ✅ (sisa: status/source_id)
 
-**Status: ✅ Selesai (2026-08-13) — PARTIAL COMPLETION, sub-project 1+2+3a of 3 completed.** 
+**Status: ✅ Selesai (2026-08-13) — semua sub-table G-6 yang direncanakan sudah selesai (sub-project 1+2+3a+3b); sisa scope hanya `candidates.status` + `source_id`, keduanya sudah diputuskan skip/deferred sejak brainstorming sub-project 1 (bukan pekerjaan yang masih dijadwalkan).**
 
 **Sub-project 1 (2026-08-12):** Kolom `candidate_number` + tabel `candidate_educations` + tabel `candidate_work_experiences` ✅ (migration 098).
 
 **Sub-project 2 (2026-08-12):** Tabel `candidate_skills` + tabel `candidate_certifications` ✅ (migration 099); sisa scope (status, source_id, documents, consents) deferred ke sub-project 3.
 
 **Sub-project 3a (2026-08-13):** Tabel `candidate_documents` ✅ (migration 100); sisa scope (status, source_id, consents) masih deferred.
+
+**Sub-project 3b (2026-08-13):** Tabel `candidate_consents` ✅ (migration 101) — LAST dari originally-planned G-6 sub-tables; sisa scope (status, source_id) tetap skipped/deferred seperti keputusan sub-project 1.
 
 **Yang diimplementasikan (sub-project 1):**
 - **Migration `098_recruitment_candidate_profile_basics`** (pg + mysql, up/down idempotent): 
@@ -518,12 +520,21 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 - **DTO:** `CreateCandidateDocumentRequest`, `UpdateCandidateDocumentRequest`, `CandidateDocumentResponse`.
 - **Test:** +9 test. Total recruitment: **180** (handler 41 + repository 41 + service 98).
 
-**Rencana (sisa G-6 sub-project 3 — deferred):**
+**Yang diimplementasikan (sub-project 3b):**
+- **Migration `101_candidate_consents`** (pg + mysql, up/down idempotent): tabel baru `candidate_consents` — `id, candidate_id (FK → candidates, ON DELETE CASCADE), action VARCHAR(20) NN, notes TEXT NULL, changed_by CHAR(36) NULL, changed_at BIGINT NN, created_at`; index `idx_cand_consent_candidate`. Append-only audit log consent pemrosesan data pribadi (GDPR-style) — **tidak ada `updated_at`**, baris tidak pernah diupdate, hanya di-insert. `changed_by` = staff/recruiter yang mencatat (sistem ini tidak punya portal publik candidate-facing, jadi consent didokumentasikan HR/recruiter, bukan self-service).
+- **Model:** `CandidateConsent` struct (`internal/modules/recruitment/model.go`); `action` (`GRANTED/REVOKED`) di-enforce via Gin binding `oneof=...` di layer request, bukan constraint DB — pola sama dengan modul lain.
+- **Service/Handler:** **hanya 2 method — `Create` + `List`, BUKAN CRUD 4/5-method seperti sub-project 1/2/3a.** Deviasi desain yang disengaja: sifat append-only audit log berarti tidak ada Update/Delete endpoint sama sekali (mengubah/menghapus riwayat consent akan merusak nilai audit trail-nya).
+- **Handler/Routes:** 2 endpoint — `POST /recruitment/candidates/:id/consents`, `GET /recruitment/candidates/:id/consents` (tidak ada `PUT`/`DELETE`).
+- **DTO:** `CreateCandidateConsentRequest`, `CandidateConsentResponse` (tidak ada `Update...Request` — konsisten dengan append-only design).
+- **Test:** +10 test. Total recruitment: **190** (handler 45 + repository 43 + service 102) — diverifikasi via `go test ./internal/modules/recruitment/... -v -count=1 | grep -c "^--- PASS:"`.
+
+**Rencana (sisa G-6 — skipped/deferred, bukan dijadwalkan ulang):**
 - `candidates.status` (availability status ACTIVE/BLACKLISTED/dst.) — **skipped**: tidak jelas kebutuhan bisnis, potensi redundan dengan application-level status.
 - `candidates.source_id` + master source — **deferred**: `source` tetap teks bebas; membangun source master adalah effort terpisah dan belum diputuskan prioritasnya.
-- `candidate_consents` — **deferred**: compliance + GDPR concerns, sub-project terpisah.
 
-**Ref:** design spec sub-project 1 `docs/superpowers/specs/2026-08-12-candidate-profile-basics-design.md`; design spec sub-project 2 `docs/superpowers/specs/2026-08-12-candidate-skills-certifications-design.md`; design spec sub-project 3a `docs/superpowers/specs/2026-08-12-candidate-documents-design.md`; migration 099 (skills/certifications), migration 100 (documents); plan asli §13-§19.
+Semua sub-table G-6 yang direncanakan (educations, work_experiences, skills, certifications, documents, consents) sudah selesai per sub-project 3b.
+
+**Ref:** design spec sub-project 1 `docs/superpowers/specs/2026-08-12-candidate-profile-basics-design.md`; design spec sub-project 2 `docs/superpowers/specs/2026-08-12-candidate-skills-certifications-design.md`; design spec sub-project 3a `docs/superpowers/specs/2026-08-12-candidate-documents-design.md`; sub-project 3b task briefs `.superpowers/sdd/2026-08-12-candidate-consents/`; migration 099 (skills/certifications), migration 100 (documents), migration 101 (consents); plan asli §13-§19.
 
 ## G-7 🟡 SCREENING & ASSESSMENT
 
@@ -603,7 +614,7 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 # 8. API Plan
 
-## 8.1 Existing (54 endpoint — sudah ada)
+## 8.1 Existing (56 endpoint — sudah ada)
 
 ```http
 ## Requisitions
@@ -649,6 +660,10 @@ POST   /api/v1/tenant/recruitment/candidates/{id}/documents
 GET    /api/v1/tenant/recruitment/candidates/{id}/documents
 PUT    /api/v1/tenant/recruitment/documents/{id}
 DELETE /api/v1/tenant/recruitment/documents/{id}
+
+## Candidate Consents (G-6 sub-project 3b — append-only, no PUT/DELETE)
+POST   /api/v1/tenant/recruitment/candidates/{id}/consents
+GET    /api/v1/tenant/recruitment/candidates/{id}/consents
 
 ## Applications
 GET    /api/v1/tenant/recruitment/applications
@@ -1033,7 +1048,7 @@ Status per 2026-08-12 (✅ = sudah, ⬜ = target enhancement). Scope: **operasio
 - [ ] Screening tersedia.
 - [ ] Assessment tersedia.
 - [ ] Interview mendukung multi-interviewer + scorecard.
-- [ ] Candidate memiliki profile terstruktur (education/experience/skills/certification/document) — 🔶 sebagian: education/experience/skills/certifications/documents ✅ (G-6 sub-project 1+2+3a).
+- [x] Candidate memiliki profile terstruktur (education/experience/skills/certification/document/consent) — ✅ semua sub-table G-6 selesai: education/experience/skills/certifications/documents/consents (G-6 sub-project 1+2+3a+3b).
 - [ ] Candidate mendukung internal/external.
 - [ ] External candidate dapat menjadi Employee.
 - [ ] Internal candidate menggunakan Employee Movement.
