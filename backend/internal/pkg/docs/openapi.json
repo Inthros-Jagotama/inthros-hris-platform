@@ -14852,6 +14852,836 @@
         }
       }
     },
+    "/api/v1/tenant/recruitment/candidates/{id}/educations": {
+      "post": {
+        "summary": "Create candidate education",
+        "description": "Add an education record to a candidate profile",
+        "operationId": "createCandidateEducation",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Candidate UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Education created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateEducationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — validation error"
+          },
+          "404": {
+            "description": "Candidate not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCandidateEducationRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List candidate educations",
+        "description": "Retrieve all education records for a specific candidate",
+        "operationId": "listCandidateEducations",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Candidate UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of educations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CandidateEducationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Candidate not found"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/recruitment/educations/{id}": {
+      "put": {
+        "summary": "Update candidate education",
+        "description": "Update education details. Only provided fields will be updated",
+        "operationId": "updateCandidateEducation",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Education UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Education updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateEducationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCandidateEducationRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete candidate education",
+        "description": "Permanently remove an education record from a candidate profile",
+        "operationId": "deleteCandidateEducation",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Education UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Education deleted"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/recruitment/candidates/{id}/work-experiences": {
+      "post": {
+        "summary": "Create candidate work experience",
+        "description": "Add a work experience record to a candidate profile",
+        "operationId": "createCandidateWorkExperience",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Candidate UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Work experience created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateWorkExperienceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — validation error"
+          },
+          "404": {
+            "description": "Candidate not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCandidateWorkExperienceRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List candidate work experiences",
+        "description": "Retrieve all work experience records for a specific candidate",
+        "operationId": "listCandidateWorkExperiences",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Candidate UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of work experiences",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CandidateWorkExperienceResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Candidate not found"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/recruitment/work-experiences/{id}": {
+      "put": {
+        "summary": "Update candidate work experience",
+        "description": "Update work experience details. Only provided fields will be updated",
+        "operationId": "updateCandidateWorkExperience",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Work experience UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Work experience updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateWorkExperienceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCandidateWorkExperienceRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete candidate work experience",
+        "description": "Permanently remove a work experience record from a candidate profile",
+        "operationId": "deleteCandidateWorkExperience",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Work experience UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Work experience deleted"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/recruitment/candidates/{id}/skills": {
+      "post": {
+        "summary": "Create candidate skill",
+        "description": "Add a skill to a candidate profile, referencing a competency from the competency master",
+        "operationId": "createCandidateSkill",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Candidate UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Skill created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateSkillResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — validation error"
+          },
+          "404": {
+            "description": "Candidate not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCandidateSkillRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List candidate skills",
+        "description": "Retrieve all skills recorded for a specific candidate",
+        "operationId": "listCandidateSkills",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Candidate UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of candidate skills",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CandidateSkillResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Candidate not found"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/recruitment/skills/{id}": {
+      "put": {
+        "summary": "Update candidate skill",
+        "description": "Update skill level or notes. Only provided fields will be updated",
+        "operationId": "updateCandidateSkill",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Skill UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateSkillResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCandidateSkillRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete candidate skill",
+        "description": "Permanently remove a skill from a candidate profile",
+        "operationId": "deleteCandidateSkill",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Skill UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill deleted"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/recruitment/candidates/{id}/certifications": {
+      "post": {
+        "summary": "Create candidate certification",
+        "description": "Add a certification to a candidate profile",
+        "operationId": "createCandidateCertification",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Candidate UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Certification created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateCertificationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — validation error"
+          },
+          "404": {
+            "description": "Candidate not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCandidateCertificationRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List candidate certifications",
+        "description": "Retrieve all certifications recorded for a specific candidate",
+        "operationId": "listCandidateCertifications",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Candidate UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of candidate certifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CandidateCertificationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Candidate not found"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/recruitment/certifications/{id}": {
+      "put": {
+        "summary": "Update candidate certification",
+        "description": "Update certification details. Only provided fields will be updated",
+        "operationId": "updateCandidateCertification",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Certification UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Certification updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateCertificationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCandidateCertificationRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete candidate certification",
+        "description": "Permanently remove a certification from a candidate profile",
+        "operationId": "deleteCandidateCertification",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Certification UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Certification deleted"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/recruitment/candidates/{id}/documents": {
+      "post": {
+        "summary": "Create candidate document",
+        "description": "Attach a document (resume, certificate, etc.) to a candidate profile",
+        "operationId": "createCandidateDocument",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Candidate UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Document created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — validation error"
+          },
+          "404": {
+            "description": "Candidate not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCandidateDocumentRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List candidate documents",
+        "description": "Retrieve all documents attached to a specific candidate",
+        "operationId": "listCandidateDocuments",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Candidate UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of candidate documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CandidateDocumentResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Candidate not found"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/recruitment/documents/{id}": {
+      "put": {
+        "summary": "Update candidate document",
+        "description": "Update document metadata. Only provided fields will be updated",
+        "operationId": "updateCandidateDocument",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Document UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — validation error"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCandidateDocumentRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete candidate document",
+        "description": "Permanently remove a document from a candidate profile",
+        "operationId": "deleteCandidateDocument",
+        "tags": [
+          "Tenant: Recruitment & Onboarding (ATS)"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Document UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document deleted"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        }
+      }
+    },
     "/api/v1/tenant/recruitment/eligible-internal-candidates": {
       "get": {
         "operationId": "recruitmentEligibleInternalCandidates",
@@ -48717,6 +49547,556 @@
             "type": "string",
             "format": "date-time",
             "description": "Last update timestamp"
+          }
+        }
+      },
+      "CreateCandidateEducationRequest": {
+        "type": "object",
+        "required": [
+          "institution_name"
+        ],
+        "properties": {
+          "education_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Education master UUID (optional)"
+          },
+          "institution_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Institution name"
+          },
+          "education_major_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Education major master UUID (optional)"
+          },
+          "major": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Major / study program"
+          },
+          "gpa": {
+            "type": "number",
+            "format": "float",
+            "description": "Grade point average (0.00-4.00)"
+          },
+          "start_year": {
+            "type": "integer",
+            "description": "Start year"
+          },
+          "end_year": {
+            "type": "integer",
+            "description": "End year"
+          },
+          "is_highest": {
+            "type": "boolean",
+            "description": "Mark as highest education"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
+          }
+        }
+      },
+      "UpdateCandidateEducationRequest": {
+        "type": "object",
+        "properties": {
+          "education_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Education master UUID (optional)"
+          },
+          "institution_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Institution name"
+          },
+          "education_major_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Education major master UUID (optional)"
+          },
+          "major": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Major / study program"
+          },
+          "gpa": {
+            "type": "number",
+            "format": "float",
+            "description": "Grade point average (0.00-4.00)"
+          },
+          "start_year": {
+            "type": "integer",
+            "description": "Start year"
+          },
+          "end_year": {
+            "type": "integer",
+            "description": "End year"
+          },
+          "is_highest": {
+            "type": "boolean",
+            "description": "Mark as highest education"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
+          }
+        }
+      },
+      "CandidateEducationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Education record UUID"
+          },
+          "candidate_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Candidate UUID"
+          },
+          "education_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Education master UUID"
+          },
+          "education_major_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Education major master UUID"
+          },
+          "major_name": {
+            "type": "string",
+            "description": "Major name (from master)"
+          },
+          "institution_name": {
+            "type": "string",
+            "description": "Institution name"
+          },
+          "major": {
+            "type": "string",
+            "description": "Major / study program"
+          },
+          "gpa": {
+            "type": "number",
+            "format": "float",
+            "description": "Grade point average"
+          },
+          "start_year": {
+            "type": "integer",
+            "description": "Start year"
+          },
+          "end_year": {
+            "type": "integer",
+            "description": "End year"
+          },
+          "is_highest": {
+            "type": "boolean",
+            "description": "Is highest education"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
+          }
+        }
+      },
+      "CreateCandidateWorkExperienceRequest": {
+        "type": "object",
+        "required": [
+          "company_name",
+          "job_title",
+          "start_date"
+        ],
+        "properties": {
+          "company_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Company name"
+          },
+          "job_title": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Job title"
+          },
+          "employment_type": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "Employment type (full-time, part-time, contract, etc.)"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Start date (YYYY-MM-DD)"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "description": "End date (YYYY-MM-DD), omit if current"
+          },
+          "is_current": {
+            "type": "boolean",
+            "description": "Is current employment"
+          },
+          "description": {
+            "type": "string",
+            "description": "Job description / responsibilities"
+          }
+        }
+      },
+      "UpdateCandidateWorkExperienceRequest": {
+        "type": "object",
+        "properties": {
+          "company_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Company name"
+          },
+          "job_title": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Job title"
+          },
+          "employment_type": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "Employment type"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Start date (YYYY-MM-DD)"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "description": "End date (YYYY-MM-DD), omit if current"
+          },
+          "is_current": {
+            "type": "boolean",
+            "description": "Is current employment"
+          },
+          "description": {
+            "type": "string",
+            "description": "Job description / responsibilities"
+          }
+        }
+      },
+      "CandidateWorkExperienceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Work experience UUID"
+          },
+          "candidate_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Candidate UUID"
+          },
+          "company_name": {
+            "type": "string",
+            "description": "Company name"
+          },
+          "job_title": {
+            "type": "string",
+            "description": "Job title"
+          },
+          "employment_type": {
+            "type": "string",
+            "description": "Employment type"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Start date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "description": "End date"
+          },
+          "is_current": {
+            "type": "boolean",
+            "description": "Is current employment"
+          },
+          "description": {
+            "type": "string",
+            "description": "Job description"
+          }
+        }
+      },
+      "CreateCandidateSkillRequest": {
+        "type": "object",
+        "required": [
+          "competency_id"
+        ],
+        "properties": {
+          "competency_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Competency UUID from competency master"
+          },
+          "level": {
+            "type": "integer",
+            "description": "Skill level (1-5 or custom scale)"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
+          }
+        }
+      },
+      "UpdateCandidateSkillRequest": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "integer",
+            "description": "Skill level (1-5 or custom scale)"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
+          }
+        }
+      },
+      "CandidateSkillResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Skill UUID"
+          },
+          "candidate_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Candidate UUID"
+          },
+          "competency_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Competency UUID"
+          },
+          "competency_name": {
+            "type": "string",
+            "description": "Competency name"
+          },
+          "level": {
+            "type": "integer",
+            "description": "Skill level"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
+          }
+        }
+      },
+      "CreateCandidateCertificationRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Certification name"
+          },
+          "issuing_organization": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Issuing organization"
+          },
+          "issue_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Issue date (YYYY-MM-DD)"
+          },
+          "expiry_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Expiry date (YYYY-MM-DD)"
+          },
+          "credential_url": {
+            "type": "string",
+            "description": "Credential or verification URL"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
+          }
+        }
+      },
+      "UpdateCandidateCertificationRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Certification name"
+          },
+          "issuing_organization": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Issuing organization"
+          },
+          "issue_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Issue date (YYYY-MM-DD)"
+          },
+          "expiry_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Expiry date (YYYY-MM-DD)"
+          },
+          "credential_url": {
+            "type": "string",
+            "description": "Credential or verification URL"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
+          }
+        }
+      },
+      "CandidateCertificationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Certification UUID"
+          },
+          "candidate_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Candidate UUID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Certification name"
+          },
+          "issuing_organization": {
+            "type": "string",
+            "description": "Issuing organization"
+          },
+          "issue_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Issue date"
+          },
+          "expiry_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Expiry date"
+          },
+          "credential_url": {
+            "type": "string",
+            "description": "Credential or verification URL"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
+          }
+        }
+      },
+      "CreateCandidateDocumentRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "file_url"
+        ],
+        "properties": {
+          "document_type": {
+            "type": "string",
+            "enum": [
+              "RESUME",
+              "COVER_LETTER",
+              "CERTIFICATE",
+              "PORTFOLIO",
+              "IDENTITY",
+              "OTHER"
+            ],
+            "description": "Document type"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Document name"
+          },
+          "file_url": {
+            "type": "string",
+            "description": "File URL (required)"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
+          }
+        }
+      },
+      "UpdateCandidateDocumentRequest": {
+        "type": "object",
+        "properties": {
+          "document_type": {
+            "type": "string",
+            "enum": [
+              "RESUME",
+              "COVER_LETTER",
+              "CERTIFICATE",
+              "PORTFOLIO",
+              "IDENTITY",
+              "OTHER"
+            ],
+            "description": "Document type"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Document name"
+          },
+          "file_url": {
+            "type": "string",
+            "description": "File URL"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
+          }
+        }
+      },
+      "CandidateDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Document UUID"
+          },
+          "candidate_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Candidate UUID"
+          },
+          "document_type": {
+            "type": "string",
+            "description": "Document type"
+          },
+          "name": {
+            "type": "string",
+            "description": "Document name"
+          },
+          "file_url": {
+            "type": "string",
+            "description": "File URL"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes"
           }
         }
       },
