@@ -99,7 +99,7 @@
 
       <Column :header="t('requisitions.target_start_date')" style="width: 130px">
         <template #body="{ data }">
-          <span class="text-xs text-gray-600 dark:text-gray-300">{{ data.target_start_date || '—' }}</span>
+          <span class="text-xs text-gray-600 dark:text-gray-300">{{ formatDate(data.target_start_date, locale) || '—' }}</span>
         </template>
       </Column>
 
@@ -110,19 +110,22 @@
         </template>
       </Column>
 
-      <!-- G-1: aksi — submit draft ke Central Approval -->
-      <Column :header="t('common.actions')" :exportable="false" style="width: 100px">
+      <!-- G-1: aksi — draft bisa diubah/dihapus + submit ke Central Approval -->
+      <Column :header="t('common.actions')" :exportable="false" style="width: 190px">
         <template #body="{ data }">
-          <Button
-            v-if="data.status === 'DRAFT'"
-            :label="t('requisitions.submit')"
-            icon="pi pi-send"
-            size="small"
-            severity="info"
-            outlined
-            class="!text-xs !px-2.5 !py-1"
-            @click="openSubmitDialog(data)"
-          />
+          <div v-if="data.status === 'DRAFT'" class="flex items-center gap-1 justify-end">
+            <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openDialog(data)" />
+            <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" />
+            <Button
+              :label="t('requisitions.submit')"
+              icon="pi pi-send"
+              size="small"
+              severity="info"
+              outlined
+              class="!text-xs !px-2.5 !py-1"
+              @click="openSubmitDialog(data)"
+            />
+          </div>
           <span v-else class="text-xs text-gray-400 dark:text-gray-500 italic">—</span>
         </template>
       </Column>
@@ -141,8 +144,8 @@
       @confirm="submitRequisition()"
     />
 
-    <!-- Dialog: buat requisition (S-1/S-5 — reason_type WORKFORCE_GAP / SUCCESSION_GAP) -->
-    <Dialog v-model:visible="dialogVisible" :header="t('requisitions.new_requisition')" :modal="true" class="!w-[min(95vw,640px)]">
+    <!-- Dialog: buat/ubah requisition (S-1/S-5 — reason_type WORKFORCE_GAP / SUCCESSION_GAP) -->
+    <Dialog v-model:visible="dialogVisible" :header="editingId ? t('requisitions.edit_requisition') : t('requisitions.new_requisition')" :modal="true" class="!w-[min(95vw,960px)]">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <FormRow :label="t('requisitions.org')" :required="true">
           <SelectLabel
@@ -170,7 +173,7 @@
           <TextInput v-model="form.location" :placeholder="t('requisitions.location_placeholder')" class="!w-full" />
         </FormRow>
         <FormRow :label="t('requisitions.slots_available')">
-          <InputNumber v-model="form.slots_available" :min="1" class="!w-full" />
+          <InputNumber v-model="form.slots_available" :min="1" size="small" class="!w-full" />
         </FormRow>
 
         <FormRow :label="t('requisitions.requisition_number')">
@@ -238,10 +241,10 @@
         </div>
 
         <FormRow :label="t('requisitions.min_salary')">
-          <InputNumber v-model="form.min_salary" :min="0" mode="currency" currency="IDR" locale="id-ID" class="!w-full" />
+          <InputNumber v-model="form.min_salary" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" class="!w-full" />
         </FormRow>
         <FormRow :label="t('requisitions.max_salary')">
-          <InputNumber v-model="form.max_salary" :min="0" mode="currency" currency="IDR" locale="id-ID" class="!w-full" />
+          <InputNumber v-model="form.max_salary" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" class="!w-full" />
         </FormRow>
 
         <FormRow :label="t('requisitions.description_label')" class="md:col-span-2">
@@ -257,10 +260,20 @@
       <template #footer>
         <div class="flex items-center justify-end gap-2">
           <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible = false" />
-          <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="saving" @click="save()" />
+          <Button :label="editingId ? t('common.update') : t('common.save')" icon="pi pi-check" size="small" :loading="saving" @click="save()" />
         </div>
       </template>
     </Dialog>
+
+    <!-- Konfirmasi hapus requisition draft -->
+    <ConfirmDeleteDialog
+      v-model:visible="deleteDialogVisible"
+      :title="t('requisitions.confirm_delete_title')"
+      :message="t('requisitions.confirm_delete_message', { title: deleteTarget?.title || '' })"
+      :loading="deleting"
+      :error-msg="deleteError"
+      @confirm="handleDelete()"
+    />
   </div>
 </template>
 
@@ -268,6 +281,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import { useToast } from 'primevue/usetoast'
+import { formatDate } from '@/utils/formatDate'
 import api from '@/services/api'
 import { getErrorMessage } from '@/services/responseHandler'
 
@@ -284,8 +298,9 @@ import InputNumber from 'primevue/inputnumber'
 import Textarea from 'primevue/textarea'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 
 const loading = ref(true)
@@ -298,6 +313,11 @@ const currentPage = ref(1)
 const perPage = ref(10)
 const statusFilter = ref(null)
 const dialogVisible = ref(false)
+const editingId = ref(null)
+const deleteDialogVisible = ref(false)
+const deleting = ref(false)
+const deleteError = ref('')
+const deleteTarget = ref(null)
 const submitDialogVisible = ref(false)
 const pendingSubmit = ref(null)
 
@@ -322,7 +342,7 @@ const reasonOptions = computed(() => ['NEW_POSITION', 'REPLACEMENT', 'EXPANSION'
 
 const priorityOptions = computed(() => ['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map(v => ({ label: t(`requisitions.priority_${v.toLowerCase()}`), value: v })))
 
-const organizationOptions = computed(() => organizations.value.map(o => ({ label: o.name, value: o.id })))
+const organizationOptions = computed(() => organizations.value.map(o => ({ label: o.nomenclature || o.full_code || o.code, value: o.id })))
 const positionOptions = computed(() => positions.value.map(p => ({ label: p.nomenclature || p.full_code, value: p.id })))
 
 const emptyForm = () => ({
@@ -387,7 +407,7 @@ function formatOpenedAt(value) {
   if (!value) return '—'
   const ms = Number(value) / 1000000
   if (!Number.isFinite(ms) || ms <= 0) return '—'
-  return new Date(ms).toLocaleString()
+  return formatDate(new Date(ms), locale.value) || '—'
 }
 
 function openSubmitDialog(row) {
@@ -444,9 +464,53 @@ async function loadOptions() {
   }
 }
 
-function openDialog() {
-  form.value = emptyForm()
+function openDialog(item) {
+  editingId.value = item?.id || null
+  form.value = item
+    ? {
+        organization_id: item.organization_id || null,
+        title: item.title || '',
+        requisition_number: item.requisition_number || '',
+        priority: item.priority || null,
+        department: item.department || '',
+        employment_type: item.employment_type || '',
+        location: item.location || '',
+        min_salary: item.min_salary ?? null,
+        max_salary: item.max_salary ?? null,
+        slots_available: item.slots_available ?? null,
+        reason_type: item.reason_type || null,
+        workforce_gap_id: item.workforce_gap_id || '',
+        workforce_plan_id: item.workforce_plan_id || '',
+        succession_position_id: item.succession_position_id || null,
+        target_start_date: item.target_start_date || null,
+        description: item.description || '',
+        requirements: item.requirements || '',
+        responsibilities: item.responsibilities || ''
+      }
+    : emptyForm()
   dialogVisible.value = true
+}
+
+function confirmDelete(item) {
+  deleteTarget.value = item
+  deleteError.value = ''
+  deleteDialogVisible.value = true
+}
+
+async function handleDelete() {
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await api.delete(`/api/v1/tenant/recruitment/requisitions/${deleteTarget.value.id}`)
+    deleteDialogVisible.value = false
+    deleteTarget.value = null
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.deleted'), life: 3000 })
+    loadData()
+  } catch (e) {
+    deleteError.value = getErrorMessage(e, t('message.operation_failed'))
+  } finally {
+    deleting.value = false
+  }
 }
 
 async function save() {
@@ -476,9 +540,15 @@ async function save() {
     Object.keys(payload).forEach(k => {
       if (payload[k] === '' || payload[k] === null || payload[k] === undefined) delete payload[k]
     })
-    await api.post('/api/v1/tenant/recruitment/requisitions', payload)
+    if (editingId.value) {
+      await api.put(`/api/v1/tenant/recruitment/requisitions/${editingId.value}`, payload)
+      toast.add({ severity: 'success', summary: t('message.success'), detail: t('requisitions.updated'), life: 3000 })
+    } else {
+      await api.post('/api/v1/tenant/recruitment/requisitions', payload)
+      toast.add({ severity: 'success', summary: t('message.success'), detail: t('requisitions.created'), life: 3000 })
+    }
     dialogVisible.value = false
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('requisitions.created'), life: 3000 })
+    editingId.value = null
     loadData()
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_save')), life: 5000 })

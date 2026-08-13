@@ -70,7 +70,7 @@ type RequisitionResponse struct {
 	Priority             string    `json:"priority"`
 	PositionID           string    `json:"position_id,omitempty"`
 	OpenedAt             *int64    `json:"opened_at,omitempty"`
-	Department           string    `json:"department,omitempty"`
+	Department           string    `json:"department"`
 	EmploymentType       string    `json:"employment_type,omitempty"`
 	Location             string    `json:"location,omitempty"`
 	MinSalary            float64   `json:"min_salary"`
@@ -88,7 +88,7 @@ type RequisitionResponse struct {
 	WorkforceGapID       string    `json:"workforce_gap_id,omitempty"`
 	WorkforcePlanID      string    `json:"workforce_plan_id,omitempty"`
 	SuccessionPositionID string    `json:"succession_position_id,omitempty"`
-	TargetStartDate      string    `json:"target_start_date,omitempty"`
+	TargetStartDate      string    `json:"target_start_date"`
 	CreatedAt            time.Time `json:"created_at"`
 	UpdatedAt            time.Time `json:"updated_at"`
 }

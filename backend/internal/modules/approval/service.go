@@ -183,15 +183,26 @@ func (s *Service) SetModuleChecker(mc ModuleSubscriptionChecker) {
 // subscriptionModuleSubslots lists the extra approval-only module slugs a
 // real subscribed module unlocks for flow creation (the reverse of
 // subscriptionModuleAliases) — e.g. subscribing to "performance" also lets
-// HR configure flows for the two independent KPI approval checkpoints.
+// HR configure flows for the two independent KPI approval checkpoints, and
+// subscribing to "training"/"recruitment" unlocks the consumer checkpoint
+// slugs training_request/recruitment_offer (flow module slug ≠ subscription
+// slug untuk module yang memakai Central Approval lewat sub-checkpoint).
 var subscriptionModuleSubslots = map[string][]string{
 	"performance": {"performance_kpi_target", "performance_kpi_realization", "okr_key_result", "okr_assessment"},
 	// plan §12.16: pembatalan movement approved lewat Central Approval sebagai
 	// instance ber-module employeemovement_cancellation (flow terpisah dari
 	// submission movement, bisa memakai approver yang sama/berbeda).
 	"employeemovement": {"employeemovement_cancellation"},
+	"training":         {"training_request"},
+	"recruitment":     {"recruitment_offer"},
 }
 
+// ListAvailableModules mengembalikan slug module flow yang (1) benar-benar
+// terintegrasi dengan approval engine — handler-nya terdaftar via
+// RegisterStatusHandler — dan (2) module subscription-nya aktif untuk tenant
+// (dari context). Dipakai frontend flow builder agar module picker hanya
+// menampilkan module yang bisa dibuatkan alur persetujuan, bukan free-text
+// ataupun module yang disubscribe tapi tidak memakai Central Approval.
 func (s *Service) ListAvailableModules(ctx context.Context) ([]string, error) {
 	if s.moduleChecker == nil {
 		return nil, fmt.Errorf("module subscription checker is not configured")
@@ -204,10 +215,27 @@ func (s *Service) ListAvailableModules(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Source of truth integrasi: hanya module yang handler-nya terdaftar via
+	// RegisterStatusHandler yang valid sebagai target flow.
+	integrated := make(map[string]bool, len(s.statusHandlers))
+	for m := range s.statusHandlers {
+		integrated[m] = true
+	}
+
+	seen := make(map[string]bool)
 	result := make([]string, 0, len(active))
-	result = append(result, active...)
 	for _, m := range active {
-		result = append(result, subscriptionModuleSubslots[m]...)
+		if integrated[m] && !seen[m] {
+			seen[m] = true
+			result = append(result, m)
+		}
+		for _, sub := range subscriptionModuleSubslots[m] {
+			if integrated[sub] && !seen[sub] {
+				seen[sub] = true
+				result = append(result, sub)
+			}
+		}
 	}
 	return result, nil
 }
@@ -830,13 +858,34 @@ func (s *Service) SubmitAction(ctx context.Context, instanceID string, userID st
 		return nil, fmt.Errorf("current step configuration not found")
 	}
 
-	// Verify actor has a pending task for this step
+	// Verify actor has a pending task for this step. Task bisa di-assign ke
+	// USER langsung atau ke ROLE — untuk assignee_type ROLE, actor dianggap
+	// memiliki task bila dia punya role tersebut (pola ListMyPendingTasks).
+	roleIDs, err := s.repo.GetUserRoleIDs(ctx, actorUUID)
+	if err != nil {
+		return nil, err
+	}
+	roleSet := make(map[uuid.UUID]bool, len(roleIDs))
+	for _, r := range roleIDs {
+		roleSet[r] = true
+	}
+
 	hasTask := false
 	for _, task := range instance.Tasks {
-		if task.StepOrder == currentStep &&
-			task.Status == TaskStatusPending &&
-			task.AssigneeID == actorUUID {
-			hasTask = true
+		if task.StepOrder != currentStep || task.Status != TaskStatusPending {
+			continue
+		}
+		switch task.AssigneeType {
+		case "ROLE":
+			if roleSet[task.AssigneeID] {
+				hasTask = true
+			}
+		default: // USER (dan tipe lain dengan assignee_id user/entitas)
+			if task.AssigneeID == actorUUID {
+				hasTask = true
+			}
+		}
+		if hasTask {
 			break
 		}
 	}
@@ -863,9 +912,17 @@ func (s *Service) SubmitAction(ctx context.Context, instanceID string, userID st
 		return nil, err
 	}
 
-	// Mark corresponding task as done
+	// Mark corresponding task as done — sama seperti verifikasi di atas,
+	// task ber-assignee_type ROLE di-mark DONE bila actor punya role tsb.
 	for _, task := range instance.Tasks {
-		if task.StepOrder == currentStep && task.AssigneeID == actorUUID && task.Status == TaskStatusPending {
+		if task.StepOrder != currentStep || task.Status != TaskStatusPending {
+			continue
+		}
+		isAssignee := task.AssigneeID == actorUUID
+		if task.AssigneeType == "ROLE" {
+			isAssignee = roleSet[task.AssigneeID]
+		}
+		if isAssignee {
 			if err := s.repo.UpdateTaskStatus(ctx, task.ID, TaskStatusDone); err != nil {
 				return nil, err
 			}
@@ -1001,13 +1058,31 @@ func (s *Service) SubmitAction(ctx context.Context, instanceID string, userID st
 // Approval Tasks (for approver)
 // =========================================================================
 
-// ListMyPendingTasks mengembalikan daftar task approval yang pending untuk user.
-func (s *Service) ListMyPendingTasks(ctx context.Context, userID string, page, perPage int) (*PaginatedResponse, error) {
+// ListMyPendingTasks mengembalikan daftar task approval yang pending untuk
+// user, opsional difilter berdasarkan status instance (instanceStatus) dan
+// alur persetujuan (flowID) — dipakai filter halaman Approvals.
+func (s *Service) ListMyPendingTasks(ctx context.Context, userID string, page, perPage int, instanceStatus string, flowID *uuid.UUID) (*PaginatedResponse, error) {
 	uid, err := uuid.Parse(userID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid user id: %w", err)
 	}
+	return s.listMyTasks(ctx, uid, page, perPage, TaskStatusPending, instanceStatus, flowID)
+}
 
+// ListMyDoneTasks mengembalikan daftar task approval yang sudah diproses
+// (DONE) oleh user — tab Riwayat di halaman Approvals.
+func (s *Service) ListMyDoneTasks(ctx context.Context, userID string, page, perPage int, flowID *uuid.UUID) (*PaginatedResponse, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id: %w", err)
+	}
+	return s.listMyTasks(ctx, uid, page, perPage, TaskStatusDone, "", flowID)
+}
+
+// listMyTasks adalah implementasi bersama untuk daftar task milik user
+// (pending atau riwayat DONE) dengan enrichment flow name, submitter, dan
+// participation type — batched per instance/flow/user.
+func (s *Service) listMyTasks(ctx context.Context, uid uuid.UUID, page, perPage int, taskStatus TaskStatus, instanceStatus string, flowID *uuid.UUID) (*PaginatedResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -1020,7 +1095,7 @@ func (s *Service) ListMyPendingTasks(ctx context.Context, userID string, page, p
 		return nil, err
 	}
 
-	tasks, total, err := s.repo.FindPendingTasksByAssigneeAndRoles(ctx, uid, roleIDs, page, perPage)
+	tasks, total, err := s.repo.findTasksByAssigneeAndRoles(ctx, uid, roleIDs, taskStatus, page, perPage, instanceStatus, flowID)
 	if err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
 )
@@ -407,9 +408,19 @@ func (h *Handler) SubmitAction(c *gin.Context) {
 // =========================================================================
 
 // ListMyPendingTasks menangani GET /api/v1/tenant/approval/tasks/pending
+// Query params: page, per_page, status (instance status: PENDING/APPROVED/
+// REJECTED/CANCELLED — opsional), flow_id (uuid alur — opsional).
 func (h *Handler) ListMyPendingTasks(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	statusFilter := c.Query("status")
+	flowIDStr := c.Query("flow_id")
+	var flowID *uuid.UUID
+	if flowIDStr != "" {
+		if parsed, err := uuid.Parse(flowIDStr); err == nil {
+			flowID = &parsed
+		}
+	}
 
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -423,7 +434,48 @@ func (h *Handler) ListMyPendingTasks(c *gin.Context) {
 		return
 	}
 
-	response, err := h.service.ListMyPendingTasks(c.Request.Context(), userIDStr, page, perPage)
+	response, err := h.service.ListMyPendingTasks(c.Request.Context(), userIDStr, page, perPage, statusFilter, flowID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// ListMyDoneTasks menangani GET /api/v1/tenant/approval/tasks/done — daftar
+// task yang sudah diproses (DONE) oleh user (tab Riwayat halaman Approvals).
+// Query params: page, per_page, flow_id (opsional).
+func (h *Handler) ListMyDoneTasks(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	flowIDStr := c.Query("flow_id")
+	var flowID *uuid.UUID
+	if flowIDStr != "" {
+		if parsed, err := uuid.Parse(flowIDStr); err == nil {
+			flowID = &parsed
+		}
+	}
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		httputil.ErrorJSON(c, http.StatusUnauthorized, "UNAUTHORIZED", "error.user_not_authenticated")
+		return
+	}
+
+	userIDStr, ok := userID.(string)
+	if !ok {
+		httputil.ErrorJSON(c, http.StatusInternalServerError, "INTERNAL_ERROR", "error.invalid_user_context")
+		return
+	}
+
+	response, err := h.service.ListMyDoneTasks(c.Request.Context(), userIDStr, page, perPage, flowID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,

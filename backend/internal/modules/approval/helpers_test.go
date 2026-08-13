@@ -187,6 +187,24 @@ func createTestTask(repo *Repository, instanceID uuid.UUID, stepOrder int, assig
 	return t
 }
 
+// createTestTaskROLE like createTestTask but assigns the task to a ROLE
+// (assignee_type ROLE) instead of a direct user — regression coverage for
+// SubmitAction approving role-assigned tasks.
+func createTestTaskROLE(repo *Repository, instanceID uuid.UUID, stepOrder int, roleID uuid.UUID) *ApprovalTask {
+	ctx := context.Background()
+	t := &ApprovalTask{
+		InstanceID:   instanceID,
+		StepOrder:    stepOrder,
+		AssigneeType: "ROLE",
+		AssigneeID:   roleID,
+		Status:       TaskStatusPending,
+	}
+	if err := repo.CreateTasks(ctx, []ApprovalTask{*t}); err != nil {
+		panic(fmt.Sprintf("failed to create test role task: %v", err))
+	}
+	return t
+}
+
 // seedOrganization inserts a minimal organizations row.
 func seedOrganization(db *gorm.DB, id uuid.UUID, parentID *uuid.UUID) {
 	if err := db.Exec("INSERT INTO organizations (id, parent_id) VALUES (?, ?)", id.String(), uuidPtrStr(parentID)).Error; err != nil {

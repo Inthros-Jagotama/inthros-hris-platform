@@ -49353,7 +49353,11 @@
             "format": "date-time",
             "description": "Last update timestamp"
           }
-        }
+        },
+        "required": [
+          "department",
+          "target_start_date"
+        ]
       },
       "CreateCandidateRequest": {
         "type": "object",

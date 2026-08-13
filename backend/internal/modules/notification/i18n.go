@@ -283,6 +283,36 @@ var catalog = map[string]catalogEntry{
 			httputil.LangID: "Penilaian OKR Anda telah ditolak. Silakan perbaiki dan ajukan kembali.",
 		},
 	},
+	"REQUISITION_SUBMITTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Job Requisition Submitted",
+			httputil.LangID: "Pengajuan Lowongan Diajukan",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your job requisition \"%s\" has been submitted for approval.",
+			httputil.LangID: "Pengajuan lowongan \"%s\" Anda telah diajukan untuk persetujuan.",
+		},
+	},
+	"REQUISITION_APPROVED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Job Requisition Approved",
+			httputil.LangID: "Pengajuan Lowongan Disetujui",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your job requisition \"%s\" has been approved and is now open.",
+			httputil.LangID: "Pengajuan lowongan \"%s\" Anda telah disetujui dan kini terbuka.",
+		},
+	},
+	"REQUISITION_REJECTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Job Requisition Rejected",
+			httputil.LangID: "Pengajuan Lowongan Ditolak",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your job requisition \"%s\" has been rejected.",
+			httputil.LangID: "Pengajuan lowongan \"%s\" Anda telah ditolak.",
+		},
+	},
 	"APPROVAL_TASK_ASSIGNED": {
 		title: map[httputil.Lang]string{
 			httputil.LangEN: "Approval Needed",

@@ -466,7 +466,7 @@
     "shifts": "Shifts",
     "employee_shifts": "Employee Shifts",
     "events": "Events",
-    "sessions": "Daily Sessions",
+    "sessions": "Sessions",
     "overtime": "Overtime Requests",
     "locations": "Locations",
     "today": "Today",
@@ -573,9 +573,7 @@
     "requested_checkout": "Requested Check-out Time",
     "session_lookup_loading": "Looking up your attendance session for this date...",
     "session_lookup_not_found": "No attendance session found for this date.",
-    "events": "Events",
     "events_description": "Raw check-in/check-out event log for audit and troubleshooting.",
-    "sessions": "Sessions",
     "sessions_description": "Daily attendance session detail per employee.",
     "filter_all_employees": "All employees",
     "events_empty": "No events yet.",
@@ -1142,7 +1140,6 @@
     "confirm_delete_request": "Cancel this training request?",
     "confirm_delete_cost": "Delete this cost item?",
     "confirm_delete_document": "Delete this document?",
-    "planning": "Planning",
     "planning_desc": "Annual training plans and budget allocation",
     "requests": "Training Requests",
     "requests_desc": "Employee training requests routed through approval",
@@ -1405,7 +1402,6 @@
     "type_status_change": "Status Change",
     "type_retirement": "Retirement",
     "type_offboarding": "Offboarding",
-    "type_other": "Other",
     "to_organization": "To Organization",
     "to_position": "To Position",
     "to_employment_status": "To Employment Status",
@@ -1604,6 +1600,16 @@
     "reject_note_required": "A reason is required to reject.",
     "action_submitted": "Action submitted successfully",
     "empty_tasks": "No pending tasks",
+    "empty_history": "No approval history yet",
+    "tab_pending": "Needs Action",
+    "tab_history": "History",
+    "filter_status": "Status",
+    "filter_flow": "Flow",
+    "filter_reset": "Reset Filters",
+    "instance_status_pending": "Pending",
+    "instance_status_approved": "Approved",
+    "instance_status_rejected": "Rejected",
+    "instance_status_cancelled": "Cancelled",
     "module_names": {
       "attendance": "Attendance",
       "leave": "Leave",
@@ -1614,7 +1620,10 @@
       "performance_kpi_target": "KPI Target",
       "performance_kpi_realization": "KPI Realization",
       "okr_key_result": "OKR Key Result",
-      "okr_assessment": "OKR Assessment"
+      "okr_assessment": "OKR Assessment",
+      "training_request": "Training Request",
+      "recruitment": "Recruitment",
+      "recruitment_offer": "Candidate Offer"
     }
   },
   "notification": {
@@ -1847,7 +1856,7 @@
     "step_sequence": "Step"
   },
   "requisitions": {
-    "description": "Manage job requisitions linked to workforce gaps (S-1) and succession gaps (S-5).",
+    "description": "Manage job requisitions linked to workforce gaps and succession gaps.",
     "filter_status": "Filter Status",
     "new_requisition": "New Requisition",
     "empty": "No requisitions found",
@@ -1903,7 +1912,11 @@
     "submit": "Submit",
     "submit_confirm_title": "Submit for Approval",
     "submit_confirm_message": "Send \"{{title}}\" through the approval workflow? It will be locked until approved or rejected.",
-    "submitted": "Requisition submitted for approval"
+    "submitted": "Requisition submitted for approval",
+    "edit_requisition": "Edit Requisition",
+    "updated": "Requisition updated successfully",
+    "confirm_delete_title": "Confirm delete",
+    "confirm_delete_message": "Delete requisition \"{{title}}\"? This action cannot be undone."
   },
   "applications": {
     "description": "Manage the candidate pipeline — status, stage history, screening, assessment, interviews, and match score.",
@@ -1982,7 +1995,7 @@
     "time_to_hire": "Time to Hire"
   },
   "candidates": {
-    "description": "Manage candidate profiles — education, work experience, skills, certifications, documents, and consents (G-6).",
+    "description": "Manage candidate profiles — education, work experience, skills, certifications, documents, and consents.",
     "search": "Search by name or email",
     "title": "Candidate",
     "new_candidate": "New Candidate",
@@ -2068,7 +2081,7 @@
     "delete_item_confirm": "Delete this record? This cannot be undone."
   },
   "offers": {
-    "description": "Manage job offers through the approval workflow and candidate response (G-3).",
+    "description": "Manage job offers through the approval workflow and candidate response.",
     "filter_status": "Filter Status",
     "new_offer": "New Offer",
     "edit_offer": "Edit Offer",
@@ -2129,7 +2142,7 @@
     "updated": "Offer updated successfully"
   },
   "onboarding": {
-    "description": "Manage employee onboarding — employees hired from offers (G-4) and status flow (training handoff S-7).",
+    "description": "Manage employee onboarding — employees hired from offers and status flow (training handoff).",
     "filter_status": "Filter Status",
     "new_onboarding": "New Onboarding",
     "empty": "No onboardings found",
@@ -2198,7 +2211,7 @@
   },
   "succession_gaps": {
     "title": "Succession Gaps",
-    "description": "Key positions without a ready successor that require external recruitment (S-5).",
+    "description": "Key positions without a ready successor that require external recruitment.",
     "subtitle": "Positions with an active succession plan; gap = no successor ready now.",
     "empty": "No succession gaps — all key positions have a ready successor",
     "position": "Key Position",

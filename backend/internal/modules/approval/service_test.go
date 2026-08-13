@@ -492,6 +492,44 @@ func TestService_SubmitAction_Approve_Success(t *testing.T) {
 	_ = step
 }
 
+func TestService_SubmitAction_RoleAssignee_Success(t *testing.T) {
+	svc, repo, db, cleanup := newTestServiceWithDB()
+	defer cleanup()
+
+	flow := createTestFlow(repo, "leave")
+	createTestStep(repo, flow.ID, 1)
+
+	// Task di-assign ke ROLE (bukan user langsung) — pola alur dengan
+	// approver_type ROLE (mis. role SDM).
+	roleID := uuid.New()
+	inst := createTestInstance(repo, flow, uuid.New())
+	createTestTaskROLE(repo, inst.ID, 1, roleID)
+
+	// Actor punya role tersebut → berhak approve.
+	actorID := uuid.New()
+	seedUserRole(db, actorID, roleID)
+
+	resp, err := svc.SubmitAction(ctx(), inst.ID.String(), actorID.String(), SubmitActionRequest{
+		Action: "APPROVE",
+	})
+	if err != nil {
+		t.Fatalf("SubmitAction for ROLE-assigned task failed: %v", err)
+	}
+	if resp.Status != "APPROVED" {
+		t.Errorf("expected status 'APPROVED', got '%s'", resp.Status)
+	}
+
+	// Actor TANPA role tersebut → tetap ditolak.
+	outsiderID := uuid.New()
+	inst2 := createTestInstance(repo, flow, uuid.New())
+	createTestTaskROLE(repo, inst2.ID, 1, roleID)
+	if _, err := svc.SubmitAction(ctx(), inst2.ID.String(), outsiderID.String(), SubmitActionRequest{
+		Action: "APPROVE",
+	}); err == nil {
+		t.Fatal("expected error for user without the role, got nil")
+	}
+}
+
 func TestService_SubmitAction_Reject_Success(t *testing.T) {
 	svc, repo, cleanup := newTestService()
 	defer cleanup()
@@ -628,13 +666,118 @@ func TestService_ListMyPendingTasks_Success(t *testing.T) {
 	inst3 := createTestInstance(repo, flow, uuid.New())
 	createTestTask(repo, inst3.ID, 1, uuid.New())
 
-	resp, err := svc.ListMyPendingTasks(ctx(), actorID.String(), 1, 10)
+	resp, err := svc.ListMyPendingTasks(ctx(), actorID.String(), 1, 10, "", nil)
 	if err != nil {
 		t.Fatalf("ListMyPendingTasks failed: %v", err)
 	}
 
 	if resp.Total != 2 {
 		t.Errorf("expected total 2 tasks, got %d", resp.Total)
+	}
+}
+
+func TestService_ListMyPendingTasks_FiltersByStatusAndFlow(t *testing.T) {
+	svc, repo, db, cleanup := newTestServiceWithDB()
+	defer cleanup()
+
+	flow1 := createTestFlow(repo, "leave")
+	createTestStep(repo, flow1.ID, 1)
+	flow2 := createTestFlow(repo, "payroll")
+	createTestStep(repo, flow2.ID, 1)
+
+	actorID := uuid.New()
+
+	// Instance PENDING di flow1
+	inst1 := createTestInstance(repo, flow1, uuid.New())
+	createTestTask(repo, inst1.ID, 1, actorID)
+
+	// Instance PENDING di flow2
+	inst2 := createTestInstance(repo, flow2, uuid.New())
+	createTestTask(repo, inst2.ID, 1, actorID)
+
+	// Instance APPROVED di flow1 (task tetap pending — watcher/progress case)
+	inst3 := createTestInstance(repo, flow1, uuid.New())
+	inst3.Status = InstanceStatusApproved
+	if err := db.Save(inst3).Error; err != nil {
+		t.Fatalf("failed to set instance APPROVED: %v", err)
+	}
+	createTestTask(repo, inst3.ID, 1, actorID)
+
+	// Filter by flow1 → 2 tasks (inst1 PENDING + inst3 APPROVED)
+	resp, err := svc.ListMyPendingTasks(ctx(), actorID.String(), 1, 10, "", &flow1.ID)
+	if err != nil {
+		t.Fatalf("ListMyPendingTasks by flow failed: %v", err)
+	}
+	if resp.Total != 2 {
+		t.Errorf("expected 2 tasks for flow1, got %d", resp.Total)
+	}
+
+	// Filter by status APPROVED → 1 task (inst3)
+	resp, err = svc.ListMyPendingTasks(ctx(), actorID.String(), 1, 10, "APPROVED", nil)
+	if err != nil {
+		t.Fatalf("ListMyPendingTasks by status failed: %v", err)
+	}
+	if resp.Total != 1 {
+		t.Errorf("expected 1 APPROVED task, got %d", resp.Total)
+	}
+
+	// Filter by status + flow (APPROVED + flow1) → 1 task
+	resp, err = svc.ListMyPendingTasks(ctx(), actorID.String(), 1, 10, "APPROVED", &flow1.ID)
+	if err != nil {
+		t.Fatalf("ListMyPendingTasks by status+flow failed: %v", err)
+	}
+	if resp.Total != 1 {
+		t.Errorf("expected 1 APPROVED task in flow1, got %d", resp.Total)
+	}
+
+	// Filter by status REJECTED → 0 tasks
+	resp, err = svc.ListMyPendingTasks(ctx(), actorID.String(), 1, 10, "REJECTED", nil)
+	if err != nil {
+		t.Fatalf("ListMyPendingTasks by rejected status failed: %v", err)
+	}
+	if resp.Total != 0 {
+		t.Errorf("expected 0 REJECTED tasks, got %d", resp.Total)
+	}
+}
+
+func TestService_ListMyDoneTasks_OnlyProcessedTasks(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	flow := createTestFlow(repo, "leave")
+	createTestStep(repo, flow.ID, 1)
+
+	actorID := uuid.New()
+
+	// Task PENDING (belum diproses) — tidak masuk riwayat.
+	instPending := createTestInstance(repo, flow, uuid.New())
+	createTestTask(repo, instPending.ID, 1, actorID)
+
+	// Task DONE (sudah diproses) — masuk riwayat.
+	instDone := createTestInstance(repo, flow, uuid.New())
+	createTestTask(repo, instDone.ID, 1, actorID)
+	doneTasks, err := repo.FindTasksByInstanceID(ctx(), instDone.ID)
+	if err != nil || len(doneTasks) != 1 {
+		t.Fatalf("failed to load done task: %v", err)
+	}
+	doneTask := doneTasks[0]
+	if err := svc.repo.UpdateTaskStatus(ctx(), doneTask.ID, TaskStatusDone); err != nil {
+		t.Fatalf("failed to mark task done: %v", err)
+	}
+
+	resp, err := svc.ListMyDoneTasks(ctx(), actorID.String(), 1, 10, nil)
+	if err != nil {
+		t.Fatalf("ListMyDoneTasks failed: %v", err)
+	}
+	if resp.Total != 1 {
+		t.Errorf("expected 1 done task, got %d", resp.Total)
+	}
+	tasks, ok := resp.Data.([]TaskResponse)
+	if !ok || len(tasks) != 1 {
+		t.Fatalf("expected 1 task response, got %+v", resp.Data)
+	}
+	if tasks[0].ID != doneTask.ID.String() {
+		t.Errorf("expected done task %s, got %s", doneTask.ID, tasks[0].ID)
 	}
 }
 
@@ -662,7 +805,7 @@ func TestService_ListMyPendingTasks_EnrichesFlowNameAndSubmitter(t *testing.T) {
 	}
 	createTestTask(repo, inst.ID, 1, actorID)
 
-	resp, err := svc.ListMyPendingTasks(ctx(), actorID.String(), 1, 10)
+	resp, err := svc.ListMyPendingTasks(ctx(), actorID.String(), 1, 10, "", nil)
 	if err != nil {
 		t.Fatalf("ListMyPendingTasks failed: %v", err)
 	}
@@ -760,7 +903,7 @@ func TestService_SubmitAction_Approve_WatcherStepBecomesVisibleAfterStep1(t *tes
 	}
 
 	// The watcher's task must now be visible in their own pending task list.
-	watcherTasks, err := svc.ListMyPendingTasks(ctx(), watcherID.String(), 1, 10)
+	watcherTasks, err := svc.ListMyPendingTasks(ctx(), watcherID.String(), 1, 10, "", nil)
 	if err != nil {
 		t.Fatalf("ListMyPendingTasks (watcher) failed: %v", err)
 	}
@@ -957,7 +1100,7 @@ func TestService_ListMyPendingTasks_RoleAssignedTask_VisibleToRoleMember(t *test
 	memberUserID := uuid.New()
 	seedUserRole(db, memberUserID, roleID)
 
-	resp, err := svc.ListMyPendingTasks(ctx(), memberUserID.String(), 1, 10)
+	resp, err := svc.ListMyPendingTasks(ctx(), memberUserID.String(), 1, 10, "", nil)
 	if err != nil {
 		t.Fatalf("ListMyPendingTasks failed: %v", err)
 	}
@@ -967,7 +1110,7 @@ func TestService_ListMyPendingTasks_RoleAssignedTask_VisibleToRoleMember(t *test
 
 	// A user who does NOT hold the role must not see the task.
 	outsiderUserID := uuid.New()
-	resp, err = svc.ListMyPendingTasks(ctx(), outsiderUserID.String(), 1, 10)
+	resp, err = svc.ListMyPendingTasks(ctx(), outsiderUserID.String(), 1, 10, "", nil)
 	if err != nil {
 		t.Fatalf("ListMyPendingTasks (outsider) failed: %v", err)
 	}
@@ -980,7 +1123,7 @@ func TestService_ListMyPendingTasks_DefaultPagination(t *testing.T) {
 	svc, _, cleanup := newTestService()
 	defer cleanup()
 
-	resp, err := svc.ListMyPendingTasks(ctx(), uuidStr(), 0, 0)
+	resp, err := svc.ListMyPendingTasks(ctx(), uuidStr(), 0, 0, "", nil)
 	if err != nil {
 		t.Fatalf("ListMyPendingTasks failed: %v", err)
 	}

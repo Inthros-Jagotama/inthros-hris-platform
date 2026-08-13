@@ -1020,6 +1020,9 @@ func main() {
 	// APPROVED/REJECTED/CANCELLED dipropagasi balik ke status requisition via
 	// push-callback (pola payroll/leave/employeemovement).
 	recruitmentSvc.SetApprovalEngine(sharedApprovalEngine)
+	// G-1: wire notifikasi ke requester — submit requisition, hasil APPROVED,
+	// dan REJECTED mengirim notifikasi (pola leave/employeemovement).
+	recruitmentSvc.SetNotifier(notificationSvc)
 	approvalSvc.RegisterStatusHandler("recruitment", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return recruitmentSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})

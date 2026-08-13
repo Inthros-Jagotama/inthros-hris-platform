@@ -472,7 +472,11 @@ func (r *Repository) FindPendingTasksByAssignee(ctx context.Context, assigneeTyp
 // also matches tasks assigned to any of the given role IDs (assignee_type=
 // ROLE), so a task routed to a ROLE approver/watcher surfaces for every user
 // holding that role, not only a literal USER-id match.
-func (r *Repository) FindPendingTasksByAssigneeAndRoles(ctx context.Context, userID uuid.UUID, roleIDs []uuid.UUID, page, perPage int) ([]ApprovalTask, int64, error) {
+// findTasksByAssigneeAndRoles lists a user's approval tasks with the given
+// task status (PENDING/DONE), optionally filtered by the owning instance's
+// status (instanceStatus) and flow id — backs the Approvals page's pending
+// list and history tab.
+func (r *Repository) findTasksByAssigneeAndRoles(ctx context.Context, userID uuid.UUID, roleIDs []uuid.UUID, taskStatus TaskStatus, page, perPage int, instanceStatus string, flowID *uuid.UUID) ([]ApprovalTask, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -480,14 +484,22 @@ func (r *Repository) FindPendingTasksByAssigneeAndRoles(ctx context.Context, use
 	var tasks []ApprovalTask
 	var total int64
 
-	query := db.Model(&ApprovalTask{}).Where("status = ? AND deleted_at IS NULL", TaskStatusPending)
+	query := db.Model(&ApprovalTask{}).
+		Joins("JOIN approval_instances ON approval_instances.id = approval_tasks.instance_id AND approval_instances.deleted_at IS NULL").
+		Where("approval_tasks.status = ? AND approval_tasks.deleted_at IS NULL", taskStatus)
+	if instanceStatus != "" {
+		query = query.Where("approval_instances.status = ?", instanceStatus)
+	}
+	if flowID != nil {
+		query = query.Where("approval_instances.flow_id = ?", *flowID)
+	}
 	if len(roleIDs) > 0 {
 		query = query.Where(
-			"(assignee_type = ? AND assignee_id = ?) OR (assignee_type = ? AND assignee_id IN ?)",
+			"(approval_tasks.assignee_type = ? AND approval_tasks.assignee_id = ?) OR (approval_tasks.assignee_type = ? AND approval_tasks.assignee_id IN ?)",
 			"USER", userID, "ROLE", roleIDs,
 		)
 	} else {
-		query = query.Where("assignee_type = ? AND assignee_id = ?", "USER", userID)
+		query = query.Where("approval_tasks.assignee_type = ? AND approval_tasks.assignee_id = ?", "USER", userID)
 	}
 
 	if err := query.Count(&total).Error; err != nil {
@@ -495,10 +507,23 @@ func (r *Repository) FindPendingTasksByAssigneeAndRoles(ctx context.Context, use
 	}
 
 	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&tasks).Error; err != nil {
+	if err := query.Offset(offset).Limit(perPage).Order("approval_tasks.created_at DESC").Find(&tasks).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
 	}
 	return tasks, total, nil
+}
+
+// FindPendingTasksByAssigneeAndRoles lists a user's pending approval tasks,
+// optionally filtered by the owning instance's status (PENDING/APPROVED/...)
+// and flow id — used by the Approvals page status/flow filters.
+func (r *Repository) FindPendingTasksByAssigneeAndRoles(ctx context.Context, userID uuid.UUID, roleIDs []uuid.UUID, page, perPage int, instanceStatus string, flowID *uuid.UUID) ([]ApprovalTask, int64, error) {
+	return r.findTasksByAssigneeAndRoles(ctx, userID, roleIDs, TaskStatusPending, page, perPage, instanceStatus, flowID)
+}
+
+// FindDoneTasksByAssigneeAndRoles lists the user's already-processed
+// (DONE) approval tasks — backs the Approvals page's history tab.
+func (r *Repository) FindDoneTasksByAssigneeAndRoles(ctx context.Context, userID uuid.UUID, roleIDs []uuid.UUID, page, perPage int, flowID *uuid.UUID) ([]ApprovalTask, int64, error) {
+	return r.findTasksByAssigneeAndRoles(ctx, userID, roleIDs, TaskStatusDone, page, perPage, "", flowID)
 }
 
 func (r *Repository) FindTasksByInstanceID(ctx context.Context, instanceID uuid.UUID) ([]ApprovalTask, error) {

@@ -3702,3 +3702,127 @@ func TestService_GetRecruitmentAnalyticsSummary_DateRangeFilter(t *testing.T) {
 		t.Errorf("expected 0 applications after 'from' filter excludes the only application, got %d", resp.Applications)
 	}
 }
+
+// =========================================================================
+// Notifikasi requisition (G-1) — pola leave/employeemovement notifier fake
+// =========================================================================
+
+type fakeReqNotifier struct {
+	calls []fakeReqNotifyCall
+	err   error
+}
+
+type fakeReqNotifyCall struct {
+	recipientUserID uuid.UUID
+	notifType       string
+	referenceType   string
+	referenceID     uuid.UUID
+}
+
+func (f *fakeReqNotifier) Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error {
+	f.calls = append(f.calls, fakeReqNotifyCall{recipientUserID, notifType, referenceType, referenceID})
+	return f.err
+}
+
+// ctxWithUserID meniru middleware AuthJWT yang menyuntik "user_id" ke context.
+func ctxWithUserID(userID uuid.UUID) context.Context {
+	return context.WithValue(context.Background(), "user_id", userID.String())
+}
+
+func TestService_SubmitRequisition_NotifiesRequester(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	userID := uuid.New()
+	ctx := ctxWithUserID(userID)
+
+	notifier := &fakeReqNotifier{}
+	svc.SetNotifier(notifier)
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+
+	req := seedDraftRequisition(t, svc, ctx)
+	if _, err := svc.SubmitRequisition(ctx, req.ID, uuid.New().String()); err != nil {
+		t.Fatalf("SubmitRequisition failed: %v", err)
+	}
+
+	if len(notifier.calls) != 1 {
+		t.Fatalf("expected 1 notify call, got %d", len(notifier.calls))
+	}
+	call := notifier.calls[0]
+	if call.recipientUserID != userID {
+		t.Errorf("expected recipient %s, got %s", userID, call.recipientUserID)
+	}
+	if call.notifType != "REQUISITION_SUBMITTED" {
+		t.Errorf("expected notif type REQUISITION_SUBMITTED, got %s", call.notifType)
+	}
+	reqID, _ := uuid.Parse(req.ID)
+	if call.referenceType != "recruitment" || call.referenceID != reqID {
+		t.Errorf("expected reference recruitment/%s, got %s/%s", reqID, call.referenceType, call.referenceID)
+	}
+}
+
+func TestService_HandleApprovalStatusChange_NotifiesRequester(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	userID := uuid.New()
+	ctx := ctxWithUserID(userID)
+
+	notifier := &fakeReqNotifier{}
+	svc.SetNotifier(notifier)
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+
+	// APPROVED → REQUISITION_APPROVED
+	req := seedDraftRequisition(t, svc, ctx)
+	submitted, err := svc.SubmitRequisition(ctx, req.ID, uuid.New().String())
+	if err != nil {
+		t.Fatalf("SubmitRequisition failed: %v", err)
+	}
+	submittedID, _ := uuid.Parse(submitted.ID)
+	notifier.calls = nil
+
+	if err := svc.HandleApprovalStatusChange(ctx, submittedID, "APPROVED", ""); err != nil {
+		t.Fatalf("HandleApprovalStatusChange APPROVED failed: %v", err)
+	}
+	if len(notifier.calls) != 1 {
+		t.Fatalf("expected 1 notify call after APPROVED, got %d", len(notifier.calls))
+	}
+	if notifier.calls[0].notifType != "REQUISITION_APPROVED" {
+		t.Errorf("expected REQUISITION_APPROVED, got %s", notifier.calls[0].notifType)
+	}
+
+	// REJECTED → REQUISITION_REJECTED (requisition baru, karena yang pertama
+	// sudah OPEN dan callback approval idempotent untuk status non-SUBMITTED).
+	req2 := seedDraftRequisition(t, svc, ctx)
+	submitted2, err := svc.SubmitRequisition(ctx, req2.ID, uuid.New().String())
+	if err != nil {
+		t.Fatalf("SubmitRequisition #2 failed: %v", err)
+	}
+	submitted2ID, _ := uuid.Parse(submitted2.ID)
+	notifier.calls = nil
+
+	if err := svc.HandleApprovalStatusChange(ctx, submitted2ID, "REJECTED", ""); err != nil {
+		t.Fatalf("HandleApprovalStatusChange REJECTED failed: %v", err)
+	}
+	if len(notifier.calls) != 1 {
+		t.Fatalf("expected 1 notify call after REJECTED, got %d", len(notifier.calls))
+	}
+	if notifier.calls[0].notifType != "REQUISITION_REJECTED" {
+		t.Errorf("expected REQUISITION_REJECTED, got %s", notifier.calls[0].notifType)
+	}
+	if notifier.calls[0].recipientUserID != userID {
+		t.Errorf("expected recipient %s, got %s", userID, notifier.calls[0].recipientUserID)
+	}
+}
+
+func TestService_SubmitRequisition_NoNotifierNoRequestedBy(t *testing.T) {
+	// Tanpa notifier atau tanpa RequestedBy (mis. system action tanpa auth) —
+	// SubmitRequisition tetap berhasil tanpa crash (best-effort).
+	svc, cleanup := newTestService()
+	defer cleanup()
+	svc.SetApprovalEngine(&fakeApprovalEngine{instanceID: uuid.New().String(), flowID: uuid.New().String()})
+	ctx := context.Background()
+
+	req := seedDraftRequisition(t, svc, ctx)
+	if _, err := svc.SubmitRequisition(ctx, req.ID, uuid.New().String()); err != nil {
+		t.Fatalf("SubmitRequisition without notifier failed: %v", err)
+	}
+}

@@ -11,6 +11,8 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 const (
@@ -203,6 +205,7 @@ type Service struct {
 	// terkait yang mengeksekusi via interface narrow (pola S-1..S-7).
 	employeeProvider EmployeeProvider
 	movementProvider MovementProvider
+	notifier         Notifier
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -243,6 +246,19 @@ func (s *Service) SetTrainingHandoffProvider(p TrainingHandoffProvider) {
 // path — manual approve dihapus, keputusan plan G-1/G-5).
 func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 	s.approvalEngine = ae
+}
+
+// Notifier abstracts the notification module so recruitment can notify the
+// requisition requester of submission and approval outcomes (G-1).
+// notification.Service satisfies this structurally.
+type Notifier interface {
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
+}
+
+// SetNotifier wires the notification module into this service (plan G-1) so
+// requisition submission/approval/rejection notifies the requester.
+func (s *Service) SetNotifier(n Notifier) {
+	s.notifier = n
 }
 
 // SetEmployeeProvider wires the Employee module into this service (plan G-4)
@@ -309,6 +325,10 @@ func (s *Service) CreateRequisition(ctx context.Context, req CreateRequisitionRe
 	if req.RequestedBy != nil {
 		uid, _ := uuid.Parse(*req.RequestedBy)
 		r.RequestedBy = &uid
+	} else if uid := authctx.GetUserID(ctx); uid != nil {
+		// Default: pengguna yang membuat requisition menjadi requester
+		// (untuk notifikasi hasil approval).
+		r.RequestedBy = uid
 	}
 	if req.TargetStartDate != nil {
 		r.TargetStartDate = req.TargetStartDate
@@ -902,6 +922,8 @@ func (s *Service) SubmitRequisition(ctx context.Context, id, flowID string) (*Re
 		return nil, err
 	}
 
+	s.notifyRequisitionOutcome(ctx, r, "REQUISITION_SUBMITTED")
+
 	s.logger.Info("Requisition submitted for approval",
 		zap.String("requisition_id", r.ID.String()),
 		zap.String("instance_id", instanceID),
@@ -939,11 +961,37 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		return nil
 	}
 
+	// Notifikasi hasil approval ke requester (best-effort).
+	switch status {
+	case "APPROVED":
+		s.notifyRequisitionOutcome(ctx, r, "REQUISITION_APPROVED")
+	case "REJECTED":
+		s.notifyRequisitionOutcome(ctx, r, "REQUISITION_REJECTED")
+	}
+
 	s.logger.Info("Requisition status updated via approval status handler",
 		zap.String("requisition_id", r.ID.String()),
 		zap.String("approval_status", status),
 	)
 	return s.repo.UpdateRequisition(ctx, r)
+}
+
+// notifyRequisitionOutcome best-effort notification ke requester requisition
+// (pola leave.notifyLeaveOutcome / employeemovement.notifyMovementOutcome).
+// RequestedBy adalah user id (bukan employee id) sehingga langsung dipakai
+// sebagai recipient tanpa resolusi tambahan.
+func (s *Service) notifyRequisitionOutcome(ctx context.Context, r *JobRequisition, notifType string) {
+	if s.notifier == nil || r.RequestedBy == nil {
+		return
+	}
+	params := []string{r.Title}
+	if err := s.notifier.Notify(ctx, *r.RequestedBy, notifType, params, "recruitment", r.ID); err != nil {
+		s.logger.Warn("Failed to send requisition notification",
+			zap.String("notif_type", notifType),
+			zap.String("requisition_id", r.ID.String()),
+			zap.Error(err),
+		)
+	}
 }
 
 // =========================================================================

@@ -43,5 +43,6 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// Approval Tasks (Task approval per approver)
 		// =================================================================
 		approval.GET("/tasks/pending", handler.ListMyPendingTasks)
+		approval.GET("/tasks/done", handler.ListMyDoneTasks)
 	}
 }

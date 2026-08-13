@@ -5,18 +5,86 @@
         <span v-if="pendingTotal > 0" class="text-xs text-gray-400 dark:text-gray-500">
           {{ pendingTotal }} {{ t('common.items') }}
         </span>
-        <Button icon="pi pi-refresh" size="small" text severity="secondary" @click="loadPendingTasks" />
+        <Button icon="pi pi-refresh" size="small" text severity="secondary" @click="loadTasks" />
       </div>
       <Button :label="t('approval.flows')" icon="pi pi-sitemap" size="small" @click="router.push({ name: 'ApprovalFlows' })" />
     </div>
 
+    <!-- Tab: Perlu Tindakan / Riwayat -->
+    <div class="flex items-center gap-1 mb-2 border-b border-gray-200 dark:border-gray-700">
+      <button
+        class="px-3 py-1.5 text-sm font-medium border-b-2 -mb-px transition-colors"
+        :class="activeTab === 'pending' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
+        @click="switchTab('pending')"
+      >
+        {{ t('approval.tab_pending') }}
+      </button>
+      <button
+        class="px-3 py-1.5 text-sm font-medium border-b-2 -mb-px transition-colors"
+        :class="activeTab === 'done' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
+        @click="switchTab('done')"
+      >
+        {{ t('approval.tab_history') }}
+      </button>
+    </div>
+
+    <!-- Filter status & alur -->
+    <div class="flex items-center gap-2 flex-wrap mb-2">
+      <Select
+        v-if="activeTab === 'pending'"
+        v-model="statusFilter"
+        :options="statusOptions"
+        optionLabel="label"
+        optionValue="value"
+        :placeholder="t('approval.filter_status')"
+        class="!w-44"
+        size="small"
+        showClear
+        @update:modelValue="onFilterChange"
+      />
+      <Select
+        v-model="flowFilter"
+        :options="flowOptions"
+        optionLabel="label"
+        optionValue="value"
+        :placeholder="t('approval.filter_flow')"
+        class="!w-56"
+        size="small"
+        showClear
+        :loading="flowsLoading"
+        @update:modelValue="onFilterChange"
+      />
+      <Button
+        v-if="statusFilter || flowFilter"
+        :label="t('approval.filter_reset')"
+        icon="pi pi-filter-slash"
+        size="small"
+        text
+        severity="secondary"
+        @click="clearFilters"
+      />
+    </div>
+
     <SkeletonTable v-if="tasksLoading" :columns="taskSkeletonColumns" :rows="6" />
 
-    <DataTable v-else :value="pendingTasks" size="small" class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+    <DataTable
+      v-else
+      :value="pendingTasks"
+      size="small"
+      class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+      lazy
+      :totalRecords="pendingTotal"
+      :first="firstRecord"
+      :rows="perPage"
+      @page="onPage($event)"
+      paginator
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+      :rowsPerPageOptions="[10, 20, 50]"
+    >
       <template #empty>
         <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
           <i class="pi pi-inbox text-3xl mb-2 opacity-50"></i>
-          <p class="text-sm font-medium">{{ t('approval.empty_tasks') }}</p>
+          <p class="text-sm font-medium">{{ t(activeTab === 'pending' ? 'approval.empty_tasks' : 'approval.empty_history') }}</p>
         </div>
       </template>
       <Column field="step_order" :header="t('approval.step')" style="width:80px">
@@ -68,7 +136,7 @@
         <!-- Left column: the data being submitted -->
         <div class="space-y-4 md:border-r md:border-gray-200 md:dark:border-gray-700 md:pr-5">
           <div v-if="!isAttendanceModule" class="flex items-center gap-2">
-            <i class="pi pi-file-text text-indigo-400 text-sm"></i>
+            <i class="pi pi-file text-indigo-400 text-sm"></i>
             <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('approval.submitted_data') }}</h2>
             <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
           </div>
@@ -338,6 +406,145 @@
             </div>
           </template>
 
+          <!-- Detail lowongan (recruitment) -->
+          <template v-else-if="isRecruitmentModule">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('requisitions.title') }}</p>
+                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ documentDetail?.title || '-' }}</p>
+                <p v-if="documentDetail?.requisition_number" class="text-xs text-gray-400 font-mono">{{ documentDetail.requisition_number }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('common.status') }}</p>
+                <Tag :value="requisitionStatusLabel(documentDetail?.status)" :severity="requisitionStatusSeverity(documentDetail?.status)" class="!text-xs" />
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('requisitions.priority') }}</p>
+                <Tag :value="requisitionPriorityLabel(documentDetail?.priority)" :severity="requisitionPrioritySeverity(documentDetail?.priority)" class="!text-xs" />
+              </div>
+              <div v-if="requisitionOrganizationName" class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('requisitions.org') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ requisitionOrganizationName }}</p>
+              </div>
+              <div v-if="documentDetail?.department">
+                <p class="text-xs text-gray-400">{{ t('requisitions.department') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail.department }}</p>
+              </div>
+              <div v-if="documentDetail?.employment_type">
+                <p class="text-xs text-gray-400">{{ t('requisitions.employment_type') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail.employment_type }}</p>
+              </div>
+              <div v-if="documentDetail?.location">
+                <p class="text-xs text-gray-400">{{ t('requisitions.location') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail.location }}</p>
+              </div>
+              <div v-if="documentDetail?.reason_type">
+                <p class="text-xs text-gray-400">{{ t('requisitions.reason_type') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ requisitionReasonLabel(documentDetail.reason_type) }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('requisitions.slots_available') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.slots_available ?? '-' }}</p>
+              </div>
+              <div v-if="documentDetail?.slots_filled != null">
+                <p class="text-xs text-gray-400">{{ t('requisitions.slots') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail.slots_filled }}</p>
+              </div>
+              <div v-if="documentDetail?.target_start_date">
+                <p class="text-xs text-gray-400">{{ t('requisitions.target_start_date') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatDateOnly(documentDetail.target_start_date) }}</p>
+              </div>
+              <div v-if="documentDetail?.min_salary || documentDetail?.max_salary">
+                <p class="text-xs text-gray-400">{{ t('requisitions.min_salary') }} – {{ t('requisitions.max_salary') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatCurrency(documentDetail?.min_salary) }} – {{ formatCurrency(documentDetail?.max_salary) }}</p>
+              </div>
+              <div v-if="documentDetail?.description" class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('requisitions.description_label') }}</p>
+                <p class="text-gray-700 dark:text-gray-200 break-words whitespace-pre-line">{{ documentDetail.description }}</p>
+              </div>
+              <div v-if="documentDetail?.requirements" class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('requisitions.requirements') }}</p>
+                <p class="text-gray-700 dark:text-gray-200 break-words whitespace-pre-line">{{ documentDetail.requirements }}</p>
+              </div>
+              <div v-if="documentDetail?.responsibilities" class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('requisitions.responsibilities') }}</p>
+                <p class="text-gray-700 dark:text-gray-200 break-words whitespace-pre-line">{{ documentDetail.responsibilities }}</p>
+              </div>
+            </div>
+          </template>
+
+          <!-- Detail penawaran kandidat (recruitment_offer) -->
+          <template v-else-if="isOfferModule">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('offers.offer_number') }}</p>
+                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ documentDetail?.offer_number || '-' }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('common.status') }}</p>
+                <Tag :value="offerStatusLabel(documentDetail?.status)" :severity="offerStatusSeverity(documentDetail?.status)" class="!text-xs" />
+              </div>
+              <div v-if="documentDetail?.employment_type">
+                <p class="text-xs text-gray-400">{{ t('offers.employment_type') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail.employment_type }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('offers.salary') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatCurrency(documentDetail?.salary) }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('offers.allowances') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatCurrency(documentDetail?.allowances) }}</p>
+              </div>
+              <div v-if="documentDetail?.start_date">
+                <p class="text-xs text-gray-400">{{ t('offers.start_date') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatDateOnly(documentDetail.start_date) }}</p>
+              </div>
+              <div v-if="documentDetail?.expiry_date">
+                <p class="text-xs text-gray-400">{{ t('offers.expiry_date') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatDateOnly(documentDetail.expiry_date) }}</p>
+              </div>
+              <div v-if="documentDetail?.benefits" class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('offers.benefits') }}</p>
+                <p class="text-gray-700 dark:text-gray-200 break-words whitespace-pre-line">{{ documentDetail.benefits }}</p>
+              </div>
+            </div>
+          </template>
+
+          <!-- Detail permintaan training (training_request) -->
+          <template v-else-if="isTrainingRequestModule">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('training.request_employee') }}</p>
+                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ trainingRequestEmployeeName || '-' }}</p>
+              </div>
+              <div class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('training.request_course') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ trainingRequestCourseName || '-' }}</p>
+              </div>
+              <div v-if="documentDetail?.requested_date">
+                <p class="text-xs text-gray-400">{{ t('training.request_requested_date') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ formatDateOnly(documentDetail.requested_date) }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('training.request_priority') }}</p>
+                <p class="text-gray-700 dark:text-gray-200">{{ documentDetail?.priority || '-' }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">{{ t('common.status') }}</p>
+                <Tag :value="trainingRequestStatusLabel(documentDetail?.status)" :severity="trainingRequestStatusSeverity(documentDetail?.status)" class="!text-xs" />
+              </div>
+              <div v-if="documentDetail?.reason" class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('training.request_reason') }}</p>
+                <p class="text-gray-700 dark:text-gray-200 break-words">{{ documentDetail.reason }}</p>
+              </div>
+              <div v-if="documentDetail?.supervisor_note" class="col-span-2">
+                <p class="text-xs text-gray-400">{{ t('training.request_supervisor_note') }}</p>
+                <p class="text-gray-700 dark:text-gray-200 break-words">{{ documentDetail.supervisor_note }}</p>
+              </div>
+            </div>
+          </template>
+
           <div v-else-if="documentFields.length" class="space-y-2">
             <div v-for="f in documentFields" :key="f.label" class="text-sm">
               <p class="text-xs text-gray-400">{{ f.label }}</p>
@@ -437,6 +644,7 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
+import Select from 'primevue/select'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 
 const { t, locale } = useI18n()
@@ -471,6 +679,64 @@ const pendingTasks = ref([])
 const pendingTotal = ref(0)
 const tasksLoading = ref(false)
 
+// ── Tab, filter & pagination ──
+const activeTab = ref('pending') // 'pending' | 'done'
+const statusFilter = ref(null)
+const flowFilter = ref(null)
+const flowOptions = ref([])
+const flowsLoading = ref(false)
+const currentPage = ref(1)
+const perPage = ref(20)
+
+function switchTab(tab) {
+  if (activeTab.value === tab) return
+  activeTab.value = tab
+  statusFilter.value = null // filter status hanya untuk tab pending
+  currentPage.value = 1
+  loadTasks()
+}
+
+const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
+
+// Filter status = status instance approval (task pending selalu PENDING,
+// sehingga yang bermakna adalah status keseluruhan instance-nya).
+const statusOptions = computed(() => [
+  { label: t('approval.instance_status_pending'), value: 'PENDING' },
+  { label: t('approval.instance_status_approved'), value: 'APPROVED' },
+  { label: t('approval.instance_status_rejected'), value: 'REJECTED' },
+  { label: t('approval.instance_status_cancelled'), value: 'CANCELLED' }
+])
+
+async function loadFlowOptions() {
+  flowsLoading.value = true
+  try {
+    const res = await api.get('/api/v1/tenant/approval/flows', { params: { page: 1, per_page: 100 } })
+    const flows = res.data?.data || []
+    flowOptions.value = flows.map(f => ({ label: f.name, value: f.id }))
+  } catch {
+    flowOptions.value = []
+  } finally {
+    flowsLoading.value = false
+  }
+}
+
+function onPage(event) {
+  currentPage.value = event.page + 1
+  perPage.value = event.rows
+  loadTasks()
+}
+
+function onFilterChange() {
+  currentPage.value = 1
+  loadTasks()
+}
+
+function clearFilters() {
+  statusFilter.value = null
+  flowFilter.value = null
+  onFilterChange()
+}
+
 const taskSkeletonColumns = [
   { type: 'text', width: 'w-10', headerWidth: 'w-12' },
   { type: 'text', width: 'w-32', headerWidth: 'w-24' },
@@ -482,10 +748,17 @@ const taskSkeletonColumns = [
   { type: 'icons', count: 1, headerWidth: 'w-16' }
 ]
 
-async function loadPendingTasks() {
+async function loadTasks() {
   tasksLoading.value = true
   try {
-    const res = await api.get('/api/v1/tenant/approval/tasks/pending', { params: { page: 1, per_page: 50 } })
+    const params = {
+      page: currentPage.value,
+      per_page: perPage.value,
+      ...(activeTab.value === 'pending' && statusFilter.value ? { status: statusFilter.value } : {}),
+      ...(flowFilter.value ? { flow_id: flowFilter.value } : {})
+    }
+    const endpoint = activeTab.value === 'done' ? '/api/v1/tenant/approval/tasks/done' : '/api/v1/tenant/approval/tasks/pending'
+    const res = await api.get(endpoint, { params })
     const body = res.data
     pendingTasks.value = body?.data || []
     pendingTotal.value = body?.total || 0
@@ -602,6 +875,135 @@ function movementStatusSeverity(status) {
 
 const hasMovementFrom = computed(() => !!(documentDetail.value && (documentDetail.value.from_organization_name || documentDetail.value.from_position_name || documentDetail.value.from_employment_status_name)))
 const hasMovementTo = computed(() => !!(documentDetail.value && (documentDetail.value.to_organization_name || documentDetail.value.to_position_name || documentDetail.value.to_employment_status_name)))
+
+// ── Recruitment (lowongan & penawaran kandidat) ──
+const isRecruitmentModule = computed(() => activeInstance.value?.module === 'recruitment')
+const isOfferModule = computed(() => activeInstance.value?.module === 'recruitment_offer')
+const isTrainingRequestModule = computed(() => activeInstance.value?.module === 'training_request')
+
+// requisition_number/offer_number tidak dibawa response detail, jadi tidak
+// perlu enrichment. Organization name di-resolve dari organization_id
+// (response requisition hanya membawa id, sama seperti leave).
+const requisitionOrganizationName = ref('')
+async function loadRequisitionOrganization(organizationId) {
+  requisitionOrganizationName.value = ''
+  if (!organizationId) return
+  try {
+    const res = await api.get(`/api/v1/tenant/organizations/${organizationId}`)
+    const org = res.data?.data
+    requisitionOrganizationName.value = org?.nomenclature || org?.full_code || org?.code || ''
+  } catch {}
+}
+
+// Training request detail hanya membawa employee_id/course_id — nama
+// di-resolve client-side (pola loadLeaveNames).
+const trainingRequestEmployeeName = ref('')
+const trainingRequestCourseName = ref('')
+async function loadTrainingRequestNames(employeeId, courseId) {
+  trainingRequestEmployeeName.value = ''
+  trainingRequestCourseName.value = ''
+  const requests = []
+  if (employeeId) {
+    requests.push(
+      api.get(`/api/v1/tenant/employees/${employeeId}`)
+        .then(res => { trainingRequestEmployeeName.value = res.data?.data?.name || '' })
+        .catch(() => {})
+    )
+  }
+  if (courseId) {
+    requests.push(
+      api.get(`/api/v1/tenant/trainings/courses/${courseId}`)
+        .then(res => { trainingRequestCourseName.value = res.data?.data?.name || '' })
+        .catch(() => {})
+    )
+  }
+  await Promise.all(requests)
+}
+
+function requisitionStatusLabel(status) {
+  if (!status) return '-'
+  const key = `requisitions.status_${String(status).toLowerCase()}`
+  return t(key) !== key ? t(key) : status
+}
+
+function requisitionStatusSeverity(status) {
+  switch (String(status).toLowerCase()) {
+    case 'draft': return 'secondary'
+    case 'submitted': return 'info'
+    case 'open': return 'success'
+    case 'in_progress': return 'info'
+    case 'filled': return 'success'
+    case 'rejected': return 'danger'
+    case 'cancelled': return 'secondary'
+    default: return 'secondary'
+  }
+}
+
+function requisitionPriorityLabel(priority) {
+  if (!priority) return '-'
+  const key = `requisitions.priority_${String(priority).toLowerCase()}`
+  return t(key) !== key ? t(key) : priority
+}
+
+function requisitionPrioritySeverity(priority) {
+  switch (String(priority).toLowerCase()) {
+    case 'urgent': return 'danger'
+    case 'high': return 'warn'
+    case 'medium': return 'info'
+    case 'low': return 'secondary'
+    default: return 'secondary'
+  }
+}
+
+function requisitionReasonLabel(reasonType) {
+  if (!reasonType) return '-'
+  const key = `requisitions.reason_${String(reasonType).toLowerCase()}`
+  return t(key) !== key ? t(key) : reasonType
+}
+
+function offerStatusLabel(status) {
+  if (!status) return '-'
+  const key = `offers.status_${String(status).toLowerCase()}`
+  return t(key) !== key ? t(key) : status
+}
+
+function offerStatusSeverity(status) {
+  switch (String(status).toLowerCase()) {
+    case 'draft': return 'secondary'
+    case 'pending_approval': return 'info'
+    case 'approved': return 'warning'
+    case 'sent': return 'info'
+    case 'accepted': return 'success'
+    case 'rejected': return 'danger'
+    case 'expired': return 'secondary'
+    case 'withdrawn': return 'secondary'
+    default: return 'secondary'
+  }
+}
+
+function trainingRequestStatusLabel(status) {
+  if (!status) return '-'
+  const key = `training.request_status_${String(status).toLowerCase()}`
+  return t(key) !== key ? t(key) : status
+}
+
+function trainingRequestStatusSeverity(status) {
+  switch (String(status).toLowerCase()) {
+    case 'draft': return 'secondary'
+    case 'submitted': return 'info'
+    case 'pending_approval': return 'info'
+    case 'approved': return 'success'
+    case 'rejected': return 'danger'
+    case 'cancelled': return 'secondary'
+    default: return 'secondary'
+  }
+}
+
+// formatCurrency — mata uang lokal tanpa desimal (pola halaman recruitment).
+function formatCurrency(v) {
+  if (v === null || v === undefined || v === '') return '-'
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(v))
+}
 
 // ── Attendance (overtime) ──
 const isAttendanceModule = computed(() => activeInstance.value?.module === 'attendance')
@@ -772,6 +1174,12 @@ function documentEndpointFor(module, documentId) {
     case 'okr_key_result':
     case 'okr_assessment':
       return `/api/v1/tenant/performance/okr/evaluations/${documentId}/details`
+    case 'recruitment':
+      return `/api/v1/tenant/recruitment/requisitions/${documentId}`
+    case 'recruitment_offer':
+      return `/api/v1/tenant/recruitment/offers/${documentId}`
+    case 'training_request':
+      return `/api/v1/tenant/trainings/requests/${documentId}`
     default:
       return null
   }
@@ -790,6 +1198,12 @@ async function loadDocumentDetail(module, documentId) {
     }
     if (module === 'attendance' && documentDetail.value) {
       await loadOvertimeNames(documentDetail.value.employee_id)
+    }
+    if (module === 'recruitment' && documentDetail.value) {
+      await loadRequisitionOrganization(documentDetail.value.organization_id)
+    }
+    if (module === 'training_request' && documentDetail.value) {
+      await loadTrainingRequestNames(documentDetail.value.employee_id, documentDetail.value.course_id)
     }
   } catch {
     documentDetail.value = null
@@ -832,7 +1246,7 @@ async function submitAction(action) {
     })
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('approval.action_submitted'), life: 3000 })
     taskDetailVisible.value = false
-    await loadPendingTasks()
+    await loadTasks()
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
   } finally {
@@ -841,6 +1255,7 @@ async function submitAction(action) {
 }
 
 onMounted(() => {
-  loadPendingTasks()
+  loadFlowOptions()
+  loadTasks()
 })
 </script>

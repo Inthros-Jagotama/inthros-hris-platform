@@ -88,7 +88,7 @@
     </DataTable>
 
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('common.edit') : t('candidates.new_candidate')" :modal="true" class="!w-[min(95vw,640px)]">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 gap-3">
         <FormRow :label="t('candidates.first_name')" :required="true">
           <TextInput v-model="form.first_name" class="!w-full" />
         </FormRow>
@@ -124,10 +124,10 @@
           <TextInput v-model="form.portfolio_url" class="!w-full" />
         </FormRow>
 
-        <FormRow :label="t('candidates.address')" class="md:col-span-2">
+        <FormRow :label="t('candidates.address')">
           <Textarea v-model="form.address" :rows="2" class="!w-full" />
         </FormRow>
-        <FormRow :label="t('candidates.notes')" class="md:col-span-2">
+        <FormRow :label="t('candidates.notes')">
           <Textarea v-model="form.notes" :rows="2" class="!w-full" />
         </FormRow>
       </div>

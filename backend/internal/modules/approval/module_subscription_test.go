@@ -87,14 +87,17 @@ func TestService_UpdateFlow_ReactivateUnsubscribedModule_Rejected(t *testing.T) 
 func TestService_ListAvailableModules_Success(t *testing.T) {
 	svc, _, cleanup := newTestService()
 	defer cleanup()
-	svc.SetModuleChecker(newFakeModuleChecker("leave", "reimbursement"))
+	// employee ter-subscribe tapi TIDAK terintegrasi approval → tidak muncul.
+	svc.SetModuleChecker(newFakeModuleChecker("leave", "reimbursement", "employee"))
+	svc.RegisterStatusHandler("leave", nil)
+	svc.RegisterStatusHandler("reimbursement", nil)
 
 	modules, err := svc.ListAvailableModules(ctxAsCompany("company-1"))
 	if err != nil {
 		t.Fatalf("ListAvailableModules failed: %v", err)
 	}
 	if len(modules) != 2 {
-		t.Errorf("expected 2 active modules, got %d: %v", len(modules), modules)
+		t.Errorf("expected 2 integrated+subscribed modules, got %d: %v", len(modules), modules)
 	}
 }
 
@@ -140,6 +143,11 @@ func TestService_ListAvailableModules_IncludesKPISubModules(t *testing.T) {
 	svc, _, cleanup := newTestService()
 	defer cleanup()
 	svc.SetModuleChecker(newFakeModuleChecker("performance", "leave"))
+	svc.RegisterStatusHandler("leave", nil)
+	// Sub-checkpoint KPI terintegrasi approval (bukan "performance" itu sendiri).
+	for _, m := range subscriptionModuleSubslots["performance"] {
+		svc.RegisterStatusHandler(m, nil)
+	}
 
 	modules, err := svc.ListAvailableModules(ctxAsCompany("company-1"))
 	if err != nil {
@@ -149,10 +157,64 @@ func TestService_ListAvailableModules_IncludesKPISubModules(t *testing.T) {
 	for _, m := range modules {
 		found[m] = true
 	}
-	for _, want := range []string{"performance", "leave", "performance_kpi_target", "performance_kpi_realization"} {
+	for _, want := range []string{"leave", "performance_kpi_target", "performance_kpi_realization", "okr_key_result", "okr_assessment"} {
 		if !found[want] {
 			t.Errorf("expected available modules to include %q, got %v", want, modules)
 		}
+	}
+	if found["performance"] {
+		t.Errorf("expected base module 'performance' NOT to appear (bukan module flow terintegrasi langsung), got %v", modules)
+	}
+}
+
+// TestService_ListAvailableModules_OnlyIntegratedModules memastikan module
+// yang disubscribe tenant tapi tidak terintegrasi dengan Central Approval
+// (mis. employee, organization) tidak dimunculkan di module picker.
+func TestService_ListAvailableModules_OnlyIntegratedModules(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("employee", "organization", "leave"))
+	svc.RegisterStatusHandler("leave", nil)
+
+	modules, err := svc.ListAvailableModules(ctxAsCompany("company-1"))
+	if err != nil {
+		t.Fatalf("ListAvailableModules failed: %v", err)
+	}
+	if len(modules) != 1 || modules[0] != "leave" {
+		t.Errorf("expected only 'leave' (terintegrasi + disubscribe), got %v", modules)
+	}
+}
+
+// TestService_ListAvailableModules_TrainingAndRecruitmentMapping memastikan
+// subscription "training"/"recruitment" membuka checkpoint flow module yang
+// slug-nya berbeda (training_request / recruitment_offer) dan keduanya hanya
+// muncul bila handler-nya terdaftar (terintegrasi).
+func TestService_ListAvailableModules_TrainingAndRecruitmentMapping(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("training", "recruitment"))
+	svc.RegisterStatusHandler("recruitment", nil)
+	svc.RegisterStatusHandler("recruitment_offer", nil)
+	svc.RegisterStatusHandler("training_request", nil)
+
+	modules, err := svc.ListAvailableModules(ctxAsCompany("company-1"))
+	if err != nil {
+		t.Fatalf("ListAvailableModules failed: %v", err)
+	}
+	found := map[string]bool{}
+	for _, m := range modules {
+		found[m] = true
+	}
+	for _, want := range []string{"recruitment", "recruitment_offer", "training_request"} {
+		if !found[want] {
+			t.Errorf("expected available modules to include %q, got %v", want, modules)
+		}
+	}
+	if found["training"] {
+		t.Errorf("expected 'training' NOT to appear (bukan module flow terintegrasi langsung), got %v", modules)
+	}
+	if len(modules) != 3 {
+		t.Errorf("expected exactly 3 modules, got %d: %v", len(modules), modules)
 	}
 }
 

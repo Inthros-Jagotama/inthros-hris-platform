@@ -219,7 +219,9 @@ type Candidate struct {
 	CurrentTitle    *string   `gorm:"type:varchar(255)" json:"current_title,omitempty"`
 	ResumeURL       *string   `gorm:"type:text" json:"resume_url,omitempty"`
 	PortfolioURL    *string   `gorm:"type:text" json:"portfolio_url,omitempty"`
-	LinkedInURL     *string   `gorm:"type:text" json:"linkedin_url,omitempty"`
+	// column:linkedin_url — GORM default untuk "LinkedInURL" adalah
+	// linked_in_url, sedangkan kolom DB (migrasi awal) adalah linkedin_url.
+	LinkedInURL     *string   `gorm:"column:linkedin_url;type:text" json:"linkedin_url,omitempty"`
 	Source          string    `gorm:"type:varchar(50);default:direct" json:"source"`
 	CandidateNumber string    `gorm:"type:varchar(50)" json:"candidate_number,omitempty"`
 	Notes           string    `gorm:"type:text" json:"notes"`

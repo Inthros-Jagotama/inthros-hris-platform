@@ -466,7 +466,7 @@
     "shifts": "Shift",
     "employee_shifts": "Shift Karyawan",
     "events": "Event",
-    "sessions": "Sesi Harian",
+    "sessions": "Sesi",
     "overtime": "Lembur",
     "locations": "Lokasi",
     "today": "Hari Ini",
@@ -573,9 +573,7 @@
     "requested_checkout": "Jam Check-out yang Diajukan",
     "session_lookup_loading": "Mencari sesi absensi Anda untuk tanggal ini...",
     "session_lookup_not_found": "Tidak ditemukan sesi absensi untuk tanggal ini.",
-    "events": "Event",
     "events_description": "Log event check-in/check-out mentah untuk audit dan troubleshooting.",
-    "sessions": "Sesi",
     "sessions_description": "Detail sesi absensi harian per karyawan.",
     "filter_all_employees": "Semua karyawan",
     "events_empty": "Belum ada event.",
@@ -1142,7 +1140,6 @@
     "confirm_delete_request": "Batalkan pengajuan training ini?",
     "confirm_delete_cost": "Hapus item biaya ini?",
     "confirm_delete_document": "Hapus dokumen ini?",
-    "planning": "Perencanaan",
     "planning_desc": "Rencana training tahunan dan alokasi anggaran",
     "requests": "Pengajuan Training",
     "requests_desc": "Pengajuan training karyawan melalui persetujuan",
@@ -1405,7 +1402,6 @@
     "type_status_change": "Perubahan Status",
     "type_retirement": "Pensiun",
     "type_offboarding": "Offboarding",
-    "type_other": "Lainnya",
     "to_organization": "Organisasi Tujuan",
     "to_position": "Posisi Tujuan",
     "to_employment_status": "Status Kepegawaian Tujuan",
@@ -1604,6 +1600,16 @@
     "reject_note_required": "Alasan wajib diisi untuk menolak.",
     "action_submitted": "Aksi berhasil dikirim",
     "empty_tasks": "Tidak ada tugas tertunda",
+    "empty_history": "Belum ada riwayat persetujuan",
+    "tab_pending": "Perlu Tindakan",
+    "tab_history": "Riwayat",
+    "filter_status": "Status",
+    "filter_flow": "Alur",
+    "filter_reset": "Reset Filter",
+    "instance_status_pending": "Menunggu",
+    "instance_status_approved": "Disetujui",
+    "instance_status_rejected": "Ditolak",
+    "instance_status_cancelled": "Dibatalkan",
     "module_names": {
       "attendance": "Absensi",
       "leave": "Cuti",
@@ -1614,7 +1620,10 @@
       "performance_kpi_target": "Target KPI",
       "performance_kpi_realization": "Realisasi KPI",
       "okr_key_result": "Key Result OKR",
-      "okr_assessment": "Penilaian OKR"
+      "okr_assessment": "Penilaian OKR",
+      "training_request": "Permintaan Training",
+      "recruitment": "Rekrutmen",
+      "recruitment_offer": "Penawaran Kandidat"
     }
   },
   "notification": {
@@ -1847,7 +1856,7 @@
     "step_sequence": "Langkah"
   },
   "requisitions": {
-    "description": "Kelola requisisi pekerjaan yang tertaut ke workforce gap (S-1) dan succession gap (S-5).",
+    "description": "Kelola requisisi pekerjaan yang tertaut ke workforce gap dan succession gap.",
     "filter_status": "Filter Status",
     "new_requisition": "Requisisi Baru",
     "empty": "Tidak ada requisisi",
@@ -1903,7 +1912,11 @@
     "submit": "Ajukan",
     "submit_confirm_title": "Ajukan untuk Persetujuan",
     "submit_confirm_message": "Kirim \"{{title}}\" melalui alur persetujuan? Requisisi akan terkunci sampai disetujui atau ditolak.",
-    "submitted": "Requisisi diajukan untuk persetujuan"
+    "submitted": "Requisisi diajukan untuk persetujuan",
+    "edit_requisition": "Ubah Requisisi",
+    "updated": "Requisisi berhasil diperbarui",
+    "confirm_delete_title": "Konfirmasi hapus",
+    "confirm_delete_message": "Hapus requisisi \"{{title}}\"? Tindakan ini tidak dapat dibatalkan."
   },
   "applications": {
     "description": "Kelola pipeline kandidat — status, riwayat tahap, screening, assessment, wawancara, dan match score.",
@@ -1982,7 +1995,7 @@
     "time_to_hire": "Waktu Rekrut"
   },
   "candidates": {
-    "description": "Kelola profil kandidat — pendidikan, pengalaman kerja, skill, sertifikasi, dokumen, dan consent (G-6).",
+    "description": "Kelola profil kandidat — pendidikan, pengalaman kerja, skill, sertifikasi, dokumen, dan consent.",
     "search": "Cari nama atau email",
     "title": "Kandidat",
     "new_candidate": "Kandidat Baru",
@@ -2068,7 +2081,7 @@
     "delete_item_confirm": "Hapus data ini? Tindakan ini tidak dapat dibatalkan."
   },
   "offers": {
-    "description": "Kelola penawaran kerja melalui alur persetujuan dan respons kandidat (G-3).",
+    "description": "Kelola penawaran kerja melalui alur persetujuan dan respons kandidat.",
     "filter_status": "Filter Status",
     "new_offer": "Penawaran Baru",
     "edit_offer": "Ubah Penawaran",
@@ -2129,7 +2142,7 @@
     "updated": "Penawaran berhasil diperbarui"
   },
   "onboarding": {
-    "description": "Kelola onboarding karyawan — karyawan hasil offer (G-4) dan alur status (handoff training S-7).",
+    "description": "Kelola onboarding karyawan — karyawan hasil offer dan alur status (handoff training).",
     "filter_status": "Filter Status",
     "new_onboarding": "Onboarding Baru",
     "empty": "Tidak ada onboarding",
@@ -2198,7 +2211,7 @@
   },
   "succession_gaps": {
     "title": "Suksesi Gap",
-    "description": "Posisi kunci tanpa successor siap yang membutuhkan rekrutmen eksternal (S-5).",
+    "description": "Posisi kunci tanpa successor siap yang membutuhkan rekrutmen eksternal.",
     "subtitle": "Posisi dengan succession plan aktif; gap = tidak ada successor siap sekarang.",
     "empty": "Tidak ada suksesi gap — semua posisi kunci punya successor siap",
     "position": "Posisi Kunci",
