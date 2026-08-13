@@ -982,3 +982,27 @@ func (r *Repository) DeleteCandidateDocument(ctx context.Context, id uuid.UUID) 
 	}
 	return result.Error
 }
+
+// =========================================================================
+// Candidate Consents (G-6) — append-only, no Update/Delete
+// =========================================================================
+
+func (r *Repository) CreateCandidateConsent(ctx context.Context, c *CandidateConsent) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(c).Error
+}
+
+func (r *Repository) ListCandidateConsents(ctx context.Context, candidateID uuid.UUID) ([]CandidateConsent, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CandidateConsent
+	if err := db.WithContext(ctx).Where("candidate_id = ?", candidateID).Order("changed_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}

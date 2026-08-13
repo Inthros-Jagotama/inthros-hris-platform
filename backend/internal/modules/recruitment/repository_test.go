@@ -917,3 +917,55 @@ func TestRepository_UpdateAndDeleteCandidateDocument(t *testing.T) {
 		t.Error("expected error finding deleted document, got nil")
 	}
 }
+
+// =========================================================================
+// Candidate Consents (G-6) — append-only, no Update/Delete
+// =========================================================================
+
+func TestRepository_CreateAndListCandidateConsents(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "Consent", LastName: "Test", Email: "consenttest@test.com"}
+	repo.CreateCandidate(ctx, cand)
+
+	consent := &CandidateConsent{CandidateID: cand.ID, Action: "GRANTED", ChangedAt: 1000}
+	if err := repo.CreateCandidateConsent(ctx, consent); err != nil {
+		t.Fatalf("CreateCandidateConsent failed: %v", err)
+	}
+
+	list, err := repo.ListCandidateConsents(ctx, cand.ID)
+	if err != nil {
+		t.Fatalf("ListCandidateConsents failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 consent entry, got %d", len(list))
+	}
+	if list[0].Action != "GRANTED" {
+		t.Errorf("expected action 'GRANTED', got %s", list[0].Action)
+	}
+}
+
+func TestRepository_ListCandidateConsents_OrderedByChangedAt(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "Order", LastName: "Consent", Email: "orderconsent@test.com"}
+	repo.CreateCandidate(ctx, cand)
+
+	repo.CreateCandidateConsent(ctx, &CandidateConsent{CandidateID: cand.ID, Action: "GRANTED", ChangedAt: 2000})
+	repo.CreateCandidateConsent(ctx, &CandidateConsent{CandidateID: cand.ID, Action: "REVOKED", ChangedAt: 1000})
+
+	list, err := repo.ListCandidateConsents(ctx, cand.ID)
+	if err != nil {
+		t.Fatalf("ListCandidateConsents failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(list))
+	}
+	if list[0].ChangedAt != 1000 || list[1].ChangedAt != 2000 {
+		t.Errorf("expected ascending changed_at order [1000, 2000], got [%d, %d]", list[0].ChangedAt, list[1].ChangedAt)
+	}
+}
