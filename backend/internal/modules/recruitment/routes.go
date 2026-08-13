@@ -75,6 +75,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		rec.GET("/applications/:id", handler.GetApplicationByID)
 		rec.PUT("/applications/:id/status", handler.UpdateApplicationStatus)
 		rec.GET("/applications/:id/history", handler.GetApplicationHistory)
+		// G-9 sub-project 2: candidate match score (advisory, computed on-the-fly)
+		rec.GET("/applications/:id/match-score", handler.GetCandidateMatchScore)
 		rec.DELETE("/applications/:id", handler.DeleteApplication)
 		// G-7 sub-project 1: screening (many-per-application, no auto status transition)
 		rec.POST("/applications/:id/screenings", handler.CreateApplicationScreening)

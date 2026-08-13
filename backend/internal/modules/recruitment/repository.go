@@ -1268,7 +1268,7 @@ func (r *Repository) ListRequisitionCompetencies(ctx context.Context, requisitio
 		return nil, err
 	}
 	var list []JobRequisitionCompetency
-	if err := db.WithContext(ctx).Where("requisition_id = ?", requisitionID).Order("created_at ASC").Find(&list).Error; err != nil {
+	if err := db.WithContext(ctx).Preload("Competency").Where("requisition_id = ?", requisitionID).Order("created_at ASC").Find(&list).Error; err != nil {
 		return nil, err
 	}
 	return list, nil

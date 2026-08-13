@@ -3346,3 +3346,107 @@ func TestService_ListUpdateDeleteRequisitionCompetency(t *testing.T) {
 		t.Fatalf("DeleteRequisitionCompetency failed: %v", err)
 	}
 }
+
+func TestService_GetCandidateMatchScore_WeightedAverage(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Match", LastName: "Test", Email: "matchtest@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	compGo := &competency.Competency{Name: "Go"}
+	compSQL := &competency.Competency{Name: "SQL"}
+	db.Create(compGo)
+	db.Create(compSQL)
+
+	goLevel := 4
+	sqlLevel := 3
+	svc.CreateRequisitionCompetency(ctx, req.ID, CreateRequisitionCompetencyRequest{CompetencyID: compGo.ID.String(), RequiredLevel: &goLevel, Weight: floatPtr(70)})
+	svc.CreateRequisitionCompetency(ctx, req.ID, CreateRequisitionCompetencyRequest{CompetencyID: compSQL.ID.String(), RequiredLevel: &sqlLevel, Weight: floatPtr(30)})
+
+	candGoLevel := 4
+	svc.CreateCandidateSkill(ctx, cand.ID, CreateCandidateSkillRequest{CompetencyID: compGo.ID.String(), Level: &candGoLevel})
+	// no SQL skill for candidate -> contributes 0
+
+	resp, err := svc.GetCandidateMatchScore(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetCandidateMatchScore failed: %v", err)
+	}
+	if resp.Score == nil {
+		t.Fatal("expected non-nil score")
+	}
+	// (70*1.0 + 30*0)/100*100 = 70
+	if *resp.Score < 69.9 || *resp.Score > 70.1 {
+		t.Errorf("expected score ~70, got %v", *resp.Score)
+	}
+	if len(resp.Breakdown) != 2 {
+		t.Errorf("expected 2 breakdown entries, got %d", len(resp.Breakdown))
+	}
+}
+
+func TestService_GetCandidateMatchScore_NoCompetencies(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "NoComp", LastName: "Test", Email: "nocomp@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	resp, err := svc.GetCandidateMatchScore(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetCandidateMatchScore failed: %v", err)
+	}
+	if resp.Score != nil {
+		t.Errorf("expected nil score when requisition has no competencies, got %v", *resp.Score)
+	}
+	if resp.Note == "" {
+		t.Error("expected a note explaining nil score")
+	}
+}
+
+func TestService_GetCandidateMatchScore_UnknownApplication(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := svc.GetCandidateMatchScore(ctx, uuid.New().String())
+	if err == nil {
+		t.Fatal("expected error for unknown application, got nil")
+	}
+}
+
+func TestService_GetCandidateMatchScore_ExceedingLevelCapsAt100Percent(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Over", LastName: "Test", Email: "over@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	comp := &competency.Competency{Name: "Go"}
+	db.Create(comp)
+	requiredLevel := 2
+	svc.CreateRequisitionCompetency(ctx, req.ID, CreateRequisitionCompetencyRequest{CompetencyID: comp.ID.String(), RequiredLevel: &requiredLevel, Weight: floatPtr(100)})
+	candLevel := 5
+	svc.CreateCandidateSkill(ctx, cand.ID, CreateCandidateSkillRequest{CompetencyID: comp.ID.String(), Level: &candLevel})
+
+	resp, err := svc.GetCandidateMatchScore(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetCandidateMatchScore failed: %v", err)
+	}
+	if resp.Score == nil || *resp.Score < 99.9 || *resp.Score > 100.1 {
+		t.Errorf("expected score capped at 100, got %v", resp.Score)
+	}
+}
+
+func floatPtr(f float64) *float64 { return &f }

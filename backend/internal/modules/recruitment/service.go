@@ -190,18 +190,18 @@ type ApprovalEngine interface {
 }
 
 type Service struct {
-	repo               *Repository
-	logger             *zap.Logger
-	gapProvider        WorkforceGapProvider
-	internalProvider   InternalCandidateProvider
-	successionProvider     SuccessionGapProvider
+	repo                    *Repository
+	logger                  *zap.Logger
+	gapProvider             WorkforceGapProvider
+	internalProvider        InternalCandidateProvider
+	successionProvider      SuccessionGapProvider
 	trainingHandoffProvider TrainingHandoffProvider
-	approvalEngine     ApprovalEngine
+	approvalEngine          ApprovalEngine
 	// G-4: handoff offer diterima → Employee (eksternal) / Employee Movement
 	// (internal). Recruitment TIDAK membuat employee/movement sendiri — modul
 	// terkait yang mengeksekusi via interface narrow (pola S-1..S-7).
-	employeeProvider  EmployeeProvider
-	movementProvider  MovementProvider
+	employeeProvider EmployeeProvider
+	movementProvider MovementProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -271,17 +271,17 @@ func (s *Service) CreateRequisition(ctx context.Context, req CreateRequisitionRe
 		return nil, fmt.Errorf("invalid organization_id: %w", err)
 	}
 	r := &JobRequisition{
-		OrganizationID:  orgID,
-		Title:           req.Title,
-		Department:      req.Department,
-		EmploymentType:  req.EmploymentType,
-		Location:        req.Location,
-		MinSalary:       req.MinSalary,
-		MaxSalary:       req.MaxSalary,
-		Description:     req.Description,
-		Requirements:    req.Requirements,
+		OrganizationID:   orgID,
+		Title:            req.Title,
+		Department:       req.Department,
+		EmploymentType:   req.EmploymentType,
+		Location:         req.Location,
+		MinSalary:        req.MinSalary,
+		MaxSalary:        req.MaxSalary,
+		Description:      req.Description,
+		Requirements:     req.Requirements,
 		Responsibilities: req.Responsibilities,
-		SlotsAvailable:  1,
+		SlotsAvailable:   1,
 	}
 	// G-2: priority default MEDIUM bila client tidak mengirim.
 	if req.Priority != nil {
@@ -1739,9 +1739,9 @@ func (s *Service) CreateOnboardingTaskItem(ctx context.Context, req CreateOnboar
 	}
 	t := &OnboardingTaskItem{
 		EmployeeOnboardingID: onbID,
-		Name:                req.Name,
-		Description:         req.Description,
-		IsCompleted:         false,
+		Name:                 req.Name,
+		Description:          req.Description,
+		IsCompleted:          false,
 	}
 	if req.TemplateID != nil && *req.TemplateID != "" {
 		tID, _ := uuid.Parse(*req.TemplateID)
@@ -2897,12 +2897,12 @@ func taskItemToResponse(t *OnboardingTaskItem) *OnboardingTaskItemResponse {
 	resp := &OnboardingTaskItemResponse{
 		ID:                   t.ID.String(),
 		EmployeeOnboardingID: t.EmployeeOnboardingID.String(),
-		Name:                t.Name,
-		Description:         t.Description,
-		IsCompleted:         t.IsCompleted,
-		Notes:               t.Notes,
-		CreatedAt:           t.CreatedAt,
-		UpdatedAt:           t.UpdatedAt,
+		Name:                 t.Name,
+		Description:          t.Description,
+		IsCompleted:          t.IsCompleted,
+		Notes:                t.Notes,
+		CreatedAt:            t.CreatedAt,
+		UpdatedAt:            t.UpdatedAt,
 	}
 	if t.TemplateID != nil {
 		resp.TemplateID = t.TemplateID.String()
@@ -3408,6 +3408,98 @@ func requisitionCompetencyToResponse(c *JobRequisitionCompetency) *RequisitionCo
 		resp.Weight = *c.Weight
 	}
 	return resp
+}
+
+// =========================================================================
+// Candidate Match Score (G-9 sub-project 2)
+// =========================================================================
+// Advisory-only: dihitung on-the-fly, tidak disimpan/dipersist, tidak
+// menentukan keputusan apapun secara otomatis — recruiter tetap yang
+// memutuskan. Formula: Σ(weight × min(candidate_level/required_level, 1))
+// / Σ(weight) × 100, dibatasi ke job_requisition_competencies (bukan
+// requirement/education/experience/assessment/interview — keputusan
+// brainstorming: skala berbeda-beda dan sulit dibandingkan apple-to-apple).
+
+func (s *Service) GetCandidateMatchScore(ctx context.Context, applicationID string) (*MatchScoreResponse, error) {
+	appUUID, err := uuid.Parse(applicationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid application_id: %w", err)
+	}
+	app, err := s.repo.FindApplicationByID(ctx, appUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &MatchScoreResponse{
+		ApplicationID: app.ID.String(),
+		CandidateID:   app.CandidateID.String(),
+		RequisitionID: app.RequisitionID.String(),
+		Breakdown:     []MatchScoreCompetencyBreakdown{},
+	}
+
+	reqCompetencies, err := s.repo.ListRequisitionCompetencies(ctx, app.RequisitionID)
+	if err != nil {
+		return nil, err
+	}
+	if len(reqCompetencies) == 0 {
+		resp.Note = "requisition has no competencies defined; nothing to match"
+		return resp, nil
+	}
+
+	candSkills, err := s.repo.ListCandidateSkills(ctx, app.CandidateID)
+	if err != nil {
+		return nil, err
+	}
+	skillByCompetency := make(map[uuid.UUID]int, len(candSkills))
+	for _, sk := range candSkills {
+		if sk.Level != nil {
+			skillByCompetency[sk.CompetencyID] = *sk.Level
+		}
+	}
+
+	var weightedSum, weightTotal float64
+	for _, rc := range reqCompetencies {
+		requiredLevel := 1
+		if rc.RequiredLevel != nil {
+			requiredLevel = *rc.RequiredLevel
+		}
+		weight := 1.0
+		if rc.Weight != nil {
+			weight = *rc.Weight
+		}
+		candidateLevel := skillByCompetency[rc.CompetencyID]
+
+		ratio := 0.0
+		if requiredLevel > 0 {
+			ratio = float64(candidateLevel) / float64(requiredLevel)
+		}
+		if ratio > 1 {
+			ratio = 1
+		}
+		contribution := weight * ratio
+
+		weightedSum += contribution
+		weightTotal += weight
+
+		compName := ""
+		if rc.Competency != nil {
+			compName = rc.Competency.Name
+		}
+		resp.Breakdown = append(resp.Breakdown, MatchScoreCompetencyBreakdown{
+			CompetencyID:   rc.CompetencyID.String(),
+			CompetencyName: compName,
+			RequiredLevel:  requiredLevel,
+			CandidateLevel: candidateLevel,
+			Weight:         weight,
+			Contribution:   contribution,
+		})
+	}
+
+	if weightTotal > 0 {
+		score := weightedSum / weightTotal * 100
+		resp.Score = &score
+	}
+	return resp, nil
 }
 
 // =========================================================================

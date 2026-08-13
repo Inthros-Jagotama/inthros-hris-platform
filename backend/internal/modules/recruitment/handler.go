@@ -877,6 +877,16 @@ func (h *Handler) DeleteRequisitionCompetency(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+func (h *Handler) GetCandidateMatchScore(c *gin.Context) {
+	applicationID := c.Param("id")
+	resp, err := h.svc.GetCandidateMatchScore(c.Request.Context(), applicationID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 // GetEligibleInternalCandidates menangani GET /recruitment/eligible-internal-candidates
 // (plan S-4) — membaca employee internal yang eligible untuk target position
 // dari Career Intelligence (CI menentukan eligibility; Recruitment hanya

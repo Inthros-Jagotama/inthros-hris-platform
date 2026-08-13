@@ -1386,3 +1386,50 @@ func TestHandler_CreateAndListRequisitionCompetency(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", listW.Code, listW.Body.String())
 	}
 }
+
+func TestHandler_GetCandidateMatchScore(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	handler := NewHandler(svc)
+	r := gin.New()
+	rg := r.Group("/api/v1/tenant")
+	RegisterRoutes(rg, handler)
+
+	reqW := performRequest(r, "POST", "/api/v1/tenant/recruitment/requisitions", CreateRequisitionRequest{
+		OrganizationID: createTestOrgID(), Title: "Engineer",
+	})
+	var reqResp map[string]interface{}
+	json.Unmarshal(reqW.Body.Bytes(), &reqResp)
+	rid := reqResp["data"].(map[string]interface{})["id"].(string)
+
+	candW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Match", LastName: "H", Email: "matchh@test.com",
+	})
+	var candResp map[string]interface{}
+	json.Unmarshal(candW.Body.Bytes(), &candResp)
+	candID := candResp["data"].(map[string]interface{})["id"].(string)
+
+	appW := performRequest(r, "POST", "/api/v1/tenant/recruitment/applications", CreateApplicationRequest{
+		RequisitionID: rid, CandidateID: candID,
+	})
+	var appResp map[string]interface{}
+	json.Unmarshal(appW.Body.Bytes(), &appResp)
+	appID := appResp["data"].(map[string]interface{})["id"].(string)
+
+	comp := &competency.Competency{Name: "Go"}
+	if err := db.Create(comp).Error; err != nil {
+		t.Fatalf("failed to seed competency: %v", err)
+	}
+	performRequest(r, "POST", "/api/v1/tenant/recruitment/requisitions/"+rid+"/competencies", CreateRequisitionCompetencyRequest{
+		CompetencyID: comp.ID.String(),
+	})
+
+	w := performRequest(r, "GET", "/api/v1/tenant/recruitment/applications/"+appID+"/match-score", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
