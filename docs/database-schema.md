@@ -2697,6 +2697,7 @@ erDiagram
 | `candidate_work_experiences` | 11 | candidates.id |
 | `candidate_skills` | 7 | candidates.id, competencies.id |
 | `candidate_certifications` | 10 | candidates.id |
+| `candidate_documents` | 8 | candidates.id |
 | `job_applications` | 15 | - |
 | `recruitment_stages` | 6 | - |
 | `job_application_stage_histories` | 8 | job_applications.id, recruitment_stages.id |
@@ -2796,6 +2797,16 @@ erDiagram
         DATE issue_date
         DATE expiry_date
         TEXT credential_url
+        TEXT notes
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    candidate_documents {
+        CHAR id
+        CHAR candidate_id
+        VARCHAR document_type
+        VARCHAR name
+        TEXT file_url
         TEXT notes
         TIMESTAMP created_at
         TIMESTAMP updated_at

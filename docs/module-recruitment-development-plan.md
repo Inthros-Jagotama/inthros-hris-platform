@@ -479,13 +479,15 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 **Ref:** plan asli §20, §50, §57.
 
-## G-6 🔶 CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate) — sub-project 1/3 ✅ + sub-project 2/3 ✅ (sisa: documents/consents)
+## G-6 🔶 CANDIDATE ENHANCEMENT (profil terstruktur + internal candidate) — sub-project 1/3 ✅ + sub-project 2/3 ✅ + sub-project 3a ✅ (sisa: status/source_id/consents)
 
-**Status: ✅ Selesai (2026-08-12) — PARTIAL COMPLETION, sub-project 1+2 of 3 completed.** 
+**Status: ✅ Selesai (2026-08-13) — PARTIAL COMPLETION, sub-project 1+2+3a of 3 completed.** 
 
 **Sub-project 1 (2026-08-12):** Kolom `candidate_number` + tabel `candidate_educations` + tabel `candidate_work_experiences` ✅ (migration 098).
 
 **Sub-project 2 (2026-08-12):** Tabel `candidate_skills` + tabel `candidate_certifications` ✅ (migration 099); sisa scope (status, source_id, documents, consents) deferred ke sub-project 3.
+
+**Sub-project 3a (2026-08-13):** Tabel `candidate_documents` ✅ (migration 100); sisa scope (status, source_id, consents) masih deferred.
 
 **Yang diimplementasikan (sub-project 1):**
 - **Migration `098_recruitment_candidate_profile_basics`** (pg + mysql, up/down idempotent): 
@@ -508,13 +510,20 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 - **DTO:** `CreateCandidateSkillRequest`, `UpdateCandidateSkillRequest`, `CandidateSkillResponse` + `CreateCandidateCertificationRequest`, `UpdateCandidateCertificationRequest`, `CandidateCertificationResponse`.
 - **Test:** +10 test (repository +4: skills + certifications CRUD; service +4: create-skill + unknown-candidate guard + unknown-competency guard + create-certification; handler +2: skill + certification create). Total recruitment: **171** (handler 38 + repository 38 + service 95).
 
+**Yang diimplementasikan (sub-project 3a):**
+- **Migration `100_candidate_documents`** (pg + mysql, up/down idempotent): tabel baru `candidate_documents` — `id, candidate_id (FK → candidates, ON DELETE CASCADE), document_type VARCHAR(20) NN DEFAULT 'OTHER', name VARCHAR(255) NN, file_url TEXT NN, notes TEXT NULL, created_at, updated_at`; index `idx_cand_doc_candidate`. Referensi saja, bukan binary — file sesungguhnya diupload lewat endpoint generik `POST /api/v1/tenant/uploads` (`backend/internal/pkg/upload`) yang mengembalikan URL; tabel ini hanya menyimpan URL tersebut.
+- **Model:** `CandidateDocument` struct (`internal/modules/recruitment/model.go`); `document_type` (`RESUME/COVER_LETTER/CERTIFICATE/PORTFOLIO/IDENTITY/OTHER`) di-enforce via Gin binding `oneof=...` di layer request, bukan constraint DB — pola sama dengan `CandidateType`/`OfferStatus` di modul ini.
+- **Service:** CRUD methods `CreateCandidateDocument`, `ListCandidateDocuments`, `UpdateCandidateDocument`, `DeleteCandidateDocument`.
+- **Handler/Routes:** 4 endpoint CRUD — `POST/GET /recruitment/candidates/:id/documents`, `PUT/DELETE /recruitment/documents/:id` (identik pola G-6 sub-1/sub-2; path param `:id`).
+- **DTO:** `CreateCandidateDocumentRequest`, `UpdateCandidateDocumentRequest`, `CandidateDocumentResponse`.
+- **Test:** +9 test. Total recruitment: **180** (handler 41 + repository 41 + service 98).
+
 **Rencana (sisa G-6 sub-project 3 — deferred):**
 - `candidates.status` (availability status ACTIVE/BLACKLISTED/dst.) — **skipped**: tidak jelas kebutuhan bisnis, potensi redundan dengan application-level status.
 - `candidates.source_id` + master source — **deferred**: `source` tetap teks bebas; membangun source master adalah effort terpisah dan belum diputuskan prioritasnya.
-- `candidate_documents` — **deferred**: concerns compliance/file-storage, pertimbangan keamanan sendiri (plan §17), ditangani sub-project terpisah.
 - `candidate_consents` — **deferred**: compliance + GDPR concerns, sub-project terpisah.
 
-**Ref:** design spec sub-project 1 `docs/superpowers/specs/2026-08-12-candidate-profile-basics-design.md`; design spec sub-project 2 `docs/superpowers/specs/2026-08-12-candidate-skills-certifications-design.md`; migration 099 (skills/certifications); plan asli §13-§19.
+**Ref:** design spec sub-project 1 `docs/superpowers/specs/2026-08-12-candidate-profile-basics-design.md`; design spec sub-project 2 `docs/superpowers/specs/2026-08-12-candidate-skills-certifications-design.md`; design spec sub-project 3a `docs/superpowers/specs/2026-08-12-candidate-documents-design.md`; migration 099 (skills/certifications), migration 100 (documents); plan asli §13-§19.
 
 ## G-7 🟡 SCREENING & ASSESSMENT
 
@@ -594,7 +603,7 @@ Catatan: history entry nullable `from_stage_id` saat aplikasi baru (initial NEW)
 
 # 8. API Plan
 
-## 8.1 Existing (50 endpoint — sudah ada)
+## 8.1 Existing (54 endpoint — sudah ada)
 
 ```http
 ## Requisitions
@@ -634,6 +643,12 @@ POST   /api/v1/tenant/recruitment/candidates/{id}/certifications
 GET    /api/v1/tenant/recruitment/candidates/{id}/certifications
 PUT    /api/v1/tenant/recruitment/certifications/{id}
 DELETE /api/v1/tenant/recruitment/certifications/{id}
+
+## Candidate Documents (G-6 sub-project 3a)
+POST   /api/v1/tenant/recruitment/candidates/{id}/documents
+GET    /api/v1/tenant/recruitment/candidates/{id}/documents
+PUT    /api/v1/tenant/recruitment/documents/{id}
+DELETE /api/v1/tenant/recruitment/documents/{id}
 
 ## Applications
 GET    /api/v1/tenant/recruitment/applications
