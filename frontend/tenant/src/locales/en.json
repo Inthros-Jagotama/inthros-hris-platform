@@ -971,7 +971,8 @@
     "candidates": "Candidates",
     "applications": "Applications",
     "interviews": "Interviews",
-    "onboarding": "Onboarding"
+    "onboarding": "Onboarding",
+    "assessments": "Assessments"
   },
   "training": {
     "title": "Training",
@@ -1930,6 +1931,10 @@
     "created": "Application created successfully",
     "change_status": "Change Status",
     "status_updated": "Status updated",
+    "confirm_status_title": "Confirm Status Change",
+    "confirm_status_message": "Are you sure you want to change this application's status?",
+    "status_notes": "Notes",
+    "status_rejection_reason": "Rejection Reason",
     "back_to_applications": "Back to Applications",
     "status_new": "New",
     "status_screened": "Screened",
@@ -3018,5 +3023,36 @@
     "not_calculated_yet": "Scoring has not been calculated yet. Click \"Calculate Scoring\" to compute it.",
     "raw_score": "Score",
     "weighted_score": "Weighted"
+  },
+  "assessments": {
+    "description": "Manage batch assessment sessions for candidate selection.",
+    "new_assessment": "New Assessment",
+    "edit_assessment": "Edit Assessment",
+    "empty": "No assessments yet. Create an assessment to select candidates.",
+    "name": "Name",
+    "name_placeholder": "e.g. Psychology Test Batch 1",
+    "type": "Type",
+    "type_technical": "Technical",
+    "type_psychological": "Psychological",
+    "type_cognitive": "Cognitive",
+    "type_personality": "Personality",
+    "type_case_study": "Case Study",
+    "type_coding": "Coding",
+    "type_language": "Language",
+    "type_other": "Other",
+    "requisition": "Requisition",
+    "requisition_placeholder": "Select requisition (optional)",
+  "scheduled_at": "Schedule",
+  "scheduled_date": "Date",
+  "scheduled_time": "Time",
+  "location": "Location",
+    "meeting_link": "Meeting Link",
+    "notes": "Notes",
+    "participants": "Participants",
+    "created": "Assessment created successfully",
+    "updated": "Assessment updated successfully",
+    "deleted": "Assessment deleted successfully",
+    "confirm_delete_title": "Delete Assessment",
+    "confirm_delete_message": "The assessment and all its participants will be deleted. Continue?"
   }
 }

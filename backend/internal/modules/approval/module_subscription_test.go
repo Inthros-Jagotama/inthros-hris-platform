@@ -67,6 +67,56 @@ func TestService_CreateFlow_ModuleSubscribed_Allowed(t *testing.T) {
 	}
 }
 
+func TestService_CreateFlow_RecruitmentOffer_AllowedViaRecruitmentSubscription(t *testing.T) {
+	// G-3: flow module recruitment_offer dicek terhadap subscription
+	// "recruitment" (alias) — sama seperti performance_kpi_target.
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("recruitment"))
+
+	resp, err := svc.CreateFlow(ctxAsCompany("company-1"), CreateFlowRequest{
+		Module: "recruitment_offer",
+		Name:   "Persetujuan Offer",
+	})
+	if err != nil {
+		t.Fatalf("expected CreateFlow to succeed for recruitment_offer when 'recruitment' is subscribed, got: %v", err)
+	}
+	if resp.Module != "recruitment_offer" {
+		t.Errorf("expected module 'recruitment_offer', got '%s'", resp.Module)
+	}
+}
+
+func TestService_CreateFlow_TrainingRequest_AllowedViaTrainingSubscription(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("training"))
+
+	resp, err := svc.CreateFlow(ctxAsCompany("company-1"), CreateFlowRequest{
+		Module: "training_request",
+		Name:   "Persetujuan Training",
+	})
+	if err != nil {
+		t.Fatalf("expected CreateFlow to succeed for training_request when 'training' is subscribed, got: %v", err)
+	}
+	if resp.Module != "training_request" {
+		t.Errorf("expected module 'training_request', got '%s'", resp.Module)
+	}
+}
+
+func TestService_CreateFlow_RecruitmentOffer_RejectedWithoutRecruitmentSubscription(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("leave"))
+
+	_, err := svc.CreateFlow(ctxAsCompany("company-1"), CreateFlowRequest{
+		Module: "recruitment_offer",
+		Name:   "Persetujuan Offer",
+	})
+	if err == nil {
+		t.Fatal("expected CreateFlow to reject recruitment_offer when 'recruitment' is not subscribed")
+	}
+}
+
 func TestService_UpdateFlow_ReactivateUnsubscribedModule_Rejected(t *testing.T) {
 	svc, repo, cleanup := newTestService()
 	defer cleanup()

@@ -154,11 +154,11 @@
 
     <!-- Dialog: buat/edit offer -->
     <Dialog v-model:visible="dialogVisible" :header="dialogHeader" :modal="true" class="!w-[min(95vw,640px)]">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 gap-3">
         <!-- Create: pilih aplikasi pipeline. Edit: aplikasi tidak bisa diganti —
              tampilkan read-only (SelectLabel tidak meneruskan prop disabled,
              dan mengganti application_id saat edit tidak berefek di backend) -->
-        <FormRow v-if="!isEdit" :label="t('offers.application')" :required="true" class="md:col-span-2">
+        <FormRow v-if="!isEdit" :label="t('offers.application')" :required="true">
           <SelectLabel
             v-model="form.application_id"
             :options="applicationOptions"
@@ -169,7 +169,7 @@
             showClear
           />
         </FormRow>
-        <FormRow v-else :label="t('offers.application')" class="md:col-span-2">
+        <FormRow v-else :label="t('offers.application')">
           <div class="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800/60 rounded-lg px-3 py-2">
             <i class="pi pi-user text-gray-400"></i>
             <span class="font-medium truncate">{{ candidateName(form.application_id) }}</span>
@@ -191,7 +191,7 @@
         <FormRow :label="t('offers.expiry_date')">
           <DateInput v-model="form.expiry_date" class="!w-full" />
         </FormRow>
-        <FormRow :label="t('offers.benefits')" class="md:col-span-2">
+        <FormRow :label="t('offers.benefits')">
           <Textarea v-model="form.benefits" :rows="3" :placeholder="t('offers.benefits_placeholder')" class="!w-full" />
         </FormRow>
       </div>

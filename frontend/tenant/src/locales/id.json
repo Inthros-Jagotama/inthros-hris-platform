@@ -971,7 +971,8 @@
     "candidates": "Kandidat",
     "applications": "Lamaran",
     "interviews": "Wawancara",
-    "onboarding": "Onboarding"
+    "onboarding": "Onboarding",
+    "assessments": "Assessment"
   },
   "training": {
     "title": "Pelatihan",
@@ -1930,6 +1931,10 @@
     "created": "Aplikasi berhasil dibuat",
     "change_status": "Ubah Status",
     "status_updated": "Status diperbarui",
+    "confirm_status_title": "Konfirmasi Ubah Status",
+    "confirm_status_message": "Anda yakin ingin mengubah status aplikasi ini?",
+    "status_notes": "Catatan",
+    "status_rejection_reason": "Alasan Penolakan",
     "back_to_applications": "Kembali ke Aplikasi",
     "status_new": "Baru",
     "status_screened": "Discreening",
@@ -3018,5 +3023,36 @@
     "not_calculated_yet": "Skor belum dihitung. Klik \"Hitung Skor\" untuk menghitungnya.",
     "raw_score": "Skor",
     "weighted_score": "Berbobot"
+  },
+  "assessments": {
+    "description": "Kelola sesi assessment (batch) untuk seleksi kandidat.",
+    "new_assessment": "Assessment Baru",
+    "edit_assessment": "Ubah Assessment",
+    "empty": "Belum ada assessment. Buat assessment baru untuk menyeleksi kandidat.",
+    "name": "Nama",
+    "name_placeholder": "mis. Tes Psikologi Batch 1",
+    "type": "Jenis",
+    "type_technical": "Teknis",
+    "type_psychological": "Psikologi",
+    "type_cognitive": "Kognitif",
+    "type_personality": "Kepribadian",
+    "type_case_study": "Studi Kasus",
+    "type_coding": "Coding",
+    "type_language": "Bahasa",
+    "type_other": "Lainnya",
+    "requisition": "Lowongan",
+    "requisition_placeholder": "Pilih lowongan (opsional)",
+  "scheduled_at": "Jadwal",
+  "scheduled_date": "Tanggal",
+  "scheduled_time": "Jam",
+  "location": "Lokasi",
+    "meeting_link": "Link Meeting",
+    "notes": "Catatan",
+    "participants": "Peserta",
+    "created": "Assessment berhasil dibuat",
+    "updated": "Assessment berhasil diperbarui",
+    "deleted": "Assessment berhasil dihapus",
+    "confirm_delete_title": "Hapus Assessment",
+    "confirm_delete_message": "Assessment beserta seluruh pesertanya akan dihapus. Lanjutkan?"
   }
 }

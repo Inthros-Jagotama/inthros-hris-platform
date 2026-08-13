@@ -175,15 +175,15 @@
 
     <!-- Add interview dialog -->
     <Dialog v-model:visible="interviewDialogVisible" :header="t('applications.add_interview')" :modal="true" class="!w-[min(95vw,520px)]">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <FormRow :label="t('applications.interviewer')" :required="true" class="md:col-span-2">
+      <div class="grid grid-cols-1 gap-3">
+        <FormRow :label="t('applications.interviewer')" :required="true">
           <SelectLabel v-model="interviewForm.interviewer_id" :options="employeeOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" class="!w-full" showClear />
         </FormRow>
         <FormRow :label="t('applications.stage')"><TextInput v-model="interviewForm.stage" class="!w-full" /></FormRow>
         <FormRow :label="t('applications.scheduled_date')" :required="true"><DateInput v-model="interviewForm.scheduled_date" class="!w-full" /></FormRow>
         <FormRow :label="t('applications.duration_minutes')"><InputNumber v-model="interviewForm.duration_minutes" :min="15" class="!w-full" /></FormRow>
         <FormRow :label="t('applications.location')"><TextInput v-model="interviewForm.location" class="!w-full" /></FormRow>
-        <FormRow :label="t('applications.meeting_link')" class="md:col-span-2"><TextInput v-model="interviewForm.meeting_link" class="!w-full" /></FormRow>
+        <FormRow :label="t('applications.meeting_link')"><TextInput v-model="interviewForm.meeting_link" class="!w-full" /></FormRow>
       </div>
       <template #footer>
         <div class="flex items-center justify-end gap-2">
@@ -194,7 +194,7 @@
     </Dialog>
 
     <!-- Manage interview dialog: interviewers + scorecard + complete -->
-    <Dialog v-model:visible="manageDialogVisible" :header="t('applications.manage_interview')" :modal="true" class="!w-[min(95vw,700px)]">
+    <Dialog v-model:visible="manageDialogVisible" :header="t('applications.manage_interview')" :modal="true" class="!w-[min(95vw,960px)]">
       <div v-if="manageInterview" class="space-y-5">
         <div class="flex items-center justify-between">
           <div>
@@ -272,6 +272,30 @@
       :loading="deleting"
       @confirm="doDeleteScreening()"
     />
+
+    <!-- Konfirmasi ubah status aplikasi -->
+    <Dialog v-model:visible="statusDialogVisible" :header="t('applications.confirm_status_title')" :modal="true" class="!w-[min(95vw,460px)]">
+      <div class="space-y-3">
+        <div class="flex items-center gap-2 text-sm flex-wrap">
+          <Tag :value="t('applications.status_' + (application?.status || 'new').toLowerCase())" :severity="statusSeverity(application?.status)" class="!text-xs !px-1.5 !py-0.5" />
+          <i class="pi pi-arrow-right text-xs text-gray-400"></i>
+          <Tag v-if="pendingStatus" :value="t('applications.status_' + pendingStatus.toLowerCase())" :severity="statusSeverity(pendingStatus)" class="!text-xs !px-1.5 !py-0.5" />
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-300">{{ t('applications.confirm_status_message') }}</p>
+        <FormRow v-if="pendingStatus === 'REJECTED'" :label="t('applications.status_rejection_reason')">
+          <Textarea v-model="statusRejectionReason" :rows="2" class="!w-full" />
+        </FormRow>
+        <FormRow :label="t('applications.status_notes')">
+          <Textarea v-model="statusNotes" :rows="2" class="!w-full" />
+        </FormRow>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="cancelStatusChange" />
+          <Button :label="t('common.confirm')" icon="pi pi-check" size="small" :loading="statusSaving" @click="confirmStatusChange" />
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -305,6 +329,13 @@ const loading = ref(true)
 const application = ref(null)
 const activeTab = ref('history')
 const statusChange = ref(null)
+
+// ── Konfirmasi ubah status ──
+const statusDialogVisible = ref(false)
+const pendingStatus = ref(null)
+const statusNotes = ref('')
+const statusRejectionReason = ref('')
+const statusSaving = ref(false)
 
 const candidates = ref([])
 const requisitions = ref([])
@@ -389,14 +420,42 @@ function cleanPayload(payload) {
 
 async function onStatusChange(newStatus) {
   if (!newStatus || newStatus === application.value.status) return
+  // Tampilkan dialog konfirmasi dulu sebelum menyimpan.
+  pendingStatus.value = newStatus
+  statusNotes.value = ''
+  statusRejectionReason.value = ''
+  statusDialogVisible.value = true
+}
+
+function cancelStatusChange() {
+  statusDialogVisible.value = false
+  pendingStatus.value = null
+  statusChange.value = null
+}
+
+async function confirmStatusChange() {
+  if (!pendingStatus.value) return
+  statusSaving.value = true
   try {
-    await api.put(`/api/v1/tenant/recruitment/applications/${applicationId}/status`, { status: newStatus })
+    const payload = { status: pendingStatus.value }
+    if (pendingStatus.value === 'REJECTED' && statusRejectionReason.value) {
+      payload.rejection_reason = statusRejectionReason.value
+    }
+    if (statusNotes.value) {
+      payload.notes = statusNotes.value
+    }
+    await api.put(`/api/v1/tenant/recruitment/applications/${applicationId}/status`, payload)
+    statusDialogVisible.value = false
+    pendingStatus.value = null
+    statusChange.value = null
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('applications.status_updated'), life: 3000 })
     loadApplication()
     loadHistory()
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_save')), life: 5000 })
     statusChange.value = null
+  } finally {
+    statusSaving.value = false
   }
 }
 

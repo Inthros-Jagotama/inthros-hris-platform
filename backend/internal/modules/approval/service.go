@@ -251,11 +251,16 @@ func (s *Service) ListAvailableModules(ctx context.Context) ([]string, error) {
 // — so they can use different flows/approvers, but both belong to the single
 // "performance" subscription).
 var subscriptionModuleAliases = map[string]string{
-	"performance_kpi_target":      "performance",
-	"performance_kpi_realization": "performance",
-	"okr_key_result":              "performance",
-	"okr_assessment":              "performance",
+	"performance_kpi_target":        "performance",
+	"performance_kpi_realization":   "performance",
+	"okr_key_result":                "performance",
+	"okr_assessment":                "performance",
 	"employeemovement_cancellation": "employeemovement",
+	// Checkpoint flow module ≠ module subscription: offer (G-3) di-routing
+	// lewat Central Approval sebagai instance ber-module recruitment_offer,
+	// tapi tenant subscribe "recruitment". Sama dengan training_request.
+	"recruitment_offer": "recruitment",
+	"training_request":  "training",
 }
 
 func (s *Service) ensureModuleSubscribed(ctx context.Context, module string) error {

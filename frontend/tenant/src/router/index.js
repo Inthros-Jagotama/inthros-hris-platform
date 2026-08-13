@@ -400,6 +400,13 @@ const routes = [
         component: () => import('@/views/modules/recruitment/Offers.vue'),
         meta: { title: 'Job Offers', titleKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
       },
+      // Assessments — G-7 sub-project 2 (batch session + peserta)
+      {
+        path: 'recruitment/assessments',
+        name: 'Assessments',
+        component: () => import('@/views/modules/recruitment/Assessments.vue'),
+        meta: { title: 'Assessments', titleKey: 'recruitment.assessments', descKey: 'assessments.description', icon: 'pi pi-clipboard', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
+      },
       // Onboarding — G-4: employee hasil offer (recruited_from_application_id) + status (S-7 handoff)
       {
         path: 'recruitment/onboarding',
