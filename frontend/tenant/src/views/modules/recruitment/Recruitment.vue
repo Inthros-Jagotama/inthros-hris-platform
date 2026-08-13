@@ -1,5 +1,19 @@
 <template>
   <div class="space-y-4">
+    <!-- G-11/G-12 sub-2: summary cards — fail-silent kalau endpoint analytics error -->
+    <div v-if="statsLoading" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div v-for="i in 4" :key="i" class="h-20 rounded-lg bg-gray-100 dark:bg-gray-700/50 animate-pulse"></div>
+    </div>
+    <div v-else-if="stats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div v-for="card in statCards" :key="card.labelKey" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t(card.labelKey) }}</span>
+          <i :class="card.icon" class="text-sm" :style="{ color: card.color }"></i>
+        </div>
+        <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ card.value }}</p>
+      </div>
+    </div>
+
     <!-- Menu cards (pola sama dengan halaman Workforce Intelligence / Career Intelligence) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <button
@@ -46,9 +60,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
+import api from '@/services/api'
 
 import Tag from 'primevue/tag'
 
@@ -75,4 +90,41 @@ const comingSoonCards = computed(() => [
   { labelKey: 'recruitment.applications', icon: 'pi pi-send', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
   { labelKey: 'recruitment.interviews', icon: 'pi pi-comments', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' }
 ])
+
+// G-11: recruitment analytics summary — fail-silent (kartu tidak tampil kalau error)
+const statsLoading = ref(true)
+const stats = ref(null)
+
+const statCards = computed(() => {
+  if (!stats.value) return []
+  const cards = [
+    { labelKey: 'recruitment_hub.open_requisitions', icon: 'pi pi-briefcase', color: '#0284c7', value: stats.value.open_requisitions ?? 0 },
+    { labelKey: 'recruitment_hub.candidates', icon: 'pi pi-users', color: '#059669', value: stats.value.candidates ?? 0 },
+    { labelKey: 'recruitment_hub.applications', icon: 'pi pi-send', color: '#d97706', value: stats.value.applications ?? 0 },
+    { labelKey: 'recruitment_hub.interviews', icon: 'pi pi-comments', color: '#4f46e5', value: stats.value.interviews ?? 0 },
+    { labelKey: 'recruitment_hub.offers', icon: 'pi pi-file-edit', color: '#4338ca', value: stats.value.offers ?? 0 },
+    { labelKey: 'recruitment_hub.hires', icon: 'pi pi-verified', color: '#16a34a', value: stats.value.hires ?? 0 }
+  ]
+  if (stats.value.time_to_hire_days !== null && stats.value.time_to_hire_days !== undefined) {
+    cards.push({ labelKey: 'recruitment_hub.time_to_hire', icon: 'pi pi-clock', color: '#db2777', value: `${Math.round(stats.value.time_to_hire_days)}d` })
+  }
+  return cards
+})
+
+async function loadStats() {
+  statsLoading.value = true
+  try {
+    const res = await api.get('/api/v1/tenant/recruitment/analytics/summary')
+    stats.value = res.data?.data || null
+  } catch {
+    // fail-silent — hub tetap tampil tanpa summary cards
+    stats.value = null
+  } finally {
+    statsLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadStats()
+})
 </script>

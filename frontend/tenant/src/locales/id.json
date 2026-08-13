@@ -1900,6 +1900,15 @@
     "submit_confirm_message": "Kirim \"{{title}}\" melalui alur persetujuan? Requisisi akan terkunci sampai disetujui atau ditolak.",
     "submitted": "Requisisi diajukan untuk persetujuan"
   },
+  "recruitment_hub": {
+    "open_requisitions": "Requisisi Terbuka",
+    "candidates": "Kandidat",
+    "applications": "Aplikasi",
+    "interviews": "Wawancara",
+    "offers": "Penawaran",
+    "hires": "Diterima",
+    "time_to_hire": "Waktu Rekrut"
+  },
   "candidates": {
     "description": "Kelola profil kandidat — pendidikan, pengalaman kerja, skill, sertifikasi, dokumen, dan consent (G-6).",
     "search": "Cari nama atau email",

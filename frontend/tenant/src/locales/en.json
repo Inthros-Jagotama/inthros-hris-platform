@@ -1900,6 +1900,15 @@
     "submit_confirm_message": "Send \"{{title}}\" through the approval workflow? It will be locked until approved or rejected.",
     "submitted": "Requisition submitted for approval"
   },
+  "recruitment_hub": {
+    "open_requisitions": "Open Requisitions",
+    "candidates": "Candidates",
+    "applications": "Applications",
+    "interviews": "Interviews",
+    "offers": "Offers",
+    "hires": "Hires",
+    "time_to_hire": "Time to Hire"
+  },
   "candidates": {
     "description": "Manage candidate profiles — education, work experience, skills, certifications, documents, and consents (G-6).",
     "search": "Search by name or email",
