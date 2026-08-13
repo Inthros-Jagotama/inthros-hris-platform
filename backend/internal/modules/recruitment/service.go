@@ -2679,6 +2679,98 @@ func candidateCertificationToResponse(c *CandidateCertification) *CandidateCerti
 	return resp
 }
 
+// =========================================================================
+// Candidate Documents (G-6)
+// =========================================================================
+
+func (s *Service) CreateCandidateDocument(ctx context.Context, candidateID string, req CreateCandidateDocumentRequest) (*CandidateDocumentResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	if _, err := s.repo.FindCandidateByID(ctx, candUUID); err != nil {
+		return nil, fmt.Errorf("candidate not found: %w", err)
+	}
+
+	docType := req.DocumentType
+	if docType == "" {
+		docType = "OTHER"
+	}
+	d := &CandidateDocument{
+		CandidateID:  candUUID,
+		DocumentType: docType,
+		Name:         req.Name,
+		FileURL:      req.FileURL,
+		Notes:        req.Notes,
+	}
+	if err := s.repo.CreateCandidateDocument(ctx, d); err != nil {
+		return nil, err
+	}
+	return candidateDocumentToResponse(d), nil
+}
+
+func (s *Service) ListCandidateDocuments(ctx context.Context, candidateID string) ([]CandidateDocumentResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	list, err := s.repo.ListCandidateDocuments(ctx, candUUID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]CandidateDocumentResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *candidateDocumentToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) UpdateCandidateDocument(ctx context.Context, id string, req UpdateCandidateDocumentRequest) (*CandidateDocumentResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	d, err := s.repo.FindCandidateDocumentByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.DocumentType != nil {
+		d.DocumentType = *req.DocumentType
+	}
+	if req.Name != nil {
+		d.Name = *req.Name
+	}
+	if req.FileURL != nil {
+		d.FileURL = *req.FileURL
+	}
+	if req.Notes != nil {
+		d.Notes = *req.Notes
+	}
+	if err := s.repo.UpdateCandidateDocument(ctx, d); err != nil {
+		return nil, err
+	}
+	return candidateDocumentToResponse(d), nil
+}
+
+func (s *Service) DeleteCandidateDocument(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteCandidateDocument(ctx, uid)
+}
+
+func candidateDocumentToResponse(d *CandidateDocument) *CandidateDocumentResponse {
+	return &CandidateDocumentResponse{
+		ID:           d.ID.String(),
+		CandidateID:  d.CandidateID.String(),
+		DocumentType: d.DocumentType,
+		Name:         d.Name,
+		FileURL:      d.FileURL,
+		Notes:        d.Notes,
+	}
+}
+
 func applicationToResponse(a *JobApplication) *ApplicationResponse {
 	return &ApplicationResponse{
 		ID:              a.ID.String(),

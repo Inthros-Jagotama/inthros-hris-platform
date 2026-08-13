@@ -340,6 +340,33 @@ type CandidateCertificationResponse struct {
 }
 
 // =========================================================================
+// Candidate Document DTOs (G-6)
+// =========================================================================
+
+type CreateCandidateDocumentRequest struct {
+	DocumentType string `json:"document_type" binding:"omitempty,oneof=RESUME COVER_LETTER CERTIFICATE PORTFOLIO IDENTITY OTHER"`
+	Name         string `json:"name" binding:"required,max=255"`
+	FileURL      string `json:"file_url" binding:"required"`
+	Notes        string `json:"notes"`
+}
+
+type UpdateCandidateDocumentRequest struct {
+	DocumentType *string `json:"document_type" binding:"omitempty,oneof=RESUME COVER_LETTER CERTIFICATE PORTFOLIO IDENTITY OTHER"`
+	Name         *string `json:"name" binding:"omitempty,max=255"`
+	FileURL      *string `json:"file_url" binding:"omitempty"`
+	Notes        *string `json:"notes"`
+}
+
+type CandidateDocumentResponse struct {
+	ID           string `json:"id"`
+	CandidateID  string `json:"candidate_id"`
+	DocumentType string `json:"document_type"`
+	Name         string `json:"name"`
+	FileURL      string `json:"file_url"`
+	Notes        string `json:"notes,omitempty"`
+}
+
+// =========================================================================
 // Job Application DTOs
 // =========================================================================
 

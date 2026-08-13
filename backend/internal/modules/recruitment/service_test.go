@@ -2588,3 +2588,55 @@ func TestService_CreateCandidateCertification(t *testing.T) {
 		t.Errorf("expected name 'AWS SAA', got %s", resp.Name)
 	}
 }
+
+func TestService_CreateCandidateDocument(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Doc", LastName: "Svc", Email: "docsvc@test.com"})
+
+	resp, err := svc.CreateCandidateDocument(ctx, cand.ID, CreateCandidateDocumentRequest{
+		DocumentType: "RESUME", Name: "resume.pdf", FileURL: "/uploads/attachments/x.pdf",
+	})
+	if err != nil {
+		t.Fatalf("CreateCandidateDocument failed: %v", err)
+	}
+	if resp.Name != "resume.pdf" {
+		t.Errorf("expected name 'resume.pdf', got %s", resp.Name)
+	}
+	if resp.DocumentType != "RESUME" {
+		t.Errorf("expected document_type 'RESUME', got %s", resp.DocumentType)
+	}
+}
+
+func TestService_CreateCandidateDocument_UnknownCandidate(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := svc.CreateCandidateDocument(ctx, uuid.New().String(), CreateCandidateDocumentRequest{
+		Name: "x.pdf", FileURL: "/u/x.pdf",
+	})
+	if err == nil {
+		t.Fatal("expected error for unknown candidate, got nil")
+	}
+}
+
+func TestService_ListCandidateDocuments(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "List", LastName: "Doc", Email: "listdocsvc@test.com"})
+	svc.CreateCandidateDocument(ctx, cand.ID, CreateCandidateDocumentRequest{Name: "a.pdf", FileURL: "/u/a.pdf"})
+	svc.CreateCandidateDocument(ctx, cand.ID, CreateCandidateDocumentRequest{Name: "b.pdf", FileURL: "/u/b.pdf"})
+
+	list, err := svc.ListCandidateDocuments(ctx, cand.ID)
+	if err != nil {
+		t.Fatalf("ListCandidateDocuments failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2, got %d", len(list))
+	}
+}
