@@ -789,7 +789,9 @@ type QualityOfHireRow struct {
 	ApplicationID    string
 	Source           string
 	RequisitionID    string
+	RequisitionTitle string
 	OrganizationID   string
+	OrganizationName string
 	EmployeeID       string
 	OnboardingStatus string
 	InterviewScore   float64
@@ -811,7 +813,8 @@ func (r *Repository) GetQualityOfHireHires(ctx context.Context) ([]QualityOfHire
 	var rows []QualityOfHireRow
 	query := db.WithContext(ctx).Table("job_applications a").
 		Select("a.id AS application_id, COALESCE(c.source, '') AS source, a.requisition_id AS requisition_id, "+
-			"COALESCE(r.organization_id, '') AS organization_id, "+
+			"COALESCE(r.title, '') AS requisition_title, "+
+			"COALESCE(r.organization_id, '') AS organization_id, COALESCE(o.nomenclature, '') AS organization_name, "+
 			"COALESCE(eo.employee_id, '') AS employee_id, COALESCE(eo.status, '') AS onboarding_status, "+
 			"(SELECT COALESCE(AVG(i.score), 0) FROM interviews i WHERE i.application_id = a.id AND i.score IS NOT NULL) AS interview_score, "+
 			"(SELECT COALESCE(pe.final_score, 0) FROM performance_evaluations pe WHERE pe.employee_id = eo.employee_id AND pe.status IN (?, ?) ORDER BY pe.updated_at DESC, pe.id DESC LIMIT 1) AS performance_score, "+
@@ -819,6 +822,7 @@ func (r *Repository) GetQualityOfHireHires(ctx context.Context) ([]QualityOfHire
 			"ACTUAL_APPROVED", "COMPLETED").
 		Joins("JOIN candidates c ON c.id = a.candidate_id").
 		Joins("LEFT JOIN job_requisitions r ON r.id = a.requisition_id").
+		Joins("LEFT JOIN organizations o ON o.id = r.organization_id").
 		Joins("LEFT JOIN employee_onboardings eo ON eo.application_id = a.id").
 		Where("a.status = ?", "ACCEPTED")
 	if err := query.Scan(&rows).Error; err != nil {

@@ -150,7 +150,7 @@
         >
           <Column :header="t('quality_of_hire.breakdown_key')">
             <template #body="{ data: row }">
-              <span class="font-medium text-gray-700 dark:text-gray-200">{{ row.key }}</span>
+              <span class="font-medium text-gray-700 dark:text-gray-200">{{ row.name || row.key }}</span>
             </template>
           </Column>
           <Column :header="t('quality_of_hire.breakdown_hires')" style="width: 160px">

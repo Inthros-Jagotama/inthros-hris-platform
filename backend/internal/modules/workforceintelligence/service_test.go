@@ -1273,9 +1273,17 @@ func TestService_GetQualityOfHire_CompositeAndBreakdown(t *testing.T) {
 	if s, ok := byKey["job_board"]; !ok || s.Hires != 1 || s.Score != 36.3 {
 		t.Errorf("expected job_board breakdown hires=1 score=36.3, got %+v", byKey["job_board"])
 	}
-	// ByRequisition harus 1 entri (keduanya reqA)
+	// ByRequisition harus 1 entri (keduanya reqA) + name ter-resolve dari title
 	if len(resp.ByRequisition) != 1 || resp.ByRequisition[0].Hires != 2 {
 		t.Errorf("expected 1 requisition breakdown with 2 hires, got %+v", resp.ByRequisition)
+	}
+	if resp.ByRequisition[0].Name != "Eng" {
+		t.Errorf("expected requisition breakdown name 'Eng', got %q", resp.ByRequisition[0].Name)
+	}
+	// ByOrganization: organisasi orgA tidak punya baris di organizations (test
+	// tidak men-seed tabel tsb), jadi name kosong dan key tetap id.
+	if len(resp.ByOrganization) != 1 || resp.ByOrganization[0].Key != orgA.String() {
+		t.Errorf("expected 1 organization breakdown keyed by orgA, got %+v", resp.ByOrganization)
 	}
 }
 

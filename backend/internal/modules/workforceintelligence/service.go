@@ -471,10 +471,20 @@ func (s *Service) GetQualityOfHire(ctx context.Context) (*QualityOfHireResponse,
 	bySource := map[string]*groupAcc{}
 	byReq := map[string]*groupAcc{}
 	byOrg := map[string]*groupAcc{}
+	// Label tampilan per key — diambil dari baris yang sama (source itu sendiri,
+	// requisition title, organization nomenclature).
+	reqNames := map[string]string{}
+	orgNames := map[string]string{}
 	var compositeSum float64
 	var compositeCount int
 
 	for _, row := range rows {
+		if row.RequisitionID != "" && row.RequisitionTitle != "" {
+			reqNames[row.RequisitionID] = row.RequisitionTitle
+		}
+		if row.OrganizationID != "" && row.OrganizationName != "" {
+			orgNames[row.OrganizationID] = row.OrganizationName
+		}
 		if row.InterviewScore > 0 {
 			interviewSum += row.InterviewScore
 			interviewCount++
@@ -533,9 +543,9 @@ func (s *Service) GetQualityOfHire(ctx context.Context) (*QualityOfHireResponse,
 		OnboardingCompletionRate: pctOrZero(onboardingDone, onboardingCount),
 		PerformanceScore:         avgOrZero(perfSum, perfCount),
 		RetentionRate:            pctOrZero(retainedCount, empCount),
-		BySource:                 breakdownList(bySource),
-		ByRequisition:            breakdownList(byReq),
-		ByOrganization:           breakdownList(byOrg),
+		BySource:                 breakdownList(bySource, nil),
+		ByRequisition:            breakdownList(byReq, reqNames),
+		ByOrganization:           breakdownList(byOrg, orgNames),
 	}, nil
 }
 
@@ -1273,14 +1283,22 @@ func pctOrZero(done, total int) float64 {
 // Hires mencatat hire yang punya skor komposit (≥1 komponen berdata) — hire
 // tanpa data sama sekali tidak muncul di breakdown (tapi tetap dihitung di
 // HiresAnalyzed).
-func breakdownList(acc map[string]*groupAcc) []QualityOfHireBreakdown {
+// breakdownList mengubah akumulator grup menjadi daftar QualityOfHireBreakdown
+// yang diurutkan (hires DESC, lalu key ASC). names opsional memetakan key →
+// label tampilan (untuk requisition/organization); bila kosong/nil, Name
+// dikosongkan dan frontend fallback ke Key.
+func breakdownList(acc map[string]*groupAcc, names map[string]string) []QualityOfHireBreakdown {
 	list := make([]QualityOfHireBreakdown, 0, len(acc))
 	for key, a := range acc {
 		score := 0.0
 		if a.hires > 0 {
 			score = round1(a.sum / float64(a.hires))
 		}
-		list = append(list, QualityOfHireBreakdown{Key: key, Hires: a.hires, Score: score})
+		item := QualityOfHireBreakdown{Key: key, Hires: a.hires, Score: score}
+		if names != nil {
+			item.Name = names[key]
+		}
+		list = append(list, item)
 	}
 	sort.Slice(list, func(i, j int) bool {
 		if list[i].Hires == list[j].Hires {

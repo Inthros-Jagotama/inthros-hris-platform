@@ -249,8 +249,12 @@ type QualityOfHireResponse struct {
 // organization): jumlah hire yang punya skor komposit (≥1 komponen berdata) +
 // rata-rata skor komposit grup. Hire tanpa data sama sekali tidak muncul di
 // breakdown (tetap dihitung di HiresAnalyzed).
+// Key = id (source/requisition_id/organization_id); Name = label tampilan
+// (nama source/requisition title/organization nomenclature), kosong bila
+// tidak dapat di-resolve (fallback ke Key di frontend).
 type QualityOfHireBreakdown struct {
 	Key   string  `json:"key"`
+	Name  string  `json:"name,omitempty"`
 	Hires int     `json:"hires"`
 	Score float64 `json:"score"`
 }

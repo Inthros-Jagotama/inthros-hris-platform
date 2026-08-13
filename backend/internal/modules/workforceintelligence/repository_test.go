@@ -1215,6 +1215,10 @@ func createQualityOfHireTables(t *testing.T, db *gorm.DB) {
 			title VARCHAR(255),
 			status VARCHAR(20)
 		)`,
+		`CREATE TABLE organizations (
+			id CHAR(36) PRIMARY KEY,
+			nomenclature VARCHAR(255)
+		)`,
 		`CREATE TABLE job_applications (
 			id CHAR(36) PRIMARY KEY,
 			requisition_id CHAR(36),
