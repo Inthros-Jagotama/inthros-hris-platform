@@ -110,6 +110,7 @@ func (m *recModule) Migrate(db *gorm.DB) error {
 		&CandidateSkill{},
 		&CandidateCertification{},
 		&CandidateDocument{},
+		&CandidateConsent{},
 	)
 }
 
