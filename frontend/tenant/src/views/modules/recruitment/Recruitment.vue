@@ -61,6 +61,8 @@ const { t } = useI18n()
 const menuCards = computed(() => [
   // S-1/S-5: Job Requisitions — reason_type WORKFORCE_GAP / SUCCESSION_GAP
   { labelKey: 'recruitment.requisitions', descKey: 'requisitions.description', icon: 'pi pi-briefcase', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/recruitment/requisitions' },
+  // G-6/G-12 sub-1: Candidates — profile terstruktur (education/experience/skills/cert/document/consent)
+  { labelKey: 'recruitment.candidates', descKey: 'candidates.description', icon: 'pi pi-users', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/recruitment/candidates' },
   // S-4: Internal Candidates — eligible via career path (Career Intelligence)
   { labelKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/recruitment/internal-candidates' },
   // G-3: Job Offers — offer management + approval workflow
@@ -70,7 +72,6 @@ const menuCards = computed(() => [
 ])
 
 const comingSoonCards = computed(() => [
-  { labelKey: 'recruitment.candidates', icon: 'pi pi-users', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
   { labelKey: 'recruitment.applications', icon: 'pi pi-send', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
   { labelKey: 'recruitment.interviews', icon: 'pi pi-comments', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' }
 ])

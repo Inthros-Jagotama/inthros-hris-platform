@@ -360,6 +360,19 @@ const routes = [
         component: () => import('@/views/modules/recruitment/Requisitions.vue'),
         meta: { title: 'Job Requisitions', titleKey: 'recruitment.requisitions', descKey: 'requisitions.description', icon: 'pi pi-briefcase', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
       },
+      // Candidates — G-6 profile (educations/experiences/skills/certifications/documents/consents)
+      {
+        path: 'recruitment/candidates',
+        name: 'Candidates',
+        component: () => import('@/views/modules/recruitment/Candidates.vue'),
+        meta: { title: 'Candidates', titleKey: 'recruitment.candidates', descKey: 'candidates.description', icon: 'pi pi-users', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
+      },
+      {
+        path: 'recruitment/candidates/:id',
+        name: 'CandidateDetail',
+        component: () => import('@/views/modules/recruitment/CandidateDetail.vue'),
+        meta: { title: 'Candidate Profile', titleKey: 'candidates.profile', module: 'recruitment', backRoute: '/recruitment/candidates', backLabelKey: 'recruitment.candidates' }
+      },
       // Internal Candidates — S-4 (eligible via career path dari Career Intelligence)
       {
         path: 'recruitment/internal-candidates',
