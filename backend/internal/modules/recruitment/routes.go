@@ -50,6 +50,10 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		rec.GET("/candidates/:id/certifications", handler.ListCandidateCertifications)
 		rec.PUT("/certifications/:id", handler.UpdateCandidateCertification)
 		rec.DELETE("/certifications/:id", handler.DeleteCandidateCertification)
+		rec.POST("/candidates/:id/documents", handler.CreateCandidateDocument)
+		rec.GET("/candidates/:id/documents", handler.ListCandidateDocuments)
+		rec.PUT("/documents/:id", handler.UpdateCandidateDocument)
+		rec.DELETE("/documents/:id", handler.DeleteCandidateDocument)
 
 		// S-4: internal candidate eligibility (CI → Recruitment)
 		rec.GET("/eligible-internal-candidates", handler.GetEligibleInternalCandidates)

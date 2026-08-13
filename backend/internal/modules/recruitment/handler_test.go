@@ -1042,3 +1042,60 @@ func TestHandler_CreateCandidateCertification(t *testing.T) {
 		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestHandler_CreateCandidateDocument(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Doc", LastName: "Handler", Email: "dochandler@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/documents", CreateCandidateDocumentRequest{
+		DocumentType: "RESUME", Name: "resume.pdf", FileURL: "/uploads/attachments/x.pdf",
+	})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_CreateCandidateDocument_InvalidDocumentType(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Bad", LastName: "Type", Email: "badtype@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/documents", CreateCandidateDocumentRequest{
+		DocumentType: "NOT_A_REAL_TYPE", Name: "x.pdf", FileURL: "/u/x.pdf",
+	})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid document_type, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_ListCandidateDocuments(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "List", LastName: "DocH", Email: "listdoch@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/documents", CreateCandidateDocumentRequest{Name: "a.pdf", FileURL: "/u/a.pdf"})
+
+	w := performRequest(r, "GET", "/api/v1/tenant/recruitment/candidates/"+cid+"/documents", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}

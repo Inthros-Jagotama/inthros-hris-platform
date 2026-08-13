@@ -497,6 +497,53 @@ func (h *Handler) DeleteCandidateCertification(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+func (h *Handler) CreateCandidateDocument(c *gin.Context) {
+	candidateID := c.Param("id")
+	var req CreateCandidateDocumentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateCandidateDocument(c.Request.Context(), candidateID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListCandidateDocuments(c *gin.Context) {
+	candidateID := c.Param("id")
+	resp, err := h.svc.ListCandidateDocuments(c.Request.Context(), candidateID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateCandidateDocument(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateCandidateDocumentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateCandidateDocument(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteCandidateDocument(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteCandidateDocument(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
 // GetEligibleInternalCandidates menangani GET /recruitment/eligible-internal-candidates
 // (plan S-4) — membaca employee internal yang eligible untuk target position
 // dari Career Intelligence (CI menentukan eligibility; Recruitment hanya
