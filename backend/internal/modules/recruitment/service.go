@@ -3195,6 +3195,194 @@ func (s *Service) DeleteAssessmentParticipant(ctx context.Context, id string) er
 	return s.repo.DeleteAssessmentParticipant(ctx, uid)
 }
 
+// =========================================================================
+// Interviewers + Scorecard Items (G-8)
+// =========================================================================
+
+func (s *Service) AddInterviewer(ctx context.Context, interviewID string, req AddInterviewerRequest) (*InterviewerResponse, error) {
+	intID, err := uuid.Parse(interviewID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid interview_id: %w", err)
+	}
+	if _, err := s.repo.FindInterviewByID(ctx, intID); err != nil {
+		return nil, err
+	}
+	empID, err := uuid.Parse(req.EmployeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee_id: %w", err)
+	}
+	i := &Interviewer{
+		InterviewID: intID,
+		EmployeeID:  empID,
+		Role:        req.Role,
+	}
+	if err := s.repo.CreateInterviewer(ctx, i); err != nil {
+		return nil, err
+	}
+	return interviewerToResponse(i), nil
+}
+
+func (s *Service) ListInterviewers(ctx context.Context, interviewID string) ([]InterviewerResponse, error) {
+	intID, err := uuid.Parse(interviewID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid interview_id: %w", err)
+	}
+	list, err := s.repo.ListInterviewers(ctx, intID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]InterviewerResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *interviewerToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) RemoveInterviewer(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteInterviewer(ctx, uid)
+}
+
+func (s *Service) AddScorecardItem(ctx context.Context, interviewID string, req AddScorecardItemRequest) (*ScorecardItemResponse, error) {
+	intID, err := uuid.Parse(interviewID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid interview_id: %w", err)
+	}
+	if _, err := s.repo.FindInterviewByID(ctx, intID); err != nil {
+		return nil, err
+	}
+	item := &InterviewScorecardItem{
+		InterviewID: intID,
+		Criterion:   req.Criterion,
+		Weight:      req.Weight,
+		Score:       req.Score,
+		Notes:       req.Notes,
+	}
+	if err := s.repo.CreateScorecardItem(ctx, item); err != nil {
+		return nil, err
+	}
+	return scorecardItemToResponse(item), nil
+}
+
+func (s *Service) ListScorecardItems(ctx context.Context, interviewID string) ([]ScorecardItemResponse, error) {
+	intID, err := uuid.Parse(interviewID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid interview_id: %w", err)
+	}
+	list, err := s.repo.ListScorecardItems(ctx, intID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ScorecardItemResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *scorecardItemToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) UpdateScorecardItem(ctx context.Context, id string, req UpdateScorecardItemRequest) (*ScorecardItemResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	item, err := s.repo.FindScorecardItemByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.Criterion != nil {
+		item.Criterion = *req.Criterion
+	}
+	if req.Weight != nil {
+		item.Weight = *req.Weight
+	}
+	if req.Score != nil {
+		item.Score = req.Score
+	}
+	if req.Notes != nil {
+		item.Notes = *req.Notes
+	}
+	if err := s.repo.UpdateScorecardItem(ctx, item); err != nil {
+		return nil, err
+	}
+	return scorecardItemToResponse(item), nil
+}
+
+func (s *Service) DeleteScorecardItem(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteScorecardItem(ctx, uid)
+}
+
+// CompleteInterview menutup interview (status -> COMPLETED, completed_at)
+// dan menghitung Interview.Score sebagai weighted average dari
+// interview_scorecard_items (Σ(score×weight)/Σ(weight); item tanpa score
+// dilewati). Bila tidak ada scorecard item berskor, Score tidak diubah
+// (recruiter tetap bisa mengisi manual seperti alur existing).
+func (s *Service) CompleteInterview(ctx context.Context, id string) (*InterviewResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	iv, err := s.repo.FindInterviewByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	items, err := s.repo.ListScorecardItems(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	var weightedSum, weightTotal float64
+	for _, item := range items {
+		if item.Score == nil {
+			continue
+		}
+		weightedSum += *item.Score * item.Weight
+		weightTotal += item.Weight
+	}
+	if weightTotal > 0 {
+		aggregate := weightedSum / weightTotal
+		iv.Score = &aggregate
+	}
+	iv.Status = IntStatusCompleted
+	now := time.Now().UnixNano()
+	iv.CompletedAt = &now
+	if err := s.repo.UpdateInterview(ctx, iv); err != nil {
+		return nil, err
+	}
+	return interviewToResponse(iv), nil
+}
+
+func interviewerToResponse(i *Interviewer) *InterviewerResponse {
+	return &InterviewerResponse{
+		ID:          i.ID.String(),
+		InterviewID: i.InterviewID.String(),
+		EmployeeID:  i.EmployeeID.String(),
+		Role:        i.Role,
+		CreatedAt:   i.CreatedAt,
+	}
+}
+
+func scorecardItemToResponse(s *InterviewScorecardItem) *ScorecardItemResponse {
+	resp := &ScorecardItemResponse{
+		ID:          s.ID.String(),
+		InterviewID: s.InterviewID.String(),
+		Criterion:   s.Criterion,
+		Weight:      s.Weight,
+		Notes:       s.Notes,
+		CreatedAt:   s.CreatedAt,
+		UpdatedAt:   s.UpdatedAt,
+	}
+	if s.Score != nil {
+		resp.Score = *s.Score
+	}
+	return resp
+}
+
 func assessmentToResponse(a *RecruitmentAssessment) *AssessmentResponse {
 	resp := &AssessmentResponse{
 		ID:          a.ID.String(),

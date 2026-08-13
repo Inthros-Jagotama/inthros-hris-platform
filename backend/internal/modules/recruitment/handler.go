@@ -693,6 +693,96 @@ func (h *Handler) DeleteAssessmentParticipant(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+func (h *Handler) AddInterviewer(c *gin.Context) {
+	interviewID := c.Param("id")
+	var req AddInterviewerRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.AddInterviewer(c.Request.Context(), interviewID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListInterviewers(c *gin.Context) {
+	interviewID := c.Param("id")
+	resp, err := h.svc.ListInterviewers(c.Request.Context(), interviewID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) RemoveInterviewer(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.RemoveInterviewer(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+func (h *Handler) AddScorecardItem(c *gin.Context) {
+	interviewID := c.Param("id")
+	var req AddScorecardItemRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.AddScorecardItem(c.Request.Context(), interviewID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListScorecardItems(c *gin.Context) {
+	interviewID := c.Param("id")
+	resp, err := h.svc.ListScorecardItems(c.Request.Context(), interviewID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateScorecardItem(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateScorecardItemRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateScorecardItem(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteScorecardItem(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteScorecardItem(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+func (h *Handler) CompleteInterview(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := h.svc.CompleteInterview(c.Request.Context(), id)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 // GetEligibleInternalCandidates menangani GET /recruitment/eligible-internal-candidates
 // (plan S-4) — membaca employee internal yang eligible untuk target position
 // dari Career Intelligence (CI menentukan eligibility; Recruitment hanya

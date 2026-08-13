@@ -1277,3 +1277,51 @@ func TestHandler_AddAndListAssessmentParticipants(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", listW.Code, listW.Body.String())
 	}
 }
+
+func createTestInterviewForScorecard(r *gin.Engine, email string) string {
+	appID := createTestApplicationForScreening(r, email)
+	ivW := performRequest(r, "POST", "/api/v1/tenant/recruitment/interviews", CreateInterviewRequest{
+		ApplicationID: appID, InterviewerID: createTestUUID(), Stage: "FIRST_INTERVIEW", ScheduledAt: 1760000000,
+	})
+	var ivResp map[string]interface{}
+	json.Unmarshal(ivW.Body.Bytes(), &ivResp)
+	return ivResp["data"].(map[string]interface{})["id"].(string)
+}
+
+func TestHandler_AddAndListInterviewers(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	ivID := createTestInterviewForScorecard(r, "ivh1@test.com")
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/interviews/"+ivID+"/interviewers", AddInterviewerRequest{
+		EmployeeID: createTestUUID(), Role: "HR",
+	})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+
+	listW := performRequest(r, "GET", "/api/v1/tenant/recruitment/interviews/"+ivID+"/interviewers", nil)
+	if listW.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", listW.Code, listW.Body.String())
+	}
+}
+
+func TestHandler_AddScorecardItemAndComplete(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	ivID := createTestInterviewForScorecard(r, "ivh2@test.com")
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/interviews/"+ivID+"/scorecard-items", AddScorecardItemRequest{
+		Criterion: "Technical Skill", Weight: 100,
+	})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+
+	completeW := performRequest(r, "POST", "/api/v1/tenant/recruitment/interviews/"+ivID+"/complete", nil)
+	if completeW.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", completeW.Code, completeW.Body.String())
+	}
+}

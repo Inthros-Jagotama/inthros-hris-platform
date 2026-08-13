@@ -558,6 +558,52 @@ type InterviewResponse struct {
 }
 
 // =========================================================================
+// Interviewer DTOs (G-8 — multi-interviewer)
+// =========================================================================
+
+type AddInterviewerRequest struct {
+	EmployeeID string `json:"employee_id" binding:"required"`
+	Role       string `json:"role"`
+}
+
+type InterviewerResponse struct {
+	ID          string    `json:"id"`
+	InterviewID string    `json:"interview_id"`
+	EmployeeID  string    `json:"employee_id"`
+	Role        string    `json:"role,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// =========================================================================
+// Interview Scorecard Item DTOs (G-8)
+// =========================================================================
+
+type AddScorecardItemRequest struct {
+	Criterion string   `json:"criterion" binding:"required,max=255"`
+	Weight    float64  `json:"weight"`
+	Score     *float64 `json:"score"`
+	Notes     string   `json:"notes"`
+}
+
+type UpdateScorecardItemRequest struct {
+	Criterion *string  `json:"criterion" binding:"omitempty,max=255"`
+	Weight    *float64 `json:"weight"`
+	Score     *float64 `json:"score"`
+	Notes     *string  `json:"notes"`
+}
+
+type ScorecardItemResponse struct {
+	ID          string    `json:"id"`
+	InterviewID string    `json:"interview_id"`
+	Criterion   string    `json:"criterion"`
+	Weight      float64   `json:"weight"`
+	Score       float64   `json:"score,omitempty"`
+	Notes       string    `json:"notes,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// =========================================================================
 // Onboarding Task Template DTOs
 // =========================================================================
 

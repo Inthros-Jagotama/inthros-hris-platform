@@ -3042,3 +3042,169 @@ func TestService_AddAssessmentParticipant_DoesNotTransitionApplicationStatus(t *
 		t.Errorf("expected status to remain NEW (assessment should not auto-transition), got %s", got.Status)
 	}
 }
+
+func newTestInterviewForSvcScorecard(t *testing.T, svc *Service, ctx context.Context, email string) *InterviewResponse {
+	t.Helper()
+	req, err := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	if err != nil {
+		t.Fatalf("CreateRequisition failed: %v", err)
+	}
+	cand, err := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Iv", LastName: "Svc", Email: email})
+	if err != nil {
+		t.Fatalf("CreateCandidate failed: %v", err)
+	}
+	app, err := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+	if err != nil {
+		t.Fatalf("CreateApplication failed: %v", err)
+	}
+	iv, err := svc.CreateInterview(ctx, CreateInterviewRequest{
+		ApplicationID: app.ID, InterviewerID: createTestUUID(), Stage: "FIRST_INTERVIEW", ScheduledAt: 1760000000,
+	})
+	if err != nil {
+		t.Fatalf("CreateInterview failed: %v", err)
+	}
+	return iv
+}
+
+func TestService_AddInterviewer(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	iv := newTestInterviewForSvcScorecard(t, svc, ctx, "addintv1@test.com")
+
+	resp, err := svc.AddInterviewer(ctx, iv.ID, AddInterviewerRequest{EmployeeID: createTestUUID(), Role: "HR"})
+	if err != nil {
+		t.Fatalf("AddInterviewer failed: %v", err)
+	}
+	if resp.Role != "HR" {
+		t.Errorf("expected role HR, got %s", resp.Role)
+	}
+}
+
+func TestService_AddInterviewer_UnknownInterview(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := svc.AddInterviewer(ctx, uuid.New().String(), AddInterviewerRequest{EmployeeID: createTestUUID()})
+	if err == nil {
+		t.Fatal("expected error for unknown interview, got nil")
+	}
+}
+
+func TestService_ListAndRemoveInterviewers(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	iv := newTestInterviewForSvcScorecard(t, svc, ctx, "addintv2@test.com")
+	added, err := svc.AddInterviewer(ctx, iv.ID, AddInterviewerRequest{EmployeeID: createTestUUID()})
+	if err != nil {
+		t.Fatalf("AddInterviewer failed: %v", err)
+	}
+
+	list, err := svc.ListInterviewers(ctx, iv.ID)
+	if err != nil {
+		t.Fatalf("ListInterviewers failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Errorf("expected 1, got %d", len(list))
+	}
+
+	if err := svc.RemoveInterviewer(ctx, added.ID); err != nil {
+		t.Fatalf("RemoveInterviewer failed: %v", err)
+	}
+}
+
+func TestService_AddScorecardItem(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	iv := newTestInterviewForSvcScorecard(t, svc, ctx, "score1@test.com")
+
+	resp, err := svc.AddScorecardItem(ctx, iv.ID, AddScorecardItemRequest{Criterion: "Technical Skill", Weight: 30})
+	if err != nil {
+		t.Fatalf("AddScorecardItem failed: %v", err)
+	}
+	if resp.Criterion != "Technical Skill" || resp.Weight != 30 {
+		t.Errorf("unexpected response: %+v", resp)
+	}
+}
+
+func TestService_ListUpdateDeleteScorecardItem(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	iv := newTestInterviewForSvcScorecard(t, svc, ctx, "score2@test.com")
+	created, err := svc.AddScorecardItem(ctx, iv.ID, AddScorecardItemRequest{Criterion: "Original", Weight: 10})
+	if err != nil {
+		t.Fatalf("AddScorecardItem failed: %v", err)
+	}
+
+	list, err := svc.ListScorecardItems(ctx, iv.ID)
+	if err != nil {
+		t.Fatalf("ListScorecardItems failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Errorf("expected 1, got %d", len(list))
+	}
+
+	newCriterion := "Updated"
+	updated, err := svc.UpdateScorecardItem(ctx, created.ID, UpdateScorecardItemRequest{Criterion: &newCriterion})
+	if err != nil {
+		t.Fatalf("UpdateScorecardItem failed: %v", err)
+	}
+	if updated.Criterion != "Updated" {
+		t.Errorf("expected Updated, got %s", updated.Criterion)
+	}
+
+	if err := svc.DeleteScorecardItem(ctx, created.ID); err != nil {
+		t.Fatalf("DeleteScorecardItem failed: %v", err)
+	}
+}
+
+func TestService_CompleteInterview_WeightedAverage(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	iv := newTestInterviewForSvcScorecard(t, svc, ctx, "complete1@test.com")
+	techScore := 80.0
+	commScore := 90.0
+	svc.AddScorecardItem(ctx, iv.ID, AddScorecardItemRequest{Criterion: "Technical", Weight: 70, Score: &techScore})
+	svc.AddScorecardItem(ctx, iv.ID, AddScorecardItemRequest{Criterion: "Communication", Weight: 30, Score: &commScore})
+
+	resp, err := svc.CompleteInterview(ctx, iv.ID)
+	if err != nil {
+		t.Fatalf("CompleteInterview failed: %v", err)
+	}
+	if resp.Status != "COMPLETED" {
+		t.Errorf("expected status COMPLETED, got %s", resp.Status)
+	}
+	// weighted average = (80*70 + 90*30) / 100 = 83
+	if resp.Score < 82.9 || resp.Score > 83.1 {
+		t.Errorf("expected weighted average score ~83, got %v", resp.Score)
+	}
+}
+
+func TestService_CompleteInterview_NoScorecardItemsKeepsScoreUnset(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	iv := newTestInterviewForSvcScorecard(t, svc, ctx, "complete2@test.com")
+
+	resp, err := svc.CompleteInterview(ctx, iv.ID)
+	if err != nil {
+		t.Fatalf("CompleteInterview failed: %v", err)
+	}
+	if resp.Status != "COMPLETED" {
+		t.Errorf("expected status COMPLETED, got %s", resp.Status)
+	}
+	if resp.Score != 0 {
+		t.Errorf("expected score unset (0), got %v", resp.Score)
+	}
+}

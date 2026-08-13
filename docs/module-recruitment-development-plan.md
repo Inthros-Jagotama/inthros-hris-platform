@@ -4,8 +4,9 @@
 > ✅ **Fakta aktual (audit 2026-08-12):** modul ini **bukan greenfield** — backend ATS dasar sudah diimplementasikan penuh (7 entity, 33 endpoint, 75 test) dan FE masih placeholder "Coming soon". Bagian "target" di dokumen ini (offer, stage history, screening, assessment, scorecard, approval, candidate enhancement, dst.) adalah **rencana enhancement**, bukan status.
 > 🔎 **Sumber:** struktur tabel `015_recruitment.sql` (mysql + postgres) + audit `backend/internal/modules/recruitment/` (model.go, service.go, handler.go, routes.go, module.go) + `frontend/tenant/src/views/modules/Recruitment.vue` + `frontend/tenant/src/router/index.js` + cross-reference `docs/module-notification-plan.md` (§5/§9: "Recruitment belum tersentuh" untuk integrasi approval/notifier) + `docs/module-recruitment-strategic-layer-plan.md` (rumah item strategic layer yang dipisah) + `docs/go-module-architecture-report.md` + `docs/project-completion-dashboard.md`.
 > 📊 **Progres implementasi (per 2026-08-12):** ✅ 1) Backend ATS lengkap — 7 GORM entity (`JobRequisition`, `Candidate`, `JobApplication`, `Interview`, `OnboardingTaskTemplate`, `EmployeeOnboarding`, `OnboardingTaskItem`) + enum status · ✅ 2) 33 endpoint CRUD/pipeline di 7 resource group · ✅ 3) Seeder 10 onboarding task template default · ✅ 4) 75 test (handler 28 + repository 27 + service 20) · ✅ 5) pipeline aplikasi (status + timestamp otomatis + auto `slots_filled` saat ACCEPTED) · ❌ 6) Frontend masih placeholder ("Coming soon") — hanya route/menu/locale/dashboard card · ⏳ 7) Integrasi operasional dua arah dengan modul lain (Module Approval, Notifier, Employee, Employee Movement) — **belum ada**; Employee 🔶 sebagian (onboarding menunjuk `employee_id` tanpa FK) · 🚫 8) **Scoping 2026-08-12:** Recruitment = **module operasional** — strategic layer (Workforce Intelligence, Career Intelligence, Succession, Performance, Training, Quality of Hire) **dipisah dari plan ini** — out of scope, dikelola modul masing-masing (§5.2).
-> ⏳ **Sisa TODO (per review 2026-08-13):** G-1 s.d. G-7 selesai — sisa gap: G-8 interview scorecard, G-9 candidate matching, G-10 onboarding scoping, G-11 analytics, G-12 FE penuh.
+> ⏳ **Sisa TODO (per review 2026-08-13):** G-1 s.d. G-8 selesai — sisa gap: G-9 candidate matching, G-10 onboarding scoping, G-11 analytics, G-12 FE penuh.
 > ✅ **G-7 selesai (2026-08-13):** sub-project 1 application screening (migration 102 tabel `application_screenings`; many-per-application seperti Interview) + sub-project 2 assessment (migration 103 tabel `recruitment_assessments` + `assessment_participants` — 2 tabel bukan 3, hasil digabung ke participant karena 1:1); keduanya CRUD murni tanpa auto-transition status/stage-history — recruiter tetap update status manual — lihat §G-7.
+> ✅ **G-8 selesai (2026-08-13):** interview multi-interviewer & scorecard (migration 104 tabel `interviewers` — melengkapi `interviews.interviewer_id` existing, backward compat — + `interview_scorecard_items` — kriteria bebas per interview tanpa master; endpoint `POST /interviews/:id/complete` menghitung weighted average scorecard items ke `Interview.Score` existing) — lihat §G-8.
 > ✅ **G-1 selesai (2026-08-12):** requisition → Central Approval (migration 093, interface `ApprovalEngine`, `SubmitRequisition` DRAFT→SUBMITTED, push-callback APPROVED→OPEN / REJECTED / CANCELLED, endpoint `POST /recruitment/requisitions/:id/submit`, wiring main.go) — lihat §G-1. Bagian offer workflow menunggu G-3 (entity `job_offers` belum ada).
 > ✅ **G-2 selesai (2026-08-12):** requisition enhancement (migration 094: `requisition_number` auto REQ-YYYYMM-XXXXXXXX, `priority` LOW/MEDIUM/HIGH/URGENT default MEDIUM, `position_id` referensi master position, `opened_at` diset otomatis saat OPEN) — lihat §G-2. `approval_status` TIDAK ditambahkan (G-1 sudah meng-cover via status requisition + approval_instance_id).
 > ✅ **G-3 selesai (2026-08-12):** offer management (migration 095 tabel `job_offers`; workflow DRAFT → PENDING_APPROVAL → APPROVED → SENT → ACCEPTED/REJECTED/EXPIRED/WITHDRAWN via Central Approval modul `recruitment_offer`; accept menautkan application ACCEPTED + `slots_filled`++ dengan guard idempotensi; expired guard) — lihat §G-3. BE + FE lengkap (128 test).
@@ -52,7 +53,7 @@ Recruitment Pipeline
 Status per bagian:
 
 - **ATS dasar (CRUD requisition/candidate/application/interview/onboarding)** — ✅ sudah diimplementasikan (lihat §3.1).
-- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** + **G-2 requisition enhancement ✅** + **G-3 offer management ✅** + **G-4 Recruitment → Employee/Movement ✅** + **G-5 stage history ✅** + **G-6 candidate enhancement ✅** + **G-7 screening & assessment ✅** (2026-08-12/13); sisanya (G-8 s.d. G-12) rencana (lihat Gap Analysis §7).
+- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** + **G-2 requisition enhancement ✅** + **G-3 offer management ✅** + **G-4 Recruitment → Employee/Movement ✅** + **G-5 stage history ✅** + **G-6 candidate enhancement ✅** + **G-7 screening & assessment ✅** + **G-8 interview scorecard ✅** (2026-08-12/13); sisanya (G-9 s.d. G-12) rencana (lihat Gap Analysis §7).
 
 ---
 
@@ -560,14 +561,18 @@ Semua sub-table G-6 yang direncanakan (educations, work_experiences, skills, cer
 
 **Ref:** plan asli §21-§22.
 
-## G-8 🟡 INTERVIEW MULTI-INTERVIEWER & SCORECARD
+## G-8 ✅ INTERVIEW MULTI-INTERVIEWER & SCORECARD
 
-**Status: ⏳ Belum.** Interview tunggal (satu `interviewer_id`, satu `score`, `feedback`) sudah ada.
+**Status: ✅ Selesai (2026-08-13).**
 
-**Rencana:**
-- `interviewers` (satu interview → banyak interviewer: HR + User + Manager).
-- `interview_scorecards` + `interview_scorecard_items` — contoh bobot: `Technical Skill 30%, Problem Solving 20%, Communication 20%, Leadership 15%, Culture Fit 15%`; skala `1-5` atau `0-100`, normalisasi di service layer.
-- Endpoint `POST /interviews/:id/complete` untuk menutup interview + aggregate score.
+**Yang diimplementasikan:**
+- **Migration `104_recruitment_interview_scorecard`** (pg + mysql, up/down idempotent): 2 tabel baru —
+  - `interviewers` — `id, interview_id (FK → interviews, CASCADE), employee_id, role VARCHAR(50) NULL, created_at`; unique `(interview_id, employee_id)`; index `idx_interviewer_int`. **Melengkapi** `interviews.interviewer_id` existing (pewawancara utama, **dipertahankan** untuk backward compat — bukan breaking change) dengan pewawancara tambahan (HR + User + Manager).
+  - `interview_scorecard_items` — `id, interview_id (FK → interviews, CASCADE), criterion VARCHAR(255), weight DECIMAL(5,2) default 0, score DECIMAL(5,2) NULL, notes, created_at, updated_at`; index `idx_scorecard_int`. **Kriteria bebas per interview, tanpa master** (keputusan brainstorming — YAGNI, konsisten dengan `CandidateSkill.Level` yang juga tidak di-enforce skala-nya via DB).
+- **Model:** `Interviewer` + `InterviewScorecardItem`.
+- **Service:** `AddInterviewer/ListInterviewers/RemoveInterviewer`; `AddScorecardItem/ListScorecardItems/UpdateScorecardItem/DeleteScorecardItem`; **`CompleteInterview`** (endpoint `POST /interviews/:id/complete`) — set `status=COMPLETED` + `completed_at`, dan menghitung `Interview.Score` **existing** (bukan kolom baru) sebagai weighted average scorecard items: `Σ(score×weight)/Σ(weight)`, item tanpa score dilewati; bila tidak ada item berskor, `Score` tidak diubah (recruiter tetap bisa isi manual seperti alur `UpdateInterview` existing).
+- **Handler/Routes:** `POST/GET /interviews/:id/interviewers`, `DELETE /interviewers/:id`, `POST/GET /interviews/:id/scorecard-items`, `PUT/DELETE /scorecard-items/:id`, `POST /interviews/:id/complete`.
+- **Test:** +14 (repository +5: interviewer create/list/delete, scorecard item CRUD; service +7: add/list/remove interviewer, unknown-interview guard, scorecard item CRUD, **complete-interview weighted average assertion** (Technical 80×70% + Communication 90×30% = 83), **complete-interview-tanpa-item-keeps-score-unset** assertion; handler +2: add+list interviewers, add scorecard item + complete). Total recruitment: **235** (handler 52 + repository 56 + service 127).
 
 **Ref:** plan asli §23-§24.
 
@@ -628,7 +633,7 @@ Semua sub-table G-6 yang direncanakan (educations, work_experiences, skills, cer
 
 # 8. API Plan
 
-## 8.1 Existing (68 endpoint — sudah ada)
+## 8.1 Existing (77 endpoint — sudah ada)
 
 ```http
 ## Requisitions
@@ -710,6 +715,18 @@ POST   /api/v1/tenant/recruitment/interviews
 GET    /api/v1/tenant/recruitment/interviews/{id}
 PUT    /api/v1/tenant/recruitment/interviews/{id}
 DELETE /api/v1/tenant/recruitment/interviews/{id}
+POST   /api/v1/tenant/recruitment/interviews/{id}/complete
+
+## Interviewers (G-8 — multi-interviewer, melengkapi interviews.interviewer_id)
+POST   /api/v1/tenant/recruitment/interviews/{id}/interviewers
+GET    /api/v1/tenant/recruitment/interviews/{id}/interviewers
+DELETE /api/v1/tenant/recruitment/interviewers/{id}
+
+## Interview Scorecard Items (G-8 — kriteria bebas per interview)
+POST   /api/v1/tenant/recruitment/interviews/{id}/scorecard-items
+GET    /api/v1/tenant/recruitment/interviews/{id}/scorecard-items
+PUT    /api/v1/tenant/recruitment/scorecard-items/{id}
+DELETE /api/v1/tenant/recruitment/scorecard-items/{id}
 
 ## Onboarding Task Templates
 GET    /api/v1/tenant/recruitment/onboarding-task-templates
@@ -743,8 +760,8 @@ POST   /recruitment/applications/{id}/screen        ← G-7 ✅ (implemented as 
 GET    /recruitment/candidates/{id}/profile         ← G-6 (educations/experiences/skills/certs/documents)
 POST   /recruitment/applications/{id}/assessments   ← G-7 ✅ (implemented as /assessments + /assessments/{id}/participants, see §8.1)
 GET    /recruitment/assessments                     ← G-7 ✅
-POST   /recruitment/interviews/{id}/complete        ← G-8
-GET    /recruitment/interviews/{id}/scorecards      ← G-8
+POST   /recruitment/interviews/{id}/complete        ← G-8 ✅
+GET    /recruitment/interviews/{id}/scorecards      ← G-8 ✅ (implemented as /interviews/{id}/scorecard-items, see §8.1)
 GET    /recruitment/offers                          ← G-3
 POST   /recruitment/offers                          ← G-3
 POST   /recruitment/offers/{id}/submit|send|accept|reject  ← G-1/G-3
@@ -819,16 +836,15 @@ Permission harus mengikuti pola permission module existing (resource + action, s
 
 # 12. Migration Plan
 
-- ✅ **Sudah ada**: `015_recruitment.sql` (mysql + postgres) — 7 tabel dasar; `093`-`103` (G-1 s.d. G-7, lihat §7).
-- ⏳ **Rencana** (nomor migration menyesuaikan urutan existing — lanjut dari 104):
+- ✅ **Sudah ada**: `015_recruitment.sql` (mysql + postgres) — 7 tabel dasar; `093`-`104` (G-1 s.d. G-8, lihat §7).
+- ⏳ **Rencana** (nomor migration menyesuaikan urutan existing — lanjut dari 105):
 
 ```text
-M9  Create interviewers, interview_scorecards, interview_scorecard_items          (G-8)
 M5  Create job_requisition_requirements + job_requisition_competencies            (G-9)
 M10 Enhance onboarding_task_templates (organization_id, position_id, employment_type nullable)  (G-10)
 ```
 
-Sudah dieksekusi (bukan lagi rencana): M1 (093-094, requisition approval + enhancement), M3 (095, job_offers), M4 (097, recruitment_stages + stage history), M6 (098-101, candidate sub-tables), M7 (102, application_screenings), M8 (103, recruitment_assessments + assessment_participants — 2 tabel, bukan 3, lihat §G-7). M2 (`candidates.status`/`source_id`) diputuskan **skip/deferred** — lihat §G-6.
+Sudah dieksekusi (bukan lagi rencana): M1 (093-094, requisition approval + enhancement), M3 (095, job_offers), M4 (097, recruitment_stages + stage history), M6 (098-101, candidate sub-tables), M7 (102, application_screenings), M8 (103, recruitment_assessments + assessment_participants — 2 tabel, bukan 3, lihat §G-7), M9 (104, interviewers + interview_scorecard_items, lihat §G-8). M2 (`candidates.status`/`source_id`) diputuskan **skip/deferred** — lihat §G-6.
 
 Semua migration dibuat berpasangan mysql + postgres (+ `.down.sql` bila pola existing membutuhkan), idempotent.
 

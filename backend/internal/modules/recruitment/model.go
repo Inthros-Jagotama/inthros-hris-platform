@@ -643,6 +643,56 @@ func (i *Interview) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// Interviewer + InterviewScorecardItem (G-8 — multi-interviewer + scorecard)
+// =========================================================================
+// Interviewer melengkapi Interview.InterviewerID (pewawancara utama,
+// dipertahankan untuk backward compat) dengan daftar pewawancara tambahan
+// (HR + User + Manager). InterviewScorecardItem = kriteria berbobot bebas
+// per interview (mis. "Technical Skill" 30%), tanpa tabel master — pola
+// sama dengan CandidateSkill.Level (skala tidak di-enforce DB).
+
+type Interviewer struct {
+	ID          uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	InterviewID uuid.UUID `gorm:"type:char(36);not null;index:idx_interviewer_int" json:"interview_id"`
+	EmployeeID  uuid.UUID `gorm:"type:char(36);not null" json:"employee_id"`
+	Role        string    `gorm:"type:varchar(50)" json:"role,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+func (Interviewer) TableName() string {
+	return "interviewers"
+}
+
+func (i *Interviewer) BeforeCreate(tx *gorm.DB) error {
+	if i.ID == uuid.Nil {
+		i.ID = uuid.New()
+	}
+	return nil
+}
+
+type InterviewScorecardItem struct {
+	ID          uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	InterviewID uuid.UUID `gorm:"type:char(36);not null;index:idx_scorecard_int" json:"interview_id"`
+	Criterion   string    `gorm:"type:varchar(255);not null" json:"criterion"`
+	Weight      float64   `gorm:"type:decimal(5,2);not null;default:0" json:"weight"`
+	Score       *float64  `gorm:"type:decimal(5,2)" json:"score,omitempty"`
+	Notes       string    `gorm:"type:text" json:"notes"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+func (InterviewScorecardItem) TableName() string {
+	return "interview_scorecard_items"
+}
+
+func (s *InterviewScorecardItem) BeforeCreate(tx *gorm.DB) error {
+	if s.ID == uuid.Nil {
+		s.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // OnboardingTaskTemplate (Template Tugas Onboarding)
 // =========================================================================
 

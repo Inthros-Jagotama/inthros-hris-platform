@@ -1179,3 +1179,94 @@ func (r *Repository) DeleteAssessmentParticipant(ctx context.Context, id uuid.UU
 	}
 	return result.Error
 }
+
+// =========================================================================
+// Interviewers + Scorecard Items (G-8)
+// =========================================================================
+
+func (r *Repository) CreateInterviewer(ctx context.Context, i *Interviewer) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(i).Error
+}
+
+func (r *Repository) ListInterviewers(ctx context.Context, interviewID uuid.UUID) ([]Interviewer, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []Interviewer
+	if err := db.WithContext(ctx).Where("interview_id = ?", interviewID).Order("created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) DeleteInterviewer(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&Interviewer{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("interviewer not found")
+	}
+	return result.Error
+}
+
+func (r *Repository) CreateScorecardItem(ctx context.Context, s *InterviewScorecardItem) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(s).Error
+}
+
+func (r *Repository) FindScorecardItemByID(ctx context.Context, id uuid.UUID) (*InterviewScorecardItem, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var s InterviewScorecardItem
+	if err := db.WithContext(ctx).First(&s, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("scorecard item not found")
+		}
+		return nil, err
+	}
+	return &s, nil
+}
+
+func (r *Repository) ListScorecardItems(ctx context.Context, interviewID uuid.UUID) ([]InterviewScorecardItem, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []InterviewScorecardItem
+	if err := db.WithContext(ctx).Where("interview_id = ?", interviewID).Order("created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateScorecardItem(ctx context.Context, s *InterviewScorecardItem) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(s).Error
+}
+
+func (r *Repository) DeleteScorecardItem(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&InterviewScorecardItem{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("scorecard item not found")
+	}
+	return result.Error
+}

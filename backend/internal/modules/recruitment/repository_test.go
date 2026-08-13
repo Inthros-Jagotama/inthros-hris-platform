@@ -1173,3 +1173,119 @@ func TestRepository_UpdateAndDeleteAssessmentParticipant(t *testing.T) {
 		t.Error("expected error finding deleted participant, got nil")
 	}
 }
+
+func newTestInterviewForScorecard(t *testing.T, repo *Repository, ctx context.Context, email string) *Interview {
+	t.Helper()
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+	c := &Candidate{FirstName: "Iv", LastName: "Test", Email: email}
+	repo.CreateCandidate(ctx, c)
+	app := &JobApplication{RequisitionID: r.ID, CandidateID: c.ID, Status: CandStatusNew}
+	repo.CreateApplication(ctx, app)
+	iv := &Interview{ApplicationID: app.ID, InterviewerID: uuid.New(), Stage: "FIRST_INTERVIEW", Status: IntStatusScheduled}
+	repo.CreateInterview(ctx, iv)
+	return iv
+}
+
+func TestRepository_CreateAndListInterviewers(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	iv := newTestInterviewForScorecard(t, repo, ctx, "ivrepo1@test.com")
+
+	interviewer := &Interviewer{InterviewID: iv.ID, EmployeeID: uuid.New(), Role: "HR"}
+	if err := repo.CreateInterviewer(ctx, interviewer); err != nil {
+		t.Fatalf("CreateInterviewer failed: %v", err)
+	}
+
+	list, err := repo.ListInterviewers(ctx, iv.ID)
+	if err != nil {
+		t.Fatalf("ListInterviewers failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Errorf("expected 1 interviewer, got %d", len(list))
+	}
+}
+
+func TestRepository_DeleteInterviewer(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	iv := newTestInterviewForScorecard(t, repo, ctx, "ivrepo2@test.com")
+	interviewer := &Interviewer{InterviewID: iv.ID, EmployeeID: uuid.New()}
+	repo.CreateInterviewer(ctx, interviewer)
+
+	if err := repo.DeleteInterviewer(ctx, interviewer.ID); err != nil {
+		t.Fatalf("DeleteInterviewer failed: %v", err)
+	}
+	list, _ := repo.ListInterviewers(ctx, iv.ID)
+	if len(list) != 0 {
+		t.Errorf("expected 0 interviewers after delete, got %d", len(list))
+	}
+}
+
+func TestRepository_CreateAndFindScorecardItem(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	iv := newTestInterviewForScorecard(t, repo, ctx, "ivrepo3@test.com")
+	item := &InterviewScorecardItem{InterviewID: iv.ID, Criterion: "Technical Skill", Weight: 30}
+	if err := repo.CreateScorecardItem(ctx, item); err != nil {
+		t.Fatalf("CreateScorecardItem failed: %v", err)
+	}
+
+	found, err := repo.FindScorecardItemByID(ctx, item.ID)
+	if err != nil {
+		t.Fatalf("FindScorecardItemByID failed: %v", err)
+	}
+	if found.Criterion != "Technical Skill" {
+		t.Errorf("expected 'Technical Skill', got %s", found.Criterion)
+	}
+}
+
+func TestRepository_ListScorecardItems(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	iv := newTestInterviewForScorecard(t, repo, ctx, "ivrepo4@test.com")
+	repo.CreateScorecardItem(ctx, &InterviewScorecardItem{InterviewID: iv.ID, Criterion: "Technical Skill", Weight: 30})
+	repo.CreateScorecardItem(ctx, &InterviewScorecardItem{InterviewID: iv.ID, Criterion: "Communication", Weight: 20})
+
+	list, err := repo.ListScorecardItems(ctx, iv.ID)
+	if err != nil {
+		t.Fatalf("ListScorecardItems failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2 items, got %d", len(list))
+	}
+}
+
+func TestRepository_UpdateAndDeleteScorecardItem(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	iv := newTestInterviewForScorecard(t, repo, ctx, "ivrepo5@test.com")
+	item := &InterviewScorecardItem{InterviewID: iv.ID, Criterion: "Original", Weight: 10}
+	repo.CreateScorecardItem(ctx, item)
+
+	item.Criterion = "Updated"
+	if err := repo.UpdateScorecardItem(ctx, item); err != nil {
+		t.Fatalf("UpdateScorecardItem failed: %v", err)
+	}
+	found, _ := repo.FindScorecardItemByID(ctx, item.ID)
+	if found.Criterion != "Updated" {
+		t.Errorf("expected 'Updated', got %s", found.Criterion)
+	}
+
+	if err := repo.DeleteScorecardItem(ctx, item.ID); err != nil {
+		t.Fatalf("DeleteScorecardItem failed: %v", err)
+	}
+	if _, err := repo.FindScorecardItemByID(ctx, item.ID); err == nil {
+		t.Error("expected error finding deleted item, got nil")
+	}
+}

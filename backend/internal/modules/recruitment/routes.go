@@ -90,6 +90,15 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		rec.GET("/interviews/:id", handler.GetInterviewByID)
 		rec.PUT("/interviews/:id", handler.UpdateInterview)
 		rec.DELETE("/interviews/:id", handler.DeleteInterview)
+		// G-8: multi-interviewer + scorecard
+		rec.POST("/interviews/:id/interviewers", handler.AddInterviewer)
+		rec.GET("/interviews/:id/interviewers", handler.ListInterviewers)
+		rec.DELETE("/interviewers/:id", handler.RemoveInterviewer)
+		rec.POST("/interviews/:id/scorecard-items", handler.AddScorecardItem)
+		rec.GET("/interviews/:id/scorecard-items", handler.ListScorecardItems)
+		rec.PUT("/scorecard-items/:id", handler.UpdateScorecardItem)
+		rec.DELETE("/scorecard-items/:id", handler.DeleteScorecardItem)
+		rec.POST("/interviews/:id/complete", handler.CompleteInterview)
 
 		// Onboarding Task Templates
 		rec.POST("/onboarding-task-templates", handler.CreateOnboardingTaskTemplate)
