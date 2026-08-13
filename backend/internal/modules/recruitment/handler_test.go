@@ -1099,3 +1099,83 @@ func TestHandler_ListCandidateDocuments(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestHandler_CreateCandidateConsent(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Consent", LastName: "Handler", Email: "consenthandler@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/consents", CreateCandidateConsentRequest{
+		Action: "GRANTED",
+	})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_CreateCandidateConsent_InvalidAction(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Bad", LastName: "Action", Email: "badaction@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/consents", CreateCandidateConsentRequest{
+		Action: "MAYBE",
+	})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid action, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_CreateCandidateConsent_ChangedByFromContext(t *testing.T) {
+	userID := uuid.New().String()
+	r, _, cleanup := setupTestRouterWithUserID(userID)
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "Actor", LastName: "Handler", Email: "actorhandler@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	w := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/consents", CreateCandidateConsentRequest{
+		Action: "GRANTED",
+	})
+	var resp map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	data := resp["data"].(map[string]interface{})
+	if data["changed_by"] != userID {
+		t.Errorf("expected changed_by %s, got %v", userID, data["changed_by"])
+	}
+}
+
+func TestHandler_ListCandidateConsents(t *testing.T) {
+	r, _, cleanup := setupTestRouter()
+	defer cleanup()
+
+	cW := performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates", CreateCandidateRequest{
+		FirstName: "List", LastName: "ConsentH", Email: "listconsenth@test.com",
+	})
+	var cResp map[string]interface{}
+	json.Unmarshal(cW.Body.Bytes(), &cResp)
+	cid := cResp["data"].(map[string]interface{})["id"].(string)
+
+	performRequest(r, "POST", "/api/v1/tenant/recruitment/candidates/"+cid+"/consents", CreateCandidateConsentRequest{Action: "GRANTED"})
+
+	w := performRequest(r, "GET", "/api/v1/tenant/recruitment/candidates/"+cid+"/consents", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}

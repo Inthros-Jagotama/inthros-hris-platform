@@ -633,6 +633,36 @@ func (h *Handler) UpdateApplicationStatus(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+func (h *Handler) CreateCandidateConsent(c *gin.Context) {
+	candidateID := c.Param("id")
+	var req CreateCandidateConsentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	var changedBy *uuid.UUID
+	if userIDStr := c.GetString("user_id"); userIDStr != "" {
+		if uid, err := uuid.Parse(userIDStr); err == nil {
+			changedBy = &uid
+		}
+	}
+	resp, err := h.svc.CreateCandidateConsent(c.Request.Context(), candidateID, req, changedBy)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListCandidateConsents(c *gin.Context) {
+	candidateID := c.Param("id")
+	resp, err := h.svc.ListCandidateConsents(c.Request.Context(), candidateID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) GetApplicationHistory(c *gin.Context) {
 	id := c.Param("id")
 	resp, err := h.svc.GetApplicationHistory(c.Request.Context(), id)
