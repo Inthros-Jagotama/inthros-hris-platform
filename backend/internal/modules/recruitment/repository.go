@@ -923,3 +923,62 @@ func (r *Repository) DeleteCandidateCertification(ctx context.Context, id uuid.U
 	}
 	return result.Error
 }
+
+// =========================================================================
+// Candidate Documents (G-6)
+// =========================================================================
+
+func (r *Repository) CreateCandidateDocument(ctx context.Context, d *CandidateDocument) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(d).Error
+}
+
+func (r *Repository) FindCandidateDocumentByID(ctx context.Context, id uuid.UUID) (*CandidateDocument, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var d CandidateDocument
+	if err := db.WithContext(ctx).First(&d, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("candidate document not found")
+		}
+		return nil, err
+	}
+	return &d, nil
+}
+
+func (r *Repository) ListCandidateDocuments(ctx context.Context, candidateID uuid.UUID) ([]CandidateDocument, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CandidateDocument
+	if err := db.WithContext(ctx).Where("candidate_id = ?", candidateID).Order("created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateCandidateDocument(ctx context.Context, d *CandidateDocument) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(d).Error
+}
+
+func (r *Repository) DeleteCandidateDocument(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&CandidateDocument{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("candidate document not found")
+	}
+	return result.Error
+}

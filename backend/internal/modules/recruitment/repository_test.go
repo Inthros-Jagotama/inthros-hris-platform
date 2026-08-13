@@ -849,3 +849,71 @@ func TestRepository_CreateAndListCandidateCertification(t *testing.T) {
 		t.Errorf("expected 1 cert named 'AWS Certified Solutions Architect', got %+v", list)
 	}
 }
+
+func TestRepository_CreateAndFindCandidateDocument(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "Doc", LastName: "Test", Email: "doctest@test.com"}
+	repo.CreateCandidate(ctx, cand)
+
+	doc := &CandidateDocument{CandidateID: cand.ID, DocumentType: "RESUME", Name: "resume.pdf", FileURL: "/uploads/attachments/abc.pdf"}
+	if err := repo.CreateCandidateDocument(ctx, doc); err != nil {
+		t.Fatalf("CreateCandidateDocument failed: %v", err)
+	}
+
+	found, err := repo.FindCandidateDocumentByID(ctx, doc.ID)
+	if err != nil {
+		t.Fatalf("FindCandidateDocumentByID failed: %v", err)
+	}
+	if found.Name != "resume.pdf" {
+		t.Errorf("expected name 'resume.pdf', got %s", found.Name)
+	}
+}
+
+func TestRepository_ListCandidateDocuments(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "List", LastName: "Doc", Email: "listdoc@test.com"}
+	repo.CreateCandidate(ctx, cand)
+	repo.CreateCandidateDocument(ctx, &CandidateDocument{CandidateID: cand.ID, DocumentType: "RESUME", Name: "resume.pdf", FileURL: "/u/a.pdf"})
+	repo.CreateCandidateDocument(ctx, &CandidateDocument{CandidateID: cand.ID, DocumentType: "PORTFOLIO", Name: "portfolio.pdf", FileURL: "/u/b.pdf"})
+
+	list, err := repo.ListCandidateDocuments(ctx, cand.ID)
+	if err != nil {
+		t.Fatalf("ListCandidateDocuments failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2 documents, got %d", len(list))
+	}
+}
+
+func TestRepository_UpdateAndDeleteCandidateDocument(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand := &Candidate{FirstName: "Upd", LastName: "Doc", Email: "upddoc@test.com"}
+	repo.CreateCandidate(ctx, cand)
+	doc := &CandidateDocument{CandidateID: cand.ID, DocumentType: "OTHER", Name: "Original", FileURL: "/u/c.pdf"}
+	repo.CreateCandidateDocument(ctx, doc)
+
+	doc.Name = "Updated"
+	if err := repo.UpdateCandidateDocument(ctx, doc); err != nil {
+		t.Fatalf("UpdateCandidateDocument failed: %v", err)
+	}
+	found, _ := repo.FindCandidateDocumentByID(ctx, doc.ID)
+	if found.Name != "Updated" {
+		t.Errorf("expected 'Updated', got %s", found.Name)
+	}
+
+	if err := repo.DeleteCandidateDocument(ctx, doc.ID); err != nil {
+		t.Fatalf("DeleteCandidateDocument failed: %v", err)
+	}
+	if _, err := repo.FindCandidateDocumentByID(ctx, doc.ID); err == nil {
+		t.Error("expected error finding deleted document, got nil")
+	}
+}
