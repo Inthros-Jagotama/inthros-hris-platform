@@ -4,7 +4,8 @@
 > ✅ **Fakta aktual (audit 2026-08-12):** modul ini **bukan greenfield** — backend ATS dasar sudah diimplementasikan penuh (7 entity, 33 endpoint, 75 test) dan FE masih placeholder "Coming soon". Bagian "target" di dokumen ini (offer, stage history, screening, assessment, scorecard, approval, candidate enhancement, dst.) adalah **rencana enhancement**, bukan status.
 > 🔎 **Sumber:** struktur tabel `015_recruitment.sql` (mysql + postgres) + audit `backend/internal/modules/recruitment/` (model.go, service.go, handler.go, routes.go, module.go) + `frontend/tenant/src/views/modules/Recruitment.vue` + `frontend/tenant/src/router/index.js` + cross-reference `docs/module-notification-plan.md` (§5/§9: "Recruitment belum tersentuh" untuk integrasi approval/notifier) + `docs/module-recruitment-strategic-layer-plan.md` (rumah item strategic layer yang dipisah) + `docs/go-module-architecture-report.md` + `docs/project-completion-dashboard.md`.
 > 📊 **Progres implementasi (per 2026-08-12):** ✅ 1) Backend ATS lengkap — 7 GORM entity (`JobRequisition`, `Candidate`, `JobApplication`, `Interview`, `OnboardingTaskTemplate`, `EmployeeOnboarding`, `OnboardingTaskItem`) + enum status · ✅ 2) 33 endpoint CRUD/pipeline di 7 resource group · ✅ 3) Seeder 10 onboarding task template default · ✅ 4) 75 test (handler 28 + repository 27 + service 20) · ✅ 5) pipeline aplikasi (status + timestamp otomatis + auto `slots_filled` saat ACCEPTED) · ❌ 6) Frontend masih placeholder ("Coming soon") — hanya route/menu/locale/dashboard card · ⏳ 7) Integrasi operasional dua arah dengan modul lain (Module Approval, Notifier, Employee, Employee Movement) — **belum ada**; Employee 🔶 sebagian (onboarding menunjuk `employee_id` tanpa FK) · 🚫 8) **Scoping 2026-08-12:** Recruitment = **module operasional** — strategic layer (Workforce Intelligence, Career Intelligence, Succession, Performance, Training, Quality of Hire) **dipisah dari plan ini** — out of scope, dikelola modul masing-masing (§5.2).
-> ⏳ **Sisa TODO (per review 2026-08-13):** G-1 s.d. G-9 selesai — sisa gap: G-10 onboarding scoping, G-11 analytics, G-12 FE penuh.
+> ⏳ **Sisa TODO (per review 2026-08-13):** G-1 s.d. G-10 selesai — sisa gap: G-11 analytics, G-12 FE penuh.
+> ✅ **G-10 selesai (2026-08-13):** onboarding template scoping (migration 106: `organization_id`/`position_id`/`employment_type` nullable di `onboarding_task_templates`; `CreateEmployeeOnboarding` filter template inclusive match-or-null terhadap requisition, fail-open bila tidak dapat diresolusi) — lihat §G-10.
 > ✅ **G-9 selesai (2026-08-13):** sub-project 1 requisition requirements + competencies (migration 105) + sub-project 2 candidate match score (tanpa migration baru — `GET /applications/:id/match-score` menghitung weighted average competency vs candidate_skills on-the-fly, advisory only, scope sengaja dipersempit ke competency saja bukan lintas semua entity seperti plan asli) — lihat §G-9.
 > ✅ **G-7 selesai (2026-08-13):** sub-project 1 application screening (migration 102 tabel `application_screenings`; many-per-application seperti Interview) + sub-project 2 assessment (migration 103 tabel `recruitment_assessments` + `assessment_participants` — 2 tabel bukan 3, hasil digabung ke participant karena 1:1); keduanya CRUD murni tanpa auto-transition status/stage-history — recruiter tetap update status manual — lihat §G-7.
 > ✅ **G-8 selesai (2026-08-13):** interview multi-interviewer & scorecard (migration 104 tabel `interviewers` — melengkapi `interviews.interviewer_id` existing, backward compat — + `interview_scorecard_items` — kriteria bebas per interview tanpa master; endpoint `POST /interviews/:id/complete` menghitung weighted average scorecard items ke `Interview.Score` existing) — lihat §G-8.
@@ -54,7 +55,7 @@ Recruitment Pipeline
 Status per bagian:
 
 - **ATS dasar (CRUD requisition/candidate/application/interview/onboarding)** — ✅ sudah diimplementasikan (lihat §3.1).
-- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** + **G-2 requisition enhancement ✅** + **G-3 offer management ✅** + **G-4 Recruitment → Employee/Movement ✅** + **G-5 stage history ✅** + **G-6 candidate enhancement ✅** + **G-7 screening & assessment ✅** + **G-8 interview scorecard ✅** + **G-9 candidate matching ✅** (2026-08-12/13); sisanya (G-10 s.d. G-12) rencana (lihat Gap Analysis §7).
+- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** + **G-2 requisition enhancement ✅** + **G-3 offer management ✅** + **G-4 Recruitment → Employee/Movement ✅** + **G-5 stage history ✅** + **G-6 candidate enhancement ✅** + **G-7 screening & assessment ✅** + **G-8 interview scorecard ✅** + **G-9 candidate matching ✅** + **G-10 onboarding scoping ✅** (2026-08-12/13); sisanya (G-11, G-12) rencana (lihat Gap Analysis §7).
 
 ---
 
@@ -602,13 +603,15 @@ Semua sub-table G-6 yang direncanakan (educations, work_experiences, skills, cer
 
 **Ref:** plan asli §11-§12, §25, §33.
 
-## G-10 🟢 ONBOARDING ENHANCEMENT (template scoped)
+## G-10 ✅ ONBOARDING ENHANCEMENT (template scoped)
 
-**Status: ⏳ Sebagian.** Template + auto task items sudah ada; scope per org/position/employment_type belum.
+**Status: ✅ Selesai (2026-08-13).**
 
-**Rencana:**
-- Tambah `organization_id nullable`, `position_id nullable`, `employment_type nullable` pada `onboarding_task_templates` agar template dapat dibedakan (mis. Software Engineer → Laptop, Repository Access, Security Training, Technical Orientation, Team Introduction).
-- Alur tetap: `job_application → employee → employee_onboarding`; `CreateEmployeeOnboarding` memilih template yang cocok (fallback template global).
+**Yang diimplementasikan:**
+- **Migration `106_recruitment_onboarding_template_scope`** (pg + mysql, up/down idempotent): 3 kolom nullable baru di `onboarding_task_templates` — `organization_id CHAR(36) NULL`, `position_id CHAR(36) NULL`, `employment_type VARCHAR(50) NULL`. Tanpa FK (pola sama `job_requisitions.position_id`). `NULL` di semua field = template global (berlaku umum).
+- **Model:** `OnboardingTaskTemplate.OrganizationID/PositionID/EmploymentType` (semua `*` nullable).
+- **Service:** `CreateOnboardingTaskTemplate`/`UpdateOnboardingTaskTemplate` menerima 3 field scope baru; `CreateEmployeeOnboarding` di-update memanggil `filterTemplatesForApplication` — **inclusive match-or-null**: template diikutkan bila SETIAP field scope-nya (org/position/employment_type) `NULL` (berlaku umum) **ATAU** cocok dengan requisition dari `application_id` (resolve `job_applications.requisition_id` → `job_requisitions.organization_id/position_id/employment_type`, sudah ada dari G-2). Template global selalu ikut. **Fail-open:** bila application/requisition tidak dapat diresolusi, seluruh template dipakai tanpa filter (tidak pernah membuat onboarding kehilangan task karena scope tidak diketahui).
+- **Test:** +4 (create-template-with-scope, update-clears-scope, scoped-template-included-when-org-matches, scoped-template-excluded-when-org-mismatches — hanya template global yang ikut). Total recruitment: **258** (handler 55 + repository 62 + service 141).
 
 **Ref:** plan asli §30-§31.
 
@@ -861,14 +864,9 @@ Permission harus mengikuti pola permission module existing (resource + action, s
 
 # 12. Migration Plan
 
-- ✅ **Sudah ada**: `015_recruitment.sql` (mysql + postgres) — 7 tabel dasar; `093`-`105` (G-1 s.d. G-9 sub-1, lihat §7).
-- ⏳ **Rencana** (nomor migration menyesuaikan urutan existing — lanjut dari 106):
+- ✅ **Sudah ada**: `015_recruitment.sql` (mysql + postgres) — 7 tabel dasar; `093`-`106` (G-1 s.d. G-10, lihat §7). Tidak ada migration tersisa di rencana — sisa gap (G-11 analytics, G-12 FE) tidak membutuhkan skema baru.
 
-```text
-M10 Enhance onboarding_task_templates (organization_id, position_id, employment_type nullable)  (G-10)
-```
-
-Sudah dieksekusi (bukan lagi rencana): M1 (093-094, requisition approval + enhancement), M3 (095, job_offers), M4 (097, recruitment_stages + stage history), M6 (098-101, candidate sub-tables), M7 (102, application_screenings), M8 (103, recruitment_assessments + assessment_participants — 2 tabel, bukan 3, lihat §G-7), M9 (104, interviewers + interview_scorecard_items, lihat §G-8), M5 (105, job_requisition_requirements + job_requisition_competencies, lihat §G-9). M2 (`candidates.status`/`source_id`) diputuskan **skip/deferred** — lihat §G-6.
+Sudah dieksekusi (bukan lagi rencana): M1 (093-094, requisition approval + enhancement), M3 (095, job_offers), M4 (097, recruitment_stages + stage history), M6 (098-101, candidate sub-tables), M7 (102, application_screenings), M8 (103, recruitment_assessments + assessment_participants — 2 tabel, bukan 3, lihat §G-7), M9 (104, interviewers + interview_scorecard_items, lihat §G-8), M5 (105, job_requisition_requirements + job_requisition_competencies, lihat §G-9), M10 (106, onboarding_task_templates scope, lihat §G-10). M2 (`candidates.status`/`source_id`) diputuskan **skip/deferred** — lihat §G-6.
 
 Semua migration dibuat berpasangan mysql + postgres (+ `.down.sql` bila pola existing membutuhkan), idempotent.
 

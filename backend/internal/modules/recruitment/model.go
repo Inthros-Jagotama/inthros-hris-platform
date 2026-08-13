@@ -763,8 +763,14 @@ type OnboardingTaskTemplate struct {
 	DayOffset    int       `gorm:"type:int;default:0" json:"day_offset"`
 	AssignedRole string    `gorm:"type:varchar(50)" json:"assigned_role"`
 	IsMandatory  bool      `gorm:"not null;default:1" json:"is_mandatory"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	// Scope (G-10): NULL berarti berlaku umum (global template). Bila diisi,
+	// template hanya ikut auto-generate untuk employee onboarding yang
+	// requisition-nya cocok (lihat filterTemplatesForRequisition di service.go).
+	OrganizationID *uuid.UUID `gorm:"type:char(36)" json:"organization_id,omitempty"`
+	PositionID     *uuid.UUID `gorm:"type:char(36)" json:"position_id,omitempty"`
+	EmploymentType *string    `gorm:"type:varchar(50)" json:"employment_type,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
 func (OnboardingTaskTemplate) TableName() string {

@@ -3450,3 +3450,103 @@ func TestService_GetCandidateMatchScore_ExceedingLevelCapsAt100Percent(t *testin
 }
 
 func floatPtr(f float64) *float64 { return &f }
+
+func TestService_CreateOnboardingTaskTemplate_WithScope(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	orgID := createTestUUID()
+	resp, err := svc.CreateOnboardingTaskTemplate(ctx, CreateOnboardingTaskTemplateRequest{
+		Name: "Org Specific", OrganizationID: &orgID, EmploymentType: strPtr("CONTRACT"),
+	})
+	if err != nil {
+		t.Fatalf("CreateOnboardingTaskTemplate failed: %v", err)
+	}
+	if resp.OrganizationID != orgID || resp.EmploymentType != "CONTRACT" {
+		t.Errorf("unexpected response: %+v", resp)
+	}
+}
+
+func TestService_UpdateOnboardingTaskTemplate_ClearScope(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	orgID := createTestUUID()
+	created, err := svc.CreateOnboardingTaskTemplate(ctx, CreateOnboardingTaskTemplateRequest{
+		Name: "Scoped", OrganizationID: &orgID,
+	})
+	if err != nil {
+		t.Fatalf("CreateOnboardingTaskTemplate failed: %v", err)
+	}
+
+	empty := ""
+	updated, err := svc.UpdateOnboardingTaskTemplate(ctx, created.ID, UpdateOnboardingTaskTemplateRequest{OrganizationID: &empty})
+	if err != nil {
+		t.Fatalf("UpdateOnboardingTaskTemplate failed: %v", err)
+	}
+	if updated.OrganizationID != "" {
+		t.Errorf("expected organization_id cleared, got %s", updated.OrganizationID)
+	}
+}
+
+func TestService_CreateEmployeeOnboarding_ScopedTemplateIncludedWhenOrgMatches(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	orgID := createTestOrgID()
+	svc.CreateOnboardingTaskTemplate(ctx, CreateOnboardingTaskTemplateRequest{Name: "Global Task"})
+	svc.CreateOnboardingTaskTemplate(ctx, CreateOnboardingTaskTemplateRequest{Name: "Org Task", OrganizationID: &orgID})
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: orgID, Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Scope", LastName: "Match", Email: "scopematch@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+	svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", "", nil)
+
+	onb, err := svc.CreateEmployeeOnboarding(ctx, CreateEmployeeOnboardingRequest{
+		EmployeeID: createTestUUID(), ApplicationID: app.ID, StartDate: "2026-08-01",
+	})
+	if err != nil {
+		t.Fatalf("CreateEmployeeOnboarding failed: %v", err)
+	}
+
+	items, err := svc.ListOnboardingTaskItems(ctx, onb.ID)
+	if err != nil {
+		t.Fatalf("ListOnboardingTaskItems failed: %v", err)
+	}
+	if len(items) != 2 {
+		t.Errorf("expected 2 task items (global + matching org), got %d", len(items))
+	}
+}
+
+func TestService_CreateEmployeeOnboarding_ScopedTemplateExcludedWhenOrgMismatches(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	svc.CreateOnboardingTaskTemplate(ctx, CreateOnboardingTaskTemplateRequest{Name: "Global Task"})
+	otherOrgID := createTestUUID()
+	svc.CreateOnboardingTaskTemplate(ctx, CreateOnboardingTaskTemplateRequest{Name: "Other Org Task", OrganizationID: &otherOrgID})
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Scope", LastName: "Mismatch", Email: "scopemismatch@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+	svc.UpdateApplicationStatus(ctx, app.ID, "ACCEPTED", "", "", nil)
+
+	onb, err := svc.CreateEmployeeOnboarding(ctx, CreateEmployeeOnboardingRequest{
+		EmployeeID: createTestUUID(), ApplicationID: app.ID, StartDate: "2026-08-01",
+	})
+	if err != nil {
+		t.Fatalf("CreateEmployeeOnboarding failed: %v", err)
+	}
+
+	items, err := svc.ListOnboardingTaskItems(ctx, onb.ID)
+	if err != nil {
+		t.Fatalf("ListOnboardingTaskItems failed: %v", err)
+	}
+	if len(items) != 1 {
+		t.Errorf("expected 1 task item (global only, org-scoped excluded), got %d", len(items))
+	}
+}

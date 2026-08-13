@@ -692,33 +692,42 @@ type ScorecardItemResponse struct {
 // =========================================================================
 
 type CreateOnboardingTaskTemplateRequest struct {
-	Name         string `json:"name" binding:"required,max=255"`
-	Description  string `json:"description"`
-	Category     string `json:"category" binding:"omitempty,max=50"`
-	DayOffset    *int   `json:"day_offset"`
-	AssignedRole string `json:"assigned_role" binding:"omitempty,max=50"`
-	IsMandatory  *bool  `json:"is_mandatory"`
+	Name           string  `json:"name" binding:"required,max=255"`
+	Description    string  `json:"description"`
+	Category       string  `json:"category" binding:"omitempty,max=50"`
+	DayOffset      *int    `json:"day_offset"`
+	AssignedRole   string  `json:"assigned_role" binding:"omitempty,max=50"`
+	IsMandatory    *bool   `json:"is_mandatory"`
+	OrganizationID *string `json:"organization_id"`
+	PositionID     *string `json:"position_id"`
+	EmploymentType *string `json:"employment_type"`
 }
 
 type UpdateOnboardingTaskTemplateRequest struct {
-	Name         *string `json:"name" binding:"omitempty,max=255"`
-	Description  *string `json:"description"`
-	Category     *string `json:"category" binding:"omitempty,max=50"`
-	DayOffset    *int    `json:"day_offset"`
-	AssignedRole *string `json:"assigned_role" binding:"omitempty,max=50"`
-	IsMandatory  *bool   `json:"is_mandatory"`
+	Name           *string `json:"name" binding:"omitempty,max=255"`
+	Description    *string `json:"description"`
+	Category       *string `json:"category" binding:"omitempty,max=50"`
+	DayOffset      *int    `json:"day_offset"`
+	AssignedRole   *string `json:"assigned_role" binding:"omitempty,max=50"`
+	IsMandatory    *bool   `json:"is_mandatory"`
+	OrganizationID *string `json:"organization_id"`
+	PositionID     *string `json:"position_id"`
+	EmploymentType *string `json:"employment_type"`
 }
 
 type OnboardingTaskTemplateResponse struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
-	Category     string    `json:"category"`
-	DayOffset    int       `json:"day_offset"`
-	AssignedRole string    `json:"assigned_role"`
-	IsMandatory  bool      `json:"is_mandatory"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID             string    `json:"id"`
+	Name           string    `json:"name"`
+	Description    string    `json:"description"`
+	Category       string    `json:"category"`
+	DayOffset      int       `json:"day_offset"`
+	AssignedRole   string    `json:"assigned_role"`
+	IsMandatory    bool      `json:"is_mandatory"`
+	OrganizationID string    `json:"organization_id,omitempty"`
+	PositionID     string    `json:"position_id,omitempty"`
+	EmploymentType string    `json:"employment_type,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // =========================================================================

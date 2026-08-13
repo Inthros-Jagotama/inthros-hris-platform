@@ -1504,6 +1504,23 @@ func (s *Service) CreateOnboardingTaskTemplate(ctx context.Context, req CreateOn
 	if req.IsMandatory != nil {
 		t.IsMandatory = *req.IsMandatory
 	}
+	if req.OrganizationID != nil && *req.OrganizationID != "" {
+		id, err := uuid.Parse(*req.OrganizationID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid organization_id: %w", err)
+		}
+		t.OrganizationID = &id
+	}
+	if req.PositionID != nil && *req.PositionID != "" {
+		id, err := uuid.Parse(*req.PositionID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid position_id: %w", err)
+		}
+		t.PositionID = &id
+	}
+	if req.EmploymentType != nil && *req.EmploymentType != "" {
+		t.EmploymentType = req.EmploymentType
+	}
 	if err := s.repo.CreateOnboardingTaskTemplate(ctx, t); err != nil {
 		return nil, err
 	}
@@ -1558,6 +1575,35 @@ func (s *Service) UpdateOnboardingTaskTemplate(ctx context.Context, id string, r
 	if req.IsMandatory != nil {
 		t.IsMandatory = *req.IsMandatory
 	}
+	if req.OrganizationID != nil {
+		if *req.OrganizationID == "" {
+			t.OrganizationID = nil
+		} else {
+			id, err := uuid.Parse(*req.OrganizationID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid organization_id: %w", err)
+			}
+			t.OrganizationID = &id
+		}
+	}
+	if req.PositionID != nil {
+		if *req.PositionID == "" {
+			t.PositionID = nil
+		} else {
+			id, err := uuid.Parse(*req.PositionID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid position_id: %w", err)
+			}
+			t.PositionID = &id
+		}
+	}
+	if req.EmploymentType != nil {
+		if *req.EmploymentType == "" {
+			t.EmploymentType = nil
+		} else {
+			t.EmploymentType = req.EmploymentType
+		}
+	}
 	if err := s.repo.UpdateOnboardingTaskTemplate(ctx, t); err != nil {
 		return nil, err
 	}
@@ -1602,8 +1648,12 @@ func (s *Service) CreateEmployeeOnboarding(ctx context.Context, req CreateEmploy
 		return nil, err
 	}
 
-	// Auto-create task items from templates
+	// Auto-create task items from templates (G-10: scoped to the
+	// application's requisition when resolvable; falls back to all
+	// templates if the application/requisition lookup fails, so
+	// onboarding creation never breaks because of scope resolution).
 	templates, _, _ := s.repo.ListOnboardingTaskTemplates(ctx, nil, 1, 100)
+	templates = s.filterTemplatesForApplication(ctx, appID, templates)
 	for _, t := range templates {
 		item := &OnboardingTaskItem{
 			EmployeeOnboardingID: o.ID,
@@ -2862,8 +2912,41 @@ func interviewToResponse(i *Interview) *InterviewResponse {
 	return resp
 }
 
+// filterTemplatesForApplication (G-10) mengembalikan template yang scope-nya
+// cocok dengan requisition dari application (inclusive match-or-null): sebuah
+// template diikutkan bila SETIAP field scope-nya (organization_id/position_id/
+// employment_type) NULL (berlaku umum) ATAU sama dengan requisition. Template
+// global (semua NULL) selalu ikut. Bila application/requisition tidak dapat
+// diresolusi, kembalikan seluruh template tanpa filter (fail-open — G-10 tidak
+// pernah membuat onboarding kehilangan task karena scope tidak diketahui).
+func (s *Service) filterTemplatesForApplication(ctx context.Context, applicationID uuid.UUID, templates []OnboardingTaskTemplate) []OnboardingTaskTemplate {
+	app, err := s.repo.FindApplicationByID(ctx, applicationID)
+	if err != nil {
+		return templates
+	}
+	req, err := s.repo.FindRequisitionByID(ctx, app.RequisitionID)
+	if err != nil {
+		return templates
+	}
+
+	out := make([]OnboardingTaskTemplate, 0, len(templates))
+	for _, t := range templates {
+		if t.OrganizationID != nil && *t.OrganizationID != req.OrganizationID {
+			continue
+		}
+		if t.PositionID != nil && (req.PositionID == nil || *t.PositionID != *req.PositionID) {
+			continue
+		}
+		if t.EmploymentType != nil && *t.EmploymentType != req.EmploymentType {
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
 func taskTemplateToResponse(t *OnboardingTaskTemplate) *OnboardingTaskTemplateResponse {
-	return &OnboardingTaskTemplateResponse{
+	resp := &OnboardingTaskTemplateResponse{
 		ID:           t.ID.String(),
 		Name:         t.Name,
 		Description:  t.Description,
@@ -2874,6 +2957,16 @@ func taskTemplateToResponse(t *OnboardingTaskTemplate) *OnboardingTaskTemplateRe
 		CreatedAt:    t.CreatedAt,
 		UpdatedAt:    t.UpdatedAt,
 	}
+	if t.OrganizationID != nil {
+		resp.OrganizationID = t.OrganizationID.String()
+	}
+	if t.PositionID != nil {
+		resp.PositionID = t.PositionID.String()
+	}
+	if t.EmploymentType != nil {
+		resp.EmploymentType = *t.EmploymentType
+	}
+	return resp
 }
 
 func onboardingToResponse(o *EmployeeOnboarding) *EmployeeOnboardingResponse {
