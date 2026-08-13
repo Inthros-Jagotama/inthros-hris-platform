@@ -376,6 +376,37 @@ func (c *CandidateCertification) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// CandidateDocument (G-6 — referensi dokumen kandidat)
+// =========================================================================
+// Referensi saja, bukan binary — file sesungguhnya diupload lewat endpoint
+// generik POST /api/v1/tenant/uploads (backend/internal/pkg/upload), yang
+// mengembalikan URL; tabel ini menyimpan URL tersebut. document_type
+// (RESUME/COVER_LETTER/CERTIFICATE/PORTFOLIO/IDENTITY/OTHER) di-enforce di
+// layer request (Gin binding), bukan constraint DB.
+
+type CandidateDocument struct {
+	ID           uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	CandidateID  uuid.UUID `gorm:"type:char(36);not null;index:idx_cand_doc_candidate" json:"candidate_id"`
+	DocumentType string    `gorm:"type:varchar(20);not null;default:OTHER" json:"document_type"`
+	Name         string    `gorm:"type:varchar(255);not null" json:"name"`
+	FileURL      string    `gorm:"type:text;not null" json:"file_url"`
+	Notes        string    `gorm:"type:text" json:"notes,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+func (CandidateDocument) TableName() string {
+	return "candidate_documents"
+}
+
+func (d *CandidateDocument) BeforeCreate(tx *gorm.DB) error {
+	if d.ID == uuid.Nil {
+		d.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // JobApplication (Lamaran Pekerjaan)
 // =========================================================================
 
