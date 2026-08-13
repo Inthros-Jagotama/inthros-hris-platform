@@ -1033,7 +1033,7 @@ Status per 2026-08-12 (✅ = sudah, ⬜ = target enhancement). Scope: **operasio
 - [ ] Screening tersedia.
 - [ ] Assessment tersedia.
 - [ ] Interview mendukung multi-interviewer + scorecard.
-- [ ] Candidate memiliki profile terstruktur (education/experience/skills/certification/document) — 🔶 sebagian: education/experience/skills/certifications ✅ (G-6 sub-project 1+2), documents ❌.
+- [ ] Candidate memiliki profile terstruktur (education/experience/skills/certification/document) — 🔶 sebagian: education/experience/skills/certifications/documents ✅ (G-6 sub-project 1+2+3a).
 - [ ] Candidate mendukung internal/external.
 - [ ] External candidate dapat menjadi Employee.
 - [ ] Internal candidate menggunakan Employee Movement.
