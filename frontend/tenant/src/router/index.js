@@ -44,52 +44,52 @@ const routes = [
       {
         path: 'organization-summary',
         name: 'OrganizationSummary',
-        component: () => import('@/views/modules/OrganizationSummary.vue'),
+        component: () => import('@/views/modules/organization/OrganizationSummary.vue'),
         meta: { title: 'Organization', titleKey: 'organization.title', descKey: 'org_summary.description', icon: 'pi pi-building', module: 'organization' }
       },
       // Organization Management
       {
         path: 'organizations',
         name: 'Organizations',
-        component: () => import('@/views/modules/Organizations.vue'),
+        component: () => import('@/views/modules/organization/Organizations.vue'),
         meta: { title: 'Organization', titleKey: 'organization.title', descKey: 'organization.description', icon: 'pi pi-sitemap', module: 'organization' }
       },
       // Employee Management
       {
         path: 'employees',
         name: 'Employees',
-        component: () => import('@/views/modules/Employees.vue'),
+        component: () => import('@/views/modules/employee/Employees.vue'),
         meta: { title: 'Employees', titleKey: 'employee.title', descKey: 'employee.description', icon: 'pi pi-users', module: 'employee' }
       },
       {
         path: 'employees/new',
         name: 'EmployeeNew',
-        component: () => import('@/views/modules/EmployeeForm.vue'),
+        component: () => import('@/views/modules/employee/EmployeeForm.vue'),
         meta: { title: 'New Employee', titleKey: 'employee.new', descKey: 'employee.description', icon: 'pi pi-user-plus', module: 'employee', backRoute: '/employees', backLabelKey: 'nav.employees' }
       },
       {
         path: 'employees/:id/edit',
         name: 'EmployeeEdit',
-        component: () => import('@/views/modules/EmployeeForm.vue'),
+        component: () => import('@/views/modules/employee/EmployeeForm.vue'),
         meta: { title: 'Edit Employee', titleKey: 'employee.edit', descKey: 'employee.description', icon: 'pi pi-user-edit', module: 'employee', backRoute: '/employees', backLabelKey: 'nav.employees' }
       },
       // Job Management
       {
         path: 'job-management',
         name: 'JobManagement',
-        component: () => import('@/views/modules/JobManagement.vue'),
+        component: () => import('@/views/modules/job/JobManagement.vue'),
         meta: { title: 'Job Management', titleKey: 'job_management.title', descKey: 'job_management.page_description', icon: 'pi pi-briefcase', module: 'jobmanagement' }
       },
       {
         path: 'job-management/values',
         name: 'JobValues',
-        component: () => import('@/views/modules/JobValuesIndex.vue'),
+        component: () => import('@/views/modules/jobvalues/JobValuesIndex.vue'),
         meta: { title: 'Job Values', titleKey: 'job_management.values', descKey: 'job_values.description', icon: 'pi pi-sliders-h', module: 'jobmanagement' }
       },
       {
         path: 'job-management/values/:type',
         name: 'JobValuesType',
-        component: () => import('@/views/modules/JobValuesForm.vue'),
+        component: () => import('@/views/modules/jobvalues/JobValuesForm.vue'),
         meta: { title: 'Job Value Type', titleKey: 'job_management.values', descKey: 'job_values.description', icon: 'pi pi-sliders-h', module: 'jobmanagement' }
       },
       {
@@ -102,163 +102,163 @@ const routes = [
       {
         path: 'competencies',
         name: 'Competencies',
-        component: () => import('@/views/modules/Competencies.vue'),
+        component: () => import('@/views/modules/competency/Competencies.vue'),
         meta: { title: 'Competency', titleKey: 'competency.title', descKey: 'competency.description', icon: 'pi pi-star', module: 'competency' }
       },
       // Employee Movement & Career Management (G-8: route menyamakan menu server)
       {
         path: 'admin/career/movements',
         name: 'EmployeeMovements',
-        component: () => import('@/views/modules/EmployeeMovements.vue'),
+        component: () => import('@/views/modules/employeemovement/EmployeeMovements.vue'),
         meta: { title: 'Movements', titleKey: 'employee_movement.movements', descKey: 'employee_movement.description', icon: 'pi pi-arrows-alt', module: 'employeemovement', backRoute: '/admin/career/reports', backLabelKey: 'employee_movement.movements_contracts' }
       },
       {
         path: 'admin/career/contracts',
         name: 'EmployeeContracts',
-        component: () => import('@/views/modules/EmployeeContracts.vue'),
+        component: () => import('@/views/modules/employeemovement/EmployeeContracts.vue'),
         meta: { title: 'Contracts', titleKey: 'employee_movement.contracts', descKey: 'employee_movement.description', icon: 'pi pi-file-edit', module: 'employeemovement', backRoute: '/admin/career/reports', backLabelKey: 'employee_movement.movements_contracts' }
       },
       {
         path: 'admin/career/reports',
         name: 'EmployeeMovementReports',
-        component: () => import('@/views/modules/EmployeeMovementReports.vue'),
+        component: () => import('@/views/modules/employeemovement/EmployeeMovementReports.vue'),
         meta: { title: 'Movements & Contracts', titleKey: 'employee_movement.movements_contracts', descKey: 'employee_movement.reports_description', icon: 'pi pi-chart-bar', module: 'employeemovement' }
       },
       {
         path: 'career-intelligence/paths',
         name: 'CareerPaths',
-        component: () => import('@/views/modules/CareerPaths.vue'),
+        component: () => import('@/views/modules/career-intelligence/CareerPaths.vue'),
         meta: { title: 'Career Paths', titleKey: 'career_paths.title', descKey: 'career_paths.description', icon: 'pi pi-sitemap', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title' }
       },
       // Time & Attendance
       {
         path: 'attendance',
         name: 'Attendance',
-        component: () => import('@/views/modules/Attendance.vue'),
+        component: () => import('@/views/modules/attendance/Attendance.vue'),
         meta: { title: 'Attendance', titleKey: 'attendance.title', descKey: 'attendance.description', icon: 'pi pi-clock', module: 'attendance' }
       },
       {
         path: 'attendance/admin',
         name: 'AttendanceAdmin',
-        component: () => import('@/views/modules/AttendanceAdmin.vue'),
+        component: () => import('@/views/modules/attendance/AttendanceAdmin.vue'),
         meta: { title: 'Attendance Admin', titleKey: 'attendance.admin', descKey: 'attendance.admin_description', icon: 'pi pi-cog', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title' }
       },
       {
         path: 'attendance/settings',
         name: 'AttendanceSettings',
-        component: () => import('@/views/modules/AttendanceSettings.vue'),
+        component: () => import('@/views/modules/attendance/AttendanceSettings.vue'),
         meta: { title: 'Attendance Settings', titleKey: 'attendance.settings', descKey: 'attendance.settings_description', icon: 'pi pi-cog', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
       },
       {
         path: 'attendance/shifts',
         name: 'AttendanceShifts',
-        component: () => import('@/views/modules/AttendanceShifts.vue'),
+        component: () => import('@/views/modules/attendance/AttendanceShifts.vue'),
         meta: { title: 'Shifts', titleKey: 'attendance.shifts', descKey: 'attendance.shifts_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
       },
       {
         path: 'attendance/employee-shifts',
         name: 'AttendanceEmployeeShifts',
-        component: () => import('@/views/modules/AttendanceEmployeeShifts.vue'),
+        component: () => import('@/views/modules/attendance/AttendanceEmployeeShifts.vue'),
         meta: { title: 'Employee Shifts', titleKey: 'attendance.employee_shifts', descKey: 'attendance.employee_shifts_description', icon: 'pi pi-users', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
       },
       {
         path: 'attendance/locations',
         name: 'AttendanceLocations',
-        component: () => import('@/views/modules/AttendanceLocations.vue'),
+        component: () => import('@/views/modules/attendance/AttendanceLocations.vue'),
         meta: { title: 'Locations', titleKey: 'attendance.locations', descKey: 'attendance.locations_description', icon: 'pi pi-map-marker', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
       },
       {
         path: 'attendance/exempt-positions',
         name: 'AttendanceExemptPositions',
-        component: () => import('@/views/modules/AttendanceExemptPositions.vue'),
+        component: () => import('@/views/modules/attendance/AttendanceExemptPositions.vue'),
         meta: { title: 'Exempt Positions', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description', icon: 'pi pi-shield', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
       },
       {
         path: 'attendance/overtime',
         name: 'AttendanceOvertime',
-        component: () => import('@/views/modules/AttendanceOvertime.vue'),
+        component: () => import('@/views/modules/attendance/AttendanceOvertime.vue'),
         meta: { title: 'Overtime', titleKey: 'attendance.overtime', descKey: 'attendance.overtime_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title' }
       },
       {
         path: 'attendance/corrections',
         name: 'AttendanceCorrections',
-        component: () => import('@/views/modules/AttendanceCorrections.vue'),
+        component: () => import('@/views/modules/attendance/AttendanceCorrections.vue'),
         meta: { title: 'Corrections', titleKey: 'attendance.corrections', descKey: 'attendance.corrections_description', icon: 'pi pi-pencil', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title' }
       },
       {
         path: 'attendance/events',
         name: 'AttendanceEvents',
-        component: () => import('@/views/modules/AttendanceEvents.vue'),
+        component: () => import('@/views/modules/attendance/AttendanceEvents.vue'),
         meta: { title: 'Events', titleKey: 'attendance.events', descKey: 'attendance.events_description', icon: 'pi pi-list', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
       },
       {
         path: 'attendance/sessions',
         name: 'AttendanceSessions',
-        component: () => import('@/views/modules/AttendanceSessions.vue'),
+        component: () => import('@/views/modules/attendance/AttendanceSessions.vue'),
         meta: { title: 'Sessions', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description', icon: 'pi pi-calendar', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
       },
       {
         path: 'attendance/reports',
         name: 'AttendanceReports',
-        component: () => import('@/views/modules/AttendanceReports.vue'),
+        component: () => import('@/views/modules/attendance/AttendanceReports.vue'),
         meta: { title: 'Reports', titleKey: 'attendance.reports', descKey: 'attendance.reports_description', icon: 'pi pi-chart-bar', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin' }
       },
       // Approval Engine
       {
         path: 'approvals',
         name: 'Approvals',
-        component: () => import('@/views/modules/Approvals.vue'),
+        component: () => import('@/views/modules/approval/Approvals.vue'),
         meta: { title: 'Approval', titleKey: 'approval.title', descKey: 'approval.description', icon: 'pi pi-check-square', module: 'approval' }
       },
       {
         path: 'approvals/flows',
         name: 'ApprovalFlows',
-        component: () => import('@/views/modules/ApprovalFlows.vue'),
+        component: () => import('@/views/modules/approval/ApprovalFlows.vue'),
         meta: { title: 'Approval Flows', titleKey: 'approval.flows', descKey: 'approval.description', icon: 'pi pi-sitemap', module: 'approval' }
       },
       // Notifications
       {
         path: 'notifications',
         name: 'Notifications',
-        component: () => import('@/views/modules/Notifications.vue'),
+        component: () => import('@/views/modules/notification/Notifications.vue'),
         meta: { title: 'Notifications', titleKey: 'notification.title', descKey: 'notification.description', icon: 'pi pi-bell', module: 'notification' }
       },
       // Payroll
       {
         path: 'payroll',
         name: 'Payroll',
-        component: () => import('@/views/modules/Payroll.vue'),
+        component: () => import('@/views/modules/payroll/Payroll.vue'),
         meta: { title: 'Payroll', titleKey: 'payroll.title', descKey: 'payroll.description', icon: 'pi pi-dollar', module: 'payroll' }
       },
       // Leave & Time Off
       {
         path: 'leave',
         name: 'Leave',
-        component: () => import('@/views/modules/Leave.vue'),
+        component: () => import('@/views/modules/leave/Leave.vue'),
         meta: { title: 'Leave', titleKey: 'leave.title', descKey: 'leave.description', icon: 'pi pi-calendar', module: 'leave' }
       },
       {
         path: 'leave/admin',
         name: 'LeaveAdmin',
-        component: () => import('@/views/modules/LeaveAdmin.vue'),
+        component: () => import('@/views/modules/leave/LeaveAdmin.vue'),
         meta: { title: 'Leave Admin', titleKey: 'leave.admin', descKey: 'leave.admin_description', icon: 'pi pi-cog', module: 'leave', backRoute: '/leave', backLabelKey: 'leave.title' }
       },
       {
         path: 'leave/types',
         name: 'LeaveTypes',
-        component: () => import('@/views/modules/LeaveTypes.vue'),
+        component: () => import('@/views/modules/leave/LeaveTypes.vue'),
         meta: { title: 'Leave Types', titleKey: 'leave.types', descKey: 'leave.types_description', icon: 'pi pi-tags', module: 'leave', backRoute: '/leave/admin', backLabelKey: 'leave.admin' }
       },
       {
         path: 'leave/accrual-policies',
         name: 'LeaveAccrualPolicies',
-        component: () => import('@/views/modules/LeaveAccrualPolicies.vue'),
+        component: () => import('@/views/modules/leave/LeaveAccrualPolicies.vue'),
         meta: { title: 'Accrual Policies', titleKey: 'leave.accrual_policies', descKey: 'leave.accrual_policies_description', icon: 'pi pi-percentage', module: 'leave', backRoute: '/leave/admin', backLabelKey: 'leave.admin' }
       },
       {
         path: 'leave/reasons',
         name: 'LeaveReasons',
-        component: () => import('@/views/modules/LeaveReasons.vue'),
+        component: () => import('@/views/modules/leave/LeaveReasons.vue'),
         meta: { title: 'Leave Reasons', titleKey: 'leave.reasons', descKey: 'leave.reasons_description', icon: 'pi pi-list', module: 'leave', backRoute: '/leave/admin', backLabelKey: 'leave.admin' }
       },
       // Performance Management
@@ -350,49 +350,49 @@ const routes = [
       {
         path: 'recruitment',
         name: 'Recruitment',
-        component: () => import('@/views/modules/Recruitment.vue'),
+        component: () => import('@/views/modules/recruitment/Recruitment.vue'),
         meta: { title: 'Recruitment', titleKey: 'recruitment.title', descKey: 'recruitment.description', icon: 'pi pi-user-plus', module: 'recruitment' }
       },
       // Job Requisitions — S-1 (workforce gap) / S-5 (succession gap) reason_type
       {
         path: 'recruitment/requisitions',
         name: 'Requisitions',
-        component: () => import('@/views/modules/Requisitions.vue'),
+        component: () => import('@/views/modules/recruitment/Requisitions.vue'),
         meta: { title: 'Job Requisitions', titleKey: 'recruitment.requisitions', descKey: 'requisitions.description', icon: 'pi pi-briefcase', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
       },
       // Internal Candidates — S-4 (eligible via career path dari Career Intelligence)
       {
         path: 'recruitment/internal-candidates',
         name: 'InternalCandidates',
-        component: () => import('@/views/modules/InternalCandidates.vue'),
+        component: () => import('@/views/modules/recruitment/InternalCandidates.vue'),
         meta: { title: 'Internal Candidates', titleKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
       },
       // Job Offers — G-3 (offer management + approval workflow)
       {
         path: 'recruitment/offers',
         name: 'Offers',
-        component: () => import('@/views/modules/Offers.vue'),
+        component: () => import('@/views/modules/recruitment/Offers.vue'),
         meta: { title: 'Job Offers', titleKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
       },
       // Onboarding — G-4: employee hasil offer (recruited_from_application_id) + status (S-7 handoff)
       {
         path: 'recruitment/onboarding',
         name: 'Onboarding',
-        component: () => import('@/views/modules/Onboarding.vue'),
+        component: () => import('@/views/modules/recruitment/Onboarding.vue'),
         meta: { title: 'Onboarding', titleKey: 'recruitment.onboarding', descKey: 'onboarding.description', icon: 'pi pi-rocket', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
       },
       // Reimbursement
       {
         path: 'reimbursements',
         name: 'Reimbursements',
-        component: () => import('@/views/modules/Reimbursements.vue'),
+        component: () => import('@/views/modules/reimbursement/Reimbursements.vue'),
         meta: { title: 'Reimbursement', titleKey: 'reimbursement.title', descKey: 'reimbursement.description', icon: 'pi pi-credit-card', module: 'reimbursement' }
       },
       // Training & Development
       {
         path: 'training',
         name: 'Training',
-        component: () => import('@/views/modules/Training.vue'),
+        component: () => import('@/views/modules/training/Training.vue'),
         meta: { title: 'Training', titleKey: 'training.title', descKey: 'training.description', icon: 'pi pi-book', module: 'training' }
       },
       {
@@ -477,42 +477,42 @@ const routes = [
       {
         path: 'workforce-intelligence',
         name: 'WorkforceIntelligence',
-        component: () => import('@/views/modules/WorkforceIntelligence.vue'),
+        component: () => import('@/views/modules/workforce-intelligence/WorkforceIntelligence.vue'),
         meta: { title: 'Workforce Intel', titleKey: 'workforce_intel.title', descKey: 'workforce_intel.description', icon: 'pi pi-chart-bar', module: 'workforce-intelligence' }
       },
       // Candidate Search — posisi kosong + kandidat recruitment
       {
         path: 'workforce-intelligence/candidate-search',
         name: 'CandidateSearch',
-        component: () => import('@/views/modules/CandidateSearch.vue'),
+        component: () => import('@/views/modules/workforce-intelligence/CandidateSearch.vue'),
         meta: { title: 'Candidate Search', titleKey: 'candidate_search.title', descKey: 'candidate_search.description', icon: 'pi pi-user-plus', module: 'workforce-intelligence', backRoute: '/workforce-intelligence', backLabelKey: 'workforce_intel.title' }
       },
       // Quality of Hire — metrik agregat kualitas hire (S-6)
       {
         path: 'workforce-intelligence/quality-of-hire',
         name: 'QualityOfHire',
-        component: () => import('@/views/modules/QualityOfHire.vue'),
+        component: () => import('@/views/modules/workforce-intelligence/QualityOfHire.vue'),
         meta: { title: 'Quality of Hire', titleKey: 'quality_of_hire.title', descKey: 'quality_of_hire.description', icon: 'pi pi-bullseye', module: 'workforce-intelligence', backRoute: '/workforce-intelligence', backLabelKey: 'workforce_intel.title' }
       },
       // Recruitment Analytics — S-2 (remaining gap, expected hires) + S-3 (time to hire/fill, OAR, source conversion)
       {
         path: 'workforce-intelligence/recruitment-analytics',
         name: 'RecruitmentAnalytics',
-        component: () => import('@/views/modules/RecruitmentAnalytics.vue'),
+        component: () => import('@/views/modules/workforce-intelligence/RecruitmentAnalytics.vue'),
         meta: { title: 'Recruitment Analytics', titleKey: 'recruitment_analytics.title', descKey: 'recruitment_analytics.description', icon: 'pi pi-chart-line', module: 'workforce-intelligence', backRoute: '/workforce-intelligence', backLabelKey: 'workforce_intel.title' }
       },
       // Career Intelligence
       {
         path: 'career-intelligence',
         name: 'CareerIntelligence',
-        component: () => import('@/views/modules/CareerIntelligence.vue'),
+        component: () => import('@/views/modules/career-intelligence/CareerIntelligence.vue'),
         meta: { title: 'Career Intel', titleKey: 'career_intel.title', descKey: 'career_intel.description', icon: 'pi pi-chart-line', module: 'career-intelligence' }
       },
       // Succession Gaps — S-5 (posisi kunci tanpa successor siap → external recruitment)
       {
         path: 'career-intelligence/successions',
         name: 'SuccessionGaps',
-        component: () => import('@/views/modules/SuccessionGaps.vue'),
+        component: () => import('@/views/modules/career-intelligence/SuccessionGaps.vue'),
         meta: { title: 'Succession Gaps', titleKey: 'succession_gaps.title', descKey: 'succession_gaps.description', icon: 'pi pi-users', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title' }
       },
       // Settings — index page menampilkan card sub-menu settings
