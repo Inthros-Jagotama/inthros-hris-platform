@@ -3208,3 +3208,141 @@ func TestService_CompleteInterview_NoScorecardItemsKeepsScoreUnset(t *testing.T)
 		t.Errorf("expected score unset (0), got %v", resp.Score)
 	}
 }
+
+func TestService_CreateRequisitionRequirement(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+
+	resp, err := svc.CreateRequisitionRequirement(ctx, req.ID, CreateRequisitionRequirementRequest{
+		RequirementType: "EXPERIENCE_YEARS", Name: "Min Experience",
+	})
+	if err != nil {
+		t.Fatalf("CreateRequisitionRequirement failed: %v", err)
+	}
+	if !resp.IsRequired {
+		t.Error("expected default is_required true")
+	}
+}
+
+func TestService_CreateRequisitionRequirement_UnknownRequisition(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := svc.CreateRequisitionRequirement(ctx, uuid.New().String(), CreateRequisitionRequirementRequest{
+		RequirementType: "OTHER", Name: "X",
+	})
+	if err == nil {
+		t.Fatal("expected error for unknown requisition, got nil")
+	}
+}
+
+func TestService_ListUpdateDeleteRequisitionRequirement(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	created, err := svc.CreateRequisitionRequirement(ctx, req.ID, CreateRequisitionRequirementRequest{RequirementType: "OTHER", Name: "Original"})
+	if err != nil {
+		t.Fatalf("CreateRequisitionRequirement failed: %v", err)
+	}
+
+	list, err := svc.ListRequisitionRequirements(ctx, req.ID)
+	if err != nil {
+		t.Fatalf("ListRequisitionRequirements failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Errorf("expected 1, got %d", len(list))
+	}
+
+	newName := "Updated"
+	updated, err := svc.UpdateRequisitionRequirement(ctx, created.ID, UpdateRequisitionRequirementRequest{Name: &newName})
+	if err != nil {
+		t.Fatalf("UpdateRequisitionRequirement failed: %v", err)
+	}
+	if updated.Name != "Updated" {
+		t.Errorf("expected Updated, got %s", updated.Name)
+	}
+
+	if err := svc.DeleteRequisitionRequirement(ctx, created.ID); err != nil {
+		t.Fatalf("DeleteRequisitionRequirement failed: %v", err)
+	}
+}
+
+func TestService_CreateRequisitionCompetency(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	comp := &competency.Competency{Name: "Go"}
+	if err := db.Create(comp).Error; err != nil {
+		t.Fatalf("failed to seed competency: %v", err)
+	}
+
+	resp, err := svc.CreateRequisitionCompetency(ctx, req.ID, CreateRequisitionCompetencyRequest{CompetencyID: comp.ID.String()})
+	if err != nil {
+		t.Fatalf("CreateRequisitionCompetency failed: %v", err)
+	}
+	if resp.CompetencyID != comp.ID.String() {
+		t.Errorf("expected competency_id %s, got %s", comp.ID.String(), resp.CompetencyID)
+	}
+}
+
+func TestService_CreateRequisitionCompetency_UnknownCompetency(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+
+	_, err := svc.CreateRequisitionCompetency(ctx, req.ID, CreateRequisitionCompetencyRequest{CompetencyID: uuid.New().String()})
+	if err == nil {
+		t.Fatal("expected error for unknown competency, got nil")
+	}
+}
+
+func TestService_ListUpdateDeleteRequisitionCompetency(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	svc := NewService(repo, zap.NewNop())
+	seedDefaultRecruitmentStages(db)
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	comp := &competency.Competency{Name: "Go"}
+	db.Create(comp)
+	created, err := svc.CreateRequisitionCompetency(ctx, req.ID, CreateRequisitionCompetencyRequest{CompetencyID: comp.ID.String()})
+	if err != nil {
+		t.Fatalf("CreateRequisitionCompetency failed: %v", err)
+	}
+
+	list, err := svc.ListRequisitionCompetencies(ctx, req.ID)
+	if err != nil {
+		t.Fatalf("ListRequisitionCompetencies failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Errorf("expected 1, got %d", len(list))
+	}
+
+	level := 4
+	updated, err := svc.UpdateRequisitionCompetency(ctx, created.ID, UpdateRequisitionCompetencyRequest{RequiredLevel: &level})
+	if err != nil {
+		t.Fatalf("UpdateRequisitionCompetency failed: %v", err)
+	}
+	if updated.RequiredLevel != 4 {
+		t.Errorf("expected required_level 4, got %d", updated.RequiredLevel)
+	}
+
+	if err := svc.DeleteRequisitionCompetency(ctx, created.ID); err != nil {
+		t.Fatalf("DeleteRequisitionCompetency failed: %v", err)
+	}
+}

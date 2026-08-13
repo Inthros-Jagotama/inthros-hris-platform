@@ -3196,6 +3196,221 @@ func (s *Service) DeleteAssessmentParticipant(ctx context.Context, id string) er
 }
 
 // =========================================================================
+// Job Requisition Requirements + Competencies (G-9 sub-project 1)
+// =========================================================================
+
+func (s *Service) CreateRequisitionRequirement(ctx context.Context, requisitionID string, req CreateRequisitionRequirementRequest) (*RequisitionRequirementResponse, error) {
+	reqUUID, err := uuid.Parse(requisitionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid requisition_id: %w", err)
+	}
+	if _, err := s.repo.FindRequisitionByID(ctx, reqUUID); err != nil {
+		return nil, fmt.Errorf("requisition not found: %w", err)
+	}
+	isRequired := true
+	if req.IsRequired != nil {
+		isRequired = *req.IsRequired
+	}
+	sortOrder := 0
+	if req.SortOrder != nil {
+		sortOrder = *req.SortOrder
+	}
+	r := &JobRequisitionRequirement{
+		RequisitionID:   reqUUID,
+		RequirementType: req.RequirementType,
+		Name:            req.Name,
+		Description:     req.Description,
+		MinimumValue:    req.MinimumValue,
+		MaximumValue:    req.MaximumValue,
+		IsRequired:      isRequired,
+		SortOrder:       sortOrder,
+	}
+	if err := s.repo.CreateRequisitionRequirement(ctx, r); err != nil {
+		return nil, err
+	}
+	return requisitionRequirementToResponse(r), nil
+}
+
+func (s *Service) ListRequisitionRequirements(ctx context.Context, requisitionID string) ([]RequisitionRequirementResponse, error) {
+	reqUUID, err := uuid.Parse(requisitionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid requisition_id: %w", err)
+	}
+	list, err := s.repo.ListRequisitionRequirements(ctx, reqUUID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]RequisitionRequirementResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *requisitionRequirementToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) UpdateRequisitionRequirement(ctx context.Context, id string, req UpdateRequisitionRequirementRequest) (*RequisitionRequirementResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	r, err := s.repo.FindRequisitionRequirementByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.RequirementType != nil {
+		r.RequirementType = *req.RequirementType
+	}
+	if req.Name != nil {
+		r.Name = *req.Name
+	}
+	if req.Description != nil {
+		r.Description = *req.Description
+	}
+	if req.MinimumValue != nil {
+		r.MinimumValue = req.MinimumValue
+	}
+	if req.MaximumValue != nil {
+		r.MaximumValue = req.MaximumValue
+	}
+	if req.IsRequired != nil {
+		r.IsRequired = *req.IsRequired
+	}
+	if req.SortOrder != nil {
+		r.SortOrder = *req.SortOrder
+	}
+	if err := s.repo.UpdateRequisitionRequirement(ctx, r); err != nil {
+		return nil, err
+	}
+	return requisitionRequirementToResponse(r), nil
+}
+
+func (s *Service) DeleteRequisitionRequirement(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteRequisitionRequirement(ctx, uid)
+}
+
+func (s *Service) CreateRequisitionCompetency(ctx context.Context, requisitionID string, req CreateRequisitionCompetencyRequest) (*RequisitionCompetencyResponse, error) {
+	reqUUID, err := uuid.Parse(requisitionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid requisition_id: %w", err)
+	}
+	if _, err := s.repo.FindRequisitionByID(ctx, reqUUID); err != nil {
+		return nil, fmt.Errorf("requisition not found: %w", err)
+	}
+	compUUID, err := uuid.Parse(req.CompetencyID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid competency_id: %w", err)
+	}
+	if _, err := s.repo.FindCompetencyByID(ctx, compUUID); err != nil {
+		return nil, fmt.Errorf("competency not found: %w", err)
+	}
+	isRequired := true
+	if req.IsRequired != nil {
+		isRequired = *req.IsRequired
+	}
+	c := &JobRequisitionCompetency{
+		RequisitionID: reqUUID,
+		CompetencyID:  compUUID,
+		RequiredLevel: req.RequiredLevel,
+		IsRequired:    isRequired,
+		Weight:        req.Weight,
+	}
+	if err := s.repo.CreateRequisitionCompetency(ctx, c); err != nil {
+		return nil, err
+	}
+	return requisitionCompetencyToResponse(c), nil
+}
+
+func (s *Service) ListRequisitionCompetencies(ctx context.Context, requisitionID string) ([]RequisitionCompetencyResponse, error) {
+	reqUUID, err := uuid.Parse(requisitionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid requisition_id: %w", err)
+	}
+	list, err := s.repo.ListRequisitionCompetencies(ctx, reqUUID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]RequisitionCompetencyResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *requisitionCompetencyToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func (s *Service) UpdateRequisitionCompetency(ctx context.Context, id string, req UpdateRequisitionCompetencyRequest) (*RequisitionCompetencyResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	c, err := s.repo.FindRequisitionCompetencyByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.RequiredLevel != nil {
+		c.RequiredLevel = req.RequiredLevel
+	}
+	if req.IsRequired != nil {
+		c.IsRequired = *req.IsRequired
+	}
+	if req.Weight != nil {
+		c.Weight = req.Weight
+	}
+	if err := s.repo.UpdateRequisitionCompetency(ctx, c); err != nil {
+		return nil, err
+	}
+	return requisitionCompetencyToResponse(c), nil
+}
+
+func (s *Service) DeleteRequisitionCompetency(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteRequisitionCompetency(ctx, uid)
+}
+
+func requisitionRequirementToResponse(r *JobRequisitionRequirement) *RequisitionRequirementResponse {
+	resp := &RequisitionRequirementResponse{
+		ID:              r.ID.String(),
+		RequisitionID:   r.RequisitionID.String(),
+		RequirementType: r.RequirementType,
+		Name:            r.Name,
+		Description:     r.Description,
+		IsRequired:      r.IsRequired,
+		SortOrder:       r.SortOrder,
+		CreatedAt:       r.CreatedAt,
+		UpdatedAt:       r.UpdatedAt,
+	}
+	if r.MinimumValue != nil {
+		resp.MinimumValue = *r.MinimumValue
+	}
+	if r.MaximumValue != nil {
+		resp.MaximumValue = *r.MaximumValue
+	}
+	return resp
+}
+
+func requisitionCompetencyToResponse(c *JobRequisitionCompetency) *RequisitionCompetencyResponse {
+	resp := &RequisitionCompetencyResponse{
+		ID:            c.ID.String(),
+		RequisitionID: c.RequisitionID.String(),
+		CompetencyID:  c.CompetencyID.String(),
+		IsRequired:    c.IsRequired,
+		CreatedAt:     c.CreatedAt,
+		UpdatedAt:     c.UpdatedAt,
+	}
+	if c.RequiredLevel != nil {
+		resp.RequiredLevel = *c.RequiredLevel
+	}
+	if c.Weight != nil {
+		resp.Weight = *c.Weight
+	}
+	return resp
+}
+
+// =========================================================================
 // Interviewers + Scorecard Items (G-8)
 // =========================================================================
 

@@ -469,6 +469,60 @@ func (a *JobApplication) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// JobRequisitionRequirement + JobRequisitionCompetency (G-9 sub-project 1)
+// =========================================================================
+// Fondasi data untuk candidate matching (G-9 sub-project 2, belum
+// dieksekusi) — murni referensi kebutuhan requisition, tidak menghitung
+// skor apapun di sub-project ini.
+
+type JobRequisitionRequirement struct {
+	ID              uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	RequisitionID   uuid.UUID `gorm:"type:char(36);not null;index:idx_reqmt_req" json:"requisition_id"`
+	RequirementType string    `gorm:"type:varchar(50);not null" json:"requirement_type"`
+	Name            string    `gorm:"type:varchar(255);not null" json:"name"`
+	Description     string    `gorm:"type:text" json:"description"`
+	MinimumValue    *float64  `gorm:"type:decimal(10,2)" json:"minimum_value,omitempty"`
+	MaximumValue    *float64  `gorm:"type:decimal(10,2)" json:"maximum_value,omitempty"`
+	IsRequired      bool      `gorm:"not null;default:1" json:"is_required"`
+	SortOrder       int       `gorm:"type:int;default:0" json:"sort_order"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+func (JobRequisitionRequirement) TableName() string {
+	return "job_requisition_requirements"
+}
+
+func (r *JobRequisitionRequirement) BeforeCreate(tx *gorm.DB) error {
+	if r.ID == uuid.Nil {
+		r.ID = uuid.New()
+	}
+	return nil
+}
+
+type JobRequisitionCompetency struct {
+	ID            uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
+	RequisitionID uuid.UUID `gorm:"type:char(36);not null;index:idx_reqcomp_req" json:"requisition_id"`
+	CompetencyID  uuid.UUID `gorm:"type:char(36);not null;index:idx_reqcomp_comp" json:"competency_id"`
+	RequiredLevel *int      `gorm:"type:smallint" json:"required_level,omitempty"`
+	IsRequired    bool      `gorm:"not null;default:1" json:"is_required"`
+	Weight        *float64  `gorm:"type:decimal(5,2)" json:"weight,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+func (JobRequisitionCompetency) TableName() string {
+	return "job_requisition_competencies"
+}
+
+func (c *JobRequisitionCompetency) BeforeCreate(tx *gorm.DB) error {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // RecruitmentStage (G-5 — master stage, seeded dari CandidateStatus)
 // =========================================================================
 // Seeded 1:1 dari 8 CandidateStatus existing (bukan taxonomy baru) — lihat

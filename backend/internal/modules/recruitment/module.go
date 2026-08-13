@@ -116,6 +116,8 @@ func (m *recModule) Migrate(db *gorm.DB) error {
 		&AssessmentParticipant{},
 		&Interviewer{},
 		&InterviewScorecardItem{},
+		&JobRequisitionRequirement{},
+		&JobRequisitionCompetency{},
 	)
 }
 

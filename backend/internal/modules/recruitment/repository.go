@@ -1181,6 +1181,120 @@ func (r *Repository) DeleteAssessmentParticipant(ctx context.Context, id uuid.UU
 }
 
 // =========================================================================
+// Job Requisition Requirements + Competencies (G-9 sub-project 1)
+// =========================================================================
+
+func (r *Repository) CreateRequisitionRequirement(ctx context.Context, req *JobRequisitionRequirement) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(req).Error
+}
+
+func (r *Repository) FindRequisitionRequirementByID(ctx context.Context, id uuid.UUID) (*JobRequisitionRequirement, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var req JobRequisitionRequirement
+	if err := db.WithContext(ctx).First(&req, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("requisition requirement not found")
+		}
+		return nil, err
+	}
+	return &req, nil
+}
+
+func (r *Repository) ListRequisitionRequirements(ctx context.Context, requisitionID uuid.UUID) ([]JobRequisitionRequirement, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []JobRequisitionRequirement
+	if err := db.WithContext(ctx).Where("requisition_id = ?", requisitionID).Order("sort_order ASC, created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateRequisitionRequirement(ctx context.Context, req *JobRequisitionRequirement) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(req).Error
+}
+
+func (r *Repository) DeleteRequisitionRequirement(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&JobRequisitionRequirement{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("requisition requirement not found")
+	}
+	return result.Error
+}
+
+func (r *Repository) CreateRequisitionCompetency(ctx context.Context, c *JobRequisitionCompetency) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(c).Error
+}
+
+func (r *Repository) FindRequisitionCompetencyByID(ctx context.Context, id uuid.UUID) (*JobRequisitionCompetency, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var c JobRequisitionCompetency
+	if err := db.WithContext(ctx).First(&c, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("requisition competency not found")
+		}
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (r *Repository) ListRequisitionCompetencies(ctx context.Context, requisitionID uuid.UUID) ([]JobRequisitionCompetency, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []JobRequisitionCompetency
+	if err := db.WithContext(ctx).Where("requisition_id = ?", requisitionID).Order("created_at ASC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) UpdateRequisitionCompetency(ctx context.Context, c *JobRequisitionCompetency) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(c).Error
+}
+
+func (r *Repository) DeleteRequisitionCompetency(ctx context.Context, id uuid.UUID) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.WithContext(ctx).Delete(&JobRequisitionCompetency{}, id)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("requisition competency not found")
+	}
+	return result.Error
+}
+
+// =========================================================================
 // Interviewers + Scorecard Items (G-8)
 // =========================================================================
 

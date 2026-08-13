@@ -517,6 +517,68 @@ type AssessmentParticipantResponse struct {
 }
 
 // =========================================================================
+// Job Requisition Requirement + Competency DTOs (G-9 sub-project 1)
+// =========================================================================
+
+type CreateRequisitionRequirementRequest struct {
+	RequirementType string   `json:"requirement_type" binding:"required,max=50"`
+	Name            string   `json:"name" binding:"required,max=255"`
+	Description     string   `json:"description"`
+	MinimumValue    *float64 `json:"minimum_value"`
+	MaximumValue    *float64 `json:"maximum_value"`
+	IsRequired      *bool    `json:"is_required"`
+	SortOrder       *int     `json:"sort_order"`
+}
+
+type UpdateRequisitionRequirementRequest struct {
+	RequirementType *string  `json:"requirement_type" binding:"omitempty,max=50"`
+	Name            *string  `json:"name" binding:"omitempty,max=255"`
+	Description     *string  `json:"description"`
+	MinimumValue    *float64 `json:"minimum_value"`
+	MaximumValue    *float64 `json:"maximum_value"`
+	IsRequired      *bool    `json:"is_required"`
+	SortOrder       *int     `json:"sort_order"`
+}
+
+type RequisitionRequirementResponse struct {
+	ID              string    `json:"id"`
+	RequisitionID   string    `json:"requisition_id"`
+	RequirementType string    `json:"requirement_type"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description,omitempty"`
+	MinimumValue    float64   `json:"minimum_value,omitempty"`
+	MaximumValue    float64   `json:"maximum_value,omitempty"`
+	IsRequired      bool      `json:"is_required"`
+	SortOrder       int       `json:"sort_order"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+type CreateRequisitionCompetencyRequest struct {
+	CompetencyID  string   `json:"competency_id" binding:"required"`
+	RequiredLevel *int     `json:"required_level"`
+	IsRequired    *bool    `json:"is_required"`
+	Weight        *float64 `json:"weight"`
+}
+
+type UpdateRequisitionCompetencyRequest struct {
+	RequiredLevel *int     `json:"required_level"`
+	IsRequired    *bool    `json:"is_required"`
+	Weight        *float64 `json:"weight"`
+}
+
+type RequisitionCompetencyResponse struct {
+	ID            string    `json:"id"`
+	RequisitionID string    `json:"requisition_id"`
+	CompetencyID  string    `json:"competency_id"`
+	RequiredLevel int       `json:"required_level,omitempty"`
+	IsRequired    bool      `json:"is_required"`
+	Weight        float64   `json:"weight,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// =========================================================================
 // Interview DTOs
 // =========================================================================
 

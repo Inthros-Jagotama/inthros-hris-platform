@@ -1289,3 +1289,153 @@ func TestRepository_UpdateAndDeleteScorecardItem(t *testing.T) {
 		t.Error("expected error finding deleted item, got nil")
 	}
 }
+
+func TestRepository_CreateAndFindRequisitionRequirement(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+
+	req := &JobRequisitionRequirement{RequisitionID: r.ID, RequirementType: "EXPERIENCE_YEARS", Name: "Min Experience"}
+	if err := repo.CreateRequisitionRequirement(ctx, req); err != nil {
+		t.Fatalf("CreateRequisitionRequirement failed: %v", err)
+	}
+
+	found, err := repo.FindRequisitionRequirementByID(ctx, req.ID)
+	if err != nil {
+		t.Fatalf("FindRequisitionRequirementByID failed: %v", err)
+	}
+	if found.Name != "Min Experience" {
+		t.Errorf("expected 'Min Experience', got %s", found.Name)
+	}
+}
+
+func TestRepository_ListRequisitionRequirements(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+	repo.CreateRequisitionRequirement(ctx, &JobRequisitionRequirement{RequisitionID: r.ID, RequirementType: "EDUCATION", Name: "S1"})
+	repo.CreateRequisitionRequirement(ctx, &JobRequisitionRequirement{RequisitionID: r.ID, RequirementType: "LANGUAGE", Name: "English"})
+
+	list, err := repo.ListRequisitionRequirements(ctx, r.ID)
+	if err != nil {
+		t.Fatalf("ListRequisitionRequirements failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2, got %d", len(list))
+	}
+}
+
+func TestRepository_UpdateAndDeleteRequisitionRequirement(t *testing.T) {
+	repo, cleanup := newTestRepository()
+	defer cleanup()
+	ctx := context.Background()
+
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+	req := &JobRequisitionRequirement{RequisitionID: r.ID, RequirementType: "OTHER", Name: "Original"}
+	repo.CreateRequisitionRequirement(ctx, req)
+
+	req.Name = "Updated"
+	if err := repo.UpdateRequisitionRequirement(ctx, req); err != nil {
+		t.Fatalf("UpdateRequisitionRequirement failed: %v", err)
+	}
+	found, _ := repo.FindRequisitionRequirementByID(ctx, req.ID)
+	if found.Name != "Updated" {
+		t.Errorf("expected 'Updated', got %s", found.Name)
+	}
+
+	if err := repo.DeleteRequisitionRequirement(ctx, req.ID); err != nil {
+		t.Fatalf("DeleteRequisitionRequirement failed: %v", err)
+	}
+	if _, err := repo.FindRequisitionRequirementByID(ctx, req.ID); err == nil {
+		t.Error("expected error finding deleted requirement, got nil")
+	}
+}
+
+func TestRepository_CreateAndFindRequisitionCompetency(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+	comp := &competency.Competency{Name: "Go Programming"}
+	if err := db.Create(comp).Error; err != nil {
+		t.Fatalf("failed to seed competency: %v", err)
+	}
+
+	rc := &JobRequisitionCompetency{RequisitionID: r.ID, CompetencyID: comp.ID}
+	if err := repo.CreateRequisitionCompetency(ctx, rc); err != nil {
+		t.Fatalf("CreateRequisitionCompetency failed: %v", err)
+	}
+
+	found, err := repo.FindRequisitionCompetencyByID(ctx, rc.ID)
+	if err != nil {
+		t.Fatalf("FindRequisitionCompetencyByID failed: %v", err)
+	}
+	if found.CompetencyID != comp.ID {
+		t.Errorf("expected competency_id %s, got %s", comp.ID, found.CompetencyID)
+	}
+}
+
+func TestRepository_ListRequisitionCompetencies(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+	comp1 := &competency.Competency{Name: "Go"}
+	comp2 := &competency.Competency{Name: "SQL"}
+	db.Create(comp1)
+	db.Create(comp2)
+	repo.CreateRequisitionCompetency(ctx, &JobRequisitionCompetency{RequisitionID: r.ID, CompetencyID: comp1.ID})
+	repo.CreateRequisitionCompetency(ctx, &JobRequisitionCompetency{RequisitionID: r.ID, CompetencyID: comp2.ID})
+
+	list, err := repo.ListRequisitionCompetencies(ctx, r.ID)
+	if err != nil {
+		t.Fatalf("ListRequisitionCompetencies failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2, got %d", len(list))
+	}
+}
+
+func TestRepository_UpdateAndDeleteRequisitionCompetency(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	r := &JobRequisition{OrganizationID: uuid.New(), Title: "Req", Status: ReqStatusOpen}
+	repo.CreateRequisition(ctx, r)
+	comp := &competency.Competency{Name: "Go"}
+	db.Create(comp)
+	rc := &JobRequisitionCompetency{RequisitionID: r.ID, CompetencyID: comp.ID}
+	repo.CreateRequisitionCompetency(ctx, rc)
+
+	level := 4
+	rc.RequiredLevel = &level
+	if err := repo.UpdateRequisitionCompetency(ctx, rc); err != nil {
+		t.Fatalf("UpdateRequisitionCompetency failed: %v", err)
+	}
+	found, _ := repo.FindRequisitionCompetencyByID(ctx, rc.ID)
+	if found.RequiredLevel == nil || *found.RequiredLevel != 4 {
+		t.Errorf("expected required_level 4, got %v", found.RequiredLevel)
+	}
+
+	if err := repo.DeleteRequisitionCompetency(ctx, rc.ID); err != nil {
+		t.Fatalf("DeleteRequisitionCompetency failed: %v", err)
+	}
+	if _, err := repo.FindRequisitionCompetencyByID(ctx, rc.ID); err == nil {
+		t.Error("expected error finding deleted competency, got nil")
+	}
+}

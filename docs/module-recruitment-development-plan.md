@@ -4,7 +4,8 @@
 > ✅ **Fakta aktual (audit 2026-08-12):** modul ini **bukan greenfield** — backend ATS dasar sudah diimplementasikan penuh (7 entity, 33 endpoint, 75 test) dan FE masih placeholder "Coming soon". Bagian "target" di dokumen ini (offer, stage history, screening, assessment, scorecard, approval, candidate enhancement, dst.) adalah **rencana enhancement**, bukan status.
 > 🔎 **Sumber:** struktur tabel `015_recruitment.sql` (mysql + postgres) + audit `backend/internal/modules/recruitment/` (model.go, service.go, handler.go, routes.go, module.go) + `frontend/tenant/src/views/modules/Recruitment.vue` + `frontend/tenant/src/router/index.js` + cross-reference `docs/module-notification-plan.md` (§5/§9: "Recruitment belum tersentuh" untuk integrasi approval/notifier) + `docs/module-recruitment-strategic-layer-plan.md` (rumah item strategic layer yang dipisah) + `docs/go-module-architecture-report.md` + `docs/project-completion-dashboard.md`.
 > 📊 **Progres implementasi (per 2026-08-12):** ✅ 1) Backend ATS lengkap — 7 GORM entity (`JobRequisition`, `Candidate`, `JobApplication`, `Interview`, `OnboardingTaskTemplate`, `EmployeeOnboarding`, `OnboardingTaskItem`) + enum status · ✅ 2) 33 endpoint CRUD/pipeline di 7 resource group · ✅ 3) Seeder 10 onboarding task template default · ✅ 4) 75 test (handler 28 + repository 27 + service 20) · ✅ 5) pipeline aplikasi (status + timestamp otomatis + auto `slots_filled` saat ACCEPTED) · ❌ 6) Frontend masih placeholder ("Coming soon") — hanya route/menu/locale/dashboard card · ⏳ 7) Integrasi operasional dua arah dengan modul lain (Module Approval, Notifier, Employee, Employee Movement) — **belum ada**; Employee 🔶 sebagian (onboarding menunjuk `employee_id` tanpa FK) · 🚫 8) **Scoping 2026-08-12:** Recruitment = **module operasional** — strategic layer (Workforce Intelligence, Career Intelligence, Succession, Performance, Training, Quality of Hire) **dipisah dari plan ini** — out of scope, dikelola modul masing-masing (§5.2).
-> ⏳ **Sisa TODO (per review 2026-08-13):** G-1 s.d. G-8 selesai — sisa gap: G-9 candidate matching, G-10 onboarding scoping, G-11 analytics, G-12 FE penuh.
+> ⏳ **Sisa TODO (per review 2026-08-13):** G-1 s.d. G-8 selesai; G-9 sebagian (requirement/competency tables ✅, match score ⏳) — sisa gap: G-9 match score, G-10 onboarding scoping, G-11 analytics, G-12 FE penuh.
+> ✅ **G-9 sub-project 1 selesai (2026-08-13):** requisition requirements + competencies (migration 105 tabel `job_requisition_requirements` + `job_requisition_competencies`; `requirement_type` free-text, `required_level`/`weight` tidak di-enforce skala DB) — fondasi data untuk candidate matching, lihat §G-9. Algoritma `candidate_match_score` (sub-project 2, lintas Requirement+Competency+Education+Experience+Skill+Certification+Assessment+Interview) belum dieksekusi.
 > ✅ **G-7 selesai (2026-08-13):** sub-project 1 application screening (migration 102 tabel `application_screenings`; many-per-application seperti Interview) + sub-project 2 assessment (migration 103 tabel `recruitment_assessments` + `assessment_participants` — 2 tabel bukan 3, hasil digabung ke participant karena 1:1); keduanya CRUD murni tanpa auto-transition status/stage-history — recruiter tetap update status manual — lihat §G-7.
 > ✅ **G-8 selesai (2026-08-13):** interview multi-interviewer & scorecard (migration 104 tabel `interviewers` — melengkapi `interviews.interviewer_id` existing, backward compat — + `interview_scorecard_items` — kriteria bebas per interview tanpa master; endpoint `POST /interviews/:id/complete` menghitung weighted average scorecard items ke `Interview.Score` existing) — lihat §G-8.
 > ✅ **G-1 selesai (2026-08-12):** requisition → Central Approval (migration 093, interface `ApprovalEngine`, `SubmitRequisition` DRAFT→SUBMITTED, push-callback APPROVED→OPEN / REJECTED / CANCELLED, endpoint `POST /recruitment/requisitions/:id/submit`, wiring main.go) — lihat §G-1. Bagian offer workflow menunggu G-3 (entity `job_offers` belum ada).
@@ -53,7 +54,7 @@ Recruitment Pipeline
 Status per bagian:
 
 - **ATS dasar (CRUD requisition/candidate/application/interview/onboarding)** — ✅ sudah diimplementasikan (lihat §3.1).
-- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** + **G-2 requisition enhancement ✅** + **G-3 offer management ✅** + **G-4 Recruitment → Employee/Movement ✅** + **G-5 stage history ✅** + **G-6 candidate enhancement ✅** + **G-7 screening & assessment ✅** + **G-8 interview scorecard ✅** (2026-08-12/13); sisanya (G-9 s.d. G-12) rencana (lihat Gap Analysis §7).
+- **Integrated Recruitment (approval, offer, stage history, screening, assessment, scorecard, candidate enhancement, integrasi operasional)** — 🔶 sebagian: **G-1 approval requisition ✅** + **G-2 requisition enhancement ✅** + **G-3 offer management ✅** + **G-4 Recruitment → Employee/Movement ✅** + **G-5 stage history ✅** + **G-6 candidate enhancement ✅** + **G-7 screening & assessment ✅** + **G-8 interview scorecard ✅** + **G-9 requirement/competency (sub-1) ✅** (2026-08-12/13); sisanya (G-9 match score, G-10 s.d. G-12) rencana (lihat Gap Analysis §7).
 
 ---
 
@@ -576,13 +577,20 @@ Semua sub-table G-6 yang direncanakan (educations, work_experiences, skills, cer
 
 **Ref:** plan asli §23-§24.
 
-## G-9 🟡 CANDIDATE MATCHING & REQUISITION COMPETENCY
+## G-9 🔶 CANDIDATE MATCHING & REQUISITION COMPETENCY — sub-project 1 ✅ (requirement/competency tables) — sisa: match score
 
-**Status: ⏳ Belum.**
+**Status: 🔶 Sebagian (2026-08-13).** Sub-project 1 (fondasi data: requirement + competency tables) selesai; sub-project 2 (algoritma `candidate_match_score` lintas entity) belum dieksekusi — dipisah karena kompleksitasnya jauh lebih besar (agregasi Requirement+Competency+Education+Experience+Skill+Certification+Assessment+Interview).
 
-**Rencana:**
-- `job_requisition_requirements`: `id, requisition_id, requirement_type, name, description, minimum_value, maximum_value, is_required, sort_order`.
-- `job_requisition_competencies`: `id, requisition_id, competency_id, required_level, is_required, weight` — basis candidate matching (contoh: `PHP L4 Required`, `Laravel L4 Required`, `PostgreSQL L3 Required`, `Leadership L2 Optional`).
+**Yang diimplementasikan (sub-project 1):**
+- **Migration `105_recruitment_requisition_requirements`** (pg + mysql, up/down idempotent): 2 tabel baru —
+  - `job_requisition_requirements` — `id, requisition_id (FK → job_requisitions, CASCADE), requirement_type VARCHAR(50) free-text, name, description, minimum_value/maximum_value DECIMAL(10,2) NULL, is_required BOOLEAN default true, sort_order, created_at, updated_at`; index `idx_reqmt_req`. `requirement_type` **sengaja free-text** (bukan enum) — konsisten dengan `job_requisitions.department`/`candidates.source` yang juga free-text di modul ini.
+  - `job_requisition_competencies` — `id, requisition_id (FK CASCADE), competency_id (FK → competencies, modul competency, CASCADE), required_level SMALLINT NULL, is_required BOOLEAN default true, weight DECIMAL(5,2) NULL, created_at, updated_at`; unique `(requisition_id, competency_id)`; index `idx_reqcomp_req` + `idx_reqcomp_comp`. `required_level` tidak di-enforce skala DB — pola sama `CandidateSkill.Level`.
+- **Model:** `JobRequisitionRequirement` + `JobRequisitionCompetency`.
+- **Service:** CRUD murni untuk keduanya — `Create/List/Update/Delete{RequisitionRequirement,RequisitionCompetency}`; validasi requisition exists (dan competency exists untuk yang kedua, reuse `FindCompetencyByID` existing dari G-6 sub-2).
+- **Handler/Routes:** `POST/GET /recruitment/requisitions/:id/requirements`, `PUT/DELETE /recruitment/requirements/:id`, `POST/GET /recruitment/requisitions/:id/competencies`, `PUT/DELETE /recruitment/requisition-competencies/:id`.
+- **Test:** +14 (repository +6: requirement CRUD, competency CRUD; service +6: requirement create/unknown-requisition-guard/list-update-delete, competency create/unknown-competency-guard/list-update-delete; handler +2: requirement create+list, competency create+list). Total recruitment: **249** (handler 54 + repository 62 + service 133).
+
+**Rencana (sisa — sub-project 2, match score):**
 - Candidate Matching memakai `Job Requirement + Competency + Education + Experience + Skill + Certification + Assessment + Interview` → `candidate_match_score` (contoh Budi 92% / Andi 87% / Dedi 76%). Match score **bukan keputusan otomatis** — recruiter dapat override dengan alasan tercatat.
 - Bandingkan `Candidate Competency vs Position Competency` dari Job Management/Position.
 
@@ -633,7 +641,7 @@ Semua sub-table G-6 yang direncanakan (educations, work_experiences, skills, cer
 
 # 8. API Plan
 
-## 8.1 Existing (77 endpoint — sudah ada)
+## 8.1 Existing (85 endpoint — sudah ada)
 
 ```http
 ## Requisitions
@@ -717,6 +725,16 @@ PUT    /api/v1/tenant/recruitment/interviews/{id}
 DELETE /api/v1/tenant/recruitment/interviews/{id}
 POST   /api/v1/tenant/recruitment/interviews/{id}/complete
 
+## Job Requisition Requirements + Competencies (G-9 sub-project 1)
+POST   /api/v1/tenant/recruitment/requisitions/{id}/requirements
+GET    /api/v1/tenant/recruitment/requisitions/{id}/requirements
+PUT    /api/v1/tenant/recruitment/requirements/{id}
+DELETE /api/v1/tenant/recruitment/requirements/{id}
+POST   /api/v1/tenant/recruitment/requisitions/{id}/competencies
+GET    /api/v1/tenant/recruitment/requisitions/{id}/competencies
+PUT    /api/v1/tenant/recruitment/requisition-competencies/{id}
+DELETE /api/v1/tenant/recruitment/requisition-competencies/{id}
+
 ## Interviewers (G-8 — multi-interviewer, melengkapi interviews.interviewer_id)
 POST   /api/v1/tenant/recruitment/interviews/{id}/interviewers
 GET    /api/v1/tenant/recruitment/interviews/{id}/interviewers
@@ -753,8 +771,8 @@ DELETE /api/v1/tenant/recruitment/onboarding-task-items/{id}
 ```http
 POST   /recruitment/requisitions/{id}/submit        ← G-1 (kirim ke Module Approval)
 POST   /recruitment/requisitions/{id}/close         ← G-2
-GET    /recruitment/requisitions/{id}/requirements  ← G-9
-GET    /recruitment/requisitions/{id}/competencies  ← G-9
+GET    /recruitment/requisitions/{id}/requirements  ← G-9 ✅ (sub-project 1, see §8.1)
+GET    /recruitment/requisitions/{id}/competencies  ← G-9 ✅ (sub-project 1, see §8.1)
 POST   /recruitment/applications/{id}/stage         ← G-5 (transition + history)
 POST   /recruitment/applications/{id}/screen        ← G-7 ✅ (implemented as /applications/{id}/screenings, see §8.1)
 GET    /recruitment/candidates/{id}/profile         ← G-6 (educations/experiences/skills/certs/documents)
@@ -836,15 +854,14 @@ Permission harus mengikuti pola permission module existing (resource + action, s
 
 # 12. Migration Plan
 
-- ✅ **Sudah ada**: `015_recruitment.sql` (mysql + postgres) — 7 tabel dasar; `093`-`104` (G-1 s.d. G-8, lihat §7).
-- ⏳ **Rencana** (nomor migration menyesuaikan urutan existing — lanjut dari 105):
+- ✅ **Sudah ada**: `015_recruitment.sql` (mysql + postgres) — 7 tabel dasar; `093`-`105` (G-1 s.d. G-9 sub-1, lihat §7).
+- ⏳ **Rencana** (nomor migration menyesuaikan urutan existing — lanjut dari 106):
 
 ```text
-M5  Create job_requisition_requirements + job_requisition_competencies            (G-9)
 M10 Enhance onboarding_task_templates (organization_id, position_id, employment_type nullable)  (G-10)
 ```
 
-Sudah dieksekusi (bukan lagi rencana): M1 (093-094, requisition approval + enhancement), M3 (095, job_offers), M4 (097, recruitment_stages + stage history), M6 (098-101, candidate sub-tables), M7 (102, application_screenings), M8 (103, recruitment_assessments + assessment_participants — 2 tabel, bukan 3, lihat §G-7), M9 (104, interviewers + interview_scorecard_items, lihat §G-8). M2 (`candidates.status`/`source_id`) diputuskan **skip/deferred** — lihat §G-6.
+Sudah dieksekusi (bukan lagi rencana): M1 (093-094, requisition approval + enhancement), M3 (095, job_offers), M4 (097, recruitment_stages + stage history), M6 (098-101, candidate sub-tables), M7 (102, application_screenings), M8 (103, recruitment_assessments + assessment_participants — 2 tabel, bukan 3, lihat §G-7), M9 (104, interviewers + interview_scorecard_items, lihat §G-8), M5 (105, job_requisition_requirements + job_requisition_competencies, lihat §G-9). M2 (`candidates.status`/`source_id`) diputuskan **skip/deferred** — lihat §G-6.
 
 Semua migration dibuat berpasangan mysql + postgres (+ `.down.sql` bila pola existing membutuhkan), idempotent.
 

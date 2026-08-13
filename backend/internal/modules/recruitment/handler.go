@@ -783,6 +783,100 @@ func (h *Handler) CompleteInterview(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+func (h *Handler) CreateRequisitionRequirement(c *gin.Context) {
+	requisitionID := c.Param("id")
+	var req CreateRequisitionRequirementRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateRequisitionRequirement(c.Request.Context(), requisitionID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListRequisitionRequirements(c *gin.Context) {
+	requisitionID := c.Param("id")
+	resp, err := h.svc.ListRequisitionRequirements(c.Request.Context(), requisitionID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateRequisitionRequirement(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateRequisitionRequirementRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateRequisitionRequirement(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteRequisitionRequirement(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteRequisitionRequirement(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+func (h *Handler) CreateRequisitionCompetency(c *gin.Context) {
+	requisitionID := c.Param("id")
+	var req CreateRequisitionCompetencyRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateRequisitionCompetency(c.Request.Context(), requisitionID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListRequisitionCompetencies(c *gin.Context) {
+	requisitionID := c.Param("id")
+	resp, err := h.svc.ListRequisitionCompetencies(c.Request.Context(), requisitionID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateRequisitionCompetency(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateRequisitionCompetencyRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.UpdateRequisitionCompetency(c.Request.Context(), id, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteRequisitionCompetency(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteRequisitionCompetency(c.Request.Context(), id); err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
 // GetEligibleInternalCandidates menangani GET /recruitment/eligible-internal-candidates
 // (plan S-4) — membaca employee internal yang eligible untuk target position
 // dari Career Intelligence (CI menentukan eligibility; Recruitment hanya
