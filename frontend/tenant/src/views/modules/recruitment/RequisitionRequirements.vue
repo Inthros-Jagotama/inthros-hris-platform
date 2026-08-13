@@ -39,8 +39,13 @@
             <p class="text-[11px] text-amber-600 dark:text-amber-400 mb-1.5"><i class="pi pi-info-circle mr-1"></i>{{ t('requisitions.from_job_management') }}</p>
             <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-dashed border-amber-200 dark:border-amber-700/40 rounded-lg">
               <div v-for="item in jobManagementEducationExperiences" :key="item.id" class="px-3 py-2.5">
-                <p class="text-sm text-gray-700 dark:text-gray-300">{{ item.education_name || item.experience_name || item.nomenclature }}</p>
-                <p v-if="item.education_name && item.experience_name" class="text-xs text-gray-400">{{ item.experience_name }}</p>
+                <p v-if="!item.education_name && !item.experience_name" class="text-sm text-gray-700 dark:text-gray-300">{{ item.nomenclature }}</p>
+                <p v-if="item.education_name" class="text-sm text-gray-700 dark:text-gray-300">
+                  <span class="text-xs font-medium text-gray-400 uppercase tracking-wide mr-1">{{ t('requisitions.education') }}:</span>{{ item.education_name }}
+                </p>
+                <p v-if="item.experience_name" class="text-sm text-gray-700 dark:text-gray-300 mt-0.5">
+                  <span class="text-xs font-medium text-gray-400 uppercase tracking-wide mr-1">{{ t('requisitions.experience') }}:</span>{{ item.experience_name }}
+                </p>
               </div>
             </div>
           </template>
