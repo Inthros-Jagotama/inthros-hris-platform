@@ -48,6 +48,13 @@ func setupRouter(t *testing.T) (*gin.Engine, *Handler) {
 		trn.GET("/participants/:id", handler.GetParticipantByID)
 		trn.PUT("/participants/:id", handler.UpdateParticipant)
 		trn.DELETE("/participants/:id", handler.DeleteParticipant)
+
+		// Certifications
+		trn.POST("/certifications", handler.CreateCertification)
+		trn.GET("/certifications", handler.ListCertifications)
+		trn.GET("/certifications/:id", handler.GetCertification)
+		trn.PUT("/certifications/:id", handler.UpdateCertification)
+		trn.DELETE("/certifications/:id", handler.DeleteCertification)
 	}
 	return r, handler
 }
@@ -120,6 +127,56 @@ func TestHandler_ListCategories(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", w.Code)
+	}
+}
+
+// TestHandler_ListCertifications_ResponseShape memastikan response list
+// certifications berbentuk envelope PaginatedResponse standar dengan `data`
+// berupa ARRAY. Regression guard: handler pernah memakai httputil.SuccessJSON
+// yang membungkus envelope dua kali (data jadi objek) sehingga DataTable
+// frontend crash dengan "Maximum recursive updates exceeded".
+func TestHandler_ListCertifications_ResponseShape(t *testing.T) {
+	r, h := setupRouter(t)
+
+	// Seed beberapa certification
+	svc := h.svc
+	bodyA, bodyB := "Org A", "Org B"
+	monthsA, monthsB := 12, 24
+	noRenew, yesRenew, active := false, true, true
+	for _, c := range []CreateCertificationRequest{
+		{Code: "CERT-A", Name: "Alpha Cert", IssuingBody: &bodyA, ValidityPeriodMonth: &monthsA, RenewalRequired: &noRenew, IsActive: &active},
+		{Code: "CERT-B", Name: "Beta Cert", IssuingBody: &bodyB, ValidityPeriodMonth: &monthsB, RenewalRequired: &yesRenew, IsActive: &active},
+	} {
+		if _, err := svc.CreateCertification(testCtx(), c); err != nil {
+			t.Fatalf("seed certification failed: %v", err)
+		}
+	}
+
+	req := httptest.NewRequest("GET", "/api/v1/tenant/trainings/certifications?page=1&per_page=10", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		Success bool `json:"success"`
+		Data    []struct {
+			ID   string `json:"id"`
+			Code string `json:"code"`
+		} `json:"data"`
+		Total int `json:"total"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	if !resp.Success {
+		t.Error("expected success=true")
+	}
+	if len(resp.Data) != 2 {
+		t.Errorf("expected 2 certifications in top-level data array, got %d (data likely double-wrapped: %s)", len(resp.Data), w.Body.String())
 	}
 }
 

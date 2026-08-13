@@ -1606,7 +1606,13 @@ func (h *Handler) ListCertifications(c *gin.Context) {
 		httputil.InternalError(c, err.Error())
 		return
 	}
-	httputil.SuccessJSON(c, resp)
+	// Pakai c.JSON langsung (bukan httputil.SuccessJSON) agar response berbentuk
+	// envelope PaginatedResponse standar { success, data: [...], page, per_page, ... }
+	// — konsisten dengan seluruh handler list training lain (ListCategories,
+	// ListCourses, ListCertificates, dll). Sebelumnya SuccessJSON membungkus
+	// envelope dua kali sehingga data menjadi objek (bukan array) dan memicu
+	// "Maximum recursive updates exceeded" pada DataTable frontend.
+	c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) UpdateCertification(c *gin.Context) {
