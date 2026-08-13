@@ -109,6 +109,7 @@ func (m *recModule) Migrate(db *gorm.DB) error {
 		&CandidateWorkExperience{},
 		&CandidateSkill{},
 		&CandidateCertification{},
+		&CandidateDocument{},
 	)
 }
 
