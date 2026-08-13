@@ -64,14 +64,14 @@
 
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('training.trainer_edit') : t('training.trainer_new')" modal :style="{ width: '600px' }" @hide="resetForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('training.type')" required :errors="errors?.type">
-            <SelectLabel v-model="form.type" :options="typeOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" @update:modelValue="onTypeChange" />
-          </FormRow>
-          <FormRow :label="t('common.name')" required :errors="errors?.name">
-            <TextInput v-model="form.name" maxlength="200" :placeholder="t('common.name')" :class="{ 'p-invalid': errors?.name }" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('training.type')" required :errors="errors?.type">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <RadioLabel v-for="opt in typeOptions" :key="opt.value" v-model="form.type" :value="opt.value" :label="opt.label" :id="'trainer-type-' + opt.value" @update:modelValue="onTypeChange" />
+          </div>
+        </FormRow>
+        <FormRow :label="t('common.name')" required :errors="errors?.name">
+          <TextInput v-model="form.name" maxlength="200" :placeholder="t('common.name')" :class="{ 'p-invalid': errors?.name }" />
+        </FormRow>
         <template v-if="form.type === 'INTERNAL'">
           <FormRow :label="t('training.employee')" required :errors="errors?.employee_id">
             <SelectLabel v-model="form.employee_id" :options="employeeOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.employee_id }" />
@@ -82,20 +82,22 @@
             <SelectLabel v-model="form.provider_id" :options="providerOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.provider_id }" />
           </FormRow>
         </template>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('common.email')">
-            <TextInput v-model="form.email" maxlength="150" />
-          </FormRow>
-          <FormRow :label="t('training.phone')">
-            <TextInput v-model="form.phone" maxlength="30" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('common.email')">
+          <TextInput v-model="form.email" maxlength="150" />
+        </FormRow>
+        <FormRow :label="t('training.phone')">
+          <TextInput v-model="form.phone" maxlength="30" />
+        </FormRow>
         <FormRow :label="t('training.bio')">
           <TextInput v-model="form.bio" textarea :rows="2" />
         </FormRow>
-        <FormRow :label="t('training.is_active')">
+        <div class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
+          <div>
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('training.is_active') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('training.trainer_is_active_desc') }}</p>
+          </div>
           <ToggleSwitch v-model="form.is_active" />
-        </FormRow>
+        </div>
       </div>
       <template #footer>
         <div class="flex items-center justify-end gap-2">
@@ -134,6 +136,7 @@ import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
+import RadioLabel from '@/components/RadioLabel.vue'
 
 const { t } = useI18n()
 const toast = useToast()

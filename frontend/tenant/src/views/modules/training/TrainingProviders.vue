@@ -63,37 +63,36 @@
 
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('training.provider_edit') : t('training.provider_new')" modal :style="{ width: '600px' }" @hide="resetForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('training.code')" required :errors="errors?.code">
-            <TextInput v-model="form.code" maxlength="20" :placeholder="t('training.code_placeholder')" :class="{ 'p-invalid': errors?.code }" />
-          </FormRow>
-          <FormRow :label="t('training.type')">
-            <SelectLabel v-model="form.type" :options="typeOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('training.type')">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <RadioLabel v-for="opt in typeOptions" :key="opt.value" v-model="form.type" :value="opt.value" :label="opt.label" :id="'provider-type-' + opt.value" />
+          </div>
+        </FormRow>
         <FormRow :label="t('common.name')" required :errors="errors?.name">
           <TextInput v-model="form.name" maxlength="200" :placeholder="t('common.name')" :class="{ 'p-invalid': errors?.name }" />
         </FormRow>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('training.contact_name')">
-            <TextInput v-model="form.contact_name" maxlength="150" />
-          </FormRow>
-          <FormRow :label="t('common.email')">
-            <TextInput v-model="form.email" maxlength="150" />
-          </FormRow>
-          <FormRow :label="t('training.phone')">
-            <TextInput v-model="form.phone" maxlength="30" />
-          </FormRow>
-          <FormRow :label="t('training.website')">
-            <TextInput v-model="form.website" maxlength="200" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('training.contact_name')">
+          <TextInput v-model="form.contact_name" maxlength="150" />
+        </FormRow>
+        <FormRow :label="t('common.email')">
+          <TextInput v-model="form.email" maxlength="150" />
+        </FormRow>
+        <FormRow :label="t('training.phone')">
+          <TextInput v-model="form.phone" maxlength="30" />
+        </FormRow>
+        <FormRow :label="t('training.website')">
+          <TextInput v-model="form.website" maxlength="200" />
+        </FormRow>
         <FormRow :label="t('training.address')">
           <TextInput v-model="form.address" textarea :rows="2" />
         </FormRow>
-        <FormRow :label="t('training.is_active')">
+        <div class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
+          <div>
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('training.is_active') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('training.provider_is_active_desc') }}</p>
+          </div>
           <ToggleSwitch v-model="form.is_active" />
-        </FormRow>
+        </div>
       </div>
       <template #footer>
         <div class="flex items-center justify-end gap-2">
@@ -131,7 +130,7 @@ import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
-import SelectLabel from '@/components/SelectLabel.vue'
+import RadioLabel from '@/components/RadioLabel.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -174,7 +173,7 @@ function typeLabel(type) {
 const typeOptions = computed(() => ['INTERNAL', 'EXTERNAL'].map(v => ({ label: typeLabel(v), value: v })))
 
 function defaultForm() {
-  return { code: '', name: '', type: 'EXTERNAL', contact_name: '', email: '', phone: '', address: '', website: '', is_active: true }
+  return { name: '', type: 'EXTERNAL', contact_name: '', email: '', phone: '', address: '', website: '', is_active: true }
 }
 
 async function loadData() {
@@ -205,7 +204,6 @@ function openDialog(item) {
   errors.value = {}
   form.value = item
     ? {
-        code: item.code || '',
         name: item.name || '',
         type: item.type || 'EXTERNAL',
         contact_name: item.contact_name || '',
@@ -228,12 +226,10 @@ function resetForm() {
 
 async function handleSave() {
   errors.value = {}
-  if (!form.value.code?.trim()) { errors.value = { code: t('form.required') }; return }
   if (!form.value.name?.trim()) { errors.value = { name: t('form.required') }; return }
   saving.value = true
   try {
     const payload = {
-      code: form.value.code.trim(),
       name: form.value.name.trim(),
       type: form.value.type,
       contact_name: form.value.contact_name?.trim() || '',

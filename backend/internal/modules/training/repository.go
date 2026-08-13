@@ -230,6 +230,41 @@ func (r *Repository) CreateSession(ctx context.Context, s *TrainingSession) erro
 	return db.WithContext(ctx).Create(s).Error
 }
 
+// NextSessionCode menghasilkan kode sesi otomatis dengan pola {KODE_KURSUS}-{NNN}
+// (mis. TECH-001-001). Sekuens dihitung dari kode sesi yang sudah ada dengan prefix
+// yang sama sehingga kode tetap unik.
+func (r *Repository) NextSessionCode(ctx context.Context, courseCode string) (string, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	prefix := strings.ToUpper(strings.TrimSpace(courseCode))
+	if prefix == "" {
+		prefix = "SES"
+	}
+	// Batasi prefix agar panjang kode (varchar(20)) tidak terlampaui: 16 + "-" + 3 digit.
+	if len(prefix) > 16 {
+		prefix = prefix[:16]
+	}
+
+	var codes []string
+	if err := db.WithContext(ctx).Model(&TrainingSession{}).
+		Where("session_code LIKE ?", prefix+"-%").
+		Pluck("session_code", &codes).Error; err != nil {
+		return "", err
+	}
+
+	maxSeq := 0
+	for _, c := range codes {
+		n, err := strconv.Atoi(strings.TrimPrefix(c, prefix+"-"))
+		if err == nil && n > maxSeq {
+			maxSeq = n
+		}
+	}
+	return fmt.Sprintf("%s-%03d", prefix, maxSeq+1), nil
+}
+
 func (r *Repository) FindSessionByID(ctx context.Context, id uuid.UUID) (*TrainingSession, error) {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -606,6 +641,32 @@ func (r *Repository) CreateProvider(ctx context.Context, p *TrainingProvider) er
 	return db.WithContext(ctx).Create(p).Error
 }
 
+// NextProviderCode menghasilkan kode penyelenggara otomatis dengan pola PRV-{NNN}
+// (mis. PRV-001). Sekuens dihitung dari kode yang sudah ada sehingga tetap unik
+// pada unique index.
+func (r *Repository) NextProviderCode(ctx context.Context) (string, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	var codes []string
+	if err := db.WithContext(ctx).Model(&TrainingProvider{}).
+		Where("code LIKE ?", "PRV-%").
+		Pluck("code", &codes).Error; err != nil {
+		return "", err
+	}
+
+	maxSeq := 0
+	for _, c := range codes {
+		n, err := strconv.Atoi(strings.TrimPrefix(c, "PRV-"))
+		if err == nil && n > maxSeq {
+			maxSeq = n
+		}
+	}
+	return fmt.Sprintf("PRV-%03d", maxSeq+1), nil
+}
+
 func (r *Repository) FindProviderByID(ctx context.Context, id uuid.UUID) (*TrainingProvider, error) {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -970,6 +1031,34 @@ func (r *Repository) CreatePlan(ctx context.Context, p *TrainingPlan) error {
 		return err
 	}
 	return db.WithContext(ctx).Create(p).Error
+}
+
+// NextPlanCode menghasilkan kode plan otomatis dengan pola TP-{tahun}-{NNN}
+// (mis. TP-2026-001). Sekuens dihitung dari kode plan yang sudah ada dengan
+// prefix tahun yang sama sehingga kode tetap unik.
+func (r *Repository) NextPlanCode(ctx context.Context, year int) (string, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	prefix := fmt.Sprintf("TP-%d-", year)
+
+	var codes []string
+	if err := db.WithContext(ctx).Model(&TrainingPlan{}).
+		Where("code LIKE ?", prefix+"%").
+		Pluck("code", &codes).Error; err != nil {
+		return "", err
+	}
+
+	maxSeq := 0
+	for _, c := range codes {
+		n, err := strconv.Atoi(strings.TrimPrefix(c, prefix))
+		if err == nil && n > maxSeq {
+			maxSeq = n
+		}
+	}
+	return fmt.Sprintf("%s%03d", prefix, maxSeq+1), nil
 }
 
 func (r *Repository) FindPlanByID(ctx context.Context, id uuid.UUID) (*TrainingPlan, error) {
@@ -1743,6 +1832,32 @@ func (r *Repository) CreateCertification(ctx context.Context, c *TrainingCertifi
 		return err
 	}
 	return db.WithContext(ctx).Create(c).Error
+}
+
+// NextCertificationCode menghasilkan kode sertifikasi otomatis dengan pola CERT-{NNN}
+// (mis. CERT-001). Sekuens dihitung dari kode sertifikasi yang sudah ada sehingga
+// tetap unik pada unique index.
+func (r *Repository) NextCertificationCode(ctx context.Context) (string, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	var codes []string
+	if err := db.WithContext(ctx).Model(&TrainingCertification{}).
+		Where("code LIKE ?", "CERT-%").
+		Pluck("code", &codes).Error; err != nil {
+		return "", err
+	}
+
+	maxSeq := 0
+	for _, c := range codes {
+		n, err := strconv.Atoi(strings.TrimPrefix(c, "CERT-"))
+		if err == nil && n > maxSeq {
+			maxSeq = n
+		}
+	}
+	return fmt.Sprintf("CERT-%03d", maxSeq+1), nil
 }
 
 func (r *Repository) FindCertificationByID(ctx context.Context, id uuid.UUID) (*TrainingCertification, error) {

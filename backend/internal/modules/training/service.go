@@ -352,8 +352,18 @@ func (s *Service) CreateSession(ctx context.Context, req CreateTrainingSessionRe
 		return nil, fmt.Errorf("invalid course_id: %w", err)
 	}
 	// Verify course exists
-	if _, err := s.repo.FindCourseByID(ctx, courseID); err != nil {
+	course, err := s.repo.FindCourseByID(ctx, courseID)
+	if err != nil {
 		return nil, fmt.Errorf("course not found: %w", err)
+	}
+
+	// Kode sesi: bila tidak dikirim, di-generate otomatis {KODE_KURSUS}-{sekuens}.
+	sessionCode := strings.TrimSpace(req.SessionCode)
+	if sessionCode == "" {
+		sessionCode, err = s.repo.NextSessionCode(ctx, course.Code)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	maxQuota := 30
@@ -363,7 +373,7 @@ func (s *Service) CreateSession(ctx context.Context, req CreateTrainingSessionRe
 
 	sess := &TrainingSession{
 		CourseID:    courseID,
-		SessionCode: req.SessionCode,
+		SessionCode: sessionCode,
 		TrainerName: req.TrainerName,
 		StartDate:   req.StartDate,
 		EndDate:     req.EndDate,
@@ -1397,8 +1407,18 @@ func applySessionEnhancement(sess *TrainingSession, providerType, deliveryMode, 
 // =========================================================================
 
 func (s *Service) CreateProvider(ctx context.Context, req CreateTrainingProviderRequest) (*TrainingProviderResponse, error) {
+	// Kode penyelenggara: bila tidak dikirim, di-generate otomatis PRV-{sekuens}.
+	code := strings.TrimSpace(req.Code)
+	if code == "" {
+		var err error
+		code, err = s.repo.NextProviderCode(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	p := &TrainingProvider{
-		Code:     req.Code,
+		Code:     code,
 		Name:     req.Name,
 		Type:     ProviderTypeExternal,
 		IsActive: true,
@@ -2004,8 +2024,18 @@ func (s *Service) SubmitAssessmentResult(ctx context.Context, assessmentID strin
 // =========================================================================
 
 func (s *Service) CreatePlan(ctx context.Context, req CreateTrainingPlanRequest) (*TrainingPlanResponse, error) {
+	// Kode plan: bila tidak dikirim, di-generate otomatis TP-{tahun}-{sekuens}.
+	code := strings.TrimSpace(req.Code)
+	if code == "" {
+		var err error
+		code, err = s.repo.NextPlanCode(ctx, req.Year)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	p := &TrainingPlan{
-		Code:   req.Code,
+		Code:   code,
 		Name:   req.Name,
 		Year:   req.Year,
 		Status: PlanStatusDraft,
@@ -3648,9 +3678,24 @@ func (s *Service) DeleteEffectivenessAssessment(ctx context.Context, id string) 
 // =========================================================================
 
 func (s *Service) CreateCertification(ctx context.Context, req CreateCertificationRequest) (*CertificationResponse, error) {
-	c := &TrainingCertification{Code: req.Code, Name: req.Name, IsActive: true}
+	// Kode sertifikasi: bila tidak dikirim, di-generate otomatis CERT-{sekuens}.
+	code := strings.TrimSpace(req.Code)
+	if code == "" {
+		var err error
+		code, err = s.repo.NextCertificationCode(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	c := &TrainingCertification{Code: code, Name: req.Name, IsActive: true}
 	c.IssuingBody = req.IssuingBody
 	c.ValidityPeriodMonth = req.ValidityPeriodMonth
+	// Satuan masa berlaku: default 'month'; 'year'/'month' bila dikirim.
+	c.ValidityPeriodUnit = "month"
+	if req.ValidityPeriodUnit != nil && *req.ValidityPeriodUnit != "" {
+		c.ValidityPeriodUnit = *req.ValidityPeriodUnit
+	}
 	if req.RenewalRequired != nil {
 		c.RenewalRequired = *req.RenewalRequired
 	}
@@ -3714,6 +3759,9 @@ func (s *Service) UpdateCertification(ctx context.Context, id string, req Update
 	}
 	if req.ValidityPeriodMonth != nil {
 		c.ValidityPeriodMonth = req.ValidityPeriodMonth
+	}
+	if req.ValidityPeriodUnit != nil {
+		c.ValidityPeriodUnit = *req.ValidityPeriodUnit
 	}
 	if req.RenewalRequired != nil {
 		c.RenewalRequired = *req.RenewalRequired
@@ -3918,6 +3966,7 @@ func certificationToResponse(c *TrainingCertification) *CertificationResponse {
 		Code:                c.Code,
 		Name:                c.Name,
 		ValidityPeriodMonth: c.ValidityPeriodMonth,
+		ValidityPeriodUnit:  c.ValidityPeriodUnit,
 		RenewalRequired:     c.RenewalRequired,
 		IsActive:            c.IsActive,
 		CreatedAt:           c.CreatedAt,

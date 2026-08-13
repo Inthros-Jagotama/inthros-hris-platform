@@ -62,36 +62,30 @@
 
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('training.need_edit') : t('training.need_new')" modal :style="{ width: '600px' }" @hide="resetForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('training.need_employee')">
-            <SelectLabel v-model="form.employee_id" :options="employeeOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" showClear />
-          </FormRow>
-          <FormRow :label="t('training.need_course')">
-            <SelectLabel v-model="form.course_id" :options="courseOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" showClear />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('training.need_organization')">
-            <SelectLabel v-model="form.organization_id" :options="organizationOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" showClear />
-          </FormRow>
-          <FormRow :label="t('training.need_position')">
-            <SelectLabel v-model="form.position_id" :options="positionOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" showClear />
-          </FormRow>
-        </div>
+        <FormRow :label="t('training.need_employee')">
+          <SelectLabel v-model="form.employee_id" :options="employeeOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" showClear />
+        </FormRow>
+        <FormRow :label="t('training.need_course')">
+          <SelectLabel v-model="form.course_id" :options="courseOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" showClear />
+        </FormRow>
+        <FormRow :label="t('training.need_organization')">
+          <SelectLabel v-model="form.organization_id" :options="organizationOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" showClear />
+        </FormRow>
+        <FormRow :label="t('training.need_position')">
+          <SelectLabel v-model="form.position_id" :options="positionOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" showClear />
+        </FormRow>
         <FormRow :label="t('training.need_reason')">
           <TextInput v-model="form.reason" textarea :rows="2" />
         </FormRow>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <FormRow :label="t('training.need_priority')">
-            <SelectLabel v-model="form.priority" :options="priorityOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
-          </FormRow>
-          <FormRow :label="t('training.need_source_type')">
-            <SelectLabel v-model="form.source_type" :options="sourceOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
-          </FormRow>
-          <FormRow :label="t('training.need_status')">
-            <SelectLabel v-model="form.status" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
-          </FormRow>
-        </div>
+        <FormRow :label="t('training.need_priority')">
+          <SelectLabel v-model="form.priority" :options="priorityOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
+        </FormRow>
+        <FormRow :label="t('training.need_source_type')">
+          <SelectLabel v-model="form.source_type" :options="sourceOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
+        </FormRow>
+        <FormRow :label="t('training.need_status')">
+          <SelectLabel v-model="form.status" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
+        </FormRow>
       </div>
       <template #footer>
         <div class="flex items-center justify-end gap-2">
@@ -171,7 +165,7 @@ const skeletonColumns = [
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_id})`, value: e.id })))
 const courseOptions = computed(() => courses.value.map(c => ({ label: `${c.code} — ${c.name}`, value: c.id })))
-const organizationOptions = computed(() => organizations.value.map(o => ({ label: o.name, value: o.id })))
+const organizationOptions = computed(() => organizations.value.map(o => ({ label: o.nomenclature || o.full_code, value: o.id })))
 const positionOptions = computed(() => positions.value.map(p => ({ label: p.nomenclature || p.full_code, value: p.id })))
 const priorityOptions = computed(() => ['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map(v => ({ label: priorityLabel(v), value: v })))
 const sourceOptions = computed(() => ['MANUAL', 'PERFORMANCE', 'COMPETENCY', 'CAREER', 'SUCCESSION', 'COMPLIANCE', 'WORKFORCE', 'ONBOARDING'].map(v => ({ label: sourceLabel(v), value: v })))

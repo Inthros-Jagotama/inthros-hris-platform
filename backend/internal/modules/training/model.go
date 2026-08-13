@@ -960,6 +960,7 @@ type TrainingCertification struct {
 	Name                string         `gorm:"type:varchar(200);not null" json:"name"`
 	IssuingBody         *string        `gorm:"type:varchar(200)" json:"issuing_body,omitempty"`
 	ValidityPeriodMonth *int           `gorm:"type:int" json:"validity_period_month,omitempty"`
+	ValidityPeriodUnit  string         `gorm:"type:varchar(10);not null;default:month" json:"validity_period_unit,omitempty"`
 	RenewalRequired     bool           `gorm:"not null;default:0" json:"renewal_required"`
 	IsActive            bool           `gorm:"not null;default:1" json:"is_active"`
 	DeletedAt           gorm.DeletedAt `gorm:"index:idx_trn_certif_deleted_at" json:"deleted_at,omitempty"`

@@ -97,7 +97,9 @@ type TrainingCourseResponse struct {
 
 type CreateTrainingSessionRequest struct {
 	CourseID    string  `json:"course_id" binding:"required"`
-	SessionCode string  `json:"session_code" binding:"required,max=20"`
+	// SessionCode opsional — bila kosong akan di-generate otomatis oleh service
+	// (pola {KODE_KURSUS}-{sekuens}, mis. TECH-001-001).
+	SessionCode string  `json:"session_code" binding:"omitempty,max=20"`
 	TrainerName string  `json:"trainer_name" binding:"required,max=200"`
 	Location    *string `json:"location" binding:"omitempty,max=255"`
 	StartDate   string  `json:"start_date" binding:"required"`
@@ -298,7 +300,9 @@ type TrainingCertificateResponse struct {
 // =========================================================================
 
 type CreateTrainingProviderRequest struct {
-	Code        string  `json:"code" binding:"required,max=20"`
+	// Code opsional — bila kosong akan di-generate otomatis oleh service
+	// (pola PRV-{sekuens}, mis. PRV-001).
+	Code        string  `json:"code" binding:"omitempty,max=20"`
 	Name        string  `json:"name" binding:"required,max=200"`
 	Type        *string `json:"type" binding:"omitempty,oneof=INTERNAL EXTERNAL"`
 	ContactName *string `json:"contact_name"`
@@ -502,7 +506,9 @@ type PaginatedResponse struct {
 // =========================================================================
 
 type CreateTrainingPlanRequest struct {
-	Code        string  `json:"code" binding:"required,max=30"`
+	// Code opsional — bila kosong akan di-generate otomatis oleh service
+	// (pola TP-{tahun}-{sekuens}, mis. TP-2026-001).
+	Code        string  `json:"code" binding:"omitempty,max=30"`
 	Name        string  `json:"name" binding:"required,max=200"`
 	Year        int     `json:"year" binding:"required,min=2000,max=2100"`
 	Description *string `json:"description"`
@@ -883,10 +889,11 @@ type EffectivenessAssessmentResponse struct {
 // =========================================================================
 
 type CreateCertificationRequest struct {
-	Code                string  `json:"code" binding:"required,max=30"`
+	Code                string  `json:"code" binding:"omitempty,max=30"`
 	Name                string  `json:"name" binding:"required,max=200"`
 	IssuingBody         *string `json:"issuing_body"`
 	ValidityPeriodMonth *int    `json:"validity_period_month"`
+	ValidityPeriodUnit  *string `json:"validity_period_unit" binding:"omitempty,oneof=year month forever"`
 	RenewalRequired     *bool   `json:"renewal_required"`
 	IsActive            *bool   `json:"is_active"`
 }
@@ -896,6 +903,7 @@ type UpdateCertificationRequest struct {
 	Name                *string `json:"name" binding:"omitempty,max=200"`
 	IssuingBody         *string `json:"issuing_body"`
 	ValidityPeriodMonth *int    `json:"validity_period_month"`
+	ValidityPeriodUnit  *string `json:"validity_period_unit" binding:"omitempty,oneof=year month forever"`
 	RenewalRequired     *bool   `json:"renewal_required"`
 	IsActive            *bool   `json:"is_active"`
 }
@@ -906,6 +914,7 @@ type CertificationResponse struct {
 	Name                string    `json:"name"`
 	IssuingBody         string    `json:"issuing_body,omitempty"`
 	ValidityPeriodMonth *int      `json:"validity_period_month,omitempty"`
+	ValidityPeriodUnit  string    `json:"validity_period_unit,omitempty"`
 	RenewalRequired     bool      `json:"renewal_required"`
 	IsActive            bool      `json:"is_active"`
 	CreatedAt           time.Time `json:"created_at"`

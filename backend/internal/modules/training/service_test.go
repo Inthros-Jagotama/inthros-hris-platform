@@ -114,6 +114,72 @@ func TestService_CourseAutoCode(t *testing.T) {
 	}
 }
 
+func TestService_CertificationAutoCode(t *testing.T) {
+	svc := testSvc(t)
+
+	// Tanpa code → di-generate otomatis CERT-{sekuens}
+	resp1, err := svc.CreateCertification(testCtx(), CreateCertificationRequest{
+		Name: "Cert A",
+	})
+	if err != nil {
+		t.Fatalf("failed to create certification without code: %v", err)
+	}
+	if resp1.Code != "CERT-001" {
+		t.Fatalf("expected auto code CERT-001, got %s", resp1.Code)
+	}
+
+	// Sertifikasi kedua → sekuens bertambah
+	resp2, err := svc.CreateCertification(testCtx(), CreateCertificationRequest{
+		Name: "Cert B",
+	})
+	if err != nil {
+		t.Fatalf("failed to create second certification without code: %v", err)
+	}
+	if resp2.Code != "CERT-002" {
+		t.Fatalf("expected auto code CERT-002, got %s", resp2.Code)
+	}
+
+	// Code eksplisit tetap dihormati
+	resp3, err := svc.CreateCertification(testCtx(), CreateCertificationRequest{
+		Code: "ISO-9001",
+		Name: "Cert C",
+	})
+	if err != nil {
+		t.Fatalf("failed to create certification with explicit code: %v", err)
+	}
+	if resp3.Code != "ISO-9001" {
+		t.Fatalf("expected explicit code ISO-9001, got %s", resp3.Code)
+	}
+}
+
+func TestService_CertificationValidityUnit(t *testing.T) {
+	svc := testSvc(t)
+
+	// Tanpa unit → default 'month'
+	resp1, err := svc.CreateCertification(testCtx(), CreateCertificationRequest{
+		Name: "Cert A",
+	})
+	if err != nil {
+		t.Fatalf("failed to create certification: %v", err)
+	}
+	if resp1.ValidityPeriodUnit != "month" {
+		t.Fatalf("expected default unit month, got %s", resp1.ValidityPeriodUnit)
+	}
+
+	// Unit eksplisit 'year' dihormati
+	yearUnit := "year"
+	resp2, err := svc.CreateCertification(testCtx(), CreateCertificationRequest{
+		Name:               "Cert B",
+		ValidityPeriodUnit: &yearUnit,
+	})
+	if err != nil {
+		t.Fatalf("failed to create certification with unit: %v", err)
+	}
+	if resp2.ValidityPeriodUnit != "year" {
+		t.Fatalf("expected unit year, got %s", resp2.ValidityPeriodUnit)
+	}
+}
+
 func TestService_SessionStatusFlow(t *testing.T) {
 	svc := testSvc(t)
 	catID := seedCategory(t, svc)

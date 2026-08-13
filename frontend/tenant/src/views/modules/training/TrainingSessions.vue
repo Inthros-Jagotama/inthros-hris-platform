@@ -70,16 +70,11 @@
       </Column>
     </DataTable>
 
-    <Dialog v-model:visible="dialogVisible" :header="editing ? t('training.session_edit') : t('training.session_new')" modal :style="{ width: '680px' }" @hide="resetForm">
+    <Dialog v-model:visible="dialogVisible" :header="editing ? t('training.session_edit') : t('training.session_new')" modal :style="{ width: '900px', maxWidth: '95vw' }" @hide="resetForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('training.course')" required :errors="errors?.course_id">
-            <SelectLabel v-model="form.course_id" :options="courseOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.course_id }" />
-          </FormRow>
-          <FormRow :label="t('training.session_code')" required :errors="errors?.session_code">
-            <TextInput v-model="form.session_code" maxlength="20" :placeholder="t('training.code_placeholder')" :class="{ 'p-invalid': errors?.session_code }" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('training.course')" required :errors="errors?.course_id">
+          <SelectLabel v-model="form.course_id" :options="courseOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.course_id }" />
+        </FormRow>
         <FormRow :label="t('training.trainer_name')" :errors="errors?.trainer_name">
           <TextInput v-model="form.trainer_name" maxlength="200" :placeholder="t('training.trainer_name_placeholder')" />
         </FormRow>
@@ -243,7 +238,7 @@ function courseName(id) {
 
 function defaultForm() {
   return {
-    course_id: null, session_code: '', trainer_name: '',
+    course_id: null, trainer_name: '',
     provider_type: null, delivery_mode: null, provider_id: null,
     start_date: '', end_date: '', location: '', max_quota: 30,
     meeting_url: '', registration_deadline: '', status: 'SCHEDULED'
@@ -296,7 +291,6 @@ function openDialog(item) {
   form.value = item
     ? {
         course_id: item.course_id || null,
-        session_code: item.session_code || '',
         trainer_name: item.trainer_name || '',
         provider_type: item.provider_type || null,
         delivery_mode: item.delivery_mode || null,
@@ -323,7 +317,6 @@ function resetForm() {
 async function handleSave() {
   errors.value = {}
   if (!form.value.course_id) { errors.value = { course_id: t('form.required') }; return }
-  if (!form.value.session_code?.trim()) { errors.value = { session_code: t('form.required') }; return }
   if (!form.value.start_date) { errors.value = { start_date: t('form.required') }; return }
   if (!form.value.end_date) { errors.value = { end_date: t('form.required') }; return }
   if (form.value.provider_type === 'EXTERNAL' && !form.value.provider_id) { errors.value = { provider_id: t('form.required') }; return }
@@ -331,7 +324,6 @@ async function handleSave() {
   try {
     const payload = {
       course_id: form.value.course_id,
-      session_code: form.value.session_code.trim(),
       trainer_name: form.value.trainer_name?.trim() || '',
       provider_type: form.value.provider_type || null,
       delivery_mode: form.value.delivery_mode || null,

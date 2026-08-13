@@ -62,22 +62,18 @@
     <!-- Dialog: request -->
     <Dialog v-model:visible="dialogVisible" :header="t('training.request_new')" modal :style="{ width: '560px' }" @hide="resetForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('training.request_employee')" required :errors="errors?.employee_id">
-            <SelectLabel v-model="form.employee_id" :options="employeeOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.employee_id }" />
-          </FormRow>
-          <FormRow :label="t('training.request_course')" required :errors="errors?.course_id">
-            <SelectLabel v-model="form.course_id" :options="courseOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.course_id }" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('training.request_session')">
-            <SelectLabel v-model="form.session_id" :options="sessionOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" showClear />
-          </FormRow>
-          <FormRow :label="t('training.request_requested_date')" required :errors="errors?.requested_date">
-            <DateInput v-model="form.requested_date" :class="{ 'p-invalid': errors?.requested_date }" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('training.request_employee')" required :errors="errors?.employee_id">
+          <SelectLabel v-model="form.employee_id" :options="employeeOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.employee_id }" />
+        </FormRow>
+        <FormRow :label="t('training.request_course')" required :errors="errors?.course_id">
+          <SelectLabel v-model="form.course_id" :options="courseOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.course_id }" />
+        </FormRow>
+        <FormRow :label="t('training.request_session')">
+          <SelectLabel v-model="form.session_id" :options="sessionOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" showClear />
+        </FormRow>
+        <FormRow :label="t('training.request_requested_date')" required :errors="errors?.requested_date">
+          <DateInput v-model="form.requested_date" :class="{ 'p-invalid': errors?.requested_date }" />
+        </FormRow>
         <FormRow :label="t('training.request_reason')">
           <TextInput v-model="form.reason" textarea :rows="2" />
         </FormRow>

@@ -53,8 +53,8 @@
         <Column field="issuing_body" :header="t('training.issuing_body')" style="width:180px">
           <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.issuing_body || '-' }}</span></template>
         </Column>
-        <Column field="validity_period_month" :header="t('training.validity_period_month')" style="width:140px">
-          <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.validity_period_month ? `${data.validity_period_month} ${t('common.months')}` : '-' }}</span></template>
+        <Column field="validity_period_month" :header="t('training.validity_period')" style="width:140px">
+          <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.validity_period_unit === 'forever' ? t('training.validity_unit_forever') : (data.validity_period_month ? `${data.validity_period_month} ${validityUnitLabel(data.validity_period_unit)}` : '-') }}</span></template>
         </Column>
         <Column field="renewal_required" :header="t('training.renewal_required')" style="width:110px">
           <template #body="{data}"><Tag :value="data.renewal_required ? t('common.yes') : t('common.no')" :severity="data.renewal_required ? 'warning' : 'secondary'" class="!text-xs !px-1.5 !py-0.5" /></template>
@@ -139,27 +139,31 @@
     <!-- ── Dialog: certification master ── -->
     <Dialog v-model:visible="certificationDialogVisible" :header="certificationEditing ? t('training.certification_edit') : t('training.certification_new')" modal :style="{ width: '520px' }" @hide="resetCertificationForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('training.certification_code')" required :errors="errors?.code">
-            <TextInput v-model="certificationForm.code" maxlength="30" :placeholder="t('training.code_placeholder')" :class="{ 'p-invalid': errors?.code }" />
-          </FormRow>
-          <FormRow :label="t('training.validity_period_month')">
-            <InputNumber v-model="certificationForm.validity_period_month" class="!w-full" :min="0" size="small" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('training.validity_period')">
+          <div class="flex items-center gap-2">
+            <InputNumber v-model="certificationForm.validity_period_month" class="!w-full" :min="0" :useGrouping="false" :minFractionDigits="0" :maxFractionDigits="0" size="small" :disabled="certificationForm.validity_period_unit === 'forever'" />
+            <SelectLabel v-model="certificationForm.validity_period_unit" :options="validityUnitOptions" optionLabel="label" optionValue="value" class="!w-36 shrink-0" @update:modelValue="onValidityUnitChange" />
+          </div>
+        </FormRow>
         <FormRow :label="t('training.certification_name')" required :errors="errors?.name">
           <TextInput v-model="certificationForm.name" maxlength="200" :placeholder="t('training.certification_name')" :class="{ 'p-invalid': errors?.name }" />
         </FormRow>
         <FormRow :label="t('training.issuing_body')">
           <TextInput v-model="certificationForm.issuing_body" maxlength="200" :placeholder="t('training.issuing_body')" />
         </FormRow>
-        <div class="flex items-center gap-6">
-          <FormRow :label="t('training.renewal_required')">
-            <ToggleSwitch v-model="certificationForm.renewal_required" />
-          </FormRow>
-          <FormRow :label="t('training.is_active')">
-            <ToggleSwitch v-model="certificationForm.is_active" />
-          </FormRow>
+        <div class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
+          <div>
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('training.renewal_required') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('training.certification_renewal_required_desc') }}</p>
+          </div>
+          <ToggleSwitch v-model="certificationForm.renewal_required" />
+        </div>
+        <div class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
+          <div>
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('training.is_active') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('training.certification_is_active_desc') }}</p>
+          </div>
+          <ToggleSwitch v-model="certificationForm.is_active" />
         </div>
       </div>
       <template #footer>
@@ -334,8 +338,24 @@ const completableParticipantOptions = computed(() =>
 )
 const activeCertificationOptions = computed(() => certifications.value.filter(c => c.is_active).map(c => ({ label: `${c.code} — ${c.name}`, value: c.id })))
 
+const validityUnitOptions = computed(() => [
+  { label: t('training.validity_unit_year'), value: 'year' },
+  { label: t('training.validity_unit_month'), value: 'month' },
+  { label: t('training.validity_unit_forever'), value: 'forever' }
+])
+function validityUnitLabel(unit) {
+  if (unit === 'forever') return t('training.validity_unit_forever')
+  return unit === 'year' ? t('training.validity_unit_year') : t('training.validity_unit_month')
+}
+function onValidityUnitChange(unit) {
+  // Berlaku selamanya → tidak perlu angka masa berlaku
+  if (unit === 'forever') {
+    certificationForm.value.validity_period_month = null
+  }
+}
+
 function defaultCertificationForm() {
-  return { code: '', name: '', issuing_body: '', validity_period_month: null, renewal_required: false, is_active: true }
+  return { name: '', issuing_body: '', validity_period_month: null, validity_period_unit: 'month', renewal_required: false, is_active: true }
 }
 function defaultGenerateForm() {
   return { participant_id: null, certification_id: null, certificate_file_url: '', expiry_date: null }
@@ -389,10 +409,10 @@ function openCertificationDialog(item) {
   certificationEditingId.value = item?.id || null
   certificationForm.value = item
     ? {
-        code: item.code || '',
         name: item.name || '',
         issuing_body: item.issuing_body || '',
         validity_period_month: item.validity_period_month ?? null,
+        validity_period_unit: item.validity_period_unit || 'month',
         renewal_required: item.renewal_required,
         is_active: item.is_active
       }
@@ -409,15 +429,14 @@ function resetCertificationForm() {
 
 async function handleSaveCertification() {
   errors.value = {}
-  if (!certificationForm.value.code?.trim()) { errors.value = { code: t('form.required') }; return }
   if (!certificationForm.value.name?.trim()) { errors.value = { name: t('form.required') }; return }
   certificationSaving.value = true
   try {
     const payload = {
-      code: certificationForm.value.code.trim(),
       name: certificationForm.value.name.trim(),
       issuing_body: certificationForm.value.issuing_body?.trim() || '',
       validity_period_month: certificationForm.value.validity_period_month ?? null,
+      validity_period_unit: certificationForm.value.validity_period_unit || 'month',
       renewal_required: certificationForm.value.renewal_required,
       is_active: certificationForm.value.is_active
     }
