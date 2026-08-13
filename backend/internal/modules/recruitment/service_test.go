@@ -2640,3 +2640,68 @@ func TestService_ListCandidateDocuments(t *testing.T) {
 		t.Errorf("expected 2, got %d", len(list))
 	}
 }
+
+func TestService_CreateCandidateConsent(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Consent", LastName: "Svc", Email: "consentsvc@test.com"})
+
+	resp, err := svc.CreateCandidateConsent(ctx, cand.ID, CreateCandidateConsentRequest{Action: "GRANTED"}, nil)
+	if err != nil {
+		t.Fatalf("CreateCandidateConsent failed: %v", err)
+	}
+	if resp.Action != "GRANTED" {
+		t.Errorf("expected action 'GRANTED', got %s", resp.Action)
+	}
+	if resp.ChangedAt == 0 {
+		t.Error("expected changed_at to be set server-side, got 0")
+	}
+}
+
+func TestService_CreateCandidateConsent_WithChangedBy(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Actor", LastName: "Consent", Email: "actorconsent@test.com"})
+	actorID := uuid.New()
+
+	resp, err := svc.CreateCandidateConsent(ctx, cand.ID, CreateCandidateConsentRequest{Action: "GRANTED"}, &actorID)
+	if err != nil {
+		t.Fatalf("CreateCandidateConsent failed: %v", err)
+	}
+	if resp.ChangedBy != actorID.String() {
+		t.Errorf("expected changed_by %s, got %s", actorID.String(), resp.ChangedBy)
+	}
+}
+
+func TestService_CreateCandidateConsent_UnknownCandidate(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := svc.CreateCandidateConsent(ctx, uuid.New().String(), CreateCandidateConsentRequest{Action: "GRANTED"}, nil)
+	if err == nil {
+		t.Fatal("expected error for unknown candidate, got nil")
+	}
+}
+
+func TestService_ListCandidateConsents(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "List", LastName: "Consent", Email: "listconsent@test.com"})
+	svc.CreateCandidateConsent(ctx, cand.ID, CreateCandidateConsentRequest{Action: "GRANTED"}, nil)
+	svc.CreateCandidateConsent(ctx, cand.ID, CreateCandidateConsentRequest{Action: "REVOKED"}, nil)
+
+	list, err := svc.ListCandidateConsents(ctx, cand.ID)
+	if err != nil {
+		t.Fatalf("ListCandidateConsents failed: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2, got %d", len(list))
+	}
+}

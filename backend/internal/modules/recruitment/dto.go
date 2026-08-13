@@ -367,6 +367,24 @@ type CandidateDocumentResponse struct {
 }
 
 // =========================================================================
+// Candidate Consent DTOs (G-6) — append-only, no Update
+// =========================================================================
+
+type CreateCandidateConsentRequest struct {
+	Action string `json:"action" binding:"required,oneof=GRANTED REVOKED"`
+	Notes  string `json:"notes"`
+}
+
+type CandidateConsentResponse struct {
+	ID          string `json:"id"`
+	CandidateID string `json:"candidate_id"`
+	Action      string `json:"action"`
+	Notes       string `json:"notes,omitempty"`
+	ChangedBy   string `json:"changed_by,omitempty"`
+	ChangedAt   int64  `json:"changed_at"`
+}
+
+// =========================================================================
 // Job Application DTOs
 // =========================================================================
 

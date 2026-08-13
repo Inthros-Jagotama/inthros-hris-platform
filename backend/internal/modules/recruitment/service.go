@@ -2771,6 +2771,62 @@ func candidateDocumentToResponse(d *CandidateDocument) *CandidateDocumentRespons
 	}
 }
 
+// =========================================================================
+// Candidate Consents (G-6) — append-only, no Update/Delete
+// =========================================================================
+
+func (s *Service) CreateCandidateConsent(ctx context.Context, candidateID string, req CreateCandidateConsentRequest, changedBy *uuid.UUID) (*CandidateConsentResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	if _, err := s.repo.FindCandidateByID(ctx, candUUID); err != nil {
+		return nil, fmt.Errorf("candidate not found: %w", err)
+	}
+
+	c := &CandidateConsent{
+		CandidateID: candUUID,
+		Action:      req.Action,
+		Notes:       req.Notes,
+		ChangedBy:   changedBy,
+		ChangedAt:   time.Now().UnixNano(),
+	}
+	if err := s.repo.CreateCandidateConsent(ctx, c); err != nil {
+		return nil, err
+	}
+	return candidateConsentToResponse(c), nil
+}
+
+func (s *Service) ListCandidateConsents(ctx context.Context, candidateID string) ([]CandidateConsentResponse, error) {
+	candUUID, err := uuid.Parse(candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid candidate_id: %w", err)
+	}
+	list, err := s.repo.ListCandidateConsents(ctx, candUUID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]CandidateConsentResponse, 0, len(list))
+	for i := range list {
+		out = append(out, *candidateConsentToResponse(&list[i]))
+	}
+	return out, nil
+}
+
+func candidateConsentToResponse(c *CandidateConsent) *CandidateConsentResponse {
+	resp := &CandidateConsentResponse{
+		ID:          c.ID.String(),
+		CandidateID: c.CandidateID.String(),
+		Action:      c.Action,
+		Notes:       c.Notes,
+		ChangedAt:   c.ChangedAt,
+	}
+	if c.ChangedBy != nil {
+		resp.ChangedBy = c.ChangedBy.String()
+	}
+	return resp
+}
+
 func applicationToResponse(a *JobApplication) *ApplicationResponse {
 	return &ApplicationResponse{
 		ID:              a.ID.String(),
