@@ -483,26 +483,20 @@ Catatan: status **Active/Inactive** berada di level **template** (maksimal 1 Act
 
 # 11. Database Design
 
-> **Catatan migrasi (sesuai konvensi project):**
-> - Tabel `document_templates` **sudah ada** (dibuat di `migrator/migrations/tenant/{postgres,mysql}/011_settings.sql`) dengan skema `id, name, type, content, is_active` → migration baru bersifat **ALTER/ekstensi**, bukan CREATE baru.
-> - Module memakai **GORM AutoMigrate** (pola module `setting`): kolom baru otomatis ditambahkan ke tabel existing. Partial unique index & seed tidak bisa AutoMigrate → dibuat via file SQL migrator baru `012_document_templates.sql`.
-
-## `document_templates` (ALTER dari tabel existing 011_settings)
+## `document_templates`
 
 ```text
-id UUID PK                       ← existing
-name                             ← existing
-code (baru)
-type                             ← existing, dipakai sebagai jenis dokumen
-                                   (atau tambah kolom baru document_type, mapping 1:1)
-description (baru)
-content                          ← existing (NULLABLE; konten baru disimpan di versions;
-                                     data lama dimigrasi ke version v1)
-active_version_id (baru)
-status              -- ACTIVE / INACTIVE / REFERENCE (default) (baru)
-is_default          -- BOOLEAN, penanda template default (referensi) (baru)
-created_at / updated_at          ← existing
-deleted_at (baru, soft delete)
+id UUID PK
+name
+code
+document_type
+description
+active_version_id
+status              -- ACTIVE / INACTIVE / REFERENCE (default)
+is_default          -- BOOLEAN, penanda template default (referensi)
+created_at
+updated_at
+deleted_at
 ```
 
 ## `document_template_versions`
@@ -550,21 +544,16 @@ sebaiknya didefinisikan melalui registry di backend, bukan sepenuhnya melalui da
 ### Constraints & Seed Data
 
 ```sql
--- Hanya 1 template aktif per jenis dokumen (PostgreSQL)
+-- Hanya 1 template aktif per jenis dokumen
 CREATE UNIQUE INDEX uq_document_templates_active_per_type
   ON document_templates (document_type)
   WHERE status = 'ACTIVE';
 
--- Hanya 1 template default (referensi) per jenis dokumen (PostgreSQL)
+-- Hanya 1 template default (referensi) per jenis dokumen
 CREATE UNIQUE INDEX uq_document_templates_default_per_type
   ON document_templates (document_type)
   WHERE is_default = TRUE;
 ```
-
-Catatan portabilitas:
-
-- Partial unique index (`WHERE`) **hanya didukung PostgreSQL** dan tidak bisa dibuat GORM AutoMigrate → dibuat via file SQL migrator baru `012_document_templates.sql` (Postgres).
-- **MySQL**: tanpa partial index → validasi "1 aktif per jenis" di **service layer** (query template aktif per jenis sebelum aktivasi, dalam transaksi).
 
 Seed data: satu template default per jenis dokumen (`CONTRACT_AGREEMENT`, `MOVEMENT_SK`, dst.) berisi konten contoh lengkap dengan placeholder.
 
@@ -611,77 +600,56 @@ Generated Document
 Perjanjian_PKWT_CTR-2026-001.pdf
 ```
 
-Catatan: `generated_documents` adalah tabel **baru** (belum ada) — dibuat via GORM AutoMigrate. File PDF disimpan mengikuti pola upload existing (`internal/pkg/upload`, path `/uploads/attachments/...` seperti `file_url` pada module employeemovement).
-
 ---
 
 # 13. Backend Go
 
-Ikuti konvensi module project: **package flat** di `backend/internal/modules/` (bukan Clean Architecture subfolder) — pola yang sama dengan `setting`, `employeemovement`, dll.
+Struktur feature:
 
 ```text
-backend/internal/modules/documenttemplate/
-├── module.go         ← implementasi module.Module (Info, RegisterRoutes, Migrate, Seed, Permissions)
-├── model.go          ← GORM model: DocumentTemplate, DocumentTemplateVersion, GeneratedDocument, DocumentTemplateAudit
-├── repository.go     ← GORM + tenant resolver
-├── service.go        ← bisnis: 1-aktif-per-jenis, default (copy), versioning
-├── render_service.go ← resolusi variabel + render HTML
-├── pdf_service.go    ← HTML → PDF (chromedp)
-├── handler.go        ← Gin handlers (httputil)
-├── routes.go         ← registrasi route
-├── dto.go            ← request/response + tag validasi
-└── errors.go         ← error domain (mis. DuplicateActiveTemplateError)
+internal/
+└── document_template/
+    ├── domain/
+    │   ├── template.go
+    │   ├── template_version.go
+    │   └── variable.go
+    │
+    ├── repository/
+    │   ├── template_repository.go
+    │   └── version_repository.go
+    │
+    ├── service/
+    │   ├── template_service.go
+    │   ├── render_service.go
+    │   └── pdf_service.go
+    │
+    ├── handler/
+    │   └── template_handler.go
+    │
+    └── dto/
+        ├── template_request.go
+        └── template_response.go
 ```
 
-### Registrasi Module
-
-Daftarkan di `cmd/server/main.go` (tenantModules), setelah module setting:
-
-```go
-module.ModuleRegistration{
-    Module:   documenttemplate.NewModule(dbManager, l),
-    TargetDB: module.TargetTenant,
-    Priority: 16,
-},
-```
-
-### Tenancy & Migrasi
-
-- **Tenant-scoped**: ikuti pola `NewTenantDBResolver(dbManager)` — baca `company_id` dari context; semua repo memakai tenant DB.
-- **Migrate**: `Module.Migrate(db)` memanggil `db.AutoMigrate(&DocumentTemplate{}, &DocumentTemplateVersion{}, &GeneratedDocument{}, &DocumentTemplateAudit{})` (pola module setting). AutoMigrate otomatis menambah kolom baru ke tabel `document_templates` existing.
-- **SQL migrator**: file baru `012_document_templates.sql` di `migrator/migrations/tenant/{postgres,mysql}/` untuk partial unique index (Postgres) & seed template default.
+Sesuaikan dengan struktur Clean Architecture yang sudah digunakan project.
 
 ---
 
 # 14. API
 
-Base path mengikuti konvensi project: **`/api/v1/tenant/document-templates`** (route didaftarkan via `rg.Group("/document-templates")` di `routes.go`, di dalam tenant router `/api/v1/tenant`).
-
-Konvensi response & error (helper `httputil`):
-
-```text
-Sukses list:   { "success": true, "data": [...], "total": N, "page": P }
-Sukses detail: { "success": true, "data": {...} }
-Error:         { "success": false, "error": { "code": "...", "message": "..." } }
-Pesan error bilingual EN/ID via locale key di internal/pkg/httputil/locale.go
-Validasi body: httputil.BindAndValidate + tag validasi di dto.go
-```
-
-Catatan route (Gin): daftarkan route statis (`from-default`, `preview-draft`, `variables`) **sebelum** route `/:id` agar tidak tertangkap parameter — pola yang sama dengan `GET /search` pada villages.
-
 ### Template
 
 ```http
-GET    /api/v1/tenant/document-templates
-POST   /api/v1/tenant/document-templates
-GET    /api/v1/tenant/document-templates/{id}
-PUT    /api/v1/tenant/document-templates/{id}
-DELETE /api/v1/tenant/document-templates/{id}
+GET    /api/settings/document-templates
+POST   /api/settings/document-templates
+GET    /api/settings/document-templates/{id}
+PUT    /api/settings/document-templates/{id}
+DELETE /api/settings/document-templates/{id}
 
-POST   /api/v1/tenant/document-templates/{id}/activate   ← otomatis menonaktifkan
+POST   /api/settings/document-templates/{id}/activate   ← otomatis menonaktifkan
                                                           template lain sejenis
-POST   /api/v1/tenant/document-templates/{id}/deactivate
-POST   /api/v1/tenant/document-templates/from-default   ← body: { "document_type": "..." }
+POST   /api/settings/document-templates/{id}/deactivate
+POST   /api/settings/document-templates/from-default   ← body: { "document_type": "..." }
                                                           salin konten default →
                                                           template baru (draft, wajib disimpan)
 ```
@@ -689,17 +657,17 @@ POST   /api/v1/tenant/document-templates/from-default   ← body: { "document_ty
 ### Version
 
 ```http
-GET  /api/v1/tenant/document-templates/{id}/versions
-POST /api/v1/tenant/document-templates/{id}/versions
-GET  /api/v1/tenant/document-templates/{id}/versions/{versionId}
+GET  /api/settings/document-templates/{id}/versions
+POST /api/settings/document-templates/{id}/versions
+GET  /api/settings/document-templates/{id}/versions/{versionId}
 ```
 
 ### Preview
 
 ```http
-POST /api/v1/tenant/document-templates/{id}/preview   ← preview VERSI AKTIF (data contoh)
+POST /api/settings/document-templates/{id}/preview   ← preview VERSI AKTIF (data contoh)
 
-POST /api/v1/tenant/document-templates/preview-draft  ← preview DRAFT:
+POST /api/settings/document-templates/preview-draft  ← preview DRAFT:
                                                        body: { document_type,
                                                                content,
                                                                paper_size,
@@ -712,7 +680,7 @@ Response: { "pdf_url": "...", "file_name": "preview_<template>.pdf" }
 ### Variables
 
 ```http
-GET /api/v1/tenant/document-templates/variables
+GET /api/settings/document-templates/variables
 ```
 
 ---
@@ -739,25 +707,7 @@ Store PDF
 Return File
 ```
 
-### PDF Engine (keputusan dependency — BARU)
-
-Project saat ini **belum memiliki** library PDF/headless browser. Rekomendasi: **`chromedp`** (pure Go, Chrome DevTools Protocol) — memakai `Page.printToPDF` dari Headless Chromium sehingga hasil render HTML/CSS identik dengan preview (WYSIWYG).
-
-```text
-Dependency baru:
-  github.com/chromedp/chromedp
-  + binary Chromium/Chrome di environment server
-  (Docker image: tambahkan chromium; konfigurasi env mis. CHROME_PATH)
-
-Alternatif:
-  - go-rod  (high-level CDP driver, API lebih sederhana)
-  - gotenberg (service container terpisah — opsi jika tidak ingin binary Chrome di app server)
-```
-
-Catatan infrastruktur:
-
-- Preview dan Generate Document memakai **engine yang sama** (chromedp + Chrome) agar hasil konsisten.
-- Generate PDF dilakukan di backend; frontend hanya menampilkan hasil (`pdf_url`).
+Untuk PDF generator, gunakan pendekatan **Headless Chromium** agar HTML/CSS template lebih konsisten dengan preview.
 
 ---
 
@@ -839,49 +789,32 @@ Movement Number
 
 # 18. Security & Permission
 
-Tambahkan permission (konvensi `module.resource.action` — lowercase, underscore, prefix module; didaftarkan di `Info().Permissions`):
+Tambahkan permission:
 
 ```text
-documenttemplate.template.view
-documenttemplate.template.create
-documenttemplate.template.update
-documenttemplate.template.delete
-documenttemplate.template.preview
-documenttemplate.template.version
-documenttemplate.template.activate
-documenttemplate.template.deactivate
-documenttemplate.template.set_default
+document-template.view
+document-template.create
+document-template.update
+document-template.delete
+document-template.preview
+document-template.version
 ```
 
 Untuk generated document:
 
 ```text
-documenttemplate.generated.view
-documenttemplate.generated.generate
-documenttemplate.generated.download
+document.view
+document.generate
+document.download
 ```
 
-Gunakan mekanisme permission/RBAC yang sudah digunakan aplikasi (RBAC middleware + daftar permission di `module.go`).
+Gunakan mekanisme permission/RBAC yang sudah digunakan aplikasi.
 
 ---
 
 # 19. Audit Log
 
-Project **tidak memiliki sistem audit terpusat** — pola existing adalah tabel append-only per entity (mis. `OrganizationHistory` di module organization, `CandidateConsent` di recruitment). Ikuti pola tersebut: buat tabel **`document_template_audits`** (append-only, via AutoMigrate):
-
-```text
-id UUID PK
-template_id CHAR(36) FK
-version_id CHAR(36) NULL
-action VARCHAR(50)     -- CREATED / UPDATED / VERSION_CREATED / ACTIVATED /
-                        -- DEACTIVATED / DEFAULT_UPDATED / CREATED_FROM_DEFAULT /
-                        -- GENERATED / DOWNLOADED
-actor_id CHAR(36)
-payload JSONB NULL     -- snapshot ringkas (nama template, nomor versi, dll)
-created_at TIMESTAMP
-```
-
-Catat aktivitas penting (nilai kolom `action`):
+Catat aktivitas penting:
 
 ```text
 Template Created
@@ -914,21 +847,18 @@ Timestamp
 
 # 20. Frontend Components
 
-Ikuti konvensi views settings: satu view utama per resource di `frontend/tenant/src/views/settings/` (pola `RelationshipTypesView.vue` — DataTable lazy + Dialog + SkeletonTable + ConfirmDeleteDialog + FormRow/TextInput + useI18n + axios `api`). Dialog dipisah bila terlalu besar:
+Komponen yang disarankan:
 
 ```text
-frontend/tenant/src/views/settings/
-├── DocumentTemplatesView.vue          ← halaman utama (list, status, default, aksi)
-├── DocumentTemplateFormDialog.vue     ← form + PrimeVue Editor + variable picker
-├── DocumentTemplateVersionDialog.vue  ← histori/versi
-└── DocumentTemplatePreviewDialog.vue  ← PDF viewer (iframe + Download/Print)
+DocumentTemplateIndex.vue
+DocumentTemplateForm.vue
+DocumentTemplateEditor.vue
+DocumentTemplateVariablePicker.vue
+DocumentTemplatePreview.vue         ← komponen tombol Preview + state loading
+DocumentTemplatePreviewDialog.vue   ← PDF viewer (iframe + Download/Print)
+DocumentTemplateVersionDialog.vue
+DocumentTemplateConfiguration.vue
 ```
-
-Registrasi & i18n (wajib sinkron):
-
-- **Router**: tambah route `settings/document-templates` di `frontend/tenant/src/router/index.js` dengan `meta { titleKey, descKey, icon, module: 'setting' }` (pola route settings lain).
-- **SettingsIndex.vue**: tambah card sub-menu "Template Dokumen" (grup baru, mis. `dokumen`).
-- **Locale**: tambah key `document_templates.*` (title, description, kolom, aksi, pesan) di `frontend/tenant/src/locales/en.json` dan `id.json`.
 
 PrimeVue component:
 
@@ -956,15 +886,20 @@ ProgressSpinner
 
 ## Phase 1 — Database & Backend Foundation
 
-- [ ] Module `documenttemplate` + registrasi di `cmd/server/main.go` (Priority 16)
-- [ ] GORM model + AutoMigrate (`document_templates` ALTER, `document_template_versions`, `generated_documents`, `document_template_audits`)
-- [ ] SQL migrator `012_document_templates.sql`: partial unique index (Postgres) + seed template default
-- [ ] Tenant resolver + repository
-- [ ] Service (1-aktif-per-jenis, default copy, versioning)
-- [ ] DTO + validasi (BindAndValidate)
-- [ ] API handler + routes (`/api/v1/tenant/document-templates`)
-- [ ] Permission `documenttemplate.*` + RBAC
-- [ ] httputil locale keys (EN/ID)
+- [x] Migration `document_templates` (termasuk `is_default`) — migrasi 110 (mysql+postgres), commit `6b12129c`
+- [x] Partial unique index: 1 template aktif per jenis dokumen — Postgres partial index (migrasi 110); MySQL ditegakkan di service layer (Task 4)
+- [x] Partial unique index: 1 template default per jenis dokumen — Postgres partial index (migrasi 110); MySQL ditegakkan di service layer (Task 4)
+- [x] Seed template default per jenis dokumen — 2 baris REFERENCE (CONTRACT_AGREEMENT, MOVEMENT_SK), migrasi 110
+- [x] Migration `document_template_versions` — migrasi 110
+- [ ] Migration `document_template_variables` jika diperlukan — tidak dibuat; variable registry diimplementasikan sebagai static Go registry (Task 6), bukan tabel DB, sesuai catatan spec §11 ("sebaiknya didefinisikan melalui registry di backend")
+- [x] Migration `generated_documents` — migrasi 110 (skema saja; belum ada writer, itu Phase 5)
+- [x] Domain entity — `backend/internal/modules/documenttemplate/model.go`, commit `0313eb26`
+- [ ] Repository — sedang dikerjakan (Task 3)
+- [ ] Service
+- [ ] DTO
+- [ ] API handler
+- [ ] Permission
+- [ ] Validation
 
 ## Phase 2 — Template Management
 
@@ -997,8 +932,7 @@ ProgressSpinner
 - [ ] Variable resolver
 - [ ] Sample data preview
 - [ ] HTML rendering
-- [ ] Dependency chromedp + Chrome binary (env `CHROME_PATH`)
-- [ ] PDF generation (Headless Chromium via chromedp)
+- [ ] PDF generation (Headless Chromium)
 - [ ] API preview versi tersimpan (`{id}/preview`)
 - [ ] API preview draft (`/preview-draft`)
 - [ ] PDF viewer dialog (iframe) di Settings
