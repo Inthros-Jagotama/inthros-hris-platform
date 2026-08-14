@@ -884,7 +884,7 @@ ProgressSpinner
 
 # 21. Tahapan Implementasi
 
-## Phase 1 — Database & Backend Foundation
+## Phase 1 — Database & Backend Foundation ✅ SELESAI (2026-08-14)
 
 - [x] Migration `document_templates` (termasuk `is_default`) — migrasi 110 (mysql+postgres), commit `6b12129c`
 - [x] Partial unique index: 1 template aktif per jenis dokumen — Postgres partial index (migrasi 110); MySQL ditegakkan di service layer (Task 4)
