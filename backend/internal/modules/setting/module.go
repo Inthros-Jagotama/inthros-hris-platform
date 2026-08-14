@@ -10,6 +10,7 @@ import (
 
 	"github.com/inthros/hris-platform/internal/pkg/database"
 	"github.com/inthros/hris-platform/internal/pkg/module"
+	"github.com/inthros/hris-platform/internal/pkg/numbering"
 )
 
 const ModuleName = "Settings"
@@ -28,21 +29,29 @@ func NewTenantDBResolver(dbManager *database.Manager) TenantDBFunc {
 	}
 }
 
-func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
+// NewModule constructs the setting module. numberingSvc is the shared
+// numbering.Service instance owned by main.go (also wired into the
+// employeemovement module in Task 5) — the setting module does not
+// construct its own, so there is exactly one Service (and therefore one
+// consistent DB-transactional sequence state) per process.
+func NewModule(dbManager *database.Manager, logger *zap.Logger, numberingSvc *numbering.Service) module.Module {
 	resolver := NewTenantDBResolver(dbManager)
 	repo := NewRepository(resolver)
 	svc := NewService(repo, logger)
 	handler := NewHandler(svc)
+	numberingHandler := NewNumberingHandler(numberingSvc)
 
 	return &settingModule{
-		handler: handler,
-		logger:  logger,
+		handler:          handler,
+		numberingHandler: numberingHandler,
+		logger:           logger,
 	}
 }
 
 type settingModule struct {
-	handler *Handler
-	logger  *zap.Logger
+	handler          *Handler
+	numberingHandler *NumberingHandler
+	logger           *zap.Logger
 }
 
 func (m *settingModule) Info() module.ModuleInfo {
@@ -110,10 +119,11 @@ func (m *settingModule) Info() module.ModuleInfo {
 }
 
 func (m *settingModule) RegisterRoutes(rg *gin.RouterGroup) {
-	RegisterRoutes(rg, m.handler)
+	RegisterRoutesWithNumbering(rg, m.handler, m.numberingHandler)
 }
 
-func (m *settingModule) Migrate(db *gorm.DB) error {		return db.AutoMigrate(&Zone{}, &Province{}, &Regency{}, &District{}, &Village{}, &Education{}, &EducationMajor{}, &Religion{}, &MaritalStatus{}, &RelationshipType{}, &EmploymentStatus{}, &Bank{}, &Nationality{}, &JobFamily{}, &Grading{}, &SalaryGrade{}, &TER{}, &PTKP{}, &Insurance{}, &CompanyHoliday{}, &Competency{})
+func (m *settingModule) Migrate(db *gorm.DB) error {
+	return db.AutoMigrate(&Zone{}, &Province{}, &Regency{}, &District{}, &Village{}, &Education{}, &EducationMajor{}, &Religion{}, &MaritalStatus{}, &RelationshipType{}, &EmploymentStatus{}, &Bank{}, &Nationality{}, &JobFamily{}, &Grading{}, &SalaryGrade{}, &TER{}, &PTKP{}, &Insurance{}, &CompanyHoliday{}, &Competency{})
 }
 
 func (m *settingModule) Seed(db *gorm.DB) error {

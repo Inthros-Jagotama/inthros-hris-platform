@@ -18,7 +18,7 @@ type CreateMovementRequest struct {
 	FromEmploymentStatusID *string `json:"from_employment_status_id" binding:"omitempty,uuid"`
 	ToEmploymentStatusID   *string `json:"to_employment_status_id" binding:"omitempty,uuid"`
 	Reason                 *string `json:"reason"`
-	DecisionLetterNumber   string  `json:"decision_letter_number" binding:"required"`
+	DecisionLetterNumber   string  `json:"decision_letter_number" binding:"omitempty"`
 	DecisionLetterDate     string  `json:"decision_letter_date" binding:"required"`
 	EffectiveDate          string  `json:"effective_date" binding:"required"`
 	Notes                  *string `json:"notes"`
@@ -284,7 +284,7 @@ type PromotionEligibilityResponse struct {
 
 type CreateContractRequest struct {
 	EmployeeID           string  `json:"employee_id" binding:"required,uuid"`
-	ContractNumber       string  `json:"contract_number" binding:"required"`
+	ContractNumber       string  `json:"contract_number" binding:"omitempty"`
 	ContractType         string  `json:"contract_type" binding:"required,oneof=pkwt pkwtt daily other"`
 	StartDate            string  `json:"start_date" binding:"required"`
 	EndDate              *string `json:"end_date" binding:"omitempty"`

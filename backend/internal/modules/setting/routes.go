@@ -2,7 +2,10 @@ package setting
 
 import "github.com/gin-gonic/gin"
 
-func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
+// RegisterRoutesWithNumbering registers all setting routes plus the
+// document numbering sub-resource routes (when numberingHandler is
+// non-nil).
+func RegisterRoutesWithNumbering(rg *gin.RouterGroup, handler *Handler, numberingHandler *NumberingHandler) {
 	settings := rg.Group("/settings")
 	{
 		// Zones
@@ -196,5 +199,21 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			competencies.PUT("/:id", handler.UpdateCompetency)
 			competencies.DELETE("/:id", handler.DeleteCompetency)
 		}
+		// Document Numbering
+		if numberingHandler != nil {
+			RegisterNumberingRoutes(settings, numberingHandler)
+		}
+	}
+}
+
+// RegisterNumberingRoutes registers the document numbering sub-resource
+// routes onto the given group (e.g. the "/settings" group). Kept as a
+// standalone function so it is testable in isolation.
+func RegisterNumberingRoutes(rg *gin.RouterGroup, handler *NumberingHandler) {
+	docNumbering := rg.Group("/document-numbering")
+	{
+		docNumbering.GET("", handler.List)
+		docNumbering.PUT("/:document_type", handler.Update)
+		docNumbering.GET("/:document_type/preview", handler.Preview)
 	}
 }

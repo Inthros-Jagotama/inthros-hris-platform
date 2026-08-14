@@ -28,6 +28,7 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/mailer"
 	"github.com/inthros/hris-platform/internal/pkg/middleware"
 	"github.com/inthros/hris-platform/internal/pkg/migrator"
+	"github.com/inthros/hris-platform/internal/pkg/numbering"
 	"github.com/inthros/hris-platform/internal/pkg/module"
 	"github.com/inthros/hris-platform/internal/pkg/onpremise"
 	"github.com/inthros/hris-platform/internal/pkg/router"
@@ -931,6 +932,11 @@ func main() {
 	employeeMovementSvc := employeemovement.NewService(employeeMovementRepo, l.Named("employeemovement"))
 	employeeMovementSvc.SetApprovalEngine(sharedApprovalEngine)
 	employeeMovementSvc.SetNotifier(notificationSvc)
+	// Single shared numbering.Service instance for the whole process, used
+	// both here (auto-generate movement/contract numbers) and by the setting
+	// module (numbering settings CRUD + preview).
+	numberingSvc := numbering.NewService(setting.NewTenantDBResolver(dbManager), l.Named("numbering"))
+	employeeMovementSvc.SetNumberingService(numberingSvc)
 	// Wire the employee module (employment + employee status changes) into
 	// ExecuteMovement so movement execution touches real HR data (plan G-1):
 	// create new employment, close the previous one, mark offboarding /
@@ -1199,7 +1205,7 @@ func main() {
 			Priority: 15,
 		},
 		module.ModuleRegistration{
-			Module:   setting.NewModule(dbManager, l),
+			Module:   setting.NewModule(dbManager, l, numberingSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 16,
 		},

@@ -154,6 +154,12 @@ type CareerExecutor interface {
 	SetEmployeeInactive(ctx context.Context, tx *gorm.DB, employeeID uuid.UUID) error
 }
 
+// NumberingGenerator generates the next document number for a document type
+// (see backend/internal/pkg/numbering for the concrete implementation).
+type NumberingGenerator interface {
+	Generate(ctx context.Context, documentType string) (string, error)
+}
+
 // CareerExecutor methods all receive a *gorm.DB transaction (tx) opened by
 // ExecuteMovementTx: every HR data change runs on the caller's transaction so
 // movement execution is atomic (plan §12.2) — if any step fails, the whole
@@ -171,6 +177,7 @@ type Service struct {
 	performanceProvider PerformanceProvider
 	competencyProvider  CompetencyProvider
 	okrProvider         OKRProvider
+	numberingService    NumberingGenerator
 }
 
 // NewService membuat Service baru.
@@ -209,6 +216,13 @@ func (s *Service) SetCompetencyProvider(c CompetencyProvider) {
 
 func (s *Service) SetOKRProvider(o OKRProvider) {
 	s.okrProvider = o
+}
+
+// SetNumberingService wires the document numbering package so
+// CreateMovement/CreateContract can auto-generate a number when the caller
+// leaves it blank.
+func (s *Service) SetNumberingService(ns NumberingGenerator) {
+	s.numberingService = ns
 }
 
 // movementAuditJSON membungkus movement menjadi JSON string untuk kolom
@@ -335,12 +349,24 @@ func (s *Service) CreateMovement(ctx context.Context, req CreateMovementRequest)
 		return nil, fmt.Errorf("invalid employee id: %w", err)
 	}
 
+	// Auto-generate the decision letter number when the caller leaves it
+	// blank (document numbering settings feature). "employee_movement" must
+	// stay in sync with numbering.DocumentTypeEmployeeMovement.
+	decisionLetterNumber := req.DecisionLetterNumber
+	if decisionLetterNumber == "" && s.numberingService != nil {
+		generated, err := s.numberingService.Generate(ctx, "employee_movement")
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate decision letter number: %w", err)
+		}
+		decisionLetterNumber = generated
+	}
+
 	movement := &EmployeeMovement{
 		CreatedBy:            authctx.GetUserID(ctx),
 		UpdatedBy:            authctx.GetUserID(ctx),
 		EmployeeID:           employeeUUID,
 		MovementType:         MovementType(req.MovementType),
-		DecisionLetterNumber: req.DecisionLetterNumber,
+		DecisionLetterNumber: decisionLetterNumber,
 		DecisionLetterDate:   req.DecisionLetterDate,
 		EffectiveDate:        req.EffectiveDate,
 		Status:               MovementStatusDraft,
@@ -1881,11 +1907,23 @@ func (s *Service) CreateContract(ctx context.Context, req CreateContractRequest)
 		return nil, fmt.Errorf("invalid employee id: %w", err)
 	}
 
+	// Auto-generate the contract number when the caller leaves it blank
+	// (document numbering settings feature). "employee_contract" must stay
+	// in sync with numbering.DocumentTypeEmployeeContract.
+	contractNumber := req.ContractNumber
+	if contractNumber == "" && s.numberingService != nil {
+		generated, err := s.numberingService.Generate(ctx, "employee_contract")
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate contract number: %w", err)
+		}
+		contractNumber = generated
+	}
+
 	contract := &EmployeeContract{
 		CreatedBy:      authctx.GetUserID(ctx),
 		UpdatedBy:      authctx.GetUserID(ctx),
 		EmployeeID:     employeeUUID,
-		ContractNumber: req.ContractNumber,
+		ContractNumber: contractNumber,
 		ContractType:   ContractType(req.ContractType),
 		StartDate:      req.StartDate,
 		Status:         ContractStatusActive,
@@ -1923,7 +1961,7 @@ func (s *Service) CreateContract(ctx context.Context, req CreateContractRequest)
 
 	s.logger.Info("Employee contract created",
 		zap.String("employee_id", req.EmployeeID),
-		zap.String("contract_number", req.ContractNumber),
+		zap.String("contract_number", contractNumber),
 		zap.String("contract_type", req.ContractType),
 	)
 

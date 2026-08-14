@@ -79,7 +79,8 @@ const groups = computed(() => [
       { path: '/settings/employment-statuses', icon: 'pi pi-briefcase', titleKey: 'settings.employment_statuses', descKey: 'employment_statuses.description', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
       { path: '/settings/nationalities', icon: 'pi pi-globe', titleKey: 'settings.nationalities', descKey: 'nationalities.description', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
       { path: '/settings/job-families', icon: 'pi pi-briefcase', titleKey: 'settings.job_families', descKey: 'job_families.description', tint: 'bg-lime-50 dark:bg-lime-500/10 text-lime-600 dark:text-lime-400' },
-      { path: '/settings/competencies', icon: 'pi pi-star', titleKey: 'settings.competencies', descKey: 'competencies.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' }
+      { path: '/settings/competencies', icon: 'pi pi-star', titleKey: 'settings.competencies', descKey: 'competencies.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' },
+      { path: '/settings/numbering', icon: 'pi pi-hashtag', titleKey: 'settings.numbering', descKey: 'numbering_settings.description', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' }
     ]
   },
   {

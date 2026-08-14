@@ -130,8 +130,8 @@
             @change="onEmployeeChange"
           />
         </FormRow>
-        <FormRow :label="t('employee_movement.contract_number')" required :errors="errors?.contract_number">
-          <TextInput v-model="form.contract_number" />
+        <FormRow :label="t('employee_movement.contract_number')" :required="!!editingId" :errors="errors?.contract_number">
+          <TextInput v-model="form.contract_number" :placeholder="t('employee_movement.number_auto_placeholder')" />
         </FormRow>
         <FormRow :label="t('employee_movement.contract_type')" required :errors="errors?.contract_type">
           <Select v-model="form.contract_type" :options="typeOptions" optionLabel="label" optionValue="value" class="w-full" />
@@ -458,7 +458,7 @@ async function uploadAttachment() {
 function validateForm() {
   const e = {}
   if (!form.value.employee_id) e.employee_id = t('employee_movement.field_required')
-  if (!form.value.contract_number?.trim()) e.contract_number = t('employee_movement.field_required')
+  if (editingId.value && !form.value.contract_number?.trim()) e.contract_number = t('employee_movement.field_required')
   if (!form.value.contract_type) e.contract_type = t('employee_movement.field_required')
   if (!form.value.start_date) e.start_date = t('employee_movement.field_required')
   if (form.value.contract_type === 'pkwt' && !form.value.end_date) e.end_date = t('employee_movement.field_required')
