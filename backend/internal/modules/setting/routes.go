@@ -2,10 +2,6 @@ package setting
 
 import "github.com/gin-gonic/gin"
 
-func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
-	RegisterRoutesWithNumbering(rg, handler, nil)
-}
-
 // RegisterRoutesWithNumbering registers all setting routes plus the
 // document numbering sub-resource routes (when numberingHandler is
 // non-nil).

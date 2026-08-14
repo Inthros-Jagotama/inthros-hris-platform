@@ -24,4 +24,5 @@ CREATE TABLE IF NOT EXISTS document_numbering_settings (
 INSERT INTO document_numbering_settings (id, document_type, format_template, reset_period, last_sequence, last_reset_key)
 VALUES
     (UUID(), 'employee_movement', 'SK/{sequence:3}/HRIS/{month_roman}/{year}', 'yearly', 0, ''),
-    (UUID(), 'employee_contract', 'CTR/{sequence:3}/HRIS/{month_roman}/{year}', 'yearly', 0, '');
+    (UUID(), 'employee_contract', 'CTR/{sequence:3}/HRIS/{month_roman}/{year}', 'yearly', 0, '')
+ON DUPLICATE KEY UPDATE id=id;

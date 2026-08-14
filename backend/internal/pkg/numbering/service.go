@@ -108,6 +108,11 @@ func (s *Service) Preview(ctx context.Context, documentType string) (string, err
 // Generate atomically increments (and resets, if the period rolled over)
 // the sequence for documentType and returns the formatted number. Must be
 // safe under concurrent callers, hence the row lock.
+//
+// Note: Generate commits its own transaction rather than joining the
+// caller's — if the enclosing movement/contract create fails after this
+// call, the consumed sequence number is not reclaimed. This is a
+// documented, accepted tradeoff, not a bug.
 func (s *Service) Generate(ctx context.Context, documentType string) (string, error) {
 	if !validDocumentTypes[documentType] {
 		return "", ErrInvalidDocumentType
@@ -145,6 +150,10 @@ func (s *Service) Generate(ctx context.Context, documentType string) (string, er
 		return nil
 	})
 	if txErr != nil {
+		if s.logger != nil {
+			s.logger.Warn("numbering: failed to generate document number",
+				zap.String("document_type", documentType), zap.Error(txErr))
+		}
 		return "", txErr
 	}
 	return result, nil

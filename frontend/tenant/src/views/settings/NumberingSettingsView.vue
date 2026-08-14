@@ -5,7 +5,6 @@
     <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div
         v-for="dt in DOCUMENT_TYPES"
-        v-if="forms[dt.key]"
         :key="dt.key"
         class="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 p-4 space-y-4"
       >
@@ -91,6 +90,10 @@ const forms = reactive({})
 const previews = reactive({})
 const saving = reactive({})
 const errors = reactive({})
+
+for (const dt of DOCUMENT_TYPES) {
+  forms[dt.key] = { format_template: '', reset_period: 'yearly' }
+}
 
 let previewTimers = {}
 

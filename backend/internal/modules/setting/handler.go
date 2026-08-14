@@ -1271,37 +1271,36 @@ func NewNumberingHandler(svc *numbering.Service) *NumberingHandler {
 func (h *NumberingHandler) List(c *gin.Context) {
 	items, err := h.svc.List(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": items})
+	httputil.SuccessJSON(c, items)
 }
 
 type updateNumberingRequest struct {
-	FormatTemplate string `json:"format_template" binding:"required"`
+	FormatTemplate string `json:"format_template" binding:"required,max=255"`
 	ResetPeriod    string `json:"reset_period" binding:"required"`
 }
 
 func (h *NumberingHandler) Update(c *gin.Context) {
 	documentType := c.Param("document_type")
 	var req updateNumberingRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
 	updated, err := h.svc.Update(c.Request.Context(), documentType, req.FormatTemplate, req.ResetPeriod)
 	if err != nil {
 		switch err {
 		case numbering.ErrInvalidDocumentType, numbering.ErrInvalidResetPeriod:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
 		case numbering.ErrSettingNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusNotFound, err.Error())
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			httputil.InternalError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": updated})
+	httputil.SuccessJSON(c, updated)
 }
 
 func (h *NumberingHandler) Preview(c *gin.Context) {
@@ -1310,13 +1309,13 @@ func (h *NumberingHandler) Preview(c *gin.Context) {
 	if err != nil {
 		switch err {
 		case numbering.ErrInvalidDocumentType:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
 		case numbering.ErrSettingNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			httputil.ErrorSimple(c, http.StatusNotFound, err.Error())
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			httputil.InternalError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": gin.H{"preview": preview}})
+	httputil.SuccessJSON(c, gin.H{"preview": preview})
 }
