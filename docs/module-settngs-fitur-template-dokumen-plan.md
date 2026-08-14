@@ -884,7 +884,7 @@ ProgressSpinner
 
 # 21. Tahapan Implementasi
 
-## Phase 1 — Database & Backend Foundation ✅ SELESAI (2026-08-14)
+## Phase 1 — Database & Backend Foundation ✅ SELESAI (2026-08-14, termasuk final review fix: MySQL locking pada Activate, guard IsDefault di Deactivate/CreateVersion, partial-update tidak lagi menghapus field lain, soft-delete code reuse, case-insensitive search lintas DB, FK active_version_id via migrasi 111)
 
 - [x] Migration `document_templates` (termasuk `is_default`) — migrasi 110 (mysql+postgres), commit `6b12129c`
 - [x] Partial unique index: 1 template aktif per jenis dokumen — Postgres partial index (migrasi 110); MySQL ditegakkan di service layer (Task 4)
