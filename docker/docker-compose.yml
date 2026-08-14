@@ -13,6 +13,7 @@ volumes:
   mysqldata:
   redisdata:
   mailpit_data:
+  uploads_data:
 
 services:
   # ===================================================================
@@ -150,6 +151,7 @@ services:
     build:
       context: ../backend
       dockerfile: docker/Dockerfile
+    image: hris-api:local
     container_name: hris-api
     restart: unless-stopped
     networks:
@@ -158,9 +160,45 @@ services:
       - "8082:8080"
     env_file:
       - .env
+    environment:
+      # Template Dokumen — engine DOCX → PDF (LibreOffice sudah ter-bundle
+      # di image via libreoffice-writer; path eksplisit lebih aman daripada
+      # auto-detect di dalam container)
+      HRIS_STORAGE_PDF_ENGINE: "libreoffice"
+      HRIS_STORAGE_LIBREOFFICE_PATH: "/usr/bin/soffice"
+    volumes:
+      # Persistensi file upload: template .docx, previews/, generated_documents/
+      - uploads_data:/app/uploads
     depends_on:
       redis:
         condition: service_healthy
+
+  # ===================================================================
+  # LibreOffice Helper (opsional — profile "tools")
+  # ===================================================================
+  # Container pembantu untuk konversi DOCX → PDF manual/testing, memakai
+  # image yang sama dengan api (sudah berisi libreoffice-writer):
+  #
+  #   docker compose --profile tools run --rm libreoffice --version
+  #   docker compose --profile tools run --rm libreoffice --headless \
+  #     --convert-to pdf /uploads/contoh.docx --outdir /uploads
+  #
+  # Volume uploads di-share dengan api sehingga hasil konversi manual
+  # langsung tersedia di /uploads aplikasi.
+  libreoffice:
+    profiles: ["tools"]
+    build:
+      context: ../backend
+      dockerfile: docker/Dockerfile
+    image: hris-api:local
+    container_name: hris-libreoffice
+    restart: "no"
+    networks:
+      - hris-network
+    volumes:
+      - uploads_data:/uploads
+    entrypoint: ["/usr/bin/soffice"]
+    command: ["--version"]
 
   # ===================================================================
   # OpenTelemetry Collector (optional - uncomment to enable)

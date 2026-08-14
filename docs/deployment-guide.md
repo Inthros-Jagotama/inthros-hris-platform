@@ -52,6 +52,7 @@ Kedua mode memakai **binari yang sama** (`cmd/server`) — perbedaan hanya pada 
 - Database: **MySQL 8.0+** atau **PostgreSQL 16+** (driver dikonfigurasi via `HRIS_DATABASE_DRIVER`)
 - Redis 7+ (wajib untuk distributed cache)
 - (Opsional) Mailpit untuk dev email, Asynqmon untuk queue monitoring
+- **LibreOffice 7+** — wajib jika fitur **Settings → Template Dokumen** dipakai (preview PDF & Generate Document); lihat §2.1. Alternatif tanpa instalasi: set `storage.pdf_engine: "docx2pdf"` (engine pure-Go)
 
 ### Build Binary
 
@@ -79,6 +80,109 @@ docker compose --profile postgres up -d
 # ATAU MySQL
 docker compose --profile mysql up -d
 ```
+
+### 2.1 LibreOffice Headless (Template Dokumen — DOCX → PDF)
+
+Fitur **Settings → Template Dokumen** merender template `.docx` menjadi PDF melalui pipeline yang sama untuk **preview** (Phase 4) dan **Generate Document** (Phase 5 — Contract/Movement):
+
+```text
+Template DOCX → Resolve Variable → LibreOffice Headless → PDF
+```
+
+Implementasi: `LibreOfficePDFService` (`backend/internal/modules/documenttemplate/pdf_service.go`) memanggil binary `soffice` via subprocess:
+
+```bash
+soffice --headless --norestore --convert-to pdf --outdir <dir> <file.docx>
+```
+
+Konversi berjalan **sinkron** dengan **timeout 60 detik per dokumen**. Output disimpan di `{upload_dir}/previews/` (preview) dan `{upload_dir}/generated_documents/` (generate).
+
+#### 2.1.1 Memilih Engine PDF
+
+Dua engine tersedia, dipilih via `storage.pdf_engine` (env `HRIS_STORAGE_PDF_ENGINE`):
+
+| Aspek | `libreoffice` *(default)* | `docx2pdf` |
+|---|---|---|
+| Implementasi | Binary `soffice` (LibreOffice) | Pure-Go `github.com/bobyeoh/docx2pdf-go` (MIT) |
+| Dependency eksternal | ✅ Perlu install LibreOffice di server | ❌ Tidak ada |
+| Fidelity DOCX → PDF | ✅ Paling mendekati Word | ⚠️ Turun pada floating-image wrap, SmartArt, math |
+| Kecepatan | ~1–3 detik (cold start pertama) | Sangat cepat (milidetik) |
+| Cocok untuk | Dokumen formal HR (SK, perjanjian kontrak) dengan layout kompleks | Server tanpa LibreOffice, dokumen sederhana |
+
+> **Rekomendasi produksi:** gunakan `libreoffice` (default) untuk dokumen formal HR agar hasilnya pixel-akurat dengan Microsoft Word. `docx2pdf` adalah alternatif tanpa dependency eksternal bila install LibreOffice tidak memungkinkan.
+
+#### 2.1.2 Instalasi per Platform
+
+**Debian / Ubuntu (termasuk image Docker berbasis `apt`):**
+```bash
+apt-get update && apt-get install -y --no-install-recommends libreoffice-writer fonts-dejavu-core
+# binary: /usr/bin/soffice atau /usr/bin/libreoffice (auto-detect)
+```
+
+**RHEL / CentOS / Fedora:**
+```bash
+dnf install -y libreoffice-writer
+```
+
+**Docker (image resmi `backend/docker/Dockerfile`):**
+Image runtime sudah berbasis **Debian bookworm-slim** dengan `libreoffice-writer` + font DejaVu terinstall — tidak perlu install manual. Jalankan via docker-compose:
+```bash
+docker compose up -d          # api sudah siap konversi DOCX → PDF
+# Verifikasi / konversi manual via helper container (profile "tools"):
+docker compose --profile tools run --rm libreoffice --version
+```
+
+> Sebelumnya image memakai Alpine; dipindah ke Debian agar `libreoffice-writer` bisa di-install via `apt` (paket LibreOffice di Alpine sangat besar).
+
+**Windows (dev / on-premise di mesin Windows):**
+- Unduh installer MSI dari https://www.libreoffice.org/download/ lalu install.
+- ⚠️ Installer Windows **TIDAK menambahkan `soffice.exe` ke PATH** — set `HRIS_STORAGE_LIBREOFFICE_PATH` ke path penuh (contoh di §2.1.3), atau gunakan lokasi default yang sudah di-detect otomatis (`C:\Program Files\LibreOffice\program\soffice.exe`).
+
+**macOS:**
+```bash
+brew install --cask libreoffice
+# binary: /Applications/LibreOffice.app/Contents/MacOS/soffice (auto-detect)
+```
+
+> **Font:** pastikan font (mis. DejaVu/Noto) terinstall di server. Template yang memakai font tidak tersedia akan dirender dengan font pengganti, sehingga layout bisa bergeser.
+
+#### 2.1.3 Konfigurasi
+
+`LibreOfficePDFService` **auto-detect** binary per platform (lokasi standar + PATH). Bila binary di lokasi non-standar, set path eksplisit:
+
+```yaml
+# config/config.yaml
+storage:
+  upload_dir: "uploads"
+  pdf_engine: "libreoffice"            # "libreoffice" (default) | "docx2pdf"
+  libreoffice_path: "/usr/bin/soffice" # opsional — kosong = auto-detect
+```
+
+Atau via environment (disarankan di production):
+
+```bash
+export HRIS_STORAGE_PDF_ENGINE=libreoffice
+export HRIS_STORAGE_LIBREOFFICE_PATH=/usr/bin/soffice
+```
+
+> **Catatan deployment:** implementasi saat ini memanggil binary `soffice` langsung dari proses backend (`os/exec`), jadi LibreOffice harus terinstall di host/container yang sama dengan binary `cmd/server`. Image Docker resmi sudah meng-bundle LibreOffice (Debian + `libreoffice-writer`, path `/usr/bin/soffice`) — lihat §2.1.2. Opsi isolasi/scaling via service HTTP LibreOffice (plan §15) belum diimplementasikan.
+
+#### 2.1.4 Verifikasi
+
+```bash
+soffice --version   # atau path eksplisit: /usr/bin/soffice --version
+```
+
+Uji fungsional:
+1. Login tenant → **Settings → Template Dokumen** → buat template + upload `.docx`.
+2. Klik **Preview** → `POST /api/v1/tenant/settings/document-templates/{id}/preview` → harus mengembalikan `pdf_url` (file di `{upload_dir}/previews/`).
+3. Atau **Generate Document** dari detail Contract / Movement → PDF di `{upload_dir}/generated_documents/` + histori dokumen.
+
+Bila binary tidak ditemukan:
+- Preview → **503 `PDF_ENGINE_NOT_CONFIGURED`**, pesan "LibreOffice not installed or not found".
+- Generate Document → error engine-unconfigured.
+
+Troubleshooting lengkap: lihat tabel §7.
 
 ---
 
@@ -495,6 +599,7 @@ Vendor membuat `.lic` baru dengan `--expires` lebih lama, klien mengganti file `
 - [ ] CORS `allowed_origins` dibatasi (bukan `*`) jika frontend domain tetap
 - [ ] Backup: platform DB + semua tenant DB (atau single DB on-premise)
 - [ ] Monitoring: `/api/v1/platform/monitoring/*` (health, pool stats, cache stats)
+- [ ] LibreOffice Headless terinstall & terkonfigurasi (fitur Template Dokumen) — atau set `storage.pdf_engine: "docx2pdf"` (lihat §2.1)
 
 ---
 
@@ -509,6 +614,8 @@ Vendor membuat `.lic` baru dengan `--expires` lebih lama, klien mengganti file `
 | `Error 1045 (28000) Access denied` | Kredensial DB salah | Cek `HRIS_DATABASE_*` / `.env` |
 | Data region tidak muncul saat provisioning | Seed gagal diam-diam | Jalankan `installer seed-data --company=<id>` (sekarang hard-fail) |
 | Redis connection refused | Redis mati / salah host | `docker compose up -d redis`; cek `HRIS_REDIS_HOST` |
+| 503 `PDF_ENGINE_NOT_CONFIGURED` (preview) / error engine-unconfigured (generate) | Binary `soffice` tidak ditemukan (LibreOffice belum terinstall / path salah) | Install LibreOffice atau set `HRIS_STORAGE_LIBREOFFICE_PATH`; atau ganti `storage.pdf_engine: "docx2pdf"` (lihat §2.1) |
+| `configured libreoffice binary "..." not found` | `storage.libreoffice_path` menunjuk path yang salah | Cek path; verifikasi dengan `soffice --version` (lihat §2.1) |
 
 ---
 
@@ -517,6 +624,9 @@ Vendor membuat `.lic` baru dengan `--expires` lebih lama, klien mengganti file `
 | Sumber | Path |
 |---|---|
 | Config template | `backend/config/config.yaml` |
+| PDF engine — LibreOffice | `backend/internal/modules/documenttemplate/pdf_service.go` |
+| PDF engine — docx2pdf | `backend/internal/modules/documenttemplate/docx2pdf_service.go` |
+| Dockerfile (runtime Debian + LibreOffice) | `backend/docker/Dockerfile` |
 | Env template | `backend/.env.example` |
 | Makefile | `backend/Makefile` |
 | Docker compose | `docker/docker-compose.yml` |

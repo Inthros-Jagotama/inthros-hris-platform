@@ -1,7 +1,7 @@
 # ===================================================================
 # Stage 1: Build Go binary
 # ===================================================================
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Install build dependencies
 RUN apk --no-cache add git ca-certificates tzdata
@@ -35,14 +35,29 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     ./cmd/installer
 
 # ===================================================================
-# Stage 2: Minimal runtime image
+# Stage 2: Runtime image (Debian + LibreOffice Headless)
 # ===================================================================
-FROM alpine:3.19
+# Debian dipilih (bukan Alpine) agar LibreOffice (libreoffice-writer) dapat
+# di-install via apt — dibutuhkan fitur Settings → Template Dokumen untuk
+# konversi DOCX → PDF (preview & generate document).
+FROM debian:bookworm-slim
 
-RUN apk --no-cache add ca-certificates tzdata curl
+# Install runtime deps + LibreOffice headless + font dasar.
+# libreoffice-writer cukup untuk konversi .docx (tanpa seluruh suite);
+# fonts-dejavu-core agar karakter/font dasar (termasuk aksen Indonesia)
+# dirender dengan benar.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        tzdata \
+        curl \
+        libreoffice-writer \
+        fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN addgroup -S hris && adduser -S hris -G hris
+# Create non-root user (dengan home dir — LibreOffice menulis user profile
+# ke $HOME saat konversi pertama kali dijalankan)
+RUN useradd --system --create-home --home-dir /home/hris --shell /usr/sbin/nologin hris
+ENV HOME=/home/hris
 
 WORKDIR /app
 
@@ -51,6 +66,10 @@ COPY --from=builder /app/bin/server .
 COPY --from=builder /app/bin/installer .
 COPY --from=builder /app/config ./config
 COPY --from=builder /app/migrations ./migrations
+
+# Direktori upload (template .docx, previews/, generated_documents/) harus
+# writable oleh user non-root
+RUN mkdir -p /app/uploads && chown -R hris:hris /app /home/hris
 
 # Use non-root user
 USER hris
