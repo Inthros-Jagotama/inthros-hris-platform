@@ -1,6 +1,7 @@
 package documenttemplate
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -27,22 +28,31 @@ func actorID(c *gin.Context) string {
 }
 
 func (h *Handler) handleServiceError(c *gin.Context, err error) {
-	switch e := err.(type) {
-	case *InvalidDocumentTypeError:
-		httputil.ErrorSimple(c, http.StatusBadRequest, e.Error())
-	case *DuplicateCodeError:
-		httputil.ErrorJSON(c, http.StatusConflict, "DUPLICATE_CODE", "documenttemplate.duplicate_code", e.Code)
-	case *DuplicateActiveTemplateError:
-		httputil.ErrorJSON(c, http.StatusConflict, "DUPLICATE_ACTIVE", "documenttemplate.duplicate_active", e.DocumentType)
-	case *ReferenceTemplateImmutableError:
-		httputil.ErrorSimple(c, http.StatusForbidden, e.Error())
-	default:
-		if err == ErrTemplateNotFound || err == ErrVersionNotFound {
-			httputil.NotFound(c, err.Error())
-			return
-		}
-		httputil.InternalError(c, err.Error())
+	var invalidTypeErr *InvalidDocumentTypeError
+	if errors.As(err, &invalidTypeErr) {
+		httputil.ErrorSimple(c, http.StatusBadRequest, invalidTypeErr.Error())
+		return
 	}
+	var dupCodeErr *DuplicateCodeError
+	if errors.As(err, &dupCodeErr) {
+		httputil.ErrorJSON(c, http.StatusConflict, "DUPLICATE_CODE", "documenttemplate.duplicate_code", dupCodeErr.Code)
+		return
+	}
+	var dupActiveErr *DuplicateActiveTemplateError
+	if errors.As(err, &dupActiveErr) {
+		httputil.ErrorJSON(c, http.StatusConflict, "DUPLICATE_ACTIVE", "documenttemplate.duplicate_active", dupActiveErr.DocumentType)
+		return
+	}
+	var immutableErr *ReferenceTemplateImmutableError
+	if errors.As(err, &immutableErr) {
+		httputil.ErrorSimple(c, http.StatusForbidden, immutableErr.Error())
+		return
+	}
+	if errors.Is(err, ErrTemplateNotFound) || errors.Is(err, ErrVersionNotFound) {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.InternalError(c, err.Error())
 }
 
 func (h *Handler) List(c *gin.Context) {
@@ -51,8 +61,11 @@ func (h *Handler) List(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	if perPage < 1 || perPage > 100 {
+	if perPage < 1 {
 		perPage = 20
+	}
+	if perPage > 100 {
+		perPage = 100
 	}
 	items, total, err := h.svc.List(c.Request.Context(), page, perPage, c.Query("document_type"), c.Query("status"), c.Query("search"))
 	if err != nil {
@@ -106,14 +119,7 @@ func (h *Handler) Update(c *gin.Context) {
 	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
-	name, desc := "", ""
-	if req.Name != nil {
-		name = *req.Name
-	}
-	if req.Description != nil {
-		desc = *req.Description
-	}
-	tpl, err := h.svc.Update(c.Request.Context(), c.Param("id"), name, desc, actorID(c))
+	tpl, err := h.svc.Update(c.Request.Context(), c.Param("id"), req.Name, req.Description, actorID(c))
 	if err != nil {
 		h.handleServiceError(c, err)
 		return

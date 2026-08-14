@@ -42,7 +42,7 @@ func (r *Repository) List(ctx context.Context, page, perPage int, documentType, 
 	if err != nil {
 		return nil, 0, err
 	}
-	query := db.Model(&DocumentTemplate{}).Where("deleted_at IS NULL")
+	query := db.Session(&gorm.Session{}).Model(&DocumentTemplate{}).Where("deleted_at IS NULL")
 	if documentType != "" {
 		query = query.Where("type = ?", documentType)
 	}
@@ -51,7 +51,7 @@ func (r *Repository) List(ctx context.Context, page, perPage int, documentType, 
 	}
 	if search != "" {
 		like := "%" + escapeLike(search) + "%"
-		query = query.Where("(name LIKE ? OR code LIKE ?)", like, like)
+		query = query.Where("(LOWER(name) LIKE LOWER(?) OR LOWER(code) LIKE LOWER(?))", like, like)
 	}
 
 	var total int64
@@ -158,7 +158,22 @@ func (r *Repository) SoftDelete(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	if err := db.Model(&DocumentTemplate{}).Where("id = ?", id).Update("deleted_at", gorm.Expr("CURRENT_TIMESTAMP")).Error; err != nil {
+	// Also mutate code so the unconditional unique index on `code` doesn't
+	// block reusing the code for a new template after this row is soft-deleted.
+	// CONCAT() isn't portable across sqlite (tests), mysql, and postgres, so
+	// the suffix is computed in Go and written as a plain value.
+	var tpl DocumentTemplate
+	if err := db.Select("code").Where("id = ?", id).First(&tpl).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return ErrTemplateNotFound
+		}
+		return fmt.Errorf("failed to load document template for soft delete: %w", err)
+	}
+	deletedCode := fmt.Sprintf("%s_deleted_%s", tpl.Code, id)
+	if err := db.Model(&DocumentTemplate{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"deleted_at": gorm.Expr("CURRENT_TIMESTAMP"),
+		"code":       deletedCode,
+	}).Error; err != nil {
 		return fmt.Errorf("failed to soft delete document template: %w", err)
 	}
 	return nil

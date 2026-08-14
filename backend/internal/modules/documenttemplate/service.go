@@ -8,7 +8,15 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
+
+func actorIDPtr(actorID string) *string {
+	if actorID == "" {
+		return nil
+	}
+	return &actorID
+}
 
 type Service struct {
 	repo   *Repository
@@ -65,7 +73,7 @@ func (s *Service) Create(ctx context.Context, name, code, documentType, descript
 		ID:         uuid.New().String(),
 		TemplateID: tpl.ID,
 		Action:     "CREATED",
-		ActorID:    &actorID,
+		ActorID:    actorIDPtr(actorID),
 	}); err != nil {
 		return nil, err
 	}
@@ -101,14 +109,14 @@ func (s *Service) CreateFromDefault(ctx context.Context, documentType, name, cod
 		ID:         uuid.New().String(),
 		TemplateID: tpl.ID,
 		Action:     "CREATED_FROM_DEFAULT",
-		ActorID:    &actorID,
+		ActorID:    actorIDPtr(actorID),
 	}); err != nil {
 		return nil, err
 	}
 	return tpl, nil
 }
 
-func (s *Service) Update(ctx context.Context, id, name, description string, actorID string) (*DocumentTemplate, error) {
+func (s *Service) Update(ctx context.Context, id string, name, description *string, actorID string) (*DocumentTemplate, error) {
 	tpl, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -116,9 +124,11 @@ func (s *Service) Update(ctx context.Context, id, name, description string, acto
 	if tpl.IsDefault {
 		return nil, &ReferenceTemplateImmutableError{Action: "edited"}
 	}
-	tpl.Name = name
-	if description != "" {
-		tpl.Description = &description
+	if name != nil {
+		tpl.Name = *name
+	}
+	if description != nil {
+		tpl.Description = description
 	}
 	if err := s.repo.Update(ctx, tpl); err != nil {
 		return nil, err
@@ -127,7 +137,7 @@ func (s *Service) Update(ctx context.Context, id, name, description string, acto
 		ID:         uuid.New().String(),
 		TemplateID: tpl.ID,
 		Action:     "UPDATED",
-		ActorID:    &actorID,
+		ActorID:    actorIDPtr(actorID),
 	}); err != nil {
 		return nil, err
 	}
@@ -147,7 +157,7 @@ func (s *Service) UpdateDefaultContent(ctx context.Context, documentType, conten
 		ID:         uuid.New().String(),
 		TemplateID: tpl.ID,
 		Action:     "DEFAULT_UPDATED",
-		ActorID:    &actorID,
+		ActorID:    actorIDPtr(actorID),
 	}); err != nil {
 		return nil, err
 	}
@@ -173,61 +183,81 @@ func (s *Service) Delete(ctx context.Context, id, actorID string) error {
 		ID:         uuid.New().String(),
 		TemplateID: tpl.ID,
 		Action:     "DELETED",
-		ActorID:    &actorID,
+		ActorID:    actorIDPtr(actorID),
 	})
 }
 
 func (s *Service) Activate(ctx context.Context, id, actorID string) (*DocumentTemplate, error) {
-	target, err := s.repo.GetByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if target.IsDefault {
-		return nil, &ReferenceTemplateImmutableError{Action: "activated"}
-	}
-
-	err = s.repo.WithTx(ctx, func(tx *gorm.DB) error {
-		var previous DocumentTemplate
-		err := tx.Where("type = ? AND status = ? AND id != ? AND deleted_at IS NULL", target.DocumentType, StatusActive, target.ID).First(&previous).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("failed to find previous active template: %w", err)
+	var target DocumentTemplate
+	err := s.repo.WithTx(ctx, func(tx *gorm.DB) error {
+		// Locking read: serializes concurrent Activate calls for the same
+		// document type against each other so the "one ACTIVE per type"
+		// invariant holds on MySQL, which has no partial unique index backstop.
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND deleted_at IS NULL", id).First(&target).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrTemplateNotFound
+			}
+			return fmt.Errorf("failed to load template for activation: %w", err)
 		}
-		if err == nil {
-			previous.Status = StatusInactive
-			if err := tx.Save(&previous).Error; err != nil {
-				return fmt.Errorf("failed to deactivate previous active template: %w", err)
+		if target.IsDefault {
+			return &ReferenceTemplateImmutableError{Action: "activated"}
+		}
+
+		// Lock all other rows of this document type so a concurrent Activate
+		// on a sibling template of the same type serializes behind this tx.
+		var others []DocumentTemplate
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("type = ? AND id <> ? AND deleted_at IS NULL", target.DocumentType, target.ID).
+			Find(&others).Error; err != nil {
+			return fmt.Errorf("failed to lock sibling templates: %w", err)
+		}
+
+		// Set-based deactivation of ALL other active rows of this type (self
+		// heals if the invariant was ever violated), not just one.
+		if err := tx.Model(&DocumentTemplate{}).
+			Where("type = ? AND status = ? AND id <> ? AND deleted_at IS NULL", target.DocumentType, StatusActive, target.ID).
+			Update("status", StatusInactive).Error; err != nil {
+			return fmt.Errorf("failed to deactivate previous active templates: %w", err)
+		}
+		for _, previous := range others {
+			if previous.Status != StatusActive {
+				continue
 			}
 			if err := s.repo.CreateAudit(ctx, tx, &DocumentTemplateAudit{
 				ID:         uuid.New().String(),
 				TemplateID: previous.ID,
 				Action:     "DEACTIVATED",
-				ActorID:    &actorID,
+				ActorID:    actorIDPtr(actorID),
 			}); err != nil {
 				return err
 			}
 		}
 
-		target.Status = StatusActive
-		if err := tx.Save(target).Error; err != nil {
+		if err := tx.Model(&DocumentTemplate{}).Where("id = ?", target.ID).Update("status", StatusActive).Error; err != nil {
 			return fmt.Errorf("failed to activate template: %w", err)
 		}
+		target.Status = StatusActive
 		return s.repo.CreateAudit(ctx, tx, &DocumentTemplateAudit{
 			ID:         uuid.New().String(),
 			TemplateID: target.ID,
 			Action:     "ACTIVATED",
-			ActorID:    &actorID,
+			ActorID:    actorIDPtr(actorID),
 		})
 	})
 	if err != nil {
 		return nil, err
 	}
-	return target, nil
+	return &target, nil
 }
 
 func (s *Service) Deactivate(ctx context.Context, id, actorID string) (*DocumentTemplate, error) {
 	tpl, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if tpl.IsDefault {
+		return nil, &ReferenceTemplateImmutableError{Action: "deactivated"}
 	}
 	tpl.Status = StatusInactive
 	if err := s.repo.Update(ctx, tpl); err != nil {
@@ -237,7 +267,7 @@ func (s *Service) Deactivate(ctx context.Context, id, actorID string) (*Document
 		ID:         uuid.New().String(),
 		TemplateID: tpl.ID,
 		Action:     "DEACTIVATED",
-		ActorID:    &actorID,
+		ActorID:    actorIDPtr(actorID),
 	}); err != nil {
 		return nil, err
 	}
@@ -247,6 +277,17 @@ func (s *Service) Deactivate(ctx context.Context, id, actorID string) (*Document
 func (s *Service) CreateVersion(ctx context.Context, templateID, content, paperSize, orientation string, margins [4]int, actorID string) (*DocumentTemplateVersion, error) {
 	var v DocumentTemplateVersion
 	err := s.repo.WithTx(ctx, func(tx *gorm.DB) error {
+		var tpl DocumentTemplate
+		if err := tx.Where("id = ? AND deleted_at IS NULL", templateID).First(&tpl).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrTemplateNotFound
+			}
+			return fmt.Errorf("failed to load template for version creation: %w", err)
+		}
+		if tpl.IsDefault {
+			return &ReferenceTemplateImmutableError{Action: "versioned"}
+		}
+
 		next, err := s.repo.NextVersionNumber(ctx, tx, templateID)
 		if err != nil {
 			return err
@@ -280,7 +321,7 @@ func (s *Service) CreateVersion(ctx context.Context, templateID, content, paperS
 			TemplateID: templateID,
 			VersionID:  &v.ID,
 			Action:     "VERSION_CREATED",
-			ActorID:    &actorID,
+			ActorID:    actorIDPtr(actorID),
 		})
 	})
 	if err != nil {
