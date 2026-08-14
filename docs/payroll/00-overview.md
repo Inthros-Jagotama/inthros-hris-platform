@@ -15,7 +15,7 @@ Dokumen ini awalnya satu file besar (`docs/module-payroll-development-plan.md`, 
 | # | File | Isi | Status |
 |---|---|---|---|
 | 00 | [00-overview.md](00-overview.md) | Tujuan, prinsip arsitektur, struktur module, security, multi-company, target arsitektur akhir, roadmap prioritas | referensi |
-| 01 | [01-master-data-selesai.md](01-master-data-selesai.md) | Salary Component, Salary Structure, Payroll Policy, Database Structure, Approval — **backend sudah selesai, frontend 0%** | ✅ BE / 🚫 FE |
+| 01 | [01-master-data-selesai.md](01-master-data-selesai.md) | Salary Component, Salary Structure, Payroll Policy, Database Structure, Approval — **CRUD jalan tapi skema belum lengkap (gap: formula/reference, scope assignment, versioning), frontend 0%** | 🔶 BE / 🚫 FE |
 | 02 | [02-formula-engine.md](02-formula-engine.md) | Formula Engine, parser/evaluator, variable registry | ❌ prioritas #1 |
 | 03 | [03-payroll-run-snapshot.md](03-payroll-run-snapshot.md) | Payroll Period, Payroll Run, Calculation Order, Snapshot | ❌ prioritas #2 |
 | 04 | [04-bpjs-engine.md](04-bpjs-engine.md) | BPJS Kesehatan/Ketenagakerjaan kalkulator | 🔶 prioritas #3 |

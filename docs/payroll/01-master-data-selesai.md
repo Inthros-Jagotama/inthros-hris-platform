@@ -1,8 +1,10 @@
-# Payroll — Master Data & Approval (✅ Selesai — BACKEND SAJA)
+# Payroll — Master Data & Approval (🔶 Backend CRUD jalan, skema belum lengkap; FE 0%)
 
-> Bagian-bagian di file ini **sudah diimplementasikan di backend** per audit 2026-08-12, re-verifikasi 2026-08-14. Ref: [00-overview.md](00-overview.md) untuk prinsip & roadmap keseluruhan.
+> Bagian-bagian di file ini **sudah diimplementasikan sebagian di backend** per audit 2026-08-12, re-verifikasi skema 2026-08-14. Ref: [00-overview.md](00-overview.md) untuk prinsip & roadmap keseluruhan.
 >
-> 🚫 **Frontend: BELUM ADA SAMA SEKALI (0%).** `frontend/tenant/src/views/modules/payroll/Payroll.vue` hanya berisi placeholder 1 baris ("Payroll Module — Coming soon"). Route `/payroll` (`router/index.js:228-231`) dan menu sidebar (`layouts/Sidebar.vue:394,437-438`, digate permission `payroll.view`) sudah terdaftar dan mengarah ke halaman placeholder itu, tapi **tidak ada UI apa pun** untuk salary component, salary structure, payroll period/run, BPJS, PPh21, atau payslip — dan tidak ada payroll API service file di frontend sama sekali. Semua "✅ selesai" di file ini murni backend/API; belum bisa dipakai user tanpa membangun FE dari nol.
+> 🚫 **Frontend: BELUM ADA SAMA SEKALI (0%).** `frontend/tenant/src/views/modules/payroll/Payroll.vue` hanya berisi placeholder 1 baris ("Payroll Module — Coming soon"). Route `/payroll` (`router/index.js:228-231`) dan menu sidebar (`layouts/Sidebar.vue:394,437-438`, digate permission `payroll.view`) sudah terdaftar dan mengarah ke halaman placeholder itu, tapi **tidak ada UI apa pun** untuk salary component, salary structure, payroll period/run, BPJS, PPh21, atau payslip — dan tidak ada payroll API service file di frontend sama sekali.
+>
+> ⚠️ **Skema belum 100% sesuai desain (re-verifikasi 2026-08-14).** CRUD dasar (create/list/update) memang jalan, tapi ada gap struktural nyata dibanding requirement §4-9 — lihat **§Gap Analysis & Rencana Perbaikan** di bagian bawah file ini sebelum mengklaim bagian ini "selesai". Ringkasan: `salary_components` tidak punya `company_id`/effective-dating sendiri, `calculation_type` tidak divalidasi (tanpa CHECK/enum) dan tidak ada kolom `formula`/`reference_component_id`, assignment scope cuma 2 dari 5 level yang direncanakan (Grade + Employee saja, tanpa Organization/Position/Employment-Type/Company), dan tidak ada kolom `version` di tabel mana pun (hanya effective_from/to tanpa overlap guard; `pph21_settings` bahkan cuma bisa punya 1 row aktif tanpa histori).
 
 ## 4. Salary Component
 
@@ -76,7 +78,7 @@ created_at
 updated_at
 ```
 
-> ✅ Tabel aktual: `salary_components` — CRUD lengkap.
+> 🔶 Tabel aktual: `salary_components` — CRUD lengkap, **tapi kolom belum lengkap**: tidak ada `company_id` (tidak ada scoping per-company di level component), tidak ada `effective_from`/`effective_to` sendiri (validity window baru ada di child table `salary_grade_components`/`salary_employee_components`, bukan di component-nya), `active` diimplementasikan sebagai `status` VARCHAR enum (bukan boolean — gap kosmetik, bukan blocker). Lihat §Gap Analysis di bawah.
 
 ---
 
@@ -112,7 +114,7 @@ JHT_EMP = BPJS_WAGE * 2%
 OVERTIME_HOURS * OVERTIME_RATE
 ```
 
-> ⚠️ Kolom `calculation_type`/`formula` sudah ada di skema `salary_components`, tapi eksekusi formula-nya sendiri **belum ada** — lihat [02-formula-engine.md](02-formula-engine.md).
+> ❌ **Koreksi (re-verifikasi 2026-08-14):** kolom `calculation_type` ADA (`VARCHAR(255) DEFAULT 'FIXED'`), tapi **tanpa CHECK constraint atau validasi enum di Go** — string apa pun diterima, typo tidak tertangkap. Kolom `formula` yang disebut di atas **TIDAK ADA SAMA SEKALI** di `salary_components`, begitu juga `reference_component_id` untuk tipe REFERENCE — jadi secara struktur tabel pun, calculation type FORMULA/REFERENCE belum punya tempat menyimpan datanya, bukan cuma belum ada eksekusinya. Ini perlu masuk ke scope [02-formula-engine.md](02-formula-engine.md) sebagai migration tambahan, bukan hanya "tinggal build engine"-nya saja.
 
 ### Reference
 
@@ -135,7 +137,7 @@ BONUS_SPECIAL = 2500000
 
 ## 7. Salary Structure
 
-> ✅ **Status: selesai**, tapi via nama tabel berbeda dari rencana awal — lihat §34 di bawah untuk skema aktual.
+> 🔶 **Status: sebagian selesai** — via nama tabel berbeda dari rencana awal (lihat §34), **dan hanya 2 dari 5 level assignment scope yang direncanakan di bawah benar-benar ada.**
 
 Salary Structure mengelompokkan component yang berlaku untuk employee.
 
@@ -185,6 +187,8 @@ Company
    ↓
 Default Payroll Policy
 ```
+
+> ❌ **Aktual (re-verifikasi 2026-08-14): hanya 2 level yang benar-benar ada.** `salary_grade_components` = level **Grade** (FK `grading_id`). `salary_employee_components` = level **Employee** (FK `employee_id` wajib, plus kolom `employment_id`/`position_id`/`grading_id` yang sifatnya kontekstual/denormalisasi pada row employee — bukan scope assignment independen dengan resolusi prioritas sendiri). **Tidak ada** tabel/kolom untuk level Organization, Position (sebagai scope berdiri sendiri), Employment Type, atau Company/default-policy. Rantai prioritas 5-level di atas **tidak punya skema pendukung sama sekali** — lihat §Gap Analysis di bawah untuk rencana perbaikan.
 
 ---
 
@@ -294,6 +298,8 @@ payroll_profile_change_logs    -- audit perubahan profile (employee_payroll_prof
 
 Seluruh primary key menggunakan UUID (`CHAR(36)`), konsisten dengan modul lain di repo ini.
 
+> ❌ **Gap versioning (re-verifikasi 2026-08-14):** tidak ada kolom `version` di tabel mana pun (`salary_components`, `bpjs_settings`, `bpjs_rate_components`, `pph21_settings`, `pph21_ptkp_rates`, `pph21_tax_brackets`). Effective-dating (`effective_start_date`/`effective_end_date`) dipakai sebagai gantinya, tapi under-enforced: unique constraint hanya di `(code, effective_start_date)` — tidak ada exclusion constraint yang mencegah dua row dengan rentang tanggal overlap untuk scope yang sama. Lebih parah lagi, `pph21_settings` punya `UNIQUE(setting_code)` **tanpa effective dating sama sekali** — hanya bisa ada 1 row aktif, tidak ada histori versi PPh21 sama sekali walau regulasi pajak berubah setiap tahun. Lihat §Gap Analysis di bawah.
+
 ---
 
 ## 35. Relasi Utama
@@ -356,3 +362,55 @@ Company
 - [x] Finance approval. — via Approval Module generik.
 - [x] Management approval. — via Approval Module generik.
 - [x] Finalization. — status `LOCKED` sebagai state akhir.
+
+---
+
+## Gap Analysis (re-verifikasi 2026-08-14)
+
+Ringkasan hasil audit skema aktual (`006_payroll_structure.sql` + `model.go`) dibanding requirement §4-9 di atas:
+
+| # | Requirement | Kondisi Aktual | Verdict |
+|---|---|---|---|
+| 1 | `salary_components` perlu `company_id` + `effective_from/to` sendiri | Tidak ada — component tidak punya kolom tenant-scope maupun validity window sendiri (baru ada di child table) | ❌ GAP |
+| 2 | `type` (EARNING/DEDUCTION/EMPLOYER_CONTRIBUTION) | String bebas (`component_type VARCHAR(255)`, tanpa CHECK) — bisa menampung semua kode yang direncanakan | ✅ OK |
+| 3 | `calculation_type` (FIXED/PERCENTAGE/FORMULA/REFERENCE/MANUAL) | Kolom ada tapi tanpa enum enforcement (bukan CHECK constraint, tidak divalidasi di Go); **tidak ada kolom `formula` atau `reference_component_id`**, jadi FORMULA/REFERENCE belum bisa berfungsi secara struktural, bukan cuma belum ada eksekusinya | ❌ GAP |
+| 4 | Assignment scope 5-level (Company/Organization/Position/Grade/Employment Type/Employee) dengan prioritas resolusi | Hanya 2 level nyata: Grade (`salary_grade_components`) dan Employee (`salary_employee_components`). `position_id`/`employment_id` di tabel employee-level cuma kolom kontekstual, bukan scope assignment independen | ❌ GAP (terbesar) |
+| 5 | `version` field untuk resolusi rule historis | Tidak ada kolom `version` di tabel mana pun — hanya `effective_start/end_date` tanpa exclusion constraint anti-overlap. `pph21_settings` malah cuma 1 row aktif (unique constraint tanpa histori sama sekali) | ❌ GAP |
+
+**Kesimpulan**: CRUD dasar (create/list/update) berfungsi dan cukup untuk "component/structure exists in DB", tapi **belum memenuhi arsitektur configuration-driven payroll engine** yang jadi prinsip inti modul ini (lihat [00-overview.md](00-overview.md) §Prinsip Utama poin 1-2). Formula/reference calculation type dan multi-level assignment scope adalah prasyarat struktural untuk [02-formula-engine.md](02-formula-engine.md) dan [03-payroll-run-snapshot.md](03-payroll-run-snapshot.md) — bukan pekerjaan terpisah yang bisa ditunda.
+
+---
+
+## Rencana Perbaikan Gap (Backend)
+
+Urutan disusun agar tidak menghalangi start Formula Engine ([02-formula-engine.md](02-formula-engine.md)) — migration ini jadi prasyarat, sebaiknya dikerjakan sebagai bagian awal sub-project Formula Engine, bukan sub-project terpisah:
+
+- [ ] Migration: tambah `company_id`, `effective_start_date`, `effective_end_date` ke `salary_components`.
+- [ ] Migration: tambah `formula TEXT NULL` dan `reference_component_id CHAR(36) NULL` (self-FK ke `salary_components`) untuk mendukung calculation_type FORMULA/REFERENCE.
+- [ ] Tambah validasi `calculation_type` di service layer (Go const/enum: `FIXED|PERCENTAGE|FORMULA|REFERENCE|MANUAL`) — CHECK constraint di DB opsional, minimal validasi di `service.go`.
+- [ ] Migration: tambah `organization_id CHAR(36) NULL` dan `employment_type VARCHAR(50) NULL` ke `salary_grade_components` (atau tabel scope baru `salary_scope_components`) untuk mendukung 3 level assignment yang belum ada (Organization, Position sebagai scope berdiri sendiri, Employment Type). Perlu keputusan desain: extend tabel existing vs tabel baru — evaluasi saat brainstorming sub-project ini.
+- [ ] Implementasi priority-resolution logic (Employee > Position > Organization > Company > Default) di service layer saat query salary component aktif untuk seorang employee.
+- [ ] Migration: tambah `version INT NOT NULL DEFAULT 1` ke `bpjs_rate_components`, `pph21_ptkp_rates`, `pph21_tax_brackets`, `salary_components` — atau alternatif lebih murah: tambah exclusion constraint (Postgres `EXCLUDE USING gist` on daterange, atau app-level overlap check) tanpa kolom version baru. Keputusan desain saat brainstorming.
+- [ ] Migration: ubah `pph21_settings` dari `UNIQUE(setting_code)` single-row menjadi effective-dated (tambah `effective_start_date`/`effective_end_date`, ubah unique constraint jadi `(setting_code, effective_start_date)`) agar histori perubahan regulasi PPh21 tahunan bisa disimpan.
+
+> ⚠️ Item-item ini **harus dikerjakan sebelum atau bersamaan** dengan Task 1 di sub-project Formula Engine ([02-formula-engine.md](02-formula-engine.md)), karena Formula Engine butuh kolom `formula`/`reference_component_id` untuk punya sesuatu yang bisa di-parse.
+
+---
+
+## Rencana Implementasi Frontend
+
+Belum ada satu pun UI payroll. Untuk membuat master data ini benar-benar bisa dipakai user (bukan cuma API), FE perlu dibangun dari nol, mengikuti pola modul lain yang sudah ada (mis. `frontend/tenant/src/views/settings/` untuk CRUD master data sederhana):
+
+- [ ] Ganti `frontend/tenant/src/views/modules/payroll/Payroll.vue` placeholder dengan layout index (tab/menu ke sub-halaman: Salary Component, Salary Structure, Payroll Period, BPJS Settings, PPh21 Settings, Payroll Run).
+- [ ] Buat API service file `frontend/tenant/src/services/payroll.js` (atau pola serupa modul lain) untuk memanggil endpoint payroll yang sudah ada di backend (48 handler, lihat [00-overview.md](00-overview.md)).
+- [ ] **Salary Component**: list + form create/edit (CRUD `salary_components`).
+- [ ] **Salary Structure**: 2 view — grade-level default component (`salary_grade_components`) dan employee-level override (`salary_employee_components`), dengan tabel effective-dating yang jelas ke user.
+- [ ] **Payroll Period**: list + form create/edit, toggle OPEN/CLOSED.
+- [ ] **BPJS Settings & Rate Components**: form konfigurasi tarif per program (HEALTH/JHT/JP/JKK/JKM/JKP) dengan effective dating.
+- [ ] **PPh21 Settings, PTKP Rates, Tax Brackets**: form konfigurasi pajak.
+- [ ] **Employee Payroll/Bank/BPJS/Tax Profiles**: form per-employee (kemungkinan terintegrasi ke halaman Employee Detail yang sudah ada, bukan halaman payroll terpisah — evaluasi saat brainstorming).
+- [ ] **Payroll Run**: list + detail + status-transition UI (DRAFT→CALCULATED→APPROVED→LOCKED), termasuk tombol trigger approval (`GET /runs/:id/approval`).
+- [ ] i18n: tambah string ke `frontend/tenant/src/locales/en.json`/`id.json` untuk semua label di atas.
+- [ ] Update `docs/openapi-report.md` referensi kalau ada penyesuaian kontrak API saat FE dibangun.
+
+> ⚠️ FE untuk **Payroll Run** sebaiknya ditunda sampai [03-payroll-run-snapshot.md](03-payroll-run-snapshot.md) (calculation engine) selesai — UI status-transition tanpa kalkulasi nyata akan menyesatkan user (bisa klik "Calculate" tanpa ada angka yang benar-benar dihitung). Prioritaskan FE untuk master data (Salary Component, Structure, Period, BPJS/PPh21 settings) lebih dulu karena backend-nya (setelah gap di atas diperbaiki) sudah cukup matang untuk dipakai.

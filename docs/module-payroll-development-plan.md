@@ -11,7 +11,7 @@
 | # | File | Isi | Status |
 |---|---|---|---|
 | 00 | [payroll/00-overview.md](payroll/00-overview.md) | Overview, prinsip, roadmap | referensi |
-| 01 | [payroll/01-master-data-selesai.md](payroll/01-master-data-selesai.md) | Salary Component, Salary Structure, Payroll Policy, Database Structure, Approval | ✅ BE / 🚫 FE |
+| 01 | [payroll/01-master-data-selesai.md](payroll/01-master-data-selesai.md) | Salary Component, Salary Structure, Payroll Policy, Database Structure, Approval — CRUD jalan, skema belum lengkap | 🔶 BE / 🚫 FE |
 | 02 | [payroll/02-formula-engine.md](payroll/02-formula-engine.md) | Formula Engine | ❌ prioritas #1 |
 | 03 | [payroll/03-payroll-run-snapshot.md](payroll/03-payroll-run-snapshot.md) | Payroll Period, Payroll Run, Calculation Order, Snapshot | ❌ prioritas #2 |
 | 04 | [payroll/04-bpjs-engine.md](payroll/04-bpjs-engine.md) | BPJS Kesehatan/Ketenagakerjaan kalkulator | 🔶 prioritas #3 |
