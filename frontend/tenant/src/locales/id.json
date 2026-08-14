@@ -2444,7 +2444,20 @@
     "performance_ratings": "Rating Kinerja",
     "performance_formulas": "Formula KPI",
     "performance_components": "Komponen Penilaian",
-    "performance_scoring": "Bobot Penilaian Kinerja"
+    "performance_scoring": "Bobot Penilaian Kinerja",
+    "numbering": "Penomoran Dokumen"
+  },
+  "numbering_settings": {
+    "title": "Penomoran Dokumen",
+    "employee_movement": "Movements (SK Promosi / Mutasi / Demosi)",
+    "employee_contract": "Kontrak",
+    "format_template": "Format Nomor",
+    "reset_period": "Reset Urutan",
+    "reset_yearly": "Setiap Tahun",
+    "reset_monthly": "Setiap Bulan",
+    "reset_never": "Tidak Pernah",
+    "tokens_help": "Token yang tersedia: {sequence}, {sequence:3} (diberi angka nol di depan), {year}, {yy}, {month}, {month_roman}",
+    "preview_label": "Pratinjau nomor berikutnya"
   },
   "provinces": {
     "title": "Provinsi",

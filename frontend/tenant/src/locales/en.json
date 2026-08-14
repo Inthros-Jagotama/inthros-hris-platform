@@ -2444,7 +2444,20 @@
     "performance_ratings": "Performance Ratings",
     "performance_formulas": "KPI Formulas",
     "performance_components": "Performance Components",
-    "performance_scoring": "Performance Scoring"
+    "performance_scoring": "Performance Scoring",
+    "numbering": "Document Numbering"
+  },
+  "numbering_settings": {
+    "title": "Document Numbering",
+    "employee_movement": "Movements (Promotion / Mutation / Demotion SK)",
+    "employee_contract": "Contracts",
+    "format_template": "Number Format",
+    "reset_period": "Reset Sequence",
+    "reset_yearly": "Every Year",
+    "reset_monthly": "Every Month",
+    "reset_never": "Never",
+    "tokens_help": "Available tokens: {sequence}, {sequence:3} (zero-padded), {year}, {yy}, {month}, {month_roman}",
+    "preview_label": "Next number preview"
   },
   "provinces": {
     "title": "Provinces",
