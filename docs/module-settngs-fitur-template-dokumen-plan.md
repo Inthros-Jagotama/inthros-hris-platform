@@ -896,10 +896,10 @@ ProgressSpinner
 - [x] Domain entity — `backend/internal/modules/documenttemplate/model.go`, commit `0313eb26`
 - [x] Repository — `backend/internal/modules/documenttemplate/repository.go`, commit `1d48b854`
 - [x] Service — `backend/internal/modules/documenttemplate/service.go`, commit `4182bc73` (one-active-per-jenis atomik via transaksi, from-default copy, versioning)
-- [ ] DTO — sedang dikerjakan (Task 5)
-- [ ] API handler
-- [ ] Permission
-- [ ] Validation
+- [x] DTO — `backend/internal/modules/documenttemplate/dto.go`, commit `b5616b79`
+- [x] API handler — `handler.go` + `routes.go` + `module.go`, commit `b5616b79` (belum diregistrasi ke `main.go`, itu Task 6)
+- [x] Permission — daftar permission `documenttemplate.*` di `module.go`'s `Info()`, commit `b5616b79`
+- [x] Validation — `httputil.BindAndValidate` + tag binding di dto.go, commit `b5616b79`
 
 ## Phase 2 — Template Management
 
