@@ -62,6 +62,10 @@ func (h *Handler) List(c *gin.Context) {
 	httputil.SuccessJSON(c, TemplateListResponse{Data: items, Total: total, Page: page})
 }
 
+func (h *Handler) ListVariables(c *gin.Context) {
+	httputil.SuccessJSON(c, VariableRegistry())
+}
+
 func (h *Handler) GetByID(c *gin.Context) {
 	tpl, err := h.svc.GetByID(c.Request.Context(), c.Param("id"))
 	if err != nil {

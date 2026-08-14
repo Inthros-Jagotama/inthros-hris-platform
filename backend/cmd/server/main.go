@@ -51,6 +51,7 @@ import (
 	"github.com/inthros/hris-platform/internal/modules/attendance"
 	"github.com/inthros/hris-platform/internal/modules/careerintelligence"
 	"github.com/inthros/hris-platform/internal/modules/competency"
+	"github.com/inthros/hris-platform/internal/modules/documenttemplate"
 	"github.com/inthros/hris-platform/internal/modules/employee"
 	"github.com/inthros/hris-platform/internal/modules/employeemovement"
 	"github.com/inthros/hris-platform/internal/modules/jobmanagement"
@@ -1223,6 +1224,11 @@ func main() {
 			Module:   notification.NewModuleWithService(l, notificationSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 19,
+		},
+		module.ModuleRegistration{
+			Module:   documenttemplate.NewModule(dbManager, l),
+			TargetDB: module.TargetTenant,
+			Priority: 20,
 		},
 	)
 
