@@ -24,7 +24,8 @@ Employee, Employee Movement, dan Training.
 │    NEW ─▶ SCREENED ─▶ SHORTLISTED ─▶ INTERVIEWED ─▶ OFFERED ─▶ ACCEPTED            │
 │      │         │            │             │           └──▶ REJECTED / WITHDRAWN     │
 │      │         └── Screening (hasil screener)                                       │
-│      └── Assessment (batch, G-7)  ·  Interview (G-8)  ·  Match Score (advisory)    │
+│      └── Assessment (batch, G-7)  ·  Interview (G-8)                                │
+│          Penilaian Kandidat (G-12)  ·  Match Score (advisory)                      │
 └────────────────────────────────────────────────────────────────────────────────────┘
                                      │ ACCEPTED
                                      ▼
@@ -59,6 +60,9 @@ Employee, Employee Movement, dan Training.
 | Candidate | `candidates` | Profil kandidat (eksternal/internal) |
 | Job Application | `job_applications` | Kandidat melamar ke sebuah requisition (pipeline) |
 | ApplicationStageHistory | `application_stage_histories` | Riwayat perubahan status aplikasi |
+| JobRequisitionRequirement | `job_requisition_requirements` | Requirement lowongan (pendidikan/pengalaman/jurusan/job family) |
+| JobRequisitionCompetency | `job_requisition_competencies` | Kompetensi + bobot + required level per requisition (override) |
+| ApplicationAssessment | `application_assessments` | Penilaian kandidat (pendidikan/pengalaman/level kompetensi) + skor |
 | Application Screening | `application_screenings` | Hasil penyaringan manual per aplikasi |
 | Recruitment Assessment | `recruitment_assessments` | Sesi assessment batch (mis. tes psikologi) |
 | Assessment Participant | `assessment_participants` | Kandidat peserta sebuah assessment |
@@ -95,7 +99,28 @@ Employee, Employee Movement, dan Training.
 
 > Catatan: requisition berstatus `DRAFT` dapat diubah & dihapus; hanya yang `DRAFT` yang bisa diajukan.
 
-### 3.2 Profil Kandidat (Candidate) — G-6
+### 3.2 Requirement & Kompetensi Lowongan — G-9
+
+Halaman **Rekrutmen → Lowongan → Requirements & Competencies** (`RequisitionRequirements.vue`)
+mendefinisikan standar penilaian lowongan sebelum kandidat dinilai:
+
+- **Card Requirements** — kebutuhan lowongan:
+  - Pendidikan minimum · Pengalaman (tahun) · **Education Majors** (jurusan) · **Job Family**
+  - Nama jurusan / job family ditampilkan dari master data (bukan id)
+- **Card Competencies** — daftar kompetensi yang wajib dimiliki kandidat, dipecah sesuai pola
+  Job Management:
+  - **Teknis** (Technical Competency) · **Manajerial** · **Lainnya** (kompetensi di luar kedua cluster)
+  - Setiap item: kompetensi + **bobot (%)** + **required level** (skala 1–8 Job Management)
+  - Item kompetensi bersifat **read-only** dari sisi requisition (tombol tambah/hapus tidak ada)
+- **Sinkronisasi dari Job Management** — tombol "Sinkronisasi" menyalin kompetensi potensi
+  Job Management organisasi (bobot + level) ke requisition:
+  - Kompetensi baru → `POST` · kompetensi yang sudah ada → `PUT` (**backfill** bobot & level)
+  - Dipakai juga sebagai fallback: kalau requisition belum punya override sendiri, penilaian &
+    match score otomatis memakai kompetensi Job Management organisasi (per `organization_id`).
+- Endpoint: `POST/GET /requisitions/:id/requirements`, `PUT/DELETE /requirements/:id`,
+  `POST/GET /requisitions/:id/competencies`, `PUT/DELETE /requisition-competencies/:id`.
+
+### 3.3 Profil Kandidat (Candidate) — G-6
 
 - Kandidat **EXTERNAL** (default): data pribadi (nama, email, telepon, alamat, perusahaan saat ini,
   sumber, resume/portfolio/linkedin) + profil terstruktur:
@@ -104,7 +129,7 @@ Employee, Employee Movement, dan Training.
   **Employee Movement**, bukan membuat employee baru.
 - Kode kandidat `CAND-{YYYYMM}-{hex}` di-generate backend.
 
-### 3.3 Pipeline Aplikasi (Application) — G-12
+### 3.4 Pipeline Aplikasi (Application) — G-12
 
 **Status aplikasi:** `NEW → SCREENED → SHORTLISTED → INTERVIEWED → OFFERED` · terminal: `ACCEPTED`, `REJECTED`, `WITHDRAWN`
 
@@ -117,12 +142,12 @@ Employee, Employee Movement, dan Training.
   timestamp per status (`screened_at`, `shortlisted_at`, dst.).
 - Mengubah status lewat UI menampilkan dialog konfirmasi (alasan penolakan wajib saat REJECTED).
 
-### 3.4 Screening
+### 3.5 Screening
 
 - Screener mencatat hasil penyaringan per aplikasi: `score`, `result` (`PASS` / `FAIL` / `HOLD`), `notes`.
 - Hasil screening menjadi pertimbangan untuk majukan status ke `SCREENED` / `SHORTLISTED`.
 
-### 3.5 Assessment — G-7 sub-project 2
+### 3.6 Assessment — G-7 sub-project 2
 
 - **Assessment = sesi batch** (nama, jenis, jadwal, lokasi, link, catatan) yang diikuti banyak kandidat.
   Jenis: `TECHNICAL`, `PSYCHOLOGICAL`, `COGNITIVE`, `PERSONALITY`, `CASE_STUDY`, `CODING`, `LANGUAGE`, `OTHER`.
@@ -132,19 +157,40 @@ Employee, Employee Movement, dan Training.
 - UI: menu **Rekrutmen → Assessment** (buat/edit/hapus sesi) + tab Assessment di Detail Aplikasi
   (lihat keikutsertaan kandidat).
 
-### 3.6 Interview — G-8
+### 3.7 Interview — G-8
 
 - Jadwal wawancara per aplikasi: interviewer, stage, jadwal, durasi, lokasi, meeting link.
 - Status interview: `SCHEDULED → COMPLETED` · `CANCELLED`, `RESCHEDULED`.
 - Mendukung **multi-interviewer** + **scorecard** (kriteria & bobot, nilai per kriteria).
 - UI: tab Interview di Detail Aplikasi (buat jadwal + kelola interviewer/scorecard + tandai selesai).
 
-### 3.7 Match Score (advisory)
+### 3.8 Penilaian Kandidat — G-12
+
+Tab **Penilaian** di Detail Aplikasi (sebelum tab Match Score) adalah penilaian terstruktur
+kandidat terhadap kebutuhan requisisi (`RequisitionRequirements.vue` sebagai acuan):
+
+- **Pendidikan** — requirement (mis. Strata 1) + radio *Sesuai / Tidak Sesuai* + catatan
+- **Pengalaman** — requirement (mis. 6–8 Tahun) + radio *Sesuai / Tidak Sesuai* + catatan
+- **Kompetensi** — daftar kompetensi requirement (nama + required level + bobot) dengan
+  dropdown **level kandidat** (Lv.1–8, nama level dari Job Management, bisa dikosongkan)
+- **Skor otomatis** (dihitung **server-side**, klien tidak bisa mengatur):
+  Pendidikan **20%** + Pengalaman **30%** + Kompetensi **50%** (rasio `level kandidat /
+  required level` berbobot — pola Match Score)
+- Disimpan 1 baris per aplikasi di `application_assessments` (upsert); level kompetensi
+  & breakdown tersimpan JSON, skor selalu dihitung ulang.
+- Endpoint: `GET/PUT /applications/:id/assessment`.
+- Level yang diisi di sini menjadi sumber **Match Score** bila sudah ada (fallback ke skill
+  kandidat) — lihat 3.9.
+
+### 3.9 Match Score (advisory)
 
 - `GET /applications/:id/match-score` menghitung kecocokan kandidat vs posisi
   (requirement/kompetensi) secara on-the-fly — bersifat **advisory**, tidak mengubah status.
+- Sumber level kandidat (G-12): level dari **Penilaian Kandidat** (tab Penilaian)
+  didahulukan bila sudah diisi; fallback ke **skill kandidat** (tab Skills di Detail Kandidat).
+- Kolom **Score** di daftar aplikasi (halaman Applications) menampilkan match score ini.
 
-### 3.8 Offer — G-3
+### 3.10 Offer — G-3
 
 **Status offer:** `DRAFT → PENDING_APPROVAL → APPROVED → SENT → ACCEPTED` · terminal: `REJECTED`, `EXPIRED`, `WITHDRAWN`
 
@@ -156,7 +202,7 @@ Employee, Employee Movement, dan Training.
    - Tolak → `REJECTED`
    - Lewat masa berlaku → `EXPIRED` · ditarik HR → `WITHDRAWN`
 
-### 3.9 Offer Diterima → Karyawan / Mutasi — G-4
+### 3.11 Offer Diterima → Karyawan / Mutasi — G-4
 
 Saat offer **ACCEPTED**, sistem otomatis (dari `AcceptOffer`):
 
@@ -168,7 +214,7 @@ Saat offer **ACCEPTED**, sistem otomatis (dari `AcceptOffer`):
    - **INTERNAL** → **Employee Movement** hasil seleksi.
 4. Notifikasi hasil.
 
-### 3.10 Onboarding — G-4 / S-7
+### 3.12 Onboarding — G-4 / S-7
 
 - Employee hasil offer menjalani **onboarding** (task template).
 - Saat onboarding **selesai** → handoff ke modul **Training**:
@@ -196,8 +242,9 @@ Saat offer **ACCEPTED**, sistem otomatis (dari `AcceptOffer`):
 | Menu | Halaman | Isi |
 |---|---|---|
 | Rekrutmen → Lowongan | `Requisitions.vue` | CRUD + ajukan + status/approval |
+| Rekrutmen → Lowongan → Requirements & Competencies | `RequisitionRequirements.vue` | Requirement + kompetensi (teknis/manajerial) + sinkronisasi Job Management (G-9) |
 | Rekrutmen → Kandidat | `Candidates.vue` / `CandidateDetail.vue` | Profil kandidat + sub-profil (G-6) |
-| Rekrutmen → Aplikasi | `Applications.vue` / `ApplicationDetail.vue` | Pipeline + detail (history/screening/assessment/interview/match score) |
+| Rekrutmen → Aplikasi | `Applications.vue` / `ApplicationDetail.vue` | Pipeline + daftar (kolom score) + detail (history/screening/assessment/interview/penilaian/match score) |
 | Rekrutmen → Kandidat Internal | `InternalCandidates.vue` | Eligible via career path (S-4) |
 | Rekrutmen → Assessment | `Assessments.vue` | Sesi assessment batch (G-7) |
 | Rekrutmen → Offer | `Offers.vue` | Offer + approval + kirim/terima |
@@ -211,9 +258,10 @@ Semua di bawah `/api/v1/tenant/recruitment/`.
 
 | Area | Endpoint |
 |---|---|
-| Requisition | `POST/GET /requisitions`, `GET/PUT/DELETE /requisitions/:id`, `POST /requisitions/:id/submit`, `GET /requisitions/:id/requirements`, `GET /requisitions/:id/competencies` |
+| Requisition | `POST/GET /requisitions`, `GET/PUT/DELETE /requisitions/:id`, `POST /requisitions/:id/submit` |
+| Requirement & Kompetensi | `POST/GET /requisitions/:id/requirements`, `PUT/DELETE /requirements/:id`, `POST/GET /requisitions/:id/competencies`, `PUT/DELETE /requisition-competencies/:id` |
 | Candidate | `POST/GET /candidates`, `GET/PUT/DELETE /candidates/:id`, sub-profil `…/educations`, `…/work-experiences`, `…/skills`, `…/certifications`, `…/documents`, `…/consents` |
-| Application | `POST/GET /applications`, `PUT /applications/:id/status`, `GET /applications/:id/history`, `GET /applications/:id/match-score`, `POST /applications/:id/screenings` |
+| Application | `POST/GET /applications`, `PUT /applications/:id/status`, `GET /applications/:id/history`, `GET/PUT /applications/:id/assessment`, `GET /applications/:id/match-score`, `POST /applications/:id/screenings` |
 | Assessment | `POST/GET /assessments`, `GET/PUT/DELETE /assessments/:id`, `POST/GET /assessments/:id/participants`, `PUT/DELETE /assessment-participants/:id` |
 | Interview | `POST/GET /interviews`, `GET/PUT/DELETE /interviews/:id`, `POST/GET /interviews/:id/interviewers`, `POST/GET /interviews/:id/scorecard-items` |
 | Offer | `POST/GET /offers`, `GET/PUT/DELETE /offers/:id`, `POST /offers/:id/submit`, `POST /offers/:id/send`, `POST /offers/:id/accept`, `POST /offers/:id/reject`, `POST /offers/:id/withdraw` |
