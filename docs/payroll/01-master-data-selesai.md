@@ -4,7 +4,7 @@
 >
 > 🚫 **Frontend: BELUM ADA SAMA SEKALI (0%).** `frontend/tenant/src/views/modules/payroll/Payroll.vue` hanya berisi placeholder 1 baris ("Payroll Module — Coming soon"). Route `/payroll` (`router/index.js:228-231`) dan menu sidebar (`layouts/Sidebar.vue:394,437-438`, digate permission `payroll.view`) sudah terdaftar dan mengarah ke halaman placeholder itu, tapi **tidak ada UI apa pun** untuk salary component, salary structure, payroll period/run, BPJS, PPh21, atau payslip — dan tidak ada payroll API service file di frontend sama sekali.
 >
-> ⚠️ **Skema belum 100% sesuai desain (re-verifikasi 2026-08-14).** CRUD dasar (create/list/update) memang jalan, tapi ada gap struktural nyata dibanding requirement §4-9 — lihat **§Gap Analysis & Rencana Perbaikan** di bagian bawah file ini sebelum mengklaim bagian ini "selesai". Ringkasan: `salary_components` tidak punya `company_id`/effective-dating sendiri, `calculation_type` tidak divalidasi (tanpa CHECK/enum) dan tidak ada kolom `formula`/`reference_component_id`, assignment scope cuma 2 dari 5 level yang direncanakan (Grade + Employee saja, tanpa Organization/Position/Employment-Type/Company), dan tidak ada kolom `version` di tabel mana pun (hanya effective_from/to tanpa overlap guard; `pph21_settings` bahkan cuma bisa punya 1 row aktif tanpa histori).
+> ⚠️ **Skema belum 100% sesuai desain (re-verifikasi 2026-08-14, update 2026-08-14).** CRUD dasar (create/list/update) memang jalan, tapi ada gap struktural nyata dibanding requirement §4-9 — lihat **§Gap Analysis & Rencana Perbaikan** di bagian bawah file ini. **Sudah diperbaiki (2026-08-14):** validasi `calculation_type` enum di Go + kolom `formula`/`reference_component_id` (migration `115_payroll_formula_engine`). **Masih gap:** `salary_components` tidak punya `company_id`/effective-dating sendiri, assignment scope cuma 2 dari 5 level yang direncanakan (Grade + Employee saja, tanpa Organization/Position/Employment-Type/Company), dan tidak ada kolom `version` di tabel mana pun (hanya effective_from/to tanpa overlap guard; `pph21_settings` bahkan cuma bisa punya 1 row aktif tanpa histori).
 
 ## 4. Salary Component
 
@@ -114,7 +114,7 @@ JHT_EMP = BPJS_WAGE * 2%
 OVERTIME_HOURS * OVERTIME_RATE
 ```
 
-> ❌ **Koreksi (re-verifikasi 2026-08-14):** kolom `calculation_type` ADA (`VARCHAR(255) DEFAULT 'FIXED'`), tapi **tanpa CHECK constraint atau validasi enum di Go** — string apa pun diterima, typo tidak tertangkap. Kolom `formula` yang disebut di atas **TIDAK ADA SAMA SEKALI** di `salary_components`, begitu juga `reference_component_id` untuk tipe REFERENCE — jadi secara struktur tabel pun, calculation type FORMULA/REFERENCE belum punya tempat menyimpan datanya, bukan cuma belum ada eksekusinya. Ini perlu masuk ke scope [02-formula-engine.md](02-formula-engine.md) sebagai migration tambahan, bukan hanya "tinggal build engine"-nya saja.
+> ✅ **Selesai (2026-08-14):** kolom `calculation_type` kini divalidasi enum di Go (`FIXED|PERCENTAGE|FORMULA|REFERENCE|MANUAL`, lihat `validateSalaryComponentCalculation` di `service.go`) dan di binding DTO. Kolom `formula` (TEXT) dan `reference_component_id` (self-FK) **sudah ada** di `salary_components` via migration `115_payroll_formula_engine` — jadi FORMULA/PERCENTAGE/REFERENCE sekarang punya tempat menyimpan datanya, dan Formula Engine (`calculator/`) siap meng-parse/mengevaluasinya. Endpoint bantu: `POST /payroll/formula/validate`, `GET /payroll/formula/variables`.
 
 ### Reference
 
@@ -137,7 +137,7 @@ BONUS_SPECIAL = 2500000
 
 ## 7. Salary Structure
 
-> 🔶 **Status: sebagian selesai** — via nama tabel berbeda dari rencana awal (lihat §34), **dan hanya 2 dari 5 level assignment scope yang direncanakan di bawah benar-benar ada.**
+> ❌ **Koreksi (re-verifikasi 2026-08-14, saat brainstorming Payroll Run): BUKAN "selesai" — tidak ada CRUD API sama sekali.** `SalaryGradeComponent`/`SalaryEmployeeComponent` di `model.go` hanya GORM struct (tabelnya dibuat migration `006_payroll_structure`), tapi **tidak ada satu pun method di `repository.go`, `service.go`, `dto.go`, `handler.go`, atau `routes.go`** untuk keduanya — grep `GradeComponent`/`EmployeeComponent` di file-file itu nihil. Tidak bisa create/read/update/delete assignment grade atau employee override lewat API mana pun. Yang benar-benar CRUD lengkap hanya `salary_components` (§4) — master data komponennya saja, bukan assignment-nya ke grade/employee. Klaim sebelumnya salah, harus diperbaiki sebelum dianggap prasyarat siap untuk Payroll Run.
 
 Salary Structure mengelompokkan component yang berlaku untuk employee.
 
@@ -347,8 +347,8 @@ Company
 - [x] Create payroll period. — tabel `payroll_periods`, tapi status hanya OPEN/CLOSED, bukan 10-state yang direncanakan.
 - [ ] Create payroll policy. — **tidak ada** entity `PayrollPolicy` terpusat (lihat §8 di atas).
 - [x] Create salary component. — tabel `salary_components`, CRUD lengkap.
-- [x] Create salary structure. — via `salary_grade_components` (default per grade) + `salary_employee_components` (override per employee).
-- [x] Create employee salary assignment. — `salary_employee_components`, effective-dated.
+- [ ] Create salary structure. — **koreksi**: tabel `salary_grade_components`/`salary_employee_components` ada, tapi tidak ada CRUD API sama sekali (lihat §7).
+- [ ] Create employee salary assignment. — **koreksi**: `salary_employee_components` tidak punya repository/service/handler apa pun.
 - [x] Implement effective dating. — dipakai konsisten di `salary_grade_components`, `salary_employee_components`, `bpjs_rate_components`, `pph21_*`.
 - [ ] Implement basic payroll calculation. — **BELUM**, lihat [03-payroll-run-snapshot.md](03-payroll-run-snapshot.md).
 
@@ -373,7 +373,7 @@ Ringkasan hasil audit skema aktual (`006_payroll_structure.sql` + `model.go`) di
 |---|---|---|---|
 | 1 | `salary_components` perlu `company_id` + `effective_from/to` sendiri | Tidak ada — component tidak punya kolom tenant-scope maupun validity window sendiri (baru ada di child table) | ❌ GAP |
 | 2 | `type` (EARNING/DEDUCTION/EMPLOYER_CONTRIBUTION) | String bebas (`component_type VARCHAR(255)`, tanpa CHECK) — bisa menampung semua kode yang direncanakan | ✅ OK |
-| 3 | `calculation_type` (FIXED/PERCENTAGE/FORMULA/REFERENCE/MANUAL) | Kolom ada tapi tanpa enum enforcement (bukan CHECK constraint, tidak divalidasi di Go); **tidak ada kolom `formula` atau `reference_component_id`**, jadi FORMULA/REFERENCE belum bisa berfungsi secara struktural, bukan cuma belum ada eksekusinya | ❌ GAP |
+| 3 | `calculation_type` (FIXED/PERCENTAGE/FORMULA/REFERENCE/MANUAL) | ✅ **SELESAI (2026-08-14):** validasi enum di service (`validateSalaryComponentCalculation`) + binding DTO; kolom `formula` + `reference_component_id` ditambahkan migration `115_payroll_formula_engine`; Formula Engine `calculator/` meng-parse/mengevaluasi keduanya | ✅ OK |
 | 4 | Assignment scope 5-level (Company/Organization/Position/Grade/Employment Type/Employee) dengan prioritas resolusi | Hanya 2 level nyata: Grade (`salary_grade_components`) dan Employee (`salary_employee_components`). `position_id`/`employment_id` di tabel employee-level cuma kolom kontekstual, bukan scope assignment independen | ❌ GAP (terbesar) |
 | 5 | `version` field untuk resolusi rule historis | Tidak ada kolom `version` di tabel mana pun — hanya `effective_start/end_date` tanpa exclusion constraint anti-overlap. `pph21_settings` malah cuma 1 row aktif (unique constraint tanpa histori sama sekali) | ❌ GAP |
 
@@ -386,8 +386,8 @@ Ringkasan hasil audit skema aktual (`006_payroll_structure.sql` + `model.go`) di
 Urutan disusun agar tidak menghalangi start Formula Engine ([02-formula-engine.md](02-formula-engine.md)) — migration ini jadi prasyarat, sebaiknya dikerjakan sebagai bagian awal sub-project Formula Engine, bukan sub-project terpisah:
 
 - [ ] Migration: tambah `company_id`, `effective_start_date`, `effective_end_date` ke `salary_components`.
-- [ ] Migration: tambah `formula TEXT NULL` dan `reference_component_id CHAR(36) NULL` (self-FK ke `salary_components`) untuk mendukung calculation_type FORMULA/REFERENCE.
-- [ ] Tambah validasi `calculation_type` di service layer (Go const/enum: `FIXED|PERCENTAGE|FORMULA|REFERENCE|MANUAL`) — CHECK constraint di DB opsional, minimal validasi di `service.go`.
+- [x] Migration: tambah `formula TEXT NULL` dan `reference_component_id CHAR(36) NULL` (self-FK ke `salary_components`) untuk mendukung calculation_type FORMULA/REFERENCE. — **SELESAI** migration `115_payroll_formula_engine` (postgres+mysql, up/down).
+- [x] Tambah validasi `calculation_type` di service layer (Go const/enum: `FIXED|PERCENTAGE|FORMULA|REFERENCE|MANUAL`) — CHECK constraint di DB opsional, minimal validasi di `service.go`. — **SELESAI** `validateSalaryComponentCalculation` + `ValidationError` → HTTP 400.
 - [ ] Migration: tambah `organization_id CHAR(36) NULL` dan `employment_type VARCHAR(50) NULL` ke `salary_grade_components` (atau tabel scope baru `salary_scope_components`) untuk mendukung 3 level assignment yang belum ada (Organization, Position sebagai scope berdiri sendiri, Employment Type). Perlu keputusan desain: extend tabel existing vs tabel baru — evaluasi saat brainstorming sub-project ini.
 - [ ] Implementasi priority-resolution logic (Employee > Position > Organization > Company > Default) di service layer saat query salary component aktif untuk seorang employee.
 - [ ] Migration: tambah `version INT NOT NULL DEFAULT 1` ke `bpjs_rate_components`, `pph21_ptkp_rates`, `pph21_tax_brackets`, `salary_components` — atau alternatif lebih murah: tambah exclusion constraint (Postgres `EXCLUDE USING gist` on daterange, atau app-level overlap check) tanpa kolom version baru. Keputusan desain saat brainstorming.
