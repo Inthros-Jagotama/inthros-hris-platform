@@ -1410,6 +1410,7 @@
     "from_position": "Posisi Asal",
     "from_employment_status": "Status Kepegawaian Asal",
     "decision_letter_number": "Nomor SK",
+    "number_auto_placeholder": "Akan digenerate otomatis jika dikosongkan",
     "decision_letter_date": "Tanggal SK",
     "effective_date": "Tanggal Berlaku",
     "reason": "Alasan",

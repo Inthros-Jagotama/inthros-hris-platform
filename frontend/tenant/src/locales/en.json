@@ -1410,6 +1410,7 @@
     "from_position": "From Position",
     "from_employment_status": "From Employment Status",
     "decision_letter_number": "Decision Letter Number",
+    "number_auto_placeholder": "Auto-generated if left blank",
     "decision_letter_date": "Decision Letter Date",
     "effective_date": "Effective Date",
     "reason": "Reason",

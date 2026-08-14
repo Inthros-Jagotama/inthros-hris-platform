@@ -186,8 +186,8 @@
           <Select v-model="form.to_employment_status_id" :options="statusOptions" optionLabel="label" optionValue="value" filter showClear class="w-full" />
         </FormRow>
 
-        <FormRow :label="t('employee_movement.decision_letter_number')" required :errors="errors?.decision_letter_number">
-          <TextInput v-model="form.decision_letter_number" />
+        <FormRow :label="t('employee_movement.decision_letter_number')" :required="!!editingId" :errors="errors?.decision_letter_number">
+          <TextInput v-model="form.decision_letter_number" :placeholder="t('employee_movement.number_auto_placeholder')" />
         </FormRow>
         <FormRow :label="t('employee_movement.decision_letter_date')" required :errors="errors?.decision_letter_date">
           <DateInput v-model="form.decision_letter_date" />
@@ -723,7 +723,7 @@ function validateForm() {
   if (form.value.movement_type === 'status_change' && !form.value.to_employment_status_id) {
     e.to_employment_status_id = t('employee_movement.field_required')
   }
-  if (!form.value.decision_letter_number?.trim()) e.decision_letter_number = t('employee_movement.field_required')
+  if (editingId.value && !form.value.decision_letter_number?.trim()) e.decision_letter_number = t('employee_movement.field_required')
   if (!form.value.decision_letter_date) e.decision_letter_date = t('employee_movement.field_required')
   if (!form.value.effective_date) e.effective_date = t('employee_movement.field_required')
   return e
