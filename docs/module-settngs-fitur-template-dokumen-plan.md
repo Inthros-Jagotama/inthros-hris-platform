@@ -903,17 +903,17 @@ ProgressSpinner
 
 ## Phase 2 — Template Management
 
-- [ ] Template list
-- [ ] Search
-- [ ] Filter document type
-- [ ] Create template
-- [ ] Edit template
-- [ ] Detail template
-- [ ] Active/inactive — hanya 1 aktif per jenis (aktivasi otomatis menonaktifkan yang lain)
-- [ ] Set/ubah template default (referensi)
-- [ ] Alur "Gunakan Template Default" (salin → simpan → aktifkan)
-- [ ] Delete template
-- [ ] Version management
+- [x] Template list — `frontend/tenant/src/views/settings/DocumentTemplatesView.vue`, commit `95cd6d26`
+- [x] Search — search box dengan debounce 400ms, memanggil `?search=`
+- [x] Filter document type — dropdown Contract Agreement / Movement SK
+- [ ] Create template — belum (menyusul, butuh form/editor)
+- [ ] Edit template — belum (menyusul, butuh form/editor)
+- [ ] Detail template — belum
+- [x] Active/inactive — tombol Activate/Deactivate per baris di list, memanggil endpoint Phase 1 yang sudah teratomisasi (hanya 1 aktif per jenis)
+- [ ] Set/ubah template default (referensi) — belum (endpoint `UpdateDefaultContent` sudah ada di backend tapi belum di-routing/di-UI-kan)
+- [ ] Alur "Gunakan Template Default" (salin → simpan → aktifkan) — belum
+- [ ] Delete template — belum
+- [ ] Version management — belum
 
 ## Phase 3 — Template Editor
 
