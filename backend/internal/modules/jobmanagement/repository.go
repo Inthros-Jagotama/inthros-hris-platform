@@ -487,7 +487,7 @@ func (r *Repository) FindJobEducationExperienceByID(ctx context.Context, id uuid
 	}
 	var e JobEducationExperience
 	// Education / Experience → job_management_values dengan scope type
-	if err := db.Preload("Education", "type = ?", "education").Preload("Experience", "type = ?", "experience").Preload("Majors").Preload("JobFamilies").First(&e, "id = ?", id).Error; err != nil {
+	if err := db.Preload("Education", "type = ?", "education").Preload("Experience", "type = ?", "experience").Preload("Majors.EducationMajor").Preload("JobFamilies.JobFamily").First(&e, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("job education experience not found: %w", err)
 	}
 	return &e, nil
@@ -508,7 +508,7 @@ func (r *Repository) FindAllJobEducationExperiences(ctx context.Context, page, p
 		return nil, 0, err
 	}
 	offset := (page - 1) * perPage
-	if err := query.Preload("Education", "type = ?", "education").Preload("Experience", "type = ?", "experience").Preload("Majors").Preload("JobFamilies").Offset(offset).Limit(perPage).Order("full_code ASC").Find(&experiences).Error; err != nil {
+	if err := query.Preload("Education", "type = ?", "education").Preload("Experience", "type = ?", "experience").Preload("Majors.EducationMajor").Preload("JobFamilies.JobFamily").Offset(offset).Limit(perPage).Order("full_code ASC").Find(&experiences).Error; err != nil {
 		return nil, 0, err
 	}
 	return experiences, total, nil
@@ -1132,7 +1132,7 @@ func (r *Repository) FindJobPotencyCompetencyByID(ctx context.Context, id uuid.U
 		return nil, err
 	}
 	var c JobPotencyCompetency
-	if err := db.First(&c, "id = ?", id).Error; err != nil {
+	if err := db.Preload("Competency").Preload("JobManagementValue").First(&c, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("job potency competency not found: %w", err)
 	}
 	return &c, nil
@@ -1153,7 +1153,7 @@ func (r *Repository) FindAllJobPotencyCompetencies(ctx context.Context, page, pe
 		return nil, 0, err
 	}
 	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("created_at DESC").Find(&competencies).Error; err != nil {
+	if err := query.Preload("Competency").Preload("JobManagementValue").Offset(offset).Limit(perPage).Order("created_at DESC").Find(&competencies).Error; err != nil {
 		return nil, 0, err
 	}
 	return competencies, total, nil

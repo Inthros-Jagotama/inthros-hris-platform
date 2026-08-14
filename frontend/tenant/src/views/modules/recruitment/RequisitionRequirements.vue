@@ -46,6 +46,12 @@
                 <p v-if="item.experience_name" class="text-sm text-gray-700 dark:text-gray-300 mt-0.5">
                   <span class="text-xs font-medium text-gray-400 uppercase tracking-wide mr-1">{{ t('requisitions.experience') }}:</span>{{ item.experience_name }}
                 </p>
+                <p v-if="item.education_major_name?.length" class="text-sm text-gray-700 dark:text-gray-300 mt-0.5">
+                  <span class="text-xs font-medium text-gray-400 uppercase tracking-wide mr-1">{{ t('requisitions.education_major') }}:</span>{{ item.education_major_name.join(', ') }}
+                </p>
+                <p v-if="item.job_family_name?.length" class="text-sm text-gray-700 dark:text-gray-300 mt-0.5">
+                  <span class="text-xs font-medium text-gray-400 uppercase tracking-wide mr-1">{{ t('requisitions.job_family') }}:</span>{{ item.job_family_name.join(', ') }}
+                </p>
               </div>
             </div>
           </template>
@@ -70,48 +76,64 @@
 
         <!-- Competencies -->
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('requisitions.competencies_tab') }}</h4>
-            <Button :label="t('common.add')" icon="pi pi-plus" size="small" @click="openAddCompetency()" />
+            <Button :label="t('requisitions.sync_competencies')" icon="pi pi-sync" size="small" severity="secondary" outlined :loading="syncing" :disabled="!requisition?.organization_id" @click="syncFromJobManagement()" />
           </div>
-          <div v-if="competencyItems.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <div v-for="item in competencyItems" :key="item.id" class="flex items-center gap-2 px-3 py-2.5">
-              <div class="min-w-0 flex-1">
+
+          <!-- Section: Technical & Managerial (pola Job Management) -->
+          <div v-for="sec in competencySections" :key="sec.type" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3 last:mb-0">
+            <div class="mb-2">
+              <h5 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t(sec.titleKey) }}</h5>
+            </div>
+
+            <!-- Own items (override requisition) -->
+            <template v-if="sec.items.length">
+              <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div v-for="item in sec.items" :key="item.id" class="px-3 py-2.5">
+                  <p class="text-sm text-gray-800 dark:text-gray-100">{{ competencyName(item) }}</p>
+                  <p v-if="item.required_level || item.weight" class="text-xs text-gray-400">
+                    <span v-if="item.required_level">{{ t('requisitions.required_level') }} {{ item.required_level }}</span>
+                    <span v-if="item.weight"> · {{ t('requisitions.weight') }} {{ item.weight }}%</span>
+                  </p>
+                </div>
+              </div>
+            </template>
+
+            <!-- Fallback Job Management (read-only, sumber match score G-9) -->
+            <template v-else-if="sec.fallback.length">
+              <p class="text-[11px] text-amber-600 dark:text-amber-400 mb-1.5"><i class="pi pi-info-circle mr-1"></i>{{ t('requisitions.from_job_management') }}</p>
+              <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-dashed border-amber-200 dark:border-amber-700/40 rounded-lg">
+                <div v-for="item in sec.fallback" :key="item.id" class="flex items-center gap-2 px-3 py-2.5">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm text-gray-700 dark:text-gray-300">{{ competencyName(item) }}</p>
+                    <p v-if="item.level || item.weight" class="text-xs text-gray-400">
+                      <span v-if="item.level">{{ t('requisitions.level') }} Lv.{{ item.level }}<span v-if="item.level_description"> — {{ item.level_description }}</span></span>
+                      <span v-if="item.weight"> · {{ t('requisitions.weight') }} {{ item.weight }}%</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <div v-else class="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
+              <p class="text-sm">{{ t('requisitions.competencies_empty') }}</p>
+            </div>
+          </div>
+
+          <!-- Sisa kompetensi yang tidak masuk Teknis/Manajerial (cluster lain) -->
+          <div v-if="otherItems.length" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+            <div class="flex items-center justify-between mb-2">
+              <h5 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('requisitions.other_competencies') }}</h5>
+            </div>
+            <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <div v-for="item in otherItems" :key="item.id" class="px-3 py-2.5">
                 <p class="text-sm text-gray-800 dark:text-gray-100">{{ competencyName(item) }}</p>
                 <p v-if="item.required_level || item.weight" class="text-xs text-gray-400">
                   <span v-if="item.required_level">{{ t('requisitions.required_level') }} {{ item.required_level }}</span>
                   <span v-if="item.weight"> · {{ t('requisitions.weight') }} {{ item.weight }}%</span>
                 </p>
               </div>
-              <Button icon="pi pi-trash" text severity="danger" size="small" class="!w-7 !h-7" @click="removeCompetency(item)" />
-            </div>
-          </div>
-          <!-- Job Management default (fallback read-only — sumber yang dipakai match score G-9 bila requisition ini belum punya override) -->
-          <template v-else-if="jobManagementCompetencies.length">
-            <p class="text-[11px] text-amber-600 dark:text-amber-400 mb-1.5"><i class="pi pi-info-circle mr-1"></i>{{ t('requisitions.from_job_management') }}</p>
-            <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-dashed border-amber-200 dark:border-amber-700/40 rounded-lg">
-              <div v-for="item in jobManagementCompetencies" :key="item.id" class="flex items-center gap-2 px-3 py-2.5">
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm text-gray-700 dark:text-gray-300">{{ competencyName(item) }}</p>
-                  <p v-if="item.weight" class="text-xs text-gray-400">{{ t('requisitions.weight') }} {{ item.weight }}%</p>
-                </div>
-              </div>
-            </div>
-          </template>
-          <div v-else class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
-            <i class="pi pi-sparkles text-2xl mb-2 opacity-50"></i>
-            <p class="text-sm">{{ t('requisitions.competencies_empty') }}</p>
-          </div>
-
-          <div v-if="addCompetencyVisible" class="mt-3 space-y-2 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-            <SelectLabel v-model="newCompetency.competency_id" :options="competencyOptions" optionLabel="label" optionValue="value" filter :placeholder="t('common.select')" class="!w-full" showClear />
-            <div class="grid grid-cols-2 gap-2">
-              <InputNumber v-model="newCompetency.required_level" :placeholder="t('requisitions.required_level')" :min="1" :max="5" class="!w-full" />
-              <InputNumber v-model="newCompetency.weight" :placeholder="t('requisitions.weight')" :min="0" :max="100" class="!w-full" />
-            </div>
-            <div class="flex items-center justify-end gap-2">
-              <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="addCompetencyVisible = false" />
-              <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="itemSaving" @click="saveCompetency()" />
             </div>
           </div>
         </div>
@@ -132,7 +154,6 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import InputNumber from 'primevue/inputnumber'
 import TextInput from '@/components/TextInput.vue'
-import SelectLabel from '@/components/SelectLabel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -151,19 +172,72 @@ const jobManagementCompetencies = ref([])
 const itemSaving = ref(false)
 const addRequirementVisible = ref(false)
 const newRequirement = ref({})
-const addCompetencyVisible = ref(false)
-const newCompetency = ref({})
-
-const competencyOptions = computed(() => competencyMaster.value.map(c => ({ label: c.name, value: c.id })))
+const technicalClusters = ref([])
+const managerialClusters = ref([])
+const syncing = ref(false)
 
 // item.competency_name (backend-resolved, requisition's own competencies)
 // diprioritaskan; fallback ke lookup client-side dari competencyMaster
 // (dipakai oleh baris Job Management yang tidak punya competency_name).
 function competencyName(item) {
   if (item.competency_name) return item.competency_name
-  const c = competencyMaster.value.find(x => x.id === item.competency_id)
-  return c ? c.name : item.competency_id
+  const c = competencyMeta(item)
+  return c ? c.name : (item.competency_id || '')
 }
+
+// Meta kompetensi dari master (id → { name, field, cluster })
+function competencyMeta(item) {
+  return competencyMaster.value.find(x => x.id === item.competency_id) || null
+}
+
+// Split kompetensi milik requisition sendiri per section (cluster dari mapping Job Management)
+function splitOwnBySection() {
+  const tech = new Set(technicalClusters.value)
+  const man = new Set(managerialClusters.value)
+  const technical = []
+  const managerial = []
+  const other = []
+  for (const item of competencyItems.value) {
+    const c = competencyMeta(item)
+    const cluster = c?.cluster || ''
+    if (cluster && tech.has(cluster)) technical.push(item)
+    else if (cluster && man.has(cluster)) managerial.push(item)
+    else other.push(item)
+  }
+  return { technical, managerial, other }
+}
+
+// Klasifikasi baris fallback Job Management: type dari JobValue (backend baru);
+// fallback ke field kompetensi (backend lama / JobValue tanpa type).
+function fallbackType(item) {
+  if (item.type) return item.type
+  const c = competencyMeta(item)
+  if (c?.field === 'Technical Competency') return 'technical'
+  if (c?.field === 'Manajerial') return 'managerial'
+  return ''
+}
+
+const competencySections = computed(() => {
+  const own = splitOwnBySection()
+  // Fallback Job Management hanya tampil saat requisition belum punya override sendiri
+  const hasOwn = competencyItems.value.length > 0
+  return [
+    {
+      type: 'technical',
+      titleKey: 'job_management.potency_technical_title',
+      items: own.technical,
+      fallback: hasOwn ? [] : jobManagementCompetencies.value.filter(it => fallbackType(it) === 'technical' && it.competency_id)
+    },
+    {
+      type: 'managerial',
+      titleKey: 'job_management.potency_managerial_title',
+      items: own.managerial,
+      fallback: hasOwn ? [] : jobManagementCompetencies.value.filter(it => fallbackType(it) === 'managerial' && it.competency_id)
+    }
+  ]
+})
+
+const otherItems = computed(() => (competencyItems.value.length ? splitOwnBySection().other : []))
 
 function cleanItemPayload(payload) {
   const out = { ...payload }
@@ -184,7 +258,10 @@ async function loadRequisition() {
 
 async function loadCompetencyMaster() {
   try {
-    const res = await api.get('/api/v1/tenant/competency/competencies', { params: { per_page: 500 } })
+    // Pakai settings/competencies (max per_page 500, tidak di-reset ke 20 seperti
+    // competency/competencies) agar master kompetensi lengkap — dipakai lookup
+    // nama/cluster/field dan opsi dropdown tambah.
+    const res = await api.get('/api/v1/tenant/settings/competencies', { params: { per_page: 500 } })
     competencyMaster.value = res.data?.data || []
   } catch {
     competencyMaster.value = []
@@ -263,34 +340,62 @@ async function removeRequirement(item) {
   }
 }
 
-function openAddCompetency() {
-  newCompetency.value = { competency_id: null, required_level: null, weight: null }
-  addCompetencyVisible.value = true
-}
-async function saveCompetency() {
-  if (!newCompetency.value.competency_id) {
-    toast.add({ severity: 'warn', summary: t('message.warning'), detail: t('message.failed_to_save'), life: 4000 })
-    return
-  }
-  itemSaving.value = true
+// Sinkronisasi ulang: samakan kompetensi requisition dengan kompetensi potensi
+// Job Management (org requisition). Kompetensi baru dibuat (POST), kompetensi
+// yang sudah ada diperbarui (PUT — level & bobot ikut ter-backfill), sehingga
+// level tidak hilang saat re-sync. Dedupe per competency_id.
+async function syncFromJobManagement() {
+  const orgId = requisition.value?.organization_id
+  if (!orgId) return
+  syncing.value = true
   try {
-    await api.post(`/api/v1/tenant/recruitment/requisitions/${requisitionId}/competencies`, cleanItemPayload(newCompetency.value))
-    addCompetencyVisible.value = false
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('candidates.item_added'), life: 3000 })
+    const compRes = await api.get('/api/v1/tenant/job-management/potency-competencies', { params: { organization_id: orgId, per_page: 100 } })
+    const rows = compRes.data?.data || []
+    const existingByComp = new Map(competencyItems.value.filter(c => c.competency_id).map(c => [c.competency_id, c]))
+    let added = 0
+    let updated = 0
+    for (const row of rows) {
+      if (!row.competency_id) continue
+      const existing = existingByComp.get(row.competency_id)
+      if (existing) {
+        await api.put(`/api/v1/tenant/recruitment/requisition-competencies/${existing.id}`, cleanItemPayload({ weight: row.weight, required_level: row.level }))
+        updated++
+      } else {
+        await api.post(`/api/v1/tenant/recruitment/requisitions/${requisitionId}/competencies`, cleanItemPayload({ competency_id: row.competency_id, weight: row.weight, required_level: row.level }))
+        added++
+      }
+    }
+    let detail
+    if (added > 0 && updated > 0) {
+      detail = `${t('requisitions.synced_count', { count: added })} · ${t('requisitions.synced_updated', { count: updated })}`
+    } else if (added > 0) {
+      detail = t('requisitions.synced_count', { count: added })
+    } else if (updated > 0) {
+      detail = t('requisitions.synced_updated', { count: updated })
+    } else {
+      detail = t('requisitions.synced_none')
+    }
+    toast.add({ severity: 'success', summary: t('message.success'), detail, life: 3000 })
     loadCompetencyItems()
   } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_save')), life: 5000 })
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 5000 })
   } finally {
-    itemSaving.value = false
+    syncing.value = false
   }
 }
-async function removeCompetency(item) {
+
+// Mapping cluster technical/managerial (Job Management) — filter dropdown tambah
+async function loadClusterMappings() {
   try {
-    await api.delete(`/api/v1/tenant/recruitment/requisition-competencies/${item.id}`)
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('candidates.item_deleted'), life: 3000 })
-    loadCompetencyItems()
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_save')), life: 5000 })
+    const [techRes, manRes] = await Promise.allSettled([
+      api.get('/api/v1/tenant/job-management/values/clusters/technical'),
+      api.get('/api/v1/tenant/job-management/values/clusters/managerial')
+    ])
+    technicalClusters.value = techRes.status === 'fulfilled' ? (techRes.value.data?.data?.clusters || []) : []
+    managerialClusters.value = manRes.status === 'fulfilled' ? (manRes.value.data?.data?.clusters || []) : []
+  } catch {
+    technicalClusters.value = []
+    managerialClusters.value = []
   }
 }
 
@@ -299,6 +404,7 @@ onMounted(async () => {
   await loadRequisition()
   loading.value = false
   loadCompetencyMaster()
+  loadClusterMappings()
   loadRequirements()
   loadCompetencyItems()
   loadJobManagementFallback()

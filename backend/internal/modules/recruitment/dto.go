@@ -458,6 +458,68 @@ type ApplicationScreeningResponse struct {
 }
 
 // =========================================================================
+// Application Assessment DTOs (G-12 — Penilaian Kandidat)
+// =========================================================================
+
+type AssessmentCompetencyLevel struct {
+	CompetencyID string `json:"competency_id"`
+	Level        int    `json:"level"`
+}
+
+type AssessmentRequirementCompetency struct {
+	CompetencyID   string  `json:"competency_id"`
+	CompetencyName string  `json:"competency_name,omitempty"`
+	RequiredLevel  int     `json:"required_level"`
+	Weight         float64 `json:"weight,omitempty"`
+}
+
+type AssessmentRequirement struct {
+	Education    string                           `json:"education,omitempty"`
+	Experience   string                           `json:"experience,omitempty"`
+	Competencies []AssessmentRequirementCompetency `json:"competencies"`
+}
+
+type SaveApplicationAssessmentRequest struct {
+	EducationMatch   *bool                      `json:"education_match"`
+	EducationNote    *string                    `json:"education_note"`
+	ExperienceMatch  *bool                      `json:"experience_match"`
+	ExperienceNote   *string                    `json:"experience_note"`
+	CompetencyLevels []AssessmentCompetencyLevel `json:"competency_levels"`
+}
+
+type AssessmentCompetencyBreakdown struct {
+	CompetencyID   string  `json:"competency_id"`
+	CompetencyName string  `json:"competency_name,omitempty"`
+	RequiredLevel  int     `json:"required_level"`
+	CandidateLevel int     `json:"candidate_level"`
+	Weight         float64 `json:"weight,omitempty"`
+	Contribution   float64 `json:"contribution"`
+}
+
+type ApplicationAssessmentResponse struct {
+	ID               string                          `json:"id,omitempty"`
+	ApplicationID    string                          `json:"application_id"`
+	EducationMatch   *bool                           `json:"education_match,omitempty"`
+	EducationNote    string                          `json:"education_note,omitempty"`
+	ExperienceMatch  *bool                           `json:"experience_match,omitempty"`
+	ExperienceNote   string                          `json:"experience_note,omitempty"`
+	CompetencyLevels []AssessmentCompetencyLevel     `json:"competency_levels"`
+	Score            *float64                        `json:"score,omitempty"`
+	Breakdown        []AssessmentCompetencyBreakdown `json:"breakdown"`
+	AssessedBy       string                          `json:"assessed_by,omitempty"`
+	CreatedAt        time.Time                       `json:"created_at,omitempty"`
+	UpdatedAt        time.Time                       `json:"updated_at,omitempty"`
+}
+
+type ApplicationAssessmentDetailResponse struct {
+	ApplicationID string                        `json:"application_id"`
+	RequisitionID string                        `json:"requisition_id"`
+	CandidateID   string                        `json:"candidate_id"`
+	Requirements  AssessmentRequirement         `json:"requirements"`
+	Assessment    *ApplicationAssessmentResponse `json:"assessment"`
+}
+
+// =========================================================================
 // Recruitment Assessment DTOs (G-7 sub-project 2)
 // =========================================================================
 

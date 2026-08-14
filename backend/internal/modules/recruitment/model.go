@@ -613,6 +613,41 @@ func (s *ApplicationScreening) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// ApplicationAssessment (G-12 susulan — Penilaian Kandidat)
+// =========================================================================
+// Satu penilaian per aplikasi (UNIQUE application_id): penilai menandai
+// pendidikan & pengalaman kandidat sesuai/tidak dengan requirement, mengisi
+// level kompetensi kandidat per kompetensi yang dibutuhkan, dan backend
+// menghitung skor (Pendidikan 20% + Pengalaman 30% + Kompetensi 50%).
+// competency_levels & breakdown disimpan JSON — skor selalu dihitung ulang
+// server-side (tidak ada klien yang bisa meng-set score langsung).
+type ApplicationAssessment struct {
+	ID               uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	ApplicationID    uuid.UUID  `gorm:"type:char(36);not null;uniqueIndex:uq_appassess_app" json:"application_id"`
+	EducationMatch   *bool      `gorm:"type:tinyint(1)" json:"education_match,omitempty"`
+	EducationNote    string     `gorm:"type:text" json:"education_note"`
+	ExperienceMatch  *bool      `gorm:"type:tinyint(1)" json:"experience_match,omitempty"`
+	ExperienceNote   string     `gorm:"type:text" json:"experience_note"`
+	CompetencyLevels string     `gorm:"type:json" json:"-"`
+	Score            *float64   `gorm:"type:decimal(5,2)" json:"score,omitempty"`
+	Breakdown        string     `gorm:"type:json" json:"-"`
+	AssessedBy       *uuid.UUID `gorm:"type:char(36)" json:"assessed_by,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+}
+
+func (ApplicationAssessment) TableName() string {
+	return "application_assessments"
+}
+
+func (a *ApplicationAssessment) BeforeCreate(tx *gorm.DB) error {
+	if a.ID == uuid.Nil {
+		a.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
 // RecruitmentAssessment + AssessmentParticipant (G-7 sub-project 2)
 // =========================================================================
 // RecruitmentAssessment = sesi/batch tes (mis. "Technical Test Batch

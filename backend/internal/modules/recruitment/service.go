@@ -2,6 +2,7 @@ package recruitment
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -219,6 +220,21 @@ type JobManagementProvider interface {
 	// sama dengan yang dipakai Job Management, BUKAN job_requisitions.position_id
 	// yang tidak pernah diisi FE).
 	ListOrganizationCompetencies(ctx context.Context, organizationID string) ([]JobManagementCompetencyRef, error)
+	// GetOrganizationEducationExperience mengembalikan display string
+	// pendidikan/pengalaman default organisasi dari Job Management — dipakai
+	// sebagai fallback requirement education/experience pada Penilaian
+	// Kandidat (G-12) ketika requisition belum punya override sendiri.
+	// Best-effort: nil tanpa error jika tidak ada data.
+	GetOrganizationEducationExperience(ctx context.Context, organizationID string) (*JobManagementEducationExperienceRef, error)
+}
+
+// JobManagementEducationExperienceRef adalah display requirement
+// pendidikan/pengalaman default dari Job Management (education-experiences
+// organisasi) — hanya dipakai untuk ditampilkan sebagai fallback, bukan
+// sumber skor.
+type JobManagementEducationExperienceRef struct {
+	EducationName  string
+	ExperienceName string
 }
 
 type Service struct {
@@ -3196,6 +3212,301 @@ func (s *Service) DeleteApplicationScreening(ctx context.Context, id string) err
 }
 
 // =========================================================================
+// Application Assessment (G-12 — Penilaian Kandidat)
+// =========================================================================
+
+// assessmentRequirementString mengambil display string requirement
+// pendidikan/pengalaman: override requisition (job_requisition_requirements)
+// didahulukan, fallback ke default organisasi Job Management bila kosong.
+func (s *Service) assessmentRequirementStrings(ctx context.Context, requisition *JobRequisition, reqs []JobRequisitionRequirement) (education, experience string) {
+	for i := range reqs {
+		switch strings.ToUpper(reqs[i].RequirementType) {
+		case "EDUCATION":
+			if education == "" && reqs[i].Name != "" {
+				education = reqs[i].Name
+			}
+		case "EXPERIENCE", "EXPERIENCE_YEARS":
+			if experience == "" && reqs[i].Name != "" {
+				experience = reqs[i].Name
+			}
+		}
+	}
+	if education == "" && s.jobManagementProvider != nil {
+		if ref, err := s.jobManagementProvider.GetOrganizationEducationExperience(ctx, requisition.OrganizationID.String()); err == nil && ref != nil {
+			education = ref.EducationName
+			experience = ref.ExperienceName
+		}
+	}
+	return education, experience
+}
+
+// effectiveAssessmentCompetencies mengembalikan kompetensi requirement
+// (nama + required_level + weight): override requisition didahulukan,
+// fallback ke Job Management bila requisition belum punya sendiri.
+// Level fallback Job Management default 1 (pola match score G-9).
+func (s *Service) effectiveAssessmentCompetencies(ctx context.Context, requisition *JobRequisition, reqCompetencies []JobRequisitionCompetency) []assessmentRequirementCompetency {
+	var out []assessmentRequirementCompetency
+	if len(reqCompetencies) > 0 {
+		for _, rc := range reqCompetencies {
+			name := ""
+			if rc.Competency != nil {
+				name = rc.Competency.Name
+			}
+			level := 1
+			if rc.RequiredLevel != nil {
+				level = *rc.RequiredLevel
+			}
+			weight := 0.0
+			if rc.Weight != nil {
+				weight = *rc.Weight
+			}
+			out = append(out, assessmentRequirementCompetency{
+				CompetencyID:   rc.CompetencyID,
+				CompetencyName: name,
+				RequiredLevel:  level,
+				Weight:         weight,
+			})
+		}
+		return out
+	}
+	if s.jobManagementProvider != nil {
+		refs, err := s.jobManagementProvider.ListOrganizationCompetencies(ctx, requisition.OrganizationID.String())
+		if err == nil && len(refs) > 0 {
+			for _, ref := range refs {
+				name := ""
+				if comp, cerr := s.repo.FindCompetencyByID(ctx, ref.CompetencyID); cerr == nil {
+					name = comp.Name
+				}
+				weight := 0.0
+				if ref.Weight != nil {
+					weight = *ref.Weight
+				}
+				out = append(out, assessmentRequirementCompetency{
+					CompetencyID:   ref.CompetencyID,
+					CompetencyName: name,
+					RequiredLevel:  1,
+					Weight:         weight,
+				})
+			}
+		}
+	}
+	return out
+}
+
+// computeAssessmentScore menghitung skor penilaian kandidat:
+// Pendidikan 20% + Pengalaman 30% + Kompetensi 50%. Level kompetensi yang
+// belum diisi dianggap 0. Skor selalu dihitung server-side — klien hanya
+// mengirimkan penilaian (match + level), bukan skor.
+func computeAssessmentScore(educationMatch, experienceMatch *bool, levels []AssessmentCompetencyLevel, competencies []assessmentRequirementCompetency) (float64, []AssessmentCompetencyBreakdown) {
+	score := 0.0
+	if educationMatch != nil && *educationMatch {
+		score += 20
+	}
+	if experienceMatch != nil && *experienceMatch {
+		score += 30
+	}
+
+	levelByComp := make(map[uuid.UUID]int, len(levels))
+	for _, l := range levels {
+		cid, err := uuid.Parse(l.CompetencyID)
+		if err != nil {
+			continue
+		}
+		levelByComp[cid] = l.Level
+	}
+
+	var weightedSum, weightTotal float64
+	breakdown := make([]AssessmentCompetencyBreakdown, 0, len(competencies))
+	for _, c := range competencies {
+		candidateLevel := levelByComp[c.CompetencyID]
+		ratio := 0.0
+		if c.RequiredLevel > 0 {
+			ratio = float64(candidateLevel) / float64(c.RequiredLevel)
+		}
+		if ratio > 1 {
+			ratio = 1
+		}
+		contribution := c.Weight * ratio
+		weightedSum += contribution
+		weightTotal += c.Weight
+
+		breakdown = append(breakdown, AssessmentCompetencyBreakdown{
+			CompetencyID:   c.CompetencyID.String(),
+			CompetencyName: c.CompetencyName,
+			RequiredLevel:  c.RequiredLevel,
+			CandidateLevel: candidateLevel,
+			Weight:         c.Weight,
+			Contribution:   contribution,
+		})
+	}
+	if weightTotal > 0 {
+		score += 50 * (weightedSum / weightTotal)
+	}
+	return math.Round(score*100) / 100, breakdown
+}
+
+func (s *Service) GetApplicationAssessment(ctx context.Context, applicationID string) (*ApplicationAssessmentDetailResponse, error) {
+	appUUID, err := uuid.Parse(applicationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid application_id: %w", err)
+	}
+	app, err := s.repo.FindApplicationByID(ctx, appUUID)
+	if err != nil {
+		return nil, err
+	}
+	req, err := s.repo.FindRequisitionByID(ctx, app.RequisitionID)
+	if err != nil {
+		return nil, err
+	}
+	reqRequirements, err := s.repo.ListRequisitionRequirements(ctx, app.RequisitionID)
+	if err != nil {
+		return nil, err
+	}
+	reqCompetencies, err := s.repo.ListRequisitionCompetencies(ctx, app.RequisitionID)
+	if err != nil {
+		return nil, err
+	}
+
+	education, experience := s.assessmentRequirementStrings(ctx, req, reqRequirements)
+	competencies := s.effectiveAssessmentCompetencies(ctx, req, reqCompetencies)
+	reqCompDTO := make([]AssessmentRequirementCompetency, 0, len(competencies))
+	for _, c := range competencies {
+		reqCompDTO = append(reqCompDTO, AssessmentRequirementCompetency{
+			CompetencyID:   c.CompetencyID.String(),
+			CompetencyName: c.CompetencyName,
+			RequiredLevel:  c.RequiredLevel,
+			Weight:         c.Weight,
+		})
+	}
+
+	resp := &ApplicationAssessmentDetailResponse{
+		ApplicationID: app.ID.String(),
+		RequisitionID: app.RequisitionID.String(),
+		CandidateID:   app.CandidateID.String(),
+		Requirements: AssessmentRequirement{
+			Education:    education,
+			Experience:   experience,
+			Competencies: reqCompDTO,
+		},
+	}
+
+	existing, err := s.repo.FindApplicationAssessmentByApplicationID(ctx, appUUID)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
+		resp.Assessment = applicationAssessmentToResponse(existing)
+	}
+	return resp, nil
+}
+
+func (s *Service) SaveApplicationAssessment(ctx context.Context, applicationID string, req SaveApplicationAssessmentRequest) (*ApplicationAssessmentResponse, error) {
+	appUUID, err := uuid.Parse(applicationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid application_id: %w", err)
+	}
+	app, err := s.repo.FindApplicationByID(ctx, appUUID)
+	if err != nil {
+		return nil, err
+	}
+	reqModel, err := s.repo.FindRequisitionByID(ctx, app.RequisitionID)
+	if err != nil {
+		return nil, err
+	}
+	reqCompetencies, err := s.repo.ListRequisitionCompetencies(ctx, app.RequisitionID)
+	if err != nil {
+		return nil, err
+	}
+	competencies := s.effectiveAssessmentCompetencies(ctx, reqModel, reqCompetencies)
+
+	// Simpan penilaian (match + level) — skor dihitung ulang server-side.
+	levelsJSON, err := json.Marshal(req.CompetencyLevels)
+	if err != nil {
+		return nil, err
+	}
+	score, breakdown := computeAssessmentScore(req.EducationMatch, req.ExperienceMatch, req.CompetencyLevels, competencies)
+	breakdownJSON, err := json.Marshal(breakdown)
+	if err != nil {
+		return nil, err
+	}
+
+	a, err := s.repo.FindApplicationAssessmentByApplicationID(ctx, appUUID)
+	if err != nil {
+		return nil, err
+	}
+	isNew := false
+	if a == nil {
+		a = &ApplicationAssessment{ApplicationID: appUUID}
+		isNew = true
+	}
+	a.EducationMatch = req.EducationMatch
+	a.EducationNote = derefStr(req.EducationNote)
+	a.ExperienceMatch = req.ExperienceMatch
+	a.ExperienceNote = derefStr(req.ExperienceNote)
+	a.CompetencyLevels = string(levelsJSON)
+	a.Score = &score
+	a.Breakdown = string(breakdownJSON)
+	if uid := authctx.GetUserID(ctx); uid != nil {
+		a.AssessedBy = uid
+	}
+
+	if isNew {
+		if err := s.repo.CreateApplicationAssessment(ctx, a); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := s.repo.UpdateApplicationAssessment(ctx, a); err != nil {
+			return nil, err
+		}
+	}
+	return applicationAssessmentToResponse(a), nil
+}
+
+// assessmentRequirementCompetency adalah bentuk internal requirement
+// kompetensi (nama di-resolve) yang dipakai menghitung skor penilaian.
+type assessmentRequirementCompetency struct {
+	CompetencyID   uuid.UUID
+	CompetencyName string
+	RequiredLevel  int
+	Weight         float64
+}
+
+func derefStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func applicationAssessmentToResponse(a *ApplicationAssessment) *ApplicationAssessmentResponse {
+	resp := &ApplicationAssessmentResponse{
+		ID:            a.ID.String(),
+		ApplicationID: a.ApplicationID.String(),
+		EducationMatch:   a.EducationMatch,
+		EducationNote:    a.EducationNote,
+		ExperienceMatch:  a.ExperienceMatch,
+		ExperienceNote:   a.ExperienceNote,
+		CompetencyLevels: []AssessmentCompetencyLevel{},
+		Breakdown:        []AssessmentCompetencyBreakdown{},
+		CreatedAt:        a.CreatedAt,
+		UpdatedAt:        a.UpdatedAt,
+	}
+	if a.AssessedBy != nil {
+		resp.AssessedBy = a.AssessedBy.String()
+	}
+	if a.Score != nil {
+		resp.Score = a.Score
+	}
+	if a.CompetencyLevels != "" {
+		_ = json.Unmarshal([]byte(a.CompetencyLevels), &resp.CompetencyLevels)
+	}
+	if a.Breakdown != "" {
+		_ = json.Unmarshal([]byte(a.Breakdown), &resp.Breakdown)
+	}
+	return resp
+}
+
+// =========================================================================
 // Recruitment Assessments + Participants (G-7 sub-project 2)
 // =========================================================================
 
@@ -3811,15 +4122,13 @@ func (s *Service) GetCandidateMatchScore(ctx context.Context, applicationID stri
 		return resp, nil
 	}
 
-	candSkills, err := s.repo.ListCandidateSkills(ctx, app.CandidateID)
+	// Sumber level kandidat (G-12): level dari Penilaian Kandidat
+	// (application_assessments.competency_levels) didahulukan bila sudah
+	// diisi; fallback ke skill kandidat (tab Skills) bila belum. Skor match
+	// jadi ikut ter-update saat penilai menyimpan evaluation.
+	candidateLevels, source, err := s.assessmentCandidateLevels(ctx, app)
 	if err != nil {
 		return nil, err
-	}
-	skillByCompetency := make(map[uuid.UUID]int, len(candSkills))
-	for _, sk := range candSkills {
-		if sk.Level != nil {
-			skillByCompetency[sk.CompetencyID] = *sk.Level
-		}
 	}
 
 	var weightedSum, weightTotal float64
@@ -3832,7 +4141,7 @@ func (s *Service) GetCandidateMatchScore(ctx context.Context, applicationID stri
 		if ec.Weight != nil {
 			weight = *ec.Weight
 		}
-		candidateLevel := skillByCompetency[ec.CompetencyID]
+		candidateLevel := candidateLevels[ec.CompetencyID]
 
 		ratio := 0.0
 		if requiredLevel > 0 {
@@ -3856,11 +4165,54 @@ func (s *Service) GetCandidateMatchScore(ctx context.Context, applicationID stri
 		})
 	}
 
+	if source != "" {
+		resp.Note = source
+	}
+
 	if weightTotal > 0 {
 		score := weightedSum / weightTotal * 100
 		resp.Score = &score
 	}
 	return resp, nil
+}
+
+// assessmentCandidateLevels mengembalikan peta competency_id → level kandidat
+// untuk match score: level dari Penilaian Kandidat (application_assessments)
+// didahulukan bila ada, fallback ke skill kandidat. Return source berisi
+// keterangan sumber bila memakai penilaian.
+func (s *Service) assessmentCandidateLevels(ctx context.Context, app *JobApplication) (map[uuid.UUID]int, string, error) {
+	levels := make(map[uuid.UUID]int)
+
+	assessment, err := s.repo.FindApplicationAssessmentByApplicationID(ctx, app.ID)
+	if err != nil {
+		return nil, "", err
+	}
+	if assessment != nil && assessment.CompetencyLevels != "" {
+		var saved []AssessmentCompetencyLevel
+		if err := json.Unmarshal([]byte(assessment.CompetencyLevels), &saved); err == nil && len(saved) > 0 {
+			for _, l := range saved {
+				cid, perr := uuid.Parse(l.CompetencyID)
+				if perr != nil || l.Level <= 0 {
+					continue
+				}
+				levels[cid] = l.Level
+			}
+			if len(levels) > 0 {
+				return levels, "competency levels sourced from candidate evaluation (G-12)", nil
+			}
+		}
+	}
+
+	candSkills, err := s.repo.ListCandidateSkills(ctx, app.CandidateID)
+	if err != nil {
+		return nil, "", err
+	}
+	for _, sk := range candSkills {
+		if sk.Level != nil {
+			levels[sk.CompetencyID] = *sk.Level
+		}
+	}
+	return levels, "", nil
 }
 
 // =========================================================================

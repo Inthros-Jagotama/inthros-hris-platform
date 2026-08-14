@@ -43,6 +43,7 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&InterviewScorecardItem{},
 		&JobRequisitionRequirement{},
 		&JobRequisitionCompetency{},
+		&ApplicationAssessment{},
 		&setting.EducationMajor{},
 		&competency.Competency{},
 	); err != nil {

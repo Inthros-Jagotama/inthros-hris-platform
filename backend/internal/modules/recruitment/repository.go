@@ -1067,6 +1067,41 @@ func (r *Repository) DeleteApplicationScreening(ctx context.Context, id uuid.UUI
 }
 
 // =========================================================================
+// Application Assessments (G-12 — Penilaian Kandidat)
+// =========================================================================
+
+func (r *Repository) FindApplicationAssessmentByApplicationID(ctx context.Context, applicationID uuid.UUID) (*ApplicationAssessment, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var a ApplicationAssessment
+	if err := db.WithContext(ctx).Where("application_id = ?", applicationID).First(&a).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &a, nil
+}
+
+func (r *Repository) CreateApplicationAssessment(ctx context.Context, a *ApplicationAssessment) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Create(a).Error
+}
+
+func (r *Repository) UpdateApplicationAssessment(ctx context.Context, a *ApplicationAssessment) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Save(a).Error
+}
+
+// =========================================================================
 // Recruitment Assessments + Participants (G-7 sub-project 2)
 // =========================================================================
 

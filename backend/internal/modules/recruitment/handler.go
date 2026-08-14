@@ -591,6 +591,30 @@ func (h *Handler) DeleteApplicationScreening(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+func (h *Handler) GetApplicationAssessment(c *gin.Context) {
+	applicationID := c.Param("id")
+	resp, err := h.svc.GetApplicationAssessment(c.Request.Context(), applicationID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) SaveApplicationAssessment(c *gin.Context) {
+	applicationID := c.Param("id")
+	var req SaveApplicationAssessmentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.SaveApplicationAssessment(c.Request.Context(), applicationID, req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) CreateAssessment(c *gin.Context) {
 	var req CreateAssessmentRequest
 	if !httputil.BindAndValidate(c, &req) {

@@ -521,6 +521,11 @@ type JobPotencyCompetency struct {
 	UpdatedBy           *uuid.UUID  `gorm:"type:char(36)" json:"updated_by,omitempty"`
 	CreatedAt           time.Time   `json:"created_at"`
 	UpdatedAt           time.Time   `json:"updated_at"`
+
+	// Relasi untuk menampilkan nama kompetensi (dari tabel competencies, module setting)
+	Competency *setting.Competency `gorm:"foreignKey:CompetencyID" json:"-"`
+	// Relasi untuk menampilkan level kompetensi (dari job_management_values)
+	JobManagementValue *JobValue `gorm:"foreignKey:JobManagementValueID" json:"-"`
 }
 
 func (JobPotencyCompetency) TableName() string { return "job_management_potency_competencies" }

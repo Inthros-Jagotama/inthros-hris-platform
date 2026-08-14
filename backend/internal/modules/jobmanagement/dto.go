@@ -446,7 +446,9 @@ type JobEducationExperienceResponse struct {
 	ExperienceID     string    `json:"experience_id,omitempty"`
 	ExperienceName   string    `json:"experience_name,omitempty"`
 	EducationMajorID []string  `json:"education_major_id,omitempty"`
+	EducationMajorName []string `json:"education_major_name,omitempty"`
 	JobFamilyID      []string  `json:"job_family_id,omitempty"`
+	JobFamilyName    []string  `json:"job_family_name,omitempty"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 }
@@ -553,6 +555,10 @@ type JobPotencyCompetencyResponse struct {
 	OrganizationID      string    `json:"organization_id,omitempty"`
 	JobManagementValueID string   `json:"job_management_value_id,omitempty"`
 	CompetencyID        string    `json:"competency_id,omitempty"`
+	CompetencyName      string    `json:"competency_name,omitempty"`
+	Type                string    `json:"type,omitempty"`
+	Level               int       `json:"level,omitempty"`
+	LevelDescription    string    `json:"level_description,omitempty"`
 	Weight              float64   `json:"weight,omitempty"`
 	CreatedAt           time.Time `json:"created_at"`
 	UpdatedAt           time.Time `json:"updated_at"`
@@ -796,18 +802,28 @@ func toJobEducationExperienceResponse(e *JobEducationExperience) JobEducationExp
 	// Jurusan (multiple) — via pivot job_management_majors
 	if len(e.Majors) > 0 {
 		ids := make([]string, 0, len(e.Majors))
+		names := make([]string, 0, len(e.Majors))
 		for _, m := range e.Majors {
 			ids = append(ids, m.EducationMajorID.String())
+			if m.EducationMajor != nil {
+				names = append(names, m.EducationMajor.Name)
+			}
 		}
 		r.EducationMajorID = ids
+		r.EducationMajorName = names
 	}
 	// Bidang Pekerjaan (multiple) — via pivot job_management_job_family
 	if len(e.JobFamilies) > 0 {
 		ids := make([]string, 0, len(e.JobFamilies))
+		names := make([]string, 0, len(e.JobFamilies))
 		for _, jf := range e.JobFamilies {
 			ids = append(ids, jf.JobFamilyID.String())
+			if jf.JobFamily != nil {
+				names = append(names, jf.JobFamily.Name)
+			}
 		}
 		r.JobFamilyID = ids
+		r.JobFamilyName = names
 	}
 	return r
 }
@@ -998,6 +1014,20 @@ func toJobPotencyCompetencyResponse(c *JobPotencyCompetency) JobPotencyCompetenc
 	}
 	if c.CompetencyID != nil {
 		r.CompetencyID = c.CompetencyID.String()
+	}
+	if c.Competency != nil {
+		r.CompetencyName = c.Competency.Name
+	}
+	if c.JobManagementValue != nil && c.JobManagementValue.Type != "" {
+		r.Type = c.JobManagementValue.Type
+	}
+	if c.JobManagementValue != nil {
+		if c.JobManagementValue.Level != nil {
+			r.Level = *c.JobManagementValue.Level
+		}
+		if c.JobManagementValue.Descriptions != nil {
+			r.LevelDescription = *c.JobManagementValue.Descriptions
+		}
 	}
 	if c.Weight != nil {
 		r.Weight = *c.Weight

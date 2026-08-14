@@ -96,8 +96,10 @@
               <div class="min-w-0 flex-1">
                 <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.assessmentName }}</p>
                 <p class="text-xs text-gray-400">{{ t('applications.participant_status_' + (item.participant.status || 'invited').toLowerCase()) }} <span v-if="item.participant.score">· {{ t('applications.score') }}: {{ item.participant.score }}</span></p>
+                <p v-if="item.participant.recommendation" class="text-xs text-gray-400 mt-0.5">{{ t('applications.assessment_recommendation') }}: {{ item.participant.recommendation }}</p>
               </div>
               <Tag v-if="item.participant.result" :value="t('applications.result_' + item.participant.result.toLowerCase())" :severity="resultSeverity(item.participant.result)" class="!text-xs !px-1.5 !py-0.5" />
+              <Button :label="t('applications.assess_participant')" icon="pi pi-pencil" size="small" text class="!h-7" @click="openAssessmentResult(item.participant)" />
             </div>
           </div>
           <div v-else class="px-3 py-8 text-center text-sm text-gray-400">{{ t('applications.assessment_empty') }}</div>
@@ -128,9 +130,9 @@
             <div v-if="matchScore.score !== null && matchScore.score !== undefined" class="mb-4">
               <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ t('applications.overall_match') }}</p>
               <p class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{{ Math.round(matchScore.score) }}%</p>
-              <p v-if="matchScore.note" class="text-xs text-amber-600 dark:text-amber-400 mt-1"><i class="pi pi-info-circle mr-1"></i>{{ matchScore.note }}</p>
+              <p v-if="matchScore.note" class="text-xs text-amber-600 dark:text-amber-400 mt-1"><i class="pi pi-info-circle mr-1"></i>{{ matchScoreNote }}</p>
             </div>
-            <p v-else class="text-sm text-gray-400 mb-4">{{ matchScore.note || t('applications.match_score_empty') }}</p>
+            <p v-else class="text-sm text-gray-400 mb-4">{{ matchScoreNote || t('applications.match_score_empty') }}</p>
             <div v-if="matchScore.breakdown && matchScore.breakdown.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
               <div v-for="(b, i) in matchScore.breakdown" :key="i" class="flex items-center gap-3 px-3 py-2.5">
                 <div class="min-w-0 flex-1">
@@ -138,6 +140,75 @@
                   <p class="text-xs text-gray-400">{{ t('applications.required_level') }} {{ b.required_level }} · {{ t('applications.candidate_level') }} {{ b.candidate_level }} · {{ t('applications.weight') }} {{ b.weight }}</p>
                 </div>
               </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Penilaian Kandidat -->
+        <div v-if="activeTab === 'evaluation'" class="p-4">
+          <div v-if="evaluationLoading" class="h-24 rounded bg-gray-100 dark:bg-gray-700/50 animate-pulse"></div>
+          <template v-else-if="evaluation">
+            <!-- Skor -->
+            <div class="mb-4 flex items-center gap-4 flex-wrap">
+              <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ t('applications.overall_match') }}</p>
+                <p class="text-3xl font-bold text-amber-600 dark:text-amber-400">{{ evaluation.assessment?.score !== null && evaluation.assessment?.score !== undefined ? evaluation.assessment.score : '—' }}</p>
+              </div>
+              <p class="text-xs text-gray-400 max-w-md">{{ t('applications.evaluation_hint') }}</p>
+            </div>
+
+            <!-- Requirement + penilaian pendidikan/pengalaman -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+              <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                <p class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1"><i class="pi pi-graduation-cap mr-1 text-gray-400"></i>{{ t('requisitions.education') }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ evaluation.requirements.education || '—' }}</p>
+                <div class="flex items-center gap-2 mb-2">
+                  <RadioLabel v-model="evaluationForm.education_match" :value="true" :id="'ev-edu-yes'" :label="t('applications.evaluation_match')" class="!flex-1" />
+                  <RadioLabel v-model="evaluationForm.education_match" :value="false" :id="'ev-edu-no'" :label="t('applications.evaluation_not_match')" class="!flex-1" />
+                </div>
+                <FormRow :label="t('candidates.notes')"><Textarea v-model="evaluationForm.education_note" :rows="2" class="!w-full" /></FormRow>
+              </div>
+              <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                <p class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1"><i class="pi pi-briefcase mr-1 text-gray-400"></i>{{ t('requisitions.experience') }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ evaluation.requirements.experience || '—' }}</p>
+                <div class="flex items-center gap-2 mb-2">
+                  <RadioLabel v-model="evaluationForm.experience_match" :value="true" :id="'ev-exp-yes'" :label="t('applications.evaluation_match')" class="!flex-1" />
+                  <RadioLabel v-model="evaluationForm.experience_match" :value="false" :id="'ev-exp-no'" :label="t('applications.evaluation_not_match')" class="!flex-1" />
+                </div>
+                <FormRow :label="t('candidates.notes')"><Textarea v-model="evaluationForm.experience_note" :rows="2" class="!w-full" /></FormRow>
+              </div>
+            </div>
+
+            <!-- Kompetensi: requirement vs level kandidat -->
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg mb-4">
+              <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                <p class="text-sm font-semibold text-gray-700 dark:text-gray-200"><i class="pi pi-star mr-1 text-gray-400"></i>{{ t('applications.evaluation_competencies') }}</p>
+              </div>
+              <div v-if="evaluation.requirements.competencies && evaluation.requirements.competencies.length" class="divide-y divide-gray-100 dark:divide-gray-800">
+                <div v-for="comp in evaluation.requirements.competencies" :key="comp.competency_id" class="flex items-center gap-3 px-3 py-2.5 flex-wrap">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm text-gray-800 dark:text-gray-100">{{ comp.competency_name || comp.competency_id }}</p>
+                    <p class="text-xs text-gray-400">{{ t('applications.required_level') }} {{ comp.required_level }}<span v-if="comp.weight"> · {{ t('applications.weight') }} {{ comp.weight }}</span></p>
+                  </div>
+                  <div class="flex items-center gap-2 w-full lg:w-auto">
+                    <span class="text-xs text-gray-400 shrink-0">{{ t('applications.candidate_level') }}</span>
+                    <SelectLabel
+                      v-model="evaluationForm.competency_levels[comp.competency_id]"
+                      :options="levelOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      :placeholder="t('common.select')"
+                      class="!w-full lg:!w-72"
+                      showClear
+                    />
+                  </div>
+                </div>
+              </div>
+              <p v-else class="px-3 py-6 text-center text-sm text-gray-400">{{ t('applications.evaluation_competencies_empty') }}</p>
+            </div>
+
+            <div class="flex items-center justify-end gap-2">
+              <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="evaluationSaving" @click="saveEvaluation()" />
             </div>
           </template>
         </div>
@@ -170,6 +241,30 @@
         <div class="flex items-center justify-end gap-2">
           <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="assessmentDialogVisible = false" />
           <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="itemSaving" @click="joinAssessment()" />
+        </div>
+      </template>
+    </Dialog>
+
+    <!-- Fill assessment result dialog (penilaian kandidat) -->
+    <Dialog v-model:visible="assessmentResultVisible" :header="t('applications.assessment_result_title')" :modal="true" class="!w-[min(95vw,520px)]">
+      <div class="grid grid-cols-1 gap-3">
+        <FormRow :label="t('applications.assessment_status')">
+          <SelectLabel v-model="assessmentResultForm.status" :options="participantStatusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="!w-full" showClear />
+        </FormRow>
+        <FormRow :label="t('applications.score')">
+          <InputNumber v-model="assessmentResultForm.score" :min="0" :max="100" class="!w-full" />
+        </FormRow>
+        <FormRow :label="t('applications.assessment_result')">
+          <SelectLabel v-model="assessmentResultForm.result" :options="assessmentResultOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" class="!w-full" showClear />
+        </FormRow>
+        <FormRow :label="t('applications.assessment_recommendation')">
+          <Textarea v-model="assessmentResultForm.recommendation" :rows="3" class="!w-full" />
+        </FormRow>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" :disabled="itemSaving" @click="assessmentResultVisible = false" />
+          <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="itemSaving" @click="saveAssessmentResult()" />
         </div>
       </template>
     </Dialog>
@@ -317,6 +412,7 @@ import TextInput from '@/components/TextInput.vue'
 import FormRow from '@/components/FormRow.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
 import DateInput from '@/components/DateInput.vue'
+import RadioLabel from '@/components/RadioLabel.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 
 const route = useRoute()
@@ -351,17 +447,59 @@ const participations = ref([])
 const matchScore = ref(null)
 const matchScoreLoading = ref(false)
 
+// ── Penilaian Kandidat (G-12) ──
+const evaluation = ref(null)
+const evaluationLoading = ref(false)
+const evaluationSaving = ref(false)
+const evaluationForm = ref({ education_match: null, education_note: '', experience_match: null, experience_note: '', competency_levels: {} })
+const jobValues = ref([])
+// Options level dari job_management_values tipe technical/managerial (skala
+// kompetensi, pola Job Management: "Lv.X — deskripsi"). Teknis didahulukan
+// (skala 1-8), fallback ke managerial; fallback terakhir "Lv.X" bila data
+// belum ter-load.
+const levelOptions = computed(() => {
+  const byLevel = {}
+  ;(jobValues.value || []).forEach(v => {
+    if (!v.level || (v.type !== 'technical' && v.type !== 'managerial')) return
+    const existing = byLevel[v.level]
+    if (!existing || v.type === 'technical') byLevel[v.level] = v.descriptions || ''
+  })
+  const maxLevel = Object.keys(byLevel).length ? Math.max(...Object.keys(byLevel).map(Number)) : 5
+  const opts = []
+  for (let lvl = 1; lvl <= maxLevel; lvl++) {
+    opts.push({
+      label: byLevel[lvl] ? `Lv.${lvl} — ${byLevel[lvl]}` : `Lv.${lvl}`,
+      name: byLevel[lvl] || '',
+      value: lvl
+    })
+  }
+  return opts
+})
+
 const tabs = [
   { key: 'history', labelKey: 'applications.tab_history' },
   { key: 'screening', labelKey: 'applications.tab_screening' },
   { key: 'assessment', labelKey: 'applications.tab_assessment' },
   { key: 'interviews', labelKey: 'applications.tab_interviews' },
+  { key: 'evaluation', labelKey: 'applications.tab_evaluation' },
   { key: 'match_score', labelKey: 'applications.tab_match_score' }
 ]
 
 const statusOptions = computed(() => ['NEW', 'SCREENED', 'SHORTLISTED', 'INTERVIEWED', 'OFFERED', 'ACCEPTED', 'REJECTED', 'WITHDRAWN'].map(v => ({ label: t(`applications.status_${v.toLowerCase()}`), value: v })))
 const resultOptions = computed(() => ['PASS', 'FAIL', 'HOLD'].map(v => ({ label: t(`applications.result_${v.toLowerCase()}`), value: v })))
 const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_id})`, value: e.id })))
+
+// Terjemahkan note backend match-score (beberapa note English-only dari
+// service) ke locale aktif; fallback ke teks mentah bila tidak dikenali.
+const matchScoreNote = computed(() => {
+  const raw = matchScore.value?.note || ''
+  const map = {
+    'competency levels sourced from candidate evaluation (G-12)': t('applications.match_score_note_evaluation'),
+    'competencies sourced from Job Management (organization default); requisition has no override of its own': t('applications.match_score_note_job_management'),
+    'no competencies defined for this requisition (neither its own override nor a Job Management default); nothing to match': t('applications.match_score_note_no_competencies')
+  }
+  return map[raw] || raw
+})
 
 const candidateName = computed(() => {
   const c = candidates.value.find(x => x.id === application.value?.candidate_id)
@@ -507,6 +645,46 @@ async function doDeleteScreening() {
 // ── Assessment ──
 const assessmentDialogVisible = ref(false)
 const assessmentForm = ref({})
+const assessmentResultVisible = ref(false)
+const assessmentResultForm = ref({})
+const assessmentResultTarget = ref(null)
+
+const participantStatusOptions = [
+  { label: t('applications.participant_status_invited'), value: 'INVITED' },
+  { label: t('applications.participant_status_completed'), value: 'COMPLETED' },
+  { label: t('applications.participant_status_no_show'), value: 'NO_SHOW' }
+]
+const assessmentResultOptions = [
+  { label: t('applications.result_pass'), value: 'PASS' },
+  { label: t('applications.result_fail'), value: 'FAIL' },
+  { label: t('applications.result_hold'), value: 'HOLD' }
+]
+
+function openAssessmentResult(participant) {
+  assessmentResultTarget.value = participant
+  assessmentResultForm.value = {
+    status: participant.status || 'INVITED',
+    score: participant.score ?? null,
+    result: participant.result || null,
+    recommendation: participant.recommendation || ''
+  }
+  assessmentResultVisible.value = true
+}
+async function saveAssessmentResult() {
+  const target = assessmentResultTarget.value
+  if (!target) return
+  itemSaving.value = true
+  try {
+    await api.put(`/api/v1/tenant/recruitment/assessment-participants/${target.id}`, cleanPayload(assessmentResultForm.value))
+    assessmentResultVisible.value = false
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('candidates.item_added'), life: 3000 })
+    loadAssessmentParticipation()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_save')), life: 5000 })
+  } finally {
+    itemSaving.value = false
+  }
+}
 const availableAssessments = computed(() => {
   const joinedIds = new Set(participations.value.map(p => p.assessmentId))
   return assessments.value.filter(a => !joinedIds.has(a.id))
@@ -737,16 +915,68 @@ async function loadMatchScore() {
     matchScoreLoading.value = false
   }
 }
+async function loadEvaluation() {
+  evaluationLoading.value = true
+  try {
+    const res = await api.get(`/api/v1/tenant/recruitment/applications/${applicationId}/assessment`)
+    evaluation.value = res.data?.data || null
+    const req = evaluation.value?.requirements
+    const saved = evaluation.value?.assessment
+    const levels = {}
+    ;(req?.competencies || []).forEach(c => { levels[c.competency_id] = null })
+    ;(saved?.competency_levels || []).forEach(l => { if (l.competency_id != null) levels[l.competency_id] = l.level })
+    evaluationForm.value = {
+      education_match: saved?.education_match ?? null,
+      education_note: saved?.education_note || '',
+      experience_match: saved?.experience_match ?? null,
+      experience_note: saved?.experience_note || '',
+      competency_levels: levels
+    }
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_load')), life: 4000 })
+  } finally {
+    evaluationLoading.value = false
+  }
+}
+async function saveEvaluation() {
+  evaluationSaving.value = true
+  try {
+    const competency_levels = Object.entries(evaluationForm.value.competency_levels)
+      .filter(([id, lvl]) => id && lvl != null)
+      .map(([id, lvl]) => ({ competency_id: id, level: Number(lvl) }))
+    const payload = cleanPayload({
+      education_match: evaluationForm.value.education_match,
+      education_note: evaluationForm.value.education_note,
+      experience_match: evaluationForm.value.experience_match,
+      experience_note: evaluationForm.value.experience_note,
+      competency_levels
+    })
+    await api.put(`/api/v1/tenant/recruitment/applications/${applicationId}/assessment`, payload)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('applications.evaluation_saved'), life: 3000 })
+    loadEvaluation()
+    loadMatchScore()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_save')), life: 5000 })
+  } finally {
+    evaluationSaving.value = false
+  }
+}
 async function loadOptions() {
   try {
-    const [candRes, reqRes, empRes] = await Promise.allSettled([
+    const [candRes, reqRes, empRes, techValRes, mangValRes] = await Promise.allSettled([
       api.get('/api/v1/tenant/recruitment/candidates', { params: { per_page: 500 } }),
       api.get('/api/v1/tenant/recruitment/requisitions', { params: { per_page: 500 } }),
-      api.get('/api/v1/tenant/employees', { params: { per_page: 500 } })
+      api.get('/api/v1/tenant/employees', { params: { per_page: 500 } }),
+      api.get('/api/v1/tenant/job-management/values', { params: { type: 'technical', per_page: 100 } }),
+      api.get('/api/v1/tenant/job-management/values', { params: { type: 'managerial', per_page: 100 } })
     ])
     candidates.value = candRes.status === 'fulfilled' ? (candRes.value.data?.data || []) : []
     requisitions.value = reqRes.status === 'fulfilled' ? (reqRes.value.data?.data || []) : []
     employees.value = empRes.status === 'fulfilled' ? (empRes.value.data?.data || []) : []
+    jobValues.value = [
+      ...(techValRes.status === 'fulfilled' ? (techValRes.value.data?.data || []) : []),
+      ...(mangValRes.status === 'fulfilled' ? (mangValRes.value.data?.data || []) : [])
+    ]
   } catch {
     // fail-silent
   }
@@ -761,5 +991,6 @@ onMounted(async () => {
   loadInterviews()
   loadAssessmentParticipation()
   loadMatchScore()
+  loadEvaluation()
 })
 </script>

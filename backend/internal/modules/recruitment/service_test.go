@@ -3848,6 +3848,10 @@ func (f *fakeJobManagementProvider) ListOrganizationCompetencies(ctx context.Con
 	return f.refs, nil
 }
 
+func (f *fakeJobManagementProvider) GetOrganizationEducationExperience(ctx context.Context, organizationID string) (*JobManagementEducationExperienceRef, error) {
+	return nil, nil
+}
+
 func TestService_GetCandidateMatchScore_FallsBackToJobManagementWhenNoOverride(t *testing.T) {
 	db, dbResolver, cleanup := setupTestDB()
 	defer cleanup()
@@ -3937,5 +3941,168 @@ func TestService_GetCandidateMatchScore_NoOverrideNoJobManagementProvider(t *tes
 	}
 	if resp.Score != nil {
 		t.Errorf("expected nil score, got %v", *resp.Score)
+	}
+}
+
+// =========================================================================
+// Application Assessment Service Tests (G-12 — Penilaian Kandidat)
+// =========================================================================
+
+func boolPtr(b bool) *bool { return &b }
+
+func TestService_ApplicationAssessment_Flow(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Assess", LastName: "Test", Email: "assess@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	// Tambah kompetensi requisition (override) — level 5, bobot 100.
+	comp := &competency.Competency{Name: "Leadership"}
+	db, err := svc.repo.db(ctx)
+	if err != nil {
+		t.Fatalf("repo db: %v", err)
+	}
+	if err := db.Create(comp).Error; err != nil {
+		t.Fatalf("create competency: %v", err)
+	}
+	level := 5
+	weight := 100.0
+	if _, err := svc.CreateRequisitionCompetency(ctx, req.ID, CreateRequisitionCompetencyRequest{
+		CompetencyID:  comp.ID.String(),
+		RequiredLevel: &level,
+		Weight:        &weight,
+	}); err != nil {
+		t.Fatalf("create requisition competency: %v", err)
+	}
+
+	// GET sebelum disimpan → requirement terisi, assessment kosong.
+	detail, err := svc.GetApplicationAssessment(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetApplicationAssessment failed: %v", err)
+	}
+	if detail.Assessment != nil {
+		t.Errorf("expected nil assessment before save, got %+v", detail.Assessment)
+	}
+	if len(detail.Requirements.Competencies) != 1 {
+		t.Fatalf("expected 1 requirement competency, got %d", len(detail.Requirements.Competencies))
+	}
+	if detail.Requirements.Competencies[0].CompetencyName != "Leadership" {
+		t.Errorf("expected competency name Leadership, got %q", detail.Requirements.Competencies[0].CompetencyName)
+	}
+
+	// Simpan penilaian: pendidikan cocok (20), pengalaman cocok (30),
+	// kompetensi level 4/5 x 100 bobot (50 x 0.8 = 40) → total 90.
+	saved, err := svc.SaveApplicationAssessment(ctx, app.ID, SaveApplicationAssessmentRequest{
+		EducationMatch:  boolPtr(true),
+		ExperienceMatch: boolPtr(true),
+		CompetencyLevels: []AssessmentCompetencyLevel{
+			{CompetencyID: comp.ID.String(), Level: 4},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SaveApplicationAssessment failed: %v", err)
+	}
+	if saved.Score == nil || *saved.Score < 89.9 || *saved.Score > 90.1 {
+		t.Errorf("expected score ~90, got %v", saved.Score)
+	}
+	if len(saved.Breakdown) != 1 {
+		t.Fatalf("expected 1 breakdown row, got %d", len(saved.Breakdown))
+	}
+	if saved.Breakdown[0].Contribution < 79.9 || saved.Breakdown[0].Contribution > 80.1 {
+		t.Errorf("expected contribution 80, got %v", saved.Breakdown[0].Contribution)
+	}
+
+	// GET ulang → assessment ter-persist (1 baris per aplikasi).
+	detail2, err := svc.GetApplicationAssessment(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetApplicationAssessment (2nd) failed: %v", err)
+	}
+	if detail2.Assessment == nil || detail2.Assessment.Score == nil {
+		t.Fatalf("expected persisted assessment with score, got %+v", detail2.Assessment)
+	}
+	if len(detail2.Assessment.CompetencyLevels) != 1 || detail2.Assessment.CompetencyLevels[0].Level != 4 {
+		t.Errorf("expected persisted competency level 4, got %+v", detail2.Assessment.CompetencyLevels)
+	}
+
+	// Update → baris sama (tidak duplikat), skor dihitung ulang.
+	updated, err := svc.SaveApplicationAssessment(ctx, app.ID, SaveApplicationAssessmentRequest{
+		EducationMatch:  boolPtr(false),
+		ExperienceMatch: boolPtr(true),
+		CompetencyLevels: []AssessmentCompetencyLevel{
+			{CompetencyID: comp.ID.String(), Level: 5},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SaveApplicationAssessment (update) failed: %v", err)
+	}
+	if updated.ID != saved.ID {
+		t.Errorf("expected same assessment row (upsert), got %s != %s", updated.ID, saved.ID)
+	}
+	if updated.Score == nil || *updated.Score < 79.9 || *updated.Score > 80.1 {
+		t.Errorf("expected score ~80 (0 + 30 + 50), got %v", updated.Score)
+	}
+}
+
+func TestService_MatchScore_UsesEvaluationLevelsWhenSaved(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	req, _ := svc.CreateRequisition(ctx, CreateRequisitionRequest{OrganizationID: createTestOrgID(), Title: "Engineer"})
+	cand, _ := svc.CreateCandidate(ctx, CreateCandidateRequest{FirstName: "Match", LastName: "Eval", Email: "macheval@test.com"})
+	app, _ := svc.CreateApplication(ctx, CreateApplicationRequest{RequisitionID: req.ID, CandidateID: cand.ID})
+
+	comp := &competency.Competency{Name: "Leadership"}
+	db, err := svc.repo.db(ctx)
+	if err != nil {
+		t.Fatalf("repo db: %v", err)
+	}
+	if err := db.Create(comp).Error; err != nil {
+		t.Fatalf("create competency: %v", err)
+	}
+	level := 5
+	weight := 100.0
+	if _, err := svc.CreateRequisitionCompetency(ctx, req.ID, CreateRequisitionCompetencyRequest{
+		CompetencyID:  comp.ID.String(),
+		RequiredLevel: &level,
+		Weight:        &weight,
+	}); err != nil {
+		t.Fatalf("create requisition competency: %v", err)
+	}
+
+	// Tanpa penilaian → match score 0 (tidak ada skill kandidat).
+	before, err := svc.GetCandidateMatchScore(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetCandidateMatchScore before: %v", err)
+	}
+	if before.Score == nil || *before.Score != 0 {
+		t.Errorf("expected match score 0 before evaluation, got %v", before.Score)
+	}
+
+	// Simpan penilaian dengan level 4/5 → match score harus pakai level itu
+	// (ratio 0.8 → 80%), bukan skill kandidat.
+	if _, err := svc.SaveApplicationAssessment(ctx, app.ID, SaveApplicationAssessmentRequest{
+		CompetencyLevels: []AssessmentCompetencyLevel{
+			{CompetencyID: comp.ID.String(), Level: 4},
+		},
+	}); err != nil {
+		t.Fatalf("SaveApplicationAssessment failed: %v", err)
+	}
+
+	after, err := svc.GetCandidateMatchScore(ctx, app.ID)
+	if err != nil {
+		t.Fatalf("GetCandidateMatchScore after: %v", err)
+	}
+	if after.Score == nil || *after.Score < 79.9 || *after.Score > 80.1 {
+		t.Errorf("expected match score ~80 from evaluation level, got %v", after.Score)
+	}
+	if after.Note == "" {
+		t.Error("expected note indicating levels sourced from evaluation")
+	}
+	if len(after.Breakdown) != 1 || after.Breakdown[0].CandidateLevel != 4 {
+		t.Errorf("expected breakdown candidate_level 4 from evaluation, got %+v", after.Breakdown)
 	}
 }

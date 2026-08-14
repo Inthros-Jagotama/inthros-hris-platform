@@ -86,6 +86,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		rec.GET("/applications/:id/screenings", handler.ListApplicationScreenings)
 		rec.PUT("/screenings/:id", handler.UpdateApplicationScreening)
 		rec.DELETE("/screenings/:id", handler.DeleteApplicationScreening)
+		// G-12: penilaian kandidat (requirement + match/level + skor, one-per-application)
+		rec.GET("/applications/:id/assessment", handler.GetApplicationAssessment)
+		rec.PUT("/applications/:id/assessment", handler.SaveApplicationAssessment)
 
 		// G-7 sub-project 2: assessments (batch session) + participants
 		rec.POST("/assessments", handler.CreateAssessment)

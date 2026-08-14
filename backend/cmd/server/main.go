@@ -371,6 +371,21 @@ func (a jobManagementCompetencyAdapter) ListOrganizationCompetencies(ctx context
 	return out, nil
 }
 
+func (a jobManagementCompetencyAdapter) GetOrganizationEducationExperience(ctx context.Context, organizationID string) (*recruitment.JobManagementEducationExperienceRef, error) {
+	resp, err := a.svc.ListJobEducationExperiences(ctx, 1, 1, organizationID)
+	if err != nil {
+		return nil, err
+	}
+	rows, ok := resp.Data.([]jobmanagement.JobEducationExperienceResponse)
+	if !ok || len(rows) == 0 {
+		return nil, nil
+	}
+	return &recruitment.JobManagementEducationExperienceRef{
+		EducationName:  rows[0].EducationName,
+		ExperienceName: rows[0].ExperienceName,
+	}, nil
+}
+
 // movementHireAdapter implements recruitment.MovementProvider (plan G-4):
 // hasil seleksi internal (offer diterima, candidate_type=INTERNAL) diteruskan
 // ke Employee Movement (promotion bila posisi target terisi, mutation bila
