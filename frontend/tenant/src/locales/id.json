@@ -1945,7 +1945,7 @@
     "synced_updated": "{count} kompetensi diperbarui dari Job Management"
   },
   "applications": {
-    "description": "Kelola pipeline kandidat — status, riwayat tahap, screening, assessment, wawancara, dan match score.",
+    "description": "Kelola pipeline kandidat — status, riwayat tahap, screening, assessment, wawancara, penilaian, dan match score.",
     "filter_status": "Filter Status",
     "new_application": "Aplikasi Baru",
     "empty": "Tidak ada aplikasi",
