@@ -1,0 +1,154 @@
+package documenttemplate
+
+import (
+	"context"
+	"testing"
+
+	"gorm.io/gorm"
+)
+
+func TestRepositoryCreateAndGetByID(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := newTestRepo(db)
+	ctx := context.Background()
+
+	tpl := &DocumentTemplate{ID: uuidStr(), Name: "PKWT", Code: "PKWT01", DocumentType: DocumentTypeContractAgreement, Status: StatusInactive}
+	if err := repo.Create(ctx, tpl); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	got, err := repo.GetByID(ctx, tpl.ID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if got.Code != "PKWT01" {
+		t.Fatalf("expected code PKWT01, got %s", got.Code)
+	}
+}
+
+func TestRepositoryGetByIDNotFound(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := newTestRepo(db)
+
+	_, err := repo.GetByID(context.Background(), uuidStr())
+	if err != ErrTemplateNotFound {
+		t.Fatalf("expected ErrTemplateNotFound, got %v", err)
+	}
+}
+
+func TestRepositoryFindActiveByType(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := newTestRepo(db)
+	createTestTemplate(db, "INACTIVE1", DocumentTypeContractAgreement, StatusInactive, false)
+	active := createTestTemplate(db, "ACTIVE1", DocumentTypeContractAgreement, StatusActive, false)
+
+	got, err := repo.FindActiveByType(context.Background(), DocumentTypeContractAgreement)
+	if err != nil {
+		t.Fatalf("FindActiveByType: %v", err)
+	}
+	if got.ID != active.ID {
+		t.Fatalf("expected active template %s, got %s", active.ID, got.ID)
+	}
+}
+
+func TestRepositoryListPaginationAndSearch(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := newTestRepo(db)
+	for i := 0; i < 5; i++ {
+		createTestTemplate(db, uuidStr()[:8], DocumentTypeContractAgreement, StatusInactive, false)
+	}
+	createTestTemplate(db, "FINDME", DocumentTypeMovementSK, StatusInactive, false)
+
+	items, total, err := repo.List(context.Background(), 1, 3, "", "", "")
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if total != 6 || len(items) != 3 {
+		t.Fatalf("expected total=6 len=3, got total=%d len=%d", total, len(items))
+	}
+
+	filtered, ftotal, err := repo.List(context.Background(), 1, 10, DocumentTypeMovementSK, "", "")
+	if err != nil {
+		t.Fatalf("List filtered: %v", err)
+	}
+	if ftotal != 1 || filtered[0].Code != "FINDME" {
+		t.Fatalf("expected 1 result FINDME, got total=%d", ftotal)
+	}
+
+	searched, stotal, err := repo.List(context.Background(), 1, 10, "", "", "findme")
+	if err != nil {
+		t.Fatalf("List search: %v", err)
+	}
+	if stotal != 1 || searched[0].Code != "FINDME" {
+		t.Fatalf("expected search to find FINDME case-insensitively, got total=%d", stotal)
+	}
+}
+
+func TestRepositorySoftDeleteExcludesFromList(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := newTestRepo(db)
+	ctx := context.Background()
+	tpl := createTestTemplate(db, "TOBEDEL", DocumentTypeContractAgreement, StatusInactive, false)
+
+	if err := repo.SoftDelete(ctx, tpl.ID); err != nil {
+		t.Fatalf("SoftDelete: %v", err)
+	}
+	_, err := repo.GetByID(ctx, tpl.ID)
+	if err != ErrTemplateNotFound {
+		t.Fatalf("expected ErrTemplateNotFound after soft delete, got %v", err)
+	}
+	items, total, _ := repo.List(ctx, 1, 10, "", "", "")
+	if total != 0 || len(items) != 0 {
+		t.Fatalf("expected soft-deleted row excluded from List, got total=%d", total)
+	}
+}
+
+func TestRepositoryVersionsCreateListNextNumber(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := newTestRepo(db)
+	ctx := context.Background()
+	tpl := createTestTemplate(db, "VERTEST", DocumentTypeContractAgreement, StatusInactive, false)
+
+	err := repo.WithTx(ctx, func(tx *gorm.DB) error {
+		next, nerr := repo.NextVersionNumber(ctx, tx, tpl.ID)
+		if nerr != nil {
+			return nerr
+		}
+		if next != 1 {
+			t.Fatalf("expected first version number 1, got %d", next)
+		}
+		v := &DocumentTemplateVersion{ID: uuidStr(), TemplateID: tpl.ID, Version: next, Content: "<p>v1</p>", PaperSize: "A4", Orientation: "portrait"}
+		return repo.CreateVersion(ctx, tx, v)
+	})
+	if err != nil {
+		t.Fatalf("WithTx create version 1: %v", err)
+	}
+
+	err = repo.WithTx(ctx, func(tx *gorm.DB) error {
+		next, nerr := repo.NextVersionNumber(ctx, tx, tpl.ID)
+		if nerr != nil {
+			return nerr
+		}
+		if next != 2 {
+			t.Fatalf("expected second version number 2, got %d", next)
+		}
+		v := &DocumentTemplateVersion{ID: uuidStr(), TemplateID: tpl.ID, Version: next, Content: "<p>v2</p>", PaperSize: "A4", Orientation: "portrait"}
+		return repo.CreateVersion(ctx, tx, v)
+	})
+	if err != nil {
+		t.Fatalf("WithTx create version 2: %v", err)
+	}
+
+	versions, err := repo.ListVersions(ctx, tpl.ID)
+	if err != nil {
+		t.Fatalf("ListVersions: %v", err)
+	}
+	if len(versions) != 2 {
+		t.Fatalf("expected 2 versions, got %d", len(versions))
+	}
+}
