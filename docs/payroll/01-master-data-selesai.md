@@ -287,14 +287,15 @@ Payroll run & processing (migration `007_payroll_run`, 6 tabel; `060_payroll_app
 
 ```text
 payroll_runs                   -- + approval_instance_id (ditambahkan via migration 060); status DRAFT/CALCULATED/REVIEWED/APPROVED/LOCKED/CANCELLED
-payroll_run_employees          -- skema ada, TIDAK PERNAH DIISI kode apa pun
-payroll_run_items              -- skema ada, TIDAK PERNAH DIISI kode apa pun
-payroll_payslips               -- skema ada; TIDAK ADA endpoint/service untuk generate
-pph21_calculation_logs         -- skema ada (formula_json dll.); TIDAK PERNAH DITULIS kode apa pun
+payroll_run_employees          -- ✅ DIISI oleh CalculatePayrollRun (2026-08-14, lihat 03)
+payroll_run_items              -- ✅ DIISI oleh CalculatePayrollRun (2026-08-14, + kolom audit via migration 116)
+payroll_payslips               -- ✅ DIISI oleh GeneratePayslips (2026-08-15, lihat 07): per run employee + total_employer_contribution (migration 118)
+payroll_payments               -- ✅ tabel baru migration 118: payment batch per run employee (snapshot rekening bank)
+pph21_calculation_logs         -- ✅ DIISI oleh kalkulator PPh21 (2026-08-15, lihat 05): 1 baris per run employee + formula_json
 payroll_profile_change_logs    -- audit perubahan profile (employee_payroll_profiles dll.), bukan audit kalkulasi
 ```
 
-**Tidak ada tabel apa pun** untuk: `payroll_payments` (payment/bank transfer batch — belum ada sama sekali), `payroll_audit_logs` run-level (hanya ada log perubahan config seperti di atas).
+**Tidak ada tabel apa pun** untuk: `payroll_audit_logs` run-level (hanya ada log perubahan config + snapshot + `pph21_calculation_logs` sebagai jejak kalkulasi).
 
 Seluruh primary key menggunakan UUID (`CHAR(36)`), konsisten dengan modul lain di repo ini.
 
@@ -399,18 +400,18 @@ Urutan disusun agar tidak menghalangi start Formula Engine ([02-formula-engine.m
 
 ## Rencana Implementasi Frontend
 
-Belum ada satu pun UI payroll. Untuk membuat master data ini benar-benar bisa dipakai user (bukan cuma API), FE perlu dibangun dari nol, mengikuti pola modul lain yang sudah ada (mis. `frontend/tenant/src/views/settings/` untuk CRUD master data sederhana):
+> ✅ **FE payroll selesai (2026-08-15)** untuk area inti. Berikut progress per item dari rencana awal:
 
-- [ ] Ganti `frontend/tenant/src/views/modules/payroll/Payroll.vue` placeholder dengan layout index (tab/menu ke sub-halaman: Salary Component, Salary Structure, Payroll Period, BPJS Settings, PPh21 Settings, Payroll Run).
-- [ ] Buat API service file `frontend/tenant/src/services/payroll.js` (atau pola serupa modul lain) untuk memanggil endpoint payroll yang sudah ada di backend (48 handler, lihat [00-overview.md](00-overview.md)).
-- [ ] **Salary Component**: list + form create/edit (CRUD `salary_components`).
-- [ ] **Salary Structure**: 2 view — grade-level default component (`salary_grade_components`) dan employee-level override (`salary_employee_components`), dengan tabel effective-dating yang jelas ke user.
-- [ ] **Payroll Period**: list + form create/edit, toggle OPEN/CLOSED.
-- [ ] **BPJS Settings & Rate Components**: form konfigurasi tarif per program (HEALTH/JHT/JP/JKK/JKM/JKP) dengan effective dating.
-- [ ] **PPh21 Settings, PTKP Rates, Tax Brackets**: form konfigurasi pajak.
-- [ ] **Employee Payroll/Bank/BPJS/Tax Profiles**: form per-employee (kemungkinan terintegrasi ke halaman Employee Detail yang sudah ada, bukan halaman payroll terpisah — evaluasi saat brainstorming).
-- [ ] **Payroll Run**: list + detail + status-transition UI (DRAFT→CALCULATED→APPROVED→LOCKED), termasuk tombol trigger approval (`GET /runs/:id/approval`).
-- [ ] i18n: tambah string ke `frontend/tenant/src/locales/en.json`/`id.json` untuk semua label di atas.
+- [x] Ganti `frontend/tenant/src/views/modules/payroll/Payroll.vue` placeholder dengan layout index (list Payroll Run + create + Calculate + aksi status + dashboard).
+- [x] API service file `frontend/tenant/src/services/api.js` (pola modul lain) untuk memanggil endpoint payroll yang sudah ada di backend (48 handler, lihat [00-overview.md](00-overview.md)).
+- [x] **Salary Component**: list + form create/edit (CRUD `salary_components`) — `SalaryComponentsView.vue`.
+- [ ] **Salary Structure**: 2 view — grade-level default component (`salary_grade_components`) dan employee-level override (`salary_employee_components`), dengan tabel effective-dating yang jelas ke user. *(belum dibangun — backend sudah ada)*
+- [x] **Payroll Period**: list + form create/edit, toggle OPEN/CLOSED — `PayrollPeriodsView.vue`.
+- [x] **BPJS Settings & Rate Components**: form konfigurasi tarif per program (HEALTH/JHT/JP/JKK/JKM/JKP) dengan effective dating — `BpjsSettingsView.vue` (+ endpoint baru `GET /bpjs/rate-components`).
+- [x] **PPh21 Settings, PTKP Rates, Tax Brackets**: form konfigurasi pajak — `Pph21SettingsView.vue`.
+- [x] **Employee Payroll/Bank/BPJS/Tax Profiles**: form per-employee — `PayrollProfilesView.vue` (list + create + delete; update endpoint belum ada di backend).
+- [x] **Payroll Run**: list + detail + status-transition UI (DRAFT→CALCULATED→APPROVED→LOCKED), termasuk tombol trigger approval (`GET /runs/:id/approval`) — `Payroll.vue` + `PayrollRunDetail.vue` (tab Employees/Items/Payslips/Payments/Reports).
+- [x] i18n: string payroll ditambahkan ke `frontend/tenant/src/locales/en.json`/`id.json`.
 - [ ] Update `docs/openapi-report.md` referensi kalau ada penyesuaian kontrak API saat FE dibangun.
 
-> ⚠️ FE untuk **Payroll Run** sebaiknya ditunda sampai [03-payroll-run-snapshot.md](03-payroll-run-snapshot.md) (calculation engine) selesai — UI status-transition tanpa kalkulasi nyata akan menyesatkan user (bisa klik "Calculate" tanpa ada angka yang benar-benar dihitung). Prioritaskan FE untuk master data (Salary Component, Structure, Period, BPJS/PPh21 settings) lebih dulu karena backend-nya (setelah gap di atas diperbaiki) sudah cukup matang untuk dipakai.
+> ⚠️ Sisa pekerjaan FE yang masih terbuka: **Salary Structure** (grade-level/employee-level override), **payslip PDF**, **employee portal** (self-service payslip), **payroll journal**, **payment reconciliation**.

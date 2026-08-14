@@ -317,6 +317,111 @@ func TestRepository_BpjsRateComponentCRUD(t *testing.T) {
 	}
 }
 
+// TestRepository_FindActiveBpjsByDate: query effective-dated memilih setting &
+// rate component yang ACTIVE dan berlaku pada tanggal tertentu, serta profil
+// BPJS employee yang aktif per tanggal.
+func TestRepository_FindActiveBpjsByDate(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	setting := createTestBpjsSetting(ctx, repo)
+
+	// Berlaku pada Jan 2026.
+	active, err := repo.FindActiveBpjsSettingByDate(ctx, "2026-01-31")
+	if err != nil {
+		t.Fatalf("FindActiveBpjsSettingByDate: %v", err)
+	}
+	if active == nil || active.ID != setting.ID {
+		t.Fatalf("expected active setting %s, got %v", setting.ID, active)
+	}
+
+	// Tidak berlaku sebelum effective_start_date.
+	before, err := repo.FindActiveBpjsSettingByDate(ctx, "2025-12-31")
+	if err != nil {
+		t.Fatalf("FindActiveBpjsSettingByDate(before): %v", err)
+	}
+	if before != nil {
+		t.Fatalf("expected nil before effective date, got %v", before.ID)
+	}
+
+	// Rate component effective-dated (pakai setting yang sudah ada).
+	comp := createTestSalaryComponent(ctx, repo)
+	rate := createTestBpjsRateComponentLinked(ctx, repo, setting, comp, "HEALTH", "EMPLOYEE", "BPJS-REPO-EMP", 1.0)
+	rates, err := repo.FindActiveBpjsRateComponentsBySettingID(ctx, setting.ID, "2026-01-31")
+	if err != nil {
+		t.Fatalf("FindActiveBpjsRateComponentsBySettingID: %v", err)
+	}
+	if len(rates) != 1 || rates[0].ID != rate.ID {
+		t.Fatalf("expected 1 active rate, got %d", len(rates))
+	}
+
+	// Profil BPJS employee effective-dated.
+	employee := createTestEmployee(ctx, repo, "EMP-BPJS-REPO", "Euis")
+	profile := createTestPayrollProfile(ctx, repo, employee.ID, "2026-01-01")
+	bpjsProfile := createTestEmployeeBpjsProfile(ctx, repo, employee.ID, profile.ID)
+	found, err := repo.FindActiveEmployeeBpjsProfileByEmployeeID(ctx, employee.ID, "2026-01-31")
+	if err != nil {
+		t.Fatalf("FindActiveEmployeeBpjsProfileByEmployeeID: %v", err)
+	}
+	if found == nil || found.ID != bpjsProfile.ID {
+		t.Fatalf("expected active BPJS profile %s, got %v", bpjsProfile.ID, found)
+	}
+}
+
+// TestRepository_FindActivePph21ByDate: query effective-dated memilih setting,
+// PTKP rate, tax bracket, dan profil pajak employee yang berlaku pada tanggal.
+func TestRepository_FindActivePph21ByDate(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	comp := createTestSalaryComponent(ctx, repo)
+	setting := createTestPph21SettingCustom(ctx, repo, comp)
+
+	// Setting aktif pada Jan 2026.
+	active, err := repo.FindActivePph21SettingByDate(ctx, "2026-01-31")
+	if err != nil {
+		t.Fatalf("FindActivePph21SettingByDate: %v", err)
+	}
+	if active == nil || active.ID != setting.ID {
+		t.Fatalf("expected active setting %s, got %v", setting.ID, active)
+	}
+
+	// PTKP + bracket effective-dated.
+	createTestPph21PtkpRate(ctx, repo, "TK/0", 54000000)
+	ptkpRates, err := repo.FindActivePph21PtkpRatesByDate(ctx, "2026-01-31")
+	if err != nil {
+		t.Fatalf("FindActivePph21PtkpRatesByDate: %v", err)
+	}
+	if len(ptkpRates) != 1 || ptkpRates[0].PtkpStatus != "TK/0" {
+		t.Fatalf("expected 1 PTKP rate TK/0, got %d", len(ptkpRates))
+	}
+
+	createTestPph21TaxBracket(ctx, repo, 1, 0, floatPtr(60000000), 5.0)
+	brackets, err := repo.FindActivePph21TaxBracketsByDate(ctx, "2026-01-31")
+	if err != nil {
+		t.Fatalf("FindActivePph21TaxBracketsByDate: %v", err)
+	}
+	if len(brackets) != 1 || brackets[0].RatePercent != 5.0 {
+		t.Fatalf("expected 1 bracket 5%%, got %d", len(brackets))
+	}
+
+	// Profil pajak employee effective-dated.
+	employee := createTestEmployee(ctx, repo, "EMP-TAX-REPO", "Neneng")
+	payrollProfile := createTestPayrollProfile(ctx, repo, employee.ID, "2026-01-01")
+	profile := createTestEmployeeTaxProfile(ctx, repo, employee.ID, payrollProfile.ID, "K/1", true)
+	found, err := repo.FindActiveEmployeeTaxProfileByEmployeeID(ctx, employee.ID, "2026-01-31")
+	if err != nil {
+		t.Fatalf("FindActiveEmployeeTaxProfileByEmployeeID: %v", err)
+	}
+	if found == nil || found.ID != profile.ID {
+		t.Fatalf("expected active tax profile %s, got %v", profile.ID, found)
+	}
+}
+
 // =============================================================================
 // PPh21 Setting Tests
 // =============================================================================
@@ -561,6 +666,193 @@ func TestRepository_BulkCreateRunItems(t *testing.T) {
 
 	if len(runItems) != 2 {
 		t.Errorf("expected 2 items, got %d", len(runItems))
+	}
+}
+
+// =============================================================================
+// Read models & Salary Structure Queries (dipakai kalkulasi run)
+// =============================================================================
+
+func TestRepository_FindActiveEmploymentByEmployeeID(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	employee := createTestEmployee(ctx, repo, "EMP001", "Asep")
+	grading := createTestGrading(ctx, repo, "G-1", "Staff")
+	position := createTestPosition(ctx, repo, "Staff HR", &grading.ID)
+	createTestEmployment(ctx, repo, &employee.ID, &position.ID, "2026-01-01")
+
+	// Berlaku pada Jan 2026.
+	found, err := repo.FindActiveEmploymentByEmployeeID(ctx, employee.ID, "2026-01-31")
+	if err != nil {
+		t.Fatalf("FindActiveEmploymentByEmployeeID: %v", err)
+	}
+	if found == nil {
+		t.Fatal("expected employment to be found")
+	}
+	if found.PositionID == nil || *found.PositionID != position.ID {
+		t.Errorf("expected position %s, got %v", position.ID, found.PositionID)
+	}
+
+	// Tidak berlaku sebelum effective_date.
+	found2, err := repo.FindActiveEmploymentByEmployeeID(ctx, employee.ID, "2025-12-31")
+	if err != nil {
+		t.Fatalf("FindActiveEmploymentByEmployeeID: %v", err)
+	}
+	if found2 != nil {
+		t.Error("expected no employment before effective date")
+	}
+}
+
+// TestRepository_FindEmploymentByEmployeeIDForPeriod: employment yang overlap
+// dengan periode ditemukan walau resign tengah bulan (end_date < period end),
+// dan employment yang berakhir sebelum periode tidak ikut.
+func TestRepository_FindEmploymentByEmployeeIDForPeriod(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	employee := createTestEmployee(ctx, repo, "EMP-RESIGN-REPO", "Euis")
+	grading := createTestGrading(ctx, repo, "G-1", "Staff")
+	position := createTestPosition(ctx, repo, "Staff HR", &grading.ID)
+	emp := createTestEmployment(ctx, repo, &employee.ID, &position.ID, "2020-01-01")
+	db, _ := repo.getDB(ctx)
+	if err := db.Model(&EmploymentRead{}).Where("id = ?", emp.ID).Update("effective_end_date", "2026-01-16").Error; err != nil {
+		t.Fatalf("set end date: %v", err)
+	}
+
+	// Resign tengah bulan Januari → tetap ditemukan untuk periode Jan 2026.
+	found, err := repo.FindEmploymentByEmployeeIDForPeriod(ctx, employee.ID, "2026-01-01", "2026-01-31")
+	if err != nil {
+		t.Fatalf("FindEmploymentByEmployeeIDForPeriod: %v", err)
+	}
+	if found == nil {
+		t.Fatal("expected resigned employment to overlap January period")
+	}
+
+	// Employment yang sudah selesai sebelum periode → tidak ditemukan.
+	none, err := repo.FindEmploymentByEmployeeIDForPeriod(ctx, employee.ID, "2026-03-01", "2026-03-31")
+	if err != nil {
+		t.Fatalf("FindEmploymentByEmployeeIDForPeriod(March): %v", err)
+	}
+	if none != nil {
+		t.Error("expected no employment overlapping March period")
+	}
+}
+
+func TestRepository_FindPositionAndGrading(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	grading := createTestGrading(ctx, repo, "G-2", "Supervisor")
+	position := createTestPosition(ctx, repo, "Supervisor Ops", &grading.ID)
+
+	foundPos, err := repo.FindPositionByID(ctx, position.ID)
+	if err != nil {
+		t.Fatalf("FindPositionByID: %v", err)
+	}
+	if foundPos.Title != "Supervisor Ops" {
+		t.Errorf("expected title 'Supervisor Ops', got %q", foundPos.Title)
+	}
+
+	foundGrading, err := repo.FindGradingByID(ctx, grading.ID)
+	if err != nil {
+		t.Fatalf("FindGradingByID: %v", err)
+	}
+	if foundGrading.Name != "Supervisor" {
+		t.Errorf("expected grading name 'Supervisor', got %q", foundGrading.Name)
+	}
+}
+
+func TestRepository_FindSalaryStructureByGradingAndEmployee(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	grading := createTestGrading(ctx, repo, "G-1", "Staff")
+	employee := createTestEmployee(ctx, repo, "EMP001", "Asep")
+
+	comp := createTestSalaryComponent(ctx, repo)
+	createTestGradeComponent(ctx, repo, grading.ID, comp.ID, 5000000)
+
+	gradeComps, err := repo.FindAllSalaryGradeComponentsByGradingID(ctx, grading.ID, "2026-01-31")
+	if err != nil {
+		t.Fatalf("FindAllSalaryGradeComponentsByGradingID: %v", err)
+	}
+	if len(gradeComps) != 1 {
+		t.Fatalf("expected 1 grade component, got %d", len(gradeComps))
+	}
+
+	empComps, err := repo.FindAllSalaryEmployeeComponentsByEmployeeID(ctx, employee.ID, "2026-01-31")
+	if err != nil {
+		t.Fatalf("FindAllSalaryEmployeeComponentsByEmployeeID: %v", err)
+	}
+	if len(empComps) != 0 {
+		t.Errorf("expected 0 employee components, got %d", len(empComps))
+	}
+
+	adjustments, err := repo.FindAllSalaryEmployeeAdjustmentsByPeriod(ctx, employee.ID, 2026, 1)
+	if err != nil {
+		t.Fatalf("FindAllSalaryEmployeeAdjustmentsByPeriod: %v", err)
+	}
+	if len(adjustments) != 0 {
+		t.Errorf("expected 0 adjustments, got %d", len(adjustments))
+	}
+}
+
+func TestRepository_DeleteRunEmployeesAndItems(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	run := createTestPayrollRun(ctx, repo)
+	comp := createTestSalaryComponent(ctx, repo)
+
+	runEmp := &PayrollRunEmployee{
+		PayrollRunID: run.ID,
+		EmployeeID:   uuid.New(),
+		EmployeeCode: "EMP001",
+		EmployeeName: "Test Employee",
+		Status:       "DRAFT",
+	}
+	repo.CreatePayrollRunEmployee(ctx, runEmp)
+	item := &PayrollRunItem{
+		PayrollRunID:         run.ID,
+		PayrollRunEmployeeID: runEmp.ID,
+		EmployeeID:           runEmp.EmployeeID,
+		SalaryComponentID:    comp.ID,
+		ComponentCode:        comp.Code,
+		ComponentName:        comp.Name,
+		ComponentType:        comp.ComponentType,
+		ItemCategory:         "EMPLOYEE_EARNING",
+		PaidBy:               "EMPLOYER",
+		Amount:               5000000,
+		CurrencyCode:         "IDR",
+		SourceGroup:          "STRUCTURE",
+	}
+	if err := repo.BulkCreatePayrollRunItems(ctx, []PayrollRunItem{*item}); err != nil {
+		t.Fatalf("BulkCreatePayrollRunItems: %v", err)
+	}
+
+	// Hapus item dulu (FK), lalu employee.
+	if err := repo.DeletePayrollRunItemsByRunID(ctx, run.ID); err != nil {
+		t.Fatalf("DeletePayrollRunItemsByRunID: %v", err)
+	}
+	if err := repo.DeletePayrollRunEmployeesByRunID(ctx, run.ID); err != nil {
+		t.Fatalf("DeletePayrollRunEmployeesByRunID: %v", err)
+	}
+
+	emps, _ := repo.FindPayrollRunEmployeesByRunID(ctx, run.ID)
+	items, _ := repo.FindPayrollRunItemsByRunID(ctx, run.ID)
+	if len(emps) != 0 || len(items) != 0 {
+		t.Errorf("expected empty snapshot after delete, got employees=%d items=%d", len(emps), len(items))
 	}
 }
 

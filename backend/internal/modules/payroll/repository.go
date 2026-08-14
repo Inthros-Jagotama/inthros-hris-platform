@@ -82,6 +82,42 @@ func (r *Repository) DeleteSalaryComponent(ctx context.Context, id uuid.UUID) er
 }
 
 // =============================================================================
+// Salary Grade Components & Salary Employee Components
+// =============================================================================
+
+func (r *Repository) CreateSalaryGradeComponent(ctx context.Context, gc *SalaryGradeComponent) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(gc).Error
+}
+
+func (r *Repository) UpdateSalaryGradeComponent(ctx context.Context, gc *SalaryGradeComponent) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(gc).Error
+}
+
+func (r *Repository) CreateSalaryEmployeeComponent(ctx context.Context, ec *SalaryEmployeeComponent) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(ec).Error
+}
+
+func (r *Repository) CreateSalaryEmployeeAdjustment(ctx context.Context, a *SalaryEmployeeAdjustment) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(a).Error
+}
+
+// =============================================================================
 // Payroll Periods
 // =============================================================================
 
@@ -451,6 +487,65 @@ func (r *Repository) FindBpjsRateComponentsBySettingID(ctx context.Context, sett
 	return items, nil
 }
 
+// FindActiveBpjsSettingByDate mengambil setting BPJS ACTIVE yang berlaku pada
+// tanggal tertentu (paling baru berdasarkan effective_start_date).
+func (r *Repository) FindActiveBpjsSettingByDate(ctx context.Context, asOfDate string) (*BpjsSetting, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var bs BpjsSetting
+	err = db.Where(
+		"status = ? AND effective_start_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		"ACTIVE", asOfDate, asOfDate,
+	).Order("effective_start_date DESC").First(&bs).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &bs, nil
+}
+
+// FindActiveBpjsRateComponentsBySettingID mengambil rate component ACTIVE untuk
+// sebuah setting yang berlaku pada tanggal tertentu.
+func (r *Repository) FindActiveBpjsRateComponentsBySettingID(ctx context.Context, settingID uuid.UUID, asOfDate string) ([]BpjsRateComponent, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []BpjsRateComponent
+	if err := db.Where(
+		"bpjs_setting_id = ? AND status = ? AND effective_start_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		settingID, "ACTIVE", asOfDate, asOfDate,
+	).Order("display_order ASC, rate_code ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// FindActiveEmployeeBpjsProfileByEmployeeID mengambil profile BPJS employee yang
+// berlaku pada tanggal tertentu (paling baru).
+func (r *Repository) FindActiveEmployeeBpjsProfileByEmployeeID(ctx context.Context, employeeID uuid.UUID, asOfDate string) (*EmployeeBpjsProfile, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var p EmployeeBpjsProfile
+	err = db.Where(
+		"employee_id = ? AND status = ? AND effective_start_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		employeeID, "ACTIVE", asOfDate, asOfDate,
+	).Order("effective_start_date DESC").First(&p).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &p, nil
+}
+
 func (r *Repository) UpdateBpjsRateComponent(ctx context.Context, br *BpjsRateComponent) error {
 	db, err := r.getDB(ctx)
 	if err != nil {
@@ -523,6 +618,82 @@ func (r *Repository) DeletePph21Setting(ctx context.Context, id uuid.UUID) error
 		return err
 	}
 	return db.Where("id = ?", id).Delete(&Pph21Setting{}).Error
+}
+
+// FindActivePph21SettingByDate mengambil setting PPh21 ACTIVE yang berlaku pada
+// tanggal tertentu (paling baru berdasarkan effective_start_date).
+func (r *Repository) FindActivePph21SettingByDate(ctx context.Context, asOfDate string) (*Pph21Setting, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var ps Pph21Setting
+	err = db.Where(
+		"status = ? AND effective_start_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		"ACTIVE", asOfDate, asOfDate,
+	).Order("effective_start_date DESC").First(&ps).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &ps, nil
+}
+
+// FindActivePph21PtkpRatesByDate mengambil seluruh PTKP rate ACTIVE yang berlaku
+// pada tanggal tertentu.
+func (r *Repository) FindActivePph21PtkpRatesByDate(ctx context.Context, asOfDate string) ([]Pph21PtkpRate, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []Pph21PtkpRate
+	if err := db.Where(
+		"status = ? AND effective_start_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		"ACTIVE", asOfDate, asOfDate,
+	).Order("ptkp_status ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// FindActivePph21TaxBracketsByDate mengambil seluruh tax bracket ACTIVE yang
+// berlaku pada tanggal tertentu, urut bracket_order.
+func (r *Repository) FindActivePph21TaxBracketsByDate(ctx context.Context, asOfDate string) ([]Pph21TaxBracket, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []Pph21TaxBracket
+	if err := db.Where(
+		"status = ? AND effective_start_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		"ACTIVE", asOfDate, asOfDate,
+	).Order("bracket_order ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// FindActiveEmployeeTaxProfileByEmployeeID mengambil profil pajak employee yang
+// berlaku pada tanggal tertentu (paling baru).
+func (r *Repository) FindActiveEmployeeTaxProfileByEmployeeID(ctx context.Context, employeeID uuid.UUID, asOfDate string) (*EmployeeTaxProfile, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var p EmployeeTaxProfile
+	err = db.Where(
+		"employee_id = ? AND status = ? AND effective_start_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		employeeID, "ACTIVE", asOfDate, asOfDate,
+	).Order("effective_start_date DESC").First(&p).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &p, nil
 }
 
 // =============================================================================
@@ -692,6 +863,161 @@ func (r *Repository) UpdatePayrollRun(ctx context.Context, pr *PayrollRun) error
 }
 
 // =============================================================================
+// Read models dari modul lain (dipakai kalkulasi payroll run)
+// =============================================================================
+
+// FindEmployeesByIDs mengambil data employee (read-only) untuk snapshot run.
+func (r *Repository) FindEmployeesByIDs(ctx context.Context, ids []uuid.UUID) ([]EmployeeRead, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var items []EmployeeRead
+	if err := db.Where("id IN ?", ids).Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// FindAllActiveEmployees mengambil seluruh employee berstatus active.
+func (r *Repository) FindAllActiveEmployees(ctx context.Context) ([]EmployeeRead, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []EmployeeRead
+	if err := db.Where("status = ?", "active").Order("name ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// FindActiveEmploymentByEmployeeID mengambil employment yang berlaku pada
+// tanggal tertentu (paling baru yang effective_date <= asOfDate).
+func (r *Repository) FindActiveEmploymentByEmployeeID(ctx context.Context, employeeID uuid.UUID, asOfDate string) (*EmploymentRead, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var emp EmploymentRead
+	err = db.Where(
+		"employee_id = ? AND effective_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		employeeID, asOfDate, asOfDate,
+	).Order("effective_date DESC").First(&emp).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &emp, nil
+}
+
+// FindEmploymentByEmployeeIDForPeriod mengambil employment yang OVERLAP dengan
+// rentang periode: effective_date <= periodEnd dan berakhir sejak periodStart
+// (atau tanpa tanggal akhir). Mencakup employee yang join dan/atau resign
+// tengah bulan — dipakai kalkulasi payroll run agar keduanya tetap dihitung
+// (dengan prorasi).
+func (r *Repository) FindEmploymentByEmployeeIDForPeriod(ctx context.Context, employeeID uuid.UUID, periodStart, periodEnd string) (*EmploymentRead, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var emp EmploymentRead
+	err = db.Where(
+		"employee_id = ? AND effective_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		employeeID, periodEnd, periodStart,
+	).Order("effective_date DESC").First(&emp).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &emp, nil
+}
+
+// FindPositionByID mengambil position (read-only) untuk resolusi grading.
+func (r *Repository) FindPositionByID(ctx context.Context, id uuid.UUID) (*PositionRead, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var pos PositionRead
+	if err := db.First(&pos, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &pos, nil
+}
+
+// FindGradingByID mengambil grading (read-only) untuk snapshot nama grading.
+func (r *Repository) FindGradingByID(ctx context.Context, id uuid.UUID) (*GradingRead, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var g GradingRead
+	if err := db.First(&g, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &g, nil
+}
+
+// FindAllSalaryGradeComponentsByGradingID mengambil komponen default per grade
+// yang berlaku pada asOfDate (status ACTIVE).
+func (r *Repository) FindAllSalaryGradeComponentsByGradingID(ctx context.Context, gradingID uuid.UUID, asOfDate string) ([]SalaryGradeComponent, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []SalaryGradeComponent
+	if err := db.Where(
+		"grading_id = ? AND status = ? AND effective_start_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		gradingID, "ACTIVE", asOfDate, asOfDate,
+	).Order("created_at ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// FindAllSalaryEmployeeComponentsByEmployeeID mengambil komponen override per
+// employee yang berlaku pada asOfDate (status ACTIVE).
+func (r *Repository) FindAllSalaryEmployeeComponentsByEmployeeID(ctx context.Context, employeeID uuid.UUID, asOfDate string) ([]SalaryEmployeeComponent, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []SalaryEmployeeComponent
+	if err := db.Where(
+		"employee_id = ? AND status = ? AND effective_start_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		employeeID, "ACTIVE", asOfDate, asOfDate,
+	).Order("created_at ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// FindAllSalaryEmployeeAdjustmentsByPeriod mengambil penyesuaian sekali-jalan
+// untuk employee pada periode tertentu (status APPROVED atau APPLIED).
+func (r *Repository) FindAllSalaryEmployeeAdjustmentsByPeriod(ctx context.Context, employeeID uuid.UUID, year, month int) ([]SalaryEmployeeAdjustment, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []SalaryEmployeeAdjustment
+	if err := db.Where(
+		"employee_id = ? AND period_year = ? AND period_month = ? AND status IN (?)",
+		employeeID, year, month, []string{"APPROVED", "APPLIED"},
+	).Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// =============================================================================
 // Payroll Run Employees
 // =============================================================================
 
@@ -721,6 +1047,34 @@ func (r *Repository) FindPayrollRunEmployeesByRunID(ctx context.Context, runID u
 		return nil, err
 	}
 	return items, nil
+}
+
+// UpdatePayrollRunEmployee menyimpan ulang row payroll_run_employees (totals).
+func (r *Repository) UpdatePayrollRunEmployee(ctx context.Context, pre *PayrollRunEmployee) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(pre).Error
+}
+
+// DeletePayrollRunEmployeesByRunID menghapus seluruh snapshot employee sebuah
+// run (dipakai recalculation agar snapshot diganti bersih).
+func (r *Repository) DeletePayrollRunEmployeesByRunID(ctx context.Context, runID uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Where("payroll_run_id = ?", runID).Delete(&PayrollRunEmployee{}).Error
+}
+
+// DeletePayrollRunItemsByRunID menghapus seluruh item snapshot sebuah run.
+func (r *Repository) DeletePayrollRunItemsByRunID(ctx context.Context, runID uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Where("payroll_run_id = ?", runID).Delete(&PayrollRunItem{}).Error
 }
 
 // =============================================================================
@@ -801,4 +1155,137 @@ func (r *Repository) UpdatePayrollPayslip(ctx context.Context, p *PayrollPayslip
 		return err
 	}
 	return db.Save(p).Error
+}
+
+// FindPph21CalculationLogsByRunID mengambil seluruh log kalkulasi PPh21 sebuah
+// run (dipakai laporan pajak).
+func (r *Repository) FindPph21CalculationLogsByRunID(ctx context.Context, runID uuid.UUID) ([]Pph21CalculationLog, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []Pph21CalculationLog
+	if err := db.Where("payroll_run_id = ?", runID).Order("created_at ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// FindEmployeeBpjsProfilesByEmployeeIDs mengambil profil BPJS employee untuk
+// sekumpulan employee (dipakai laporan BPJS untuk nomor kepesertaan).
+func (r *Repository) FindEmployeeBpjsProfilesByEmployeeIDs(ctx context.Context, employeeIDs []uuid.UUID) ([]EmployeeBpjsProfile, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(employeeIDs) == 0 {
+		return nil, nil
+	}
+	var items []EmployeeBpjsProfile
+	if err := db.Where("employee_id IN ?", employeeIDs).Order("employee_id ASC, effective_start_date DESC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// CountPayrollPayslipsByRunID menghitung payslip sebuah run (untuk nomor urut).
+func (r *Repository) CountPayrollPayslipsByRunID(ctx context.Context, runID uuid.UUID) (int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	if err := db.Model(&PayrollPayslip{}).Where("payroll_run_id = ?", runID).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// DeletePayrollPayslipsByRunID menghapus seluruh payslip sebuah run (dipakai
+// regenerasi payslip).
+func (r *Repository) DeletePayrollPayslipsByRunID(ctx context.Context, runID uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Where("payroll_run_id = ?", runID).Delete(&PayrollPayslip{}).Error
+}
+
+// =============================================================================
+// Payroll Payments
+// =============================================================================
+
+func (r *Repository) BulkCreatePayrollPayments(ctx context.Context, payments []PayrollPayment) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.CreateInBatches(payments, 50).Error
+}
+
+func (r *Repository) FindPayrollPaymentByID(ctx context.Context, id uuid.UUID) (*PayrollPayment, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var p PayrollPayment
+	if err := db.First(&p, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("payment not found: %w", err)
+	}
+	return &p, nil
+}
+
+func (r *Repository) FindPayrollPaymentsByRunID(ctx context.Context, runID uuid.UUID) ([]PayrollPayment, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []PayrollPayment
+	if err := db.Where("payroll_run_id = ?", runID).Order("employee_name ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *Repository) UpdatePayrollPayment(ctx context.Context, p *PayrollPayment) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(p).Error
+}
+
+// DeletePayrollPaymentsByRunID menghapus seluruh payment sebuah run (dipakai
+// regenerasi batch).
+func (r *Repository) DeletePayrollPaymentsByRunID(ctx context.Context, runID uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Where("payroll_run_id = ?", runID).Delete(&PayrollPayment{}).Error
+}
+
+// =============================================================================
+// Read model bank profile (dipakai snapshot payment batch)
+// =============================================================================
+
+// FindActivePrimaryBankProfileByEmployeeID mengambil bank profile utama yang
+// berlaku pada tanggal tertentu (is_primary + ACTIVE + rentang effective).
+func (r *Repository) FindActivePrimaryBankProfileByEmployeeID(ctx context.Context, employeeID uuid.UUID, asOfDate string) (*EmployeeBankProfile, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var b EmployeeBankProfile
+	err = db.Where(
+		"employee_id = ? AND is_primary = ? AND status = ? AND effective_start_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
+		employeeID, true, "ACTIVE", asOfDate, asOfDate,
+	).Order("effective_start_date DESC").First(&b).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &b, nil
 }

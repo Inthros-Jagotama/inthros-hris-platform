@@ -4,7 +4,7 @@
 
 ## 14. BPJS Configuration
 
-> 🔶 **Status: konfigurasi ✅ ada (CRUD lengkap), kalkulator kontribusi ❌ belum ada.** Tabel aktual bernama `bpjs_settings` + `bpjs_rate_components` (bukan `bpjs_programs`/`bpjs_rules` seperti di bawah). `bpjs_rate_components` sudah mendukung effective dating, `rate_percent`, `min/max_base_amount`, kolom enum `bpjs_program` (HEALTH/JHT/JP/JKK/JKM/JKP) dan `paid_by` (EMPLOYEE/EMPLOYER) — jadi tarif memang tidak di-hard-code, sesuai prinsip di bawah. Tapi **tidak ada kode yang membaca tabel ini untuk menghasilkan angka kontribusi employee/employer** — CRUD-nya lengkap, konsumennya (payroll calculation) belum ada.
+> ✅ **Status: DIIMPLEMENTASIKAN (2026-08-14).** Kalkulator kontribusi BPJS sekarang ada — `backend/internal/modules/payroll/bpjs.go` (`calculateBpjsContributions`) membaca `bpjs_settings` + `bpjs_rate_components` yang ACTIVE & effective-dated pada tanggal periode plus profil BPJS employee (`employee_bpjs_profiles`), menghitung kontribusi employee (paid_by=EMPLOYEE → `EMPLOYEE_DEDUCTION`) dan employer (paid_by=EMPLOYER → `EMPLOYER_CONTRIBUTION`), lalu menghasilkan `payroll_run_items` dengan `source_group=STATUTORY` yang terintegrasi dengan `CalculatePayrollRun` ([03-payroll-run-snapshot.md](03-payroll-run-snapshot.md)). Tarif tetap tidak di-hard-code: `rate_percent`/`fixed_amount`/`min_max_base_amount`/`jkk_risk_class` semuanya dari konfigurasi. Dasar upah = total komponen `is_bpjs_base`; cap program (kesehatan/pensiun) & cap per-rate diterapkan; rate JKK khusus risk class hanya dipakai employee dengan class yang sama; employee tanpa profil BPJS dilewati. Repository query effective-dated: `FindActiveBpjsSettingByDate`, `FindActiveBpjsRateComponentsBySettingID`, `FindActiveEmployeeBpjsProfileByEmployeeID`.
 
 Tabel rencana awal (tidak dipakai, diganti — lihat §34 di [01-master-data-selesai.md](01-master-data-selesai.md)):
 
@@ -146,7 +146,7 @@ Tarif JKK tidak boleh di-hard-code.
 
 ## Phase 3 — BPJS (checklist)
 
-> 🔶 **Konfigurasi selesai, kalkulator belum.** Tabel `bpjs_settings`+`bpjs_rate_components` sudah effective-dated dan CRUD lengkap; item di bawah yang bercentang berarti "konfigurasinya ada", bukan "kontribusinya sudah terhitung otomatis" — itu masih menunggu [02-formula-engine.md](02-formula-engine.md) & [03-payroll-run-snapshot.md](03-payroll-run-snapshot.md).
+> ✅ **Kalkulator sudah diimplementasikan (2026-08-14).** `calculateBpjsContributions` di `bpjs.go` menghasilkan item BPJS per employee; item yang di bawah yang bercentang ✅ berarti sudah berfungsi penuh (konfigurasi + kalkulasi).
 
 - [x] BPJS Kesehatan. — kolom `bpjs_program='HEALTH'` di `bpjs_rate_components`, config CRUD ada.
 - [x] JHT. — `bpjs_program='JHT'`, config CRUD ada.
@@ -154,8 +154,8 @@ Tarif JKK tidak boleh di-hard-code.
 - [x] JKM. — `bpjs_program='JKM'`, config CRUD ada.
 - [x] JP. — `bpjs_program='JP'`, config CRUD ada.
 - [x] JKP. — `bpjs_program='JKP'`, config CRUD ada.
-- [ ] Employee contribution. — **belum dihitung** (tidak ada kalkulator).
-- [ ] Employer contribution. — **belum dihitung**.
-- [ ] JKK risk level. — **tidak ada** tabel `bpjs_jkk_risk_levels`/relasi ke business sector seperti direncanakan §17; JKK hanya satu rate flat di `bpjs_rate_components`.
-- [x] Effective-dated BPJS rules. — `bpjs_rate_components` sudah effective-dated.
+- [x] Employee contribution. — dihitung di `calculateBpjsContributions` (paid_by=EMPLOYEE → `EMPLOYEE_DEDUCTION`, mengurangi net pay).
+- [x] Employer contribution. — dihitung (paid_by=EMPLOYER → `EMPLOYER_CONTRIBUTION`, menambah biaya perusahaan).
+- [x] JKK risk level. — matching via kolom `jkk_risk_class` di `bpjs_rate_components` vs `employee_bpjs_profiles.jkk_risk_class` (rate khusus risk class hanya untuk employee dengan class yang sama; rate tanpa risk class berlaku untuk semua). Tabel `bpjs_jkk_risk_levels`/relasi business sector tetap tidak ada — keputusan desain: risk class disimpan langsung di profil employee.
+- [x] Effective-dated BPJS rules. — `bpjs_rate_components` sudah effective-dated; kalkulator memilih rate yang berlaku pada tanggal periode.
 - [ ] BPJS report. — belum ada (bergantung kalkulasi). Lihat juga [08-reporting-testing.md](08-reporting-testing.md).

@@ -18,7 +18,9 @@ type SalaryComponent struct {
 	Name                   string    `gorm:"type:varchar(150);not null" json:"name"`
 	Description            *string   `gorm:"type:text" json:"description,omitempty"`
 	ComponentType          string    `gorm:"type:varchar(255);not null" json:"component_type"` // EARNING, DEDUCTION, EMPLOYER_CONTRIBUTION, INFORMATION
-	CalculationType        string    `gorm:"type:varchar(255);not null;default:FIXED" json:"calculation_type"`
+	CalculationType        string    `gorm:"type:varchar(255);not null;default:FIXED" json:"calculation_type"` // FIXED, PERCENTAGE, FORMULA, REFERENCE, MANUAL
+	Formula                *string   `gorm:"type:text" json:"formula,omitempty"`                            // expression utk PERCENTAGE/FORMULA (di-parse oleh Formula Engine)
+	ReferenceComponentID   *uuid.UUID `gorm:"type:char(36);index" json:"reference_component_id,omitempty"`   // self-FK utk REFERENCE
 	IsTaxable              bool      `gorm:"not null" json:"is_taxable"`
 	IsBpjsBase             bool      `gorm:"not null" json:"is_bpjs_base"`
 	IsRecurring            bool      `gorm:"not null" json:"is_recurring"`
@@ -473,6 +475,7 @@ type PayrollRun struct {
 	PayrollPeriodID       uuid.UUID  `gorm:"type:char(36);not null;index" json:"payroll_period_id"`
 	RunCode               string     `gorm:"type:varchar(50);not null;uniqueIndex:uk_payroll_run_code" json:"run_code"`
 	RunType               string     `gorm:"type:varchar(255);not null;default:REGULAR" json:"run_type"` // REGULAR, OFF_CYCLE, THR, BONUS
+	ProrationMethod       string     `gorm:"type:varchar(255);not null;default:CALENDAR_DAYS" json:"proration_method"` // CALENDAR_DAYS, WORKING_DAYS, FIXED_30_DAYS, ATTENDANCE_DAYS (migration 117)
 	Status                string     `gorm:"type:varchar(255);not null;default:DRAFT" json:"status"`     // DRAFT, CALCULATED, REVIEWED, APPROVED, LOCKED, CANCELLED
 	TotalEmployees        int        `gorm:"not null;default:0" json:"total_employees"`
 	TotalEarning          float64    `gorm:"type:decimal(18,2);not null;default:0" json:"total_earning"`
@@ -541,6 +544,7 @@ type PayrollRunItem struct {
 	ComponentCode        string     `gorm:"type:varchar(50);not null" json:"component_code"`
 	ComponentName        string     `gorm:"type:varchar(150);not null" json:"component_name"`
 	ComponentType        string     `gorm:"type:varchar(255);not null" json:"component_type"`
+	CalculationType      string     `gorm:"type:varchar(255);not null;default:FIXED" json:"calculation_type"` // FIXED, PERCENTAGE, FORMULA, REFERENCE, MANUAL
 	ItemCategory         string     `gorm:"type:varchar(255);not null;default:EMPLOYEE_EARNING" json:"item_category"`
 	PaidBy               string     `gorm:"type:varchar(255);not null;default:EMPLOYER" json:"paid_by"`
 	AffectsGrossPay      bool       `gorm:"not null;default:0" json:"affects_gross_pay"`
@@ -548,6 +552,10 @@ type PayrollRunItem struct {
 	AffectsCompanyCost   bool       `gorm:"not null;default:0" json:"affects_company_cost"`
 	PrintOnPayslip       bool       `gorm:"not null;default:1" json:"print_on_payslip"`
 	Amount               float64    `gorm:"type:decimal(18,2);not null;default:0" json:"amount"`
+	BaseAmount           float64    `gorm:"type:decimal(18,2);not null;default:0" json:"base_amount"`
+	Rate                 *float64   `gorm:"type:decimal(8,4)" json:"rate,omitempty"`
+	Formula              *string    `gorm:"type:text" json:"formula,omitempty"`
+	FormulaResult        *float64   `gorm:"type:decimal(18,2)" json:"formula_result,omitempty"`
 	CurrencyCode         string     `gorm:"type:char(3);not null;default:IDR" json:"currency_code"`
 	SourceGroup          string     `gorm:"type:varchar(255);not null" json:"source_group"` // STRUCTURE, ADJUSTMENT, STATUTORY
 	SourceTable          *string    `gorm:"type:varchar(100)" json:"source_table,omitempty"`
@@ -581,20 +589,63 @@ type PayrollPayslip struct {
 	EmployeeName         string     `gorm:"type:varchar(255);not null" json:"employee_name"`
 	PositionTitle        *string    `gorm:"type:varchar(200)" json:"position_title,omitempty"`
 	GradingName          *string    `gorm:"type:varchar(255)" json:"grading_name,omitempty"`
-	TotalEarning         float64    `gorm:"type:decimal(18,2);not null;default:0" json:"total_earning"`
-	TotalDeduction       float64    `gorm:"type:decimal(18,2);not null;default:0" json:"total_deduction"`
-	NetAmount            float64    `gorm:"type:decimal(18,2);not null;default:0" json:"net_amount"`
-	Status               string     `gorm:"type:varchar(255);not null;default:DRAFT" json:"status"` // DRAFT, PUBLISHED, CANCELLED
-	GeneratedAt          *time.Time `gorm:"type:timestamp" json:"generated_at,omitempty"`
-	PublishedAt          *time.Time `gorm:"type:timestamp" json:"published_at,omitempty"`
-	CancelledAt          *time.Time `gorm:"type:timestamp" json:"cancelled_at,omitempty"`
-	CreatedBy            *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
-	UpdatedBy            *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
-	CreatedAt            time.Time  `json:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at"`
+	TotalEarning              float64    `gorm:"type:decimal(18,2);not null;default:0" json:"total_earning"`
+	TotalDeduction            float64    `gorm:"type:decimal(18,2);not null;default:0" json:"total_deduction"`
+	TotalEmployerContribution float64    `gorm:"type:decimal(18,2);not null;default:0" json:"total_employer_contribution"` // migration 118
+	NetAmount                 float64    `gorm:"type:decimal(18,2);not null;default:0" json:"net_amount"`
+	Status                    string     `gorm:"type:varchar(255);not null;default:DRAFT" json:"status"` // DRAFT, PUBLISHED, CANCELLED
+	GeneratedAt               *time.Time `gorm:"type:timestamp" json:"generated_at,omitempty"`
+	PublishedAt               *time.Time `gorm:"type:timestamp" json:"published_at,omitempty"`
+	CancelledAt               *time.Time `gorm:"type:timestamp" json:"cancelled_at,omitempty"`
+	CreatedBy                 *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
+	UpdatedBy                 *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
+	CreatedAt                 time.Time  `json:"created_at"`
+	UpdatedAt                 time.Time  `json:"updated_at"`
 }
 
 func (PayrollPayslip) TableName() string { return "payroll_payslips" }
+
+// PayrollPayment mewakili satu baris payment/disbursement dalam batch
+// (docs/payroll/07 §27). Nomor rekening adalah SNAPSHOT dari employee bank
+// profile saat batch dibuat — perubahan rekening setelah run final tidak
+// mengubah batch sebelumnya.
+type PayrollPayment struct {
+	ID                     uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	PayrollRunID           uuid.UUID  `gorm:"type:char(36);not null;index" json:"payroll_run_id"`
+	PayrollRunEmployeeID   uuid.UUID  `gorm:"type:char(36);not null;uniqueIndex:uk_payment_run_employee" json:"payroll_run_employee_id"`
+	EmployeeID             uuid.UUID  `gorm:"type:char(36);not null;index:idx_payment_employee" json:"employee_id"`
+	EmployeeCode           string     `gorm:"type:varchar(50);not null" json:"employee_code"`
+	EmployeeName           string     `gorm:"type:varchar(255);not null" json:"employee_name"`
+	Amount                 float64    `gorm:"type:decimal(18,2);not null;default:0" json:"amount"`
+	CurrencyCode           string     `gorm:"type:char(3);not null;default:IDR" json:"currency_code"`
+	PaymentDate            string     `gorm:"type:date;not null" json:"payment_date"`
+	EmployeeBankProfileID  *uuid.UUID `gorm:"type:char(36)" json:"employee_bank_profile_id,omitempty"`
+	BankCode               *string    `gorm:"type:varchar(50)" json:"bank_code,omitempty"`
+	BankName               *string    `gorm:"type:varchar(150)" json:"bank_name,omitempty"`
+	BankBranch             *string    `gorm:"type:varchar(150)" json:"bank_branch,omitempty"`
+	BankAccountNumber      string     `gorm:"type:varchar(100);not null" json:"bank_account_number"`
+	BankAccountHolderName  string     `gorm:"type:varchar(255);not null" json:"bank_account_holder_name"`
+	Status                 string     `gorm:"type:varchar(255);not null;default:PENDING;index:idx_payment_status" json:"status"` // PENDING, PROCESSING, PAID, FAILED, REVERSED
+	Reference              *string    `gorm:"type:varchar(100)" json:"reference,omitempty"`
+	ProcessedAt            *time.Time `gorm:"type:timestamp" json:"processed_at,omitempty"`
+	PaidAt                 *time.Time `gorm:"type:timestamp" json:"paid_at,omitempty"`
+	FailedAt               *time.Time `gorm:"type:timestamp" json:"failed_at,omitempty"`
+	FailedReason           *string    `gorm:"type:varchar(255)" json:"failed_reason,omitempty"`
+	ReversedAt             *time.Time `gorm:"type:timestamp" json:"reversed_at,omitempty"`
+	CreatedBy              *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
+	UpdatedBy              *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
+	CreatedAt              time.Time  `json:"created_at"`
+	UpdatedAt              time.Time  `json:"updated_at"`
+}
+
+func (PayrollPayment) TableName() string { return "payroll_payments" }
+
+func (p *PayrollPayment) BeforeCreate(tx *gorm.DB) error {
+	if p.ID == uuid.Nil {
+		p.ID = uuid.New()
+	}
+	return nil
+}
 
 func (p *PayrollPayslip) BeforeCreate(tx *gorm.DB) error {
 	if p.ID == uuid.Nil {
@@ -669,3 +720,90 @@ func (p *PayrollProfileChangeLog) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+// =============================================================================
+// Read-only models untuk data dari modul lain (dipakai saat kalkulasi payroll
+// run: snapshot employee, employment, position, grading). Bukan entity payroll.
+// =============================================================================
+
+// EmployeeRead menyimpan data minimal employee untuk snapshot payroll run.
+type EmployeeRead struct {
+	ID         uuid.UUID `gorm:"column:id;type:char(36);primaryKey" json:"id"`
+	EmployeeID string    `gorm:"column:employee_id;type:varchar(50)" json:"employee_id"` // kode/nomor pegawai
+	Name       string    `gorm:"column:name;type:varchar(255)" json:"name"`
+	Status     string    `gorm:"column:status;type:varchar(20)" json:"status"`
+}
+
+func (EmployeeRead) TableName() string { return "employees" }
+
+// EmploymentRead menyimpan employment aktif employee untuk resolusi position/grading.
+type EmploymentRead struct {
+	ID              uuid.UUID  `gorm:"column:id;type:char(36);primaryKey" json:"id"`
+	EmployeeID      *uuid.UUID `gorm:"column:employee_id;type:char(36)" json:"employee_id,omitempty"`
+	PositionID      *uuid.UUID `gorm:"column:position_id;type:char(36)" json:"position_id,omitempty"`
+	OrganizationID  *uuid.UUID `gorm:"column:organization_id;type:char(36)" json:"organization_id,omitempty"`
+	EffectiveDate   string     `gorm:"column:effective_date;type:date" json:"effective_date"`
+	EffectiveEndDate *string   `gorm:"column:effective_end_date;type:date" json:"effective_end_date,omitempty"`
+}
+
+func (EmploymentRead) TableName() string { return "employments" }
+
+// PositionRead menyimpan data position untuk snapshot payroll run.
+type PositionRead struct {
+	ID        uuid.UUID  `gorm:"column:id;type:char(36);primaryKey" json:"id"`
+	Title     string     `gorm:"column:title;type:varchar(200)" json:"title"`
+	GradingID *uuid.UUID `gorm:"column:grading_id;type:char(36)" json:"grading_id,omitempty"`
+}
+
+func (PositionRead) TableName() string { return "positions" }
+
+// GradingRead menyimpan data grading untuk snapshot payroll run.
+type GradingRead struct {
+	ID   uuid.UUID `gorm:"column:id;type:char(36);primaryKey" json:"id"`
+	Code string    `gorm:"column:code;type:varchar(20)" json:"code"`
+	Name string    `gorm:"column:name;type:varchar(255)" json:"name"`
+}
+
+func (GradingRead) TableName() string { return "gradings" }
+
+// =============================================================================
+// Read models dari modul Workforce (attendance/leave) — payroll hanya
+// mengonsumsi HASIL FINAL, tidak menghitung ulang (docs/payroll/06 §20-22).
+// =============================================================================
+
+// AttendanceSessionRead membaca baris attendance_sessions untuk summary
+// kehadiran per employee per periode.
+type AttendanceSessionRead struct {
+	ID              uuid.UUID  `gorm:"column:id;type:char(36);primaryKey" json:"id"`
+	EmployeeID      uuid.UUID  `gorm:"column:employee_id;type:char(36)" json:"employee_id"`
+	WorkDate        string     `gorm:"column:work_date;type:date" json:"work_date"`
+	Status          string     `gorm:"column:status;type:varchar(255)" json:"status"`
+	OvertimeMinutes int        `gorm:"column:overtime_minutes" json:"overtime_minutes"`
+	DeletedAt       *time.Time `gorm:"column:deleted_at;type:timestamp" json:"-"`
+}
+
+func (AttendanceSessionRead) TableName() string { return "attendance_sessions" }
+
+// LeaveRequestRead membaca status leave_requests (untuk filter APPROVED_FINAL
+// pada detail cuti).
+type LeaveRequestRead struct {
+	ID         uuid.UUID  `gorm:"column:id;type:char(36);primaryKey" json:"id"`
+	EmployeeID uuid.UUID  `gorm:"column:employee_id;type:char(36)" json:"employee_id"`
+	Status     string     `gorm:"column:status;type:varchar(255)" json:"status"`
+	DeletedAt  *time.Time `gorm:"column:deleted_at;type:timestamp" json:"-"`
+}
+
+func (LeaveRequestRead) TableName() string { return "leave_requests" }
+
+// LeaveRequestDetailRead membaca baris leave_request_details (hari per cuti,
+// dengan flag is_paid & day_fraction).
+type LeaveRequestDetailRead struct {
+	LeaveRequestID uuid.UUID  `gorm:"column:leave_request_id;type:char(36)" json:"leave_request_id"`
+	EmployeeID     uuid.UUID  `gorm:"column:employee_id;type:char(36)" json:"employee_id"`
+	LeaveDate      string     `gorm:"column:leave_date;type:date" json:"leave_date"`
+	DayFraction    float64    `gorm:"column:day_fraction;type:decimal(4,2)" json:"day_fraction"`
+	IsPaid         bool       `gorm:"column:is_paid" json:"is_paid"`
+	DeletedAt      *time.Time `gorm:"column:deleted_at;type:timestamp" json:"-"`
+}
+
+func (LeaveRequestDetailRead) TableName() string { return "leave_request_details" }

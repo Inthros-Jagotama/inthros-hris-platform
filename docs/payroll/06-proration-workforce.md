@@ -1,4 +1,4 @@
-# Payroll — Proration & Workforce Integration (❌ Prioritas #5-6)
+# Payroll — Proration & Workforce Integration (✅ Prioritas #5-6 — DIIMPLEMENTASIKAN 2026-08-15)
 
 > Ref: [00-overview.md](00-overview.md) §Roadmap Prioritas. Dibutuhkan oleh [02-formula-engine.md](02-formula-engine.md)/[03-payroll-run-snapshot.md](03-payroll-run-snapshot.md) untuk kasus join/resign tengah bulan, dan sebagai input kalkulasi (Attendance/Leave/Overtime).
 
@@ -177,12 +177,12 @@ PERFORMANCE_BONUS = X
 
 ## Phase 4 — Workforce Integration (checklist)
 
-> ❌ **Belum ada integrasi apa pun** — payroll module tidak memanggil Attendance/Leave/Overtime module manapun (tidak ditemukan di survei kode).
+> ✅ **Integrasi selesai (2026-08-15).** Payroll kini mengonsumsi HASIL FINAL Workforce Management (bukan menghitung ulang, sesuai prinsip §20-22): `loadWorkforceSummary` di `workforce.go` membaca `attendance_sessions` (hari hadir, status, `overtime_minutes`), `leave_request_details` + `leave_requests` (cuti APPROVED_FINAL, `is_paid`, `day_fraction`), lalu mengisi variabel built-in formula `WORKING_DAYS`/`WORKED_DAYS`/`ABSENCE_DAYS`/`UNPAID_LEAVE_DAYS`/`OVERTIME_HOURS` (read-only, tidak ada tulis-balik ke modul workforce). Prorasi join **dan resign** tengah bulan didukung, metode configurable per run via kolom `payroll_runs.proration_method` (migration 117): CALENDAR_DAYS (default) | WORKING_DAYS | FIXED_30_DAYS | ATTENDANCE_DAYS. Movement/promotion (position→grading effective-dated) sudah didukung sejak [03-payroll-run-snapshot.md](03-payroll-run-snapshot.md).
 
-- [ ] Attendance integration.
-- [ ] Leave integration.
-- [ ] Overtime integration.
-- [ ] Shift integration.
-- [ ] Employee movement integration.
-- [ ] Absence deduction.
-- [ ] Overtime earning.
+- [x] Attendance integration. — `attendance_sessions` dibaca per employee per periode → `WORKED_DAYS`/`ABSENCE_DAYS` (status ABSENT/DAY_OFF/EXEMPT/LEAVE tidak dihitung hadir; weekday tanpa session & tanpa cuti = alpa).
+- [x] Leave integration. — `leave_request_details` (join `leave_requests` status APPROVED_FINAL) → `UNPAID_LEAVE_DAYS`/`PAID_LEAVE_DAYS` via `is_paid` + `day_fraction`.
+- [x] Overtime integration. — `attendance_sessions.overtime_minutes` → `OVERTIME_HOURS` (contoh formula `OVERTIME_HOURS * OVERTIME_RATE`).
+- [ ] Shift integration. — hari kerja dihitung sebagai weekday (Senin-Jumat) default; integrasi `attendance_employee_shifts` (days_of_week_mask) belum — catatan di plan §19.
+- [x] Employee movement integration. — employment effective-dated (join/promosi/transfer → position→grading) sudah dipakai sejak [03](03-payroll-run-snapshot.md); kini overlap-periode (`FindEmploymentByEmployeeIDForPeriod`) sehingga resign tengah bulan tetap dihitung terprorasi.
+- [x] Absence deduction. — formula komponen bisa memakai `ABSENCE_DAYS` (contoh `BASIC / WORKING_DAYS * ABSENCE_DAYS`).
+- [x] Overtime earning. — formula komponen bisa memakai `OVERTIME_HOURS` (contoh `OVERTIME_HOURS * 15000`).

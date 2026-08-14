@@ -1,6 +1,6 @@
-# Payroll — Payroll Run, Calculation Order & Snapshot (❌ Prioritas #2)
+# Payroll — Payroll Run, Calculation Order & Snapshot (✅ Selesai — 2026-08-14)
 
-> Ref: [00-overview.md](00-overview.md) §Roadmap Prioritas. Bergantung pada [02-formula-engine.md](02-formula-engine.md). Setelah ini selesai, konsumsi hasilnya di [04-bpjs-engine.md](04-bpjs-engine.md) dan [05-pph21-engine.md](05-pph21-engine.md).
+> Ref: [00-overview.md](00-overview.md) §Roadmap Prioritas. Bergantung pada [02-formula-engine.md](02-formula-engine.md). Hasil snapshot (`payroll_run_employees`/`payroll_run_items`) siap dikonsumsi [04-bpjs-engine.md](04-bpjs-engine.md) dan [05-pph21-engine.md](05-pph21-engine.md).
 
 ## 10. Payroll Period
 
@@ -44,7 +44,9 @@ CANCELLED
 
 Payroll Run digunakan untuk menjalankan calculation terhadap employee dalam satu period.
 
-Flow (desain target):
+> ✅ **Status: implementasi kalkulasi selesai (2026-08-14).** `Service.CalculatePayrollRun` (file baru `calculation.go`) sekarang benar-benar mengisi `payroll_run_employees` + `payroll_run_items`: pilih employee (dari daftar pre-selected atau auto-select dari employee payroll profile aktif), resolve salary structure (grade default + override employee + adjustment periode), evaluasi formula/reference via Formula Engine ([02-formula-engine.md](02-formula-engine.md)), hitung agregat (earning/deduction/employer contribution/net/company cost), dan simpan snapshot dalam transaksi. Transisi `DRAFT → CALCULATED` di `UpdatePayrollRunStatus` kini menjalankan kalkulasi sungguhan — gap paling kritis yang tercatat di bawah sudah ditutup. Endpoint baru: `POST /runs/:id/calculate`, `GET /runs/:id/employees`, `GET /runs/:id/items`.
+
+Flow (desain target — langkah hitung kini berjalan):
 
 ```text
 Create Period
@@ -98,16 +100,16 @@ Approval
 Finalize
 ```
 
-> ⚠️ **Aktual (`service.go:915-991`, `UpdatePayrollRunStatus`):** flow di atas **belum berjalan** — hanya kerangka status-transition manual yang ada, tanpa langkah "Load Attendance/Leave/Overtime" atau "Calculate *" mana pun benar-benar dieksekusi:
+> ✅ **Aktual (2026-08-14):** flow di atas kini berjalan untuk langkah struktur/komponen. `DRAFT → CALCULATED` memanggil `CalculatePayrollRun` (isi snapshot) lalu lanjut ke approval bila ApprovalEngine + FlowID di-set (status `CALCULATED`), atau langsung `REVIEWED` bila tanpa approval engine:
 >
 > ```text
-> DRAFT → CALCULATED   (kalau ApprovalEngine + FlowID di-set: buat approval instance;
->                        kalau tidak, langsung lompat ke REVIEWED)
+> DRAFT → [CalculatePayrollRun: isi payroll_run_employees + payroll_run_items]
+>        → CALCULATED (approval) / REVIEWED (tanpa approval)
 > CALCULATED → APPROVED
 > APPROVED → LOCKED
 > ```
 >
-> Transisi `DRAFT → CALCULATED` hanya mengubah kolom `status` — **tidak ada kode yang mengisi `payroll_run_employees`/`payroll_run_items`, menghitung BPJS/PPh21, atau memverifikasi bahwa perhitungan benar-benar terjadi**. Siapa pun bisa memanggil endpoint status-update ini tanpa data payroll run pernah dihitung. Ini adalah gap implementasi paling kritis di seluruh modul.
+> **Update 2026-08-14/15:** BPJS kontribusi ([04-bpjs-engine.md](04-bpjs-engine.md)) dan PPh21 ([05-pph21-engine.md](05-pph21-engine.md)) sudah diintegrasikan ke kalkulasi run sebagai item `source_group='STATUTORY'` — BPJS dihitung setelah struktur (dasar upah `is_bpjs_base` dibaca dari nilai terhitung), PPh21 setelah BPJS (iuran BPJS employee dipakai sebagai pengurang) plus baris `pph21_calculation_logs`. Input Attendance/Leave/Overtime juga sudah masuk sebagai variabel built-in formula via [06-proration-workforce.md](06-proration-workforce.md) (`loadWorkforceSummary` → WORKING_DAYS/WORKED_DAYS/ABSENCE_DAYS/UNPAID_LEAVE_DAYS/OVERTIME_HOURS), dan prorasi join/resign configurable via `payroll_runs.proration_method`. Snapshot struktur yang sudah berjalan tidak berubah.
 
 Integrasi Approval sudah berfungsi nyata — lihat [01-master-data-selesai.md](01-master-data-selesai.md) §26.
 
@@ -115,7 +117,7 @@ Integrasi Approval sudah berfungsi nyata — lihat [01-master-data-selesai.md](0
 
 ## 12. Calculation Order
 
-> ❌ **Status: BELUM DIIMPLEMENTASIKAN.** Tidak ada kode di `backend/internal/modules/payroll/` yang menjalankan urutan perhitungan berikut. Bagian ini murni rencana/desain target.
+> ✅ **Status: DIIMPLEMENTASIKAN (2026-08-14).** `evaluateComponents` di `calculation.go` menjalankan urutan perhitungan: komponen FIXED/MANUAL dihitung lebih dulu (urut `display_order`), lalu FORMULA/PERCENTAGE/REFERENCE di-resolve secara iteratif dengan dependency resolver (baca nilai komponen lain yang sudah terhitung; siklus dependensi ditolak via `DetectCycles`). Agregat (GROSS = total earning, NET = gross − deduction, EMPLOYER_TOTAL_COST = gross + employer contribution) dihitung setelah seluruh item tersedia. Urutan 1-14 di bawah adalah panduan konseptual; eksekusi aktual berbasis dependency + display_order.
 
 Urutan perhitungan harus eksplisit.
 
@@ -166,7 +168,7 @@ EMPLOYER_TOTAL_COST =
 
 ## 13. Payroll Snapshot
 
-> ❌ **Status: BELUM DIIMPLEMENTASIKAN.** Tabel `payroll_run_employees` dan `payroll_run_items` sudah ada di migration `007_payroll_run.sql` dengan kolom yang mendekati desain di bawah (component_id, calculation_type, base_amount, dll.), tapi **tidak pernah diisi oleh kode apa pun** — tidak ada service method yang melakukan insert ke kedua tabel ini. Snapshot secara konsep sudah disiapkan skemanya, tapi belum ada satu baris data pun yang pernah dibuat karena §12 (calculation) belum berjalan.
+> ✅ **Status: DIIMPLEMENTASIKAN (2026-08-14).** `persistRunSnapshot` di `calculation.go` menulis `payroll_run_employees` + `payroll_run_items` dalam satu transaksi (hapus snapshot lama dulu → isi ulang, sehingga aman untuk recalculation). Kolom snapshot tambahan (`calculation_type`, `base_amount`, `rate`, `formula`, `formula_result`) ditambahkan via migration `116_payroll_run_snapshot` agar payroll item menyimpan jejak audit yang lengkap — lihat daftar di bawah. `calculated_amount` = kolom `amount`, `employee_amount`/`employer_amount` dibedakan via `paid_by` yang sudah ada.
 
 Payroll yang sudah dihitung harus menyimpan snapshot.
 
@@ -218,9 +220,9 @@ Tujuan:
 
 ## Phase 2 — Payroll Engine (checklist, bagian Run/Snapshot)
 
-> Item Formula Engine murni ada di [02-formula-engine.md](02-formula-engine.md). Berikut item yang menjadi tanggung jawab Payroll Run execution:
+> ✅ **Payroll Run execution + snapshot selesai (2026-08-14).** Item Formula Engine murni ada di [02-formula-engine.md](02-formula-engine.md).
 
-- [ ] Build proration engine. — lihat juga [06-proration-workforce.md](06-proration-workforce.md) §19.
-- [ ] Build calculation snapshot. — skema tabel (`payroll_run_employees`/`payroll_run_items`) sudah ada, tinggal diisi.
-- [ ] Build calculation audit. — skema tabel (`pph21_calculation_logs`) sudah ada, tinggal diisi.
-- [ ] Build recalculation mechanism.
+- [x] Build proration engine. — `calculator/proration.go` (CALENDAR_DAYS/WORKING_DAYS/FIXED_30_DAYS/ATTENDANCE_DAYS) + faktor join tengah bulan di `calculateEmployee`. Integrasi penuh dengan workforce (attendance/leave/overtime) masih menunggu [06-proration-workforce.md](06-proration-workforce.md) §19.
+- [x] Build calculation snapshot. — `payroll_run_employees`/`payroll_run_items` kini diisi oleh `CalculatePayrollRun`; kolom audit ditambah migration `116_payroll_run_snapshot`.
+- [x] Build calculation audit. — snapshot item menyimpan `calculation_type`, `base_amount`, `formula`, `formula_result` sehingga kalkulasi bisa dijelaskan kembali; `pph21_calculation_logs` tetap dikhususkan untuk jejak PPh21 di [05-pph21-engine.md](05-pph21-engine.md).
+- [x] Build recalculation mechanism. — `CalculatePayrollRun` bisa dipanggil ulang pada status DRAFT/CALCULATED; snapshot lama dihapus & diganti bersih (dicegah pada status REVIEWED/APPROVED/LOCKED/CANCELLED).

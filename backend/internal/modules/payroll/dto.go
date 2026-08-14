@@ -11,7 +11,9 @@ type CreateSalaryComponentRequest struct {
 	Name                   string  `json:"name" binding:"required,max=150"`
 	Description            *string `json:"description"`
 	ComponentType          string  `json:"component_type" binding:"required,oneof=EARNING DEDUCTION EMPLOYER_CONTRIBUTION INFORMATION"`
-	CalculationType        string  `json:"calculation_type" binding:"omitempty,oneof=FIXED MANUAL"`
+	CalculationType        string  `json:"calculation_type" binding:"omitempty,oneof=FIXED PERCENTAGE FORMULA REFERENCE MANUAL"`
+	Formula                *string `json:"formula"`
+	ReferenceComponentID   *string `json:"reference_component_id" binding:"omitempty,uuid"`
 	IsTaxable              *bool   `json:"is_taxable"`
 	IsBpjsBase             *bool   `json:"is_bpjs_base"`
 	IsRecurring            *bool   `json:"is_recurring"`
@@ -25,7 +27,9 @@ type UpdateSalaryComponentRequest struct {
 	Name                   *string `json:"name" binding:"omitempty,max=150"`
 	Description            *string `json:"description"`
 	ComponentType          *string `json:"component_type" binding:"omitempty,oneof=EARNING DEDUCTION EMPLOYER_CONTRIBUTION INFORMATION"`
-	CalculationType        *string `json:"calculation_type" binding:"omitempty,oneof=FIXED MANUAL"`
+	CalculationType        *string `json:"calculation_type" binding:"omitempty,oneof=FIXED PERCENTAGE FORMULA REFERENCE MANUAL"`
+	Formula                *string `json:"formula"`
+	ReferenceComponentID   *string `json:"reference_component_id" binding:"omitempty,uuid"`
 	IsTaxable              *bool   `json:"is_taxable"`
 	IsBpjsBase             *bool   `json:"is_bpjs_base"`
 	IsRecurring            *bool   `json:"is_recurring"`
@@ -327,14 +331,27 @@ type CreatePph21TaxBracketRequest struct {
 // =============================================================================
 
 type CreatePayrollRunRequest struct {
-	PayrollPeriodID string `json:"payroll_period_id" binding:"required"`
-	RunCode         string `json:"run_code" binding:"required,max=50"`
-	RunType         string `json:"run_type" binding:"omitempty,oneof=REGULAR OFF_CYCLE THR BONUS"`
+	PayrollPeriodID string   `json:"payroll_period_id" binding:"required"`
+	RunCode         string   `json:"run_code" binding:"required,max=50"`
+	RunType         string   `json:"run_type" binding:"omitempty,oneof=REGULAR OFF_CYCLE THR BONUS"`
+	// ProrationMethod opsional: CALENDAR_DAYS (default) | WORKING_DAYS |
+	// FIXED_30_DAYS | ATTENDANCE_DAYS. Validasi nilai di service.
+	ProrationMethod string   `json:"proration_method" binding:"omitempty"`
+	// EmployeeIDs opsional: daftar employee yang diikutkan. Kosong → semua
+	// employee dengan payroll profile aktif saat kalkulasi dijalankan.
+	EmployeeIDs []string `json:"employee_ids" binding:"omitempty"`
 }
 
 type UpdatePayrollRunStatusRequest struct {
 	Status string  `json:"status" binding:"required,oneof=CALCULATED REVIEWED APPROVED LOCKED CANCELLED"`
 	FlowID *string `json:"flow_id" binding:"omitempty,uuid"`
+}
+
+// UpdatePaymentStatusRequest — transisi status payment batch.
+type UpdatePaymentStatusRequest struct {
+	Status    string `json:"status" binding:"required,oneof=PENDING PROCESSING PAID FAILED REVERSED"`
+	Reason    string `json:"reason,omitempty"`    // dipakai saat FAILED
+	Reference string `json:"reference,omitempty"` // dipakai saat PAID/PROCESSING
 }
 
 // =============================================================================
@@ -348,6 +365,8 @@ type SalaryComponentResponse struct {
 	Description            string    `json:"description,omitempty"`
 	ComponentType          string    `json:"component_type"`
 	CalculationType        string    `json:"calculation_type"`
+	Formula                string    `json:"formula,omitempty"`
+	ReferenceComponentID   string    `json:"reference_component_id,omitempty"`
 	IsTaxable              bool      `json:"is_taxable"`
 	IsBpjsBase             bool      `json:"is_bpjs_base"`
 	IsRecurring            bool      `json:"is_recurring"`
@@ -540,6 +559,7 @@ type PayrollRunResponse struct {
 	PayrollPeriodID       string     `json:"payroll_period_id"`
 	RunCode               string     `json:"run_code"`
 	RunType               string     `json:"run_type"`
+	ProrationMethod       string     `json:"proration_method"`
 	Status                string     `json:"status"`
 	TotalEmployees        int        `json:"total_employees"`
 	TotalEarning          float64    `json:"total_earning"`
@@ -556,12 +576,145 @@ type PayrollRunResponse struct {
 	UpdatedAt             time.Time  `json:"updated_at"`
 }
 
+// PayslipItemResponse — satu baris komponen pada payslip (dari snapshot run).
+type PayslipItemResponse struct {
+	ComponentCode string  `json:"component_code"`
+	ComponentName string  `json:"component_name"`
+	ItemCategory  string  `json:"item_category"`
+	Amount        float64 `json:"amount"`
+}
+
+// PayrollPayslipResponse — payslip + rincian earnings/deductions/contributions.
+type PayrollPayslipResponse struct {
+	ID                       string                `json:"id"`
+	PayrollRunID             string                `json:"payroll_run_id"`
+	EmployeeID               string                `json:"employee_id"`
+	PayslipNumber            string                `json:"payslip_number"`
+	PeriodCode               string                `json:"period_code"`
+	PeriodYear               int                   `json:"period_year"`
+	PeriodMonth              int                   `json:"period_month"`
+	EmployeeCode             string                `json:"employee_code"`
+	EmployeeName             string                `json:"employee_name"`
+	PositionTitle            string                `json:"position_title,omitempty"`
+	GradingName              string                `json:"grading_name,omitempty"`
+	TotalEarning             float64               `json:"total_earning"`
+	TotalDeduction           float64               `json:"total_deduction"`
+	TotalEmployerContribution float64              `json:"total_employer_contribution"`
+	NetAmount                float64               `json:"net_amount"`
+	Status                   string                `json:"status"`
+	GeneratedAt              *time.Time            `json:"generated_at,omitempty"`
+	PublishedAt              *time.Time            `json:"published_at,omitempty"`
+	CancelledAt              *time.Time            `json:"cancelled_at,omitempty"`
+	Items                    []PayslipItemResponse `json:"items,omitempty"`
+}
+
+// PaymentBatchResponse — ringkasan batch pembayaran yang baru dibuat.
+type PaymentBatchResponse struct {
+	RunID       string  `json:"run_id"`
+	Total       int     `json:"total"`
+	TotalAmount float64 `json:"total_amount"`
+	Skipped     int     `json:"skipped_no_bank_profile"`
+	Status      string  `json:"status"`
+}
+
+// PayrollPaymentResponse — satu baris payment batch.
+type PayrollPaymentResponse struct {
+	ID                    string     `json:"id"`
+	PayrollRunID          string     `json:"payroll_run_id"`
+	EmployeeID            string     `json:"employee_id"`
+	EmployeeCode          string     `json:"employee_code"`
+	EmployeeName          string     `json:"employee_name"`
+	Amount                float64    `json:"amount"`
+	CurrencyCode          string     `json:"currency_code"`
+	PaymentDate           string     `json:"payment_date"`
+	BankName              string     `json:"bank_name,omitempty"`
+	BankAccountNumber     string     `json:"bank_account_number"`
+	BankAccountHolderName string     `json:"bank_account_holder_name"`
+	Status                string     `json:"status"`
+	Reference             string     `json:"reference,omitempty"`
+	FailedReason          string     `json:"failed_reason,omitempty"`
+	ProcessedAt           *time.Time `json:"processed_at,omitempty"`
+	PaidAt                *time.Time `json:"paid_at,omitempty"`
+	FailedAt              *time.Time `json:"failed_at,omitempty"`
+	ReversedAt            *time.Time `json:"reversed_at,omitempty"`
+	CreatedAt             time.Time  `json:"created_at"`
+}
+
+func toPayrollPaymentResponse(p *PayrollPayment) PayrollPaymentResponse {
+	r := PayrollPaymentResponse{
+		ID:                    p.ID.String(),
+		PayrollRunID:          p.PayrollRunID.String(),
+		EmployeeID:            p.EmployeeID.String(),
+		EmployeeCode:          p.EmployeeCode,
+		EmployeeName:          p.EmployeeName,
+		Amount:                p.Amount,
+		CurrencyCode:          p.CurrencyCode,
+		PaymentDate:           p.PaymentDate,
+		BankAccountNumber:     p.BankAccountNumber,
+		BankAccountHolderName: p.BankAccountHolderName,
+		Status:                p.Status,
+		ProcessedAt:           p.ProcessedAt,
+		PaidAt:                p.PaidAt,
+		FailedAt:              p.FailedAt,
+		ReversedAt:            p.ReversedAt,
+		CreatedAt:             p.CreatedAt,
+	}
+	if p.BankName != nil {
+		r.BankName = *p.BankName
+	}
+	if p.Reference != nil {
+		r.Reference = *p.Reference
+	}
+	if p.FailedReason != nil {
+		r.FailedReason = *p.FailedReason
+	}
+	return r
+}
+
+func toPayrollPayslipResponse(p *PayrollPayslip, items []PayrollRunItem) PayrollPayslipResponse {
+	r := PayrollPayslipResponse{
+		ID:                       p.ID.String(),
+		PayrollRunID:             p.PayrollRunID.String(),
+		EmployeeID:               p.EmployeeID.String(),
+		PayslipNumber:            p.PayslipNumber,
+		PeriodCode:               p.PeriodCode,
+		PeriodYear:               p.PeriodYear,
+		PeriodMonth:              p.PeriodMonth,
+		EmployeeCode:             p.EmployeeCode,
+		EmployeeName:             p.EmployeeName,
+		TotalEarning:             p.TotalEarning,
+		TotalDeduction:           p.TotalDeduction,
+		TotalEmployerContribution: p.TotalEmployerContribution,
+		NetAmount:                p.NetAmount,
+		Status:                   p.Status,
+		GeneratedAt:              p.GeneratedAt,
+		PublishedAt:              p.PublishedAt,
+		CancelledAt:              p.CancelledAt,
+	}
+	if p.PositionTitle != nil {
+		r.PositionTitle = *p.PositionTitle
+	}
+	if p.GradingName != nil {
+		r.GradingName = *p.GradingName
+	}
+	for _, it := range items {
+		r.Items = append(r.Items, PayslipItemResponse{
+			ComponentCode: it.ComponentCode,
+			ComponentName: it.ComponentName,
+			ItemCategory:  it.ItemCategory,
+			Amount:        it.Amount,
+		})
+	}
+	return r
+}
+
 type PayrollRunEmployeeResponse struct {
 	ID                     string  `json:"id"`
 	PayrollRunID           string  `json:"payroll_run_id"`
 	EmployeeID             string  `json:"employee_id"`
 	EmploymentID           string  `json:"employment_id,omitempty"`
 	PositionID             string  `json:"position_id,omitempty"`
+	GradingID              string  `json:"grading_id,omitempty"`
 	EmployeeCode           string  `json:"employee_code"`
 	EmployeeName           string  `json:"employee_name"`
 	PositionTitle          string  `json:"position_title,omitempty"`
@@ -574,25 +727,91 @@ type PayrollRunEmployeeResponse struct {
 	Status                 string  `json:"status"`
 }
 
-type PayrollPayslipResponse struct {
-	ID              string     `json:"id"`
-	PayrollRunID    string     `json:"payroll_run_id"`
-	EmployeeID      string     `json:"employee_id"`
-	PayslipNumber   string     `json:"payslip_number"`
-	PeriodYear      int        `json:"period_year"`
-	PeriodMonth     int        `json:"period_month"`
-	PeriodCode      string     `json:"period_code"`
-	EmployeeCode    string     `json:"employee_code"`
-	EmployeeName    string     `json:"employee_name"`
-	PositionTitle   string     `json:"position_title,omitempty"`
-	TotalEarning    float64    `json:"total_earning"`
-	TotalDeduction  float64    `json:"total_deduction"`
-	NetAmount       float64    `json:"net_amount"`
-	Status          string     `json:"status"`
-	GeneratedAt     *time.Time `json:"generated_at,omitempty"`
-	PublishedAt     *time.Time `json:"published_at,omitempty"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+func toPayrollRunEmployeeResponse(e *PayrollRunEmployee) PayrollRunEmployeeResponse {
+	r := PayrollRunEmployeeResponse{
+		ID:                       e.ID.String(),
+		PayrollRunID:             e.PayrollRunID.String(),
+		EmployeeID:               e.EmployeeID.String(),
+		EmployeeCode:             e.EmployeeCode,
+		EmployeeName:             e.EmployeeName,
+		TotalEarning:             e.TotalEarning,
+		TotalDeduction:           e.TotalDeduction,
+		TotalEmployerContribution: e.TotalEmployerContribution,
+		NetAmount:                e.NetAmount,
+		TotalCompanyCost:         e.TotalCompanyCost,
+		Status:                   e.Status,
+	}
+	if e.EmploymentID != nil {
+		r.EmploymentID = e.EmploymentID.String()
+	}
+	if e.PositionID != nil {
+		r.PositionID = e.PositionID.String()
+	}
+	if e.GradingID != nil {
+		r.GradingID = e.GradingID.String()
+	}
+	if e.PositionTitle != nil {
+		r.PositionTitle = *e.PositionTitle
+	}
+	if e.GradingName != nil {
+		r.GradingName = *e.GradingName
+	}
+	return r
+}
+
+type PayrollRunItemResponse struct {
+	ID                   string   `json:"id"`
+	PayrollRunID         string   `json:"payroll_run_id"`
+	PayrollRunEmployeeID string   `json:"payroll_run_employee_id"`
+	EmployeeID           string   `json:"employee_id"`
+	SalaryComponentID    string   `json:"salary_component_id"`
+	ComponentCode        string   `json:"component_code"`
+	ComponentName        string   `json:"component_name"`
+	ComponentType        string   `json:"component_type"`
+	CalculationType      string   `json:"calculation_type"`
+	ItemCategory         string   `json:"item_category"`
+	PaidBy               string   `json:"paid_by"`
+	AffectsGrossPay      bool     `json:"affects_gross_pay"`
+	AffectsNetPay        bool     `json:"affects_net_pay"`
+	AffectsCompanyCost   bool     `json:"affects_company_cost"`
+	PrintOnPayslip       bool     `json:"print_on_payslip"`
+	Amount               float64  `json:"amount"`
+	BaseAmount           float64  `json:"base_amount"`
+	Rate                 *float64 `json:"rate,omitempty"`
+	Formula              *string  `json:"formula,omitempty"`
+	FormulaResult        *float64 `json:"formula_result,omitempty"`
+	CurrencyCode         string   `json:"currency_code"`
+	SourceGroup          string   `json:"source_group"`
+	Notes                *string  `json:"notes,omitempty"`
+}
+
+func toPayrollRunItemResponse(i *PayrollRunItem) PayrollRunItemResponse {
+	r := PayrollRunItemResponse{
+		ID:                   i.ID.String(),
+		PayrollRunID:         i.PayrollRunID.String(),
+		PayrollRunEmployeeID: i.PayrollRunEmployeeID.String(),
+		EmployeeID:           i.EmployeeID.String(),
+		SalaryComponentID:    i.SalaryComponentID.String(),
+		ComponentCode:        i.ComponentCode,
+		ComponentName:        i.ComponentName,
+		ComponentType:        i.ComponentType,
+		CalculationType:      i.CalculationType,
+		ItemCategory:         i.ItemCategory,
+		PaidBy:               i.PaidBy,
+		AffectsGrossPay:      i.AffectsGrossPay,
+		AffectsNetPay:        i.AffectsNetPay,
+		AffectsCompanyCost:   i.AffectsCompanyCost,
+		PrintOnPayslip:       i.PrintOnPayslip,
+		Amount:               i.Amount,
+		BaseAmount:           i.BaseAmount,
+		Rate:                 i.Rate,
+		Formula:              i.Formula,
+		FormulaResult:        i.FormulaResult,
+		CurrencyCode:         i.CurrencyCode,
+		SourceGroup:          i.SourceGroup,
+		Notes:                i.Notes,
+	}
+	return r
 }
 
 // =============================================================================
@@ -617,6 +836,12 @@ func toSalaryComponentResponse(s *SalaryComponent) SalaryComponentResponse {
 	}
 	if s.Description != nil {
 		r.Description = *s.Description
+	}
+	if s.Formula != nil {
+		r.Formula = *s.Formula
+	}
+	if s.ReferenceComponentID != nil {
+		r.ReferenceComponentID = s.ReferenceComponentID.String()
 	}
 	return r
 }
@@ -897,6 +1122,7 @@ func toPayrollRunResponse(p *PayrollRun) PayrollRunResponse {
 		PayrollPeriodID: p.PayrollPeriodID.String(),
 		RunCode:         p.RunCode,
 		RunType:         p.RunType,
+		ProrationMethod: p.ProrationMethod,
 		Status:          p.Status,
 		TotalEmployees:  p.TotalEmployees,
 		TotalEarning:    p.TotalEarning,

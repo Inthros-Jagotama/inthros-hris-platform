@@ -6,6 +6,13 @@ import "github.com/gin-gonic/gin"
 func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 	payroll := rg.Group("/payroll")
 	{
+		// Formula Engine
+		formula := payroll.Group("/formula")
+		{
+			formula.POST("/validate", handler.ValidateFormula)
+			formula.GET("/variables", handler.ListFormulaVariables)
+		}
+
 		// Salary Components
 		sc := payroll.Group("/salary-components")
 		{
@@ -74,6 +81,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		brc := payroll.Group("/bpjs-rate-components")
 		{
 			brc.POST("", handler.CreateBpjsRateComponent)
+			brc.GET("", handler.ListBpjsRateComponents)
 			brc.GET("/:id", handler.GetBpjsRateComponentByID)
 			brc.PUT("/:id", handler.UpdateBpjsRateComponent)
 			brc.DELETE("/:id", handler.DeleteBpjsRateComponent)
@@ -109,8 +117,38 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			pr.POST("", handler.CreatePayrollRun)
 			pr.GET("", handler.ListPayrollRuns)
 			pr.GET("/:id", handler.GetPayrollRunByID)
+			pr.POST("/:id/calculate", handler.CalculatePayrollRun)
+			pr.GET("/:id/employees", handler.ListPayrollRunEmployees)
+			pr.GET("/:id/items", handler.ListPayrollRunItems)
 			pr.PUT("/:id/status", handler.UpdatePayrollRunStatus)
 			pr.GET("/:id/approval", handler.CheckPayrollRunApproval)
+			pr.POST("/:id/payslips", handler.GeneratePayslips)
+			pr.GET("/:id/payslips", handler.ListPayslipsByRun)
+			pr.POST("/:id/payments", handler.CreatePaymentBatch)
+			pr.GET("/:id/payments", handler.ListPaymentsByRun)
+			pr.GET("/:id/payments/export", handler.ExportPaymentsCSV)
+			pr.GET("/:id/reports/summary", handler.GetPayrollSummaryReport)
+			pr.GET("/:id/reports/detail", handler.GetPayrollDetailReport)
+			pr.GET("/:id/reports/bpjs", handler.GetBpjsReport)
+			pr.GET("/:id/reports/tax", handler.GetTaxReport)
+			pr.GET("/:id/reports/bank", handler.GetBankTransferReport)
+			pr.GET("/:id/dashboard", handler.GetPayrollDashboard)
+		}
+
+		// Payslips
+		payslips := payroll.Group("/payslips")
+		{
+			payslips.GET("/:id", handler.GetPayslipByID)
+			payslips.GET("/:id/html", handler.GetPayslipHTML)
+			payslips.POST("/:id/publish", handler.PublishPayslip)
+			payslips.POST("/:id/cancel", handler.CancelPayslip)
+		}
+
+		// Payments
+		payments := payroll.Group("/payments")
+		{
+			payments.GET("/:id", handler.GetPaymentByID)
+			payments.POST("/:id/status", handler.UpdatePaymentStatus)
 		}
 	}
 }

@@ -4,14 +4,34 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	"github.com/inthros/hris-platform/internal/modules/approval"
+	"github.com/inthros/hris-platform/internal/modules/payroll/calculator"
 	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
+
+// CalculationType yang didukung salary component (lihat docs/payroll/
+// 01-master-data-selesai.md §5).
+const (
+	CalculationTypeFixed       = "FIXED"
+	CalculationTypePercentage  = "PERCENTAGE"
+	CalculationTypeFormula     = "FORMULA"
+	CalculationTypeReference   = "REFERENCE"
+	CalculationTypeManual      = "MANUAL"
+)
+
+// ValidationError adalah error validasi bisnis yang harus tampil sebagai
+// HTTP 400 (bukan 500) di handler.
+type ValidationError struct {
+	Message string
+}
+
+func (e *ValidationError) Error() string { return e.Message }
 
 const (
 	defaultPage    = 1
@@ -34,10 +54,20 @@ type Service struct {
 	repo            *Repository
 	logger          *zap.Logger
 	approvalEngine  ApprovalEngine
+	formulaEngine   *calculator.Engine
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
-	return &Service{repo: repo, logger: logger}
+	return &Service{
+		repo:          repo,
+		logger:        logger,
+		formulaEngine: calculator.NewEngine(),
+	}
+}
+
+// SetFormulaEngine mengganti engine formula (dipakai test untuk inject kustom).
+func (s *Service) SetFormulaEngine(engine *calculator.Engine) {
+	s.formulaEngine = engine
 }
 
 // SetApprovalEngine injects the approval engine after service creation.
@@ -54,7 +84,7 @@ func (s *Service) CreateSalaryComponent(ctx context.Context, req CreateSalaryCom
 		Code:                   req.Code,
 		Name:                   req.Name,
 		ComponentType:          req.ComponentType,
-		CalculationType:        "FIXED",
+		CalculationType:        CalculationTypeFixed,
 		IsTaxable:              true,
 		IsBpjsBase:             false,
 		IsRecurring:            true,
@@ -68,6 +98,19 @@ func (s *Service) CreateSalaryComponent(ctx context.Context, req CreateSalaryCom
 	}
 	if req.CalculationType != "" {
 		sc.CalculationType = req.CalculationType
+	}
+	if req.Formula != nil {
+		sc.Formula = req.Formula
+	}
+	if req.ReferenceComponentID != nil && *req.ReferenceComponentID != "" {
+		refID, parseErr := uuid.Parse(*req.ReferenceComponentID)
+		if parseErr != nil {
+			return nil, &ValidationError{Message: fmt.Sprintf("reference_component_id tidak valid: %v", parseErr)}
+		}
+		sc.ReferenceComponentID = &refID
+	}
+	if err := s.validateSalaryComponentCalculation(ctx, sc); err != nil {
+		return nil, err
 	}
 	if req.IsTaxable != nil {
 		sc.IsTaxable = *req.IsTaxable
@@ -162,6 +205,27 @@ func (s *Service) UpdateSalaryComponent(ctx context.Context, id string, req Upda
 	if req.CalculationType != nil {
 		sc.CalculationType = *req.CalculationType
 	}
+	if req.Formula != nil {
+		if *req.Formula == "" {
+			sc.Formula = nil
+		} else {
+			sc.Formula = req.Formula
+		}
+	}
+	if req.ReferenceComponentID != nil {
+		if *req.ReferenceComponentID == "" {
+			sc.ReferenceComponentID = nil
+		} else {
+			refID, parseErr := uuid.Parse(*req.ReferenceComponentID)
+			if parseErr != nil {
+				return nil, &ValidationError{Message: fmt.Sprintf("reference_component_id tidak valid: %v", parseErr)}
+			}
+			sc.ReferenceComponentID = &refID
+		}
+	}
+	if err := s.validateSalaryComponentCalculation(ctx, sc); err != nil {
+		return nil, err
+	}
 	if req.IsTaxable != nil {
 		sc.IsTaxable = *req.IsTaxable
 	}
@@ -196,6 +260,56 @@ func (s *Service) DeleteSalaryComponent(ctx context.Context, id string) error {
 		return fmt.Errorf("invalid id: %w", err)
 	}
 	return s.repo.DeleteSalaryComponent(ctx, uid)
+}
+
+// validateSalaryComponentCalculation menegakkan aturan calculation_type:
+//   - FIXED/MANUAL: tidak butuh formula/reference.
+//   - FORMULA/PERCENTAGE: formula wajib dan harus valid secara sintaks.
+//   - REFERENCE: reference_component_id wajib dan harus menunjuk komponen yang ada.
+//
+// Ini menutup gap audit (docs/payroll/01-master-data-selesai.md §5): sebelumnya
+// calculation_type menerima string apa pun tanpa validasi enum di Go.
+func (s *Service) validateSalaryComponentCalculation(ctx context.Context, sc *SalaryComponent) error {
+	switch sc.CalculationType {
+	case CalculationTypeFixed, CalculationTypeManual:
+		return nil
+
+	case CalculationTypeFormula, CalculationTypePercentage:
+		if sc.Formula == nil || strings.TrimSpace(*sc.Formula) == "" {
+			return &ValidationError{Message: fmt.Sprintf("formula wajib diisi untuk calculation_type %s", sc.CalculationType)}
+		}
+		if err := s.formulaEngine.Validate(*sc.Formula); err != nil {
+			return &ValidationError{Message: fmt.Sprintf("formula tidak valid: %v", err)}
+		}
+		return nil
+
+	case CalculationTypeReference:
+		if sc.ReferenceComponentID == nil {
+			return &ValidationError{Message: "reference_component_id wajib diisi untuk calculation_type REFERENCE"}
+		}
+		if _, err := s.repo.FindSalaryComponentByID(ctx, *sc.ReferenceComponentID); err != nil {
+			return &ValidationError{Message: fmt.Sprintf("reference_component_id tidak ditemukan: %v", err)}
+		}
+		return nil
+
+	default:
+		return &ValidationError{Message: fmt.Sprintf("calculation_type tidak dikenal: %s (harus FIXED|PERCENTAGE|FORMULA|REFERENCE|MANUAL)", sc.CalculationType)}
+	}
+}
+
+// ValidateFormula memvalidasi sebuah string formula tanpa menyimpannya,
+// dikembalikan daftar variabel yang direferensikan formula.
+func (s *Service) ValidateFormula(ctx context.Context, formula string) ([]string, error) {
+	vars, err := s.formulaEngine.ReferencedVariables(formula)
+	if err != nil {
+		return nil, err
+	}
+	return vars, nil
+}
+
+// ListFormulaVariables mengembalikan daftar variabel built-in formula engine.
+func (s *Service) ListFormulaVariables(ctx context.Context) []calculator.VariableMeta {
+	return s.formulaEngine.Registry().All()
 }
 
 // =============================================================================
@@ -859,16 +973,57 @@ func (s *Service) CreatePayrollRun(ctx context.Context, req CreatePayrollRunRequ
 		PayrollPeriodID: periodID,
 		RunCode:         req.RunCode,
 		RunType:         "REGULAR",
+		ProrationMethod: "CALENDAR_DAYS",
 		Status:          "DRAFT",
 	}
 	if req.RunType != "" {
 		pr.RunType = req.RunType
+	}
+	if req.ProrationMethod != "" {
+		if !calculator.IsValidProrationMethod(req.ProrationMethod) {
+			return nil, &ValidationError{Message: fmt.Sprintf("metode prorasi tidak dikenal: %s (CALENDAR_DAYS|WORKING_DAYS|FIXED_30_DAYS|ATTENDANCE_DAYS)", req.ProrationMethod)}
+		}
+		pr.ProrationMethod = req.ProrationMethod
 	}
 	pr.CreatedBy = authctx.GetUserID(ctx)
 	pr.UpdatedBy = pr.CreatedBy
 	if err := s.repo.CreatePayrollRun(ctx, pr); err != nil {
 		return nil, err
 	}
+
+	// Pre-select employees (opsional): simpan snapshot employee ke run sehingga
+	// kalkulasi nanti hanya menghitung daftar ini. Snapshot diisi ulang saat
+	// kalkulasi dijalankan (CalculatePayrollRun), jadi di sini cukup minimal.
+	if len(req.EmployeeIDs) > 0 {
+		ids := make([]uuid.UUID, 0, len(req.EmployeeIDs))
+		for _, idStr := range req.EmployeeIDs {
+			empID, parseErr := uuid.Parse(idStr)
+			if parseErr != nil {
+				return nil, fmt.Errorf("invalid employee_id %q: %w", idStr, parseErr)
+			}
+			ids = append(ids, empID)
+		}
+		employees, findErr := s.repo.FindEmployeesByIDs(ctx, ids)
+		if findErr != nil {
+			return nil, findErr
+		}
+		var runEmps []PayrollRunEmployee
+		for _, emp := range employees {
+			runEmps = append(runEmps, PayrollRunEmployee{
+				PayrollRunID: pr.ID,
+				EmployeeID:   emp.ID,
+				EmployeeCode: emp.EmployeeID,
+				EmployeeName: emp.Name,
+				Status:       "DRAFT",
+			})
+		}
+		if len(runEmps) > 0 {
+			if err := s.repo.BulkCreatePayrollRunEmployees(ctx, runEmps); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	s.logger.Info("Payroll run created", zap.String("code", pr.RunCode))
 	response := toPayrollRunResponse(pr)
 	return &response, nil
@@ -912,6 +1067,40 @@ func (s *Service) GetPayrollRunByID(ctx context.Context, id string) (*PayrollRun
 	return &response, nil
 }
 
+// ListPayrollRunEmployees mengembalikan snapshot employee sebuah run.
+func (s *Service) ListPayrollRunEmployees(ctx context.Context, runID string) ([]PayrollRunEmployeeResponse, error) {
+	uid, err := uuid.Parse(runID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	items, err := s.repo.FindPayrollRunEmployeesByRunID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]PayrollRunEmployeeResponse, 0, len(items))
+	for i := range items {
+		responses = append(responses, toPayrollRunEmployeeResponse(&items[i]))
+	}
+	return responses, nil
+}
+
+// ListPayrollRunItems mengembalikan snapshot item sebuah run.
+func (s *Service) ListPayrollRunItems(ctx context.Context, runID string) ([]PayrollRunItemResponse, error) {
+	uid, err := uuid.Parse(runID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	items, err := s.repo.FindPayrollRunItemsByRunID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]PayrollRunItemResponse, 0, len(items))
+	for i := range items {
+		responses = append(responses, toPayrollRunItemResponse(&items[i]))
+	}
+	return responses, nil
+}
+
 func (s *Service) UpdatePayrollRunStatus(ctx context.Context, id string, req UpdatePayrollRunStatusRequest) (*PayrollRunResponse, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -922,10 +1111,16 @@ func (s *Service) UpdatePayrollRunStatus(ctx context.Context, id string, req Upd
 		return nil, err
 	}
 
-	// Auto-create approval instance when transitioning to CALCULATED
+	// Transitioning to CALCULATED: jalankan perhitungan sungguhan (isi
+	// payroll_run_employees + payroll_run_items) sebelum lanjut ke approval.
 	if req.Status == "CALCULATED" && pr.Status == "DRAFT" {
-		now := time.Now()
-		pr.CalculatedAt = &now
+		if _, err := s.CalculatePayrollRun(ctx, id); err != nil {
+			return nil, err
+		}
+		pr, err = s.repo.FindPayrollRunByID(ctx, uid)
+		if err != nil {
+			return nil, err
+		}
 
 		// If approval engine is available, create approval instance
 		if s.approvalEngine != nil && req.FlowID != nil && *req.FlowID != "" {
@@ -1189,6 +1384,24 @@ func (s *Service) GetBpjsRateComponentByID(ctx context.Context, id string) (*Bpj
 	}
 	response := toBpjsRateComponentResponse(br)
 	return &response, nil
+}
+
+// ListBpjsRateComponentsBySettingID mengembalikan seluruh rate component sebuah
+// setting BPJS (dipakai FE untuk dialog kelola tarif).
+func (s *Service) ListBpjsRateComponentsBySettingID(ctx context.Context, settingID string) ([]BpjsRateComponentResponse, error) {
+	sid, err := uuid.Parse(settingID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid bpjs_setting_id: %w", err)
+	}
+	items, err := s.repo.FindBpjsRateComponentsBySettingID(ctx, sid)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]BpjsRateComponentResponse, 0, len(items))
+	for i := range items {
+		responses = append(responses, toBpjsRateComponentResponse(&items[i]))
+	}
+	return responses, nil
 }
 
 func (s *Service) UpdateBpjsRateComponent(ctx context.Context, id string, req UpdateBpjsRateComponentRequest) (*BpjsRateComponentResponse, error) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -681,6 +682,242 @@ func TestService_UpdatePayrollRunStatus_ApprovalRoutingErrorFailsLoudly(t *testi
 	var re *approval.RoutingError
 	if !errors.As(err, &re) {
 		t.Fatalf("expected approval.RoutingError, got: %v", err)
+	}
+}
+
+// =============================================================================
+// Formula Engine Service Tests
+// =============================================================================
+
+func TestService_CreateSalaryComponent_FormulaTypeValid(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	formula := "BPJS_WAGE * 2%"
+	resp, err := svc.CreateSalaryComponent(ctx, CreateSalaryComponentRequest{
+		Code:            "JHT-EMP-F",
+		Name:            "JHT Employee Formula",
+		ComponentType:   "DEDUCTION",
+		CalculationType: CalculationTypeFormula,
+		Formula:         &formula,
+	})
+	if err != nil {
+		t.Fatalf("CreateSalaryComponent with valid formula: %v", err)
+	}
+	if resp.CalculationType != "FORMULA" {
+		t.Errorf("expected calculation_type FORMULA, got %q", resp.CalculationType)
+	}
+	if resp.Formula != formula {
+		t.Errorf("expected formula %q persisted, got %q", formula, resp.Formula)
+	}
+}
+
+func TestService_CreateSalaryComponent_FormulaTypeInvalidSyntax(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	formula := "BASIC +"
+	_, err := svc.CreateSalaryComponent(ctx, CreateSalaryComponentRequest{
+		Code:            "BAD-FORMULA",
+		Name:            "Bad Formula",
+		ComponentType:   "EARNING",
+		CalculationType: CalculationTypeFormula,
+		Formula:         &formula,
+	})
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected ValidationError for invalid formula syntax, got %v", err)
+	}
+	if !strings.Contains(ve.Message, "formula") {
+		t.Errorf("expected message to mention formula, got %q", ve.Message)
+	}
+}
+
+func TestService_CreateSalaryComponent_FormulaTypeMissingFormula(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := svc.CreateSalaryComponent(ctx, CreateSalaryComponentRequest{
+		Code:            "NO-FORMULA",
+		Name:            "No Formula",
+		ComponentType:   "EARNING",
+		CalculationType: CalculationTypeFormula,
+	})
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected ValidationError when formula missing, got %v", err)
+	}
+}
+
+func TestService_CreateSalaryComponent_PercentageTypeValid(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	formula := "BASIC * 1%"
+	resp, err := svc.CreateSalaryComponent(ctx, CreateSalaryComponentRequest{
+		Code:            "PCT-COMP",
+		Name:            "Percent Component",
+		ComponentType:   "EARNING",
+		CalculationType: CalculationTypePercentage,
+		Formula:         &formula,
+	})
+	if err != nil {
+		t.Fatalf("CreateSalaryComponent with percentage: %v", err)
+	}
+	if resp.CalculationType != "PERCENTAGE" {
+		t.Errorf("expected calculation_type PERCENTAGE, got %q", resp.CalculationType)
+	}
+}
+
+func TestService_CreateSalaryComponent_ReferenceTypeValid(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	source, _ := svc.CreateSalaryComponent(ctx, CreateSalaryComponentRequest{
+		Code: "PERF-RESULT", Name: "Performance Result", ComponentType: "EARNING",
+	})
+
+	resp, err := svc.CreateSalaryComponent(ctx, CreateSalaryComponentRequest{
+		Code:                  "PERF-BONUS",
+		Name:                  "Performance Bonus",
+		ComponentType:         "EARNING",
+		CalculationType:       CalculationTypeReference,
+		ReferenceComponentID:  &source.ID,
+	})
+	if err != nil {
+		t.Fatalf("CreateSalaryComponent with reference: %v", err)
+	}
+	if resp.ReferenceComponentID != source.ID {
+		t.Errorf("expected reference_component_id %s, got %s", source.ID, resp.ReferenceComponentID)
+	}
+}
+
+func TestService_CreateSalaryComponent_ReferenceTypeMissingRef(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := svc.CreateSalaryComponent(ctx, CreateSalaryComponentRequest{
+		Code:            "REF-NO-TARGET",
+		Name:            "Reference Without Target",
+		ComponentType:   "EARNING",
+		CalculationType: CalculationTypeReference,
+	})
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected ValidationError when reference missing, got %v", err)
+	}
+}
+
+func TestService_CreateSalaryComponent_ReferenceTypeNotFound(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	missing := uuid.New().String()
+	_, err := svc.CreateSalaryComponent(ctx, CreateSalaryComponentRequest{
+		Code:                 "REF-GHOST",
+		Name:                 "Reference To Ghost",
+		ComponentType:        "EARNING",
+		CalculationType:      CalculationTypeReference,
+		ReferenceComponentID: &missing,
+	})
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected ValidationError when reference target missing, got %v", err)
+	}
+}
+
+func TestService_CreateSalaryComponent_UnknownCalculationType(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := svc.CreateSalaryComponent(ctx, CreateSalaryComponentRequest{
+		Code:            "WEIRD",
+		Name:            "Weird Type",
+		ComponentType:   "EARNING",
+		CalculationType: "WHATEVER",
+	})
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected ValidationError for unknown calculation type, got %v", err)
+	}
+}
+
+func TestService_UpdateSalaryComponent_FormulaValidation(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	created, _ := svc.CreateSalaryComponent(ctx, CreateSalaryComponentRequest{
+		Code: "UPD-FORMULA", Name: "Update Formula", ComponentType: "EARNING",
+	})
+
+	calcType := CalculationTypeFormula
+	badFormula := "BASIC /"
+	_, err := svc.UpdateSalaryComponent(ctx, created.ID, UpdateSalaryComponentRequest{
+		CalculationType: &calcType,
+		Formula:         &badFormula,
+	})
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected ValidationError on update with bad formula, got %v", err)
+	}
+
+	goodFormula := "BASIC + ALLOWANCE"
+	updated, err := svc.UpdateSalaryComponent(ctx, created.ID, UpdateSalaryComponentRequest{
+		CalculationType: &calcType,
+		Formula:         &goodFormula,
+	})
+	if err != nil {
+		t.Fatalf("UpdateSalaryComponent with valid formula: %v", err)
+	}
+	if updated.Formula != goodFormula {
+		t.Errorf("expected formula %q, got %q", goodFormula, updated.Formula)
+	}
+}
+
+func TestService_ValidateFormula(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	vars, err := svc.ValidateFormula(ctx, "BASIC + OVERTIME_HOURS * OVERTIME_RATE")
+	if err != nil {
+		t.Fatalf("ValidateFormula: %v", err)
+	}
+	if len(vars) != 3 {
+		t.Errorf("expected 3 referenced variables, got %v", vars)
+	}
+
+	if _, err := svc.ValidateFormula(ctx, "BASIC +"); err == nil {
+		t.Error("expected error for invalid formula")
+	}
+}
+
+func TestService_ListFormulaVariables(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	vars := svc.ListFormulaVariables(ctx)
+	if len(vars) == 0 {
+		t.Fatal("expected non-empty formula variables")
+	}
+	names := map[string]bool{}
+	for _, v := range vars {
+		names[v.Name] = true
+	}
+	for _, expected := range []string{"GROSS", "BPJS_WAGE", "NET_SALARY"} {
+		if !names[expected] {
+			t.Errorf("expected built-in variable %s in registry", expected)
+		}
 	}
 }
 

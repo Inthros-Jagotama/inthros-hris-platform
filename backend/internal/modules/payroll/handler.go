@@ -1,6 +1,7 @@
 package payroll
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -22,6 +23,17 @@ func NewHandler(service *Service) *Handler {
 // Salary Components
 // =============================================================================
 
+// handleSalaryComponentError memetakan ValidationError (dari formula/reference
+// validation) ke HTTP 400, selain error umum ke 500.
+func (h *Handler) handleSalaryComponentError(c *gin.Context, err error) {
+	var ve *ValidationError
+	if errors.As(err, &ve) {
+		httputil.BadRequest(c, ve.Error())
+		return
+	}
+	httputil.InternalError(c, err.Error())
+}
+
 func (h *Handler) CreateSalaryComponent(c *gin.Context) {
 	var req CreateSalaryComponentRequest
 	if !httputil.BindAndValidate(c, &req) {
@@ -29,10 +41,21 @@ func (h *Handler) CreateSalaryComponent(c *gin.Context) {
 	}
 	resp, err := h.service.CreateSalaryComponent(c.Request.Context(), req)
 	if err != nil {
-		httputil.InternalError(c, err.Error())
+		h.handleSalaryComponentError(c, err)
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+// handleServiceError memetakan error service generik: ValidationError → 400,
+// lainnya → 500 (dipakai endpoint payslip/payment).
+func (h *Handler) handleServiceError(c *gin.Context, err error) {
+	var ve *ValidationError
+	if errors.As(err, &ve) {
+		httputil.BadRequest(c, ve.Error())
+		return
+	}
+	httputil.InternalError(c, err.Error())
 }
 
 func (h *Handler) ListSalaryComponents(c *gin.Context) {
@@ -62,7 +85,7 @@ func (h *Handler) UpdateSalaryComponent(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateSalaryComponent(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		h.handleSalaryComponentError(c, err)
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -408,6 +431,22 @@ func (h *Handler) CreateBpjsRateComponent(c *gin.Context) {
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 
+// ListBpjsRateComponents mengembalikan rate component sebuah setting BPJS.
+// Endpoint: GET /payroll/bpjs-rate-components?bpjs_setting_id=...
+func (h *Handler) ListBpjsRateComponents(c *gin.Context) {
+	settingID := c.Query("bpjs_setting_id")
+	if settingID == "" {
+		httputil.BadRequest(c, "bpjs_setting_id is required")
+		return
+	}
+	resp, err := h.service.ListBpjsRateComponentsBySettingID(c.Request.Context(), settingID)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 // =============================================================================
 // PPh21 Settings
 // =============================================================================
@@ -523,6 +562,40 @@ func (h *Handler) ListPph21TaxBrackets(c *gin.Context) {
 }
 
 // =============================================================================
+// Formula Engine
+// =============================================================================
+
+// ValidateFormulaRequest body untuk POST /payroll/formula/validate.
+type ValidateFormulaRequest struct {
+	Formula string `json:"formula" binding:"required"`
+}
+
+// ValidateFormula memvalidasi sintaks formula dan mengembalikan variabel yang
+// direferensikan. Dipakai frontend untuk validasi saat user mengetik formula.
+func (h *Handler) ValidateFormula(c *gin.Context) {
+	var req ValidateFormulaRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	vars, err := h.service.ValidateFormula(c.Request.Context(), req.Formula)
+	if err != nil {
+		httputil.BadRequest(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{
+		"valid":     true,
+		"formula":   req.Formula,
+		"variables": vars,
+	})
+}
+
+// ListFormulaVariables mengembalikan daftar variabel built-in formula engine.
+func (h *Handler) ListFormulaVariables(c *gin.Context) {
+	vars := h.service.ListFormulaVariables(c.Request.Context())
+	httputil.SuccessJSON(c, vars)
+}
+
+// =============================================================================
 // Payroll Runs
 // =============================================================================
 
@@ -554,6 +627,250 @@ func (h *Handler) GetPayrollRunByID(c *gin.Context) {
 	resp, err := h.service.GetPayrollRunByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// CalculatePayrollRun mengeksekusi kalkulasi + snapshot untuk sebuah run.
+// Endpoint: POST /payroll/runs/:id/calculate
+func (h *Handler) CalculatePayrollRun(c *gin.Context) {
+	resp, err := h.service.CalculatePayrollRun(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		var ve *ValidationError
+		if errors.As(err, &ve) {
+			httputil.BadRequest(c, ve.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// ListPayrollRunEmployees mengembalikan snapshot employee sebuah run.
+// Endpoint: GET /payroll/runs/:id/employees
+func (h *Handler) ListPayrollRunEmployees(c *gin.Context) {
+	resp, err := h.service.ListPayrollRunEmployees(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// ListPayrollRunItems mengembalikan snapshot item (detail komponen) sebuah run.
+// Endpoint: GET /payroll/runs/:id/items
+func (h *Handler) ListPayrollRunItems(c *gin.Context) {
+	resp, err := h.service.ListPayrollRunItems(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// =============================================================================
+// Payslips
+// =============================================================================
+
+// GeneratePayslips membuat payslip dari run yang sudah dihitung.
+// Endpoint: POST /payroll/runs/:id/payslips
+func (h *Handler) GeneratePayslips(c *gin.Context) {
+	resp, err := h.service.GeneratePayslips(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// ListPayslipsByRun mengembalikan payslip sebuah run.
+// Endpoint: GET /payroll/runs/:id/payslips
+func (h *Handler) ListPayslipsByRun(c *gin.Context) {
+	resp, err := h.service.ListPayslipsByRun(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetPayslipByID mengambil detail payslip.
+// Endpoint: GET /payroll/payslips/:id
+func (h *Handler) GetPayslipByID(c *gin.Context) {
+	resp, err := h.service.GetPayslipByID(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// PublishPayslip mempublikasikan payslip.
+// Endpoint: POST /payroll/payslips/:id/publish
+func (h *Handler) PublishPayslip(c *gin.Context) {
+	resp, err := h.service.PublishPayslip(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// CancelPayslip membatalkan payslip.
+// Endpoint: POST /payroll/payslips/:id/cancel
+func (h *Handler) CancelPayslip(c *gin.Context) {
+	resp, err := h.service.CancelPayslip(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetPayslipHTML merender payslip sebagai HTML.
+// Endpoint: GET /payroll/payslips/:id/html
+func (h *Handler) GetPayslipHTML(c *gin.Context) {
+	html, err := h.service.GetPayslipHTML(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	c.String(http.StatusOK, html)
+}
+
+// =============================================================================
+// Payments
+// =============================================================================
+
+// CreatePaymentBatch membuat batch pembayaran dari run.
+// Endpoint: POST /payroll/runs/:id/payments
+func (h *Handler) CreatePaymentBatch(c *gin.Context) {
+	resp, err := h.service.CreatePaymentBatch(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// ListPaymentsByRun mengembalikan payment sebuah run.
+// Endpoint: GET /payroll/runs/:id/payments
+func (h *Handler) ListPaymentsByRun(c *gin.Context) {
+	resp, err := h.service.ListPaymentsByRun(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// ExportPaymentsCSV mengekspor batch sebagai file bank transfer CSV.
+// Endpoint: GET /payroll/runs/:id/payments/export
+func (h *Handler) ExportPaymentsCSV(c *gin.Context) {
+	csvOut, err := h.service.ExportPaymentsCSV(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	c.Header("Content-Type", "text/csv; charset=utf-8")
+	c.Header("Content-Disposition", "attachment; filename=payments.csv")
+	c.String(http.StatusOK, csvOut)
+}
+
+// GetPaymentByID mengambil detail payment.
+// Endpoint: GET /payroll/payments/:id
+func (h *Handler) GetPaymentByID(c *gin.Context) {
+	resp, err := h.service.GetPaymentByID(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// UpdatePaymentStatus memindahkan status payment.
+// Endpoint: POST /payroll/payments/:id/status
+func (h *Handler) UpdatePaymentStatus(c *gin.Context) {
+	var req UpdatePaymentStatusRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdatePaymentStatus(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// =============================================================================
+// Reports & Dashboard
+// =============================================================================
+
+// GetPayrollSummaryReport — ringkasan run.
+// Endpoint: GET /payroll/runs/:id/reports/summary
+func (h *Handler) GetPayrollSummaryReport(c *gin.Context) {
+	resp, err := h.service.GetPayrollSummaryReport(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetPayrollDetailReport — rincian per employee per komponen.
+// Endpoint: GET /payroll/runs/:id/reports/detail
+func (h *Handler) GetPayrollDetailReport(c *gin.Context) {
+	resp, err := h.service.GetPayrollDetailReport(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetBpjsReport — laporan BPJS per employee.
+// Endpoint: GET /payroll/runs/:id/reports/bpjs
+func (h *Handler) GetBpjsReport(c *gin.Context) {
+	resp, err := h.service.GetBpjsReport(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetTaxReport — laporan pajak per employee.
+// Endpoint: GET /payroll/runs/:id/reports/tax
+func (h *Handler) GetTaxReport(c *gin.Context) {
+	resp, err := h.service.GetTaxReport(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetBankTransferReport — laporan bank transfer dari payment batch.
+// Endpoint: GET /payroll/runs/:id/reports/bank
+func (h *Handler) GetBankTransferReport(c *gin.Context) {
+	resp, err := h.service.GetBankTransferReport(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetPayrollDashboard — agregat dashboard run.
+// Endpoint: GET /payroll/runs/:id/dashboard
+func (h *Handler) GetPayrollDashboard(c *gin.Context) {
+	resp, err := h.service.GetPayrollDashboard(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.handleServiceError(c, err)
 		return
 	}
 	httputil.SuccessJSON(c, resp)
