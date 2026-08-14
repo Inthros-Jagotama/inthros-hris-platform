@@ -895,8 +895,8 @@ ProgressSpinner
 - [x] Migration `generated_documents` — migrasi 110 (skema saja; belum ada writer, itu Phase 5)
 - [x] Domain entity — `backend/internal/modules/documenttemplate/model.go`, commit `0313eb26`
 - [x] Repository — `backend/internal/modules/documenttemplate/repository.go`, commit `1d48b854`
-- [ ] Service — sedang dikerjakan (Task 4)
-- [ ] DTO
+- [x] Service — `backend/internal/modules/documenttemplate/service.go`, commit `4182bc73` (one-active-per-jenis atomik via transaksi, from-default copy, versioning)
+- [ ] DTO — sedang dikerjakan (Task 5)
 - [ ] API handler
 - [ ] Permission
 - [ ] Validation
