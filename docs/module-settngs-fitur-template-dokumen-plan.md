@@ -894,8 +894,8 @@ ProgressSpinner
 - [ ] Migration `document_template_variables` jika diperlukan — tidak dibuat; variable registry diimplementasikan sebagai static Go registry (Task 6), bukan tabel DB, sesuai catatan spec §11 ("sebaiknya didefinisikan melalui registry di backend")
 - [x] Migration `generated_documents` — migrasi 110 (skema saja; belum ada writer, itu Phase 5)
 - [x] Domain entity — `backend/internal/modules/documenttemplate/model.go`, commit `0313eb26`
-- [ ] Repository — sedang dikerjakan (Task 3)
-- [ ] Service
+- [x] Repository — `backend/internal/modules/documenttemplate/repository.go`, commit `1d48b854`
+- [ ] Service — sedang dikerjakan (Task 4)
 - [ ] DTO
 - [ ] API handler
 - [ ] Permission
