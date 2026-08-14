@@ -2449,6 +2449,7 @@
   },
   "numbering_settings": {
     "title": "Penomoran Dokumen",
+    "description": "Atur format penomoran SK untuk movements dan kontrak",
     "employee_movement": "Movements (SK Promosi / Mutasi / Demosi)",
     "employee_contract": "Kontrak",
     "format_template": "Format Nomor",

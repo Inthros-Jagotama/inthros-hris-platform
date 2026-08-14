@@ -5,6 +5,7 @@
     <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div
         v-for="dt in DOCUMENT_TYPES"
+        v-if="forms[dt.key]"
         :key="dt.key"
         class="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 p-4 space-y-4"
       >

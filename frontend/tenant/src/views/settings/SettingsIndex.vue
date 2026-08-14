@@ -79,7 +79,8 @@ const groups = computed(() => [
       { path: '/settings/employment-statuses', icon: 'pi pi-briefcase', titleKey: 'settings.employment_statuses', descKey: 'employment_statuses.description', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
       { path: '/settings/nationalities', icon: 'pi pi-globe', titleKey: 'settings.nationalities', descKey: 'nationalities.description', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
       { path: '/settings/job-families', icon: 'pi pi-briefcase', titleKey: 'settings.job_families', descKey: 'job_families.description', tint: 'bg-lime-50 dark:bg-lime-500/10 text-lime-600 dark:text-lime-400' },
-      { path: '/settings/competencies', icon: 'pi pi-star', titleKey: 'settings.competencies', descKey: 'competencies.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' }
+      { path: '/settings/competencies', icon: 'pi pi-star', titleKey: 'settings.competencies', descKey: 'competencies.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' },
+      { path: '/settings/numbering', icon: 'pi pi-hashtag', titleKey: 'settings.numbering', descKey: 'numbering_settings.description', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' }
     ]
   },
   {
@@ -104,7 +105,6 @@ const groups = computed(() => [
       { path: '/settings/salary-grades', icon: 'pi pi-chart-bar', titleKey: 'settings.salary_grades', descKey: 'salary_grades.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
       { path: '/settings/insurances', icon: 'pi pi-shield', titleKey: 'settings.insurances', descKey: 'insurances.description', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
       { path: '/settings/company-holidays', icon: 'pi pi-calendar', titleKey: 'settings.company_holidays', descKey: 'company_holidays.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' },
-      { path: '/settings/numbering', icon: 'pi pi-hashtag', titleKey: 'settings.numbering', descKey: 'numbering_settings.title', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
       { path: '/settings/ters', icon: 'pi pi-calculator', titleKey: 'settings.ters', descKey: 'ters.description', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
       { path: '/settings/ptkps', icon: 'pi pi-receipt', titleKey: 'settings.ptkps', descKey: 'ptkps.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' }
     ]

@@ -2449,6 +2449,7 @@
   },
   "numbering_settings": {
     "title": "Document Numbering",
+    "description": "Configure the numbering format for SK/decision-letter numbers used in movements and contracts",
     "employee_movement": "Movements (Promotion / Mutation / Demotion SK)",
     "employee_contract": "Contracts",
     "format_template": "Number Format",
