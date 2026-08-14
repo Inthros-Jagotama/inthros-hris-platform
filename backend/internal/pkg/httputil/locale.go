@@ -761,4 +761,42 @@ var localeMessages = map[string]map[Lang]string{
 		LangEN: "Successfully unsubscribed from package",
 		LangID: "Berhasil berhenti berlangganan paket",
 	},
+
+	// --- Document Template module messages ---
+	"documenttemplate.created": {
+		LangEN: "Document template created successfully",
+		LangID: "Template dokumen berhasil dibuat",
+	},
+	"documenttemplate.created_from_default": {
+		LangEN: "Document template created from default successfully",
+		LangID: "Template dokumen berhasil dibuat dari default",
+	},
+	"documenttemplate.updated": {
+		LangEN: "Document template updated successfully",
+		LangID: "Template dokumen berhasil diperbarui",
+	},
+	"documenttemplate.deleted": {
+		LangEN: "Document template deleted successfully",
+		LangID: "Template dokumen berhasil dihapus",
+	},
+	"documenttemplate.activated": {
+		LangEN: "Document template activated successfully",
+		LangID: "Template dokumen berhasil diaktifkan",
+	},
+	"documenttemplate.deactivated": {
+		LangEN: "Document template deactivated successfully",
+		LangID: "Template dokumen berhasil dinonaktifkan",
+	},
+	"documenttemplate.version_created": {
+		LangEN: "New template version created successfully",
+		LangID: "Versi template baru berhasil dibuat",
+	},
+	"documenttemplate.duplicate_code": {
+		LangEN: "Template code '%s' is already in use",
+		LangID: "Kode template '%s' sudah digunakan",
+	},
+	"documenttemplate.duplicate_active": {
+		LangEN: "An active template already exists for document type '%s'",
+		LangID: "Template aktif sudah ada untuk jenis dokumen '%s'",
+	},
 }
