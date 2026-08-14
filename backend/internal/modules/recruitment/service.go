@@ -1290,9 +1290,17 @@ func (s *Service) ListApplications(ctx context.Context, requisitionID, candidate
 	if err != nil {
 		return nil, err
 	}
+
 	responses := make([]ApplicationResponse, 0, len(list))
 	for _, a := range list {
-		responses = append(responses, *applicationToResponse(&a))
+		resp := applicationToResponse(&a)
+		// Kolom Score di daftar aplikasi = Candidate Match Score (G-9/G-12):
+		// dihitung dari level kompetensi kandidat (penilaian/skill) vs required
+		// level lowongan. Best-effort — kalau gagal, score tetap kosong.
+		if ms, mserr := s.GetCandidateMatchScore(ctx, a.ID.String()); mserr == nil && ms.Score != nil {
+			resp.Score = ms.Score
+		}
+		responses = append(responses, *resp)
 	}
 	return &PaginatedResponse{
 		Success: true, Data: responses, Page: page, PerPage: perPage,

@@ -61,6 +61,13 @@
         </template>
       </Column>
 
+      <Column :header="t('applications.score')" style="width: 90px">
+        <template #body="{ data }">
+          <Tag v-if="data.score !== null && data.score !== undefined" :value="Math.round(data.score) + '%'" :severity="scoreSeverity(data.score)" class="!text-xs !px-1.5 !py-0.5" />
+          <span v-else class="text-sm text-gray-400 dark:text-gray-500">—</span>
+        </template>
+      </Column>
+
       <Column :header="t('applications.applied_at')" style="width: 150px">
         <template #body="{ data }">
           <span class="text-xs text-gray-600 dark:text-gray-300">{{ formatTimestamp(data.applied_at) }}</span>
@@ -131,10 +138,11 @@ const requisitions = ref([])
 const candidates = ref([])
 
 const skeletonColumns = [
-  { field: 'candidate', header: 'Candidate', width: '28%' },
-  { field: 'requisition', header: 'Requisition', width: '28%' },
-  { field: 'status', header: 'Status', width: '14%' },
-  { field: 'applied_at', header: 'Applied At', width: '16%' }
+  { field: 'candidate', header: 'Candidate', width: '26%' },
+  { field: 'requisition', header: 'Requisition', width: '26%' },
+  { field: 'status', header: 'Status', width: '12%' },
+  { field: 'score', header: 'Score', width: '8%' },
+  { field: 'applied_at', header: 'Applied At', width: '14%' }
 ]
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
@@ -172,6 +180,12 @@ function statusSeverity(status) {
     case 'WITHDRAWN': return 'danger'
     default: return 'secondary'
   }
+}
+
+function scoreSeverity(score) {
+  if (score >= 80) return 'success'
+  if (score >= 60) return 'warn'
+  return 'danger'
 }
 
 function formatTimestamp(value) {

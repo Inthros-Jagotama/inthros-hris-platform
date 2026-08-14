@@ -407,6 +407,7 @@ type ApplicationResponse struct {
 	Status          string    `json:"status"`
 	RejectionReason string    `json:"rejection_reason,omitempty"`
 	Notes           string    `json:"notes"`
+	Score           *float64  `json:"score,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
