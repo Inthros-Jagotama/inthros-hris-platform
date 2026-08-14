@@ -17,9 +17,29 @@ func VariableRegistry() []VariableGroup {
 	return []VariableGroup{
 		{
 			Category: "employee",
+			// Field mengikuti kolom tabel `employees` (+ relasi religion &
+			// marital_status, join_date dari employment pertama) — resolusi
+			// dilakukan di employeemovement.GetEmployeeProfile.
 			Variables: []TemplateVariable{
+				{Key: "employee.employee_id", Label: "Employee Number"},
 				{Key: "employee.name", Label: "Name"},
 				{Key: "employee.nik", Label: "NIK"},
+				{Key: "employee.family_id", Label: "Family Card Number"},
+				{Key: "employee.mother_name", Label: "Mother's Name"},
+				{Key: "employee.gender", Label: "Gender"},
+				{Key: "employee.dob", Label: "Date of Birth"},
+				{Key: "employee.pob", Label: "Place of Birth"},
+				{Key: "employee.nationality_type", Label: "Nationality Type"},
+				{Key: "employee.nationality_id", Label: "Nationality Code"},
+				{Key: "employee.passport", Label: "Passport Number"},
+				{Key: "employee.phone_number", Label: "Phone Number"},
+				{Key: "employee.email", Label: "Email"},
+				{Key: "employee.linkedin", Label: "LinkedIn"},
+				{Key: "employee.instagram", Label: "Instagram"},
+				{Key: "employee.religion", Label: "Religion"},
+				{Key: "employee.marital_status", Label: "Marital Status"},
+				{Key: "employee.status", Label: "Employee Status"},
+				{Key: "employee.join_date", Label: "Join Date"},
 				{Key: "employee.position", Label: "Position"},
 				{Key: "employee.organization", Label: "Organization"},
 			},

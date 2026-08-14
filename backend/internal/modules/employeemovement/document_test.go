@@ -1,6 +1,7 @@
 package employeemovement
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -8,8 +9,155 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/modules/documenttemplate"
 )
+
+// fakeDocGenerator adalah implementasi DocumentGenerator untuk test — mencatat
+// request yang masuk dan mengembalikan hasil tetap.
+type fakeDocGenerator struct {
+	generated []DocumentGenerateRequest
+}
+
+func (f *fakeDocGenerator) Generate(_ context.Context, req DocumentGenerateRequest) (*GeneratedDocumentRef, error) {
+	f.generated = append(f.generated, req)
+	return &GeneratedDocumentRef{
+		ID:            "gen-1",
+		TemplateID:    "tpl-1",
+		DocumentType:  req.DocumentType,
+		ReferenceType: req.ReferenceType,
+		ReferenceID:   req.ReferenceID,
+		FileName:      "SK-1.pdf",
+		FileURL:       "/uploads/generated_documents/SK-1.pdf",
+		GeneratedAt:   time.Now(),
+	}, nil
+}
+
+func (f *fakeDocGenerator) ListByReference(_ context.Context, referenceType, referenceID string, page, perPage int) ([]GeneratedDocumentRef, int64, error) {
+	return []GeneratedDocumentRef{
+		{ID: "gen-1", ReferenceType: referenceType, ReferenceID: referenceID, FileName: "SK-1.pdf", FileURL: "/uploads/generated_documents/SK-1.pdf", GeneratedAt: time.Now()},
+	}, 1, nil
+}
+
+// TestService_GenerateMovementDocument verifies plan §16: generate untuk
+// movement approved memanggil generator dengan variable yang ter-resolve.
+func TestService_GenerateMovementDocument(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeDocGenerator{}
+	svc.SetDocumentGenerator(fake)
+
+	employeeID := uuid.New()
+	seedCareerReferenceTables(t, repo, employeeID)
+	movement := createTestMovement(repo, employeeID)
+	// Movement harus approved/executed untuk generate SK.
+	movement.Status = MovementStatusApproved
+	if err := repo.UpdateMovement(context.Background(), movement); err != nil {
+		t.Fatalf("update movement status: %v", err)
+	}
+
+	doc, err := svc.GenerateMovementDocument(context.Background(), movement.ID.String(), "user-1")
+	if err != nil {
+		t.Fatalf("GenerateMovementDocument failed: %v", err)
+	}
+	if doc == nil || doc.FileURL == "" {
+		t.Fatal("expected generated document with file_url")
+	}
+	if len(fake.generated) != 1 {
+		t.Fatalf("expected generator called once, got %d", len(fake.generated))
+	}
+	req := fake.generated[0]
+	if req.DocumentType != documenttemplate.DocumentTypeMovementSK {
+		t.Errorf("expected document type MOVEMENT_SK, got %s", req.DocumentType)
+	}
+	if req.ReferenceType != "movement" || req.ReferenceID != movement.ID.String() {
+		t.Errorf("unexpected reference: %s / %s", req.ReferenceType, req.ReferenceID)
+	}
+	if req.Values["movement.number"] != movement.DecisionLetterNumber {
+		t.Errorf("expected movement.number=%q, got %q", movement.DecisionLetterNumber, req.Values["movement.number"])
+	}
+	if req.Values["movement.effective_date"] == "" {
+		t.Error("expected effective date resolved, got empty")
+	}
+	// Variable employee.* mengikuti field tabel employees (termasuk relasi
+	// religion & marital_status yang di-seed seedCareerReferenceTables).
+	if req.Values["employee.name"] != "Test Karyawan" {
+		t.Errorf("expected employee.name=%q, got %q", "Test Karyawan", req.Values["employee.name"])
+	}
+	if req.Values["employee.employee_id"] != "EMP-TL-001" {
+		t.Errorf("expected employee.employee_id=EMP-TL-001, got %q", req.Values["employee.employee_id"])
+	}
+	if req.Values["employee.religion"] != "Islam" {
+		t.Errorf("expected employee.religion=Islam, got %q", req.Values["employee.religion"])
+	}
+	if req.Values["employee.marital_status"] != "Menikah" {
+		t.Errorf("expected employee.marital_status=Menikah, got %q", req.Values["employee.marital_status"])
+	}
+}
+
+// TestService_GenerateMovementDocument_RejectsDraft verifies generate hanya
+// boleh untuk movement approved/executed.
+func TestService_GenerateMovementDocument_RejectsDraft(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	svc.SetDocumentGenerator(&fakeDocGenerator{})
+	movement := createTestMovement(repo, uuid.New()) // status draft
+
+	_, err := svc.GenerateMovementDocument(context.Background(), movement.ID.String(), "user-1")
+	if err == nil {
+		t.Fatal("expected error when generating for draft movement")
+	}
+	if !strings.Contains(err.Error(), "approved or executed") {
+		t.Fatalf("expected approved/executed restriction, got: %v", err)
+	}
+}
+
+// TestHandler_GenerateMovementDocument verifies the generate endpoint end-to-end
+// (router + handler) with a fake generator.
+func TestHandler_GenerateMovementDocument(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	svc := NewService(repo, logger)
+	svc.SetDocumentGenerator(&fakeDocGenerator{})
+	handler := NewHandler(svc)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	rg := r.Group("/api/v1/tenant")
+	RegisterRoutes(rg, handler)
+
+	employeeID := uuid.New()
+	seedCareerReferenceTables(t, repo, employeeID)
+	movement := createTestMovement(repo, employeeID)
+	movement.Status = MovementStatusApproved
+	if err := repo.UpdateMovement(context.Background(), movement); err != nil {
+		t.Fatalf("update movement status: %v", err)
+	}
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/v1/tenant/employee-movements/movements/"+movement.ID.String()+"/generate-document", nil)
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// GET history
+	w2 := httptest.NewRecorder()
+	req2, _ := http.NewRequest("GET", "/api/v1/tenant/employee-movements/movements/"+movement.ID.String()+"/generated-documents", nil)
+	r.ServeHTTP(w2, req2)
+	if w2.Code != http.StatusOK {
+		t.Fatalf("expected 200 on history, got %d: %s", w2.Code, w2.Body.String())
+	}
+}
 
 // TestService_CreateMovementDocument verifies plan §12.15: a document's
 // metadata is persisted with the correct document_type/file_name/file_url.

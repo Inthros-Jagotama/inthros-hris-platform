@@ -25,6 +25,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		em.GET("/movements/:id/documents", handler.ListMovementDocuments)
 		em.POST("/movements/:id/documents", handler.CreateMovementDocument)
 		em.DELETE("/movements/:id/documents/:documentId", handler.DeleteMovementDocument)
+		// Generate Document (plan §16) — PDF SK Movement dari template aktif.
+		em.POST("/movements/:id/generate-document", handler.GenerateMovementDocument)
+		em.GET("/movements/:id/generated-documents", handler.ListGeneratedMovementDocuments)
 
 		// Movements by Employee
 		em.GET("/employees/:employeeId/movements", handler.ListMovementsByEmployee)
@@ -48,6 +51,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		em.GET("/contracts/:id", handler.GetContractByID)
 		em.PUT("/contracts/:id", handler.UpdateContract)
 		em.DELETE("/contracts/:id", handler.DeleteContract)
+		// Generate Document (plan §17) — PDF Perjanjian Kerja dari template aktif.
+		em.POST("/contracts/:id/generate-document", handler.GenerateContractDocument)
+		em.GET("/contracts/:id/generated-documents", handler.ListGeneratedContractDocuments)
 
 		// Contracts by Employee
 		em.GET("/employees/:employeeId/contracts", handler.ListContractsByEmployee)

@@ -29,7 +29,11 @@ func seedCareerReferenceTables(t *testing.T, repo *Repository, employeeID uuid.U
 		"CREATE TABLE IF NOT EXISTS organizations (id CHAR(36) PRIMARY KEY, nomenclature VARCHAR(255))",
 		"CREATE TABLE IF NOT EXISTS positions (id CHAR(36) PRIMARY KEY, title VARCHAR(255))",
 		"CREATE TABLE IF NOT EXISTS employment_statuses (id CHAR(36) PRIMARY KEY, name VARCHAR(255))",
-		"CREATE TABLE IF NOT EXISTS employees (id CHAR(36) PRIMARY KEY, name VARCHAR(255), employee_id VARCHAR(50))",
+		// religions & marital_statuses + kolom employees yang dibutuhkan
+		// GetEmployeeProfile (Generate Document, variable {{employee.*}}).
+		"CREATE TABLE IF NOT EXISTS religions (id CHAR(36) PRIMARY KEY, name VARCHAR(200))",
+		"CREATE TABLE IF NOT EXISTS marital_statuses (id CHAR(36) PRIMARY KEY, name VARCHAR(100))",
+		"CREATE TABLE IF NOT EXISTS employees (id CHAR(36) PRIMARY KEY, name VARCHAR(255), employee_id VARCHAR(50), nik VARCHAR(16), family_id VARCHAR(16), mother_name VARCHAR(255), gender VARCHAR(10), nationality_type VARCHAR(10), nationality_id CHAR(2), passport VARCHAR(50), pob VARCHAR(255), dob DATE, phone_number VARCHAR(255), email VARCHAR(255), linkedin VARCHAR(255), ig VARCHAR(255), religion_id CHAR(36), marital_status_id CHAR(36), status VARCHAR(20) DEFAULT 'active')",
 	} {
 		if err := db.Exec(stmt).Error; err != nil {
 			t.Fatalf("failed to create reference table: %v", err)
@@ -38,6 +42,8 @@ func seedCareerReferenceTables(t *testing.T, repo *Repository, employeeID uuid.U
 	orgID = uuid.New()
 	posID = uuid.New()
 	statusID = uuid.New()
+	religionID := uuid.New()
+	maritalStatusID := uuid.New()
 	if err := db.Exec("INSERT INTO organizations (id, nomenclature) VALUES (?, ?)", orgID.String(), "PT Maju Bersama").Error; err != nil {
 		t.Fatalf("failed to seed organization: %v", err)
 	}
@@ -47,7 +53,14 @@ func seedCareerReferenceTables(t *testing.T, repo *Repository, employeeID uuid.U
 	if err := db.Exec("INSERT INTO employment_statuses (id, name) VALUES (?, ?)", statusID.String(), "Permanent").Error; err != nil {
 		t.Fatalf("failed to seed employment status: %v", err)
 	}
-	if err := db.Exec("INSERT INTO employees (id, name, employee_id) VALUES (?, ?, ?)", employeeID.String(), "Test Karyawan", "EMP-TL-001").Error; err != nil {
+	if err := db.Exec("INSERT INTO religions (id, name) VALUES (?, ?)", religionID.String(), "Islam").Error; err != nil {
+		t.Fatalf("failed to seed religion: %v", err)
+	}
+	if err := db.Exec("INSERT INTO marital_statuses (id, name) VALUES (?, ?)", maritalStatusID.String(), "Menikah").Error; err != nil {
+		t.Fatalf("failed to seed marital status: %v", err)
+	}
+	if err := db.Exec("INSERT INTO employees (id, name, employee_id, religion_id, marital_status_id) VALUES (?, ?, ?, ?, ?)",
+		employeeID.String(), "Test Karyawan", "EMP-TL-001", religionID.String(), maritalStatusID.String()).Error; err != nil {
 		t.Fatalf("failed to seed employee: %v", err)
 	}
 	return orgID, posID, statusID

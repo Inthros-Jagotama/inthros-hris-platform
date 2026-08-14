@@ -260,6 +260,61 @@
           <ViewLabel v-if="detailItem.executed_at" :label="t('employee_movement.executed_at')" :value="formatDateTime(detailItem.executed_at)" />
         </div>
 
+        <!-- Generate Document (plan §16) — PDF SK dari template aktif -->
+        <div class="rounded-lg border border-indigo-200 dark:border-indigo-900/40 p-3">
+          <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-file-pdf text-sm text-indigo-500"></i>
+              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('employee_movement.generated_documents') }}</p>
+            </div>
+            <Button
+              :label="t('employee_movement.generate_document')"
+              icon="pi pi-file-export"
+              size="small"
+              :loading="generatingDoc"
+              :disabled="!['approved', 'executed'].includes(detailItem?.status)"
+              @click="handleGenerateDocument"
+            />
+          </div>
+          <p v-if="!['approved', 'executed'].includes(detailItem?.status)" class="text-xs text-gray-400 dark:text-gray-500 mb-2">
+            {{ t('employee_movement.generate_doc_requires_approved') }}
+          </p>
+          <div v-if="genDocsLoading" class="space-y-2">
+            <div v-for="i in 2" :key="i" class="h-9 rounded bg-gray-100 dark:bg-gray-700/50"></div>
+          </div>
+          <ul v-else-if="generatedDocs.length" class="space-y-1.5">
+            <li
+              v-for="doc in generatedDocs"
+              :key="doc.id"
+              class="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2"
+            >
+              <i class="pi pi-file-pdf text-sm text-indigo-500 shrink-0"></i>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm text-gray-700 dark:text-gray-200 truncate">{{ doc.file_name }}</p>
+                <span class="text-xs text-gray-400">{{ formatDateTime(doc.generated_at) }}</span>
+              </div>
+              <Button
+                icon="pi pi-eye"
+                size="small"
+                text
+                severity="secondary"
+                class="!w-7 !h-7 shrink-0"
+                v-tooltip.left="t('common.view')"
+                @click="openGeneratedDoc(doc)"
+              />
+              <a
+                :href="doc.file_url"
+                :download="doc.file_name"
+                class="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 shrink-0 text-xs"
+                :title="t('common.download')"
+              >
+                <i class="pi pi-download"></i>
+              </a>
+            </li>
+          </ul>
+          <p v-else class="text-xs text-gray-400 dark:text-gray-500 py-2 text-center">{{ t('employee_movement.no_generated_documents') }}</p>
+        </div>
+
         <!-- Dokumen movement (§12.15) — multi-dokumen: upload via POST /uploads → metadata ke /movements/:id/documents -->
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
@@ -402,6 +457,32 @@
       </template>
     </Dialog>
 
+    <!-- ── Preview PDF hasil Generate Document ── -->
+    <Dialog v-model:visible="genDocVisible" :header="t('employee_movement.generated_documents')" modal :style="{ width: '900px' }" :contentStyle="{ height: '75vh' }">
+      <iframe v-if="genDocUrl" :src="genDocUrl" id="gen-doc-iframe" class="w-full h-full rounded-lg border border-gray-200 dark:border-gray-700" title="Generated PDF"></iframe>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button
+            :label="t('common.print')"
+            icon="pi pi-print"
+            size="small"
+            severity="secondary"
+            outlined
+            :disabled="!genDocUrl"
+            @click="printGeneratedDoc"
+          />
+          <a
+            :href="genDocUrl"
+            :download="genDocName"
+            class="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+          >
+            <i class="pi pi-download"></i>{{ t('common.download') }}
+          </a>
+          <Button :label="t('common.close')" severity="secondary" outlined size="small" @click="genDocVisible = false" />
+        </div>
+      </template>
+    </Dialog>
+
     <!-- ── Konfirmasi aksi ── -->
     <ConfirmActionDialog
       v-model:visible="submitConfirmVisible"
@@ -530,6 +611,14 @@ const deleteConfirmVisible = ref(false)
 // ── Detail ──
 const detailVisible = ref(false)
 const detailItem = ref(null)
+
+// ── Generate Document (plan §16) ──
+const generatedDocs = ref([])
+const genDocsLoading = ref(false)
+const generatingDoc = ref(false)
+const genDocVisible = ref(false)
+const genDocUrl = ref('')
+const genDocName = ref('')
 
 // ── Dokumen movement (§12.15) ──
 const movementDocuments = ref([])
@@ -853,6 +942,52 @@ function openDetail(data) {
   docForm.value.document_type = null
   clearDocFile()
   loadMovementDocuments()
+  loadGeneratedDocuments()
+}
+
+// ── Generate Document (plan §16) ──
+async function loadGeneratedDocuments() {
+  if (!detailItem.value) return
+  genDocsLoading.value = true
+  try {
+    const res = await api.get(`/api/v1/tenant/employee-movements/movements/${detailItem.value.id}/generated-documents`)
+    generatedDocs.value = res.data?.data || []
+  } catch (err) {
+    generatedDocs.value = []
+  } finally {
+    genDocsLoading.value = false
+  }
+}
+
+async function handleGenerateDocument() {
+  if (!detailItem.value) return
+  generatingDoc.value = true
+  try {
+    const res = await api.post(`/api/v1/tenant/employee-movements/movements/${detailItem.value.id}/generate-document`)
+    const doc = res.data?.data
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('employee_movement.doc_generated'), life: 3000 })
+    if (doc?.file_url) {
+      genDocUrl.value = doc.file_url
+      genDocName.value = doc.file_name || 'SK.pdf'
+      genDocVisible.value = true
+    }
+    await loadGeneratedDocuments()
+  } catch (err) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: getErrorMessage(err, t('employee_movement.generate_failed')), life: 4000 })
+  } finally {
+    generatingDoc.value = false
+  }
+}
+
+function openGeneratedDoc(doc) {
+  genDocUrl.value = doc.file_url
+  genDocName.value = doc.file_name || 'SK.pdf'
+  genDocVisible.value = true
+}
+
+function printGeneratedDoc() {
+  const frame = document.querySelector('#gen-doc-iframe')
+  if (frame?.contentWindow) frame.contentWindow.print()
 }
 
 // Aksi dari dalam dialog detail: tutup detail lalu buka konfirmasi yang sama

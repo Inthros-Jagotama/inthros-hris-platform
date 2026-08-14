@@ -115,22 +115,6 @@ func (r *Repository) FindActiveByType(ctx context.Context, documentType string) 
 	return &tpl, nil
 }
 
-func (r *Repository) FindDefaultByType(ctx context.Context, documentType string) (*DocumentTemplate, error) {
-	db, err := r.getDB(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var tpl DocumentTemplate
-	err = db.Where("type = ? AND is_default = ? AND deleted_at IS NULL", documentType, true).First(&tpl).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, ErrTemplateNotFound
-		}
-		return nil, fmt.Errorf("failed to find default document template: %w", err)
-	}
-	return &tpl, nil
-}
-
 func (r *Repository) Create(ctx context.Context, tpl *DocumentTemplate) error {
 	db, err := r.getDB(ctx)
 	if err != nil {

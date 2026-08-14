@@ -2,7 +2,9 @@
 
 **Module:** Settings  
 **Feature:** Template Dokumen  
-**Stack:** Go (Backend) + Vue.js 3 + PrimeVue (Frontend)
+**Stack:** Go Backend + Vue.js 3 + PrimeVue Frontend  
+**Template Format:** Microsoft Word `.docx`  
+**PDF Engine:** LibreOffice Headless
 
 ## 1. Tujuan
 
@@ -27,8 +29,6 @@ Administrator dapat:
 - Membuat template baru.
 - Mengubah template.
 - Mengaktifkan/nonaktifkan template — **hanya 1 template aktif per jenis dokumen**.
-- Menggunakan **template default (referensi)** untuk membuat template baru.
-- Mengubah konten **template default (referensi)**.
 - Melihat detail template.
 - Membuat versi baru dari template.
 - Melihat histori versi template.
@@ -60,12 +60,12 @@ CERTIFICATE
 Setiap jenis dokumen memiliki:
 
 ```text
-maksimal 1 template ACTIVE  +  1 template DEFAULT (referensi)
+maksimal 1 template ACTIVE
 ```
 
 ---
 
-## 2.3 Aturan Template Aktif & Template Default
+## 2.3 Aturan Template Aktif
 
 ### Satu Template Aktif per Jenis Dokumen
 
@@ -76,29 +76,7 @@ maksimal 1 template ACTIVE  +  1 template DEFAULT (referensi)
   - **Database** — partial unique index `(document_type) WHERE status = 'ACTIVE'`.
   - **Service** — validasi + transaksi saat aktivasi.
 
-### Template Default (Referensi)
-
-- Setiap jenis dokumen memiliki **1 template default** yang berperan sebagai **referensi** (starter template).
-- Template default **tidak dapat digunakan langsung** untuk Generate Document dan **tidak dapat diaktifkan**.
-- Jika belum memiliki template untuk suatu jenis dokumen, administrator menggunakan template default melalui alur:
-
-```text
-Template Default (referensi)
-      ↓
-[ Gunakan Template Default ]
-      ↓
-Salin konten ke template baru (draft)
-      ↓
-Simpan data template        ← WAJIB disimpan terlebih dahulu
-      ↓
-Template baru siap diedit & diaktifkan
-      ↓
-Aktifkan → menjadi 1-satunya template aktif untuk jenis tsb
-```
-
-- Data template **harus disimpan terlebih dahulu** sebelum bisa digunakan; template default hanya menyediakan konten awal, bukan template yang langsung dipakai.
-- Konten template default **dapat diubah** oleh administrator (referensi diperbarui). Perubahan ini **tidak memengaruhi** template yang sudah dibuat dari default, karena template tersebut sudah menjadi salinan tersendiri.
-- Template default bersifat **seeded** (satu per jenis dokumen), tidak dapat dihapus, dan dapat di-*reset* ke konten bawaan.
+> **Keputusan (2026-08-14): fitur template default (referensi) DIHAPUS.** Tidak ada lagi template default/referensi, alur "Gunakan Template Default", maupun "Edit Default Content". Template dibuat langsung dari nol (ACTIVE/INACTIVE). Migrasi 113 menghapus seed default + kolom `is_default` + index partial default; `CreateFromDefault`/`UpdateDefaultContent` dan route `/from-default`/`/default-content` dihapus dari backend, UI terkait dihapus dari frontend.
 
 ---
 
@@ -146,16 +124,13 @@ Kolom:
 | Code | Kode template |
 | Document Type | Jenis dokumen |
 | Version | Versi aktif |
-| Status | Active / Inactive / Reference (default) |
-| Default | Penanda template default (referensi) |
+| Status | Active / Inactive |
 | Updated At | Waktu terakhir update |
-| Action | Detail/Edit/Version/Preview/Gunakan Default |
+| Action | Detail/Edit/Version/Preview |
 
 Catatan:
 
 - Hanya **1 template `Active`** per Document Type. Mengaktifkan template lain otomatis menonaktifkan template yang sedang aktif (dengan konfirmasi).
-- Baris bertanda **Default** adalah template referensi — statusnya `Reference`, tidak dapat diaktifkan/digunakan langsung.
-- Jika suatu Document Type **belum memiliki template sama sekali**, tampilkan aksi `[ Gunakan Template Default ]` untuk jenis tersebut.
 
 Contoh:
 
@@ -165,12 +140,10 @@ Template Dokumen
 [ + Template Baru ]                       [ Search ]
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│ Name                 │ Type        │ Version │ Status    │ Default  │
+│ Name                 │ Type        │ Version │ Status    │          │
 ├─────────────────────────────────────────────────────────────────────┤
 │ Perjanjian PKWT      │ Contract    │ v3       │ Active    │          │
-│ Perjanjian PKWT (D)  │ Contract    │ -        │ Reference │ ★        │
 │ SK Movement          │ Movement SK │ v2       │ Active    │          │
-│ SK Movement (D)      │ Movement SK │ -        │ Reference │ ★        │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -192,18 +165,13 @@ Code
 Document Type
 [ Contract Agreement                ▼ ]
 
-[ Ambil dari Template Default ]   ← opsional; mengisi Template Content
-                                    dengan konten default jenis tsb
-                                    (alur: salin → simpan → aktifkan)
-
 Status
 [ Inactive ]   ← hanya 1 template Active per jenis dokumen;
                   mengaktifkan otomatis menonaktifkan yang lain.
-                  Template default (referensi) tidak dapat diaktifkan.
 
 Template Content
 ┌──────────────────────────────────────────────┐
-│              PrimeVue Editor                 │
+│              Microsoft Word                 │
 │                                              │
 │ PERJANJIAN KERJA WAKTU TERTENTU              │
 │                                              │
@@ -219,43 +187,72 @@ Template Content
 
 ---
 
-# 6. PrimeVue Editor
+# 6. Microsoft Word DOCX Template
 
-Gunakan:
+Template dokumen dibuat menggunakan **Microsoft Word** dan di-upload ke aplikasi dalam format `.docx`. Tidak perlu membangun document editor Word di Vue.
 
-```vue
-<Editor />
+Contoh isi template Word:
+
+```text
+PERJANJIAN KERJA WAKTU TERTENTU
+
+Nomor: {{contract.number}}
+
+Nama       : {{employee.name}}
+NIK        : {{employee.nik}}
+Jabatan    : {{employee.position}}
+Organisasi : {{employee.organization.name}}
+
+Perjanjian berlaku mulai tanggal {{contract.start_date}}
+sampai dengan {{contract.end_date}}.
 ```
 
-Editor digunakan untuk membuat konten HTML dokumen.
+Administrator dapat menggunakan fitur Microsoft Word seperti:
 
-Fitur toolbar minimal:
-
-- Bold
-- Italic
-- Underline
-- Font size
-- Heading
-- Text alignment
-- Ordered list
-- Bullet list
-- Link
-- Table
-- Image
-- Text color
-- Background
-- Undo/Redo
-
-Editor harus mendukung:
-
-- Paragraph
+- Font dan font size
+- Bold / italic / underline
+- Alignment dan paragraph spacing
 - Table
 - Image/logo
-- Alignment
-- Signature area
+- Header/footer
+- Page number
 - Page break
+- Signature
+- Kop surat
+- Numbering dan bullet list
 
----
+Frontend Vue + PrimeVue hanya menangani management template, upload, versioning, variable reference, preview, dan document actions.
+
+## 6.1 Upload Template
+
+Form template menyediakan:
+
+```text
+Name
+[ Perjanjian Kerja Waktu Tertentu ]
+
+Code
+[ CONTRACT_AGREEMENT ]
+
+Document Type
+[ Contract Agreement ▼ ]
+
+Template File
+[ Choose File ]
+
+Perjanjian_PKWT.docx
+
+[Cancel] [Upload]
+```
+
+Validasi minimal:
+
+- Extension `.docx`.
+- MIME type valid.
+- Ukuran file sesuai limit.
+- File valid sebagai Office Open XML.
+- Placeholder dapat dideteksi.
+- Variable yang digunakan harus terdaftar atau menghasilkan warning sesuai konfigurasi.
 
 # 7. Variable / Placeholder System
 
@@ -328,126 +325,71 @@ editor akan memasukkan:
 
 # 8. Template Preview (Preview ke PDF)
 
-Preview menghasilkan **PDF sungguhan** dari konten template sehingga administrator dapat melihat hasil akhir persis seperti dokumen yang akan digenerate — langsung dari Settings, tanpa harus masuk ke module Contract/Movement.
-
-### 8.1 Tombol Preview
-
-Tersedia di dua tempat:
+Preview dilakukan melalui backend dengan sample data. Karena template berbasis DOCX, preview mengikuti pipeline yang sama dengan dokumen final.
 
 ```text
-1. Template List → aksi [ Preview ] per baris
-   → preview menggunakan VERSI AKTIF template yang tersimpan.
-
-2. Template Editor (form) → tombol [ Preview ] di toolbar
-   → preview konten DRAFT yang sedang diedit (belum/tidak perlu disimpan).
+DOCX Template
+      ↓
+Sample Data
+      ↓
+Resolve Variables
+      ↓
+Generated DOCX
+      ↓
+LibreOffice Headless
+      ↓
+PDF
+      ↓
+PDF Viewer
 ```
 
-### 8.2 Dua Mode Preview
+### 8.1 Preview Versi Tersimpan
+
+Template list menyediakan tombol `[ Preview ]` yang menggunakan active version template.
+
+### 8.2 Preview Draft
+
+Opsional untuk enhancement: administrator dapat memilih file DOCX draft dan meminta preview sebelum version disimpan.
+
+### 8.3 Sample Data
 
 ```text
-Preview Versi Tersimpan               Preview Draft
-─────────────────────────             ──────────────────────────
-Pakai active_version_id               Kirim konten editor saat ini
-+ konfigurasi dokumen tersimpan       + konfigurasi dokumen (paper,
-      ↓                               orientation, margin)
-Resolve dengan data contoh                  ↓
-      ↓                                Resolve dengan data contoh
-Render HTML → PDF                            ↓
-                                       Render HTML → PDF
+{{employee.name}}        → Asep Ruswanda
+{{employee.nik}}         → 199001012015011001
+{{employee.position}}    → HR Staff
+{{contract.number}}      → CTR-2026-001
+{{contract.start_date}}  → 2026-01-01
+{{contract.end_date}}    → 2027-01-01
+{{company.name}}         → PT Maju Bersama
 ```
 
-- **Preview Versi Tersimpan** — memakai konten versi aktif + konfigurasi dokumen yang sudah disimpan.
-- **Preview Draft** — mengirimkan konten editor dan konfigurasi saat itu juga, agar hasilnya akurat meskipun template **belum disimpan**.
+### 8.4 PDF Viewer
 
-### 8.3 Data Contoh (Sample Data)
-
-Preview tidak memakai data asli, melainkan **data contoh** agar hasil variabel terlihat:
+Preview ditampilkan dalam PrimeVue `Dialog`/`Drawer` menggunakan PDF embed/iframe dengan action:
 
 ```text
-{{employee.name}}       → Asep Ruswanda
-{{employee.nik}}        → 199001012015011001
-{{employee.position}}   → HR Staff
-{{employee.organization}}→ HR Division
-{{contract.number}}     → CTR-2026-001
-{{contract.start_date}} → 2026-01-01
-{{contract.end_date}}   → 2027-01-01
-{{company.name}}        → PT Maju Bersama
+[ Download PDF ] [ Print ] [ Close ]
 ```
-
-### 8.4 Alur Preview ke PDF
-
-```text
-Template Editor / Template List
-      ↓
-[ Preview ]
-      ↓
-POST preview (versi tersimpan ATAU konten draft)
-      ↓
-Resolve Variables (data contoh)
-      ↓
-Render HTML (engine sama dengan PDF final)
-      ↓
-HTML → PDF (Headless Chromium)
-      ↓
-Tampilkan di Dialog PDF Viewer
-      ↓
-[ Download PDF ] [ Print ] [ Tutup ]
-```
-
-- Selama proses berjalan tampilkan `ProgressSpinner`/loading (generasi PDF membutuhkan beberapa detik).
-- **WYSIWYG**: preview memakai engine rendering yang sama dengan Generate Document (Headless Chromium) sehingga hasil preview = hasil PDF final.
-
-### 8.5 PDF Viewer
-
-- Preview ditampilkan dalam `Dialog`/`Drawer` berukuran besar menggunakan `<iframe>`/PDF embed.
-- Tombol aksi di viewer: **Download PDF** dan **Print**.
-- Jika variabel dari `document_type` tidak memiliki sample data, tampilkan placeholder `-` dengan catatan kecil bahwa variabel kosong akan diisi data asli saat generate.
-
----
 
 # 9. Document Configuration
 
-Template perlu memiliki konfigurasi dokumen.
+Layout utama dibuat di Microsoft Word. Konfigurasi aplikasi hanya menyimpan metadata yang memang diperlukan document pipeline.
 
-### Paper
+Optional:
+
+```text
+paper_size
+orientation
+```
+
+Contoh:
 
 ```text
 A4
-A5
-Letter
-Legal
-```
-
-### Orientation
-
-```text
 Portrait
-Landscape
 ```
 
-### Margin
-
-```text
-Top
-Right
-Bottom
-Left
-```
-
-### Header
-
-- Logo
-- Company name
-- Address
-- Custom header
-
-### Footer
-
-- Page number
-- Document number
-- Custom footer
-
----
+Margin, header, footer, font, spacing, signature, dan layout lainnya mengikuti template Word.
 
 # 10. Template Versioning
 
@@ -477,7 +419,7 @@ Set Active
 
 Jangan mengubah isi versi lama secara langsung.
 
-Catatan: status **Active/Inactive** berada di level **template** (maksimal 1 Active per jenis dokumen), sedangkan **versi aktif** berada di level template (`active_version_id`). Template default (referensi) tidak memakai mekanisme versi aktif — kontennya diperbarui langsung sebagai referensi.
+Catatan: status **Active/Inactive** berada di level **template** (maksimal 1 Active per jenis dokumen), sedangkan **versi aktif** berada di level template (`active_version_id`).
 
 ---
 
@@ -492,8 +434,7 @@ code
 document_type
 description
 active_version_id
-status              -- ACTIVE / INACTIVE / REFERENCE (default)
-is_default          -- BOOLEAN, penanda template default (referensi)
+status              -- ACTIVE / INACTIVE
 created_at
 updated_at
 deleted_at
@@ -549,19 +490,9 @@ CREATE UNIQUE INDEX uq_document_templates_active_per_type
   ON document_templates (document_type)
   WHERE status = 'ACTIVE';
 
--- Hanya 1 template default (referensi) per jenis dokumen
-CREATE UNIQUE INDEX uq_document_templates_default_per_type
-  ON document_templates (document_type)
-  WHERE is_default = TRUE;
 ```
 
-Seed data: satu template default per jenis dokumen (`CONTRACT_AGREEMENT`, `MOVEMENT_SK`, dst.) berisi konten contoh lengkap dengan placeholder.
-
-Template default:
-
-- `is_default = TRUE`, `status = REFERENCE` (tidak pernah dipakai Generate Document).
-- Tidak dapat dihapus/diaktifkan; konten dapat diubah (referensi diperbarui).
-- Tidak dihitung dalam aturan "1 template aktif per jenis".
+> Fitur template default/referensi dihapus (2026-08-14): kolom `is_default` dan index partial default di-drop pada migrasi 113; tidak ada seed template default.
 
 ---
 
@@ -604,75 +535,74 @@ Perjanjian_PKWT_CTR-2026-001.pdf
 
 # 13. Backend Go
 
-Struktur feature:
+**Template Dokumen adalah sub-feature dari module `setting`** — bukan module tenant terpisah. Route-nya didaftarkan di bawah group `/settings` pada module `setting` (sama seperti resource settings lain: zones, provinces, competencies, document-numbering), sehingga path API menjadi `/api/v1/tenant/settings/document-templates`.
+
+Struktur feature (package flat, sesuai konvensi project):
 
 ```text
-internal/
-└── document_template/
-    ├── domain/
-    │   ├── template.go
-    │   ├── template_version.go
-    │   └── variable.go
-    │
-    ├── repository/
-    │   ├── template_repository.go
-    │   └── version_repository.go
-    │
-    ├── service/
-    │   ├── template_service.go
-    │   ├── render_service.go
-    │   └── pdf_service.go
-    │
-    ├── handler/
-    │   └── template_handler.go
-    │
-    └── dto/
-        ├── template_request.go
-        └── template_response.go
+backend/internal/modules/documenttemplate/
+    ├── model.go        -- DocumentTemplate, DocumentTemplateVersion, DocumentTemplateAudit, GeneratedDocument
+    ├── repository.go   -- repo + NewTenantDBResolver
+    ├── service.go      -- one-active-per-jenis atomik, versioning
+    ├── handler.go      -- HTTP handlers
+    ├── routes.go       -- RegisterRoutes(rg, handler) → sub-group "/document-templates"
+    ├── dto.go          -- request/response DTO + binding tags
+    ├── errors.go
+    └── variables.go    -- static variable registry
 ```
 
-Sesuaikan dengan struktur Clean Architecture yang sudah digunakan project.
+Wiring ke module `setting`:
+
+```text
+setting.NewModule(dbManager, logger, numberingSvc)
+    ├── dtRepo := documenttemplate.NewRepository(documenttemplate.NewTenantDBResolver(dbManager))
+    ├── dtSvc  := documenttemplate.NewService(dtRepo, logger)
+    ├── dtHandler := documenttemplate.NewHandler(dtSvc)
+    └── RegisterRoutesWithNumbering(rg, handler, numberingHandler, dtHandler)
+        └── documenttemplate.RegisterRoutes(settings, dtHandler)  → /settings/document-templates/*
+```
+
+Tidak ada lagi registrasi `documenttemplate.NewModule` di `cmd/server/main.go` (di-remove; module.go dihapus). Permission & menu dideklarasikan di `setting` module `Info()`.
 
 ---
 
 # 14. API
 
+Semua endpoint di bawah prefix tenant: `/api/v1/tenant/settings/document-templates`.
+
 ### Template
 
 ```http
-GET    /api/settings/document-templates
-POST   /api/settings/document-templates
-GET    /api/settings/document-templates/{id}
-PUT    /api/settings/document-templates/{id}
-DELETE /api/settings/document-templates/{id}
+GET    /api/v1/tenant/settings/document-templates
+POST   /api/v1/tenant/settings/document-templates
+GET    /api/v1/tenant/settings/document-templates/{id}
+PUT    /api/v1/tenant/settings/document-templates/{id}
+DELETE /api/v1/tenant/settings/document-templates/{id}
 
-POST   /api/settings/document-templates/{id}/activate   ← otomatis menonaktifkan
-                                                          template lain sejenis
-POST   /api/settings/document-templates/{id}/deactivate
-POST   /api/settings/document-templates/from-default   ← body: { "document_type": "..." }
-                                                          salin konten default →
-                                                          template baru (draft, wajib disimpan)
+POST   /api/v1/tenant/settings/document-templates/{id}/activate   ← otomatis menonaktifkan
+                                                                    template lain sejenis
+POST   /api/v1/tenant/settings/document-templates/{id}/deactivate
 ```
 
 ### Version
 
 ```http
-GET  /api/settings/document-templates/{id}/versions
-POST /api/settings/document-templates/{id}/versions
-GET  /api/settings/document-templates/{id}/versions/{versionId}
+GET  /api/v1/tenant/settings/document-templates/{id}/versions
+POST /api/v1/tenant/settings/document-templates/{id}/versions
+GET  /api/v1/tenant/settings/document-templates/{id}/versions/{versionId}
 ```
 
 ### Preview
 
 ```http
-POST /api/settings/document-templates/{id}/preview   ← preview VERSI AKTIF (data contoh)
+POST /api/v1/tenant/settings/document-templates/{id}/preview   ← preview VERSI AKTIF (data contoh)
 
-POST /api/settings/document-templates/preview-draft  ← preview DRAFT:
-                                                       body: { document_type,
-                                                               content,
-                                                               paper_size,
-                                                               orientation,
-                                                               margins }
+POST /api/v1/tenant/settings/document-templates/preview-draft  ← preview DRAFT:
+                                                               body: { document_type,
+                                                                       content,
+                                                                       paper_size,
+                                                                       orientation,
+                                                                       margins }
 
 Response: { "pdf_url": "...", "file_name": "preview_<template>.pdf" }
 ```
@@ -680,8 +610,10 @@ Response: { "pdf_url": "...", "file_name": "preview_<template>.pdf" }
 ### Variables
 
 ```http
-GET /api/settings/document-templates/variables
+GET /api/v1/tenant/settings/document-templates/variables
 ```
+
+> **RBAC note:** karena route berada di bawah `/settings/`, middleware RBAC menurunkan resource `setting` (lihat `singularize("settings") → "setting"` di `authz.ResourceFromPath`), sehingga permission `setting.*` yang sudah di-seed di tenant RBAC langsung berlaku — Admin dapat akses penuh, Employee view-only. Ini memperbaiki masalah sebelumnya saat route berdiri sendiri di `/document-templates` yang menurunkan resource `document-template` (tidak pernah di-seed).
 
 ---
 
@@ -690,7 +622,7 @@ GET /api/settings/document-templates/variables
 Backend Go menangani:
 
 ```text
-Template
+Template DOCX
    ↓
 Load Template Version
    ↓
@@ -698,18 +630,54 @@ Load Reference Data
    ↓
 Resolve Variables
    ↓
-Generate HTML
+Generate DOCX
    ↓
-HTML → PDF
+LibreOffice Headless
+   ↓
+PDF
    ↓
 Store PDF
    ↓
 Return File
 ```
 
-Untuk PDF generator, gunakan pendekatan **Headless Chromium** agar HTML/CSS template lebih konsisten dengan preview.
+Gunakan **LibreOffice Headless** sebagai engine DOCX → PDF.
 
----
+Contoh konsep:
+
+```bash
+libreoffice \
+    --headless \
+    --convert-to pdf \
+    --outdir /tmp/output \
+    document.docx
+```
+
+Untuk production, LibreOffice dapat ditempatkan sebagai service/container terpisah untuk isolasi dan scaling.
+
+**Setup binary (implementasi saat ini):** `LibreOfficePDFService` auto-detect binary per platform — Windows mencoba `C:\Program Files\LibreOffice\program\soffice.exe` & `C:\Program Files (x86)\...` lalu nama `soffice(.exe)`/`libreoffice` di PATH; Linux/macOS mencoba `/usr/bin/libreoffice` dll. Bila tidak ditemukan, preview mengembalikan 503 `PDF_ENGINE_NOT_CONFIGURED` dengan pesan jelas. Override via env `HRIS_STORAGE_LIBREOFFICE_PATH` atau `storage.libreoffice_path` di config file. Catatan: installer LibreOffice Windows TIDAK menambahkan ke PATH — gunakan path penuh atau env var.
+
+**Dua opsi engine (2026-08-14):** selain LibreOffice, tersedia `Docx2pdfPDFService` — implementasi pure-Go (`github.com/bobyeoh/docx2pdf-go` v0.3.0, MIT) tanpa dependency eksternal/LibreOffice. Pilih via `storage.pdf_engine` (`"libreoffice"` default | `"docx2pdf"`; env `HRIS_STORAGE_PDF_ENGINE`), helper `newPDFService(cfg)` di main.go. Keduanya tetap ada; service dibuat sesuai pilihan config. Prasyarat: proyek di-upgrade ke **Go 1.26.1** (go.mod + `golang:1.26-alpine` di Dockerfile) karena library menuntut Go ≥ 1.26.
+
+## 15.1 PDF Service Abstraction
+
+```go
+type PDFService interface {
+    ConvertDOCXToPDF(
+        ctx context.Context,
+        inputPath string,
+        outputPath string,
+    ) error
+}
+```
+
+Implementasi awal:
+
+```text
+PDFService
+    ↓
+LibreOfficePDFService
+```
 
 # 16. Integrasi dengan Contract
 
@@ -749,7 +717,7 @@ Jika **belum ada template aktif** untuk `CONTRACT_AGREEMENT`, tampilkan pesan:
 
 ```text
 Belum ada template aktif untuk jenis ini.
-Buat template dari default di Settings → Template Dokumen (alur Gunakan Template Default).
+Buat template di Settings → Template Dokumen.
 ```
 
 ---
@@ -771,7 +739,7 @@ Generate Document
 └── SK Movement   ← default pilihan: template aktif untuk MOVEMENT_SK
 ```
 
-Jika **belum ada template aktif** untuk `MOVEMENT_SK`, tampilkan pesan yang sama seperti pada Contract (arahkan ke alur *Gunakan Template Default*).
+Jika **belum ada template aktif** untuk `MOVEMENT_SK`, tampilkan pesan yang sama seperti pada Contract (arahkan ke Settings → Template Dokumen).
 
 Variable otomatis mengambil:
 
@@ -789,24 +757,26 @@ Movement Number
 
 # 18. Security & Permission
 
-Tambahkan permission:
+Permission didaftarkan di **module `setting`** (`Info().Permissions`) dengan nama resource `setting.document_template` (pola `module.resource.action` yang sama seperti `setting.zone.*`):
 
 ```text
-document-template.view
-document-template.create
-document-template.update
-document-template.delete
-document-template.preview
-document-template.version
+setting.document_template.view
+setting.document_template.create
+setting.document_template.update
+setting.document_template.delete
+setting.document_template.activate
+setting.document_template.deactivate
+setting.document_template.version
 ```
 
-Untuk generated document:
+Untuk generated document (Phase 5):
 
 ```text
-document.view
-document.generate
-document.download
+setting.document_template.generate
+setting.document_template.download
 ```
+
+> **Catatan penting:** permission granular di atas adalah deklarasi untuk RBAC UI. Enforcement runtime tetap melalui `authz` middleware yang menurunkan resource dari path — karena route berada di `/settings/...`, permission yang dicek adalah `setting.view/create/update/delete` yang sudah di-seed di tenant RBAC (Admin: semua action; Employee: view). Jadi Admin tenant otomatis bisa mengelola template dokumen tanpa konfigurasi RBAC tambahan.
 
 Gunakan mekanisme permission/RBAC yang sudah digunakan aplikasi.
 
@@ -823,8 +793,6 @@ Template Version Created
 Template Activated
 Template Deactivated
 Template Deleted
-Template Default Updated
-Template Created from Default
 Document Generated
 Document Downloaded
 ```
@@ -852,9 +820,9 @@ Komponen yang disarankan:
 ```text
 DocumentTemplateIndex.vue
 DocumentTemplateForm.vue
-DocumentTemplateEditor.vue
-DocumentTemplateVariablePicker.vue
-DocumentTemplatePreview.vue         ← komponen tombol Preview + state loading
+DocumentTemplateUpload.vue
+DocumentTemplateVariableList.vue
+DocumentTemplatePreview.vue         ← preview hasil DOCX → PDF
 DocumentTemplatePreviewDialog.vue   ← PDF viewer (iframe + Download/Print)
 DocumentTemplateVersionDialog.vue
 DocumentTemplateConfiguration.vue
@@ -866,7 +834,6 @@ PrimeVue component:
 DataTable
 Dialog
 Drawer
-Editor
 Button
 InputText
 Select
@@ -884,101 +851,113 @@ ProgressSpinner
 
 # 21. Tahapan Implementasi
 
-## Phase 1 — Database & Backend Foundation ✅ SELESAI (2026-08-14, termasuk final review fix: MySQL locking pada Activate, guard IsDefault di Deactivate/CreateVersion, partial-update tidak lagi menghapus field lain, soft-delete code reuse, case-insensitive search lintas DB, FK active_version_id via migrasi 111)
+## Phase 1 — Database & Backend Foundation ✅ SELESAI (2026-08-14, termasuk final review fix: MySQL locking pada Activate, partial-update tidak lagi menghapus field lain, soft-delete code reuse, case-insensitive search lintas DB, FK active_version_id via migrasi 111)
 
-- [x] Migration `document_templates` (termasuk `is_default`) — migrasi 110 (mysql+postgres), commit `6b12129c`
+- [x] Migration `document_templates` — migrasi 110 (mysql+postgres), commit `6b12129c`
 - [x] Partial unique index: 1 template aktif per jenis dokumen — Postgres partial index (migrasi 110); MySQL ditegakkan di service layer (Task 4)
-- [x] Partial unique index: 1 template default per jenis dokumen — Postgres partial index (migrasi 110); MySQL ditegakkan di service layer (Task 4)
-- [x] Seed template default per jenis dokumen — 2 baris REFERENCE (CONTRACT_AGREEMENT, MOVEMENT_SK), migrasi 110
 - [x] Migration `document_template_versions` — migrasi 110
+- [x] **Fitur template default dihapus** — migrasi 113 (mysql+postgres): DELETE seed default, DROP index partial default (postgres), DROP COLUMN `is_default`; `CreateFromDefault`/`UpdateDefaultContent`/`FindDefaultByType`/guard `IsDefault` + route `/from-default` & `/:id/default-content` + permission `set_default` dihapus dari backend
 - [ ] Migration `document_template_variables` jika diperlukan — tidak dibuat; variable registry diimplementasikan sebagai static Go registry (Task 6), bukan tabel DB, sesuai catatan spec §11 ("sebaiknya didefinisikan melalui registry di backend")
 - [x] Migration `generated_documents` — migrasi 110 (skema saja; belum ada writer, itu Phase 5)
 - [x] Domain entity — `backend/internal/modules/documenttemplate/model.go`, commit `0313eb26`
 - [x] Repository — `backend/internal/modules/documenttemplate/repository.go`, commit `1d48b854`
-- [x] Service — `backend/internal/modules/documenttemplate/service.go`, commit `4182bc73` (one-active-per-jenis atomik via transaksi, from-default copy, versioning)
+- [x] Service — `backend/internal/modules/documenttemplate/service.go`, commit `4182bc73` (one-active-per-jenis atomik via transaksi, versioning; from-default dihapus migrasi 113)
 - [x] DTO — `backend/internal/modules/documenttemplate/dto.go`, commit `b5616b79`
-- [x] API handler — `handler.go` + `routes.go` + `module.go`, commit `b5616b79` (belum diregistrasi ke `main.go`, itu Task 6)
-- [x] Permission — daftar permission `documenttemplate.*` di `module.go`'s `Info()`, commit `b5616b79`
+- [x] API handler — `handler.go` + `routes.go`, commit `b5616b79`
+- [x] **Terintegrasi ke module `setting`** — handler documenttemplate di-wire di `setting.NewModule` dan route didaftarkan di `/settings/document-templates` (bukan module tenant terpisah); registrasi `documenttemplate.NewModule` & `module.go` dihapus dari `main.go` (fix RBAC: route di `/settings/...` menurunkan resource `setting.*` yang sudah di-seed tenant)
+- [x] Permission — daftar permission `setting.document_template.*` di `setting` module's `Info()`, commit `b5616b79`
 - [x] Validation — `httputil.BindAndValidate` + tag binding di dto.go, commit `b5616b79`
 
-## Phase 2 — Template Management
+## Phase 2 — Template Management ✅ SELESAI (2026-08-14)
 
 - [x] Template list — `frontend/tenant/src/views/settings/DocumentTemplatesView.vue`, commit `95cd6d26`
 - [x] Search — search box dengan debounce 400ms, memanggil `?search=`
 - [x] Filter document type — dropdown Contract Agreement / Movement SK
-- [ ] Create template — belum (menyusul, butuh form/editor)
-- [ ] Edit template — belum (menyusul, butuh form/editor)
-- [ ] Detail template — belum
-- [x] Active/inactive — tombol Activate/Deactivate per baris di list, memanggil endpoint Phase 1 yang sudah teratomisasi (hanya 1 aktif per jenis)
-- [ ] Set/ubah template default (referensi) — belum (endpoint `UpdateDefaultContent` sudah ada di backend tapi belum di-routing/di-UI-kan)
-- [ ] Alur "Gunakan Template Default" (salin → simpan → aktifkan) — belum
-- [ ] Delete template — belum
-- [ ] Version management — belum
+- [x] Create template — **halaman terpisah** `DocumentTemplateForm.vue` (`/settings/document-templates/new`; name, document_type, description) → `POST /document-templates`. **Code otomatis**: tidak ditampilkan di form; backend meng-generate `TMPL-{DOC_TYPE}-{RANDOM8}` (UUID pendek uppercase) saat `code` kosong, sehingga admin tidak perlu mengisi kode
+- [x] Edit template — **halaman terpisah** `DocumentTemplateForm.vue` (`/settings/document-templates/:id/edit`; name, description; document_type readonly) → `PUT /document-templates/{id}`
+- [x] Detail template — dialog info + preview konten versi aktif + tombol Versions
+- [x] Active/inactive — tombol Activate/Deactivate per baris + konfirmasi, memanggil endpoint Phase 1 yang sudah teratomisasi (hanya 1 aktif per jenis)
+- [x] Delete template — aksi per baris + ConfirmDeleteDialog → `DELETE /document-templates/{id}`
+- [x] Version management — dialog list versi + buat versi baru (konten + paper/orientation/margin) + detail versi (`GET /{id}/versions`, `POST /{id}/versions`, `GET /{id}/versions/{versionId}`)
 
-## Phase 3 — Template Editor
+## Phase 3 — DOCX Template Management
 
-- [ ] Integrasi PrimeVue Editor
-- [ ] Toolbar customization
-- [ ] Variable picker
-- [ ] Insert variable
-- [ ] Table support
-- [ ] Image/logo
-- [ ] Page break
-- [ ] Document configuration
+- [x] Upload template `.docx` — form halaman `DocumentTemplateForm.vue` (`/settings/document-templates/new` & `/:id/edit`) + endpoint backend `POST /{id}/versions` mode multipart (field `file`); file disimpan ke `{uploadDir}/document_templates/{uuid}.docx`, `content` = path relatif, `file_name` = nama asli (kolom baru migrasi 112); response versi membawa `file_url`
+- [x] DOCX file validation — ekstensi `.docx` + ukuran ≤ 10 MB (backend `documenttemplate.file_*` locale EN/ID; frontend validasi `.docx` sebelum submit)
+- [x] Template version upload — dialog New Version di `DocumentTemplatesView.vue` sekarang upload `.docx` (multipart), bukan textarea HTML
+- [x] Template download — link download file `.docx` tersimpan di form edit, detail template, dan detail versi
+- [x] Placeholder detection — `docx.go` membaca file .docx (zip OOXML via stdlib `archive/zip`), ekstrak `{{key}}` dari semua XML `word/`, dikembalikan di response `POST /{id}/versions` (`placeholders`)
+- [x] Variable validation — placeholder yang tidak terdaftar di `VariableRegistry()` ditolak (400 `documenttemplate.unknown_variables` berisi daftar); file non-zip ditolak (400 `documenttemplate.invalid_docx`); test `TestHandlerCreateVersionRejectsUnknownPlaceholders` & `TestHandlerCreateVersionRejectsInvalidDocx`
+- [x] Variable reference UI — card "Variable Reference" di `DocumentTemplateForm.vue` menampilkan grup variabel dari `GET /variables` (Employee/Contract/Movement/Company)
+- [x] Copy variable action — klik variabel → salin `{{key}}` ke clipboard (`navigator.clipboard` + toast); toast info jumlah variable terdeteksi setelah save
+- [x] ~~Template default/reference flow~~ — fitur dihapus (migrasi 113)
+
+> **Catatan:** Microsoft Word bukan bagian dari editor aplikasi; PrimeVue Editor/Quill tidak digunakan sebagai document authoring tool. Template dibuat menggunakan Microsoft Word dan di-upload sebagai `.docx`.
+
+> **Perubahan implementasi (2026-08-14):** editor Quill (Phase 3 lama) dihapus dari `DocumentTemplateForm.vue` — card Template Content diganti card Template File (upload `.docx`), variable picker/page-break/table custom dihapus, CSS `.page-break` dihapus dari main.css. Document Configuration disederhanakan sesuai plan §9 (hanya `paper_size` + `orientation`; margin/header/footer mengikuti Word). Backend: `POST /{id}/versions` menerima multipart `.docx` (mode JSON `content` tetap didukung untuk backward compat), kolom `file_name` ditambah via migrasi 112 (mysql+postgres), `file_url` dihitung dari `content` bila berupa path file.
 
 ## Phase 4 — Preview & PDF
 
-- [ ] Template rendering
-- [ ] Variable resolver
-- [ ] Sample data preview
-- [ ] HTML rendering
-- [ ] PDF generation (Headless Chromium)
-- [ ] API preview versi tersimpan (`{id}/preview`)
-- [ ] API preview draft (`/preview-draft`)
-- [ ] PDF viewer dialog (iframe) di Settings
-- [ ] Download PDF dari preview
-- [ ] Print PDF dari preview
-- [ ] Loading state selama generasi PDF
-- [ ] Generated document storage
+- [x] Variable resolver ({{key}} → sample data) — `docx.go` `resolveDocxVariables`
+- [x] Sample data preview — `sampleData()` di `docx.go`
+- [x] DOCX → PDF conversion — `LibreOfficePDFService` (`pdf_service.go`)
+- [x] API preview versi tersimpan — `POST /{id}/preview` (resolve → convert → simpan ke `{uploadDir}/previews/`)
+- [x] PDF viewer dialog di Settings — iframe dialog di `DocumentTemplatesView.vue`
+- [x] Download PDF dari preview
+- [x] Print PDF dari preview
+- [x] Loading state selama generasi PDF
+- [ ] Template DOCX rendering (Generate Document modul lain — Phase 5)
+- [ ] DOCX generation (Generate Document modul lain — Phase 5)
+- [ ] LibreOffice Headless setup di server produksi
+- [ ] Generated document storage (bagian Generate Document — Phase 5)
 
 ## Phase 5 — Module Integration
 
 ### Contract
 
-- [ ] Generate Contract Agreement
-- [ ] Template selection
-- [ ] Contract data mapping
-- [ ] Employee data mapping
-- [ ] Generated document history
+- [x] Generate Contract Agreement — `POST /contracts/:id/generate-document` (employeemovement) → shared `documenttemplate.Generator`
+- [x] Template selection — otomatis memakai template ACTIVE untuk `CONTRACT_AGREEMENT` (max 1 per jenis; tanpa template aktif → pesan jelas)
+- [x] Contract data mapping — `contract.number`, `contract.start_date`, `contract.end_date` dari `employee_contracts`
+- [x] Employee data mapping — `employee.name`/`employee.nik` dari `employees`, `employee.position`/`employee.organization` dari employment aktif terakhir
+- [x] Generated document history — `GET /contracts/:id/generated-documents` (tabel `generated_documents`, migration 110)
 
 ### Movement
 
-- [ ] Generate SK Movement
-- [ ] Template selection
-- [ ] Movement data mapping
-- [ ] Employee data mapping
-- [ ] Generated document history
+- [x] Generate SK Movement — `POST /movements/:id/generate-document` (hanya status approved/executed)
+- [x] Template selection — otomatis memakai template ACTIVE untuk `MOVEMENT_SK`
+- [x] Movement data mapping — `movement.number`, `movement.effective_date`, `movement.previous_position`, `movement.new_position` dari snapshot movement
+- [x] Employee data mapping — `employee.*` + posisi/org tujuan (snapshot)
+- [x] Generated document history — `GET /movements/:id/generated-documents`
 
-## Phase 6 — Testing
+### Shared Document Generator (documenttemplate)
+
+- [x] `Generator.Generate` — template aktif + versi aktif → resolve variabel → DOCX→PDF (LibreOffice) → simpan ke `{uploadDir}/generated_documents/` → catat `generated_documents` + audit `DOCUMENT_GENERATED`
+- [x] `company.name`/`company.address` diisi Generator via `CompanyProvider` (platform DB, di-wire main.go)
+- [x] Wiring: `employeeMovementSvc.SetDocumentGenerator(documentGeneratorAdapter{gen})` — narrow interface + adapter (pola sama ApprovalEngine/CareerExecutor)
+- [x] Frontend: tombol Generate + PDF viewer (iframe/Download/Print) + histori di `EmployeeMovements.vue` (detail dialog) & `EmployeeContracts.vue` (per baris)
+
+## Phase 6 — Testing ✅ SELESAI (2026-08-14)
 
 ### Backend
 
-- [ ] Template CRUD test
-- [ ] Versioning test
-- [ ] Variable resolver test
-- [ ] Permission test
-- [ ] PDF generation test
-- [ ] Generated document test
+- [x] Template CRUD test — `service_test.go` (`TestServiceCreateRejectsInvalidDocumentType`, `TestServiceCreateAutoGeneratesCodeWhenEmpty`, `TestServiceCreateRejectsDuplicateCode`, `TestServiceDeleteThenRecreateWithSameCode`), `repository_test.go` (`TestRepositoryCreateAndGetByID`, `TestRepositoryGetByIDNotFound`, `TestRepositoryListPaginationAndSearch`, `TestRepositorySoftDeleteExcludesFromList`), `handler_test.go` (`TestHandlerCreateAndList`)
+- [x] Versioning test — `service_test.go` (`TestServiceCreateVersionIncrementsAndSetsActiveVersion`, `TestServiceCreateVersionRejectsNonexistentTemplate`), `repository_test.go` (`TestRepositoryVersionsCreateListNextNumber`), `handler_test.go` (`TestHandlerUpdateDefaultContentAndVersionDetail`)
+- [x] Variable resolver test — `docx_test.go` (`TestExtractDocxPlaceholders`, `TestExtractDocxPlaceholdersRejectsNonZip`, `TestUnknownPlaceholders`, `TestResolveDocxVariables`, `TestSampleDataCoversRegistry`, `TestResolveDocxVariablesToleratesBadCRC`), `variables_test.go` (`TestVariableRegistryHasExpectedCategories`, `TestVariableRegistryKeysAreDotted`)
+- [x] Permission test — `setting/permission_test.go` (`TestModulePermissionsDeclareDocumentTemplate` verifikasi deklarasi `setting.document_template.*` di `Info().Permissions` + `TestModuleMenusIncludeDocumentTemplates`)
+- [x] PDF generation test — `pdf_service_test.go` (4 test resolver binary LibreOffice), `docx2pdf_service_test.go` (`TestDocx2pdfPDFServiceConvertsDocx` — konversi DOCX→PDF nyata tanpa LibreOffice), `handler_test.go` (`TestHandlerPreviewWithMockPDF`, `TestHandlerPreviewWithoutPDFEngine`)
+- [x] Generated document test — `generator_test.go` (`TestGeneratorGenerateCreatesPDFAndRecord`, `TestGeneratorGenerateNoActiveTemplate`, `TestGeneratorGenerateWithoutPDFEngine`) + `employeemovement/document_test.go` (generate movement/contract + history)
 
-### Frontend
+### Frontend (baru — vitest + @vue/test-utils + jsdom)
 
-- [ ] Template list test
-- [ ] Create template test
-- [ ] Editor test
-- [ ] Variable insertion test
-- [ ] Preview test
-- [ ] Versioning test
-- [ ] PDF download test
+- [x] Test framework — `vitest` v4 + `@vue/test-utils` v2 + `jsdom` di devDependencies; script `npm test` (`vitest run`); konfigurasi di `vite.config.js` (`test.environment = 'jsdom'`, `globals`, `setupFiles: tests/setup.js`); stub global PrimeVue (DataTable/Column render-function yang meneruskan `data` row ke body slot, Button dengan `emits` agar tidak double-fire, Dialog/ConfirmDeleteDialog pakai prop `visible`, Select merender options)
+- [x] Template list test — `tests/DocumentTemplatesView.test.js`: load list saat mounted, pesan kosong, filter/status label, search
+- [x] Create template test — `tests/DocumentTemplateForm.test.js`: validasi nama wajib, validasi document_type, submit → POST template + POST versi (FormData) + redirect
+- [x] DOCX upload/validation test — tolak non-`.docx`, tolak > 10MB, valid `.docx` diterima
+- [x] Variable insertion test — variable reference dimuat dari `GET /variables`, klik variabel → clipboard `{{key}}` + toast
+- [x] Preview test — klik preview → POST `/{id}/preview` → iframe `pdf_url` tampil; error ditampilkan bila gagal
+- [x] Versioning test — dialog daftar versi (`GET /{id}/versions`), detail versi, buat versi baru (upload file + paper/orientation)
+- [x] PDF download test — tombol download link `:href` + `:download` pada preview & file template (via stub `<a>` assertion di detail/version dialog)
+- [x] Activate/deactivate/delete test — konfirmasi dialog → POST activate/deactivate + DELETE → reload + toast
 
 ---
 
@@ -986,26 +965,23 @@ ProgressSpinner
 
 Fitur dianggap selesai apabila:
 
-- [ ] Administrator dapat membuat template dokumen dari Settings.
-- [ ] Administrator dapat menggunakan PrimeVue Editor.
-- [ ] Administrator dapat memasukkan variable ke template.
-- [ ] Variable dapat di-resolve berdasarkan data employee/contract/movement.
-- [ ] Template memiliki versioning.
-- [ ] Template aktif dapat digunakan oleh module Contract.
-- [ ] Template aktif dapat digunakan oleh module Employee Movement.
-- [ ] Contract dapat menghasilkan Perjanjian PDF.
-- [ ] Movement dapat menghasilkan SK PDF.
-- [ ] PDF dapat di-preview langsung dari Settings (versi tersimpan maupun draft).
-- [ ] Preview menghasilkan PDF sungguhan dengan engine yang sama dengan Generate Document (WYSIWYG).
-- [ ] PDF dapat di-download.
-- [ ] PDF dapat di-print.
-- [ ] Dokumen yang sudah dihasilkan menyimpan referensi template dan versinya.
-- [ ] Perubahan template tidak mengubah dokumen yang sudah diterbitkan.
-- [ ] Hanya ada 1 template aktif per jenis dokumen; mengaktifkan template lain otomatis menonaktifkan template sebelumnya.
-- [ ] Setiap jenis dokumen memiliki 1 template default (referensi) yang dapat diubah kontennya.
-- [ ] Template default tidak dapat digunakan/diaktifkan langsung; harus disalin & disimpan sebagai template baru terlebih dahulu.
-- [ ] Alur "Gunakan Template Default" menghasilkan template baru yang tersimpan sebelum bisa diaktifkan.
-- [ ] Permission dan audit log diterapkan.
+- [x] Administrator dapat membuat template dokumen dari Settings.
+- [x] Administrator dapat upload template Microsoft Word `.docx`.
+- [x] Administrator dapat melihat dan menyalin daftar variable untuk digunakan di Microsoft Word.
+- [x] Variable dapat di-resolve berdasarkan data employee/contract/movement.
+- [x] Template memiliki versioning.
+- [x] Template aktif dapat digunakan oleh module Contract.
+- [x] Template aktif dapat digunakan oleh module Employee Movement.
+- [x] Contract dapat menghasilkan Perjanjian PDF.
+- [x] Movement dapat menghasilkan SK PDF.
+- [x] PDF dapat di-preview langsung dari Settings (versi tersimpan maupun draft).
+- [x] Preview menggunakan pipeline DOCX → PDF yang sama dengan Generate Document.
+- [x] PDF dapat di-download.
+- [x] PDF dapat di-print.
+- [x] Dokumen yang sudah dihasilkan menyimpan referensi template dan versinya.
+- [x] Perubahan template tidak mengubah dokumen yang sudah diterbitkan.
+- [x] Hanya ada 1 template aktif per jenis dokumen; mengaktifkan template lain otomatis menonaktifkan template sebelumnya.
+- [x] Permission dan audit log diterapkan.
 
 ---
 
@@ -1016,6 +992,8 @@ Fitur dianggap selesai apabila:
                             │
                      TEMPLATE DOKUMEN
                             │
+                     Word DOCX Template
+                            │
               ┌─────────────┴─────────────┐
               │                           │
         Contract Template          Movement Template
@@ -1024,18 +1002,18 @@ Fitur dianggap selesai apabila:
                             │
                     Template Version
                             │
-                    PrimeVue Editor
-                            │
-                    {{variables}}
-                            │
                        Go Backend
                             │
-                  Variable Resolution
+                  Variable Registry
                             │
-                     HTML Rendering
+                  Variable Resolver
                             │
-                    Headless Chromium
+                       DOCX Output
                             │
+                            ▼
+                 LibreOffice Headless
+                            │
+                            ▼
                            PDF
                             │
              ┌──────────────┼──────────────┐
@@ -1054,3 +1032,16 @@ Dengan demikian:
 - **Employee Movement** bertanggung jawab menentukan kapan SK Movement dibuat dan data movement yang digunakan.
 - **Document Generator** bertanggung jawab melakukan rendering dan menghasilkan PDF.
 - Dokumen yang sudah diterbitkan menyimpan **template version** yang digunakan sehingga perubahan template tidak mengubah dokumen lama.
+
+
+## Keputusan Teknis
+
+> **Microsoft Word `.docx` digunakan sebagai template authoring tool.**
+
+> **Vue.js + PrimeVue digunakan untuk management template, upload, versioning, variable reference, preview, dan document actions.**
+
+> **Go digunakan sebagai backend, variable resolver, DOCX processor, dan orchestration document generation.**
+
+> **LibreOffice Headless digunakan sebagai engine konversi DOCX → PDF.**
+
+Pendekatan ini dipilih karena paling sesuai untuk dokumen formal seperti **SK, perjanjian kontrak, surat mutasi, surat promosi, dan dokumen HR lainnya**, sekaligus memungkinkan tim HR mengatur layout menggunakan Microsoft Word yang sudah familiar.

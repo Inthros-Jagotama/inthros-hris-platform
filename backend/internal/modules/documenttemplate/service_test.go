@@ -20,6 +20,34 @@ func TestServiceCreateRejectsInvalidDocumentType(t *testing.T) {
 	}
 }
 
+func TestServiceCreateAutoGeneratesCodeWhenEmpty(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	svc := NewService(newTestRepo(db), zap.NewNop())
+	ctx := context.Background()
+
+	tpl, err := svc.Create(ctx, "Auto Code", "", DocumentTypeContractAgreement, "", "actor-1")
+	if err != nil {
+		t.Fatalf("Create with empty code: %v", err)
+	}
+	if tpl.Code == "" {
+		t.Fatal("expected auto-generated code, got empty")
+	}
+	expectedPrefix := "TMPL-" + DocumentTypeContractAgreement + "-"
+	if len(tpl.Code) <= len(expectedPrefix) || tpl.Code[:len(expectedPrefix)] != expectedPrefix {
+		t.Fatalf("expected code with prefix %q, got %q", expectedPrefix, tpl.Code)
+	}
+
+	// Kode otomatis harus tetap unik untuk dua template berbeda
+	second, err := svc.Create(ctx, "Auto Code 2", "", DocumentTypeContractAgreement, "", "actor-1")
+	if err != nil {
+		t.Fatalf("second Create with empty code: %v", err)
+	}
+	if second.Code == tpl.Code {
+		t.Fatalf("expected distinct auto-generated codes, both %q", tpl.Code)
+	}
+}
+
 func TestServiceCreateRejectsDuplicateCode(t *testing.T) {
 	db, cleanup := setupTestDB()
 	defer cleanup()
@@ -94,9 +122,9 @@ func TestServiceActivateSelfHealsMultipleActiveRows(t *testing.T) {
 	svc := NewService(repo, zap.NewNop())
 	ctx := context.Background()
 
-	a := createTestTemplate(db, "MULTIACT1", DocumentTypeContractAgreement, StatusActive, false)
-	b := createTestTemplate(db, "MULTIACT2", DocumentTypeContractAgreement, StatusActive, false)
-	c := createTestTemplate(db, "MULTIACT3", DocumentTypeContractAgreement, StatusInactive, false)
+	a := createTestTemplate(db, "MULTIACT1", DocumentTypeContractAgreement, StatusActive)
+	b := createTestTemplate(db, "MULTIACT2", DocumentTypeContractAgreement, StatusActive)
+	c := createTestTemplate(db, "MULTIACT3", DocumentTypeContractAgreement, StatusInactive)
 
 	if _, err := svc.Activate(ctx, c.ID, "actor-1"); err != nil {
 		t.Fatalf("activate c: %v", err)
@@ -119,47 +147,6 @@ func TestServiceActivateSelfHealsMultipleActiveRows(t *testing.T) {
 	}
 }
 
-func TestServiceActivateRejectsDefaultTemplate(t *testing.T) {
-	db, cleanup := setupTestDB()
-	defer cleanup()
-	repo := newTestRepo(db)
-	svc := NewService(repo, zap.NewNop())
-	def := createTestTemplate(db, "DEF1", DocumentTypeContractAgreement, StatusReference, true)
-
-	_, err := svc.Activate(context.Background(), def.ID, "actor-1")
-	var immErr *ReferenceTemplateImmutableError
-	if !errors.As(err, &immErr) {
-		t.Fatalf("expected ReferenceTemplateImmutableError, got %v", err)
-	}
-}
-
-func TestServiceCreateFromDefaultCopiesContent(t *testing.T) {
-	db, cleanup := setupTestDB()
-	defer cleanup()
-	repo := newTestRepo(db)
-	svc := NewService(repo, zap.NewNop())
-	content := "<p>default content</p>"
-	def := createTestTemplate(db, "DEFCOPY", DocumentTypeContractAgreement, StatusReference, true)
-	def.Content = &content
-	if err := db.Save(def).Error; err != nil {
-		t.Fatalf("seed default content: %v", err)
-	}
-
-	copied, err := svc.CreateFromDefault(context.Background(), DocumentTypeContractAgreement, "New From Default", "NEWCODE", "actor-1")
-	if err != nil {
-		t.Fatalf("CreateFromDefault: %v", err)
-	}
-	if copied.Content == nil || *copied.Content != content {
-		t.Fatalf("expected copied content %q, got %v", content, copied.Content)
-	}
-	if copied.IsDefault {
-		t.Fatalf("copied template must not itself be default")
-	}
-	if copied.Status != StatusInactive {
-		t.Fatalf("copied template must start INACTIVE, got %s", copied.Status)
-	}
-}
-
 func TestServiceCreateVersionIncrementsAndSetsActiveVersion(t *testing.T) {
 	db, cleanup := setupTestDB()
 	defer cleanup()
@@ -171,7 +158,7 @@ func TestServiceCreateVersionIncrementsAndSetsActiveVersion(t *testing.T) {
 		t.Fatalf("create: %v", err)
 	}
 
-	v1, err := svc.CreateVersion(ctx, tpl.ID, "<p>v1</p>", "A4", "portrait", [4]int{20, 20, 20, 20}, "actor-1")
+	v1, err := svc.CreateVersion(ctx, tpl.ID, "<p>v1</p>", "A4", "portrait", [4]int{20, 20, 20, 20}, "", "actor-1")
 	if err != nil {
 		t.Fatalf("CreateVersion v1: %v", err)
 	}
@@ -186,7 +173,7 @@ func TestServiceCreateVersionIncrementsAndSetsActiveVersion(t *testing.T) {
 		t.Fatalf("expected template.active_version_id to point at v1, got %v", updated.ActiveVersionID)
 	}
 
-	v2, err := svc.CreateVersion(ctx, tpl.ID, "<p>v2</p>", "A4", "portrait", [4]int{20, 20, 20, 20}, "actor-1")
+	v2, err := svc.CreateVersion(ctx, tpl.ID, "<p>v2</p>", "A4", "portrait", [4]int{20, 20, 20, 20}, "", "actor-1")
 	if err != nil {
 		t.Fatalf("CreateVersion v2: %v", err)
 	}
@@ -220,41 +207,13 @@ func TestServiceUpdatePartialDoesNotBlankName(t *testing.T) {
 	}
 }
 
-func TestServiceDeactivateRejectsDefaultTemplate(t *testing.T) {
-	db, cleanup := setupTestDB()
-	defer cleanup()
-	repo := newTestRepo(db)
-	svc := NewService(repo, zap.NewNop())
-	def := createTestTemplate(db, "DEFDEACT", DocumentTypeMovementSK, StatusReference, true)
-
-	_, err := svc.Deactivate(context.Background(), def.ID, "actor-1")
-	var immErr *ReferenceTemplateImmutableError
-	if !errors.As(err, &immErr) {
-		t.Fatalf("expected ReferenceTemplateImmutableError, got %v", err)
-	}
-}
-
-func TestServiceCreateVersionRejectsDefaultTemplate(t *testing.T) {
-	db, cleanup := setupTestDB()
-	defer cleanup()
-	repo := newTestRepo(db)
-	svc := NewService(repo, zap.NewNop())
-	def := createTestTemplate(db, "DEFVER", DocumentTypeMovementSK, StatusReference, true)
-
-	_, err := svc.CreateVersion(context.Background(), def.ID, "<p>x</p>", "A4", "portrait", [4]int{20, 20, 20, 20}, "actor-1")
-	var immErr *ReferenceTemplateImmutableError
-	if !errors.As(err, &immErr) {
-		t.Fatalf("expected ReferenceTemplateImmutableError, got %v", err)
-	}
-}
-
 func TestServiceCreateVersionRejectsNonexistentTemplate(t *testing.T) {
 	db, cleanup := setupTestDB()
 	defer cleanup()
 	repo := newTestRepo(db)
 	svc := NewService(repo, zap.NewNop())
 
-	_, err := svc.CreateVersion(context.Background(), uuidStr(), "<p>x</p>", "A4", "portrait", [4]int{20, 20, 20, 20}, "actor-1")
+	_, err := svc.CreateVersion(context.Background(), uuidStr(), "<p>x</p>", "A4", "portrait", [4]int{20, 20, 20, 20}, "", "actor-1")
 	if !errors.Is(err, ErrTemplateNotFound) {
 		t.Fatalf("expected ErrTemplateNotFound, got %v", err)
 	}
@@ -284,16 +243,3 @@ func TestServiceDeleteThenRecreateWithSameCode(t *testing.T) {
 	}
 }
 
-func TestServiceDeleteRejectsDefaultTemplate(t *testing.T) {
-	db, cleanup := setupTestDB()
-	defer cleanup()
-	repo := newTestRepo(db)
-	svc := NewService(repo, zap.NewNop())
-	def := createTestTemplate(db, "DEFDEL", DocumentTypeMovementSK, StatusReference, true)
-
-	err := svc.Delete(context.Background(), def.ID, "actor-1")
-	var immErr *ReferenceTemplateImmutableError
-	if !errors.As(err, &immErr) {
-		t.Fatalf("expected ReferenceTemplateImmutableError, got %v", err)
-	}
-}

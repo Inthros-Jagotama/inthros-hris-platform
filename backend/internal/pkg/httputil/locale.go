@@ -272,6 +272,10 @@ var localeMessages = map[string]map[Lang]string{
 		LangEN: "Deleted successfully",
 		LangID: "Berhasil dihapus",
 	},
+	"success.document_generated": {
+		LangEN: "Document generated successfully",
+		LangID: "Dokumen berhasil di-generate",
+	},
 	"success.saved": {
 		LangEN: "Saved successfully",
 		LangID: "Berhasil disimpan",
@@ -767,10 +771,6 @@ var localeMessages = map[string]map[Lang]string{
 		LangEN: "Document template created successfully",
 		LangID: "Template dokumen berhasil dibuat",
 	},
-	"documenttemplate.created_from_default": {
-		LangEN: "Document template created from default successfully",
-		LangID: "Template dokumen berhasil dibuat dari default",
-	},
 	"documenttemplate.updated": {
 		LangEN: "Document template updated successfully",
 		LangID: "Template dokumen berhasil diperbarui",
@@ -798,5 +798,45 @@ var localeMessages = map[string]map[Lang]string{
 	"documenttemplate.duplicate_active": {
 		LangEN: "An active template already exists for document type '%s'",
 		LangID: "Template aktif sudah ada untuk jenis dokumen '%s'",
+	},
+	"documenttemplate.file_required": {
+		LangEN: "Template file (.docx) is required",
+		LangID: "File template (.docx) wajib diisi",
+	},
+	"documenttemplate.file_type_not_allowed": {
+		LangEN: "Only .docx files are allowed for document templates",
+		LangID: "Hanya file .docx yang diizinkan untuk template dokumen",
+	},
+	"documenttemplate.file_too_large": {
+		LangEN: "Template file exceeds the maximum allowed size (10 MB)",
+		LangID: "Ukuran file template melebihi batas maksimal (10 MB)",
+	},
+	"documenttemplate.invalid_docx": {
+		LangEN: "Uploaded file is not a valid .docx document",
+		LangID: "File yang di-upload bukan dokumen .docx yang valid",
+	},
+	"documenttemplate.unknown_variables": {
+		LangEN: "Template uses unregistered variables: %s",
+		LangID: "Template memakai variabel yang tidak terdaftar: %s",
+	},
+	"documenttemplate.pdf_engine_unavailable": {
+		LangEN: "PDF engine is not configured on the server",
+		LangID: "Mesin PDF belum dikonfigurasi di server",
+	},
+	"documenttemplate.no_active_version": {
+		LangEN: "Template has no active version to preview",
+		LangID: "Template belum memiliki versi aktif untuk di-preview",
+	},
+	"documenttemplate.no_template_file": {
+		LangEN: "Template has no uploaded DOCX file to preview",
+		LangID: "Template belum memiliki file DOCX untuk di-preview",
+	},
+	"documenttemplate.template_file_missing": {
+		LangEN: "Template DOCX file is missing on the server",
+		LangID: "File DOCX template tidak ditemukan di server",
+	},
+	"documenttemplate.libreoffice_missing": {
+		LangEN: "LibreOffice is not installed or not configured on the server. Install LibreOffice, then set HRIS_STORAGE_LIBREOFFICE_PATH (or storage.libreoffice_path) to the soffice binary, e.g. C:\\Program Files\\LibreOffice\\program\\soffice.exe",
+		LangID: "LibreOffice belum terinstall atau belum dikonfigurasi di server. Install LibreOffice, lalu set HRIS_STORAGE_LIBREOFFICE_PATH (atau storage.libreoffice_path) ke binary soffice, mis. C:\\Program Files\\LibreOffice\\program\\soffice.exe",
 	},
 }

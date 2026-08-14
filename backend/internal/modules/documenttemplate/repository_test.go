@@ -41,8 +41,8 @@ func TestRepositoryFindActiveByType(t *testing.T) {
 	db, cleanup := setupTestDB()
 	defer cleanup()
 	repo := newTestRepo(db)
-	createTestTemplate(db, "INACTIVE1", DocumentTypeContractAgreement, StatusInactive, false)
-	active := createTestTemplate(db, "ACTIVE1", DocumentTypeContractAgreement, StatusActive, false)
+	createTestTemplate(db, "INACTIVE1", DocumentTypeContractAgreement, StatusInactive)
+	active := createTestTemplate(db, "ACTIVE1", DocumentTypeContractAgreement, StatusActive)
 
 	got, err := repo.FindActiveByType(context.Background(), DocumentTypeContractAgreement)
 	if err != nil {
@@ -58,9 +58,9 @@ func TestRepositoryListPaginationAndSearch(t *testing.T) {
 	defer cleanup()
 	repo := newTestRepo(db)
 	for i := 0; i < 5; i++ {
-		createTestTemplate(db, uuidStr()[:8], DocumentTypeContractAgreement, StatusInactive, false)
+		createTestTemplate(db, uuidStr()[:8], DocumentTypeContractAgreement, StatusInactive)
 	}
-	createTestTemplate(db, "FINDME", DocumentTypeMovementSK, StatusInactive, false)
+	createTestTemplate(db, "FINDME", DocumentTypeMovementSK, StatusInactive)
 
 	items, total, err := repo.List(context.Background(), 1, 3, "", "", "")
 	if err != nil {
@@ -92,7 +92,7 @@ func TestRepositorySoftDeleteExcludesFromList(t *testing.T) {
 	defer cleanup()
 	repo := newTestRepo(db)
 	ctx := context.Background()
-	tpl := createTestTemplate(db, "TOBEDEL", DocumentTypeContractAgreement, StatusInactive, false)
+	tpl := createTestTemplate(db, "TOBEDEL", DocumentTypeContractAgreement, StatusInactive)
 
 	if err := repo.SoftDelete(ctx, tpl.ID); err != nil {
 		t.Fatalf("SoftDelete: %v", err)
@@ -112,7 +112,7 @@ func TestRepositoryVersionsCreateListNextNumber(t *testing.T) {
 	defer cleanup()
 	repo := newTestRepo(db)
 	ctx := context.Background()
-	tpl := createTestTemplate(db, "VERTEST", DocumentTypeContractAgreement, StatusInactive, false)
+	tpl := createTestTemplate(db, "VERTEST", DocumentTypeContractAgreement, StatusInactive)
 
 	err := repo.WithTx(ctx, func(tx *gorm.DB) error {
 		next, nerr := repo.NextVersionNumber(ctx, tx, tpl.ID)

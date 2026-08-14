@@ -32,7 +32,7 @@
         />
         <Button
           :label="confirmLabel"
-          severity="danger"
+          :severity="confirmSeverity"
           size="small"
           :loading="loading"
           :disabled="loading"
@@ -56,6 +56,7 @@ const props = defineProps({
   errorMsg: { type: String, default: '' },
   cancelLabel: { type: String, default: 'Cancel' },
   confirmLabel: { type: String, default: 'Delete' },
+  confirmSeverity: { type: String, default: 'danger' },
 })
 
 const emit = defineEmits(['update:visible', 'confirm', 'cancel'])

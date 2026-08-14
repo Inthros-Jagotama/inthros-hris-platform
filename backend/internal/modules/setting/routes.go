@@ -1,11 +1,14 @@
 package setting
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+
+	"github.com/inthros/hris-platform/internal/modules/documenttemplate"
+)
 
 // RegisterRoutesWithNumbering registers all setting routes plus the
-// document numbering sub-resource routes (when numberingHandler is
-// non-nil).
-func RegisterRoutesWithNumbering(rg *gin.RouterGroup, handler *Handler, numberingHandler *NumberingHandler) {
+// document numbering and document template sub-resource routes.
+func RegisterRoutesWithNumbering(rg *gin.RouterGroup, handler *Handler, numberingHandler *NumberingHandler, documentTemplateHandler *documenttemplate.Handler) {
 	settings := rg.Group("/settings")
 	{
 		// Zones
@@ -198,6 +201,10 @@ func RegisterRoutesWithNumbering(rg *gin.RouterGroup, handler *Handler, numberin
 			competencies.GET("/:id", handler.GetCompetencyByID)
 			competencies.PUT("/:id", handler.UpdateCompetency)
 			competencies.DELETE("/:id", handler.DeleteCompetency)
+		}
+		// Document Templates — sub-feature Settings (template dokumen)
+		if documentTemplateHandler != nil {
+			documenttemplate.RegisterRoutes(settings, documentTemplateHandler)
 		}
 		// Document Numbering
 		if numberingHandler != nil {

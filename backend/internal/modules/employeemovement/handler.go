@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -19,6 +20,15 @@ type Handler struct {
 // NewHandler membuat Handler baru.
 func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
+}
+
+func actorID(c *gin.Context) string {
+	if v, ok := c.Get("user_id"); ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
 }
 
 // =========================================================================
@@ -305,6 +315,82 @@ func (h *Handler) DeleteMovementDocument(c *gin.Context) {
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// Generate Document (plan §16/§17)
+// =========================================================================
+
+// GenerateMovementDocument menangani POST /movements/:id/generate-document
+func (h *Handler) GenerateMovementDocument(c *gin.Context) {
+	id := c.Param("id")
+	doc, err := h.service.GenerateMovementDocument(c.Request.Context(), id, actorID(c))
+	if err != nil {
+		h.generateError(c, err)
+		return
+	}
+	httputil.CreatedJSON(c, doc, "success.document_generated")
+}
+
+// ListGeneratedMovementDocuments menangani GET /movements/:id/generated-documents
+func (h *Handler) ListGeneratedMovementDocuments(c *gin.Context) {
+	id := c.Param("id")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	docs, total, err := h.service.ListGeneratedDocuments(c.Request.Context(), "movement", id, page, perPage)
+	if err != nil {
+		h.generateError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, map[string]interface{}{
+		"data": docs,
+		"total": total,
+	})
+}
+
+// GenerateContractDocument menangani POST /contracts/:id/generate-document
+func (h *Handler) GenerateContractDocument(c *gin.Context) {
+	id := c.Param("id")
+	doc, err := h.service.GenerateContractDocument(c.Request.Context(), id, actorID(c))
+	if err != nil {
+		h.generateError(c, err)
+		return
+	}
+	httputil.CreatedJSON(c, doc, "success.document_generated")
+}
+
+// ListGeneratedContractDocuments menangani GET /contracts/:id/generated-documents
+func (h *Handler) ListGeneratedContractDocuments(c *gin.Context) {
+	id := c.Param("id")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	docs, total, err := h.service.ListGeneratedDocuments(c.Request.Context(), "contract", id, page, perPage)
+	if err != nil {
+		h.generateError(c, err)
+		return
+	}
+	httputil.SuccessJSON(c, map[string]interface{}{
+		"data": docs,
+		"total": total,
+	})
+}
+
+// generateError memetakan error Generate Document ke response HTTP yang tepat.
+func (h *Handler) generateError(c *gin.Context, err error) {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "document generator is not configured"):
+		httputil.ErrorJSON(c, http.StatusServiceUnavailable, "PDF_ENGINE_NOT_CONFIGURED", "documenttemplate.pdf_engine_unavailable")
+	case strings.Contains(msg, "no active template"):
+		httputil.ErrorSimple(c, http.StatusBadRequest, msg)
+	case strings.Contains(msg, "document can only be generated"):
+		httputil.ErrorSimple(c, http.StatusBadRequest, msg)
+	case strings.Contains(msg, "invalid movement id") || strings.Contains(msg, "invalid contract id") ||
+		strings.Contains(msg, "movement not found") || strings.Contains(msg, "contract not found"):
+		httputil.NotFound(c, msg)
+	default:
+		httputil.InternalError(c, msg)
+	}
 }
 
 // =========================================================================

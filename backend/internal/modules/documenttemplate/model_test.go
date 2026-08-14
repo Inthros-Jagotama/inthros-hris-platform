@@ -19,7 +19,7 @@ func TestDocumentTemplateJSONKeysAreSnakeCase(t *testing.T) {
 		t.Fatalf("marshal: %v", err)
 	}
 	s := string(b)
-	for _, key := range []string{`"id"`, `"name"`, `"code"`, `"document_type"`, `"status"`, `"is_default"`, `"created_at"`} {
+	for _, key := range []string{`"id"`, `"name"`, `"code"`, `"document_type"`, `"status"`, `"created_at"`} {
 		if !strings.Contains(s, key) {
 			t.Errorf("expected JSON output to contain %s, got: %s", key, s)
 		}

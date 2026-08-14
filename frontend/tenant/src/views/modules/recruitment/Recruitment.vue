@@ -85,7 +85,7 @@ const menuCards = computed(() => [
   // G-3: Job Offers — offer management + approval workflow
   { labelKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/recruitment/offers' },
   // G-4: Onboarding — employee hasil offer + status (COMPLETED → training handoff S-7)
-  { labelKey: 'recruitment.onboarding', descKey: 'onboarding.description', icon: 'pi pi-rocket', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/recruitment/onboarding' },
+  { labelKey: 'recruitment.onboarding', descKey: 'onboarding.description', icon: 'pi pi-sign-in', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/recruitment/onboarding' },
   // G-7 sub-2: Assessments — batch session + peserta kandidat
   { labelKey: 'recruitment.assessments', descKey: 'assessments.description', icon: 'pi pi-clipboard', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', route: '/recruitment/assessments' }
 ])

@@ -120,6 +120,59 @@ func (a *payrollApprovalAdapter) CancelApprovalInstance(ctx context.Context, ins
 // employee repository, so ExecuteMovement can push real HR data changes
 // (new employment, closed previous employment, inactive offboarded employee)
 // without employeemovement importing the employee module (plan G-1).
+// documentGeneratorAdapter menyesuaikan documenttemplate.Generator dengan
+// interface employeemovement.DocumentGenerator (pola narrow-interface-plus-
+// adapter yang sama seperti adapters lain di file ini).
+type documentGeneratorAdapter struct {
+	gen *documenttemplate.Generator
+}
+
+func (a documentGeneratorAdapter) Generate(ctx context.Context, req employeemovement.DocumentGenerateRequest) (*employeemovement.GeneratedDocumentRef, error) {
+	doc, err := a.gen.Generate(ctx, documenttemplate.GenerateRequest{
+		DocumentType:  req.DocumentType,
+		ReferenceType: req.ReferenceType,
+		ReferenceID:   req.ReferenceID,
+		Values:        req.Values,
+		GeneratedBy:   req.GeneratedBy,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &employeemovement.GeneratedDocumentRef{
+		ID:            doc.ID,
+		TemplateID:    doc.TemplateID,
+		DocumentType:  doc.DocumentType,
+		ReferenceType: doc.ReferenceType,
+		ReferenceID:   doc.ReferenceID,
+		FileName:      doc.FileName,
+		FileURL:       doc.FileURL,
+		GeneratedBy:   doc.GeneratedBy,
+		GeneratedAt:   doc.GeneratedAt,
+	}, nil
+}
+
+func (a documentGeneratorAdapter) ListByReference(ctx context.Context, referenceType, referenceID string, page, perPage int) ([]employeemovement.GeneratedDocumentRef, int64, error) {
+	docs, total, err := a.gen.ListByReference(ctx, referenceType, referenceID, page, perPage)
+	if err != nil {
+		return nil, 0, err
+	}
+	out := make([]employeemovement.GeneratedDocumentRef, 0, len(docs))
+	for i := range docs {
+		out = append(out, employeemovement.GeneratedDocumentRef{
+			ID:            docs[i].ID,
+			TemplateID:    docs[i].TemplateID,
+			DocumentType:  docs[i].DocumentType,
+			ReferenceType: docs[i].ReferenceType,
+			ReferenceID:   docs[i].ReferenceID,
+			FileName:      docs[i].FileName,
+			FileURL:       docs[i].FileURL,
+			GeneratedBy:   docs[i].GeneratedBy,
+			GeneratedAt:   docs[i].GeneratedAt,
+		})
+	}
+	return out, total, nil
+}
+
 type employeeCareerAdapter struct {
 	repo *employee.Repository
 }
@@ -625,6 +678,22 @@ func (o onPremiseQuotaChecker) MaxEmployees() int {
 // newEmployeeModule membuat employee module. Bila mode on-premise aktif
 // (lic != nil), quota checker max_employees di-injeksi ke employee service
 // agar pembuatan employee ditolak saat batas tercapai.
+//
+// newPDFService memilih engine konversi DOCX → PDF sesuai config
+// storage.pdf_engine ("libreoffice" default | "docx2pdf"):
+//   - libreoffice: memanggil binary soffice (LibreOffice Headless) — opsi
+//     default, fidelity terbaik, tapi butuh LibreOffice terinstall di server.
+//   - docx2pdf: library pure-Go github.com/bobyeoh/docx2pdf-go — tanpa
+//     dependency eksternal, cepat, cocok untuk server tanpa LibreOffice.
+// Keduanya tetap tersedia; pilih via env HRIS_STORAGE_PDF_ENGINE.
+func newPDFService(cfg *config.Config) documenttemplate.PDFService {
+	engine := strings.ToLower(strings.TrimSpace(cfg.Storage.PDFEngine))
+	if engine == "docx2pdf" {
+		return documenttemplate.NewDocx2pdfPDFService(0)
+	}
+	return documenttemplate.NewLibreOfficePDFService(cfg.Storage.LibreOfficePath)
+}
+
 // runContractExpirationScheduler menjalankan ProcessContractExpiration harian
 // untuk seluruh tenant aktif (plan §12.13 — Contract Expiry Management).
 // Goroutine + time.Ticker (default 24 jam) tanpa dependency cron baru —
@@ -945,6 +1014,30 @@ func main() {
 	// pattern as the setting.Service instance leave uses for holidays).
 	employeeCareerRepo := employee.NewRepository(employee.NewTenantDBResolver(dbManager))
 	employeeMovementSvc.SetCareerExecutor(employeeCareerAdapter{repo: employeeCareerRepo})
+	// Wire the shared Document Generator (Phase 5 — plan §16/§17): business
+	// module (employeemovement) menyiapkan data contract/movement + employee,
+	// generator melakukan rendering DOCX → PDF + penyimpanan + generated_documents.
+	// Company data (company.name/company.address) diambil dari platform DB
+	// berdasarkan company_id di request context.
+	dtGenRepo := documenttemplate.NewRepository(documenttemplate.NewTenantDBResolver(dbManager))
+	dtGenSvc := documenttemplate.NewService(dtGenRepo, l.Named("documenttemplate.gen"))
+	dtGenerator := documenttemplate.NewGenerator(dtGenSvc, cfg.Storage.UploadDir, newPDFService(cfg))
+	dtGenerator.SetCompanyProvider(func(ctx context.Context) (*documenttemplate.CompanyInfo, error) {
+		companyID, ok := ctx.Value("company_id").(string)
+		if !ok || companyID == "" {
+			return nil, fmt.Errorf("company_id missing in context")
+		}
+		var c company.Company
+		if err := dbManager.PlatformDB().WithContext(ctx).Where("id = ?", companyID).First(&c).Error; err != nil {
+			return nil, err
+		}
+		info := &documenttemplate.CompanyInfo{Name: c.Name}
+		if c.Address != nil {
+			info.Address = *c.Address
+		}
+		return info, nil
+	})
+	employeeMovementSvc.SetDocumentGenerator(documentGeneratorAdapter{gen: dtGenerator})
 	approvalSvc.RegisterStatusHandler("employeemovement", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return employeeMovementSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
@@ -1206,7 +1299,7 @@ func main() {
 			Priority: 15,
 		},
 		module.ModuleRegistration{
-			Module:   setting.NewModule(dbManager, l, numberingSvc),
+			Module:   setting.NewModule(dbManager, l, numberingSvc, cfg.Storage.UploadDir, newPDFService(cfg)),
 			TargetDB: module.TargetTenant,
 			Priority: 16,
 		},
@@ -1224,11 +1317,6 @@ func main() {
 			Module:   notification.NewModuleWithService(l, notificationSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 19,
-		},
-		module.ModuleRegistration{
-			Module:   documenttemplate.NewModule(dbManager, l),
-			TargetDB: module.TargetTenant,
-			Priority: 20,
 		},
 	)
 

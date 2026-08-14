@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/inthros/hris-platform/internal/modules/documenttemplate"
 	"github.com/inthros/hris-platform/internal/pkg/database"
 	"github.com/inthros/hris-platform/internal/pkg/module"
 	"github.com/inthros/hris-platform/internal/pkg/numbering"
@@ -34,24 +35,37 @@ func NewTenantDBResolver(dbManager *database.Manager) TenantDBFunc {
 // employeemovement module in Task 5) — the setting module does not
 // construct its own, so there is exactly one Service (and therefore one
 // consistent DB-transactional sequence state) per process.
-func NewModule(dbManager *database.Manager, logger *zap.Logger, numberingSvc *numbering.Service) module.Module {
+// uploadDir adalah root direktori upload (diserve publik via /uploads) —
+// dipakai documenttemplate untuk menyimpan file template .docx.
+// pdfSvc (opsional) dipakai documenttemplate untuk preview DOCX → PDF.
+func NewModule(dbManager *database.Manager, logger *zap.Logger, numberingSvc *numbering.Service, uploadDir string, pdfSvc documenttemplate.PDFService) module.Module {
 	resolver := NewTenantDBResolver(dbManager)
 	repo := NewRepository(resolver)
 	svc := NewService(repo, logger)
 	handler := NewHandler(svc)
 	numberingHandler := NewNumberingHandler(numberingSvc)
 
+	// Document templates adalah sub-feature dari Settings (lihat plan
+	// docs/module-settngs-fitur-template-dokumen-plan.md) — handler-nya
+	// dibangun di sini dan route-nya didaftarkan di bawah /settings/...,
+	// bukan sebagai module tenant terpisah.
+	dtRepo := documenttemplate.NewRepository(documenttemplate.NewTenantDBResolver(dbManager))
+	dtSvc := documenttemplate.NewService(dtRepo, logger)
+	dtHandler := documenttemplate.NewHandler(dtSvc, uploadDir, pdfSvc)
+
 	return &settingModule{
-		handler:          handler,
-		numberingHandler: numberingHandler,
-		logger:           logger,
+		handler:                handler,
+		numberingHandler:       numberingHandler,
+		documentTemplateHandler: dtHandler,
+		logger:                 logger,
 	}
 }
 
 type settingModule struct {
-	handler          *Handler
-	numberingHandler *NumberingHandler
-	logger           *zap.Logger
+	handler                 *Handler
+	numberingHandler        *NumberingHandler
+	documentTemplateHandler *documenttemplate.Handler
+	logger                  *zap.Logger
 }
 
 func (m *settingModule) Info() module.ModuleInfo {
@@ -84,6 +98,9 @@ func (m *settingModule) Info() module.ModuleInfo {
 			"setting.insurance.view", "setting.insurance.create", "setting.insurance.update", "setting.insurance.delete",
 			"setting.company_holiday.view", "setting.company_holiday.create", "setting.company_holiday.update", "setting.company_holiday.delete",
 			"setting.competency.view", "setting.competency.create", "setting.competency.update", "setting.competency.delete",
+			"setting.document_template.view", "setting.document_template.create", "setting.document_template.update", "setting.document_template.delete",
+			"setting.document_template.activate", "setting.document_template.deactivate",
+			"setting.document_template.version",
 		},
 		Menus: []module.Menu{
 			{
@@ -112,6 +129,7 @@ func (m *settingModule) Info() module.ModuleInfo {
 					{Name: "Insurances", Icon: "shield", Route: "/admin/settings/insurances"},
 					{Name: "Company Holidays", Icon: "calendar", Route: "/admin/settings/company-holidays"},
 					{Name: "Competencies", Icon: "star", Route: "/admin/settings/competencies"},
+					{Name: "Document Templates", Icon: "file", Route: "/admin/settings/document-templates"},
 				},
 			},
 		},
@@ -119,7 +137,7 @@ func (m *settingModule) Info() module.ModuleInfo {
 }
 
 func (m *settingModule) RegisterRoutes(rg *gin.RouterGroup) {
-	RegisterRoutesWithNumbering(rg, m.handler, m.numberingHandler)
+	RegisterRoutesWithNumbering(rg, m.handler, m.numberingHandler, m.documentTemplateHandler)
 }
 
 func (m *settingModule) Migrate(db *gorm.DB) error {

@@ -2,24 +2,14 @@ package documenttemplate
 
 type CreateTemplateRequest struct {
 	Name         string `json:"name" binding:"required,max=255"`
-	Code         string `json:"code" binding:"required,max=100"`
+	Code         string `json:"code,omitempty" binding:"omitempty,max=100"` // kosong → digenerate otomatis
 	DocumentType string `json:"document_type" binding:"required"`
 	Description  string `json:"description,omitempty" binding:"max=1000"`
-}
-
-type CreateFromDefaultRequest struct {
-	DocumentType string `json:"document_type" binding:"required"`
-	Name         string `json:"name" binding:"required,max=255"`
-	Code         string `json:"code" binding:"required,max=100"`
 }
 
 type UpdateTemplateRequest struct {
 	Name        *string `json:"name,omitempty" binding:"omitempty,max=255"`
 	Description *string `json:"description,omitempty" binding:"omitempty,max=1000"`
-}
-
-type UpdateDefaultContentRequest struct {
-	Content string `json:"content" binding:"required"`
 }
 
 type CreateVersionRequest struct {

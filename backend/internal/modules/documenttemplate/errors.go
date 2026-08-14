@@ -26,14 +26,6 @@ func (e *DuplicateCodeError) Error() string {
 	return fmt.Sprintf("template code '%s' already exists", e.Code)
 }
 
-type ReferenceTemplateImmutableError struct {
-	Action string
-}
-
-func (e *ReferenceTemplateImmutableError) Error() string {
-	return fmt.Sprintf("reference (default) templates cannot be %s", e.Action)
-}
-
 type InvalidDocumentTypeError struct {
 	DocumentType string
 }

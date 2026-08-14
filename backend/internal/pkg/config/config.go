@@ -35,6 +35,15 @@ type Config struct {
 type StorageConfig struct {
 	// UploadDir: direktori penyimpanan file upload (default "uploads").
 	UploadDir string `mapstructure:"upload_dir"`
+	// LibreOfficePath: path binary LibreOffice untuk konversi DOCX → PDF
+	// (default "libreoffice"; bisa diset via env HRIS_STORAGE_LIBREOFFICE_PATH
+	// atau field storage.libreoffice_path di config file).
+	LibreOfficePath string `mapstructure:"libreoffice_path"`
+	// PDFEngine: engine konversi DOCX → PDF. "libreoffice" (default) memakai
+	// binary soffice; "docx2pdf" memakai library pure-Go
+	// github.com/bobyeoh/docx2pdf-go (tanpa dependency eksternal). Keduanya
+	// tersedia — pilih via env HRIS_STORAGE_PDF_ENGINE atau storage.pdf_engine.
+	PDFEngine string `mapstructure:"pdf_engine"`
 }
 
 // Catatan: Kunci enkripsi AES-256-GCM dibaca langsung dari environment variable

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -16,6 +17,34 @@ func actorIDPtr(actorID string) *string {
 		return nil
 	}
 	return &actorID
+}
+
+// generateTemplateCode membuat kode template otomatis saat client tidak
+// mengirimnya (spec: "kode dibuat otomatis dan tidak perlu ditampilkan di
+// form"). Format mengikuti konvensi project: prefix jenis + UUID pendek
+// uppercase, mis. TMPL-CONTRACT_AGREEMENT-1A2B3C4D.
+func generateTemplateCode(documentType string) string {
+	return fmt.Sprintf("TMPL-%s-%s", documentType, strings.ToUpper(uuid.New().String()[:8]))
+}
+
+// versionFileURL mengembalikan URL publik untuk konten versi yang berupa path
+// file DOCX tersimpan (mis. "document_templates/{uuid}.docx" →
+// "/uploads/document_templates/{uuid}.docx", diserve router.Static("/uploads")).
+// Konten lama berupa HTML (mis. default content) tidak menghasilkan URL file.
+func versionFileURL(content string) string {
+	if strings.HasPrefix(content, "document_templates/") {
+		return "/uploads/" + content
+	}
+	return ""
+}
+
+// decorateVersionFileURL mengisi FileURL (field response-only, gorm:"-") agar
+// frontend bisa menampilkan/download file DOCX tanpa menebak dari content.
+func decorateVersionFileURL(v *DocumentTemplateVersion) {
+	if v == nil {
+		return
+	}
+	v.FileURL = versionFileURL(v.Content)
 }
 
 type Service struct {
@@ -50,6 +79,9 @@ func (s *Service) Create(ctx context.Context, name, code, documentType, descript
 	if !ValidDocumentTypes[documentType] {
 		return nil, &InvalidDocumentTypeError{DocumentType: documentType}
 	}
+	if code == "" {
+		code = generateTemplateCode(documentType)
+	}
 	if err := s.checkCodeUnique(ctx, code); err != nil {
 		return nil, err
 	}
@@ -60,7 +92,6 @@ func (s *Service) Create(ctx context.Context, name, code, documentType, descript
 		Code:         code,
 		DocumentType: documentType,
 		Status:       StatusInactive,
-		IsDefault:    false,
 		IsActive:     true,
 	}
 	if description != "" {
@@ -80,49 +111,10 @@ func (s *Service) Create(ctx context.Context, name, code, documentType, descript
 	return tpl, nil
 }
 
-func (s *Service) CreateFromDefault(ctx context.Context, documentType, name, code, actorID string) (*DocumentTemplate, error) {
-	if !ValidDocumentTypes[documentType] {
-		return nil, &InvalidDocumentTypeError{DocumentType: documentType}
-	}
-	def, err := s.repo.FindDefaultByType(ctx, documentType)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.checkCodeUnique(ctx, code); err != nil {
-		return nil, err
-	}
-
-	tpl := &DocumentTemplate{
-		ID:           uuid.New().String(),
-		Name:         name,
-		Code:         code,
-		DocumentType: documentType,
-		Content:      def.Content,
-		Status:       StatusInactive,
-		IsDefault:    false,
-		IsActive:     true,
-	}
-	if err := s.repo.Create(ctx, tpl); err != nil {
-		return nil, err
-	}
-	if err := s.repo.CreateAudit(ctx, nil, &DocumentTemplateAudit{
-		ID:         uuid.New().String(),
-		TemplateID: tpl.ID,
-		Action:     "CREATED_FROM_DEFAULT",
-		ActorID:    actorIDPtr(actorID),
-	}); err != nil {
-		return nil, err
-	}
-	return tpl, nil
-}
-
 func (s *Service) Update(ctx context.Context, id string, name, description *string, actorID string) (*DocumentTemplate, error) {
 	tpl, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
-	}
-	if tpl.IsDefault {
-		return nil, &ReferenceTemplateImmutableError{Action: "edited"}
 	}
 	if name != nil {
 		tpl.Name = *name
@@ -144,33 +136,10 @@ func (s *Service) Update(ctx context.Context, id string, name, description *stri
 	return tpl, nil
 }
 
-func (s *Service) UpdateDefaultContent(ctx context.Context, documentType, content, actorID string) (*DocumentTemplate, error) {
-	tpl, err := s.repo.FindDefaultByType(ctx, documentType)
-	if err != nil {
-		return nil, err
-	}
-	tpl.Content = &content
-	if err := s.repo.Update(ctx, tpl); err != nil {
-		return nil, err
-	}
-	if err := s.repo.CreateAudit(ctx, nil, &DocumentTemplateAudit{
-		ID:         uuid.New().String(),
-		TemplateID: tpl.ID,
-		Action:     "DEFAULT_UPDATED",
-		ActorID:    actorIDPtr(actorID),
-	}); err != nil {
-		return nil, err
-	}
-	return tpl, nil
-}
-
 func (s *Service) Delete(ctx context.Context, id, actorID string) error {
 	tpl, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
-	}
-	if tpl.IsDefault {
-		return &ReferenceTemplateImmutableError{Action: "deleted"}
 	}
 	// Spec §2.1 restricts deletion to templates "not yet used"; there is no
 	// generated_documents writer yet in this phase, so every template is
@@ -199,9 +168,6 @@ func (s *Service) Activate(ctx context.Context, id, actorID string) (*DocumentTe
 				return ErrTemplateNotFound
 			}
 			return fmt.Errorf("failed to load template for activation: %w", err)
-		}
-		if target.IsDefault {
-			return &ReferenceTemplateImmutableError{Action: "activated"}
 		}
 
 		// Lock all other rows of this document type so a concurrent Activate
@@ -256,9 +222,6 @@ func (s *Service) Deactivate(ctx context.Context, id, actorID string) (*Document
 	if err != nil {
 		return nil, err
 	}
-	if tpl.IsDefault {
-		return nil, &ReferenceTemplateImmutableError{Action: "deactivated"}
-	}
 	tpl.Status = StatusInactive
 	if err := s.repo.Update(ctx, tpl); err != nil {
 		return nil, err
@@ -274,7 +237,7 @@ func (s *Service) Deactivate(ctx context.Context, id, actorID string) (*Document
 	return tpl, nil
 }
 
-func (s *Service) CreateVersion(ctx context.Context, templateID, content, paperSize, orientation string, margins [4]int, actorID string) (*DocumentTemplateVersion, error) {
+func (s *Service) CreateVersion(ctx context.Context, templateID, content, paperSize, orientation string, margins [4]int, fileName, actorID string) (*DocumentTemplateVersion, error) {
 	var v DocumentTemplateVersion
 	err := s.repo.WithTx(ctx, func(tx *gorm.DB) error {
 		var tpl DocumentTemplate
@@ -283,9 +246,6 @@ func (s *Service) CreateVersion(ctx context.Context, templateID, content, paperS
 				return ErrTemplateNotFound
 			}
 			return fmt.Errorf("failed to load template for version creation: %w", err)
-		}
-		if tpl.IsDefault {
-			return &ReferenceTemplateImmutableError{Action: "versioned"}
 		}
 
 		next, err := s.repo.NextVersionNumber(ctx, tx, templateID)
@@ -304,6 +264,9 @@ func (s *Service) CreateVersion(ctx context.Context, templateID, content, paperS
 			MarginBottom: margins[2],
 			MarginLeft:   margins[3],
 			CreatedBy:    &actorID,
+		}
+		if fileName != "" {
+			v.FileName = &fileName
 		}
 		if err := s.repo.CreateVersion(ctx, tx, &v); err != nil {
 			return err
@@ -327,9 +290,30 @@ func (s *Service) CreateVersion(ctx context.Context, templateID, content, paperS
 	if err != nil {
 		return nil, err
 	}
+	decorateVersionFileURL(&v)
 	return &v, nil
 }
 
 func (s *Service) ListVersions(ctx context.Context, templateID string) ([]DocumentTemplateVersion, error) {
-	return s.repo.ListVersions(ctx, templateID)
+	versions, err := s.repo.ListVersions(ctx, templateID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range versions {
+		decorateVersionFileURL(&versions[i])
+	}
+	return versions, nil
+}
+
+func (s *Service) GetVersion(ctx context.Context, templateID, versionID string) (*DocumentTemplateVersion, error) {
+	// Pastikan template-nya ada (404 terpisah dari version-not-found).
+	if _, err := s.repo.GetByID(ctx, templateID); err != nil {
+		return nil, err
+	}
+	v, err := s.repo.GetVersion(ctx, templateID, versionID)
+	if err != nil {
+		return nil, err
+	}
+	decorateVersionFileURL(v)
+	return v, nil
 }

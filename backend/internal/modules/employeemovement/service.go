@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/inthros/hris-platform/internal/modules/documenttemplate"
 	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
@@ -160,6 +161,39 @@ type NumberingGenerator interface {
 	Generate(ctx context.Context, documentType string) (string, error)
 }
 
+// GeneratedDocumentRef adalah hasil Generate Document (Phase 5) yang
+// dikembalikan oleh DocumentGenerator — dipakai untuk menampilkan histori
+// dokumen di UI contract/movement. Field hanya yang dibutuhkan module ini.
+type GeneratedDocumentRef struct {
+	ID           string    `json:"id"`
+	TemplateID   string    `json:"template_id"`
+	DocumentType string    `json:"document_type"`
+	ReferenceType string   `json:"reference_type"`
+	ReferenceID  string    `json:"reference_id"`
+	FileName     string    `json:"file_name"`
+	FileURL      string    `json:"file_url"`
+	GeneratedBy  *string   `json:"generated_by,omitempty"`
+	GeneratedAt  time.Time `json:"generated_at"`
+}
+
+// DocumentGenerator mengabstraksi shared document generator (documenttemplate)
+// agar module ini hanya bergantung pada interface sempit (pola yang sama dengan
+// ApprovalEngine/Notifier/CareerExecutor). Implementasinya di-wire dari main.go.
+type DocumentGenerator interface {
+	Generate(ctx context.Context, req DocumentGenerateRequest) (*GeneratedDocumentRef, error)
+	ListByReference(ctx context.Context, referenceType, referenceID string, page, perPage int) ([]GeneratedDocumentRef, int64, error)
+}
+
+// DocumentGenerateRequest berisi data yang dibutuhkan Generate Document —
+// Values adalah map variable ter-resolve (contract/movement/employee/company).
+type DocumentGenerateRequest struct {
+	DocumentType  string
+	ReferenceType string
+	ReferenceID   string
+	Values        map[string]string
+	GeneratedBy   string
+}
+
 // CareerExecutor methods all receive a *gorm.DB transaction (tx) opened by
 // ExecuteMovementTx: every HR data change runs on the caller's transaction so
 // movement execution is atomic (plan §12.2) — if any step fails, the whole
@@ -178,6 +212,7 @@ type Service struct {
 	competencyProvider  CompetencyProvider
 	okrProvider         OKRProvider
 	numberingService    NumberingGenerator
+	docGenerator        DocumentGenerator
 }
 
 // NewService membuat Service baru.
@@ -216,6 +251,13 @@ func (s *Service) SetCompetencyProvider(c CompetencyProvider) {
 
 func (s *Service) SetOKRProvider(o OKRProvider) {
 	s.okrProvider = o
+}
+
+// SetDocumentGenerator wires the shared document generator (documenttemplate)
+// into this service so GenerateMovementDocument / GenerateContractDocument can
+// produce PDF dari template aktif (plan §16/§17).
+func (s *Service) SetDocumentGenerator(g DocumentGenerator) {
+	s.docGenerator = g
 }
 
 // SetNumberingService wires the document numbering package so
@@ -1985,6 +2027,131 @@ func (s *Service) GetContractByID(ctx context.Context, id string) (*ContractResp
 	responses := []ContractResponse{contract.ToResponse()}
 	s.enrichContractResponses(ctx, responses)
 	return &responses[0], nil
+}
+
+// =========================================================================
+// Generate Document (plan §16/§17) — business module menyiapkan data, shared
+// Document Generator (documenttemplate) yang melakukan rendering + PDF.
+// =========================================================================
+
+// employeeValues memetakan profil karyawan ke variable {{employee.*}} yang
+// terdaftar di VariableRegistry. Key dengan nilai kosong tetap disertakan agar
+// placeholder ter-replace menjadi kosong (bukan literal {{...}}). Position &
+// organization TIDAK dimasukkan di sini — keduanya kontekstual (movement
+// memakai posisi/org tujuan; contract memakai employment aktif).
+func employeeValues(emp *EmployeeProfileData) map[string]string {
+	return map[string]string{
+		"employee.employee_id":      emp.EmployeeID,
+		"employee.name":             emp.Name,
+		"employee.nik":              emp.NIK,
+		"employee.family_id":        emp.FamilyID,
+		"employee.mother_name":      emp.MotherName,
+		"employee.gender":           emp.Gender,
+		"employee.dob":              emp.DOB,
+		"employee.pob":              emp.POB,
+		"employee.nationality_type": emp.NationalityType,
+		"employee.nationality_id":   emp.NationalityID,
+		"employee.passport":         emp.Passport,
+		"employee.phone_number":     emp.PhoneNumber,
+		"employee.email":            emp.Email,
+		"employee.linkedin":         emp.LinkedIn,
+		"employee.instagram":        emp.Instagram,
+		"employee.religion":         emp.Religion,
+		"employee.marital_status":   emp.MaritalStatus,
+		"employee.status":           emp.Status,
+		"employee.join_date":        emp.JoinDate,
+	}
+}
+
+// GenerateMovementDocument menghasilkan PDF SK Movement dari template aktif
+// MOVEMENT_SK. Movement harus berstatus approved/executed (SK yang diterbitkan).
+func (s *Service) GenerateMovementDocument(ctx context.Context, movementID, actorID string) (*GeneratedDocumentRef, error) {
+	if s.docGenerator == nil {
+		return nil, fmt.Errorf("document generator is not configured")
+	}
+	uid, err := uuid.Parse(movementID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid movement id: %w", err)
+	}
+	movement, err := s.repo.FindMovementByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if movement.Status != MovementStatusApproved && movement.Status != MovementStatusExecuted {
+		return nil, fmt.Errorf("document can only be generated for approved or executed movements")
+	}
+
+	emp, err := s.repo.GetEmployeeProfile(ctx, movement.EmployeeID)
+	if err != nil {
+		return nil, err
+	}
+	values := map[string]string{
+		"employee.position":          movement.ToPositionName,
+		"employee.organization":      movement.ToOrganizationName,
+		"movement.number":            movement.DecisionLetterNumber,
+		"movement.effective_date":    movement.EffectiveDate,
+		"movement.previous_position": movement.FromPositionName,
+		"movement.new_position":      movement.ToPositionName,
+	}
+	for k, v := range employeeValues(emp) {
+		values[k] = v
+	}
+	return s.docGenerator.Generate(ctx, DocumentGenerateRequest{
+		DocumentType:  documenttemplate.DocumentTypeMovementSK,
+		ReferenceType: "movement",
+		ReferenceID:   movementID,
+		Values:        values,
+		GeneratedBy:   actorID,
+	})
+}
+
+// GenerateContractDocument menghasilkan PDF Perjanjian Kerja dari template aktif
+// CONTRACT_AGREEMENT.
+func (s *Service) GenerateContractDocument(ctx context.Context, contractID, actorID string) (*GeneratedDocumentRef, error) {
+	if s.docGenerator == nil {
+		return nil, fmt.Errorf("document generator is not configured")
+	}
+	uid, err := uuid.Parse(contractID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid contract id: %w", err)
+	}
+	contract, err := s.repo.FindContractByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	emp, err := s.repo.GetEmployeeProfile(ctx, contract.EmployeeID)
+	if err != nil {
+		return nil, err
+	}
+	values := map[string]string{
+		"employee.position":     emp.Position,
+		"employee.organization": emp.Organization,
+		"contract.number":       contract.ContractNumber,
+		"contract.start_date":   contract.StartDate,
+	}
+	if contract.EndDate != nil {
+		values["contract.end_date"] = *contract.EndDate
+	}
+	for k, v := range employeeValues(emp) {
+		values[k] = v
+	}
+	return s.docGenerator.Generate(ctx, DocumentGenerateRequest{
+		DocumentType:  documenttemplate.DocumentTypeContractAgreement,
+		ReferenceType: "contract",
+		ReferenceID:   contractID,
+		Values:        values,
+		GeneratedBy:   actorID,
+	})
+}
+
+// ListGeneratedDocuments menampilkan histori dokumen yang digenerate untuk
+// sebuah reference (movement/contract), terbaru dulu.
+func (s *Service) ListGeneratedDocuments(ctx context.Context, referenceType, referenceID string, page, perPage int) ([]GeneratedDocumentRef, int64, error) {
+	if s.docGenerator == nil {
+		return nil, 0, fmt.Errorf("document generator is not configured")
+	}
+	return s.docGenerator.ListByReference(ctx, referenceType, referenceID, page, perPage)
 }
 
 // ListContractsByEmployee mengembalikan daftar kontrak untuk seorang karyawan.

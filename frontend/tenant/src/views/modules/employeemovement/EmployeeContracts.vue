@@ -102,9 +102,18 @@
           <span v-else class="text-gray-400">-</span>
         </template>
       </Column>
-      <Column :header="t('common.actions')" style="width:110px" frozen alignFrozen="right">
+      <Column :header="t('common.actions')" style="width:160px" frozen alignFrozen="right">
         <template #body="{data}">
           <div class="flex items-center justify-end gap-1">
+            <Button
+              icon="pi pi-file-pdf"
+              size="small"
+              text
+              severity="secondary"
+              v-tooltip.left="t('employee_movement.generate_document')"
+              :loading="generatingId === data.id"
+              @click="handleGenerateDocument(data)"
+            />
             <Button icon="pi pi-pencil" size="small" severity="secondary" text v-tooltip.left="t('common.edit')" @click="openDialog(data)" />
             <Button icon="pi pi-trash" size="small" severity="danger" text v-tooltip.left="t('common.delete')" @click="openDeleteConfirm(data)" />
           </div>
@@ -204,6 +213,32 @@
       @confirm="handleDeleteConfirm"
       @cancel="deleteConfirmVisible = false"
     />
+
+    <!-- ── Preview PDF hasil Generate Document (plan §17) ── -->
+    <Dialog v-model:visible="genDocVisible" :header="t('employee_movement.generated_documents')" modal :style="{ width: '900px' }" :contentStyle="{ height: '75vh' }">
+      <iframe v-if="genDocUrl" :src="genDocUrl" id="gen-doc-iframe" class="w-full h-full rounded-lg border border-gray-200 dark:border-gray-700" title="Generated PDF"></iframe>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button
+            :label="t('common.print')"
+            icon="pi pi-print"
+            size="small"
+            severity="secondary"
+            outlined
+            :disabled="!genDocUrl"
+            @click="printGeneratedDoc"
+          />
+          <a
+            :href="genDocUrl"
+            :download="genDocName"
+            class="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+          >
+            <i class="pi pi-download"></i>{{ t('common.download') }}
+          </a>
+          <Button :label="t('common.close')" severity="secondary" outlined size="small" @click="genDocVisible = false" />
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -253,6 +288,12 @@ const form = ref(emptyForm())
 const fileInputRef = ref(null)
 const selectedFile = ref(null)
 const uploading = ref(false)
+
+// ── Generate Document (plan §17) ──
+const generatingId = ref(null)
+const genDocVisible = ref(false)
+const genDocUrl = ref('')
+const genDocName = ref('')
 
 // ── Konfirmasi hapus ──
 const deleteTarget = ref(null)
@@ -510,6 +551,31 @@ async function handleSave() {
   } finally {
     saving.value = false
   }
+}
+
+// ── Generate Document (plan §17) ──
+async function handleGenerateDocument(item) {
+  if (!item?.id) return
+  generatingId.value = item.id
+  try {
+    const res = await api.post(`/api/v1/tenant/employee-movements/contracts/${item.id}/generate-document`)
+    const doc = res.data?.data
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('employee_movement.doc_generated'), life: 3000 })
+    if (doc?.file_url) {
+      genDocUrl.value = doc.file_url
+      genDocName.value = doc.file_name || 'Perjanjian.pdf'
+      genDocVisible.value = true
+    }
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: getErrorMessage(e, t('employee_movement.generate_failed')), life: 4000 })
+  } finally {
+    generatingId.value = null
+  }
+}
+
+function printGeneratedDoc() {
+  const frame = document.querySelector('#gen-doc-iframe')
+  if (frame?.contentWindow) frame.contentWindow.print()
 }
 
 // ── Hapus ──

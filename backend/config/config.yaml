@@ -63,6 +63,10 @@ database:
 
 storage:
   upload_dir: "uploads"   # direktori file upload (lampiran lembur, dll.) — diserve di /uploads
+  # pdf_engine: engine konversi DOCX → PDF untuk Template Dokumen (preview & generate).
+  #   libreoffice (default) — butuh LibreOffice terinstall; fidelity terbaik.
+  #   docx2pdf          — pure-Go, tanpa dependency eksternal (HRIS_STORAGE_PDF_ENGINE).
+  pdf_engine: "libreoffice"
 
 smtp:
   # SMTP untuk mengirim email transaksional (mis. link set-password employee).

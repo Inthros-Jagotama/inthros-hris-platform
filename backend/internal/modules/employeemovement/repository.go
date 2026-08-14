@@ -99,6 +99,142 @@ func (r *Repository) GetEmployeeInfoByIDs(ctx context.Context, employeeIDs []uui
 	return result, nil
 }
 
+// EmployeeProfileData adalah data karyawan yang dipakai Generate Document
+// (plan §16/§17): field inti tabel `employees` (termasuk relasi religion &
+// marital_status), posisi/org dari employment aktif, dan join_date (employment
+// pertama). Kolom nullable di database menjadi string kosong agar placeholder
+// {{employee.*}} ter-replace (kosong) alih-alih tertinggal literal.
+type EmployeeProfileData struct {
+	EmployeeID      string
+	Name            string
+	NIK             string
+	FamilyID        string
+	MotherName      string
+	Gender          string
+	NationalityType string
+	NationalityID   string
+	Passport        string
+	POB             string
+	DOB             string
+	PhoneNumber     string
+	Email           string
+	LinkedIn        string
+	Instagram       string
+	Religion        string
+	MaritalStatus   string
+	Status          string
+	Organization    string // nama org dari employment aktif (jika ada)
+	Position        string // nama posisi dari employment aktif (jika ada)
+	JoinDate        string // effective_date employment pertama
+}
+
+// GetEmployeeProfile mengambil profil karyawan untuk variable {{employee.*}}
+// pada Generate Document: field inti tabel employees + nama religion &
+// marital_status (relasi), lalu employment aktif (org + posisi terakhir) dan
+// join date (employment pertama).
+func (r *Repository) GetEmployeeProfile(ctx context.Context, employeeID uuid.UUID) (*EmployeeProfileData, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var emp struct {
+		EmployeeID      string
+		Name            string
+		NIK             string
+		FamilyID        string
+		MotherName      string
+		Gender          string
+		NationalityType string
+		NationalityID   string
+		Passport        string
+		POB             string
+		DOB             string
+		PhoneNumber     string
+		Email           string
+		LinkedIn        string
+		Instagram       string
+		Religion        string
+		MaritalStatus   string
+		Status          string
+	}
+	if err := db.Table("employees").
+		Joins("LEFT JOIN religions r ON r.id = employees.religion_id").
+		Joins("LEFT JOIN marital_statuses ms ON ms.id = employees.marital_status_id").
+		Where("employees.id = ?", employeeID).
+		Select(`employees.employee_id, employees.name,
+			COALESCE(employees.nik, '') AS nik,
+			COALESCE(employees.family_id, '') AS family_id,
+			COALESCE(employees.mother_name, '') AS mother_name,
+			COALESCE(employees.gender, '') AS gender,
+			COALESCE(employees.nationality_type, '') AS nationality_type,
+			COALESCE(employees.nationality_id, '') AS nationality_id,
+			COALESCE(employees.passport, '') AS passport,
+			COALESCE(employees.pob, '') AS pob,
+			COALESCE(employees.dob, '') AS dob,
+			COALESCE(employees.phone_number, '') AS phone_number,
+			COALESCE(employees.email, '') AS email,
+			COALESCE(employees.linkedin, '') AS linkedin,
+			COALESCE(employees.ig, '') AS instagram,
+			COALESCE(employees.status, '') AS status,
+			COALESCE(r.name, '') AS religion,
+			COALESCE(ms.name, '') AS marital_status`).
+		First(&emp).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("employee not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to load employee profile: %w", err)
+	}
+	out := &EmployeeProfileData{
+		EmployeeID:      emp.EmployeeID,
+		Name:            emp.Name,
+		NIK:             emp.NIK,
+		FamilyID:        emp.FamilyID,
+		MotherName:      emp.MotherName,
+		Gender:          emp.Gender,
+		NationalityType: emp.NationalityType,
+		NationalityID:   emp.NationalityID,
+		Passport:        emp.Passport,
+		POB:             emp.POB,
+		DOB:             emp.DOB,
+		PhoneNumber:     emp.PhoneNumber,
+		Email:           emp.Email,
+		LinkedIn:        emp.LinkedIn,
+		Instagram:       emp.Instagram,
+		Religion:        emp.Religion,
+		MaritalStatus:   emp.MaritalStatus,
+		Status:          emp.Status,
+	}
+
+	// Employment aktif terakhir (belum punya effective_end_date), diurutkan
+	// effective_date DESC — sama dengan pola career executor.
+	var empRow struct {
+		OrgNomen string
+		PosTitle string
+	}
+	if err := db.Table("employments").
+		Joins("LEFT JOIN organizations org ON org.id = employments.organization_id").
+		Joins("LEFT JOIN positions p ON p.id = employments.position_id").
+		Where("employments.employee_id = ? AND (employments.effective_end_date IS NULL OR employments.effective_end_date = '')", employeeID).
+		Order("employments.effective_date DESC").
+		Limit(1).
+		Select("COALESCE(org.nomenclature, '') AS org_nomen, COALESCE(p.title, '') AS pos_title").
+		Scan(&empRow).Error; err == nil {
+		out.Organization = empRow.OrgNomen
+		out.Position = empRow.PosTitle
+	}
+
+	// Join date = effective_date employment pertama karyawan (kosong bila
+	// belum punya employment sama sekali — COALESCE agar NULL jadi '' dan
+	// tidak memunculkan scan error).
+	if err := db.Table("employments").
+		Where("employee_id = ?", employeeID).
+		Select("COALESCE(MIN(effective_date), '')").
+		Scan(&out.JoinDate).Error; err != nil {
+		out.JoinDate = ""
+	}
+	return out, nil
+}
+
 // GetOrganizationNamesByIDs resolves organization nomenclatures for a batch of
 // ids (used for from/to_organization_name enrichment).
 func (r *Repository) GetOrganizationNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {

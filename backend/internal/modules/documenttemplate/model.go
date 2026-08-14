@@ -11,9 +11,8 @@ const (
 )
 
 const (
-	StatusActive    = "ACTIVE"
-	StatusInactive  = "INACTIVE"
-	StatusReference = "REFERENCE"
+	StatusActive   = "ACTIVE"
+	StatusInactive = "INACTIVE"
 )
 
 // ValidDocumentTypes is the closed set accepted by this phase; extend when
@@ -32,7 +31,6 @@ type DocumentTemplate struct {
 	Content         *string    `gorm:"column:content" json:"content,omitempty"`
 	ActiveVersionID *string    `gorm:"column:active_version_id" json:"active_version_id,omitempty"`
 	Status          string     `gorm:"column:status" json:"status"`
-	IsDefault       bool       `gorm:"column:is_default" json:"is_default"`
 	IsActive        bool       `gorm:"column:is_active" json:"is_active"`
 	CreatedAt       time.Time  `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt       time.Time  `gorm:"column:updated_at" json:"updated_at"`
@@ -46,6 +44,8 @@ type DocumentTemplateVersion struct {
 	TemplateID   string    `gorm:"column:template_id" json:"template_id"`
 	Version      int       `gorm:"column:version" json:"version"`
 	Content      string    `gorm:"column:content" json:"content"`
+	FileName     *string   `gorm:"column:file_name" json:"file_name,omitempty"`
+	FileURL      string    `gorm:"-" json:"file_url,omitempty"`
 	PaperSize    string    `gorm:"column:paper_size" json:"paper_size"`
 	Orientation  string    `gorm:"column:orientation" json:"orientation"`
 	MarginTop    int       `gorm:"column:margin_top" json:"margin_top"`
@@ -83,6 +83,7 @@ type GeneratedDocument struct {
 	GeneratedBy       *string   `gorm:"column:generated_by" json:"generated_by,omitempty"`
 	GeneratedAt       time.Time `gorm:"column:generated_at" json:"generated_at"`
 	CreatedAt         time.Time `gorm:"column:created_at" json:"created_at"`
+	FileURL           string    `gorm:"-" json:"file_url,omitempty"`
 }
 
 func (GeneratedDocument) TableName() string { return "generated_documents" }
