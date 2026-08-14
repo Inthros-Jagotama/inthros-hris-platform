@@ -2446,7 +2446,29 @@
     "performance_formulas": "KPI Formulas",
     "performance_components": "Performance Components",
     "performance_scoring": "Performance Scoring",
-    "numbering": "Document Numbering"
+    "numbering": "Document Numbering",
+    "document_templates": "Document Templates"
+  },
+  "document_templates": {
+    "title": "Document Templates",
+    "description": "Manage reusable HR document templates for contracts and movement SKs",
+    "name": "Name",
+    "code": "Code",
+    "document_type": "Document Type",
+    "updated_at": "Updated At",
+    "default": "Default (reference) template",
+    "empty_title": "No document templates yet",
+    "filter_document_type": "Document Type",
+    "filter_status": "Status",
+    "type_contract_agreement": "Contract Agreement",
+    "type_movement_sk": "Movement SK",
+    "status_active": "Active",
+    "status_inactive": "Inactive",
+    "status_reference": "Reference",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "activated": "Template activated successfully",
+    "deactivated": "Template deactivated successfully"
   },
   "numbering_settings": {
     "title": "Document Numbering",

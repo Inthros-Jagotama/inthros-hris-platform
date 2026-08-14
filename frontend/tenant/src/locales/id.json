@@ -2446,7 +2446,29 @@
     "performance_formulas": "Formula KPI",
     "performance_components": "Komponen Penilaian",
     "performance_scoring": "Bobot Penilaian Kinerja",
-    "numbering": "Penomoran Dokumen"
+    "numbering": "Penomoran Dokumen",
+    "document_templates": "Template Dokumen"
+  },
+  "document_templates": {
+    "title": "Template Dokumen",
+    "description": "Kelola template dokumen HR yang dapat digunakan berulang untuk kontrak dan SK movement",
+    "name": "Nama",
+    "code": "Kode",
+    "document_type": "Jenis Dokumen",
+    "updated_at": "Terakhir Diperbarui",
+    "default": "Template default (referensi)",
+    "empty_title": "Belum ada template dokumen",
+    "filter_document_type": "Jenis Dokumen",
+    "filter_status": "Status",
+    "type_contract_agreement": "Perjanjian Kontrak",
+    "type_movement_sk": "SK Movement",
+    "status_active": "Aktif",
+    "status_inactive": "Nonaktif",
+    "status_reference": "Referensi",
+    "activate": "Aktifkan",
+    "deactivate": "Nonaktifkan",
+    "activated": "Template berhasil diaktifkan",
+    "deactivated": "Template berhasil dinonaktifkan"
   },
   "numbering_settings": {
     "title": "Penomoran Dokumen",
