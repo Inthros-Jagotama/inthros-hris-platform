@@ -4,6 +4,9 @@ type CreateTemplateRequest struct {
 	Name         string `json:"name" binding:"required,max=255"`
 	Code         string `json:"code,omitempty" binding:"omitempty,max=100"` // kosong → digenerate otomatis
 	DocumentType string `json:"document_type" binding:"required"`
+	// MovementType hanya untuk MOVEMENT_SK (kosong = template umum untuk
+	// semua jenis movement). Validasi nilai dilakukan di service.
+	MovementType string `json:"movement_type,omitempty" binding:"omitempty"`
 	Description  string `json:"description,omitempty" binding:"max=1000"`
 }
 

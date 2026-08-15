@@ -2,6 +2,7 @@ package documenttemplate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -37,7 +38,7 @@ func escapeLike(s string) string {
 	return replacer.Replace(s)
 }
 
-func (r *Repository) List(ctx context.Context, page, perPage int, documentType, status, search string) ([]DocumentTemplate, int64, error) {
+func (r *Repository) List(ctx context.Context, page, perPage int, documentType, movementType, status, search string) ([]DocumentTemplate, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -45,6 +46,9 @@ func (r *Repository) List(ctx context.Context, page, perPage int, documentType, 
 	query := db.Session(&gorm.Session{}).Model(&DocumentTemplate{}).Where("deleted_at IS NULL")
 	if documentType != "" {
 		query = query.Where("type = ?", documentType)
+	}
+	if movementType != "" {
+		query = query.Where("movement_type = ?", movementType)
 	}
 	if status != "" {
 		query = query.Where("status = ?", status)
@@ -99,13 +103,36 @@ func (r *Repository) GetByCode(ctx context.Context, code string) (*DocumentTempl
 	return &tpl, nil
 }
 
+// FindActiveByType mengambil template aktif untuk document type + movement type.
+// Untuk MOVEMENT_SK: jika ada template aktif spesifik untuk movementType, dipakai
+// itu; jika tidak, fallback ke template umum (movement_type = ''). Document type
+// non-movement (mis. CONTRACT_AGREEMENT) selalu memakai movement_type = ''.
+func (r *Repository) FindActiveByTypeAndMovement(ctx context.Context, documentType, movementType string) (*DocumentTemplate, error) {
+	if movementType != "" {
+		tpl, err := r.findActive(ctx, documentType, movementType)
+		if err == nil {
+			return tpl, nil
+		}
+		if !errors.Is(err, ErrTemplateNotFound) {
+			return nil, err
+		}
+	}
+	return r.findActive(ctx, documentType, "")
+}
+
+// FindActiveByType mempertahankan perilaku lama: template aktif untuk document
+// type (movement_type = ''). Dipakai test & backward compat.
 func (r *Repository) FindActiveByType(ctx context.Context, documentType string) (*DocumentTemplate, error) {
+	return r.findActive(ctx, documentType, "")
+}
+
+func (r *Repository) findActive(ctx context.Context, documentType, movementType string) (*DocumentTemplate, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var tpl DocumentTemplate
-	err = db.Where("type = ? AND status = ? AND deleted_at IS NULL", documentType, StatusActive).First(&tpl).Error
+	err = db.Where("type = ? AND movement_type = ? AND status = ? AND deleted_at IS NULL", documentType, movementType, StatusActive).First(&tpl).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, ErrTemplateNotFound

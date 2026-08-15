@@ -187,7 +187,10 @@ type DocumentGenerator interface {
 // DocumentGenerateRequest berisi data yang dibutuhkan Generate Document —
 // Values adalah map variable ter-resolve (contract/movement/employee/company).
 type DocumentGenerateRequest struct {
-	DocumentType  string
+	DocumentType string
+	// MovementType: jenis movement (promotion/mutation/dll) agar SK memakai
+	// template per jenis movement; kosong → template SK umum.
+	MovementType  string
 	ReferenceType string
 	ReferenceID   string
 	Values        map[string]string
@@ -2047,7 +2050,7 @@ func employeeValues(emp *EmployeeProfileData) map[string]string {
 		"employee.family_id":        emp.FamilyID,
 		"employee.mother_name":      emp.MotherName,
 		"employee.gender":           emp.Gender,
-		"employee.dob":              emp.DOB,
+		"employee.dob":              documenttemplate.FormatIndonesianDate(emp.DOB),
 		"employee.pob":              emp.POB,
 		"employee.nationality_type": emp.NationalityType,
 		"employee.nationality_id":   emp.NationalityID,
@@ -2059,7 +2062,25 @@ func employeeValues(emp *EmployeeProfileData) map[string]string {
 		"employee.religion":         emp.Religion,
 		"employee.marital_status":   emp.MaritalStatus,
 		"employee.status":           emp.Status,
-		"employee.join_date":        emp.JoinDate,
+		"employee.join_date":        documenttemplate.FormatIndonesianDate(emp.JoinDate),
+	}
+}
+
+// contractTypeLabel memetakan kode contract_type (pkwt/pkwtt/daily/other) ke
+// label Bahasa Indonesia untuk variable {{contract.type}} di dokumen. Kode
+// yang tidak dikenal dikembalikan apa adanya.
+func contractTypeLabel(t ContractType) string {
+	switch t {
+	case ContractTypePKWT:
+		return "PKWT"
+	case ContractTypePKWTT:
+		return "PKWTT"
+	case ContractTypeDaily:
+		return "Harian"
+	case ContractTypeOther:
+		return "Lainnya"
+	default:
+		return string(t)
 	}
 }
 
@@ -2089,7 +2110,7 @@ func (s *Service) GenerateMovementDocument(ctx context.Context, movementID, acto
 		"employee.position":          movement.ToPositionName,
 		"employee.organization":      movement.ToOrganizationName,
 		"movement.number":            movement.DecisionLetterNumber,
-		"movement.effective_date":    movement.EffectiveDate,
+		"movement.effective_date":    documenttemplate.FormatIndonesianDate(movement.EffectiveDate),
 		"movement.previous_position": movement.FromPositionName,
 		"movement.new_position":      movement.ToPositionName,
 	}
@@ -2098,6 +2119,7 @@ func (s *Service) GenerateMovementDocument(ctx context.Context, movementID, acto
 	}
 	return s.docGenerator.Generate(ctx, DocumentGenerateRequest{
 		DocumentType:  documenttemplate.DocumentTypeMovementSK,
+		MovementType:  string(movement.MovementType),
 		ReferenceType: "movement",
 		ReferenceID:   movementID,
 		Values:        values,
@@ -2128,10 +2150,11 @@ func (s *Service) GenerateContractDocument(ctx context.Context, contractID, acto
 		"employee.position":     emp.Position,
 		"employee.organization": emp.Organization,
 		"contract.number":       contract.ContractNumber,
-		"contract.start_date":   contract.StartDate,
+		"contract.type":         contractTypeLabel(contract.ContractType),
+		"contract.start_date":   documenttemplate.FormatIndonesianDate(contract.StartDate),
 	}
 	if contract.EndDate != nil {
-		values["contract.end_date"] = *contract.EndDate
+		values["contract.end_date"] = documenttemplate.FormatIndonesianDate(*contract.EndDate)
 	}
 	for k, v := range employeeValues(emp) {
 		values[k] = v

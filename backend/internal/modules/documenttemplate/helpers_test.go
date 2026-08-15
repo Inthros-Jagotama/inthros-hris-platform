@@ -60,11 +60,16 @@ func makeDocx(t *testing.T, body string) []byte {
 }
 
 func createTestTemplate(db *gorm.DB, code, documentType, status string) *DocumentTemplate {
+	return createTestTemplateWithMovement(db, code, documentType, status, "")
+}
+
+func createTestTemplateWithMovement(db *gorm.DB, code, documentType, status, movementType string) *DocumentTemplate {
 	tpl := &DocumentTemplate{
 		ID:           uuidStr(),
 		Name:         code,
 		Code:         code,
 		DocumentType: documentType,
+		MovementType: movementType,
 		Status:       status,
 		IsActive:     true,
 	}

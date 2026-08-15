@@ -22,11 +22,27 @@ var ValidDocumentTypes = map[string]bool{
 	DocumentTypeMovementSK:        true,
 }
 
+// Movement types — setiap jenis movement bisa punya template SK sendiri
+// (mis. SK promosi, SK mutasi). Nilai harus sinkron dengan MovementType di
+// modul employeemovement. String kosong = template umum (fallback untuk semua
+// jenis movement / document type non-movement).
+var ValidMovementTypes = map[string]bool{
+	"promotion":          true,
+	"demotion":           true,
+	"mutation":           true,
+	"contract_extension": true,
+	"status_change":      true,
+	"retirement":         true,
+	"offboarding":        true,
+	"other":              true,
+}
+
 type DocumentTemplate struct {
 	ID              string     `gorm:"column:id;primaryKey" json:"id"`
 	Name            string     `gorm:"column:name" json:"name"`
 	Code            string     `gorm:"column:code" json:"code"`
 	DocumentType    string     `gorm:"column:type" json:"document_type"`
+	MovementType    string     `gorm:"column:movement_type" json:"movement_type,omitempty"`
 	Description     *string    `gorm:"column:description" json:"description,omitempty"`
 	Content         *string    `gorm:"column:content" json:"content,omitempty"`
 	ActiveVersionID *string    `gorm:"column:active_version_id" json:"active_version_id,omitempty"`

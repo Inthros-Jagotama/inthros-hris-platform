@@ -56,8 +56,8 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
 }
 
-func (s *Service) List(ctx context.Context, page, perPage int, documentType, status, search string) ([]DocumentTemplate, int64, error) {
-	return s.repo.List(ctx, page, perPage, documentType, status, search)
+func (s *Service) List(ctx context.Context, page, perPage int, documentType, movementType, status, search string) ([]DocumentTemplate, int64, error) {
+	return s.repo.List(ctx, page, perPage, documentType, movementType, status, search)
 }
 
 func (s *Service) GetByID(ctx context.Context, id string) (*DocumentTemplate, error) {
@@ -75,9 +75,29 @@ func (s *Service) checkCodeUnique(ctx context.Context, code string) error {
 	return err
 }
 
-func (s *Service) Create(ctx context.Context, name, code, documentType, description string, actorID string) (*DocumentTemplate, error) {
+// validateMovementType menegakkan aturan movement_type per document type:
+//   - MOVEMENT_SK → movement_type boleh kosong (template umum) atau salah satu
+//     dari ValidMovementTypes (template khusus jenis movement).
+//   - selain MOVEMENT_SK → movement_type harus kosong.
+func (s *Service) validateMovementType(documentType, movementType string) error {
+	if documentType == DocumentTypeMovementSK {
+		if movementType != "" && !ValidMovementTypes[movementType] {
+			return &InvalidMovementTypeError{MovementType: movementType}
+		}
+		return nil
+	}
+	if movementType != "" {
+		return &MovementTypeNotAllowedError{DocumentType: documentType, MovementType: movementType}
+	}
+	return nil
+}
+
+func (s *Service) Create(ctx context.Context, name, code, documentType, movementType, description string, actorID string) (*DocumentTemplate, error) {
 	if !ValidDocumentTypes[documentType] {
 		return nil, &InvalidDocumentTypeError{DocumentType: documentType}
+	}
+	if err := s.validateMovementType(documentType, movementType); err != nil {
+		return nil, err
 	}
 	if code == "" {
 		code = generateTemplateCode(documentType)
@@ -91,6 +111,7 @@ func (s *Service) Create(ctx context.Context, name, code, documentType, descript
 		Name:         name,
 		Code:         code,
 		DocumentType: documentType,
+		MovementType: movementType,
 		Status:       StatusInactive,
 		IsActive:     true,
 	}
@@ -170,22 +191,22 @@ func (s *Service) Activate(ctx context.Context, id, actorID string) (*DocumentTe
 			return fmt.Errorf("failed to load template for activation: %w", err)
 		}
 
-		// Lock all other rows of this document type so a concurrent Activate
-		// on a sibling template of the same type serializes behind this tx.
-		var others []DocumentTemplate
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("type = ? AND id <> ? AND deleted_at IS NULL", target.DocumentType, target.ID).
-			Find(&others).Error; err != nil {
-			return fmt.Errorf("failed to lock sibling templates: %w", err)
-		}
+	// Lock all other rows of this (type, movement_type) so a concurrent
+	// Activate on a sibling template of the same scope serializes behind this tx.
+	var others []DocumentTemplate
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("type = ? AND movement_type = ? AND id <> ? AND deleted_at IS NULL", target.DocumentType, target.MovementType, target.ID).
+		Find(&others).Error; err != nil {
+		return fmt.Errorf("failed to lock sibling templates: %w", err)
+	}
 
-		// Set-based deactivation of ALL other active rows of this type (self
-		// heals if the invariant was ever violated), not just one.
-		if err := tx.Model(&DocumentTemplate{}).
-			Where("type = ? AND status = ? AND id <> ? AND deleted_at IS NULL", target.DocumentType, StatusActive, target.ID).
-			Update("status", StatusInactive).Error; err != nil {
-			return fmt.Errorf("failed to deactivate previous active templates: %w", err)
-		}
+	// Set-based deactivation of ALL other active rows of this scope (self
+	// heals if the invariant was ever violated), not just one.
+	if err := tx.Model(&DocumentTemplate{}).
+		Where("type = ? AND movement_type = ? AND status = ? AND id <> ? AND deleted_at IS NULL", target.DocumentType, target.MovementType, StatusActive, target.ID).
+		Update("status", StatusInactive).Error; err != nil {
+		return fmt.Errorf("failed to deactivate previous active templates: %w", err)
+	}
 		for _, previous := range others {
 			if previous.Status != StatusActive {
 				continue

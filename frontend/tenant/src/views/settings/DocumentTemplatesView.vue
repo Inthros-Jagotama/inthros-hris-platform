@@ -74,7 +74,10 @@
       </Column>
       <Column field="document_type" :header="t('document_templates.document_type')">
         <template #body="{ data }">
-          <span class="text-gray-700 dark:text-gray-200">{{ documentTypeLabel(data.document_type) }}</span>
+          <div class="flex flex-col">
+            <span class="text-gray-700 dark:text-gray-200">{{ documentTypeLabel(data.document_type) }}</span>
+            <span v-if="data.movement_type" class="text-xs text-indigo-500 dark:text-indigo-400">{{ movementTypeLabel(data.movement_type) }}</span>
+          </div>
         </template>
       </Column>
       <Column field="status" :header="t('common.status')" style="width:120px">
@@ -533,6 +536,12 @@ const detailContent = computed(() => {
 function documentTypeLabel(type) {
   const found = documentTypeOptions.find((o) => o.value === type)
   return found ? found.label : type
+}
+
+function movementTypeLabel(type) {
+  const key = `employee_movement.type_${type}`
+  const label = t(key)
+  return label !== key ? label : type
 }
 
 function statusLabel(status) {

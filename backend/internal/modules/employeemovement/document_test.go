@@ -74,14 +74,23 @@ func TestService_GenerateMovementDocument(t *testing.T) {
 	if req.DocumentType != documenttemplate.DocumentTypeMovementSK {
 		t.Errorf("expected document type MOVEMENT_SK, got %s", req.DocumentType)
 	}
+	// MovementType ikut dikirim agar generator memakai template SK per jenis
+	// movement (createTestMovement memakai MovementTypeOther).
+	if req.MovementType != "other" {
+		t.Errorf("expected movement_type=other, got %q", req.MovementType)
+	}
 	if req.ReferenceType != "movement" || req.ReferenceID != movement.ID.String() {
 		t.Errorf("unexpected reference: %s / %s", req.ReferenceType, req.ReferenceID)
 	}
 	if req.Values["movement.number"] != movement.DecisionLetterNumber {
 		t.Errorf("expected movement.number=%q, got %q", movement.DecisionLetterNumber, req.Values["movement.number"])
 	}
-	if req.Values["movement.effective_date"] == "" {
-		t.Error("expected effective date resolved, got empty")
+	// Tanggal di-format Bahasa Indonesia (tanggal + nama bulan lengkap + tahun).
+	if req.Values["movement.effective_date"] != "1 Agustus 2026" {
+		t.Errorf("expected effective_date formatted Indonesian, got %q", req.Values["movement.effective_date"])
+	}
+	if req.Values["employee.dob"] != "1 Januari 1990" {
+		t.Errorf("expected employee.dob formatted Indonesian, got %q", req.Values["employee.dob"])
 	}
 	// Variable employee.* mengikuti field tabel employees (termasuk relasi
 	// religion & marital_status yang di-seed seedCareerReferenceTables).
@@ -96,6 +105,44 @@ func TestService_GenerateMovementDocument(t *testing.T) {
 	}
 	if req.Values["employee.marital_status"] != "Menikah" {
 		t.Errorf("expected employee.marital_status=Menikah, got %q", req.Values["employee.marital_status"])
+	}
+}
+
+// TestService_GenerateContractDocument verifies plan §16: generate contract
+// membawa variable contract.* dengan tanggal ter-format Bahasa Indonesia.
+func TestService_GenerateContractDocument(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeDocGenerator{}
+	svc.SetDocumentGenerator(fake)
+
+	employeeID := uuid.New()
+	seedCareerReferenceTables(t, repo, employeeID)
+	contract := createTestContract(repo, employeeID) // 2026-01-01 s.d. 2026-12-31
+
+	doc, err := svc.GenerateContractDocument(context.Background(), contract.ID.String(), "user-1")
+	if err != nil {
+		t.Fatalf("GenerateContractDocument failed: %v", err)
+	}
+	if doc == nil || doc.FileURL == "" {
+		t.Fatal("expected generated document with file_url")
+	}
+	if len(fake.generated) != 1 {
+		t.Fatalf("expected generator called once, got %d", len(fake.generated))
+	}
+	req := fake.generated[0]
+	if req.Values["contract.start_date"] != "1 Januari 2026" {
+		t.Errorf("expected contract.start_date formatted Indonesian, got %q", req.Values["contract.start_date"])
+	}
+	if req.Values["contract.end_date"] != "31 Desember 2026" {
+		t.Errorf("expected contract.end_date formatted Indonesian, got %q", req.Values["contract.end_date"])
+	}
+	if req.Values["contract.number"] != contract.ContractNumber {
+		t.Errorf("expected contract.number=%q, got %q", contract.ContractNumber, req.Values["contract.number"])
+	}
+	if req.Values["contract.type"] != "PKWT" {
+		t.Errorf("expected contract.type=PKWT, got %q", req.Values["contract.type"])
 	}
 }
 

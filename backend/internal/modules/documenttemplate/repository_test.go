@@ -53,6 +53,56 @@ func TestRepositoryFindActiveByType(t *testing.T) {
 	}
 }
 
+// TestRepositoryFindActiveByTypeAndMovement: template SK spesifik per jenis
+// movement dipilih, dan fallback ke template umum (movement_type='') bila tidak
+// ada template spesifik.
+func TestRepositoryFindActiveByTypeAndMovement(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	repo := newTestRepo(db)
+	ctx := context.Background()
+
+	generic := createTestTemplateWithMovement(db, "SK_UMUM", DocumentTypeMovementSK, StatusActive, "")
+	promotion := createTestTemplateWithMovement(db, "SK_PROMOSI", DocumentTypeMovementSK, StatusActive, "promotion")
+
+	// Jenis yang punya template spesifik → template spesifik.
+	got, err := repo.FindActiveByTypeAndMovement(ctx, DocumentTypeMovementSK, "promotion")
+	if err != nil {
+		t.Fatalf("FindActiveByTypeAndMovement(promotion): %v", err)
+	}
+	if got.ID != promotion.ID {
+		t.Fatalf("expected promotion template %s, got %s", promotion.ID, got.ID)
+	}
+
+	// Jenis tanpa template spesifik → fallback template umum.
+	got2, err := repo.FindActiveByTypeAndMovement(ctx, DocumentTypeMovementSK, "mutation")
+	if err != nil {
+		t.Fatalf("FindActiveByTypeAndMovement(mutation): %v", err)
+	}
+	if got2.ID != generic.ID {
+		t.Fatalf("expected generic template %s for mutation, got %s", generic.ID, got2.ID)
+	}
+
+	// Tanpa movement type → template umum.
+	got3, err := repo.FindActiveByTypeAndMovement(ctx, DocumentTypeMovementSK, "")
+	if err != nil {
+		t.Fatalf("FindActiveByTypeAndMovement: %v", err)
+	}
+	if got3.ID != generic.ID {
+		t.Fatalf("expected generic template, got %s", got3.ID)
+	}
+
+	// Document type non-movement tetap memakai movement_type=''.
+	contract := createTestTemplate(db, "PKWT", DocumentTypeContractAgreement, StatusActive)
+	got4, err := repo.FindActiveByTypeAndMovement(ctx, DocumentTypeContractAgreement, "")
+	if err != nil {
+		t.Fatalf("FindActiveByTypeAndMovement(CONTRACT): %v", err)
+	}
+	if got4.ID != contract.ID {
+		t.Fatalf("expected contract template, got %s", got4.ID)
+	}
+}
+
 func TestRepositoryListPaginationAndSearch(t *testing.T) {
 	db, cleanup := setupTestDB()
 	defer cleanup()
@@ -62,7 +112,7 @@ func TestRepositoryListPaginationAndSearch(t *testing.T) {
 	}
 	createTestTemplate(db, "FINDME", DocumentTypeMovementSK, StatusInactive)
 
-	items, total, err := repo.List(context.Background(), 1, 3, "", "", "")
+	items, total, err := repo.List(context.Background(), 1, 3, "", "", "", "")
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -70,7 +120,7 @@ func TestRepositoryListPaginationAndSearch(t *testing.T) {
 		t.Fatalf("expected total=6 len=3, got total=%d len=%d", total, len(items))
 	}
 
-	filtered, ftotal, err := repo.List(context.Background(), 1, 10, DocumentTypeMovementSK, "", "")
+	filtered, ftotal, err := repo.List(context.Background(), 1, 10, DocumentTypeMovementSK, "", "", "")
 	if err != nil {
 		t.Fatalf("List filtered: %v", err)
 	}
@@ -78,7 +128,7 @@ func TestRepositoryListPaginationAndSearch(t *testing.T) {
 		t.Fatalf("expected 1 result FINDME, got total=%d", ftotal)
 	}
 
-	searched, stotal, err := repo.List(context.Background(), 1, 10, "", "", "findme")
+	searched, stotal, err := repo.List(context.Background(), 1, 10, "", "", "", "findme")
 	if err != nil {
 		t.Fatalf("List search: %v", err)
 	}
@@ -101,7 +151,7 @@ func TestRepositorySoftDeleteExcludesFromList(t *testing.T) {
 	if err != ErrTemplateNotFound {
 		t.Fatalf("expected ErrTemplateNotFound after soft delete, got %v", err)
 	}
-	items, total, _ := repo.List(ctx, 1, 10, "", "", "")
+	items, total, _ := repo.List(ctx, 1, 10, "", "", "", "")
 	if total != 0 || len(items) != 0 {
 		t.Fatalf("expected soft-deleted row excluded from List, got total=%d", total)
 	}

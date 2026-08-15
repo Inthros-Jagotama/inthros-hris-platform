@@ -56,6 +56,16 @@ func (h *Handler) handleServiceError(c *gin.Context, err error) {
 		httputil.ErrorSimple(c, http.StatusBadRequest, invalidTypeErr.Error())
 		return
 	}
+	var invalidMovementErr *InvalidMovementTypeError
+	if errors.As(err, &invalidMovementErr) {
+		httputil.ErrorSimple(c, http.StatusBadRequest, invalidMovementErr.Error())
+		return
+	}
+	var movementNotAllowedErr *MovementTypeNotAllowedError
+	if errors.As(err, &movementNotAllowedErr) {
+		httputil.ErrorSimple(c, http.StatusBadRequest, movementNotAllowedErr.Error())
+		return
+	}
 	var dupCodeErr *DuplicateCodeError
 	if errors.As(err, &dupCodeErr) {
 		httputil.ErrorJSON(c, http.StatusConflict, "DUPLICATE_CODE", "documenttemplate.duplicate_code", dupCodeErr.Code)
@@ -85,7 +95,7 @@ func (h *Handler) List(c *gin.Context) {
 	if perPage > 100 {
 		perPage = 100
 	}
-	items, total, err := h.svc.List(c.Request.Context(), page, perPage, c.Query("document_type"), c.Query("status"), c.Query("search"))
+	items, total, err := h.svc.List(c.Request.Context(), page, perPage, c.Query("document_type"), c.Query("movement_type"), c.Query("status"), c.Query("search"))
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
@@ -95,6 +105,12 @@ func (h *Handler) List(c *gin.Context) {
 
 func (h *Handler) ListVariables(c *gin.Context) {
 	httputil.SuccessJSON(c, VariableRegistry())
+}
+
+// ListMovementTypes mengembalikan daftar jenis movement yang tersedia untuk
+// template SK Movement (nilai + label bilingual dipakai frontend).
+func (h *Handler) ListMovementTypes(c *gin.Context) {
+	httputil.SuccessJSON(c, MovementTypeOptions())
 }
 
 // copyFile menyalin file (util kecil untuk memindahkan PDF hasil konversi ke
@@ -201,7 +217,7 @@ func (h *Handler) Create(c *gin.Context) {
 	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
-	tpl, err := h.svc.Create(c.Request.Context(), req.Name, req.Code, req.DocumentType, req.Description, actorID(c))
+	tpl, err := h.svc.Create(c.Request.Context(), req.Name, req.Code, req.DocumentType, req.MovementType, req.Description, actorID(c))
 	if err != nil {
 		h.handleServiceError(c, err)
 		return

@@ -7,6 +7,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 	{
 		templates.GET("", handler.List)
 		templates.POST("", handler.Create)
+		templates.GET("/movement-types", handler.ListMovementTypes)
 		templates.GET("/variables", handler.ListVariables)
 	templates.GET("/:id", handler.GetByID)
 	templates.PUT("/:id", handler.Update)

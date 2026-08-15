@@ -31,14 +31,39 @@ import DocumentTemplateForm from '@/views/settings/DocumentTemplateForm.vue'
 const variablesResponse = {
   data: {
     data: [
-      { category: 'employee', variables: [{ key: 'employee.name', label: 'Name' }] },
+      {
+        category: 'employee',
+        variables: [
+          { key: 'employee.employee_id', label: 'Employee Number' },
+          { key: 'employee.name', label: 'Name' },
+        ],
+      },
       { category: 'contract', variables: [{ key: 'contract.number', label: 'Contract Number' }] },
     ],
   },
 }
 
+// PrimeVue InputText/BaseInput membaca `$primevue.config` saat render (di app
+// disuntik plugin PrimeVue di main.js) — sediakan minimal di lingkungan test.
+const primevueGlobal = {
+  config: {
+    inputStyle: 'filled',
+    inputVariant: 'filled',
+    ripple: false,
+    pt: {},
+    ptOptions: {},
+    unstyled: false,
+  },
+}
+
 function mountForm() {
-  return mount(DocumentTemplateForm)
+  return mount(DocumentTemplateForm, {
+    global: {
+      config: {
+        globalProperties: { $primevue: primevueGlobal },
+      },
+    },
+  })
 }
 
 function makeDocxFile(name = 'template.docx') {
@@ -59,7 +84,19 @@ beforeEach(() => {
   apiGet.mockReset()
   apiPost.mockReset()
   apiPut.mockReset()
-  apiGet.mockResolvedValue(variablesResponse)
+  apiGet.mockImplementation((url) => {
+    if (url.includes('/movement-types')) {
+      return Promise.resolve({
+        data: {
+          data: [
+            { value: 'promotion', label: 'Promosi' },
+            { value: 'mutation', label: 'Mutasi' },
+          ],
+        },
+      })
+    }
+    return Promise.resolve(variablesResponse)
+  })
   delete routeParams.id
 })
 
@@ -70,6 +107,10 @@ describe('DocumentTemplateForm (create)', () => {
     expect(apiGet).toHaveBeenCalledWith('/api/v1/tenant/settings/document-templates/variables')
     expect(wrapper.text()).toContain('{{employee.name}}')
     expect(wrapper.text()).toContain('{{contract.number}}')
+    // Label variabel bilingual — mengikuti bahasa aktif (id di test).
+    expect(wrapper.text()).toContain('Nomor Karyawan')
+    expect(wrapper.text()).toContain('Nomor Kontrak')
+    expect(wrapper.text()).not.toContain('Employee Number')
   })
 
   it('validasi: nama kosong menampilkan error dan tidak submit', async () => {
@@ -154,6 +195,72 @@ describe('DocumentTemplateForm (create)', () => {
     )
     expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ severity: 'success' }))
     expect(push).toHaveBeenCalledWith('/settings/document-templates')
+  })
+
+  it('pencarian variabel memfilter berdasarkan label (terjemahan) atau key', async () => {
+    const wrapper = mountForm()
+    await flushPromises()
+    expect(wrapper.text()).toContain('{{employee.name}}')
+    expect(wrapper.text()).toContain('{{contract.number}}')
+
+    // Cari label Bahasa Indonesia — label terjemahan ikut dicocokkan.
+    const searchInput = wrapper.find('input[placeholder*="Cari variabel"]')
+    await searchInput.setValue('nomor')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('{{contract.number}}')
+    expect(wrapper.text()).toContain('{{employee.employee_id}}')
+    expect(wrapper.text()).not.toContain('{{employee.name}}')
+
+    // Cari berdasarkan key — hanya variabel yang cocok yang tampil.
+    await searchInput.setValue('contract')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('{{contract.number}}')
+    expect(wrapper.text()).not.toContain('{{employee.name}}')
+
+    // Tidak ada yang cocok → pesan kosong.
+    await searchInput.setValue('zzzz')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Tidak ada variabel yang cocok')
+
+    // Bersihkan pencarian → semua variabel kembali.
+    await searchInput.setValue('')
+    await flushPromises()
+    expect(wrapper.text()).toContain('{{employee.name}}')
+  })
+
+  it('template SK movement: pilihan jenis movement dikirim saat submit', async () => {
+    apiPost.mockResolvedValueOnce({ data: { data: { id: 'tmpl-mov' } } })
+    apiPost.mockResolvedValueOnce({ data: { data: { placeholders: [] } } })
+
+    const wrapper = mountForm()
+    await flushPromises()
+
+    await setNameAndType(wrapper)
+    const typeSelect = wrapper.find('select.select-stub')
+    await typeSelect.setValue('MOVEMENT_SK')
+    await flushPromises()
+
+    // Dropdown jenis movement muncul setelah memilih SK Movement.
+    const selects = wrapper.findAll('select.select-stub')
+    expect(selects.length).toBeGreaterThanOrEqual(2)
+    expect(selects[1].text()).toContain('Promosi')
+    await selects[1].setValue('promotion')
+
+    const fileInput = wrapper.find('input[type="file"]')
+    Object.defineProperty(fileInput.element, 'files', { value: [makeDocxFile()], configurable: true })
+    await fileInput.trigger('change')
+
+    await findSaveBtn(wrapper).trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/api/v1/tenant/settings/document-templates', {
+      name: 'Perjanjian PKWT',
+      document_type: 'MOVEMENT_SK',
+      movement_type: 'promotion',
+      description: undefined,
+    })
   })
 
   it('copy variable menyalin {{key}} ke clipboard + toast', async () => {

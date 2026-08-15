@@ -18,7 +18,10 @@ import (
 // bertanggung jawab rendering + PDF + penyimpanan, sesuai prinsip desain plan
 // §24: "Template Dokumen tetap di Settings, Generate Document di module bisnis".
 type GenerateRequest struct {
-	DocumentType  string
+	DocumentType string
+	// MovementType: untuk MOVEMENT_SK — jenis movement (promotion/mutation/dll)
+	// agar template SK per jenis movement dipakai; kosong → template umum.
+	MovementType  string
 	ReferenceType string // "contract" | "movement"
 	ReferenceID   string
 	Values        map[string]string // variable yang sudah di-resolve oleh business module
@@ -92,7 +95,7 @@ func (g *Generator) Generate(ctx context.Context, req GenerateRequest) (*Generat
 		}
 	}
 
-	tpl, err := g.svc.repo.FindActiveByType(ctx, req.DocumentType)
+	tpl, err := g.svc.repo.FindActiveByTypeAndMovement(ctx, req.DocumentType, req.MovementType)
 	if err != nil {
 		if errors.Is(err, ErrTemplateNotFound) {
 			return nil, ErrNoActiveTemplate

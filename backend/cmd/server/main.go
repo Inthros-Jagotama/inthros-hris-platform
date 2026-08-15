@@ -130,6 +130,7 @@ type documentGeneratorAdapter struct {
 func (a documentGeneratorAdapter) Generate(ctx context.Context, req employeemovement.DocumentGenerateRequest) (*employeemovement.GeneratedDocumentRef, error) {
 	doc, err := a.gen.Generate(ctx, documenttemplate.GenerateRequest{
 		DocumentType:  req.DocumentType,
+		MovementType:  req.MovementType,
 		ReferenceType: req.ReferenceType,
 		ReferenceID:   req.ReferenceID,
 		Values:        req.Values,

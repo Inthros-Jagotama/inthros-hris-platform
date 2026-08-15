@@ -23,10 +23,14 @@ func (mockGenPDFService) ConvertDOCXToPDF(_ context.Context, _ string, outputPat
 // setupActiveDocxTemplate membuat template ACTIVE dengan versi DOCX yang punya
 // placeholder, mengembalikan template + uploadDir (file docx tersimpan di disk).
 func setupActiveDocxTemplate(t *testing.T, repo *Repository, uploadDir, docType, body string) *DocumentTemplate {
+	return setupActiveDocxTemplateWithMovement(t, repo, uploadDir, docType, "", body)
+}
+
+func setupActiveDocxTemplateWithMovement(t *testing.T, repo *Repository, uploadDir, docType, movementType, body string) *DocumentTemplate {
 	t.Helper()
 	ctx := context.Background()
 	db, _ := repo.getDB(ctx)
-	tpl := createTestTemplate(db, "", docType, StatusActive)
+	tpl := createTestTemplateWithMovement(db, "", docType, StatusActive, movementType)
 	tpl, _ = repo.GetByID(ctx, tpl.ID)
 
 	// Simpan file docx ke uploadDir/document_templates/ + buat versi.
@@ -98,6 +102,49 @@ func TestGeneratorGenerateCreatesPDFAndRecord(t *testing.T) {
 	}
 	if docs[0].ID != doc.ID || docs[0].FileURL != doc.FileURL {
 		t.Fatalf("history record mismatch: %+v", docs[0])
+	}
+}
+
+// TestGeneratorGenerateMovementType: generate SK movement memakai template
+// spesifik jenis movement bila ada; fallback ke template umum bila tidak.
+func TestGeneratorGenerateMovementType(t *testing.T) {
+	db, cleanup := setupTestDB()
+	t.Cleanup(cleanup)
+	repo := NewRepository(func(ctx context.Context) (*gorm.DB, error) { return db, nil })
+	uploadDir := filepath.Join(t.TempDir(), "uploads")
+
+	generic := setupActiveDocxTemplateWithMovement(t, repo, uploadDir, DocumentTypeMovementSK, "", "Template umum: {{employee.name}}")
+	promotion := setupActiveDocxTemplateWithMovement(t, repo, uploadDir, DocumentTypeMovementSK, "promotion", "Template promosi: {{employee.name}}")
+	gen := NewGenerator(NewService(repo, zap.NewNop()), uploadDir, mockGenPDFService{})
+
+	// Jenis yang punya template spesifik → template promosi dipakai.
+	doc, err := gen.Generate(context.Background(), GenerateRequest{
+		DocumentType:  DocumentTypeMovementSK,
+		MovementType:  "promotion",
+		ReferenceType: "movement",
+		ReferenceID:   uuid.NewString(),
+		Values:        map[string]string{"employee.name": "Asep"},
+	})
+	if err != nil {
+		t.Fatalf("generate(promotion): %v", err)
+	}
+	if doc.TemplateID != promotion.ID {
+		t.Fatalf("expected promotion template %s, got %s", promotion.ID, doc.TemplateID)
+	}
+
+	// Jenis tanpa template spesifik → fallback template umum.
+	doc2, err := gen.Generate(context.Background(), GenerateRequest{
+		DocumentType:  DocumentTypeMovementSK,
+		MovementType:  "mutation",
+		ReferenceType: "movement",
+		ReferenceID:   uuid.NewString(),
+		Values:        map[string]string{"employee.name": "Budi"},
+	})
+	if err != nil {
+		t.Fatalf("generate(mutation): %v", err)
+	}
+	if doc2.TemplateID != generic.ID {
+		t.Fatalf("expected generic template %s for mutation, got %s", generic.ID, doc2.TemplateID)
 	}
 }
 

@@ -10,6 +10,29 @@ type VariableGroup struct {
 	Variables []TemplateVariable `json:"variables"`
 }
 
+// MovementTypeOption adalah pilihan jenis movement untuk template SK Movement
+// (value disimpan ke document_templates.movement_type, label bilingual ada di
+// frontend via key employee_movement.type_{value}).
+type MovementTypeOption struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
+// MovementTypeOptions mengembalikan daftar jenis movement yang tersedia —
+// label default Bahasa Indonesia; frontend menerjemahkan via i18n.
+func MovementTypeOptions() []MovementTypeOption {
+	return []MovementTypeOption{
+		{Value: "promotion", Label: "Promosi"},
+		{Value: "demotion", Label: "Demosi"},
+		{Value: "mutation", Label: "Mutasi"},
+		{Value: "contract_extension", Label: "Perpanjangan Kontrak"},
+		{Value: "status_change", Label: "Perubahan Status"},
+		{Value: "retirement", Label: "Pensiun"},
+		{Value: "offboarding", Label: "Offboarding"},
+		{Value: "other", Label: "Lainnya"},
+	}
+}
+
 // VariableRegistry is the static list of placeholders available to the
 // template editor's "Insert Variable" picker (spec §7). Backend-owned so the
 // frontend never has to keep this list in sync by hand.
@@ -48,6 +71,7 @@ func VariableRegistry() []VariableGroup {
 			Category: "contract",
 			Variables: []TemplateVariable{
 				{Key: "contract.number", Label: "Contract Number"},
+				{Key: "contract.type", Label: "Contract Type"},
 				{Key: "contract.start_date", Label: "Start Date"},
 				{Key: "contract.end_date", Label: "End Date"},
 			},

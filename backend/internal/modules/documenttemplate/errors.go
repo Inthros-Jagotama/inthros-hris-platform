@@ -33,3 +33,22 @@ type InvalidDocumentTypeError struct {
 func (e *InvalidDocumentTypeError) Error() string {
 	return fmt.Sprintf("invalid document type '%s'", e.DocumentType)
 }
+
+type InvalidMovementTypeError struct {
+	MovementType string
+}
+
+func (e *InvalidMovementTypeError) Error() string {
+	return fmt.Sprintf("invalid movement type '%s'", e.MovementType)
+}
+
+// MovementTypeNotAllowedError: movement_type hanya berlaku untuk document type
+// MOVEMENT_SK (atau sebaliknya).
+type MovementTypeNotAllowedError struct {
+	DocumentType string
+	MovementType string
+}
+
+func (e *MovementTypeNotAllowedError) Error() string {
+	return fmt.Sprintf("movement_type '%s' is not allowed for document type '%s'", e.MovementType, e.DocumentType)
+}

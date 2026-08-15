@@ -13,10 +13,45 @@ func TestServiceCreateRejectsInvalidDocumentType(t *testing.T) {
 	defer cleanup()
 	svc := NewService(newTestRepo(db), zap.NewNop())
 
-	_, err := svc.Create(context.Background(), "X", "CODEX", "NOT_A_TYPE", "", "actor-1")
+	_, err := svc.Create(context.Background(), "X", "CODEX", "NOT_A_TYPE", "", "", "actor-1")
 	var invalidErr *InvalidDocumentTypeError
 	if !errors.As(err, &invalidErr) {
 		t.Fatalf("expected InvalidDocumentTypeError, got %v", err)
+	}
+}
+
+func TestServiceCreateMovementTypeValidation(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	svc := NewService(newTestRepo(db), zap.NewNop())
+	ctx := context.Background()
+
+	// MOVEMENT_SK + jenis movement valid → tersimpan.
+	tpl, err := svc.Create(ctx, "SK Promosi", "SKPROMO", DocumentTypeMovementSK, "promotion", "", "actor-1")
+	if err != nil {
+		t.Fatalf("Create with valid movement type: %v", err)
+	}
+	if tpl.MovementType != "promotion" {
+		t.Fatalf("expected movement_type=promotion, got %q", tpl.MovementType)
+	}
+
+	// MOVEMENT_SK + kosong (template umum) → valid.
+	if _, err := svc.Create(ctx, "SK Umum", "SKUMUM", DocumentTypeMovementSK, "", "", "actor-1"); err != nil {
+		t.Fatalf("Create with empty movement type: %v", err)
+	}
+
+	// MOVEMENT_SK + jenis tidak dikenal → InvalidMovementTypeError.
+	_, err = svc.Create(ctx, "SK Aneh", "SKANEH", DocumentTypeMovementSK, "foobar", "", "actor-1")
+	var invalidMovErr *InvalidMovementTypeError
+	if !errors.As(err, &invalidMovErr) {
+		t.Fatalf("expected InvalidMovementTypeError, got %v", err)
+	}
+
+	// Document type non-movement + movement_type → MovementTypeNotAllowedError.
+	_, err = svc.Create(ctx, "PKWT", "PKWTX", DocumentTypeContractAgreement, "promotion", "", "actor-1")
+	var notAllowedErr *MovementTypeNotAllowedError
+	if !errors.As(err, &notAllowedErr) {
+		t.Fatalf("expected MovementTypeNotAllowedError, got %v", err)
 	}
 }
 
@@ -26,7 +61,7 @@ func TestServiceCreateAutoGeneratesCodeWhenEmpty(t *testing.T) {
 	svc := NewService(newTestRepo(db), zap.NewNop())
 	ctx := context.Background()
 
-	tpl, err := svc.Create(ctx, "Auto Code", "", DocumentTypeContractAgreement, "", "actor-1")
+	tpl, err := svc.Create(ctx, "Auto Code", "", DocumentTypeContractAgreement, "", "", "actor-1")
 	if err != nil {
 		t.Fatalf("Create with empty code: %v", err)
 	}
@@ -39,7 +74,7 @@ func TestServiceCreateAutoGeneratesCodeWhenEmpty(t *testing.T) {
 	}
 
 	// Kode otomatis harus tetap unik untuk dua template berbeda
-	second, err := svc.Create(ctx, "Auto Code 2", "", DocumentTypeContractAgreement, "", "actor-1")
+	second, err := svc.Create(ctx, "Auto Code 2", "", DocumentTypeContractAgreement, "", "", "actor-1")
 	if err != nil {
 		t.Fatalf("second Create with empty code: %v", err)
 	}
@@ -54,10 +89,10 @@ func TestServiceCreateRejectsDuplicateCode(t *testing.T) {
 	svc := NewService(newTestRepo(db), zap.NewNop())
 	ctx := context.Background()
 
-	if _, err := svc.Create(ctx, "First", "DUPCODE", DocumentTypeContractAgreement, "", "actor-1"); err != nil {
+	if _, err := svc.Create(ctx, "First", "DUPCODE", DocumentTypeContractAgreement, "", "", "actor-1"); err != nil {
 		t.Fatalf("first Create: %v", err)
 	}
-	_, err := svc.Create(ctx, "Second", "DUPCODE", DocumentTypeContractAgreement, "", "actor-1")
+	_, err := svc.Create(ctx, "Second", "DUPCODE", DocumentTypeContractAgreement, "", "", "actor-1")
 	var dupErr *DuplicateCodeError
 	if !errors.As(err, &dupErr) {
 		t.Fatalf("expected DuplicateCodeError, got %v", err)
@@ -70,7 +105,7 @@ func TestServiceActivateDeactivatesPreviousActive(t *testing.T) {
 	svc := NewService(newTestRepo(db), zap.NewNop())
 	ctx := context.Background()
 
-	first, err := svc.Create(ctx, "First", "ACT1", DocumentTypeContractAgreement, "", "actor-1")
+	first, err := svc.Create(ctx, "First", "ACT1", DocumentTypeContractAgreement, "", "", "actor-1")
 	if err != nil {
 		t.Fatalf("create first: %v", err)
 	}
@@ -78,7 +113,7 @@ func TestServiceActivateDeactivatesPreviousActive(t *testing.T) {
 		t.Fatalf("activate first: %v", err)
 	}
 
-	second, err := svc.Create(ctx, "Second", "ACT2", DocumentTypeContractAgreement, "", "actor-1")
+	second, err := svc.Create(ctx, "Second", "ACT2", DocumentTypeContractAgreement, "", "", "actor-1")
 	if err != nil {
 		t.Fatalf("create second: %v", err)
 	}
@@ -153,7 +188,7 @@ func TestServiceCreateVersionIncrementsAndSetsActiveVersion(t *testing.T) {
 	repo := newTestRepo(db)
 	svc := NewService(repo, zap.NewNop())
 	ctx := context.Background()
-	tpl, err := svc.Create(ctx, "Vers", "VERSVC", DocumentTypeContractAgreement, "", "actor-1")
+	tpl, err := svc.Create(ctx, "Vers", "VERSVC", DocumentTypeContractAgreement, "", "", "actor-1")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -189,7 +224,7 @@ func TestServiceUpdatePartialDoesNotBlankName(t *testing.T) {
 	svc := NewService(repo, zap.NewNop())
 	ctx := context.Background()
 
-	tpl, err := svc.Create(ctx, "Original Name", "UPD1", DocumentTypeContractAgreement, "", "actor-1")
+	tpl, err := svc.Create(ctx, "Original Name", "UPD1", DocumentTypeContractAgreement, "", "", "actor-1")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -226,7 +261,7 @@ func TestServiceDeleteThenRecreateWithSameCode(t *testing.T) {
 	svc := NewService(repo, zap.NewNop())
 	ctx := context.Background()
 
-	tpl, err := svc.Create(ctx, "PKWT", "PKWT01", DocumentTypeContractAgreement, "", "actor-1")
+	tpl, err := svc.Create(ctx, "PKWT", "PKWT01", DocumentTypeContractAgreement, "", "", "actor-1")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -234,7 +269,7 @@ func TestServiceDeleteThenRecreateWithSameCode(t *testing.T) {
 		t.Fatalf("delete: %v", err)
 	}
 
-	recreated, err := svc.Create(ctx, "PKWT v2", "PKWT01", DocumentTypeContractAgreement, "", "actor-1")
+	recreated, err := svc.Create(ctx, "PKWT v2", "PKWT01", DocumentTypeContractAgreement, "", "", "actor-1")
 	if err != nil {
 		t.Fatalf("expected code reuse after soft delete to succeed, got: %v", err)
 	}

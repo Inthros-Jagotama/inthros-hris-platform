@@ -34,6 +34,18 @@
             />
             <Select v-else :modelValue="form.document_type" :options="documentTypeOptions" optionLabel="label" optionValue="value" disabled class="w-full opacity-60" />
           </FormRow>
+          <FormRow v-if="form.document_type === 'MOVEMENT_SK'" :label="t('document_templates.movement_type')" :errors="errors?.movement_type">
+            <Select
+              v-model="form.movement_type"
+              :options="movementTypeOptions"
+              optionLabel="label"
+              optionValue="value"
+              :placeholder="t('document_templates.movement_type_generic')"
+              :disabled="isEditing"
+              :class="{ 'opacity-60': isEditing }"
+              class="w-full"
+            />
+          </FormRow>
           <FormRow :label="t('document_templates.description_label')" :errors="errors?.description">
             <Textarea v-model="form.description" rows="2" :placeholder="t('document_templates.description_label')" class="w-full" />
           </FormRow>
@@ -114,12 +126,22 @@
       <!-- Variable Reference Card -->
       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
         <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1 flex items-center gap-2">
-          <i class="pi pi-braces text-violet-500"></i>
+          <i class="pi pi-database text-violet-500"></i>
           {{ t('document_templates.variable_reference') }}
         </h3>
         <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">{{ t('document_templates.variable_reference_hint') }}</p>
+        <div class="mb-4 flex items-center gap-2">
+          <IconField class="w-full max-w-xs">
+            <InputIcon class="pi pi-search" />
+            <InputText v-model="variableSearch" :placeholder="t('document_templates.variable_search_placeholder')" size="small" class="!pl-8 !text-sm !py-1.5" />
+          </IconField>
+          <Button v-if="variableSearch" icon="pi pi-times" severity="secondary" text rounded size="small" class="!p-1 shrink-0" @click="variableSearch = ''" />
+        </div>
         <div v-if="variableGroups.length === 0" class="text-xs text-gray-400 dark:text-gray-500">
           <i class="pi pi-spin pi-spinner mr-1"></i>{{ t('common.loading') }}
+        </div>
+        <div v-else-if="variableColumns.length === 0" class="text-xs text-gray-400 dark:text-gray-500">
+          <i class="pi pi-search mr-1"></i>{{ t('document_templates.variable_search_no_results') }}
         </div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           <!-- Kolom kiri: employee; kolom kanan: contract, movement, company -->
@@ -134,7 +156,7 @@
                   class="w-full text-left flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/5 transition-colors"
                   @click="copyVariable(v)"
                 >
-                  <span class="text-sm text-gray-700 dark:text-gray-200">{{ v.label }}</span>
+                  <span class="text-sm text-gray-700 dark:text-gray-200">{{ variableLabel(v) }}</span>
                   <code class="text-[11px] text-indigo-500 dark:text-indigo-400 font-mono">{{ placeholderText(v.key) }}</code>
                 </button>
               </div>
@@ -157,6 +179,9 @@ import api from '@/services/api'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
+import InputText from 'primevue/inputtext'
+import InputIcon from 'primevue/inputicon'
+import IconField from 'primevue/iconfield'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 
@@ -180,6 +205,7 @@ const currentFile = ref(null)
 const form = ref({
   name: '',
   document_type: '',
+  movement_type: '',
   description: '',
   paper_size: 'A4',
   orientation: 'portrait',
@@ -189,6 +215,26 @@ const documentTypeOptions = [
   { label: t('document_templates.type_contract_agreement'), value: 'CONTRACT_AGREEMENT' },
   { label: t('document_templates.type_movement_sk'), value: 'MOVEMENT_SK' },
 ]
+
+// Daftar jenis movement dari backend (GET /movement-types) + opsi umum.
+const movementTypeOptions = ref([])
+
+async function loadMovementTypes() {
+  try {
+    const res = await api.get('/api/v1/tenant/settings/document-templates/movement-types')
+    const list = res.data?.data || []
+    movementTypeOptions.value = [
+      { label: t('document_templates.movement_type_generic'), value: '' },
+      ...list.map((m) => {
+        const key = `employee_movement.type_${m.value}`
+        const label = t(key)
+        return { label: label !== key ? label : m.label, value: m.value }
+      }),
+    ]
+  } catch (e) {
+    movementTypeOptions.value = [{ label: t('document_templates.movement_type_generic'), value: '' }]
+  }
+}
 
 const paperOptions = [
   { label: 'A4', value: 'A4' },
@@ -238,12 +284,36 @@ function onFileChange(event) {
 
 // ── Variable reference ──
 const variableGroups = ref([])
+const variableSearch = ref('')
 
-// Grup variabel dibagi ke 2 kolom: employee di kolom kiri, sisanya
-// (contract, movement, company) ditumpuk di kolom kanan — urutan registry
-// dipertahankan di dalam masing-masing kolom.
+// variableLabel menampilkan label variabel sesuai bahasa aktif (bilingual),
+// dengan fallback ke label bawaan registry backend bila belum ada terjemahan.
+function variableLabel(v) {
+  const key = `document_templates.var_label.${v.key}`
+  const label = t(key)
+  return label !== key ? label : v.label
+}
+
+// Grup variabel difilter pencarian (cocok pada label terjemahan, label
+// bawaan, ATAU key — case-insensitive) lalu dibagi ke 2 kolom: employee di
+// kolom kiri, sisanya (contract, movement, company) ditumpuk di kolom kanan —
+// urutan registry dipertahankan. Grup tanpa variabel yang cocok dihilangkan;
+// hasil kosong ditampilkan sebagai "tidak ada yang cocok" di template.
 const variableColumns = computed(() => {
+  const q = variableSearch.value.trim().toLowerCase()
   const groups = variableGroups.value
+    .map((g) => ({
+      ...g,
+      variables: q
+        ? g.variables.filter((v) => {
+            const translated = (variableLabel(v) || '').toLowerCase()
+            const raw = (v.label || '').toLowerCase()
+            const key = (v.key || '').toLowerCase()
+            return translated.includes(q) || raw.includes(q) || key.includes(q)
+          })
+        : g.variables,
+    }))
+    .filter((g) => g.variables.length > 0)
   const primary = groups.filter((g) => g.category === 'employee')
   const rest = groups.filter((g) => g.category !== 'employee')
   return [primary, rest].filter((col) => col.length > 0)
@@ -287,6 +357,14 @@ async function loadTemplate() {
     const data = res.data?.data || res.data
     form.value.name = data.name || ''
     form.value.document_type = data.document_type || ''
+    form.value.movement_type = data.movement_type || ''
+    // Pastikan nilai movement_type yang tersimpan tetap muncul di dropdown
+    // meski fetch movement-types gagal / daftarnya berubah.
+    if (data.movement_type && !movementTypeOptions.value.some((o) => o.value === data.movement_type)) {
+      const key = `employee_movement.type_${data.movement_type}`
+      const label = t(key)
+      movementTypeOptions.value.push({ label: label !== key ? label : data.movement_type, value: data.movement_type })
+    }
     form.value.description = data.description || ''
 
     // Muat info file + konfigurasi dari versi aktif (atau fallback versi pertama).
@@ -343,6 +421,7 @@ async function handleSave() {
       const res = await api.post('/api/v1/tenant/settings/document-templates', {
         name: form.value.name.trim(),
         document_type: form.value.document_type,
+        movement_type: form.value.movement_type || undefined,
         description: form.value.description || undefined,
       })
       targetId = res.data?.data?.id || res.data?.id
@@ -391,7 +470,7 @@ async function handleSave() {
 
 onMounted(async () => {
   try {
-    await Promise.all([loadVariables(), loadTemplate()])
+    await Promise.all([loadVariables(), loadMovementTypes(), loadTemplate()])
   } finally {
     pageLoading.value = false
   }

@@ -59,8 +59,8 @@ func seedCareerReferenceTables(t *testing.T, repo *Repository, employeeID uuid.U
 	if err := db.Exec("INSERT INTO marital_statuses (id, name) VALUES (?, ?)", maritalStatusID.String(), "Menikah").Error; err != nil {
 		t.Fatalf("failed to seed marital status: %v", err)
 	}
-	if err := db.Exec("INSERT INTO employees (id, name, employee_id, religion_id, marital_status_id) VALUES (?, ?, ?, ?, ?)",
-		employeeID.String(), "Test Karyawan", "EMP-TL-001", religionID.String(), maritalStatusID.String()).Error; err != nil {
+	if err := db.Exec("INSERT INTO employees (id, name, employee_id, religion_id, marital_status_id, dob) VALUES (?, ?, ?, ?, ?, ?)",
+		employeeID.String(), "Test Karyawan", "EMP-TL-001", religionID.String(), maritalStatusID.String(), "1990-01-01").Error; err != nil {
 		t.Fatalf("failed to seed employee: %v", err)
 	}
 	return orgID, posID, statusID
