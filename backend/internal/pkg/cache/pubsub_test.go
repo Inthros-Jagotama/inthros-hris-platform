@@ -107,7 +107,6 @@ func (h *pubSubTestHarness) waitForRecords(t *testing.T, n int, timeout time.Dur
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	return nil
 }
 
 // =========================================================================
