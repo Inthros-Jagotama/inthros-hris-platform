@@ -3,7 +3,7 @@
 > 📅 Revisi audit: 2026-08-12 (sinkron dengan implementasi aktual) · Update 2026-08-14/15: **seluruh sub-plan payroll selesai** — Formula Engine ✅ ([02](02-formula-engine.md)), Payroll Run execution + Snapshot ✅ ([03](03-payroll-run-snapshot.md)), BPJS kalkulator ✅ ([04](04-bpjs-engine.md)), PPh21 kalkulator ✅ ([05](05-pph21-engine.md)), Proration & integrasi workforce ✅ ([06](06-proration-workforce.md)), Payslip & Payment ✅ ([07](07-payslip-payment.md)), Reporting & Testing ✅ ([08](08-reporting-testing.md)). **Frontend payroll ✅ (2026-08-15)** — halaman Runs + detail run (payslip/payment/report), settings komponen/period/profil/BPJS/PPh21. Yang masih terbuka: payslip PDF, payroll journal, payment reconciliation.
 > ✅ **Fakta aktual (audit 2026-08-12):** modul payroll **bukan greenfield** — `backend/internal/modules/payroll/` sudah berisi ±6.289 baris kode (model.go 671, service.go 1563, repository.go 804, handler.go 603, dto.go 951, routes.go 116), 21 GORM entity, 21 tabel (migration `006_payroll_structure` + `007_payroll_run` + `060_payroll_approval_instance`), 48 handler function, 71 repository function, 43 test (repository_test.go 17 + service_test.go 26). Seluruhnya adalah **CRUD master data + status-transition sederhana** — bukan calculation engine.
 > 🔎 **Sumber:** audit `backend/internal/modules/payroll/` (model.go/service.go/handler.go/repository.go/routes.go/module.go) + migration `006_payroll_structure.sql`, `007_payroll_run.sql`, `060_payroll_approval_instance.sql` (postgres+mysql) + `docs/database-schema.md` §Payroll + `docs/project-completion-dashboard.md` (baris 81, 153, 259) + `docs/openapi-report.md` (baris 115, 731+).
-> 🚫 **Yang TIDAK ADA sama sekali** (meski `project-completion-dashboard.md` mengklaim modul ini "✅ Complete" — klaim itu **menyesatkan**, hanya benar untuk layer CRUD/master-data): frontend payroll (0%), payslip PDF (HTML & endpoint sudah ada), payroll journal, payment reconciliation, payroll-run-level audit trail generik (jejak run-level kini cukup dari snapshot + `pph21_calculation_logs`). Backend calculation & reporting lengkap sejak 2026-08-14/15.
+> 🚫 **Yang TIDAK ADA** (meski `project-completion-dashboard.md` mengklaim modul ini "✅ Complete" — klaim itu **menyesatkan**, hanya benar untuk layer CRUD/master-data): payslip PDF (HTML & endpoint sudah ada), payroll journal, payment reconciliation. Frontend payroll sudah selesai (2026-08-15) dan backend calculation & reporting lengkap sejak 2026-08-14/15.
 > ✅ **Yang SUDAH ADA dan berfungsi nyata** (bukan cuma CRUD kosong): integrasi Approval Module untuk payroll run — lihat [01-master-data-selesai.md](01-master-data-selesai.md).
 > 🔧 **Catatan konsistensi docs:** `project-completion-dashboard.md` baris 81 mencatat "Payroll & Compensation | 21 entities | 39 tests | 47 endpoints | ✅ Complete" — setelah audit ini, baris tersebut perlu diperjelas menjadi "master data & run-status scaffolding selesai; calculation engine belum" supaya tidak menyesatkan pembaca lain.
 > ✅ **Frontend (2026-08-15): implementasi selesai.** `frontend/tenant/src/views/modules/payroll/Payroll.vue` = daftar Payroll Run (create run, calculate, transisi status); `PayrollRunDetail.vue` (`/payroll/runs/:id`) = tab Overview/Employees/Items/Payslips/Payments/Reports; settings `SalaryComponentsView`, `PayrollPeriodsView`, `PayrollProfilesView`, `BpjsSettingsView` (+ rate components), `Pph21SettingsView` (+ PTKP + tax brackets) di `/settings/*` (masuk grup Payroll & Tax di Settings Index). Route `/payroll`, `/payroll/runs/:id`, dan `/settings/*` terdaftar (digate `payroll.view`). Endpoint FE baru di backend: `GET /payroll/bpjs-rate-components?bpjs_setting_id=`.
@@ -284,24 +284,16 @@ HRIS
 ```text
 1. Formula Engine          → 02-formula-engine.md          ✅ SELESAI (2026-08-14)
 2. Payroll Run + Snapshot  → 03-payroll-run-snapshot.md    ✅ SELESAI (2026-08-14)
-3. BPJS Engine             → 04-bpjs-engine.md              (baca bpjs_rate_components, hasilkan kontribusi)
-4. PPh 21 Engine           → 05-pph21-engine.md             (baca pph21_*, isi pph21_calculation_logs)
-5. Proration                → 06-proration-workforce.md     (engine dasar sudah ada di calculator/, integrasi workforce menyusul)
-6. Workforce Integration    → 06-proration-workforce.md     (Attendance/Leave/Overtime sebagai input)
-7. Payslip generator         → 07-payslip-payment.md         (tabel sudah siap)
-8. Payment/bank transfer     → 07-payslip-payment.md         (belum ada sama sekali)
-9. Reporting + Testing       → 08-reporting-testing.md
+3. BPJS Engine             → 04-bpjs-engine.md              ✅ SELESAI (2026-08-14)
+4. PPh 21 Engine           → 05-pph21-engine.md             ✅ SELESAI (2026-08-15)
+5. Proration                → 06-proration-workforce.md     ✅ SELESAI (2026-08-15)
+6. Workforce Integration    → 06-proration-workforce.md     ✅ SELESAI (2026-08-15)
+7. Payslip generator         → 07-payslip-payment.md         ✅ SELESAI (2026-08-15)
+8. Payment/bank transfer     → 07-payslip-payment.md         ✅ SELESAI (2026-08-15)
+9. Reporting + Testing       → 08-reporting-testing.md       ✅ SELESAI (2026-08-15)
 ```
 
-Yang tersisa dan harus benar sejak awal (Formula Engine + Payroll Run/Snapshot sudah ✅ — 2026-08-14):
-
-```text
-BPJS Engine (baca bpjs_rate_components, hasilkan kontribusi → item source_group=STATUTORY)
-        +
-PPh 21 Engine (baca pph21_*, isi pph21_calculation_logs)
-        +
-Workforce Integration (Attendance/Leave/Overtime sebagai input kalkulasi)
-```
+> ℹ️ Audit 2026-08-15: semua item roadmap di atas sudah terimplementasi dan terverifikasi terhadap kode (`calculator/`, `bpjs.go`, `pph21.go`, `workforce.go`, `payslip.go`, `payment.go`, `report.go` + migration 115–118 + FE payroll). Yang masih terbuka di luar roadmap: payslip PDF, payroll journal, payment reconciliation.
 
 ---
 
