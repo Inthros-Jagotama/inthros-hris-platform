@@ -127,6 +127,12 @@ func (s *Service) CreateSalaryComponent(ctx context.Context, req CreateSalaryCom
 	if req.PrintOnSalaryStructure != nil {
 		sc.PrintOnSalaryStructure = *req.PrintOnSalaryStructure
 	}
+	if req.IsPph21Component != nil {
+		sc.IsPph21Component = *req.IsPph21Component
+	}
+	if req.IsPph21Deductible != nil {
+		sc.IsPph21Deductible = *req.IsPph21Deductible
+	}
 	if req.DisplayOrder != nil {
 		sc.DisplayOrder = *req.DisplayOrder
 	}
@@ -240,6 +246,12 @@ func (s *Service) UpdateSalaryComponent(ctx context.Context, id string, req Upda
 	}
 	if req.PrintOnSalaryStructure != nil {
 		sc.PrintOnSalaryStructure = *req.PrintOnSalaryStructure
+	}
+	if req.IsPph21Component != nil {
+		sc.IsPph21Component = *req.IsPph21Component
+	}
+	if req.IsPph21Deductible != nil {
+		sc.IsPph21Deductible = *req.IsPph21Deductible
 	}
 	if req.DisplayOrder != nil {
 		sc.DisplayOrder = *req.DisplayOrder
@@ -837,6 +849,331 @@ func (s *Service) CreateEmployeeTaxProfile(ctx context.Context, req CreateEmploy
 	return &response, nil
 }
 
+func (s *Service) ListEmployeeBankProfiles(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	items, total, err := s.repo.FindAllEmployeeBankProfiles(ctx, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	var responses []EmployeeBankProfileResponse
+	for i := range items {
+		responses = append(responses, toEmployeeBankProfileResponse(&items[i]))
+	}
+	return s.buildPaginated(responses, page, perPage, total), nil
+}
+
+func (s *Service) ListEmployeeBpjsProfiles(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	items, total, err := s.repo.FindAllEmployeeBpjsProfiles(ctx, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	var responses []EmployeeBpjsProfileResponse
+	for i := range items {
+		responses = append(responses, toEmployeeBpjsProfileResponse(&items[i]))
+	}
+	return s.buildPaginated(responses, page, perPage, total), nil
+}
+
+func (s *Service) ListEmployeeTaxProfiles(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	items, total, err := s.repo.FindAllEmployeeTaxProfiles(ctx, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	var responses []EmployeeTaxProfileResponse
+	for i := range items {
+		responses = append(responses, toEmployeeTaxProfileResponse(&items[i]))
+	}
+	return s.buildPaginated(responses, page, perPage, total), nil
+}
+
+func (s *Service) buildPaginated(data interface{}, page, perPage int, total int64) *PaginatedResponse {
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 {
+		totalPages++
+	}
+	return &PaginatedResponse{
+		Success: true, Data: data, Page: page, PerPage: perPage,
+		Total: total, TotalPages: totalPages,
+	}
+}
+
+// =============================================================================
+// Salary Structure — Grade Components
+// =============================================================================
+
+func (s *Service) ListSalaryGradeComponents(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	items, total, err := s.repo.FindAllSalaryGradeComponents(ctx, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	var responses []SalaryGradeComponentResponse
+	for i := range items {
+		responses = append(responses, toSalaryGradeComponentResponse(&items[i]))
+	}
+	return s.buildPaginated(responses, page, perPage, total), nil
+}
+
+func (s *Service) GetSalaryGradeComponentByID(ctx context.Context, id string) (*SalaryGradeComponentResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	gc, err := s.repo.FindSalaryGradeComponentByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	response := toSalaryGradeComponentResponse(gc)
+	return &response, nil
+}
+
+func (s *Service) CreateSalaryGradeComponent(ctx context.Context, req CreateSalaryGradeComponentRequest) (*SalaryGradeComponentResponse, error) {
+	gc := &SalaryGradeComponent{
+		SalaryComponentID:  uuid.MustParse(req.SalaryComponentID),
+		Amount:             req.Amount,
+		CurrencyCode:       "IDR",
+		EffectiveStartDate: req.EffectiveStartDate,
+		IsMandatory:        true,
+		IsDefault:          true,
+		Status:             "ACTIVE",
+	}
+	if req.GradingID != nil && *req.GradingID != "" {
+		gid, _ := uuid.Parse(*req.GradingID)
+		gc.GradingID = &gid
+	}
+	if req.CurrencyCode != "" {
+		gc.CurrencyCode = req.CurrencyCode
+	}
+	if req.EffectiveEndDate != nil {
+		gc.EffectiveEndDate = req.EffectiveEndDate
+	}
+	if req.IsMandatory != nil {
+		gc.IsMandatory = *req.IsMandatory
+	}
+	if req.IsDefault != nil {
+		gc.IsDefault = *req.IsDefault
+	}
+	if req.Status != "" {
+		gc.Status = req.Status
+	}
+	if req.Notes != nil {
+		gc.Notes = req.Notes
+	}
+	gc.CreatedBy = authctx.GetUserID(ctx)
+	gc.UpdatedBy = gc.CreatedBy
+	if err := s.repo.CreateSalaryGradeComponent(ctx, gc); err != nil {
+		return nil, err
+	}
+	response := toSalaryGradeComponentResponse(gc)
+	return &response, nil
+}
+
+func (s *Service) UpdateSalaryGradeComponent(ctx context.Context, id string, req UpdateSalaryGradeComponentRequest) (*SalaryGradeComponentResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	gc, err := s.repo.FindSalaryGradeComponentByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	gc.UpdatedBy = authctx.GetUserID(ctx)
+	if req.GradingID != nil && *req.GradingID != "" {
+		gid, _ := uuid.Parse(*req.GradingID)
+		gc.GradingID = &gid
+	}
+	if req.Amount != nil {
+		gc.Amount = *req.Amount
+	}
+	if req.CurrencyCode != nil {
+		gc.CurrencyCode = *req.CurrencyCode
+	}
+	if req.EffectiveStartDate != nil {
+		gc.EffectiveStartDate = *req.EffectiveStartDate
+	}
+	if req.EffectiveEndDate != nil {
+		gc.EffectiveEndDate = req.EffectiveEndDate
+	}
+	if req.IsMandatory != nil {
+		gc.IsMandatory = *req.IsMandatory
+	}
+	if req.IsDefault != nil {
+		gc.IsDefault = *req.IsDefault
+	}
+	if req.Status != nil {
+		gc.Status = *req.Status
+	}
+	if req.Notes != nil {
+		gc.Notes = req.Notes
+	}
+	if err := s.repo.UpdateSalaryGradeComponent(ctx, gc); err != nil {
+		return nil, err
+	}
+	response := toSalaryGradeComponentResponse(gc)
+	return &response, nil
+}
+
+func (s *Service) DeleteSalaryGradeComponent(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteSalaryGradeComponent(ctx, uid)
+}
+
+// =============================================================================
+// Salary Structure — Employee Components (override)
+// =============================================================================
+
+func (s *Service) ListSalaryEmployeeComponents(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
+	if page < 1 {
+		page = defaultPage
+	}
+	if perPage < 1 || perPage > maxPerPage {
+		perPage = defaultPerPage
+	}
+	items, total, err := s.repo.FindAllSalaryEmployeeComponents(ctx, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+	var responses []SalaryEmployeeComponentResponse
+	for i := range items {
+		responses = append(responses, toSalaryEmployeeComponentResponse(&items[i]))
+	}
+	return s.buildPaginated(responses, page, perPage, total), nil
+}
+
+func (s *Service) GetSalaryEmployeeComponentByID(ctx context.Context, id string) (*SalaryEmployeeComponentResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	ec, err := s.repo.FindSalaryEmployeeComponentByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	response := toSalaryEmployeeComponentResponse(ec)
+	return &response, nil
+}
+
+func (s *Service) CreateSalaryEmployeeComponent(ctx context.Context, req CreateSalaryEmployeeComponentRequest) (*SalaryEmployeeComponentResponse, error) {
+	ec := &SalaryEmployeeComponent{
+		EmployeeID:         uuid.MustParse(req.EmployeeID),
+		SalaryComponentID:  uuid.MustParse(req.SalaryComponentID),
+		Amount:             req.Amount,
+		CurrencyCode:       "IDR",
+		SourceType:         "MANUAL",
+		EffectiveStartDate: req.EffectiveStartDate,
+		Status:             "ACTIVE",
+	}
+	if req.EmploymentID != nil && *req.EmploymentID != "" {
+		uid, _ := uuid.Parse(*req.EmploymentID)
+		ec.EmploymentID = &uid
+	}
+	if req.PositionID != nil && *req.PositionID != "" {
+		uid, _ := uuid.Parse(*req.PositionID)
+		ec.PositionID = &uid
+	}
+	if req.GradingID != nil && *req.GradingID != "" {
+		uid, _ := uuid.Parse(*req.GradingID)
+		ec.GradingID = &uid
+	}
+	if req.CurrencyCode != "" {
+		ec.CurrencyCode = req.CurrencyCode
+	}
+	if req.SourceType != "" {
+		ec.SourceType = req.SourceType
+	}
+	if req.SourceRefID != nil && *req.SourceRefID != "" {
+		uid, _ := uuid.Parse(*req.SourceRefID)
+		ec.SourceRefID = &uid
+	}
+	if req.EffectiveEndDate != nil {
+		ec.EffectiveEndDate = req.EffectiveEndDate
+	}
+	if req.Notes != nil {
+		ec.Notes = req.Notes
+	}
+	if req.Status != "" {
+		ec.Status = req.Status
+	}
+	ec.CreatedBy = authctx.GetUserID(ctx)
+	ec.UpdatedBy = ec.CreatedBy
+	if err := s.repo.CreateSalaryEmployeeComponent(ctx, ec); err != nil {
+		return nil, err
+	}
+	response := toSalaryEmployeeComponentResponse(ec)
+	return &response, nil
+}
+
+func (s *Service) UpdateSalaryEmployeeComponent(ctx context.Context, id string, req UpdateSalaryEmployeeComponentRequest) (*SalaryEmployeeComponentResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	ec, err := s.repo.FindSalaryEmployeeComponentByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	ec.UpdatedBy = authctx.GetUserID(ctx)
+	if req.Amount != nil {
+		ec.Amount = *req.Amount
+	}
+	if req.CurrencyCode != nil {
+		ec.CurrencyCode = *req.CurrencyCode
+	}
+	if req.EffectiveStartDate != nil {
+		ec.EffectiveStartDate = *req.EffectiveStartDate
+	}
+	if req.EffectiveEndDate != nil {
+		ec.EffectiveEndDate = req.EffectiveEndDate
+	}
+	if req.SourceType != nil {
+		ec.SourceType = *req.SourceType
+	}
+	if req.Notes != nil {
+		ec.Notes = req.Notes
+	}
+	if req.Status != nil {
+		ec.Status = *req.Status
+	}
+	if err := s.repo.UpdateSalaryEmployeeComponent(ctx, ec); err != nil {
+		return nil, err
+	}
+	response := toSalaryEmployeeComponentResponse(ec)
+	return &response, nil
+}
+
+func (s *Service) DeleteSalaryEmployeeComponent(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeleteSalaryEmployeeComponent(ctx, uid)
+}
+
 // =============================================================================
 // BPJS Settings
 // =============================================================================
@@ -889,13 +1226,11 @@ func (s *Service) CreateBpjsSetting(ctx context.Context, req CreateBpjsSettingRe
 // =============================================================================
 
 func (s *Service) CreatePph21Setting(ctx context.Context, req CreatePph21SettingRequest) (*Pph21SettingResponse, error) {
-	compID, _ := uuid.Parse(req.Pph21ComponentID)
 	ps := &Pph21Setting{
 		SettingCode:                    req.SettingCode,
 		SettingName:                    req.SettingName,
-		CalculationMethod:              "REGULAR_GROSS_ANNUALIZED",
+		CalculationMethod:              "TER",
 		DefaultTaxMethod:               "GROSS",
-		Pph21ComponentID:               compID,
 		OccupationalExpenseRatePercent: 5.0,
 		OccupationalExpenseMaxMonthly:  500000,
 		OccupationalExpenseMaxYearly:   6000000,
@@ -1610,15 +1945,11 @@ func (s *Service) UpdatePph21Setting(ctx context.Context, id string, req UpdateP
 	if req.SettingName != nil {
 		ps.SettingName = *req.SettingName
 	}
-	if req.CalculationMethod != nil {
+	if req.CalculationMethod != nil && *req.CalculationMethod != "" {
 		ps.CalculationMethod = *req.CalculationMethod
 	}
 	if req.DefaultTaxMethod != nil {
 		ps.DefaultTaxMethod = *req.DefaultTaxMethod
-	}
-	if req.Pph21ComponentID != nil && *req.Pph21ComponentID != "" {
-		cid, _ := uuid.Parse(*req.Pph21ComponentID)
-		ps.Pph21ComponentID = cid
 	}
 	if req.OccupationalExpenseRatePercent != nil {
 		ps.OccupationalExpenseRatePercent = *req.OccupationalExpenseRatePercent
@@ -1674,56 +2005,6 @@ func (s *Service) DeletePph21Setting(ctx context.Context, id string) error {
 	return s.repo.DeletePph21Setting(ctx, uid)
 }
 
-// Pph21PtkpRate CRUD
-func (s *Service) CreatePph21PtkpRate(ctx context.Context, req CreatePph21PtkpRateRequest) (*Pph21PtkpRateResponse, error) {
-	pr := &Pph21PtkpRate{
-		PtkpStatus:         req.PtkpStatus,
-		AnnualAmount:       req.AnnualAmount,
-		EffectiveStartDate: req.EffectiveStartDate,
-		Status:             "ACTIVE",
-	}
-	if req.Description != nil {
-		pr.Description = req.Description
-	}
-	if req.EffectiveEndDate != nil {
-		pr.EffectiveEndDate = req.EffectiveEndDate
-	}
-	if req.Status != "" {
-		pr.Status = req.Status
-	}
-	pr.CreatedBy = authctx.GetUserID(ctx)
-	if err := s.repo.CreatePph21PtkpRate(ctx, pr); err != nil {
-		return nil, err
-	}
-	response := toPph21PtkpRateResponse(pr)
-	return &response, nil
-}
-
-func (s *Service) ListPph21PtkpRates(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {
-	if page < 1 {
-		page = defaultPage
-	}
-	if perPage < 1 || perPage > maxPerPage {
-		perPage = defaultPerPage
-	}
-	items, total, err := s.repo.FindAllPph21PtkpRates(ctx, page, perPage)
-	if err != nil {
-		return nil, err
-	}
-	var responses []Pph21PtkpRateResponse
-	for _, item := range items {
-		responses = append(responses, toPph21PtkpRateResponse(&item))
-	}
-	totalPages := int(total) / perPage
-	if int(total)%perPage > 0 {
-		totalPages++
-	}
-	return &PaginatedResponse{
-		Success: true, Data: responses, Page: page, PerPage: perPage,
-		Total: total, TotalPages: totalPages,
-	}, nil
-}
-
 // Pph21TaxBracket CRUD
 func (s *Service) CreatePph21TaxBracket(ctx context.Context, req CreatePph21TaxBracketRequest) (*Pph21TaxBracketResponse, error) {
 	tb := &Pph21TaxBracket{
@@ -1748,6 +2029,52 @@ func (s *Service) CreatePph21TaxBracket(ctx context.Context, req CreatePph21TaxB
 	}
 	response := toPph21TaxBracketResponse(tb)
 	return &response, nil
+}
+
+func (s *Service) UpdatePph21TaxBracket(ctx context.Context, id string, req UpdatePph21TaxBracketRequest) (*Pph21TaxBracketResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	tb, err := s.repo.FindPph21TaxBracketByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	if req.BracketOrder != nil {
+		tb.BracketOrder = *req.BracketOrder
+	}
+	if req.LowerBound != nil {
+		tb.LowerBound = *req.LowerBound
+	}
+	if req.UpperBound != nil {
+		tb.UpperBound = req.UpperBound
+	}
+	if req.RatePercent != nil {
+		tb.RatePercent = *req.RatePercent
+	}
+	if req.EffectiveStartDate != nil {
+		tb.EffectiveStartDate = *req.EffectiveStartDate
+	}
+	if req.EffectiveEndDate != nil {
+		tb.EffectiveEndDate = req.EffectiveEndDate
+	}
+	if req.Status != nil {
+		tb.Status = *req.Status
+	}
+	tb.UpdatedBy = authctx.GetUserID(ctx)
+	if err := s.repo.UpdatePph21TaxBracket(ctx, tb); err != nil {
+		return nil, err
+	}
+	response := toPph21TaxBracketResponse(tb)
+	return &response, nil
+}
+
+func (s *Service) DeletePph21TaxBracket(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	return s.repo.DeletePph21TaxBracket(ctx, uid)
 }
 
 func (s *Service) ListPph21TaxBrackets(ctx context.Context, page, perPage int) (*PaginatedResponse, error) {

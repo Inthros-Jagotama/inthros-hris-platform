@@ -53,35 +53,23 @@
     </Dialog>
 
     <!-- ── Setting dialog ── -->
-    <Dialog v-model:visible="settingDialogVisible" :header="editingSetting ? t('payroll.bpjs') : t('payroll.new_bpjs_setting')" modal :style="{ width: '560px' }" @hide="resetSettingForm">
+    <Dialog v-model:visible="settingDialogVisible" :header="editingSetting ? t('payroll.bpjs') : t('payroll.new_bpjs_setting')" modal :style="{ width: '640px' }" @hide="resetSettingForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.bpjs_setting_code')" required :errors="errors?.setting_code">
-            <TextInput v-model="settingForm.setting_code" maxlength="50" autofocus :placeholder="t('payroll.bpjs_setting_code')" :class="{'p-invalid':errors?.setting_code}" :disabled="editingSetting" />
-          </FormRow>
-          <FormRow :label="t('payroll.bpjs_setting_name')" required :errors="errors?.setting_name">
-            <TextInput v-model="settingForm.setting_name" maxlength="150" :placeholder="t('payroll.bpjs_setting_name')" :class="{'p-invalid':errors?.setting_name}" />
-          </FormRow>
-        </div>
-        <FormRow :label="t('payroll.base_source')">
-          <SelectLabel v-model="settingForm.base_source" :options="baseSourceOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
+        <FormRow :label="t('payroll.bpjs_setting_name')" required :errors="errors?.setting_name">
+          <TextInput v-model="settingForm.setting_name" maxlength="150" autofocus :placeholder="t('payroll.bpjs_setting_name')" :class="{'p-invalid':errors?.setting_name}" />
         </FormRow>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.health_max_base_amount')">
-            <InputNumber v-model="settingForm.health_max_base_amount" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
-          </FormRow>
-          <FormRow :label="t('payroll.pension_max_base_amount')">
-            <InputNumber v-model="settingForm.pension_max_base_amount" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.default_jkk_risk_class')">
-            <SelectLabel v-model="settingForm.default_jkk_risk_class" :options="riskOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-          </FormRow>
-          <FormRow :label="t('payroll.rounding_mode')">
-            <SelectLabel v-model="settingForm.rounding_mode" :options="roundingOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('payroll.health_max_base_amount')">
+          <InputNumber v-model="settingForm.health_max_base_amount" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
+        </FormRow>
+        <FormRow :label="t('payroll.pension_max_base_amount')">
+          <InputNumber v-model="settingForm.pension_max_base_amount" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
+        </FormRow>
+        <FormRow :label="t('payroll.default_jkk_risk_class')">
+          <SelectLabel v-model="settingForm.default_jkk_risk_class" :options="riskOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
+        </FormRow>
+        <FormRow :label="t('payroll.rounding_mode')">
+          <SelectLabel v-model="settingForm.rounding_mode" :options="roundingOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
+        </FormRow>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormRow :label="t('payroll.effective_start_date')" required :errors="errors?.effective_start_date">
             <DateInput v-model="settingForm.effective_start_date" :class="{'p-invalid':errors?.effective_start_date}" />
@@ -90,9 +78,31 @@
             <DateInput v-model="settingForm.effective_end_date" />
           </FormRow>
         </div>
-        <FormRow :label="t('common.status')">
-          <SelectLabel v-model="settingForm.status" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-        </FormRow>
+        <!-- Sumber Dasar — card tersendiri dengan pilihan 1 kolom -->
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <span class="text-sm font-medium block mb-3">{{ t('payroll.base_source') }}</span>
+          <div class="space-y-2">
+            <div v-for="opt in baseSourceOptions" :key="opt.value"
+                 class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 cursor-pointer select-none transition-all duration-150 flex items-start gap-3"
+                 :class="settingForm.base_source === opt.value
+                   ? 'border-emerald-400 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-sm'
+                   : 'hover:border-gray-300 dark:hover:border-gray-500'"
+                 @click="settingForm.base_source = opt.value">
+              <RadioButton :modelValue="settingForm.base_source" :inputId="'base-source-' + opt.value.toLowerCase()" :value="opt.value" @update:modelValue="settingForm.base_source = $event" class="mt-0.5" />
+              <div class="flex flex-col gap-0.5 min-w-0">
+                <label :for="'base-source-' + opt.value.toLowerCase()" class="text-sm font-medium cursor-pointer select-none">{{ opt.label }}</label>
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ opt.desc }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center justify-between gap-3">
+          <div>
+            <span class="text-sm font-medium">{{ t('common.status') }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500 block">{{ t('payroll.status_desc') }}</span>
+          </div>
+          <ToggleSwitch v-model="settingForm.status" :true-value="'ACTIVE'" :false-value="'INACTIVE'" :label="statusLabel(settingForm.status)" class="shrink-0" />
+        </div>
       </div>
       <template #footer><div class="flex items-center justify-end gap-2"><Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="settingDialogVisible=false" /><Button :label="editingSetting ? t('common.update') : t('common.save')" size="small" :loading="settingSaving" :disabled="settingSaving" @click="handleSaveSetting" /></div></template>
     </Dialog>
@@ -100,54 +110,39 @@
     <!-- ── Rate dialog ── -->
     <Dialog v-model:visible="rateDialogVisible" :header="editingRate ? t('payroll.rate_components') : t('payroll.new_rate_component')" modal :style="{ width: '560px' }" @hide="resetRateForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.rate_code')" required :errors="errors?.rate_code">
-            <TextInput v-model="rateForm.rate_code" maxlength="80" :placeholder="t('payroll.rate_code')" :class="{'p-invalid':errors?.rate_code}" :disabled="editingRate" />
-          </FormRow>
-          <FormRow :label="t('payroll.rate_name')" required :errors="errors?.rate_name">
-            <TextInput v-model="rateForm.rate_name" maxlength="180" :placeholder="t('payroll.rate_name')" :class="{'p-invalid':errors?.rate_name}" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.bpjs_program')" required :errors="errors?.bpjs_program">
-            <SelectLabel v-model="rateForm.bpjs_program" :options="programOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{'p-invalid':errors?.bpjs_program}" />
-          </FormRow>
-          <FormRow :label="t('payroll.paid_by')" required :errors="errors?.paid_by">
-            <SelectLabel v-model="rateForm.paid_by" :options="paidByOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{'p-invalid':errors?.paid_by}" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.rate_percent')" required :errors="errors?.rate_percent">
-            <InputNumber v-model="rateForm.rate_percent" class="!w-full" :min="0" :max="100" :step="0.01" :minFractionDigits="2" :maxFractionDigits="2" size="small" />
-          </FormRow>
-          <FormRow :label="t('payroll.fixed_amount')">
-            <InputNumber v-model="rateForm.fixed_amount" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.min_base_amount')">
-            <InputNumber v-model="rateForm.min_base_amount" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
-          </FormRow>
-          <FormRow :label="t('payroll.max_base_amount')">
-            <InputNumber v-model="rateForm.max_base_amount" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.jkk_risk_class')">
-            <SelectLabel v-model="rateForm.jkk_risk_class" :options="riskOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
-          </FormRow>
-          <FormRow :label="t('payroll.salary_components')">
-            <SelectLabel v-model="rateForm.salary_component_id" :options="componentOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.effective_start_date')" required :errors="errors?.effective_start_date">
-            <DateInput v-model="rateForm.effective_start_date" :class="{'p-invalid':errors?.effective_start_date}" />
-          </FormRow>
-          <FormRow :label="t('payroll.effective_end_date')">
-            <DateInput v-model="rateForm.effective_end_date" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('payroll.rate_name')" required :errors="errors?.rate_name">
+          <TextInput v-model="rateForm.rate_name" maxlength="180" autofocus :placeholder="t('payroll.rate_name')" :class="{'p-invalid':errors?.rate_name}" />
+        </FormRow>
+        <FormRow :label="t('payroll.bpjs_program')" required :errors="errors?.bpjs_program">
+          <SelectLabel v-model="rateForm.bpjs_program" :options="programOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{'p-invalid':errors?.bpjs_program}" />
+        </FormRow>
+        <FormRow :label="t('payroll.paid_by')" required :errors="errors?.paid_by">
+          <SelectLabel v-model="rateForm.paid_by" :options="paidByOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{'p-invalid':errors?.paid_by}" />
+        </FormRow>
+        <FormRow :label="t('payroll.rate_percent')" required :errors="errors?.rate_percent">
+          <InputNumber v-model="rateForm.rate_percent" class="!w-full" :min="0" :max="100" :step="0.01" :minFractionDigits="2" :maxFractionDigits="2" size="small" />
+        </FormRow>
+        <FormRow :label="t('payroll.fixed_amount')">
+          <InputNumber v-model="rateForm.fixed_amount" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
+        </FormRow>
+        <FormRow :label="t('payroll.min_base_amount')">
+          <InputNumber v-model="rateForm.min_base_amount" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
+        </FormRow>
+        <FormRow :label="t('payroll.max_base_amount')">
+          <InputNumber v-model="rateForm.max_base_amount" class="!w-full" :min="0" mode="currency" currency="IDR" locale="id-ID" size="small" />
+        </FormRow>
+        <FormRow :label="t('payroll.jkk_risk_class')">
+          <SelectLabel v-model="rateForm.jkk_risk_class" :options="riskOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
+        </FormRow>
+        <FormRow :label="t('payroll.salary_components')">
+          <SelectLabel v-model="rateForm.salary_component_id" :options="componentOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" showClear />
+        </FormRow>
+        <FormRow :label="t('payroll.effective_start_date')" required :errors="errors?.effective_start_date">
+          <DateInput v-model="rateForm.effective_start_date" :class="{'p-invalid':errors?.effective_start_date}" />
+        </FormRow>
+        <FormRow :label="t('payroll.effective_end_date')">
+          <DateInput v-model="rateForm.effective_end_date" />
+        </FormRow>
       </div>
       <template #footer><div class="flex items-center justify-end gap-2"><Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="rateDialogVisible=false" /><Button :label="editingRate ? t('common.update') : t('common.save')" size="small" :loading="rateSaving" :disabled="rateSaving" @click="handleSaveRate" /></div></template>
     </Dialog>
@@ -156,14 +151,15 @@
   </div>
 </template>
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'; import { useI18n } from '@/composables/useI18n'; import { getValidationErrors } from '@/services/responseHandler'; import { formatDate } from '@/utils/formatDate'; import api from '@/services/api'
-import DataTable from 'primevue/datatable'; import Column from 'primevue/column'; import Button from 'primevue/button'; import InputNumber from 'primevue/inputnumber'; import Tag from 'primevue/tag'; import Dialog from 'primevue/dialog'; import SkeletonTable from '@/components/SkeletonTable.vue'
+import DataTable from 'primevue/datatable'; import Column from 'primevue/column'; import Button from 'primevue/button'; import InputNumber from 'primevue/inputnumber'; import RadioButton from 'primevue/radiobutton'; import Tag from 'primevue/tag'; import Dialog from 'primevue/dialog'; import SkeletonTable from '@/components/SkeletonTable.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
 import DateInput from '@/components/DateInput.vue'
+import ToggleSwitch from '@/components/ToggleSwitch.vue'
 const { t, locale } = useI18n(); const toast = useToast()
 const items = ref([]); const loading = ref(false)
 const totalRecords = ref(0); const currentPage = ref(1); const perPage = ref(15)
@@ -176,15 +172,32 @@ const errors = ref({})
 const settingForm = ref({ setting_code: '', setting_name: '', base_source: 'BPJS_BASE_COMPONENTS', health_max_base_amount: null, pension_max_base_amount: null, default_jkk_risk_class: 'LOW', rounding_mode: 'ROUND', effective_start_date: '', effective_end_date: '', status: 'ACTIVE' })
 const rateForm = ref({ rate_code: '', rate_name: '', bpjs_program: 'HEALTH', paid_by: 'EMPLOYEE', rate_percent: 0, fixed_amount: null, min_base_amount: null, max_base_amount: null, jkk_risk_class: null, salary_component_id: null, effective_start_date: '', effective_end_date: '' })
 
-const baseSourceOptions = computed(() => ['BPJS_BASE_COMPONENTS', 'BASIC_SALARY', 'GROSS_EARNING'].map(v => ({ label: t(`payroll.base_source_${v.toLowerCase()}`), value: v })))
+const baseSourceOptions = computed(() => ['BPJS_BASE_COMPONENTS', 'BASIC_SALARY', 'GROSS_EARNING'].map(v => ({ label: t(`payroll.base_source_${v.toLowerCase()}`), desc: t(`payroll.base_source_${v.toLowerCase()}_desc`), value: v })))
 const riskOptions = computed(() => ['VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH'].map(v => ({ label: t(`payroll.risk_${v.toLowerCase()}`), value: v })))
 const roundingOptions = computed(() => ['NONE', 'ROUND', 'CEIL', 'FLOOR'].map(v => ({ label: t(`payroll.rounding_mode_${v.toLowerCase()}`), value: v })))
-const statusOptions = computed(() => ['ACTIVE', 'INACTIVE'].map(v => ({ label: t(`payroll.status_${v.toLowerCase()}`), value: v })))
 const programOptions = computed(() => ['HEALTH', 'JHT', 'JP', 'JKK', 'JKM', 'JKP'].map(v => ({ label: t(`payroll.bpjs_program_${v.toLowerCase()}`), value: v })))
 const paidByOptions = computed(() => ['EMPLOYEE', 'EMPLOYER'].map(v => ({ label: t(`payroll.paid_by_${v.toLowerCase()}`), value: v })))
 const componentOptions = computed(() => components.value.map(c => ({ label: `${c.code} — ${c.name}`, value: c.id })))
 const skeletonColumns = [{type:'text',width:'w-24',headerWidth:'w-16'},{type:'text',width:'w-40',headerWidth:'w-16'},{type:'text',width:'w-24',headerWidth:'w-20'},{type:'tag',width:'w-20',headerWidth:'w-16'},{type:'text',width:'w-20',headerWidth:'w-16'},{type:'tag',width:'w-16',headerWidth:'w-16'},{type:'icons',count:3,headerWidth:'w-24'}]
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
+
+// Kode digenerate otomatis dari nama (inisial tiap kata + timestamp + random),
+// memakai _ sebagai pemisah agar tidak konflik dengan operator minus di formula.
+function nameInitials(name) {
+  const words = (name || '').trim().split(/\s+/).filter(Boolean)
+  return words.map(w => w[0]).join('').toUpperCase().replace(/[^A-Z0-9]/g, '')
+}
+function generateCode(name) {
+  const prefix = nameInitials(name)
+  const d = new Date()
+  const pad = n => String(n).padStart(2, '0')
+  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const rand = Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('')
+  return prefix ? `${prefix}_${stamp}_${rand}` : ''
+}
+watch(() => settingForm.value.setting_name, (nv) => { if (!editingSetting.value) settingForm.value.setting_code = generateCode(nv) })
+watch(() => rateForm.value.rate_name, (nv) => { if (!editingRate.value) rateForm.value.rate_code = generateCode(nv) })
 const deleteTitle = computed(() => deleteIsSetting.value ? t('payroll.bpjs') : t('payroll.rate_components'))
 const deleteMessage = computed(() => {
   if (!deleteTarget.value) return t('common.no_data')
@@ -245,7 +258,6 @@ function resetSettingForm() {
 }
 async function handleSaveSetting() {
   errors.value = {}
-  if (!settingForm.value.setting_code?.trim()) { errors.value = { setting_code: [t('form.required')] }; return }
   if (!settingForm.value.setting_name?.trim()) { errors.value = { setting_name: [t('form.required')] }; return }
   if (!settingForm.value.effective_start_date) { errors.value = { effective_start_date: [t('form.required')] }; return }
   settingSaving.value = true
@@ -295,7 +307,6 @@ function resetRateForm() {
 }
 async function handleSaveRate() {
   errors.value = {}
-  if (!rateForm.value.rate_code?.trim()) { errors.value = { rate_code: [t('form.required')] }; return }
   if (!rateForm.value.rate_name?.trim()) { errors.value = { rate_name: [t('form.required')] }; return }
   if (!rateForm.value.bpjs_program) { errors.value = { bpjs_program: [t('form.required')] }; return }
   if (!rateForm.value.paid_by) { errors.value = { paid_by: [t('form.required')] }; return }

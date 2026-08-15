@@ -34,8 +34,9 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&BpjsSetting{},
 		&BpjsRateComponent{},
 		&Pph21Setting{},
-		&Pph21PtkpRate{},
+		&Ptkp{},
 		&Pph21TaxBracket{},
+		&TerRate{},
 		&PayrollRun{},
 		&PayrollRunEmployee{},
 		&PayrollRunItem{},
@@ -399,15 +400,24 @@ func createTestEmployeeTaxProfile(ctx context.Context, repo *Repository, employe
 	return p
 }
 
-// createTestPph21SettingCustom inserts PPh21 setting yang memakai komponen
-// potongan pajak tertentu (Pph21ComponentID).
+// createTestPph21SettingCustom inserts PPh21 setting dengan komponen potongan
+// pajak yang ditandai flag IsPph21Component (sumber kebenaran di komponen gaji).
 func createTestPph21SettingCustom(ctx context.Context, repo *Repository, pph21Comp *SalaryComponent) *Pph21Setting {
+	return createTestPph21SettingCustomMethod(ctx, repo, pph21Comp, "REGULAR_GROSS_ANNUALIZED")
+}
+
+// createTestPph21SettingCustomMethod sama seperti createTestPph21SettingCustom
+// tapi metode kalkulasi bisa dipilih (TER / REGULAR_GROSS_ANNUALIZED).
+func createTestPph21SettingCustomMethod(ctx context.Context, repo *Repository, pph21Comp *SalaryComponent, method string) *Pph21Setting {
+	pph21Comp.IsPph21Component = true
+	if err := repo.UpdateSalaryComponent(ctx, pph21Comp); err != nil {
+		panic(fmt.Sprintf("failed to mark test PPh21 component: %v", err))
+	}
 	ps := &Pph21Setting{
 		SettingCode:                    "PPH21-DEFAULT",
 		SettingName:                    "Default PPh21 Setting",
-		CalculationMethod:              "REGULAR_GROSS_ANNUALIZED",
+		CalculationMethod:              method,
 		DefaultTaxMethod:               "GROSS",
-		Pph21ComponentID:               pph21Comp.ID,
 		OccupationalExpenseRatePercent: 5.0,
 		OccupationalExpenseMaxMonthly:  500000,
 		OccupationalExpenseMaxYearly:   6000000,
@@ -427,18 +437,46 @@ func createTestPph21SettingCustom(ctx context.Context, repo *Repository, pph21Co
 	return ps
 }
 
-// createTestPph21PtkpRate inserts PTKP rate aktif per status.
-func createTestPph21PtkpRate(ctx context.Context, repo *Repository, status string, annual float64) *Pph21PtkpRate {
-	pr := &Pph21PtkpRate{
-		PtkpStatus:         status,
-		AnnualAmount:       annual,
-		EffectiveStartDate: "2020-01-01",
-		Status:             "ACTIVE",
+// createTestTerRate inserts satu baris tarif TER (tabel ters).
+func createTestTerRate(ctx context.Context, repo *Repository, group string, brutoMin, brutoMax *int64, rate float64) {
+	db, err := repo.getDB(ctx)
+	if err != nil {
+		panic(err)
 	}
-	if err := repo.CreatePph21PtkpRate(ctx, pr); err != nil {
-		panic(fmt.Sprintf("failed to create test PTKP rate: %v", err))
+	tr := &TerRate{ID: uuid.New(), Group: group, BrutoMin: brutoMin, BrutoMax: brutoMax, Rate: rate}
+	if err := db.Create(tr).Error; err != nil {
+		panic(fmt.Sprintf("failed to create test TER rate: %v", err))
 	}
-	return pr
+}
+
+// createTestPayrollPeriodCustom membuat periode payroll untuk bulan & tahun tertentu.
+func createTestPayrollPeriodCustom(ctx context.Context, repo *Repository, year, month int) *PayrollPeriod {
+	p := &PayrollPeriod{
+		PeriodCode:  fmt.Sprintf("%04d%02d", year, month),
+		PeriodYear:  year,
+		PeriodMonth: month,
+		StartDate:   fmt.Sprintf("%04d-%02d-01", year, month),
+		EndDate:     fmt.Sprintf("%04d-%02d-28", year, month),
+		AsOfDate:    fmt.Sprintf("%04d-%02d-28", year, month),
+		Status:      "OPEN",
+	}
+	if err := repo.CreatePayrollPeriod(ctx, p); err != nil {
+		panic(fmt.Sprintf("failed to create test payroll period: %v", err))
+	}
+	return p
+}
+
+// createTestPtkp inserts baris PTKP ke tabel ptkps (satu sumber kebenaran).
+func createTestPtkp(ctx context.Context, repo *Repository, code, name string, annual int64, group string) {
+	db, err := repo.getDB(ctx)
+	if err != nil {
+		panic(fmt.Sprintf("failed to get db: %v", err))
+	}
+	if err := db.Table("ptkps").Create(map[string]interface{}{
+		"id": uuid.NewString(), "code": code, "name": name, "ptkp": annual, "group": group,
+	}).Error; err != nil {
+		panic(fmt.Sprintf("failed to create test PTKP: %v", err))
+	}
 }
 
 // createTestPph21TaxBracket inserts tax bracket progresif aktif. upper nil =
@@ -460,13 +498,11 @@ func createTestPph21TaxBracket(ctx context.Context, repo *Repository, order int,
 
 // createTestPph21Setting inserts a test PPh21 setting and returns it.
 func createTestPph21Setting(ctx context.Context, repo *Repository) *Pph21Setting {
-	comp := createTestSalaryComponent(ctx, repo)
 	ps := &Pph21Setting{
 		SettingCode:                    "PPH21-DEFAULT",
 		SettingName:                    "Default PPh21 Setting",
 		CalculationMethod:              "REGULAR_GROSS_ANNUALIZED",
 		DefaultTaxMethod:               "GROSS",
-		Pph21ComponentID:               comp.ID,
 		OccupationalExpenseRatePercent: 5.0,
 		OccupationalExpenseMaxMonthly:  500000,
 		OccupationalExpenseMaxYearly:   6000000,

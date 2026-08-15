@@ -478,10 +478,26 @@ func (r *Repository) FindTERByID(ctx context.Context, id uuid.UUID) (*TER, error
 	}
 	return &t, nil
 }
-func (r *Repository) FindAllTERs(ctx context.Context, page, perPage int) ([]TER, int64, error) {
+func (r *Repository) FindAllTERs(ctx context.Context, page, perPage int, search string) ([]TER, int64, error) {
 	var list []TER
-	total, err := r.findAll(ctx, &list, "ters", page, perPage, "`group` ASC, bruto_min ASC")
-	return list, total, err
+	db, err := r.getDB(ctx)
+	if err != nil { return nil, 0, err }
+	query := db.Model(&TER{})
+	if search != "" {
+		like := "%" + search + "%"
+		if db.Dialector.Name() == "postgres" {
+			query = query.Where("`group` LIKE ? OR rate::text LIKE ?", like, like)
+		} else {
+			query = query.Where("`group` LIKE ? OR CAST(rate AS CHAR) LIKE ?", like, like)
+		}
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil { return nil, 0, err }
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("`group` ASC, bruto_min ASC").Find(&list).Error; err != nil {
+		return nil, 0, err
+	}
+	return list, total, nil
 }
 func (r *Repository) UpdateTER(ctx context.Context, t *TER) error { return r.update(ctx, t) }
 func (r *Repository) DeleteTER(ctx context.Context, id uuid.UUID) error {
@@ -499,10 +515,22 @@ func (r *Repository) FindPTKPByID(ctx context.Context, id uuid.UUID) (*PTKP, err
 	}
 	return &p, nil
 }
-func (r *Repository) FindAllPTKPs(ctx context.Context, page, perPage int) ([]PTKP, int64, error) {
+func (r *Repository) FindAllPTKPs(ctx context.Context, page, perPage int, search string) ([]PTKP, int64, error) {
 	var list []PTKP
-	total, err := r.findAll(ctx, &list, "ptkps", page, perPage, "`group` ASC, ptkp ASC")
-	return list, total, err
+	db, err := r.getDB(ctx)
+	if err != nil { return nil, 0, err }
+	query := db.Model(&PTKP{})
+	if search != "" {
+		like := "%" + search + "%"
+		query = query.Where("name LIKE ? OR code LIKE ? OR `group` LIKE ?", like, like, like)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil { return nil, 0, err }
+	offset := (page - 1) * perPage
+	if err := query.Offset(offset).Limit(perPage).Order("`group` ASC, ptkp ASC").Find(&list).Error; err != nil {
+		return nil, 0, err
+	}
+	return list, total, nil
 }
 func (r *Repository) UpdatePTKP(ctx context.Context, p *PTKP) error { return r.update(ctx, p) }
 func (r *Repository) DeletePTKP(ctx context.Context, id uuid.UUID) error {

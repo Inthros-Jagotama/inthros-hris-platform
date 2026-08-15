@@ -44,6 +44,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		ebp := payroll.Group("/employee-bank-profiles")
 		{
 			ebp.POST("", handler.CreateEmployeeBankProfile)
+			ebp.GET("", handler.ListEmployeeBankProfiles)
 			ebp.GET("/:id", handler.GetEmployeeBankProfileByID)
 			ebp.PUT("/:id", handler.UpdateEmployeeBankProfile)
 			ebp.DELETE("/:id", handler.DeleteEmployeeBankProfile)
@@ -53,6 +54,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		ebjs := payroll.Group("/employee-bpjs-profiles")
 		{
 			ebjs.POST("", handler.CreateEmployeeBpjsProfile)
+			ebjs.GET("", handler.ListEmployeeBpjsProfiles)
 			ebjs.GET("/:id", handler.GetEmployeeBpjsProfileByID)
 			ebjs.PUT("/:id", handler.UpdateEmployeeBpjsProfile)
 			ebjs.DELETE("/:id", handler.DeleteEmployeeBpjsProfile)
@@ -62,9 +64,30 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		etp := payroll.Group("/employee-tax-profiles")
 		{
 			etp.POST("", handler.CreateEmployeeTaxProfile)
+			etp.GET("", handler.ListEmployeeTaxProfiles)
 			etp.GET("/:id", handler.GetEmployeeTaxProfileByID)
 			etp.PUT("/:id", handler.UpdateEmployeeTaxProfile)
 			etp.DELETE("/:id", handler.DeleteEmployeeTaxProfile)
+		}
+
+		// Salary Structure — Grade Components
+		sgc := payroll.Group("/salary-grade-components")
+		{
+			sgc.POST("", handler.CreateSalaryGradeComponent)
+			sgc.GET("", handler.ListSalaryGradeComponents)
+			sgc.GET("/:id", handler.GetSalaryGradeComponentByID)
+			sgc.PUT("/:id", handler.UpdateSalaryGradeComponent)
+			sgc.DELETE("/:id", handler.DeleteSalaryGradeComponent)
+		}
+
+		// Salary Structure — Employee Components (override)
+		sec := payroll.Group("/salary-employee-components")
+		{
+			sec.POST("", handler.CreateSalaryEmployeeComponent)
+			sec.GET("", handler.ListSalaryEmployeeComponents)
+			sec.GET("/:id", handler.GetSalaryEmployeeComponentByID)
+			sec.PUT("/:id", handler.UpdateSalaryEmployeeComponent)
+			sec.DELETE("/:id", handler.DeleteSalaryEmployeeComponent)
 		}
 
 		// BPJS Settings
@@ -97,18 +120,13 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 			ps.DELETE("/:id", handler.DeletePph21Setting)
 		}
 
-		// PPh21 PTKP Rates
-		ppr := payroll.Group("/pph21-ptkp-rates")
-		{
-			ppr.POST("", handler.CreatePph21PtkpRate)
-			ppr.GET("", handler.ListPph21PtkpRates)
-		}
-
 		// PPh21 Tax Brackets
 		ptb := payroll.Group("/pph21-tax-brackets")
 		{
 			ptb.POST("", handler.CreatePph21TaxBracket)
 			ptb.GET("", handler.ListPph21TaxBrackets)
+			ptb.PUT("/:id", handler.UpdatePph21TaxBracket)
+			ptb.DELETE("/:id", handler.DeletePph21TaxBracket)
 		}
 
 		// Payroll Runs

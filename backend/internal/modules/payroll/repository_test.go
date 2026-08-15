@@ -390,14 +390,14 @@ func TestRepository_FindActivePph21ByDate(t *testing.T) {
 		t.Fatalf("expected active setting %s, got %v", setting.ID, active)
 	}
 
-	// PTKP + bracket effective-dated.
-	createTestPph21PtkpRate(ctx, repo, "TK/0", 54000000)
-	ptkpRates, err := repo.FindActivePph21PtkpRatesByDate(ctx, "2026-01-31")
+	// PTKP dari tabel ptkps (satu sumber kebenaran).
+	createTestPtkp(ctx, repo, "TK0", "Tidak Kawin (TK/0)", 54000000, "A")
+	ptkp, err := repo.FindPtkpByCode(ctx, "TK0")
 	if err != nil {
-		t.Fatalf("FindActivePph21PtkpRatesByDate: %v", err)
+		t.Fatalf("FindPtkpByCode: %v", err)
 	}
-	if len(ptkpRates) != 1 || ptkpRates[0].PtkpStatus != "TK/0" {
-		t.Fatalf("expected 1 PTKP rate TK/0, got %d", len(ptkpRates))
+	if ptkp == nil || ptkp.Ptkp != 54000000 || ptkp.Group != "A" {
+		t.Fatalf("expected PTKP TK0 54000000 group A, got %+v", ptkp)
 	}
 
 	createTestPph21TaxBracket(ctx, repo, 1, 0, floatPtr(60000000), 5.0)
@@ -456,39 +456,6 @@ func TestRepository_Pph21SettingCRUD(t *testing.T) {
 	_, err = repo.FindPph21SettingByID(ctx, created.ID)
 	if err == nil {
 		t.Fatal("expected error after deleting PPh21 setting")
-	}
-}
-
-// =============================================================================
-// PPh21 PTKP Rate Tests
-// =============================================================================
-
-func TestRepository_Pph21PtkpRateCRUD(t *testing.T) {
-	_, dbResolver, cleanup := setupTestDB()
-	defer cleanup()
-	repo := NewRepository(dbResolver)
-	ctx := context.Background()
-
-	pr := &Pph21PtkpRate{
-		PtkpStatus:         "TK/0",
-		AnnualAmount:       54000000,
-		EffectiveStartDate: "2026-01-01",
-		Status:             "ACTIVE",
-	}
-	if err := repo.CreatePph21PtkpRate(ctx, pr); err != nil {
-		t.Fatalf("CreatePph21PtkpRate failed: %v", err)
-	}
-
-	found, err := repo.FindPph21PtkpRateByID(ctx, pr.ID)
-	if err != nil {
-		t.Fatalf("FindPph21PtkpRateByID failed: %v", err)
-	}
-	if found.AnnualAmount != 54000000 {
-		t.Errorf("expected amount 54000000, got %f", found.AnnualAmount)
-	}
-
-	if err := repo.DeletePph21PtkpRate(ctx, pr.ID); err != nil {
-		t.Fatalf("DeletePph21PtkpRate failed: %v", err)
 	}
 }
 

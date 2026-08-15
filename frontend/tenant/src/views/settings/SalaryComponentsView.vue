@@ -1,64 +1,77 @@
 <template>
-  <div class="space-y-1">
+  <div class="space-y-4">
     <div class="flex items-center justify-between gap-2 flex-wrap">
-      <div class="flex items-center gap-2">
-        <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500">{{ totalRecords }} {{ t('common.items') }}</span>
-      </div>
-      <Button :label="t('payroll.new_component')" icon="pi pi-plus" size="small" @click="openDialog()" />
+      <span v-if="totalCount > 0" class="text-xs text-gray-400 dark:text-gray-500">{{ totalCount }} {{ t('common.items') }}</span>
     </div>
-    <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="8" />
-    <DataTable
-      v-else
-      :value="items"
-      lazy
-      :totalRecords="totalRecords"
-      :first="firstRecord"
-      :rows="perPage"
-      @page="onPage($event)"
-      paginator
-      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
-      :rowsPerPageOptions="[10, 15, 25, 50]"
-      size="small"
-      class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
-      sortField="display_order"
-      :sortOrder="1"
-    >
-      <template #empty><div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500"><i class="pi pi-list text-3xl mb-2 opacity-50"></i><p class="text-sm font-medium">{{ t('payroll.components_empty') }}</p></div></template>
-      <Column field="code" :header="t('payroll.component_code')" sortable style="width:120px"><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium font-mono text-xs">{{ data.code }}</span></template></Column>
-      <Column field="name" :header="t('payroll.component_name')" sortable><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template></Column>
-      <Column field="component_type" :header="t('payroll.component_type')" sortable style="width:160px"><template #body="{data}"><Tag :value="typeLabel(data.component_type)" :severity="typeSeverity(data.component_type)" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
-      <Column field="calculation_type" :header="t('payroll.calculation_type')" sortable style="width:130px"><template #body="{data}"><span class="text-gray-600 dark:text-gray-300 text-xs">{{ calcLabel(data.calculation_type) }}</span></template></Column>
-      <Column field="status" :header="t('common.status')" sortable style="width:100px"><template #body="{data}"><Tag :value="statusLabel(data.status)" :severity="data.status === 'ACTIVE' ? 'success' : 'secondary'" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
-      <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right"><template #body="{data}"><div class="flex items-center gap-1 justify-end"><Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openDialog(data)" /><Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" /></div></template></Column>
-    </DataTable>
 
-    <Dialog v-model:visible="dialogVisible" :header="editing ? t('payroll.salary_components') : t('payroll.new_component')" modal :style="{ width: '640px' }" :closable="true" @hide="resetForm">
+    <div v-if="loading" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <SkeletonTable v-for="i in 2" :key="i" :columns="skeletonColumns" :rows="5" />
+    </div>
+
+    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div
+        v-for="group in groups"
+        :key="group.type"
+        class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+      >
+        <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-2 min-w-0">
+            <i :class="group.icon" class="text-sm text-gray-400 dark:text-gray-500"></i>
+            <span class="text-sm font-semibold text-surface-800 dark:text-surface-0 truncate">{{ group.label }}</span>
+            <Tag :value="String(group.items.length)" :severity="group.severity" class="!text-xs !px-1.5 !py-0.5" />
+          </div>
+          <Button :label="t('payroll.new_component')" icon="pi pi-plus" size="small" severity="secondary" outlined class="!whitespace-nowrap shrink-0" @click="openDialog(null, group.type)" />
+        </div>
+        <div class="divide-y divide-gray-100 dark:divide-gray-700/60">
+          <div v-if="group.items.length === 0" class="px-4 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
+            {{ t('payroll.components_empty_group', { type: group.label }) }}
+          </div>
+          <div v-for="item in group.items" :key="item.id" class="flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="font-mono text-xs text-gray-400 dark:text-gray-500 shrink-0">{{ item.code }}</span>
+              <span class="text-sm font-medium text-surface-700 dark:text-surface-0 truncate">{{ item.name }}</span>
+              <Tag :value="calcLabel(item.calculation_type)" severity="secondary" class="!text-xs !px-1.5 !py-0.5 hidden sm:inline-flex shrink-0" />
+              <Tag :value="statusLabel(item.status)" :severity="item.status === 'ACTIVE' ? 'success' : 'secondary'" class="!text-xs !px-1.5 !py-0.5 shrink-0" />
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openDialog(item)" />
+              <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(item)" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <Dialog v-model:visible="dialogVisible" :header="editing ? t('payroll.edit_component_of_type', { type: typeLabel(form.component_type) }) : t('payroll.new_component_of_type', { type: typeLabel(form.component_type) })" modal :style="{ width: 'min(900px, 95vw)' }" :closable="true" @hide="resetForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.component_code')" required :errors="errors?.code">
-            <TextInput v-model="form.code" maxlength="50" autofocus :placeholder="t('payroll.component_code')" :class="{'p-invalid':errors?.code}" :disabled="editing" />
-          </FormRow>
-          <FormRow :label="t('payroll.component_name')" required :errors="errors?.name">
-            <TextInput v-model="form.name" maxlength="150" :placeholder="t('payroll.component_name')" :class="{'p-invalid':errors?.name}" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.component_type')" required :errors="errors?.component_type">
-            <SelectLabel v-model="form.component_type" :options="typeOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{'p-invalid':errors?.component_type}" />
-          </FormRow>
-          <FormRow :label="t('payroll.calculation_type')" required :errors="errors?.calculation_type">
-            <SelectLabel v-model="form.calculation_type" :options="calcOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{'p-invalid':errors?.calculation_type}" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('payroll.component_name')" required :errors="errors?.name">
+          <TextInput v-model="form.name" maxlength="150" autofocus :placeholder="t('payroll.component_name')" :class="{'p-invalid':errors?.name}" />
+        </FormRow>
         <FormRow :label="t('common.description')">
           <TextInput v-model="form.description" maxlength="1000" textarea :rows="2" />
+        </FormRow>
+        <FormRow :label="t('payroll.calculation_type')" required :errors="errors?.calculation_type">
+          <div class="flex flex-wrap gap-2">
+            <RadioLabel
+              v-for="opt in calcOptions"
+              :key="opt.value"
+              v-model="form.calculation_type"
+              :value="opt.value"
+              :id="'calc-type-' + opt.value.toLowerCase()"
+              :label="opt.label"
+            />
+          </div>
         </FormRow>
         <div v-if="form.calculation_type === 'FORMULA' || form.calculation_type === 'PERCENTAGE'">
           <FormRow :label="t('payroll.formula')" :errors="errors?.formula">
             <div class="flex items-start gap-2">
-              <TextInput v-model="form.formula" maxlength="500" :placeholder="t('payroll.formula_placeholder')" :class="{'p-invalid':errors?.formula}" />
+              <TextInput v-model="form.formula" textarea :rows="3" maxlength="500" :placeholder="t('payroll.formula_placeholder')" :class="{'p-invalid':errors?.formula}" />
               <Button :label="t('payroll.validate_formula')" icon="pi pi-check" size="small" severity="secondary" outlined class="!whitespace-nowrap shrink-0" :loading="validatingFormula" @click="validateFormula" />
             </div>
+            <div v-if="mentionOptions.length" class="mt-2 border border-gray-200 dark:border-gray-700 rounded-lg p-2 flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+              <Button v-for="opt in mentionOptions" :key="opt.code" :label="opt.label" size="small" text severity="secondary" class="!px-2 !py-1 !text-xs" @click="insertMention(opt)" />
+            </div>
+            <span class="text-xs text-gray-400 dark:text-gray-500 mt-1 block">{{ t('payroll.formula_at_hint') }}</span>
             <small v-if="formulaStatus" class="text-xs mt-1 block" :class="formulaValid ? 'text-emerald-500' : 'text-rose-500'">{{ formulaStatus }}</small>
           </FormRow>
         </div>
@@ -68,17 +81,65 @@
           </FormRow>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.is_taxable')"><ToggleSwitch v-model="form.is_taxable" /></FormRow>
-          <FormRow :label="t('payroll.is_bpjs_base')"><ToggleSwitch v-model="form.is_bpjs_base" /></FormRow>
-          <FormRow :label="t('payroll.is_recurring')"><ToggleSwitch v-model="form.is_recurring" /></FormRow>
-          <FormRow :label="t('payroll.is_proratable')"><ToggleSwitch v-model="form.is_proratable" /></FormRow>
-          <FormRow :label="t('payroll.print_on_salary_structure')"><ToggleSwitch v-model="form.print_on_salary_structure" /></FormRow>
-          <FormRow :label="t('payroll.display_order')">
-            <InputNumber v-model="form.display_order" class="!w-full" :min="0" size="small" />
-          </FormRow>
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center justify-between gap-3">
+            <div class="flex flex-col gap-0.5 min-w-0">
+              <span class="text-sm font-medium text-surface-700 dark:text-surface-0/80">{{ t('payroll.is_taxable') }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payroll.is_taxable_desc') }}</span>
+            </div>
+            <ToggleSwitch v-model="form.is_taxable" class="shrink-0" />
+          </div>
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center justify-between gap-3">
+            <div class="flex flex-col gap-0.5 min-w-0">
+              <span class="text-sm font-medium text-surface-700 dark:text-surface-0/80">{{ t('payroll.is_bpjs_base') }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payroll.is_bpjs_base_desc') }}</span>
+            </div>
+            <ToggleSwitch v-model="form.is_bpjs_base" class="shrink-0" />
+          </div>
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center justify-between gap-3">
+            <div class="flex flex-col gap-0.5 min-w-0">
+              <span class="text-sm font-medium text-surface-700 dark:text-surface-0/80">{{ t('payroll.is_recurring') }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payroll.is_recurring_desc') }}</span>
+            </div>
+            <ToggleSwitch v-model="form.is_recurring" class="shrink-0" />
+          </div>
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center justify-between gap-3">
+            <div class="flex flex-col gap-0.5 min-w-0">
+              <span class="text-sm font-medium text-surface-700 dark:text-surface-0/80">{{ t('payroll.is_proratable') }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payroll.is_proratable_desc') }}</span>
+            </div>
+            <ToggleSwitch v-model="form.is_proratable" class="shrink-0" />
+          </div>
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center justify-between gap-3">
+            <div class="flex flex-col gap-0.5 min-w-0">
+              <span class="text-sm font-medium text-surface-700 dark:text-surface-0/80">{{ t('payroll.print_on_salary_structure') }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payroll.print_on_salary_structure_desc') }}</span>
+            </div>
+            <ToggleSwitch v-model="form.print_on_salary_structure" class="shrink-0" />
+          </div>
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center justify-between gap-3">
+            <div class="flex flex-col gap-0.5 min-w-0">
+              <span class="text-sm font-medium text-surface-700 dark:text-surface-0/80">{{ t('payroll.is_pph21_component') }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payroll.is_pph21_component_desc') }}</span>
+            </div>
+            <ToggleSwitch v-model="form.is_pph21_component" class="shrink-0" />
+          </div>
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center justify-between gap-3">
+            <div class="flex flex-col gap-0.5 min-w-0">
+              <span class="text-sm font-medium text-surface-700 dark:text-surface-0/80">{{ t('payroll.is_pph21_deductible') }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payroll.is_pph21_deductible_desc') }}</span>
+            </div>
+            <ToggleSwitch v-model="form.is_pph21_deductible" class="shrink-0" />
+          </div>
         </div>
-        <FormRow :label="t('common.status')">
-          <SelectLabel v-model="form.status" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center justify-between gap-3">
+          <div class="flex flex-col gap-0.5 min-w-0">
+            <span class="text-sm font-medium text-surface-700 dark:text-surface-0/80">{{ t('common.status') }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payroll.status_desc') }}</span>
+          </div>
+          <ToggleSwitch v-model="form.status" :true-value="'ACTIVE'" :false-value="'INACTIVE'" :label="statusLabel(form.status)" class="shrink-0" />
+        </div>
+        <FormRow :label="t('payroll.display_order')">
+          <InputNumber v-model="form.display_order" class="!w-full" :min="0" size="small" />
         </FormRow>
       </div>
       <template #footer><div class="flex items-center justify-end gap-2"><Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible=false" /><Button :label="editing ? t('common.update') : t('common.save')" size="small" :loading="saving" :disabled="saving" @click="handleSave" /></div></template>
@@ -88,72 +149,127 @@
   </div>
 </template>
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'; import { useI18n } from '@/composables/useI18n'; import { getValidationErrors } from '@/services/responseHandler'; import api from '@/services/api'
-import DataTable from 'primevue/datatable'; import Column from 'primevue/column'; import Button from 'primevue/button'; import InputNumber from 'primevue/inputnumber'; import Tag from 'primevue/tag'; import Dialog from 'primevue/dialog'; import SkeletonTable from '@/components/SkeletonTable.vue'
+import Button from 'primevue/button'; import InputNumber from 'primevue/inputnumber'; import Tag from 'primevue/tag'; import Dialog from 'primevue/dialog'; import SkeletonTable from '@/components/SkeletonTable.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
+import RadioLabel from '@/components/RadioLabel.vue'
 const { t } = useI18n(); const toast = useToast(); const items = ref([]); const loading = ref(false)
-const totalRecords = ref(0); const currentPage = ref(1); const perPage = ref(15)
 const dialogVisible = ref(false); const editing = ref(false); const editingId = ref(null); const saving = ref(false); const errors = ref({})
+const presetType = ref('')
 const deleteDialogVisible = ref(false); const deleting = ref(false); const deleteError = ref(''); const deleteTarget = ref(null)
-const form = ref({ code: '', name: '', description: '', component_type: 'EARNING', calculation_type: 'FIXED', formula: '', reference_component_id: null, is_taxable: true, is_bpjs_base: false, is_recurring: true, is_proratable: true, print_on_salary_structure: true, display_order: 100, status: 'ACTIVE' })
+const form = ref({ code: '', name: '', description: '', component_type: 'EARNING', calculation_type: 'FIXED', formula: '', reference_component_id: null, is_taxable: true, is_bpjs_base: false, is_recurring: true, is_proratable: true, print_on_salary_structure: true, is_pph21_component: false, is_pph21_deductible: false, display_order: 100, status: 'ACTIVE' })
+
+function nameInitials(name) {
+  const words = (name || '').trim().split(/\s+/).filter(Boolean)
+  return words.map(w => w[0]).join('').toUpperCase().replace(/[^A-Z0-9]/g, '')
+}
+function generateCode(name) {
+  const prefix = nameInitials(name)
+  const d = new Date()
+  const pad = n => String(n).padStart(2, '0')
+  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const rand = Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('')
+  return prefix ? `${prefix}_${stamp}_${rand}` : ''
+}
+watch(() => form.value.name, (nv) => { if (!editing.value) form.value.code = generateCode(nv) })
 const allComponents = ref([])
 const deleteMessage = computed(() => deleteTarget.value ? `${t('payroll.component_name')}: ${deleteTarget.value.code} — ${deleteTarget.value.name}` : t('common.no_data'))
 const validatingFormula = ref(false); const formulaStatus = ref(''); const formulaValid = ref(false)
+const mentionQuery = computed(() => {
+  const text = form.value.formula || ''
+  const idx = text.lastIndexOf('@')
+  if (idx < 0) return null
+  return { idx, q: text.slice(idx + 1) }
+})
+const mentionOptions = computed(() => {
+  const m = mentionQuery.value
+  if (!m) return []
+  const q = m.q.toLowerCase()
+  return allComponents.value
+    .filter(c => c.id !== editingId.value && (c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)))
+    .slice(0, 10)
+    .map(c => ({ label: `${c.name} (${c.code})`, code: c.code }))
+})
 
-const typeOptions = computed(() => ['EARNING', 'DEDUCTION', 'EMPLOYER_CONTRIBUTION', 'INFORMATION'].map(v => ({ label: t(`payroll.component_type_${v.toLowerCase()}`), value: v })))
+const typeOrder = ['EARNING', 'DEDUCTION', 'EMPLOYER_CONTRIBUTION', 'INFORMATION']
+const groupMeta = {
+  EARNING: { icon: 'pi pi-wallet' },
+  DEDUCTION: { icon: 'pi pi-arrow-down-left' },
+  EMPLOYER_CONTRIBUTION: { icon: 'pi pi-building' },
+  INFORMATION: { icon: 'pi pi-info-circle' }
+}
+const groups = computed(() => typeOrder.map(type => ({
+  type,
+  label: typeLabel(type),
+  severity: typeSeverity(type),
+  icon: groupMeta[type].icon,
+  items: items.value
+    .filter(c => c.component_type === type)
+    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+})))
+const totalCount = computed(() => items.value.length)
+
 const calcOptions = computed(() => ['FIXED', 'PERCENTAGE', 'FORMULA', 'REFERENCE', 'MANUAL'].map(v => ({ label: t(`payroll.calculation_type_${v.toLowerCase()}`), value: v })))
-const statusOptions = computed(() => ['ACTIVE', 'INACTIVE'].map(v => ({ label: t(`payroll.status_${v.toLowerCase()}`), value: v })))
 const referenceOptions = computed(() => allComponents.value.filter(c => c.id !== editingId.value).map(c => ({ label: `${c.code} — ${c.name}`, value: c.id })))
 
-const skeletonColumns = [{type:'text',width:'w-20',headerWidth:'w-16'},{type:'text',width:'w-40',headerWidth:'w-16'},{type:'tag',width:'w-24',headerWidth:'w-16'},{type:'text',width:'w-20',headerWidth:'w-16'},{type:'tag',width:'w-16',headerWidth:'w-16'},{type:'icons',count:2,headerWidth:'w-16'}]
+const skeletonColumns = [{type:'text',width:'w-16',headerWidth:'w-16'},{type:'text',width:'w-40',headerWidth:'w-16'},{type:'tag',width:'w-20',headerWidth:'w-16'},{type:'icons',count:2,headerWidth:'w-16'}]
 
 function typeLabel(v) { const key = `payroll.component_type_${String(v||'').toLowerCase()}`; return t(key) !== key ? t(key) : v }
 function typeSeverity(v) { return { EARNING: 'success', DEDUCTION: 'danger', EMPLOYER_CONTRIBUTION: 'warn', INFORMATION: 'info' }[v] || 'secondary' }
 function calcLabel(v) { const key = `payroll.calculation_type_${String(v||'').toLowerCase()}`; return t(key) !== key ? t(key) : v }
 function statusLabel(v) { const key = `payroll.status_${String(v||'').toLowerCase()}`; return t(key) !== key ? t(key) : v }
 
-const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
-
 async function loadData() {
   loading.value = true
   try {
-    const res = await api.get('/api/v1/tenant/payroll/salary-components', { params: { page: currentPage.value, per_page: perPage.value } })
-    const body = res.data
-    items.value = body?.data || []
-    totalRecords.value = body?.total || 0
-    if (body?.page) currentPage.value = body.page
+    const all = []
+    let page = 1
+    const perPage = 100
+    while (true) {
+      const res = await api.get('/api/v1/tenant/payroll/salary-components', { params: { page, per_page: perPage } })
+      const body = res.data
+      const rows = body?.data || []
+      all.push(...rows)
+      if (!rows.length || all.length >= (body?.total || 0)) break
+      page++
+    }
+    items.value = all
+    allComponents.value = all
   } catch(e) {
     toast.add({severity:'error',summary:t('message.error'),detail:e.response?.data?.error?.message||t('message.failed_to_load'),life:4000})
   } finally { loading.value = false }
 }
-async function loadAllComponents() {
-  try {
-    const res = await api.get('/api/v1/tenant/payroll/salary-components', { params: { per_page: 500 } })
-    allComponents.value = res.data?.data || []
-  } catch { allComponents.value = [] }
-}
-function onPage(event) { currentPage.value = event.page + 1; perPage.value = event.rows; loadData() }
-function openDialog(item) {
+function openDialog(item, type) {
   editing.value = !!item; editingId.value = item?.id || null; errors.value = {}; formulaStatus.value = ''; formulaValid.value = false
+  presetType.value = item ? '' : (type || '')
   form.value = {
     code: item?.code || '', name: item?.name || '', description: item?.description || '',
-    component_type: item?.component_type || 'EARNING', calculation_type: item?.calculation_type || 'FIXED',
+    component_type: item?.component_type || presetType.value || 'EARNING', calculation_type: item?.calculation_type || 'FIXED',
     formula: item?.formula || '', reference_component_id: item?.reference_component_id || null,
     is_taxable: item?.is_taxable ?? true, is_bpjs_base: item?.is_bpjs_base ?? false,
     is_recurring: item?.is_recurring ?? true, is_proratable: item?.is_proratable ?? true,
-    print_on_salary_structure: item?.print_on_salary_structure ?? true, display_order: item?.display_order ?? 100,
+    print_on_salary_structure: item?.print_on_salary_structure ?? true,
+    is_pph21_component: item?.is_pph21_component ?? false, is_pph21_deductible: item?.is_pph21_deductible ?? false,
+    display_order: item?.display_order ?? 100,
     status: item?.status || 'ACTIVE'
   }
   dialogVisible.value = true
 }
 function resetForm() {
-  form.value = { code: '', name: '', description: '', component_type: 'EARNING', calculation_type: 'FIXED', formula: '', reference_component_id: null, is_taxable: true, is_bpjs_base: false, is_recurring: true, is_proratable: true, print_on_salary_structure: true, display_order: 100, status: 'ACTIVE' }
-  errors.value = {}; editing.value = false; editingId.value = null; formulaStatus.value = ''; formulaValid.value = false
+  form.value = { code: '', name: '', description: '', component_type: 'EARNING', calculation_type: 'FIXED', formula: '', reference_component_id: null, is_taxable: true, is_bpjs_base: false, is_recurring: true, is_proratable: true, print_on_salary_structure: true, is_pph21_component: false, is_pph21_deductible: false, display_order: 100, status: 'ACTIVE' }
+  errors.value = {}; editing.value = false; editingId.value = null; presetType.value = ''; formulaStatus.value = ''; formulaValid.value = false
+}
+function insertMention(opt) {
+  const m = mentionQuery.value
+  if (!m) return
+  const text = form.value.formula || ''
+  form.value.formula = text.slice(0, m.idx) + opt.code + text.slice(m.idx + 1 + m.q.length)
 }
 async function validateFormula() {
   if (!form.value.formula?.trim()) { formulaStatus.value = ''; return }
@@ -182,6 +298,7 @@ async function handleSave() {
       is_taxable: form.value.is_taxable, is_bpjs_base: form.value.is_bpjs_base,
       is_recurring: form.value.is_recurring, is_proratable: form.value.is_proratable,
       print_on_salary_structure: form.value.print_on_salary_structure,
+      is_pph21_component: form.value.is_pph21_component, is_pph21_deductible: form.value.is_pph21_deductible,
       display_order: form.value.display_order, status: form.value.status
     }
     if (editing.value) {
@@ -191,7 +308,7 @@ async function handleSave() {
       await api.post('/api/v1/tenant/payroll/salary-components', payload)
       toast.add({ severity: 'success', summary: t('message.success'), detail: t('payroll.component_created'), life: 3000 })
     }
-    dialogVisible.value = false; await loadData(); await loadAllComponents()
+    dialogVisible.value = false; await loadData()
   } catch(e) {
     const fe = getValidationErrors(e)
     if (Object.keys(fe).length > 0) { errors.value = fe }
@@ -204,9 +321,9 @@ async function handleDelete() {
   try {
     await api.delete(`/api/v1/tenant/payroll/salary-components/${deleteTarget.value.id}`)
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('payroll.component_deleted'), life: 3000 })
-    deleteDialogVisible.value = false; await loadData(); await loadAllComponents()
+    deleteDialogVisible.value = false; await loadData()
   } catch(e) { deleteError.value = e.response?.data?.error?.message || t('message.operation_failed') }
   finally { deleting.value = false }
 }
-onMounted(() => { loadData(); loadAllComponents() })
+onMounted(loadData)
 </script>

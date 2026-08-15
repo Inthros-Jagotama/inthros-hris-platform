@@ -101,12 +101,92 @@ func (r *Repository) UpdateSalaryGradeComponent(ctx context.Context, gc *SalaryG
 	return db.Save(gc).Error
 }
 
+func (r *Repository) FindAllSalaryGradeComponents(ctx context.Context, page, perPage int) ([]SalaryGradeComponent, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var items []SalaryGradeComponent
+	var total int64
+	if err := db.Model(&SalaryGradeComponent{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := db.Order("grading_id ASC, effective_start_date DESC").Offset((page - 1) * perPage).Limit(perPage).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *Repository) FindSalaryGradeComponentByID(ctx context.Context, id uuid.UUID) (*SalaryGradeComponent, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var gc SalaryGradeComponent
+	if err := db.First(&gc, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("salary grade component not found: %w", err)
+	}
+	return &gc, nil
+}
+
+func (r *Repository) DeleteSalaryGradeComponent(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Where("id = ?", id).Delete(&SalaryGradeComponent{}).Error
+}
+
 func (r *Repository) CreateSalaryEmployeeComponent(ctx context.Context, ec *SalaryEmployeeComponent) error {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return err
 	}
 	return db.Create(ec).Error
+}
+
+func (r *Repository) UpdateSalaryEmployeeComponent(ctx context.Context, ec *SalaryEmployeeComponent) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(ec).Error
+}
+
+func (r *Repository) FindAllSalaryEmployeeComponents(ctx context.Context, page, perPage int) ([]SalaryEmployeeComponent, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var items []SalaryEmployeeComponent
+	var total int64
+	if err := db.Model(&SalaryEmployeeComponent{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := db.Order("employee_id ASC, effective_start_date DESC").Offset((page - 1) * perPage).Limit(perPage).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *Repository) FindSalaryEmployeeComponentByID(ctx context.Context, id uuid.UUID) (*SalaryEmployeeComponent, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var ec SalaryEmployeeComponent
+	if err := db.First(&ec, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("salary employee component not found: %w", err)
+	}
+	return &ec, nil
+}
+
+func (r *Repository) DeleteSalaryEmployeeComponent(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Where("id = ?", id).Delete(&SalaryEmployeeComponent{}).Error
 }
 
 func (r *Repository) CreateSalaryEmployeeAdjustment(ctx context.Context, a *SalaryEmployeeAdjustment) error {
@@ -393,6 +473,54 @@ func (r *Repository) DeleteEmployeeTaxProfile(ctx context.Context, id uuid.UUID)
 	return db.Where("id = ?", id).Delete(&EmployeeTaxProfile{}).Error
 }
 
+func (r *Repository) FindAllEmployeeBankProfiles(ctx context.Context, page, perPage int) ([]EmployeeBankProfile, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var items []EmployeeBankProfile
+	var total int64
+	if err := db.Model(&EmployeeBankProfile{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := db.Order("employee_id ASC, is_primary DESC, effective_start_date DESC").Offset((page - 1) * perPage).Limit(perPage).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *Repository) FindAllEmployeeBpjsProfiles(ctx context.Context, page, perPage int) ([]EmployeeBpjsProfile, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var items []EmployeeBpjsProfile
+	var total int64
+	if err := db.Model(&EmployeeBpjsProfile{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := db.Order("employee_id ASC, effective_start_date DESC").Offset((page - 1) * perPage).Limit(perPage).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *Repository) FindAllEmployeeTaxProfiles(ctx context.Context, page, perPage int) ([]EmployeeTaxProfile, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var items []EmployeeTaxProfile
+	var total int64
+	if err := db.Model(&EmployeeTaxProfile{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := db.Order("employee_id ASC, effective_start_date DESC").Offset((page - 1) * perPage).Limit(perPage).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
 // =============================================================================
 // BPJS Settings
 // =============================================================================
@@ -641,21 +769,26 @@ func (r *Repository) FindActivePph21SettingByDate(ctx context.Context, asOfDate 
 	return &ps, nil
 }
 
-// FindActivePph21PtkpRatesByDate mengambil seluruh PTKP rate ACTIVE yang berlaku
-// pada tanggal tertentu.
-func (r *Repository) FindActivePph21PtkpRatesByDate(ctx context.Context, asOfDate string) ([]Pph21PtkpRate, error) {
+// FindPtkpByCode mengambil baris PTKP dari tabel ptkps (satu sumber kebenaran,
+// migration 121) berdasarkan kode status ternormalisasi (mis. "TK0").
+// Kode kosong / tidak ditemukan → (nil, nil).
+func (r *Repository) FindPtkpByCode(ctx context.Context, code string) (*Ptkp, error) {
+	if code == "" {
+		return nil, nil
+	}
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var items []Pph21PtkpRate
-	if err := db.Where(
-		"status = ? AND effective_start_date <= ? AND (effective_end_date IS NULL OR effective_end_date >= ?)",
-		"ACTIVE", asOfDate, asOfDate,
-	).Order("ptkp_status ASC").Find(&items).Error; err != nil {
+	var p Ptkp
+	err = db.Table("ptkps").Where("code = ?", code).First(&p).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
-	return items, nil
+	return &p, nil
 }
 
 // FindActivePph21TaxBracketsByDate mengambil seluruh tax bracket ACTIVE yang
@@ -694,64 +827,6 @@ func (r *Repository) FindActiveEmployeeTaxProfileByEmployeeID(ctx context.Contex
 		return nil, err
 	}
 	return &p, nil
-}
-
-// =============================================================================
-// PPh21 PTKP Rates
-// =============================================================================
-
-func (r *Repository) CreatePph21PtkpRate(ctx context.Context, pr *Pph21PtkpRate) error {
-	db, err := r.getDB(ctx)
-	if err != nil {
-		return err
-	}
-	return db.Create(pr).Error
-}
-
-func (r *Repository) FindPph21PtkpRateByID(ctx context.Context, id uuid.UUID) (*Pph21PtkpRate, error) {
-	db, err := r.getDB(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var pr Pph21PtkpRate
-	if err := db.First(&pr, "id = ?", id).Error; err != nil {
-		return nil, fmt.Errorf("PPh21 PTKP rate not found: %w", err)
-	}
-	return &pr, nil
-}
-
-func (r *Repository) FindAllPph21PtkpRates(ctx context.Context, page, perPage int) ([]Pph21PtkpRate, int64, error) {
-	db, err := r.getDB(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
-	var items []Pph21PtkpRate
-	var total int64
-	query := db.Model(&Pph21PtkpRate{})
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("ptkp_status ASC").Find(&items).Error; err != nil {
-		return nil, 0, err
-	}
-	return items, total, nil
-}
-
-func (r *Repository) UpdatePph21PtkpRate(ctx context.Context, pr *Pph21PtkpRate) error {
-	db, err := r.getDB(ctx)
-	if err != nil {
-		return err
-	}
-	return db.Save(pr).Error
-}
-
-func (r *Repository) DeletePph21PtkpRate(ctx context.Context, id uuid.UUID) error {
-	db, err := r.getDB(ctx)
-	if err != nil {
-		return err
-	}
-	return db.Where("id = ?", id).Delete(&Pph21PtkpRate{}).Error
 }
 
 // =============================================================================
@@ -1288,4 +1363,51 @@ func (r *Repository) FindActivePrimaryBankProfileByEmployeeID(ctx context.Contex
 		return nil, err
 	}
 	return &b, nil
+}
+
+// =============================================================================
+// TER (Tarif Efektif Rata-rata) — baca master ters (migration 001)
+// =============================================================================
+
+// FindTerRateByGroupAndBruto mencari rate TER untuk grup (A/B/C) dan bruto
+// bulanan tertentu. Baris tanpa bruto_max (bracket terbuka) menangkap semua
+// bruto >= bruto_min.
+func (r *Repository) FindTerRateByGroupAndBruto(ctx context.Context, group string, bruto int64) (*TerRate, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var t TerRate
+	err = db.Where(
+		"`group` = ? AND bruto_min <= ? AND (bruto_max IS NULL OR bruto_max >= ?)",
+		group, bruto, bruto,
+	).Order("bruto_min DESC").First(&t).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &t, nil
+}
+
+// SumPph21YtdByEmployeeAndYear menjumlahkan PPh21 bulanan yang sudah dipotong
+// Januari–November untuk satu employee pada tahun tertentu (dipakai hitung
+// PPh21 Desember metode TER: pajak setahun − potongan Jan–Nov).
+func (r *Repository) SumPph21YtdByEmployeeAndYear(ctx context.Context, employeeID uuid.UUID, year int) (float64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var total float64
+	err = db.Model(&Pph21CalculationLog{}).
+		Joins("JOIN payroll_runs ON payroll_runs.id = pph21_calculation_logs.payroll_run_id").
+		Joins("JOIN payroll_periods ON payroll_periods.id = payroll_runs.payroll_period_id").
+		Where("pph21_calculation_logs.employee_id = ? AND payroll_periods.period_year = ? AND payroll_periods.period_month < 12", employeeID, year).
+		Select("COALESCE(SUM(pph21_calculation_logs.pph21_monthly), 0)").
+		Scan(&total).Error
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
 }

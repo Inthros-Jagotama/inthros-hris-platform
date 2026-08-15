@@ -688,11 +688,12 @@ type UpdatePTKPRequest struct {
 type PTKPResponse struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
+	Code  string `json:"code"`
 	PTKP  int64  `json:"ptkp"`
 	Group string `json:"group"`
 }
 func (p *PTKP) ToResponse() PTKPResponse {
-	return PTKPResponse{ID: p.ID.String(), Name: p.Name, PTKP: p.PTKP, Group: p.Group}
+	return PTKPResponse{ID: p.ID.String(), Name: p.Name, Code: p.Code, PTKP: p.PTKP, Group: p.Group}
 }
 type PTKPPaginatedResponse struct {
 	Success    bool            `json:"success"`

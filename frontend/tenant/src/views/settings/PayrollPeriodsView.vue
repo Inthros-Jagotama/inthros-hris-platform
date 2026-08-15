@@ -36,15 +36,15 @@
 
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('payroll.payroll_periods') : t('payroll.new_period')" modal :style="{ width: '560px' }" :closable="true" @hide="resetForm">
       <div class="space-y-4">
-        <div v-if="!editing" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div v-if="!editing" class="grid grid-cols-1 gap-4">
           <FormRow :label="t('payroll.period_year')" required :errors="errors?.period_year">
-            <InputNumber v-model="form.period_year" class="!w-full" :min="2000" :max="2100" size="small" :class="{'p-invalid':errors?.period_year}" />
+            <InputYear v-model="form.period_year" :min-year="2000" :max-year="2100" :class="{'p-invalid':errors?.period_year}" />
           </FormRow>
           <FormRow :label="t('payroll.period_month')" required :errors="errors?.period_month">
             <SelectLabel v-model="form.period_month" :options="monthOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{'p-invalid':errors?.period_month}" />
           </FormRow>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 gap-4">
           <FormRow :label="t('payroll.start_date')" required :errors="errors?.start_date">
             <DateInput v-model="form.start_date" :class="{'p-invalid':errors?.start_date}" />
           </FormRow>
@@ -54,10 +54,15 @@
         </div>
         <FormRow :label="t('payroll.as_of_date')" required :errors="errors?.as_of_date">
           <DateInput v-model="form.as_of_date" :class="{'p-invalid':errors?.as_of_date}" />
+          <span class="text-xs text-gray-400 dark:text-gray-500 mt-1 block">{{ t('payroll.as_of_date_desc') }}</span>
         </FormRow>
-        <FormRow :label="t('common.status')">
-          <SelectLabel v-model="form.status" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-        </FormRow>
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center justify-between gap-3">
+          <div class="flex flex-col gap-0.5 min-w-0">
+            <span class="text-sm font-medium text-surface-700 dark:text-surface-0/80">{{ t('common.status') }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payroll.period_status_desc') }}</span>
+          </div>
+          <ToggleSwitch v-model="form.status" :true-value="'OPEN'" :false-value="'CLOSED'" :label="t('payroll.status_' + form.status.toLowerCase())" class="shrink-0" />
+        </div>
       </div>
       <template #footer><div class="flex items-center justify-end gap-2"><Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible=false" /><Button :label="editing ? t('common.update') : t('common.save')" size="small" :loading="saving" :disabled="saving" @click="handleSave" /></div></template>
     </Dialog>
@@ -66,16 +71,17 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'; import { useI18n } from '@/composables/useI18n'; import { getValidationErrors } from '@/services/responseHandler'; import { formatDate, formatMonth } from '@/utils/formatDate'; import api from '@/services/api'
-import DataTable from 'primevue/datatable'; import Column from 'primevue/column'; import Button from 'primevue/button'; import InputNumber from 'primevue/inputnumber'; import Tag from 'primevue/tag'; import Dialog from 'primevue/dialog'; import SkeletonTable from '@/components/SkeletonTable.vue'
+import DataTable from 'primevue/datatable'; import Column from 'primevue/column'; import Button from 'primevue/button'; import Tag from 'primevue/tag'; import Dialog from 'primevue/dialog'; import SkeletonTable from '@/components/SkeletonTable.vue'
 import FormRow from '@/components/FormRow.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
 import DateInput from '@/components/DateInput.vue'
+import InputYear from '@/components/InputYear.vue'
+import ToggleSwitch from '@/components/ToggleSwitch.vue'
 const { t, locale } = useI18n(); const toast = useToast(); const items = ref([]); const loading = ref(false)
 const totalRecords = ref(0); const currentPage = ref(1); const perPage = ref(15)
 const dialogVisible = ref(false); const editing = ref(false); const editingId = ref(null); const saving = ref(false); const errors = ref({})
 const form = ref({ period_year: new Date().getFullYear(), period_month: null, start_date: '', end_date: '', as_of_date: '', status: 'OPEN' })
 
-const statusOptions = computed(() => ['OPEN', 'CLOSED'].map(v => ({ label: t(`payroll.status_${v.toLowerCase()}`), value: v })))
 const monthOptions = computed(() => Array.from({ length: 12 }, (_, i) => ({ label: formatMonth(i + 1, locale.value), value: i + 1 })))
 const skeletonColumns = [{type:'text',width:'w-20',headerWidth:'w-16'},{type:'text',width:'w-12',headerWidth:'w-12'},{type:'text',width:'w-24',headerWidth:'w-16'},{type:'text',width:'w-24',headerWidth:'w-16'},{type:'text',width:'w-24',headerWidth:'w-16'},{type:'tag',width:'w-16',headerWidth:'w-16'},{type:'icons',count:1,headerWidth:'w-16'}]
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)

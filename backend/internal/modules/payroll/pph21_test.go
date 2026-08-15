@@ -33,7 +33,7 @@ func setupPph21Rates(t *testing.T, repo *Repository, ctx context.Context, gradin
 
 	pph21Comp := createTestComponent(ctx, repo, "PPH21", "PPh21", "DEDUCTION", "FORMULA", 50)
 	pph21Setting := createTestPph21SettingCustom(ctx, repo, pph21Comp)
-	createTestPph21PtkpRate(ctx, repo, "TK/0", 54000000)
+	createTestPtkp(ctx, repo, "TK0", "Tidak Kawin (TK/0)", 54000000, "A")
 	return basic, pph21Setting
 }
 
@@ -239,3 +239,139 @@ func findPph21LogsForTest(t *testing.T, repo *Repository, ctx context.Context, r
 }
 
 func floatPtr(v float64) *float64 { return &v }
+func int64Ptr(v int64) *int64 { return &v }
+
+// setupTerRatesA memasang tarif TER kategori A (beberapa bracket di sekitar
+// bruto 10jt — 9.650.000–10.050.000 → 2%) + bracket terbuka untuk sisanya.
+func setupTerRatesA(t *testing.T, repo *Repository, ctx context.Context) {
+	t.Helper()
+	createTestTerRate(ctx, repo, "A", int64Ptr(0), int64Ptr(5400000), 0.00)
+	createTestTerRate(ctx, repo, "A", int64Ptr(9650000), int64Ptr(10050000), 2.00)
+	createTestTerRate(ctx, repo, "A", int64Ptr(10050000), nil, 2.25)
+}
+
+// TestPph21TerMonthly: metode TER Jan–Nov — PPh21 = bruto bulanan × tarif TER
+// (kategori A untuk TK/0). Bruto 10jt → bracket 9.65–10.05jt = 2% → 200rb.
+// Tanpa biaya jabatan/BPJS/pensiun/annualisasi — hanya tarif × bruto.
+func TestPph21TerMonthly(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	grading, _, _, _ := setupPph21Env(t, repo, ctx, true)
+	basic := createTestSalaryComponent(ctx, repo)
+	createTestGradeComponent(ctx, repo, grading.ID, basic.ID, 10000000)
+	pph21Comp := createTestComponent(ctx, repo, "PPH21", "PPh21", "DEDUCTION", "FORMULA", 50)
+	createTestPph21SettingCustomMethod(ctx, repo, pph21Comp, "TER")
+	setupTerRatesA(t, repo, ctx)
+
+	svc := NewService(repo, zap.NewNop())
+	period := createTestPayrollPeriod(ctx, repo) // 2026-01 (Januari)
+	run, _ := svc.CreatePayrollRun(ctx, CreatePayrollRunRequest{
+		PayrollPeriodID: period.ID.String(),
+		RunCode:         "RUN-PPH21-TER-JAN",
+	})
+
+	resp, err := svc.CalculatePayrollRun(ctx, run.ID)
+	if err != nil {
+		t.Fatalf("CalculatePayrollRun: %v", err)
+	}
+	// Hanya potongan PPh21 TER (200rb) — tanpa BPJS di setup ini.
+	assertClose(t, "total deduction", resp.TotalDeduction, 200000)
+
+	items, err := svc.ListPayrollRunItems(ctx, run.ID)
+	if err != nil {
+		t.Fatalf("ListPayrollRunItems: %v", err)
+	}
+	var pph21Item *PayrollRunItemResponse
+	for i := range items {
+		if items[i].ComponentCode == "PPH21" {
+			pph21Item = &items[i]
+		}
+	}
+	if pph21Item == nil {
+		t.Fatal("PPh21 item not found")
+	}
+	assertClose(t, "pph21 ter amount", pph21Item.Amount, 200000)
+	assertClose(t, "pph21 ter base", pph21Item.BaseAmount, 10000000)
+
+	logs := findPph21LogsForTest(t, repo, ctx, run.ID)
+	if len(logs) != 1 {
+		t.Fatalf("expected 1 log, got %d", len(logs))
+	}
+	if logs[0].CalculationMethod != "TER" {
+		t.Errorf("expected calculation_method TER, got %s", logs[0].CalculationMethod)
+	}
+	if logs[0].GrossMonthly != 10000000 {
+		t.Errorf("expected gross 10jt, got %v", logs[0].GrossMonthly)
+	}
+}
+
+// TestPph21TerDecember: Desember — pajak setahun (metode normal) dikurangi
+// potongan TER Jan–Nov. Run Januari (TER, 200rb) lalu Desember → pajak
+// Desember = pajak tahunan − 200rb.
+func TestPph21TerDecember(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	grading, _, _, _ := setupPph21Env(t, repo, ctx, true)
+	basic := createTestSalaryComponent(ctx, repo)
+	createTestGradeComponent(ctx, repo, grading.ID, basic.ID, 10000000)
+	pph21Comp := createTestComponent(ctx, repo, "PPH21", "PPh21", "DEDUCTION", "FORMULA", 50)
+	createTestPph21SettingCustomMethod(ctx, repo, pph21Comp, "TER")
+	setupTerRatesA(t, repo, ctx)
+	createTestPtkp(ctx, repo, "TK0", "Tidak Kawin (TK/0)", 54000000, "A")
+	createTestPph21TaxBracket(ctx, repo, 1, 0, floatPtr(60000000), 5.0)
+
+	svc := NewService(repo, zap.NewNop())
+
+	// Run Januari (TER monthly) — potongan 200rb.
+	jan := createTestPayrollPeriodCustom(ctx, repo, 2026, 1)
+	runJan, _ := svc.CreatePayrollRun(ctx, CreatePayrollRunRequest{
+		PayrollPeriodID: jan.ID.String(),
+		RunCode:         "RUN-TER-JAN",
+	})
+	if _, err := svc.CalculatePayrollRun(ctx, runJan.ID); err != nil {
+		t.Fatalf("calculate january: %v", err)
+	}
+
+	// Run Desember: pajak setahun 3jt (gross 10jt − occ 500rb = 9.5jt × 12 = 114jt
+	// − PTKP 54jt = PKP 60jt × 5%) − YTD potongan TER Jan–Nov (200rb) = 2.8jt.
+	dec := createTestPayrollPeriodCustom(ctx, repo, 2026, 12)
+	runDec, _ := svc.CreatePayrollRun(ctx, CreatePayrollRunRequest{
+		PayrollPeriodID: dec.ID.String(),
+		RunCode:         "RUN-TER-DEC",
+	})
+	resp, err := svc.CalculatePayrollRun(ctx, runDec.ID)
+	if err != nil {
+		t.Fatalf("calculate december: %v", err)
+	}
+	assertClose(t, "total deduction dec", resp.TotalDeduction, 2800000)
+
+	items, err := svc.ListPayrollRunItems(ctx, runDec.ID)
+	if err != nil {
+		t.Fatalf("ListPayrollRunItems: %v", err)
+	}
+	var pph21Item *PayrollRunItemResponse
+	for i := range items {
+		if items[i].ComponentCode == "PPH21" {
+			pph21Item = &items[i]
+		}
+	}
+	if pph21Item == nil {
+		t.Fatal("PPh21 item not found in december")
+	}
+	assertClose(t, "pph21 december amount", pph21Item.Amount, 2800000)
+
+	// Log Desember mencatat TER + gross.
+	logs := findPph21LogsForTest(t, repo, ctx, runDec.ID)
+	if len(logs) != 1 {
+		t.Fatalf("expected 1 log, got %d", len(logs))
+	}
+	if logs[0].CalculationMethod != "TER" {
+		t.Errorf("expected calculation_method TER in december, got %s", logs[0].CalculationMethod)
+	}
+}

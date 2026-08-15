@@ -65,7 +65,6 @@ func SeedTenantMasterData(tenantDB *gorm.DB, l *zap.Logger) error {
 		{"villages", seedVillagesFromSQL},
 		{"salary_grades", seedSalaryGrades},
 		{"ptkps", seedPTKPs},
-		{"pph21_ptkp_rates", seedPPh21PTKPRates},
 		{"pph21_tax_brackets", seedPPh21TaxBrackets},
 		{"ters", seedTERs},
 		{"bpjs_settings", seedBPJSSettings},
@@ -381,41 +380,22 @@ func seedSalaryGrades(db *gorm.DB) (int, int, error) {
 // Schema (migration 001_master_data): id, name, ptkp(BIGINT), `group`(CHAR(1)), created_by, updated_by, timestamps
 func seedPTKPs(db *gorm.DB) (int, int, error) {
 	data := []map[string]interface{}{
-		{"id": codeToUUID("ptkp", "TK0"), "name": "Tidak Kawin (TK/0)", "ptkp": 54000000, "group": "A", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ptkp", "TK1"), "name": "Tidak Kawin 1 Tanggungan (TK/1)", "ptkp": 58500000, "group": "A", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ptkp", "TK2"), "name": "Tidak Kawin 2 Tanggungan (TK/2)", "ptkp": 63000000, "group": "A", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ptkp", "TK3"), "name": "Tidak Kawin 3 Tanggungan (TK/3)", "ptkp": 67500000, "group": "A", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ptkp", "K0"), "name": "Kawin (K/0)", "ptkp": 58500000, "group": "B", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ptkp", "K1"), "name": "Kawin 1 Tanggungan (K/1)", "ptkp": 63000000, "group": "B", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ptkp", "K2"), "name": "Kawin 2 Tanggungan (K/2)", "ptkp": 67500000, "group": "B", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ptkp", "K3"), "name": "Kawin 3 Tanggungan (K/3)", "ptkp": 72000000, "group": "B", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ptkp", "KI0"), "name": "Kawin Penghasilan Istri Digabung (K/I/0)", "ptkp": 112500000, "group": "C", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ptkp", "KI1"), "name": "Kawin Penghasilan Istri Digabung 1 Tanggungan (K/I/1)", "ptkp": 117000000, "group": "C", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ptkp", "KI2"), "name": "Kawin Penghasilan Istri Digabung 2 Tanggungan (K/I/2)", "ptkp": 121500000, "group": "C", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ptkp", "KI3"), "name": "Kawin Penghasilan Istri Digabung 3 Tanggungan (K/I/3)", "ptkp": 126000000, "group": "C", "created_at": time.Now(), "updated_at": time.Now()},
+		// Kategori TER sesuai aturan resmi PER-2/PJ/2024:
+		// A = TK/0, TK/1, K/0 · B = TK/2, TK/3, K/1, K/2 · C = K/3 + K/I/*
+		{"id": codeToUUID("ptkp", "TK0"), "name": "Tidak Kawin (TK/0)", "code": "TK0", "ptkp": 54000000, "group": "A", "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ptkp", "TK1"), "name": "Tidak Kawin 1 Tanggungan (TK/1)", "code": "TK1", "ptkp": 58500000, "group": "A", "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ptkp", "K0"), "name": "Kawin (K/0)", "code": "K0", "ptkp": 58500000, "group": "A", "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ptkp", "TK2"), "name": "Tidak Kawin 2 Tanggungan (TK/2)", "code": "TK2", "ptkp": 63000000, "group": "B", "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ptkp", "K1"), "name": "Kawin 1 Tanggungan (K/1)", "code": "K1", "ptkp": 63000000, "group": "B", "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ptkp", "TK3"), "name": "Tidak Kawin 3 Tanggungan (TK/3)", "code": "TK3", "ptkp": 67500000, "group": "B", "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ptkp", "K2"), "name": "Kawin 2 Tanggungan (K/2)", "code": "K2", "ptkp": 67500000, "group": "B", "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ptkp", "K3"), "name": "Kawin 3 Tanggungan (K/3)", "code": "K3", "ptkp": 72000000, "group": "C", "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ptkp", "KI0"), "name": "Kawin Penghasilan Istri Digabung (K/I/0)", "code": "KI0", "ptkp": 112500000, "group": "C", "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ptkp", "KI1"), "name": "Kawin Penghasilan Istri Digabung 1 Tanggungan (K/I/1)", "code": "KI1", "ptkp": 117000000, "group": "C", "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ptkp", "KI2"), "name": "Kawin Penghasilan Istri Digabung 2 Tanggungan (K/I/2)", "code": "KI2", "ptkp": 121500000, "group": "C", "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ptkp", "KI3"), "name": "Kawin Penghasilan Istri Digabung 3 Tanggungan (K/I/3)", "code": "KI3", "ptkp": 126000000, "group": "C", "created_at": time.Now(), "updated_at": time.Now()},
 	}
 	return batchInsert(db, "ptkps", data, 50)
-}
-
-// ── PPh21 PTKP Rates ──
-// Schema (migration 006_payroll_structure): id, ptkp_status, description, annual_amount,
-//   effective_start_date(DATE), effective_end_date(DATE), status(ENUM), created_by, updated_by, timestamps
-func seedPPh21PTKPRates(db *gorm.DB) (int, int, error) {
-	data := []map[string]interface{}{
-		{"id": codeToUUID("pph21_ptkp", "TK0"), "ptkp_status": "TK0", "description": "Tidak Kawin (TK/0)", "annual_amount": 54000000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("pph21_ptkp", "TK1"), "ptkp_status": "TK1", "description": "Tidak Kawin 1 Tanggungan (TK/1)", "annual_amount": 58500000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("pph21_ptkp", "TK2"), "ptkp_status": "TK2", "description": "Tidak Kawin 2 Tanggungan (TK/2)", "annual_amount": 63000000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("pph21_ptkp", "TK3"), "ptkp_status": "TK3", "description": "Tidak Kawin 3 Tanggungan (TK/3)", "annual_amount": 67500000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("pph21_ptkp", "K0"), "ptkp_status": "K0", "description": "Kawin (K/0)", "annual_amount": 58500000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("pph21_ptkp", "K1"), "ptkp_status": "K1", "description": "Kawin 1 Tanggungan (K/1)", "annual_amount": 63000000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("pph21_ptkp", "K2"), "ptkp_status": "K2", "description": "Kawin 2 Tanggungan (K/2)", "annual_amount": 67500000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("pph21_ptkp", "K3"), "ptkp_status": "K3", "description": "Kawin 3 Tanggungan (K/3)", "annual_amount": 72000000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("pph21_ptkp", "KI0"), "ptkp_status": "KI0", "description": "Kawin Penghasilan Istri Digabung (K/I/0)", "annual_amount": 112500000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("pph21_ptkp", "KI1"), "ptkp_status": "KI1", "description": "Kawin Penghasilan Istri Digabung 1 Tanggungan (K/I/1)", "annual_amount": 117000000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("pph21_ptkp", "KI2"), "ptkp_status": "KI2", "description": "Kawin Penghasilan Istri Digabung 2 Tanggungan (K/I/2)", "annual_amount": 121500000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("pph21_ptkp", "KI3"), "ptkp_status": "KI3", "description": "Kawin Penghasilan Istri Digabung 3 Tanggungan (K/I/3)", "annual_amount": 126000000, "effective_start_date": "2024-01-01", "status": "ACTIVE", "created_at": time.Now(), "updated_at": time.Now()},
-	}
-	return batchInsert(db, "pph21_ptkp_rates", data, 50)
 }
 
 // ── PPh21 Tax Brackets ──
@@ -437,7 +417,7 @@ func seedPPh21TaxBrackets(db *gorm.DB) (int, int, error) {
 //   created_by, updated_by, timestamps, deleted_at
 func seedTERs(db *gorm.DB) (int, int, error) {
 	data := []map[string]interface{}{
-		// Group A: TK/0, TK/1, TK/2, TK/3 (bruto monthly) - 44 brackets
+		// Group A: TK/0, TK/1, K/0 (bruto monthly) - 44 brackets
 		{"id": codeToUUID("ter", "A1"), "group": "A", "bruto_min": 0, "bruto_max": 5400000, "rate": 0.00, "created_at": time.Now(), "updated_at": time.Now()},
 		{"id": codeToUUID("ter", "A2"), "group": "A", "bruto_min": 5400000, "bruto_max": 5650000, "rate": 0.25, "created_at": time.Now(), "updated_at": time.Now()},
 		{"id": codeToUUID("ter", "A3"), "group": "A", "bruto_min": 5650000, "bruto_max": 5950000, "rate": 0.50, "created_at": time.Now(), "updated_at": time.Now()},
@@ -483,7 +463,7 @@ func seedTERs(db *gorm.DB) (int, int, error) {
 		{"id": codeToUUID("ter", "A43"), "group": "A", "bruto_min": 910000000, "bruto_max": 1400000000, "rate": 33.00, "created_at": time.Now(), "updated_at": time.Now()},
 		{"id": codeToUUID("ter", "A44"), "group": "A", "bruto_min": 1400000000, "bruto_max": nil, "rate": 34.00, "created_at": time.Now(), "updated_at": time.Now()},
 
-		// Group B: K/0, K/1, K/2, K/3 (bruto monthly) - 40 brackets
+		// Group B: TK/2, TK/3, K/1, K/2 (bruto monthly) - 40 brackets
 		{"id": codeToUUID("ter", "B1"), "group": "B", "bruto_min": 0, "bruto_max": 6200000, "rate": 0.00, "created_at": time.Now(), "updated_at": time.Now()},
 		{"id": codeToUUID("ter", "B2"), "group": "B", "bruto_min": 6200000, "bruto_max": 6500000, "rate": 0.25, "created_at": time.Now(), "updated_at": time.Now()},
 		{"id": codeToUUID("ter", "B3"), "group": "B", "bruto_min": 6500000, "bruto_max": 6850000, "rate": 0.50, "created_at": time.Now(), "updated_at": time.Now()},
@@ -525,47 +505,48 @@ func seedTERs(db *gorm.DB) (int, int, error) {
 		{"id": codeToUUID("ter", "B39"), "group": "B", "bruto_min": 957000000, "bruto_max": 1405000000, "rate": 33.00, "created_at": time.Now(), "updated_at": time.Now()},
 		{"id": codeToUUID("ter", "B40"), "group": "B", "bruto_min": 1405000000, "bruto_max": nil, "rate": 34.00, "created_at": time.Now(), "updated_at": time.Now()},
 
-		// Group C: K/I/0, K/I/1, K/I/2, K/I/3 (bruto monthly) - 40 brackets
-		{"id": codeToUUID("ter", "C1"), "group": "C", "bruto_min": 6600000, "bruto_max": 6950000, "rate": 0.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C2"), "group": "C", "bruto_min": 6950000, "bruto_max": 7350000, "rate": 0.25, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C3"), "group": "C", "bruto_min": 7350000, "bruto_max": 7800000, "rate": 0.50, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C4"), "group": "C", "bruto_min": 7800000, "bruto_max": 8850000, "rate": 0.75, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C5"), "group": "C", "bruto_min": 8850000, "bruto_max": 9800000, "rate": 1.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C6"), "group": "C", "bruto_min": 9800000, "bruto_max": 10950000, "rate": 1.25, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C7"), "group": "C", "bruto_min": 10950000, "bruto_max": 11200000, "rate": 1.50, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C8"), "group": "C", "bruto_min": 11200000, "bruto_max": 12050000, "rate": 1.75, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C9"), "group": "C", "bruto_min": 12050000, "bruto_max": 12950000, "rate": 2.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C10"), "group": "C", "bruto_min": 12950000, "bruto_max": 14150000, "rate": 3.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C11"), "group": "C", "bruto_min": 14150000, "bruto_max": 15550000, "rate": 4.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C12"), "group": "C", "bruto_min": 15550000, "bruto_max": 17050000, "rate": 5.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C13"), "group": "C", "bruto_min": 17050000, "bruto_max": 19500000, "rate": 6.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C14"), "group": "C", "bruto_min": 19500000, "bruto_max": 22700000, "rate": 7.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C15"), "group": "C", "bruto_min": 22700000, "bruto_max": 26600000, "rate": 8.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C16"), "group": "C", "bruto_min": 26600000, "bruto_max": 28100000, "rate": 9.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C17"), "group": "C", "bruto_min": 28100000, "bruto_max": 30100000, "rate": 10.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C18"), "group": "C", "bruto_min": 30100000, "bruto_max": 32600000, "rate": 11.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C19"), "group": "C", "bruto_min": 32600000, "bruto_max": 35400000, "rate": 12.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C20"), "group": "C", "bruto_min": 35400000, "bruto_max": 38900000, "rate": 13.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C21"), "group": "C", "bruto_min": 38900000, "bruto_max": 43000000, "rate": 14.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C22"), "group": "C", "bruto_min": 43000000, "bruto_max": 47400000, "rate": 15.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C23"), "group": "C", "bruto_min": 47400000, "bruto_max": 51200000, "rate": 16.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C24"), "group": "C", "bruto_min": 51200000, "bruto_max": 55800000, "rate": 17.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C25"), "group": "C", "bruto_min": 55800000, "bruto_max": 60400000, "rate": 18.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C26"), "group": "C", "bruto_min": 60400000, "bruto_max": 66700000, "rate": 19.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C27"), "group": "C", "bruto_min": 66700000, "bruto_max": 74500000, "rate": 20.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C28"), "group": "C", "bruto_min": 74500000, "bruto_max": 83200000, "rate": 21.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C29"), "group": "C", "bruto_min": 83200000, "bruto_max": 95600000, "rate": 22.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C30"), "group": "C", "bruto_min": 95600000, "bruto_max": 110000000, "rate": 23.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C31"), "group": "C", "bruto_min": 110000000, "bruto_max": 134000000, "rate": 24.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C32"), "group": "C", "bruto_min": 134000000, "bruto_max": 169000000, "rate": 25.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C33"), "group": "C", "bruto_min": 169000000, "bruto_max": 221000000, "rate": 26.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C34"), "group": "C", "bruto_min": 221000000, "bruto_max": 390000000, "rate": 27.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C35"), "group": "C", "bruto_min": 390000000, "bruto_max": 463000000, "rate": 28.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C36"), "group": "C", "bruto_min": 463000000, "bruto_max": 561000000, "rate": 29.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C37"), "group": "C", "bruto_min": 561000000, "bruto_max": 709000000, "rate": 30.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C38"), "group": "C", "bruto_min": 709000000, "bruto_max": 965000000, "rate": 31.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C39"), "group": "C", "bruto_min": 965000000, "bruto_max": 1419000000, "rate": 32.00, "created_at": time.Now(), "updated_at": time.Now()},
-		{"id": codeToUUID("ter", "C40"), "group": "C", "bruto_min": 1419000000, "bruto_max": nil, "rate": 33.00, "created_at": time.Now(), "updated_at": time.Now()},
+		// Group C: K/3, K/I/0, K/I/1, K/I/2, K/I/3 (bruto monthly) - 41 brackets
+		{"id": codeToUUID("ter", "C0"), "group": "C", "bruto_min": 0, "bruto_max": 6600000, "rate": 0.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C1"), "group": "C", "bruto_min": 6600000, "bruto_max": 6950000, "rate": 0.25, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C2"), "group": "C", "bruto_min": 6950000, "bruto_max": 7350000, "rate": 0.50, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C3"), "group": "C", "bruto_min": 7350000, "bruto_max": 7800000, "rate": 0.75, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C4"), "group": "C", "bruto_min": 7800000, "bruto_max": 8850000, "rate": 1.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C5"), "group": "C", "bruto_min": 8850000, "bruto_max": 9800000, "rate": 1.25, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C6"), "group": "C", "bruto_min": 9800000, "bruto_max": 10950000, "rate": 1.50, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C7"), "group": "C", "bruto_min": 10950000, "bruto_max": 11200000, "rate": 1.75, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C8"), "group": "C", "bruto_min": 11200000, "bruto_max": 12050000, "rate": 2.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C9"), "group": "C", "bruto_min": 12050000, "bruto_max": 12950000, "rate": 3.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C10"), "group": "C", "bruto_min": 12950000, "bruto_max": 14150000, "rate": 4.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C11"), "group": "C", "bruto_min": 14150000, "bruto_max": 15550000, "rate": 5.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C12"), "group": "C", "bruto_min": 15550000, "bruto_max": 17050000, "rate": 6.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C13"), "group": "C", "bruto_min": 17050000, "bruto_max": 19500000, "rate": 7.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C14"), "group": "C", "bruto_min": 19500000, "bruto_max": 22700000, "rate": 8.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C15"), "group": "C", "bruto_min": 22700000, "bruto_max": 26600000, "rate": 9.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C16"), "group": "C", "bruto_min": 26600000, "bruto_max": 28100000, "rate": 10.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C17"), "group": "C", "bruto_min": 28100000, "bruto_max": 30100000, "rate": 11.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C18"), "group": "C", "bruto_min": 30100000, "bruto_max": 32600000, "rate": 12.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C19"), "group": "C", "bruto_min": 32600000, "bruto_max": 35400000, "rate": 13.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C20"), "group": "C", "bruto_min": 35400000, "bruto_max": 38900000, "rate": 14.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C21"), "group": "C", "bruto_min": 38900000, "bruto_max": 43000000, "rate": 15.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C22"), "group": "C", "bruto_min": 43000000, "bruto_max": 47400000, "rate": 16.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C23"), "group": "C", "bruto_min": 47400000, "bruto_max": 51200000, "rate": 17.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C24"), "group": "C", "bruto_min": 51200000, "bruto_max": 55800000, "rate": 18.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C25"), "group": "C", "bruto_min": 55800000, "bruto_max": 60400000, "rate": 19.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C26"), "group": "C", "bruto_min": 60400000, "bruto_max": 66700000, "rate": 20.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C27"), "group": "C", "bruto_min": 66700000, "bruto_max": 74500000, "rate": 21.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C28"), "group": "C", "bruto_min": 74500000, "bruto_max": 83200000, "rate": 22.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C29"), "group": "C", "bruto_min": 83200000, "bruto_max": 95600000, "rate": 23.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C30"), "group": "C", "bruto_min": 95600000, "bruto_max": 110000000, "rate": 24.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C31"), "group": "C", "bruto_min": 110000000, "bruto_max": 134000000, "rate": 25.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C32"), "group": "C", "bruto_min": 134000000, "bruto_max": 169000000, "rate": 26.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C33"), "group": "C", "bruto_min": 169000000, "bruto_max": 221000000, "rate": 27.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C34"), "group": "C", "bruto_min": 221000000, "bruto_max": 390000000, "rate": 28.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C35"), "group": "C", "bruto_min": 390000000, "bruto_max": 463000000, "rate": 29.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C36"), "group": "C", "bruto_min": 463000000, "bruto_max": 561000000, "rate": 30.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C37"), "group": "C", "bruto_min": 561000000, "bruto_max": 709000000, "rate": 31.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C38"), "group": "C", "bruto_min": 709000000, "bruto_max": 965000000, "rate": 32.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C39"), "group": "C", "bruto_min": 965000000, "bruto_max": 1419000000, "rate": 33.00, "created_at": time.Now(), "updated_at": time.Now()},
+		{"id": codeToUUID("ter", "C40"), "group": "C", "bruto_min": 1419000000, "bruto_max": nil, "rate": 34.00, "created_at": time.Now(), "updated_at": time.Now()},
 	}
 	return batchInsert(db, "ters", data, 50)
 }

@@ -393,14 +393,9 @@ func TestService_CreatePph21Setting(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	comp, _ := svc.CreateSalaryComponent(ctx, CreateSalaryComponentRequest{
-		Code: "PPH-COMP", Name: "PPh21 Component", ComponentType: "DEDUCTION",
-	})
-
 	resp, err := svc.CreatePph21Setting(ctx, CreatePph21SettingRequest{
 		SettingCode:        "PPH-TEST",
 		SettingName:        "Test PPh21",
-		Pph21ComponentID:   comp.ID,
 		EffectiveStartDate: "2026-01-01",
 	})
 	if err != nil {
@@ -556,49 +551,8 @@ func TestService_ListPayrollRuns(t *testing.T) {
 }
 
 // =============================================================================
-// PPh21 PTKP Rate & Tax Bracket Service Tests
+// PPh21 Tax Bracket Service Tests
 // =============================================================================
-
-func TestService_CreatePph21PtkpRate(t *testing.T) {
-	svc, cleanup := newTestService()
-	defer cleanup()
-	ctx := context.Background()
-
-	resp, err := svc.CreatePph21PtkpRate(ctx, CreatePph21PtkpRateRequest{
-		PtkpStatus:         "K/3",
-		AnnualAmount:       72000000,
-		EffectiveStartDate: "2026-01-01",
-	})
-	if err != nil {
-		t.Fatalf("CreatePph21PtkpRate failed: %v", err)
-	}
-
-	if resp.PtkpStatus != "K/3" {
-		t.Errorf("expected 'K/3', got '%s'", resp.PtkpStatus)
-	}
-}
-
-func TestService_ListPph21PtkpRates(t *testing.T) {
-	svc, cleanup := newTestService()
-	defer cleanup()
-	ctx := context.Background()
-
-	svc.CreatePph21PtkpRate(ctx, CreatePph21PtkpRateRequest{
-		PtkpStatus: "TK/0", AnnualAmount: 54000000, EffectiveStartDate: "2026-01-01",
-	})
-	svc.CreatePph21PtkpRate(ctx, CreatePph21PtkpRateRequest{
-		PtkpStatus: "K/0", AnnualAmount: 58500000, EffectiveStartDate: "2026-01-01",
-	})
-
-	resp, err := svc.ListPph21PtkpRates(ctx, 1, 10)
-	if err != nil {
-		t.Fatalf("ListPph21PtkpRates failed: %v", err)
-	}
-
-	if resp.Total != 2 {
-		t.Errorf("expected total 2, got %d", resp.Total)
-	}
-}
 
 func TestService_CreatePph21TaxBracket(t *testing.T) {
 	svc, cleanup := newTestService()

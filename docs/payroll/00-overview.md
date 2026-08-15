@@ -6,7 +6,9 @@
 > 🚫 **Yang TIDAK ADA** (meski `project-completion-dashboard.md` mengklaim modul ini "✅ Complete" — klaim itu **menyesatkan**, hanya benar untuk layer CRUD/master-data): payslip PDF (HTML & endpoint sudah ada), payroll journal, payment reconciliation. Frontend payroll sudah selesai (2026-08-15) dan backend calculation & reporting lengkap sejak 2026-08-14/15.
 > ✅ **Yang SUDAH ADA dan berfungsi nyata** (bukan cuma CRUD kosong): integrasi Approval Module untuk payroll run — lihat [01-master-data-selesai.md](01-master-data-selesai.md).
 > 🔧 **Catatan konsistensi docs:** `project-completion-dashboard.md` baris 81 mencatat "Payroll & Compensation | 21 entities | 39 tests | 47 endpoints | ✅ Complete" — setelah audit ini, baris tersebut perlu diperjelas menjadi "master data & run-status scaffolding selesai; calculation engine belum" supaya tidak menyesatkan pembaca lain.
-> ✅ **Frontend (2026-08-15): implementasi selesai.** `frontend/tenant/src/views/modules/payroll/Payroll.vue` = daftar Payroll Run (create run, calculate, transisi status); `PayrollRunDetail.vue` (`/payroll/runs/:id`) = tab Overview/Employees/Items/Payslips/Payments/Reports; settings `SalaryComponentsView`, `PayrollPeriodsView`, `PayrollProfilesView`, `BpjsSettingsView` (+ rate components), `Pph21SettingsView` (+ PTKP + tax brackets) di `/settings/*` (masuk grup Payroll & Tax di Settings Index). Route `/payroll`, `/payroll/runs/:id`, dan `/settings/*` terdaftar (digate `payroll.view`). Endpoint FE baru di backend: `GET /payroll/bpjs-rate-components?bpjs_setting_id=`.
+> ✅ **Frontend (2026-08-15): implementasi selesai.** `frontend/tenant/src/views/modules/payroll/Payroll.vue` = daftar Payroll Run (create run, calculate, transisi status); `PayrollRunDetail.vue` (`/payroll/runs/:id`) = tab Overview/Employees/Items/Payslips/Payments/Reports; settings `SalaryComponentsView`, `PayrollPeriodsView`, `PayrollProfilesView`, `BpjsSettingsView` (+ rate components), `Pph21SettingsView` (+ PTKP + tax brackets), `SalaryStructureView` (komponen grade + employee override), `BankProfilesView`, `EmployeeBpjsProfilesView`, `EmployeeTaxProfilesView` di `/settings/*` (masuk grup Payroll & Tax di Settings Index). Route `/payroll`, `/payroll/runs/:id`, dan `/settings/*` terdaftar (digate `payroll.view`). Endpoint FE baru di backend: `GET /payroll/bpjs-rate-components`, `GET /payroll/employee-bank-profiles`, `GET /payroll/employee-bpjs-profiles`, `GET /payroll/employee-tax-profiles`, CRUD `/payroll/salary-grade-components` & `/payroll/salary-employee-components`.
+
+> 📘 **Panduan pengguna (runbook praktis):** [docs/module-payroll-user-flow.md](../module-payroll-user-flow.md) — langkah demi langkah dari setup → proses → distribusi. Versi ringkas dalam seri sub-plan: [09-user-flow.md](09-user-flow.md).
 
 ## Daftar file plan (split 2026-08-14)
 
@@ -19,10 +21,11 @@ Dokumen ini awalnya satu file besar (`docs/module-payroll-development-plan.md`, 
 | 02 | [02-formula-engine.md](02-formula-engine.md) | Formula Engine, parser/evaluator, variable registry | ✅ selesai (2026-08-14) — `calculator/` + migration 115 |
 | 03 | [03-payroll-run-snapshot.md](03-payroll-run-snapshot.md) | Payroll Period, Payroll Run, Calculation Order, Snapshot | ✅ selesai (2026-08-14) — `CalculatePayrollRun` + migration 116 |
 | 04 | [04-bpjs-engine.md](04-bpjs-engine.md) | BPJS Kesehatan/Ketenagakerjaan kalkulator | ✅ selesai (2026-08-14) — `bpjs.go` + repo query effective-dated |
-| 05 | [05-pph21-engine.md](05-pph21-engine.md) | PPh 21 rule engine & kalkulator | ✅ selesai (2026-08-15) — `pph21.go` + `pph21_calculation_logs` terisi |
+| 05 | [05-pph21-engine.md](05-pph21-engine.md) | PPh 21 rule engine & kalkulator | ✅ selesai (2026-08-15) — `pph21.go` + `pph21_calculation_logs` terisi · **metode TER (PP 58/2023) default (2026-08-15)** — Jan–Nov bruto × tarif `ters`, Desember normal − YTD |
 | 06 | [06-proration-workforce.md](06-proration-workforce.md) | Proration, integrasi Attendance/Leave/Overtime/Movement/Recruitment/Performance | ✅ selesai (2026-08-15) — `workforce.go` + metode prorasi per run (migration 117) |
 | 07 | [07-payslip-payment.md](07-payslip-payment.md) | Payslip generator, Payment/bank transfer batch | ✅ selesai (2026-08-15) — `payslip.go` + `payment.go` + migration 118 |
 | 08 | [08-reporting-testing.md](08-reporting-testing.md) | Reporting, Dashboard, Audit Trail, Testing Strategy | ✅ selesai (2026-08-15) — `report.go` + golden dataset regression test |
+| 09 | [09-user-flow.md](09-user-flow.md) | **Panduan alur pengisian module payroll** (master data → run → distribusi) | 📘 referensi pengguna (2026-08-15) |
 
 File asli `docs/module-payroll-development-plan.md` tetap ada sebagai index pendek yang mengarahkan ke sini (lihat file itu).
 

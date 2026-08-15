@@ -942,7 +942,8 @@ func (h *Handler) CreateTER(c *gin.Context) {
 func (h *Handler) ListTERs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListTERs(c.Request.Context(), page, perPage)
+	search := c.Query("search")
+	resp, err := h.service.ListTERs(c.Request.Context(), page, perPage, search)
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return
@@ -993,7 +994,8 @@ func (h *Handler) CreatePTKP(c *gin.Context) {
 func (h *Handler) ListPTKPs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListPTKPs(c.Request.Context(), page, perPage)
+	search := c.Query("search")
+	resp, err := h.service.ListPTKPs(c.Request.Context(), page, perPage, search)
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return

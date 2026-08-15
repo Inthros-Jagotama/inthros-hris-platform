@@ -19,6 +19,8 @@ type CreateSalaryComponentRequest struct {
 	IsRecurring            *bool   `json:"is_recurring"`
 	IsProratable           *bool   `json:"is_proratable"`
 	PrintOnSalaryStructure *bool   `json:"print_on_salary_structure"`
+	IsPph21Component       *bool   `json:"is_pph21_component"`
+	IsPph21Deductible      *bool   `json:"is_pph21_deductible"`
 	DisplayOrder           *int    `json:"display_order"`
 	Status                 *string `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
 }
@@ -35,8 +37,100 @@ type UpdateSalaryComponentRequest struct {
 	IsRecurring            *bool   `json:"is_recurring"`
 	IsProratable           *bool   `json:"is_proratable"`
 	PrintOnSalaryStructure *bool   `json:"print_on_salary_structure"`
+	IsPph21Component       *bool   `json:"is_pph21_component"`
+	IsPph21Deductible      *bool   `json:"is_pph21_deductible"`
 	DisplayOrder           *int    `json:"display_order"`
 	Status                 *string `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
+}
+
+// =============================================================================
+// Request DTOs — Salary Structure (Grade & Employee Components)
+// =============================================================================
+
+type CreateSalaryGradeComponentRequest struct {
+	GradingID           *string `json:"grading_id"`
+	SalaryComponentID   string  `json:"salary_component_id" binding:"required"`
+	Amount              float64 `json:"amount" binding:"required"`
+	CurrencyCode        string  `json:"currency_code" binding:"omitempty,len=3"`
+	EffectiveStartDate  string  `json:"effective_start_date" binding:"required"`
+	EffectiveEndDate    *string `json:"effective_end_date"`
+	IsMandatory         *bool   `json:"is_mandatory"`
+	IsDefault           *bool   `json:"is_default"`
+	Status              string  `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
+	Notes               *string `json:"notes"`
+}
+
+type UpdateSalaryGradeComponentRequest struct {
+	GradingID          *string `json:"grading_id"`
+	Amount             *float64 `json:"amount"`
+	CurrencyCode       *string `json:"currency_code" binding:"omitempty,len=3"`
+	EffectiveStartDate *string `json:"effective_start_date"`
+	EffectiveEndDate   *string `json:"effective_end_date"`
+	IsMandatory        *bool   `json:"is_mandatory"`
+	IsDefault          *bool   `json:"is_default"`
+	Status             *string `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
+	Notes              *string `json:"notes"`
+}
+
+type SalaryGradeComponentResponse struct {
+	ID                 string    `json:"id"`
+	GradingID          string    `json:"grading_id,omitempty"`
+	SalaryComponentID  string    `json:"salary_component_id"`
+	Amount             float64   `json:"amount"`
+	CurrencyCode       string    `json:"currency_code"`
+	EffectiveStartDate string    `json:"effective_start_date"`
+	EffectiveEndDate   string    `json:"effective_end_date,omitempty"`
+	IsMandatory        bool      `json:"is_mandatory"`
+	IsDefault          bool      `json:"is_default"`
+	Status             string    `json:"status"`
+	Notes              string    `json:"notes,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+type CreateSalaryEmployeeComponentRequest struct {
+	EmployeeID          string  `json:"employee_id" binding:"required"`
+	EmploymentID        *string `json:"employment_id"`
+	PositionID          *string `json:"position_id"`
+	GradingID           *string `json:"grading_id"`
+	SalaryComponentID   string  `json:"salary_component_id" binding:"required"`
+	Amount              float64 `json:"amount" binding:"required"`
+	CurrencyCode        string  `json:"currency_code" binding:"omitempty,len=3"`
+	SourceType          string  `json:"source_type" binding:"omitempty,oneof=MANUAL GRADE_INHERIT FORMULA ADJUSTMENT"`
+	SourceRefID         *string `json:"source_ref_id"`
+	EffectiveStartDate  string  `json:"effective_start_date" binding:"required"`
+	EffectiveEndDate    *string `json:"effective_end_date"`
+	Notes               *string `json:"notes"`
+	Status              string  `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
+}
+
+type UpdateSalaryEmployeeComponentRequest struct {
+	Amount             *float64 `json:"amount"`
+	CurrencyCode       *string `json:"currency_code" binding:"omitempty,len=3"`
+	EffectiveStartDate *string `json:"effective_start_date"`
+	EffectiveEndDate   *string `json:"effective_end_date"`
+	SourceType         *string `json:"source_type" binding:"omitempty,oneof=MANUAL GRADE_INHERIT FORMULA ADJUSTMENT"`
+	Notes              *string `json:"notes"`
+	Status             *string `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
+}
+
+type SalaryEmployeeComponentResponse struct {
+	ID                 string    `json:"id"`
+	EmployeeID         string    `json:"employee_id"`
+	EmploymentID       string    `json:"employment_id,omitempty"`
+	PositionID         string    `json:"position_id,omitempty"`
+	GradingID          string    `json:"grading_id,omitempty"`
+	SalaryComponentID  string    `json:"salary_component_id"`
+	Amount             float64   `json:"amount"`
+	CurrencyCode       string    `json:"currency_code"`
+	SourceType         string    `json:"source_type"`
+	SourceRefID        string    `json:"source_ref_id,omitempty"`
+	EffectiveStartDate string    `json:"effective_start_date"`
+	EffectiveEndDate   string    `json:"effective_end_date,omitempty"`
+	Notes              string    `json:"notes,omitempty"`
+	Status             string    `json:"status"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 // =============================================================================
@@ -268,9 +362,8 @@ type UpdateBpjsRateComponentRequest struct {
 type UpdatePph21SettingRequest struct {
 	SettingCode                    *string  `json:"setting_code" binding:"omitempty,max=50"`
 	SettingName                    *string  `json:"setting_name" binding:"omitempty,max=150"`
-	CalculationMethod              *string  `json:"calculation_method" binding:"omitempty,oneof=REGULAR_GROSS_ANNUALIZED"`
+	CalculationMethod              *string  `json:"calculation_method" binding:"omitempty,oneof=TER REGULAR_GROSS_ANNUALIZED"`
 	DefaultTaxMethod               *string  `json:"default_tax_method" binding:"omitempty,oneof=GROSS GROSS_UP NETT"`
-	Pph21ComponentID               *string  `json:"pph21_component_id"`
 	OccupationalExpenseRatePercent *float64 `json:"occupational_expense_rate_percent"`
 	OccupationalExpenseMaxMonthly  *float64 `json:"occupational_expense_max_monthly"`
 	OccupationalExpenseMaxYearly   *float64 `json:"occupational_expense_max_yearly"`
@@ -289,9 +382,8 @@ type UpdatePph21SettingRequest struct {
 type CreatePph21SettingRequest struct {
 	SettingCode                    string   `json:"setting_code" binding:"required,max=50"`
 	SettingName                    string   `json:"setting_name" binding:"required,max=150"`
-	CalculationMethod              string   `json:"calculation_method" binding:"omitempty,oneof=REGULAR_GROSS_ANNUALIZED"`
+	CalculationMethod              string   `json:"calculation_method" binding:"omitempty,oneof=TER REGULAR_GROSS_ANNUALIZED"`
 	DefaultTaxMethod               string   `json:"default_tax_method" binding:"omitempty,oneof=GROSS GROSS_UP NETT"`
-	Pph21ComponentID               string   `json:"pph21_component_id" binding:"required"`
 	OccupationalExpenseRatePercent *float64 `json:"occupational_expense_rate_percent"`
 	OccupationalExpenseMaxMonthly  *float64 `json:"occupational_expense_max_monthly"`
 	OccupationalExpenseMaxYearly   *float64 `json:"occupational_expense_max_yearly"`
@@ -307,15 +399,6 @@ type CreatePph21SettingRequest struct {
 	Status                         string   `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
 }
 
-type CreatePph21PtkpRateRequest struct {
-	PtkpStatus         string  `json:"ptkp_status" binding:"required,max=20"`
-	Description        *string `json:"description"`
-	AnnualAmount       float64 `json:"annual_amount" binding:"required"`
-	EffectiveStartDate string  `json:"effective_start_date" binding:"required"`
-	EffectiveEndDate   *string `json:"effective_end_date"`
-	Status             string  `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
-}
-
 type CreatePph21TaxBracketRequest struct {
 	BracketOrder       int      `json:"bracket_order" binding:"required"`
 	LowerBound         float64  `json:"lower_bound" binding:"required"`
@@ -324,6 +407,16 @@ type CreatePph21TaxBracketRequest struct {
 	EffectiveStartDate string   `json:"effective_start_date" binding:"required"`
 	EffectiveEndDate   *string  `json:"effective_end_date"`
 	Status             string   `json:"status" binding:"omitempty,oneof=ACTIVE INACTIVE"`
+}
+
+type UpdatePph21TaxBracketRequest struct {
+	BracketOrder       *int     `json:"bracket_order,omitempty"`
+	LowerBound         *float64 `json:"lower_bound,omitempty"`
+	UpperBound         *float64 `json:"upper_bound,omitempty"`
+	RatePercent        *float64 `json:"rate_percent,omitempty"`
+	EffectiveStartDate *string  `json:"effective_start_date,omitempty"`
+	EffectiveEndDate   *string  `json:"effective_end_date,omitempty"`
+	Status             *string  `json:"status,omitempty" binding:"omitempty,oneof=ACTIVE INACTIVE"`
 }
 
 // =============================================================================
@@ -372,6 +465,8 @@ type SalaryComponentResponse struct {
 	IsRecurring            bool      `json:"is_recurring"`
 	IsProratable           bool      `json:"is_proratable"`
 	PrintOnSalaryStructure bool      `json:"print_on_salary_structure"`
+	IsPph21Component       bool      `json:"is_pph21_component"`
+	IsPph21Deductible      bool      `json:"is_pph21_deductible"`
 	DisplayOrder           int       `json:"display_order"`
 	Status                 string    `json:"status"`
 	CreatedAt              time.Time `json:"created_at"`
@@ -511,7 +606,6 @@ type Pph21SettingResponse struct {
 	SettingName                  string    `json:"setting_name"`
 	CalculationMethod            string    `json:"calculation_method"`
 	DefaultTaxMethod             string    `json:"default_tax_method"`
-	Pph21ComponentID             string    `json:"pph21_component_id"`
 	OccupationalExpenseRatePercent float64 `json:"occupational_expense_rate_percent"`
 	OccupationalExpenseMaxMonthly float64  `json:"occupational_expense_max_monthly"`
 	OccupationalExpenseMaxYearly float64   `json:"occupational_expense_max_yearly"`
@@ -529,17 +623,7 @@ type Pph21SettingResponse struct {
 	UpdatedAt                    time.Time `json:"updated_at"`
 }
 
-type Pph21PtkpRateResponse struct {
-	ID                 string    `json:"id"`
-	PtkpStatus         string    `json:"ptkp_status"`
-	Description        string    `json:"description,omitempty"`
-	AnnualAmount       float64   `json:"annual_amount"`
-	EffectiveStartDate string    `json:"effective_start_date"`
-	EffectiveEndDate   string    `json:"effective_end_date,omitempty"`
-	Status             string    `json:"status"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
-}
+
 
 type Pph21TaxBracketResponse struct {
 	ID                 string    `json:"id"`
@@ -829,6 +913,9 @@ func toSalaryComponentResponse(s *SalaryComponent) SalaryComponentResponse {
 		IsBpjsBase:      s.IsBpjsBase,
 		IsRecurring:     s.IsRecurring,
 		IsProratable:    s.IsProratable,
+		PrintOnSalaryStructure: s.PrintOnSalaryStructure,
+		IsPph21Component: s.IsPph21Component,
+		IsPph21Deductible: s.IsPph21Deductible,
 		DisplayOrder:    s.DisplayOrder,
 		Status:          s.Status,
 		CreatedAt:       s.CreatedAt,
@@ -980,6 +1067,65 @@ func toEmployeeTaxProfileResponse(t *EmployeeTaxProfile) EmployeeTaxProfileRespo
 	return r
 }
 
+func toSalaryGradeComponentResponse(gc *SalaryGradeComponent) SalaryGradeComponentResponse {
+	r := SalaryGradeComponentResponse{
+		ID:                 gc.ID.String(),
+		SalaryComponentID:  gc.SalaryComponentID.String(),
+		Amount:             gc.Amount,
+		CurrencyCode:       gc.CurrencyCode,
+		EffectiveStartDate: gc.EffectiveStartDate,
+		IsMandatory:        gc.IsMandatory,
+		IsDefault:          gc.IsDefault,
+		Status:             gc.Status,
+		CreatedAt:          gc.CreatedAt,
+		UpdatedAt:          gc.UpdatedAt,
+	}
+	if gc.GradingID != nil {
+		r.GradingID = gc.GradingID.String()
+	}
+	if gc.EffectiveEndDate != nil {
+		r.EffectiveEndDate = *gc.EffectiveEndDate
+	}
+	if gc.Notes != nil {
+		r.Notes = *gc.Notes
+	}
+	return r
+}
+
+func toSalaryEmployeeComponentResponse(ec *SalaryEmployeeComponent) SalaryEmployeeComponentResponse {
+	r := SalaryEmployeeComponentResponse{
+		ID:                 ec.ID.String(),
+		EmployeeID:         ec.EmployeeID.String(),
+		SalaryComponentID:  ec.SalaryComponentID.String(),
+		Amount:             ec.Amount,
+		CurrencyCode:       ec.CurrencyCode,
+		SourceType:         ec.SourceType,
+		EffectiveStartDate: ec.EffectiveStartDate,
+		Status:             ec.Status,
+		CreatedAt:          ec.CreatedAt,
+		UpdatedAt:          ec.UpdatedAt,
+	}
+	if ec.EmploymentID != nil {
+		r.EmploymentID = ec.EmploymentID.String()
+	}
+	if ec.PositionID != nil {
+		r.PositionID = ec.PositionID.String()
+	}
+	if ec.GradingID != nil {
+		r.GradingID = ec.GradingID.String()
+	}
+	if ec.SourceRefID != nil {
+		r.SourceRefID = ec.SourceRefID.String()
+	}
+	if ec.EffectiveEndDate != nil {
+		r.EffectiveEndDate = *ec.EffectiveEndDate
+	}
+	if ec.Notes != nil {
+		r.Notes = *ec.Notes
+	}
+	return r
+}
+
 func toBpjsSettingResponse(b *BpjsSetting) BpjsSettingResponse {
 	r := BpjsSettingResponse{
 		ID:          b.ID.String(),
@@ -1055,7 +1201,6 @@ func toPph21SettingResponse(p *Pph21Setting) Pph21SettingResponse {
 		SettingName:     p.SettingName,
 		CalculationMethod: p.CalculationMethod,
 		DefaultTaxMethod: p.DefaultTaxMethod,
-		Pph21ComponentID: p.Pph21ComponentID.String(),
 		OccupationalExpenseRatePercent: p.OccupationalExpenseRatePercent,
 		OccupationalExpenseMaxMonthly:  p.OccupationalExpenseMaxMonthly,
 		OccupationalExpenseMaxYearly:   p.OccupationalExpenseMaxYearly,
@@ -1070,25 +1215,6 @@ func toPph21SettingResponse(p *Pph21Setting) Pph21SettingResponse {
 		Status:                   p.Status,
 		CreatedAt:                p.CreatedAt,
 		UpdatedAt:                p.UpdatedAt,
-	}
-	if p.EffectiveEndDate != nil {
-		r.EffectiveEndDate = *p.EffectiveEndDate
-	}
-	return r
-}
-
-func toPph21PtkpRateResponse(p *Pph21PtkpRate) Pph21PtkpRateResponse {
-	r := Pph21PtkpRateResponse{
-		ID:         p.ID.String(),
-		PtkpStatus: p.PtkpStatus,
-		AnnualAmount: p.AnnualAmount,
-		EffectiveStartDate: p.EffectiveStartDate,
-		Status:      p.Status,
-		CreatedAt:   p.CreatedAt,
-		UpdatedAt:   p.UpdatedAt,
-	}
-	if p.Description != nil {
-		r.Description = *p.Description
 	}
 	if p.EffectiveEndDate != nil {
 		r.EffectiveEndDate = *p.EffectiveEndDate

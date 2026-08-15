@@ -39,30 +39,24 @@
         <FormRow :label="t('payroll.payroll_group_code')" required :errors="errors?.payroll_group_code">
           <TextInput v-model="form.payroll_group_code" maxlength="50" :placeholder="t('payroll.payroll_group_code')" :class="{'p-invalid':errors?.payroll_group_code}" />
         </FormRow>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.payroll_frequency')">
-            <SelectLabel v-model="form.payroll_frequency" :options="freqOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-          </FormRow>
-          <FormRow :label="t('payroll.payment_method')">
-            <SelectLabel v-model="form.payment_method" :options="methodOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.salary_currency')">
-            <TextInput v-model="form.salary_currency" maxlength="3" placeholder="IDR" />
-          </FormRow>
-          <FormRow :label="t('payroll.is_payroll_active')">
-            <ToggleSwitch v-model="form.is_payroll_active" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.effective_start_date')" required :errors="errors?.effective_start_date">
-            <DateInput v-model="form.effective_start_date" :class="{'p-invalid':errors?.effective_start_date}" />
-          </FormRow>
-          <FormRow :label="t('payroll.effective_end_date')">
-            <DateInput v-model="form.effective_end_date" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('payroll.payroll_frequency')">
+          <SelectLabel v-model="form.payroll_frequency" :options="freqOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
+        </FormRow>
+        <FormRow :label="t('payroll.payment_method')">
+          <SelectLabel v-model="form.payment_method" :options="methodOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
+        </FormRow>
+        <FormRow :label="t('payroll.salary_currency')">
+          <TextInput v-model="form.salary_currency" maxlength="3" placeholder="IDR" />
+        </FormRow>
+        <FormRow :label="t('payroll.is_payroll_active')">
+          <ToggleSwitch v-model="form.is_payroll_active" />
+        </FormRow>
+        <FormRow :label="t('payroll.effective_start_date')" required :errors="errors?.effective_start_date">
+          <DateInput v-model="form.effective_start_date" :class="{'p-invalid':errors?.effective_start_date}" />
+        </FormRow>
+        <FormRow :label="t('payroll.effective_end_date')">
+          <DateInput v-model="form.effective_end_date" />
+        </FormRow>
       </div>
       <template #footer><div class="flex items-center justify-end gap-2"><Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible=false" /><Button :label="t('common.save')" size="small" :loading="saving" :disabled="saving" @click="handleSave" /></div></template>
     </Dialog>

@@ -26,6 +26,12 @@ type SalaryComponent struct {
 	IsRecurring            bool      `gorm:"not null" json:"is_recurring"`
 	IsProratable           bool      `gorm:"not null" json:"is_proratable"`
 	PrintOnSalaryStructure bool      `gorm:"not null" json:"print_on_salary_structure"`
+	// IsPph21Component: komponen "wadah" baris potongan hasil pajak PPh21
+	// (sumber kebenaran di komponen gaji, bukan di setting PPh21).
+	IsPph21Component bool `gorm:"not null;default:0" json:"is_pph21_component"`
+	// IsPph21Deductible: komponen pengurang penghasilan bruto PPh21
+	// (mis. iuran pensiun — bisa lebih dari satu komponen).
+	IsPph21Deductible bool `gorm:"not null;default:0" json:"is_pph21_deductible"`
 	DisplayOrder           int       `gorm:"not null;default:100" json:"display_order"`
 	Status                 string    `gorm:"type:varchar(255);not null;default:ACTIVE" json:"status"`
 	CreatedBy              *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
@@ -386,7 +392,6 @@ type Pph21Setting struct {
 	SettingName                  string     `gorm:"type:varchar(150);not null" json:"setting_name"`
 	CalculationMethod            string     `gorm:"type:varchar(255);not null;default:REGULAR_GROSS_ANNUALIZED" json:"calculation_method"`
 	DefaultTaxMethod             string     `gorm:"type:varchar(255);not null;default:GROSS" json:"default_tax_method"`
-	Pph21ComponentID             uuid.UUID  `gorm:"type:char(36);not null;index" json:"pph21_component_id"`
 	OccupationalExpenseRatePercent float64  `gorm:"type:decimal(8,4);not null;default:5" json:"occupational_expense_rate_percent"`
 	OccupationalExpenseMaxMonthly float64   `gorm:"type:decimal(18,2);not null;default:500000" json:"occupational_expense_max_monthly"`
 	OccupationalExpenseMaxYearly float64    `gorm:"type:decimal(18,2);not null;default:6000000" json:"occupational_expense_max_yearly"`
@@ -416,29 +421,30 @@ func (p *Pph21Setting) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-// Pph21PtkpRate stores PTKP (Non-Taxable Income) rate configurations.
-type Pph21PtkpRate struct {
-	ID                 uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
-	PtkpStatus         string     `gorm:"type:varchar(20);not null;uniqueIndex:uk_pph21_ptkp_status_start" json:"ptkp_status"`
-	Description        *string    `gorm:"type:varchar(255)" json:"description,omitempty"`
-	AnnualAmount       float64    `gorm:"type:decimal(18,2);not null;default:0" json:"annual_amount"`
-	EffectiveStartDate string     `gorm:"type:date;not null" json:"effective_start_date"`
-	EffectiveEndDate   *string    `gorm:"type:date" json:"effective_end_date,omitempty"`
-	Status             string     `gorm:"type:varchar(255);not null;default:ACTIVE" json:"status"`
-	CreatedBy          *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
-	UpdatedBy          *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
+// TerRate membaca tabel ters (Tarif Efektif Rata-rata) — master data di luar
+// modul payroll (migration 001). Satu baris = rentang bruto bulanan + rate.
+type TerRate struct {
+	ID       uuid.UUID `gorm:"column:id;type:char(36);primaryKey" json:"id"`
+	Group    string    `gorm:"column:group;type:char(1);not null;index:idx_ter_group" json:"group"`
+	BrutoMin *int64    `gorm:"column:bruto_min" json:"bruto_min,omitempty"`
+	BrutoMax *int64    `gorm:"column:bruto_max" json:"bruto_max,omitempty"`
+	Rate     float64   `gorm:"column:rate;type:decimal(10,2);not null" json:"rate"`
 }
 
-func (Pph21PtkpRate) TableName() string { return "pph21_ptkp_rates" }
+func (TerRate) TableName() string { return "ters" }
 
-func (p *Pph21PtkpRate) BeforeCreate(tx *gorm.DB) error {
-	if p.ID == uuid.Nil {
-		p.ID = uuid.New()
-	}
-	return nil
+// Ptkp adalah pandangan read-only ke tabel ptkps (setting module) — satu-satunya
+// sumber kebenaran PTKP untuk engine PPh21 (migration 121 menggabungkan
+// pph21_ptkp_rates ke ptkps). Lookup engine memakai kolom code (mis. "TK0").
+type Ptkp struct {
+	ID    uuid.UUID `gorm:"column:id;type:char(36);primaryKey" json:"id"`
+	Name  string    `gorm:"column:name" json:"name"`
+	Code  string    `gorm:"column:code" json:"code"`
+	Ptkp  int64     `gorm:"column:ptkp" json:"ptkp"`
+	Group string    `gorm:"column:group" json:"group"`
 }
+
+func (Ptkp) TableName() string { return "ptkps" }
 
 // Pph21TaxBracket stores progressive tax rate brackets.
 type Pph21TaxBracket struct {
@@ -663,12 +669,14 @@ type Pph21CalculationLog struct {
 	Pph21SettingID       uuid.UUID  `gorm:"type:char(36);not null;index" json:"pph21_setting_id"`
 	EmployeeTaxProfileID uuid.UUID  `gorm:"type:char(36);not null;index" json:"employee_tax_profile_id"`
 	PayrollRunItemID     *uuid.UUID `gorm:"type:char(36)" json:"payroll_run_item_id,omitempty"`
+	CalculationMethod    string     `gorm:"type:varchar(255);not null;default:REGULAR_GROSS_ANNUALIZED" json:"calculation_method"`
 	TaxMethod            string     `gorm:"type:varchar(20);not null" json:"tax_method"`
 	PtkpStatus           string     `gorm:"type:varchar(20);not null" json:"ptkp_status"`
 	HasNpwp              bool       `gorm:"not null;default:1" json:"has_npwp"`
 	GrossMonthly         float64    `gorm:"type:decimal(18,2);not null;default:0" json:"gross_monthly"`
 	OccupationalExpenseMonthly float64 `gorm:"type:decimal(18,2);not null;default:0" json:"occupational_expense_monthly"`
 	BpjsTaxDeductibleMonthly float64  `gorm:"type:decimal(18,2);not null;default:0" json:"bpjs_tax_deductible_monthly"`
+	PensionDeductibleMonthly float64  `gorm:"type:decimal(18,2);not null;default:0" json:"pension_deductible_monthly"`
 	NetMonthly           float64    `gorm:"type:decimal(18,2);not null;default:0" json:"net_monthly"`
 	NetAnnualized        float64    `gorm:"type:decimal(18,2);not null;default:0" json:"net_annualized"`
 	PtkpAnnual           float64    `gorm:"type:decimal(18,2);not null;default:0" json:"ptkp_annual"`

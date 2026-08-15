@@ -146,7 +146,7 @@ func (h *Handler) SeedDataStatus(c *gin.Context) {
 		{"villages", "region", "Villages"},
 		{"salary_grades", "payroll", "Salary Grades"},
 		{"ptkps", "payroll", "PTKPs"},
-		{"pph21_ptkp_rates", "payroll", "PPh21 PTKP Rates"},
+
 		{"pph21_tax_brackets", "payroll", "PPh21 Tax Brackets"},
 		{"ters", "payroll", "TER Rates"},
 		{"bpjs_settings", "payroll", "BPJS Settings"},

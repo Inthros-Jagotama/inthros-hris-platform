@@ -405,13 +405,13 @@ Urutan disusun agar tidak menghalangi start Formula Engine ([02-formula-engine.m
 - [x] Ganti `frontend/tenant/src/views/modules/payroll/Payroll.vue` placeholder dengan layout index (list Payroll Run + create + Calculate + aksi status + dashboard).
 - [x] API service file `frontend/tenant/src/services/api.js` (pola modul lain) untuk memanggil endpoint payroll yang sudah ada di backend (48 handler, lihat [00-overview.md](00-overview.md)).
 - [x] **Salary Component**: list + form create/edit (CRUD `salary_components`) — `SalaryComponentsView.vue`.
-- [ ] **Salary Structure**: 2 view — grade-level default component (`salary_grade_components`) dan employee-level override (`salary_employee_components`), dengan tabel effective-dating yang jelas ke user. *(belum dibangun — backend sudah ada)*
+- [x] **Salary Structure**: 2 view — grade-level default component (`salary_grade_components`) dan employee-level override (`salary_employee_components`), dengan tabel effective-dating yang jelas ke user — `SalaryStructureView.vue` (+ endpoint CRUD baru `salary-grade-components` & `salary-employee-components`).
 - [x] **Payroll Period**: list + form create/edit, toggle OPEN/CLOSED — `PayrollPeriodsView.vue`.
 - [x] **BPJS Settings & Rate Components**: form konfigurasi tarif per program (HEALTH/JHT/JP/JKK/JKM/JKP) dengan effective dating — `BpjsSettingsView.vue` (+ endpoint baru `GET /bpjs/rate-components`).
 - [x] **PPh21 Settings, PTKP Rates, Tax Brackets**: form konfigurasi pajak — `Pph21SettingsView.vue`.
-- [x] **Employee Payroll/Bank/BPJS/Tax Profiles**: form per-employee — `PayrollProfilesView.vue` (list + create + delete; update endpoint belum ada di backend).
+- [x] **Employee Payroll/Bank/BPJS/Tax Profiles**: form per-employee — `PayrollProfilesView.vue` (payroll profile), `BankProfilesView.vue`, `EmployeeBpjsProfilesView.vue`, `EmployeeTaxProfilesView.vue` (CRUD lengkap; + endpoint list baru `GET /employee-bank-profiles`, `GET /employee-bpjs-profiles`, `GET /employee-tax-profiles`).
 - [x] **Payroll Run**: list + detail + status-transition UI (DRAFT→CALCULATED→APPROVED→LOCKED), termasuk tombol trigger approval (`GET /runs/:id/approval`) — `Payroll.vue` + `PayrollRunDetail.vue` (tab Employees/Items/Payslips/Payments/Reports).
 - [x] i18n: string payroll ditambahkan ke `frontend/tenant/src/locales/en.json`/`id.json`.
 - [ ] Update `docs/openapi-report.md` referensi kalau ada penyesuaian kontrak API saat FE dibangun.
 
-> ⚠️ Sisa pekerjaan FE yang masih terbuka: **Salary Structure** (grade-level/employee-level override), **payslip PDF**, **employee portal** (self-service payslip), **payroll journal**, **payment reconciliation**.
+> ⚠️ Sisa pekerjaan yang masih terbuka: **payslip PDF**, **employee portal** (self-service payslip), **payroll journal**, **payment reconciliation**.

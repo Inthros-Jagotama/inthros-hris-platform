@@ -357,6 +357,7 @@ func (c *Competency) BeforeCreate(tx *gorm.DB) error {
 type PTKP struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
+	Code      string         `gorm:"column:code;type:varchar(20);not null;default:'';index:idx_ptkp_code" json:"code"`
 	PTKP      int64          `gorm:"column:ptkp;not null" json:"ptkp"`
 	Group     string         `gorm:"column:group;type:char(1);not null;index:idx_ptkp_group" json:"group"`
 	CreatedAt time.Time      `json:"created_at"`

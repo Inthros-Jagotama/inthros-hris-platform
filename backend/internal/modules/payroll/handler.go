@@ -100,6 +100,122 @@ func (h *Handler) DeleteSalaryComponent(c *gin.Context) {
 }
 
 // =============================================================================
+// Salary Structure — Grade Components
+// =============================================================================
+
+func (h *Handler) ListSalaryGradeComponents(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	resp, err := h.service.ListSalaryGradeComponents(c.Request.Context(), page, perPage)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetSalaryGradeComponentByID(c *gin.Context) {
+	resp, err := h.service.GetSalaryGradeComponentByID(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) CreateSalaryGradeComponent(c *gin.Context) {
+	var req CreateSalaryGradeComponentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.CreateSalaryGradeComponent(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) UpdateSalaryGradeComponent(c *gin.Context) {
+	var req UpdateSalaryGradeComponentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdateSalaryGradeComponent(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteSalaryGradeComponent(c *gin.Context) {
+	if err := h.service.DeleteSalaryGradeComponent(c.Request.Context(), c.Param("id")); err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =============================================================================
+// Salary Structure — Employee Components (override)
+// =============================================================================
+
+func (h *Handler) ListSalaryEmployeeComponents(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	resp, err := h.service.ListSalaryEmployeeComponents(c.Request.Context(), page, perPage)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetSalaryEmployeeComponentByID(c *gin.Context) {
+	resp, err := h.service.GetSalaryEmployeeComponentByID(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) CreateSalaryEmployeeComponent(c *gin.Context) {
+	var req CreateSalaryEmployeeComponentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.CreateSalaryEmployeeComponent(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) UpdateSalaryEmployeeComponent(c *gin.Context) {
+	var req UpdateSalaryEmployeeComponentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdateSalaryEmployeeComponent(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteSalaryEmployeeComponent(c *gin.Context) {
+	if err := h.service.DeleteSalaryEmployeeComponent(c.Request.Context(), c.Param("id")); err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =============================================================================
 // Payroll Periods
 // =============================================================================
 
@@ -313,6 +429,42 @@ func (h *Handler) DeleteEmployeeTaxProfile(c *gin.Context) {
 	httputil.DeletedJSON(c, "success.deleted")
 }
 
+func (h *Handler) ListEmployeeBankProfiles(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	resp, err := h.service.ListEmployeeBankProfiles(c.Request.Context(), page, perPage)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) ListEmployeeBpjsProfiles(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	resp, err := h.service.ListEmployeeBpjsProfiles(c.Request.Context(), page, perPage)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) ListEmployeeTaxProfiles(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	resp, err := h.service.ListEmployeeTaxProfiles(c.Request.Context(), page, perPage)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+
+
+
 func (h *Handler) CreateEmployeeTaxProfile(c *gin.Context) {
 	var req CreateEmployeeTaxProfileRequest
 	if !httputil.BindAndValidate(c, &req) {
@@ -506,34 +658,6 @@ func (h *Handler) CreatePph21Setting(c *gin.Context) {
 }
 
 // =============================================================================
-// PPh21 PTKP Rates
-// =============================================================================
-
-func (h *Handler) CreatePph21PtkpRate(c *gin.Context) {
-	var req CreatePph21PtkpRateRequest
-	if !httputil.BindAndValidate(c, &req) {
-		return
-	}
-	resp, err := h.service.CreatePph21PtkpRate(c.Request.Context(), req)
-	if err != nil {
-		httputil.InternalError(c, err.Error())
-		return
-	}
-	httputil.CreatedJSON(c, resp, "success.created")
-}
-
-func (h *Handler) ListPph21PtkpRates(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	resp, err := h.service.ListPph21PtkpRates(c.Request.Context(), page, perPage)
-	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, resp)
-}
-
-// =============================================================================
 // PPh21 Tax Brackets
 // =============================================================================
 
@@ -559,6 +683,27 @@ func (h *Handler) ListPph21TaxBrackets(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) UpdatePph21TaxBracket(c *gin.Context) {
+	var req UpdatePph21TaxBracketRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdatePph21TaxBracket(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeletePph21TaxBracket(c *gin.Context) {
+	if err := h.service.DeletePph21TaxBracket(c.Request.Context(), c.Param("id")); err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"deleted": true})
 }
 
 // =============================================================================

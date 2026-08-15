@@ -919,11 +919,11 @@ func (s *Service) GetTERByID(ctx context.Context, id string) (*TERResponse, erro
 	resp := t.ToResponse()
 	return &resp, nil
 }
-func (s *Service) ListTERs(ctx context.Context, page, perPage int) (*TERPaginatedResponse, error) {
+func (s *Service) ListTERs(ctx context.Context, page, perPage int, search string) (*TERPaginatedResponse, error) {
 	if page < 1 { page = defaultPage }
 	if perPage < 1 { perPage = defaultPerPage }
 	if perPage > maxPerPage { perPage = maxPerPage }
-	list, total, err := s.repo.FindAllTERs(ctx, page, perPage)
+	list, total, err := s.repo.FindAllTERs(ctx, page, perPage, search)
 	if err != nil { return nil, err }
 	responses := make([]TERResponse, len(list))
 	for i, t := range list { responses[i] = t.ToResponse() }
@@ -952,7 +952,7 @@ func (s *Service) DeleteTER(ctx context.Context, id string) error {
 
 // ── PTKP CRUD ──
 func (s *Service) CreatePTKP(ctx context.Context, req CreatePTKPRequest) (*PTKPResponse, error) {
-	p := &PTKP{Name: req.Name, PTKP: req.PTKP, Group: req.Group}
+	p := &PTKP{Name: req.Name, Code: derivePtkpCode(req.Name), PTKP: req.PTKP, Group: req.Group}
 	if err := s.repo.CreatePTKP(ctx, p); err != nil { return nil, err }
 	s.logger.Info("PTKP created", zap.String("id", p.ID.String()), zap.String("name", p.Name))
 	resp := p.ToResponse()
@@ -966,11 +966,11 @@ func (s *Service) GetPTKPByID(ctx context.Context, id string) (*PTKPResponse, er
 	resp := p.ToResponse()
 	return &resp, nil
 }
-func (s *Service) ListPTKPs(ctx context.Context, page, perPage int) (*PTKPPaginatedResponse, error) {
+func (s *Service) ListPTKPs(ctx context.Context, page, perPage int, search string) (*PTKPPaginatedResponse, error) {
 	if page < 1 { page = defaultPage }
 	if perPage < 1 { perPage = defaultPerPage }
 	if perPage > maxPerPage { perPage = maxPerPage }
-	list, total, err := s.repo.FindAllPTKPs(ctx, page, perPage)
+	list, total, err := s.repo.FindAllPTKPs(ctx, page, perPage, search)
 	if err != nil { return nil, err }
 	responses := make([]PTKPResponse, len(list))
 	for i, p := range list { responses[i] = p.ToResponse() }
@@ -1183,7 +1183,7 @@ func (s *Service) UpdatePTKP(ctx context.Context, id string, req UpdatePTKPReque
 	if err != nil { return nil, fmt.Errorf("invalid id: %w", err) }
 	p, err := s.repo.FindPTKPByID(ctx, uid)
 	if err != nil { return nil, err }
-	if req.Name != nil { p.Name = *req.Name }
+	if req.Name != nil { p.Name = *req.Name; p.Code = derivePtkpCode(*req.Name) }
 	if req.PTKP != nil { p.PTKP = *req.PTKP }
 	if req.Group != nil { p.Group = *req.Group }
 	if err := s.repo.UpdatePTKP(ctx, p); err != nil { return nil, err }
@@ -1194,4 +1194,16 @@ func (s *Service) DeletePTKP(ctx context.Context, id string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil { return fmt.Errorf("invalid id: %w", err) }
 	return s.repo.DeletePTKP(ctx, uid)
+}
+
+// derivePtkpCode mengekstrak kode status dari nama PTKP (pola "... (TK/0)") dan
+// menormalisasinya ("TK/0" → "TK0"). Nama tanpa tanda kurung → code kosong.
+func derivePtkpCode(name string) string {
+	start := strings.LastIndex(name, "(")
+	end := strings.LastIndex(name, ")")
+	if start < 0 || end <= start {
+		return ""
+	}
+	code := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(name[start+1:end], "/", ""), " ", ""))
+	return code
 }
