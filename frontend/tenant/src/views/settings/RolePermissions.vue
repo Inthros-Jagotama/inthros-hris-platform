@@ -10,6 +10,10 @@
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ selectedCount }} / {{ permissions.length }} {{ t('rbac.permissions_count') }}</p>
         </div>
         <div class="flex items-center gap-2">
+          <IconField iconPosition="left">
+            <InputIcon class="pi pi-search" />
+            <InputText v-model="filterQuery" size="small" :placeholder="t('common.search')" class="!w-48" />
+          </IconField>
           <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="router.push('/settings/rbac')" />
           <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="saving" :disabled="saving || loading" @click="handleSave" />
         </div>
@@ -19,7 +23,7 @@
     <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="4" />
     <DataTable
       v-else
-      :value="permissionGroups"
+      :value="filteredGroups"
       size="small"
       class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
     >
@@ -73,6 +77,9 @@ import Checkbox from 'primevue/checkbox'
 import ToggleSwitch from 'primevue/toggleswitch'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
+import InputText from 'primevue/inputtext'
+import InputIcon from 'primevue/inputicon'
+import IconField from 'primevue/iconfield'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 
 const route = useRoute()
@@ -99,6 +106,17 @@ function moduleLabel(resource) {
   const key = `rbac.modules.${resource}`
   return t(key) !== key ? t(key) : resource
 }
+
+const filterQuery = ref('')
+
+// Filter module by nama (label bilingual atau slug).
+const filteredGroups = computed(() => {
+  const q = filterQuery.value.trim().toLowerCase()
+  if (!q) return permissionGroups.value
+  return permissionGroups.value.filter(g =>
+    moduleLabel(g.resource).toLowerCase().includes(q) || g.resource.toLowerCase().includes(q)
+  )
+})
 
 // Semua aksi yang ada lintas module (create, update, ...) — urutan kemunculan
 // pertama — menjadi kolom-kolom tabel.
