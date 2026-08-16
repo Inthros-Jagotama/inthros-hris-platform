@@ -169,6 +169,20 @@
       <div v-if="activeTab === 'funding'" class="p-4 space-y-3">
         <Message v-if="!canManageFunding" severity="info" :closable="false">{{ t('business_travel.funding_requires_approved') }}</Message>
         <template v-else>
+          <div v-if="fundings.length || expenses.length" class="grid grid-cols-3 gap-3 mb-1">
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2.5">
+              <p class="text-xs text-gray-400">{{ t('business_travel.total_funding') }}</p>
+              <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ formatCurrency(totalFundingAmount) }}</p>
+            </div>
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2.5">
+              <p class="text-xs text-gray-400">{{ t('business_travel.total_expense') }}</p>
+              <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ formatCurrency(totalExpenseAmount) }}</p>
+            </div>
+            <div class="rounded-lg border px-3 py-2.5" :class="remainingBalance < 0 ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-900/20' : 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20'">
+              <p class="text-xs" :class="remainingBalance < 0 ? 'text-rose-500' : 'text-emerald-600 dark:text-emerald-400'">{{ t('business_travel.remaining_balance') }}</p>
+              <p class="text-sm font-semibold" :class="remainingBalance < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-300'">{{ formatCurrency(remainingBalance) }}</p>
+            </div>
+          </div>
           <div class="flex justify-end">
             <Button :label="t('common.add')" icon="pi pi-plus" size="small" @click="openFundingDialog" />
           </div>
@@ -502,6 +516,13 @@ const tabs = [
 ]
 
 const canManageFunding = computed(() => ['APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(travel.value?.status))
+// Running balance so far — total funding recorded minus total actual expense
+// recorded. This is a live, not-yet-final figure; the authoritative
+// reconciliation (with company-paid excluded, §34) only happens at
+// Settlement once the travel is COMPLETED.
+const totalFundingAmount = computed(() => fundings.value.reduce((sum, f) => sum + (Number(f.amount) || 0), 0))
+const totalExpenseAmount = computed(() => expenses.value.reduce((sum, e) => sum + (Number(e.amount) || 0), 0))
+const remainingBalance = computed(() => totalFundingAmount.value - totalExpenseAmount.value)
 // Participants/Destinations/Activities/Schedules can only be edited or
 // deleted while the travel is still DRAFT — same rule the backend enforces
 // (Service.requireDraftTravel), mirrored here so buttons don't appear only
