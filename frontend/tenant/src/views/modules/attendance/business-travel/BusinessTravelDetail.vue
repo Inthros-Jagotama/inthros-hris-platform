@@ -396,7 +396,6 @@
     <!-- ── Dialog: Quick-add Funding Method ── -->
     <Dialog v-model:visible="quickAddFundingMethodVisible" :header="t('business_travel.add_funding_method')" modal :style="{ width: '380px' }">
       <div class="space-y-3">
-        <FormRow :label="t('business_travel.code')" required><TextInput v-model="fundingMethodForm.code" /></FormRow>
         <FormRow :label="t('business_travel.name')" required><TextInput v-model="fundingMethodForm.name" /></FormRow>
       </div>
       <template #footer>
@@ -893,14 +892,14 @@ async function onDocFileSelected(event) {
 
 const quickAddFundingMethodVisible = ref(false)
 const savingFundingMethod = ref(false)
-const fundingMethodForm = ref({ code: '', name: '' })
+const fundingMethodForm = ref({ name: '' })
 async function handleSaveFundingMethod() {
-  if (!fundingMethodForm.value.code?.trim() || !fundingMethodForm.value.name?.trim()) return
+  if (!fundingMethodForm.value.name?.trim()) return
   savingFundingMethod.value = true
   try {
     await api.post('/api/v1/tenant/attendance/business-travel-funding-methods', fundingMethodForm.value)
     quickAddFundingMethodVisible.value = false
-    fundingMethodForm.value = { code: '', name: '' }
+    fundingMethodForm.value = { name: '' }
     await loadFundingMethods()
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })

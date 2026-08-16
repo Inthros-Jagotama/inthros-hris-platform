@@ -813,8 +813,12 @@ var ErrBusinessTravelNotApproved = errors.New("business travel must be APPROVED 
 var ErrFundingInvalidState = errors.New("funding is not in a valid state for this action")
 
 func (s *Service) CreateFundingMethod(ctx context.Context, req CreateFundingMethodRequest) (*FundingMethodResponse, error) {
+	existing, err := s.repo.ListFundingMethods(ctx, false)
+	if err != nil {
+		return nil, err
+	}
 	method := &FundingMethod{
-		Code:   strings.ToUpper(req.Code),
+		Code:   generateUniqueCode(req.Name, existingFundingMethodCodes(existing)),
 		Name:   req.Name,
 		Active: true,
 	}
@@ -825,6 +829,44 @@ func (s *Service) CreateFundingMethod(ctx context.Context, req CreateFundingMeth
 		return nil, err
 	}
 	return fundingMethodToResponse(method), nil
+}
+
+func existingFundingMethodCodes(methods []FundingMethod) map[string]bool {
+	codes := make(map[string]bool, len(methods))
+	for _, m := range methods {
+		codes[m.Code] = true
+	}
+	return codes
+}
+
+// generateUniqueCode slugifies a display name into an UPPER_SNAKE_CASE code
+// (e.g. "Cash Advance" -> "CASH_ADVANCE") and appends a numeric suffix if the
+// base code already exists, so the add-funding-method/expense-category forms
+// never need to ask the user for a code.
+func generateUniqueCode(name string, existing map[string]bool) string {
+	var b strings.Builder
+	lastUnderscore := false
+	for _, r := range strings.ToUpper(strings.TrimSpace(name)) {
+		switch {
+		case r >= 'A' && r <= 'Z' || r >= '0' && r <= '9':
+			b.WriteRune(r)
+			lastUnderscore = false
+		default:
+			if !lastUnderscore && b.Len() > 0 {
+				b.WriteRune('_')
+				lastUnderscore = true
+			}
+		}
+	}
+	base := strings.TrimSuffix(b.String(), "_")
+	if base == "" {
+		base = "OTHER"
+	}
+	code := base
+	for i := 2; existing[code]; i++ {
+		code = fmt.Sprintf("%s_%d", base, i)
+	}
+	return code
 }
 
 func (s *Service) ListFundingMethods(ctx context.Context, activeOnly bool) ([]FundingMethodResponse, error) {

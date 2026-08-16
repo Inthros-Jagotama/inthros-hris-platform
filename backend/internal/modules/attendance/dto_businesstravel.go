@@ -88,8 +88,10 @@ type CreateBusinessTravelScheduleRequest struct {
 // travel.Status == APPROVED, oleh pihak berwenang — bukan otomatis requester)
 // =========================================================================
 
+// CreateFundingMethodRequest — code is not accepted from the client: it's
+// derived from Name server-side (Service.generateFundingMethodCode) so the
+// add-funding-method form only needs to ask for a name.
 type CreateFundingMethodRequest struct {
-	Code        string `json:"code" binding:"required"`
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
 }
