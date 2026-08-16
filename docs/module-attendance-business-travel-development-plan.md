@@ -2343,7 +2343,7 @@ Deviasi dari rencana awal (2 file, bukan 9), alasan pragmatis:
 - **Participants/Destinations ditampilkan read-only** di tab Info (diisi saat create), belum ada UI tambah/edit setelah travel dibuat meski endpoint backend untuk activities/schedules sudah dipakai (ada dialog add).
 - **`BusinessTravelDashboard.vue`/`BusinessTravelReports.vue` (§46-47) belum dibuat** — Phase 12 backend (reporting endpoints) juga belum ada.
 - **Master data (funding method, expense category) tidak punya halaman admin terpisah** — quick-add dialog inline di dalam form Funding/Expense (`POST /business-travel-funding-methods`, `POST /business-travel-expense-categories`) karena belum ada tempat lain untuk membuatnya.
-- **Upload dokumen (transfer proof, receipt) belum diwire di FE** — backend endpoint (`.../fundings/:fundingId/documents`, `.../expenses/:expenseId/documents`) sudah ada, tapi dialog Funding/Expense di FE belum ada tombol upload seperti pola `AttendanceOvertime.vue`'s `attachment_url`. **TODO lanjutan.**
+- **Upload dokumen (transfer proof, receipt) sudah diwire di FE** — tombol paperclip per baris Funding/Expense di `BusinessTravelDetail.vue`, two-step (upload ke endpoint generik → attach URL ke `.../fundings/:fundingId/documents` atau `.../expenses/:expenseId/documents`), pola sama dengan `AttendanceOvertime.vue`'s `attachment_url`.
 
 Wiring aktual:
 
