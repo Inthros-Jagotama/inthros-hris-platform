@@ -3,7 +3,7 @@
 -- Sensitive Data Masking — tabel setting toggle enkripsi per field.
 -- Setiap baris mewakili satu field sensitif yang bisa di-enkripsi saat
 -- ditulis (encrypt-on-write). Toggle ini independen dari permission
--- view per-field (lihat migration 152).
+-- view per-field (lihat migration 153).
 -- =============================================================================
 
 CREATE TABLE sensitive_field_settings (

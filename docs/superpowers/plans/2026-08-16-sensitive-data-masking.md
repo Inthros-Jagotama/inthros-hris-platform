@@ -17,7 +17,7 @@
 - The set of maskable fields is a fixed, developer-maintained registry — admins toggle within it, they don't define new fields (spec Non-goals).
 - Tenant schema changes MUST be versioned SQL migrations under `backend/internal/pkg/migrator/migrations/tenant/{mysql,postgres}/` with matching numeric-prefix filenames — GORM AutoMigrate must not be relied on for these changes, per [[tenant-schema-migration-requirement]].
 - Encryption key: env var `HRIS_ENCRYPTION_KEY` (64 hex chars), read via existing `backend/internal/pkg/crypto` package — do not add a second key-loading mechanism.
-- Next available migration number is `150` (last existing is `149_rbac_submenu_permissions.sql`).
+- Migration numbers 150-152 are taken (150 by an unrelated commit that landed on main after this plan was written: `150_rbac_submenu_permissions_extra`; 151-152 by Tasks 3-4 of this plan, renumbered from their original 150-151 to avoid the collision — see ledger ruling). Task 5 uses 153.
 
 ---
 
@@ -294,7 +294,7 @@ The registry (fixed field keys, matches Task 5's model struct fields):
 -- Sensitive Data Masking — tabel setting toggle enkripsi per field.
 -- Setiap baris mewakili satu field sensitif yang bisa di-enkripsi saat
 -- ditulis (encrypt-on-write). Toggle ini independen dari permission
--- view per-field (lihat migration 152).
+-- view per-field (lihat migration 153).
 -- =============================================================================
 
 CREATE TABLE sensitive_field_settings (
@@ -498,14 +498,14 @@ git commit -m "feat(migration): widen sensitive employee columns for ciphertext 
 
 ---
 
-### Task 5: Migration 152 — seed per-field RBAC permissions
+### Task 5: Migration 153 — seed per-field RBAC permissions
 
 **Files:**
 - Create: `backend/internal/scripts/print_permission_uuids.go` (throwaway helper, deleted in Step 3)
-- Create: `backend/internal/pkg/migrator/migrations/tenant/mysql/152_sensitive_field_view_permissions.sql`
-- Create: `backend/internal/pkg/migrator/migrations/tenant/mysql/152_sensitive_field_view_permissions.down.sql`
-- Create: `backend/internal/pkg/migrator/migrations/tenant/postgres/152_sensitive_field_view_permissions.sql`
-- Create: `backend/internal/pkg/migrator/migrations/tenant/postgres/152_sensitive_field_view_permissions.down.sql`
+- Create: `backend/internal/pkg/migrator/migrations/tenant/mysql/153_sensitive_field_view_permissions.sql`
+- Create: `backend/internal/pkg/migrator/migrations/tenant/mysql/153_sensitive_field_view_permissions.down.sql`
+- Create: `backend/internal/pkg/migrator/migrations/tenant/postgres/153_sensitive_field_view_permissions.sql`
+- Create: `backend/internal/pkg/migrator/migrations/tenant/postgres/153_sensitive_field_view_permissions.down.sql`
 
 **Interfaces:**
 - Produces: 8 new rows in `permissions` (`employee.view_nik`, `employee.view_passport`, `employee.view_phone_number`, `employee.view_email`, `employee_family.view_nik`, `employee_bank_account.view_account_number`, `employee_bank_account.view_account_name`, `emergency_contact.view_phone_number`), each linked to the Admin role via `role_has_permissions` — consumed by Task 12's `authctx.HasPermission` checks and shown on the existing RBAC permissions page.
@@ -562,7 +562,7 @@ rm backend/internal/scripts/print_permission_uuids.go
 
 ```sql
 -- =============================================================================
--- 152_sensitive_field_view_permissions.sql
+-- 153_sensitive_field_view_permissions.sql
 -- Sensitive Data Masking — permission per-field untuk melihat nilai asli
 -- (bukan hasil masking). Default: hanya role Admin yang diberi akses;
 -- role lain diatur manual lewat halaman RBAC.
@@ -594,7 +594,7 @@ INSERT IGNORE INTO role_has_permissions (permission_id, role_id) VALUES
 Replace every `<UUID_...>` placeholder with the exact value printed in Step 2 before saving the file — this migration must not be committed with placeholders still in it.
 
 ```sql
--- 152_sensitive_field_view_permissions.down.sql
+-- 153_sensitive_field_view_permissions.down.sql
 DELETE FROM role_has_permissions WHERE permission_id IN (
     '<UUID_view_nik>', '<UUID_view_passport>', '<UUID_view_phone_number>', '<UUID_view_email>',
     '<UUID_family_view_nik>', '<UUID_bank_view_account_number>', '<UUID_bank_view_account_name>',
@@ -610,7 +610,7 @@ DELETE FROM permissions WHERE id IN (
 - [ ] **Step 5: Write postgres up/down migrations (same UUIDs, `ON CONFLICT DO NOTHING`)**
 
 ```sql
--- 152_sensitive_field_view_permissions.sql (postgres)
+-- 153_sensitive_field_view_permissions.sql (postgres)
 
 INSERT INTO permissions (id, name, guard_name, created_at, updated_at) VALUES
     ('<UUID_view_nik>', 'employee.view_nik', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -636,7 +636,7 @@ ON CONFLICT (permission_id, role_id) DO NOTHING;
 ```
 
 ```sql
--- 152_sensitive_field_view_permissions.down.sql (postgres)
+-- 153_sensitive_field_view_permissions.down.sql (postgres)
 DELETE FROM role_has_permissions WHERE permission_id IN (
     '<UUID_view_nik>', '<UUID_view_passport>', '<UUID_view_phone_number>', '<UUID_view_email>',
     '<UUID_family_view_nik>', '<UUID_bank_view_account_number>', '<UUID_bank_view_account_name>',
@@ -657,11 +657,11 @@ Expected: PASS. If a local tenant test DB is available, verify: `SELECT name FRO
 - [ ] **Step 7: Commit**
 
 ```bash
-git add backend/internal/pkg/migrator/migrations/tenant/mysql/152_sensitive_field_view_permissions.sql \
-        backend/internal/pkg/migrator/migrations/tenant/mysql/152_sensitive_field_view_permissions.down.sql \
-        backend/internal/pkg/migrator/migrations/tenant/postgres/152_sensitive_field_view_permissions.sql \
-        backend/internal/pkg/migrator/migrations/tenant/postgres/152_sensitive_field_view_permissions.down.sql
-git commit -m "feat(migration): seed per-field sensitive-data view permissions (152)"
+git add backend/internal/pkg/migrator/migrations/tenant/mysql/153_sensitive_field_view_permissions.sql \
+        backend/internal/pkg/migrator/migrations/tenant/mysql/153_sensitive_field_view_permissions.down.sql \
+        backend/internal/pkg/migrator/migrations/tenant/postgres/153_sensitive_field_view_permissions.sql \
+        backend/internal/pkg/migrator/migrations/tenant/postgres/153_sensitive_field_view_permissions.down.sql
+git commit -m "feat(migration): seed per-field sensitive-data view permissions (153)"
 ```
 
 ---
@@ -898,7 +898,7 @@ import (
 )
 
 // SensitiveFieldSetting adalah baris toggle enkripsi-at-rest untuk satu
-// field sensitif. Dibuat oleh migration SQL (150_sensitive_field_settings),
+// field sensitif. Dibuat oleh migration SQL (151_sensitive_field_settings),
 // bukan AutoMigrate — lihat catatan Migrate() di module.go.
 type SensitiveFieldSetting struct {
 	ID                  string    `gorm:"type:char(36);primaryKey" json:"id"`
@@ -1930,5 +1930,5 @@ After all 13 tasks are complete:
 
 - [ ] Run the full backend test suite: `go test ./backend/... -v` — expect PASS, no regressions.
 - [ ] Run migrations against a local/test tenant DB (both mysql and postgres if both are available) and confirm no errors, `sensitive_field_settings` has 8 rows, and 8 new permissions exist.
-- [ ] In the RBAC permissions page (already-shipped UI), confirm the 8 new `employee*.view_*` / `employee_bank_account.view_*` / `emergency_contact.view_*` permissions appear grouped correctly and are togglable per role — no frontend change should be needed there since that page reads permissions dynamically from the API, but confirm this assumption holds by checking the page after running migration 152 against a test tenant.
+- [ ] In the RBAC permissions page (already-shipped UI), confirm the 8 new `employee*.view_*` / `employee_bank_account.view_*` / `emergency_contact.view_*` permissions appear grouped correctly and are togglable per role — no frontend change should be needed there since that page reads permissions dynamically from the API, but confirm this assumption holds by checking the page after running migration 153 against a test tenant.
 - [ ] Manually verify end-to-end: enable encryption for `employee.nik`, create an employee with a NIK, confirm the DB row is ciphertext, confirm a user without `employee.view_nik` sees a masked NIK in the UI/API response, and a user with the permission sees the real value.
