@@ -3,6 +3,7 @@
     <!-- ── Menu Cards ── -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <button
+        v-if="hasPermission('competency.values.view')"
         type="button"
         class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
         @click="router.push('/competencies/values')"
@@ -18,6 +19,7 @@
       </button>
 
       <button
+        v-if="hasPermission('competency.indicators.view')"
         type="button"
         class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-fuchsia-300 dark:hover:border-fuchsia-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500/50"
         @click="router.push('/competencies/indicators')"
@@ -33,6 +35,7 @@
       </button>
 
       <button
+        v-if="hasPermission('competency.templates.view')"
         type="button"
         class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-violet-300 dark:hover:border-violet-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
         @click="router.push('/competencies/templates')"
@@ -48,6 +51,7 @@
       </button>
 
       <button
+        v-if="hasPermission('competency.events.view')"
         type="button"
         class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-emerald-300 dark:hover:border-emerald-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
         @click="router.push('/competencies/events')"
@@ -63,6 +67,7 @@
       </button>
 
       <button
+        v-if="hasPermission('competency.raters.view')"
         type="button"
         class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-amber-300 dark:hover:border-amber-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
         @click="router.push('/competencies/raters')"
@@ -78,6 +83,7 @@
       </button>
 
       <button
+        v-if="hasPermission('competency.my-assessments.view')"
         type="button"
         class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-sky-300 dark:hover:border-sky-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
         @click="router.push('/competencies/my-assessments')"
@@ -93,6 +99,7 @@
       </button>
 
       <button
+        v-if="hasPermission('competency.manager-assessments.view')"
         type="button"
         class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-cyan-300 dark:hover:border-cyan-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50"
         @click="router.push('/competencies/manager-assessments')"
@@ -108,6 +115,7 @@
       </button>
 
       <button
+        v-if="hasPermission('competency.results.view')"
         type="button"
         class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-rose-300 dark:hover:border-rose-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
         @click="router.push('/competencies/results')"
@@ -123,6 +131,7 @@
       </button>
 
       <button
+        v-if="hasPermission('competency.reports.view')"
         type="button"
         class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-teal-300 dark:hover:border-teal-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
         @click="router.push('/competencies/reports')"
@@ -143,7 +152,9 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/stores/auth'
 
 const router = useRouter()
 const { t } = useI18n()
+const { hasPermission } = useAuth()
 </script>

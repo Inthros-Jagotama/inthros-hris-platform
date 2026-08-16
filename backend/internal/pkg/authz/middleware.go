@@ -127,11 +127,22 @@ func NewMiddleware(cfg MiddlewareConfig) gin.HandlerFunc {
 		// Extract action dari HTTP method
 		action := ActionFromMethod(c.Request.Method)
 
-		// 1. Cek permissions claim dari JWT (RBAC tenant, format "resource.action").
+		// 1. Cek permissions claim dari JWT (RBAC tenant). Mendukung dua format:
+		//    - "resource.action"            (level-module)
+		//    - "resource.submenu.action"    (level-submenu, segmen kedua path)
+		//    Role dengan module-level "competency.view" tetap bisa akses semua
+		//    submenu (claim module-level terpenuhi); role yang hanya diberi
+		//    "competency.events.view" juga bisa akses endpoint events.
 		//    Hanya untuk route tenant — route platform murni enforcer (anti-bypass).
-		if isTenantPath(c.FullPath()) && hasPermissionClaim(c, resource+"."+action) {
-			c.Next()
-			return
+		if isTenantPath(c.FullPath()) {
+			if hasPermissionClaim(c, resource+"."+action) {
+				c.Next()
+				return
+			}
+			if sub := SubresourceFromPath(c.FullPath()); sub != "" && hasPermissionClaim(c, resource+"."+sub+"."+action) {
+				c.Next()
+				return
+			}
 		}
 
 		// 2. Fallback: platform enforcer (role hierarchy) untuk platform roles.
@@ -178,10 +189,18 @@ func RequirePermission(enforcer *Enforcer, resource, action string) gin.HandlerF
 		}
 
 		// 1. Cek permissions claim dari JWT (RBAC tenant) — sama seperti NewMiddleware.
+		//    Mendukung level-module ("resource.action") dan level-submenu
+		//    ("resource.submenu.action" via segmen kedua path).
 		//    Hanya untuk route tenant — route platform murni enforcer (anti-bypass).
-		if isTenantPath(c.FullPath()) && hasPermissionClaim(c, resource+"."+action) {
-			c.Next()
-			return
+		if isTenantPath(c.FullPath()) {
+			if hasPermissionClaim(c, resource+"."+action) {
+				c.Next()
+				return
+			}
+			if sub := SubresourceFromPath(c.FullPath()); sub != "" && hasPermissionClaim(c, resource+"."+sub+"."+action) {
+				c.Next()
+				return
+			}
 		}
 
 		// 2. Fallback: platform enforcer (role hierarchy) untuk platform roles.

@@ -36,6 +36,7 @@ type PermissionResponse struct {
 	Name      string `json:"name"`
 	GuardName string `json:"guard_name"`
 	Resource  string `json:"resource"`
+	Submenu   string `json:"submenu,omitempty"`
 	Action    string `json:"action"`
 }
 

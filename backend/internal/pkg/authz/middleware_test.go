@@ -37,6 +37,14 @@ func setupMiddlewareTest(claims []string, role string) *gin.Engine {
 	r.GET("/api/v1/tenant/settings", mw, func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
+	// Route submenu (level-submenu RBAC) — claim "resource.submenu.action"
+	// memenuhi, begitu juga module-level "resource.action".
+	r.GET("/api/v1/tenant/competency/events", mw, func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+	r.GET("/api/v1/tenant/competency/templates/:id", mw, func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
 	// Route platform — claim tenant TIDAK boleh mem-bypass enforcer.
 	r.GET("/api/v1/platform/rbac/roles", mw, func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -81,6 +89,33 @@ func TestNewMiddleware_ClaimMismatch_Denies(t *testing.T) {
 
 	if w := doMiddlewareRequest(r, "/api/v1/tenant/settings"); w.Code != http.StatusForbidden {
 		t.Errorf("GET settings: status = %d, want 403 (no setting.view claim)", w.Code)
+	}
+}
+
+// Role dengan claim level-submenu "competency.events.view" (tanpa
+// "competency.view") → GET /tenant/competency/events diizinkan.
+func TestNewMiddleware_SubmenuClaim_AllowsSubmenuRoute(t *testing.T) {
+	r := setupMiddlewareTest([]string{"competency.events.view"}, "Employee")
+
+	if w := doMiddlewareRequest(r, "/api/v1/tenant/competency/events"); w.Code != http.StatusOK {
+		t.Errorf("GET competency/events: status = %d, want 200 (claim competency.events.view)", w.Code)
+	}
+	// Route submenu lain yang TIDAK punya claim → 403.
+	if w := doMiddlewareRequest(r, "/api/v1/tenant/competency/templates/abc"); w.Code != http.StatusForbidden {
+		t.Errorf("GET competency/templates/abc: status = %d, want 403 (no templates claim)", w.Code)
+	}
+}
+
+// Role dengan module-level "competency.view" → semua submenu competency diizinkan
+// (backward compatible: claim module-level memenuhi semua submenu).
+func TestNewMiddleware_ModuleClaim_GrantsSubmenus(t *testing.T) {
+	r := setupMiddlewareTest([]string{"competency.view"}, "Employee")
+
+	if w := doMiddlewareRequest(r, "/api/v1/tenant/competency/events"); w.Code != http.StatusOK {
+		t.Errorf("GET competency/events: status = %d, want 200 (module claim competency.view)", w.Code)
+	}
+	if w := doMiddlewareRequest(r, "/api/v1/tenant/competency/templates/abc"); w.Code != http.StatusOK {
+		t.Errorf("GET competency/templates/abc: status = %d, want 200 (module claim competency.view)", w.Code)
 	}
 }
 

@@ -197,12 +197,13 @@ func (s *Service) ListPermissions(ctx context.Context) ([]PermissionResponse, er
 	}
 	resp := make([]PermissionResponse, 0, len(perms))
 	for _, p := range perms {
-		resource, action := splitPermissionName(p.Name)
+		resource, submenu, action := splitPermissionName(p.Name)
 		resp = append(resp, PermissionResponse{
 			ID:        p.ID,
 			Name:      p.Name,
 			GuardName: p.GuardName,
 			Resource:  resource,
+			Submenu:   submenu,
 			Action:    action,
 		})
 	}
@@ -265,11 +266,22 @@ func (s *Service) AssignUserRoles(ctx context.Context, userID string, roleIDs []
 	return s.repo.ReplaceUserRoles(ctx, userID, roleIDs)
 }
 
-// splitPermissionName memecah "resource.action" menjadi resource & action.
-func splitPermissionName(name string) (string, string) {
-	idx := strings.LastIndex(name, ".")
-	if idx < 0 {
-		return name, ""
+// splitPermissionName memecah nama permission menjadi resource, submenu & action.
+// Mendukung dua format:
+//   - "resource.action"            → submenu kosong (level-module)
+//   - "resource.submenu.action"    → submenu terisi (level-submenu)
+func splitPermissionName(name string) (string, string, string) {
+	parts := strings.Split(name, ".")
+	switch len(parts) {
+	case 0:
+		return name, "", ""
+	case 1:
+		return parts[0], "", ""
+	case 2:
+		return parts[0], "", parts[1]
+	default:
+		// resource.submenu.action — gabungkan bagian tengah yang mungkin
+		// berisi titik (mis. "training.course.manage" → submenu "course").
+		return parts[0], strings.Join(parts[1:len(parts)-1], "."), parts[len(parts)-1]
 	}
-	return name[:idx], name[idx+1:]
 }

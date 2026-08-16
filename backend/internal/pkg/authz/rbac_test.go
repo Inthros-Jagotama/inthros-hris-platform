@@ -514,6 +514,34 @@ func TestResourceFromPath_UnknownPath(t *testing.T) {
 	}
 }
 
+// SubresourceFromPath — ekstraksi submenu dari segmen kedua path.
+func TestSubresourceFromPath(t *testing.T) {
+	tests := []struct {
+		path     string
+		expected string
+	}{
+		{"/api/v1/tenant/competency/events", "events"},
+		{"/api/v1/tenant/competency/templates/:id", "templates"},
+		{"/api/v1/tenant/competency/templates/:id/edit", "templates"},
+		{"/api/v1/tenant/attendance/business-travel", "business-travel"},
+		{"/api/v1/tenant/settings/zones", "zones"},
+		{"/api/v1/tenant/employees", ""},            // tidak ada segmen kedua
+		{"/api/v1/tenant/employees/:id", ""},        // segmen kedua = param
+		{"/api/v1/tenant/user-accounts/:id", ""},    // segmen kedua = param
+		{"/api/v1/platform/companies", ""},          // bukan route submenu
+		{"/healthz", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			result := SubresourceFromPath(tt.path)
+			if result != tt.expected {
+				t.Errorf("SubresourceFromPath(%q) = %q, want %q", tt.path, result, tt.expected)
+			}
+		})
+	}
+}
+
 // =========================================================================
 // ActionFromMethod Tests
 // =========================================================================

@@ -151,8 +151,12 @@ export function useAuth() {
   }
 
   // hasPermission — filter Level 2 (Dynamic Menu Rendering):
-  // true jika user memiliki permission yang diminta (format "resource.action").
-  // Mendukung wildcard: "*" (semua) dan "resource.*" (semua action resource).
+  // true jika user memiliki permission yang diminta (format "resource.action"
+  // atau "resource.submenu.action"). Mendukung wildcard: "*" (semua) dan
+  // "resource.*" (semua action resource). Untuk permission level-submenu
+  // ("resource.submenu.action"), permission level-module dengan action yang
+  // sama ("resource.action") juga dianggap memenuhi — supaya role yang hanya
+  // punya "competency.view" tetap melihat semua submenu competency.
   // Saat permissions belum ter-decode (null/empty), default true agar tidak
   // menyembunyikan UI sebelum state siap.
   function hasPermission(required) {
@@ -162,9 +166,27 @@ export function useAuth() {
     if (perms.includes('*')) return true
     if (perms.includes(required)) return true
 
+    const parts = String(required).split('.')
+    const [resource] = parts
     // wildcard per resource: resource.*
-    const [resource] = String(required).split('.')
     if (resource && perms.includes(resource + '.*')) return true
+
+    // level-submenu: resource.submenu.action → module-level resource.action
+    // juga memenuhi (mis. competency.view → competency.events.view).
+    if (parts.length >= 3 && resource) {
+      const action = parts[parts.length - 1]
+      if (perms.includes(resource + '.' + action)) return true
+    }
+
+    // Arah sebaliknya: role yang hanya diberi permission level-submenu
+    // (mis. competency.events.view tanpa competency.view) tetap harus bisa
+    // melihat menu module-nya — resource.action dianggap terpenuhi bila ada
+    // permission resource.<submenu>.action mana pun.
+    if (parts.length === 2 && resource) {
+      const action = parts[1]
+      const prefix = resource + '.'
+      if (perms.some(p => p.startsWith(prefix) && p.endsWith('.' + action))) return true
+    }
     return false
   }
 

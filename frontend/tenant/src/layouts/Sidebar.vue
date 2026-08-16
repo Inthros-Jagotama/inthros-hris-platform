@@ -46,7 +46,7 @@
           <!-- Dropdown children -->
           <template v-if="item.children?.length && isMenuOpen(item)">
             <div
-              v-for="child in item.children"
+              v-for="child in visibleChildren(item)"
               :key="child.key || child.label"
               class="ml-6 flex items-center gap-2 px-2.5 py-1.5 text-[13px] rounded-md cursor-pointer transition-colors"
               :class="isItemActive(child) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-500 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
@@ -84,7 +84,7 @@
           <!-- Dropdown children -->
           <template v-if="item.children?.length && isMenuOpen(item)">
             <div
-              v-for="child in item.children"
+              v-for="child in visibleChildren(item)"
               :key="child.key || child.label"
               class="ml-6 flex items-center gap-2 px-2.5 py-1.5 text-[13px] rounded-md cursor-pointer transition-colors"
               :class="isItemActive(child) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-500 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
@@ -252,7 +252,24 @@ const companyLabel = computed(() => {
 function filterByModule(items) {
   return items.filter(item => {
     if (item.moduleSlug && !activeMod.hasModule(item.moduleSlug)) return false
+    // Parent dengan children: tampil bila module permission terpenuhi ATAU
+    // minimal satu child submenu terlihat (mis. role hanya punya
+    // performance.kpi.view → menu Performance tetap tampil).
+    if (item.children?.length) {
+      if (item.permission && hasPermission(item.permission)) return true
+      return visibleChildren(item).length > 0
+    }
     if (item.permission && !hasPermission(item.permission)) return false
+    return true
+  })
+}
+
+// ── Helper: filter child submenu items by permission (Level 2) ──
+function visibleChildren(item) {
+  if (!item.children?.length) return []
+  return item.children.filter(child => {
+    if (child.moduleSlug && !activeMod.hasModule(child.moduleSlug)) return false
+    if (child.permission && !hasPermission(child.permission)) return false
     return true
   })
 }
@@ -301,7 +318,7 @@ const coreHRItems = computed(() => {
           command: () => router.push('/job-management/values'),
           path: '/job-management/values',
           moduleSlug: 'jobmanagement',
-          permission: 'jobmanagement.view'
+          permission: 'jobmanagement.values.view'
         },
         {
           key: 'job_management_main',
@@ -348,7 +365,7 @@ const talentItems = computed(() => {
           command: () => router.push('/performance/kpi'),
           path: '/performance/kpi',
           moduleSlug: 'performance',
-          permission: 'performance.view'
+          permission: 'performance.kpi.view'
         },
         {
           key: 'performance_okr',
@@ -357,7 +374,7 @@ const talentItems = computed(() => {
           command: () => router.push('/performance/okr'),
           path: '/performance/okr',
           moduleSlug: 'performance',
-          permission: 'performance.view'
+          permission: 'performance.okr.view'
         }
       ]
     },
@@ -413,9 +430,10 @@ const topLevelMenuItems = computed(() => {
   // Core HR items
   coreHRItems.value.forEach(item => {
     // Item yang punya children adalah pure toggle di expanded mode — di collapsed
-    // cukup push children (navigasi parent sudah diwakili child, hindari ikon duplikat).
+    // cukup push children yang punya permission (navigasi parent sudah diwakili
+    // child, hindari ikon duplikat).
     if (item.children?.length) {
-      item.children.forEach(child => {
+      visibleChildren(item).forEach(child => {
         items.push({ ...child, key: 'CoreHR-' + (child.key || child.label) })
       })
     } else {
@@ -425,7 +443,14 @@ const topLevelMenuItems = computed(() => {
   
   // Talent items
   talentItems.value.forEach(item => {
-    items.push({ ...item, key: 'Talent-' + item.key })
+    // Parent dengan children: collapsed hanya push children yang terlihat.
+    if (item.children?.length) {
+      visibleChildren(item).forEach(child => {
+        items.push({ ...child, key: 'Talent-' + (child.key || child.label) })
+      })
+    } else {
+      items.push({ ...item, key: 'Talent-' + item.key })
+    }
   })
 
   // Operations items

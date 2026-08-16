@@ -644,6 +644,29 @@ func ResourceFromPath(path string) string {
 	return ""
 }
 
+// SubresourceFromPath mengekstrak nama submenu dari path endpoint tenant.
+// Mengembalikan segmen kedua setelah domain — kosong bila tidak ada.
+// Segmen parameter (":id") dianggap bukan submenu.
+//
+// Contoh:
+//   - /api/v1/tenant/competency/events -> "events"
+//   - /api/v1/tenant/competency/templates/:id -> "templates"
+//   - /api/v1/tenant/employees/:id -> ""
+//   - /api/v1/tenant/attendance/business-travel -> "business-travel"
+func SubresourceFromPath(path string) string {
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	for i, part := range parts {
+		if (part == "platform" || part == "tenant") && i+2 < len(parts) {
+			sub := parts[i+2]
+			if sub == "" || strings.HasPrefix(sub, ":") || strings.Contains(sub, "{") {
+				return ""
+			}
+			return sub
+		}
+	}
+	return ""
+}
+
 // ActionFromMethod mengonversi HTTP method ke action name.
 func ActionFromMethod(method string) string {
 	switch method {

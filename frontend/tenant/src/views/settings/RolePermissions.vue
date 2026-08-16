@@ -23,23 +23,27 @@
     <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="4" />
     <DataTable
       v-else
-      :value="filteredGroups"
+      :value="filteredRows"
       size="small"
+      rowGroupMode="subheader"
+      groupRowsBy="resource"
+      :sortField="'resource'"
+      :sortOrder="1"
       class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
     >
       <template #empty>
         <div class="text-center text-sm text-gray-400 py-8">{{ t('rbac.empty_permissions') }}</div>
       </template>
-      <!-- 1 baris = 1 module: nama module → pilih semua → chips permission -->
-      <Column field="resource" :header="t('rbac.module')" style="width:200px">
-        <template #body="{ data }"><span class="font-medium text-gray-800 dark:text-gray-100">{{ moduleLabel(data.resource) }}</span></template>
-      </Column>
-      <Column :header="t('common.select')" style="width:110px">
-        <template #body="{ data }">
+      <template #groupheader="{ data }">
+        <div class="flex items-center justify-between flex-wrap gap-2 px-2 py-2 bg-gray-50 dark:bg-gray-700/50">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-gray-800 dark:text-gray-100">{{ moduleLabel(data.resource) }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500">{{ groupCount(data.resource) }} {{ t('rbac.permissions_count') }}</span>
+          </div>
           <div class="flex items-center gap-1.5">
-            <Checkbox :binary="true" :model-value="data.allSelected" @update:model-value="toggleResource(data.resource)" />
+            <Checkbox :binary="true" :model-value="groupAllSelected(data.resource)" @update:model-value="toggleResource(data.resource)" />
             <Button
-              :label="data.allSelected ? t('common.clear') : t('common.all')"
+              :label="groupAllSelected(data.resource) ? t('common.clear') : t('common.all')"
               severity="secondary"
               text
               size="small"
@@ -47,6 +51,17 @@
               @click="toggleResource(data.resource)"
             />
           </div>
+        </div>
+      </template>
+      <!-- Kolom submenu: baris level-module ("Umum") diikuti tiap submenu -->
+      <Column field="submenu" :header="t('rbac.submenu')" style="width:220px">
+        <template #body="{ data }">
+          <span
+            class="text-gray-800 dark:text-gray-100"
+            :class="data.submenu ? 'font-normal' : 'font-semibold'"
+          >
+            {{ data.submenu ? submenuLabel(data.resource, data.submenu) : t('rbac.module_level') }}
+          </span>
         </template>
       </Column>
       <!-- Satu kolom per aksi (create, update, ...) — isi berupa switch tanpa label -->
@@ -107,16 +122,13 @@ function moduleLabel(resource) {
   return t(key) !== key ? t(key) : resource
 }
 
-const filterQuery = ref('')
+// Label bilingual submenu (rbac.submenus.<resource>.<submenu>) — fallback ke slug.
+function submenuLabel(resource, submenu) {
+  const key = `rbac.submenus.${resource}.${submenu}`
+  return t(key) !== key ? t(key) : submenu
+}
 
-// Filter module by nama (label bilingual atau slug).
-const filteredGroups = computed(() => {
-  const q = filterQuery.value.trim().toLowerCase()
-  if (!q) return permissionGroups.value
-  return permissionGroups.value.filter(g =>
-    moduleLabel(g.resource).toLowerCase().includes(q) || g.resource.toLowerCase().includes(q)
-  )
-})
+const filterQuery = ref('')
 
 // Semua aksi yang ada lintas module (create, update, ...) — urutan kemunculan
 // pertama — menjadi kolom-kolom tabel.
@@ -128,31 +140,87 @@ const allActions = computed(() => {
   return seen
 })
 
-// Grup permission per module (resource) — 1 baris = 1 module.
-const permissionGroups = computed(() => {
+// Grup permission per module (resource). Setiap module punya satu baris
+// level-module (submenu = '') + satu baris per submenu. Baris-baris
+// di-flatten untuk DataTable dengan rowGroup per resource.
+const groups = computed(() => {
   const map = {}
   for (const p of permissions.value) {
     const res = p.resource || 'other'
+    const sub = p.submenu || ''
     if (!map[res]) map[res] = { resource: res, items: [] }
     map[res].items.push(p)
   }
   return Object.values(map).map(g => {
-    const byAction = {}
-    for (const i of g.items) byAction[i.action] = i
+    // Kelompokkan item per submenu; submenu '' = level-module.
+    const bySub = {}
+    for (const i of g.items) {
+      const key = i.submenu || ''
+      if (!bySub[key]) bySub[key] = []
+      bySub[key].push(i)
+    }
     return {
-      ...g,
-      byAction,
-      allSelected: g.items.length > 0 && g.items.every(i => selected.value[i.id])
+      resource: g.resource,
+      rows: Object.keys(bySub).map(sub => {
+        const items = bySub[sub]
+        const byAction = {}
+        for (const i of items) byAction[i.action] = i
+        return {
+          resource: g.resource,
+          submenu: sub,
+          items,
+          byAction,
+          allSelected: items.length > 0 && items.every(i => selected.value[i.id])
+        }
+      })
     }
   })
 })
 
-// Toggle pilih semua / kosongkan satu module.
+// Semua baris (flatten) — urutan per resource, baris module-level dulu lalu submenu.
+const allRows = computed(() => {
+  const out = []
+  for (const g of groups.value) {
+    const moduleRow = g.rows.find(r => !r.submenu)
+    if (moduleRow) out.push(moduleRow)
+    for (const r of g.rows) {
+      if (r.submenu) out.push(r)
+    }
+  }
+  return out
+})
+
+// Filter baris by nama module/submenu (label bilingual atau slug).
+const filteredRows = computed(() => {
+  const q = filterQuery.value.trim().toLowerCase()
+  if (!q) return allRows.value
+  return allRows.value.filter(r => {
+    const m = moduleLabel(r.resource).toLowerCase()
+    const s = r.submenu ? submenuLabel(r.resource, r.submenu).toLowerCase() : ''
+    return m.includes(q) || r.resource.toLowerCase().includes(q) || (r.submenu && r.submenu.toLowerCase().includes(q)) || s.includes(q)
+  })
+})
+
+function groupCount(resource) {
+  const g = groups.value.find(x => x.resource === resource)
+  return g ? g.items.length : 0
+}
+
+function groupItems(resource) {
+  const g = groups.value.find(x => x.resource === resource)
+  return g ? g.items : []
+}
+
+function groupAllSelected(resource) {
+  const items = groupItems(resource)
+  return items.length > 0 && items.every(i => selected.value[i.id])
+}
+
+// Toggle pilih semua / kosongkan satu module (termasuk semua submenu-nya).
 function toggleResource(resource) {
-  const group = permissionGroups.value.find(g => g.resource === resource)
-  if (!group) return
-  const all = group.allSelected
-  for (const p of group.items) {
+  const items = groupItems(resource)
+  const all = groupAllSelected(resource)
+  for (const p of items) {
     selected.value[p.id] = !all
   }
 }

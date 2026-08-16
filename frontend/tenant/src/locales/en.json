@@ -3761,6 +3761,140 @@
     "system": "System",
     "users_count": "Users",
     "module": "Module",
+    "submenu": "Submenu",
+    "module_level": "General (Module)",
+    "submenus": {
+      "organization": {
+        "tree": "Organization Tree",
+        "zones": "Zones",
+        "job-families": "Job Families",
+        "positions": "Positions"
+      },
+      "employee": {
+        "list": "Employee List",
+        "create": "Add Employee"
+      },
+      "jobmanagement": {
+        "titles": "Job Titles",
+        "values": "Job Values",
+        "objectives": "Job Objectives",
+        "identifications": "Job Identifications",
+        "responsibilities": "Responsibilities",
+        "authorities": "Authorities",
+        "working-conditions": "Working Conditions",
+        "scores": "Job Scores",
+        "competencies": "Competency Mapping"
+      },
+      "competency": {
+        "competencies": "Competencies",
+        "values": "Rating Scales",
+        "indicators": "Indicators",
+        "events": "Events",
+        "scores": "Scores",
+        "templates": "Assessment Templates",
+        "raters": "Rater Assignment",
+        "my-assessments": "My Assessment",
+        "manager-assessments": "Manager Assessment",
+        "results": "Results",
+        "reports": "Reports"
+      },
+      "employeemovement": {
+        "movements": "Movements",
+        "contracts": "Contracts"
+      },
+      "attendance": {
+        "dashboard": "Dashboard",
+        "shifts": "Shifts",
+        "schedules": "Schedules",
+        "events": "Events",
+        "overtime": "Overtime",
+        "locations": "Locations",
+        "business-travel": "Business Travel",
+        "settings": "Settings"
+      },
+      "approval": {
+        "tasks": "My Tasks",
+        "flows": "Approval Flows",
+        "instances": "Instances"
+      },
+      "payroll": {
+        "runs": "Payroll Runs",
+        "periods": "Periods",
+        "salary-components": "Salary Components",
+        "profiles": "Employee Profiles",
+        "bpjs-settings": "BPJS Settings",
+        "pph21-settings": "PPh21 Settings",
+        "ptkp-rates": "PTKP Rates",
+        "tax-brackets": "Tax Brackets"
+      },
+      "leave": {
+        "dashboard": "Dashboard",
+        "requests": "Requests",
+        "types": "Types",
+        "balances": "Balances",
+        "settings": "Settings"
+      },
+      "performance": {
+        "evaluations": "Evaluations",
+        "templates": "Templates",
+        "indicators": "Indicators",
+        "periods": "Periods",
+        "perspectives": "Perspectives"
+      },
+      "recruitment": {
+        "requisitions": "Requisitions",
+        "candidates": "Candidates",
+        "applications": "Applications",
+        "interviews": "Interviews",
+        "onboarding": "Onboarding"
+      },
+      "reimbursement": {
+        "requests": "Requests",
+        "types": "Types",
+        "reports": "Reports"
+      },
+      "training": {
+        "courses": "Courses",
+        "categories": "Categories",
+        "providers": "Providers",
+        "trainers": "Trainers",
+        "sessions": "Sessions",
+        "participants": "Participants",
+        "planning": "Planning",
+        "requests": "Requests",
+        "needs": "Needs",
+        "certificates": "Certificates",
+        "history": "History",
+        "reports": "Reports"
+      },
+      "setting": {
+        "zones": "Zones",
+        "provinces": "Provinces",
+        "regencies": "Regencies",
+        "districts": "Districts",
+        "villages": "Villages",
+        "educations": "Educations",
+        "education-majors": "Education Majors",
+        "religions": "Religions",
+        "marital-statuses": "Marital Statuses",
+        "relationship-types": "Relationship Types",
+        "banks": "Banks",
+        "employment-statuses": "Employment Statuses",
+        "nationalities": "Nationalities",
+        "job-families": "Job Families",
+        "gradings": "Gradings",
+        "salary-grades": "Salary Grades",
+        "ters": "TER",
+        "ptkps": "PTKP",
+        "insurances": "Insurances",
+        "company-holidays": "Company Holidays",
+        "competencies": "Competencies",
+        "document-templates": "Document Templates"
+      },
+      "rbac": {
+        "roles": "Roles"
+      }
+    },
     "modules": {
       "approval": "Approval",
       "attendance": "Attendance",
