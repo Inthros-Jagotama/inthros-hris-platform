@@ -50,24 +50,26 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/stores/auth'
 
 import Tag from 'primevue/tag'
 
 const router = useRouter()
 const { t } = useI18n()
+const { hasPermission } = useAuth()
 
 // Menu strategis Workforce Intelligence — halaman hub dengan card navigasi.
 // Candidate Search menampilkan posisi kosong (org tanpa employment aktif di
 // bawah Organization Summary active) beserta kandidat recruitment-nya.
 const menuCards = computed(() => [
-  { labelKey: 'candidate_search.title', descKey: 'candidate_search.description', icon: 'pi pi-user-plus', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/workforce-intelligence/candidate-search' },
+  { labelKey: 'candidate_search.title', descKey: 'candidate_search.description', icon: 'pi pi-user-plus', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/workforce-intelligence/candidate-search', permission: 'workforceintelligence.candidate-search.view' },
   // Recruitment Analytics — S-2/S-3: remaining gap, expected hires, time to hire/fill, OAR, source conversion
-  { labelKey: 'recruitment_analytics.title', descKey: 'recruitment_analytics.description', icon: 'pi pi-chart-line', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/workforce-intelligence/recruitment-analytics' },
+  { labelKey: 'recruitment_analytics.title', descKey: 'recruitment_analytics.description', icon: 'pi pi-chart-line', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/workforce-intelligence/recruitment-analytics', permission: 'workforceintelligence.recruitment-analytics.view' },
   // Quality of Hire — metrik agregat kualitas hire (S-6: interview/onboarding/performance/retention)
-  { labelKey: 'quality_of_hire.title', descKey: 'quality_of_hire.description', icon: 'pi pi-bullseye', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/workforce-intelligence/quality-of-hire' },
+  { labelKey: 'quality_of_hire.title', descKey: 'quality_of_hire.description', icon: 'pi pi-bullseye', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/workforce-intelligence/quality-of-hire', permission: 'workforceintelligence.quality-of-hire.view' },
   // P2-FE integrasi: analisis training (completion/cost/compliance) dari modul Training
-  { labelKey: 'workforce_intel.training_analysis', descKey: 'workforce_intel.training_analysis_desc', icon: 'pi pi-graduation-cap', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/training/reports' }
-])
+  { labelKey: 'workforce_intel.training_analysis', descKey: 'workforce_intel.training_analysis_desc', icon: 'pi pi-graduation-cap', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/training/reports', permission: 'workforceintelligence.training-analysis.view' }
+].filter(card => !card.permission || hasPermission(card.permission)))
 
 // Fitur yang sudah terdefinisi di locale tapi halamannya belum dibangun —
 // ditampilkan sebagai card "Coming soon" agar roadmap modul terlihat jelas.

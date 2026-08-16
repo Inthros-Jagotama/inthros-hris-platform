@@ -90,6 +90,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/stores/auth'
 import { getErrorMessage } from '@/services/responseHandler'
 import api from '@/services/api'
 
@@ -98,6 +99,7 @@ import Tag from 'primevue/tag'
 const router = useRouter()
 const { t } = useI18n()
 const toast = useToast()
+const { hasPermission } = useAuth()
 
 const stats = ref({ upcoming: 0, ongoing: 0, completed: 0, courses: 0, participants: 0, providers: 0 })
 
@@ -126,19 +128,19 @@ async function loadStats() {
 }
 
 const menuCards = computed(() => [
-  { labelKey: 'training.courses', descKey: 'training.courses_desc', icon: 'pi pi-book', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/training/courses' },
-  { labelKey: 'training.categories', descKey: 'training.categories_desc', icon: 'pi pi-tags', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/training/categories' },
-  { labelKey: 'training.sessions', descKey: 'training.sessions_desc', icon: 'pi pi-calendar', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/training/sessions' },
-  { labelKey: 'training.participants', descKey: 'training.participants_desc', icon: 'pi pi-users', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/training/participants' },
-  { labelKey: 'training.providers', descKey: 'training.providers_desc', icon: 'pi pi-building', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', route: '/training/providers' },
-  { labelKey: 'training.trainers', descKey: 'training.trainers_desc', icon: 'pi pi-user', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/training/trainers' },
-  { labelKey: 'training.planning', descKey: 'training.planning_desc', icon: 'pi pi-calendar-plus', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/training/plans' },
-  { labelKey: 'training.requests', descKey: 'training.requests_desc', icon: 'pi pi-send', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400', route: '/training/requests' },
-  { labelKey: 'training.needs', descKey: 'training.needs_desc', icon: 'pi pi-bullseye', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400', route: '/training/needs' },
-  { labelKey: 'training.certificates', descKey: 'training.certificates_desc', icon: 'pi pi-id-card', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400', route: '/training/certificates' },
-  { labelKey: 'training.history', descKey: 'training.history_desc', icon: 'pi pi-history', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', route: '/training/history' },
-  { labelKey: 'training.reports', descKey: 'training.reports_desc', icon: 'pi pi-chart-bar', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', route: '/training/reports' }
-])
+  { labelKey: 'training.courses', descKey: 'training.courses_desc', icon: 'pi pi-book', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/training/courses', permission: 'training.courses.view' },
+  { labelKey: 'training.categories', descKey: 'training.categories_desc', icon: 'pi pi-tags', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/training/categories', permission: 'training.categories.view' },
+  { labelKey: 'training.sessions', descKey: 'training.sessions_desc', icon: 'pi pi-calendar', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/training/sessions', permission: 'training.sessions.view' },
+  { labelKey: 'training.participants', descKey: 'training.participants_desc', icon: 'pi pi-users', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/training/participants', permission: 'training.participants.view' },
+  { labelKey: 'training.providers', descKey: 'training.providers_desc', icon: 'pi pi-building', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', route: '/training/providers', permission: 'training.providers.view' },
+  { labelKey: 'training.trainers', descKey: 'training.trainers_desc', icon: 'pi pi-user', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/training/trainers', permission: 'training.trainers.view' },
+  { labelKey: 'training.planning', descKey: 'training.planning_desc', icon: 'pi pi-calendar-plus', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/training/plans', permission: 'training.planning.view' },
+  { labelKey: 'training.requests', descKey: 'training.requests_desc', icon: 'pi pi-send', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400', route: '/training/requests', permission: 'training.requests.view' },
+  { labelKey: 'training.needs', descKey: 'training.needs_desc', icon: 'pi pi-bullseye', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400', route: '/training/needs', permission: 'training.needs.view' },
+  { labelKey: 'training.certificates', descKey: 'training.certificates_desc', icon: 'pi pi-id-card', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400', route: '/training/certificates', permission: 'training.certificates.view' },
+  { labelKey: 'training.history', descKey: 'training.history_desc', icon: 'pi pi-history', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', route: '/training/history', permission: 'training.history.view' },
+  { labelKey: 'training.reports', descKey: 'training.reports_desc', icon: 'pi pi-chart-bar', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', route: '/training/reports', permission: 'training.reports.view' }
+].filter(card => !card.permission || hasPermission(card.permission)))
 
 // Semua fitur modul sudah memiliki halaman — tidak ada card coming-soon.
 const comingSoonCards = computed(() => [])

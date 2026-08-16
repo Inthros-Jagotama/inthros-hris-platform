@@ -63,32 +63,34 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/stores/auth'
 import api from '@/services/api'
 
 import Tag from 'primevue/tag'
 
 const router = useRouter()
 const { t } = useI18n()
+const { hasPermission } = useAuth()
 
 // Hub Recruitment (operasional). Halaman strategis di bawah (S-1/S-4/S-5)
 // dikelola di module-recruitment-strategic-layer-plan.md — Recruitment hanya
 // menyediakan data operasional; logika strategis tetap di WI/CI.
 const menuCards = computed(() => [
   // S-1/S-5: Job Requisitions — reason_type WORKFORCE_GAP / SUCCESSION_GAP
-  { labelKey: 'recruitment.requisitions', descKey: 'requisitions.description', icon: 'pi pi-briefcase', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/recruitment/requisitions' },
+  { labelKey: 'recruitment.requisitions', descKey: 'requisitions.description', icon: 'pi pi-briefcase', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/recruitment/requisitions', permission: 'recruitment.requisitions.view' },
   // G-6/G-12 sub-1: Candidates — profile terstruktur (education/experience/skills/cert/document/consent)
-  { labelKey: 'recruitment.candidates', descKey: 'candidates.description', icon: 'pi pi-users', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/recruitment/candidates' },
+  { labelKey: 'recruitment.candidates', descKey: 'candidates.description', icon: 'pi pi-users', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/recruitment/candidates', permission: 'recruitment.candidates.view' },
   // G-12 sub-3: Applications — pipeline (history/screening/assessment/interviews/match score)
-  { labelKey: 'recruitment.applications', descKey: 'applications.description', icon: 'pi pi-send', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/recruitment/applications' },
+  { labelKey: 'recruitment.applications', descKey: 'applications.description', icon: 'pi pi-send', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/recruitment/applications', permission: 'recruitment.applications.view' },
   // S-4: Internal Candidates — eligible via career path (Career Intelligence)
-  { labelKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/recruitment/internal-candidates' },
+  { labelKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/recruitment/internal-candidates', permission: 'recruitment.internal-candidates.view' },
   // G-3: Job Offers — offer management + approval workflow
-  { labelKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/recruitment/offers' },
+  { labelKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/recruitment/offers', permission: 'recruitment.offers.view' },
   // G-4: Onboarding — employee hasil offer + status (COMPLETED → training handoff S-7)
-  { labelKey: 'recruitment.onboarding', descKey: 'onboarding.description', icon: 'pi pi-sign-in', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/recruitment/onboarding' },
+  { labelKey: 'recruitment.onboarding', descKey: 'onboarding.description', icon: 'pi pi-sign-in', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/recruitment/onboarding', permission: 'recruitment.onboarding.view' },
   // G-7 sub-2: Assessments — batch session + peserta kandidat
-  { labelKey: 'recruitment.assessments', descKey: 'assessments.description', icon: 'pi pi-clipboard', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', route: '/recruitment/assessments' }
-])
+  { labelKey: 'recruitment.assessments', descKey: 'assessments.description', icon: 'pi pi-clipboard', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', route: '/recruitment/assessments', permission: 'recruitment.assessments.view' }
+].filter(card => !card.permission || hasPermission(card.permission)))
 
 const comingSoonCards = computed(() => [])
 

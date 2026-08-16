@@ -43,11 +43,13 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/stores/auth'
 import InputText from 'primevue/inputtext'
 import InputIcon from 'primevue/inputicon'
 import IconField from 'primevue/iconfield'
 
 const router = useRouter()
+const { hasPermission } = useAuth()
 const { t } = useI18n()
 
 const searchQuery = ref('')
@@ -59,11 +61,11 @@ const groups = computed(() => [
     icon: 'pi pi-globe',
     labelKey: 'settings.group_geography',
     items: [
-      { path: '/settings/zones', icon: 'pi pi-map-marker', titleKey: 'settings.zones', descKey: 'zones.description', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-      { path: '/settings/provinces', icon: 'pi pi-globe', titleKey: 'settings.provinces', descKey: 'provinces.description', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400' },
-      { path: '/settings/regencies', icon: 'pi pi-map', titleKey: 'settings.regencies', descKey: 'regencies.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
-      { path: '/settings/districts', icon: 'pi pi-building', titleKey: 'settings.districts', descKey: 'districts.description', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400' },
-      { path: '/settings/villages', icon: 'pi pi-home', titleKey: 'settings.villages', descKey: 'villages.description', tint: 'bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400' }
+      { path: '/settings/zones', icon: 'pi pi-map-marker', titleKey: 'settings.zones', descKey: 'zones.description', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', permission: 'setting.zones.view' },
+      { path: '/settings/provinces', icon: 'pi pi-globe', titleKey: 'settings.provinces', descKey: 'provinces.description', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', permission: 'setting.provinces.view' },
+      { path: '/settings/regencies', icon: 'pi pi-map', titleKey: 'settings.regencies', descKey: 'regencies.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', permission: 'setting.regencies.view' },
+      { path: '/settings/districts', icon: 'pi pi-building', titleKey: 'settings.districts', descKey: 'districts.description', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', permission: 'setting.districts.view' },
+      { path: '/settings/villages', icon: 'pi pi-home', titleKey: 'settings.villages', descKey: 'villages.description', tint: 'bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400', permission: 'setting.villages.view' }
     ]
   },
   {
@@ -71,17 +73,17 @@ const groups = computed(() => [
     icon: 'pi pi-users',
     labelKey: 'settings.group_hr',
     items: [
-      { path: '/settings/educations', icon: 'pi pi-graduation-cap', titleKey: 'settings.educations', descKey: 'educations.description', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-      { path: '/settings/education-majors', icon: 'pi pi-graduation-cap', titleKey: 'settings.education_majors', descKey: 'education_majors.description', tint: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' },
-      { path: '/settings/religions', icon: 'pi pi-globe', titleKey: 'settings.religions', descKey: 'religions.description', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400' },
-      { path: '/settings/marital-statuses', icon: 'pi pi-heart', titleKey: 'settings.marital_statuses', descKey: 'marital_status.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' },
-      { path: '/settings/relationship-types', icon: 'pi pi-users', titleKey: 'settings.relationship_types', descKey: 'relationship_types.description', tint: 'bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400' },
-      { path: '/settings/employment-statuses', icon: 'pi pi-briefcase', titleKey: 'settings.employment_statuses', descKey: 'employment_statuses.description', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
-      { path: '/settings/nationalities', icon: 'pi pi-globe', titleKey: 'settings.nationalities', descKey: 'nationalities.description', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
-      { path: '/settings/job-families', icon: 'pi pi-briefcase', titleKey: 'settings.job_families', descKey: 'job_families.description', tint: 'bg-lime-50 dark:bg-lime-500/10 text-lime-600 dark:text-lime-400' },
-      { path: '/settings/competencies', icon: 'pi pi-star', titleKey: 'settings.competencies', descKey: 'competencies.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' },
-      { path: '/settings/numbering', icon: 'pi pi-hashtag', titleKey: 'settings.numbering', descKey: 'numbering_settings.description', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
-      { path: '/settings/document-templates', icon: 'pi pi-file-edit', titleKey: 'settings.document_templates', descKey: 'document_templates.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' }
+      { path: '/settings/educations', icon: 'pi pi-graduation-cap', titleKey: 'settings.educations', descKey: 'educations.description', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', permission: 'setting.educations.view' },
+      { path: '/settings/education-majors', icon: 'pi pi-graduation-cap', titleKey: 'settings.education_majors', descKey: 'education_majors.description', tint: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400', permission: 'setting.education-majors.view' },
+      { path: '/settings/religions', icon: 'pi pi-globe', titleKey: 'settings.religions', descKey: 'religions.description', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400', permission: 'setting.religions.view' },
+      { path: '/settings/marital-statuses', icon: 'pi pi-heart', titleKey: 'settings.marital_statuses', descKey: 'marital_status.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', permission: 'setting.marital-statuses.view' },
+      { path: '/settings/relationship-types', icon: 'pi pi-users', titleKey: 'settings.relationship_types', descKey: 'relationship_types.description', tint: 'bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400', permission: 'setting.relationship-types.view' },
+      { path: '/settings/employment-statuses', icon: 'pi pi-briefcase', titleKey: 'settings.employment_statuses', descKey: 'employment_statuses.description', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', permission: 'setting.employment-statuses.view' },
+      { path: '/settings/nationalities', icon: 'pi pi-globe', titleKey: 'settings.nationalities', descKey: 'nationalities.description', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400', permission: 'setting.nationalities.view' },
+      { path: '/settings/job-families', icon: 'pi pi-briefcase', titleKey: 'settings.job_families', descKey: 'job_families.description', tint: 'bg-lime-50 dark:bg-lime-500/10 text-lime-600 dark:text-lime-400', permission: 'setting.job-families.view' },
+      { path: '/settings/competencies', icon: 'pi pi-star', titleKey: 'settings.competencies', descKey: 'competencies.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', permission: 'setting.competencies.view' },
+      { path: '/settings/numbering', icon: 'pi pi-hashtag', titleKey: 'settings.numbering', descKey: 'numbering_settings.description', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400', permission: 'setting.numbering.view' },
+      { path: '/settings/document-templates', icon: 'pi pi-file-edit', titleKey: 'settings.document_templates', descKey: 'document_templates.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', permission: 'setting.document-templates.view' }
     ]
   },
   {
@@ -89,11 +91,11 @@ const groups = computed(() => [
     icon: 'pi pi-chart-line',
     labelKey: 'settings.group_performance',
     items: [
-      { path: '/settings/performance-perspectives', icon: 'pi pi-th-large', titleKey: 'settings.performance_perspectives', descKey: 'performance_perspectives.description', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-      { path: '/settings/performance-ratings', icon: 'pi pi-star', titleKey: 'settings.performance_ratings', descKey: 'performance_ratings.description', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-      { path: '/settings/performance-formulas', icon: 'pi pi-calculator', titleKey: 'settings.performance_formulas', descKey: 'performance_formulas.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' },
-      { path: '/settings/performance-components', icon: 'pi pi-sliders-h', titleKey: 'settings.performance_components', descKey: 'performance_components.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' },
-      { path: '/settings/performance-scoring', icon: 'pi pi-percentage', titleKey: 'settings.performance_scoring', descKey: 'performance_scoring.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' }
+      { path: '/settings/performance-perspectives', icon: 'pi pi-th-large', titleKey: 'settings.performance_perspectives', descKey: 'performance_perspectives.description', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', permission: 'setting.performance-perspectives.view' },
+      { path: '/settings/performance-ratings', icon: 'pi pi-star', titleKey: 'settings.performance_ratings', descKey: 'performance_ratings.description', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', permission: 'setting.performance-ratings.view' },
+      { path: '/settings/performance-formulas', icon: 'pi pi-calculator', titleKey: 'settings.performance_formulas', descKey: 'performance_formulas.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', permission: 'setting.performance-formulas.view' },
+      { path: '/settings/performance-components', icon: 'pi pi-sliders-h', titleKey: 'settings.performance_components', descKey: 'performance_components.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', permission: 'setting.performance-components.view' },
+      { path: '/settings/performance-scoring', icon: 'pi pi-percentage', titleKey: 'settings.performance_scoring', descKey: 'performance_scoring.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', permission: 'setting.performance-scoring.view' }
     ]
   },
   {
@@ -101,16 +103,16 @@ const groups = computed(() => [
     icon: 'pi pi-calculator',
     labelKey: 'settings.group_payroll',
     items: [
-      { path: '/settings/payroll-periods', icon: 'pi pi-calendar', titleKey: 'payroll.payroll_periods', descKey: 'payroll.payroll_periods_desc', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
-      { path: '/settings/salary-components', icon: 'pi pi-list', titleKey: 'payroll.salary_components', descKey: 'payroll.salary_components_desc', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-      { path: '/settings/bpjs-settings', icon: 'pi pi-shield', titleKey: 'payroll.bpjs', descKey: 'payroll.bpjs_desc', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
-      { path: '/settings/pph21-settings', icon: 'pi pi-percentage', titleKey: 'payroll.pph21', descKey: 'payroll.pph21_desc', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-      { path: '/settings/salary-structure', icon: 'pi pi-sitemap', titleKey: 'payroll.salary_structure', descKey: 'payroll.salary_structure_desc', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
-      { path: '/settings/banks', icon: 'pi pi-building', titleKey: 'settings.banks', descKey: 'banks.description', tint: 'bg-slate-100 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400' },
-      { path: '/settings/gradings', icon: 'pi pi-chart-bar', titleKey: 'settings.gradings', descKey: 'gradings.description', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-      { path: '/settings/salary-grades', icon: 'pi pi-chart-bar', titleKey: 'settings.salary_grades', descKey: 'salary_grades.description', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400' },
-      { path: '/settings/insurances', icon: 'pi pi-shield', titleKey: 'settings.insurances', descKey: 'insurances.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' },
-      { path: '/settings/company-holidays', icon: 'pi pi-calendar', titleKey: 'settings.company_holidays', descKey: 'company_holidays.description', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400' }
+      { path: '/settings/payroll-periods', icon: 'pi pi-calendar', titleKey: 'payroll.payroll_periods', descKey: 'payroll.payroll_periods_desc', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', permission: 'setting.payroll-periods.view' },
+      { path: '/settings/salary-components', icon: 'pi pi-list', titleKey: 'payroll.salary_components', descKey: 'payroll.salary_components_desc', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', permission: 'setting.salary-components.view' },
+      { path: '/settings/bpjs-settings', icon: 'pi pi-shield', titleKey: 'payroll.bpjs', descKey: 'payroll.bpjs_desc', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', permission: 'setting.bpjs-settings.view' },
+      { path: '/settings/pph21-settings', icon: 'pi pi-percentage', titleKey: 'payroll.pph21', descKey: 'payroll.pph21_desc', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', permission: 'setting.pph21-settings.view' },
+      { path: '/settings/salary-structure', icon: 'pi pi-sitemap', titleKey: 'payroll.salary_structure', descKey: 'payroll.salary_structure_desc', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400', permission: 'setting.salary-structure.view' },
+      { path: '/settings/banks', icon: 'pi pi-building', titleKey: 'settings.banks', descKey: 'banks.description', tint: 'bg-slate-100 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400', permission: 'setting.banks.view' },
+      { path: '/settings/gradings', icon: 'pi pi-chart-bar', titleKey: 'settings.gradings', descKey: 'gradings.description', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', permission: 'setting.gradings.view' },
+      { path: '/settings/salary-grades', icon: 'pi pi-chart-bar', titleKey: 'settings.salary_grades', descKey: 'salary_grades.description', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', permission: 'setting.salary-grades.view' },
+      { path: '/settings/insurances', icon: 'pi pi-shield', titleKey: 'settings.insurances', descKey: 'insurances.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', permission: 'setting.insurances.view' },
+      { path: '/settings/company-holidays', icon: 'pi pi-calendar', titleKey: 'settings.company_holidays', descKey: 'company_holidays.description', tint: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400', permission: 'setting.company-holidays.view' }
     ]
   },
   {
@@ -118,23 +120,25 @@ const groups = computed(() => [
     icon: 'pi pi-shield',
     labelKey: 'settings.group_access',
     items: [
-      { path: '/settings/rbac', icon: 'pi pi-shield', titleKey: 'settings.rbac', descKey: 'rbac.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' }
+      { path: '/settings/rbac', icon: 'pi pi-shield', titleKey: 'settings.rbac', descKey: 'rbac.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', permission: 'rbac.roles.view' }
     ]
   }
 ])
 
-// Filter groups by search query
+// Filter groups by permission (Level 2 RBAC) + search query.
+// Grup yang tidak punya item tersisa (semua permission-nya tidak dimiliki)
+// disembunyikan.
 const filteredGroups = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return groups.value
-
   return groups.value
     .map(group => ({
       ...group,
-      items: group.items.filter(item =>
-        t(item.titleKey).toLowerCase().includes(q) ||
-        t(item.descKey).toLowerCase().includes(q)
-      )
+      items: group.items.filter(item => {
+        if (item.permission && !hasPermission(item.permission)) return false
+        if (!q) return true
+        return t(item.titleKey).toLowerCase().includes(q) ||
+          t(item.descKey).toLowerCase().includes(q)
+      })
     }))
     .filter(group => group.items.length > 0)
 })
