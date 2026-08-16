@@ -96,6 +96,8 @@ func (m *compModule) Migrate(db *gorm.DB) error {
 		&CompetencyAssessmentTemplateRaterType{},
 		&CompetencyIndicator{},
 		&CompetencyAssessmentTemplateIndicator{},
+		&CompetencyAssessmentRater{},
+		&CompetencyAssessmentResponse{},
 	)
 }
 

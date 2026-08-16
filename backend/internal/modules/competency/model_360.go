@@ -198,3 +198,84 @@ func (i *CompetencyAssessmentTemplateIndicator) BeforeCreate(tx *gorm.DB) error 
 	}
 	return nil
 }
+
+// =========================================================================
+// Competency 360 — Rater Assignment (plan generik §9)
+// =========================================================================
+
+// RaterType adalah jenis rater pada assessment 360.
+type RaterType string
+
+const (
+	RaterTypeSelf         RaterType = "self"
+	RaterTypeSuperior     RaterType = "superior"
+	RaterTypePeer         RaterType = "peer"
+	RaterTypeSubordinate  RaterType = "subordinate"
+	RaterTypeOther        RaterType = "other"
+)
+
+// RaterStatus adalah status siklus assignment rater.
+type RaterStatus string
+
+const (
+	RaterStatusAssigned  RaterStatus = "assigned"
+	RaterStatusStarted   RaterStatus = "started"
+	RaterStatusSubmitted RaterStatus = "submitted"
+)
+
+type CompetencyAssessmentRater struct {
+	ID                       uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	CompetencyEventTargetID  uuid.UUID  `gorm:"type:char(36);not null;index" json:"competency_event_target_id"`
+	RaterEmployeeID          uuid.UUID  `gorm:"type:char(36);not null;index" json:"rater_employee_id"`
+	RaterType                string     `gorm:"type:varchar(20);not null" json:"rater_type"`
+	Weight                   float64    `gorm:"type:decimal(6,2);default:0" json:"weight"`
+	Status                   string     `gorm:"type:varchar(20);default:assigned" json:"status"`
+	AssignedAt               *time.Time `gorm:"type:timestamp" json:"assigned_at,omitempty"`
+	SubmittedAt              *time.Time `gorm:"type:timestamp" json:"submitted_at,omitempty"`
+	CreatedAt                time.Time  `json:"created_at"`
+	UpdatedAt                time.Time  `json:"updated_at"`
+
+	// Relasi
+	Target    *CompetencyEventTarget `gorm:"foreignKey:CompetencyEventTargetID" json:"target,omitempty"`
+	Responses []CompetencyAssessmentResponse `gorm:"foreignKey:RaterID" json:"responses,omitempty"`
+}
+
+func (CompetencyAssessmentRater) TableName() string {
+	return "competency_assessment_raters"
+}
+
+func (r *CompetencyAssessmentRater) BeforeCreate(tx *gorm.DB) error {
+	if r.ID == uuid.Nil {
+		r.ID = uuid.New()
+	}
+	return nil
+}
+
+// =========================================================================
+// Competency 360 — Assessment Response (plan generik §11)
+// =========================================================================
+
+type CompetencyAssessmentResponse struct {
+	ID          uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	RaterID     uuid.UUID  `gorm:"type:char(36);not null;index" json:"rater_id"`
+	IndicatorID uuid.UUID  `gorm:"type:char(36);not null;index" json:"indicator_id"`
+	RatingValue int        `gorm:"type:smallint;not null" json:"rating_value"`
+	Comment     *string    `gorm:"type:text" json:"comment,omitempty"`
+	SubmittedAt *time.Time `gorm:"type:timestamp" json:"submitted_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+
+	// Relasi
+	Indicator *CompetencyIndicator `gorm:"foreignKey:IndicatorID" json:"indicator,omitempty"`
+}
+
+func (CompetencyAssessmentResponse) TableName() string {
+	return "competency_assessment_responses"
+}
+
+func (r *CompetencyAssessmentResponse) BeforeCreate(tx *gorm.DB) error {
+	if r.ID == uuid.Nil {
+		r.ID = uuid.New()
+	}
+	return nil
+}

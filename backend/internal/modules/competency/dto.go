@@ -72,6 +72,7 @@ type CreateCompetencyEventRequest struct {
 	PeriodYear   int    `json:"period_year" binding:"required"`
 	PeriodNumber *int   `json:"period_number"`
 	Status       string `json:"status" binding:"omitempty,oneof=draft active closed"`
+	TemplateID   *string `json:"template_id"`
 }
 
 type UpdateCompetencyEventRequest struct {
@@ -80,6 +81,7 @@ type UpdateCompetencyEventRequest struct {
 	PeriodYear   *int    `json:"period_year"`
 	PeriodNumber *int    `json:"period_number"`
 	Status       *string `json:"status" binding:"omitempty,oneof=draft active closed"`
+	TemplateID   *string `json:"template_id"`
 }
 
 // =========================================================================
@@ -194,6 +196,7 @@ type CompetencyEventResponse struct {
 	PeriodYear   int       `json:"period_year"`
 	PeriodNumber int       `json:"period_number,omitempty"`
 	Status       string    `json:"status"`
+	TemplateID   string    `json:"template_id,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
@@ -324,6 +327,9 @@ func (e *CompetencyEvent) ToResponse() CompetencyEventResponse {
 	}
 	if e.PeriodNumber != nil {
 		r.PeriodNumber = *e.PeriodNumber
+	}
+	if e.TemplateID != nil {
+		r.TemplateID = e.TemplateID.String()
 	}
 	return r
 }

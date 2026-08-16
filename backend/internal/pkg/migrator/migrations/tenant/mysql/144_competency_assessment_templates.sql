@@ -61,3 +61,15 @@ CREATE TABLE IF NOT EXISTS competency_assessment_template_rater_types (
     INDEX idx_comp_tpl_rater_type (rater_type),
     CONSTRAINT fk_comp_tpl_rater_tpl FOREIGN KEY (template_id) REFERENCES competency_assessment_templates(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
+-- 144.4 Link Event ke Template
+-- `competency_events` (migration 008) mendapat template_id: event menentukan
+-- template assessment mana yang dipakai untuk menilai subject-nya.
+-- ---------------------------------------------------------------------------
+ALTER TABLE competency_events
+    ADD COLUMN template_id CHAR(36) NULL AFTER status;
+
+ALTER TABLE competency_events
+    ADD INDEX idx_comp_event_template (template_id),
+    ADD CONSTRAINT fk_comp_event_template FOREIGN KEY (template_id) REFERENCES competency_assessment_templates(id) ON DELETE SET NULL;

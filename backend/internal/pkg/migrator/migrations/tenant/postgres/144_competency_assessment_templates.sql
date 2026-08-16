@@ -70,3 +70,16 @@ CREATE TABLE IF NOT EXISTS competency_assessment_template_rater_types (
 );
 
 CREATE INDEX IF NOT EXISTS idx_comp_tpl_rater_type ON competency_assessment_template_rater_types (rater_type);
+
+-- ---------------------------------------------------------------------------
+-- 144.4 Link Event ke Template
+-- `competency_events` (migration 008) mendapat template_id: event menentukan
+-- template assessment mana yang dipakai untuk menilai subject-nya.
+-- ---------------------------------------------------------------------------
+ALTER TABLE competency_events
+    ADD COLUMN IF NOT EXISTS template_id CHAR(36) NULL;
+
+CREATE INDEX IF NOT EXISTS idx_comp_event_template ON competency_events (template_id);
+
+ALTER TABLE competency_events
+    ADD CONSTRAINT fk_comp_event_template FOREIGN KEY (template_id) REFERENCES competency_assessment_templates(id) ON DELETE SET NULL;

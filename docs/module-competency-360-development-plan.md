@@ -1170,12 +1170,14 @@ Test:
 
 ## Phase 3 — 360 Assessment
 
-- [ ] Implement assessment subject.
-- [ ] Implement rater assignment.
-- [ ] Implement rater type.
-- [ ] Implement rater weighting.
-- [ ] Implement assessment response.
-- [ ] Implement submission workflow.
+- [x] Implement assessment subject. (Migrasi `141` — UNIQUE(event, employee) — subject tetap `competency_event_targets` + `employee_id`)
+- [x] Implement rater assignment. (Migrasi `146` + Go `AssignRaters`/`ListRatersByTarget`/`DeleteRater` — §9)
+- [x] Implement rater type. (Kolom `rater_type` di `competency_assessment_raters` — self/superior/peer/subordinate/other)
+- [x] Implement rater weighting. (Kolom `weight` di rater + konfigurasi `template_rater_types` migrasi `144` — §10)
+- [x] Implement assessment response. (Migrasi `147` + Go `SaveResponses` upsert — §11)
+- [x] Implement submission workflow. (Go `SubmitAssessment` — status rater submitted, response immutable)
+
+Catatan tambahan: `competency_events` mendapat `template_id` (migrasi `144`) — event menentukan template yang dipakai menilai subject-nya; migrasi `140` (job family requirement) dan `142` (score per employee per event) dibuat pada fase ini.
 
 ## Phase 4 — Approval
 

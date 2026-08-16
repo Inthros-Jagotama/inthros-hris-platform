@@ -98,6 +98,7 @@ type CompetencyEvent struct {
 	PeriodYear   int       `gorm:"type:smallint;not null" json:"period_year"`
 	PeriodNumber *int      `gorm:"type:smallint" json:"period_number,omitempty"`
 	Status       string    `gorm:"type:varchar(20);default:active" json:"status"`
+	TemplateID   *uuid.UUID `gorm:"type:char(36);index" json:"template_id,omitempty"`
 	CreatedBy    *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
 	UpdatedBy    *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`

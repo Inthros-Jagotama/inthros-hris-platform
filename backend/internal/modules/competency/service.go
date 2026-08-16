@@ -361,6 +361,11 @@ func (s *Service) CreateCompetencyEvent(ctx context.Context, req CreateCompetenc
 	if req.Status != "" {
 		e.Status = req.Status
 	}
+	if req.TemplateID != nil && *req.TemplateID != "" {
+		if uid, perr := uuid.Parse(*req.TemplateID); perr == nil {
+			e.TemplateID = &uid
+		}
+	}
 	if err := s.repo.CreateCompetencyEvent(ctx, e); err != nil {
 		return nil, err
 	}
@@ -426,6 +431,13 @@ func (s *Service) UpdateCompetencyEvent(ctx context.Context, id string, req Upda
 	}
 	if req.Status != nil {
 		e.Status = *req.Status
+	}
+	if req.TemplateID != nil {
+		if *req.TemplateID == "" {
+			e.TemplateID = nil
+		} else if uid, perr := uuid.Parse(*req.TemplateID); perr == nil {
+			e.TemplateID = &uid
+		}
 	}
 	if err := s.repo.UpdateCompetencyEvent(ctx, e); err != nil {
 		return nil, err

@@ -80,5 +80,16 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		comp.GET("/indicators/:id", handler.GetIndicatorByID)
 		comp.PUT("/indicators/:id", handler.UpdateIndicator)
 		comp.DELETE("/indicators/:id", handler.DeleteIndicator)
+
+		// Competency 360 — Rater Assignment (§9)
+		comp.POST("/event-targets/:id/raters", handler.AssignRaters)
+		comp.GET("/event-targets/:id/raters", handler.ListRatersByTarget)
+		comp.DELETE("/raters/:id", handler.DeleteRater)
+
+		// Competency 360 — My Assessment (§24 Employee)
+		comp.GET("/my-assessments", handler.MyAssessments)
+		comp.GET("/my-assessments/:id", handler.GetAssessmentDetail)
+		comp.POST("/my-assessments/:id/responses", handler.SaveResponses)
+		comp.POST("/my-assessments/:id/submit", handler.SubmitAssessment)
 	}
 }

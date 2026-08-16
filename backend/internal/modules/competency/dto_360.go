@@ -313,3 +313,108 @@ func (ti *CompetencyAssessmentTemplateIndicator) ToResponse() TemplateIndicatorR
 	}
 	return r
 }
+
+// =========================================================================
+// Request DTOs — Rater Assignment
+// =========================================================================
+
+type RaterAssignmentRequest struct {
+	RaterEmployeeID string `json:"rater_employee_id" binding:"required"`
+	RaterType       string `json:"rater_type" binding:"required,oneof=self superior peer subordinate other"`
+	Weight          *float64 `json:"weight"`
+}
+
+type AssignRatersRequest struct {
+	Raters []RaterAssignmentRequest `json:"raters" binding:"required,min=1"`
+}
+
+// =========================================================================
+// Request DTOs — Assessment Response
+// =========================================================================
+
+type SaveResponseRequest struct {
+	IndicatorID string  `json:"indicator_id" binding:"required"`
+	RatingValue int     `json:"rating_value" binding:"required"`
+	Comment     *string `json:"comment"`
+}
+
+type SaveResponsesRequest struct {
+	Responses []SaveResponseRequest `json:"responses" binding:"required,min=1"`
+}
+
+// =========================================================================
+// Response DTOs — Rater & Assessment
+// =========================================================================
+
+type RaterResponse struct {
+	ID                      string    `json:"id"`
+	CompetencyEventTargetID string    `json:"competency_event_target_id"`
+	RaterEmployeeID         string    `json:"rater_employee_id"`
+	RaterEmployeeName       string    `json:"rater_employee_name,omitempty"`
+	SubjectEmployeeID       string    `json:"subject_employee_id,omitempty"`
+	SubjectEmployeeName     string    `json:"subject_employee_name,omitempty"`
+	RaterType               string    `json:"rater_type"`
+	Weight                  float64   `json:"weight"`
+	Status                  string    `json:"status"`
+	AssignedAt              *time.Time `json:"assigned_at,omitempty"`
+	SubmittedAt             *time.Time `json:"submitted_at,omitempty"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
+}
+
+type AssessmentResponseDTO struct {
+	ID           string    `json:"id"`
+	RaterID      string    `json:"rater_id"`
+	IndicatorID  string    `json:"indicator_id"`
+	Statement    string    `json:"statement,omitempty"`
+	RatingValue  int       `json:"rating_value"`
+	Comment      string    `json:"comment,omitempty"`
+	SubmittedAt  *time.Time `json:"submitted_at,omitempty"`
+}
+
+type AssessmentDetailDTO struct {
+	Rater      RaterResponse                  `json:"rater"`
+	Target     *CompetencyEventTargetResponse `json:"target,omitempty"`
+	Indicators []TemplateIndicatorResponse    `json:"indicators,omitempty"`
+	Responses  []AssessmentResponseDTO        `json:"responses,omitempty"`
+}
+
+// =========================================================================
+// Converters — Rater & Response
+// =========================================================================
+
+func (r *CompetencyAssessmentRater) ToResponse() RaterResponse {
+	resp := RaterResponse{
+		ID:                      r.ID.String(),
+		CompetencyEventTargetID: r.CompetencyEventTargetID.String(),
+		RaterEmployeeID:         r.RaterEmployeeID.String(),
+		RaterType:               r.RaterType,
+		Weight:                  r.Weight,
+		Status:                  r.Status,
+		AssignedAt:              r.AssignedAt,
+		SubmittedAt:             r.SubmittedAt,
+		CreatedAt:               r.CreatedAt,
+		UpdatedAt:               r.UpdatedAt,
+	}
+	if r.Target != nil && r.Target.EmployeeID != nil {
+		resp.SubjectEmployeeID = r.Target.EmployeeID.String()
+	}
+	return resp
+}
+
+func (r *CompetencyAssessmentResponse) ToDTO() AssessmentResponseDTO {
+	d := AssessmentResponseDTO{
+		ID:          r.ID.String(),
+		RaterID:     r.RaterID.String(),
+		IndicatorID: r.IndicatorID.String(),
+		RatingValue: r.RatingValue,
+		SubmittedAt: r.SubmittedAt,
+	}
+	if r.Comment != nil {
+		d.Comment = *r.Comment
+	}
+	if r.Indicator != nil {
+		d.Statement = r.Indicator.Statement
+	}
+	return d
+}

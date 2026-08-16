@@ -212,3 +212,81 @@ func (h *Handler) ListTemplateIndicators(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
+
+// =========================================================================
+// Rater Assignment Handlers (§9)
+// =========================================================================
+
+func (h *Handler) AssignRaters(c *gin.Context) {
+	var req AssignRatersRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.AssignRaters(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListRatersByTarget(c *gin.Context) {
+	resp, err := h.service.ListRatersByTarget(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) DeleteRater(c *gin.Context) {
+	if err := h.service.DeleteRater(c.Request.Context(), c.Param("id")); err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.DeletedJSON(c, "success.deleted")
+}
+
+// =========================================================================
+// My Assessment Handlers (§24 Employee)
+// =========================================================================
+
+func (h *Handler) MyAssessments(c *gin.Context) {
+	resp, err := h.service.MyAssessments(c.Request.Context())
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) GetAssessmentDetail(c *gin.Context) {
+	resp, err := h.service.GetAssessmentDetail(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) SaveResponses(c *gin.Context) {
+	var req SaveResponsesRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.SaveResponses(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) SubmitAssessment(c *gin.Context) {
+	resp, err := h.service.SubmitAssessment(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}

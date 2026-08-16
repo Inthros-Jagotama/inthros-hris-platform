@@ -310,3 +310,210 @@ func (r *Repository) ListTemplateIndicators(ctx context.Context, templateID uuid
 	}
 	return list, nil
 }
+
+// =========================================================================
+// Rater Assignment
+// =========================================================================
+
+// FindRatersByTarget mengambil seluruh rater untuk satu assessment target
+// beserta relasi target-nya.
+func (r *Repository) FindRatersByTarget(ctx context.Context, targetID uuid.UUID) ([]CompetencyAssessmentRater, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CompetencyAssessmentRater
+	if err := db.Preload("Target").
+		Where("competency_event_target_id = ?", targetID).
+		Order("rater_type ASC, created_at ASC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// FindRatersByEmployee mengambil seluruh assessment yang ditugaskan kepada
+// seorang employee sebagai rater (untuk "My Assessment").
+func (r *Repository) FindRatersByEmployee(ctx context.Context, employeeID uuid.UUID) ([]CompetencyAssessmentRater, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CompetencyAssessmentRater
+	if err := db.Preload("Target").
+		Where("rater_employee_id = ?", employeeID).
+		Order("created_at DESC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// FindRaterByID mengambil satu rater beserta target-nya.
+func (r *Repository) FindRaterByID(ctx context.Context, id uuid.UUID) (*CompetencyAssessmentRater, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rat CompetencyAssessmentRater
+	if err := db.Preload("Target").First(&rat, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("assessment rater not found: %w", err)
+	}
+	return &rat, nil
+}
+
+// FindRaterByTargetAndEmployee memastikan rater belum duplikat pada target.
+func (r *Repository) FindRaterByTargetAndEmployee(ctx context.Context, targetID, employeeID uuid.UUID) (*CompetencyAssessmentRater, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rat CompetencyAssessmentRater
+	err = db.Where("competency_event_target_id = ? AND rater_employee_id = ?", targetID, employeeID).First(&rat).Error
+	if err != nil {
+		return nil, err
+	}
+	return &rat, nil
+}
+
+func (r *Repository) CreateRater(ctx context.Context, rat *CompetencyAssessmentRater) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(rat).Error
+}
+
+func (r *Repository) UpdateRater(ctx context.Context, rat *CompetencyAssessmentRater) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(rat).Error
+}
+
+func (r *Repository) DeleteRater(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Where("id = ?", id).Delete(&CompetencyAssessmentRater{}).Error
+}
+
+// DeleteRatersByTarget menghapus seluruh rater pada target (untuk re-assign).
+func (r *Repository) DeleteRatersByTarget(ctx context.Context, targetID uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Where("competency_event_target_id = ?", targetID).Delete(&CompetencyAssessmentRater{}).Error
+}
+
+// =========================================================================
+// Assessment Response
+// =========================================================================
+
+func (r *Repository) FindResponsesByRater(ctx context.Context, raterID uuid.UUID) ([]CompetencyAssessmentResponse, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CompetencyAssessmentResponse
+	if err := db.Preload("Indicator").
+		Where("rater_id = ?", raterID).
+		Order("created_at ASC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// FindResponseByRaterAndIndicator memeriksa response yang sudah ada untuk
+// pasangan (rater, indicator) — dipakai upsert.
+func (r *Repository) FindResponseByRaterAndIndicator(ctx context.Context, raterID, indicatorID uuid.UUID) (*CompetencyAssessmentResponse, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var resp CompetencyAssessmentResponse
+	err = db.Where("rater_id = ? AND indicator_id = ?", raterID, indicatorID).First(&resp).Error
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (r *Repository) SaveResponse(ctx context.Context, resp *CompetencyAssessmentResponse) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(resp).Error
+}
+
+// DeleteResponsesByRater menghapus seluruh response milik rater (reopen).
+func (r *Repository) DeleteResponsesByRater(ctx context.Context, raterID uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Where("rater_id = ?", raterID).Delete(&CompetencyAssessmentResponse{}).Error
+}
+
+// =========================================================================
+// Employee resolution (tanpa import package employee — hindari circular dep)
+// =========================================================================
+
+// GetEmployeeNamesByIDs mengambil nama karyawan untuk sekumpulan employee ID
+// via raw query ke tabel employees.
+func (r *Repository) GetEmployeeNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		ID   string
+		Name string
+	}
+	var rows []row
+	if err := db.WithContext(ctx).Table("employees").
+		Select("id, name").
+		Where("id IN ?", ids).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, rrow := range rows {
+		result[rrow.ID] = rrow.Name
+	}
+	return result, nil
+}
+
+// FindEmployeeIDByUserID resolve platform user (karyawan yang login) ke
+// employee_id via employee_accounts (user_id -> employee_id). Mengembalikan
+// nil bila user tidak punya akun employee terkait — pola sama reimbursement.
+func (r *Repository) FindEmployeeIDByUserID(ctx context.Context, userID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var empIDStrs []string
+	err = db.WithContext(ctx).Table("employee_accounts").
+		Where("user_id = ?", userID).
+		Limit(1).
+		Pluck("employee_id", &empIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve employee id: %w", err)
+	}
+	if len(empIDStrs) == 0 || empIDStrs[0] == "" {
+		return nil, nil
+	}
+	empID, err := uuid.Parse(empIDStrs[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee id: %w", err)
+	}
+	return &empID, nil
+}
