@@ -487,6 +487,10 @@ func (s *Service) CreateEmergencyContact(ctx context.Context, employeeID string,
 	contact.CreatedBy = authctx.GetUserID(ctx)
 	contact.UpdatedBy = contact.CreatedBy
 
+	if err := s.encryptIfEnabled(ctx, "emergency_contact.phone_number", &contact.PhoneNumber); err != nil {
+		return nil, err
+	}
+
 	if err := s.repo.CreateEmergencyContact(ctx, contact); err != nil {
 		return nil, err
 	}
@@ -519,6 +523,10 @@ func (s *Service) UpdateEmergencyContact(ctx context.Context, employeeID, contac
 	}
 	if req.Address != nil {
 		contact.Address = req.Address
+	}
+
+	if err := s.encryptIfEnabled(ctx, "emergency_contact.phone_number", &contact.PhoneNumber); err != nil {
+		return nil, err
 	}
 
 	if err := s.repo.UpdateEmergencyContact(ctx, contact); err != nil {
@@ -568,6 +576,10 @@ func (s *Service) CreateFamily(ctx context.Context, employeeID string, req Creat
 	fam.CreatedBy = authctx.GetUserID(ctx)
 	fam.UpdatedBy = fam.CreatedBy
 
+	if err := s.encryptIfEnabled(ctx, "employee_family.nik", fam.NIK); err != nil {
+		return nil, err
+	}
+
 	if err := s.repo.CreateFamily(ctx, fam); err != nil {
 		return nil, err
 	}
@@ -604,6 +616,10 @@ func (s *Service) UpdateFamily(ctx context.Context, employeeID, familyID string,
 	if req.EducationID != nil && *req.EducationID != "" {
 		id, _ := uuid.Parse(*req.EducationID)
 		fam.EducationID = &id
+	}
+
+	if err := s.encryptIfEnabled(ctx, "employee_family.nik", fam.NIK); err != nil {
+		return nil, err
 	}
 
 	if err := s.repo.UpdateFamily(ctx, fam); err != nil {
@@ -980,6 +996,13 @@ func (s *Service) CreateBank(ctx context.Context, employeeID string, req CreateB
 	bank.CreatedBy = authctx.GetUserID(ctx)
 	bank.UpdatedBy = bank.CreatedBy
 
+	if err := s.encryptIfEnabled(ctx, "employee_bank_account.account_number", &bank.AccountNumber); err != nil {
+		return nil, err
+	}
+	if err := s.encryptIfEnabled(ctx, "employee_bank_account.account_name", &bank.AccountName); err != nil {
+		return nil, err
+	}
+
 	if err := s.repo.CreateBank(ctx, bank); err != nil {
 		return nil, err
 	}
@@ -1009,6 +1032,13 @@ func (s *Service) UpdateBank(ctx context.Context, employeeID, bankID string, req
 	}
 	if req.AccountName != nil {
 		bank.AccountName = *req.AccountName
+	}
+
+	if err := s.encryptIfEnabled(ctx, "employee_bank_account.account_number", &bank.AccountNumber); err != nil {
+		return nil, err
+	}
+	if err := s.encryptIfEnabled(ctx, "employee_bank_account.account_name", &bank.AccountName); err != nil {
+		return nil, err
 	}
 
 	if err := s.repo.UpdateBank(ctx, bank); err != nil {

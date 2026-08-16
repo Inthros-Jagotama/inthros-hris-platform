@@ -736,3 +736,155 @@ func TestUpdate_DoesNotDoubleEncryptAlreadyEncryptedField(t *testing.T) {
 		t.Fatalf("decrypted Email = %q, want %q", decrypted, originalEmail)
 	}
 }
+
+// =========================================================================
+// Task 10: Encrypt-on-write for Family, Bank Account, Emergency Contact
+// =========================================================================
+
+func TestCreateBank_EncryptsAccountNumberWhenEnabled(t *testing.T) {
+	t.Setenv("HRIS_ENCRYPTION_KEY", "00000000000000000000000000000000000000000000000000000000000000aa")
+	db, repo := setupEncryptionTestDB(t)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+	ctx := context.Background()
+
+	if err := svc.SetSensitiveFieldEnabled(ctx, "employee_bank_account.account_number", true); err != nil {
+		t.Fatalf("SetSensitiveFieldEnabled() error = %v", err)
+	}
+
+	emp, err := svc.Create(ctx, CreateEmployeeRequest{EmployeeID: "ENC-BANK-001", Name: "Bank Encrypt Test"})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	resp, err := svc.CreateBank(ctx, emp.ID, CreateBankRequest{AccountNumber: "1234567890", AccountName: "Budi"})
+	if err != nil {
+		t.Fatalf("CreateBank() error = %v", err)
+	}
+
+	var stored EmployeeBankAccount
+	db.First(&stored, "id = ?", resp.ID)
+	if stored.AccountNumber == "1234567890" {
+		t.Fatal("expected account_number to be stored encrypted")
+	}
+	if !crypto.LooksEncrypted(stored.AccountNumber) {
+		t.Errorf("stored account_number %q does not look encrypted", stored.AccountNumber)
+	}
+}
+
+func TestCreateFamily_EncryptsNIKWhenEnabled(t *testing.T) {
+	t.Setenv("HRIS_ENCRYPTION_KEY", "00000000000000000000000000000000000000000000000000000000000000aa")
+	db, repo := setupEncryptionTestDB(t)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+	ctx := context.Background()
+
+	if err := svc.SetSensitiveFieldEnabled(ctx, "employee_family.nik", true); err != nil {
+		t.Fatalf("SetSensitiveFieldEnabled() error = %v", err)
+	}
+
+	emp, err := svc.Create(ctx, CreateEmployeeRequest{EmployeeID: "ENC-FAM-001", Name: "Family Encrypt Test"})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	const originalNIK = "3201010101985678"
+	nik := originalNIK
+	resp, err := svc.CreateFamily(ctx, emp.ID, CreateFamilyRequest{NIK: &nik, Name: "Anak Pertama"})
+	if err != nil {
+		t.Fatalf("CreateFamily() error = %v", err)
+	}
+
+	var stored EmployeeFamily
+	db.First(&stored, "id = ?", resp.ID)
+	if stored.NIK == nil || *stored.NIK == originalNIK {
+		t.Fatal("expected family NIK to be stored encrypted")
+	}
+	if !crypto.LooksEncrypted(*stored.NIK) {
+		t.Errorf("stored family NIK %q does not look encrypted", *stored.NIK)
+	}
+}
+
+func TestCreateEmergencyContact_EncryptsPhoneWhenEnabled(t *testing.T) {
+	t.Setenv("HRIS_ENCRYPTION_KEY", "00000000000000000000000000000000000000000000000000000000000000aa")
+	db, repo := setupEncryptionTestDB(t)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+	ctx := context.Background()
+
+	if err := svc.SetSensitiveFieldEnabled(ctx, "emergency_contact.phone_number", true); err != nil {
+		t.Fatalf("SetSensitiveFieldEnabled() error = %v", err)
+	}
+
+	emp, err := svc.Create(ctx, CreateEmployeeRequest{EmployeeID: "ENC-EC-001", Name: "Emergency Contact Encrypt Test"})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	resp, err := svc.CreateEmergencyContact(ctx, emp.ID, CreateEmergencyContactRequest{Name: "Ibu", PhoneNumber: "081234567890"})
+	if err != nil {
+		t.Fatalf("CreateEmergencyContact() error = %v", err)
+	}
+
+	var stored EmergencyContact
+	db.First(&stored, "id = ?", resp.ID)
+	if stored.PhoneNumber == "081234567890" {
+		t.Fatal("expected emergency contact phone to be stored encrypted")
+	}
+	if !crypto.LooksEncrypted(stored.PhoneNumber) {
+		t.Errorf("stored emergency contact phone %q does not look encrypted", stored.PhoneNumber)
+	}
+}
+
+// TestUpdateBank_DoesNotDoubleEncryptAlreadyEncryptedField guards against the
+// same double-encryption bug fixed in Task 9, applied to bank account fields.
+func TestUpdateBank_DoesNotDoubleEncryptAlreadyEncryptedField(t *testing.T) {
+	t.Setenv("HRIS_ENCRYPTION_KEY", "00000000000000000000000000000000000000000000000000000000000000aa")
+	db, repo := setupEncryptionTestDB(t)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+	ctx := context.Background()
+
+	if err := svc.SetSensitiveFieldEnabled(ctx, "employee_bank_account.account_number", true); err != nil {
+		t.Fatalf("SetSensitiveFieldEnabled() error = %v", err)
+	}
+
+	emp, err := svc.Create(ctx, CreateEmployeeRequest{EmployeeID: "ENC-BANK-002", Name: "Bank Double Encrypt Guard"})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	const originalAccountNumber = "9988776655"
+	created, err := svc.CreateBank(ctx, emp.ID, CreateBankRequest{AccountNumber: originalAccountNumber, AccountName: "Budi"})
+	if err != nil {
+		t.Fatalf("CreateBank() error = %v", err)
+	}
+
+	var afterCreate EmployeeBankAccount
+	db.First(&afterCreate, "id = ?", created.ID)
+	if !crypto.LooksEncrypted(afterCreate.AccountNumber) {
+		t.Fatalf("expected account_number to be encrypted after Create, got %v", afterCreate.AccountNumber)
+	}
+	firstCiphertext := afterCreate.AccountNumber
+
+	// Update touches an unrelated field (AccountName); account_number must not
+	// be re-encrypted.
+	newName := "Budi Updated"
+	if _, err := svc.UpdateBank(ctx, emp.ID, created.ID, UpdateBankRequest{AccountName: &newName}); err != nil {
+		t.Fatalf("UpdateBank() error = %v", err)
+	}
+
+	var afterUpdate EmployeeBankAccount
+	db.First(&afterUpdate, "id = ?", created.ID)
+	if afterUpdate.AccountNumber != firstCiphertext {
+		t.Fatalf("account_number ciphertext changed after unrelated Update: before=%q after=%q (indicates double-encryption)", firstCiphertext, afterUpdate.AccountNumber)
+	}
+
+	decrypted, err := crypto.DecryptString(afterUpdate.AccountNumber)
+	if err != nil {
+		t.Fatalf("DecryptString() error = %v (value may be double-encrypted)", err)
+	}
+	if decrypted != originalAccountNumber {
+		t.Fatalf("decrypted account_number = %q, want %q", decrypted, originalAccountNumber)
+	}
+}
