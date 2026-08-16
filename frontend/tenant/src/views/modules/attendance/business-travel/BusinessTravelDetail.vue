@@ -57,6 +57,10 @@
                 <div class="flex items-center gap-2 shrink-0">
                   <Tag :value="p.role" severity="secondary" class="!text-xs !px-1.5 !py-0.5" />
                   <Tag :value="p.participant_type" severity="info" class="!text-xs !px-1.5 !py-0.5" />
+                  <template v-if="isDraft">
+                    <Button icon="pi pi-pencil" size="small" text @click="openParticipantDialog(p)" />
+                    <Button icon="pi pi-trash" size="small" text severity="danger" @click="handleDeleteParticipant(p)" />
+                  </template>
                 </div>
               </div>
             </div>
@@ -73,9 +77,15 @@
               <Button icon="pi pi-plus" size="small" text @click="openDestinationDialog" />
             </div>
             <div v-if="travel.destinations?.length" class="divide-y divide-gray-100 dark:divide-gray-800">
-              <div v-for="d in travel.destinations" :key="d.id" class="px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200">
-                {{ [d.city, d.province, d.country].filter(Boolean).join(', ') || d.location || '-' }}
-                <span v-if="d.purpose" class="text-gray-400 dark:text-gray-500">— {{ d.purpose }}</span>
+              <div v-for="d in travel.destinations" :key="d.id" class="px-3 py-2.5 flex items-center justify-between text-sm">
+                <span class="text-gray-700 dark:text-gray-200">
+                  {{ [d.city, d.province, d.country].filter(Boolean).join(', ') || d.location || '-' }}
+                  <span v-if="d.purpose" class="text-gray-400 dark:text-gray-500">— {{ d.purpose }}</span>
+                </span>
+                <div v-if="isDraft" class="flex items-center gap-2 shrink-0">
+                  <Button icon="pi pi-pencil" size="small" text @click="openDestinationDialog(d)" />
+                  <Button icon="pi pi-trash" size="small" text severity="danger" @click="handleDeleteDestination(d)" />
+                </div>
               </div>
             </div>
             <p v-else class="text-xs text-gray-400 px-3 py-3">{{ t('business_travel.empty') }}</p>
@@ -91,9 +101,15 @@
               <Button icon="pi pi-plus" size="small" text @click="openActivityDialog" />
             </div>
             <div v-if="activities.length" class="divide-y divide-gray-100 dark:divide-gray-800">
-              <div v-for="a in activities" :key="a.id" class="px-3 py-2.5 text-sm">
-                <span class="text-gray-700 dark:text-gray-200 font-medium">{{ a.title }}</span>
-                <span class="text-gray-400 dark:text-gray-500 ml-2">{{ formatDate(a.activity_date, locale) }}</span>
+              <div v-for="a in activities" :key="a.id" class="px-3 py-2.5 flex items-center justify-between text-sm">
+                <span>
+                  <span class="text-gray-700 dark:text-gray-200 font-medium">{{ a.title }}</span>
+                  <span class="text-gray-400 dark:text-gray-500 ml-2">{{ formatDate(a.activity_date, locale) }}</span>
+                </span>
+                <div v-if="isDraft" class="flex items-center gap-2 shrink-0">
+                  <Button icon="pi pi-pencil" size="small" text @click="openActivityDialog(a)" />
+                  <Button icon="pi pi-trash" size="small" text severity="danger" @click="handleDeleteActivity(a)" />
+                </div>
               </div>
             </div>
             <p v-else class="text-xs text-gray-400 px-3 py-3">{{ t('business_travel.empty') }}</p>
@@ -109,10 +125,16 @@
               <Button icon="pi pi-plus" size="small" text @click="openScheduleDialog" />
             </div>
             <div v-if="schedules.length" class="divide-y divide-gray-100 dark:divide-gray-800">
-              <div v-for="s in schedules" :key="s.id" class="px-3 py-2.5 text-sm">
-                <Tag :value="s.schedule_type" severity="secondary" class="!text-xs !px-1.5 !py-0.5 mr-2" />
-                <span class="text-gray-700 dark:text-gray-200">{{ s.origin || '-' }} → {{ s.destination || '-' }}</span>
-                <span class="text-gray-400 dark:text-gray-500 ml-2">({{ s.transportation_type }})</span>
+              <div v-for="s in schedules" :key="s.id" class="px-3 py-2.5 flex items-center justify-between text-sm">
+                <span>
+                  <Tag :value="s.schedule_type" severity="secondary" class="!text-xs !px-1.5 !py-0.5 mr-2" />
+                  <span class="text-gray-700 dark:text-gray-200">{{ s.origin || '-' }} → {{ s.destination || '-' }}</span>
+                  <span class="text-gray-400 dark:text-gray-500 ml-2">({{ s.transportation_type }})</span>
+                </span>
+                <div v-if="isDraft" class="flex items-center gap-2 shrink-0">
+                  <Button icon="pi pi-pencil" size="small" text @click="openScheduleDialog(s)" />
+                  <Button icon="pi pi-trash" size="small" text severity="danger" @click="handleDeleteSchedule(s)" />
+                </div>
               </div>
             </div>
             <p v-else class="text-xs text-gray-400 px-3 py-3">{{ t('business_travel.empty') }}</p>
@@ -264,7 +286,7 @@
     </div>
 
     <!-- ── Dialog: Participant ── -->
-    <Dialog v-model:visible="participantDialogVisible" :header="t('business_travel.add_participant')" modal :style="{ width: '460px' }">
+    <Dialog v-model:visible="participantDialogVisible" :header="editingParticipantId ? t('common.edit') : t('business_travel.add_participant')" modal :style="{ width: '460px' }">
       <div class="space-y-3">
         <FormRow :label="t('business_travel.participant_type')" required>
           <div class="flex items-center gap-4">
@@ -299,7 +321,7 @@
     </Dialog>
 
     <!-- ── Dialog: Destination ── -->
-    <Dialog v-model:visible="destinationDialogVisible" :header="t('business_travel.add_destination')" modal :style="{ width: '460px' }">
+    <Dialog v-model:visible="destinationDialogVisible" :header="editingDestinationId ? t('common.edit') : t('business_travel.add_destination')" modal :style="{ width: '460px' }">
       <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('business_travel.destination_hint') }}</p>
       <div class="space-y-3">
         <FormRow :label="t('business_travel.country')" required>
@@ -318,7 +340,7 @@
     </Dialog>
 
     <!-- ── Dialog: Activity ── -->
-    <Dialog v-model:visible="activityDialogVisible" :header="t('business_travel.add_activity')" modal :style="{ width: '460px' }">
+    <Dialog v-model:visible="activityDialogVisible" :header="editingActivityId ? t('common.edit') : t('business_travel.add_activity')" modal :style="{ width: '460px' }">
       <div class="space-y-3">
         <FormRow :label="t('business_travel.activity_date')" required><DateInput v-model="activityForm.activity_date" /></FormRow>
         <FormRow :label="t('business_travel.field_title')" required><TextInput v-model="activityForm.title" /></FormRow>
@@ -332,7 +354,7 @@
     </Dialog>
 
     <!-- ── Dialog: Schedule ── -->
-    <Dialog v-model:visible="scheduleDialogVisible" :header="t('business_travel.add_schedule')" modal :style="{ width: '460px' }">
+    <Dialog v-model:visible="scheduleDialogVisible" :header="editingScheduleId ? t('common.edit') : t('business_travel.add_schedule')" modal :style="{ width: '460px' }">
       <div class="space-y-3">
         <FormRow :label="t('business_travel.schedule_type')" required>
           <Select v-model="scheduleForm.schedule_type" :options="scheduleTypeOptions" class="w-full" />
@@ -482,6 +504,11 @@ const tabs = [
 ]
 
 const canManageFunding = computed(() => ['APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(travel.value?.status))
+// Participants/Destinations/Activities/Schedules can only be edited or
+// deleted while the travel is still DRAFT — same rule the backend enforces
+// (Service.requireDraftTravel), mirrored here so buttons don't appear only
+// to fail on click.
+const isDraft = computed(() => travel.value?.status === 'DRAFT')
 
 function statusSeverity(status) {
   switch (status) {
@@ -622,11 +649,15 @@ async function handleCancel() {
 // ── Participant ──
 const participantDialogVisible = ref(false)
 const savingParticipant = ref(false)
+const editingParticipantId = ref(null)
 const participantForm = ref({ participant_type: 'EMPLOYEE', employee_id: '', name: '', organization: '', role: 'MEMBER', phone: '' })
 const participantTypeOptions = ['EMPLOYEE', 'NON_EMPLOYEE']
 const participantRoleOptions = ['LEADER', 'MEMBER', 'DRIVER', 'NARASUMBER', 'CLIENT', 'CONSULTANT', 'OTHER']
-function openParticipantDialog() {
-  participantForm.value = { participant_type: 'EMPLOYEE', employee_id: '', name: '', organization: '', role: 'MEMBER', phone: '' }
+function openParticipantDialog(existing) {
+  editingParticipantId.value = existing?.id || null
+  participantForm.value = existing
+    ? { participant_type: existing.participant_type, employee_id: existing.employee_id || '', name: existing.name || '', organization: existing.organization || '', role: existing.role, phone: existing.phone || '' }
+    : { participant_type: 'EMPLOYEE', employee_id: '', name: '', organization: '', role: 'MEMBER', phone: '' }
   participantDialogVisible.value = true
 }
 async function handleSaveParticipant() {
@@ -634,7 +665,11 @@ async function handleSaveParticipant() {
   if (participantForm.value.participant_type === 'NON_EMPLOYEE' && !participantForm.value.name?.trim()) return
   savingParticipant.value = true
   try {
-    await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/participants`, participantForm.value)
+    if (editingParticipantId.value) {
+      await api.put(`/api/v1/tenant/attendance/business-travels/${travelId}/participants/${editingParticipantId.value}`, participantForm.value)
+    } else {
+      await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/participants`, participantForm.value)
+    }
     participantDialogVisible.value = false
     await loadTravel()
   } catch (e) {
@@ -643,14 +678,26 @@ async function handleSaveParticipant() {
     savingParticipant.value = false
   }
 }
+async function handleDeleteParticipant(p) {
+  try {
+    await api.delete(`/api/v1/tenant/attendance/business-travels/${travelId}/participants/${p.id}`)
+    await loadTravel()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  }
+}
 
 // ── Destination ──
 const destinationDialogVisible = ref(false)
 const savingDestination = ref(false)
+const editingDestinationId = ref(null)
 const destinationForm = ref({ city: '', province: '', country: 'Indonesia', purpose: '' })
 const isDestinationCountryIndonesia = computed(() => destinationForm.value.country === 'Indonesia')
-function openDestinationDialog() {
-  destinationForm.value = { city: '', province: '', country: 'Indonesia', purpose: '' }
+function openDestinationDialog(existing) {
+  editingDestinationId.value = existing?.id || null
+  destinationForm.value = existing
+    ? { city: existing.city || '', province: existing.province || '', country: existing.country || 'Indonesia', purpose: existing.purpose || '' }
+    : { city: '', province: '', country: 'Indonesia', purpose: '' }
   destinationDialogVisible.value = true
 }
 async function handleSaveDestination() {
@@ -658,7 +705,11 @@ async function handleSaveDestination() {
   if (!isDestinationCountryIndonesia.value) destinationForm.value.province = ''
   savingDestination.value = true
   try {
-    await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/destinations`, destinationForm.value)
+    if (editingDestinationId.value) {
+      await api.put(`/api/v1/tenant/attendance/business-travels/${travelId}/destinations/${editingDestinationId.value}`, destinationForm.value)
+    } else {
+      await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/destinations`, destinationForm.value)
+    }
     destinationDialogVisible.value = false
     await loadTravel()
   } catch (e) {
@@ -667,20 +718,36 @@ async function handleSaveDestination() {
     savingDestination.value = false
   }
 }
+async function handleDeleteDestination(d) {
+  try {
+    await api.delete(`/api/v1/tenant/attendance/business-travels/${travelId}/destinations/${d.id}`)
+    await loadTravel()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  }
+}
 
 // ── Activity ──
 const activityDialogVisible = ref(false)
 const savingActivity = ref(false)
+const editingActivityId = ref(null)
 const activityForm = ref({ activity_date: '', title: '', location: '', description: '' })
-function openActivityDialog() {
-  activityForm.value = { activity_date: '', title: '', location: '', description: '' }
+function openActivityDialog(existing) {
+  editingActivityId.value = existing?.id || null
+  activityForm.value = existing
+    ? { activity_date: existing.activity_date || '', title: existing.title || '', location: existing.location || '', description: existing.description || '' }
+    : { activity_date: '', title: '', location: '', description: '' }
   activityDialogVisible.value = true
 }
 async function handleSaveActivity() {
   if (!activityForm.value.activity_date || !activityForm.value.title?.trim()) return
   savingActivity.value = true
   try {
-    await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/activities`, activityForm.value)
+    if (editingActivityId.value) {
+      await api.put(`/api/v1/tenant/attendance/business-travels/${travelId}/activities/${editingActivityId.value}`, activityForm.value)
+    } else {
+      await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/activities`, activityForm.value)
+    }
     activityDialogVisible.value = false
     await loadActivities()
   } catch (e) {
@@ -689,25 +756,49 @@ async function handleSaveActivity() {
     savingActivity.value = false
   }
 }
+async function handleDeleteActivity(a) {
+  try {
+    await api.delete(`/api/v1/tenant/attendance/business-travels/${travelId}/activities/${a.id}`)
+    await loadActivities()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  }
+}
 
 // ── Schedule ──
 const scheduleDialogVisible = ref(false)
 const savingSchedule = ref(false)
+const editingScheduleId = ref(null)
 const scheduleForm = ref({ schedule_type: 'DEPARTURE', transportation_type: 'OTHER', origin: '', destination: '', booking_reference: '' })
-function openScheduleDialog() {
-  scheduleForm.value = { schedule_type: 'DEPARTURE', transportation_type: 'OTHER', origin: '', destination: '', booking_reference: '' }
+function openScheduleDialog(existing) {
+  editingScheduleId.value = existing?.id || null
+  scheduleForm.value = existing
+    ? { schedule_type: existing.schedule_type, transportation_type: existing.transportation_type, origin: existing.origin || '', destination: existing.destination || '', booking_reference: existing.booking_reference || '' }
+    : { schedule_type: 'DEPARTURE', transportation_type: 'OTHER', origin: '', destination: '', booking_reference: '' }
   scheduleDialogVisible.value = true
 }
 async function handleSaveSchedule() {
   savingSchedule.value = true
   try {
-    await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/schedules`, scheduleForm.value)
+    if (editingScheduleId.value) {
+      await api.put(`/api/v1/tenant/attendance/business-travels/${travelId}/schedules/${editingScheduleId.value}`, scheduleForm.value)
+    } else {
+      await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/schedules`, scheduleForm.value)
+    }
     scheduleDialogVisible.value = false
     await loadSchedules()
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
   } finally {
     savingSchedule.value = false
+  }
+}
+async function handleDeleteSchedule(s) {
+  try {
+    await api.delete(`/api/v1/tenant/attendance/business-travels/${travelId}/schedules/${s.id}`)
+    await loadSchedules()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
   }
 }
 

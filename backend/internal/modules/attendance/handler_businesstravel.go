@@ -110,6 +110,35 @@ func (h *Handler) ListBusinessTravelParticipants(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+func (h *Handler) UpdateBusinessTravelParticipant(c *gin.Context) {
+	var req CreateBusinessTravelParticipantRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdateBusinessTravelParticipant(c.Request.Context(), c.Param("participantId"), req)
+	if err != nil {
+		if errors.Is(err, ErrBusinessTravelInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteBusinessTravelParticipant(c *gin.Context) {
+	if err := h.service.DeleteBusinessTravelParticipant(c.Request.Context(), c.Param("participantId")); err != nil {
+		if errors.Is(err, ErrBusinessTravelInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"deleted": true})
+}
+
 func (h *Handler) AddBusinessTravelDestination(c *gin.Context) {
 	var req CreateBusinessTravelDestinationRequest
 	if !httputil.BindAndValidate(c, &req) {
@@ -130,6 +159,35 @@ func (h *Handler) ListBusinessTravelDestinations(c *gin.Context) {
 		return
 	}
 	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateBusinessTravelDestination(c *gin.Context) {
+	var req CreateBusinessTravelDestinationRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdateBusinessTravelDestination(c.Request.Context(), c.Param("destinationId"), req)
+	if err != nil {
+		if errors.Is(err, ErrBusinessTravelInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteBusinessTravelDestination(c *gin.Context) {
+	if err := h.service.DeleteBusinessTravelDestination(c.Request.Context(), c.Param("destinationId")); err != nil {
+		if errors.Is(err, ErrBusinessTravelInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"deleted": true})
 }
 
 func (h *Handler) AddBusinessTravelActivity(c *gin.Context) {
@@ -154,6 +212,35 @@ func (h *Handler) ListBusinessTravelActivities(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+func (h *Handler) UpdateBusinessTravelActivity(c *gin.Context) {
+	var req CreateBusinessTravelActivityRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdateBusinessTravelActivity(c.Request.Context(), c.Param("activityId"), req)
+	if err != nil {
+		if errors.Is(err, ErrBusinessTravelInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteBusinessTravelActivity(c *gin.Context) {
+	if err := h.service.DeleteBusinessTravelActivity(c.Request.Context(), c.Param("activityId")); err != nil {
+		if errors.Is(err, ErrBusinessTravelInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"deleted": true})
+}
+
 func (h *Handler) AddBusinessTravelSchedule(c *gin.Context) {
 	var req CreateBusinessTravelScheduleRequest
 	if !httputil.BindAndValidate(c, &req) {
@@ -174,6 +261,35 @@ func (h *Handler) ListBusinessTravelSchedules(c *gin.Context) {
 		return
 	}
 	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateBusinessTravelSchedule(c *gin.Context) {
+	var req CreateBusinessTravelScheduleRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdateBusinessTravelSchedule(c.Request.Context(), c.Param("scheduleId"), req)
+	if err != nil {
+		if errors.Is(err, ErrBusinessTravelInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteBusinessTravelSchedule(c *gin.Context) {
+	if err := h.service.DeleteBusinessTravelSchedule(c.Request.Context(), c.Param("scheduleId")); err != nil {
+		if errors.Is(err, ErrBusinessTravelInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"deleted": true})
 }
 
 // =========================================================================

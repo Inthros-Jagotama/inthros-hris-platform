@@ -363,6 +363,76 @@ func (s *Service) AddBusinessTravelParticipant(ctx context.Context, travelIDStr 
 	return &resp, nil
 }
 
+// requireDraftTravel gates edit/delete of a travel's sub-resources (participant,
+// destination, activity, schedule) to when the travel is still DRAFT —
+// mutating trip details after submission could invalidate an in-flight
+// approval or a travel already in progress.
+func (s *Service) requireDraftTravel(ctx context.Context, travelID uuid.UUID) error {
+	travel, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, travelID)
+	if err != nil {
+		return err
+	}
+	if travel.Status != TravelStatusDraft {
+		return ErrBusinessTravelInvalidState
+	}
+	return nil
+}
+
+func (s *Service) UpdateBusinessTravelParticipant(ctx context.Context, participantIDStr string, req CreateBusinessTravelParticipantRequest) (*BusinessTravelParticipantResponse, error) {
+	participantID, err := uuid.Parse(participantIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid participant id: %w", err)
+	}
+	participant, err := s.repo.FindParticipantByID(ctx, participantID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireDraftTravel(ctx, participant.BusinessTravelID); err != nil {
+		return nil, err
+	}
+	participant.ParticipantType = ParticipantType(strings.ToUpper(req.ParticipantType))
+	if participant.ParticipantType == "" {
+		participant.ParticipantType = ParticipantTypeEmployee
+	}
+	participant.Role = ParticipantRole(strings.ToUpper(req.Role))
+	if participant.Role == "" {
+		participant.Role = ParticipantRoleMember
+	}
+	participant.EmployeeID = nil
+	if req.EmployeeID != "" {
+		if empID, err := uuid.Parse(req.EmployeeID); err == nil {
+			participant.EmployeeID = &empID
+		}
+	}
+	participant.Name = strPtr(req.Name)
+	participant.Organization = strPtr(req.Organization)
+	participant.Position = strPtr(req.Position)
+	participant.IdentityNumber = strPtr(req.IdentityNumber)
+	participant.Email = strPtr(req.Email)
+	participant.Phone = strPtr(req.Phone)
+	participant.Notes = strPtr(req.Notes)
+	if err := s.repo.UpdateParticipant(ctx, participant); err != nil {
+		return nil, err
+	}
+	resp := businessTravelParticipantToResponse(participant)
+	return &resp, nil
+}
+
+func (s *Service) DeleteBusinessTravelParticipant(ctx context.Context, participantIDStr string) error {
+	participantID, err := uuid.Parse(participantIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid participant id: %w", err)
+	}
+	participant, err := s.repo.FindParticipantByID(ctx, participantID)
+	if err != nil {
+		return err
+	}
+	if err := s.requireDraftTravel(ctx, participant.BusinessTravelID); err != nil {
+		return err
+	}
+	return s.repo.DeleteParticipant(ctx, participantID)
+}
+
 func (s *Service) ListBusinessTravelParticipants(ctx context.Context, travelIDStr string) ([]BusinessTravelParticipantResponse, error) {
 	travelID, err := uuid.Parse(travelIDStr)
 	if err != nil {
@@ -430,6 +500,59 @@ func (s *Service) AddBusinessTravelDestination(ctx context.Context, travelIDStr 
 	return &resp, nil
 }
 
+func (s *Service) UpdateBusinessTravelDestination(ctx context.Context, destinationIDStr string, req CreateBusinessTravelDestinationRequest) (*BusinessTravelDestinationResponse, error) {
+	destinationID, err := uuid.Parse(destinationIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid destination id: %w", err)
+	}
+	destination, err := s.repo.FindDestinationByID(ctx, destinationID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireDraftTravel(ctx, destination.BusinessTravelID); err != nil {
+		return nil, err
+	}
+	destination.Sequence = req.Sequence
+	destination.Country = strPtr(req.Country)
+	destination.Province = strPtr(req.Province)
+	destination.City = strPtr(req.City)
+	destination.Location = strPtr(req.Location)
+	destination.Purpose = strPtr(req.Purpose)
+	destination.Notes = strPtr(req.Notes)
+	destination.ArrivalDate = nil
+	if req.ArrivalDate != "" {
+		if parsed, err := time.Parse("2006-01-02", req.ArrivalDate); err == nil {
+			destination.ArrivalDate = &parsed
+		}
+	}
+	destination.DepartureDate = nil
+	if req.DepartureDate != "" {
+		if parsed, err := time.Parse("2006-01-02", req.DepartureDate); err == nil {
+			destination.DepartureDate = &parsed
+		}
+	}
+	if err := s.repo.UpdateDestination(ctx, destination); err != nil {
+		return nil, err
+	}
+	resp := businessTravelDestinationToResponse(destination)
+	return &resp, nil
+}
+
+func (s *Service) DeleteBusinessTravelDestination(ctx context.Context, destinationIDStr string) error {
+	destinationID, err := uuid.Parse(destinationIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid destination id: %w", err)
+	}
+	destination, err := s.repo.FindDestinationByID(ctx, destinationID)
+	if err != nil {
+		return err
+	}
+	if err := s.requireDraftTravel(ctx, destination.BusinessTravelID); err != nil {
+		return err
+	}
+	return s.repo.DeleteDestination(ctx, destinationID)
+}
+
 func (s *Service) ListBusinessTravelDestinations(ctx context.Context, travelIDStr string) ([]BusinessTravelDestinationResponse, error) {
 	travelID, err := uuid.Parse(travelIDStr)
 	if err != nil {
@@ -489,6 +612,52 @@ func (s *Service) AddBusinessTravelActivity(ctx context.Context, travelIDStr str
 	}
 	resp := businessTravelActivityToResponse(activity)
 	return &resp, nil
+}
+
+func (s *Service) UpdateBusinessTravelActivity(ctx context.Context, activityIDStr string, req CreateBusinessTravelActivityRequest) (*BusinessTravelActivityResponse, error) {
+	activityID, err := uuid.Parse(activityIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid activity id: %w", err)
+	}
+	activity, err := s.repo.FindActivityByID(ctx, activityID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireDraftTravel(ctx, activity.BusinessTravelID); err != nil {
+		return nil, err
+	}
+	activityDate, err := time.Parse("2006-01-02", req.ActivityDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid activity_date: %w", err)
+	}
+	activity.ActivityDate = activityDate
+	activity.Title = req.Title
+	activity.StartTime = strPtr(req.StartTime)
+	activity.EndTime = strPtr(req.EndTime)
+	activity.Description = strPtr(req.Description)
+	activity.Location = strPtr(req.Location)
+	activity.Organizer = strPtr(req.Organizer)
+	activity.Notes = strPtr(req.Notes)
+	if err := s.repo.UpdateActivity(ctx, activity); err != nil {
+		return nil, err
+	}
+	resp := businessTravelActivityToResponse(activity)
+	return &resp, nil
+}
+
+func (s *Service) DeleteBusinessTravelActivity(ctx context.Context, activityIDStr string) error {
+	activityID, err := uuid.Parse(activityIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid activity id: %w", err)
+	}
+	activity, err := s.repo.FindActivityByID(ctx, activityID)
+	if err != nil {
+		return err
+	}
+	if err := s.requireDraftTravel(ctx, activity.BusinessTravelID); err != nil {
+		return err
+	}
+	return s.repo.DeleteActivity(ctx, activityID)
 }
 
 func (s *Service) ListBusinessTravelActivities(ctx context.Context, travelIDStr string) ([]BusinessTravelActivityResponse, error) {
@@ -556,6 +725,63 @@ func (s *Service) AddBusinessTravelSchedule(ctx context.Context, travelIDStr str
 	}
 	resp := businessTravelScheduleToResponse(schedule)
 	return &resp, nil
+}
+
+func (s *Service) UpdateBusinessTravelSchedule(ctx context.Context, scheduleIDStr string, req CreateBusinessTravelScheduleRequest) (*BusinessTravelScheduleResponse, error) {
+	scheduleID, err := uuid.Parse(scheduleIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid schedule id: %w", err)
+	}
+	schedule, err := s.repo.FindScheduleByID(ctx, scheduleID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireDraftTravel(ctx, schedule.BusinessTravelID); err != nil {
+		return nil, err
+	}
+	schedule.ScheduleType = ScheduleType(strings.ToUpper(req.ScheduleType))
+	if req.TransportationType != "" {
+		schedule.TransportationType = TransportationType(strings.ToUpper(req.TransportationType))
+	} else {
+		schedule.TransportationType = TransportationOther
+	}
+	schedule.Origin = strPtr(req.Origin)
+	schedule.Destination = strPtr(req.Destination)
+	schedule.Provider = strPtr(req.Provider)
+	schedule.BookingReference = strPtr(req.BookingReference)
+	schedule.Notes = strPtr(req.Notes)
+	schedule.DepartureDatetime = nil
+	if req.DepartureDatetime != "" {
+		if parsed, err := time.Parse(time.RFC3339, req.DepartureDatetime); err == nil {
+			schedule.DepartureDatetime = &parsed
+		}
+	}
+	schedule.ArrivalDatetime = nil
+	if req.ArrivalDatetime != "" {
+		if parsed, err := time.Parse(time.RFC3339, req.ArrivalDatetime); err == nil {
+			schedule.ArrivalDatetime = &parsed
+		}
+	}
+	if err := s.repo.UpdateSchedule(ctx, schedule); err != nil {
+		return nil, err
+	}
+	resp := businessTravelScheduleToResponse(schedule)
+	return &resp, nil
+}
+
+func (s *Service) DeleteBusinessTravelSchedule(ctx context.Context, scheduleIDStr string) error {
+	scheduleID, err := uuid.Parse(scheduleIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid schedule id: %w", err)
+	}
+	schedule, err := s.repo.FindScheduleByID(ctx, scheduleID)
+	if err != nil {
+		return err
+	}
+	if err := s.requireDraftTravel(ctx, schedule.BusinessTravelID); err != nil {
+		return err
+	}
+	return s.repo.DeleteSchedule(ctx, scheduleID)
 }
 
 func (s *Service) ListBusinessTravelSchedules(ctx context.Context, travelIDStr string) ([]BusinessTravelScheduleResponse, error) {

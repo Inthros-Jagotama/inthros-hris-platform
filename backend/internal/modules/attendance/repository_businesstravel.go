@@ -99,6 +99,29 @@ func (r *Repository) FindParticipantByID(ctx context.Context, id uuid.UUID) (*Bu
 	return &p, nil
 }
 
+func (r *Repository) UpdateParticipant(ctx context.Context, p *BusinessTravelParticipant) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(p).Error
+}
+
+func (r *Repository) DeleteParticipant(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.Where("id = ?", id).Delete(&BusinessTravelParticipant{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("participant not found")
+	}
+	return nil
+}
+
 // =========================================================================
 // Destinations
 // =========================================================================
@@ -121,6 +144,41 @@ func (r *Repository) ListDestinationsByTravel(ctx context.Context, travelID uuid
 		return nil, err
 	}
 	return destinations, nil
+}
+
+func (r *Repository) FindDestinationByID(ctx context.Context, id uuid.UUID) (*BusinessTravelDestination, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var d BusinessTravelDestination
+	if err := db.First(&d, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("destination not found: %w", err)
+	}
+	return &d, nil
+}
+
+func (r *Repository) UpdateDestination(ctx context.Context, d *BusinessTravelDestination) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(d).Error
+}
+
+func (r *Repository) DeleteDestination(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.Where("id = ?", id).Delete(&BusinessTravelDestination{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("destination not found")
+	}
+	return nil
 }
 
 // =========================================================================
@@ -147,6 +205,41 @@ func (r *Repository) ListActivitiesByTravel(ctx context.Context, travelID uuid.U
 	return activities, nil
 }
 
+func (r *Repository) FindActivityByID(ctx context.Context, id uuid.UUID) (*BusinessTravelActivity, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var a BusinessTravelActivity
+	if err := db.First(&a, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("activity not found: %w", err)
+	}
+	return &a, nil
+}
+
+func (r *Repository) UpdateActivity(ctx context.Context, a *BusinessTravelActivity) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(a).Error
+}
+
+func (r *Repository) DeleteActivity(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.Where("id = ?", id).Delete(&BusinessTravelActivity{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("activity not found")
+	}
+	return nil
+}
+
 // =========================================================================
 // Schedules
 // =========================================================================
@@ -169,6 +262,41 @@ func (r *Repository) ListSchedulesByTravel(ctx context.Context, travelID uuid.UU
 		return nil, err
 	}
 	return schedules, nil
+}
+
+func (r *Repository) FindScheduleByID(ctx context.Context, id uuid.UUID) (*BusinessTravelSchedule, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var s BusinessTravelSchedule
+	if err := db.First(&s, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("schedule not found: %w", err)
+	}
+	return &s, nil
+}
+
+func (r *Repository) UpdateSchedule(ctx context.Context, s *BusinessTravelSchedule) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(s).Error
+}
+
+func (r *Repository) DeleteSchedule(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.Where("id = ?", id).Delete(&BusinessTravelSchedule{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("schedule not found")
+	}
+	return nil
 }
 
 // =========================================================================
