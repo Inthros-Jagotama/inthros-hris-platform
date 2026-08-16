@@ -142,6 +142,12 @@ const routes = [
         meta: { title: 'My Assessment', titleKey: 'competency_360.my_assessments', descKey: 'competency_360.my_assessments_desc', icon: 'pi pi-list-check', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency' }
       },
       {
+        path: 'competencies/manager-assessments',
+        name: 'ManagerAssessments',
+        component: () => import('@/views/modules/competency/ManagerAssessments.vue'),
+        meta: { title: 'Manager Assessment', titleKey: 'competency_360.manager_assessments', descKey: 'competency_360.manager_assessments_desc', icon: 'pi pi-user-edit', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency' }
+      },
+      {
         path: 'competencies/results',
         name: 'AssessmentResult',
         component: () => import('@/views/modules/competency/AssessmentResult.vue'),

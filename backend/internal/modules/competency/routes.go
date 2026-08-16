@@ -86,6 +86,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		comp.GET("/event-targets/:id/raters", handler.ListRatersByTarget)
 		comp.DELETE("/raters/:id", handler.DeleteRater)
 
+		// Competency 360 — Manager Assessment (atasan menilai bawahan)
+		comp.GET("/manager-assessments", handler.GetManagerAssessments)
+
 		// Competency 360 — My Assessment (§24 Employee)
 		comp.GET("/my-assessments", handler.MyAssessments)
 		comp.GET("/my-assessments/:id", handler.GetAssessmentDetail)

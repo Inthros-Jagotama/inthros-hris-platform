@@ -79,6 +79,21 @@
 
       <button
         type="button"
+        class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-cyan-300 dark:hover:border-cyan-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50"
+        @click="router.push('/competencies/manager-assessments')"
+      >
+        <div class="w-11 h-11 rounded-lg shrink-0 flex items-center justify-center bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+          <i class="pi pi-user-edit text-lg"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('competency_360.manager_assessments') }}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t('competency_360.manager_assessments_desc') }}</p>
+        </div>
+        <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+      </button>
+
+      <button
+        type="button"
         class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-rose-300 dark:hover:border-rose-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
         @click="router.push('/competencies/results')"
       >

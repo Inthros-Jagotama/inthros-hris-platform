@@ -135,6 +135,42 @@ func (s *Service) MyAssessments(ctx context.Context) ([]RaterResponse, error) {
 	return responses, nil
 }
 
+// ManagerAssessments mengambil seluruh assessment di mana user login terdaftar
+// sebagai rater tipe "superior" (atasan menilai bawahan) — "Manager
+// Assessment". Opsional difilter per event. Bawahan disimpulkan dari rater
+// assignment superior, bukan relasi employee langsung (tidak ada kolom
+// reports_to di employees — pola sama manager report §20 yang scope-nya
+// ditentukan oleh event/target).
+func (s *Service) ManagerAssessments(ctx context.Context, eventID string) ([]RaterResponse, error) {
+	userID := authctx.GetUserID(ctx)
+	if userID == nil {
+		return nil, fmt.Errorf("authenticated user not found")
+	}
+	empID, err := s.repo.FindEmployeeIDByUserID(ctx, *userID)
+	if err != nil {
+		return nil, err
+	}
+	if empID == nil {
+		return nil, fmt.Errorf("no employee account linked to this user")
+	}
+	raters, err := s.repo.FindRatersByEmployee(ctx, *empID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]RaterResponse, 0, len(raters))
+	for _, r := range raters {
+		if r.RaterType != string(RaterTypeSuperior) {
+			continue
+		}
+		if eventID != "" && r.Target != nil && r.Target.CompetencyEventID.String() != eventID {
+			continue
+		}
+		responses = append(responses, r.ToResponse())
+	}
+	s.enrichRaterNames(ctx, responses)
+	return responses, nil
+}
+
 // GetAssessmentDetail mengambil detail satu assessment milik rater: rater,
 // target subject, indicator template, dan response yang sudah tersimpan.
 func (s *Service) GetAssessmentDetail(ctx context.Context, raterID string) (*AssessmentDetailDTO, error) {

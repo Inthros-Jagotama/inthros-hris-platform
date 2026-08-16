@@ -301,6 +301,72 @@ func TestCalculateTarget_InvalidTargetID(t *testing.T) {
 	}
 }
 
+// TestService_ManagerAssessments_OnlySuperior memverifikasi ManagerAssessments
+// hanya mengembalikan assessment di mana user login adalah rater superior
+// (menilai bawahan), bukan self/peer/subordinate.
+func TestService_ManagerAssessments_OnlySuperior(t *testing.T) {
+	svc, targetID, _, cleanup := setup360Scenario(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// setup360Scenario membuat 3 rater pada target yang sama (self/superior/peer)
+	// dengan employee UUID random — tidak ada yang terhubung ke user login.
+	// Simulasikan user login sebagai superior rater dengan men-set rater
+	// superior milik user login.
+	repo := svc.repo
+	raters, err := repo.FindAllRatersByTarget(ctx, mustParseUUID(t, targetID))
+	if err != nil {
+		t.Fatalf("find raters: %v", err)
+	}
+	var superiorRat *CompetencyAssessmentRater
+	for i := range raters {
+		if raters[i].RaterType == string(RaterTypeSuperior) {
+			superiorRat = &raters[i]
+			break
+		}
+	}
+	if superiorRat == nil {
+		t.Fatal("expected a superior rater in scenario")
+	}
+
+	// Hubungkan user login → employee superior rater. Tabel employee_accounts
+	// tidak ada di test DB (milik migrasi lain) — buat minimal seperlunya.
+	db, err := repo.getDB(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS employee_accounts (id CHAR(36) PRIMARY KEY, user_id CHAR(36), employee_id CHAR(36), created_at TIMESTAMP, updated_at TIMESTAMP)").Error; err != nil {
+		t.Fatalf("create employee_accounts: %v", err)
+	}
+	userID := uuid.New()
+	if err := db.Exec("INSERT INTO employee_accounts (id, user_id, employee_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+		uuid.New().String(), userID.String(), superiorRat.RaterEmployeeID.String(),
+		time.Now().Format("2006-01-02 15:04:05"), time.Now().Format("2006-01-02 15:04:05"),
+	).Error; err != nil {
+		t.Fatalf("seed employee_accounts: %v", err)
+	}
+
+	assessments, err := svc.ManagerAssessments(ctxWithUserID(userID), "")
+	if err != nil {
+		t.Fatalf("ManagerAssessments failed: %v", err)
+	}
+	if len(assessments) != 1 {
+		t.Fatalf("expected 1 superior assessment, got %d: %v", len(assessments), assessments)
+	}
+	if assessments[0].RaterType != "superior" {
+		t.Errorf("expected rater_type superior, got %s", assessments[0].RaterType)
+	}
+	if assessments[0].CompetencyEventID == "" {
+		t.Errorf("expected competency_event_id to be populated, got empty")
+	}
+}
+
+// ctxWithUserID menaruh user_id (string) di context — pola persis
+// authctx.GetUserID yang membaca ctx.Value("user_id") sebagai string.
+func ctxWithUserID(userID uuid.UUID) context.Context {
+	return context.WithValue(context.Background(), "user_id", userID.String())
+}
+
 // TestFinalizeTarget_Snapshot memverifikasi FinalizeTarget menulis snapshot ke
 // competency_scores + competency_score_details (per employee per event).
 func TestFinalizeTarget_Snapshot(t *testing.T) {

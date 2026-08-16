@@ -260,6 +260,15 @@ func (h *Handler) MyAssessments(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
+func (h *Handler) GetManagerAssessments(c *gin.Context) {
+	resp, err := h.service.ManagerAssessments(c.Request.Context(), c.Query("event_id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
 func (h *Handler) GetAssessmentDetail(c *gin.Context) {
 	resp, err := h.service.GetAssessmentDetail(c.Request.Context(), c.Param("id"))
 	if err != nil {

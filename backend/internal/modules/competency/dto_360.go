@@ -349,6 +349,7 @@ type SaveResponsesRequest struct {
 type RaterResponse struct {
 	ID                      string    `json:"id"`
 	CompetencyEventTargetID string    `json:"competency_event_target_id"`
+	CompetencyEventID       string    `json:"competency_event_id,omitempty"`
 	RaterEmployeeID         string    `json:"rater_employee_id"`
 	RaterEmployeeName       string    `json:"rater_employee_name,omitempty"`
 	SubjectEmployeeID       string    `json:"subject_employee_id,omitempty"`
@@ -396,8 +397,11 @@ func (r *CompetencyAssessmentRater) ToResponse() RaterResponse {
 		CreatedAt:               r.CreatedAt,
 		UpdatedAt:               r.UpdatedAt,
 	}
-	if r.Target != nil && r.Target.EmployeeID != nil {
-		resp.SubjectEmployeeID = r.Target.EmployeeID.String()
+	if r.Target != nil {
+		if r.Target.EmployeeID != nil {
+			resp.SubjectEmployeeID = r.Target.EmployeeID.String()
+		}
+		resp.CompetencyEventID = r.Target.CompetencyEventID.String()
 	}
 	return resp
 }
