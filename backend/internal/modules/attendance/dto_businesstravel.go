@@ -163,8 +163,10 @@ type FundingDocumentResponse struct {
 // Expense Category (master) & Actual Expense — Request DTOs (§12, §21 plan doc)
 // =========================================================================
 
+// CreateExpenseCategoryRequest — code is not accepted from the client: it's
+// derived from Name server-side (Service.generateUniqueCode), same as
+// CreateFundingMethodRequest.
 type CreateExpenseCategoryRequest struct {
-	Code             string `json:"code" binding:"required"`
 	Name             string `json:"name" binding:"required"`
 	Description      string `json:"description"`
 	RequiresReceipt  *bool  `json:"requires_receipt"`

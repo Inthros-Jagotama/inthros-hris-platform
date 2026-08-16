@@ -432,7 +432,6 @@
     <!-- ── Dialog: Quick-add Expense Category ── -->
     <Dialog v-model:visible="quickAddExpenseCategoryVisible" :header="t('business_travel.add_expense_category')" modal :style="{ width: '380px' }">
       <div class="space-y-3">
-        <FormRow :label="t('business_travel.code')" required><TextInput v-model="expenseCategoryForm.code" /></FormRow>
         <FormRow :label="t('business_travel.name')" required><TextInput v-model="expenseCategoryForm.name" /></FormRow>
       </div>
       <template #footer>
@@ -949,14 +948,14 @@ async function handleDeleteTravelDocument(d) {
 
 const quickAddExpenseCategoryVisible = ref(false)
 const savingExpenseCategory = ref(false)
-const expenseCategoryForm = ref({ code: '', name: '' })
+const expenseCategoryForm = ref({ name: '' })
 async function handleSaveExpenseCategory() {
-  if (!expenseCategoryForm.value.code?.trim() || !expenseCategoryForm.value.name?.trim()) return
+  if (!expenseCategoryForm.value.name?.trim()) return
   savingExpenseCategory.value = true
   try {
     await api.post('/api/v1/tenant/attendance/business-travel-expense-categories', expenseCategoryForm.value)
     quickAddExpenseCategoryVisible.value = false
-    expenseCategoryForm.value = { code: '', name: '' }
+    expenseCategoryForm.value = { name: '' }
     await loadExpenseCategories()
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })

@@ -839,6 +839,14 @@ func existingFundingMethodCodes(methods []FundingMethod) map[string]bool {
 	return codes
 }
 
+func existingExpenseCategoryCodes(categories []ExpenseCategory) map[string]bool {
+	codes := make(map[string]bool, len(categories))
+	for _, c := range categories {
+		codes[c.Code] = true
+	}
+	return codes
+}
+
 // generateUniqueCode slugifies a display name into an UPPER_SNAKE_CASE code
 // (e.g. "Cash Advance" -> "CASH_ADVANCE") and appends a numeric suffix if the
 // base code already exists, so the add-funding-method/expense-category forms
@@ -1058,8 +1066,12 @@ func (s *Service) AddFundingDocument(ctx context.Context, fundingIDStr string, r
 var ErrExpenseInvalidState = errors.New("expense is not in a valid state for this action")
 
 func (s *Service) CreateExpenseCategory(ctx context.Context, req CreateExpenseCategoryRequest) (*ExpenseCategoryResponse, error) {
+	existing, err := s.repo.ListExpenseCategories(ctx, false)
+	if err != nil {
+		return nil, err
+	}
 	category := &ExpenseCategory{
-		Code:            strings.ToUpper(req.Code),
+		Code:            generateUniqueCode(req.Name, existingExpenseCategoryCodes(existing)),
 		Name:            req.Name,
 		RequiresReceipt: true,
 		Reimbursable:    true,
