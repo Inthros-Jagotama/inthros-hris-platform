@@ -183,6 +183,56 @@ var catalog = map[string]catalogEntry{
 			httputil.LangID: "Pengajuan koreksi kehadiran Anda telah ditolak.",
 		},
 	},
+	"BUSINESS_TRAVEL_APPROVED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Business Travel Approved",
+			httputil.LangID: "Perjalanan Dinas Disetujui",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your business travel request has been approved.",
+			httputil.LangID: "Pengajuan perjalanan dinas Anda telah disetujui.",
+		},
+	},
+	"BUSINESS_TRAVEL_REJECTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Business Travel Rejected",
+			httputil.LangID: "Perjalanan Dinas Ditolak",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your business travel request has been rejected.",
+			httputil.LangID: "Pengajuan perjalanan dinas Anda telah ditolak.",
+		},
+	},
+	"BUSINESS_TRAVEL_SETTLEMENT_APPROVED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Travel Settlement Approved",
+			httputil.LangID: "Penyelesaian Perjalanan Dinas Disetujui",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your business travel settlement has been approved.",
+			httputil.LangID: "Penyelesaian perjalanan dinas Anda telah disetujui.",
+		},
+	},
+	"BUSINESS_TRAVEL_SETTLEMENT_REJECTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Travel Settlement Rejected",
+			httputil.LangID: "Penyelesaian Perjalanan Dinas Ditolak",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your business travel settlement has been rejected.",
+			httputil.LangID: "Penyelesaian perjalanan dinas Anda telah ditolak.",
+		},
+	},
+	"BUSINESS_TRAVEL_REIMBURSEMENT_PAID": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Travel Reimbursement Paid",
+			httputil.LangID: "Reimbursement Perjalanan Dinas Dibayarkan",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your business travel reimbursement has been paid.",
+			httputil.LangID: "Reimbursement perjalanan dinas Anda telah dibayarkan.",
+		},
+	},
 	"KPI_TEMPLATE_CREATED": {
 		title: map[httputil.Lang]string{
 			httputil.LangEN: "New KPI Template",

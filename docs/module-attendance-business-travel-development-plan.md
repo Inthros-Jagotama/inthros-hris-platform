@@ -2298,6 +2298,20 @@ Ikuti pola reimbursement persis (section 42/section 3 dokumen ini sudah sejalan)
 5. Handle `approval.RoutingError` secara graceful (mis. tidak ada approver terkonfigurasi) sesuai pola reimbursement.
 6. **Jangan** membuat approval engine/tabel workflow baru — sesuai Rule 6 (section 52).
 
+**Status: diimplementasikan penuh** — `HandleBusinessTravelApprovalStatusChange` & `HandleSettlementApprovalStatusChange` sudah live, diregister di `main.go` sesuai poin 4 di atas.
+
+### Integrasi Notifikasi
+
+`Service` sudah punya `Notifier` (dipakai overtime/correction), tinggal dipanggil untuk event Business Travel — **tidak perlu wiring baru** karena `attendanceSvc.SetNotifier(notificationSvc)` sudah ter-attach sejak awal di `main.go`.
+
+Event yang mengirim notifikasi (via helper baru `notifyBusinessTravelUser` — beda dari `notifyRequestOutcome` milik overtime/correction karena `BusinessTravel.RequesterID` sudah berupa **user ID** langsung dari `authctx`, bukan employee ID yang perlu di-resolve):
+
+- `BUSINESS_TRAVEL_APPROVED` / `BUSINESS_TRAVEL_REJECTED` → dikirim ke requester saat `HandleBusinessTravelApprovalStatusChange`.
+- `BUSINESS_TRAVEL_SETTLEMENT_APPROVED` / `BUSINESS_TRAVEL_SETTLEMENT_REJECTED` → dikirim ke `HandleSettlementApprovalStatusChange`. Penerima diresolusi via `resolveBusinessTravelRecipientUserID`: kalau settlement scoped ke satu participant (`settlement.participant_id` terisi) dan participant itu employee, kirim ke user account employee tsb; kalau tidak (settlement gabungan seluruh peserta, atau participant non-employee), fallback ke requester travel.
+- `BUSINESS_TRAVEL_REIMBURSEMENT_PAID` → dikirim ke `PayTravelReimbursement`, penerima diresolusi sama seperti di atas dari `reimbursement.participant_id`.
+- Template pesan (judul/isi EN+ID) ditambahkan ke `backend/internal/modules/notification/i18n.go` — **wajib** ditambahkan di sana untuk tipe notifikasi baru manapun, kalau tidak `Notify()` tetap jalan tapi hanya menampilkan raw type string, bukan pesan manusiawi.
+- **Belum ada** notifikasi untuk funding confirmed atau refund confirmed (dianggap aksi finance-side yang kurang butuh notifikasi ke employee) — bisa ditambah jika dibutuhkan, pola sama persis (satu baris `s.notifyBusinessTravelUser(...)` + entry `i18n.go`).
+
 ## 54.4 Upload / Dokumen
 
 Gunakan endpoint upload generik existing: `POST /api/v1/tenant/uploads` (`backend/internal/pkg/upload/handler.go`), bukan endpoint upload khusus per module. Field-field dokumen (`business_travel_funding_documents.file_path`, `business_travel_expense_documents`, `business_travel_documents`) cukup menyimpan URL yang dikembalikan endpoint tersebut, mengikuti pola `receipt_url` di `reimbursement_items`. Catatan dari `docs/analisis-modul-reimbursements.md`: reimbursement backend sudah siap tapi belum dipakai penuh dari frontend — pastikan business travel FE benar-benar memanggil endpoint upload ini end-to-end (jangan mengulang gap yang sama).

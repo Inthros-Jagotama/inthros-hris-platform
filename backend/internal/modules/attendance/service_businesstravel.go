@@ -1538,8 +1538,14 @@ func (s *Service) HandleSettlementApprovalStatusChange(ctx context.Context, docu
 			settlement.Status = SettlementStatusBalanced
 		}
 		s.pushBusinessTravelPayrollAdjustments(ctx, settlement)
+		if recipientUserID := s.resolveBusinessTravelRecipientUserID(ctx, settlement.BusinessTravelID, settlement.ParticipantID); recipientUserID != nil {
+			s.notifyBusinessTravelUser(ctx, *recipientUserID, "BUSINESS_TRAVEL_SETTLEMENT_APPROVED", "business_travel_settlement", settlement.ID)
+		}
 	case "REJECTED":
 		settlement.Status = SettlementStatusRejected
+		if recipientUserID := s.resolveBusinessTravelRecipientUserID(ctx, settlement.BusinessTravelID, settlement.ParticipantID); recipientUserID != nil {
+			s.notifyBusinessTravelUser(ctx, *recipientUserID, "BUSINESS_TRAVEL_SETTLEMENT_REJECTED", "business_travel_settlement", settlement.ID)
+		}
 	default:
 		return nil
 	}
@@ -1717,6 +1723,9 @@ func (s *Service) PayTravelReimbursement(ctx context.Context, reimbursementIDStr
 	}
 	if reimbursement.SettlementID != nil {
 		s.maybeSettleAndCloseTravel(ctx, *reimbursement.SettlementID, reimbursement.BusinessTravelID)
+	}
+	if recipientUserID := s.resolveBusinessTravelRecipientUserID(ctx, reimbursement.BusinessTravelID, reimbursement.ParticipantID); recipientUserID != nil {
+		s.notifyBusinessTravelUser(ctx, *recipientUserID, "BUSINESS_TRAVEL_REIMBURSEMENT_PAID", "business_travel_reimbursement", reimbursement.ID)
 	}
 	return travelReimbursementToResponse(reimbursement), nil
 }
@@ -1911,13 +1920,54 @@ func (s *Service) HandleBusinessTravelApprovalStatusChange(ctx context.Context, 
 		travel.Status = TravelStatusApproved
 		travel.ApprovalStatus = string(TravelStatusApproved)
 		s.pushBusinessTravelAttendance(ctx, travel)
+		s.notifyBusinessTravelUser(ctx, travel.RequesterID, "BUSINESS_TRAVEL_APPROVED", "business_travel", travel.ID)
 	case "REJECTED":
 		travel.Status = TravelStatusRejected
 		travel.ApprovalStatus = string(TravelStatusRejected)
+		s.notifyBusinessTravelUser(ctx, travel.RequesterID, "BUSINESS_TRAVEL_REJECTED", "business_travel", travel.ID)
 	default:
 		travel.ApprovalStatus = status
 	}
 	return s.repo.UpdateBusinessTravel(ctx, travel)
+}
+
+// notifyBusinessTravelUser sends a notification directly to a platform user
+// ID (unlike Service.notifyRequestOutcome, which takes an EMPLOYEE ID and
+// resolves it to a user — BusinessTravel.RequesterID is already the user ID
+// captured from authctx at creation time, §15: requester ≠ funder, and
+// neither is necessarily tied to an employee record). Best-effort: logs and
+// continues, matching notifyRequestOutcome's policy for auxiliary side effects.
+func (s *Service) notifyBusinessTravelUser(ctx context.Context, userID uuid.UUID, notifType, referenceType string, referenceID uuid.UUID) {
+	if s.notifier == nil {
+		return
+	}
+	if err := s.notifier.Notify(ctx, userID, notifType, nil, referenceType, referenceID); err != nil {
+		s.logger.Warn("Failed to send business travel notification",
+			zap.String("notif_type", notifType),
+			zap.String("reference_type", referenceType),
+			zap.String("reference_id", referenceID.String()),
+			zap.Error(err),
+		)
+	}
+}
+
+// resolveBusinessTravelRecipientUserID finds who should be notified about a
+// settlement/reimbursement outcome: the specific participant's linked user
+// account if the settlement/reimbursement is scoped to one participant,
+// otherwise the travel's requester (whole-travel settlements, or a
+// participant with no linked employee/user account).
+func (s *Service) resolveBusinessTravelRecipientUserID(ctx context.Context, travelID uuid.UUID, participantID *uuid.UUID) *uuid.UUID {
+	if participantID != nil {
+		if p, err := s.repo.FindParticipantByID(ctx, *participantID); err == nil && p.EmployeeID != nil {
+			if userID, err := s.repo.FindUserIDByEmployeeID(ctx, *p.EmployeeID); err == nil && userID != nil {
+				return userID
+			}
+		}
+	}
+	if travel, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, travelID); err == nil {
+		return &travel.RequesterID
+	}
+	return nil
 }
 
 // pushBusinessTravelAttendance marks every EMPLOYEE participant's attendance
