@@ -1,14 +1,6 @@
 -- 149_rbac_submenu_permissions.down.sql
 
 DELETE FROM role_has_permissions WHERE permission_id IN (
-    '9cb98fc1-79b4-5e7c-8682-30d96b5b9f24',
-    '7f792296-18cd-5fb1-9367-e9ded2dcad47',
-    'e3456e30-d28b-555f-89f7-749e56e8e4ae',
-    '1830a67b-23ac-55df-846b-2b83fa1e1715',
-    'f667a066-26a1-5aee-b711-749160fb3ee5',
-    '6761452c-15e1-54f8-9485-4205318ed7a3',
-    '6c3a215a-8225-5bf8-8995-d93a7779c9d2',
-    '03533c54-e6fb-54f7-9899-44c29124f8e2',
     '12895334-024d-54b5-bb2a-dad087f5c635',
     'f6a36066-169a-57ac-9803-6408d0787b09',
     '7b69ffc3-4355-590f-92b6-3cc400cfbd4e',
@@ -300,14 +292,6 @@ DELETE FROM role_has_permissions WHERE permission_id IN (
 );
 
 DELETE FROM permissions WHERE id IN (
-    '9cb98fc1-79b4-5e7c-8682-30d96b5b9f24',
-    '7f792296-18cd-5fb1-9367-e9ded2dcad47',
-    'e3456e30-d28b-555f-89f7-749e56e8e4ae',
-    '1830a67b-23ac-55df-846b-2b83fa1e1715',
-    'f667a066-26a1-5aee-b711-749160fb3ee5',
-    '6761452c-15e1-54f8-9485-4205318ed7a3',
-    '6c3a215a-8225-5bf8-8995-d93a7779c9d2',
-    '03533c54-e6fb-54f7-9899-44c29124f8e2',
     '12895334-024d-54b5-bb2a-dad087f5c635',
     'f6a36066-169a-57ac-9803-6408d0787b09',
     '7b69ffc3-4355-590f-92b6-3cc400cfbd4e',

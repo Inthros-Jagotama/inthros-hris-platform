@@ -47,10 +47,7 @@ func tenantRBACResources() []tenantRBACResource {
 	std := []string{"view", "create", "update", "delete"}
 	return []tenantRBACResource{
 		{"organization", std, nil},
-		{"employee", std, []tenantRBACSubmenu{
-			{"list", std},
-			{"create", std},
-		}},
+		{"employee", std, nil},
 		{"jobmanagement", std, []tenantRBACSubmenu{
 			{"titles", std},
 			{"values", std},
