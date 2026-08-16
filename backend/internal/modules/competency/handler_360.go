@@ -303,3 +303,25 @@ func (h *Handler) SubmitAssessmentForApproval(c *gin.Context) {
 	}
 	httputil.SuccessJSON(c, resp)
 }
+
+// =========================================================================
+// Result & Gap Handlers (§22 Result)
+// =========================================================================
+
+func (h *Handler) GetEmployeeResult(c *gin.Context) {
+	resp, err := h.service.GetEmployeeResult(c.Request.Context(), c.Param("employee"), c.Query("event_id"))
+	if err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) GetEmployeeGap(c *gin.Context) {
+	resp, err := h.service.GetEmployeeGap(c.Request.Context(), c.Param("employee"))
+	if err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}

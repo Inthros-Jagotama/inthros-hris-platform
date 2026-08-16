@@ -129,5 +129,17 @@ func (s *Service) HandleAssessmentApprovalStatusChange(ctx context.Context, docu
 	if err := s.repo.UpdateCompetencyEventTarget(ctx, target); err != nil {
 		return err
 	}
+
+	// Hasil HANYA dihitung setelah approval (Phase 5 — §14). Kegagalan
+	// kalkulasi tidak boleh membuat callback approval gagal; status target
+	// sudah tersimpan, hasil bisa di-recalculate manual via FinalizeTarget.
+	if status == "APPROVED" {
+		if _, err := s.FinalizeTarget(ctx, target.ID.String()); err != nil {
+			s.logger.Warn("assessment approved but calculation failed — result not stored",
+				zap.String("target_id", target.ID.String()),
+				zap.Error(err),
+			)
+		}
+	}
 	return nil
 }

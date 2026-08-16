@@ -517,3 +517,143 @@ func (r *Repository) FindEmployeeIDByUserID(ctx context.Context, userID uuid.UUI
 	}
 	return &empID, nil
 }
+
+// =========================================================================
+// Calculation inputs (§14)
+// =========================================================================
+
+// FindAllRatersByTarget mengambil seluruh rater + response-nya untuk target
+// — input lengkap calculation engine (rater type, weight, response per
+// indicator).
+func (r *Repository) FindAllRatersByTarget(ctx context.Context, targetID uuid.UUID) ([]CompetencyAssessmentRater, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CompetencyAssessmentRater
+	if err := db.Preload("Responses.Indicator").
+		Where("competency_event_target_id = ?", targetID).
+		Order("rater_type ASC, created_at ASC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// FindTemplateCompetencies mengambil template competencies beserta nama
+// competency — input required level & weight per competency (§14).
+func (r *Repository) FindTemplateCompetencies(ctx context.Context, templateID uuid.UUID) ([]CompetencyAssessmentTemplateCompetency, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CompetencyAssessmentTemplateCompetency
+	if err := db.Preload("Competency").
+		Where("template_id = ?", templateID).
+		Order("sort_order ASC, created_at ASC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// FindTemplateRaterTypes mengambil konfigurasi weight rater type per template
+// (§10) — input weighting calculation engine.
+func (r *Repository) FindTemplateRaterTypes(ctx context.Context, templateID uuid.UUID) ([]CompetencyAssessmentTemplateRaterType, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CompetencyAssessmentTemplateRaterType
+	if err := db.Where("template_id = ?", templateID).
+		Order("created_at ASC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// ListTemplateIndicatorsByCompetency mengambil template indicators + competency
+// id dari indicator — memetakan indicator ke competency untuk agregasi.
+func (r *Repository) ListTemplateIndicatorsByCompetency(ctx context.Context, templateID uuid.UUID) ([]CompetencyAssessmentTemplateIndicator, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CompetencyAssessmentTemplateIndicator
+	if err := db.Preload("Indicator").
+		Where("template_id = ?", templateID).
+		Order("sort_order ASC, created_at ASC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// FindScoreByEventAndEmployee mengambil competency score untuk (event,
+// employee) — dipakai upsert hasil finalisasi.
+func (r *Repository) FindScoreByEventAndEmployee(ctx context.Context, eventID, employeeID uuid.UUID) (*CompetencyScore, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var s CompetencyScore
+	err = db.Preload("Details").
+		Where("competency_event_id = ? AND employee_id = ?", eventID, employeeID).
+		First(&s).Error
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+// FindTargetByEventAndEmployee mengambil assessment target seorang employee
+// pada sebuah event.
+func (r *Repository) FindTargetByEventAndEmployee(ctx context.Context, eventID, employeeID uuid.UUID) (*CompetencyEventTarget, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var t CompetencyEventTarget
+	if err := db.Where("competency_event_id = ? AND employee_id = ?", eventID, employeeID).First(&t).Error; err != nil {
+		return nil, fmt.Errorf("assessment target not found: %w", err)
+	}
+	return &t, nil
+}
+
+// FindTargetsByEmployee mengambil seluruh assessment target seorang employee
+// (dipakai pencarian hasil terbaru — finalized dulu).
+func (r *Repository) FindTargetsByEmployee(ctx context.Context, employeeID uuid.UUID) ([]CompetencyEventTarget, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CompetencyEventTarget
+	if err := db.Where("employee_id = ?", employeeID).
+		Order("created_at DESC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// ReplaceScoreDetails menghapus detail lama dan menulis ulang detail skor
+// untuk satu competency score (hasil calculation bersifat snapshot).
+func (r *Repository) ReplaceScoreDetails(ctx context.Context, scoreID uuid.UUID, details []CompetencyScoreDetail) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("competency_score_id = ?", scoreID).Delete(&CompetencyScoreDetail{}).Error; err != nil {
+			return err
+		}
+		for i := range details {
+			details[i].CompetencyScoreID = scoreID
+			if err := tx.Create(&details[i]).Error; err != nil {
+				return err
+		}
+		}
+		return nil
+	})
+}

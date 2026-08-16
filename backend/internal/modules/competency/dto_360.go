@@ -418,3 +418,28 @@ func (r *CompetencyAssessmentResponse) ToDTO() AssessmentResponseDTO {
 	}
 	return d
 }
+
+// =========================================================================
+// Response DTOs — Gap Analysis (§17/§18)
+// =========================================================================
+
+type GapItem struct {
+	CompetencyID   string  `json:"competency_id"`
+	CompetencyName string  `json:"competency_name,omitempty"`
+	RequiredLevel  float64 `json:"required_level"`
+	Score          float64 `json:"score"`
+	Gap            float64 `json:"gap"`
+	WeightedGap    float64 `json:"weighted_gap"`
+}
+
+type GapAnalysisResponse struct {
+	TargetID         string    `json:"target_id"`
+	EmployeeID       string    `json:"employee_id"`
+	OverallScore     float64   `json:"overall_score"`
+	TotalGap         float64   `json:"total_gap"`
+	SelfScore        float64   `json:"self_score"`
+	OthersScore      float64   `json:"others_score"`
+	PerceptionGap    float64   `json:"perception_gap"`
+	Strengths        []GapItem `json:"strengths"`
+	DevelopmentAreas []GapItem `json:"development_areas"`
+}

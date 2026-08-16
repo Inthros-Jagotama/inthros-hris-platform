@@ -94,5 +94,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 
 		// Competency 360 — Approval (§13)
 		comp.POST("/event-targets/:id/submit-approval", handler.SubmitAssessmentForApproval)
+
+		// Competency 360 — Result & Gap (§17/§18/§22)
+		comp.GET("/employees/:employee/result", handler.GetEmployeeResult)
+		comp.GET("/employees/:employee/gap", handler.GetEmployeeGap)
 	}
 }

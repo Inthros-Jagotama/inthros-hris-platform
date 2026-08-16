@@ -1192,14 +1192,16 @@ Catatan penting §34.2: entry `"competency_360_assessment": "competency"` ditamb
 
 ## Phase 5 — Calculation
 
-- [ ] Implement rater aggregation.
-- [ ] Implement competency aggregation.
-- [ ] Implement weighted score.
-- [ ] Implement required level.
-- [ ] Implement gap.
-- [ ] Implement weighted gap.
-- [ ] Implement self vs others.
-- [ ] Implement overall competency score.
+- [x] Implement rater aggregation. (`CalculateTarget` — rata-rata response per rater, di-weight rater-level)
+- [x] Implement competency aggregation. (Skor per competency dari indicator yang termasuk competency tsb)
+- [x] Implement weighted score. (Rata-rata berbobot rater type dari `template_rater_types` — §10)
+- [x] Implement required level. (`required_level` dari `template_competencies` — §5.2)
+- [x] Implement gap. (`score - required_level` per competency — §17)
+- [x] Implement weighted gap. (`gap × weight` competency)
+- [x] Implement self vs others. (`self_score` vs `others_score` → `perception_gap` — §18)
+- [x] Implement overall competency score. (Weighted average seluruh competency → `total_grade_percentage`)
+
+Persisten: `FinalizeTarget` menulis snapshot ke `competency_scores` (per employee per event — §15) + `competency_score_details` (§16), dipanggil dari status handler approval `APPROVED` (Phase 4). Endpoint: `GET /competency/employees/{employee}/result` & `/gap`.
 
 ## Phase 6 — Reporting
 
