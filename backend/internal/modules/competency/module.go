@@ -88,6 +88,14 @@ func (m *compModule) Migrate(db *gorm.DB) error {
 		&CompetencyEventTarget{},
 		&CompetencyScore{},
 		&CompetencyScoreDetail{},
+		// Competency 360
+		&CompetencyRatingScale{},
+		&CompetencyRatingScaleItem{},
+		&CompetencyAssessmentTemplate{},
+		&CompetencyAssessmentTemplateCompetency{},
+		&CompetencyAssessmentTemplateRaterType{},
+		&CompetencyIndicator{},
+		&CompetencyAssessmentTemplateIndicator{},
 	)
 }
 

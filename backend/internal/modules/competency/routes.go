@@ -55,5 +55,30 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		comp.GET("/score-details/:id", handler.GetCompetencyScoreDetailByID)
 		comp.PUT("/score-details/:id", handler.UpdateCompetencyScoreDetail)
 		comp.DELETE("/score-details/:id", handler.DeleteCompetencyScoreDetail)
+
+		// Competency 360 — Rating Scales (§7)
+		comp.POST("/rating-scales", handler.CreateRatingScale)
+		comp.GET("/rating-scales", handler.ListRatingScales)
+		comp.GET("/rating-scales/:id", handler.GetRatingScaleByID)
+		comp.PUT("/rating-scales/:id", handler.UpdateRatingScale)
+		comp.DELETE("/rating-scales/:id", handler.DeleteRatingScale)
+
+		// Competency 360 — Assessment Templates (§5)
+		comp.POST("/templates", handler.CreateAssessmentTemplate)
+		comp.GET("/templates", handler.ListAssessmentTemplates)
+		comp.GET("/templates/:id", handler.GetAssessmentTemplateByID)
+		comp.PUT("/templates/:id", handler.UpdateAssessmentTemplate)
+		comp.DELETE("/templates/:id", handler.DeleteAssessmentTemplate)
+
+		// Competency 360 — Template Indicators (§6.2)
+		comp.GET("/templates/:id/indicators", handler.ListTemplateIndicators)
+		comp.PUT("/templates/:id/indicators", handler.SetTemplateIndicators)
+
+		// Competency 360 — Indicators (§6)
+		comp.POST("/indicators", handler.CreateIndicator)
+		comp.GET("/indicators", handler.ListIndicators)
+		comp.GET("/indicators/:id", handler.GetIndicatorByID)
+		comp.PUT("/indicators/:id", handler.UpdateIndicator)
+		comp.DELETE("/indicators/:id", handler.DeleteIndicator)
 	}
 }

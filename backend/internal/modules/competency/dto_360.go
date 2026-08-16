@@ -1,0 +1,315 @@
+package competency
+
+import "time"
+
+// =========================================================================
+// Request DTOs — Rating Scale
+// =========================================================================
+
+type CreateRatingScaleRequest struct {
+	Name        string                    `json:"name" binding:"required,max=255"`
+	Code        string                    `json:"code" binding:"required,max=50"`
+	Description *string                   `json:"description"`
+	Status      string                    `json:"status" binding:"omitempty,oneof=active inactive"`
+	Items       []RatingScaleItemRequest  `json:"items"`
+}
+
+type RatingScaleItemRequest struct {
+	Value       int     `json:"value" binding:"required"`
+	Label       string  `json:"label" binding:"required,max=255"`
+	Description *string `json:"description"`
+	Weight      float64 `json:"weight"`
+	SortOrder   int     `json:"sort_order"`
+}
+
+type UpdateRatingScaleRequest struct {
+	Name        *string                   `json:"name" binding:"omitempty,max=255"`
+	Code        *string                   `json:"code" binding:"omitempty,max=50"`
+	Description *string                   `json:"description"`
+	Status      *string                   `json:"status" binding:"omitempty,oneof=active inactive"`
+	Items       []RatingScaleItemRequest  `json:"items"`
+}
+
+// =========================================================================
+// Request DTOs — Assessment Template
+// =========================================================================
+
+type TemplateCompetencyRequest struct {
+	CompetencyID  string  `json:"competency_id" binding:"required"`
+	RequiredLevel *int    `json:"required_level"`
+	Weight        float64 `json:"weight"`
+	SortOrder     int     `json:"sort_order"`
+}
+
+type TemplateRaterTypeRequest struct {
+	RaterType string  `json:"rater_type" binding:"required,oneof=self superior peer subordinate other"`
+	Weight    float64 `json:"weight"`
+	MinRater  int     `json:"min_rater"`
+	MaxRater  *int    `json:"max_rater"`
+	Required  bool    `json:"required"`
+	Anonymous bool    `json:"anonymous"`
+}
+
+type CreateAssessmentTemplateRequest struct {
+	Name          string                      `json:"name" binding:"required,max=255"`
+	Code          string                      `json:"code" binding:"required,max=50"`
+	Description   *string                     `json:"description"`
+	Status        string                      `json:"status" binding:"omitempty,oneof=active inactive"`
+	ScaleID       *string                     `json:"scale_id"`
+	Competencies  []TemplateCompetencyRequest `json:"competencies"`
+	RaterTypes    []TemplateRaterTypeRequest  `json:"rater_types"`
+}
+
+type UpdateAssessmentTemplateRequest struct {
+	Name          *string                     `json:"name" binding:"omitempty,max=255"`
+	Code          *string                     `json:"code" binding:"omitempty,max=50"`
+	Description   *string                     `json:"description"`
+	Status        *string                     `json:"status" binding:"omitempty,oneof=active inactive"`
+	ScaleID       *string                     `json:"scale_id"`
+	Competencies  []TemplateCompetencyRequest `json:"competencies"`
+	RaterTypes    []TemplateRaterTypeRequest  `json:"rater_types"`
+}
+
+// =========================================================================
+// Request DTOs — Indicator
+// =========================================================================
+
+type CreateIndicatorRequest struct {
+	CompetencyID string  `json:"competency_id" binding:"required"`
+	Code         *string `json:"code" binding:"omitempty,max=50"`
+	Statement    string  `json:"statement" binding:"required,max=1000"`
+	Description  *string `json:"description"`
+	Status       string  `json:"status" binding:"omitempty,oneof=active inactive"`
+	SortOrder    int     `json:"sort_order"`
+}
+
+type UpdateIndicatorRequest struct {
+	CompetencyID *string `json:"competency_id"`
+	Code         *string `json:"code" binding:"omitempty,max=50"`
+	Statement    *string `json:"statement" binding:"omitempty,max=1000"`
+	Description  *string `json:"description"`
+	Status       *string `json:"status" binding:"omitempty,oneof=active inactive"`
+	SortOrder    *int    `json:"sort_order"`
+}
+
+type TemplateIndicatorRequest struct {
+	IndicatorID string  `json:"indicator_id" binding:"required"`
+	Weight      float64 `json:"weight"`
+	SortOrder   int     `json:"sort_order"`
+}
+
+// =========================================================================
+// Response DTOs
+// =========================================================================
+
+type RatingScaleItemResponse struct {
+	ID          string    `json:"id"`
+	ScaleID     string    `json:"scale_id"`
+	Value       int       `json:"value"`
+	Label       string    `json:"label"`
+	Description string    `json:"description,omitempty"`
+	Weight      float64   `json:"weight"`
+	SortOrder   int       `json:"sort_order"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type RatingScaleResponse struct {
+	ID          string                   `json:"id"`
+	Name        string                   `json:"name"`
+	Code        string                   `json:"code"`
+	Description string                   `json:"description,omitempty"`
+	Status      string                   `json:"status"`
+	Items       []RatingScaleItemResponse `json:"items,omitempty"`
+	CreatedAt   time.Time                `json:"created_at"`
+	UpdatedAt   time.Time                `json:"updated_at"`
+}
+
+type TemplateCompetencyResponse struct {
+	ID            string    `json:"id"`
+	TemplateID    string    `json:"template_id"`
+	CompetencyID  string    `json:"competency_id"`
+	CompetencyName string   `json:"competency_name,omitempty"`
+	RequiredLevel int       `json:"required_level,omitempty"`
+	Weight        float64   `json:"weight"`
+	SortOrder     int       `json:"sort_order"`
+}
+
+type TemplateRaterTypeResponse struct {
+	ID         string    `json:"id"`
+	TemplateID string    `json:"template_id"`
+	RaterType  string    `json:"rater_type"`
+	Weight     float64   `json:"weight"`
+	MinRater   int       `json:"min_rater"`
+	MaxRater   int       `json:"max_rater,omitempty"`
+	Required   bool      `json:"required"`
+	Anonymous  bool      `json:"anonymous"`
+}
+
+type AssessmentTemplateResponse struct {
+	ID           string                        `json:"id"`
+	Name         string                        `json:"name"`
+	Code         string                        `json:"code"`
+	Description  string                        `json:"description,omitempty"`
+	Status       string                        `json:"status"`
+	ScaleID      string                        `json:"scale_id,omitempty"`
+	Competencies []TemplateCompetencyResponse  `json:"competencies,omitempty"`
+	RaterTypes   []TemplateRaterTypeResponse   `json:"rater_types,omitempty"`
+	CreatedAt    time.Time                     `json:"created_at"`
+	UpdatedAt    time.Time                     `json:"updated_at"`
+}
+
+type IndicatorResponse struct {
+	ID            string    `json:"id"`
+	CompetencyID  string    `json:"competency_id"`
+	CompetencyName string   `json:"competency_name,omitempty"`
+	Code          string    `json:"code,omitempty"`
+	Statement     string    `json:"statement"`
+	Description   string    `json:"description,omitempty"`
+	Status        string    `json:"status"`
+	SortOrder     int       `json:"sort_order"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type TemplateIndicatorResponse struct {
+	ID           string    `json:"id"`
+	TemplateID   string    `json:"template_id"`
+	IndicatorID  string    `json:"indicator_id"`
+	Statement    string    `json:"statement,omitempty"`
+	Weight       float64   `json:"weight"`
+	SortOrder    int       `json:"sort_order"`
+}
+
+// =========================================================================
+// Converter helpers
+// =========================================================================
+
+func (s *CompetencyRatingScale) ToResponse() RatingScaleResponse {
+	r := RatingScaleResponse{
+		ID:        s.ID.String(),
+		Name:      s.Name,
+		Code:      s.Code,
+		Status:    s.Status,
+		CreatedAt: s.CreatedAt,
+		UpdatedAt: s.UpdatedAt,
+	}
+	if s.Description != nil {
+		r.Description = *s.Description
+	}
+	if s.Items != nil {
+		r.Items = make([]RatingScaleItemResponse, 0, len(s.Items))
+		for _, item := range s.Items {
+			r.Items = append(r.Items, item.ToResponse())
+		}
+	}
+	return r
+}
+
+func (i *CompetencyRatingScaleItem) ToResponse() RatingScaleItemResponse {
+	r := RatingScaleItemResponse{
+		ID:        i.ID.String(),
+		ScaleID:   i.ScaleID.String(),
+		Value:     i.Value,
+		Label:     i.Label,
+		Weight:    i.Weight,
+		SortOrder: i.SortOrder,
+		CreatedAt: i.CreatedAt,
+		UpdatedAt: i.UpdatedAt,
+	}
+	if i.Description != nil {
+		r.Description = *i.Description
+	}
+	return r
+}
+
+func (t *CompetencyAssessmentTemplate) ToResponse() AssessmentTemplateResponse {
+	r := AssessmentTemplateResponse{
+		ID:        t.ID.String(),
+		Name:      t.Name,
+		Code:      t.Code,
+		Status:    t.Status,
+		CreatedAt: t.CreatedAt,
+		UpdatedAt: t.UpdatedAt,
+	}
+	if t.Description != nil {
+		r.Description = *t.Description
+	}
+	if t.ScaleID != nil {
+		r.ScaleID = t.ScaleID.String()
+	}
+	if t.Competencies != nil {
+		r.Competencies = make([]TemplateCompetencyResponse, 0, len(t.Competencies))
+		for _, c := range t.Competencies {
+			resp := TemplateCompetencyResponse{
+				ID:           c.ID.String(),
+				TemplateID:   c.TemplateID.String(),
+				CompetencyID: c.CompetencyID.String(),
+				Weight:       c.Weight,
+				SortOrder:    c.SortOrder,
+			}
+			if c.RequiredLevel != nil {
+				resp.RequiredLevel = *c.RequiredLevel
+			}
+			if c.Competency != nil {
+				resp.CompetencyName = c.Competency.Name
+			}
+			r.Competencies = append(r.Competencies, resp)
+		}
+	}
+	if t.RaterTypes != nil {
+		r.RaterTypes = make([]TemplateRaterTypeResponse, 0, len(t.RaterTypes))
+		for _, rt := range t.RaterTypes {
+			resp := TemplateRaterTypeResponse{
+				ID:         rt.ID.String(),
+				TemplateID: rt.TemplateID.String(),
+				RaterType:  rt.RaterType,
+				Weight:     rt.Weight,
+				MinRater:   rt.MinRater,
+				Required:   rt.Required,
+				Anonymous:  rt.Anonymous,
+			}
+			if rt.MaxRater != nil {
+				resp.MaxRater = *rt.MaxRater
+			}
+			r.RaterTypes = append(r.RaterTypes, resp)
+		}
+	}
+	return r
+}
+
+func (i *CompetencyIndicator) ToResponse() IndicatorResponse {
+	r := IndicatorResponse{
+		ID:           i.ID.String(),
+		CompetencyID: i.CompetencyID.String(),
+		Statement:    i.Statement,
+		Status:       i.Status,
+		SortOrder:    i.SortOrder,
+		CreatedAt:    i.CreatedAt,
+		UpdatedAt:    i.UpdatedAt,
+	}
+	if i.Code != nil {
+		r.Code = *i.Code
+	}
+	if i.Description != nil {
+		r.Description = *i.Description
+	}
+	if i.Competency != nil {
+		r.CompetencyName = i.Competency.Name
+	}
+	return r
+}
+
+func (ti *CompetencyAssessmentTemplateIndicator) ToResponse() TemplateIndicatorResponse {
+	r := TemplateIndicatorResponse{
+		ID:          ti.ID.String(),
+		TemplateID:  ti.TemplateID.String(),
+		IndicatorID: ti.IndicatorID.String(),
+		Weight:      ti.Weight,
+		SortOrder:   ti.SortOrder,
+	}
+	if ti.Indicator != nil {
+		r.Statement = ti.Indicator.Statement
+	}
+	return r
+}

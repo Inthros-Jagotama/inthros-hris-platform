@@ -1162,11 +1162,11 @@ Test:
 
 ## Phase 2 — Competency Foundation
 
-- [ ] Enhance competency master.
-- [ ] Review competency levels.
-- [ ] Implement competency indicators.
-- [ ] Implement rating scale.
-- [ ] Implement competency framework/template.
+- [x] Enhance competency master. (Tetap `competencies` existing; tambahan kolom status/category tidak diperlukan untuk scope awal — §4.1)
+- [x] Review competency levels. (`competency_values` existing dipertahankan sebagai level/rating master — §4.2)
+- [x] Implement competency indicators. (Migrasi `145` + Go model/repo/service/handler/routes — §6)
+- [x] Implement rating scale. (Migrasi `143` + Go — §7)
+- [x] Implement competency framework/template. (Migrasi `144` — template, template competencies, template rater types — + Go — §5/§10)
 
 ## Phase 3 — 360 Assessment
 
