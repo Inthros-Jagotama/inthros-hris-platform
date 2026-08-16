@@ -9,6 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/inthros/hris-platform/internal/pkg/crypto"
 )
 
 // Repository untuk database operations Employee Movement & Career Management.
@@ -184,20 +186,26 @@ func (r *Repository) GetEmployeeProfile(ctx context.Context, employeeID uuid.UUI
 		}
 		return nil, fmt.Errorf("failed to load employee profile: %w", err)
 	}
+	// nik/passport/phone_number/email adalah field sensitif yang bisa disimpan
+	// terenkripsi (encrypt-at-rest, toggle per-field di modul employee). Query
+	// di atas membaca kolom mentah, jadi harus didekripsi di sini — kalau tidak,
+	// dokumen kontrak/SK yang di-generate akan mencetak blob ciphertext.
+	// Catatan: jalur ini sengaja TIDAK menerapkan masking berbasis permission —
+	// dokumen legal harus memuat nilai asli (lihat laporan review).
 	out := &EmployeeProfileData{
 		EmployeeID:      emp.EmployeeID,
 		Name:            emp.Name,
-		NIK:             emp.NIK,
+		NIK:             crypto.DecryptIfLooksEncrypted(emp.NIK),
 		FamilyID:        emp.FamilyID,
 		MotherName:      emp.MotherName,
 		Gender:          emp.Gender,
 		NationalityType: emp.NationalityType,
 		NationalityID:   emp.NationalityID,
-		Passport:        emp.Passport,
+		Passport:        crypto.DecryptIfLooksEncrypted(emp.Passport),
 		POB:             emp.POB,
 		DOB:             emp.DOB,
-		PhoneNumber:     emp.PhoneNumber,
-		Email:           emp.Email,
+		PhoneNumber:     crypto.DecryptIfLooksEncrypted(emp.PhoneNumber),
+		Email:           crypto.DecryptIfLooksEncrypted(emp.Email),
 		LinkedIn:        emp.LinkedIn,
 		Instagram:       emp.Instagram,
 		Religion:        emp.Religion,
