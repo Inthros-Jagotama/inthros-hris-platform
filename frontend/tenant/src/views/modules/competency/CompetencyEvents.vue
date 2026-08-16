@@ -127,9 +127,10 @@
             <Button icon="pi pi-users" size="small" text :label="String(data.rater_count ?? 0)" v-tooltip.top="t('competency_360.view_raters')" @click="goRaters(data)" />
           </template>
         </Column>
-        <Column :header="t('common.actions')" style="width:90px" frozen alignFrozen="right">
+        <Column :header="t('common.actions')" style="width:150px" frozen alignFrozen="right">
           <template #body="{data}">
             <div class="flex items-center gap-1 justify-end">
+              <Button v-if="data.status === 'draft' || data.status === 'in_progress'" icon="pi pi-send" size="small" text severity="success" :loading="submittingApprovalId === data.id" :disabled="!!submittingApprovalId" v-tooltip.left="t('competency_360.submit_approval')" @click="submitApproval(data)" />
               <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDeleteTarget(data)" />
             </div>
           </template>
@@ -208,6 +209,7 @@ const targets = ref([])
 const targetsEvent = ref(null)
 const targetForm = ref({ organization_id: null, employee_id: null })
 const addingTarget = ref(false)
+const submittingApprovalId = ref(null)
 
 const deleteDialogVisible = ref(false)
 const deleting = ref(false)
@@ -459,6 +461,22 @@ async function addTarget() {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
   } finally {
     addingTarget.value = false
+  }
+}
+
+// submitApproval mengajukan finalisasi target ke Central Approval (syarat:
+// seluruh rater sudah submit). Status target berubah otomatis sesuai hasil
+// approval — tidak ada form manual untuk mengubah status.
+async function submitApproval(tgt) {
+  submittingApprovalId.value = tgt.id
+  try {
+    await api.post(`/api/v1/tenant/competency/event-targets/${tgt.id}/submit-approval`)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('competency_360.submitted_approval'), life: 3000 })
+    await loadTargets()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  } finally {
+    submittingApprovalId.value = null
   }
 }
 

@@ -2470,6 +2470,8 @@
     "subject": "Subject",
     "select_rater": "Select rater...",
     "add_rater": "Add Rater",
+    "submit_approval": "Submit for Approval",
+    "submitted_approval": "Assessment submitted for approval.",
     "auto_fill_raters": "Auto-fill (Superior & Subordinates)",
     "raters_filled": "Superior & subordinate raters added.",
     "no_suggested_raters": "No raters suggested — make sure the org structure and employments are set up.",

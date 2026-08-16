@@ -2471,6 +2471,8 @@
     "select_rater": "Pilih rater...",
     "add_rater": "Tambah Rater",
     "raters_empty": "Belum ada rater ditugaskan.",
+    "submit_approval": "Ajukan Approval",
+    "submitted_approval": "Assessment diajukan untuk approval.",
     "auto_fill_raters": "Isi Otomatis (Atasan & Bawahan)",
     "raters_filled": "Rater atasan & bawahan berhasil ditambahkan.",
     "no_suggested_raters": "Tidak ada saran rater — pastikan relasi organisasi (employments) dan struktur org sudah terisi.",
