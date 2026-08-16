@@ -313,6 +313,26 @@ var catalog = map[string]catalogEntry{
 			httputil.LangID: "Pengajuan lowongan \"%s\" Anda telah ditolak.",
 		},
 	},
+	"PAYROLL_APPROVED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Payroll Run Approved",
+			httputil.LangID: "Penggajian Disetujui",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Payroll run \"%s\" has been approved.",
+			httputil.LangID: "Penggajian \"%s\" telah disetujui.",
+		},
+	},
+	"PAYROLL_REJECTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Payroll Run Rejected",
+			httputil.LangID: "Penggajian Ditolak",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Payroll run \"%s\" has been rejected and returned to draft.",
+			httputil.LangID: "Penggajian \"%s\" telah ditolak dan dikembalikan ke draft.",
+		},
+	},
 	"APPROVAL_TASK_ASSIGNED": {
 		title: map[httputil.Lang]string{
 			httputil.LangEN: "Approval Needed",

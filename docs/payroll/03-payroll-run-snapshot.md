@@ -100,7 +100,7 @@ Approval
 Finalize
 ```
 
-> ✅ **Aktual (2026-08-14):** flow di atas kini berjalan untuk langkah struktur/komponen. `DRAFT → CALCULATED` memanggil `CalculatePayrollRun` (isi snapshot) lalu lanjut ke approval bila ApprovalEngine + FlowID di-set (status `CALCULATED`), atau langsung `REVIEWED` bila tanpa approval engine:
+> ✅ **Aktual (2026-08-14):** flow di atas kini berjalan untuk langkah struktur/komponen. `DRAFT → CALCULATED` memanggil `CalculatePayrollRun` (isi snapshot) lalu lanjut ke approval bila ApprovalEngine di-set (status `CALCULATED`), atau langsung `REVIEWED` bila tanpa approval engine:
 >
 > ```text
 > DRAFT → [CalculatePayrollRun: isi payroll_run_employees + payroll_run_items]
@@ -108,6 +108,8 @@ Finalize
 > CALCULATED → APPROVED
 > APPROVED → LOCKED
 > ```
+>
+> **Update 2026-08-16:** integrasi Approval & Notifikasi dilengkapi: (1) `flow_id` **auto-resolve** — saat `DRAFT → CALCULATED` tanpa `flow_id` eksplisit, service memanggil `ApprovalEngine.GetActiveFlowIDForModule("payroll")` (pola sama KPI/requisition), jadi run otomatis masuk alur approval selama ada flow aktif untuk modul payroll; (2) **notifikasi hasil** — saat instance approval mencapai final, `PAYROLL_APPROVED` / `PAYROLL_REJECTED` dikirim ke pembuat run (`notifyRunOutcome`, best-effort), dengan entri katalog bilingual di `notification/i18n.go`; (3) UI payroll (`Payroll.vue` + `PayrollRunDetail.vue`) kini memakai `PUT /status {status: CALCULATED}` untuk tombol Hitung, menampilkan badge "Menunggu Persetujuan" saat `approval_instance_id` ter-set, dan tombol "Periksa Status Persetujuan" yang memanggil `GET /runs/:id/approval`.
 >
 > **Update 2026-08-14/15:** BPJS kontribusi ([04-bpjs-engine.md](04-bpjs-engine.md)) dan PPh21 ([05-pph21-engine.md](05-pph21-engine.md)) sudah diintegrasikan ke kalkulasi run sebagai item `source_group='STATUTORY'` — BPJS dihitung setelah struktur (dasar upah `is_bpjs_base` dibaca dari nilai terhitung), PPh21 setelah BPJS (iuran BPJS employee dipakai sebagai pengurang) plus baris `pph21_calculation_logs`. Input Attendance/Leave/Overtime juga sudah masuk sebagai variabel built-in formula via [06-proration-workforce.md](06-proration-workforce.md) (`loadWorkforceSummary` → WORKING_DAYS/WORKED_DAYS/ABSENCE_DAYS/UNPAID_LEAVE_DAYS/OVERTIME_HOURS), dan prorasi join/resign configurable via `payroll_runs.proration_method`. Snapshot struktur yang sudah berjalan tidak berubah.
 

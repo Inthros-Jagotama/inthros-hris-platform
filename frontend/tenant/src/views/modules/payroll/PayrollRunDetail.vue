@@ -31,6 +31,24 @@
               :loading="actionLoading"
               @click="confirmCalculate"
             />
+            <Button
+              v-if="run.status === 'DRAFT' && run.calculated_at"
+              :label="t('payroll.approval_submit')"
+              icon="pi pi-send"
+              size="small"
+              :loading="actionLoading"
+              @click="confirmSubmitApproval"
+            />
+            <Button
+              v-if="run.status === 'CALCULATED' && run.approval_instance_id"
+              :label="t('payroll.check_approval')"
+              icon="pi pi-clock"
+              size="small"
+              severity="warn"
+              outlined
+              :loading="approvalChecking"
+              @click="checkApproval"
+            />
           </div>
         </div>
 
@@ -112,6 +130,10 @@
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('payroll.status_reviewed') }}</span>
                   <span class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ run.reviewed_at ? formatDateTime(run.reviewed_at) : '-' }}</span>
+                </div>
+                <div v-if="run.status === 'CALCULATED' && run.approval_instance_id" class="flex items-center justify-between">
+                  <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('payroll.approval_submit') }}</span>
+                  <Tag :value="t('payroll.run_approval_pending')" severity="warn" class="!text-xs !px-1.5 !py-0.5" />
                 </div>
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('payroll.status_approved') }}</span>
@@ -462,6 +484,7 @@ const confirmTitle = ref('')
 const confirmMessage = ref('')
 const confirmLabel = ref('')
 let confirmAction = null
+const approvalChecking = ref(false)
 
 const tabs = [
   { key: 'overview', labelKey: 'payroll.tab_overview' },
@@ -664,12 +687,46 @@ function confirmCalculate() {
   confirmVisible.value = true
 }
 async function calculateRun() {
+  // Preview: hitung & simpan snapshot, status tetap DRAFT (belum masuk approval).
   await api.post(`/api/v1/tenant/payroll/runs/${runId}/calculate`)
   toast.add({ severity: 'success', summary: t('message.success'), detail: t('payroll.run_calculated'), life: 3000 })
   await loadRun()
   loadEmployees()
   loadItems()
   loadSummary()
+}
+
+function confirmSubmitApproval() {
+  confirmTitle.value = t('payroll.approval_submit')
+  confirmMessage.value = t('payroll.confirm_submit_approval')
+  confirmLabel.value = t('payroll.approval_submit')
+  confirmAction = submitForApproval
+  confirmVisible.value = true
+}
+async function submitForApproval() {
+  // PUT /status CALCULATED menghitung (ulang) + membuat approval instance
+  // (auto-resolve flow), atau langsung REVIEWED bila tidak ada flow aktif.
+  await api.put(`/api/v1/tenant/payroll/runs/${runId}/status`, { status: 'CALCULATED' })
+  toast.add({ severity: 'success', summary: t('message.success'), detail: t('payroll.run_submitted_approval'), life: 3000 })
+  await loadRun()
+  loadEmployees()
+  loadItems()
+  loadSummary()
+}
+
+async function checkApproval() {
+  approvalChecking.value = true
+  try {
+    await api.get(`/api/v1/tenant/payroll/runs/${runId}/approval`, {
+      params: { instance_id: run.value.approval_instance_id }
+    })
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('payroll.run_status_updated'), life: 3000 })
+    await loadRun()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  } finally {
+    approvalChecking.value = false
+  }
 }
 
 function confirmGeneratePayslips() {

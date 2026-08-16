@@ -959,6 +959,10 @@ func main() {
 	notificationRepo := notification.NewRepository(notificationResolver)
 	notificationSvc := notification.NewService(notificationRepo, l.Named("notification"))
 
+	// Wire the notification module into payroll so run creators are notified
+	// of the final approval outcome (PAYROLL_APPROVED / PAYROLL_REJECTED).
+	payrollSvc.SetNotifier(notificationSvc)
+
 	// Wire the central Approval module itself as a notification producer —
 	// every module routed through it (leave, payroll, attendance, ...)
 	// automatically gets "you have a pending approval" pushes for new

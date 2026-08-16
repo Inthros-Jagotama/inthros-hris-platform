@@ -48,6 +48,18 @@ type ApprovalEngine interface {
 
 	// GetApprovalInstanceStatus returns the status of an approval instance.
 	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
+
+	// GetActiveFlowIDForModule auto-resolves the active flow for a module when
+	// the caller doesn't pick a flow_id manually (used for CALCULATED runs).
+	GetActiveFlowIDForModule(ctx context.Context, module string) (string, error)
+}
+
+// Notifier abstracts the notification module so Payroll can notify the run
+// creator of the approval outcome (docs/module-notification-plan.md §8,
+// same pattern as Leave/Attendance). notification.Service satisfies this
+// structurally.
+type Notifier interface {
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
 }
 
 type Service struct {
@@ -55,6 +67,7 @@ type Service struct {
 	logger          *zap.Logger
 	approvalEngine  ApprovalEngine
 	formulaEngine   *calculator.Engine
+	notifier        Notifier
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -73,6 +86,12 @@ func (s *Service) SetFormulaEngine(engine *calculator.Engine) {
 // SetApprovalEngine injects the approval engine after service creation.
 func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 	s.approvalEngine = ae
+}
+
+// SetNotifier wires the notification module into this service so payroll run
+// approval outcomes can notify the run creator.
+func (s *Service) SetNotifier(n Notifier) {
+	s.notifier = n
 }
 
 // =============================================================================
@@ -1457,41 +1476,51 @@ func (s *Service) UpdatePayrollRunStatus(ctx context.Context, id string, req Upd
 			return nil, err
 		}
 
-		// If approval engine is available, create approval instance
-		if s.approvalEngine != nil && req.FlowID != nil && *req.FlowID != "" {
-			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "payroll", pr.ID.String(), *req.FlowID)
-			if err != nil {
-				// Routing/assignee-resolution failures (approval.RoutingError)
-				// mean the configured flow can't reach an approver — fail
-				// loudly instead of silently advancing the run (same policy
-				// as KPI target submission). Any other approval error stays
-				// best-effort: log and continue.
-				var re *approval.RoutingError
-				if errors.As(err, &re) {
-					return nil, err
+		// If approval engine is available, create approval instance. When the
+		// caller doesn't send a flow_id, auto-resolve the active flow for the
+		// payroll module (same pattern as KPI/requisitions).
+		if s.approvalEngine != nil {
+			flowID := ""
+			if req.FlowID != nil && *req.FlowID != "" {
+				flowID = *req.FlowID
+			} else if resolved, resolveErr := s.approvalEngine.GetActiveFlowIDForModule(ctx, "payroll"); resolveErr == nil {
+				flowID = resolved
+			}
+			if flowID != "" {
+				instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "payroll", pr.ID.String(), flowID)
+				if err != nil {
+					// Routing/assignee-resolution failures (approval.RoutingError)
+					// mean the configured flow can't reach an approver — fail
+					// loudly instead of silently advancing the run (same policy
+					// as KPI target submission). Any other approval error stays
+					// best-effort: log and continue.
+					var re *approval.RoutingError
+					if errors.As(err, &re) {
+						return nil, err
+					}
+					s.logger.Warn("Failed to create approval instance for payroll run, continuing without approval",
+						zap.String("run_id", pr.ID.String()),
+						zap.Error(err),
+					)
+				} else {
+					s.logger.Info("Approval instance created for payroll run",
+						zap.String("run_id", pr.ID.String()),
+						zap.String("instance_id", instanceID),
+					)
+					if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+						pr.ApprovalInstanceID = &parsedInstanceID
+					}
+					pr.Status = "CALCULATED"
+					if err := s.repo.UpdatePayrollRun(ctx, pr); err != nil {
+						return nil, err
+					}
+					response := toPayrollRunResponse(pr)
+					return &response, nil
 				}
-				s.logger.Warn("Failed to create approval instance for payroll run, continuing without approval",
-					zap.String("run_id", pr.ID.String()),
-					zap.Error(err),
-				)
-			} else {
-				s.logger.Info("Approval instance created for payroll run",
-					zap.String("run_id", pr.ID.String()),
-					zap.String("instance_id", instanceID),
-				)
-				if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
-					pr.ApprovalInstanceID = &parsedInstanceID
-				}
-				pr.Status = "CALCULATED"
-				if err := s.repo.UpdatePayrollRun(ctx, pr); err != nil {
-					return nil, err
-				}
-				response := toPayrollRunResponse(pr)
-				return &response, nil
 			}
 		}
 
-		// Without approval engine, move directly to REVIEWED
+		// Without approval engine / active flow, move directly to REVIEWED
 		pr.Status = "REVIEWED"
 	} else if req.Status == "APPROVED" && pr.Status == "CALCULATED" {
 		// Coming from approval completion — check if approval was granted
@@ -1570,6 +1599,8 @@ func (s *Service) CheckPayrollRunApproval(ctx context.Context, id string, instan
 		return nil, err
 	}
 
+	s.notifyRunOutcome(ctx, pr, approvalStatus)
+
 	response := toPayrollRunResponse(pr)
 	return &response, nil
 }
@@ -1603,7 +1634,41 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		zap.String("run_id", pr.ID.String()),
 		zap.String("approval_status", status),
 	)
-	return s.repo.UpdatePayrollRun(ctx, pr)
+	if err := s.repo.UpdatePayrollRun(ctx, pr); err != nil {
+		return err
+	}
+
+	s.notifyRunOutcome(ctx, pr, status)
+	return nil
+}
+
+// notifyRunOutcome notifies the payroll run creator of the final approval
+// outcome (PAYROLL_APPROVED / PAYROLL_REJECTED). Best-effort: if the notifier
+// isn't wired, the creator has no user id, or Notify fails, this logs and
+// moves on rather than failing the approval transition itself.
+func (s *Service) notifyRunOutcome(ctx context.Context, pr *PayrollRun, approvalStatus string) {
+	if s.notifier == nil {
+		return
+	}
+	if pr.CreatedBy == nil {
+		return
+	}
+	var notifType string
+	switch approvalStatus {
+	case "APPROVED":
+		notifType = "PAYROLL_APPROVED"
+	case "REJECTED":
+		notifType = "PAYROLL_REJECTED"
+	default:
+		return
+	}
+	if err := s.notifier.Notify(ctx, *pr.CreatedBy, notifType, []string{pr.RunCode}, "payroll_run", pr.ID); err != nil {
+		s.logger.Warn("Failed to send payroll run notification",
+			zap.String("run_id", pr.ID.String()),
+			zap.String("notif_type", notifType),
+			zap.Error(err),
+		)
+	}
 }
 
 // =============================================================================

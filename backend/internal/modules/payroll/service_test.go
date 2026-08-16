@@ -445,6 +445,7 @@ func TestService_CreatePayrollRun(t *testing.T) {
 type mockApprovalEngine struct {
 	instanceID string
 	createErr  error
+	activeFlow string
 }
 
 func (m *mockApprovalEngine) CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error) {
@@ -456,6 +457,12 @@ func (m *mockApprovalEngine) CreateApprovalInstance(ctx context.Context, module,
 
 func (m *mockApprovalEngine) GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error) {
 	return "APPROVED", nil
+}
+
+// GetActiveFlowIDForModule returns the configured active flow; empty + nil
+// error means "no active flow" (caller continues without approval).
+func (m *mockApprovalEngine) GetActiveFlowIDForModule(ctx context.Context, module string) (string, error) {
+	return m.activeFlow, nil
 }
 
 func TestService_UpdatePayrollRunStatus_NoApprovalEngine(t *testing.T) {
@@ -520,6 +527,114 @@ func TestService_UpdatePayrollRunStatus_WithApprovalEngine(t *testing.T) {
 	}
 	if updated.ApprovalInstanceID == "" {
 		t.Error("expected approval_instance_id to be set with approval engine")
+	}
+}
+
+// fakeNotifier captures Notify calls for payroll run outcome notifications.
+type fakeNotifier struct {
+	calls []fakeNotifyCall
+}
+type fakeNotifyCall struct {
+	recipientUserID uuid.UUID
+	notifType       string
+	referenceType   string
+	referenceID     uuid.UUID
+}
+
+func (f *fakeNotifier) Notify(_ context.Context, recipientUserID uuid.UUID, notifType string, _ []string, referenceType string, referenceID uuid.UUID) error {
+	f.calls = append(f.calls, fakeNotifyCall{recipientUserID, notifType, referenceType, referenceID})
+	return nil
+}
+
+// TestService_UpdatePayrollRunStatus_AutoResolvesActiveFlow verifies that a
+// CALCULATED run with an approval engine but no explicit flow_id still creates
+// an approval instance via GetActiveFlowIDForModule (same auto-resolve pattern
+// as KPI/requisitions).
+func TestService_UpdatePayrollRunStatus_AutoResolvesActiveFlow(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	activeFlow := uuid.New().String()
+	svc.SetApprovalEngine(&mockApprovalEngine{instanceID: uuid.New().String(), activeFlow: activeFlow})
+
+	period, _ := svc.CreatePayrollPeriod(ctx, CreatePayrollPeriodRequest{
+		PeriodYear: 2026, PeriodMonth: 4,
+		StartDate: "2026-04-01", EndDate: "2026-04-30", AsOfDate: "2026-04-30",
+	})
+	run, _ := svc.CreatePayrollRun(ctx, CreatePayrollRunRequest{
+		PayrollPeriodID: period.ID,
+		RunCode:         "RUN-APR-2026",
+	})
+
+	updated, err := svc.UpdatePayrollRunStatus(ctx, run.ID, UpdatePayrollRunStatusRequest{
+		Status: "CALCULATED",
+	})
+	if err != nil {
+		t.Fatalf("UpdatePayrollRunStatus failed: %v", err)
+	}
+	if updated.Status != "CALCULATED" {
+		t.Errorf("expected status 'CALCULATED' with auto-resolved flow, got '%s'", updated.Status)
+	}
+	if updated.ApprovalInstanceID == "" {
+		t.Error("expected approval_instance_id to be set via auto-resolved flow")
+	}
+}
+
+// TestService_CheckPayrollRunApproval_NotifiesCreator verifies the run creator
+// is notified when the approval instance reaches APPROVED.
+func TestService_CheckPayrollRunApproval_NotifiesCreator(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	creatorID := uuid.New()
+	notifier := &fakeNotifier{}
+	svc.SetNotifier(notifier)
+	svc.SetApprovalEngine(&mockApprovalEngine{instanceID: uuid.New().String()})
+
+	period, _ := svc.CreatePayrollPeriod(ctx, CreatePayrollPeriodRequest{
+		PeriodYear: 2026, PeriodMonth: 4,
+		StartDate: "2026-04-01", EndDate: "2026-04-30", AsOfDate: "2026-04-30",
+	})
+	resp, _ := svc.CreatePayrollRun(ctx, CreatePayrollRunRequest{
+		PayrollPeriodID: period.ID,
+		RunCode:         "RUN-APR-2026",
+	})
+	runID, _ := uuid.Parse(resp.ID)
+	runModel, err := svc.repo.FindPayrollRunByID(ctx, runID)
+	if err != nil {
+		t.Fatalf("find run: %v", err)
+	}
+	runModel.CreatedBy = &creatorID
+	if err := svc.repo.UpdatePayrollRun(ctx, runModel); err != nil {
+		t.Fatalf("update run creator: %v", err)
+	}
+
+	// Bring the run to CALCULATED + create an approval instance.
+	flowID := uuid.New().String()
+	if _, err := svc.UpdatePayrollRunStatus(ctx, runID.String(), UpdatePayrollRunStatusRequest{Status: "CALCULATED", FlowID: &flowID}); err != nil {
+		t.Fatalf("UpdatePayrollRunStatus failed: %v", err)
+	}
+	fresh, _ := svc.repo.FindPayrollRunByID(ctx, runID)
+
+	_, err = svc.CheckPayrollRunApproval(ctx, fresh.ID.String(), fresh.ApprovalInstanceID.String())
+	if err != nil {
+		t.Fatalf("CheckPayrollRunApproval failed: %v", err)
+	}
+
+	if len(notifier.calls) != 1 {
+		t.Fatalf("expected 1 notification, got %d", len(notifier.calls))
+	}
+	call := notifier.calls[0]
+	if call.notifType != "PAYROLL_APPROVED" {
+		t.Errorf("expected notif type PAYROLL_APPROVED, got %s", call.notifType)
+	}
+	if call.recipientUserID != creatorID {
+		t.Errorf("expected recipient %s, got %s", creatorID, call.recipientUserID)
+	}
+	if call.referenceType != "payroll_run" {
+		t.Errorf("expected reference type 'payroll_run', got %s", call.referenceType)
 	}
 }
 

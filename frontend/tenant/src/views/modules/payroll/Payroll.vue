@@ -77,8 +77,13 @@
       <Column field="run_type" :header="t('payroll.run_type')" sortable style="width:110px">
         <template #body="{ data }"><Tag :value="t('payroll.run_type_' + data.run_type.toLowerCase())" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
       </Column>
-      <Column field="status" :header="t('common.status')" sortable style="width:120px">
-        <template #body="{ data }"><Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" class="!text-xs !px-1.5 !py-0.5" /></template>
+      <Column field="status" :header="t('common.status')" sortable style="width:150px">
+        <template #body="{ data }">
+          <div class="flex items-center gap-1 flex-wrap">
+            <Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" class="!text-xs !px-1.5 !py-0.5" />
+            <Tag v-if="data.status === 'CALCULATED' && data.approval_instance_id" :value="t('payroll.run_approval_pending')" severity="warn" class="!text-[10px] !px-1.5 !py-0.5" />
+          </div>
+        </template>
       </Column>
       <Column field="total_employees" :header="t('payroll.total_employees')" sortable style="width:90px">
         <template #body="{ data }"><span class="text-gray-600 dark:text-gray-300">{{ data.total_employees }}</span></template>
@@ -103,7 +108,25 @@
               @click="confirmCalculate(data)"
             />
             <Button
-              v-if="data.status === 'CALCULATED' || data.status === 'APPROVED'"
+              v-if="data.status === 'DRAFT' && data.calculated_at"
+              icon="pi pi-send"
+              size="small"
+              text
+              severity="success"
+              v-tooltip.left="t('payroll.approval_submit')"
+              @click="confirmSubmit(data)"
+            />
+            <Button
+              v-if="data.status === 'CALCULATED' && data.approval_instance_id"
+              icon="pi pi-clock"
+              size="small"
+              text
+              severity="warn"
+              v-tooltip.left="t('payroll.check_approval')"
+              @click="checkApproval(data)"
+            />
+            <Button
+              v-if="(data.status === 'CALCULATED' || data.status === 'APPROVED') && !data.approval_instance_id"
               icon="pi pi-check"
               size="small"
               text
@@ -373,8 +396,36 @@ function confirmCalculate(run) {
   confirmVisible.value = true
 }
 async function calculateRun(run) {
+  // Preview: hitung & simpan snapshot, status tetap DRAFT (belum masuk approval).
   await api.post(`/api/v1/tenant/payroll/runs/${run.id}/calculate`)
   toast.add({ severity: 'success', summary: t('message.success'), detail: t('payroll.run_calculated'), life: 3000 })
+  loadData()
+}
+
+function confirmSubmit(run) {
+  confirmTitle.value = t('payroll.approval_submit')
+  confirmMessage.value = t('payroll.confirm_submit_approval')
+  confirmLabel.value = t('payroll.approval_submit')
+  confirmAction = () => submitForApproval(run)
+  confirmVisible.value = true
+}
+async function submitForApproval(run) {
+  // PUT /status CALCULATED menghitung (ulang) + membuat approval instance
+  // (auto-resolve flow), atau langsung REVIEWED bila tidak ada flow aktif.
+  await api.put(`/api/v1/tenant/payroll/runs/${run.id}/status`, { status: 'CALCULATED' })
+  toast.add({ severity: 'success', summary: t('message.success'), detail: t('payroll.run_submitted_approval'), life: 3000 })
+  loadData()
+}
+
+async function checkApproval(run) {
+  try {
+    await api.get(`/api/v1/tenant/payroll/runs/${run.id}/approval`, {
+      params: { instance_id: run.approval_instance_id }
+    })
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('payroll.run_status_updated'), life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  }
   loadData()
 }
 
