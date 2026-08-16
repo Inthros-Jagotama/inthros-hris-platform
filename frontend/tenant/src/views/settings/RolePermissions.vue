@@ -1,45 +1,45 @@
 <template>
   <div class="space-y-4">
-    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-      <div class="flex items-center justify-between flex-wrap gap-2 mb-4">
-        <div>
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">
-            {{ t('rbac.assign_permissions') }} — <span class="text-indigo-600 dark:text-indigo-400">{{ role?.name || '' }}</span>
-          </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ selectedCount }} / {{ permissions.length }} {{ t('rbac.permissions_count') }}</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="router.push('/settings/rbac')" />
-          <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="saving" :disabled="saving || loading" @click="handleSave" />
-        </div>
+    <!-- Bar aksi (bukan card utama) -->
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <div>
+        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">
+          {{ t('rbac.assign_permissions') }} — <span class="text-indigo-600 dark:text-indigo-400">{{ role?.name || '' }}</span>
+        </p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ selectedCount }} / {{ permissions.length }} {{ t('rbac.permissions_count') }}</p>
       </div>
+      <div class="flex items-center gap-2">
+        <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="router.push('/settings/rbac')" />
+        <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="saving" :disabled="saving || loading" @click="handleSave" />
+      </div>
+    </div>
 
-      <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="4" />
-      <div v-else-if="permissionGroups.length === 0" class="text-center text-sm text-gray-400 py-8">
-        {{ t('rbac.empty_permissions') }}
-      </div>
-      <div v-else class="space-y-3">
-        <div v-for="group in permissionGroups" :key="group.resource" class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-          <div class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
-            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ group.resource }}</span>
-            <div class="flex items-center gap-1.5">
-              <Button
-                :label="group.allSelected ? t('common.clear') : t('common.all')"
-                severity="secondary"
-                text
-                size="small"
-                class="!text-[11px] !p-0.5"
-                @click="toggleGroup(group)"
-              />
-              <Checkbox :binary="true" :model-value="group.allSelected" @update:model-value="toggleGroup(group)" />
-            </div>
+    <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="4" />
+    <div v-else-if="permissionGroups.length === 0" class="text-center text-sm text-gray-400 py-8">
+      {{ t('rbac.empty_permissions') }}
+    </div>
+    <!-- Setiap grup permission berdiri sendiri sebagai card, di luar card utama -->
+    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div v-for="group in permissionGroups" :key="group.resource" class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+        <div class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+          <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ group.resource }}</span>
+          <div class="flex items-center gap-1.5">
+            <Button
+              :label="group.allSelected ? t('common.clear') : t('common.all')"
+              severity="secondary"
+              text
+              size="small"
+              class="!text-[11px] !p-0.5"
+              @click="toggleGroup(group)"
+            />
+            <Checkbox :binary="true" :model-value="group.allSelected" @update:model-value="toggleGroup(group)" />
           </div>
-          <div class="grid grid-cols-2 gap-1 px-3 py-2">
-            <label v-for="p in group.items" :key="p.id" class="flex items-center gap-2 py-0.5 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400">
-              <Checkbox :binary="true" :model-value="selected[p.id]" @update:model-value="v => selected[p.id] = v" />
-              <span class="text-sm">{{ p.action }}</span>
-            </label>
-          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 px-3 py-2">
+          <label v-for="p in group.items" :key="p.id" class="flex items-center gap-2 py-0.5 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400">
+            <Checkbox :binary="true" :model-value="selected[p.id]" @update:model-value="v => selected[p.id] = v" />
+            <span class="text-sm">{{ p.action }}</span>
+          </label>
         </div>
       </div>
     </div>
