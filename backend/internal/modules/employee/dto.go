@@ -1,6 +1,26 @@
 package employee
 
-import "time"
+import (
+	"time"
+
+	"github.com/inthros/hris-platform/internal/pkg/crypto"
+)
+
+// decryptIfLooksEncrypted mengembalikan nilai asli jika value terlihat
+// seperti hasil enkripsi (crypto.LooksEncrypted), atau value apa adanya
+// jika masih plaintext (data lama, encrypt-on-write belum menyentuhnya).
+// Kegagalan decrypt tidak fatal — fallback ke value asli supaya response
+// tidak error karena satu baris data lama yang rusak.
+func decryptIfLooksEncrypted(value string) string {
+	if value == "" || !crypto.LooksEncrypted(value) {
+		return value
+	}
+	decrypted, err := crypto.DecryptString(value)
+	if err != nil {
+		return value
+	}
+	return decrypted
+}
 
 // =========================================================================
 // Request DTOs — Employee
@@ -351,7 +371,7 @@ func toEmergencyContactResponse(c *EmergencyContact) EmergencyContactResponse {
 	r := EmergencyContactResponse{
 		ID:          c.ID.String(),
 		Name:        c.Name,
-		PhoneNumber: c.PhoneNumber,
+		PhoneNumber: decryptIfLooksEncrypted(c.PhoneNumber),
 	}
 	if c.RelationshipTypeID != nil {
 		r.RelationshipTypeID = c.RelationshipTypeID.String()
@@ -368,7 +388,7 @@ func toFamilyResponse(f *EmployeeFamily) FamilyResponse {
 		Name: f.Name,
 	}
 	if f.NIK != nil {
-		r.NIK = *f.NIK
+		r.NIK = decryptIfLooksEncrypted(*f.NIK)
 	}
 	if f.DOB != nil {
 		r.DOB = *f.DOB
@@ -441,7 +461,7 @@ func toDocumentResponse(d *EmployeeDocument) DocumentResponse {
 func toBankResponse(b *EmployeeBankAccount) BankResponse {
 	r := BankResponse{
 		ID:            b.ID.String(),
-		AccountNumber: b.AccountNumber,
+		AccountNumber: decryptIfLooksEncrypted(b.AccountNumber),
 		AccountName:   b.AccountName,
 	}
 	if b.BankID != nil {
@@ -508,7 +528,7 @@ func (e *Employee) ToResponse() EmployeeResponse {
 		UpdatedAt:  e.UpdatedAt,
 	}
 	if e.NIK != nil {
-		r.NIK = *e.NIK
+		r.NIK = decryptIfLooksEncrypted(*e.NIK)
 	}
 	if e.FamilyID != nil {
 		r.FamilyID = *e.FamilyID
@@ -523,7 +543,7 @@ func (e *Employee) ToResponse() EmployeeResponse {
 		r.NationalityID = *e.NationalityID
 	}
 	if e.Passport != nil {
-		r.Passport = *e.Passport
+		r.Passport = decryptIfLooksEncrypted(*e.Passport)
 	}
 	if e.POB != nil {
 		r.POB = *e.POB
@@ -532,10 +552,10 @@ func (e *Employee) ToResponse() EmployeeResponse {
 		r.DOB = *e.DOB
 	}
 	if e.PhoneNumber != nil {
-		r.PhoneNumber = *e.PhoneNumber
+		r.PhoneNumber = decryptIfLooksEncrypted(*e.PhoneNumber)
 	}
 	if e.Email != nil {
-		r.Email = *e.Email
+		r.Email = decryptIfLooksEncrypted(*e.Email)
 	}
 	if e.ReligionID != nil {
 		r.ReligionID = e.ReligionID.String()
