@@ -768,3 +768,25 @@ func TestService_DeleteCompetencyScoreDetail(t *testing.T) {
 		t.Fatal("expected error after deleting competency score detail")
 	}
 }
+
+// TestGenerateUniqueCode memverifikasi code skala dibuat otomatis dari nama:
+// UPPER_SNAKE_CASE + suffix numerik bila kode dasar sudah dipakai.
+func TestGenerateUniqueCode(t *testing.T) {
+	cases := []struct {
+		name     string
+		existing map[string]bool
+		want     string
+	}{
+		{"Skala 5 Poin", nil, "SKALA_5_POIN"},
+		{"5-Point Scale", nil, "5_POINT_SCALE"},
+		{"duplikat", map[string]bool{"DUPLIKAT": true}, "DUPLIKAT_2"},
+		{"duplikat", map[string]bool{"DUPLIKAT": true, "DUPLIKAT_2": true}, "DUPLIKAT_3"},
+		{"!!!", nil, "SCALE"},
+	}
+	for _, c := range cases {
+		got := generateUniqueCode(c.name, c.existing)
+		if got != c.want {
+			t.Errorf("generateUniqueCode(%q) = %q, want %q", c.name, got, c.want)
+		}
+	}
+}

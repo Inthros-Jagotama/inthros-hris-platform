@@ -7,8 +7,9 @@ import "time"
 // =========================================================================
 
 type CreateRatingScaleRequest struct {
+	// Code tidak diterima dari client — dibuat otomatis dari Name di service
+	// (Service.generateUniqueCode), jadi form pembuatan tidak perlu memintanya.
 	Name        string                    `json:"name" binding:"required,max=255"`
-	Code        string                    `json:"code" binding:"required,max=50"`
 	Description *string                   `json:"description"`
 	Status      string                    `json:"status" binding:"omitempty,oneof=active inactive"`
 	Items       []RatingScaleItemRequest  `json:"items"`

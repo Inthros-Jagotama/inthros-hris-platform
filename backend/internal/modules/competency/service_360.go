@@ -3,6 +3,7 @@ package competency
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -17,14 +18,58 @@ func calcTotalPages(total int64, perPage int) int {
 	return tp
 }
 
+// toCodeSet mengubah daftar code menjadi set untuk pengecekan duplikat.
+func toCodeSet(codes []string) map[string]bool {
+	set := make(map[string]bool, len(codes))
+	for _, c := range codes {
+		set[c] = true
+	}
+	return set
+}
+
+// generateUniqueCode mengubah nama menjadi kode UPPER_SNAKE_CASE (mis.
+// "Skala 5 Poin" -> "SKALA_5_POIN") dan menambahkan suffix numerik bila kode
+// dasar sudah dipakai — pola sama attendance.generateUniqueCode.
+func generateUniqueCode(name string, existing map[string]bool) string {
+	var b strings.Builder
+	lastUnderscore := false
+	for _, r := range strings.ToUpper(strings.TrimSpace(name)) {
+		switch {
+		case r >= 'A' && r <= 'Z' || r >= '0' && r <= '9':
+			b.WriteRune(r)
+			lastUnderscore = false
+		default:
+			if !lastUnderscore && b.Len() > 0 {
+				b.WriteRune('_')
+				lastUnderscore = true
+			}
+		}
+	}
+	base := strings.TrimSuffix(b.String(), "_")
+	if base == "" {
+		base = "SCALE"
+	}
+	code := base
+	for i := 2; existing[code]; i++ {
+		code = fmt.Sprintf("%s_%d", base, i)
+	}
+	return code
+}
+
 // =========================================================================
 // Rating Scale
 // =========================================================================
 
 func (s *Service) CreateRatingScale(ctx context.Context, req CreateRatingScaleRequest) (*RatingScaleResponse, error) {
+	// Code dibuat otomatis dari Name (UPPER_SNAKE_CASE + suffix bila duplikat)
+	// — form pembuatan tidak perlu mengisi kode.
+	existingCodes, err := s.repo.FindRatingScaleCodes(ctx)
+	if err != nil {
+		return nil, err
+	}
 	scale := &CompetencyRatingScale{
 		Name: req.Name,
-		Code: req.Code,
+		Code: generateUniqueCode(req.Name, toCodeSet(existingCodes)),
 	}
 	if req.Description != nil {
 		scale.Description = req.Description

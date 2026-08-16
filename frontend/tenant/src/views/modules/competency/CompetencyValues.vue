@@ -57,14 +57,10 @@
 
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('competency_360.edit_scale') : t('competency_360.new_scale')" modal :style="{ width: '620px' }" @hide="resetForm">
       <div class="space-y-3">
-        <div class="grid grid-cols-2 gap-3">
-          <FormRow :label="t('common.name')" required :errors="errors?.name">
-            <TextInput v-model="form.name" maxlength="255" :placeholder="t('common.name')" :class="{ 'p-invalid': errors?.name }" />
-          </FormRow>
-          <FormRow :label="t('competency_360.code')" required :errors="errors?.code">
-            <TextInput v-model="form.code" maxlength="50" :placeholder="t('competency_360.code_placeholder')" :class="{ 'p-invalid': errors?.code }" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('common.name')" required :errors="errors?.name">
+          <TextInput v-model="form.name" maxlength="255" :placeholder="t('common.name')" :class="{ 'p-invalid': errors?.name }" />
+        </FormRow>
+        <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('competency_360.code_auto_hint') }}</p>
         <FormRow :label="t('common.description')" :errors="errors?.description">
           <TextInput v-model="form.description" textarea :rows="2" />
         </FormRow>
@@ -168,7 +164,7 @@ const skeletonColumns = [
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 
 function defaultForm() {
-  return { name: '', code: '', description: '', status: 'active', items: [] }
+  return { name: '', description: '', status: 'active', items: [] }
 }
 
 function newItem() {
@@ -213,7 +209,6 @@ function openDialog(item) {
   form.value = item
     ? {
         name: item.name || '',
-        code: item.code || '',
         description: item.description || '',
         status: item.status || 'active',
         items: (item.items || []).map(i => ({ value: i.value, label: i.label, description: i.description || '', weight: i.weight ?? 1, sort_order: i.sort_order || 0 }))
@@ -233,12 +228,10 @@ function resetForm() {
 async function handleSave() {
   errors.value = {}
   if (!form.value.name?.trim()) { errors.value = { name: t('form.required') }; return }
-  if (!form.value.code?.trim()) { errors.value = { code: t('form.required') }; return }
   saving.value = true
   try {
     const payload = {
       name: form.value.name.trim(),
-      code: form.value.code.trim(),
       description: form.value.description?.trim() || '',
       status: form.value.status || 'active',
       items: form.value.items

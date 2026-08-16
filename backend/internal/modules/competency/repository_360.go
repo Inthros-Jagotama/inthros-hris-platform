@@ -68,6 +68,20 @@ func (r *Repository) FindAllRatingScales(ctx context.Context, page, perPage int,
 	return list, total, nil
 }
 
+// FindRatingScaleCodes mengambil seluruh code skala yang sudah ada — dipakai
+// generate code otomatis dari Name (CreateRatingScale) agar tidak duplikat.
+func (r *Repository) FindRatingScaleCodes(ctx context.Context) ([]string, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var codes []string
+	if err := db.WithContext(ctx).Model(&CompetencyRatingScale{}).Pluck("code", &codes).Error; err != nil {
+		return nil, err
+	}
+	return codes, nil
+}
+
 func (r *Repository) UpdateRatingScale(ctx context.Context, scale *CompetencyRatingScale) error {
 	db, err := r.getDB(ctx)
 	if err != nil {
