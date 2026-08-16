@@ -2181,7 +2181,8 @@
       "recruitment": "Recruitment",
       "recruitment_offer": "Candidate Offer",
       "business_travel": "Business Travel",
-      "business_travel_settlement": "Business Travel Settlement"
+      "business_travel_settlement": "Business Travel Settlement",
+      "competency_360_assessment": "Competency 360 Assessment"
     }
   },
   "notification": {
