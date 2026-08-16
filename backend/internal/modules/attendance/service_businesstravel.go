@@ -307,6 +307,78 @@ func (s *Service) CancelBusinessTravel(ctx context.Context, id string) (*Busines
 	return businessTravelToResponse(travel), nil
 }
 
+// AddBusinessTravelParticipant menambahkan satu peserta (employee atau
+// non-employee) ke travel yang sudah ada. Terpisah dari
+// CreateBusinessTravel's inline participants array, simetris dengan
+// AddBusinessTravelDestination/Activity/Schedule.
+func (s *Service) AddBusinessTravelParticipant(ctx context.Context, travelIDStr string, req CreateBusinessTravelParticipantRequest) (*BusinessTravelParticipantResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	if _, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, travelID); err != nil {
+		return nil, err
+	}
+	participant := &BusinessTravelParticipant{
+		BusinessTravelID: travelID,
+		ParticipantType:  ParticipantType(strings.ToUpper(req.ParticipantType)),
+		Role:             ParticipantRole(strings.ToUpper(req.Role)),
+	}
+	if participant.ParticipantType == "" {
+		participant.ParticipantType = ParticipantTypeEmployee
+	}
+	if participant.Role == "" {
+		participant.Role = ParticipantRoleMember
+	}
+	if req.EmployeeID != "" {
+		if empID, err := uuid.Parse(req.EmployeeID); err == nil {
+			participant.EmployeeID = &empID
+		}
+	}
+	if req.Name != "" {
+		participant.Name = &req.Name
+	}
+	if req.Organization != "" {
+		participant.Organization = &req.Organization
+	}
+	if req.Position != "" {
+		participant.Position = &req.Position
+	}
+	if req.IdentityNumber != "" {
+		participant.IdentityNumber = &req.IdentityNumber
+	}
+	if req.Email != "" {
+		participant.Email = &req.Email
+	}
+	if req.Phone != "" {
+		participant.Phone = &req.Phone
+	}
+	if req.Notes != "" {
+		participant.Notes = &req.Notes
+	}
+	if err := s.repo.CreateParticipant(ctx, participant); err != nil {
+		return nil, err
+	}
+	resp := businessTravelParticipantToResponse(participant)
+	return &resp, nil
+}
+
+func (s *Service) ListBusinessTravelParticipants(ctx context.Context, travelIDStr string) ([]BusinessTravelParticipantResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	participants, err := s.repo.ListParticipantsByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]BusinessTravelParticipantResponse, 0, len(participants))
+	for i := range participants {
+		responses = append(responses, businessTravelParticipantToResponse(&participants[i]))
+	}
+	return responses, nil
+}
+
 // AddBusinessTravelDestination menambahkan satu tujuan (kota/negara) ke
 // travel yang sudah ada. Terpisah dari CreateBusinessTravel's inline
 // destinations array supaya destination bisa ditambah setelah travel

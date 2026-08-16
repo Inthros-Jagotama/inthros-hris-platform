@@ -38,9 +38,12 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <!-- ── Participants ── -->
           <div class="rounded-lg border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
-              <i class="pi pi-users text-indigo-500 text-sm"></i>
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.participants') }}</h3>
+            <div class="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-users text-indigo-500 text-sm"></i>
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.participants') }}</h3>
+              </div>
+              <Button icon="pi pi-plus" size="small" text @click="openParticipantDialog" />
             </div>
             <div v-if="travel.participants?.length" class="divide-y divide-gray-100 dark:divide-gray-800">
               <div v-for="p in travel.participants" :key="p.id" class="flex items-center justify-between px-3 py-2.5 text-sm">
@@ -254,6 +257,34 @@
       </div>
     </div>
 
+    <!-- ── Dialog: Participant ── -->
+    <Dialog v-model:visible="participantDialogVisible" :header="t('business_travel.add_participant')" modal :style="{ width: '460px' }">
+      <div class="space-y-3">
+        <FormRow :label="t('business_travel.participant_type')" required>
+          <Select v-model="participantForm.participant_type" :options="participantTypeOptions" class="w-full" />
+        </FormRow>
+        <FormRow v-if="participantForm.participant_type === 'EMPLOYEE'" :label="t('business_travel.employee_id')" required>
+          <Select v-model="participantForm.employee_id" :options="employeeOptions" optionLabel="label" optionValue="value" filter showClear class="w-full" :placeholder="t('attendance.select_employee')" />
+        </FormRow>
+        <FormRow :label="t('business_travel.participant_name')" :required="participantForm.participant_type === 'NON_EMPLOYEE'">
+          <TextInput v-model="participantForm.name" />
+        </FormRow>
+        <FormRow v-if="participantForm.participant_type === 'NON_EMPLOYEE'" :label="t('business_travel.organization')">
+          <TextInput v-model="participantForm.organization" />
+        </FormRow>
+        <FormRow :label="t('business_travel.role')">
+          <Select v-model="participantForm.role" :options="participantRoleOptions" class="w-full" />
+        </FormRow>
+        <FormRow :label="t('business_travel.phone')">
+          <TextInput v-model="participantForm.phone" />
+        </FormRow>
+      </div>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="participantDialogVisible = false" />
+        <Button :label="t('common.save')" size="small" :loading="savingParticipant" @click="handleSaveParticipant" />
+      </template>
+    </Dialog>
+
     <!-- ── Dialog: Destination ── -->
     <Dialog v-model:visible="destinationDialogVisible" :header="t('business_travel.add_destination')" modal :style="{ width: '460px' }">
       <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('business_travel.destination_hint') }}</p>
@@ -410,6 +441,8 @@ const activities = ref([])
 const schedules = ref([])
 const travelDocuments = ref([])
 const uploadingTravelDoc = ref(false)
+const employees = ref([])
+const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_id})`, value: e.id })))
 const fundings = ref([])
 const fundingMethods = ref([])
 const expenses = ref([])
@@ -484,6 +517,9 @@ async function loadSchedules() {
 async function loadTravelDocuments() {
   try { travelDocuments.value = (await api.get(`/api/v1/tenant/attendance/business-travels/${travelId}/documents`)).data?.data || [] } catch { travelDocuments.value = [] }
 }
+async function loadEmployees() {
+  try { employees.value = (await api.get('/api/v1/tenant/employees', { params: { per_page: 500 } })).data?.data || [] } catch { employees.value = [] }
+}
 async function loadFundingMethods() {
   try { fundingMethods.value = (await api.get('/api/v1/tenant/attendance/business-travel-funding-methods')).data?.data || [] } catch { fundingMethods.value = [] }
 }
@@ -511,7 +547,7 @@ async function loadAll() {
   try {
     await loadTravel()
     await Promise.all([
-      loadActivities(), loadSchedules(), loadTravelDocuments(), loadFundingMethods(), loadFundings(),
+      loadActivities(), loadSchedules(), loadTravelDocuments(), loadEmployees(), loadFundingMethods(), loadFundings(),
       loadExpenseCategories(), loadExpenses(), loadSettlements(), loadRefunds(), loadReimbursements()
     ])
   } catch (e) {
@@ -544,6 +580,31 @@ async function handleCancel() {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
   } finally {
     cancelling.value = false
+  }
+}
+
+// ── Participant ──
+const participantDialogVisible = ref(false)
+const savingParticipant = ref(false)
+const participantForm = ref({ participant_type: 'EMPLOYEE', employee_id: '', name: '', organization: '', role: 'MEMBER', phone: '' })
+const participantTypeOptions = ['EMPLOYEE', 'NON_EMPLOYEE']
+const participantRoleOptions = ['LEADER', 'MEMBER', 'DRIVER', 'NARASUMBER', 'CLIENT', 'CONSULTANT', 'OTHER']
+function openParticipantDialog() {
+  participantForm.value = { participant_type: 'EMPLOYEE', employee_id: '', name: '', organization: '', role: 'MEMBER', phone: '' }
+  participantDialogVisible.value = true
+}
+async function handleSaveParticipant() {
+  if (participantForm.value.participant_type === 'EMPLOYEE' && !participantForm.value.employee_id?.trim()) return
+  if (participantForm.value.participant_type === 'NON_EMPLOYEE' && !participantForm.value.name?.trim()) return
+  savingParticipant.value = true
+  try {
+    await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/participants`, participantForm.value)
+    participantDialogVisible.value = false
+    await loadTravel()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  } finally {
+    savingParticipant.value = false
   }
 }
 

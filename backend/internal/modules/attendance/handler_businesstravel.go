@@ -88,6 +88,28 @@ func (h *Handler) SubmitBusinessTravel(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+func (h *Handler) AddBusinessTravelParticipant(c *gin.Context) {
+	var req CreateBusinessTravelParticipantRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.AddBusinessTravelParticipant(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListBusinessTravelParticipants(c *gin.Context) {
+	resp, err := h.service.ListBusinessTravelParticipants(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) AddBusinessTravelDestination(c *gin.Context) {
 	var req CreateBusinessTravelDestinationRequest
 	if !httputil.BindAndValidate(c, &req) {
