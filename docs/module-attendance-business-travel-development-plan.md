@@ -1905,14 +1905,12 @@ ip_address
 
 ## Phase 10 — Payroll / Accounting
 
-- [ ] Payroll treatment.
-- [ ] Travel allowance.
-- [ ] Daily allowance.
-- [ ] Accounting mapping.
-- [ ] Advance accounting.
-- [ ] Reimbursement payable.
-- [ ] Refund.
-- [ ] Company Paid.
+- [x] Payroll treatment — **keputusan desain penting, baca §54.8**: `business_travel_expense_categories.payroll_treatment` (§12) di-repurpose untuk menyimpan **UUID `SalaryComponent`** milik module Payroll secara langsung, bukan label teks bebas seperti tersirat di §12. Alasan: payroll module tidak punya lookup component-by-code, hanya by-ID (`FindSalaryComponentByID`), jadi tidak ada cara resolve dari kode/label ke component tanpa menambah endpoint baru di module Payroll (di luar scope perubahan ini, risiko lebih tinggi karena Payroll adalah module produksi dengan kalkulasi pajak yang sensitif).
+- [x] Travel allowance / [x] Daily allowance — ditangani generik: expense apapun dengan kategori yang `payroll_treatment`-nya diisi UUID component valid akan didorong ke payroll sebagai `SalaryEmployeeAdjustment` satu-kali, terlepas dari nama kategorinya (admin yang menentukan kategori mana yang "Daily Allowance" dsb dengan mengisi `payroll_treatment`).
+- [ ] Accounting mapping — **belum diimplementasikan.** §39 minta accounting mapping configurable (Advance/Travel Expense/Reimbursement Payable/Refund/Company Paid ke akun COA) — tidak ada module Accounting/GL di codebase ini untuk diintegrasikan, jadi bagian ini di-skip sepenuhnya, bukan sekadar tertunda.
+- [ ] Advance accounting / [ ] Reimbursement payable / [ ] Refund / [ ] Company Paid (accounting) — sama seperti di atas, tidak ada sink accounting untuk didorong. Data mentahnya sendiri (advance dari funding, actual expense, refund, reimbursement) sudah lengkap tercatat di tabel-tabel Phase 4-8 dan bisa jadi sumber laporan/ekspor manual ke sistem akuntansi eksternal.
+
+**Implementasi (§54.8):** `pushBusinessTravelPayrollAdjustments` dipanggil dari `HandleSettlementApprovalStatusChange` saat settlement APPROVED — iterasi `SettlementItem` ber-`ItemType=ACTUAL`, ambil `Expense` → `ExpenseCategory.PayrollTreatment` (parse sebagai UUID component) → `Expense.ParticipantID` → `Participant.EmployeeID`, lalu push `SalaryEmployeeAdjustment(source_type="BUSINESS_TRAVEL", status="APPROVED")` via `Service.payrollAdjuster` (interface `PayrollAdjustmentProvider`, diwire di `main.go` dengan adapter `attendancePayrollAdjusterAdapter` yang membungkus `*payroll.Repository` — **tidak ada kode baru ditambahkan ke module `payroll`**, murni reuse `CreateSalaryEmployeeAdjustment` yang sudah ada). Item non-payroll (kategori tanpa `payroll_treatment`, atau expense tanpa participant employee) dilewati diam-diam. Best-effort: gagal push tidak menggagalkan approval settlement.
 
 ## Phase 11 — Documents
 
@@ -2386,7 +2384,27 @@ type ModuleSubscriptionChecker interface {
 
 Tambahkan test khusus (`approval_integration_test.go`-style, mis. `reimbursement_subscription_test.go`) yang memverifikasi kedua cabang: subscribed → terintegrasi, tidak subscribed → mandiri, meniru pola `approval/module_subscription_test.go`.
 
-## 54.8 Urutan Kerja yang Disarankan
+## 54.8 Integrasi Payroll (§38 plan doc)
+
+Business Travel tidak mengimpor package `payroll` secara langsung — narrow-interface-plus-adapter, pola sama seperti `ApprovalEngine`/`Notifier`/`ModuleSubscriptionChecker`:
+
+```go
+type PayrollAdjustmentProvider interface {
+    CreateAdjustment(ctx context.Context, employeeID, salaryComponentID uuid.UUID, periodYear, periodMonth int, amount float64, sourceType, reason string) error
+}
+```
+
+Diwire di `main.go` via `Service.SetPayrollAdjuster(attendancePayrollAdjusterAdapter{repo: payrollRepo})`, di mana adapter itu murni memanggil `payrollRepo.CreateSalaryEmployeeAdjustment` yang sudah ada — **tidak ada kode baru di module `payroll`**.
+
+**Keputusan desain — `payroll_treatment` di-repurpose jadi UUID component**: field `business_travel_expense_categories.payroll_treatment` (VARCHAR di migration `127`) sekarang diisi UUID `SalaryComponent` milik Payroll secara langsung (bukan label bebas seperti "TRAVEL_ALLOWANCE" yang tersirat di §12/§38). Alasan: Payroll module hanya punya `FindSalaryComponentByID`, tidak ada lookup by-code — menambah endpoint lookup baru ke module Payroll (module produksi dengan kalkulasi pajak sensitif) dianggap risiko yang tidak sepadan untuk fitur ini. Admin yang mengelola expense category harus tahu UUID component target saat setup (tidak ada dropdown picker di FE untuk ini — **gap FE yang belum ditutup**).
+
+Trigger: `pushBusinessTravelPayrollAdjustments` dipanggil dari `HandleSettlementApprovalStatusChange` saat settlement APPROVED (bukan saat expense dibuat, karena expense bisa direvisi/dihapus sebelum settlement final). Untuk setiap `SettlementItem` ber-`ItemType=ACTUAL`: resolve `Expense` → `ExpenseCategory.PayrollTreatment` (harus valid UUID) → `Expense.ParticipantID` → `Participant.EmployeeID`. Item yang tidak bisa diresolusi (kategori tanpa payroll_treatment, atau expense tanpa participant employee) dilewati diam-diam — ini yang memastikan Refund/Reimbursement/Advance **tidak** otomatis dianggap salary (Rule di §38), karena hanya actual expense item yang eksplisit dikonfigurasi payroll-eligible yang didorong.
+
+Periode payroll (`period_year`/`period_month`) diambil dari `travel.EndDate`, bukan tanggal settlement disetujui — asumsinya expense atribusinya ke bulan perjalanan terjadi, bukan bulan settlement diproses (bisa beda bulan). `SourceType` diisi `"BUSINESS_TRAVEL"` dan `Status` langsung `"APPROVED"` (bukan `"DRAFT"`) supaya otomatis terhitung payroll run berikutnya tanpa approval manual tambahan — settlement sendiri sudah melalui approval module.
+
+**Belum ada test khusus** untuk alur ini (`payroll_integration_test.go`-style) — perlu ditambahkan sebelum dianggap production-ready.
+
+## 54.9 Urutan Kerja yang Disarankan
 
 Urutan ini menyelaraskan Phase 1–12 (section 49) dengan struktur BE/FE di atas agar tiap tahap punya deliverable yang bisa dites end-to-end:
 

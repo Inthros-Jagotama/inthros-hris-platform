@@ -649,6 +649,28 @@ func (a approvalModuleCheckerAdapter) ListActiveModules(companyID string) ([]str
 	return slugs, nil
 }
 
+// attendancePayrollAdjusterAdapter wraps *payroll.Repository so Business
+// Travel can push one-off SalaryEmployeeAdjustment records (§38, §54.8)
+// without the attendance package importing payroll directly — same
+// narrow-interface-plus-adapter pattern as approvalModuleCheckerAdapter.
+type attendancePayrollAdjusterAdapter struct {
+	repo *payroll.Repository
+}
+
+func (a attendancePayrollAdjusterAdapter) CreateAdjustment(ctx context.Context, employeeID, salaryComponentID uuid.UUID, periodYear, periodMonth int, amount float64, sourceType, reason string) error {
+	adj := &payroll.SalaryEmployeeAdjustment{
+		EmployeeID:        employeeID,
+		SalaryComponentID: salaryComponentID,
+		PeriodYear:        periodYear,
+		PeriodMonth:       periodMonth,
+		Amount:            amount,
+		SourceType:        sourceType,
+		Reason:            &reason,
+		Status:            "APPROVED",
+	}
+	return a.repo.CreateSalaryEmployeeAdjustment(ctx, adj)
+}
+
 // onPremiseLister mengimplementasikan middleware.CompanyModuleLister untuk mode
 // On-Premise: daftar modul yang diizinkan diambil dari file .lic RSA
 // (berlaku untuk semua company pada deployment tunggal tersebut).
@@ -1072,6 +1094,9 @@ func main() {
 	// reimbursement claim. Reuses the same modulemgmt adapter approval.Service
 	// already uses for its own module gating, rather than duplicating it.
 	attendanceSvc.SetModuleChecker(approvalModuleCheckerAdapter{svc: modulemgmtSvc})
+	// §38/§54.8: push payroll-eligible business travel expense items as
+	// one-off salary adjustments once their settlement is approved.
+	attendanceSvc.SetPayrollAdjuster(attendancePayrollAdjusterAdapter{repo: payrollRepo})
 	approvalSvc.RegisterStatusHandler("attendance", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return attendanceSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})

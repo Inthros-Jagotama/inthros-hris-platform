@@ -1172,6 +1172,7 @@ func (s *Service) HandleSettlementApprovalStatusChange(ctx context.Context, docu
 		default:
 			settlement.Status = SettlementStatusBalanced
 		}
+		s.pushBusinessTravelPayrollAdjustments(ctx, settlement)
 	case "REJECTED":
 		settlement.Status = SettlementStatusRejected
 	default:
@@ -1402,6 +1403,64 @@ func (s *Service) maybeSettleAndCloseTravel(ctx context.Context, settlementID, t
 	travel.Status = TravelStatusClosed
 	if err := s.repo.UpdateBusinessTravel(ctx, travel); err != nil {
 		s.logger.Warn("Failed to close travel", zap.String("business_travel_id", travelID.String()), zap.Error(err))
+	}
+}
+
+// pushBusinessTravelPayrollAdjustments pushes payroll-eligible actual
+// expense items onto payroll as one-off SalaryEmployeeAdjustment records
+// (§38 plan doc: Daily/Travel Allowance are payroll components, but
+// Reimbursement/Refund/Advance are NOT automatically salary). Eligibility
+// is driven entirely by ExpenseCategory.PayrollTreatment: since payroll has
+// no lookup-by-code for salary components, this field is repurposed to hold
+// the target SalaryComponent's UUID directly (set when creating/updating an
+// expense category) rather than a free-text treatment label — documented
+// here and in the plan doc (§54.8) since it's a real design decision, not
+// what §12 originally implied. Categories without a valid UUID there are
+// skipped (treated as non-payroll, e.g. plain reimbursable expenses).
+// Best-effort per item: logs and continues rather than failing the
+// settlement approval callback.
+func (s *Service) pushBusinessTravelPayrollAdjustments(ctx context.Context, settlement *Settlement) {
+	if s.payrollAdjuster == nil {
+		return
+	}
+	travel, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, settlement.BusinessTravelID)
+	if err != nil {
+		s.logger.Warn("Failed to load travel while pushing payroll adjustments", zap.String("settlement_id", settlement.ID.String()), zap.Error(err))
+		return
+	}
+	periodYear, periodMonth := travel.EndDate.Year(), int(travel.EndDate.Month())
+	reason := fmt.Sprintf("Business Travel %s", travel.RequestNumber)
+
+	for _, item := range settlement.Items {
+		if item.ItemType != SettlementItemActual || item.ExpenseID == nil {
+			continue
+		}
+		expense, err := s.repo.FindExpenseByID(ctx, *item.ExpenseID)
+		if err != nil {
+			continue
+		}
+		category, err := s.repo.FindExpenseCategoryByID(ctx, expense.ExpenseCategoryID)
+		if err != nil || category.PayrollTreatment == nil || *category.PayrollTreatment == "" {
+			continue
+		}
+		componentID, err := uuid.Parse(*category.PayrollTreatment)
+		if err != nil {
+			continue
+		}
+		if expense.ParticipantID == nil {
+			continue
+		}
+		participant, err := s.repo.FindParticipantByID(ctx, *expense.ParticipantID)
+		if err != nil || participant.EmployeeID == nil {
+			continue
+		}
+		if err := s.payrollAdjuster.CreateAdjustment(ctx, *participant.EmployeeID, componentID, periodYear, periodMonth, item.Amount, "BUSINESS_TRAVEL", reason); err != nil {
+			s.logger.Warn("Failed to push business travel payroll adjustment",
+				zap.String("settlement_id", settlement.ID.String()),
+				zap.String("expense_id", expense.ID.String()),
+				zap.Error(err),
+			)
+		}
 	}
 }
 

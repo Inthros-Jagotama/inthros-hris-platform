@@ -75,12 +75,23 @@ type ModuleSubscriptionChecker interface {
 	ListActiveModules(companyID string) ([]string, error)
 }
 
+// PayrollAdjustmentProvider abstracts payroll.Repository.CreateSalaryEmployeeAdjustment
+// so Business Travel can push payroll-eligible expense items (Daily/Travel
+// Allowance, §38) as one-off SalaryEmployeeAdjustment records without
+// importing the payroll package directly. Implemented via an adapter in
+// main.go wrapping the same *payroll.Repository instance the payroll module
+// itself uses — no new payroll code required (§54.8 in the plan doc).
+type PayrollAdjustmentProvider interface {
+	CreateAdjustment(ctx context.Context, employeeID, salaryComponentID uuid.UUID, periodYear, periodMonth int, amount float64, sourceType, reason string) error
+}
+
 type Service struct {
-	repo           *Repository
-	logger         *zap.Logger
-	approvalEngine ApprovalEngine
-	notifier       Notifier
-	moduleChecker  ModuleSubscriptionChecker
+	repo            *Repository
+	logger          *zap.Logger
+	approvalEngine  ApprovalEngine
+	notifier        Notifier
+	moduleChecker   ModuleSubscriptionChecker
+	payrollAdjuster PayrollAdjustmentProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -95,6 +106,11 @@ func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 // SetModuleChecker wires module-subscription lookups into this service (§54.7).
 func (s *Service) SetModuleChecker(mc ModuleSubscriptionChecker) {
 	s.moduleChecker = mc
+}
+
+// SetPayrollAdjuster wires payroll adjustment push into this service (§38, §54.8).
+func (s *Service) SetPayrollAdjuster(p PayrollAdjustmentProvider) {
+	s.payrollAdjuster = p
 }
 
 // SetNotifier wires the notification module into this service so overtime

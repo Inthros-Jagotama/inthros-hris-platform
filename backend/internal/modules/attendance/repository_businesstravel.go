@@ -87,6 +87,18 @@ func (r *Repository) ListParticipantsByTravel(ctx context.Context, travelID uuid
 	return participants, nil
 }
 
+func (r *Repository) FindParticipantByID(ctx context.Context, id uuid.UUID) (*BusinessTravelParticipant, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var p BusinessTravelParticipant
+	if err := db.First(&p, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("participant not found: %w", err)
+	}
+	return &p, nil
+}
+
 // =========================================================================
 // Destinations
 // =========================================================================
