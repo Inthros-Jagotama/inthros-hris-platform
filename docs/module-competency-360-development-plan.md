@@ -1214,14 +1214,14 @@ Persisten: `FinalizeTarget` menulis snapshot ke `competency_scores` (per employe
 
 ## Phase 7 — Frontend
 
-- [ ] Master competency.
-- [ ] Framework/template.
-- [ ] Event management.
-- [ ] Rater assignment.
-- [ ] My assessment.
-- [ ] Manager assessment.
-- [ ] Result dashboard.
-- [ ] HR reporting.
+- [x] Master competency.
+- [x] Framework/template.
+- [x] Event management.
+- [x] Rater assignment.
+- [x] My assessment.
+- [x] Manager assessment.
+- [x] Result dashboard.
+- [x] HR reporting.
 
 ## Phase 8 — Testing & Hardening
 
