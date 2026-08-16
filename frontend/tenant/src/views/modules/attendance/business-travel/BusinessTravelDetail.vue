@@ -34,81 +34,103 @@
       </div>
 
       <!-- ── Info ── -->
-      <div v-if="activeTab === 'info'" class="p-4 space-y-5">
-        <div>
-          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">{{ t('business_travel.participants') }}</h3>
-          <div v-if="travel.participants?.length" class="divide-y divide-gray-100 dark:divide-gray-700">
-            <div v-for="p in travel.participants" :key="p.id" class="flex items-center justify-between py-2 text-sm">
-              <span class="text-gray-700 dark:text-gray-200">{{ p.name || p.employee_id }}</span>
-              <div class="flex items-center gap-2">
-                <Tag :value="p.role" severity="secondary" class="!text-xs !px-1.5 !py-0.5" />
-                <Tag :value="p.participant_type" severity="info" class="!text-xs !px-1.5 !py-0.5" />
+      <div v-if="activeTab === 'info'" class="p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- ── Participants ── -->
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
+              <i class="pi pi-users text-indigo-500 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.participants') }}</h3>
+            </div>
+            <div v-if="travel.participants?.length" class="divide-y divide-gray-100 dark:divide-gray-800">
+              <div v-for="p in travel.participants" :key="p.id" class="flex items-center justify-between px-3 py-2.5 text-sm">
+                <span class="text-gray-700 dark:text-gray-200">{{ p.name || p.employee_id }}</span>
+                <div class="flex items-center gap-2">
+                  <Tag :value="p.role" severity="secondary" class="!text-xs !px-1.5 !py-0.5" />
+                  <Tag :value="p.participant_type" severity="info" class="!text-xs !px-1.5 !py-0.5" />
+                </div>
               </div>
             </div>
+            <p v-else class="text-xs text-gray-400 px-3 py-3">{{ t('business_travel.empty') }}</p>
           </div>
-          <p v-else class="text-xs text-gray-400">{{ t('business_travel.empty') }}</p>
-        </div>
 
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.destinations') }}</h3>
-            <Button :label="t('common.add')" icon="pi pi-plus" size="small" text @click="openDestinationDialog" />
-          </div>
-          <div v-if="travel.destinations?.length" class="divide-y divide-gray-100 dark:divide-gray-700">
-            <div v-for="d in travel.destinations" :key="d.id" class="py-2 text-sm text-gray-700 dark:text-gray-200">
-              {{ [d.city, d.province, d.country].filter(Boolean).join(', ') || d.location || '-' }}
-              <span v-if="d.purpose" class="text-gray-400 dark:text-gray-500">— {{ d.purpose }}</span>
-            </div>
-          </div>
-          <p v-else class="text-xs text-gray-400">{{ t('business_travel.empty') }}</p>
-        </div>
-
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.activities') }}</h3>
-            <Button :label="t('common.add')" icon="pi pi-plus" size="small" text @click="openActivityDialog" />
-          </div>
-          <div v-if="activities.length" class="divide-y divide-gray-100 dark:divide-gray-700">
-            <div v-for="a in activities" :key="a.id" class="py-2 text-sm">
-              <span class="text-gray-700 dark:text-gray-200 font-medium">{{ a.title }}</span>
-              <span class="text-gray-400 dark:text-gray-500 ml-2">{{ formatDate(a.activity_date, locale) }}</span>
-            </div>
-          </div>
-          <p v-else class="text-xs text-gray-400">{{ t('business_travel.empty') }}</p>
-        </div>
-
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.schedules') }}</h3>
-            <Button :label="t('common.add')" icon="pi pi-plus" size="small" text @click="openScheduleDialog" />
-          </div>
-          <div v-if="schedules.length" class="divide-y divide-gray-100 dark:divide-gray-700">
-            <div v-for="s in schedules" :key="s.id" class="py-2 text-sm">
-              <Tag :value="s.schedule_type" severity="secondary" class="!text-xs !px-1.5 !py-0.5 mr-2" />
-              <span class="text-gray-700 dark:text-gray-200">{{ s.origin || '-' }} → {{ s.destination || '-' }}</span>
-              <span class="text-gray-400 dark:text-gray-500 ml-2">({{ s.transportation_type }})</span>
-            </div>
-          </div>
-          <p v-else class="text-xs text-gray-400">{{ t('business_travel.empty') }}</p>
-        </div>
-
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.documents') }}</h3>
-            <Button :label="t('common.add')" icon="pi pi-upload" size="small" text :loading="uploadingTravelDoc" @click="triggerTravelDocUpload" />
-          </div>
-          <div v-if="travelDocuments.length" class="divide-y divide-gray-100 dark:divide-gray-700">
-            <div v-for="d in travelDocuments" :key="d.id" class="py-2 flex items-center justify-between text-sm">
-              <a :href="d.file_path" target="_blank" class="text-emerald-600 dark:text-emerald-400 hover:underline">
-                <i class="pi pi-paperclip mr-1"></i>{{ d.file_name }}
-              </a>
+          <!-- ── Destinations ── -->
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
               <div class="flex items-center gap-2">
-                <Tag :value="d.document_type" severity="secondary" class="!text-xs !px-1.5 !py-0.5" />
-                <Button icon="pi pi-trash" size="small" text severity="danger" @click="handleDeleteTravelDocument(d)" />
+                <i class="pi pi-map-marker text-rose-500 text-sm"></i>
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.destinations') }}</h3>
+              </div>
+              <Button icon="pi pi-plus" size="small" text @click="openDestinationDialog" />
+            </div>
+            <div v-if="travel.destinations?.length" class="divide-y divide-gray-100 dark:divide-gray-800">
+              <div v-for="d in travel.destinations" :key="d.id" class="px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200">
+                {{ [d.city, d.province, d.country].filter(Boolean).join(', ') || d.location || '-' }}
+                <span v-if="d.purpose" class="text-gray-400 dark:text-gray-500">— {{ d.purpose }}</span>
               </div>
             </div>
+            <p v-else class="text-xs text-gray-400 px-3 py-3">{{ t('business_travel.empty') }}</p>
           </div>
-          <p v-else class="text-xs text-gray-400">{{ t('business_travel.empty') }}</p>
+
+          <!-- ── Activities ── -->
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-calendar text-amber-500 text-sm"></i>
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.activities') }}</h3>
+              </div>
+              <Button icon="pi pi-plus" size="small" text @click="openActivityDialog" />
+            </div>
+            <div v-if="activities.length" class="divide-y divide-gray-100 dark:divide-gray-800">
+              <div v-for="a in activities" :key="a.id" class="px-3 py-2.5 text-sm">
+                <span class="text-gray-700 dark:text-gray-200 font-medium">{{ a.title }}</span>
+                <span class="text-gray-400 dark:text-gray-500 ml-2">{{ formatDate(a.activity_date, locale) }}</span>
+              </div>
+            </div>
+            <p v-else class="text-xs text-gray-400 px-3 py-3">{{ t('business_travel.empty') }}</p>
+          </div>
+
+          <!-- ── Schedules ── -->
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-send text-blue-500 text-sm"></i>
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.schedules') }}</h3>
+              </div>
+              <Button icon="pi pi-plus" size="small" text @click="openScheduleDialog" />
+            </div>
+            <div v-if="schedules.length" class="divide-y divide-gray-100 dark:divide-gray-800">
+              <div v-for="s in schedules" :key="s.id" class="px-3 py-2.5 text-sm">
+                <Tag :value="s.schedule_type" severity="secondary" class="!text-xs !px-1.5 !py-0.5 mr-2" />
+                <span class="text-gray-700 dark:text-gray-200">{{ s.origin || '-' }} → {{ s.destination || '-' }}</span>
+                <span class="text-gray-400 dark:text-gray-500 ml-2">({{ s.transportation_type }})</span>
+              </div>
+            </div>
+            <p v-else class="text-xs text-gray-400 px-3 py-3">{{ t('business_travel.empty') }}</p>
+          </div>
+
+          <!-- ── Documents ── -->
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 lg:col-span-2">
+            <div class="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-file text-emerald-500 text-sm"></i>
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.documents') }}</h3>
+              </div>
+              <Button icon="pi pi-upload" size="small" text :loading="uploadingTravelDoc" @click="triggerTravelDocUpload" />
+            </div>
+            <div v-if="travelDocuments.length" class="divide-y divide-gray-100 dark:divide-gray-800">
+              <div v-for="d in travelDocuments" :key="d.id" class="px-3 py-2.5 flex items-center justify-between text-sm">
+                <a :href="d.file_path" target="_blank" class="text-emerald-600 dark:text-emerald-400 hover:underline">
+                  <i class="pi pi-paperclip mr-1"></i>{{ d.file_name }}
+                </a>
+                <div class="flex items-center gap-2">
+                  <Tag :value="d.document_type" severity="secondary" class="!text-xs !px-1.5 !py-0.5" />
+                  <Button icon="pi pi-trash" size="small" text severity="danger" @click="handleDeleteTravelDocument(d)" />
+                </div>
+              </div>
+            </div>
+            <p v-else class="text-xs text-gray-400 px-3 py-3">{{ t('business_travel.empty') }}</p>
+          </div>
         </div>
       </div>
 
