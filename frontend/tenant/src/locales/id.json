@@ -642,6 +642,8 @@
     "destinations_hint": "Kota/negara tujuan tidak diisi di sini — tambahkan setelah disimpan, dari halaman detail perjalanan (tab Info).",
     "add_participant": "Tambah Peserta",
     "participant_type": "Jenis Peserta",
+    "participant_type_employee": "Karyawan",
+    "participant_type_non_employee": "Non-Karyawan",
     "employee_id": "ID Karyawan",
     "employee_id_placeholder": "UUID karyawan",
     "participant_name": "Nama",

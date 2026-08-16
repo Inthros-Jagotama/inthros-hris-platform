@@ -47,7 +47,7 @@
             </div>
             <div v-if="travel.participants?.length" class="divide-y divide-gray-100 dark:divide-gray-800">
               <div v-for="p in travel.participants" :key="p.id" class="flex items-center justify-between px-3 py-2.5 text-sm">
-                <span class="text-gray-700 dark:text-gray-200">{{ p.name || p.employee_id }}</span>
+                <span class="text-gray-700 dark:text-gray-200">{{ participantDisplayName(p) }}</span>
                 <div class="flex items-center gap-2">
                   <Tag :value="p.role" severity="secondary" class="!text-xs !px-1.5 !py-0.5" />
                   <Tag :value="p.participant_type" severity="info" class="!text-xs !px-1.5 !py-0.5" />
@@ -261,17 +261,24 @@
     <Dialog v-model:visible="participantDialogVisible" :header="t('business_travel.add_participant')" modal :style="{ width: '460px' }">
       <div class="space-y-3">
         <FormRow :label="t('business_travel.participant_type')" required>
-          <Select v-model="participantForm.participant_type" :options="participantTypeOptions" class="w-full" />
+          <div class="flex items-center gap-4">
+            <div v-for="opt in participantTypeOptions" :key="opt" class="flex items-center gap-2">
+              <RadioButton :modelValue="participantForm.participant_type" :inputId="'ptype-' + opt" :value="opt" @update:modelValue="participantForm.participant_type = $event" />
+              <label :for="'ptype-' + opt" class="text-sm text-gray-700 dark:text-gray-200 cursor-pointer select-none">{{ t('business_travel.participant_type_' + opt.toLowerCase()) }}</label>
+            </div>
+          </div>
         </FormRow>
         <FormRow v-if="participantForm.participant_type === 'EMPLOYEE'" :label="t('business_travel.employee_id')" required>
           <Select v-model="participantForm.employee_id" :options="employeeOptions" optionLabel="label" optionValue="value" filter showClear class="w-full" :placeholder="t('attendance.select_employee')" />
         </FormRow>
-        <FormRow :label="t('business_travel.participant_name')" :required="participantForm.participant_type === 'NON_EMPLOYEE'">
-          <TextInput v-model="participantForm.name" />
-        </FormRow>
-        <FormRow v-if="participantForm.participant_type === 'NON_EMPLOYEE'" :label="t('business_travel.organization')">
-          <TextInput v-model="participantForm.organization" />
-        </FormRow>
+        <template v-else>
+          <FormRow :label="t('business_travel.participant_name')" required>
+            <TextInput v-model="participantForm.name" />
+          </FormRow>
+          <FormRow :label="t('business_travel.organization')">
+            <TextInput v-model="participantForm.organization" />
+          </FormRow>
+        </template>
         <FormRow :label="t('business_travel.role')">
           <Select v-model="participantForm.role" :options="participantRoleOptions" class="w-full" />
         </FormRow>
@@ -420,6 +427,7 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
+import RadioButton from 'primevue/radiobutton'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 import FormRow from '@/components/FormRow.vue'
@@ -499,6 +507,14 @@ function fundingMethodName(id) {
 }
 function expenseCategoryName(id) {
   return expenseCategories.value.find(c => c.id === id)?.name || id?.slice(0, 8) || '-'
+}
+// Participant name for EMPLOYEE type is resolved from the employee list —
+// it's never asked for on the form since it's the employee's own name.
+function participantDisplayName(p) {
+  if (p.participant_type === 'EMPLOYEE') {
+    return employees.value.find(e => e.id === p.employee_id)?.name || p.employee_id
+  }
+  return p.name || '-'
 }
 
 const scheduleTypeOptions = ['DEPARTURE', 'RETURN', 'TRANSFER', 'OTHER']
