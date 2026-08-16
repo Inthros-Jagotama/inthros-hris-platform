@@ -62,7 +62,11 @@ func (r *Repository) FindAllRatingScales(ctx context.Context, page, perPage int,
 	}
 
 	offset := (page - 1) * perPage
-	if err := query.Offset(offset).Limit(perPage).Order("name ASC").Find(&list).Error; err != nil {
+	// Preload Items agar kolom jumlah item & form edit langsung terisi — tanpa
+	// ini Items selalu nil di list (mirip bug CountRatersByTarget dulu).
+	if err := query.Preload("Items", func(db *gorm.DB) *gorm.DB {
+		return db.Order("sort_order ASC, value ASC")
+	}).Offset(offset).Limit(perPage).Order("name ASC").Find(&list).Error; err != nil {
 		return nil, 0, err
 	}
 	return list, total, nil

@@ -1003,3 +1003,48 @@ func TestGetAssessmentDetail_Scale(t *testing.T) {
 		t.Errorf("unexpected first item: %+v", detail.Scale.Items[0])
 	}
 }
+
+// TestListRatingScales_IncludesItems memverifikasi list skala penilaian
+// menyertakan item skala (sebelumnya selalu kosong karena Find() tanpa
+// Preload("Items")) — dasar kolom jumlah item & form edit yang terisi.
+func TestListRatingScales_IncludesItems(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+	ctx := context.Background()
+
+	scale, err := svc.CreateRatingScale(ctx, CreateRatingScaleRequest{
+		Name: "Skala 5 Poin",
+		Items: []RatingScaleItemRequest{
+			{Value: 1, Label: "Sangat Kurang", SortOrder: 0},
+			{Value: 5, Label: "Sangat Baik", SortOrder: 1},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create scale: %v", err)
+	}
+
+	resp, err := svc.ListRatingScales(ctx, 1, 20, "")
+	if err != nil {
+		t.Fatalf("list scales: %v", err)
+	}
+	list, ok := resp.Data.([]RatingScaleResponse)
+	if !ok {
+		t.Fatalf("unexpected data type %T", resp.Data)
+	}
+	var found *RatingScaleResponse
+	for i := range list {
+		if list[i].ID == scale.ID {
+			found = &list[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatal("scale not found in list")
+	}
+	if len(found.Items) != 2 {
+		t.Fatalf("expected 2 items in list scale, got %d", len(found.Items))
+	}
+}
