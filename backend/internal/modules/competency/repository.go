@@ -228,6 +228,23 @@ func (r *Repository) FindCompetencyEventByID(ctx context.Context, id uuid.UUID) 
 	return &e, nil
 }
 
+// FindCompetencyEventsByIDs mengambil beberapa event sekaligus (batch —
+// dipakai resolusi template pada ringkasan rater list target).
+func (r *Repository) FindCompetencyEventsByIDs(ctx context.Context, ids []uuid.UUID) ([]CompetencyEvent, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CompetencyEvent
+	if err := db.Where("id IN ?", ids).Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
 func (r *Repository) FindAllCompetencyEvents(ctx context.Context, page, perPage int) ([]CompetencyEvent, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {

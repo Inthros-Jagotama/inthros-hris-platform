@@ -532,6 +532,10 @@ func (r *Repository) FindSubordinateEmployeeIDsByManager(ctx context.Context, ma
 	if err != nil {
 		return nil, err
 	}
+	// Tenant tanpa tabel organisasi/employments → tidak ada resolusi bawahan.
+	if !db.Migrator().HasTable("employments") || !db.Migrator().HasTable("organizations") {
+		return nil, nil
+	}
 
 	// 1. Organization tempat manager bekerja saat ini.
 	var managerOrgIDStrs []string
@@ -578,6 +582,10 @@ func (r *Repository) FindSuperiorEmployeeIDsBySubject(ctx context.Context, subje
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, err
+	}
+	// Tenant tanpa tabel organisasi/employments → tidak ada resolusi atasan.
+	if !db.Migrator().HasTable("employments") || !db.Migrator().HasTable("organizations") {
+		return nil, nil
 	}
 
 	// 1. Organization tempat subject bekerja saat ini.
@@ -872,6 +880,75 @@ func (r *Repository) CountRatersByTarget(ctx context.Context, targetIDs []uuid.U
 		result[r.TargetID] = r.Count
 	}
 	return result, nil
+}
+
+// RaterGroupCounts — jumlah rater per tipe pada sebuah target.
+type RaterGroupCounts struct {
+	Assigned  int
+	Submitted int
+}
+
+// CountRatersByTargetGrouped mengembalikan ringkasan assigned/submitted per
+// tipe rater untuk sekumpulan target — satu query grup (target_id, rater_type,
+// status). Dasar ringkasan "seharusnya vs sudah diisi" pada list target.
+func (r *Repository) CountRatersByTargetGrouped(ctx context.Context, targetIDs []uuid.UUID) (map[string]map[string]RaterGroupCounts, error) {
+	result := make(map[string]map[string]RaterGroupCounts)
+	if len(targetIDs) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		TargetID  string
+		RaterType string
+		Status    string
+		Count     int
+	}
+	var rows []row
+	// Alias kolom agar GORM Scan memetakan ke field TargetID (lihat
+	// CountRatersByTarget).
+	if err := db.WithContext(ctx).Model(&CompetencyAssessmentRater{}).
+		Select("competency_event_target_id AS target_id, rater_type, status, COUNT(*) AS count").
+		Where("competency_event_target_id IN ?", targetIDs).
+		Group("competency_event_target_id, rater_type, status").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		m, ok := result[r.TargetID]
+		if !ok {
+			m = make(map[string]RaterGroupCounts)
+			result[r.TargetID] = m
+		}
+		c := m[r.RaterType]
+		c.Assigned += r.Count
+		if r.Status == string(RaterStatusSubmitted) {
+			c.Submitted += r.Count
+		}
+		m[r.RaterType] = c
+	}
+	return result, nil
+}
+
+// FindTemplateRaterTypesByTemplateIDs mengambil konfigurasi tipe rater untuk
+// banyak template sekaligus (batch — dipakai ringkasan rater pada list target).
+func (r *Repository) FindTemplateRaterTypesByTemplateIDs(ctx context.Context, templateIDs []uuid.UUID) ([]CompetencyAssessmentTemplateRaterType, error) {
+	if len(templateIDs) == 0 {
+		return nil, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CompetencyAssessmentTemplateRaterType
+	if err := db.Where("template_id IN ?", templateIDs).
+		Order("template_id, created_at ASC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
 }
 
 // ListCommentsByTarget mengambil seluruh komentar response pada sebuah target

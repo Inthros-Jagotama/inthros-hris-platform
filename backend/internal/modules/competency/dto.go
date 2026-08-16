@@ -201,21 +201,40 @@ type CompetencyEventResponse struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
+// RaterTypeSummary — ringkasan per tipe rater pada sebuah target: berapa
+// yang seharusnya (expected, dari template + struktur org), sudah ditugaskan
+// (assigned), dan sudah mengisi (submitted).
+type RaterTypeSummary struct {
+	Expected  int `json:"expected"`
+	Assigned  int `json:"assigned"`
+	Submitted int `json:"submitted"`
+}
+
+// RaterSummary — ringkasan rater target untuk list: expected vs assigned vs
+// submitted, lengkap dengan rincian per tipe rater.
+type RaterSummary struct {
+	Expected  int                         `json:"expected"`
+	Assigned  int                         `json:"assigned"`
+	Submitted int                         `json:"submitted"`
+	Details   map[string]RaterTypeSummary `json:"details"`
+}
+
 type CompetencyEventTargetResponse struct {
-	ID                 string     `json:"id"`
-	CompetencyEventID  string     `json:"competency_event_id"`
-	OrganizationID     string     `json:"organization_id"`
-	EmployeeID         string     `json:"employee_id,omitempty"`
-	MissingSelf        int        `json:"missing_self"`
-	MissingSuperior    int        `json:"missing_superior"`
-	MissingPeer        int        `json:"missing_peer"`
-	MissingSubordinate int        `json:"missing_subordinate"`
-	Status             string     `json:"status"`
-	ApprovalInstanceID string     `json:"approval_instance_id,omitempty"`
-	FinalizedAt        *time.Time `json:"finalized_at,omitempty"`
-	RaterCount         int        `json:"rater_count"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
+	ID                 string       `json:"id"`
+	CompetencyEventID  string       `json:"competency_event_id"`
+	OrganizationID     string       `json:"organization_id"`
+	EmployeeID         string       `json:"employee_id,omitempty"`
+	MissingSelf        int          `json:"missing_self"`
+	MissingSuperior    int          `json:"missing_superior"`
+	MissingPeer        int          `json:"missing_peer"`
+	MissingSubordinate int          `json:"missing_subordinate"`
+	Status             string       `json:"status"`
+	ApprovalInstanceID string       `json:"approval_instance_id,omitempty"`
+	FinalizedAt        *time.Time   `json:"finalized_at,omitempty"`
+	RaterCount         int          `json:"rater_count"`
+	RaterSummary       *RaterSummary `json:"rater_summary,omitempty"`
+	CreatedAt          time.Time    `json:"created_at"`
+	UpdatedAt          time.Time    `json:"updated_at"`
 }
 
 type CompetencyScoreResponse struct {

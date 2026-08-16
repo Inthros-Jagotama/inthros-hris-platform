@@ -2392,6 +2392,8 @@
     "subordinate": "Bawahan",
     "employee": "Karyawan",
     "raters": "Raters",
+    "rater_filled": "diisi",
+    "rater_assigned": "ditugaskan",
     "my_rating_status": "Status Penilaian Saya",
     "not_assigned": "Belum Ditugaskan",
     "assign_fill": "Tugaskan & Nilai",

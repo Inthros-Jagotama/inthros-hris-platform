@@ -736,6 +736,117 @@ func TestListCompetencyEventTargets_RaterCount(t *testing.T) {
 	}
 }
 
+// TestListCompetencyEventTargets_RaterSummary memverifikasi ringkasan rater
+// (expected vs assigned vs submitted) pada list target: expected dihitung dari
+// konfigurasi template + struktur organisasi (atasan di parent org, bawahan di
+// subtree org), assigned/submitted dari tabel rater.
+func TestListCompetencyEventTargets_RaterSummary(t *testing.T) {
+	svc, targetID, _, cleanup := setup360Scenario(t)
+	defer cleanup()
+	ctx := context.Background()
+	repo := svc.repo
+
+	target, err := repo.FindCompetencyEventTargetByID(ctx, mustParseUUID(t, targetID))
+	if err != nil {
+		t.Fatalf("get target: %v", err)
+	}
+	subjectID := *target.EmployeeID
+
+	// Org tree: root → child → grandchild. Manager di root (atasan subject),
+	// subject di child, 2 bawahan di grandchild.
+	db, err := repo.getDB(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tbl := range []string{
+		"CREATE TABLE IF NOT EXISTS employees (id CHAR(36) PRIMARY KEY, name VARCHAR(255))",
+		"CREATE TABLE IF NOT EXISTS organizations (id CHAR(36) PRIMARY KEY, parent_id CHAR(36), deleted_at TIMESTAMP)",
+		"CREATE TABLE IF NOT EXISTS employments (id CHAR(36) PRIMARY KEY, employee_id CHAR(36), organization_id CHAR(36), effective_date DATE, effective_end_date DATE)",
+	} {
+		if err := db.Exec(tbl).Error; err != nil {
+			t.Fatalf("create table: %v", err)
+		}
+	}
+	now := time.Now().Format("2006-01-02 15:04:05")
+	rootID, childID, grandchildID := uuid.New(), uuid.New(), uuid.New()
+	managerID, subordinate1, subordinate2 := uuid.New(), uuid.New(), uuid.New()
+
+	insertOrg := func(id uuid.UUID, parent interface{}) {
+		if err := db.Exec("INSERT INTO organizations (id, parent_id, deleted_at) VALUES (?, ?, NULL)", id.String(), parent).Error; err != nil {
+			t.Fatalf("seed org: %v", err)
+		}
+	}
+	insertOrg(rootID, nil)
+	insertOrg(childID, rootID.String())
+	insertOrg(grandchildID, childID.String())
+
+	insertEmp := func(id uuid.UUID, name string) {
+		if err := db.Exec("INSERT INTO employees (id, name) VALUES (?, ?)", id.String(), name).Error; err != nil {
+			t.Fatalf("seed employee: %v", err)
+		}
+	}
+	insertEmp(managerID, "Manager")
+	insertEmp(subjectID, "Subject")
+	insertEmp(subordinate1, "Bawahan 1")
+	insertEmp(subordinate2, "Bawahan 2")
+
+	insertEmpRel := func(empID, orgID uuid.UUID) {
+		if err := db.Exec("INSERT INTO employments (id, employee_id, organization_id, effective_date, effective_end_date) VALUES (?, ?, ?, ?, NULL)",
+			uuid.New().String(), empID.String(), orgID.String(), now,
+		).Error; err != nil {
+			t.Fatalf("seed employment: %v", err)
+		}
+	}
+	insertEmpRel(managerID, rootID)
+	insertEmpRel(subjectID, childID)
+	insertEmpRel(subordinate1, grandchildID)
+	insertEmpRel(subordinate2, grandchildID)
+
+	// Tambahkan tipe rater "subordinate" pada template event — scenario hanya
+	// punya self/superior/peer, padahal expected bawahan dihitung dari subtree.
+	event, err := repo.FindCompetencyEventByID(ctx, target.CompetencyEventID)
+	if err != nil {
+		t.Fatalf("get event: %v", err)
+	}
+	if event.TemplateID != nil {
+		if err := db.Exec("INSERT INTO competency_assessment_template_rater_types (id, template_id, rater_type, weight, min_rater, required, anonymous) VALUES (?, ?, 'subordinate', 0, 0, FALSE, FALSE)",
+			uuid.New().String(), event.TemplateID.String(),
+		).Error; err != nil {
+			t.Fatalf("add subordinate rater type: %v", err)
+		}
+	}
+
+	sums, err := svc.buildTargetRaterSummaries(ctx, []CompetencyEventTarget{*target})
+	if err != nil {
+		t.Fatalf("buildTargetRaterSummaries: %v", err)
+	}
+	sum, ok := sums[targetID]
+	if !ok {
+		t.Fatal("summary not found for target")
+	}
+
+	// self: template min_rater 1 + subject ada → expected 1; 2 rater ter-assign
+	// (auto self rater + rater self manual di scenario), 1 sudah submit.
+	if d := sum.Details["self"]; d.Expected != 1 || d.Assigned != 2 || d.Submitted != 1 {
+		t.Errorf("self summary = %+v, want expected 1 assigned 2 submitted 1", d)
+	}
+	// superior: 1 atasan (manager di root org) → expected 1; rater scenario sudah assigned+submitted.
+	if d := sum.Details["superior"]; d.Expected != 1 || d.Assigned != 1 || d.Submitted != 1 {
+		t.Errorf("superior summary = %+v, want expected 1 assigned 1 submitted 1", d)
+	}
+	// peer: min_rater 1 → expected 1; rater scenario assigned+submitted.
+	if d := sum.Details["peer"]; d.Expected != 1 || d.Assigned != 1 || d.Submitted != 1 {
+		t.Errorf("peer summary = %+v, want expected 1 assigned 1 submitted 1", d)
+	}
+	// subordinate: 2 employee di subtree org subject → expected 2, belum ditugaskan.
+	if d := sum.Details["subordinate"]; d.Expected != 2 || d.Assigned != 0 || d.Submitted != 0 {
+		t.Errorf("subordinate summary = %+v, want expected 2 assigned 0 submitted 0", d)
+	}
+	if sum.Expected != 5 || sum.Assigned != 4 || sum.Submitted != 3 {
+		t.Errorf("total summary = %+v, want expected 5 assigned 4 submitted 3", sum)
+	}
+}
+
 // TestSubmitAssessmentForApproval_NotAllSubmitted memverifikasi submit-approval
 // menolak dengan sentinel error ErrNotAllRatersSubmitted bila ada rater yang
 // belum submit (bukan error 500 di handler).

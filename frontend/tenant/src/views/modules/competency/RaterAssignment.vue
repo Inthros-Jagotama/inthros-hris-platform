@@ -49,9 +49,9 @@
       <Column field="status" :header="t('common.status')" style="width:110px">
         <template #body="{data}"><Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" class="!text-xs !px-1.5 !py-0.5" /></template>
       </Column>
-      <Column :header="t('competency_360.raters')" style="width:90px">
+      <Column :header="t('competency_360.raters')" style="width:110px">
         <template #body="{data}">
-          <Tag :value="String(data.rater_count ?? 0)" severity="info" class="!text-xs !px-1.5 !py-0.5" />
+          <Tag :value="raterSummaryLabel(data)" severity="info" class="!text-xs !px-1.5 !py-0.5" v-tooltip.top="{ value: raterSummaryTooltip(data), escape: false }" />
         </template>
       </Column>
       <Column :header="t('common.actions')" style="width:110px" frozen alignFrozen="right">
@@ -224,6 +224,27 @@ function raterStatusSeverity(status) {
 function raterTypeLabel(type) {
   const key = `competency_360.rater_type_${type}`
   return t(key) !== key ? t(key) : type
+}
+
+// raterSummaryLabel — label ringkas kolom rater: "diisi/seharusnya" (mis. 2/5).
+function raterSummaryLabel(target) {
+  const s = target?.rater_summary
+  if (s && (s.expected > 0 || s.assigned > 0)) return `${s.submitted}/${s.expected}`
+  return String(target?.rater_count ?? 0)
+}
+
+// raterSummaryTooltip — rincian per tipe rater: seharusnya (expected) vs
+// ditugaskan (assigned) vs sudah diisi (submitted).
+function raterSummaryTooltip(target) {
+  const s = target?.rater_summary
+  if (!s || !s.details) return t('competency_360.view_raters')
+  const rows = Object.entries(s.details)
+    .map(([type, d]) => {
+      const label = raterTypeLabel(type)
+      return `<div class="flex items-center justify-between gap-6"><span>${label}</span><span>${d.submitted}/${d.expected} ${t('competency_360.rater_filled')} &middot; ${d.assigned} ${t('competency_360.rater_assigned')}</span></div>`
+    })
+    .join('')
+  return `<div class="text-xs leading-5">${rows}</div>`
 }
 
 function employeeName(id) {

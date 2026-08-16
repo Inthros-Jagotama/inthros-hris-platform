@@ -561,6 +561,11 @@ func (s *Service) GetCompetencyEventTargetByID(ctx context.Context, id string) (
 		return nil, err
 	}
 	response.RaterCount = counts[uid.String()]
+	summaries, err := s.buildTargetRaterSummaries(ctx, []CompetencyEventTarget{*t})
+	if err != nil {
+		return nil, err
+	}
+	response.RaterSummary = summaries[uid.String()]
 	return &response, nil
 }
 
@@ -584,10 +589,17 @@ func (s *Service) ListCompetencyEventTargets(ctx context.Context, page, perPage 
 	if err != nil {
 		return nil, err
 	}
+	// Ringkasan rater: seharusnya (expected, dari template + struktur org) vs
+	// sudah ditugaskan vs sudah mengisi — satu batch query per dimensi.
+	summaries, err := s.buildTargetRaterSummaries(ctx, list)
+	if err != nil {
+		return nil, err
+	}
 	var responses []CompetencyEventTargetResponse
 	for _, t := range list {
 		r := t.ToResponse()
 		r.RaterCount = counts[t.ID.String()]
+		r.RaterSummary = summaries[t.ID.String()]
 		responses = append(responses, r)
 	}
 	totalPages := int(total) / perPage
@@ -595,6 +607,137 @@ func (s *Service) ListCompetencyEventTargets(ctx context.Context, page, perPage 
 		totalPages++
 	}
 	return &PaginatedResponse{Success: true, Data: responses, Page: page, PerPage: perPage, Total: total, TotalPages: totalPages}, nil
+}
+
+// buildTargetRaterSummaries menghitung ringkasan rater (expected vs assigned
+// vs submitted) per target. Expected dihitung dari konfigurasi template
+// (min_rater/required) + struktur organisasi (atasan dari parent org, bawahan
+// dari subtree org) — pola yang sama dengan SuggestedRaters.
+func (s *Service) buildTargetRaterSummaries(ctx context.Context, targets []CompetencyEventTarget) (map[string]*RaterSummary, error) {
+	result := make(map[string]*RaterSummary, len(targets))
+	if len(targets) == 0 {
+		return result, nil
+	}
+
+	// 1. Event → template (batch).
+	eventIDs := make([]uuid.UUID, 0, len(targets))
+	for _, t := range targets {
+		eventIDs = append(eventIDs, t.CompetencyEventID)
+	}
+	events, err := s.repo.FindCompetencyEventsByIDs(ctx, eventIDs)
+	if err != nil {
+		return nil, err
+	}
+	eventByID := make(map[string]*CompetencyEvent, len(events))
+	templateIDs := make([]uuid.UUID, 0)
+	seenTemplate := make(map[uuid.UUID]bool)
+	for i := range events {
+		e := &events[i]
+		eventByID[e.ID.String()] = e
+		if e.TemplateID != nil && !seenTemplate[*e.TemplateID] {
+			seenTemplate[*e.TemplateID] = true
+			templateIDs = append(templateIDs, *e.TemplateID)
+		}
+	}
+
+	// 2. Konfigurasi tipe rater per template (batch).
+	raterTypesByTemplate := make(map[string][]CompetencyAssessmentTemplateRaterType)
+	if len(templateIDs) > 0 {
+		rts, err := s.repo.FindTemplateRaterTypesByTemplateIDs(ctx, templateIDs)
+		if err != nil {
+			return nil, err
+		}
+		for _, rt := range rts {
+			key := rt.TemplateID.String()
+			raterTypesByTemplate[key] = append(raterTypesByTemplate[key], rt)
+		}
+	}
+
+	// 3. Count assigned/submitted per (target, tipe) — satu query grup.
+	ids := make([]uuid.UUID, 0, len(targets))
+	for _, t := range targets {
+		ids = append(ids, t.ID)
+	}
+	grouped, err := s.repo.CountRatersByTargetGrouped(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache resolusi atasan/bawahan per subject — subject bisa berulang
+	// lintas target/event.
+	superiorCache := make(map[uuid.UUID][]uuid.UUID)
+	subordinateCache := make(map[uuid.UUID][]uuid.UUID)
+
+	for _, t := range targets {
+		sum := &RaterSummary{Details: make(map[string]RaterTypeSummary)}
+		configured := make(map[string]CompetencyAssessmentTemplateRaterType)
+		if e, ok := eventByID[t.CompetencyEventID.String()]; ok && e.TemplateID != nil {
+			for _, rt := range raterTypesByTemplate[e.TemplateID.String()] {
+				configured[rt.RaterType] = rt
+			}
+		}
+
+		for key, rt := range configured {
+			detail := RaterTypeSummary{}
+			switch key {
+			case string(RaterTypeSelf):
+				// Subject menilai dirinya sendiri — 1 bila template mewajibkan.
+				if t.EmployeeID != nil && (rt.Required || rt.MinRater > 0) {
+					detail.Expected = 1
+				}
+			case string(RaterTypeSuperior):
+				// Atasan: employee di parent org dari org subject (1 level).
+				if t.EmployeeID != nil {
+					ids, ok := superiorCache[*t.EmployeeID]
+					if !ok {
+						ids, err = s.repo.FindSuperiorEmployeeIDsBySubject(ctx, *t.EmployeeID)
+						if err != nil {
+							return nil, err
+						}
+						superiorCache[*t.EmployeeID] = ids
+					}
+					detail.Expected = len(ids)
+				}
+			case string(RaterTypeSubordinate):
+				// Bawahan: seluruh employee di subtree org subject.
+				if t.EmployeeID != nil {
+					ids, ok := subordinateCache[*t.EmployeeID]
+					if !ok {
+						ids, err = s.repo.FindSubordinateEmployeeIDsByManager(ctx, *t.EmployeeID)
+						if err != nil {
+							return nil, err
+						}
+						subordinateCache[*t.EmployeeID] = ids
+					}
+					detail.Expected = len(ids)
+				}
+			case string(RaterTypePeer):
+				// Peer dipilih manual — target minimal min_rater dari template.
+				detail.Expected = rt.MinRater
+			}
+			if gc, ok := grouped[t.ID.String()][key]; ok {
+				detail.Assigned = gc.Assigned
+				detail.Submitted = gc.Submitted
+			}
+			sum.Details[key] = detail
+			sum.Expected += detail.Expected
+			sum.Assigned += detail.Assigned
+			sum.Submitted += detail.Submitted
+		}
+
+		// Tipe rater yang ada di tabel tapi tidak dikonfigurasi template
+		// (mis. other) — tetap ditampilkan apa adanya.
+		for key, gc := range grouped[t.ID.String()] {
+			if _, ok := sum.Details[key]; ok {
+				continue
+			}
+			sum.Details[key] = RaterTypeSummary{Assigned: gc.Assigned, Submitted: gc.Submitted}
+			sum.Assigned += gc.Assigned
+			sum.Submitted += gc.Submitted
+		}
+		result[t.ID.String()] = sum
+	}
+	return result, nil
 }
 
 func (s *Service) UpdateCompetencyEventTarget(ctx context.Context, id string, req UpdateCompetencyEventTargetRequest) (*CompetencyEventTargetResponse, error) {
