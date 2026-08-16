@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Masking format: length ≥ 10 → last 4 chars visible; length 4–9 → last 3 chars visible; length 1–3 → fully masked; rest replaced with `*` (spec §6).
+- Masking format: length ≥ 10 → last 4 chars visible; length 6–9 → last 3 chars visible; length 1–5 → fully masked; rest replaced with `*` (spec §6).
 - Encryption is **encrypt-on-write only** — no backfill of existing plaintext rows (spec Non-goals).
 - The set of maskable fields is a fixed, developer-maintained registry — admins toggle within it, they don't define new fields (spec Non-goals).
 - Tenant schema changes MUST be versioned SQL migrations under `backend/internal/pkg/migrator/migrations/tenant/{mysql,postgres}/` with matching numeric-prefix filenames — GORM AutoMigrate must not be relied on for these changes, per [[tenant-schema-migration-requirement]].
@@ -32,8 +32,8 @@
 
 - [ ] **Step 1: Write the failing test**
 
-Masking rule: length ≥ 10 → last 4 chars visible; length 4–9 → last 3
-chars visible; length 1–3 → fully masked; length 0 → empty string.
+Masking rule: length ≥ 10 → last 4 chars visible; length 6–9 → last 3
+chars visible; length 1–5 → fully masked; length 0 → empty string.
 
 ```go
 package mask
@@ -50,7 +50,7 @@ func TestPartialMask(t *testing.T) {
 		{"exactly 10 chars: last 4 visible", "1234567890", "******7890"},
 		{"9 chars: last 3 visible", "123456789", "******789"},
 		{"6 chars: last 3 visible", "123456", "***456"},
-		{"4 chars: last 3 visible", "1234", "*234"},
+		{"5 chars: fully masked", "12345", "*****"},
 		{"3 chars: fully masked", "123", "***"},
 		{"1 char: fully masked", "1", "*"},
 		{"empty stays empty", "", ""},
@@ -82,8 +82,8 @@ package mask
 // PartialMask menyamarkan value, menyisakan sejumlah karakter terakhir
 // tetap terlihat tergantung panjangnya:
 //   - panjang >= 10: 4 karakter terakhir terlihat
-//   - panjang 4-9:   3 karakter terakhir terlihat
-//   - panjang 1-3:   disamarkan penuh (semua '*')
+//   - panjang 6-9:   3 karakter terakhir terlihat
+//   - panjang 1-5:   disamarkan penuh (semua '*')
 //   - panjang 0:     dikembalikan apa adanya ("")
 func PartialMask(value string) string {
 	runes := []rune(value)
@@ -96,7 +96,7 @@ func PartialMask(value string) string {
 	switch {
 	case n >= 10:
 		visible = 4
-	case n >= 4:
+	case n >= 6:
 		visible = 3
 	}
 

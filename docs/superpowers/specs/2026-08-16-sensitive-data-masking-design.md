@@ -165,8 +165,8 @@ the rest with `*`:
 | Length | Visible tail | Example |
 |---|---|---|
 | ≥ 10 | last 4 chars | `3201010101985678` (17) → `************5678` |
-| 4–9 | last 3 chars | `123456` (6) → `***456`; `1234567` (7) → `****567` |
-| 1–3 | none (fully masked) | `123` → `***` |
+| 6–9 | last 3 chars | `123456` (6) → `***456`; `1234567` (7) → `****567` |
+| 1–5 | none (fully masked) | `12345` → `*****` |
 | 0 | `""` | `""` → `""` |
 
 The permission check uses the same JWT `permissions` claim /
