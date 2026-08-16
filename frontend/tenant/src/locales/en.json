@@ -639,6 +639,7 @@
     "end_date": "End Date",
     "origin": "Departure From",
     "origin_placeholder": "e.g. Jakarta",
+    "destination": "Destination",
     "destinations_hint": "Destination cities/countries aren't set here — add them after saving, from the travel's detail page (Info tab).",
     "add_participant": "Add Participant",
     "participant_type": "Participant Type",

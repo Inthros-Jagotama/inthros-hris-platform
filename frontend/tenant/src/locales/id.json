@@ -639,6 +639,7 @@
     "end_date": "Tanggal Selesai",
     "origin": "Berangkat Dari",
     "origin_placeholder": "mis. Jakarta",
+    "destination": "Tujuan",
     "destinations_hint": "Kota/negara tujuan tidak diisi di sini — tambahkan setelah disimpan, dari halaman detail perjalanan (tab Info).",
     "add_participant": "Tambah Peserta",
     "participant_type": "Jenis Peserta",
