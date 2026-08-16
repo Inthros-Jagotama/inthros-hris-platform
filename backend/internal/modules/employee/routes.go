@@ -62,5 +62,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		emps.POST("/:id/employments", handler.CreateEmployment)
 		emps.PUT("/:id/employments/:employmentId", handler.UpdateEmployment)
 		emps.DELETE("/:id/employments/:employmentId", handler.DeleteEmployment)
+
+		// Sensitive field settings (encryption toggle, admin only)
+		emps.GET("/settings/sensitive-fields", handler.ListSensitiveFieldSettings)
+		emps.PUT("/settings/sensitive-fields/:fieldKey", handler.SetSensitiveFieldEnabled)
 	}
 }

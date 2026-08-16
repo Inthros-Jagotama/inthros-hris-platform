@@ -668,3 +668,37 @@ func (h *Handler) DeleteEmployment(c *gin.Context) {
 	}
 	httputil.DeletedJSON(c, "success.deleted")
 }
+
+// =========================================================================
+// Sensitive Field Settings
+// =========================================================================
+
+// ListSensitiveFieldSettings menampilkan daftar field sensitif beserta
+// status toggle enkripsinya. GET /employees/settings/sensitive-fields
+func (h *Handler) ListSensitiveFieldSettings(c *gin.Context) {
+	settings, err := h.service.ListSensitiveFieldSettings(c.Request.Context())
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, settings)
+}
+
+type setSensitiveFieldEnabledRequest struct {
+	IsEncryptionEnabled bool `json:"is_encryption_enabled"`
+}
+
+// SetSensitiveFieldEnabled mengubah toggle enkripsi satu field.
+// PUT /employees/settings/sensitive-fields/:fieldKey
+func (h *Handler) SetSensitiveFieldEnabled(c *gin.Context) {
+	fieldKey := c.Param("fieldKey")
+	var req setSensitiveFieldEnabledRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	if err := h.service.SetSensitiveFieldEnabled(c.Request.Context(), fieldKey, req.IsEncryptionEnabled); err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"field_key": fieldKey, "is_encryption_enabled": req.IsEncryptionEnabled})
+}
