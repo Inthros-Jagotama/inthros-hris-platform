@@ -127,10 +127,23 @@ func (s *Service) SuggestedRaters(ctx context.Context, targetID string) (*Sugges
 		}
 	}
 
+	// Self: subject menilai dirinya sendiri — disarankan bila template
+	// mewajibkan tipe self dan subject belum di-assign (mis. target lama).
+	needSelf := false
+	if !assigned[subjectID] && s.templateRequiresSelf(ctx, target) {
+		needSelf = true
+	}
+
 	allIDs := append(suggestSuperior, suggestSubordinates...)
+	if needSelf {
+		allIDs = append(allIDs, subjectID)
+	}
 	names, err := s.repo.GetEmployeeNamesByIDs(ctx, allIDs)
 	if err != nil {
 		return nil, err
+	}
+	if needSelf {
+		result.Self = &EmployeeBriefDTO{ID: subjectID.String(), Name: names[subjectID.String()]}
 	}
 	for _, id := range suggestSuperior {
 		result.Superior = append(result.Superior, EmployeeBriefDTO{ID: id.String(), Name: names[id.String()]})
@@ -139,6 +152,25 @@ func (s *Service) SuggestedRaters(ctx context.Context, targetID string) (*Sugges
 		result.Subordinates = append(result.Subordinates, EmployeeBriefDTO{ID: id.String(), Name: names[id.String()]})
 	}
 	return result, nil
+}
+
+// templateRequiresSelf memeriksa apakah template event mewajibkan tipe rater
+// self (required atau min_rater > 0) — dasar saran rater self otomatis.
+func (s *Service) templateRequiresSelf(ctx context.Context, target *CompetencyEventTarget) bool {
+	event, err := s.repo.FindCompetencyEventByID(ctx, target.CompetencyEventID)
+	if err != nil || event.TemplateID == nil {
+		return false
+	}
+	raterTypes, err := s.repo.FindTemplateRaterTypes(ctx, *event.TemplateID)
+	if err != nil {
+		return false
+	}
+	for _, rt := range raterTypes {
+		if rt.RaterType == string(RaterTypeSelf) && (rt.Required || rt.MinRater > 0) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) ListRatersByTarget(ctx context.Context, targetID string) ([]RaterResponse, error) {

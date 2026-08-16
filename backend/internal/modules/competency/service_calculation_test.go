@@ -597,6 +597,29 @@ func TestService_SuggestedRaters(t *testing.T) {
 	if sug.Subordinates[0].Name != "Bawahan" {
 		t.Errorf("expected name 'Bawahan', got %q", sug.Subordinates[0].Name)
 	}
+	// Self sudah di-assign otomatis saat target dibuat → tidak disarankan lagi.
+	if sug.Self != nil {
+		t.Errorf("expected no self suggestion (auto-created), got %+v", sug.Self)
+	}
+
+	// Hapus rater self → saran self muncul (subject sendiri).
+	selfRat, err := repo.FindRaterByTargetAndEmployee(ctx, target.ID, subjectID)
+	if err != nil {
+		t.Fatalf("find auto self rater: %v", err)
+	}
+	if err := repo.DeleteRater(ctx, selfRat.ID); err != nil {
+		t.Fatalf("delete self rater: %v", err)
+	}
+	sug2, err := svc.SuggestedRaters(ctx, targetID)
+	if err != nil {
+		t.Fatalf("SuggestedRaters (after delete) failed: %v", err)
+	}
+	if sug2.Self == nil {
+		t.Fatal("expected self suggestion after deleting the self rater")
+	}
+	if sug2.Self.ID != subjectID.String() {
+		t.Errorf("expected self %s, got %s", subjectID, sug2.Self.ID)
+	}
 }
 
 // TestCreateCompetencyEventTarget_AutoSelfRater memverifikasi rater "self"

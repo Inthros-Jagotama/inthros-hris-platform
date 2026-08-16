@@ -318,8 +318,9 @@ async function autoFillRaters() {
   autoSummary.value = ''
   try {
     const res = await api.get(`/api/v1/tenant/competency/event-targets/${target.value.id}/suggested-raters`)
-    const sug = res.data?.data || { superior: [], subordinates: [] }
+    const sug = res.data?.data || { self: null, superior: [], subordinates: [] }
     const payload = [
+      ...(sug.self ? [{ rater_employee_id: sug.self.id, rater_type: 'self' }] : []),
       ...(sug.superior || []).map(e => ({ rater_employee_id: e.id, rater_type: 'superior' })),
       ...(sug.subordinates || []).map(e => ({ rater_employee_id: e.id, rater_type: 'subordinate' }))
     ]

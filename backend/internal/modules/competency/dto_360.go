@@ -179,9 +179,11 @@ type EmployeeBriefDTO struct {
 	Name string `json:"name"`
 }
 
-// SuggestedRatersDTO — saran rater dari struktur organisasi untuk satu target:
-// superior (atasan — parent org) dan subordinates (bawahan — subtree org).
+// SuggestedRatersDTO — saran rater untuk satu target: self (subject sendiri,
+// bila template mewajibkan & belum di-assign), superior (atasan — parent org),
+// dan subordinates (bawahan — subtree org).
 type SuggestedRatersDTO struct {
+	Self         *EmployeeBriefDTO  `json:"self,omitempty"`
 	Superior     []EmployeeBriefDTO `json:"superior"`
 	Subordinates []EmployeeBriefDTO `json:"subordinates"`
 }
