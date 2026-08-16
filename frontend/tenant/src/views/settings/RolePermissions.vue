@@ -52,10 +52,14 @@
           </div>
         </template>
       </Column>
-      <!-- Expansion: daftar permission per module -->
+      <!-- Expansion: daftar permission per module — semua pilihan di satu baris, checkbox berbordered -->
       <template #expansion="{ data }">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 px-4 py-2">
-          <label v-for="p in data.items" :key="p.id" class="flex items-center gap-2 py-0.5 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400">
+        <div class="flex flex-wrap items-center gap-2 px-4 py-2">
+          <label
+            v-for="p in data.items"
+            :key="p.id"
+            class="flex items-center gap-2 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 cursor-pointer select-none transition-colors hover:border-indigo-300 dark:hover:border-indigo-500/60"
+          >
             <Checkbox :binary="true" :model-value="selected[p.id]" @update:model-value="v => selected[p.id] = v" />
             <span class="text-sm">{{ p.action }}</span>
           </label>
