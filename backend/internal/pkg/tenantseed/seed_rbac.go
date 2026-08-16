@@ -158,17 +158,8 @@ func tenantRBACResources() []tenantRBACResource {
 			{"history", std},
 			{"reports", std},
 		}},
-		{"workforceintelligence", std, []tenantRBACSubmenu{
-			{"candidate-search", std},
-			{"recruitment-analytics", std},
-			{"quality-of-hire", std},
-			{"training-analysis", std},
-		}},
-		{"careerintelligence", std, []tenantRBACSubmenu{
-			{"paths", std},
-			{"successions", std},
-			{"development", std},
-		}},
+		{"workforceintelligence", std, nil},
+		{"careerintelligence", std, nil},
 		{"setting", std, nil},
 		{"rbac", std, []tenantRBACSubmenu{
 			{"roles", std},
