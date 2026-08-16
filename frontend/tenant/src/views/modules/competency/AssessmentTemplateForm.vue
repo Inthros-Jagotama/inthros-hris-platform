@@ -14,67 +14,71 @@
       </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-      <div class="flex items-center justify-between mb-2">
-        <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('competency_360.competencies') }}</p>
-        <Button icon="pi pi-plus" size="small" text severity="secondary" :label="t('competency_360.add_competency')" @click="addCompetency" />
-      </div>
-      <div class="flex items-center gap-2 mb-1 px-1">
-        <div class="flex-1 text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('competency_360.competency') }}</div>
-        <div class="w-24 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('competency_360.req_level') }}</div>
-        <div class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('competency_360.weight') }}</div>
-        <div class="w-8 shrink-0"></div>
-      </div>
-      <div v-for="(comp, idx) in form.competencies" :key="idx" class="flex items-center gap-2 mb-2">
-        <div class="flex-1">
-          <Select v-model="comp.competency_id" :options="competencyOptions" optionLabel="name" optionValue="id" filter class="w-full" :placeholder="t('competency_360.select_competency')" />
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- Kolom 1: Competency -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('competency_360.competencies') }}</p>
+          <Button icon="pi pi-plus" size="small" text severity="secondary" :label="t('competency_360.add_competency')" @click="addCompetency" />
         </div>
-        <div class="w-24 shrink-0">
-          <TextInput v-model="comp.required_level" type="number" :placeholder="t('competency_360.req_level')" />
+        <div class="flex items-center gap-2 mb-1 px-1">
+          <div class="flex-1 text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('competency_360.competency') }}</div>
+          <div class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('competency_360.req_level') }}</div>
+          <div class="w-16 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('competency_360.weight') }}</div>
+          <div class="w-8 shrink-0"></div>
         </div>
-        <div class="w-20 shrink-0">
-          <TextInput v-model="comp.weight" type="number" :placeholder="t('competency_360.weight')" />
+        <div v-for="(comp, idx) in form.competencies" :key="idx" class="flex items-center gap-2 mb-2">
+          <div class="flex-1">
+            <Select v-model="comp.competency_id" :options="competencyOptions" optionLabel="name" optionValue="id" filter class="w-full" :placeholder="t('competency_360.select_competency')" />
+          </div>
+          <div class="w-20 shrink-0">
+            <TextInput v-model="comp.required_level" type="number" :placeholder="t('competency_360.req_level')" />
+          </div>
+          <div class="w-16 shrink-0">
+            <TextInput v-model="comp.weight" type="number" :placeholder="t('competency_360.weight')" />
+          </div>
+          <Button icon="pi pi-trash" size="small" text severity="danger" @click="form.competencies.splice(idx, 1)" />
         </div>
-        <Button icon="pi pi-trash" size="small" text severity="danger" @click="form.competencies.splice(idx, 1)" />
+        <p v-if="form.competencies.length === 0" class="text-xs text-gray-400 dark:text-gray-500">{{ t('competency_360.no_competencies_hint') }}</p>
       </div>
-      <p v-if="form.competencies.length === 0" class="text-xs text-gray-400 dark:text-gray-500">{{ t('competency_360.no_competencies_hint') }}</p>
-    </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-      <div class="flex items-center justify-between mb-2">
-        <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('competency_360.rater_types') }}</p>
-        <Button icon="pi pi-plus" size="small" text severity="secondary" :label="t('competency_360.add_rater_type')" @click="addRaterType" />
-      </div>
-      <div v-for="(rt, idx) in form.rater_types" :key="idx" class="border border-gray-200 dark:border-gray-700 rounded-lg p-2 mb-2">
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.rater_type') }}</label>
-            <Select v-model="rt.rater_type" :options="raterTypeOptions" optionLabel="label" optionValue="value" class="w-full" />
+      <!-- Kolom 2: Rater Type -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('competency_360.rater_types') }}</p>
+          <Button icon="pi pi-plus" size="small" text severity="secondary" :label="t('competency_360.add_rater_type')" @click="addRaterType" />
+        </div>
+        <div v-for="(rt, idx) in form.rater_types" :key="idx" class="border border-gray-200 dark:border-gray-700 rounded-lg p-2 mb-2">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.rater_type') }}</label>
+              <Select v-model="rt.rater_type" :options="raterTypeOptions" optionLabel="label" optionValue="value" class="w-full" />
+            </div>
+            <div>
+              <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.weight') }}</label>
+              <TextInput v-model="rt.weight" type="number" />
+            </div>
+            <div>
+              <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.min_rater') }}</label>
+              <TextInput v-model="rt.min_rater" type="number" />
+            </div>
+            <div>
+              <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.max_rater') }}</label>
+              <TextInput v-model="rt.max_rater" type="number" />
+            </div>
           </div>
-          <div>
-            <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.weight') }}</label>
-            <TextInput v-model="rt.weight" type="number" />
-          </div>
-          <div>
-            <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.min_rater') }}</label>
-            <TextInput v-model="rt.min_rater" type="number" />
-          </div>
-          <div>
-            <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.max_rater') }}</label>
-            <TextInput v-model="rt.max_rater" type="number" />
+          <div class="flex items-center gap-4 mt-2">
+            <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+              <ToggleSwitch v-model="rt.required" /> {{ t('competency_360.required') }}
+            </label>
+            <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+              <ToggleSwitch v-model="rt.anonymous" /> {{ t('competency_360.anonymous') }}
+            </label>
+            <Button icon="pi pi-trash" size="small" text severity="danger" class="ml-auto" @click="form.rater_types.splice(idx, 1)" />
           </div>
         </div>
-        <div class="flex items-center gap-4 mt-2">
-          <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-            <ToggleSwitch v-model="rt.required" /> {{ t('competency_360.required') }}
-          </label>
-          <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-            <ToggleSwitch v-model="rt.anonymous" /> {{ t('competency_360.anonymous') }}
-          </label>
-          <Button icon="pi pi-trash" size="small" text severity="danger" class="ml-auto" @click="form.rater_types.splice(idx, 1)" />
-        </div>
+        <p v-if="form.rater_types.length === 0" class="text-xs text-gray-400 dark:text-gray-500">{{ t('competency_360.no_rater_types_hint') }}</p>
       </div>
-      <p v-if="form.rater_types.length === 0" class="text-xs text-gray-400 dark:text-gray-500">{{ t('competency_360.no_rater_types_hint') }}</p>
     </div>
 
     <div class="flex items-center justify-end gap-2">
