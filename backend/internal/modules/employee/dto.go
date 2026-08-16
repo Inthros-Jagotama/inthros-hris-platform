@@ -462,7 +462,7 @@ func toBankResponse(b *EmployeeBankAccount) BankResponse {
 	r := BankResponse{
 		ID:            b.ID.String(),
 		AccountNumber: decryptIfLooksEncrypted(b.AccountNumber),
-		AccountName:   b.AccountName,
+		AccountName:   decryptIfLooksEncrypted(b.AccountName),
 	}
 	if b.BankID != nil {
 		r.BankID = b.BankID.String()

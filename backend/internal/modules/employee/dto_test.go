@@ -50,6 +50,22 @@ func TestToBankResponse_DecryptsEncryptedAccountNumber(t *testing.T) {
 	}
 }
 
+func TestToBankResponse_DecryptsEncryptedAccountName(t *testing.T) {
+	t.Setenv("HRIS_ENCRYPTION_KEY", "00000000000000000000000000000000000000000000000000000000000000aa")
+	plain := "Budi Santoso"
+	encrypted, err := crypto.EncryptString(plain)
+	if err != nil {
+		t.Fatalf("EncryptString() error = %v", err)
+	}
+	bank := &EmployeeBankAccount{AccountNumber: "1234567890", AccountName: encrypted}
+
+	resp := toBankResponse(bank)
+
+	if resp.AccountName != plain {
+		t.Errorf("toBankResponse().AccountName = %q, want %q", resp.AccountName, plain)
+	}
+}
+
 func TestToEmergencyContactResponse_DecryptsEncryptedPhoneNumber(t *testing.T) {
 	t.Setenv("HRIS_ENCRYPTION_KEY", "00000000000000000000000000000000000000000000000000000000000000aa")
 	plain := "081234567890"
