@@ -78,5 +78,14 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.GET("/business-travels/:id/activities", handler.ListBusinessTravelActivities)
 		att.POST("/business-travels/:id/schedules", handler.AddBusinessTravelSchedule)
 		att.GET("/business-travels/:id/schedules", handler.ListBusinessTravelSchedules)
+
+		// Funding (§14-17: hanya bisa dibuat setelah travel APPROVED)
+		att.POST("/business-travel-funding-methods", handler.CreateFundingMethod)
+		att.GET("/business-travel-funding-methods", handler.ListFundingMethods)
+		att.POST("/business-travels/:id/fundings", handler.CreateFunding)
+		att.GET("/business-travels/:id/fundings", handler.ListFundings)
+		att.PUT("/business-travels/:id/fundings/:fundingId", handler.UpdateFunding)
+		att.POST("/business-travels/:id/fundings/:fundingId/confirm", handler.ConfirmFunding)
+		att.POST("/business-travels/:id/fundings/:fundingId/documents", handler.AddFundingDocument)
 	}
 }

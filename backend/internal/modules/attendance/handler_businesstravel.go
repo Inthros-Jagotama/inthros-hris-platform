@@ -132,6 +132,102 @@ func (h *Handler) ListBusinessTravelSchedules(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+// =========================================================================
+// Funding
+// =========================================================================
+
+func (h *Handler) CreateFundingMethod(c *gin.Context) {
+	var req CreateFundingMethodRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.CreateFundingMethod(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListFundingMethods(c *gin.Context) {
+	activeOnly := c.DefaultQuery("active", "true") == "true"
+	resp, err := h.service.ListFundingMethods(c.Request.Context(), activeOnly)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) CreateFunding(c *gin.Context) {
+	var req CreateFundingRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.CreateFunding(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		if errors.Is(err, ErrBusinessTravelNotApproved) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListFundings(c *gin.Context) {
+	resp, err := h.service.ListFundingsByTravel(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateFunding(c *gin.Context) {
+	var req UpdateFundingRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdateFunding(c.Request.Context(), c.Param("fundingId"), req)
+	if err != nil {
+		if errors.Is(err, ErrFundingInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ConfirmFunding(c *gin.Context) {
+	resp, err := h.service.ConfirmFunding(c.Request.Context(), c.Param("fundingId"))
+	if err != nil {
+		if errors.Is(err, ErrFundingInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) AddFundingDocument(c *gin.Context) {
+	var req AddFundingDocumentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.AddFundingDocument(c.Request.Context(), c.Param("fundingId"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
 func (h *Handler) CancelBusinessTravel(c *gin.Context) {
 	resp, err := h.service.CancelBusinessTravel(c.Request.Context(), c.Param("id"))
 	if err != nil {

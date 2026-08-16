@@ -159,6 +159,102 @@ func (r *Repository) ListSchedulesByTravel(ctx context.Context, travelID uuid.UU
 	return schedules, nil
 }
 
+// =========================================================================
+// Funding Methods (master)
+// =========================================================================
+
+func (r *Repository) CreateFundingMethod(ctx context.Context, m *FundingMethod) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(m).Error
+}
+
+func (r *Repository) ListFundingMethods(ctx context.Context, activeOnly bool) ([]FundingMethod, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	query := db.Model(&FundingMethod{})
+	if activeOnly {
+		query = query.Where("active = ?", true)
+	}
+	var methods []FundingMethod
+	if err := query.Order("name ASC").Find(&methods).Error; err != nil {
+		return nil, err
+	}
+	return methods, nil
+}
+
+func (r *Repository) FindFundingMethodByID(ctx context.Context, id uuid.UUID) (*FundingMethod, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var m FundingMethod
+	if err := db.First(&m, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("funding method not found: %w", err)
+	}
+	return &m, nil
+}
+
+// =========================================================================
+// Fundings
+// =========================================================================
+
+func (r *Repository) CreateFunding(ctx context.Context, f *Funding) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(f).Error
+}
+
+func (r *Repository) FindFundingByID(ctx context.Context, id uuid.UUID) (*Funding, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var f Funding
+	if err := db.Preload("Documents").First(&f, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("funding not found: %w", err)
+	}
+	return &f, nil
+}
+
+func (r *Repository) UpdateFunding(ctx context.Context, f *Funding) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(f).Error
+}
+
+func (r *Repository) ListFundingsByTravel(ctx context.Context, travelID uuid.UUID) ([]Funding, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var fundings []Funding
+	if err := db.Preload("Documents").Where("business_travel_id = ?", travelID).Order("created_at ASC").Find(&fundings).Error; err != nil {
+		return nil, err
+	}
+	return fundings, nil
+}
+
+// =========================================================================
+// Funding Documents
+// =========================================================================
+
+func (r *Repository) CreateFundingDocument(ctx context.Context, d *FundingDocument) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(d).Error
+}
+
 // FindBusinessTravelByIDForOwnership loads a bare BusinessTravel (no
 // preloads) — used by sub-resource creators (activity/schedule) that only
 // need to check the parent travel exists and read its status, without the

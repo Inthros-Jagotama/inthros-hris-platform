@@ -84,6 +84,80 @@ type CreateBusinessTravelScheduleRequest struct {
 }
 
 // =========================================================================
+// Funding — Request DTOs (§14-17 plan doc: hanya boleh dibuat setelah
+// travel.Status == APPROVED, oleh pihak berwenang — bukan otomatis requester)
+// =========================================================================
+
+type CreateFundingMethodRequest struct {
+	Code        string `json:"code" binding:"required"`
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+}
+
+type FundingMethodResponse struct {
+	ID          string  `json:"id"`
+	Code        string  `json:"code"`
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+	Active      bool    `json:"active"`
+}
+
+type CreateFundingRequest struct {
+	FundingMethodID  string  `json:"funding_method_id" binding:"required"`
+	ParticipantID    string  `json:"participant_id"`
+	Amount           float64 `json:"amount" binding:"required"`
+	FundingDate      string  `json:"funding_date"`
+	PaymentMethod    string  `json:"payment_method"`
+	PaymentReference string  `json:"payment_reference"`
+	Notes            string  `json:"notes"`
+}
+
+type UpdateFundingRequest struct {
+	Amount           *float64 `json:"amount"`
+	FundingDate      *string  `json:"funding_date"`
+	PaymentMethod    *string  `json:"payment_method"`
+	PaymentReference *string  `json:"payment_reference"`
+	Notes            *string  `json:"notes"`
+}
+
+// AddFundingDocumentRequest stores the URL returned by the generic upload
+// endpoint (POST /api/v1/tenant/uploads) — this module does not handle raw
+// file uploads itself, per docs/module-attendance-business-travel-development-plan.md §54.4.
+type AddFundingDocumentRequest struct {
+	DocumentType string `json:"document_type" binding:"required"`
+	FileName     string `json:"file_name" binding:"required"`
+	FilePath     string `json:"file_path" binding:"required"`
+	MimeType     string `json:"mime_type"`
+	FileSize     int64  `json:"file_size"`
+}
+
+type FundingResponse struct {
+	ID               string                    `json:"id"`
+	BusinessTravelID string                    `json:"business_travel_id"`
+	FundingMethodID  string                    `json:"funding_method_id"`
+	ParticipantID    *string                   `json:"participant_id,omitempty"`
+	Amount           float64                   `json:"amount"`
+	FundingDate      *string                   `json:"funding_date,omitempty"`
+	PaymentMethod    *string                   `json:"payment_method,omitempty"`
+	PaymentReference *string                   `json:"payment_reference,omitempty"`
+	FundedBy         *string                   `json:"funded_by,omitempty"`
+	Status           string                    `json:"status"`
+	Notes            *string                   `json:"notes,omitempty"`
+	Documents        []FundingDocumentResponse `json:"documents,omitempty"`
+	CreatedAt        time.Time                 `json:"created_at"`
+	UpdatedAt        time.Time                 `json:"updated_at"`
+}
+
+type FundingDocumentResponse struct {
+	ID           string  `json:"id"`
+	DocumentType string  `json:"document_type"`
+	FileName     string  `json:"file_name"`
+	FilePath     string  `json:"file_path"`
+	MimeType     *string `json:"mime_type,omitempty"`
+	FileSize     *int64  `json:"file_size,omitempty"`
+}
+
+// =========================================================================
 // Business Travel — Response DTOs
 // =========================================================================
 

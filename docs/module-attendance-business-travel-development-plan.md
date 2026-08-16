@@ -1852,16 +1852,13 @@ ip_address
 
 ## Phase 4 — Funding
 
-- [ ] Funding method master.
-- [ ] Funding transaction.
-- [ ] Deposit.
-- [ ] Reimbursement funding.
-- [ ] Company Paid.
-- [ ] Other.
-- [ ] Funding actor.
-- [ ] Payment reference.
-- [ ] Transfer proof.
-- [ ] Funding confirmation.
+- [x] Funding method master — CRUD `POST/GET /attendance/business-travel-funding-methods` (code/name bebas diisi admin; DEPOSIT/REIMBURSEMENT/COMPANY_PAID/OTHER dari §16 belum di-seed otomatis — codebase ini tidak punya pola auto-seed master data di Module.Seed() manapun, jadi harus dibuat manual via endpoint ini, konsisten dengan reimbursement_types dkk).
+- [x] Funding transaction — `POST/GET /attendance/business-travels/:id/fundings`, `PUT .../fundings/:fundingId`. Digating `ErrBusinessTravelNotApproved` jika travel belum APPROVED/IN_PROGRESS/COMPLETED (Rule 1, §52).
+- [x] Deposit / [x] Reimbursement funding / [x] Company Paid / [x] Other — semua ditangani generik lewat `funding_method_id`, bukan tipe terpisah di kode (sesuai §16: master funding method configurable).
+- [x] Funding actor — `FundedBy` diisi dari `authctx.GetUserID(ctx)` saat create, terpisah dari `RequesterID`/`CreatedBy` travel (Rule 2, §52).
+- [x] Payment reference — field `payment_reference` di create/update.
+- [x] Transfer proof — `POST .../fundings/:fundingId/documents`, menyimpan `file_path`/URL yang didapat client dari endpoint upload generik (§54.4) — module ini tidak menangani upload file mentah.
+- [x] Funding confirmation — `POST .../fundings/:fundingId/confirm` (PENDING/PROCESSING → FUNDED).
 
 ## Phase 5 — Actual Expense
 

@@ -435,6 +435,214 @@ func (s *Service) ListBusinessTravelSchedules(ctx context.Context, travelIDStr s
 	return responses, nil
 }
 
+// =========================================================================
+// Funding (§14-17 plan doc)
+// =========================================================================
+
+// ErrBusinessTravelNotApproved: funding hanya boleh dibuat setelah travel
+// APPROVED — request tidak menentukan pembiayaan (Rule 1, §52).
+var ErrBusinessTravelNotApproved = errors.New("business travel must be APPROVED before funding can be created")
+
+// ErrFundingInvalidState: aksi tidak valid untuk status funding saat ini
+// (mis. confirm funding yang sudah FUNDED/CANCELLED).
+var ErrFundingInvalidState = errors.New("funding is not in a valid state for this action")
+
+func (s *Service) CreateFundingMethod(ctx context.Context, req CreateFundingMethodRequest) (*FundingMethodResponse, error) {
+	method := &FundingMethod{
+		Code:   strings.ToUpper(req.Code),
+		Name:   req.Name,
+		Active: true,
+	}
+	if req.Description != "" {
+		method.Description = &req.Description
+	}
+	if err := s.repo.CreateFundingMethod(ctx, method); err != nil {
+		return nil, err
+	}
+	return fundingMethodToResponse(method), nil
+}
+
+func (s *Service) ListFundingMethods(ctx context.Context, activeOnly bool) ([]FundingMethodResponse, error) {
+	methods, err := s.repo.ListFundingMethods(ctx, activeOnly)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]FundingMethodResponse, 0, len(methods))
+	for i := range methods {
+		responses = append(responses, *fundingMethodToResponse(&methods[i]))
+	}
+	return responses, nil
+}
+
+// CreateFunding mencatat pembiayaan untuk travel yang sudah APPROVED. FundedBy
+// diisi dari user yang login (bisa Finance/Admin, BUKAN otomatis requester —
+// Rule 2, §52). Amount/funding method di sini independen dari estimasi biaya
+// yang diisi saat request (§11: estimasi bukan funding method/komitmen).
+func (s *Service) CreateFunding(ctx context.Context, travelIDStr string, req CreateFundingRequest) (*FundingResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	travel, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	if travel.Status != TravelStatusApproved && travel.Status != TravelStatusInProgress && travel.Status != TravelStatusCompleted {
+		return nil, ErrBusinessTravelNotApproved
+	}
+	fundingMethodID, err := uuid.Parse(req.FundingMethodID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid funding_method_id: %w", err)
+	}
+	if _, err := s.repo.FindFundingMethodByID(ctx, fundingMethodID); err != nil {
+		return nil, err
+	}
+
+	funding := &Funding{
+		BusinessTravelID: travelID,
+		FundingMethodID:  fundingMethodID,
+		Amount:           req.Amount,
+		Status:           FundingStatusPending,
+		FundedBy:         authctx.GetUserID(ctx),
+	}
+	if req.ParticipantID != "" {
+		if participantID, err := uuid.Parse(req.ParticipantID); err == nil {
+			funding.ParticipantID = &participantID
+		}
+	}
+	if req.PaymentMethod != "" {
+		funding.PaymentMethod = &req.PaymentMethod
+	}
+	if req.PaymentReference != "" {
+		funding.PaymentReference = &req.PaymentReference
+	}
+	if req.Notes != "" {
+		funding.Notes = &req.Notes
+	}
+	if req.FundingDate != "" {
+		if parsed, err := time.Parse("2006-01-02", req.FundingDate); err == nil {
+			funding.FundingDate = &parsed
+		}
+	}
+
+	if err := s.repo.CreateFunding(ctx, funding); err != nil {
+		return nil, err
+	}
+	return fundingToResponse(funding), nil
+}
+
+func (s *Service) ListFundingsByTravel(ctx context.Context, travelIDStr string) ([]FundingResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	fundings, err := s.repo.ListFundingsByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]FundingResponse, 0, len(fundings))
+	for i := range fundings {
+		responses = append(responses, *fundingToResponse(&fundings[i]))
+	}
+	return responses, nil
+}
+
+func (s *Service) UpdateFunding(ctx context.Context, fundingIDStr string, req UpdateFundingRequest) (*FundingResponse, error) {
+	fundingID, err := uuid.Parse(fundingIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid funding id: %w", err)
+	}
+	funding, err := s.repo.FindFundingByID(ctx, fundingID)
+	if err != nil {
+		return nil, err
+	}
+	if funding.Status == FundingStatusFunded || funding.Status == FundingStatusCancelled || funding.Status == FundingStatusReversed {
+		return nil, ErrFundingInvalidState
+	}
+	if req.Amount != nil {
+		funding.Amount = *req.Amount
+	}
+	if req.PaymentMethod != nil {
+		funding.PaymentMethod = req.PaymentMethod
+	}
+	if req.PaymentReference != nil {
+		funding.PaymentReference = req.PaymentReference
+	}
+	if req.Notes != nil {
+		funding.Notes = req.Notes
+	}
+	if req.FundingDate != nil {
+		parsed, err := time.Parse("2006-01-02", *req.FundingDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid funding_date: %w", err)
+		}
+		funding.FundingDate = &parsed
+	}
+	if err := s.repo.UpdateFunding(ctx, funding); err != nil {
+		return nil, err
+	}
+	return fundingToResponse(funding), nil
+}
+
+// ConfirmFunding menandai funding sebagai FUNDED (§17: dana benar-benar
+// sudah ditransfer/diberikan). Aksi terpisah dari Create supaya funding bisa
+// dicatat dulu (PENDING/PROCESSING) sebelum benar-benar cair.
+func (s *Service) ConfirmFunding(ctx context.Context, fundingIDStr string) (*FundingResponse, error) {
+	fundingID, err := uuid.Parse(fundingIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid funding id: %w", err)
+	}
+	funding, err := s.repo.FindFundingByID(ctx, fundingID)
+	if err != nil {
+		return nil, err
+	}
+	if funding.Status == FundingStatusFunded || funding.Status == FundingStatusCancelled || funding.Status == FundingStatusReversed {
+		return nil, ErrFundingInvalidState
+	}
+	funding.Status = FundingStatusFunded
+	if err := s.repo.UpdateFunding(ctx, funding); err != nil {
+		return nil, err
+	}
+	return fundingToResponse(funding), nil
+}
+
+// AddFundingDocument attaches proof of transfer to a funding. The URL is
+// obtained by the client from the generic upload endpoint
+// (POST /api/v1/tenant/uploads) beforehand — this module never handles raw
+// file bytes itself, per §54.4.
+func (s *Service) AddFundingDocument(ctx context.Context, fundingIDStr string, req AddFundingDocumentRequest) (*FundingResponse, error) {
+	fundingID, err := uuid.Parse(fundingIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid funding id: %w", err)
+	}
+	if _, err := s.repo.FindFundingByID(ctx, fundingID); err != nil {
+		return nil, err
+	}
+	doc := &FundingDocument{
+		BusinessTravelFundingID: fundingID,
+		DocumentType:            FundingDocumentType(strings.ToUpper(req.DocumentType)),
+		FileName:                req.FileName,
+		FilePath:                req.FilePath,
+		UploadedBy:              authctx.GetUserID(ctx),
+	}
+	if req.MimeType != "" {
+		doc.MimeType = &req.MimeType
+	}
+	if req.FileSize > 0 {
+		doc.FileSize = &req.FileSize
+	}
+	now := time.Now()
+	doc.UploadedAt = &now
+	if err := s.repo.CreateFundingDocument(ctx, doc); err != nil {
+		return nil, err
+	}
+	funding, err := s.repo.FindFundingByID(ctx, fundingID)
+	if err != nil {
+		return nil, err
+	}
+	return fundingToResponse(funding), nil
+}
+
 // HandleBusinessTravelApprovalStatusChange is invoked by the approval
 // module's push-based status callback for the "business_travel" module slug
 // (registered separately from HandleApprovalStatusChange, which handles the
@@ -543,6 +751,58 @@ func businessTravelActivityToResponse(a *BusinessTravelActivity) BusinessTravelA
 		Location:     a.Location,
 		Organizer:    a.Organizer,
 		Notes:        a.Notes,
+	}
+}
+
+func fundingMethodToResponse(m *FundingMethod) *FundingMethodResponse {
+	return &FundingMethodResponse{
+		ID:          m.ID.String(),
+		Code:        m.Code,
+		Name:        m.Name,
+		Description: m.Description,
+		Active:      m.Active,
+	}
+}
+
+func fundingToResponse(f *Funding) *FundingResponse {
+	resp := &FundingResponse{
+		ID:               f.ID.String(),
+		BusinessTravelID: f.BusinessTravelID.String(),
+		FundingMethodID:  f.FundingMethodID.String(),
+		Amount:           f.Amount,
+		PaymentMethod:    f.PaymentMethod,
+		PaymentReference: f.PaymentReference,
+		Status:           string(f.Status),
+		Notes:            f.Notes,
+		CreatedAt:        f.CreatedAt,
+		UpdatedAt:        f.UpdatedAt,
+	}
+	if f.ParticipantID != nil {
+		participantID := f.ParticipantID.String()
+		resp.ParticipantID = &participantID
+	}
+	if f.FundedBy != nil {
+		fundedBy := f.FundedBy.String()
+		resp.FundedBy = &fundedBy
+	}
+	if f.FundingDate != nil {
+		fundingDate := f.FundingDate.Format("2006-01-02")
+		resp.FundingDate = &fundingDate
+	}
+	for _, d := range f.Documents {
+		resp.Documents = append(resp.Documents, fundingDocumentToResponse(&d))
+	}
+	return resp
+}
+
+func fundingDocumentToResponse(d *FundingDocument) FundingDocumentResponse {
+	return FundingDocumentResponse{
+		ID:           d.ID.String(),
+		DocumentType: string(d.DocumentType),
+		FileName:     d.FileName,
+		FilePath:     d.FilePath,
+		MimeType:     d.MimeType,
+		FileSize:     d.FileSize,
 	}
 }
 
