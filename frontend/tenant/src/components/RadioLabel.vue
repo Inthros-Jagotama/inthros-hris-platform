@@ -20,12 +20,12 @@ const isSelected = computed(() => props.modelValue === props.value);
 
 <template>
     <div
-        class="flex gap-3 px-3 py-2.5 border rounded-lg cursor-pointer select-none transition-all duration-150"
+        class="flex gap-3 border rounded-lg cursor-pointer select-none transition-all duration-150"
         :class="[
             isSelected
                 ? 'border-emerald-400 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-sm'
                 : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-sm',
-            description ? 'items-start' : 'items-center'
+            description ? 'items-start p-4' : 'items-center px-3 py-1.5'
         ]"
         @click="emit('update:modelValue', value)"
     >

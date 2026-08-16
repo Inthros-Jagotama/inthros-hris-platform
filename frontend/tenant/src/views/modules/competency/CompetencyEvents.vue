@@ -66,7 +66,7 @@
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('competency_360.edit_event') : t('competency_360.new_event')" modal :style="{ width: '520px' }" @hide="resetForm">
       <div class="space-y-3">
         <FormRow :label="t('competency_360.event_type')" required :errors="errors?.type">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="space-y-3">
             <RadioLabel v-model="form.type" value="auto" :id="'event-type-auto'" :label="t('competency_360.type_auto')" :description="t('competency_360.type_auto_desc')" />
             <RadioLabel v-model="form.type" value="manual" :id="'event-type-manual'" :label="t('competency_360.type_manual')" :description="t('competency_360.type_manual_desc')" />
           </div>
