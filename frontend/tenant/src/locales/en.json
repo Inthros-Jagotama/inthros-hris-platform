@@ -676,6 +676,8 @@
     "code": "Code",
     "name": "Name",
     "confirm_funding": "Confirm",
+    "upload_proof": "Upload transfer proof",
+    "upload_receipt": "Upload receipt",
     "add_expense": "Add Expense",
     "add_expense_category": "Add Expense Category",
     "expense_category": "Expense Category",

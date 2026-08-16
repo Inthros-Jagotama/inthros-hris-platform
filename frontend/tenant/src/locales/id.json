@@ -676,6 +676,8 @@
     "code": "Kode",
     "name": "Nama",
     "confirm_funding": "Konfirmasi",
+    "upload_proof": "Unggah bukti transfer",
+    "upload_receipt": "Unggah kuitansi",
     "add_expense": "Tambah Pengeluaran",
     "add_expense_category": "Tambah Kategori Pengeluaran",
     "expense_category": "Kategori Pengeluaran",

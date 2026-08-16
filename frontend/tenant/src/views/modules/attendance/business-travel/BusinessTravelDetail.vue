@@ -97,14 +97,22 @@
             <Button :label="t('common.add')" icon="pi pi-plus" size="small" @click="openFundingDialog" />
           </div>
           <div v-if="fundings.length" class="divide-y divide-gray-100 dark:divide-gray-700">
-            <div v-for="f in fundings" :key="f.id" class="py-3 flex items-center justify-between text-sm">
-              <div>
-                <span class="text-gray-700 dark:text-gray-200 font-medium">{{ fundingMethodName(f.funding_method_id) }}</span>
-                <span class="text-gray-400 dark:text-gray-500 ml-2">{{ formatCurrency(f.amount) }}</span>
-                <Tag :value="f.status" :severity="fundingStatusSeverity(f.status)" class="!text-xs !px-1.5 !py-0.5 ml-2" />
+            <div v-for="f in fundings" :key="f.id" class="py-3">
+              <div class="flex items-center justify-between text-sm">
+                <div>
+                  <span class="text-gray-700 dark:text-gray-200 font-medium">{{ fundingMethodName(f.funding_method_id) }}</span>
+                  <span class="text-gray-400 dark:text-gray-500 ml-2">{{ formatCurrency(f.amount) }}</span>
+                  <Tag :value="f.status" :severity="fundingStatusSeverity(f.status)" class="!text-xs !px-1.5 !py-0.5 ml-2" />
+                </div>
+                <div class="flex items-center gap-2">
+                  <Button v-if="f.status === 'PENDING' || f.status === 'PROCESSING'" :label="t('business_travel.confirm_funding')" size="small" text @click="handleConfirmFunding(f)" />
+                  <Button icon="pi pi-paperclip" size="small" text :loading="uploadingDocFor === f.id" @click="triggerFundingUpload(f)" v-tooltip.top="t('business_travel.upload_proof')" />
+                </div>
               </div>
-              <div class="flex items-center gap-2">
-                <Button v-if="f.status === 'PENDING' || f.status === 'PROCESSING'" :label="t('business_travel.confirm_funding')" size="small" text @click="handleConfirmFunding(f)" />
+              <div v-if="f.documents?.length" class="flex flex-wrap gap-2 mt-1">
+                <a v-for="doc in f.documents" :key="doc.id" :href="doc.file_path" target="_blank" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline">
+                  <i class="pi pi-paperclip mr-1"></i>{{ doc.file_name }}
+                </a>
               </div>
             </div>
           </div>
@@ -120,13 +128,23 @@
             <Button :label="t('common.add')" icon="pi pi-plus" size="small" @click="openExpenseDialog" />
           </div>
           <div v-if="expenses.length" class="divide-y divide-gray-100 dark:divide-gray-700">
-            <div v-for="e in expenses" :key="e.id" class="py-3 flex items-center justify-between text-sm">
-              <div>
-                <span class="text-gray-700 dark:text-gray-200 font-medium">{{ expenseCategoryName(e.expense_category_id) }}</span>
-                <span class="text-gray-400 dark:text-gray-500 ml-2">{{ formatCurrency(e.amount) }}</span>
-                <span class="text-gray-400 dark:text-gray-500 ml-2">{{ formatDate(e.expense_date, locale) }}</span>
+            <div v-for="e in expenses" :key="e.id" class="py-3">
+              <div class="flex items-center justify-between text-sm">
+                <div>
+                  <span class="text-gray-700 dark:text-gray-200 font-medium">{{ expenseCategoryName(e.expense_category_id) }}</span>
+                  <span class="text-gray-400 dark:text-gray-500 ml-2">{{ formatCurrency(e.amount) }}</span>
+                  <span class="text-gray-400 dark:text-gray-500 ml-2">{{ formatDate(e.expense_date, locale) }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <Button icon="pi pi-paperclip" size="small" text :loading="uploadingDocFor === e.id" @click="triggerExpenseUpload(e)" v-tooltip.top="t('business_travel.upload_receipt')" />
+                  <Button icon="pi pi-trash" size="small" text severity="danger" @click="handleDeleteExpense(e)" />
+                </div>
               </div>
-              <Button icon="pi pi-trash" size="small" text severity="danger" @click="handleDeleteExpense(e)" />
+              <div v-if="e.documents?.length" class="flex flex-wrap gap-2 mt-1">
+                <a v-for="doc in e.documents" :key="doc.id" :href="doc.file_path" target="_blank" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline">
+                  <i class="pi pi-paperclip mr-1"></i>{{ doc.file_name }}
+                </a>
+              </div>
             </div>
           </div>
           <p v-else class="text-xs text-gray-400">{{ t('business_travel.empty') }}</p>
@@ -293,6 +311,8 @@
         <Button :label="t('common.save')" size="small" :loading="savingExpenseCategory" @click="handleSaveExpenseCategory" />
       </template>
     </Dialog>
+
+    <input ref="docFileInputRef" type="file" class="hidden" @change="onDocFileSelected" />
   </div>
 </template>
 
@@ -534,6 +554,53 @@ async function handleConfirmFunding(f) {
     await loadFundings()
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  }
+}
+
+// ── Documents (transfer proof / receipt) ──
+// Two-step: upload raw file to the generic upload endpoint to get a URL,
+// then attach that URL to the funding/expense via its documents endpoint —
+// same pattern as AttendanceOvertime.vue's attachment_url upload.
+const docFileInputRef = ref(null)
+const docUploadTarget = ref(null) // { type: 'funding' | 'expense', id }
+const uploadingDocFor = ref(null)
+
+function triggerFundingUpload(f) {
+  docUploadTarget.value = { type: 'funding', id: f.id }
+  docFileInputRef.value?.click()
+}
+function triggerExpenseUpload(e) {
+  docUploadTarget.value = { type: 'expense', id: e.id }
+  docFileInputRef.value?.click()
+}
+
+async function onDocFileSelected(event) {
+  const file = event.target.files?.[0]
+  const target = docUploadTarget.value
+  if (!file || !target) return
+  uploadingDocFor.value = target.id
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const uploadRes = await api.post('/api/v1/tenant/uploads', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    const filePath = uploadRes.data?.data?.url || ''
+    if (!filePath) throw new Error('upload failed')
+
+    const docPayload = { document_type: target.type === 'funding' ? 'TRANSFER_RECEIPT' : 'RECEIPT', file_name: file.name, file_path: filePath, mime_type: file.type, file_size: file.size }
+    if (target.type === 'funding') {
+      await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/fundings/${target.id}/documents`, docPayload)
+      await loadFundings()
+    } else {
+      await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/expenses/${target.id}/documents`, docPayload)
+      await loadExpenses()
+    }
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  } finally {
+    uploadingDocFor.value = null
+    docUploadTarget.value = null
+    if (docFileInputRef.value) docFileInputRef.value.value = ''
   }
 }
 
