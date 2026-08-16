@@ -1070,6 +1070,13 @@ func main() {
 	approvalSvc.RegisterStatusHandler("attendance", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return attendanceSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
+	// Business Travel (docs/module-attendance-business-travel-development-plan.md
+	// §54.3) routes through the same shared approval engine as overtime/
+	// correction above, but under its own "business_travel" module slug so
+	// the Travel Approval flow can be configured independently.
+	approvalSvc.RegisterStatusHandler("business_travel", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return attendanceSvc.HandleBusinessTravelApprovalStatusChange(ctx, documentID, string(status), note)
+	})
 	// Push approved leave onto Attendance's daily session (§26/§50 of
 	// docs/module-attendance-plan.md) so a day fully covered by leave is
 	// reflected without needing a check-in event to trigger it.

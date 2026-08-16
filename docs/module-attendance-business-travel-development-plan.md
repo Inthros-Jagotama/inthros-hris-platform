@@ -1846,7 +1846,7 @@ ip_address
 
 - [x] Integrate existing Approval Module — reuse `Service.approvalEngine` (field sama dengan overtime/correction), module slug baru `"business_travel"` agar flow terpisah dari `"attendance"`.
 - [x] Submit request — `Service.SubmitBusinessTravel` (DRAFT→SUBMITTED, `CreateApprovalInstance`/`GetActiveFlowIDForModule`, `approval.RoutingError` fail loudly seperti overtime).
-- [x] Approval callback/status synchronization — `Service.HandleBusinessTravelApprovalStatusChange` (APPROVED/REJECTED). **Belum diregister** ke `approvalSvc.RegisterStatusHandler("business_travel", ...)` di `main.go` — wiring terakhir yang tersisa sebelum approval end-to-end benar-benar jalan.
+- [x] Approval callback/status synchronization — `Service.HandleBusinessTravelApprovalStatusChange` (APPROVED/REJECTED), diregister via `approvalSvc.RegisterStatusHandler("business_travel", ...)` di `backend/cmd/server/main.go` (titik sama dengan wiring `attendanceSvc.SetApprovalEngine`). Approval end-to-end sudah nyambung secara kode; belum diverifikasi dengan test/manual run.
 - [x] Rejection — status REJECTED di-set oleh callback di atas.
 - [ ] Approval history — belum ada endpoint untuk menampilkan riwayat approval (bisa query langsung ke module approval by instance ID untuk sementara).
 
