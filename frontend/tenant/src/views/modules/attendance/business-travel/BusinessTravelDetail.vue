@@ -228,7 +228,10 @@
                 </div>
                 <div class="flex items-center gap-2">
                   <Button icon="pi pi-paperclip" size="small" text :loading="uploadingDocFor === e.id" @click="triggerExpenseUpload(e)" v-tooltip.top="t('business_travel.upload_receipt')" />
-                  <Button icon="pi pi-trash" size="small" text severity="danger" @click="handleDeleteExpense(e)" />
+                  <template v-if="e.status !== 'APPROVED'">
+                    <Button icon="pi pi-pencil" size="small" text @click="openExpenseDialog(e)" />
+                    <Button icon="pi pi-trash" size="small" text severity="danger" @click="handleDeleteExpense(e)" />
+                  </template>
                 </div>
               </div>
               <div v-if="e.documents?.length" class="flex flex-wrap gap-2 mt-1">
@@ -420,7 +423,7 @@
     </Dialog>
 
     <!-- ── Dialog: Expense ── -->
-    <Dialog v-model:visible="expenseDialogVisible" :header="t('business_travel.add_expense')" modal :style="{ width: '460px' }">
+    <Dialog v-model:visible="expenseDialogVisible" :header="editingExpenseId ? t('common.edit') : t('business_travel.add_expense')" modal :style="{ width: '460px' }">
       <div class="space-y-3">
         <FormRow :label="t('business_travel.expense_category')" required>
           <div class="flex items-center gap-2">
@@ -932,16 +935,24 @@ async function handleSaveFundingMethod() {
 // ── Expense ──
 const expenseDialogVisible = ref(false)
 const savingExpense = ref(false)
+const editingExpenseId = ref(null)
 const expenseForm = ref({ expense_category_id: '', expense_date: '', amount: null, funding_method_id: '', vendor: '', description: '' })
-function openExpenseDialog() {
-  expenseForm.value = { expense_category_id: '', expense_date: '', amount: null, funding_method_id: '', vendor: '', description: '' }
+function openExpenseDialog(existing) {
+  editingExpenseId.value = existing?.id || null
+  expenseForm.value = existing
+    ? { expense_category_id: existing.expense_category_id || '', expense_date: existing.expense_date || '', amount: existing.amount, funding_method_id: existing.funding_method_id || '', vendor: existing.vendor || '', description: existing.description || '' }
+    : { expense_category_id: '', expense_date: '', amount: null, funding_method_id: '', vendor: '', description: '' }
   expenseDialogVisible.value = true
 }
 async function handleSaveExpense() {
   if (!expenseForm.value.expense_category_id || !expenseForm.value.expense_date || !expenseForm.value.amount) return
   savingExpense.value = true
   try {
-    await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/expenses`, expenseForm.value)
+    if (editingExpenseId.value) {
+      await api.put(`/api/v1/tenant/attendance/business-travels/${travelId}/expenses/${editingExpenseId.value}`, expenseForm.value)
+    } else {
+      await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/expenses`, expenseForm.value)
+    }
     expenseDialogVisible.value = false
     await loadExpenses()
   } catch (e) {
