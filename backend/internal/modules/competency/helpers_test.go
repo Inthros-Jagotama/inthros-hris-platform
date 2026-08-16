@@ -18,7 +18,7 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		panic(fmt.Sprintf("failed to open test db: %v", err))
 	}
 
-	// AutoMigrate all 7 models
+	// AutoMigrate all 7 models + Competency 360 models
 	if err := db.AutoMigrate(
 		&Competency{},
 		&CompetenceValue{},
@@ -27,6 +27,16 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&CompetencyEventTarget{},
 		&CompetencyScore{},
 		&CompetencyScoreDetail{},
+		// Competency 360
+		&CompetencyRatingScale{},
+		&CompetencyRatingScaleItem{},
+		&CompetencyAssessmentTemplate{},
+		&CompetencyAssessmentTemplateCompetency{},
+		&CompetencyAssessmentTemplateRaterType{},
+		&CompetencyIndicator{},
+		&CompetencyAssessmentTemplateIndicator{},
+		&CompetencyAssessmentRater{},
+		&CompetencyAssessmentResponse{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
 	}

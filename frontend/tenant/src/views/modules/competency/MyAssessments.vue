@@ -76,7 +76,7 @@
       >
         <template #empty>
           <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
-            <i class="pi pi-clipboard-list text-3xl mb-2 opacity-50"></i>
+            <i class="pi pi-list-check text-3xl mb-2 opacity-50"></i>
             <p class="text-sm font-medium">{{ t('competency_360.my_assessments_empty') }}</p>
           </div>
         </template>

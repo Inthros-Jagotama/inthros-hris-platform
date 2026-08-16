@@ -1225,12 +1225,12 @@ Persisten: `FinalizeTarget` menulis snapshot ke `competency_scores` (per employe
 
 ## Phase 8 — Testing & Hardening
 
-- [ ] Backend unit tests.
-- [ ] Backend integration tests.
-- [ ] Approval integration tests.
+- [x] Backend unit tests.
+- [x] Backend integration tests.
+- [x] Approval integration tests.
 - [ ] Authorization tests.
 - [ ] Frontend tests.
-- [ ] Calculation edge-case tests.
+- [x] Calculation edge-case tests.
 - [ ] Security testing.
 - [ ] Performance testing.
 

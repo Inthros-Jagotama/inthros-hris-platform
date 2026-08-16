@@ -316,3 +316,100 @@ func TestService_ListAvailableModules_NoChecker_Error(t *testing.T) {
 		t.Fatal("expected error when module checker is not configured, got nil")
 	}
 }
+
+// TestService_CreateFlow_Competency360_AllowedViaCompetencySubscription validates
+// the Phase 4 wiring: flow module "competency_360_assessment" dicek terhadap
+// subscription "competency" (alias) — pola persis performance_kpi_target.
+func TestService_CreateFlow_Competency360_AllowedViaCompetencySubscription(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("competency"))
+
+	resp, err := svc.CreateFlow(ctxAsCompany("company-1"), CreateFlowRequest{
+		Module: "competency_360_assessment",
+		Name:   "Finalisasi Assessment 360",
+	})
+	if err != nil {
+		t.Fatalf("expected CreateFlow to succeed for competency_360_assessment when 'competency' is subscribed, got: %v", err)
+	}
+	if resp.Module != "competency_360_assessment" {
+		t.Errorf("expected module 'competency_360_assessment', got '%s'", resp.Module)
+	}
+}
+
+func TestService_CreateFlow_Competency360_RejectedWithoutCompetencySubscription(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("leave"))
+
+	_, err := svc.CreateFlow(ctxAsCompany("company-1"), CreateFlowRequest{
+		Module: "competency_360_assessment",
+		Name:   "Finalisasi Assessment 360",
+	})
+	if err == nil {
+		t.Fatal("expected CreateFlow to reject competency_360_assessment when 'competency' is not subscribed")
+	}
+}
+
+// TestService_ListAvailableModules_IncludesCompetency360SubModule memastikan
+// subscription "competency" membuka checkpoint flow competency_360_assessment
+// di module picker bila handler status-nya terdaftar (terintegrasi) — pola
+// persis TestService_ListAvailableModules_IncludesKPISubModules.
+func TestService_ListAvailableModules_IncludesCompetency360SubModule(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("competency"))
+	svc.RegisterStatusHandler("competency_360_assessment", nil)
+
+	modules, err := svc.ListAvailableModules(ctxAsCompany("company-1"))
+	if err != nil {
+		t.Fatalf("ListAvailableModules failed: %v", err)
+	}
+	found := map[string]bool{}
+	for _, m := range modules {
+		found[m] = true
+	}
+	if !found["competency_360_assessment"] {
+		t.Errorf("expected available modules to include 'competency_360_assessment', got %v", modules)
+	}
+	if found["competency"] {
+		t.Errorf("expected base module 'competency' NOT to appear (bukan module flow terintegrasi langsung), got %v", modules)
+	}
+}
+
+// TestService_ListAvailableModules_Competency360HiddenWithoutHandler memastikan
+// competency_360_assessment TIDAK muncul di picker bila status handler-nya
+// belum terdaftar (module belum terintegrasi Central Approval).
+func TestService_ListAvailableModules_Competency360HiddenWithoutHandler(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetModuleChecker(newFakeModuleChecker("competency"))
+
+	modules, err := svc.ListAvailableModules(ctxAsCompany("company-1"))
+	if err != nil {
+		t.Fatalf("ListAvailableModules failed: %v", err)
+	}
+	for _, m := range modules {
+		if m == "competency_360_assessment" {
+			t.Fatalf("expected competency_360_assessment to be hidden without registered status handler, got %v", modules)
+		}
+	}
+}
+
+// TestService_GetActiveFlowByModule_Competency360_FallsBackToBaseModule validates
+// that a flow configured under the base "competency" module is used as fallback
+// for the competency_360_assessment checkpoint slug.
+func TestService_GetActiveFlowByModule_Competency360_FallsBackToBaseModule(t *testing.T) {
+	svc, repo, cleanup := newTestService()
+	defer cleanup()
+
+	flow := createTestFlow(repo, "competency")
+
+	resp, err := svc.GetActiveFlowByModule(ctxAsCompany("company-1"), "competency_360_assessment")
+	if err != nil {
+		t.Fatalf("expected fallback to the 'competency' flow, got error: %v", err)
+	}
+	if resp.ID != flow.ID.String() {
+		t.Errorf("expected fallback flow id %s, got %s", flow.ID, resp.ID)
+	}
+}

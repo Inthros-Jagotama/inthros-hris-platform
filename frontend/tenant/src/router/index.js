@@ -139,7 +139,7 @@ const routes = [
         path: 'competencies/my-assessments',
         name: 'MyAssessments',
         component: () => import('@/views/modules/competency/MyAssessments.vue'),
-        meta: { title: 'My Assessment', titleKey: 'competency_360.my_assessments', descKey: 'competency_360.my_assessments_desc', icon: 'pi pi-clipboard-list', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency' }
+        meta: { title: 'My Assessment', titleKey: 'competency_360.my_assessments', descKey: 'competency_360.my_assessments_desc', icon: 'pi pi-list-check', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency' }
       },
       {
         path: 'competencies/results',

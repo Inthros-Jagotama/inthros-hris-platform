@@ -68,7 +68,7 @@
         @click="router.push('/competencies/my-assessments')"
       >
         <div class="w-11 h-11 rounded-lg shrink-0 flex items-center justify-center bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400">
-          <i class="pi pi-clipboard-list text-lg"></i>
+          <i class="pi pi-list-check text-lg"></i>
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('competency_360.my_assessments') }}</p>
@@ -98,7 +98,7 @@
         @click="router.push('/competencies/reports')"
       >
         <div class="w-11 h-11 rounded-lg shrink-0 flex items-center justify-center bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400">
-          <i class="pi pi-file-chart text-lg"></i>
+          <i class="pi pi-chart-line text-lg"></i>
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('competency_360.reports') }}</p>
