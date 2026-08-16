@@ -161,7 +161,10 @@ func TestService_CreateEmployee_DefaultStatus(t *testing.T) {
 func TestService_CreateEmployee_WithOptionalFields(t *testing.T) {
 	svc, cleanup := newTestService()
 	defer cleanup()
-	ctx := context.Background()
+	// This test asserts on the raw NIK/email values returned by Create, so
+	// the caller needs view permission for those fields; otherwise Task 12's
+	// masking replaces them with partially-masked values.
+	ctx := context.WithValue(context.Background(), "permissions", []string{"employee.view_nik", "employee.view_email"})
 
 	gender := "M"
 	req := CreateEmployeeRequest{
@@ -886,5 +889,107 @@ func TestUpdateBank_DoesNotDoubleEncryptAlreadyEncryptedField(t *testing.T) {
 	}
 	if decrypted != originalAccountNumber {
 		t.Fatalf("decrypted account_number = %q, want %q", decrypted, originalAccountNumber)
+	}
+}
+
+// =========================================================================
+// Task 12: Role-based masking on responses
+// =========================================================================
+
+func TestMaskFamilyResponse_MasksWithoutPermission(t *testing.T) {
+	ctx := context.Background() // no permissions in context
+	resp := &FamilyResponse{NIK: "3201010101985678"} // 16 chars -> last 4 visible
+
+	maskFamilyResponse(ctx, resp)
+
+	if resp.NIK != "************5678" {
+		t.Errorf("NIK = %q, want masked", resp.NIK)
+	}
+}
+
+func TestMaskFamilyResponse_UnmaskedWithPermission(t *testing.T) {
+	ctx := context.WithValue(context.Background(), "permissions", []string{"employee_family.view_nik"})
+	resp := &FamilyResponse{NIK: "3201010101985678"}
+
+	maskFamilyResponse(ctx, resp)
+
+	if resp.NIK != "3201010101985678" {
+		t.Errorf("NIK = %q, want unmasked plaintext", resp.NIK)
+	}
+}
+
+func TestMaskBankResponse_MasksAccountNumberAndName(t *testing.T) {
+	ctx := context.Background()
+	resp := &BankResponse{AccountNumber: "1234567890", AccountName: "Budi Santoso"} // 10 chars, 12 chars -> both last 4 visible
+
+	maskBankResponse(ctx, resp)
+
+	if resp.AccountNumber != "******7890" {
+		t.Errorf("AccountNumber = %q, want masked", resp.AccountNumber)
+	}
+	if resp.AccountName != "********toso" {
+		t.Errorf("AccountName = %q, want masked", resp.AccountName)
+	}
+}
+
+func TestMaskEmployeeResponse_PerFieldGranularity(t *testing.T) {
+	ctx := context.WithValue(context.Background(), "permissions", []string{"employee.view_nik"}) // NIK only, not passport/phone/email
+	resp := &EmployeeResponse{NIK: "3201010101985678", Passport: "A1234567", PhoneNumber: "081234567890", Email: "budi@example.com"}
+
+	maskEmployeeResponse(ctx, resp)
+
+	if resp.NIK != "3201010101985678" {
+		t.Errorf("NIK should be unmasked, got %q", resp.NIK)
+	}
+	if resp.Passport == "A1234567" {
+		t.Error("Passport should be masked")
+	}
+	if resp.PhoneNumber == "081234567890" {
+		t.Error("PhoneNumber should be masked")
+	}
+}
+
+func TestGetByID_FullPipeline_EncryptDecryptMask(t *testing.T) {
+	t.Setenv("HRIS_ENCRYPTION_KEY", "00000000000000000000000000000000000000000000000000000000000000aa")
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+	ctx := context.Background()
+
+	if err := svc.SetSensitiveFieldEnabled(ctx, "employee.nik", true); err != nil {
+		t.Fatalf("SetSensitiveFieldEnabled() error = %v", err)
+	}
+	// Use a fixed constant (rather than comparing against the request's own
+	// *string later) because Create/encryptIfEnabled mutate the NIK pointer
+	// in place; reusing the same local var for the request and the assertion
+	// would make the assertion trivially pass against the mutated pointer.
+	const wantNIK = "3201010101985678"
+	nik := wantNIK
+	created, err := svc.Create(ctx, CreateEmployeeRequest{EmployeeID: "ENC-PIPE-001", Name: "Pipeline Test", NIK: &nik})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	// Caller without view_nik permission: masked.
+	noPermCtx := context.Background()
+	got, err := svc.GetByID(noPermCtx, created.ID)
+	if err != nil {
+		t.Fatalf("GetByID() error = %v", err)
+	}
+	if got.NIK != "************5678" {
+		t.Errorf("GetByID without permission: NIK = %q, want masked", got.NIK)
+	}
+
+	// Caller with view_nik permission: real value, even though it's
+	// encrypted at rest.
+	permCtx := context.WithValue(context.Background(), "permissions", []string{"employee.view_nik"})
+	got, err = svc.GetByID(permCtx, created.ID)
+	if err != nil {
+		t.Fatalf("GetByID() error = %v", err)
+	}
+	if got.NIK != wantNIK {
+		t.Errorf("GetByID with permission: NIK = %q, want plaintext %q", got.NIK, wantNIK)
 	}
 }

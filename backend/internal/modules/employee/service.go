@@ -187,6 +187,7 @@ func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*Emplo
 	)
 
 	response := emp.ToResponse()
+	maskEmployeeResponse(ctx, &response)
 	return &response, nil
 }
 
@@ -202,6 +203,7 @@ func (s *Service) GetByID(ctx context.Context, id string) (*EmployeeResponse, er
 	}
 
 	response := emp.ToResponse()
+	maskEmployeeResponse(ctx, &response)
 	return &response, nil
 }
 
@@ -220,7 +222,9 @@ func (s *Service) List(ctx context.Context, page, perPage int, search, status, o
 
 	var responses []EmployeeResponse
 	for _, e := range employees {
-		responses = append(responses, e.ToResponse())
+		r := e.ToResponse()
+		maskEmployeeResponse(ctx, &r)
+		responses = append(responses, r)
 	}
 
 	totalPages := int(total) / perPage
@@ -328,6 +332,7 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateEmployeeReque
 	}
 
 	response := emp.ToResponse()
+	maskEmployeeResponse(ctx, &response)
 	return &response, nil
 }
 
@@ -496,6 +501,7 @@ func (s *Service) CreateEmergencyContact(ctx context.Context, employeeID string,
 	}
 
 	response := toEmergencyContactResponse(contact)
+	maskEmergencyContactResponse(ctx, &response)
 	return &response, nil
 }
 
@@ -534,6 +540,7 @@ func (s *Service) UpdateEmergencyContact(ctx context.Context, employeeID, contac
 	}
 
 	response := toEmergencyContactResponse(contact)
+	maskEmergencyContactResponse(ctx, &response)
 	return &response, nil
 }
 
@@ -585,6 +592,7 @@ func (s *Service) CreateFamily(ctx context.Context, employeeID string, req Creat
 	}
 
 	response := toFamilyResponse(fam)
+	maskFamilyResponse(ctx, &response)
 	return &response, nil
 }
 
@@ -627,6 +635,7 @@ func (s *Service) UpdateFamily(ctx context.Context, employeeID, familyID string,
 	}
 
 	response := toFamilyResponse(fam)
+	maskFamilyResponse(ctx, &response)
 	return &response, nil
 }
 
@@ -1008,6 +1017,7 @@ func (s *Service) CreateBank(ctx context.Context, employeeID string, req CreateB
 	}
 
 	response := toBankResponse(bank)
+	maskBankResponse(ctx, &response)
 	return &response, nil
 }
 
@@ -1046,6 +1056,7 @@ func (s *Service) UpdateBank(ctx context.Context, employeeID, bankID string, req
 	}
 
 	response := toBankResponse(bank)
+	maskBankResponse(ctx, &response)
 	return &response, nil
 }
 
