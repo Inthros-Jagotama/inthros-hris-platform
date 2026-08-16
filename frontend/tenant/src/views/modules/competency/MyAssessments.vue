@@ -1,10 +1,6 @@
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between gap-2 flex-wrap">
-      <div class="flex items-center gap-2">
-        <Button icon="pi pi-arrow-left" size="small" text severity="secondary" v-tooltip.top="t('common.back')" @click="router.push('/competencies')" />
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('competency_360.my_assessments') }}</h2>
-      </div>
+    <div class="flex items-center justify-end gap-2">
       <Button v-if="detail" :label="t('common.back')" icon="pi pi-arrow-left" size="small" severity="secondary" outlined @click="closeDetail" />
     </div>
 
@@ -110,7 +106,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { useMyEmployee } from '@/composables/useMyEmployee'
@@ -127,7 +122,6 @@ import Message from 'primevue/message'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 import TextInput from '@/components/TextInput.vue'
 
-const router = useRouter()
 const { t } = useI18n()
 const toast = useToast()
 const { employeeId, loadMyEmployeeId } = useMyEmployee()
