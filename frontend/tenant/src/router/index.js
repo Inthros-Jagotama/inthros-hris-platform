@@ -118,6 +118,12 @@ const routes = [
         meta: { title: 'Rating Scales', titleKey: 'competency_360.rating_scales', descKey: 'competency_360.rating_scales_desc', icon: 'pi pi-sliders-h', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency' }
       },
       {
+        path: 'competencies/indicators',
+        name: 'CompetencyIndicators',
+        component: () => import('@/views/modules/competency/CompetencyIndicators.vue'),
+        meta: { title: 'Indicators', titleKey: 'competency_360.indicators', descKey: 'competency_360.indicators_desc', icon: 'pi pi-list', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency' }
+      },
+      {
         path: 'competencies/templates',
         name: 'AssessmentTemplates',
         component: () => import('@/views/modules/competency/AssessmentTemplates.vue'),
