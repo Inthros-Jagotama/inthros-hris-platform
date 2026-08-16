@@ -64,6 +64,9 @@ func (s *Service) encryptIfEnabled(ctx context.Context, fieldKey string, value *
 	if value == nil || *value == "" {
 		return nil
 	}
+	if crypto.LooksEncrypted(*value) {
+		return nil
+	}
 	enabled, err := s.IsFieldEncryptionEnabled(ctx, fieldKey)
 	if err != nil {
 		return err

@@ -673,3 +673,66 @@ func TestUpdate_EncryptsEmailWhenEnabled(t *testing.T) {
 		t.Errorf("stored Email %q does not look encrypted", *stored.Email)
 	}
 }
+
+// TestUpdate_DoesNotDoubleEncryptAlreadyEncryptedField guards against the bug
+// where encryptIfEnabled was called unconditionally on emp.Email (etc.) after
+// the FindEmployeeByID load, even when the incoming request did not touch
+// that field. A second Update call (touching a different field) would
+// re-encrypt the already-ciphertext value, corrupting it beyond recovery
+// with a single Decrypt call.
+func TestUpdate_DoesNotDoubleEncryptAlreadyEncryptedField(t *testing.T) {
+	t.Setenv("HRIS_ENCRYPTION_KEY", "00000000000000000000000000000000000000000000000000000000000000aa")
+	db, repo := setupEncryptionTestDB(t)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+	ctx := context.Background()
+
+	created, err := svc.Create(ctx, CreateEmployeeRequest{
+		EmployeeID: "ENC-004",
+		Name:       "Double Encrypt Guard Test",
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	if err := svc.SetSensitiveFieldEnabled(ctx, "employee.email", true); err != nil {
+		t.Fatalf("SetSensitiveFieldEnabled() error = %v", err)
+	}
+
+	const originalEmail = "double.encrypt.guard@test.com"
+	email := originalEmail
+	if _, err := svc.Update(ctx, created.ID, UpdateEmployeeRequest{Email: &email}); err != nil {
+		t.Fatalf("first Update() error = %v", err)
+	}
+
+	var afterFirst Employee
+	db.First(&afterFirst, "id = ?", created.ID)
+	if afterFirst.Email == nil || !crypto.LooksEncrypted(*afterFirst.Email) {
+		t.Fatalf("expected Email to be encrypted after first Update, got %v", afterFirst.Email)
+	}
+	firstCiphertext := *afterFirst.Email
+
+	// Second Update touches a different field entirely; it must not re-encrypt
+	// the already-encrypted Email.
+	name := "Double Encrypt Guard Test Updated"
+	if _, err := svc.Update(ctx, created.ID, UpdateEmployeeRequest{Name: &name}); err != nil {
+		t.Fatalf("second Update() error = %v", err)
+	}
+
+	var afterSecond Employee
+	db.First(&afterSecond, "id = ?", created.ID)
+	if afterSecond.Email == nil {
+		t.Fatal("expected Email to remain set after second Update")
+	}
+	if *afterSecond.Email != firstCiphertext {
+		t.Fatalf("Email ciphertext changed after unrelated Update: before=%q after=%q (indicates double-encryption)", firstCiphertext, *afterSecond.Email)
+	}
+
+	decrypted, err := crypto.DecryptString(*afterSecond.Email)
+	if err != nil {
+		t.Fatalf("DecryptString() error = %v (value may be double-encrypted)", err)
+	}
+	if decrypted != originalEmail {
+		t.Fatalf("decrypted Email = %q, want %q", decrypted, originalEmail)
+	}
+}
