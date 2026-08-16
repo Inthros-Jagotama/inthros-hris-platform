@@ -80,13 +80,13 @@
           </div>
           <div v-for="(item, idx) in form.items" :key="idx" class="flex items-start gap-2 mb-2">
             <div class="w-16 shrink-0">
-              <TextInput v-model="item.value" type="number" :placeholder="t('competency_360.item_value')" class="!text-xs" />
+              <TextInput v-model="item.value" type="number" :placeholder="t('competency_360.item_value')" />
             </div>
             <div class="flex-1">
-              <TextInput v-model="item.label" :placeholder="t('competency_360.item_label')" class="!text-xs" />
+              <TextInput v-model="item.label" :placeholder="t('competency_360.item_label')" />
             </div>
             <div class="w-20 shrink-0">
-              <TextInput v-model="item.weight" type="number" :placeholder="t('competency_360.weight')" class="!text-xs" />
+              <TextInput v-model="item.weight" type="number" :placeholder="t('competency_360.weight')" />
             </div>
             <Button icon="pi pi-trash" size="small" text severity="danger" @click="form.items.splice(idx, 1)" />
           </div>

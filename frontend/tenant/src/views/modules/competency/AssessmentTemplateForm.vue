@@ -27,13 +27,13 @@
       </div>
       <div v-for="(comp, idx) in form.competencies" :key="idx" class="flex items-center gap-2 mb-2">
         <div class="flex-1">
-          <Select v-model="comp.competency_id" :options="competencyOptions" optionLabel="name" optionValue="id" filter class="w-full !text-xs" :placeholder="t('competency_360.select_competency')" />
+          <Select v-model="comp.competency_id" :options="competencyOptions" optionLabel="name" optionValue="id" filter class="w-full" :placeholder="t('competency_360.select_competency')" />
         </div>
         <div class="w-24 shrink-0">
-          <TextInput v-model="comp.required_level" type="number" :placeholder="t('competency_360.req_level')" class="!text-xs" />
+          <TextInput v-model="comp.required_level" type="number" :placeholder="t('competency_360.req_level')" />
         </div>
         <div class="w-20 shrink-0">
-          <TextInput v-model="comp.weight" type="number" :placeholder="t('competency_360.weight')" class="!text-xs" />
+          <TextInput v-model="comp.weight" type="number" :placeholder="t('competency_360.weight')" />
         </div>
         <Button icon="pi pi-trash" size="small" text severity="danger" @click="form.competencies.splice(idx, 1)" />
       </div>
@@ -49,19 +49,19 @@
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.rater_type') }}</label>
-            <Select v-model="rt.rater_type" :options="raterTypeOptions" optionLabel="label" optionValue="value" class="w-full !text-xs" />
+            <Select v-model="rt.rater_type" :options="raterTypeOptions" optionLabel="label" optionValue="value" class="w-full" />
           </div>
           <div>
             <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.weight') }}</label>
-            <TextInput v-model="rt.weight" type="number" class="!text-xs" />
+            <TextInput v-model="rt.weight" type="number" />
           </div>
           <div>
             <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.min_rater') }}</label>
-            <TextInput v-model="rt.min_rater" type="number" class="!text-xs" />
+            <TextInput v-model="rt.min_rater" type="number" />
           </div>
           <div>
             <label class="text-[11px] text-gray-500 dark:text-gray-400 block mb-1">{{ t('competency_360.max_rater') }}</label>
-            <TextInput v-model="rt.max_rater" type="number" class="!text-xs" />
+            <TextInput v-model="rt.max_rater" type="number" />
           </div>
         </div>
         <div class="flex items-center gap-4 mt-2">
