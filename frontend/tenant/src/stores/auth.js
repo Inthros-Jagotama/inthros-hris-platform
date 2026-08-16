@@ -7,6 +7,18 @@ const REFRESH_KEY = 'tenant_refresh'
 const USER_KEY = 'tenant_user'
 const COMPANY_KEY = 'tenant_company'
 
+// safeJsonParse mem-parse nilai localStorage yang seharusnya JSON, tapi
+// bisa saja rusak/bukan JSON (data lama dari versi app sebelumnya, dsb).
+// Mengembalikan fallback alih-alih melempar error yang bisa meng-crash app.
+function safeJsonParse(value, fallback = null) {
+  if (value == null) return fallback
+  try {
+    return JSON.parse(value)
+  } catch {
+    return fallback
+  }
+}
+
 // decodeJwtPayload mendekode payload JWT (base64url) tanpa dependency eksternal.
 // Mengembalikan objek claims, atau null jika token tidak valid.
 function decodeJwtPayload(token) {
@@ -36,13 +48,13 @@ function extractPermissions(token) {
 }
 
 const state = reactive({
-  user: JSON.parse(localStorage.getItem(USER_KEY) || 'null'),
+  user: safeJsonParse(localStorage.getItem(USER_KEY)),
   accessToken: localStorage.getItem(TOKEN_KEY) || null,
   refreshToken: localStorage.getItem(REFRESH_KEY) || null,
   permissions: extractPermissions(localStorage.getItem(TOKEN_KEY) || null),
   // company: { id, slug, name } — di-sync otomatis dari response header X-Tenant-ID
   // (backend TenantResolver) sehingga state company selalu sinkron tanpa isi manual.
-  company: JSON.parse(localStorage.getItem(COMPANY_KEY) || 'null'),
+  company: safeJsonParse(localStorage.getItem(COMPANY_KEY)),
   isAuthenticated: !!localStorage.getItem(TOKEN_KEY)
 })
 
