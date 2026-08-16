@@ -1,16 +1,18 @@
 <template>
   <div class="space-y-4">
-    <!-- Bar aksi (bukan card utama) -->
-    <div class="flex items-center justify-between flex-wrap gap-2">
-      <div>
-        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">
-          {{ t('rbac.assign_permissions') }} — <span class="text-indigo-600 dark:text-indigo-400">{{ role?.name || '' }}</span>
-        </p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ selectedCount }} / {{ permissions.length }} {{ t('rbac.permissions_count') }}</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="router.push('/settings/rbac')" />
-        <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="saving" :disabled="saving || loading" @click="handleSave" />
+    <!-- Card nama role + aksi — sticky, tetap terlihat saat scroll -->
+    <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">
+            {{ t('rbac.assign_permissions') }} — <span class="text-indigo-600 dark:text-indigo-400">{{ role?.name || '' }}</span>
+          </p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ selectedCount }} / {{ permissions.length }} {{ t('rbac.permissions_count') }}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="router.push('/settings/rbac')" />
+          <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="saving" :disabled="saving || loading" @click="handleSave" />
+        </div>
       </div>
     </div>
 
