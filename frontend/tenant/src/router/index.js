@@ -705,7 +705,8 @@ const routes = [
       { path: 'settings/performance-formulas', name: 'SettingsPerformanceFormulas', component: () => import('@/views/settings/PerformanceFormulasView.vue'), meta: { title: 'KPI Formulas', titleKey: 'performance_formulas.title', descKey: 'performance_formulas.description', icon: 'pi pi-calculator', module: 'setting' } },
       { path: 'settings/performance-components', name: 'SettingsPerformanceComponents', component: () => import('@/views/settings/PerformanceComponentsView.vue'), meta: { title: 'Performance Components', titleKey: 'performance_components.title', descKey: 'performance_components.description', icon: 'pi pi-sliders-h', module: 'setting' } },
       { path: 'settings/performance-scoring', name: 'SettingsPerformanceScoring', component: () => import('@/views/settings/PerformanceScoringConfigView.vue'), meta: { title: 'Performance Scoring', titleKey: 'performance_scoring.title', descKey: 'performance_scoring.description', icon: 'pi pi-percentage', module: 'setting' } },
-      { path: 'settings/rbac', name: 'SettingsRbac', component: () => import('@/views/settings/RolesPermissions.vue'), meta: { title: 'RBAC', titleKey: 'rbac.title', descKey: 'rbac.description', icon: 'pi pi-shield', module: 'setting' } }
+      { path: 'settings/rbac', name: 'SettingsRbac', component: () => import('@/views/settings/RolesPermissions.vue'), meta: { title: 'RBAC', titleKey: 'rbac.title', descKey: 'rbac.description', icon: 'pi pi-shield', module: 'setting' } },
+      { path: 'settings/rbac/roles/:id/permissions', name: 'SettingsRolePermissions', component: () => import('@/views/settings/RolePermissions.vue'), meta: { title: 'Role Permissions', titleKey: 'rbac.assign_permissions', descKey: 'rbac.description', icon: 'pi pi-shield', module: 'setting', backRoute: '/settings/rbac', backLabelKey: 'rbac.title' } }
     ]
   }
 ]

@@ -62,7 +62,7 @@
         <Column :header="t('common.actions')" style="width:130px" frozen alignFrozen="right">
           <template #body="{ data }">
             <div class="flex items-center gap-1">
-              <Button icon="pi pi-shield" size="small" text severity="info" v-tooltip.left="t('rbac.assign_permissions')" @click="openPermissionDialog(data)" />
+              <Button icon="pi pi-shield" size="small" text severity="info" v-tooltip.left="t('rbac.assign_permissions')" @click="goPermissions(data)" />
               <Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" :disabled="data.is_system" @click="openRoleDialog(data)" />
               <Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" :disabled="data.is_system" @click="confirmDeleteRole(data)" />
             </div>
@@ -144,41 +144,6 @@
       </template>
     </Dialog>
 
-    <!-- ═══ ASSIGN PERMISSIONS DIALOG ═══ -->
-    <Dialog v-model:visible="permDialogVisible" :header="`${t('rbac.assign_permissions')} — ${permRole?.name || ''}`" modal :style="{ width: '640px', maxHeight: '80vh' }" :closable="true" :dismissableMask="true" @hide="permSelected = {}">
-      <div class="max-h-[60vh] overflow-y-auto space-y-4 pr-1">
-        <div v-if="permissionGroups.length === 0" class="text-center text-sm text-gray-400 py-8">{{ t('rbac.empty_permissions') }}</div>
-        <div v-for="group in permissionGroups" :key="group.resource" class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-          <div class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
-            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ group.resource }}</span>
-            <div class="flex items-center gap-1.5">
-              <Button
-                :label="group.allSelected ? t('common.clear') : t('common.all')"
-                severity="secondary"
-                text
-                size="small"
-                class="!text-[11px] !p-0.5"
-                @click="toggleGroup(group)"
-              />
-              <Checkbox :binary="true" :model-value="group.allSelected" @update:model-value="toggleGroup(group)" />
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-1 px-3 py-2">
-            <label v-for="p in group.items" :key="p.id" class="flex items-center gap-2 py-0.5 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400">
-              <Checkbox :binary="true" :model-value="permSelected[p.id]" @update:model-value="v => permSelected[p.id] = v" />
-              <span class="text-sm">{{ p.action }}</span>
-            </label>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <div class="flex items-center justify-end gap-2">
-          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="permDialogVisible=false" />
-          <Button :label="t('common.save')" icon="pi pi-check" size="small" :loading="savingPerms" :disabled="savingPerms" @click="handleSavePermissions" />
-        </div>
-      </template>
-    </Dialog>
-
     <!-- ═══ ASSIGN USER ROLES DIALOG ═══ -->
     <Dialog v-model:visible="userRoleDialogVisible" :header="`${t('rbac.assign_roles')} — ${userRoleTarget?.name || ''}`" modal :style="{ width: '480px' }" :closable="true" @hide="userRoleForm.role_ids = []">
       <div class="space-y-3">
@@ -220,6 +185,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
@@ -228,7 +194,6 @@ import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
-import Checkbox from 'primevue/checkbox'
 import MultiSelect from 'primevue/multiselect'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Dialog from 'primevue/dialog'
@@ -237,6 +202,7 @@ import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
 
+const router = useRouter()
 const { t } = useI18n()
 const toast = useToast()
 
@@ -276,26 +242,6 @@ const userSkeletonColumns = [
   { type: 'icons', count: 1, headerWidth: 'w-16' }
 ]
 
-// ── Permissions state ──
-const permissions = ref([])
-const permDialogVisible = ref(false)
-const permRole = ref(null)
-const permSelected = ref({})
-const savingPerms = ref(false)
-
-const permissionGroups = computed(() => {
-  const map = {}
-  for (const p of permissions.value) {
-    const res = p.resource || 'other'
-    if (!map[res]) map[res] = { resource: res, items: [] }
-    map[res].items.push(p)
-  }
-  return Object.values(map).map(g => ({
-    ...g,
-    allSelected: g.items.every(i => permSelected.value[i.id])
-  }))
-})
-
 // ── User-role state ──
 const userRoleDialogVisible = ref(false)
 const userRoleTarget = ref(null)
@@ -319,15 +265,6 @@ async function loadRoles() {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.failed_to_load'), life: 4000 })
   } finally {
     loadingRoles.value = false
-  }
-}
-
-async function loadPermissions() {
-  try {
-    const res = await api.get('/api/v1/tenant/rbac/permissions')
-    permissions.value = res.data?.data || []
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.failed_to_load'), life: 4000 })
   }
 }
 
@@ -401,37 +338,9 @@ async function handleSaveRole() {
   }
 }
 
-// ── Permission assignment ──
-function openPermissionDialog(role) {
-  permRole.value = role
-  permSelected.value = {}
-  for (const pid of (role.permission_ids || [])) {
-    permSelected.value[pid] = true
-  }
-  if (permissions.value.length === 0) loadPermissions()
-  permDialogVisible.value = true
-}
-
-function toggleGroup(group) {
-  const allSelected = group.allSelected
-  for (const p of group.items) {
-    permSelected.value[p.id] = !allSelected
-  }
-}
-
-async function handleSavePermissions() {
-  savingPerms.value = true
-  try {
-    const ids = Object.keys(permSelected.value).filter(k => permSelected.value[k])
-    await api.put(`/api/v1/tenant/rbac/roles/${permRole.value.id}/permissions`, { permission_ids: ids })
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('rbac.permissions_updated'), life: 3000 })
-    permDialogVisible.value = false
-    await loadRoles()
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
-  } finally {
-    savingPerms.value = false
-  }
+// ── Permission assignment → halaman khusus ──
+function goPermissions(role) {
+  router.push(`/settings/rbac/roles/${role.id}/permissions`)
 }
 
 // ── User-role assignment ──
@@ -488,7 +397,6 @@ async function handleDeleteRole() {
 
 onMounted(() => {
   loadRoles()
-  loadPermissions()
   loadUsers()
 })
 </script>
