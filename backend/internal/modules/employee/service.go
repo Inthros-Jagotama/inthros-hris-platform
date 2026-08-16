@@ -129,13 +129,6 @@ func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*Emplo
 		}
 		emp.MaritalStatusID = &id
 	}
-	if req.SupervisorID != nil && *req.SupervisorID != "" {
-		id, err := uuid.Parse(*req.SupervisorID)
-		if err != nil {
-			return nil, fmt.Errorf("invalid supervisor_id: %w", err)
-		}
-		emp.SupervisorID = &id
-	}
 	// G-4: referensi balik ke aplikasi recruitment asal (offer eksternal diterima).
 	if req.RecruitedFromApplicationID != nil && *req.RecruitedFromApplicationID != "" {
 		id, err := uuid.Parse(*req.RecruitedFromApplicationID)
@@ -274,17 +267,6 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateEmployeeReque
 			return nil, fmt.Errorf("invalid marital_status_id: %w", err)
 		}
 		emp.MaritalStatusID = &id
-	}
-	if req.SupervisorID != nil {
-		if *req.SupervisorID == "" {
-			emp.SupervisorID = nil
-		} else {
-			id, err := uuid.Parse(*req.SupervisorID)
-			if err != nil {
-				return nil, fmt.Errorf("invalid supervisor_id: %w", err)
-			}
-			emp.SupervisorID = &id
-		}
 	}
 	if req.Status != nil {
 		emp.Status = *req.Status

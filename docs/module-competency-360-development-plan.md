@@ -1426,9 +1426,9 @@ Karena `139_reimbursement_approve_permission` sudah terpakai sebelum Competency 
 146_competency_assessment_raters
 147_competency_assessment_responses
 148_competency_assessment_approval_instance
-149_employee_supervisor   -- + supervisor_id (reports_to) di employees — dasar daftar
-                           -- bawahan Manager Assessment (ditambahkan setelah Phase 8)
 ```
+
+Catatan (setelah Phase 8): daftar bawahan Manager Assessment diambil dari **struktur organisasi** (subtree `organizations.parent_id` tempat manager bekerja via `employments` saat ini) — bukan kolom baru di `employees`. Karena itu **tidak ada migrasi 149**; relasi atasan-bawahan mengikuti org tree yang sudah ada.
 
 Semua punya pasangan `postgres` + `mysql` + `.down.sql`. Migrasi **tidak dijalankan** dalam implementasi ini (di luar scope — hanya file migrasi yang dibuat).
 

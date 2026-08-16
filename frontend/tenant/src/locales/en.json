@@ -2385,7 +2385,7 @@
     "my_assessments_desc": "Inbox of assessments assigned to you as a rater.",
     "manager_assessments": "Manager Assessments",
     "manager_assessments_desc": "Rate your subordinates directly as their superior, per event.",
-    "manager_assessments_hint": "Your subordinates (from the reporting line) that are assessment subjects.",
+    "manager_assessments_hint": "Your subordinates (from the organization structure) that are assessment subjects.",
     "manager_assessments_empty": "No subordinates are assessment subjects in this scope yet.",
     "subordinate": "Subordinate",
     "my_rating_status": "My Rating Status",

@@ -135,12 +135,13 @@ func (s *Service) MyAssessments(ctx context.Context) ([]RaterResponse, error) {
 	return responses, nil
 }
 
-// ManagerAssessments mengembalikan daftar bawahan manager (dari
-// employees.supervisor_id) beserta target assessment mereka — "Manager
-// Assessment". Untuk tiap bawahan dicari target pada event (bila eventID
-// diberikan) atau target terbaru (finalized dulu, lalu draft), beserta status
-// rater superior manager pada target tsb (bila sudah di-assign). Bawahan tanpa
-// target di-skip — belum menjadi subject assessment pada scope tsb.
+// ManagerAssessments mengembalikan daftar bawahan manager (dari struktur
+// organisasi: seluruh employee di subtree organization tempat manager bekerja)
+// beserta target assessment mereka — "Manager Assessment". Untuk tiap bawahan
+// dicari target pada event (bila eventID diberikan) atau target terbaru
+// (finalized dulu, lalu draft), beserta status rater superior manager pada
+// target tsb (bila sudah di-assign). Bawahan tanpa target di-skip — belum
+// menjadi subject assessment pada scope tsb.
 func (s *Service) ManagerAssessments(ctx context.Context, eventID string) ([]ManagerAssessmentItem, error) {
 	userID := authctx.GetUserID(ctx)
 	if userID == nil {
@@ -154,7 +155,7 @@ func (s *Service) ManagerAssessments(ctx context.Context, eventID string) ([]Man
 		return nil, fmt.Errorf("no employee account linked to this user")
 	}
 
-	subordinateIDs, err := s.repo.FindSubordinateIDsBySupervisor(ctx, *managerID)
+	subordinateIDs, err := s.repo.FindSubordinateEmployeeIDsByManager(ctx, *managerID)
 	if err != nil {
 		return nil, err
 	}

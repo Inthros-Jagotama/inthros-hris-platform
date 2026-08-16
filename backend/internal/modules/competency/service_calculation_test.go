@@ -2,6 +2,7 @@ package competency
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -301,65 +302,97 @@ func TestCalculateTarget_InvalidTargetID(t *testing.T) {
 	}
 }
 
-// TestService_ManagerAssessments_SubordinatesFromSupervisor memverifikasi
-// ManagerAssessments mengambil daftar bawahan dari employees.supervisor_id
-// (bukan hanya rater assignment) dan mengisi status rater superior manager.
-func TestService_ManagerAssessments_SubordinatesFromSupervisor(t *testing.T) {
+// setupManagerOrgTree menyiapkan tabel minimal (employees, employee_accounts,
+// organizations, employments) + relasi organisasi: manager bekerja di org root,
+// bawahan bekerja di org anak (subtree). Mengembalikan managerID & userID login.
+func setupManagerOrgTree(t *testing.T, repo *Repository, ctx context.Context, subordinates ...uuid.UUID) (managerID, userID uuid.UUID) {
+	t.Helper()
+	db, err := repo.getDB(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS employees (id CHAR(36) PRIMARY KEY, name VARCHAR(255))").Error; err != nil {
+		t.Fatalf("create employees: %v", err)
+	}
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS employee_accounts (id CHAR(36) PRIMARY KEY, user_id CHAR(36), employee_id CHAR(36))").Error; err != nil {
+		t.Fatalf("create employee_accounts: %v", err)
+	}
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS organizations (id CHAR(36) PRIMARY KEY, parent_id CHAR(36), deleted_at TIMESTAMP)").Error; err != nil {
+		t.Fatalf("create organizations: %v", err)
+	}
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS employments (id CHAR(36) PRIMARY KEY, employee_id CHAR(36), organization_id CHAR(36), effective_date DATE, effective_end_date DATE)").Error; err != nil {
+		t.Fatalf("create employments: %v", err)
+	}
+
+	now := time.Now().Format("2006-01-02 15:04:05")
+	managerID = uuid.New()
+	userID = uuid.New()
+	managerOrgID := uuid.New()
+	childOrgID := uuid.New()
+
+	// Org tree: managerOrg (root) → childOrg.
+	insertOrg := func(id uuid.UUID, parent interface{}) {
+		if err := db.Exec("INSERT INTO organizations (id, parent_id, deleted_at) VALUES (?, ?, NULL)", id.String(), parent).Error; err != nil {
+			t.Fatalf("seed organization: %v", err)
+		}
+	}
+	insertOrg(managerOrgID, nil)
+	insertOrg(childOrgID, managerOrgID.String())
+
+	insertEmp := func(id uuid.UUID, name string) {
+		if err := db.Exec("INSERT INTO employees (id, name) VALUES (?, ?)", id.String(), name).Error; err != nil {
+			t.Fatalf("seed employee %s: %v", name, err)
+		}
+	}
+	insertEmp(managerID, "Manager")
+	for i, sub := range subordinates {
+		insertEmp(sub, fmt.Sprintf("Bawahan %d", i+1))
+	}
+
+	// Employment saat ini: manager di org root, bawahan di org anak (subtree).
+	insertEmployment := func(empID, orgID uuid.UUID) {
+		if err := db.Exec("INSERT INTO employments (id, employee_id, organization_id, effective_date, effective_end_date) VALUES (?, ?, ?, ?, NULL)",
+			uuid.New().String(), empID.String(), orgID.String(), now,
+		).Error; err != nil {
+			t.Fatalf("seed employment: %v", err)
+		}
+	}
+	insertEmployment(managerID, managerOrgID)
+	for _, sub := range subordinates {
+		insertEmployment(sub, childOrgID)
+	}
+
+	if err := db.Exec("INSERT INTO employee_accounts (id, user_id, employee_id) VALUES (?, ?, ?)",
+		uuid.New().String(), userID.String(), managerID.String(),
+	).Error; err != nil {
+		t.Fatalf("seed employee_accounts: %v", err)
+	}
+	return managerID, userID
+}
+
+// TestService_ManagerAssessments_SubordinatesFromOrg memverifikasi
+// ManagerAssessments mengambil daftar bawahan dari struktur organisasi
+// (seluruh employee di subtree org tempat manager bekerja — bukan kolom
+// supervisor manual) dan mengisi status rater superior manager.
+func TestService_ManagerAssessments_SubordinatesFromOrg(t *testing.T) {
 	svc, targetID, _, cleanup := setup360Scenario(t)
 	defer cleanup()
 	ctx := context.Background()
 	repo := svc.repo
 
-	// Setup tabel employees + employee_accounts minimal, lalu:
-	// manager (user login) dengan 2 bawahan; bawahan #1 adalah subject target
-	// scenario (sudah punya rater superior random — bukan manager), bawahan #2
-	// belum punya target sama sekali.
-	db, err := repo.getDB(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Exec("CREATE TABLE IF NOT EXISTS employees (id CHAR(36) PRIMARY KEY, employee_id VARCHAR(50), name VARCHAR(255), supervisor_id CHAR(36), created_at TIMESTAMP, updated_at TIMESTAMP)").Error; err != nil {
-		t.Fatalf("create employees: %v", err)
-	}
-	if err := db.Exec("CREATE TABLE IF NOT EXISTS employee_accounts (id CHAR(36) PRIMARY KEY, user_id CHAR(36), employee_id CHAR(36), created_at TIMESTAMP, updated_at TIMESTAMP)").Error; err != nil {
-		t.Fatalf("create employee_accounts: %v", err)
-	}
-	now := time.Now().Format("2006-01-02 15:04:05")
-	managerID := uuid.New()
-	subjectID := uuid.New()
-	otherSubID := uuid.New()
-	userID := uuid.New()
-
-	// Employee subject scenario: cari employee_id target dari target scenario.
 	target, err := repo.FindCompetencyEventTargetByID(ctx, mustParseUUID(t, targetID))
 	if err != nil {
 		t.Fatalf("get target: %v", err)
 	}
+	subjectID := uuid.New()
 	if target.EmployeeID != nil {
 		subjectID = *target.EmployeeID
 	}
+	otherSubID := uuid.New()
 
-	// supervisor_id adalah CHAR(36) — gunakan query parameter, bukan literal NULL.
-	seedQ := func(id uuid.UUID, name string, supervisorID *uuid.UUID) {
-		var sup interface{} = nil
-		if supervisorID != nil {
-			sup = supervisorID.String()
-		}
-		if err := db.Exec("INSERT INTO employees (id, employee_id, name, supervisor_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-			id.String(), "EMP-"+id.String()[:8], name, sup, now, now,
-		).Error; err != nil {
-			t.Fatalf("seed employee %s: %v", name, err)
-		}
-	}
-	seedQ(managerID, "Manager", nil)
-	seedQ(subjectID, "Bawahan 1", &managerID)
-	seedQ(otherSubID, "Bawahan 2", &managerID)
-
-	if err := db.Exec("INSERT INTO employee_accounts (id, user_id, employee_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-		uuid.New().String(), userID.String(), managerID.String(), now, now,
-	).Error; err != nil {
-		t.Fatalf("seed employee_accounts: %v", err)
-	}
+	// Manager (user login) dengan 2 bawahan di subtree org; bawahan #1 adalah
+	// subject target scenario, bawahan #2 belum punya target sama sekali.
+	_, userID := setupManagerOrgTree(t, repo, ctx, subjectID, otherSubID)
 
 	assessments, err := svc.ManagerAssessments(ctxWithUserID(userID), "")
 	if err != nil {
@@ -392,21 +425,6 @@ func TestService_ManagerAssessments_RaterStatusFilled(t *testing.T) {
 	ctx := context.Background()
 	repo := svc.repo
 
-	db, err := repo.getDB(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Exec("CREATE TABLE IF NOT EXISTS employees (id CHAR(36) PRIMARY KEY, employee_id VARCHAR(50), name VARCHAR(255), supervisor_id CHAR(36), created_at TIMESTAMP, updated_at TIMESTAMP)").Error; err != nil {
-		t.Fatalf("create employees: %v", err)
-	}
-	if err := db.Exec("CREATE TABLE IF NOT EXISTS employee_accounts (id CHAR(36) PRIMARY KEY, user_id CHAR(36), employee_id CHAR(36), created_at TIMESTAMP, updated_at TIMESTAMP)").Error; err != nil {
-		t.Fatalf("create employee_accounts: %v", err)
-	}
-	now := time.Now()
-	nowStr := now.Format("2006-01-02 15:04:05")
-	managerID := uuid.New()
-	userID := uuid.New()
-
 	target, err := repo.FindCompetencyEventTargetByID(ctx, mustParseUUID(t, targetID))
 	if err != nil {
 		t.Fatalf("get target: %v", err)
@@ -415,21 +433,7 @@ func TestService_ManagerAssessments_RaterStatusFilled(t *testing.T) {
 	if target.EmployeeID != nil {
 		subjectID = *target.EmployeeID
 	}
-
-	insertEmp := func(id uuid.UUID, name string, sup interface{}) {
-		if err := db.Exec("INSERT INTO employees (id, employee_id, name, supervisor_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-			id.String(), "EMP-"+id.String()[:8], name, sup, nowStr, nowStr,
-		).Error; err != nil {
-			t.Fatalf("seed employee %s: %v", name, err)
-		}
-	}
-	insertEmp(managerID, "Manager", nil)
-	insertEmp(subjectID, "Bawahan", managerID.String())
-	if err := db.Exec("INSERT INTO employee_accounts (id, user_id, employee_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-		uuid.New().String(), userID.String(), managerID.String(), nowStr, nowStr,
-	).Error; err != nil {
-		t.Fatalf("seed employee_accounts: %v", err)
-	}
+	managerID, userID := setupManagerOrgTree(t, repo, ctx, subjectID)
 
 	// Assign manager sebagai superior rater pada target bawahan.
 	assignedAt := time.Now()

@@ -64,7 +64,7 @@
       </div>
     </template>
 
-    <!-- ── Daftar bawahan (dari employees.supervisor_id) ── -->
+    <!-- ── Daftar bawahan (dari struktur organisasi) ── -->
     <template v-else>
       <Message v-if="!employeeId" severity="warn" :closable="false">{{ t('competency_360.no_employee_linked') }}</Message>
 

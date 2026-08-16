@@ -33,10 +33,6 @@ type Employee struct {
 	ReligionID      *uuid.UUID `gorm:"type:char(36);index" json:"religion_id,omitempty"`
 	MaritalStatusID *uuid.UUID `gorm:"type:char(36);index" json:"marital_status_id,omitempty"`
 	Status          string     `gorm:"type:varchar(20);default:active" json:"status"`
-	// SupervisorID (reports_to): atasan langsung employee — self-referencing
-	// ke employees.id. Dipakai Manager Assessment (daftar bawahan) dan
-	// informasi struktur pelaporan.
-	SupervisorID *uuid.UUID `gorm:"type:char(36);index" json:"supervisor_id,omitempty"`
 	// G-4: referensi job_applications saat employee dibuat dari offer
 	// recruitment eksternal yang diterima — menelusuri
 	// Employee → Application → Requisition → Position.

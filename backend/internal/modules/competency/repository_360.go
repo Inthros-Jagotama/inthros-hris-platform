@@ -492,23 +492,83 @@ func (r *Repository) GetEmployeeNamesByIDs(ctx context.Context, ids []uuid.UUID)
 	return result, nil
 }
 
-// FindSubordinateIDsBySupervisor mengambil seluruh employee yang melapor
-// langsung ke seorang supervisor (employees.supervisor_id = supervisorID) —
-// dasar daftar bawahan pada Manager Assessment.
-func (r *Repository) FindSubordinateIDsBySupervisor(ctx context.Context, supervisorID uuid.UUID) ([]uuid.UUID, error) {
+// FindSubordinateEmployeeIDsByManager mengambil seluruh employee yang berada di
+// bawah organisasi tempat seorang manager bekerja (seluruh subtree organizations
+// anak dari org manager, via parent_id) — dasar daftar bawahan pada Manager
+// Assessment. Bawahan ditentukan dari struktur organisasi, bukan kolom manual:
+// manager → org (employments current) → subtree org → employee (employments
+// current). Pola ini sejalan dengan resolveSupervisorAssignees approval yang
+// menaiki org tree — di sini kebalikannya (menuruni subtree).
+func (r *Repository) FindSubordinateEmployeeIDsByManager(ctx context.Context, managerEmployeeID uuid.UUID) ([]uuid.UUID, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// 1. Organization tempat manager bekerja saat ini.
+	var managerOrgIDStrs []string
+	if err := db.WithContext(ctx).Table("employments").
+		Where("employee_id = ? AND effective_end_date IS NULL", managerEmployeeID).
+		Order("effective_date DESC").
+		Limit(1).
+		Pluck("organization_id", &managerOrgIDStrs).Error; err != nil {
+		return nil, fmt.Errorf("failed to resolve manager organization: %w", err)
+	}
+	if len(managerOrgIDStrs) == 0 || managerOrgIDStrs[0] == "" {
+		return nil, nil
+	}
+	managerOrgID, err := uuid.Parse(managerOrgIDStrs[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid manager organization id: %w", err)
+	}
+
+	// 2. Kumpulkan seluruh org di subtree (anak langsung + turunannya) via BFS.
+	childIDs, err := r.findChildOrganizationIDs(ctx, db, managerOrgID)
+	if err != nil {
+		return nil, err
+	}
+	if len(childIDs) == 0 {
+		return nil, nil
+	}
+
+	// 3. Employee yang bekerja (current) di salah satu org subtree.
 	var ids []uuid.UUID
-	if err := db.WithContext(ctx).Table("employees").
-		Select("id").
-		Where("supervisor_id = ?", supervisorID).
-		Order("name ASC").
+	if err := db.WithContext(ctx).Table("employments").
+		Select("DISTINCT employee_id").
+		Where("organization_id IN ? AND effective_end_date IS NULL", childIDs).
+		Order("employee_id ASC").
 		Find(&ids).Error; err != nil {
 		return nil, fmt.Errorf("failed to list subordinates: %w", err)
 	}
 	return ids, nil
+}
+
+// findChildOrganizationIDs mengumpulkan seluruh organization di bawah rootOrgID
+// (anak langsung + seluruh turunan) melalui relasi parent_id, tanpa CTE agar
+// portabel postgres & mysql.
+func (r *Repository) findChildOrganizationIDs(ctx context.Context, db *gorm.DB, rootOrgID uuid.UUID) ([]uuid.UUID, error) {
+	collected := make([]uuid.UUID, 0)
+	queue := []uuid.UUID{rootOrgID}
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		var childStrs []string
+		if err := db.WithContext(ctx).Table("organizations").
+			Where("parent_id = ? AND deleted_at IS NULL", current).
+			Pluck("id", &childStrs).Error; err != nil {
+			return nil, fmt.Errorf("failed to resolve child organizations: %w", err)
+		}
+		for _, s := range childStrs {
+			id, err := uuid.Parse(s)
+			if err != nil {
+				return nil, fmt.Errorf("invalid child organization id: %w", err)
+			}
+			collected = append(collected, id)
+			queue = append(queue, id)
+		}
+	}
+	return collected, nil
 }
 
 // FindEmployeeIDByUserID resolve platform user (karyawan yang login) ke

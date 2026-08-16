@@ -24,8 +24,6 @@ type CreateEmployeeRequest struct {
 	Instagram       *string `json:"ig" binding:"omitempty,max=255"`
 	ReligionID      *string `json:"religion_id" binding:"omitempty"`
 	MaritalStatusID *string `json:"marital_status_id" binding:"omitempty"`
-	// SupervisorID (reports_to): atasan langsung employee.
-	SupervisorID *string `json:"supervisor_id" binding:"omitempty"`
 	// G-4: referensi job_applications saat employee dibuat dari offer
 	// recruitment eksternal yang diterima.
 	RecruitedFromApplicationID *string `json:"recruited_from_application_id" binding:"omitempty"`
@@ -48,10 +46,7 @@ type UpdateEmployeeRequest struct {
 	Instagram       *string `json:"ig" binding:"omitempty,max=255"`
 	ReligionID      *string `json:"religion_id" binding:"omitempty"`
 	MaritalStatusID *string `json:"marital_status_id" binding:"omitempty"`
-	// SupervisorID (reports_to): atasan langsung employee. Kirim string kosong
-	// untuk menghapus relasi atasan.
-	SupervisorID *string `json:"supervisor_id" binding:"omitempty"`
-	Status       *string `json:"status" binding:"omitempty,oneof=active inactive suspended"`
+	Status          *string `json:"status" binding:"omitempty,oneof=active inactive suspended"`
 }
 
 // =========================================================================
@@ -295,8 +290,6 @@ type EmployeeResponse struct {
 	MaritalStatusID string     `json:"marital_status_id,omitempty"`
 	ProfilePicture  string     `json:"profile_picture,omitempty"`
 	Status          string     `json:"status"`
-	// SupervisorID (reports_to): atasan langsung employee.
-	SupervisorID string `json:"supervisor_id,omitempty"`
 	// G-4: referensi balik ke aplikasi recruitment asal.
 	RecruitedFromApplicationID string     `json:"recruited_from_application_id,omitempty"`
 	CreatedAt                  time.Time  `json:"created_at"`
@@ -561,9 +554,6 @@ func (e *Employee) ToResponse() EmployeeResponse {
 	}
 	if e.ProfilePicture != nil {
 		r.ProfilePicture = *e.ProfilePicture
-	}
-	if e.SupervisorID != nil {
-		r.SupervisorID = e.SupervisorID.String()
 	}
 	if e.RecruitedFromApplicationID != nil {
 		r.RecruitedFromApplicationID = e.RecruitedFromApplicationID.String()

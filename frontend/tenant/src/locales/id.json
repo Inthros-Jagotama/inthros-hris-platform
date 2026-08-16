@@ -2385,7 +2385,7 @@
     "my_assessments_desc": "Inbox penilaian yang ditugaskan kepada Anda sebagai rater.",
     "manager_assessments": "Assessment Manager",
     "manager_assessments_desc": "Nilai langsung bawahan Anda sebagai atasan (superior rater) per event.",
-    "manager_assessments_hint": "Daftar bawahan Anda (dari relasi atasan) yang menjadi subject assessment.",
+    "manager_assessments_hint": "Daftar bawahan Anda (dari struktur organisasi) yang menjadi subject assessment.",
     "manager_assessments_empty": "Belum ada bawahan yang menjadi subject assessment pada scope ini.",
     "subordinate": "Bawahan",
     "my_rating_status": "Status Penilaian Saya",
