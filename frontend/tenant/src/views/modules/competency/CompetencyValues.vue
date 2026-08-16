@@ -73,6 +73,12 @@
             <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('competency_360.scale_items') }}</p>
             <Button icon="pi pi-plus" size="small" text severity="secondary" :label="t('competency_360.add_item')" @click="addItem" />
           </div>
+          <div class="flex items-center gap-2 mb-1 px-1">
+            <div class="w-16 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('competency_360.item_value') }}</div>
+            <div class="flex-1 text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('competency_360.item_label') }}</div>
+            <div class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('competency_360.weight') }}</div>
+            <div class="w-8 shrink-0"></div>
+          </div>
           <div v-for="(item, idx) in form.items" :key="idx" class="flex items-start gap-2 mb-2">
             <div class="w-16 shrink-0">
               <TextInput v-model="item.value" type="number" :placeholder="t('competency_360.item_value')" class="!text-xs" />
