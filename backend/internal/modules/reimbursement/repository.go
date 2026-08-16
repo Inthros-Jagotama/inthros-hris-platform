@@ -263,6 +263,35 @@ func (r *Repository) FindUserIDByEmployeeID(ctx context.Context, employeeID uuid
 	return &userID, nil
 }
 
+// FindEmployeeIDByUserID resolves the logged-in user's own employee record
+// via employee_accounts (user_id -> employee_id), mirroring the reverse of
+// FindUserIDByEmployeeID and the /user-accounts/me resolution — the JWT
+// user_id is the user-account UUID, which is a different UUID from the
+// employee record, so requests must be attributed to the employee id.
+// Returns nil if the user has no linked employee account.
+func (r *Repository) FindEmployeeIDByUserID(ctx context.Context, userID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var empIDStrs []string
+	err = db.WithContext(ctx).Table("employee_accounts").
+		Where("user_id = ?", userID).
+		Limit(1).
+		Pluck("employee_id", &empIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve employee id: %w", err)
+	}
+	if len(empIDStrs) == 0 || empIDStrs[0] == "" {
+		return nil, nil
+	}
+	empID, err := uuid.Parse(empIDStrs[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee id: %w", err)
+	}
+	return &empID, nil
+}
+
 // =========================================================================
 // Aggregation
 // =========================================================================

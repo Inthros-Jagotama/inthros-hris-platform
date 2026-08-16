@@ -16,7 +16,7 @@ Modul Reimbursement **backend-complete**, **frontend belum ada sama sekali** (pl
 | Integrasi Approval Engine (central) | ✅ Selesai |
 | RBAC permissions | ✅ Selesai (5 permission ter-seed) |
 | Frontend UI | ❌ Placeholder saja — **prioritas utama plan ini** |
-| Integrasi payroll (pembayaran) | ❌ Belum ada — perlu keputusan produk dulu |
+| Integrasi payroll (pembayaran) | 🚫 Tidak dibangun — keputusan produk (2026-08-16): pembayaran langsung di module reimbursement, tanpa linkage payroll |
 | Notifikasi outcome | ❌ Belum ada — masuk Notification Phase 5 |
 | Upload lampiran bukti (receipt) | ⚠️ Field `receipt_url` ada, endpoint upload belum dipakai end-to-end |
 | Konsistensi tipe kolom timestamp (model.go vs SQL) | ⚠️ Perlu diselaraskan |
@@ -30,7 +30,7 @@ Modul Reimbursement **backend-complete**, **frontend belum ada sama sekali** (pl
 - **Tidak membuat approval engine baru** — reimbursement sudah terintegrasi penuh dengan Central Approval Module (`approvalSvc.RegisterStatusHandler("reimbursement", ...)`), pola ini dipertahankan.
 - **Tidak mengubah state machine backend** kecuali ditemukan bug nyata saat membangun FE — backend sudah punya ±60 test yang lulus, risiko regresi harus dihindari.
 - **Ikuti pola FE module lain yang sudah selesai** (Attendance, Business Travel — lihat `docs/module-attendance-business-travel-development-plan.md` §54.6) sebagai referensi konvensi: Vue 3 `<script setup>`, PrimeVue, panggil `@/services/api` langsung tanpa store/API-client layer terpisah, upload dua-langkah via endpoint generik `POST /api/v1/tenant/uploads`.
-- **Keputusan produk dulu, baru kode** untuk integrasi payroll (§5) — jangan berasumsi sepihak apakah `PAID` harus otomatis membuat payslip line item atau tetap manual.
+- **Tidak ada integrasi payroll untuk pembayaran** — keputusan produk final (2026-08-16): `PAID` adalah flag manual yang dicatat langsung di module reimbursement; tidak ada linkage otomatis ke payslip/payroll run (§5).
 
 ---
 
@@ -62,6 +62,8 @@ Prasyarat sebelum request bisa dibuat (setiap request butuh `request_type_id`).
 ## 4.2 Create / Edit Draft
 
 ✅ **Selesai (2026-08-16)** — dialog create di list + dialog edit di `ReimbursementRequestDetail.vue` (hanya tampil saat DRAFT).
+
+> **Fix atribusi employee (2026-08-16):** `CreateReimbursementRequest` sebelumnya menyimpan `employee_id` = `ctx "user_id"` (UUID akun user dari JWT), padahal `employee_id` adalah UUID record employee yang berbeda (`employee_accounts` memetakan `user_id` ↔ `employee_id`). Akibatnya request milik karyawan tidak pernah muncul di list filter miliknya sendiri. Service kini resolve `user_id → employee_id` via `employee_accounts` (pola sama dengan `/user-accounts/me`), dan migration **137** (postgres+mysql, belum dijalankan) backfill data lama yang salah atribusi.
 
 - [x] Dialog/halaman create: title, description, request_type, currency (default IDR).
 - [x] Setelah draft dibuat, tambah **item biaya** (expense_date, expense_type, description, amount, receipt_url) — form dinamis multi-row, mengikuti pola "add sub-resource" seperti Business Travel Activities/Schedules.
@@ -96,17 +98,21 @@ Prasyarat sebelum request bisa dibuat (setiap request butuh `request_type_id`).
 
 ---
 
-# 5. Phase 3 — Integrasi Payroll (Keputusan Produk Diperlukan)
+# 5. Phase 3 — Integrasi Payroll (TIDAK DIBANGUN)
 
-**Keputusan produk diambil 2026-08-16: opsi manual (3).** `PAID` tetap flag manual — tidak ada linkage otomatis ke payslip/payroll run. Frontend menampilkan `paid_amount`/`paid_at` jelas; opsi otomatis (`SalaryEmployeeAdjustment` one-off) tetap terbuka sebagai iterasi berikutnya (pola sudah terbukti di Business Travel, §54.8).
+**Keputusan produk final (2026-08-16): pembayaran reimbursement TIDAK terintegrasi dengan payroll.** Pembayaran dicatat langsung di module reimbursement — `PAID` adalah flag manual (`paid_at` + `paid_amount`), tanpa linkage otomatis ke payslip/payroll run. Opsi integrasi (`SalaryEmployeeAdjustment` one-off, pola Business Travel §54.8) **tidak akan dikerjakan**; modul ini berdiri sendiri.
 
-Catatan analisis asli — pertanyaan yang perlu dijawab dulu:
+Implementasi yang sudah ada dan sesuai keputusan ini:
 
-1. Apakah reimbursement yang `PAID` harus otomatis muncul sebagai line item di payslip berikutnya, atau tetap dianggap "sudah dibayar di luar sistem payroll" (transfer manual, dicatat manual)?
-2. Kalau otomatis: masuk sebagai `SalaryEmployeeAdjustment` one-off (pola yang sama dipakai Business Travel, lihat `docs/module-attendance-business-travel-development-plan.md` §54.8) sudah tersedia sebagai extension point tanpa perlu mengubah module payroll — reuse pola itu.
-3. Kalau tetap manual: cukup pastikan field `paid_amount`/`paid_at`/catatan referensi transfer ditampilkan jelas di FE, tidak perlu kerja backend tambahan.
+- [x] Tombol **Pay** (APPROVED → PAID) di halaman detail — langsung di module, gate permission `reimbursement.approve`.
+- [x] **Form pembayaran** di halaman detail (dialog "Catat Pembayaran"): jumlah dibayar (default = total, editable untuk partial), metode (`BANK_TRANSFER`/`CASH`/`CHEQUE` — konvensi nilai sama dengan payroll), referensi pembayaran, dan catatan. Kirim via `PUT /requests/:id/status` dengan `{ status: PAID, amount, payment_method, payment_reference, payment_note }`.
+- [x] Backend: kolom baru `payment_method` (varchar 50), `payment_reference` (varchar 200), `payment_note` (varchar 500) di `reimbursement_requests` — **migration 138** (postgres + mysql + down, **tidak dijalankan**). `UpdateReimbursementRequestStatus` case `PAID` meng-set `status = PAID`, `paid_at`, `paid_amount` + detail pembayaran; parameter detail dibuat **variadic** agar call-site lama (test ±25) tetap kompatibel. Validasi `oneof=BANK_TRANSFER CASH CHEQUE` di DTO. **Tidak ada kode payroll** di module (terverifikasi).
+- [x] Halaman detail menampilkan info pembayaran saat PAID: jumlah, tanggal, metode (label lokal), referensi, catatan.
+- [x] UI hint di halaman detail saat status APPROVED: "Menandai dibayar mencatat pembayaran di modul ini. Integrasi ke payroll tidak termasuk." (`reimbursement.manual_pay_hint`, EN+ID).
+- [x] Notifikasi `REIMBURSEMENT_PAID` dikirim saat status PAID (manual, sesuai keputusan ini).
+- [x] Test: `TestService_PayReimbursementRequest_RecordsPaymentDetails` (persist method/reference/note + reload dari repo).
 
-**Rekomendasi**: mulai dari opsi manual (3) dulu untuk Phase 2 FE selesai lebih cepat, opsi otomatis (2) sebagai iterasi berikutnya kalau memang dibutuhkan — pola integrasinya sudah terbukti jalan di Business Travel jadi risikonya rendah kalau mau dibangun belakangan.
+Catatan: bila di masa depan pembayaran perlu masuk payroll, pola `SalaryEmployeeAdjustment` one-off sudah terbukti di Business Travel (§54.8) dan bisa dipakai tanpa mengubah module payroll — tetapi keputusan saat ini adalah **tidak** membangunnya.
 
 ---
 
@@ -136,9 +142,9 @@ Reimbursement sudah terintegrasi ke Central Approval (module slug `"reimbursemen
 
 # 8. Phase 6 — Housekeeping
 
-- [ ] **Selaraskan tipe kolom timestamp** antara `model.go` (int64 unix-nano) dan migrasi SQL (`TIMESTAMP`).
+- [x] **Selaraskan tipe kolom timestamp** antara `model.go` (int64 unix-nano) dan migrasi SQL (`TIMESTAMP`).
 
-  **Hasil investigasi (2026-08-16):** tenant DB hanya di-migrate lewat SQL file — `provisionTenant`/`MigrateTenantDB` (`backend/internal/platform/company/service.go`) menjalankan `tenantMigrator.Up()` saja, dan `AutoMigrate` modul tenant **tidak pernah dieksekusi** di path tenant (hanya platform modules yang di-AutoMigrate di `main.go` §8). Artinya skema efektif = SQL migration (`TIMESTAMP`), dan mapping `int64` di `model.go` untuk `submitted_at`/`approved_at`/`paid_at`/dst + penulisan `time.Now().UnixNano()` akan mismatch dengan kolom `TIMESTAMP` di Postgres (gagal di write maupun scan). Ini bug laten nyata, tapi **belum diubah** sesuai instruksi plan (breaking change pada modul yang sudah production-tested + perlu verifikasi end-to-end di Postgres). Rekomendasi lanjutan: ganti `int64` → `*time.Time` di `model.go` (kolom SQL sudah `TIMESTAMP`, jadi tidak perlu migration file baru), hapus `unixNanoToTimePtr`, dan sesuaikan service + test. Tanpa fix ini, transisi status reimbursement (submit/approve/pay) berisiko error di tenant Postgres.
+  **Fix (2026-08-16):** 7 field aksi di `ReimbursementRequest` (`supervisor_action_at`, `hr_action_at`, `paid_at`, `submitted_at`, `approved_at`, `rejected_at`, `cancelled_at`) diubah dari `int64` (unix-nano) → `*time.Time` nullable, dan service menulis `&now` (nil → `NULL`). **Pemicu konfirmasi:** endpoint `POST/GET /api/v1/tenant/reimbursements/requests` error MySQL 1292 — GORM menulis `0` ke kolom `TIMESTAMP(6) NULL` (`0000-00-00 00:00:00` ditolak strict mode). Kolom SQL sudah `TIMESTAMP(6) NULL DEFAULT NULL` (MySQL) / `TIMESTAMP NULL` (Postgres) sehingga **tidak perlu migration file baru**. `unixNanoToTimePtr` dihapus; DTO response (sudah `*time.Time`) diisi langsung. Catatan: field `*time.Time` **tanpa** gorm tag eksplisit — tag `type:timestamp(6)` justru memecah scan `*time.Time` di driver SQLite test (terverifikasi), dan AutoMigrate modul tenant memang tidak pernah jalan (SQL migration authoritative).
 - [x] Update `docs/project-completion-dashboard.md` supaya status "Reimbursement & Claim" mencerminkan kondisi FE yang sebenarnya (jangan biarkan "✅ Complete" menyesatkan pembaca lain) — row modul diperbarui (16 Agu 2026), status notification-plan, dan test count 60 → 75.
 
 ---
@@ -151,8 +157,8 @@ Status per 2026-08-16:
 2. **Phase 2** (Request CRUD + items + upload + detail + submit/cancel) — ✅ selesai.
 3. **Phase 5** (Approval detail popup) — ✅ selesai (sudah ada sebelumnya, diverifikasi).
 4. **Phase 4** (Notifikasi) — ✅ selesai.
-5. **Phase 3** (Payroll integration) — keputusan produk diambil: **opsi manual**; opsi otomatis (`SalaryEmployeeAdjustment` one-off) terbuka sebagai iterasi berikutnya.
-6. **Phase 6** (Housekeeping) — dashboard doc ✅; selarasan timestamp `model.go` vs SQL **masih terbuka** (investigasi selesai, lihat §8) — rekomendasi: ganti `int64` → `*time.Time` di pass terpisah.
+5. **Phase 3** (Payroll integration) — 🚫 **tidak dibangun** (keputusan produk final 2026-08-16): pembayaran langsung di module reimbursement, tanpa linkage payroll (§5).
+6. **Phase 6** (Housekeeping) — dashboard doc ✅; selarasan timestamp `model.go` vs SQL ✅ **fixed (2026-08-16)** — `int64` → `*time.Time` (lihat §8).
 
 ---
 

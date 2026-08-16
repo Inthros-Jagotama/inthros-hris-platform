@@ -16,16 +16,22 @@ import (
 func setupTestRouter() (*gin.Engine, *Repository, func()) {
 	gin.SetMode(gin.TestMode)
 
-	_, dbResolver, cleanup := setupTestDB()
+	db, dbResolver, cleanup := setupTestDB()
 	repo := NewRepository(dbResolver)
 	logger, _ := zap.NewDevelopment()
 	svc := NewService(repo, logger)
 	handler := NewHandler(svc)
 
+	// Simulate auth middleware: sets user_id (user-account UUID) in request
+	// context, with a linked employee_accounts row so request creation
+	// resolves to the employee the same way production does.
+	userID := uuid.New()
+	empID := uuid.New()
+	createTestEmployeeAccount(db, empID, userID)
+
 	r := gin.New()
-	// Simulate auth middleware that sets user_id in request context
 	r.Use(func(c *gin.Context) {
-		ctx := context.WithValue(c.Request.Context(), "user_id", uuid.New().String())
+		ctx := context.WithValue(c.Request.Context(), "user_id", userID.String())
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})

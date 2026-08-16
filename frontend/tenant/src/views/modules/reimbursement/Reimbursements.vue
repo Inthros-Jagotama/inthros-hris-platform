@@ -1,7 +1,22 @@
 <template>
-  <div class="space-y-4">
-    <div v-if="loading" class="flex items-center justify-center h-40">
-      <i class="pi pi-spinner pi-spin text-2xl text-emerald-500"></i>
+  <div class="space-y-6">
+    <!-- ── Skeleton loading ── -->
+    <div v-if="loading" class="space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div v-for="n in 3" :key="n" class="flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 animate-pulse">
+          <div class="w-11 h-11 rounded-lg bg-gray-200 dark:bg-gray-700 shrink-0"></div>
+          <div class="flex-1 space-y-2">
+            <div class="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+            <div class="h-3 bg-gray-100 dark:bg-gray-700 rounded w-full"></div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-40 mb-3"></div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div v-for="n in 6" :key="n" class="h-20 rounded-lg bg-gray-100 dark:bg-gray-700/50"></div>
+        </div>
+      </div>
     </div>
 
     <template v-else-if="!employeeId && !isAdmin">
@@ -9,309 +24,155 @@
     </template>
 
     <template v-else>
+      <!-- ── Menu Cards ── -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <button
+          type="button"
+          class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          @click="router.push('/reimbursements/all')"
+        >
+          <div class="w-11 h-11 rounded-lg shrink-0 flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <i class="pi pi-briefcase text-lg"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('reimbursement.card_all') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t('reimbursement.card_all_desc') }}</p>
+          </div>
+          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+        </button>
+
+        <button
+          type="button"
+          class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-emerald-300 dark:hover:border-emerald-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+          @click="router.push('/reimbursements/my-requests')"
+        >
+          <div class="w-11 h-11 rounded-lg shrink-0 flex items-center justify-center bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <i class="pi pi-credit-card text-lg"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('reimbursement.my_requests') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t('reimbursement.card_my_desc') }}</p>
+          </div>
+          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+        </button>
+
+        <button
+          type="button"
+          class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-violet-300 dark:hover:border-violet-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+          @click="router.push('/reimbursements/types')"
+        >
+          <div class="w-11 h-11 rounded-lg shrink-0 flex items-center justify-center bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400">
+            <i class="pi pi-tags text-lg"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('reimbursement.types') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t('reimbursement.card_types_desc') }}</p>
+          </div>
+          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+        </button>
+      </div>
+
+      <!-- ── Dashboard Summary ── -->
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-        <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
-          <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
-            {{ isAdmin ? t('reimbursement.requests') : t('reimbursement.my_requests') }}
-          </h2>
+        <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
           <div class="flex items-center gap-2">
-            <Button :label="t('reimbursement.go_to_types')" icon="pi pi-tags" size="small" severity="secondary" outlined @click="router.push('/reimbursements/types')" />
-            <Button v-if="canCreate" :label="t('reimbursement.new_request')" icon="pi pi-plus" size="small" @click="openDialog()" />
+            <i class="pi pi-chart-bar text-sm text-indigo-500"></i>
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('reimbursement.summary') }}</h2>
+            <span class="text-xs text-gray-400 dark:text-gray-500">{{ isAdmin ? t('reimbursement.card_all') : t('reimbursement.my_requests') }}</span>
           </div>
         </div>
 
-        <div class="flex items-center gap-2 flex-wrap mb-3">
-          <Select v-model="statusFilter" :options="statusOptions" optionLabel="label" optionValue="value" showClear :placeholder="t('common.status')" class="w-44" @change="reload" />
-          <Select
-            v-if="isAdmin"
-            v-model="employeeFilter"
-            :options="employeeOptions"
-            optionLabel="label"
-            optionValue="value"
-            showClear
-            filter
-            :placeholder="t('reimbursement.all_employees')"
-            class="w-64"
-            @change="reload"
-          />
+        <div v-if="summaryLoading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div v-for="n in 6" :key="n" class="h-20 rounded-lg bg-gray-100 dark:bg-gray-700/50 animate-pulse"></div>
         </div>
-
-        <SkeletonTable v-if="listLoading" :columns="skeletonColumns" :rows="8" />
-        <DataTable
-          v-else
-          :value="items"
-          lazy
-          :totalRecords="totalRecords"
-          :first="firstRecord"
-          :rows="perPage"
-          @page="onPage($event)"
-          paginator
-          paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
-          :rowsPerPageOptions="[10, 15, 25, 50]"
-          size="small"
-          class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
-        >
-          <template #empty>
-            <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
-              <i class="pi pi-credit-card text-3xl mb-2 opacity-50"></i>
-              <p class="text-sm font-medium">{{ t('reimbursement.requests_empty') }}</p>
+        <div v-else-if="summaryCards.length === 0" class="text-center py-8 text-gray-400 dark:text-gray-500">
+          <i class="pi pi-inbox text-3xl mb-2 opacity-50"></i>
+          <p class="text-sm">{{ t('reimbursement.summary_empty') }}</p>
+        </div>
+        <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div
+            v-for="card in summaryCards"
+            :key="card.key"
+            class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5 flex items-center justify-between gap-2 hover:shadow-sm dark:hover:shadow-gray-900/50 transition-shadow cursor-pointer"
+            @click="router.push(card.path)"
+          >
+            <div class="min-w-0">
+              <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ card.label }}</p>
+              <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ card.value }}</p>
             </div>
-          </template>
-          <Column field="title" :header="t('reimbursement.field_title')">
-            <template #body="{data}">
-              <a class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium cursor-pointer" @click="router.push(`/reimbursements/${data.id}`)">{{ data.title }}</a>
-            </template>
-          </Column>
-          <Column :header="t('reimbursement.request_type')" style="width:160px">
-            <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ requestTypeName(data.request_type_id) }}</span></template>
-          </Column>
-          <Column :header="t('reimbursement.total_amount')" style="width:130px">
-            <template #body="{data}"><span class="text-gray-700 dark:text-gray-200 font-medium">{{ formatCurrency(data.total_amount, data.currency) }}</span></template>
-          </Column>
-          <Column field="status" :header="t('common.status')" style="width:150px">
-            <template #body="{data}"><Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" class="!text-xs !px-1.5 !py-0.5" /></template>
-          </Column>
-          <Column :header="t('reimbursement.submitted_at')" style="width:150px">
-            <template #body="{data}">
-              <span class="text-gray-500 dark:text-gray-400">{{ data.submitted_at ? formatDate(data.submitted_at, locale) : '-' }}</span>
-            </template>
-          </Column>
-          <Column :header="t('common.actions')" style="width:80px" frozen alignFrozen="right">
-            <template #body="{data}">
-              <Button icon="pi pi-eye" size="small" text @click="router.push(`/reimbursements/${data.id}`)" />
-            </template>
-          </Column>
-        </DataTable>
+            <i :class="[card.icon, card.iconColor]" class="text-base shrink-0"></i>
+          </div>
+        </div>
       </div>
     </template>
-
-    <!-- ── Dialog: New Reimbursement Request ── -->
-    <Dialog v-model:visible="dialogVisible" :header="t('reimbursement.new_request')" modal :style="{ width: '520px' }" @hide="resetForm">
-      <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('reimbursement.new_request_description') }}</p>
-      <div class="space-y-3">
-        <FormRow :label="t('reimbursement.request_type')" required :errors="errors?.request_type_id">
-          <Select v-model="form.request_type_id" :options="requestTypeOptions" optionLabel="name" optionValue="id" filter class="w-full" :placeholder="t('common.select')" />
-        </FormRow>
-        <FormRow :label="t('reimbursement.field_title')" required :errors="errors?.title">
-          <TextInput v-model="form.title" :placeholder="t('reimbursement.title_placeholder')" />
-        </FormRow>
-        <FormRow :label="t('reimbursement.description_field')" :errors="errors?.description">
-          <TextInput v-model="form.description" textarea :rows="2" />
-        </FormRow>
-        <FormRow :label="t('reimbursement.currency')">
-          <Select v-model="form.currency" :options="currencyOptions" optionLabel="label" optionValue="value" class="w-full" />
-        </FormRow>
-      </div>
-      <template #footer>
-        <div class="flex items-center justify-end gap-2">
-          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible = false" />
-          <Button :label="t('common.save')" size="small" :loading="saving" :disabled="saving" @click="handleSave" />
-        </div>
-      </template>
-    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import { useAuth } from '@/stores/auth'
 import { useMyEmployee } from '@/composables/useMyEmployee'
-import { getErrorMessage, getValidationErrors } from '@/services/responseHandler'
-import { formatDate } from '@/utils/formatDate'
 import api from '@/services/api'
 
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
-import Select from 'primevue/select'
-import Tag from 'primevue/tag'
-import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
-import SkeletonTable from '@/components/SkeletonTable.vue'
-import FormRow from '@/components/FormRow.vue'
-import TextInput from '@/components/TextInput.vue'
 
 const router = useRouter()
-const { t, locale } = useI18n()
-const toast = useToast()
+const { t } = useI18n()
 const { hasPermission } = useAuth()
 const { employeeId, loadMyEmployeeId } = useMyEmployee()
 
 const loading = ref(true)
-const listLoading = ref(false)
-const items = ref([])
-const totalRecords = ref(0)
-const currentPage = ref(1)
-const perPage = ref(15)
-const statusFilter = ref(null)
-const employeeFilter = ref(null)
+const summaryLoading = ref(false)
+const summaryCounts = ref({})
 
-const requestTypes = ref([])
-const employees = ref([])
-
-const dialogVisible = ref(false)
-const saving = ref(false)
-const errors = ref({})
-const form = ref(defaultForm())
-
-const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 // Admin/HR (who can approve) see all requests; employees default to their own.
 const isAdmin = computed(() => hasPermission('reimbursement.approve'))
-const canCreate = computed(() => hasPermission('reimbursement.create'))
 
-const statusOptions = [
-  { label: 'DRAFT', value: 'DRAFT' },
-  { label: 'SUBMITTED', value: 'SUBMITTED' },
-  { label: 'PENDING_APPROVAL', value: 'PENDING_APPROVAL' },
-  { label: 'APPROVED', value: 'APPROVED' },
-  { label: 'REJECTED', value: 'REJECTED' },
-  { label: 'PAID', value: 'PAID' },
-  { label: 'CANCELLED', value: 'CANCELLED' }
-]
-
-const currencyOptions = [
-  { label: 'IDR', value: 'IDR' },
-  { label: 'USD', value: 'USD' }
-]
-
-const skeletonColumns = [
-  { type: 'text', width: 'w-40', headerWidth: 'w-20' },
-  { type: 'text', width: 'w-24', headerWidth: 'w-20' },
-  { type: 'text', width: 'w-24', headerWidth: 'w-20' },
-  { type: 'tag', width: 'w-24', headerWidth: 'w-20' },
-  { type: 'text', width: 'w-24', headerWidth: 'w-20' },
-  { type: 'icons', count: 1, headerWidth: 'w-20' }
-]
-
-const requestTypeOptions = computed(() =>
-  requestTypes.value.filter(rt => rt.is_active).map(rt => ({ id: rt.id, name: rt.name }))
-)
-
-const employeeOptions = computed(() =>
-  employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.employee_id }))
-)
-
-function defaultForm() {
-  return { request_type_id: '', title: '', description: '', currency: 'IDR' }
-}
-
-function statusSeverity(status) {
-  switch (status) {
-    case 'APPROVED': return 'success'
-    case 'PAID': return 'success'
-    case 'REJECTED': return 'danger'
-    case 'CANCELLED': return 'secondary'
-    case 'SUBMITTED': return 'info'
-    case 'PENDING_APPROVAL': return 'warn'
-    case 'DRAFT': return 'secondary'
-    default: return 'secondary'
-  }
-}
+const summaryCards = computed(() => {
+  const c = summaryCounts.value
+  const basePath = isAdmin.value ? '/reimbursements/all' : '/reimbursements/my-requests'
+  return [
+    { key: 'total', label: t('reimbursement.summary_total'), value: c.total || 0, icon: 'pi pi-inbox', iconColor: 'text-indigo-500', path: basePath },
+    { key: 'DRAFT', label: statusLabel('DRAFT'), value: c.DRAFT || 0, icon: 'pi pi-pencil', iconColor: 'text-gray-400', path: `${basePath}?status=DRAFT` },
+    { key: 'PENDING', label: t('reimbursement.summary_pending'), value: (c.SUBMITTED || 0) + (c.PENDING_APPROVAL || 0), icon: 'pi pi-clock', iconColor: 'text-amber-500', path: `${basePath}?status=PENDING_APPROVAL` },
+    { key: 'APPROVED', label: statusLabel('APPROVED'), value: c.APPROVED || 0, icon: 'pi pi-check-circle', iconColor: 'text-emerald-500', path: `${basePath}?status=APPROVED` },
+    { key: 'PAID', label: statusLabel('PAID'), value: c.PAID || 0, icon: 'pi pi-dollar', iconColor: 'text-teal-500', path: `${basePath}?status=PAID` },
+    { key: 'REJECTED', label: statusLabel('REJECTED'), value: c.REJECTED || 0, icon: 'pi pi-times-circle', iconColor: 'text-rose-500', path: `${basePath}?status=REJECTED` }
+  ]
+})
 
 function statusLabel(status) {
   const key = `reimbursement.status_${String(status).toLowerCase()}`
   return t(key) !== key ? t(key) : status
 }
 
-function requestTypeName(id) {
-  return requestTypes.value.find(rt => rt.id === id)?.name || id?.slice(0, 8) || '-'
-}
-
-function formatCurrency(v, currency = 'IDR') {
-  if (v === null || v === undefined) return '-'
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: currency || 'IDR', maximumFractionDigits: 0 }).format(v)
-}
-
-async function loadReferences() {
+async function loadSummary() {
+  summaryLoading.value = true
   try {
-    const [typesRes, empRes] = await Promise.allSettled([
-      api.get('/api/v1/tenant/reimbursements/types', { params: { page: 1, per_page: 100 } }),
-      api.get('/api/v1/tenant/employees', { params: { per_page: 500 } })
-    ])
-    requestTypes.value = typesRes.status === 'fulfilled' ? (typesRes.value.data?.data || []) : []
-    employees.value = empRes.status === 'fulfilled' ? (empRes.value.data?.data || []) : []
-  } catch {
-    // fail-silent — dropdowns kosong, list tetap bisa dimuat
-  }
-}
-
-async function loadData() {
-  listLoading.value = true
-  try {
-    const params = { page: currentPage.value, per_page: perPage.value }
+    const statuses = ['', 'DRAFT', 'SUBMITTED', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'PAID', 'CANCELLED']
+    const baseParams = { per_page: 1 }
     if (!isAdmin.value) {
       if (!employeeId.value) return
-      params.employee_id = employeeId.value
-    } else if (employeeFilter.value) {
-      params.employee_id = employeeFilter.value
+      baseParams.employee_id = employeeId.value
     }
-    if (statusFilter.value) params.status = statusFilter.value
-    const res = await api.get('/api/v1/tenant/reimbursements/requests', { params })
-    const body = res.data
-    items.value = body?.data || []
-    totalRecords.value = body?.total || 0
-    if (body?.page) currentPage.value = body.page
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_load')), life: 4000 })
+    const results = await Promise.all(
+      statuses.map(status => {
+        const params = { ...baseParams }
+        if (status) params.status = status
+        return api.get('/api/v1/tenant/reimbursements/requests', { params })
+          .then(res => ({ status, total: res.data?.total || 0 }))
+          .catch(() => ({ status, total: 0 }))
+      })
+    )
+    const counts = {}
+    for (const r of results) {
+      counts[r.status || 'total'] = r.total
+    }
+    summaryCounts.value = counts
   } finally {
-    listLoading.value = false
-  }
-}
-
-function reload() {
-  currentPage.value = 1
-  loadData()
-}
-
-function onPage(event) {
-  currentPage.value = event.page + 1
-  perPage.value = event.rows
-  loadData()
-}
-
-function openDialog() {
-  errors.value = {}
-  form.value = defaultForm()
-  dialogVisible.value = true
-}
-
-function resetForm() {
-  form.value = defaultForm()
-  errors.value = {}
-}
-
-async function handleSave() {
-  errors.value = {}
-  if (!form.value.request_type_id) { errors.value = { request_type_id: t('form.required') }; return }
-  if (!form.value.title?.trim()) { errors.value = { title: t('form.required') }; return }
-  saving.value = true
-  try {
-    const res = await api.post('/api/v1/tenant/reimbursements/requests', {
-      request_type_id: form.value.request_type_id,
-      title: form.value.title.trim(),
-      description: form.value.description?.trim() || '',
-      currency: form.value.currency || 'IDR'
-    })
-    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
-    dialogVisible.value = false
-    const newId = res.data?.data?.id
-    if (newId) {
-      router.push(`/reimbursements/${newId}`)
-    } else {
-      await loadData()
-    }
-  } catch (e) {
-    const fieldErrors = getValidationErrors(e)
-    if (Object.keys(fieldErrors).length > 0) {
-      errors.value = fieldErrors
-    } else {
-      toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
-    }
-  } finally {
-    saving.value = false
+    summaryLoading.value = false
   }
 }
 
@@ -319,10 +180,9 @@ async function loadAll() {
   loading.value = true
   try {
     employeeId.value = await loadMyEmployeeId()
-    await loadReferences()
-    await loadData()
-  } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_load')), life: 4000 })
+    await loadSummary()
+  } catch {
+    // summary gagal — halaman index tetap tampil
   } finally {
     loading.value = false
   }

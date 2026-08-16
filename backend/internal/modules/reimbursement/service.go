@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/inthros/hris-platform/internal/modules/approval"
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
 
 const (
@@ -180,13 +181,21 @@ func (s *Service) DeleteReimbursementType(ctx context.Context, id string) error 
 // =========================================================================
 
 func (s *Service) CreateReimbursementRequest(ctx context.Context, req CreateReimbursementRequest) (*ReimbursementRequestResponse, error) {
-	empID, ok := ctx.Value("user_id").(string)
-	if !ok || empID == "" {
+	userID := authctx.GetUserID(ctx)
+	if userID == nil {
 		return nil, fmt.Errorf("user context not found")
 	}
-	employeeUUID, err := uuid.Parse(empID)
+	// JWT user_id adalah UUID akun user, bukan UUID employee — resolve
+	// employee milik user yang login lewat employee_accounts (pola sama
+	// dengan /user-accounts/me). Tanpa ini, request tersimpan dengan
+	// employee_id = user_id sehingga tidak pernah muncul di list
+	// filter milik karyawan.
+	empID, err := s.repo.FindEmployeeIDByUserID(ctx, *userID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid user_id from context: %w", err)
+		return nil, err
+	}
+	if empID == nil {
+		return nil, fmt.Errorf("user is not linked to an employee account")
 	}
 	rTypeID, err := uuid.Parse(req.RequestTypeID)
 	if err != nil {
@@ -194,7 +203,7 @@ func (s *Service) CreateReimbursementRequest(ctx context.Context, req CreateReim
 	}
 
 	rr := &ReimbursementRequest{
-		EmployeeID:    employeeUUID,
+		EmployeeID:    *empID,
 		RequestTypeID: rTypeID,
 		Title:         req.Title,
 		Description:   req.Description,
@@ -296,7 +305,10 @@ func (s *Service) UpdateReimbursementRequest(ctx context.Context, id string, req
 	return reimbRequestToResponse(rr), nil
 }
 
-func (s *Service) UpdateReimbursementRequestStatus(ctx context.Context, id, status, note string, amount *float64, flowID *string) (*ReimbursementRequestResponse, error) {
+func (s *Service) UpdateReimbursementRequestStatus(ctx context.Context, id, status, note string, amount *float64, flowID *string, paymentDetails ...*string) (*ReimbursementRequestResponse, error) {
+	// paymentDetails is variadic to stay compatible with existing callers:
+	// optional [payment_method, payment_reference, payment_note] recorded
+	// directly in this module when status becomes PAID (no payroll linkage).
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid id: %w", err)
@@ -318,7 +330,7 @@ func (s *Service) UpdateReimbursementRequestStatus(ctx context.Context, id, stat
 			return nil, err
 		}
 		rr.TotalAmount = total
-		rr.SubmittedAt = now.UnixNano()
+		rr.SubmittedAt = &now
 
 		// Route through the central approval module when a flow is selected,
 		// instead of relying on this module's own ad-hoc SupervisorID/HrID
@@ -365,23 +377,34 @@ func (s *Service) UpdateReimbursementRequestStatus(ctx context.Context, id, stat
 			return nil, fmt.Errorf("only submitted requests can be approved")
 		}
 		rr.Status = ReimbStatusApproved
-		rr.ApprovedAt = now.UnixNano()
+		rr.ApprovedAt = &now
 	case ReimbStatusRejected:
 		rr.Status = ReimbStatusRejected
-		rr.RejectedAt = now.UnixNano()
+		rr.RejectedAt = &now
 	case ReimbStatusCancelled:
 		rr.Status = ReimbStatusCancelled
-		rr.CancelledAt = now.UnixNano()
+		rr.CancelledAt = &now
 	case ReimbStatusPaid:
 		if rr.Status != ReimbStatusApproved {
 			return nil, fmt.Errorf("only approved requests can be paid")
 		}
 		rr.Status = ReimbStatusPaid
-		rr.PaidAt = now.UnixNano()
+		rr.PaidAt = &now
 		if amount != nil {
 			rr.PaidAmount = amount
 		} else {
 			rr.PaidAmount = &rr.TotalAmount
+		}
+		// Payment details recorded directly in this module (no payroll
+		// linkage — product decision 2026-08-16).
+		if len(paymentDetails) > 0 && paymentDetails[0] != nil {
+			rr.PaymentMethod = paymentDetails[0]
+		}
+		if len(paymentDetails) > 1 && paymentDetails[1] != nil {
+			rr.PaymentReference = paymentDetails[1]
+		}
+		if len(paymentDetails) > 2 && paymentDetails[2] != nil {
+			rr.PaymentNote = paymentDetails[2]
 		}
 	default:
 		return nil, fmt.Errorf("invalid status: %s", status)
@@ -420,16 +443,16 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 	switch status {
 	case "APPROVED":
 		rr.Status = ReimbStatusApproved
-		rr.ApprovedAt = now.UnixNano()
+		rr.ApprovedAt = &now
 	case "REJECTED":
 		rr.Status = ReimbStatusRejected
-		rr.RejectedAt = now.UnixNano()
+		rr.RejectedAt = &now
 		if note != "" {
 			rr.SupervisorNote = &note
 		}
 	case "CANCELLED":
 		rr.Status = ReimbStatusCancelled
-		rr.CancelledAt = now.UnixNano()
+		rr.CancelledAt = &now
 	default:
 		return nil
 	}
@@ -655,16 +678,6 @@ func calcTotalPages(total int64, perPage int) int {
 // Helpers
 // =========================================================================
 
-// unixNanoToTimePtr converts Unix nanoseconds to *time.Time.
-// Returns nil if the value is 0.
-func unixNanoToTimePtr(ns int64) *time.Time {
-	if ns == 0 {
-		return nil
-	}
-	t := time.Unix(0, ns)
-	return &t
-}
-
 // =========================================================================
 // Response converters
 // =========================================================================
@@ -683,26 +696,29 @@ func reimbTypeToResponse(t *ReimbursementType) *ReimbursementTypeResponse {
 
 func reimbRequestToResponse(r *ReimbursementRequest) *ReimbursementRequestResponse {
 	resp := &ReimbursementRequestResponse{
-		ID:                r.ID.String(),
-		EmployeeID:        r.EmployeeID.String(),
-		RequestTypeID:     r.RequestTypeID.String(),
-		Title:             r.Title,
-		Description:       r.Description,
-		TotalAmount:       r.TotalAmount,
-		Currency:          r.Currency,
-		Status:            string(r.Status),
-		SupervisorNote:    r.SupervisorNote,
-		SupervisorActionAt: unixNanoToTimePtr(r.SupervisorActionAt),
-		HrNote:            r.HrNote,
-		HrActionAt:        unixNanoToTimePtr(r.HrActionAt),
-		PaidAt:            unixNanoToTimePtr(r.PaidAt),
-		PaidAmount:        r.PaidAmount,
-		SubmittedAt:       unixNanoToTimePtr(r.SubmittedAt),
-		ApprovedAt:        unixNanoToTimePtr(r.ApprovedAt),
-		RejectedAt:        unixNanoToTimePtr(r.RejectedAt),
-		CancelledAt:       unixNanoToTimePtr(r.CancelledAt),
-		CreatedAt:         r.CreatedAt,
-		UpdatedAt:         r.UpdatedAt,
+		ID:                 r.ID.String(),
+		EmployeeID:         r.EmployeeID.String(),
+		RequestTypeID:      r.RequestTypeID.String(),
+		Title:              r.Title,
+		Description:        r.Description,
+		TotalAmount:        r.TotalAmount,
+		Currency:           r.Currency,
+		Status:             string(r.Status),
+		SupervisorNote:     r.SupervisorNote,
+		SupervisorActionAt: r.SupervisorActionAt,
+		HrNote:             r.HrNote,
+		HrActionAt:         r.HrActionAt,
+		PaidAt:             r.PaidAt,
+		PaidAmount:         r.PaidAmount,
+		PaymentMethod:      r.PaymentMethod,
+		PaymentReference:   r.PaymentReference,
+		PaymentNote:        r.PaymentNote,
+		SubmittedAt:        r.SubmittedAt,
+		ApprovedAt:         r.ApprovedAt,
+		RejectedAt:         r.RejectedAt,
+		CancelledAt:        r.CancelledAt,
+		CreatedAt:          r.CreatedAt,
+		UpdatedAt:          r.UpdatedAt,
 	}
 	if r.SupervisorID != nil {
 		v := r.SupervisorID.String()

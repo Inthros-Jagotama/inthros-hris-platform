@@ -43,7 +43,7 @@ func tenantRBACResources() []tenantRBACResource {
 		{"leave", []string{"view", "create", "update", "delete"}},
 		{"performance", []string{"view", "create", "update", "delete"}},
 		{"recruitment", []string{"view", "create", "update", "delete"}},
-		{"reimbursement", []string{"view", "create", "update", "delete"}},
+		{"reimbursement", []string{"view", "create", "update", "delete", "approve"}},
 		{"training", []string{"view", "create", "update", "delete", "enroll",
 			"course.manage", "session.manage", "participant.manage", "attendance.manage",
 			"assessment.manage", "evaluation.manage", "certificate.manage", "plan.manage",

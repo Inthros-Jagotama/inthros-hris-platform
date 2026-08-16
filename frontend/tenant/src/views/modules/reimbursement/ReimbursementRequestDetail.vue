@@ -1,6 +1,41 @@
 <template>
-  <div v-if="loading" class="flex items-center justify-center h-40">
-    <i class="pi pi-spinner pi-spin text-2xl text-emerald-500"></i>
+  <!-- ── Skeleton loading ── -->
+  <div v-if="loading" class="space-y-4">
+    <!-- header card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+      <div class="flex items-start justify-between gap-3">
+        <div class="space-y-2 flex-1 min-w-0">
+          <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+          <div class="h-3 bg-gray-100 dark:bg-gray-700 rounded w-1/3"></div>
+        </div>
+        <div class="flex gap-2 shrink-0">
+          <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+        <div v-for="n in 4" :key="n" class="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2.5">
+          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
+          <div class="h-3.5 bg-gray-100 dark:bg-gray-700 rounded w-3/4"></div>
+        </div>
+      </div>
+    </div>
+    <!-- info card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+      <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-28 mb-3"></div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+        <div v-for="n in 4" :key="n" class="h-3 bg-gray-100 dark:bg-gray-700 rounded w-2/3"></div>
+      </div>
+    </div>
+    <!-- items card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden animate-pulse">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+        <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+      </div>
+      <div class="px-4 py-3 space-y-3">
+        <div v-for="n in 3" :key="n" class="h-3 bg-gray-100 dark:bg-gray-700 rounded w-3/4"></div>
+      </div>
+    </div>
   </div>
 
   <div v-else-if="request" class="space-y-4">
@@ -55,9 +90,12 @@
         <div><span class="text-gray-400">{{ t('reimbursement.total_amount') }}</span><br><span class="text-gray-700 dark:text-gray-200 font-medium">{{ formatCurrency(request.total_amount, request.currency) }}</span></div>
         <div v-if="request.submitted_at"><span class="text-gray-400">{{ t('reimbursement.submitted_at') }}</span><br><span class="text-gray-700 dark:text-gray-200">{{ formatDate(request.submitted_at, locale) }}</span></div>
         <div v-if="request.paid_at"><span class="text-gray-400">{{ t('reimbursement.paid_at') }}</span><br><span class="text-gray-700 dark:text-gray-200">{{ formatDate(request.paid_at, locale) }}</span></div>
+        <div v-if="request.paid_amount != null"><span class="text-gray-400">{{ t('reimbursement.paid_amount') }}</span><br><span class="text-gray-700 dark:text-gray-200 font-medium text-emerald-600 dark:text-emerald-400">{{ formatCurrency(request.paid_amount, request.currency) }}</span></div>
+        <div v-if="request.payment_method"><span class="text-gray-400">{{ t('reimbursement.payment_method') }}</span><br><span class="text-gray-700 dark:text-gray-200">{{ paymentMethodLabel(request.payment_method) }}</span></div>
+        <div v-if="request.payment_reference"><span class="text-gray-400">{{ t('reimbursement.payment_reference') }}</span><br><span class="text-gray-700 dark:text-gray-200">{{ request.payment_reference }}</span></div>
+        <div v-if="request.payment_note"><span class="text-gray-400">{{ t('reimbursement.payment_note') }}</span><br><span class="text-gray-700 dark:text-gray-200">{{ request.payment_note }}</span></div>
         <div v-if="request.supervisor_note || request.hr_note"><span class="text-gray-400">{{ t('reimbursement.approval_note') }}</span><br><span class="text-gray-700 dark:text-gray-200">{{ request.supervisor_note || request.hr_note }}</span></div>
       </div>
-      <Message v-if="request.status === 'APPROVED'" severity="info" :closable="false" class="!mt-1">{{ t('reimbursement.manual_pay_hint') }}</Message>
       <Message v-if="request.status !== 'DRAFT'" severity="info" :closable="false" class="!mt-1">{{ t('reimbursement.draft_edit_hint') }}</Message>
     </div>
 
@@ -148,18 +186,31 @@
       @confirm="handleCancel"
     />
 
-    <!-- ── Confirm: Pay ── -->
-    <ConfirmActionDialog
-      v-model:visible="payDialogVisible"
-      :title="t('reimbursement.confirm_pay_title')"
-      :message="t('reimbursement.confirm_pay')"
-      :loading="paying"
-      :errorMsg="payError"
-      :confirm-label="t('reimbursement.pay')"
-      severity="success"
-      icon="pi pi-dollar"
-      @confirm="handlePay"
-    />
+    <!-- ── Dialog: Payment ── -->
+    <Dialog v-model:visible="payDialogVisible" :header="t('reimbursement.pay_title')" modal :style="{ width: '480px' }" @hide="resetPayForm">
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('reimbursement.pay_hint') }}</p>
+      <div class="space-y-3">
+        <FormRow :label="t('reimbursement.total_amount')" required :errors="payErrors?.amount">
+          <InputNumber v-model="payForm.amount" class="!w-full" :min="0" size="small" />
+        </FormRow>
+        <FormRow :label="t('reimbursement.payment_method')" :errors="payErrors?.payment_method">
+          <Select v-model="payForm.payment_method" :options="paymentMethodOptions" optionLabel="label" optionValue="value" showClear class="w-full" :placeholder="t('common.select')" />
+        </FormRow>
+        <FormRow :label="t('reimbursement.payment_reference')" :errors="payErrors?.payment_reference">
+          <TextInput v-model="payForm.payment_reference" :placeholder="t('reimbursement.payment_reference_placeholder')" />
+        </FormRow>
+        <FormRow :label="t('reimbursement.payment_note')" :errors="payErrors?.payment_note">
+          <TextInput v-model="payForm.payment_note" textarea :rows="2" />
+        </FormRow>
+        <Message v-if="payError" severity="error" :closable="false" class="!text-xs">{{ payError }}</Message>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="payDialogVisible = false" />
+          <Button :label="t('reimbursement.pay')" icon="pi pi-dollar" severity="success" size="small" :loading="paying" :disabled="paying" @click="handlePay" />
+        </div>
+      </template>
+    </Dialog>
 
     <input ref="receiptFileInputRef" type="file" class="hidden" @change="onReceiptFileSelected" />
   </div>
@@ -204,6 +255,8 @@ const cancelError = ref('')
 const paying = ref(false)
 const payDialogVisible = ref(false)
 const payError = ref('')
+const payErrors = ref({})
+const payForm = ref(defaultPayForm())
 
 const editDialogVisible = ref(false)
 const savingEdit = ref(false)
@@ -227,6 +280,22 @@ const currencyOptions = [
   { label: 'IDR', value: 'IDR' },
   { label: 'USD', value: 'USD' }
 ]
+
+const paymentMethodOptions = [
+  { label: t('reimbursement.payment_method_bank_transfer'), value: 'BANK_TRANSFER' },
+  { label: t('reimbursement.payment_method_cash'), value: 'CASH' },
+  { label: t('reimbursement.payment_method_cheque'), value: 'CHEQUE' }
+]
+
+function defaultPayForm() {
+  return { amount: null, payment_method: 'BANK_TRANSFER', payment_reference: '', payment_note: '' }
+}
+
+function paymentMethodLabel(v) {
+  if (!v) return '-'
+  const opt = paymentMethodOptions.find(o => o.value === v)
+  return opt ? opt.label : v
+}
 
 const totalItemsAmount = computed(() => items.value.reduce((sum, i) => sum + (Number(i.amount) || 0), 0))
 
@@ -327,20 +396,51 @@ async function handleCancel() {
   }
 }
 
-function confirmPay() {
+function resetPayForm() {
+  payForm.value = defaultPayForm()
+  payErrors.value = {}
   payError.value = ''
+}
+
+function confirmPay() {
+  payErrors.value = {}
+  payError.value = ''
+  payForm.value = {
+    amount: request.value?.total_amount ?? null,
+    payment_method: 'BANK_TRANSFER',
+    payment_reference: '',
+    payment_note: ''
+  }
   payDialogVisible.value = true
 }
 async function handlePay() {
-  paying.value = true
+  payErrors.value = {}
   payError.value = ''
+  const amount = Number(payForm.value.amount)
+  if (!amount || amount <= 0) {
+    payErrors.value = { amount: t('form.required') }
+    return
+  }
+  paying.value = true
   try {
-    await api.put(`/api/v1/tenant/reimbursements/requests/${requestId}/status`, { status: 'PAID' })
+    const payload = {
+      status: 'PAID',
+      amount,
+      payment_method: payForm.value.payment_method || 'BANK_TRANSFER',
+      payment_reference: payForm.value.payment_reference?.trim() || '',
+      payment_note: payForm.value.payment_note?.trim() || ''
+    }
+    await api.put(`/api/v1/tenant/reimbursements/requests/${requestId}/status`, payload)
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
     payDialogVisible.value = false
     await loadRequest()
   } catch (e) {
-    payError.value = getErrorMessage(e, t('message.operation_failed'))
+    const fieldErrors = getValidationErrors(e)
+    if (Object.keys(fieldErrors).length > 0) {
+      payErrors.value = fieldErrors
+    } else {
+      payError.value = getErrorMessage(e, t('message.operation_failed'))
+    }
   } finally {
     paying.value = false
   }

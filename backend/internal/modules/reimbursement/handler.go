@@ -153,7 +153,7 @@ func (h *Handler) UpdateReimbursementRequestStatus(c *gin.Context) {
 	if !httputil.BindAndValidate(c, &req) {
 		return
 	}
-	resp, err := h.svc.UpdateReimbursementRequestStatus(c.Request.Context(), id, req.Status, req.Note, req.Amount, req.FlowID)
+	resp, err := h.svc.UpdateReimbursementRequestStatus(c.Request.Context(), id, req.Status, req.Note, req.Amount, req.FlowID, req.PaymentMethod, req.PaymentReference, req.PaymentNote)
 	if err != nil {
 		// Approval routing/assignee failures (approval.RoutingError) get a
 		// bilingual 400 so the user sees why their submission didn't reach

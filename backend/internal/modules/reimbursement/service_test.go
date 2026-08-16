@@ -145,10 +145,13 @@ func TestService_DeleteReimbursementType_Success(t *testing.T) {
 // =========================================================================
 
 func TestService_CreateReimbursementRequest_Success(t *testing.T) {
-	svc, repo, _, cleanup := newTestService()
+	svc, repo, db, cleanup := newTestService()
 	defer cleanup()
 
 	rType := createTestReimbursementType(repo)
+	userID := uuid.New()
+	empID := uuid.New()
+	createTestEmployeeAccount(db, empID, userID)
 
 	req := CreateReimbursementRequest{
 		RequestTypeID: rType.ID.String(),
@@ -157,7 +160,7 @@ func TestService_CreateReimbursementRequest_Success(t *testing.T) {
 		Currency:      "IDR",
 	}
 
-	resp, err := svc.CreateReimbursementRequest(context.WithValue(ctx(), "user_id", uuid.New().String()), req)
+	resp, err := svc.CreateReimbursementRequest(context.WithValue(ctx(), "user_id", userID.String()), req)
 	if err != nil {
 		t.Fatalf("CreateReimbursementRequest failed: %v", err)
 	}
@@ -170,6 +173,30 @@ func TestService_CreateReimbursementRequest_Success(t *testing.T) {
 	}
 	if resp.ID == "" {
 		t.Error("expected ID to be set")
+	}
+	// employee_id harus employee asli hasil resolve user_id, bukan user_id itu sendiri.
+	if resp.EmployeeID != empID.String() {
+		t.Errorf("expected employee_id %s, got %s", empID.String(), resp.EmployeeID)
+	}
+}
+
+// TestService_CreateReimbursementRequest_UserWithoutEmployeeLink fails loudly
+// when the logged-in user has no employee_accounts row — the JWT user_id is
+// the account UUID, not the employee UUID, so attribution would be wrong.
+func TestService_CreateReimbursementRequest_UserWithoutEmployeeLink(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	rType := createTestReimbursementType(repo)
+
+	req := CreateReimbursementRequest{
+		RequestTypeID: rType.ID.String(),
+		Title:         "Test",
+	}
+
+	_, err := svc.CreateReimbursementRequest(context.WithValue(ctx(), "user_id", uuid.New().String()), req)
+	if err == nil {
+		t.Fatal("expected error when user has no linked employee account")
 	}
 }
 
@@ -390,6 +417,63 @@ func TestService_PayReimbursementRequest_Success(t *testing.T) {
 	}
 	if updated.PaidAmount == nil || *updated.PaidAmount != paidAmount {
 		t.Errorf("expected PaidAmount %.2f, got %.2f", paidAmount, *updated.PaidAmount)
+	}
+}
+
+func TestService_PayReimbursementRequest_RecordsPaymentDetails(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	rType := createTestReimbursementType(repo)
+	empID := uuid.New()
+	created := createTestReimbursementRequest(repo, empID, rType.ID)
+
+	_, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil, nil)
+	if err != nil {
+		t.Fatalf("Submit failed: %v", err)
+	}
+	_, err = svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "APPROVED", "Approved", nil, nil)
+	if err != nil {
+		t.Fatalf("Approve failed: %v", err)
+	}
+
+	method := "BANK_TRANSFER"
+	reference := "TRX-2026-0816-001"
+	note := "Transfer BCA a.n. karyawan"
+	updated, err := svc.UpdateReimbursementRequestStatus(
+		ctx(), created.ID.String(), "PAID", "", nil, nil,
+		&method, &reference, &note,
+	)
+	if err != nil {
+		t.Fatalf("Pay reimbursement request failed: %v", err)
+	}
+
+	if updated.Status != "PAID" {
+		t.Errorf("expected status PAID, got '%s'", updated.Status)
+	}
+	if updated.PaymentMethod == nil || *updated.PaymentMethod != method {
+		t.Errorf("expected payment_method %q, got %v", method, updated.PaymentMethod)
+	}
+	if updated.PaymentReference == nil || *updated.PaymentReference != reference {
+		t.Errorf("expected payment_reference %q, got %v", reference, updated.PaymentReference)
+	}
+	if updated.PaymentNote == nil || *updated.PaymentNote != note {
+		t.Errorf("expected payment_note %q, got %v", note, updated.PaymentNote)
+	}
+
+	// Reload from repo to confirm persistence.
+	reloaded, err := repo.FindReimbursementRequestByID(ctx(), created.ID)
+	if err != nil {
+		t.Fatalf("reload failed: %v", err)
+	}
+	if reloaded.PaymentMethod == nil || *reloaded.PaymentMethod != method {
+		t.Errorf("persisted payment_method mismatch: %v", reloaded.PaymentMethod)
+	}
+	if reloaded.PaymentReference == nil || *reloaded.PaymentReference != reference {
+		t.Errorf("persisted payment_reference mismatch: %v", reloaded.PaymentReference)
+	}
+	if reloaded.PaymentNote == nil || *reloaded.PaymentNote != note {
+		t.Errorf("persisted payment_note mismatch: %v", reloaded.PaymentNote)
 	}
 }
 

@@ -445,7 +445,7 @@ const routes = [
         component: () => import('@/views/modules/recruitment/Onboarding.vue'),
         meta: { title: 'Onboarding', titleKey: 'recruitment.onboarding', descKey: 'onboarding.description', icon: 'pi pi-rocket', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title' }
       },
-      // Reimbursement
+      // Reimbursement — index page (menu cards + summary)
       {
         path: 'reimbursements',
         name: 'Reimbursements',
@@ -453,16 +453,28 @@ const routes = [
         meta: { title: 'Reimbursement', titleKey: 'reimbursement.title', descKey: 'reimbursement.description', icon: 'pi pi-credit-card', module: 'reimbursement' }
       },
       {
+        path: 'reimbursements/all',
+        name: 'ReimbursementAllRequests',
+        component: () => import('@/views/modules/reimbursement/ReimbursementRequests.vue'),
+        meta: { title: 'Reimbursement', titleKey: 'reimbursement.requests', descKey: 'reimbursement.description', icon: 'pi pi-briefcase', module: 'reimbursement', backRoute: '/reimbursements', backLabelKey: 'reimbursement.title' }
+      },
+      {
+        path: 'reimbursements/my-requests',
+        name: 'ReimbursementMyRequests',
+        component: () => import('@/views/modules/reimbursement/ReimbursementRequests.vue'),
+        meta: { title: 'My Reimbursement Requests', titleKey: 'reimbursement.my_requests', descKey: 'reimbursement.description', icon: 'pi pi-credit-card', module: 'reimbursement', backRoute: '/reimbursements', backLabelKey: 'reimbursement.title' }
+      },
+      {
         path: 'reimbursements/types',
         name: 'ReimbursementTypes',
         component: () => import('@/views/modules/reimbursement/ReimbursementTypes.vue'),
-        meta: { title: 'Reimbursement Types', titleKey: 'reimbursement.types', descKey: 'reimbursement.types_description', icon: 'pi pi-tags', module: 'reimbursement', backRoute: '/reimbursements', backLabelKey: 'reimbursement.requests' }
+        meta: { title: 'Reimbursement Types', titleKey: 'reimbursement.types', descKey: 'reimbursement.types_description', icon: 'pi pi-tags', module: 'reimbursement', backRoute: '/reimbursements', backLabelKey: 'reimbursement.title' }
       },
       {
         path: 'reimbursements/:id',
         name: 'ReimbursementRequestDetail',
         component: () => import('@/views/modules/reimbursement/ReimbursementRequestDetail.vue'),
-        meta: { title: 'View Reimbursement Request', titleKey: 'reimbursement.view', descKey: 'reimbursement.description', icon: 'pi pi-eye', module: 'reimbursement', backRoute: '/reimbursements', backLabelKey: 'reimbursement.requests' }
+        meta: { title: 'View Reimbursement Request', titleKey: 'reimbursement.view', descKey: 'reimbursement.description', icon: 'pi pi-eye', module: 'reimbursement', backRoute: '/reimbursements', backLabelKey: 'reimbursement.title' }
       },
       // Training & Development
       {

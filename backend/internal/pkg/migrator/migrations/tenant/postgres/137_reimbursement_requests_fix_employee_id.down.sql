@@ -1,0 +1,3 @@
+-- 137_reimbursement_requests_fix_employee_id.down.sql
+-- No-op: the backfill cannot be safely reversed (the original employee_id
+-- values were user-account UUIDs and are no longer recoverable in bulk).

@@ -63,17 +63,30 @@ type ReimbursementRequest struct {
 	Currency          string               `gorm:"type:varchar(3);not null;default:IDR" json:"currency"`
 	Status            ReimbursementStatus  `gorm:"type:varchar(50);not null;default:DRAFT;index:idx_reimb_req_status" json:"status"`
 	SupervisorID      *uuid.UUID           `gorm:"type:char(36)" json:"supervisor_id,omitempty"`
-	SupervisorActionAt int64               `gorm:"type:bigint;default:0" json:"-"`
-	SupervisorNote    *string              `gorm:"type:varchar(500)" json:"supervisor_note,omitempty"`
-	HrID              *uuid.UUID           `gorm:"type:char(36)" json:"hr_id,omitempty"`
-	HrActionAt        int64                `gorm:"type:bigint;default:0" json:"-"`
-	HrNote            *string              `gorm:"type:varchar(500)" json:"hr_note,omitempty"`
-	PaidAt            int64                `gorm:"type:bigint;default:0" json:"-"`
-	PaidAmount        *float64             `gorm:"type:decimal(18,2)" json:"paid_amount,omitempty"`
-	SubmittedAt       int64                `gorm:"type:bigint;default:0" json:"-"`
-	ApprovedAt        int64                `gorm:"type:bigint;default:0" json:"-"`
-	RejectedAt        int64                `gorm:"type:bigint;default:0" json:"-"`
-	CancelledAt       int64                `gorm:"type:bigint;default:0" json:"-"`
+	// Action timestamps are *time.Time (nullable) to match the SQL schema
+	// (TIMESTAMP NULL) — the previous int64 unix-nano mapping made GORM write
+	// 0 into the TIMESTAMP column, which MySQL strict mode rejects as
+	// '0000-00-00 00:00:00' (Error 1292). No gorm type tag: an explicit
+	// 'timestamp(6)' tag breaks *time.Time scanning on the SQLite test driver,
+	// and tenant DBs are SQL-migrated anyway (GORM AutoMigrate never runs for
+	// tenants), so the default datetime mapping is safe.
+	SupervisorActionAt *time.Time  `json:"-"`
+	SupervisorNote    *string     `gorm:"type:varchar(500)" json:"supervisor_note,omitempty"`
+	HrID              *uuid.UUID  `gorm:"type:char(36)" json:"hr_id,omitempty"`
+	HrActionAt        *time.Time  `json:"-"`
+	HrNote            *string     `gorm:"type:varchar(500)" json:"hr_note,omitempty"`
+	PaidAt            *time.Time  `json:"-"`
+	PaidAmount        *float64    `gorm:"type:decimal(18,2)" json:"paid_amount,omitempty"`
+	// Payment details recorded directly in this module (no payroll linkage —
+	// product decision 2026-08-16). Values follow the payroll convention:
+	// BANK_TRANSFER / CASH / CHEQUE.
+	PaymentMethod     *string     `gorm:"type:varchar(50)" json:"payment_method,omitempty"`
+	PaymentReference  *string     `gorm:"type:varchar(200)" json:"payment_reference,omitempty"`
+	PaymentNote       *string     `gorm:"type:varchar(500)" json:"payment_note,omitempty"`
+	SubmittedAt       *time.Time  `json:"-"`
+	ApprovedAt        *time.Time  `json:"-"`
+	RejectedAt        *time.Time  `json:"-"`
+	CancelledAt       *time.Time  `json:"-"`
 	ApprovalInstanceID *uuid.UUID          `gorm:"type:char(36);index:idx_reimb_req_approval_instance" json:"approval_instance_id,omitempty"`
 	Items             []ReimbursementItem  `gorm:"foreignKey:ReimbursementRequestID" json:"items,omitempty"`
 	DeletedAt         gorm.DeletedAt       `gorm:"index:idx_reimb_req_deleted_at" json:"deleted_at,omitempty"`

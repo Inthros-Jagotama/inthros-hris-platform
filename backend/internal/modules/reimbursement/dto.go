@@ -50,10 +50,13 @@ type UpdateReimbursementRequest struct {
 }
 
 type UpdateReimbursementStatusRequest struct {
-	Status string   `json:"status" binding:"required,oneof=SUBMITTED APPROVED REJECTED PAID CANCELLED"`
-	Note   string   `json:"note"`
-	Amount *float64 `json:"amount"`
-	FlowID *string  `json:"flow_id"`
+	Status           string   `json:"status" binding:"required,oneof=SUBMITTED APPROVED REJECTED PAID CANCELLED"`
+	Note             string   `json:"note"`
+	Amount           *float64 `json:"amount"`
+	FlowID           *string  `json:"flow_id"`
+	PaymentMethod    *string  `json:"payment_method" binding:"omitempty,oneof=BANK_TRANSFER CASH CHEQUE"`
+	PaymentReference *string  `json:"payment_reference"`
+	PaymentNote      *string  `json:"payment_note"`
 }
 
 type ReimbursementRequestResponse struct {
@@ -73,6 +76,9 @@ type ReimbursementRequestResponse struct {
 	HrActionAt        *time.Time `json:"hr_action_at,omitempty"`
 	PaidAt            *time.Time `json:"paid_at,omitempty"`
 	PaidAmount        *float64   `json:"paid_amount,omitempty"`
+	PaymentMethod     *string    `json:"payment_method,omitempty"`
+	PaymentReference  *string    `json:"payment_reference,omitempty"`
+	PaymentNote       *string    `json:"payment_note,omitempty"`
 	SubmittedAt       *time.Time `json:"submitted_at,omitempty"`
 	ApprovedAt        *time.Time `json:"approved_at,omitempty"`
 	RejectedAt        *time.Time `json:"rejected_at,omitempty"`
