@@ -47,8 +47,13 @@
             </div>
             <div v-if="travel.participants?.length" class="divide-y divide-gray-100 dark:divide-gray-800">
               <div v-for="p in travel.participants" :key="p.id" class="flex items-center justify-between px-3 py-2.5 text-sm">
-                <span class="text-gray-700 dark:text-gray-200">{{ participantDisplayName(p) }}</span>
-                <div class="flex items-center gap-2">
+                <div class="min-w-0">
+                  <span class="text-gray-700 dark:text-gray-200">{{ participantDisplayName(p) }}</span>
+                  <p v-if="p.organization || p.phone" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    {{ [p.organization, p.phone].filter(Boolean).join(' · ') }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
                   <Tag :value="p.role" severity="secondary" class="!text-xs !px-1.5 !py-0.5" />
                   <Tag :value="p.participant_type" severity="info" class="!text-xs !px-1.5 !py-0.5" />
                 </div>
