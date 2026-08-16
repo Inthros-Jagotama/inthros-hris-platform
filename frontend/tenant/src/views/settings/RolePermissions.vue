@@ -26,9 +26,24 @@
       <template #empty>
         <div class="text-center text-sm text-gray-400 py-8">{{ t('rbac.empty_permissions') }}</div>
       </template>
-      <!-- 1 baris = 1 module: nama module + chips permission di baris yang sama -->
+      <!-- 1 baris = 1 module: nama module → pilih semua → chips permission -->
       <Column field="resource" :header="t('rbac.module')" style="width:200px">
         <template #body="{ data }"><span class="font-medium text-gray-800 dark:text-gray-100">{{ data.resource }}</span></template>
+      </Column>
+      <Column :header="t('common.select')" style="width:110px">
+        <template #body="{ data }">
+          <div class="flex items-center gap-1.5">
+            <Checkbox :binary="true" :model-value="data.allSelected" @update:model-value="toggleResource(data.resource)" />
+            <Button
+              :label="data.allSelected ? t('common.clear') : t('common.all')"
+              severity="secondary"
+              text
+              size="small"
+              class="!text-[11px] !p-0.5"
+              @click="toggleResource(data.resource)"
+            />
+          </div>
+        </template>
       </Column>
       <Column :header="t('rbac.permission')">
         <template #body="{ data }">
@@ -41,21 +56,6 @@
               <Checkbox :binary="true" :model-value="selected[p.id]" @update:model-value="v => selected[p.id] = v" />
               <span class="text-sm">{{ p.action }}</span>
             </label>
-          </div>
-        </template>
-      </Column>
-      <Column :header="t('common.select')" style="width:110px" frozen alignFrozen="right">
-        <template #body="{ data }">
-          <div class="flex items-center gap-1.5 justify-end">
-            <Checkbox :binary="true" :model-value="data.allSelected" @update:model-value="toggleResource(data.resource)" />
-            <Button
-              :label="data.allSelected ? t('common.clear') : t('common.all')"
-              severity="secondary"
-              text
-              size="small"
-              class="!text-[11px] !p-0.5"
-              @click="toggleResource(data.resource)"
-            />
           </div>
         </template>
       </Column>
