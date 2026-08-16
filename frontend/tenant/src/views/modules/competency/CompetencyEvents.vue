@@ -65,22 +65,18 @@
 
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('competency_360.edit_event') : t('competency_360.new_event')" modal :style="{ width: '520px' }" @hide="resetForm">
       <div class="space-y-3">
-        <div class="grid grid-cols-2 gap-3">
-          <FormRow :label="t('competency_360.event_type')" required :errors="errors?.type">
-            <Select v-model="form.type" :options="typeOptions" optionLabel="label" optionValue="value" class="w-full" />
-          </FormRow>
-          <FormRow :label="t('competency_360.period_type')" required :errors="errors?.period_type">
-            <Select v-model="form.period_type" :options="periodTypeOptions" optionLabel="label" optionValue="value" class="w-full" />
-          </FormRow>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <FormRow :label="t('competency_360.period_year')" required :errors="errors?.period_year">
-            <InputNumber v-model="form.period_year" class="!w-full" :min="2000" :max="2100" size="small" />
-          </FormRow>
-          <FormRow :label="t('competency_360.period_number')" :errors="errors?.period_number">
-            <InputNumber v-model="form.period_number" class="!w-full" :min="1" :max="12" size="small" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('competency_360.event_type')" required :errors="errors?.type">
+          <Select v-model="form.type" :options="typeOptions" optionLabel="label" optionValue="value" class="w-full" />
+        </FormRow>
+        <FormRow :label="t('competency_360.period_type')" required :errors="errors?.period_type">
+          <Select v-model="form.period_type" :options="periodTypeOptions" optionLabel="label" optionValue="value" class="w-full" />
+        </FormRow>
+        <FormRow :label="t('competency_360.period_year')" required :errors="errors?.period_year">
+          <InputNumber v-model="form.period_year" class="!w-full" :min="2000" :max="2100" size="small" />
+        </FormRow>
+        <FormRow :label="t('competency_360.period_number')" :errors="errors?.period_number">
+          <InputNumber v-model="form.period_number" class="!w-full" :min="1" :max="12" size="small" />
+        </FormRow>
         <FormRow :label="t('competency_360.template')" :errors="errors?.template_id">
           <Select v-model="form.template_id" :options="templateOptions" optionLabel="name" optionValue="id" showClear filter class="w-full" :placeholder="t('common.select')" />
         </FormRow>
