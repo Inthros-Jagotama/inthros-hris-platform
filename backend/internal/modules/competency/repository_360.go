@@ -637,6 +637,110 @@ func (r *Repository) FindTargetsByEmployee(ctx context.Context, employeeID uuid.
 	return list, nil
 }
 
+// FindTargetsByEvent mengambil seluruh assessment target sebuah event
+// (dipakai HR report & monitoring).
+func (r *Repository) FindTargetsByEvent(ctx context.Context, eventID uuid.UUID) ([]CompetencyEventTarget, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var list []CompetencyEventTarget
+	if err := db.Where("competency_event_id = ?", eventID).
+		Order("created_at ASC").
+		Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// CountSubmittedRatersByTarget menghitung rater yang sudah submit per target.
+func (r *Repository) CountSubmittedRatersByTarget(ctx context.Context, targetIDs []uuid.UUID) (map[string]int, error) {
+	result := make(map[string]int, len(targetIDs))
+	if len(targetIDs) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		TargetID string
+		Count    int
+	}
+	var rows []row
+	if err := db.WithContext(ctx).Model(&CompetencyAssessmentRater{}).
+		Select("competency_event_target_id, COUNT(*) as count").
+		Where("competency_event_target_id IN ? AND status = ?", targetIDs, string(RaterStatusSubmitted)).
+		Group("competency_event_target_id").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		result[r.TargetID] = r.Count
+	}
+	return result, nil
+}
+
+// CountRatersByTarget menghitung total rater per target (untuk completion %).
+func (r *Repository) CountRatersByTarget(ctx context.Context, targetIDs []uuid.UUID) (map[string]int, error) {
+	result := make(map[string]int, len(targetIDs))
+	if len(targetIDs) == 0 {
+		return result, nil
+	}
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		TargetID string
+		Count    int
+	}
+	var rows []row
+	if err := db.WithContext(ctx).Model(&CompetencyAssessmentRater{}).
+		Select("competency_event_target_id, COUNT(*) as count").
+		Where("competency_event_target_id IN ?", targetIDs).
+		Group("competency_event_target_id").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		result[r.TargetID] = r.Count
+	}
+	return result, nil
+}
+
+// ListCommentsByTarget mengambil seluruh komentar response pada sebuah target
+// — dipakai employee report (§20). Anonim: tidak menyertakan identitas rater.
+func (r *Repository) ListCommentsByTarget(ctx context.Context, targetID string) ([]string, error) {
+	var comments []string
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.WithContext(ctx).Table("competency_assessment_responses AS resp").
+		Joins("JOIN competency_assessment_raters AS rat ON rat.id = resp.rater_id").
+		Where("rat.competency_event_target_id = ? AND resp.comment IS NOT NULL AND resp.comment <> ''", targetID).
+		Pluck("resp.comment", &comments).Error; err != nil {
+		return nil, err
+	}
+	return comments, nil
+}
+
+// CountScoresByEvent menghitung jumlah competency score per event (finalized).
+func (r *Repository) CountScoresByEvent(ctx context.Context, eventID uuid.UUID) (int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	if err := db.WithContext(ctx).Model(&CompetencyScore{}).
+		Where("competency_event_id = ?", eventID).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // ReplaceScoreDetails menghapus detail lama dan menulis ulang detail skor
 // untuk satu competency score (hasil calculation bersifat snapshot).
 func (r *Repository) ReplaceScoreDetails(ctx context.Context, scoreID uuid.UUID, details []CompetencyScoreDetail) error {

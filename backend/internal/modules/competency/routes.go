@@ -98,5 +98,10 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// Competency 360 — Result & Gap (§17/§18/§22)
 		comp.GET("/employees/:employee/result", handler.GetEmployeeResult)
 		comp.GET("/employees/:employee/gap", handler.GetEmployeeGap)
+
+		// Competency 360 — Reports (§20)
+		comp.GET("/employees/:employee/report", handler.GetEmployeeReport)
+		comp.GET("/reports/manager", handler.GetManagerReport)
+		comp.GET("/reports/hr", handler.GetHRReport)
 	}
 }

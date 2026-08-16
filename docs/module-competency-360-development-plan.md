@@ -1205,12 +1205,12 @@ Persisten: `FinalizeTarget` menulis snapshot ke `competency_scores` (per employe
 
 ## Phase 6 — Reporting
 
-- [ ] Employee report.
-- [ ] Manager report.
-- [ ] HR report.
-- [ ] Competency gap report.
-- [ ] Organization/Position competency heatmap.
-- [ ] Assessment completion report.
+- [x] Employee report.
+- [x] Manager report.
+- [x] HR report.
+- [x] Competency gap report.
+- [x] Organization/Position competency heatmap.
+- [x] Assessment completion report.
 
 ## Phase 7 — Frontend
 

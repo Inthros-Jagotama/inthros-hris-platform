@@ -325,3 +325,34 @@ func (h *Handler) GetEmployeeGap(c *gin.Context) {
 	}
 	httputil.SuccessJSON(c, resp)
 }
+
+// =========================================================================
+// Report Handlers (§20)
+// =========================================================================
+
+func (h *Handler) GetEmployeeReport(c *gin.Context) {
+	resp, err := h.service.GetEmployeeReport(c.Request.Context(), c.Param("employee"))
+	if err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) GetManagerReport(c *gin.Context) {
+	resp, err := h.service.GetManagerReport(c.Request.Context(), c.Query("event_id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) GetHRReport(c *gin.Context) {
+	resp, err := h.service.GetHRReport(c.Request.Context(), c.Query("event_id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
