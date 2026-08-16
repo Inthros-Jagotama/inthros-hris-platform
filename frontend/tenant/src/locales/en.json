@@ -83,7 +83,10 @@
     "date": "Date",
     "notes": "Notes",
     "select_date": "Select date",
-    "print": "Print"
+    "print": "Print",
+    "forbidden_title": "Access Denied",
+    "forbidden_desc": "You do not have permission to access this page.",
+    "back_to_dashboard": "Back to Dashboard"
   },
   "form": {
     "required": "This field is required"
@@ -1166,7 +1169,6 @@
     "employee_deduction": "Employee Deduction",
     "employer_contribution": "Employer Contribution",
     "net_salary": "Net Salary",
-    "total_company_cost": "Company Cost",
     "item_category": "Category",
     "item_category_earning": "Earning",
     "item_category_deduction": "Deduction",
@@ -1174,7 +1176,6 @@
     "item_category_information": "Information",
     "source_group": "Source",
     "base_amount": "Base Amount",
-    "amount": "Amount",
     "rate": "Rate",
     "bpjs_number": "BPJS Number",
     "wage_basis": "Wage Basis",

@@ -83,7 +83,10 @@
     "date": "Tanggal",
     "notes": "Catatan",
     "select_date": "Pilih tanggal",
-    "print": "Cetak"
+    "print": "Cetak",
+    "forbidden_title": "Akses Ditolak",
+    "forbidden_desc": "Anda tidak memiliki izin untuk mengakses halaman ini.",
+    "back_to_dashboard": "Kembali ke Dashboard"
   },
   "form": {
     "required": "Field ini wajib diisi"
@@ -833,7 +836,7 @@
     "edit_employee_component": "Edit Komponen Karyawan",
     "grading": "Grading",
     "component": "Komponen",
-    "amount": "Nominal",
+    "amount": "Jumlah",
     "source_type": "Sumber",
     "source_type_manual": "Manual",
     "source_type_grade_inherit": "Warisan Grade",
@@ -1166,7 +1169,6 @@
     "employee_deduction": "Potongan Karyawan",
     "employer_contribution": "Kontribusi Perusahaan",
     "net_salary": "Gaji Bersih",
-    "total_company_cost": "Biaya Perusahaan",
     "item_category": "Kategori",
     "item_category_earning": "Penghasilan",
     "item_category_deduction": "Potongan",
@@ -1174,7 +1176,6 @@
     "item_category_information": "Informasi",
     "source_group": "Sumber",
     "base_amount": "Dasar",
-    "amount": "Jumlah",
     "rate": "Tarif",
     "bpjs_number": "Nomor BPJS",
     "wage_basis": "Dasar Upah",
