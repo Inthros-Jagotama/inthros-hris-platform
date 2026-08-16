@@ -3760,6 +3760,7 @@
     "roles": "Roles",
     "system": "System",
     "users_count": "Users",
+    "module": "Module",
     "permission": "Permission",
     "permissions_count": "Permissions",
     "is_default": "Default role",

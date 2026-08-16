@@ -19,42 +19,48 @@
     <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="4" />
     <DataTable
       v-else
-      :value="permissions"
-      rowGroupMode="subheader"
-      groupRowsBy="resource"
-      sortField="resource"
-      :sortOrder="1"
+      :value="permissionGroups"
+      v-model:expandedRows="expandedRows"
+      dataKey="resource"
       size="small"
       class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
     >
       <template #empty>
         <div class="text-center text-sm text-gray-400 py-8">{{ t('rbac.empty_permissions') }}</div>
       </template>
-      <!-- Subheader per resource: nama resource + All/Clear + pilih semua -->
-      <template #subheader="{ data }">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ data.resource }}</span>
-          <div class="flex items-center gap-1.5">
+      <Column :expander="true" style="width:40px" />
+      <Column field="resource" :header="t('rbac.module')">
+        <template #body="{ data }"><span class="font-medium text-gray-800 dark:text-gray-100">{{ data.resource }}</span></template>
+      </Column>
+      <Column :header="t('rbac.permissions_count')" style="width:120px">
+        <template #body="{ data }">
+          <span class="text-gray-500 dark:text-gray-400">{{ data.items.filter(i => selected[i.id]).length }} / {{ data.items.length }}</span>
+        </template>
+      </Column>
+      <Column :header="t('common.select')" style="width:110px" frozen alignFrozen="right">
+        <template #body="{ data }">
+          <div class="flex items-center gap-1.5 justify-end">
             <Button
-              :label="groupAllSelected(data.resource) ? t('common.clear') : t('common.all')"
+              :label="data.allSelected ? t('common.clear') : t('common.all')"
               severity="secondary"
               text
               size="small"
               class="!text-[11px] !p-0.5"
               @click="toggleResource(data.resource)"
             />
-            <Checkbox :binary="true" :model-value="groupAllSelected(data.resource)" @update:model-value="toggleResource(data.resource)" />
+            <Checkbox :binary="true" :model-value="data.allSelected" @update:model-value="toggleResource(data.resource)" />
           </div>
-        </div>
-      </template>
-      <Column field="action" :header="t('rbac.permission')">
-        <template #body="{ data }"><span class="text-gray-700 dark:text-gray-200">{{ data.action }}</span></template>
-      </Column>
-      <Column :header="t('common.select')" style="width:80px" frozen alignFrozen="right">
-        <template #body="{ data }">
-          <Checkbox :binary="true" :model-value="selected[data.id]" @update:model-value="v => selected[data.id] = v" />
         </template>
       </Column>
+      <!-- Expansion: daftar permission per module -->
+      <template #expansion="{ data }">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 px-4 py-2">
+          <label v-for="p in data.items" :key="p.id" class="flex items-center gap-2 py-0.5 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400">
+            <Checkbox :binary="true" :model-value="selected[p.id]" @update:model-value="v => selected[p.id] = v" />
+            <span class="text-sm">{{ p.action }}</span>
+          </label>
+        </div>
+      </template>
     </DataTable>
   </div>
 </template>
@@ -90,23 +96,29 @@ const skeletonColumns = [
 
 const selectedCount = computed(() => Object.values(selected.value).filter(Boolean).length)
 
-function resourceOf(p) {
-  return p.resource || 'other'
-}
+const expandedRows = ref({})
 
-// Semua permission di satu resource terpilih?
-function groupAllSelected(resource) {
-  const items = permissions.value.filter(p => resourceOf(p) === resource)
-  return items.length > 0 && items.every(i => selected.value[i.id])
-}
-
-// Toggle pilih semua / kosongkan satu resource.
-function toggleResource(resource) {
-  const all = groupAllSelected(resource)
+// Grup permission per module (resource) — 1 baris = 1 module.
+const permissionGroups = computed(() => {
+  const map = {}
   for (const p of permissions.value) {
-    if (resourceOf(p) === resource) {
-      selected.value[p.id] = !all
-    }
+    const res = p.resource || 'other'
+    if (!map[res]) map[res] = { resource: res, items: [] }
+    map[res].items.push(p)
+  }
+  return Object.values(map).map(g => ({
+    ...g,
+    allSelected: g.items.length > 0 && g.items.every(i => selected.value[i.id])
+  }))
+})
+
+// Toggle pilih semua / kosongkan satu module.
+function toggleResource(resource) {
+  const group = permissionGroups.value.find(g => g.resource === resource)
+  if (!group) return
+  const all = group.allSelected
+  for (const p of group.items) {
+    selected.value[p.id] = !all
   }
 }
 
