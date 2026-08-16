@@ -70,6 +70,35 @@ func (m *attModule) Info() module.ModuleInfo {
 			"attendance.create",
 			"attendance.update",
 			"attendance.delete",
+			// Business Travel (docs/module-attendance-business-travel-development-plan.md
+			// §41). Declared here rather than gated per-route: this codebase has
+			// no per-route permission middleware in any module — RBAC is
+			// enforced at the coarser module/menu level, so these slugs exist
+			// for that layer and for future fine-grained checks.
+			"business_travel.view",
+			"business_travel.create",
+			"business_travel.update",
+			"business_travel.submit",
+			"business_travel.cancel",
+			"business_travel.approve",
+			"business_travel.reject",
+			"business_travel.funding.view",
+			"business_travel.funding.create",
+			"business_travel.funding.update",
+			"business_travel.funding.confirm",
+			"business_travel.funding.upload",
+			"business_travel.expense.view",
+			"business_travel.expense.create",
+			"business_travel.expense.update",
+			"business_travel.expense.delete",
+			"business_travel.settlement.view",
+			"business_travel.settlement.create",
+			"business_travel.settlement.submit",
+			"business_travel.settlement.approve",
+			"business_travel.refund.process",
+			"business_travel.reimbursement.process",
+			"business_travel.report",
+			"business_travel.export",
 		},
 		Menus: []module.Menu{
 			{
@@ -83,6 +112,7 @@ func (m *attModule) Info() module.ModuleInfo {
 					{Name: "Events", Icon: "list", Route: "/admin/attendance/events"},
 					{Name: "Overtime", Icon: "clock", Route: "/admin/attendance/overtime"},
 					{Name: "Locations", Icon: "map-pin", Route: "/admin/attendance/locations"},
+					{Name: "Business Travel", Icon: "briefcase", Route: "/admin/attendance/business-travel"},
 					{Name: "Settings", Icon: "settings", Route: "/admin/attendance/settings"},
 				},
 			},

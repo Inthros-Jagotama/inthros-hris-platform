@@ -1828,7 +1828,7 @@ ip_address
 - [x] Repository/service — `repository_businesstravel.go` (CRUD travel/participant/destination) + `service_businesstravel.go` (Create/Get/List/Update/Submit/Cancel + approval wiring), build & `go vet` bersih.
 - [x] UUID — semua PK `CHAR(36)` + `uuid.UUID` dengan `BeforeCreate` hook, mengikuti pola reimbursement.
 - [x] Company scope — sengaja **tidak** pakai kolom `company_id` (arsitektur DB-per-tenant, lihat §54.2).
-- [ ] Permission — endpoint belum digated middleware permission (`business_travel.*` dari §41 belum dicek di handler/route).
+- [x] Permission — semua slug `business_travel.*` (§41) ditambahkan ke `attModule.Info().Permissions()` di `module.go`. Catatan: codebase ini tidak punya middleware permission per-route di module manapun (dicek di seluruh `internal/modules`) — RBAC ditegakkan di level module/menu yang lebih kasar, jadi deklarasi ini konsisten dengan pola existing, bukan gap baru.
 - [x] Travel CRUD — `handler_businesstravel.go` + route `/attendance/business-travels` (POST/GET/GET:id/PUT).
 - [x] Travel status — `TravelStatus` enum (DRAFT→SUBMITTED→APPROVED/REJECTED→...→CLOSED/CANCELLED) di model, transisi DRAFT→SUBMITTED→CANCELLED sudah diimplementasi di service.
 
