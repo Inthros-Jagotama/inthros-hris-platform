@@ -43,7 +43,7 @@
                   :options="ratingOptions"
                   optionLabel="label"
                   optionValue="value"
-                  class="w-36 !text-xs"
+                  class="w-36"
                   :disabled="detail.rater.status === 'submitted'"
                   :placeholder="t('common.select')"
                 />
@@ -52,7 +52,6 @@
                 <TextInput
                   v-model="comments[ind.id]"
                   :placeholder="t('competency_360.comment_placeholder')"
-                  class="!text-xs"
                   :disabled="detail.rater.status === 'submitted'"
                 />
               </div>
