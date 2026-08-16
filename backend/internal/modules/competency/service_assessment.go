@@ -76,6 +76,71 @@ func (s *Service) AssignRaters(ctx context.Context, targetID string, req AssignR
 }
 
 // ListRatersByTarget mengambil seluruh rater sebuah assessment target.
+// SuggestedRaters mengembalikan saran rater dari struktur organisasi untuk
+// satu target: superior (atasan — parent org) dan subordinates (bawahan —
+// subtree org). Rater yang sudah di-assign pada target dikecualikan, sehingga
+// hasilnya aman langsung di-assign ulang (AssignRaters menolak duplikat).
+func (s *Service) SuggestedRaters(ctx context.Context, targetID string) (*SuggestedRatersDTO, error) {
+	uid, err := uuid.Parse(targetID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid event target id: %w", err)
+	}
+	target, err := s.repo.FindCompetencyEventTargetByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	result := &SuggestedRatersDTO{Superior: []EmployeeBriefDTO{}, Subordinates: []EmployeeBriefDTO{}}
+	if target.EmployeeID == nil {
+		return result, nil // target level organisasi — tidak ada subject
+	}
+	subjectID := *target.EmployeeID
+
+	// Rater yang sudah ada — jangan disarankan ulang.
+	assigned := make(map[uuid.UUID]bool)
+	existing, err := s.repo.FindRatersByTarget(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	for _, rat := range existing {
+		assigned[rat.RaterEmployeeID] = true
+	}
+
+	superiorIDs, err := s.repo.FindSuperiorEmployeeIDsBySubject(ctx, subjectID)
+	if err != nil {
+		return nil, err
+	}
+	subordinateIDs, err := s.repo.FindSubordinateEmployeeIDsByManager(ctx, subjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var suggestSuperior []uuid.UUID
+	for _, id := range superiorIDs {
+		if !assigned[id] {
+			suggestSuperior = append(suggestSuperior, id)
+		}
+	}
+	var suggestSubordinates []uuid.UUID
+	for _, id := range subordinateIDs {
+		if !assigned[id] {
+			suggestSubordinates = append(suggestSubordinates, id)
+		}
+	}
+
+	allIDs := append(suggestSuperior, suggestSubordinates...)
+	names, err := s.repo.GetEmployeeNamesByIDs(ctx, allIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range suggestSuperior {
+		result.Superior = append(result.Superior, EmployeeBriefDTO{ID: id.String(), Name: names[id.String()]})
+	}
+	for _, id := range suggestSubordinates {
+		result.Subordinates = append(result.Subordinates, EmployeeBriefDTO{ID: id.String(), Name: names[id.String()]})
+	}
+	return result, nil
+}
+
 func (s *Service) ListRatersByTarget(ctx context.Context, targetID string) ([]RaterResponse, error) {
 	targetUID, err := uuid.Parse(targetID)
 	if err != nil {

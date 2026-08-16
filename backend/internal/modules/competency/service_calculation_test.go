@@ -498,3 +498,103 @@ func TestFinalizeTarget_Snapshot(t *testing.T) {
 		t.Errorf("expected 1 score detail, got %d", len(score.Details))
 	}
 }
+
+// TestService_SuggestedRaters memverifikasi saran rater dari struktur
+// organisasi: superior (employee di parent org subject) dan subordinate
+// (employee di subtree org subject), dengan rater yang sudah di-assign
+// dikecualikan.
+func TestService_SuggestedRaters(t *testing.T) {
+	svc, targetID, _, cleanup := setup360Scenario(t)
+	defer cleanup()
+	ctx := context.Background()
+	repo := svc.repo
+
+	target, err := repo.FindCompetencyEventTargetByID(ctx, mustParseUUID(t, targetID))
+	if err != nil {
+		t.Fatalf("get target: %v", err)
+	}
+	subjectID := uuid.New()
+	if target.EmployeeID != nil {
+		subjectID = *target.EmployeeID
+	}
+
+	// Org tree: root (parent) → child → grandchild.
+	// Atasan (manager) bekerja di root, subject di child, bawahan di grandchild.
+	db, err := repo.getDB(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tbl := range []string{
+		"CREATE TABLE IF NOT EXISTS employees (id CHAR(36) PRIMARY KEY, name VARCHAR(255))",
+		"CREATE TABLE IF NOT EXISTS organizations (id CHAR(36) PRIMARY KEY, parent_id CHAR(36), deleted_at TIMESTAMP)",
+		"CREATE TABLE IF NOT EXISTS employments (id CHAR(36) PRIMARY KEY, employee_id CHAR(36), organization_id CHAR(36), effective_date DATE, effective_end_date DATE)",
+	} {
+		if err := db.Exec(tbl).Error; err != nil {
+			t.Fatalf("create table: %v", err)
+		}
+	}
+	now := time.Now().Format("2006-01-02 15:04:05")
+	rootID := uuid.New()
+	childID := uuid.New()
+	grandchildID := uuid.New()
+	managerID := uuid.New()
+	subordinateID := uuid.New()
+
+	insertOrg := func(id uuid.UUID, parent interface{}) {
+		if err := db.Exec("INSERT INTO organizations (id, parent_id, deleted_at) VALUES (?, ?, NULL)", id.String(), parent).Error; err != nil {
+			t.Fatalf("seed org: %v", err)
+		}
+	}
+	insertOrg(rootID, nil)
+	insertOrg(childID, rootID.String())
+	insertOrg(grandchildID, childID.String())
+
+	insertEmp := func(id uuid.UUID, name string) {
+		if err := db.Exec("INSERT INTO employees (id, name) VALUES (?, ?)", id.String(), name).Error; err != nil {
+			t.Fatalf("seed employee: %v", err)
+		}
+	}
+	insertEmp(managerID, "Manager")
+	insertEmp(subjectID, "Subject")
+	insertEmp(subordinateID, "Bawahan")
+
+	insertEmpRel := func(empID, orgID uuid.UUID) {
+		if err := db.Exec("INSERT INTO employments (id, employee_id, organization_id, effective_date, effective_end_date) VALUES (?, ?, ?, ?, NULL)",
+			uuid.New().String(), empID.String(), orgID.String(), now,
+		).Error; err != nil {
+			t.Fatalf("seed employment: %v", err)
+		}
+	}
+	insertEmpRel(managerID, rootID)
+	insertEmpRel(subjectID, childID)
+	insertEmpRel(subordinateID, grandchildID)
+
+	// Assign manager sebagai superior — harus dikecualikan dari saran.
+	if err := repo.CreateRater(ctx, &CompetencyAssessmentRater{
+		CompetencyEventTargetID: target.ID,
+		RaterEmployeeID:         managerID,
+		RaterType:               string(RaterTypeSuperior),
+		Status:                  string(RaterStatusAssigned),
+	}); err != nil {
+		t.Fatalf("assign manager: %v", err)
+	}
+
+	sug, err := svc.SuggestedRaters(ctx, targetID)
+	if err != nil {
+		t.Fatalf("SuggestedRaters failed: %v", err)
+	}
+	// Manager sudah di-assign → superior kosong.
+	if len(sug.Superior) != 0 {
+		t.Errorf("expected no superior suggestion (already assigned), got %+v", sug.Superior)
+	}
+	// Bawahan di subtree org subject → tersedia.
+	if len(sug.Subordinates) != 1 {
+		t.Fatalf("expected 1 subordinate suggestion, got %d: %+v", len(sug.Subordinates), sug.Subordinates)
+	}
+	if sug.Subordinates[0].ID != subordinateID.String() {
+		t.Errorf("expected subordinate %s, got %s", subordinateID, sug.Subordinates[0].ID)
+	}
+	if sug.Subordinates[0].Name != "Bawahan" {
+		t.Errorf("expected name 'Bawahan', got %q", sug.Subordinates[0].Name)
+	}
+}

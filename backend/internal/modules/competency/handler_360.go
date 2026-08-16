@@ -230,6 +230,15 @@ func (h *Handler) AssignRaters(c *gin.Context) {
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 
+func (h *Handler) GetSuggestedRaters(c *gin.Context) {
+	resp, err := h.service.SuggestedRaters(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
 func (h *Handler) ListRatersByTarget(c *gin.Context) {
 	resp, err := h.service.ListRatersByTarget(c.Request.Context(), c.Param("id"))
 	if err != nil {

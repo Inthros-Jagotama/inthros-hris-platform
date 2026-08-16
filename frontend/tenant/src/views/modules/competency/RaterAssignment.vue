@@ -69,10 +69,14 @@
         {{ t('competency_360.subject') }}: <span class="font-medium text-gray-700 dark:text-gray-200">{{ employeeName(target?.employee_id) }}</span>
       </p>
 
-      <div class="flex items-center gap-2 mb-3 flex-wrap">
+      <div class="flex items-center gap-2 mb-2 flex-wrap">
         <Select v-model="raterForm.rater_employee_id" :options="raterEmployeeOptions" optionLabel="label" optionValue="value" filter showClear class="w-72" :placeholder="t('competency_360.select_rater')" />
         <Select v-model="raterForm.rater_type" :options="raterTypeOptions" optionLabel="label" optionValue="value" class="w-40" :placeholder="t('competency_360.rater_type')" />
         <Button :label="t('competency_360.add_rater')" icon="pi pi-plus" size="small" :loading="addingRater" @click="addRater" />
+      </div>
+      <div class="flex items-center gap-2 mb-3 flex-wrap">
+        <Button :label="t('competency_360.auto_fill_raters')" icon="pi pi-sitemap" size="small" severity="secondary" :loading="autoFilling" :disabled="autoFilling" @click="autoFillRaters" />
+        <span v-if="autoSummary" class="text-xs text-gray-500 dark:text-gray-400">{{ autoSummary }}</span>
       </div>
 
       <SkeletonTable v-if="ratersLoading" :columns="raterSkeletonColumns" :rows="5" />
@@ -145,6 +149,8 @@ const raters = ref([])
 const target = ref(null)
 const raterForm = ref({ rater_employee_id: null, rater_type: 'peer' })
 const addingRater = ref(false)
+const autoFilling = ref(false)
+const autoSummary = ref('')
 
 const raterTypeOptions = [
   { label: t('competency_360.rater_type_self'), value: 'self' },
@@ -301,6 +307,33 @@ async function loadRaters() {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_load')), life: 4000 })
   } finally {
     ratersLoading.value = false
+  }
+}
+
+// autoFillRaters mengisi rater superior (atasan) & subordinate (bawahan) dari
+// struktur organisasi subject — saran dari backend, sudah mengecualikan rater
+// yang sudah di-assign, jadi aman langsung di-POST.
+async function autoFillRaters() {
+  autoFilling.value = true
+  autoSummary.value = ''
+  try {
+    const res = await api.get(`/api/v1/tenant/competency/event-targets/${target.value.id}/suggested-raters`)
+    const sug = res.data?.data || { superior: [], subordinates: [] }
+    const payload = [
+      ...(sug.superior || []).map(e => ({ rater_employee_id: e.id, rater_type: 'superior' })),
+      ...(sug.subordinates || []).map(e => ({ rater_employee_id: e.id, rater_type: 'subordinate' }))
+    ]
+    if (payload.length === 0) {
+      autoSummary.value = t('competency_360.no_suggested_raters')
+      return
+    }
+    await api.post(`/api/v1/tenant/competency/event-targets/${target.value.id}/raters`, { raters: payload })
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('competency_360.raters_filled'), life: 3000 })
+    await loadRaters()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  } finally {
+    autoFilling.value = false
   }
 }
 

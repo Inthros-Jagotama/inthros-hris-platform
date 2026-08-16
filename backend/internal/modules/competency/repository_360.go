@@ -571,6 +571,60 @@ func (r *Repository) FindSubordinateEmployeeIDsByManager(ctx context.Context, ma
 	return ids, nil
 }
 
+// FindSuperiorEmployeeIDsBySubject mengambil atasan (superior) subject dari
+// struktur organisasi: employee dengan employment saat ini di organization
+// induk (parent_id) dari org tempat subject bekerja — satu level di atas.
+func (r *Repository) FindSuperiorEmployeeIDsBySubject(ctx context.Context, subjectEmployeeID uuid.UUID) ([]uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// 1. Organization tempat subject bekerja saat ini.
+	var subjectOrgStrs []string
+	if err := db.WithContext(ctx).Table("employments").
+		Where("employee_id = ? AND effective_end_date IS NULL", subjectEmployeeID).
+		Order("effective_date DESC").
+		Limit(1).
+		Pluck("organization_id", &subjectOrgStrs).Error; err != nil {
+		return nil, fmt.Errorf("failed to resolve subject organization: %w", err)
+	}
+	if len(subjectOrgStrs) == 0 || subjectOrgStrs[0] == "" {
+		return nil, nil
+	}
+	subjectOrgID, err := uuid.Parse(subjectOrgStrs[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid subject organization id: %w", err)
+	}
+
+	// 2. Organization induk (parent) dari org subject.
+	var parentStrs []string
+	if err := db.WithContext(ctx).Table("organizations").
+		Where("id = ? AND deleted_at IS NULL", subjectOrgID).
+		Limit(1).
+		Pluck("parent_id", &parentStrs).Error; err != nil {
+		return nil, fmt.Errorf("failed to resolve parent organization: %w", err)
+	}
+	if len(parentStrs) == 0 || parentStrs[0] == "" {
+		return nil, nil // org root — tidak punya atasan
+	}
+	parentOrgID, err := uuid.Parse(parentStrs[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid parent organization id: %w", err)
+	}
+
+	// 3. Employee dengan employment saat ini di org induk (kecuali subject sendiri).
+	var ids []uuid.UUID
+	if err := db.WithContext(ctx).Table("employments").
+		Select("DISTINCT employee_id").
+		Where("organization_id = ? AND effective_end_date IS NULL AND employee_id <> ?", parentOrgID, subjectEmployeeID).
+		Order("employee_id ASC").
+		Find(&ids).Error; err != nil {
+		return nil, fmt.Errorf("failed to list superiors: %w", err)
+	}
+	return ids, nil
+}
+
 // findChildOrganizationIDs mengumpulkan seluruh organization di bawah rootOrgID
 // (anak langsung + seluruh turunan) melalui relasi parent_id, tanpa CTE agar
 // portabel postgres & mysql.

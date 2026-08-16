@@ -84,6 +84,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// Competency 360 — Rater Assignment (§9)
 		comp.POST("/event-targets/:id/raters", handler.AssignRaters)
 		comp.GET("/event-targets/:id/raters", handler.ListRatersByTarget)
+		comp.GET("/event-targets/:id/suggested-raters", handler.GetSuggestedRaters)
 		comp.DELETE("/raters/:id", handler.DeleteRater)
 
 		// Competency 360 — Manager Assessment (atasan menilai bawahan)

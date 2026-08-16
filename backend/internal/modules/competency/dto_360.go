@@ -174,6 +174,18 @@ type IndicatorResponse struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
+type EmployeeBriefDTO struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// SuggestedRatersDTO — saran rater dari struktur organisasi untuk satu target:
+// superior (atasan — parent org) dan subordinates (bawahan — subtree org).
+type SuggestedRatersDTO struct {
+	Superior     []EmployeeBriefDTO `json:"superior"`
+	Subordinates []EmployeeBriefDTO `json:"subordinates"`
+}
+
 type TemplateIndicatorResponse struct {
 	ID           string    `json:"id"`
 	TemplateID   string    `json:"template_id"`
