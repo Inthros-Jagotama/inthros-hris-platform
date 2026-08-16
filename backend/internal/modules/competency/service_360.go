@@ -18,6 +18,26 @@ func calcTotalPages(total int64, perPage int) int {
 	return tp
 }
 
+// generateIndicatorCode membuat kode indikator dari statement — UPPER_SNAKE_CASE
+// (pola generateUniqueCode) dipotong maksimal 40 karakter agar muat kolom
+// varchar(50), dengan suffix numerik bila kode dasar sudah terpakai.
+func generateIndicatorCode(statement string, existing map[string]bool) string {
+	base := generateUniqueCode(statement, existing)
+	if len(base) > 40 {
+		base = base[:40]
+	}
+	code := base
+	for i := 2; existing[code]; i++ {
+		suffix := fmt.Sprintf("_%d", i)
+		cut := 40 - len(suffix)
+		if cut < 1 {
+			cut = 1
+		}
+		code = base[:cut] + suffix
+	}
+	return code
+}
+
 // toCodeSet mengubah daftar code menjadi set untuk pengecekan duplikat.
 func toCodeSet(codes []string) map[string]bool {
 	set := make(map[string]bool, len(codes))
@@ -394,8 +414,18 @@ func (s *Service) CreateIndicator(ctx context.Context, req CreateIndicatorReques
 		CompetencyID: compUID,
 		Statement:    req.Statement,
 	}
+	// Code dibuat otomatis dari Statement (UPPER_SNAKE_CASE + suffix bila
+	// duplikat) — form pembuatan tidak perlu mengisi kode. Kode manual dari
+	// request tetap dihormati (backward compatible).
 	if req.Code != nil {
 		ind.Code = req.Code
+	} else {
+		existingCodes, err := s.repo.FindAllIndicatorCodes(ctx)
+		if err != nil {
+			return nil, err
+		}
+		code := generateIndicatorCode(req.Statement, toCodeSet(existingCodes))
+		ind.Code = &code
 	}
 	if req.Description != nil {
 		ind.Description = req.Description

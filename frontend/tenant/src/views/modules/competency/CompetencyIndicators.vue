@@ -14,6 +14,7 @@
           showClear
           filter
           class="w-56"
+          panelClass="!whitespace-nowrap"
           :placeholder="t('competency_360.select_competency')"
           @change="reload"
         />
@@ -42,7 +43,7 @@
           <p class="text-sm font-medium">{{ t('competency_360.indicators_empty') }}</p>
         </div>
       </template>
-      <Column field="competency_name" :header="t('competency_360.competency')" style="width:180px">
+      <Column field="competency_name" :header="t('competency_360.competency')" style="width:260px">
         <template #body="{data}">
           <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.competency_name || '-' }}</span>
         </template>
@@ -78,6 +79,7 @@
             optionValue="value"
             filter
             class="w-full"
+            panelClass="!whitespace-nowrap"
             :placeholder="t('competency_360.select_competency')"
             :class="{ 'p-invalid': errors?.competency_id }"
           />

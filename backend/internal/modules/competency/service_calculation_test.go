@@ -927,3 +927,20 @@ func TestGetAssessmentDetail_Indicators(t *testing.T) {
 		}
 	}
 }
+
+// TestGenerateIndicatorCode memverifikasi code indikator dibuat otomatis dari
+// statement: UPPER_SNAKE_CASE, suffix numerik saat duplikat, dan dipotong agar
+// muat kolom varchar(50).
+func TestGenerateIndicatorCode(t *testing.T) {
+	if got := generateIndicatorCode("Memimpin tim dengan jelas", map[string]bool{}); got != "MEMIMPIN_TIM_DENGAN_JELAS" {
+		t.Errorf("expected MEMIMPIN_TIM_DENGAN_JELAS, got %q", got)
+	}
+	existing := map[string]bool{"MEMIMPIN_TIM": true}
+	if got := generateIndicatorCode("Memimpin tim", existing); got != "MEMIMPIN_TIM_2" {
+		t.Errorf("expected MEMIMPIN_TIM_2, got %q", got)
+	}
+	long := strings.Repeat("abcd ", 30)
+	if got := generateIndicatorCode(long, map[string]bool{}); len(got) > 40 {
+		t.Errorf("expected code capped at 40 chars, got %d", len(got))
+	}
+}

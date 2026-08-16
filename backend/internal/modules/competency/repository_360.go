@@ -82,6 +82,22 @@ func (r *Repository) FindRatingScaleCodes(ctx context.Context) ([]string, error)
 	return codes, nil
 }
 
+// FindAllIndicatorCodes mengambil seluruh code indikator yang terisi — dipakai
+// generate code otomatis dari Statement (CreateIndicator) agar tidak duplikat.
+func (r *Repository) FindAllIndicatorCodes(ctx context.Context) ([]string, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var codes []string
+	if err := db.WithContext(ctx).Model(&CompetencyIndicator{}).
+		Where("code IS NOT NULL AND code <> ''").
+		Pluck("code", &codes).Error; err != nil {
+		return nil, err
+	}
+	return codes, nil
+}
+
 func (r *Repository) UpdateRatingScale(ctx context.Context, scale *CompetencyRatingScale) error {
 	db, err := r.getDB(ctx)
 	if err != nil {
