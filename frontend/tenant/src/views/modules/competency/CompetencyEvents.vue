@@ -65,12 +65,15 @@
 
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('competency_360.edit_event') : t('competency_360.new_event')" modal :style="{ width: '520px' }" @hide="resetForm">
       <div class="space-y-3">
-        <FormRow :label="t('competency_360.event_type')" required :errors="errors?.type">
-          <div class="space-y-3">
+        <!-- Tipe Event — card tersendiri dengan pilihan 1 kolom (pola Sumber Dasar BPJS) -->
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <span class="text-sm font-medium block mb-3">{{ t('competency_360.event_type') }} <span class="text-rose-500">*</span></span>
+          <div class="space-y-2">
             <RadioLabel v-model="form.type" value="auto" :id="'event-type-auto'" :label="t('competency_360.type_auto')" :description="t('competency_360.type_auto_desc')" />
             <RadioLabel v-model="form.type" value="manual" :id="'event-type-manual'" :label="t('competency_360.type_manual')" :description="t('competency_360.type_manual_desc')" />
           </div>
-        </FormRow>
+          <small v-if="typeError" class="text-red-500 text-xs mt-1 block">{{ typeError }}</small>
+        </div>
         <FormRow :label="t('competency_360.period_type')" required :errors="errors?.period_type">
           <Select v-model="form.period_type" :options="periodTypeOptions" optionLabel="label" optionValue="value" class="w-full" />
         </FormRow>
@@ -244,6 +247,7 @@ const targetSkeletonColumns = [
 ]
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
+const typeError = computed(() => Array.isArray(errors.value?.type) ? errors.value.type.filter(Boolean).join(', ') : errors.value?.type)
 const templateOptions = computed(() => templates.value.filter(t => t.status !== 'inactive' || t.id === form.value.template_id))
 const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.employee_id })))
 const organizationOptions = computed(() => organizations.value.map(o => ({ label: o.name || o.nomenclature || o.code, value: o.id })))

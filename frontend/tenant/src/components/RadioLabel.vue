@@ -25,7 +25,7 @@ const isSelected = computed(() => props.modelValue === props.value);
             isSelected
                 ? 'border-emerald-400 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-sm'
                 : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-sm',
-            description ? 'items-start p-4' : 'items-center px-3 py-1.5'
+            description ? 'items-start p-3' : 'items-center px-3 py-1.5'
         ]"
         @click="emit('update:modelValue', value)"
     >
