@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -295,7 +296,14 @@ func (h *Handler) SaveResponses(c *gin.Context) {
 	}
 	resp, err := h.service.SaveResponses(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		switch {
+		case errors.Is(err, ErrInvalidIndicator):
+			httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		case strings.Contains(err.Error(), "already submitted"):
+			httputil.ErrorRaw(c, http.StatusConflict, "INVALID_STATE", err.Error())
+		default:
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 	httputil.SuccessJSON(c, resp)

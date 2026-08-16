@@ -1048,3 +1048,57 @@ func TestListRatingScales_IncludesItems(t *testing.T) {
 		t.Fatalf("expected 2 items in list scale, got %d", len(found.Items))
 	}
 }
+
+// TestSaveResponses_InvalidIndicator memverifikasi SaveResponses menolak
+// indicator yang bukan milik template event (400 VALIDATION_ERROR di handler),
+// bukan error FK 500 — dan menerima indicator yang valid.
+func TestSaveResponses_InvalidIndicator(t *testing.T) {
+	svc, targetID, _, cleanup := setup360Scenario(t)
+	defer cleanup()
+	ctx := context.Background()
+	repo := svc.repo
+
+	raters, err := repo.FindRatersByTarget(ctx, mustParseUUID(t, targetID))
+	if err != nil || len(raters) == 0 {
+		t.Fatalf("no raters: %v", err)
+	}
+	rater := raters[0]
+	if rater.Status == string(RaterStatusSubmitted) {
+		// Auto self rater berstatus assigned — aman. Kalau kebetulan submitted,
+		// pakai rater lain yang belum submit.
+		for _, r := range raters {
+			if r.Status != string(RaterStatusSubmitted) {
+				rater = r
+				break
+			}
+		}
+	}
+
+	// Indicator acak yang bukan milik template → ditolak.
+	if _, err := svc.SaveResponses(ctx, rater.ID.String(), SaveResponsesRequest{
+		Responses: []SaveResponseRequest{
+			{IndicatorID: uuid.New().String(), RatingValue: 4},
+		},
+	}); err == nil {
+		t.Fatal("expected error for indicator outside template")
+	} else if !errors.Is(err, ErrInvalidIndicator) {
+		t.Fatalf("expected ErrInvalidIndicator, got %v", err)
+	}
+
+	// Indicator valid (milik template scenario) → tersimpan.
+	detail, err := svc.GetAssessmentDetail(ctx, rater.ID.String())
+	if err != nil {
+		t.Fatalf("get detail: %v", err)
+	}
+	if len(detail.Indicators) == 0 {
+		t.Fatal("no template indicators in detail")
+	}
+	ind := detail.Indicators[0]
+	if _, err := svc.SaveResponses(ctx, rater.ID.String(), SaveResponsesRequest{
+		Responses: []SaveResponseRequest{
+			{IndicatorID: ind.IndicatorID, RatingValue: 4},
+		},
+	}); err != nil {
+		t.Fatalf("save valid response: %v", err)
+	}
+}

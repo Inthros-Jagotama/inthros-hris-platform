@@ -410,11 +410,18 @@ func (s *Service) SaveResponses(ctx context.Context, raterID string, req SaveRes
 		return nil, fmt.Errorf("assessment already submitted and cannot be modified")
 	}
 
+	// Validasi: indicator harus benar-benar milik template event target — kalau
+	// tidak, tolak 4xx (bukan biarkan FK violation 500).
+	validIndicators := s.templateIndicatorSet(ctx, rat.CompetencyEventTargetID)
+
 	now := time.Now()
 	for _, r := range req.Responses {
 		indUID, err := uuid.Parse(r.IndicatorID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid indicator_id: %w", err)
+		}
+		if validIndicators != nil && !validIndicators[indUID.String()] {
+			return nil, fmt.Errorf("%w: %s", ErrInvalidIndicator, r.IndicatorID)
 		}
 		existing, err := s.repo.FindResponseByRaterAndIndicator(ctx, uid, indUID)
 		if err == nil && existing != nil {
@@ -458,6 +465,28 @@ func (s *Service) SaveResponses(ctx context.Context, raterID string, req SaveRes
 		out = append(out, r.ToDTO())
 	}
 	return out, nil
+}
+
+// templateIndicatorSet mengembalikan set indicator_id milik template event
+// target (nil bila target/event/template tidak tersedia).
+func (s *Service) templateIndicatorSet(ctx context.Context, targetID uuid.UUID) map[string]bool {
+	target, err := s.repo.FindCompetencyEventTargetByID(ctx, targetID)
+	if err != nil {
+		return nil
+	}
+	event, err := s.repo.FindCompetencyEventByID(ctx, target.CompetencyEventID)
+	if err != nil || event.TemplateID == nil {
+		return nil
+	}
+	items, err := s.repo.ListTemplateIndicators(ctx, *event.TemplateID)
+	if err != nil {
+		return nil
+	}
+	set := make(map[string]bool, len(items))
+	for _, it := range items {
+		set[it.IndicatorID.String()] = true
+	}
+	return set
 }
 
 // SubmitAssessment meng-submit seluruh response rater — status rater menjadi

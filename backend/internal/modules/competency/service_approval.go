@@ -19,6 +19,7 @@ var (
 	ErrAssessmentHasApproval       = errors.New("assessment already has an active approval instance")
 	ErrNoRatersAssigned            = errors.New("no raters assigned to this assessment")
 	ErrNotAllRatersSubmitted       = errors.New("not all raters have submitted yet")
+	ErrInvalidIndicator            = errors.New("indicator does not belong to this assessment template")
 )
 
 // PendingRaterInfo — rater yang belum submit saat submit-approval ditolak.

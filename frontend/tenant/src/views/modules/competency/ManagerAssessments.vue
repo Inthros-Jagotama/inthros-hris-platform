@@ -33,13 +33,13 @@
         </div>
 
         <div v-else class="space-y-3">
-          <div v-for="ind in detail.indicators" :key="ind.id" class="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div v-for="ind in detail.indicators" :key="ind.indicator_id" class="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
             <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ ind.statement }}</p>
             <div class="flex items-center gap-4 mt-2 flex-wrap">
               <div class="flex items-center gap-1.5">
                 <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('competency_360.rating') }}:</span>
                 <Select
-                  v-model="responses[ind.id]"
+                  v-model="responses[ind.indicator_id]"
                   :options="ratingOptions"
                   optionLabel="label"
                   optionValue="value"
@@ -51,7 +51,7 @@
               </div>
               <div class="flex-1 min-w-56">
                 <TextInput
-                  v-model="comments[ind.id]"
+                  v-model="comments[ind.indicator_id]"
                   :placeholder="t('competency_360.comment_placeholder')"
                   :disabled="detail.rater.status === 'submitted'"
                 />
