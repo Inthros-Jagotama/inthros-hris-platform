@@ -1067,6 +1067,11 @@ func main() {
 	attendanceSvc := attendance.NewService(attendanceRepo, l.Named("attendance"))
 	attendanceSvc.SetApprovalEngine(sharedApprovalEngine)
 	attendanceSvc.SetNotifier(notificationSvc)
+	// §54.7: Business Travel checks whether the tenant subscribes to the
+	// standalone Reimbursement module before processing a settlement's
+	// reimbursement claim. Reuses the same modulemgmt adapter approval.Service
+	// already uses for its own module gating, rather than duplicating it.
+	attendanceSvc.SetModuleChecker(approvalModuleCheckerAdapter{svc: modulemgmtSvc})
 	approvalSvc.RegisterStatusHandler("attendance", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return attendanceSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})

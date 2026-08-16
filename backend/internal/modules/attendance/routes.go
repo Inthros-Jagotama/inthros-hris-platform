@@ -105,5 +105,16 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.GET("/business-travels/:id/settlements", handler.ListSettlements)
 		att.GET("/business-travels/:id/settlements/:settlementId", handler.GetSettlementByID)
 		att.POST("/business-travels/:id/settlements/:settlementId/submit", handler.SubmitSettlement)
+
+		// Refund (§35): dibuat otomatis oleh HandleSettlementApprovalStatusChange
+		att.GET("/business-travels/:id/refunds", handler.ListRefunds)
+		att.POST("/business-travels/:id/refunds/:refundId/confirm", handler.ConfirmRefund)
+
+		// Reimbursement (§36, §54.7: cek subscription module Reimbursement
+		// sebelum diproses — lihat Service.ProcessTravelReimbursement)
+		att.GET("/business-travels/:id/reimbursements", handler.ListTravelReimbursements)
+		att.POST("/business-travels/:id/reimbursements/:reimbursementId/approve", handler.ApproveTravelReimbursement)
+		att.POST("/business-travels/:id/reimbursements/:reimbursementId/process", handler.ProcessTravelReimbursement)
+		att.POST("/business-travels/:id/reimbursements/:reimbursementId/pay", handler.PayTravelReimbursement)
 	}
 }

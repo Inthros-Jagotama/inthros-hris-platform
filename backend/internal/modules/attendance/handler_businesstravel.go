@@ -379,6 +379,92 @@ func (h *Handler) SubmitSettlement(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+// =========================================================================
+// Refund
+// =========================================================================
+
+func (h *Handler) ListRefunds(c *gin.Context) {
+	resp, err := h.service.ListRefundsByTravel(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ConfirmRefund(c *gin.Context) {
+	var req ConfirmRefundRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.ConfirmRefund(c.Request.Context(), c.Param("refundId"), req)
+	if err != nil {
+		if errors.Is(err, ErrRefundInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// =========================================================================
+// Reimbursement
+// =========================================================================
+
+func (h *Handler) ListTravelReimbursements(c *gin.Context) {
+	resp, err := h.service.ListTravelReimbursements(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ApproveTravelReimbursement(c *gin.Context) {
+	resp, err := h.service.ApproveTravelReimbursement(c.Request.Context(), c.Param("reimbursementId"))
+	if err != nil {
+		if errors.Is(err, ErrTravelReimbursementInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) ProcessTravelReimbursement(c *gin.Context) {
+	resp, err := h.service.ProcessTravelReimbursement(c.Request.Context(), c.Param("reimbursementId"))
+	if err != nil {
+		if errors.Is(err, ErrTravelReimbursementInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) PayTravelReimbursement(c *gin.Context) {
+	var req PayReimbursementRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.PayTravelReimbursement(c.Request.Context(), c.Param("reimbursementId"), req)
+	if err != nil {
+		if errors.Is(err, ErrTravelReimbursementInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) CancelBusinessTravel(c *gin.Context) {
 	resp, err := h.service.CancelBusinessTravel(c.Request.Context(), c.Param("id"))
 	if err != nil {

@@ -63,11 +63,24 @@ type Notifier interface {
 	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
 }
 
+// ModuleSubscriptionChecker abstracts checking which modules a tenant has
+// subscribed to. Used by Business Travel to decide, at reimbursement-claim
+// time, whether to hand the claim off to the standalone Reimbursement
+// module or process it internally (docs/module-attendance-business-travel-development-plan.md
+// §54.7). Implemented via an adapter wrapping modulemgmt.Service in main.go
+// — same adapter approval.Service already uses for its own module-gating
+// (approvalModuleCheckerAdapter), reused here rather than duplicated.
+type ModuleSubscriptionChecker interface {
+	IsModuleActive(companyID, moduleSlug string) (bool, error)
+	ListActiveModules(companyID string) ([]string, error)
+}
+
 type Service struct {
 	repo           *Repository
 	logger         *zap.Logger
 	approvalEngine ApprovalEngine
 	notifier       Notifier
+	moduleChecker  ModuleSubscriptionChecker
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -77,6 +90,11 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 // SetApprovalEngine wires the central approval module into this service.
 func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 	s.approvalEngine = ae
+}
+
+// SetModuleChecker wires module-subscription lookups into this service (§54.7).
+func (s *Service) SetModuleChecker(mc ModuleSubscriptionChecker) {
+	s.moduleChecker = mc
 }
 
 // SetNotifier wires the notification module into this service so overtime

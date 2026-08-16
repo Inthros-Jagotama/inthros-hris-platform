@@ -1884,16 +1884,17 @@ ip_address
 
 - [x] Refund calculation — sudah dihitung di Phase 6 (`Settlement.TotalRefund`/`Balance`).
 - [x] Refund transaction — record `business_travel_refunds` **dibuat otomatis** oleh `HandleSettlementApprovalStatusChange` saat settlement APPROVED dan `TotalRefund > 0`, status awal `PENDING`.
-- [ ] Refund proof — belum ada endpoint upload bukti refund (pola sama dengan funding/expense document belum dibuat untuk refund).
-- [ ] Refund confirmation — belum ada endpoint untuk mengubah status refund `PENDING` → `CONFIRMED` (field `refund_reference`/`refunded_by`/`refund_date` di model sudah ada, tinggal endpoint-nya).
-- [ ] Close settlement — belum ada transisi otomatis `Settlement.Status` → `SETTLED` atau `BusinessTravel.Status` → `CLOSED` setelah refund dikonfirmasi.
+- [ ] Refund proof — `refund_document` diisi sebagai string URL langsung di `ConfirmRefundRequest` (bukan endpoint upload multi-dokumen terpisah seperti funding/expense — refund cuma satu bukti transfer balik, dianggap cukup satu field).
+- [x] Refund confirmation — `POST /attendance/business-travels/:id/refunds/:refundId/confirm` (PENDING → CONFIRMED, `refunded_by`/`refund_date`/`refund_reference` terisi otomatis).
+- [x] Close settlement — `Service.maybeSettleAndCloseTravel`: begitu refund CONFIRMED (atau reimbursement PAID), settlement terkait → `SETTLED`, lalu travel → `CLOSED` otomatis jika **semua** settlement milik travel tsb sudah BALANCED/SETTLED (mendukung settlement per participant, §33).
 
 ## Phase 8 — Reimbursement
 
 - [x] Generate reimbursement claim — record `business_travel_reimbursements` **dibuat otomatis** oleh `HandleSettlementApprovalStatusChange` saat settlement APPROVED dan `TotalReimbursement > 0`, status awal `REQUESTED`.
-- [ ] Reimbursement approval/status — belum ada endpoint transisi `REQUESTED` → `APPROVED` → `PROCESSING` → `PAID`. **Di sinilah gerbang §54.7 (cek subscription module Reimbursement) seharusnya diterapkan** sebelum endpoint ini dibangun.
-- [ ] Payment / [ ] Payment reference / [ ] Payment proof — belum ada.
-- [ ] Close travel — belum ada transisi `BusinessTravel.Status` → `CLOSED` setelah reimbursement/refund selesai diproses.
+- [x] Reimbursement approval/status — `POST .../reimbursements/:reimbursementId/{approve,process,pay}` (REQUESTED→APPROVED→PROCESSING→PAID). **Gerbang §54.7 diterapkan di `ProcessTravelReimbursement`**: cek `moduleChecker.IsModuleActive(companyID, "reimbursement")` via `Service.SetModuleChecker` (adapter `approvalModuleCheckerAdapter` yang sama dipakai `approval.Service`, diwire di `main.go`). Catatan jujur: module Reimbursement standalone belum punya API publik untuk menerima claim dari luar, jadi baik subscribed maupun tidak, claim tetap diproses internal — pengecekan subscription sudah ada dan di-log sebagai hint, tapi push cross-module belum diimplementasikan (todo lanjutan jika module Reimbursement menyediakan endpoint ingest).
+- [x] Payment / [x] Payment reference — `POST .../pay` (PROCESSING→PAID, `paid_by`/`paid_at`/`payment_reference`).
+- [ ] Payment proof — belum ada field/endpoint upload bukti pembayaran reimbursement (model `TravelReimbursement` tidak punya kolom dokumen — beda dari Funding/Expense yang punya tabel `*_documents` terpisah).
+- [x] Close travel — sama seperti Phase 7, `maybeSettleAndCloseTravel` dipanggil setelah `PayTravelReimbursement` sukses.
 
 ## Phase 9 — Attendance
 

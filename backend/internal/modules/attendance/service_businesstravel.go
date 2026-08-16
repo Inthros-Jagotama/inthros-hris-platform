@@ -1180,6 +1180,231 @@ func (s *Service) HandleSettlementApprovalStatusChange(ctx context.Context, docu
 	return s.repo.UpdateSettlement(ctx, settlement)
 }
 
+// =========================================================================
+// Refund (§35 plan doc)
+// =========================================================================
+
+// ErrRefundInvalidState: aksi tidak valid untuk status refund saat ini.
+var ErrRefundInvalidState = errors.New("refund is not in a valid state for this action")
+
+func (s *Service) ListRefundsByTravel(ctx context.Context, travelIDStr string) ([]RefundResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	refunds, err := s.repo.ListRefundsByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]RefundResponse, 0, len(refunds))
+	for i := range refunds {
+		responses = append(responses, *refundToResponse(&refunds[i]))
+	}
+	return responses, nil
+}
+
+// ConfirmRefund menandai refund sebagai CONFIRMED (uang sudah dikembalikan
+// employee ke perusahaan, §35), lalu mencoba menutup settlement & travel
+// terkait (§26: SETTLED, §Kesimpulan: CLOSED) via maybeSettleAndCloseTravel.
+func (s *Service) ConfirmRefund(ctx context.Context, refundIDStr string, req ConfirmRefundRequest) (*RefundResponse, error) {
+	refundID, err := uuid.Parse(refundIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid refund id: %w", err)
+	}
+	refund, err := s.repo.FindRefundByID(ctx, refundID)
+	if err != nil {
+		return nil, err
+	}
+	if refund.Status != RefundStatusPending {
+		return nil, ErrRefundInvalidState
+	}
+	now := time.Now()
+	refund.Status = RefundStatusConfirmed
+	refund.RefundDate = &now
+	refund.RefundedBy = authctx.GetUserID(ctx)
+	if req.RefundReference != "" {
+		refund.RefundReference = &req.RefundReference
+	}
+	if req.RefundDocument != "" {
+		refund.RefundDocument = &req.RefundDocument
+	}
+	if err := s.repo.UpdateRefund(ctx, refund); err != nil {
+		return nil, err
+	}
+	if refund.SettlementID != nil {
+		s.maybeSettleAndCloseTravel(ctx, *refund.SettlementID, refund.BusinessTravelID)
+	}
+	return refundToResponse(refund), nil
+}
+
+// =========================================================================
+// Reimbursement (§36 plan doc + §54.7: cek subscription module Reimbursement)
+// =========================================================================
+
+// ErrTravelReimbursementInvalidState: aksi tidak valid untuk status
+// reimbursement saat ini.
+var ErrTravelReimbursementInvalidState = errors.New("reimbursement is not in a valid state for this action")
+
+const reimbursementModuleSlug = "reimbursement"
+
+func (s *Service) ListTravelReimbursements(ctx context.Context, travelIDStr string) ([]TravelReimbursementResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	reimbursements, err := s.repo.ListTravelReimbursementsByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]TravelReimbursementResponse, 0, len(reimbursements))
+	for i := range reimbursements {
+		responses = append(responses, *travelReimbursementToResponse(&reimbursements[i]))
+	}
+	return responses, nil
+}
+
+func (s *Service) ApproveTravelReimbursement(ctx context.Context, reimbursementIDStr string) (*TravelReimbursementResponse, error) {
+	reimbursementID, err := uuid.Parse(reimbursementIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid reimbursement id: %w", err)
+	}
+	reimbursement, err := s.repo.FindTravelReimbursementByID(ctx, reimbursementID)
+	if err != nil {
+		return nil, err
+	}
+	if reimbursement.Status != TravelReimbStatusRequested {
+		return nil, ErrTravelReimbursementInvalidState
+	}
+	now := time.Now()
+	reimbursement.Status = TravelReimbStatusApproved
+	reimbursement.ApprovedAt = &now
+	if err := s.repo.UpdateTravelReimbursement(ctx, reimbursement); err != nil {
+		return nil, err
+	}
+	return travelReimbursementToResponse(reimbursement), nil
+}
+
+// ProcessTravelReimbursement transitions APPROVED -> PROCESSING. Per §54.7:
+// if the tenant subscribes to the standalone Reimbursement module, the
+// claim should ideally be handed off to it instead of duplicating payout
+// logic here; this is checked and logged as a hint for operators, but
+// actual cross-module claim creation isn't implemented yet (the
+// Reimbursement module has no public API for accepting externally-created
+// claims) — both paths currently process the claim internally. Not
+// subscribed -> always processed internally, per §54.7's ELSE branch.
+func (s *Service) ProcessTravelReimbursement(ctx context.Context, reimbursementIDStr string) (*TravelReimbursementResponse, error) {
+	reimbursementID, err := uuid.Parse(reimbursementIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid reimbursement id: %w", err)
+	}
+	reimbursement, err := s.repo.FindTravelReimbursementByID(ctx, reimbursementID)
+	if err != nil {
+		return nil, err
+	}
+	if reimbursement.Status != TravelReimbStatusApproved {
+		return nil, ErrTravelReimbursementInvalidState
+	}
+
+	if s.moduleChecker != nil {
+		if companyID := authctx.GetCompanyID(ctx); companyID != "" {
+			if active, err := s.moduleChecker.IsModuleActive(companyID, reimbursementModuleSlug); err != nil {
+				s.logger.Warn("Failed to check reimbursement module subscription, processing internally",
+					zap.String("business_travel_reimbursement_id", reimbursement.ID.String()),
+					zap.Error(err),
+				)
+			} else if active {
+				s.logger.Info("Tenant subscribes to the Reimbursement module; business travel reimbursement claim is still processed internally pending cross-module integration (§54.7)",
+					zap.String("business_travel_reimbursement_id", reimbursement.ID.String()),
+				)
+			}
+		}
+	}
+
+	reimbursement.Status = TravelReimbStatusProcessing
+	if err := s.repo.UpdateTravelReimbursement(ctx, reimbursement); err != nil {
+		return nil, err
+	}
+	return travelReimbursementToResponse(reimbursement), nil
+}
+
+func (s *Service) PayTravelReimbursement(ctx context.Context, reimbursementIDStr string, req PayReimbursementRequest) (*TravelReimbursementResponse, error) {
+	reimbursementID, err := uuid.Parse(reimbursementIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid reimbursement id: %w", err)
+	}
+	reimbursement, err := s.repo.FindTravelReimbursementByID(ctx, reimbursementID)
+	if err != nil {
+		return nil, err
+	}
+	if reimbursement.Status != TravelReimbStatusProcessing {
+		return nil, ErrTravelReimbursementInvalidState
+	}
+	now := time.Now()
+	reimbursement.Status = TravelReimbStatusPaid
+	reimbursement.PaidAt = &now
+	reimbursement.PaidBy = authctx.GetUserID(ctx)
+	if req.PaymentReference != "" {
+		reimbursement.PaymentReference = &req.PaymentReference
+	}
+	if err := s.repo.UpdateTravelReimbursement(ctx, reimbursement); err != nil {
+		return nil, err
+	}
+	if reimbursement.SettlementID != nil {
+		s.maybeSettleAndCloseTravel(ctx, *reimbursement.SettlementID, reimbursement.BusinessTravelID)
+	}
+	return travelReimbursementToResponse(reimbursement), nil
+}
+
+// maybeSettleAndCloseTravel marks a settlement SETTLED once its refund/
+// reimbursement outcome is finalized (confirmed/paid), then closes the
+// parent travel (§Kesimpulan: ... -> CLOSED) once every settlement under it
+// is BALANCED or SETTLED. Best-effort: logs and continues on error instead
+// of failing the caller's refund/payment action, since the settlement/travel
+// status here is a derived convenience, not the source of truth for the
+// refund/reimbursement record itself.
+func (s *Service) maybeSettleAndCloseTravel(ctx context.Context, settlementID, travelID uuid.UUID) {
+	settlement, err := s.repo.FindSettlementByID(ctx, settlementID)
+	if err != nil {
+		s.logger.Warn("Failed to load settlement while finalizing close", zap.String("settlement_id", settlementID.String()), zap.Error(err))
+		return
+	}
+	if settlement.Status == SettlementStatusRefundRequired || settlement.Status == SettlementStatusReimbursementRequired {
+		now := time.Now()
+		settlement.Status = SettlementStatusSettled
+		settlement.SettledAt = &now
+		if err := s.repo.UpdateSettlement(ctx, settlement); err != nil {
+			s.logger.Warn("Failed to mark settlement SETTLED", zap.String("settlement_id", settlementID.String()), zap.Error(err))
+			return
+		}
+	}
+
+	settlements, err := s.repo.ListSettlementsByTravel(ctx, travelID)
+	if err != nil {
+		s.logger.Warn("Failed to list settlements while checking travel close", zap.String("business_travel_id", travelID.String()), zap.Error(err))
+		return
+	}
+	if len(settlements) == 0 {
+		return
+	}
+	for _, st := range settlements {
+		if st.Status != SettlementStatusBalanced && st.Status != SettlementStatusSettled {
+			return
+		}
+	}
+	travel, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, travelID)
+	if err != nil {
+		s.logger.Warn("Failed to load travel while checking close", zap.String("business_travel_id", travelID.String()), zap.Error(err))
+		return
+	}
+	if travel.Status == TravelStatusClosed {
+		return
+	}
+	travel.Status = TravelStatusClosed
+	if err := s.repo.UpdateBusinessTravel(ctx, travel); err != nil {
+		s.logger.Warn("Failed to close travel", zap.String("business_travel_id", travelID.String()), zap.Error(err))
+	}
+}
+
 // HandleBusinessTravelApprovalStatusChange is invoked by the approval
 // module's push-based status callback for the "business_travel" module slug
 // (registered separately from HandleApprovalStatusChange, which handles the
@@ -1289,6 +1514,64 @@ func businessTravelActivityToResponse(a *BusinessTravelActivity) BusinessTravelA
 		Organizer:    a.Organizer,
 		Notes:        a.Notes,
 	}
+}
+
+func refundToResponse(rf *Refund) *RefundResponse {
+	resp := &RefundResponse{
+		ID:               rf.ID.String(),
+		BusinessTravelID: rf.BusinessTravelID.String(),
+		RefundAmount:     rf.RefundAmount,
+		RefundReference:  rf.RefundReference,
+		RefundDocument:   rf.RefundDocument,
+		Status:           string(rf.Status),
+		Notes:            rf.Notes,
+		CreatedAt:        rf.CreatedAt,
+	}
+	if rf.SettlementID != nil {
+		settlementID := rf.SettlementID.String()
+		resp.SettlementID = &settlementID
+	}
+	if rf.ParticipantID != nil {
+		participantID := rf.ParticipantID.String()
+		resp.ParticipantID = &participantID
+	}
+	if rf.RefundedBy != nil {
+		refundedBy := rf.RefundedBy.String()
+		resp.RefundedBy = &refundedBy
+	}
+	if rf.RefundDate != nil {
+		refundDate := rf.RefundDate.Format("2006-01-02")
+		resp.RefundDate = &refundDate
+	}
+	return resp
+}
+
+func travelReimbursementToResponse(tr *TravelReimbursement) *TravelReimbursementResponse {
+	resp := &TravelReimbursementResponse{
+		ID:               tr.ID.String(),
+		BusinessTravelID: tr.BusinessTravelID.String(),
+		Amount:           tr.Amount,
+		Status:           string(tr.Status),
+		RequestedAt:      tr.RequestedAt,
+		ApprovedAt:       tr.ApprovedAt,
+		PaidAt:           tr.PaidAt,
+		PaymentReference: tr.PaymentReference,
+		Notes:            tr.Notes,
+		CreatedAt:        tr.CreatedAt,
+	}
+	if tr.ParticipantID != nil {
+		participantID := tr.ParticipantID.String()
+		resp.ParticipantID = &participantID
+	}
+	if tr.SettlementID != nil {
+		settlementID := tr.SettlementID.String()
+		resp.SettlementID = &settlementID
+	}
+	if tr.PaidBy != nil {
+		paidBy := tr.PaidBy.String()
+		resp.PaidBy = &paidBy
+	}
+	return resp
 }
 
 func settlementToResponse(s *Settlement) *SettlementResponse {

@@ -299,6 +299,50 @@ type SettlementItemResponse struct {
 }
 
 // =========================================================================
+// Refund & Reimbursement — Request/Response DTOs (§35-36 plan doc)
+// =========================================================================
+
+type ConfirmRefundRequest struct {
+	RefundReference string `json:"refund_reference"`
+	RefundDocument  string `json:"refund_document"`
+}
+
+type RefundResponse struct {
+	ID               string    `json:"id"`
+	BusinessTravelID string    `json:"business_travel_id"`
+	SettlementID     *string   `json:"settlement_id,omitempty"`
+	ParticipantID    *string   `json:"participant_id,omitempty"`
+	RefundAmount     float64   `json:"refund_amount"`
+	RefundDate       *string   `json:"refund_date,omitempty"`
+	RefundReference  *string   `json:"refund_reference,omitempty"`
+	RefundedBy       *string   `json:"refunded_by,omitempty"`
+	RefundDocument   *string   `json:"refund_document,omitempty"`
+	Status           string    `json:"status"`
+	Notes            *string   `json:"notes,omitempty"`
+	CreatedAt        time.Time `json:"created_at"`
+}
+
+type PayReimbursementRequest struct {
+	PaymentReference string `json:"payment_reference"`
+}
+
+type TravelReimbursementResponse struct {
+	ID               string     `json:"id"`
+	BusinessTravelID string     `json:"business_travel_id"`
+	ParticipantID    *string    `json:"participant_id,omitempty"`
+	SettlementID     *string    `json:"settlement_id,omitempty"`
+	Amount           float64    `json:"amount"`
+	Status           string     `json:"status"`
+	RequestedAt      *time.Time `json:"requested_at,omitempty"`
+	ApprovedAt       *time.Time `json:"approved_at,omitempty"`
+	PaidAt           *time.Time `json:"paid_at,omitempty"`
+	PaymentReference *string    `json:"payment_reference,omitempty"`
+	PaidBy           *string    `json:"paid_by,omitempty"`
+	Notes            *string    `json:"notes,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+}
+
+// =========================================================================
 // Business Travel — Response DTOs
 // =========================================================================
 

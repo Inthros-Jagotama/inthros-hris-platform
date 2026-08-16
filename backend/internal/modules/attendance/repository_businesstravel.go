@@ -438,6 +438,70 @@ func (r *Repository) CreateTravelReimbursement(ctx context.Context, tr *TravelRe
 	return db.Create(tr).Error
 }
 
+func (r *Repository) FindRefundByID(ctx context.Context, id uuid.UUID) (*Refund, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rf Refund
+	if err := db.First(&rf, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("refund not found: %w", err)
+	}
+	return &rf, nil
+}
+
+func (r *Repository) UpdateRefund(ctx context.Context, rf *Refund) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(rf).Error
+}
+
+func (r *Repository) ListRefundsByTravel(ctx context.Context, travelID uuid.UUID) ([]Refund, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var refunds []Refund
+	if err := db.Where("business_travel_id = ?", travelID).Order("created_at ASC").Find(&refunds).Error; err != nil {
+		return nil, err
+	}
+	return refunds, nil
+}
+
+func (r *Repository) FindTravelReimbursementByID(ctx context.Context, id uuid.UUID) (*TravelReimbursement, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var tr TravelReimbursement
+	if err := db.First(&tr, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("reimbursement not found: %w", err)
+	}
+	return &tr, nil
+}
+
+func (r *Repository) UpdateTravelReimbursement(ctx context.Context, tr *TravelReimbursement) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(tr).Error
+}
+
+func (r *Repository) ListTravelReimbursementsByTravel(ctx context.Context, travelID uuid.UUID) ([]TravelReimbursement, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var reimbursements []TravelReimbursement
+	if err := db.Where("business_travel_id = ?", travelID).Order("created_at ASC").Find(&reimbursements).Error; err != nil {
+		return nil, err
+	}
+	return reimbursements, nil
+}
+
 // FindBusinessTravelByIDForOwnership loads a bare BusinessTravel (no
 // preloads) — used by sub-resource creators (activity/schedule) that only
 // need to check the parent travel exists and read its status, without the
