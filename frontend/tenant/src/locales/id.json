@@ -3934,6 +3934,14 @@
     "duplicate_role": "Role \"{name}\" sudah ada",
     "system_role": "Role \"{name}\" adalah role sistem dan tidak dapat diubah"
   },
+  "sensitive_field": {
+    "title": "Pengaturan Data Sensitif",
+    "description": "Atur field data karyawan mana yang dienkripsi saat disimpan.",
+    "field_name": "Field",
+    "module": "Modul",
+    "encryption_enabled": "Enkripsi saat disimpan",
+    "updated_toast": "Setting berhasil diperbarui"
+  },
   "company_holidays": {
     "title": "Hari Libur Perusahaan",
     "description": "Kelola tanggal hari libur perusahaan untuk perhitungan kehadiran dan cuti.",

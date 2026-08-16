@@ -3934,6 +3934,14 @@
     "duplicate_role": "Role \"{name}\" already exists",
     "system_role": "Role \"{name}\" is a system role and cannot be modified"
   },
+  "sensitive_field": {
+    "title": "Sensitive Data Settings",
+    "description": "Control which sensitive employee fields are encrypted when saved.",
+    "field_name": "Field",
+    "module": "Module",
+    "encryption_enabled": "Encrypt at rest",
+    "updated_toast": "Setting updated successfully"
+  },
   "company_holidays": {
     "title": "Company Holidays",
     "description": "Manage company holiday dates used for attendance and leave calculations.",
