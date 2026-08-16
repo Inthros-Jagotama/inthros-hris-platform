@@ -45,17 +45,16 @@
           </div>
         </template>
       </Column>
-      <Column :header="t('rbac.permission')">
+      <!-- Satu kolom per aksi (create, update, ...) — isi berupa switch tanpa label -->
+      <Column v-for="act in allActions" :key="act" :header="act" style="width:90px">
         <template #body="{ data }">
-          <div class="flex flex-wrap items-center gap-2">
-            <label
-              v-for="p in data.items"
-              :key="p.id"
-              class="flex items-center gap-2 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 cursor-pointer select-none transition-colors hover:border-indigo-300 dark:hover:border-indigo-500/60"
-            >
-              <Checkbox :binary="true" :model-value="selected[p.id]" @update:model-value="v => selected[p.id] = v" />
-              <span class="text-sm">{{ p.action }}</span>
-            </label>
+          <div class="flex justify-center">
+            <ToggleSwitch
+              v-if="data.byAction[act]"
+              :model-value="selected[data.byAction[act].id]"
+              @update:model-value="v => selected[data.byAction[act].id] = v"
+            />
+            <span v-else class="text-gray-300 dark:text-gray-600">—</span>
           </div>
         </template>
       </Column>
@@ -71,6 +70,7 @@ import { useI18n } from '@/composables/useI18n'
 import api from '@/services/api'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
+import ToggleSwitch from 'primevue/toggleswitch'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import SkeletonTable from '@/components/SkeletonTable.vue'
@@ -94,6 +94,16 @@ const skeletonColumns = [
 
 const selectedCount = computed(() => Object.values(selected.value).filter(Boolean).length)
 
+// Semua aksi yang ada lintas module (create, update, ...) — urutan kemunculan
+// pertama — menjadi kolom-kolom tabel.
+const allActions = computed(() => {
+  const seen = []
+  for (const p of permissions.value) {
+    if (!seen.includes(p.action)) seen.push(p.action)
+  }
+  return seen
+})
+
 // Grup permission per module (resource) — 1 baris = 1 module.
 const permissionGroups = computed(() => {
   const map = {}
@@ -102,10 +112,15 @@ const permissionGroups = computed(() => {
     if (!map[res]) map[res] = { resource: res, items: [] }
     map[res].items.push(p)
   }
-  return Object.values(map).map(g => ({
-    ...g,
-    allSelected: g.items.length > 0 && g.items.every(i => selected.value[i.id])
-  }))
+  return Object.values(map).map(g => {
+    const byAction = {}
+    for (const i of g.items) byAction[i.action] = i
+    return {
+      ...g,
+      byAction,
+      allSelected: g.items.length > 0 && g.items.every(i => selected.value[i.id])
+    }
+  })
 })
 
 // Toggle pilih semua / kosongkan satu module.
