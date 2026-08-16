@@ -249,6 +249,55 @@ Alur otomatis: buat company → buat tenant DB → jalankan migrasi tenant → *
 ./bin/installer seed-modules --config ./config/config.yaml                        # daftarkan module ke platform
 ```
 
+#### Rollback Migrasi Tenant
+
+`./bin/installer` **tidak punya command down/rollback untuk tenant** — cuma `migrate` (jalankan Up). Package `internal/pkg/migrator` sebenarnya sudah punya `Down()`/`DownTo(targetVersion)`, tapi tidak ada entry point CLI yang menghubungkannya ke DB tenant manapun (`--migrate-down`/`--migrate-to` di server binary hanya untuk platform DB + seeders, bukan tenant).
+
+**Cara kerja `DownTo(targetVersion)`:** rollback **selalu berurutan dari versi terbaru mundur ke target** (descending), bukan pilih satu file spesifik di tengah. Rollback migrasi X hanya mungkin **tanpa** ikut me-rollback migrasi lain jika X adalah migrasi paling atas/terbaru yang sudah applied. Kalau ada migrasi Y > X yang sudah applied, rollback X otomatis ikut me-rollback semua migrasi di antara Y dan X juga.
+
+**Kalau perlu rollback tenant** (mis. investigasi bug, undo migrasi yang salah), tidak ada command resmi — buat skrip Go sekali-pakai:
+
+```go
+// go run rollback.go <target_version_exclusive>
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"go.uber.org/zap"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+
+	"github.com/inthros/hris-platform/internal/pkg/migrator"
+)
+
+func main() {
+	targetVersion := os.Args[1] // mis. "148" -> rollback semua migrasi > 148
+
+	// PENTING: DSN wajib pakai multiStatements=true — down migration sering
+	// berisi lebih dari satu statement SQL (mis. DELETE + DELETE), dan tanpa
+	// flag ini driver MySQL Go akan gagal dengan "Error 1064: syntax error"
+	// begitu sampai statement kedua. dbManager (di server binary) sudah set
+	// ini otomatis untuk koneksi tenant — skrip mandiri harus set manual.
+	dsn := "root:@tcp(localhost:3306)/<nama_db_tenant>?charset=utf8mb4&parseTime=True&loc=Local&multiStatements=true"
+	db, _ := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
+	logger, _ := zap.NewDevelopment()
+	m := migrator.New(db, logger, migrator.MigrationsFS, migrator.TenantRootPath("mysql")) // atau "postgres"
+
+	if err := m.DownTo(targetVersion); err != nil {
+		fmt.Println("rollback failed:", err)
+		os.Exit(1)
+	}
+	fmt.Println("Done.")
+}
+```
+
+Rollback dijalankan dalam transaksi per-migrasi (`executeDownMigration`) — kalau satu migrasi gagal di tengah (mis. karena lupa `multiStatements=true`), migrasi itu di-rollback penuh (tidak ada state rusak sebagian), tapi migrasi lain yang sudah berhasil di-rollback sebelumnya **tetap ter-rollback** (tidak otomatis undo). Cek `schema_migrations` sebelum dan sesudah untuk memastikan hasil sesuai ekspektasi.
+
+**Hapus skrip setelah dipakai** — ini bukan bagian permanen dari codebase, cuma alat sekali-pakai untuk operasi manual.
+
 ### 3.4 Aktivasi Modul per Tenant
 
 Modul tenant diaktifkan melalui salah satu:
