@@ -226,10 +226,14 @@ function raterTypeLabel(type) {
   return t(key) !== key ? t(key) : type
 }
 
-// raterSummaryLabel — label ringkas kolom rater: "diisi/seharusnya" (mis. 2/5).
+// raterSummaryLabel — label ringkas kolom rater: "ditugaskan/seharusnya"
+// (mis. 3/4). Fallback ke rater_count untuk data lama yang belum punya
+// rater_summary.
 function raterSummaryLabel(target) {
   const s = target?.rater_summary
-  if (s && (s.expected > 0 || s.assigned > 0)) return `${s.submitted}/${s.expected}`
+  if (s && (s.expected > 0 || s.assigned > 0)) {
+    return s.expected > 0 ? `${s.assigned}/${s.expected}` : String(s.assigned)
+  }
   return String(target?.rater_count ?? 0)
 }
 
@@ -241,7 +245,7 @@ function raterSummaryTooltip(target) {
   const rows = Object.entries(s.details)
     .map(([type, d]) => {
       const label = raterTypeLabel(type)
-      return `<div class="flex items-center justify-between gap-6"><span>${label}</span><span>${d.submitted}/${d.expected} ${t('competency_360.rater_filled')} &middot; ${d.assigned} ${t('competency_360.rater_assigned')}</span></div>`
+      return `<div class="flex items-center justify-between gap-6"><span>${label}</span><span>${d.assigned}/${d.expected} ${t('competency_360.rater_assigned')} &middot; ${d.submitted} ${t('competency_360.rater_filled')}</span></div>`
     })
     .join('')
   return `<div class="text-xs leading-5">${rows}</div>`
