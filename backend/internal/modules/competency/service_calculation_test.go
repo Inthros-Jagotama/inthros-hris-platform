@@ -944,3 +944,62 @@ func TestGenerateIndicatorCode(t *testing.T) {
 		t.Errorf("expected code capped at 40 chars, got %d", len(got))
 	}
 }
+
+// TestGetAssessmentDetail_Scale memverifikasi detail assessment menyertakan
+// skala penilaian template (scale_id) beserta item nilainya — dasar opsi nilai
+// pada form pengisian (bukan hardcoded 1-5).
+func TestGetAssessmentDetail_Scale(t *testing.T) {
+	svc, targetID, _, cleanup := setup360Scenario(t)
+	defer cleanup()
+	ctx := context.Background()
+	repo := svc.repo
+
+	target, err := repo.FindCompetencyEventTargetByID(ctx, mustParseUUID(t, targetID))
+	if err != nil {
+		t.Fatalf("get target: %v", err)
+	}
+	event, err := repo.FindCompetencyEventByID(ctx, target.CompetencyEventID)
+	if err != nil {
+		t.Fatalf("get event: %v", err)
+	}
+	if event.TemplateID == nil {
+		t.Fatal("event has no template")
+	}
+
+	scale, err := svc.CreateRatingScale(ctx, CreateRatingScaleRequest{
+		Name: "Skala 5 Poin",
+		Items: []RatingScaleItemRequest{
+			{Value: 1, Label: "Sangat Kurang", SortOrder: 0},
+			{Value: 5, Label: "Sangat Baik", SortOrder: 1},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create scale: %v", err)
+	}
+	if _, err := svc.UpdateAssessmentTemplate(ctx, event.TemplateID.String(), UpdateAssessmentTemplateRequest{
+		ScaleID: &scale.ID,
+	}); err != nil {
+		t.Fatalf("set template scale: %v", err)
+	}
+
+	raters, err := repo.FindRatersByTarget(ctx, target.ID)
+	if err != nil || len(raters) == 0 {
+		t.Fatalf("no raters: %v", err)
+	}
+	detail, err := svc.GetAssessmentDetail(ctx, raters[0].ID.String())
+	if err != nil {
+		t.Fatalf("GetAssessmentDetail: %v", err)
+	}
+	if detail.Scale == nil {
+		t.Fatal("expected scale in assessment detail, got none")
+	}
+	if detail.Scale.ID != scale.ID {
+		t.Errorf("expected scale %s, got %s", scale.ID, detail.Scale.ID)
+	}
+	if len(detail.Scale.Items) != 2 {
+		t.Fatalf("expected 2 scale items, got %d", len(detail.Scale.Items))
+	}
+	if detail.Scale.Items[0].Value != 1 || detail.Scale.Items[0].Label != "Sangat Kurang" {
+		t.Errorf("unexpected first item: %+v", detail.Scale.Items[0])
+	}
+}

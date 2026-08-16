@@ -394,6 +394,7 @@ type AssessmentDetailDTO struct {
 	Target     *CompetencyEventTargetResponse `json:"target,omitempty"`
 	Indicators []TemplateIndicatorResponse    `json:"indicators,omitempty"`
 	Responses  []AssessmentResponseDTO        `json:"responses,omitempty"`
+	Scale      *RatingScaleResponse           `json:"scale,omitempty"`
 }
 
 // =========================================================================

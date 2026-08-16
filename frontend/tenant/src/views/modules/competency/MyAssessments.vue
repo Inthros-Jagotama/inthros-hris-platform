@@ -43,7 +43,7 @@
                   :options="ratingOptions"
                   optionLabel="label"
                   optionValue="value"
-                  class="w-36"
+                  class="w-44"
                   size="small"
                   :disabled="detail.rater.status === 'submitted'"
                   :placeholder="t('common.select')"
@@ -109,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
@@ -141,13 +141,24 @@ const saving = ref(false)
 const submitting = ref(false)
 const saveError = ref('')
 
-const ratingOptions = [
-  { label: '1', value: 1 },
-  { label: '2', value: 2 },
-  { label: '3', value: 3 },
-  { label: '4', value: 4 },
-  { label: '5', value: 5 }
-]
+// Opsi nilai diambil dari skala penilaian template (competency_rating_scale_items
+// via scale_id) — fallback 1-5 bila template belum memakai skala.
+const ratingOptions = computed(() => {
+  const items = detail.value?.scale?.items
+  if (Array.isArray(items) && items.length > 0) {
+    return items
+      .filter(i => i.label?.trim() !== '' || i.value !== undefined)
+      .map(i => ({ label: i.label || String(i.value), value: i.value }))
+      .sort((a, b) => a.value - b.value)
+  }
+  return [
+    { label: '1', value: 1 },
+    { label: '2', value: 2 },
+    { label: '3', value: 3 },
+    { label: '4', value: 4 },
+    { label: '5', value: 5 }
+  ]
+})
 
 const skeletonColumns = [
   { type: 'text', width: 'w-40', headerWidth: 'w-28' },

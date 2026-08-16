@@ -337,6 +337,7 @@ func (s *Service) GetAssessmentDetail(ctx context.Context, raterID string) (*Ass
 	}
 
 	var indicators []TemplateIndicatorResponse
+	var scale *RatingScaleResponse
 	var tpl *CompetencyAssessmentTemplate
 	if event.TemplateID != nil {
 		tpl, err = s.repo.FindAssessmentTemplateByID(ctx, *event.TemplateID)
@@ -347,6 +348,14 @@ func (s *Service) GetAssessmentDetail(ctx context.Context, raterID string) (*Ass
 			}
 			for _, it := range items {
 				indicators = append(indicators, it.ToResponse())
+			}
+			// Skala penilaian template — opsi nilai (1..N) pada form pengisian
+			// diambil dari item skala ini (bukan hardcoded 1-5).
+			if tpl.ScaleID != nil {
+				if scl, serr := s.repo.FindRatingScaleByID(ctx, *tpl.ScaleID); serr == nil && scl != nil {
+					resp := scl.ToResponse()
+					scale = &resp
+				}
 			}
 		}
 	}
@@ -378,6 +387,7 @@ func (s *Service) GetAssessmentDetail(ctx context.Context, raterID string) (*Ass
 		Target:     &targetResp,
 		Indicators: indicators,
 		Responses:  respDTOs,
+		Scale:      scale,
 	}, nil
 }
 
