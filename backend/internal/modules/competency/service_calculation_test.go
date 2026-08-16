@@ -899,3 +899,31 @@ func TestSubmitAssessmentForApproval_NotAllSubmitted(t *testing.T) {
 		t.Errorf("expected message to mention pending peer, got %q", err.Error())
 	}
 }
+
+// TestGetAssessmentDetail_Indicators memverifikasi detail assessment (form
+// pengisian rater) menyertakan indikator template — dasar form pengisian
+// indikator di "Assessment Saya".
+func TestGetAssessmentDetail_Indicators(t *testing.T) {
+	svc, targetID, _, cleanup := setup360Scenario(t)
+	defer cleanup()
+	ctx := context.Background()
+	repo := svc.repo
+
+	// Rater pertama pada target (scenario: self/superior/peer + auto self).
+	raters, err := repo.FindRatersByTarget(ctx, mustParseUUID(t, targetID))
+	if err != nil || len(raters) == 0 {
+		t.Fatalf("no raters: %v", err)
+	}
+	detail, err := svc.GetAssessmentDetail(ctx, raters[0].ID.String())
+	if err != nil {
+		t.Fatalf("GetAssessmentDetail: %v", err)
+	}
+	if len(detail.Indicators) == 0 {
+		t.Fatal("expected template indicators in assessment detail, got none")
+	}
+	for _, ind := range detail.Indicators {
+		if ind.Statement == "" {
+			t.Errorf("indicator %s has empty statement", ind.ID)
+		}
+	}
+}

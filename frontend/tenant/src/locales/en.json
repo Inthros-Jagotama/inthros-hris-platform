@@ -2439,6 +2439,7 @@
     "delete_template": "Delete template \"{name}\"?",
     "scale": "Scale",
     "indicators": "Indicators",
+    "no_indicators_hint": "This event's assessment template has no indicators yet. Add indicators to the template (Assessment Templates page).",
     "template_indicators": "Template Indicators",
     "indicators_hint": "Select indicators assessed by this template and set their weights.",
     "no_indicators_available": "No indicators yet. Create indicators first (from competency master).",

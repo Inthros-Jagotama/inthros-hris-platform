@@ -2439,6 +2439,7 @@
     "delete_template": "Hapus template \"{name}\"?",
     "scale": "Skala",
     "indicators": "Indikator",
+    "no_indicators_hint": "Template assessment event ini belum memiliki indikator. Tambahkan indikator pada template-nya (halaman Template Assessment).",
     "template_indicators": "Indikator Template",
     "indicators_hint": "Pilih indikator yang dinilai pada template ini dan atur bobotnya.",
     "no_indicators_available": "Belum ada indikator. Buat indikator terlebih dahulu (dari master kompetensi).",

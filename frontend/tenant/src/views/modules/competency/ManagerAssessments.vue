@@ -27,7 +27,7 @@
           </div>
         </div>
 
-        <div v-if="detail.indicators?.length === 0" class="text-center py-8 text-gray-400 dark:text-gray-500">
+        <div v-if="!detail.indicators?.length" class="text-center py-8 text-gray-400 dark:text-gray-500">
           <i class="pi pi-clone text-3xl mb-2 opacity-50"></i>
           <p class="text-sm">{{ t('competency_360.no_indicators_hint') }}</p>
         </div>
