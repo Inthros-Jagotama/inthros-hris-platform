@@ -47,6 +47,7 @@
       <Column :header="t('common.select')" style="width:110px" frozen alignFrozen="right">
         <template #body="{ data }">
           <div class="flex items-center gap-1.5 justify-end">
+            <Checkbox :binary="true" :model-value="data.allSelected" @update:model-value="toggleResource(data.resource)" />
             <Button
               :label="data.allSelected ? t('common.clear') : t('common.all')"
               severity="secondary"
@@ -55,7 +56,6 @@
               class="!text-[11px] !p-0.5"
               @click="toggleResource(data.resource)"
             />
-            <Checkbox :binary="true" :model-value="data.allSelected" @update:model-value="toggleResource(data.resource)" />
           </div>
         </template>
       </Column>
