@@ -66,13 +66,16 @@
     <Dialog v-model:visible="dialogVisible" :header="editing ? t('competency_360.edit_event') : t('competency_360.new_event')" modal :style="{ width: '520px' }" @hide="resetForm">
       <div class="space-y-3">
         <FormRow :label="t('competency_360.event_type')" required :errors="errors?.type">
-          <Select v-model="form.type" :options="typeOptions" optionLabel="label" optionValue="value" class="w-full" />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <RadioLabel v-model="form.type" value="auto" :id="'event-type-auto'" :label="t('competency_360.type_auto')" :description="t('competency_360.type_auto_desc')" />
+            <RadioLabel v-model="form.type" value="manual" :id="'event-type-manual'" :label="t('competency_360.type_manual')" :description="t('competency_360.type_manual_desc')" />
+          </div>
         </FormRow>
         <FormRow :label="t('competency_360.period_type')" required :errors="errors?.period_type">
           <Select v-model="form.period_type" :options="periodTypeOptions" optionLabel="label" optionValue="value" class="w-full" />
         </FormRow>
         <FormRow :label="t('competency_360.period_year')" required :errors="errors?.period_year">
-          <InputNumber v-model="form.period_year" class="!w-full" :min="2000" :max="2100" size="small" />
+          <InputYear v-model="form.period_year" :min-year="2000" :max-year="2100" :class="{ 'p-invalid': errors?.period_year }" />
         </FormRow>
         <FormRow :label="t('competency_360.period_number')" :errors="errors?.period_number">
           <InputNumber v-model="form.period_number" class="!w-full" :min="1" :max="12" size="small" />
@@ -159,6 +162,7 @@ import { getErrorMessage, getValidationErrors } from '@/services/responseHandler
 import api from '@/services/api'
 
 import DataTable from 'primevue/datatable'
+
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -168,6 +172,8 @@ import InputNumber from 'primevue/inputnumber'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
+import RadioLabel from '@/components/RadioLabel.vue'
+import InputYear from '@/components/InputYear.vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -208,11 +214,6 @@ const deleteTargetDialogVisible = ref(false)
 const deletingTarget = ref(false)
 const deleteTargetError = ref('')
 const deleteTargetItem = ref(null)
-
-const typeOptions = [
-  { label: t('competency_360.type_auto'), value: 'auto' },
-  { label: t('competency_360.type_manual'), value: 'manual' }
-]
 
 const periodTypeOptions = [
   { label: t('competency_360.period_annual'), value: 'annual' },

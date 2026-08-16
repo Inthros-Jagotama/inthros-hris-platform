@@ -9,7 +9,8 @@ const props = defineProps({
         type: String,
         required: true
     },
-    label: String
+    label: String,
+    description: String
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -19,26 +20,38 @@ const isSelected = computed(() => props.modelValue === props.value);
 
 <template>
     <div
-        class="flex items-center gap-3 px-3 py-1.5 border rounded-lg cursor-pointer select-none transition-all duration-150"
-        :class="isSelected
-            ? 'border-emerald-400 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-sm'
-            : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-sm'"
+        class="flex gap-3 px-3 py-2.5 border rounded-lg cursor-pointer select-none transition-all duration-150"
+        :class="[
+            isSelected
+                ? 'border-emerald-400 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-sm'
+                : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-sm',
+            description ? 'items-start' : 'items-center'
+        ]"
         @click="emit('update:modelValue', value)"
     >
         <RadioButton
+            class="mt-0.5 shrink-0"
             :modelValue="modelValue"
             :inputId="id"
             :value="value"
             @update:modelValue="emit('update:modelValue', $event)"
         />
-        <label
-            :for="id"
-            class="text-sm font-medium cursor-pointer select-none"
-            :class="isSelected
-                ? 'text-emerald-700 dark:text-emerald-300'
-                : 'text-surface-700 dark:text-surface-0/80'"
-        >
-            {{ label }}
-        </label>
+        <div class="min-w-0">
+            <label
+                :for="id"
+                class="block text-sm font-medium cursor-pointer select-none"
+                :class="isSelected
+                    ? 'text-emerald-700 dark:text-emerald-300'
+                    : 'text-surface-700 dark:text-surface-0/80'"
+            >
+                {{ label }}
+            </label>
+            <p
+                v-if="description"
+                class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug"
+            >
+                {{ description }}
+            </p>
+        </div>
     </div>
 </template>
