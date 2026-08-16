@@ -100,7 +100,8 @@
     "paid": "Paid",
     "completed": "Completed",
     "cancelled": "Cancelled",
-    "expired": "Expired"
+    "expired": "Expired",
+    "closed": "Closed"
   },
   "message": {
     "success": "Success",

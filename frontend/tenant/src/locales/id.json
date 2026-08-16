@@ -100,7 +100,8 @@
     "paid": "Dibayar",
     "completed": "Selesai",
     "cancelled": "Dibatalkan",
-    "expired": "Kadaluwarsa"
+    "expired": "Kadaluwarsa",
+    "closed": "Ditutup"
   },
   "message": {
     "success": "Berhasil",
