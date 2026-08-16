@@ -1825,30 +1825,30 @@ ip_address
 - [x] Create Business Travel module — **keputusan: tidak jadi module Go terpisah, digabung ke module `attendance` existing** (lihat §54.1).
 - [x] Migration — 12 migrasi (`124`–`135`, postgres+mysql, up+down = 48 file) di `backend/internal/pkg/migrator/migrations/tenant/{postgres,mysql}/`. Belum dijalankan (di luar scope task ini).
 - [x] Model/entity — `backend/internal/modules/attendance/model_businesstravel.go` (package `attendance`), build-verified tanpa collision nama tipe.
-- [ ] Repository/service.
+- [x] Repository/service — `repository_businesstravel.go` (CRUD travel/participant/destination) + `service_businesstravel.go` (Create/Get/List/Update/Submit/Cancel + approval wiring), build & `go vet` bersih.
 - [x] UUID — semua PK `CHAR(36)` + `uuid.UUID` dengan `BeforeCreate` hook, mengikuti pola reimbursement.
 - [x] Company scope — sengaja **tidak** pakai kolom `company_id` (arsitektur DB-per-tenant, lihat §54.2).
-- [ ] Permission.
-- [ ] Travel CRUD.
-- [ ] Travel status.
+- [ ] Permission — endpoint belum digated middleware permission (`business_travel.*` dari §41 belum dicek di handler/route).
+- [x] Travel CRUD — `handler_businesstravel.go` + route `/attendance/business-travels` (POST/GET/GET:id/PUT).
+- [x] Travel status — `TravelStatus` enum (DRAFT→SUBMITTED→APPROVED/REJECTED→...→CLOSED/CANCELLED) di model, transisi DRAFT→SUBMITTED→CANCELLED sudah diimplementasi di service.
 
 ## Phase 2 — Travel Information
 
-- [ ] Participants.
-- [ ] Employee participant.
-- [ ] Non-employee participant.
-- [ ] Destinations.
-- [ ] Activities.
-- [ ] Schedule.
-- [ ] Transportation.
+- [x] Participants — dibuat inline saat `CreateBusinessTravel` (`repo.CreateParticipant`), belum ada endpoint tambah/edit participant terpisah setelah travel dibuat.
+- [x] Employee participant — `participant_type = EMPLOYEE` + `employee_id`.
+- [x] Non-employee participant — `participant_type = NON_EMPLOYEE` + field manual (name/organization/dst).
+- [x] Destinations — dibuat inline saat `CreateBusinessTravel` (`repo.CreateDestination`), belum ada endpoint tambah/edit terpisah.
+- [ ] Activities — model ada (`BusinessTravelActivity`), belum ada repository/service/endpoint.
+- [ ] Schedule — model ada (`BusinessTravelSchedule`), belum ada repository/service/endpoint.
+- [ ] Transportation — bagian dari Schedule, sama seperti di atas.
 
 ## Phase 3 — Approval Integration
 
-- [ ] Integrate existing Approval Module.
-- [ ] Submit request.
-- [ ] Approval callback/status synchronization.
-- [ ] Rejection.
-- [ ] Approval history.
+- [x] Integrate existing Approval Module — reuse `Service.approvalEngine` (field sama dengan overtime/correction), module slug baru `"business_travel"` agar flow terpisah dari `"attendance"`.
+- [x] Submit request — `Service.SubmitBusinessTravel` (DRAFT→SUBMITTED, `CreateApprovalInstance`/`GetActiveFlowIDForModule`, `approval.RoutingError` fail loudly seperti overtime).
+- [x] Approval callback/status synchronization — `Service.HandleBusinessTravelApprovalStatusChange` (APPROVED/REJECTED). **Belum diregister** ke `approvalSvc.RegisterStatusHandler("business_travel", ...)` di `main.go` — wiring terakhir yang tersisa sebelum approval end-to-end benar-benar jalan.
+- [x] Rejection — status REJECTED di-set oleh callback di atas.
+- [ ] Approval history — belum ada endpoint untuk menampilkan riwayat approval (bisa query langsung ke module approval by instance ID untuk sementara).
 
 ## Phase 4 — Funding
 

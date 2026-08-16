@@ -64,5 +64,15 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.GET("/exempt-positions/:id", handler.GetExemptPositionByID)
 		att.PUT("/exempt-positions/:id", handler.UpdateExemptPosition)
 		att.DELETE("/exempt-positions/:id", handler.DeleteExemptPosition)
+
+		// Business Travel (Phase 1-3: Travel CRUD + Approval integration.
+		// Funding/Expense/Settlement/Refund/Reimbursement belum diimplementasikan —
+		// lihat docs/module-attendance-business-travel-development-plan.md §54.7 urutan kerja).
+		att.POST("/business-travels", handler.CreateBusinessTravel)
+		att.GET("/business-travels", handler.ListBusinessTravels)
+		att.GET("/business-travels/:id", handler.GetBusinessTravelByID)
+		att.PUT("/business-travels/:id", handler.UpdateBusinessTravel)
+		att.POST("/business-travels/:id/submit", handler.SubmitBusinessTravel)
+		att.POST("/business-travels/:id/cancel", handler.CancelBusinessTravel)
 	}
 }
