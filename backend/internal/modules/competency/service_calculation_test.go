@@ -2,6 +2,7 @@ package competency
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -732,5 +733,35 @@ func TestListCompetencyEventTargets_RaterCount(t *testing.T) {
 	}
 	if found.RaterCount != len(actual) {
 		t.Errorf("expected rater_count %d, got %d", len(actual), found.RaterCount)
+	}
+}
+
+// TestSubmitAssessmentForApproval_NotAllSubmitted memverifikasi submit-approval
+// menolak dengan sentinel error ErrNotAllRatersSubmitted bila ada rater yang
+// belum submit (bukan error 500 di handler).
+func TestSubmitAssessmentForApproval_NotAllSubmitted(t *testing.T) {
+	svc, targetID, _, cleanup := setup360Scenario(t)
+	defer cleanup()
+	ctx := context.Background()
+	repo := svc.repo
+
+	// Semua rater scenario sudah submit. Tambahkan 1 rater baru (peer) yang
+	// masih assigned → submit harus ditolak.
+	targetUID := mustParseUUID(t, targetID)
+	if err := repo.CreateRater(ctx, &CompetencyAssessmentRater{
+		CompetencyEventTargetID: targetUID,
+		RaterEmployeeID:         uuid.New(),
+		RaterType:               string(RaterTypePeer),
+		Status:                  string(RaterStatusAssigned),
+	}); err != nil {
+		t.Fatalf("create pending rater: %v", err)
+	}
+
+	_, err := svc.SubmitAssessmentForApproval(ctx, targetID)
+	if err == nil {
+		t.Fatal("expected error when a rater has not submitted")
+	}
+	if !errors.Is(err, ErrNotAllRatersSubmitted) {
+		t.Fatalf("expected ErrNotAllRatersSubmitted, got %v", err)
 	}
 }

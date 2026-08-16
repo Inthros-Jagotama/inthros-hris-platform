@@ -1,6 +1,7 @@
 package competency
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -316,7 +317,17 @@ func (h *Handler) SubmitAssessment(c *gin.Context) {
 func (h *Handler) SubmitAssessmentForApproval(c *gin.Context) {
 	resp, err := h.service.SubmitAssessmentForApproval(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		switch {
+		case errors.Is(err, ErrAssessmentAlreadyFinalized),
+			errors.Is(err, ErrAssessmentAlreadySubmitted),
+			errors.Is(err, ErrAssessmentHasApproval):
+			httputil.ErrorRaw(c, http.StatusConflict, "INVALID_STATE", err.Error())
+		case errors.Is(err, ErrNoRatersAssigned),
+			errors.Is(err, ErrNotAllRatersSubmitted):
+			httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		default:
+			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 	httputil.SuccessJSON(c, resp)

@@ -2,11 +2,22 @@ package competency
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+)
+
+// Sentinel error validasi submit-approval — handler memetakannya ke status
+// 4xx (bukan 500).
+var (
+	ErrAssessmentAlreadyFinalized  = errors.New("assessment already finalized")
+	ErrAssessmentAlreadySubmitted  = errors.New("assessment already submitted for approval")
+	ErrAssessmentHasApproval       = errors.New("assessment already has an active approval instance")
+	ErrNoRatersAssigned            = errors.New("no raters assigned to this assessment")
+	ErrNotAllRatersSubmitted       = errors.New("not all raters have submitted yet")
 )
 
 const (
@@ -49,13 +60,13 @@ func (s *Service) SubmitAssessmentForApproval(ctx context.Context, targetID stri
 		return nil, err
 	}
 	if target.Status == "finalized" {
-		return nil, fmt.Errorf("assessment already finalized")
+		return nil, ErrAssessmentAlreadyFinalized
 	}
 	if target.Status == "submitted" {
-		return nil, fmt.Errorf("assessment already submitted for approval")
+		return nil, ErrAssessmentAlreadySubmitted
 	}
 	if target.ApprovalInstanceID != nil {
-		return nil, fmt.Errorf("assessment already has an active approval instance")
+		return nil, ErrAssessmentHasApproval
 	}
 
 	raters, err := s.repo.FindRatersByTarget(ctx, targetUID)
@@ -63,11 +74,11 @@ func (s *Service) SubmitAssessmentForApproval(ctx context.Context, targetID stri
 		return nil, err
 	}
 	if len(raters) == 0 {
-		return nil, fmt.Errorf("no raters assigned to this assessment")
+		return nil, ErrNoRatersAssigned
 	}
 	for _, r := range raters {
 		if r.Status != string(RaterStatusSubmitted) {
-			return nil, fmt.Errorf("not all raters have submitted yet (%s pending)", r.RaterType)
+			return nil, fmt.Errorf("%w (%s pending)", ErrNotAllRatersSubmitted, r.RaterType)
 		}
 	}
 
