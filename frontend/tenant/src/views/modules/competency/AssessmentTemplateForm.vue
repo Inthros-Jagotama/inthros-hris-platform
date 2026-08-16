@@ -1,12 +1,5 @@
 <template>
   <div class="space-y-4 max-w-4xl">
-    <div class="flex items-center justify-between gap-2 flex-wrap">
-      <div class="flex items-center gap-2">
-        <Button icon="pi pi-arrow-left" size="small" text severity="secondary" v-tooltip.top="t('common.back')" @click="router.push('/competencies/templates')" />
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ editing ? t('competency_360.edit_template') : t('competency_360.new_template') }}</h2>
-      </div>
-    </div>
-
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
       <div class="space-y-3">
         <FormRow :label="t('common.name')" required :errors="errors?.name">
