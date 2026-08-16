@@ -492,6 +492,25 @@ func (r *Repository) GetEmployeeNamesByIDs(ctx context.Context, ids []uuid.UUID)
 	return result, nil
 }
 
+// FindSubordinateIDsBySupervisor mengambil seluruh employee yang melapor
+// langsung ke seorang supervisor (employees.supervisor_id = supervisorID) —
+// dasar daftar bawahan pada Manager Assessment.
+func (r *Repository) FindSubordinateIDsBySupervisor(ctx context.Context, supervisorID uuid.UUID) ([]uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var ids []uuid.UUID
+	if err := db.WithContext(ctx).Table("employees").
+		Select("id").
+		Where("supervisor_id = ?", supervisorID).
+		Order("name ASC").
+		Find(&ids).Error; err != nil {
+		return nil, fmt.Errorf("failed to list subordinates: %w", err)
+	}
+	return ids, nil
+}
+
 // FindEmployeeIDByUserID resolve platform user (karyawan yang login) ke
 // employee_id via employee_accounts (user_id -> employee_id). Mengembalikan
 // nil bila user tidak punya akun employee terkait — pola sama reimbursement.

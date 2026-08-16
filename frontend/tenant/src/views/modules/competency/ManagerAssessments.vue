@@ -64,7 +64,7 @@
       </div>
     </template>
 
-    <!-- ── Daftar bawahan ── -->
+    <!-- ── Daftar bawahan (dari employees.supervisor_id) ── -->
     <template v-else>
       <Message v-if="!employeeId" severity="warn" :closable="false">{{ t('competency_360.no_employee_linked') }}</Message>
 
@@ -89,7 +89,7 @@
           </template>
           <Column :header="t('competency_360.subordinate')">
             <template #body="{data}">
-              <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.subject_employee_name || data.subject_employee_id?.slice(0, 8) || '-' }}</span>
+              <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.employee_name || data.employee_id?.slice(0, 8) || '-' }}</span>
             </template>
           </Column>
           <Column :header="t('competency_360.event_period')" style="width:140px">
@@ -97,18 +97,43 @@
               <span class="text-gray-600 dark:text-gray-300">{{ eventName(data.competency_event_id) }}</span>
             </template>
           </Column>
-          <Column field="status" :header="t('common.status')" style="width:130px">
-            <template #body="{data}"><Tag :value="raterStatusLabel(data.status)" :severity="raterStatusSeverity(data.status)" class="!text-xs !px-1.5 !py-0.5" /></template>
+          <Column :header="t('competency_360.my_rating_status')" style="width:150px">
+            <template #body="{data}">
+              <Tag
+                v-if="data.rater_id"
+                :value="raterStatusLabel(data.rater_status)"
+                :severity="raterStatusSeverity(data.rater_status)"
+                class="!text-xs !px-1.5 !py-0.5"
+              />
+              <Tag v-else :value="t('competency_360.not_assigned')" severity="secondary" class="!text-xs !px-1.5 !py-0.5" />
+            </template>
           </Column>
           <Column :header="t('competency_360.assigned_at')" style="width:160px">
             <template #body="{data}">
               <span class="text-gray-500 dark:text-gray-400">{{ data.assigned_at ? formatDate(data.assigned_at) : '-' }}</span>
             </template>
           </Column>
-          <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right">
+          <Column :header="t('common.actions')" style="width:130px" frozen alignFrozen="right">
             <template #body="{data}">
               <div class="flex items-center gap-1 justify-end">
-                <Button :label="data.status === 'submitted' ? t('common.view') : t('competency_360.fill')" icon="pi pi-pencil" size="small" text @click="openDetail(data)" />
+                <Button
+                  v-if="!data.rater_id"
+                  :label="t('competency_360.assign_fill')"
+                  icon="pi pi-user-plus"
+                  size="small"
+                  text
+                  severity="info"
+                  :loading="assigningFor === data.employee_id"
+                  @click="assignAndOpen(data)"
+                />
+                <Button
+                  v-else
+                  :label="data.rater_status === 'submitted' ? t('common.view') : t('competency_360.fill')"
+                  icon="pi pi-pencil"
+                  size="small"
+                  text
+                  @click="openDetail(data)"
+                />
               </div>
             </template>
           </Column>
@@ -146,6 +171,7 @@ const events = ref([])
 const eventFilter = ref(null)
 const loading = ref(false)
 const items = ref([])
+const assigningFor = ref(null)
 const detail = ref(null)
 const responses = ref({})
 const comments = ref({})
@@ -164,9 +190,9 @@ const ratingOptions = [
 const skeletonColumns = [
   { type: 'text', width: 'w-40', headerWidth: 'w-28' },
   { type: 'text', width: 'w-24', headerWidth: 'w-20' },
-  { type: 'tag', width: 'w-20', headerWidth: 'w-16' },
+  { type: 'tag', width: 'w-24', headerWidth: 'w-20' },
   { type: 'text', width: 'w-24', headerWidth: 'w-20' },
-  { type: 'icons', count: 1, headerWidth: 'w-16' }
+  { type: 'icons', count: 1, headerWidth: 'w-24' }
 ]
 
 const eventOptions = computed(() => events.value.map(e => ({ label: eventLabel(e), value: e.id })))
@@ -201,8 +227,8 @@ function raterStatusSeverity(status) {
 }
 
 function subjectName(id) {
-  const item = items.value.find(i => i.subject_employee_id === id)
-  return item?.subject_employee_name || id?.slice(0, 8)
+  const item = items.value.find(i => i.employee_id === id)
+  return item?.employee_name || id?.slice(0, 8)
 }
 
 async function loadReferences() {
@@ -230,9 +256,29 @@ async function loadList() {
   }
 }
 
+// Manager belum di-assign sebagai superior rater untuk bawahan tsb — assign
+// diri sendiri (superior) lalu buka form penilaian.
+async function assignAndOpen(data) {
+  assigningFor.value = data.employee_id
+  try {
+    await api.post(`/api/v1/tenant/competency/event-targets/${data.target_id}/raters`, {
+      raters: [{ rater_employee_id: employeeId.value, rater_type: 'superior' }]
+    })
+    await loadList()
+    const updated = items.value.find(i => i.employee_id === data.employee_id)
+    if (updated?.rater_id) {
+      await openDetail(updated)
+    }
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  } finally {
+    assigningFor.value = null
+  }
+}
+
 async function openDetail(item) {
   try {
-    const res = await api.get(`/api/v1/tenant/competency/my-assessments/${item.id}`)
+    const res = await api.get(`/api/v1/tenant/competency/my-assessments/${item.rater_id}`)
     detail.value = res.data?.data || res.data
     responses.value = {}
     comments.value = {}

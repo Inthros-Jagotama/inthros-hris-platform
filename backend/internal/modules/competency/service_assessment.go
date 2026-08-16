@@ -135,40 +135,82 @@ func (s *Service) MyAssessments(ctx context.Context) ([]RaterResponse, error) {
 	return responses, nil
 }
 
-// ManagerAssessments mengambil seluruh assessment di mana user login terdaftar
-// sebagai rater tipe "superior" (atasan menilai bawahan) — "Manager
-// Assessment". Opsional difilter per event. Bawahan disimpulkan dari rater
-// assignment superior, bukan relasi employee langsung (tidak ada kolom
-// reports_to di employees — pola sama manager report §20 yang scope-nya
-// ditentukan oleh event/target).
-func (s *Service) ManagerAssessments(ctx context.Context, eventID string) ([]RaterResponse, error) {
+// ManagerAssessments mengembalikan daftar bawahan manager (dari
+// employees.supervisor_id) beserta target assessment mereka — "Manager
+// Assessment". Untuk tiap bawahan dicari target pada event (bila eventID
+// diberikan) atau target terbaru (finalized dulu, lalu draft), beserta status
+// rater superior manager pada target tsb (bila sudah di-assign). Bawahan tanpa
+// target di-skip — belum menjadi subject assessment pada scope tsb.
+func (s *Service) ManagerAssessments(ctx context.Context, eventID string) ([]ManagerAssessmentItem, error) {
 	userID := authctx.GetUserID(ctx)
 	if userID == nil {
 		return nil, fmt.Errorf("authenticated user not found")
 	}
-	empID, err := s.repo.FindEmployeeIDByUserID(ctx, *userID)
+	managerID, err := s.repo.FindEmployeeIDByUserID(ctx, *userID)
 	if err != nil {
 		return nil, err
 	}
-	if empID == nil {
+	if managerID == nil {
 		return nil, fmt.Errorf("no employee account linked to this user")
 	}
-	raters, err := s.repo.FindRatersByEmployee(ctx, *empID)
+
+	subordinateIDs, err := s.repo.FindSubordinateIDsBySupervisor(ctx, *managerID)
 	if err != nil {
 		return nil, err
 	}
-	responses := make([]RaterResponse, 0, len(raters))
-	for _, r := range raters {
-		if r.RaterType != string(RaterTypeSuperior) {
-			continue
-		}
-		if eventID != "" && r.Target != nil && r.Target.CompetencyEventID.String() != eventID {
-			continue
-		}
-		responses = append(responses, r.ToResponse())
+	names, err := s.repo.GetEmployeeNamesByIDs(ctx, subordinateIDs)
+	if err != nil {
+		return nil, err
 	}
-	s.enrichRaterNames(ctx, responses)
-	return responses, nil
+
+	items := make([]ManagerAssessmentItem, 0, len(subordinateIDs))
+	for _, subID := range subordinateIDs {
+		// Pilih target: per event bila eventID diberikan, selain itu target
+		// terbaru (finalized dulu, lalu draft) — pola sama GetEmployeeResult.
+		var target *CompetencyEventTarget
+		if eventID != "" {
+			eventUID, perr := uuid.Parse(eventID)
+			if perr != nil {
+				return nil, fmt.Errorf("invalid event_id: %w", perr)
+			}
+			t, terr := s.repo.FindTargetByEventAndEmployee(ctx, eventUID, subID)
+			if terr != nil {
+				continue // bukan subject pada event tsb
+			}
+			target = t
+		} else {
+			targets, terr := s.repo.FindTargetsByEmployee(ctx, subID)
+			if terr != nil || len(targets) == 0 {
+				continue
+			}
+			for i := range targets {
+				if targets[i].Status == "finalized" {
+					target = &targets[i]
+					break
+				}
+			}
+			if target == nil {
+				target = &targets[0]
+			}
+		}
+
+		item := ManagerAssessmentItem{
+			EmployeeID:        subID.String(),
+			EmployeeName:      names[subID.String()],
+			TargetID:          target.ID.String(),
+			CompetencyEventID: target.CompetencyEventID.String(),
+		}
+		// Status rater superior manager pada target (bila sudah di-assign).
+		rat, rerr := s.repo.FindRaterByTargetAndEmployee(ctx, target.ID, *managerID)
+		if rerr == nil && rat != nil && rat.RaterType == string(RaterTypeSuperior) {
+			item.RaterID = rat.ID.String()
+			item.RaterStatus = rat.Status
+			item.AssignedAt = rat.AssignedAt
+			item.SubmittedAt = rat.SubmittedAt
+		}
+		items = append(items, item)
+	}
+	return items, nil
 }
 
 // GetAssessmentDetail mengambil detail satu assessment milik rater: rater,

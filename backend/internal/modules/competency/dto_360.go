@@ -424,6 +424,23 @@ func (r *CompetencyAssessmentResponse) ToDTO() AssessmentResponseDTO {
 }
 
 // =========================================================================
+// Response DTOs — Manager Assessment (berbasis daftar bawahan)
+// =========================================================================
+
+type ManagerAssessmentItem struct {
+	EmployeeID        string     `json:"employee_id"`
+	EmployeeName      string     `json:"employee_name,omitempty"`
+	TargetID          string     `json:"target_id"`
+	CompetencyEventID string     `json:"competency_event_id"`
+	// RaterID kosong bila manager belum di-assign sebagai superior rater
+	// untuk bawahan tsb — frontend menawarkan tombol assign sendiri.
+	RaterID     string     `json:"rater_id,omitempty"`
+	RaterStatus string     `json:"rater_status,omitempty"`
+	AssignedAt  *time.Time `json:"assigned_at,omitempty"`
+	SubmittedAt *time.Time `json:"submitted_at,omitempty"`
+}
+
+// =========================================================================
 // Response DTOs — Gap Analysis (§17/§18)
 // =========================================================================
 

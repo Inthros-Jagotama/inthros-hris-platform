@@ -301,47 +301,62 @@ func TestCalculateTarget_InvalidTargetID(t *testing.T) {
 	}
 }
 
-// TestService_ManagerAssessments_OnlySuperior memverifikasi ManagerAssessments
-// hanya mengembalikan assessment di mana user login adalah rater superior
-// (menilai bawahan), bukan self/peer/subordinate.
-func TestService_ManagerAssessments_OnlySuperior(t *testing.T) {
+// TestService_ManagerAssessments_SubordinatesFromSupervisor memverifikasi
+// ManagerAssessments mengambil daftar bawahan dari employees.supervisor_id
+// (bukan hanya rater assignment) dan mengisi status rater superior manager.
+func TestService_ManagerAssessments_SubordinatesFromSupervisor(t *testing.T) {
 	svc, targetID, _, cleanup := setup360Scenario(t)
 	defer cleanup()
 	ctx := context.Background()
-
-	// setup360Scenario membuat 3 rater pada target yang sama (self/superior/peer)
-	// dengan employee UUID random — tidak ada yang terhubung ke user login.
-	// Simulasikan user login sebagai superior rater dengan men-set rater
-	// superior milik user login.
 	repo := svc.repo
-	raters, err := repo.FindAllRatersByTarget(ctx, mustParseUUID(t, targetID))
-	if err != nil {
-		t.Fatalf("find raters: %v", err)
-	}
-	var superiorRat *CompetencyAssessmentRater
-	for i := range raters {
-		if raters[i].RaterType == string(RaterTypeSuperior) {
-			superiorRat = &raters[i]
-			break
-		}
-	}
-	if superiorRat == nil {
-		t.Fatal("expected a superior rater in scenario")
-	}
 
-	// Hubungkan user login → employee superior rater. Tabel employee_accounts
-	// tidak ada di test DB (milik migrasi lain) — buat minimal seperlunya.
+	// Setup tabel employees + employee_accounts minimal, lalu:
+	// manager (user login) dengan 2 bawahan; bawahan #1 adalah subject target
+	// scenario (sudah punya rater superior random — bukan manager), bawahan #2
+	// belum punya target sama sekali.
 	db, err := repo.getDB(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS employees (id CHAR(36) PRIMARY KEY, employee_id VARCHAR(50), name VARCHAR(255), supervisor_id CHAR(36), created_at TIMESTAMP, updated_at TIMESTAMP)").Error; err != nil {
+		t.Fatalf("create employees: %v", err)
+	}
 	if err := db.Exec("CREATE TABLE IF NOT EXISTS employee_accounts (id CHAR(36) PRIMARY KEY, user_id CHAR(36), employee_id CHAR(36), created_at TIMESTAMP, updated_at TIMESTAMP)").Error; err != nil {
 		t.Fatalf("create employee_accounts: %v", err)
 	}
+	now := time.Now().Format("2006-01-02 15:04:05")
+	managerID := uuid.New()
+	subjectID := uuid.New()
+	otherSubID := uuid.New()
 	userID := uuid.New()
+
+	// Employee subject scenario: cari employee_id target dari target scenario.
+	target, err := repo.FindCompetencyEventTargetByID(ctx, mustParseUUID(t, targetID))
+	if err != nil {
+		t.Fatalf("get target: %v", err)
+	}
+	if target.EmployeeID != nil {
+		subjectID = *target.EmployeeID
+	}
+
+	// supervisor_id adalah CHAR(36) — gunakan query parameter, bukan literal NULL.
+	seedQ := func(id uuid.UUID, name string, supervisorID *uuid.UUID) {
+		var sup interface{} = nil
+		if supervisorID != nil {
+			sup = supervisorID.String()
+		}
+		if err := db.Exec("INSERT INTO employees (id, employee_id, name, supervisor_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+			id.String(), "EMP-"+id.String()[:8], name, sup, now, now,
+		).Error; err != nil {
+			t.Fatalf("seed employee %s: %v", name, err)
+		}
+	}
+	seedQ(managerID, "Manager", nil)
+	seedQ(subjectID, "Bawahan 1", &managerID)
+	seedQ(otherSubID, "Bawahan 2", &managerID)
+
 	if err := db.Exec("INSERT INTO employee_accounts (id, user_id, employee_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-		uuid.New().String(), userID.String(), superiorRat.RaterEmployeeID.String(),
-		time.Now().Format("2006-01-02 15:04:05"), time.Now().Format("2006-01-02 15:04:05"),
+		uuid.New().String(), userID.String(), managerID.String(), now, now,
 	).Error; err != nil {
 		t.Fatalf("seed employee_accounts: %v", err)
 	}
@@ -350,14 +365,98 @@ func TestService_ManagerAssessments_OnlySuperior(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ManagerAssessments failed: %v", err)
 	}
+	// Hanya bawahan #1 yang punya target (Bawahan 2 di-skip — belum subject).
 	if len(assessments) != 1 {
-		t.Fatalf("expected 1 superior assessment, got %d: %v", len(assessments), assessments)
+		t.Fatalf("expected 1 subordinate with target, got %d: %v", len(assessments), assessments)
 	}
-	if assessments[0].RaterType != "superior" {
-		t.Errorf("expected rater_type superior, got %s", assessments[0].RaterType)
+	if assessments[0].EmployeeID != subjectID.String() {
+		t.Errorf("expected employee %s, got %s", subjectID, assessments[0].EmployeeID)
 	}
-	if assessments[0].CompetencyEventID == "" {
-		t.Errorf("expected competency_event_id to be populated, got empty")
+	if assessments[0].EmployeeName != "Bawahan 1" {
+		t.Errorf("expected name 'Bawahan 1', got %q", assessments[0].EmployeeName)
+	}
+	if assessments[0].TargetID == "" || assessments[0].CompetencyEventID == "" {
+		t.Errorf("expected target & event populated, got target=%q event=%q", assessments[0].TargetID, assessments[0].CompetencyEventID)
+	}
+	// Rater superior manager belum di-assign pada target → RaterID kosong.
+	if assessments[0].RaterID != "" {
+		t.Errorf("expected empty rater_id (manager not assigned), got %q", assessments[0].RaterID)
+	}
+}
+
+// TestService_ManagerAssessments_RaterStatusFilled memverifikasi status rater
+// superior manager terisi bila manager sudah di-assign pada target bawahan.
+func TestService_ManagerAssessments_RaterStatusFilled(t *testing.T) {
+	svc, targetID, _, cleanup := setup360Scenario(t)
+	defer cleanup()
+	ctx := context.Background()
+	repo := svc.repo
+
+	db, err := repo.getDB(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS employees (id CHAR(36) PRIMARY KEY, employee_id VARCHAR(50), name VARCHAR(255), supervisor_id CHAR(36), created_at TIMESTAMP, updated_at TIMESTAMP)").Error; err != nil {
+		t.Fatalf("create employees: %v", err)
+	}
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS employee_accounts (id CHAR(36) PRIMARY KEY, user_id CHAR(36), employee_id CHAR(36), created_at TIMESTAMP, updated_at TIMESTAMP)").Error; err != nil {
+		t.Fatalf("create employee_accounts: %v", err)
+	}
+	now := time.Now()
+	nowStr := now.Format("2006-01-02 15:04:05")
+	managerID := uuid.New()
+	userID := uuid.New()
+
+	target, err := repo.FindCompetencyEventTargetByID(ctx, mustParseUUID(t, targetID))
+	if err != nil {
+		t.Fatalf("get target: %v", err)
+	}
+	subjectID := uuid.New()
+	if target.EmployeeID != nil {
+		subjectID = *target.EmployeeID
+	}
+
+	insertEmp := func(id uuid.UUID, name string, sup interface{}) {
+		if err := db.Exec("INSERT INTO employees (id, employee_id, name, supervisor_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+			id.String(), "EMP-"+id.String()[:8], name, sup, nowStr, nowStr,
+		).Error; err != nil {
+			t.Fatalf("seed employee %s: %v", name, err)
+		}
+	}
+	insertEmp(managerID, "Manager", nil)
+	insertEmp(subjectID, "Bawahan", managerID.String())
+	if err := db.Exec("INSERT INTO employee_accounts (id, user_id, employee_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+		uuid.New().String(), userID.String(), managerID.String(), nowStr, nowStr,
+	).Error; err != nil {
+		t.Fatalf("seed employee_accounts: %v", err)
+	}
+
+	// Assign manager sebagai superior rater pada target bawahan.
+	assignedAt := time.Now()
+	rat := &CompetencyAssessmentRater{
+		CompetencyEventTargetID: target.ID,
+		RaterEmployeeID:         managerID,
+		RaterType:               string(RaterTypeSuperior),
+		Weight:                  1,
+		Status:                  string(RaterStatusAssigned),
+		AssignedAt:              &assignedAt,
+	}
+	if err := repo.CreateRater(ctx, rat); err != nil {
+		t.Fatalf("assign manager as superior: %v", err)
+	}
+
+	assessments, err := svc.ManagerAssessments(ctxWithUserID(userID), "")
+	if err != nil {
+		t.Fatalf("ManagerAssessments failed: %v", err)
+	}
+	if len(assessments) != 1 {
+		t.Fatalf("expected 1 assessment, got %d: %v", len(assessments), assessments)
+	}
+	if assessments[0].RaterID != rat.ID.String() {
+		t.Errorf("expected rater_id %s, got %q", rat.ID, assessments[0].RaterID)
+	}
+	if assessments[0].RaterStatus != "assigned" {
+		t.Errorf("expected rater_status 'assigned', got %q", assessments[0].RaterStatus)
 	}
 }
 

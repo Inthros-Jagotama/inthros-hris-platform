@@ -1426,6 +1426,8 @@ Karena `139_reimbursement_approve_permission` sudah terpakai sebelum Competency 
 146_competency_assessment_raters
 147_competency_assessment_responses
 148_competency_assessment_approval_instance
+149_employee_supervisor   -- + supervisor_id (reports_to) di employees — dasar daftar
+                           -- bawahan Manager Assessment (ditambahkan setelah Phase 8)
 ```
 
 Semua punya pasangan `postgres` + `mysql` + `.down.sql`. Migrasi **tidak dijalankan** dalam implementasi ini (di luar scope — hanya file migrasi yang dibuat).
