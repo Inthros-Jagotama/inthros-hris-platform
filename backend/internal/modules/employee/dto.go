@@ -6,20 +6,11 @@ import (
 	"github.com/inthros/hris-platform/internal/pkg/crypto"
 )
 
-// decryptIfLooksEncrypted mengembalikan nilai asli jika value terlihat
-// seperti hasil enkripsi (crypto.LooksEncrypted), atau value apa adanya
-// jika masih plaintext (data lama, encrypt-on-write belum menyentuhnya).
-// Kegagalan decrypt tidak fatal — fallback ke value asli supaya response
-// tidak error karena satu baris data lama yang rusak.
+// decryptIfLooksEncrypted adalah alias lokal ke crypto.DecryptIfLooksEncrypted
+// (logikanya dipromosikan ke package crypto supaya modul lain — mis.
+// employeemovement pada generate document — memakai implementasi yang sama).
 func decryptIfLooksEncrypted(value string) string {
-	if value == "" || !crypto.LooksEncrypted(value) {
-		return value
-	}
-	decrypted, err := crypto.DecryptString(value)
-	if err != nil {
-		return value
-	}
-	return decrypted
+	return crypto.DecryptIfLooksEncrypted(value)
 }
 
 // =========================================================================

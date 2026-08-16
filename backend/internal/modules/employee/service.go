@@ -257,9 +257,9 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateEmployeeReque
 	if req.Name != nil {
 		emp.Name = *req.Name
 	}
-	if req.NIK != nil {
-		emp.NIK = req.NIK
-	}
+	// Field sensitif: lewati penulisan jika request hanya memantulkan nilai
+	// ter-mask yang diterima caller saat GET (lihat sensitive_field_update.go).
+	applyPtrIfNotMasked(req.NIK, &emp.NIK)
 	if req.FamilyID != nil {
 		emp.FamilyID = req.FamilyID
 	}
@@ -275,21 +275,15 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateEmployeeReque
 	if req.NationalityID != nil {
 		emp.NationalityID = req.NationalityID
 	}
-	if req.Passport != nil {
-		emp.Passport = req.Passport
-	}
+	applyPtrIfNotMasked(req.Passport, &emp.Passport)
 	if req.POB != nil {
 		emp.POB = req.POB
 	}
 	if req.DOB != nil {
 		emp.DOB = req.DOB
 	}
-	if req.PhoneNumber != nil {
-		emp.PhoneNumber = req.PhoneNumber
-	}
-	if req.Email != nil {
-		emp.Email = req.Email
-	}
+	applyPtrIfNotMasked(req.PhoneNumber, &emp.PhoneNumber)
+	applyPtrIfNotMasked(req.Email, &emp.Email)
 	if req.LinkedIn != nil {
 		emp.LinkedIn = req.LinkedIn
 	}
@@ -520,9 +514,7 @@ func (s *Service) UpdateEmergencyContact(ctx context.Context, employeeID, contac
 	if req.Name != nil {
 		contact.Name = *req.Name
 	}
-	if req.PhoneNumber != nil {
-		contact.PhoneNumber = *req.PhoneNumber
-	}
+	applyIfNotMasked(req.PhoneNumber, &contact.PhoneNumber)
 	if req.RelationshipTypeID != nil && *req.RelationshipTypeID != "" {
 		id, _ := uuid.Parse(*req.RelationshipTypeID)
 		contact.RelationshipTypeID = &id
@@ -611,9 +603,7 @@ func (s *Service) UpdateFamily(ctx context.Context, employeeID, familyID string,
 	if req.Name != nil {
 		fam.Name = *req.Name
 	}
-	if req.NIK != nil {
-		fam.NIK = req.NIK
-	}
+	applyPtrIfNotMasked(req.NIK, &fam.NIK)
 	if req.DOB != nil {
 		fam.DOB = req.DOB
 	}
@@ -1037,12 +1027,8 @@ func (s *Service) UpdateBank(ctx context.Context, employeeID, bankID string, req
 		id, _ := uuid.Parse(*req.BankID)
 		bank.BankID = &id
 	}
-	if req.AccountNumber != nil {
-		bank.AccountNumber = *req.AccountNumber
-	}
-	if req.AccountName != nil {
-		bank.AccountName = *req.AccountName
-	}
+	applyIfNotMasked(req.AccountNumber, &bank.AccountNumber)
+	applyIfNotMasked(req.AccountName, &bank.AccountName)
 
 	if err := s.encryptIfEnabled(ctx, "employee_bank_account.account_number", &bank.AccountNumber); err != nil {
 		return nil, err

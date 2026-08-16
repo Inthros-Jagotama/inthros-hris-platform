@@ -142,6 +142,27 @@ func LooksEncrypted(s string) bool {
 	return len(decoded) >= 12
 }
 
+// DecryptIfLooksEncrypted mengembalikan plaintext jika value terlihat seperti
+// hasil enkripsi (LooksEncrypted), atau value apa adanya jika masih plaintext
+// (data lama, encrypt-on-write belum menyentuhnya).
+//
+// Kegagalan decrypt TIDAK fatal — fallback ke value asli supaya satu baris
+// data lama yang rusak (atau terenkripsi dengan kunci lain) tidak membuat
+// seluruh response/dokumen gagal.
+//
+// Dipakai bersama oleh read path modul employee (dto) dan employeemovement
+// (generate document), supaya logikanya tidak terduplikasi.
+func DecryptIfLooksEncrypted(value string) string {
+	if value == "" || !LooksEncrypted(value) {
+		return value
+	}
+	decrypted, err := DecryptString(value)
+	if err != nil {
+		return value
+	}
+	return decrypted
+}
+
 // loadKey membaca dan memvalidasi encryption key dari environment variable.
 func loadKey() ([]byte, error) {
 	keyHex := os.Getenv(EnvEncryptionKey)

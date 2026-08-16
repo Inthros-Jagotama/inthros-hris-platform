@@ -122,3 +122,33 @@ func TestEncrypt_InvalidKeyLength(t *testing.T) {
 		t.Fatal("expected error for invalid key length")
 	}
 }
+
+// =========================================================================
+// DecryptIfLooksEncrypted — helper bersama read path employee &
+// employeemovement (generate document).
+// =========================================================================
+
+func TestDecryptIfLooksEncrypted(t *testing.T) {
+	os.Setenv(EnvEncryptionKey, testKey)
+
+	const plain = "3201010101985678"
+	ct, err := EncryptString(plain)
+	if err != nil {
+		t.Fatalf("EncryptString() error = %v", err)
+	}
+
+	if got := DecryptIfLooksEncrypted(ct); got != plain {
+		t.Errorf("DecryptIfLooksEncrypted(ciphertext) = %q, want %q", got, plain)
+	}
+	if got := DecryptIfLooksEncrypted(plain); got != plain {
+		t.Errorf("DecryptIfLooksEncrypted(plaintext) = %q, want unchanged %q", got, plain)
+	}
+	if got := DecryptIfLooksEncrypted(""); got != "" {
+		t.Errorf("DecryptIfLooksEncrypted(\"\") = %q, want empty", got)
+	}
+	// Hex valid & cukup panjang tapi bukan ciphertext kita → fallback apa adanya.
+	const bogus = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+	if got := DecryptIfLooksEncrypted(bogus); got != bogus {
+		t.Errorf("DecryptIfLooksEncrypted(bogus) = %q, want graceful fallback %q", got, bogus)
+	}
+}
