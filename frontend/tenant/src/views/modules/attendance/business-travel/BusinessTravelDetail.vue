@@ -49,8 +49,9 @@
               <div v-for="p in travel.participants" :key="p.id" class="flex items-center justify-between px-3 py-2.5 text-sm">
                 <div class="min-w-0">
                   <span class="text-gray-700 dark:text-gray-200">{{ participantDisplayName(p) }}</span>
-                  <p v-if="p.organization || p.phone" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                    {{ [p.organization, p.phone].filter(Boolean).join(' · ') }}
+                  <p v-if="p.organization || p.phone" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
+                    <span v-if="p.organization">{{ p.organization }}</span>
+                    <span v-if="p.phone" class="inline-flex items-center gap-1"><i class="pi pi-phone"></i>{{ p.phone }}</span>
                   </p>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
