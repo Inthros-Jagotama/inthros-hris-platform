@@ -625,7 +625,7 @@
   },
   "business_travel": {
     "title": "Business Travel",
-    "description": "Manage business travel requests, funding, expenses, and settlement.",
+    "description": "Manage business travel from request and approval through funding, expenses, settlement, and reimbursement.",
     "view": "Business Travel",
     "empty": "No data yet.",
     "new": "New Business Travel",
@@ -634,7 +634,6 @@
     "purpose": "Purpose / Objective",
     "purpose_placeholder": "Why this trip is happening, e.g. \"Client meeting & contract negotiation\" — not the destination city.",
     "description_field": "Description",
-    "description": "Description",
     "start_date": "Start Date",
     "end_date": "End Date",
     "origin": "Departure From",

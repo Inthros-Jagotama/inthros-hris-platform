@@ -625,7 +625,7 @@
   },
   "business_travel": {
     "title": "Perjalanan Dinas",
-    "description": "Kelola pengajuan perjalanan dinas, pembiayaan, pengeluaran, dan penyelesaian.",
+    "description": "Kelola perjalanan dinas mulai dari pengajuan dan persetujuan, pembiayaan, pengeluaran, penyelesaian, hingga reimbursement.",
     "view": "Perjalanan Dinas",
     "empty": "Belum ada data.",
     "new": "Perjalanan Dinas Baru",
@@ -634,7 +634,6 @@
     "purpose": "Maksud & Tujuan Perjalanan",
     "purpose_placeholder": "Alasan perjalanan ini, mis. \"Kunjungan klien & negosiasi kontrak\" — bukan nama kota tujuan.",
     "description_field": "Deskripsi",
-    "description": "Deskripsi",
     "start_date": "Tanggal Mulai",
     "end_date": "Tanggal Selesai",
     "origin": "Berangkat Dari",

@@ -345,7 +345,7 @@
         <FormRow :label="t('business_travel.activity_date')" required><DateInput v-model="activityForm.activity_date" /></FormRow>
         <FormRow :label="t('business_travel.field_title')" required><TextInput v-model="activityForm.title" /></FormRow>
         <FormRow :label="t('business_travel.location')"><TextInput v-model="activityForm.location" /></FormRow>
-        <FormRow :label="t('business_travel.description')"><TextInput v-model="activityForm.description" textarea :rows="2" /></FormRow>
+        <FormRow :label="t('business_travel.description_field')"><TextInput v-model="activityForm.description" textarea :rows="2" /></FormRow>
       </div>
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="activityDialogVisible = false" />
@@ -422,7 +422,7 @@
           <Select v-model="expenseForm.funding_method_id" :options="fundingMethods" optionLabel="name" optionValue="id" showClear class="w-full" />
         </FormRow>
         <FormRow :label="t('business_travel.vendor')"><TextInput v-model="expenseForm.vendor" /></FormRow>
-        <FormRow :label="t('business_travel.description')"><TextInput v-model="expenseForm.description" textarea :rows="2" /></FormRow>
+        <FormRow :label="t('business_travel.description_field')"><TextInput v-model="expenseForm.description" textarea :rows="2" /></FormRow>
       </div>
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="expenseDialogVisible = false" />

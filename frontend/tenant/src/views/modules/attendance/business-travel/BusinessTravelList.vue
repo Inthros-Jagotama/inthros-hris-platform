@@ -70,7 +70,7 @@
         <FormRow :label="t('business_travel.origin')" :errors="errors?.origin">
           <TextInput v-model="form.origin" :placeholder="t('business_travel.origin_placeholder')" />
         </FormRow>
-        <FormRow :label="t('business_travel.description')" :errors="errors?.description">
+        <FormRow :label="t('business_travel.description_field')" :errors="errors?.description">
           <TextInput v-model="form.description" textarea :rows="2" />
         </FormRow>
       </div>
