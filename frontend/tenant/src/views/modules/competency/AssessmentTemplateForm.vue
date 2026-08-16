@@ -1,7 +1,10 @@
 <template>
   <div class="space-y-4">
-    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-      <div class="space-y-3">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- Kolom 1: info utama + Competency -->
+      <div class="space-y-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div class="space-y-3">
         <FormRow :label="t('common.name')" required :errors="errors?.name">
           <TextInput v-model="form.name" maxlength="255" :placeholder="t('common.name')" :class="{ 'p-invalid': errors?.name }" />
         </FormRow>
@@ -11,13 +14,11 @@
         <FormRow :label="t('competency_360.scale')">
           <Select v-model="form.scale_id" :options="scaleOptions" optionLabel="name" optionValue="id" showClear filter class="w-full" :placeholder="t('common.select')" />
         </FormRow>
-      </div>
-    </div>
+          </div>
+        </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <!-- Kolom 1: Competency -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-        <div class="flex items-center justify-between mb-2">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div class="flex items-center justify-between mb-2">
           <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('competency_360.competencies') }}</p>
           <Button icon="pi pi-plus" size="small" text severity="secondary" :label="t('competency_360.add_competency')" @click="addCompetency" />
         </div>
@@ -39,7 +40,8 @@
           </div>
           <Button icon="pi pi-trash" size="small" text severity="danger" @click="form.competencies.splice(idx, 1)" />
         </div>
-        <p v-if="form.competencies.length === 0" class="text-xs text-gray-400 dark:text-gray-500">{{ t('competency_360.no_competencies_hint') }}</p>
+          <p v-if="form.competencies.length === 0" class="text-xs text-gray-400 dark:text-gray-500">{{ t('competency_360.no_competencies_hint') }}</p>
+        </div>
       </div>
 
       <!-- Kolom 2: Rater Type -->
