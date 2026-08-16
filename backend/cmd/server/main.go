@@ -1077,6 +1077,12 @@ func main() {
 	approvalSvc.RegisterStatusHandler("business_travel", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return attendanceSvc.HandleBusinessTravelApprovalStatusChange(ctx, documentID, string(status), note)
 	})
+	// Settlement Approval (§24-26) is a second, independent checkpoint on the
+	// same Business Travel feature — routed under its own module slug so it
+	// can have its own flow configuration separate from Travel Approval.
+	approvalSvc.RegisterStatusHandler("business_travel_settlement", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return attendanceSvc.HandleSettlementApprovalStatusChange(ctx, documentID, string(status), note)
+	})
 	// Push approved leave onto Attendance's daily session (§26/§50 of
 	// docs/module-attendance-plan.md) so a day fully covered by leave is
 	// reflected without needing a check-in event to trigger it.

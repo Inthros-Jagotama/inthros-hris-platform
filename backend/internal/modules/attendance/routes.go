@@ -97,5 +97,13 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.PUT("/business-travels/:id/expenses/:expenseId", handler.UpdateExpense)
 		att.DELETE("/business-travels/:id/expenses/:expenseId", handler.DeleteExpense)
 		att.POST("/business-travels/:id/expenses/:expenseId/documents", handler.AddExpenseDocument)
+
+		// Settlement (§24-33: hanya bisa dibuat setelah travel COMPLETED;
+		// approval terpisah dari Travel Approval — module slug
+		// "business_travel_settlement")
+		att.POST("/business-travels/:id/settlements", handler.CreateSettlement)
+		att.GET("/business-travels/:id/settlements", handler.ListSettlements)
+		att.GET("/business-travels/:id/settlements/:settlementId", handler.GetSettlementByID)
+		att.POST("/business-travels/:id/settlements/:settlementId/submit", handler.SubmitSettlement)
 	}
 }

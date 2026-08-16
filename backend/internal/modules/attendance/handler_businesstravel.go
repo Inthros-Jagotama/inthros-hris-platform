@@ -323,6 +323,62 @@ func (h *Handler) AddExpenseDocument(c *gin.Context) {
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 
+// =========================================================================
+// Settlement
+// =========================================================================
+
+func (h *Handler) CreateSettlement(c *gin.Context) {
+	var req CreateSettlementRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.CreateSettlement(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		if errors.Is(err, ErrBusinessTravelNotCompleted) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListSettlements(c *gin.Context) {
+	resp, err := h.service.ListSettlementsByTravel(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) GetSettlementByID(c *gin.Context) {
+	resp, err := h.service.GetSettlementByID(c.Request.Context(), c.Param("settlementId"))
+	if err != nil {
+		httputil.NotFound(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) SubmitSettlement(c *gin.Context) {
+	var req SubmitSettlementRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.SubmitSettlement(c.Request.Context(), c.Param("settlementId"), req)
+	if err != nil {
+		if errors.Is(err, ErrSettlementInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) CancelBusinessTravel(c *gin.Context) {
 	resp, err := h.service.CancelBusinessTravel(c.Request.Context(), c.Param("id"))
 	if err != nil {

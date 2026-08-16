@@ -887,6 +887,299 @@ func (s *Service) AddExpenseDocument(ctx context.Context, expenseIDStr string, r
 	return expenseToResponse(expense), nil
 }
 
+// =========================================================================
+// Settlement (§24-33 plan doc)
+// =========================================================================
+
+// businessTravelSettlementApprovalModule is a separate module slug from
+// businessTravelApprovalModule so the Settlement Approval flow can be
+// configured independently from Travel Approval (§54.3, Rule 6/§52: reuse
+// the central Approval module, no bespoke engine).
+const businessTravelSettlementApprovalModule = "business_travel_settlement"
+
+// ErrBusinessTravelNotCompleted: settlement hanya boleh dibuat setelah
+// travel COMPLETED (§24: IN_PROGRESS -> COMPLETED -> SETTLEMENT).
+var ErrBusinessTravelNotCompleted = errors.New("business travel must be COMPLETED before settlement can be created")
+
+// ErrSettlementInvalidState: aksi tidak valid untuk status settlement saat ini.
+var ErrSettlementInvalidState = errors.New("settlement is not in a valid state for this action")
+
+// CreateSettlement menghitung total advance/actual/company-paid dan
+// menentukan hasil awal (balanced/refund/reimbursement) dari funding &
+// expense yang sudah tercatat (§25-27, §35-36). Company-paid expense
+// dikeluarkan dari rekonsiliasi advance karena bukan hutang ke employee
+// (§34). Hasil baru final setelah SubmitSettlement disetujui — lihat
+// HandleSettlementApprovalStatusChange.
+func (s *Service) CreateSettlement(ctx context.Context, travelIDStr string, req CreateSettlementRequest) (*SettlementResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	travel, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	if travel.Status != TravelStatusCompleted {
+		return nil, ErrBusinessTravelNotCompleted
+	}
+
+	var participantID *uuid.UUID
+	if req.ParticipantID != "" {
+		parsed, err := uuid.Parse(req.ParticipantID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid participant_id: %w", err)
+		}
+		participantID = &parsed
+	}
+
+	fundings, err := s.repo.ListFundingsByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	expenses, err := s.repo.ListExpensesByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	methods, err := s.repo.ListFundingMethods(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	methodCodeByID := make(map[uuid.UUID]string, len(methods))
+	for _, m := range methods {
+		methodCodeByID[m.ID] = m.Code
+	}
+
+	matchesParticipant := func(pid *uuid.UUID) bool {
+		if participantID == nil {
+			return true
+		}
+		return pid != nil && *pid == *participantID
+	}
+
+	var totalAdvance, totalActual, totalCompanyPaid float64
+	relevantFundings := make([]Funding, 0, len(fundings))
+	for _, f := range fundings {
+		if !matchesParticipant(f.ParticipantID) || f.Status != FundingStatusFunded {
+			continue
+		}
+		if methodCodeByID[f.FundingMethodID] == FundingMethodDeposit {
+			totalAdvance += f.Amount
+			relevantFundings = append(relevantFundings, f)
+		}
+	}
+	relevantExpenses := make([]Expense, 0, len(expenses))
+	for _, e := range expenses {
+		if !matchesParticipant(e.ParticipantID) {
+			continue
+		}
+		totalActual += e.Amount
+		if e.FundingMethodID != nil && methodCodeByID[*e.FundingMethodID] == FundingMethodCompanyPaid {
+			totalCompanyPaid += e.Amount
+		}
+		relevantExpenses = append(relevantExpenses, e)
+	}
+
+	// diff > 0: actual (net of company-paid) melebihi advance -> additional
+	// reimbursement (§31 Scenario 4). diff < 0: advance tersisa -> refund
+	// (§30 Scenario 3). diff == 0: balanced (§29 Scenario 2).
+	diff := (totalActual - totalCompanyPaid) - totalAdvance
+
+	settlement := &Settlement{
+		BusinessTravelID:   travelID,
+		ParticipantID:      participantID,
+		TotalAdvance:       totalAdvance,
+		TotalActualExpense: totalActual,
+		TotalCompanyPaid:   totalCompanyPaid,
+		Balance:            diff,
+		Status:             SettlementStatusPending,
+	}
+	if diff > 0 {
+		settlement.TotalReimbursement = diff
+	} else if diff < 0 {
+		settlement.TotalRefund = -diff
+	}
+	if req.Notes != "" {
+		settlement.Notes = &req.Notes
+	}
+
+	if err := s.repo.CreateSettlement(ctx, settlement); err != nil {
+		return nil, err
+	}
+
+	for _, f := range relevantFundings {
+		fundingMethodID := f.FundingMethodID
+		item := &SettlementItem{
+			BusinessTravelSettlementID: settlement.ID,
+			FundingMethodID:            &fundingMethodID,
+			ItemType:                   SettlementItemAdvance,
+			Amount:                     f.Amount,
+		}
+		if err := s.repo.CreateSettlementItem(ctx, item); err != nil {
+			return nil, err
+		}
+	}
+	for _, e := range relevantExpenses {
+		itemType := SettlementItemActual
+		if e.FundingMethodID != nil && methodCodeByID[*e.FundingMethodID] == FundingMethodCompanyPaid {
+			itemType = SettlementItemCompanyPaid
+		}
+		expenseID := e.ID
+		item := &SettlementItem{
+			BusinessTravelSettlementID: settlement.ID,
+			ExpenseID:                  &expenseID,
+			FundingMethodID:            e.FundingMethodID,
+			ItemType:                   itemType,
+			Amount:                     e.Amount,
+		}
+		if err := s.repo.CreateSettlementItem(ctx, item); err != nil {
+			return nil, err
+		}
+	}
+	if diff > 0 {
+		item := &SettlementItem{BusinessTravelSettlementID: settlement.ID, ItemType: SettlementItemReimbursement, Amount: diff}
+		if err := s.repo.CreateSettlementItem(ctx, item); err != nil {
+			return nil, err
+		}
+	} else if diff < 0 {
+		item := &SettlementItem{BusinessTravelSettlementID: settlement.ID, ItemType: SettlementItemRefund, Amount: -diff}
+		if err := s.repo.CreateSettlementItem(ctx, item); err != nil {
+			return nil, err
+		}
+	}
+
+	return s.GetSettlementByID(ctx, settlement.ID.String())
+}
+
+func (s *Service) GetSettlementByID(ctx context.Context, id string) (*SettlementResponse, error) {
+	settlementID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	settlement, err := s.repo.FindSettlementByID(ctx, settlementID)
+	if err != nil {
+		return nil, err
+	}
+	return settlementToResponse(settlement), nil
+}
+
+func (s *Service) ListSettlementsByTravel(ctx context.Context, travelIDStr string) ([]SettlementResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	settlements, err := s.repo.ListSettlementsByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]SettlementResponse, 0, len(settlements))
+	for i := range settlements {
+		responses = append(responses, *settlementToResponse(&settlements[i]))
+	}
+	return responses, nil
+}
+
+// SubmitSettlement routes a PENDING settlement through the central Approval
+// module under its own module slug (Rule 6, §52), mirroring
+// Service.SubmitBusinessTravel.
+func (s *Service) SubmitSettlement(ctx context.Context, settlementIDStr string, req SubmitSettlementRequest) (*SettlementResponse, error) {
+	settlementID, err := uuid.Parse(settlementIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid settlement id: %w", err)
+	}
+	settlement, err := s.repo.FindSettlementByID(ctx, settlementID)
+	if err != nil {
+		return nil, err
+	}
+	if settlement.Status != SettlementStatusPending {
+		return nil, ErrSettlementInvalidState
+	}
+
+	now := time.Now()
+	settlement.Status = SettlementStatusSubmitted
+	settlement.SubmittedAt = &now
+
+	if s.approvalEngine != nil {
+		flowID := ""
+		if req.FlowID != nil && *req.FlowID != "" {
+			flowID = *req.FlowID
+		} else if resolved, err := s.approvalEngine.GetActiveFlowIDForModule(ctx, businessTravelSettlementApprovalModule); err == nil {
+			flowID = resolved
+		}
+		if flowID != "" {
+			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, businessTravelSettlementApprovalModule, settlement.ID.String(), flowID)
+			if err != nil {
+				var re *approval.RoutingError
+				if errors.As(err, &re) {
+					return nil, err
+				}
+				s.logger.Warn("Failed to create approval instance for settlement, continuing without approval",
+					zap.String("settlement_id", settlement.ID.String()),
+					zap.Error(err),
+				)
+			} else if parsedInstanceID, parseErr := uuid.Parse(instanceID); parseErr == nil {
+				settlement.ApprovalInstanceID = &parsedInstanceID
+			}
+		}
+	}
+
+	if err := s.repo.UpdateSettlement(ctx, settlement); err != nil {
+		return nil, err
+	}
+	return settlementToResponse(settlement), nil
+}
+
+// HandleSettlementApprovalStatusChange is invoked by the approval module's
+// push-based status callback for the "business_travel_settlement" module
+// slug. On approval, finalizes the settlement outcome computed at
+// CreateSettlement time (§26) and creates the corresponding Refund or
+// TravelReimbursement record (§35-36) so Phase 7/8 processing has something
+// to act on.
+func (s *Service) HandleSettlementApprovalStatusChange(ctx context.Context, documentID uuid.UUID, status string, note string) error {
+	settlement, err := s.repo.FindSettlementByID(ctx, documentID)
+	if err != nil {
+		return err
+	}
+	switch status {
+	case "APPROVED":
+		now := time.Now()
+		settlement.ApprovedAt = &now
+		switch {
+		case settlement.TotalReimbursement > 0:
+			settlement.Status = SettlementStatusReimbursementRequired
+			reimbursement := &TravelReimbursement{
+				BusinessTravelID: settlement.BusinessTravelID,
+				ParticipantID:    settlement.ParticipantID,
+				SettlementID:     &settlement.ID,
+				Amount:           settlement.TotalReimbursement,
+				Status:           TravelReimbStatusRequested,
+				RequestedAt:      &now,
+			}
+			if err := s.repo.CreateTravelReimbursement(ctx, reimbursement); err != nil {
+				return err
+			}
+		case settlement.TotalRefund > 0:
+			settlement.Status = SettlementStatusRefundRequired
+			refund := &Refund{
+				BusinessTravelID: settlement.BusinessTravelID,
+				SettlementID:     &settlement.ID,
+				ParticipantID:    settlement.ParticipantID,
+				RefundAmount:     settlement.TotalRefund,
+				Status:           RefundStatusPending,
+			}
+			if err := s.repo.CreateRefund(ctx, refund); err != nil {
+				return err
+			}
+		default:
+			settlement.Status = SettlementStatusBalanced
+		}
+	case "REJECTED":
+		settlement.Status = SettlementStatusRejected
+	default:
+		return nil
+	}
+	return s.repo.UpdateSettlement(ctx, settlement)
+}
+
 // HandleBusinessTravelApprovalStatusChange is invoked by the approval
 // module's push-based status callback for the "business_travel" module slug
 // (registered separately from HandleApprovalStatusChange, which handles the
@@ -996,6 +1289,57 @@ func businessTravelActivityToResponse(a *BusinessTravelActivity) BusinessTravelA
 		Organizer:    a.Organizer,
 		Notes:        a.Notes,
 	}
+}
+
+func settlementToResponse(s *Settlement) *SettlementResponse {
+	resp := &SettlementResponse{
+		ID:                 s.ID.String(),
+		BusinessTravelID:   s.BusinessTravelID.String(),
+		TotalAdvance:       s.TotalAdvance,
+		TotalActualExpense: s.TotalActualExpense,
+		TotalCompanyPaid:   s.TotalCompanyPaid,
+		TotalReimbursement: s.TotalReimbursement,
+		TotalRefund:        s.TotalRefund,
+		Balance:            s.Balance,
+		Status:             string(s.Status),
+		SubmittedAt:        s.SubmittedAt,
+		ApprovedAt:         s.ApprovedAt,
+		SettledAt:          s.SettledAt,
+		Notes:              s.Notes,
+		CreatedAt:          s.CreatedAt,
+		UpdatedAt:          s.UpdatedAt,
+	}
+	if s.ParticipantID != nil {
+		participantID := s.ParticipantID.String()
+		resp.ParticipantID = &participantID
+	}
+	if s.ApprovalInstanceID != nil {
+		instanceID := s.ApprovalInstanceID.String()
+		resp.ApprovalInstanceID = &instanceID
+	}
+	for _, item := range s.Items {
+		resp.Items = append(resp.Items, settlementItemToResponse(&item))
+	}
+	return resp
+}
+
+func settlementItemToResponse(i *SettlementItem) SettlementItemResponse {
+	resp := SettlementItemResponse{
+		ID:       i.ID.String(),
+		ItemType: string(i.ItemType),
+		Category: i.Category,
+		Amount:   i.Amount,
+		Notes:    i.Notes,
+	}
+	if i.ExpenseID != nil {
+		expenseID := i.ExpenseID.String()
+		resp.ExpenseID = &expenseID
+	}
+	if i.FundingMethodID != nil {
+		fundingMethodID := i.FundingMethodID.String()
+		resp.FundingMethodID = &fundingMethodID
+	}
+	return resp
 }
 
 func expenseCategoryToResponse(c *ExpenseCategory) *ExpenseCategoryResponse {

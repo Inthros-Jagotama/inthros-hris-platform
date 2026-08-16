@@ -366,6 +366,78 @@ func (r *Repository) CreateExpenseDocument(ctx context.Context, d *ExpenseDocume
 	return db.Create(d).Error
 }
 
+// =========================================================================
+// Settlement
+// =========================================================================
+
+func (r *Repository) CreateSettlement(ctx context.Context, s *Settlement) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(s).Error
+}
+
+func (r *Repository) FindSettlementByID(ctx context.Context, id uuid.UUID) (*Settlement, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var s Settlement
+	if err := db.Preload("Items").First(&s, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("settlement not found: %w", err)
+	}
+	return &s, nil
+}
+
+func (r *Repository) UpdateSettlement(ctx context.Context, s *Settlement) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(s).Error
+}
+
+func (r *Repository) ListSettlementsByTravel(ctx context.Context, travelID uuid.UUID) ([]Settlement, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var settlements []Settlement
+	if err := db.Preload("Items").Where("business_travel_id = ?", travelID).Order("created_at DESC").Find(&settlements).Error; err != nil {
+		return nil, err
+	}
+	return settlements, nil
+}
+
+func (r *Repository) CreateSettlementItem(ctx context.Context, i *SettlementItem) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(i).Error
+}
+
+// =========================================================================
+// Refund & Reimbursement (hasil settlement, §35-36)
+// =========================================================================
+
+func (r *Repository) CreateRefund(ctx context.Context, rf *Refund) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(rf).Error
+}
+
+func (r *Repository) CreateTravelReimbursement(ctx context.Context, tr *TravelReimbursement) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(tr).Error
+}
+
 // FindBusinessTravelByIDForOwnership loads a bare BusinessTravel (no
 // preloads) — used by sub-resource creators (activity/schedule) that only
 // need to check the parent travel exists and read its status, without the

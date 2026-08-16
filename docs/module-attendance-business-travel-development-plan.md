@@ -1871,31 +1871,29 @@ ip_address
 
 ## Phase 6 — Settlement
 
-- [ ] Settlement form.
-- [ ] Calculate total advance.
-- [ ] Calculate actual expense.
-- [ ] Calculate company paid.
-- [ ] Calculate refund.
-- [ ] Calculate additional reimbursement.
-- [ ] Settlement per participant.
-- [ ] Settlement approval.
+- [x] Settlement form — `POST /attendance/business-travels/:id/settlements` (digating `ErrBusinessTravelNotCompleted`, travel harus COMPLETED — §24).
+- [x] Calculate total advance — sum funding `FUNDED` dengan method code `DEPOSIT` (funding lain seperti REIMBURSEMENT/COMPANY_PAID/OTHER tidak dihitung sebagai advance).
+- [x] Calculate actual expense — sum semua expense (difilter participant jika diisi).
+- [x] Calculate company paid — sum expense dengan `funding_method_id` ber-code `COMPANY_PAID`, dikeluarkan dari rekonsiliasi advance (§34, Rule: Company Paid bukan hutang ke employee).
+- [x] Calculate refund — `diff = (totalActual - totalCompanyPaid) - totalAdvance`; diff < 0 → `TotalRefund = -diff` (§30 Scenario 3).
+- [x] Calculate additional reimbursement — diff > 0 → `TotalReimbursement = diff` (§31 Scenario 4). diff == 0 → BALANCED (§29 Scenario 2). Formula sudah menangani Scenario 1 (reimbursement murni, advance=0) dan Scenario 6 (mixed funding) karena company-paid & advance dipisah per item, bukan diasumsikan satu metode per travel.
+- [x] Settlement per participant — `participant_id` opsional di `CreateSettlementRequest`; kosong = gabungan seluruh peserta.
+- [x] Settlement approval — `POST .../settlements/:settlementId/submit`, module slug approval terpisah `"business_travel_settlement"` (bukan `"business_travel"` milik travel), diregister di `main.go`. Hasil akhir (BALANCED/REFUND_REQUIRED/REIMBURSEMENT_REQUIRED) baru ditentukan & disimpan permanen saat approval APPROVED (`HandleSettlementApprovalStatusChange`), bukan saat create — nilai di CreateSettlement adalah proyeksi awal.
 
 ## Phase 7 — Refund
 
-- [ ] Refund calculation.
-- [ ] Refund transaction.
-- [ ] Refund proof.
-- [ ] Refund confirmation.
-- [ ] Close settlement.
+- [x] Refund calculation — sudah dihitung di Phase 6 (`Settlement.TotalRefund`/`Balance`).
+- [x] Refund transaction — record `business_travel_refunds` **dibuat otomatis** oleh `HandleSettlementApprovalStatusChange` saat settlement APPROVED dan `TotalRefund > 0`, status awal `PENDING`.
+- [ ] Refund proof — belum ada endpoint upload bukti refund (pola sama dengan funding/expense document belum dibuat untuk refund).
+- [ ] Refund confirmation — belum ada endpoint untuk mengubah status refund `PENDING` → `CONFIRMED` (field `refund_reference`/`refunded_by`/`refund_date` di model sudah ada, tinggal endpoint-nya).
+- [ ] Close settlement — belum ada transisi otomatis `Settlement.Status` → `SETTLED` atau `BusinessTravel.Status` → `CLOSED` setelah refund dikonfirmasi.
 
 ## Phase 8 — Reimbursement
 
-- [ ] Generate reimbursement claim.
-- [ ] Reimbursement approval/status.
-- [ ] Payment.
-- [ ] Payment reference.
-- [ ] Payment proof.
-- [ ] Close travel.
+- [x] Generate reimbursement claim — record `business_travel_reimbursements` **dibuat otomatis** oleh `HandleSettlementApprovalStatusChange` saat settlement APPROVED dan `TotalReimbursement > 0`, status awal `REQUESTED`.
+- [ ] Reimbursement approval/status — belum ada endpoint transisi `REQUESTED` → `APPROVED` → `PROCESSING` → `PAID`. **Di sinilah gerbang §54.7 (cek subscription module Reimbursement) seharusnya diterapkan** sebelum endpoint ini dibangun.
+- [ ] Payment / [ ] Payment reference / [ ] Payment proof — belum ada.
+- [ ] Close travel — belum ada transisi `BusinessTravel.Status` → `CLOSED` setelah reimbursement/refund selesai diproses.
 
 ## Phase 9 — Attendance
 

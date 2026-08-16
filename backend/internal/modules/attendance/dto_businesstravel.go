@@ -252,6 +252,53 @@ type ExpenseDocumentResponse struct {
 }
 
 // =========================================================================
+// Settlement — Request/Response DTOs (§24-33 plan doc)
+// =========================================================================
+
+// CreateSettlementRequest membuat settlement untuk satu travel, opsional
+// per-participant (settlement per participant, §33 kesimpulan). Kosongkan
+// participant_id untuk settlement gabungan seluruh peserta.
+type CreateSettlementRequest struct {
+	ParticipantID string `json:"participant_id"`
+	Notes         string `json:"notes"`
+}
+
+type SubmitSettlementRequest struct {
+	FlowID *string `json:"flow_id"`
+}
+
+type SettlementResponse struct {
+	ID                 string                   `json:"id"`
+	BusinessTravelID   string                   `json:"business_travel_id"`
+	ParticipantID      *string                  `json:"participant_id,omitempty"`
+	TotalAdvance       float64                  `json:"total_advance"`
+	TotalActualExpense float64                  `json:"total_actual_expense"`
+	TotalCompanyPaid   float64                  `json:"total_company_paid"`
+	TotalReimbursement float64                  `json:"total_reimbursement"`
+	TotalRefund        float64                  `json:"total_refund"`
+	Balance            float64                  `json:"balance"`
+	Status             string                   `json:"status"`
+	ApprovalInstanceID *string                  `json:"approval_instance_id,omitempty"`
+	SubmittedAt        *time.Time               `json:"submitted_at,omitempty"`
+	ApprovedAt         *time.Time               `json:"approved_at,omitempty"`
+	SettledAt          *time.Time               `json:"settled_at,omitempty"`
+	Notes              *string                  `json:"notes,omitempty"`
+	Items              []SettlementItemResponse `json:"items,omitempty"`
+	CreatedAt          time.Time                `json:"created_at"`
+	UpdatedAt          time.Time                `json:"updated_at"`
+}
+
+type SettlementItemResponse struct {
+	ID              string  `json:"id"`
+	ExpenseID       *string `json:"expense_id,omitempty"`
+	FundingMethodID *string `json:"funding_method_id,omitempty"`
+	ItemType        string  `json:"item_type"`
+	Category        *string `json:"category,omitempty"`
+	Amount          float64 `json:"amount"`
+	Notes           *string `json:"notes,omitempty"`
+}
+
+// =========================================================================
 // Business Travel — Response DTOs
 // =========================================================================
 
