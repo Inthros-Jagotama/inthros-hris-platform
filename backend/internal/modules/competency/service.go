@@ -492,8 +492,58 @@ func (s *Service) CreateCompetencyEventTarget(ctx context.Context, req CreateCom
 	if err := s.repo.CreateCompetencyEventTarget(ctx, t); err != nil {
 		return nil, err
 	}
+	// Rater "self" dibuat otomatis bila template event mewajibkan tipe self
+	// (required atau min_rater > 0) dan target punya subject — karyawan tidak
+	// perlu di-assign manual untuk menilai dirinya sendiri.
+	if t.EmployeeID != nil {
+		if err := s.ensureSelfRater(ctx, t); err != nil {
+			return nil, err
+		}
+	}
 	response := t.ToResponse()
 	return &response, nil
+}
+
+// ensureSelfRater membuat rater self (subject menilai dirinya sendiri) untuk
+// sebuah target bila template event mengonfigurasi tipe self sebagai wajib.
+// Idempoten: tidak membuat duplikat bila rater self sudah ada.
+func (s *Service) ensureSelfRater(ctx context.Context, t *CompetencyEventTarget) error {
+	event, err := s.repo.FindCompetencyEventByID(ctx, t.CompetencyEventID)
+	if err != nil {
+		return nil // event tanpa template — biarkan manual
+	}
+	if event.TemplateID == nil {
+		return nil
+	}
+	raterTypes, err := s.repo.FindTemplateRaterTypes(ctx, *event.TemplateID)
+	if err != nil {
+		return err
+	}
+	for _, rt := range raterTypes {
+		if rt.RaterType != string(RaterTypeSelf) {
+			continue
+		}
+		if !rt.Required && rt.MinRater <= 0 {
+			return nil // self tidak diwajibkan template
+		}
+		// Sudah ada rater self? Jangan duplikat.
+		existing, _ := s.repo.FindRaterByTargetAndEmployee(ctx, t.ID, *t.EmployeeID)
+		if existing != nil {
+			return nil
+		}
+		weight := rt.Weight
+		if weight <= 0 {
+			weight = 1
+		}
+		return s.repo.CreateRater(ctx, &CompetencyAssessmentRater{
+			CompetencyEventTargetID: t.ID,
+			RaterEmployeeID:         *t.EmployeeID,
+			RaterType:               string(RaterTypeSelf),
+			Weight:                  weight,
+			Status:                  string(RaterStatusAssigned),
+		})
+	}
+	return nil
 }
 
 func (s *Service) GetCompetencyEventTargetByID(ctx context.Context, id string) (*CompetencyEventTargetResponse, error) {
@@ -558,6 +608,13 @@ func (s *Service) UpdateCompetencyEventTarget(ctx context.Context, id string, re
 	}
 	if err := s.repo.UpdateCompetencyEventTarget(ctx, t); err != nil {
 		return nil, err
+	}
+	// Paritas dengan create: bila target sekarang punya subject, pastikan
+	// rater self otomatis ada (idempoten).
+	if t.EmployeeID != nil {
+		if err := s.ensureSelfRater(ctx, t); err != nil {
+			return nil, err
+		}
 	}
 	response := t.ToResponse()
 	return &response, nil

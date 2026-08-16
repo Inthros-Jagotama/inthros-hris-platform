@@ -598,3 +598,80 @@ func TestService_SuggestedRaters(t *testing.T) {
 		t.Errorf("expected name 'Bawahan', got %q", sug.Subordinates[0].Name)
 	}
 }
+
+// TestCreateCompetencyEventTarget_AutoSelfRater memverifikasi rater "self"
+// dibuat otomatis saat target dibuat bila template event mewajibkan tipe
+// self (required / min_rater > 0) — karyawan tidak perlu di-assign manual.
+func TestCreateCompetencyEventTarget_AutoSelfRater(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	comp, _ := svc.CreateCompetency(ctx, CreateCompetencyRequest{Name: "Leadership"})
+	reqLevel := 3
+	tpl, _ := svc.CreateAssessmentTemplate(ctx, CreateAssessmentTemplateRequest{
+		Name: "Tpl Self",
+		Competencies: []TemplateCompetencyRequest{
+			{CompetencyID: comp.ID, RequiredLevel: &reqLevel, Weight: 1},
+		},
+		RaterTypes: []TemplateRaterTypeRequest{
+			{RaterType: "self", Weight: 0.2, MinRater: 1},
+			{RaterType: "peer", Weight: 0.8, MinRater: 1},
+		},
+	})
+	event, _ := svc.CreateCompetencyEvent(ctx, CreateCompetencyEventRequest{
+		Type: "manual", PeriodType: "annual", PeriodYear: 2026, TemplateID: &tpl.ID,
+	})
+	subjectID := uuid.New()
+	target, err := svc.CreateCompetencyEventTarget(ctx, CreateCompetencyEventTargetRequest{
+		CompetencyEventID: event.ID, OrganizationID: createTestOrgID(), EmployeeID: uuidStrPtr(subjectID),
+	})
+	if err != nil {
+		t.Fatalf("create target: %v", err)
+	}
+
+	// Self rater otomatis: employee = subject, tipe self, status assigned.
+	repo := svc.repo
+	rat, err := repo.FindRaterByTargetAndEmployee(ctx, mustParseUUID(t, target.ID), subjectID)
+	if err != nil {
+		t.Fatalf("expected auto self rater, got error: %v", err)
+	}
+	if rat.RaterType != "self" {
+		t.Errorf("expected rater_type self, got %q", rat.RaterType)
+	}
+	if rat.Status != "assigned" {
+		t.Errorf("expected status assigned, got %q", rat.Status)
+	}
+}
+
+// TestCreateCompetencyEventTarget_NoAutoSelfRater memverifikasi target tanpa
+// subject, atau template tanpa tipe self wajib, tidak membuat rater otomatis.
+func TestCreateCompetencyEventTarget_NoAutoSelfRater(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	// Template tanpa tipe self.
+	comp, _ := svc.CreateCompetency(ctx, CreateCompetencyRequest{Name: "Kerjasama"})
+	tpl, _ := svc.CreateAssessmentTemplate(ctx, CreateAssessmentTemplateRequest{
+		Name: "Tpl Peer Only",
+		Competencies: []TemplateCompetencyRequest{
+			{CompetencyID: comp.ID, Weight: 1},
+		},
+		RaterTypes: []TemplateRaterTypeRequest{
+			{RaterType: "peer", Weight: 1, MinRater: 1},
+		},
+	})
+	event, _ := svc.CreateCompetencyEvent(ctx, CreateCompetencyEventRequest{
+		Type: "manual", PeriodType: "annual", PeriodYear: 2026, TemplateID: &tpl.ID,
+	})
+	subjectID := uuid.New()
+	target, _ := svc.CreateCompetencyEventTarget(ctx, CreateCompetencyEventTargetRequest{
+		CompetencyEventID: event.ID, OrganizationID: createTestOrgID(), EmployeeID: uuidStrPtr(subjectID),
+	})
+
+	repo := svc.repo
+	if _, err := repo.FindRaterByTargetAndEmployee(ctx, mustParseUUID(t, target.ID), subjectID); err == nil {
+		t.Fatal("expected no auto rater when template has no required self type")
+	}
+}
