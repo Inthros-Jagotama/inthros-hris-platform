@@ -452,6 +452,18 @@ const routes = [
         component: () => import('@/views/modules/reimbursement/Reimbursements.vue'),
         meta: { title: 'Reimbursement', titleKey: 'reimbursement.title', descKey: 'reimbursement.description', icon: 'pi pi-credit-card', module: 'reimbursement' }
       },
+      {
+        path: 'reimbursements/types',
+        name: 'ReimbursementTypes',
+        component: () => import('@/views/modules/reimbursement/ReimbursementTypes.vue'),
+        meta: { title: 'Reimbursement Types', titleKey: 'reimbursement.types', descKey: 'reimbursement.types_description', icon: 'pi pi-tags', module: 'reimbursement', backRoute: '/reimbursements', backLabelKey: 'reimbursement.requests' }
+      },
+      {
+        path: 'reimbursements/:id',
+        name: 'ReimbursementRequestDetail',
+        component: () => import('@/views/modules/reimbursement/ReimbursementRequestDetail.vue'),
+        meta: { title: 'View Reimbursement Request', titleKey: 'reimbursement.view', descKey: 'reimbursement.description', icon: 'pi pi-eye', module: 'reimbursement', backRoute: '/reimbursements', backLabelKey: 'reimbursement.requests' }
+      },
       // Training & Development
       {
         path: 'training',

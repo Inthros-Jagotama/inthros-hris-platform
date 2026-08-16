@@ -233,6 +233,36 @@ var catalog = map[string]catalogEntry{
 			httputil.LangID: "Reimbursement perjalanan dinas Anda telah dibayarkan.",
 		},
 	},
+	"REIMBURSEMENT_APPROVED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Reimbursement Request Approved",
+			httputil.LangID: "Permohonan Reimbursemen Disetujui",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your reimbursement request has been approved.",
+			httputil.LangID: "Permohonan reimbursemen Anda telah disetujui.",
+		},
+	},
+	"REIMBURSEMENT_REJECTED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Reimbursement Request Rejected",
+			httputil.LangID: "Permohonan Reimbursemen Ditolak",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your reimbursement request has been rejected.",
+			httputil.LangID: "Permohonan reimbursemen Anda telah ditolak.",
+		},
+	},
+	"REIMBURSEMENT_PAID": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Reimbursement Paid",
+			httputil.LangID: "Reimbursemen Dibayarkan",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your reimbursement request has been paid.",
+			httputil.LangID: "Permohonan reimbursemen Anda telah dibayarkan.",
+		},
+	},
 	"KPI_TEMPLATE_CREATED": {
 		title: map[httputil.Lang]string{
 			httputil.LangEN: "New KPI Template",

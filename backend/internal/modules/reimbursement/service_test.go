@@ -42,6 +42,36 @@ func TestService_CreateReimbursementType_Success(t *testing.T) {
 	}
 }
 
+// TestService_CreateReimbursementType_AutoGeneratesCode guards the
+// auto-generated-code behavior: when the form doesn't send a code, the
+// service derives one from the display name (UPPER_SNAKE_CASE) and appends
+// a numeric suffix when the base code already exists.
+func TestService_CreateReimbursementType_AutoGeneratesCode(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	first, err := svc.CreateReimbursementType(ctx(), CreateReimbursementTypeRequest{
+		Name:        "Transport & Travel",
+		Description: "Transport reimbursement",
+	})
+	if err != nil {
+		t.Fatalf("CreateReimbursementType failed: %v", err)
+	}
+	if first.Code != "TRANSPORT_TRAVEL" {
+		t.Errorf("expected code 'TRANSPORT_TRAVEL', got '%s'", first.Code)
+	}
+
+	second, err := svc.CreateReimbursementType(ctx(), CreateReimbursementTypeRequest{
+		Name: "Transport & Travel",
+	})
+	if err != nil {
+		t.Fatalf("CreateReimbursementType (duplicate) failed: %v", err)
+	}
+	if second.Code != "TRANSPORT_TRAVEL_2" {
+		t.Errorf("expected code 'TRANSPORT_TRAVEL_2', got '%s'", second.Code)
+	}
+}
+
 func TestService_GetReimbursementTypeByID_Success(t *testing.T) {
 	svc, repo, _, cleanup := newTestService()
 	defer cleanup()

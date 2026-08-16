@@ -66,6 +66,20 @@ func (r *Repository) ListReimbursementTypes(ctx context.Context, page, perPage i
 	return types, total, nil
 }
 
+// ListReimbursementTypeCodes returns every existing type code (non-deleted),
+// used to auto-generate unique codes for new types without asking the user.
+func (r *Repository) ListReimbursementTypeCodes(ctx context.Context) ([]string, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var codes []string
+	if err := db.WithContext(ctx).Model(&ReimbursementType{}).Pluck("code", &codes).Error; err != nil {
+		return nil, err
+	}
+	return codes, nil
+}
+
 func (r *Repository) UpdateReimbursementType(ctx context.Context, t *ReimbursementType) error {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -216,6 +230,37 @@ func (r *Repository) DeleteReimbursementItem(ctx context.Context, id uuid.UUID) 
 		return fmt.Errorf("reimbursement item not found")
 	}
 	return result.Error
+}
+
+// =========================================================================
+// User resolution
+// =========================================================================
+
+// FindUserIDByEmployeeID resolves an employee's platform user_id via
+// employee_accounts, mirroring the employee_id -> user_id resolution already
+// used by the approval module (GetUserIDsByOrganization) and leave. Returns
+// nil if the employee has no linked user account.
+func (r *Repository) FindUserIDByEmployeeID(ctx context.Context, employeeID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var userIDStrs []string
+	err = db.WithContext(ctx).Table("employee_accounts").
+		Where("employee_id = ?", employeeID).
+		Limit(1).
+		Pluck("user_id", &userIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve employee user id: %w", err)
+	}
+	if len(userIDStrs) == 0 || userIDStrs[0] == "" {
+		return nil, nil
+	}
+	userID, err := uuid.Parse(userIDStrs[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id: %w", err)
+	}
+	return &userID, nil
 }
 
 // =========================================================================

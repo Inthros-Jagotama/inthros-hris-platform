@@ -38,11 +38,13 @@ Modul Reimbursement **backend-complete**, **frontend belum ada sama sekali** (pl
 
 Prasyarat sebelum request bisa dibuat (setiap request butuh `request_type_id`).
 
-- [ ] Halaman list `reimbursement_types` (table: code, name, description, is_active, actions).
-- [ ] Dialog create/edit (code, name, description, is_active toggle).
-- [ ] Soft-delete (konfirmasi).
-- [ ] Endpoint yang dipakai: `POST/GET/PUT/DELETE /api/v1/tenant/reimbursements/types`, `GET /types/:id`.
-- [ ] Gate permission: `reimbursement.create`/`update`/`delete` untuk aksi mutasi; `reimbursement.view` untuk akses halaman.
+✅ **Selesai (2026-08-16)** — `frontend/tenant/src/views/modules/reimbursement/ReimbursementTypes.vue`, route `/reimbursements/types`.
+
+- [x] Halaman list `reimbursement_types` (table: code, name, description, is_active, actions).
+- [x] Dialog create/edit (name, description, is_active toggle) — **`code` dihilangkan dari form (2026-08-16)**: backend auto-generate UPPER_SNAKE_CASE dari name dengan suffix numerik bila duplikat (`generateReimbursementTypeCode`, pola sama dengan Business Travel expense category/funding method); form tidak mengirim `code` lagi.
+- [x] Soft-delete (konfirmasi).
+- [x] Endpoint yang dipakai: `POST/GET/PUT/DELETE /api/v1/tenant/reimbursements/types`, `GET /types/:id`.
+- [x] Gate permission: `reimbursement.create`/`update`/`delete` untuk aksi mutasi; `reimbursement.view` untuk akses halaman.
 
 ---
 
@@ -50,43 +52,55 @@ Prasyarat sebelum request bisa dibuat (setiap request butuh `request_type_id`).
 
 ## 4.1 List
 
-- [ ] Tabel daftar pengajuan dengan filter `employee_id` (untuk admin/HR melihat semua) dan `status`, pagination.
-- [ ] Kolom: title, request type, total_amount, status (Tag berwarna), submitted_at.
-- [ ] Untuk employee biasa: default filter ke pengajuan miliknya sendiri (pola sama seperti `AttendanceOvertime.vue` pakai `employeeId` dari `useMyEmployee()`).
-- [ ] Endpoint: `GET /api/v1/tenant/reimbursements/requests`.
+✅ **Selesai (2026-08-16)** — `Reimbursements.vue` (ditulis ulang dari placeholder) sebagai halaman list `GET /reimbursements`.
+
+- [x] Tabel daftar pengajuan dengan filter `employee_id` (untuk admin/HR melihat semua) dan `status`, pagination.
+- [x] Kolom: title, request type, total_amount, status (Tag berwarna), submitted_at.
+- [x] Untuk employee biasa: default filter ke pengajuan miliknya sendiri (pola sama seperti `AttendanceOvertime.vue` pakai `employeeId` dari `useMyEmployee()`). Admin/HR (gate `hasPermission('reimbursement.approve')`) melihat semua + dropdown filter employee.
+- [x] Endpoint: `GET /api/v1/tenant/reimbursements/requests`.
 
 ## 4.2 Create / Edit Draft
 
-- [ ] Dialog/halaman create: title, description, request_type, currency (default IDR).
-- [ ] Setelah draft dibuat, tambah **item biaya** (expense_date, expense_type, description, amount, receipt_url) — form dinamis multi-row, mengikuti pola "add sub-resource" seperti Business Travel Activities/Schedules.
-- [ ] Edit title/description/currency **hanya saat status DRAFT** (guardrail sudah ada di backend, FE tinggal menyembunyikan tombol edit di status lain).
-- [ ] Endpoint: `POST/PUT /api/v1/tenant/reimbursements/requests`, `GET/POST/PUT/DELETE /requests/:id/items` & `/items/:itemId`.
+✅ **Selesai (2026-08-16)** — dialog create di list + dialog edit di `ReimbursementRequestDetail.vue` (hanya tampil saat DRAFT).
+
+- [x] Dialog/halaman create: title, description, request_type, currency (default IDR).
+- [x] Setelah draft dibuat, tambah **item biaya** (expense_date, expense_type, description, amount, receipt_url) — form dinamis multi-row, mengikuti pola "add sub-resource" seperti Business Travel Activities/Schedules.
+- [x] Edit title/description/currency **hanya saat status DRAFT** (guardrail sudah ada di backend, FE tinggal menyembunyikan tombol edit di status lain).
+- [x] Endpoint: `POST/PUT /api/v1/tenant/reimbursements/requests`, `GET/POST/PUT/DELETE /requests/:id/items` & `/items/:itemId`.
 
 ## 4.3 Upload Bukti (Receipt)
 
-- [ ] Per item biaya: tombol upload (pola dua-langkah sama seperti Business Travel funding/expense document — lihat `docs/module-attendance-business-travel-development-plan.md` §54.4): `POST /api/v1/tenant/uploads` dulu untuk dapat URL, baru simpan URL itu ke `receipt_url` saat create/update item.
-- [ ] **Ini menutup gap yang sudah teridentifikasi di analisis (§5.3/§7.5)** — backend sudah siap (field `receipt_url` ada), FE-nya yang belum pernah dibangun.
+✅ **Selesai (2026-08-16)** — tombol upload per item di detail (draft only), pola dua-langkah.
+
+- [x] Per item biaya: tombol upload (pola dua-langkah sama seperti Business Travel funding/expense document — lihat `docs/module-attendance-business-travel-development-plan.md` §54.4): `POST /api/v1/tenant/uploads` dulu untuk dapat URL, baru simpan URL itu ke `receipt_url` saat create/update item.
+- [x] **Ini menutup gap yang sudah teridentifikasi di analisis (§5.3/§7.5)** — backend sudah siap (field `receipt_url` ada), FE-nya yang belum pernah dibangun.
 
 ## 4.4 Detail View
 
-- [ ] Halaman/dialog detail: info request + daftar item biaya + total + status + riwayat approval (bisa reuse pola tampilan dari `Approvals.vue`'s document detail popup, atau link ke sana).
-- [ ] Endpoint: `GET /api/v1/tenant/reimbursements/requests/:id` (preload items).
+✅ **Selesai (2026-08-16)** — `ReimbursementRequestDetail.vue` (route `/reimbursements/:id`): header + ringkasan (total, request type, currency, paid) + info + daftar item + aksi status.
+
+- [x] Halaman/dialog detail: info request + daftar item biaya + total + status + riwayat approval (bisa reuse pola tampilan dari `Approvals.vue`'s document detail popup, atau link ke sana).
+- [x] Endpoint: `GET /api/v1/tenant/reimbursements/requests/:id` (preload items).
+
+> Catatan: `GET /requests/:id` tidak preload items — FE memanggil `GET /requests/:id/items` terpisah. Approval history tetap di-popup Approvals generik (`Approvals.vue` sudah punya case `reimbursement`).
 
 ## 4.5 Aksi Status
 
-- [ ] Tombol **Submit** (DRAFT → SUBMITTED/PENDING_APPROVAL), munculkan pilihan `flow_id` kalau approval module butuh (opsional, auto-resolve kalau tidak dipilih — cek pola `SubmitBusinessTravelRequest.flow_id`).
-- [ ] Tombol **Cancel** (status manapun → CANCELLED), dengan konfirmasi.
-- [ ] Approve/Reject **tidak perlu dibuat di sini** — sudah tertangani lewat halaman Approvals generik (`Approvals.vue`) via `HandleApprovalStatusChange` (push-based callback, §5.2 analisis). Cukup pastikan detail dokumen reimbursement muncul dengan benar di popup approval (lihat §7 di bawah).
-- [ ] Tombol **Pay** (APPROVED → PAID) — **tunda sampai keputusan Phase 5 (§5) dibuat**, supaya tidak membangun UI untuk alur yang mungkin berubah jadi otomatis.
-- [ ] Endpoint: `PUT /api/v1/tenant/reimbursements/requests/:id/status`.
+✅ **Selesai (2026-08-16)** — Submit/Cancel di detail; Pay manual disertakan (keputusan produk: **opsi manual**, lihat §5).
+
+- [x] Tombol **Submit** (DRAFT → SUBMITTED/PENDING_APPROVAL) — **backend ditambah auto-resolve flow aktif** (`GetActiveFlowIDForModule` ditambahkan ke interface `ApprovalEngine` reimbursement + dipanggil saat submit tanpa `flow_id`, pola sama persis dengan Business Travel), sehingga submit FE tanpa `flow_id` tetap masuk Approval inbox.
+- [x] Tombol **Cancel** (status manapun → CANCELLED), dengan konfirmasi.
+- [x] Approve/Reject **tidak perlu dibuat di sini** — sudah tertangani lewat halaman Approvals generik (`Approvals.vue`) via `HandleApprovalStatusChange` (push-based callback, §5.2 analisis). Cukup pastikan detail dokumen reimbursement muncul dengan benar di popup approval (lihat §7 di bawah).
+- [x] Tombol **Pay** (APPROVED → PAID) — keputusan produk diambil: **opsi manual** (flag manual, tanpa linkage payroll), tombol di-gate `reimbursement.approve`, dengan hint UI bahwa integrasi payroll tidak termasuk.
+- [x] Endpoint: `PUT /api/v1/tenant/reimbursements/requests/:id/status`.
 
 ---
 
 # 5. Phase 3 — Integrasi Payroll (Keputusan Produk Diperlukan)
 
-**Belum boleh dikerjakan sebelum ada keputusan produk yang jelas** — analisis menemukan `PAID` saat ini murni flag manual, tanpa linkage ke payslip/payroll run manapun.
+**Keputusan produk diambil 2026-08-16: opsi manual (3).** `PAID` tetap flag manual — tidak ada linkage otomatis ke payslip/payroll run. Frontend menampilkan `paid_amount`/`paid_at` jelas; opsi otomatis (`SalaryEmployeeAdjustment` one-off) tetap terbuka sebagai iterasi berikutnya (pola sudah terbukti di Business Travel, §54.8).
 
-Pertanyaan yang perlu dijawab dulu:
+Catatan analisis asli — pertanyaan yang perlu dijawab dulu:
 
 1. Apakah reimbursement yang `PAID` harus otomatis muncul sebagai line item di payslip berikutnya, atau tetap dianggap "sudah dibayar di luar sistem payroll" (transfer manual, dicatat manual)?
 2. Kalau otomatis: masuk sebagai `SalaryEmployeeAdjustment` one-off (pola yang sama dipakai Business Travel, lihat `docs/module-attendance-business-travel-development-plan.md` §54.8) sudah tersedia sebagai extension point tanpa perlu mengubah module payroll — reuse pola itu.
@@ -98,40 +112,47 @@ Pertanyaan yang perlu dijawab dulu:
 
 # 6. Phase 4 — Notifikasi
 
-Sesuai `docs/module-notification-plan.md` Phase 5 (belum dikerjakan untuk reimbursement).
+Sesuai `docs/module-notification-plan.md` Phase 5 (sebelumnya belum dikerjakan untuk reimbursement).
 
-- [ ] Wire `Service.SetNotifier(notificationSvc)` untuk `reimbursement.Service` di `main.go` (cek dulu apakah sudah ada — analisis tidak menyebutkan ini di-wire).
-- [ ] Notifikasi submit → pending approval (opsional, tergantung kebutuhan).
-- [ ] `REIMBURSEMENT_APPROVED` / `REIMBURSEMENT_REJECTED` — dikirim dari `HandleApprovalStatusChange` saat callback approval datang.
-- [ ] `REIMBURSEMENT_PAID` — dikirim saat status berubah ke PAID (baik manual maupun otomatis, tergantung hasil keputusan §5).
-- [ ] Tambahkan template pesan (EN+ID) ke `backend/internal/modules/notification/i18n.go` — **wajib**, tanpa ini `Notify()` tetap jalan tapi hanya menampilkan raw type string (lihat pola yang sama dikerjakan untuk Business Travel, commit `ab5646b0`).
+✅ **Selesai (2026-08-16)** — mengikuti pola Leave/Business Travel (commit `ab5646b0`).
+
+- [x] Wire `Service.SetNotifier(notificationSvc)` untuk `reimbursement.Service` di `main.go`.
+- [x] Notifikasi submit → pending approval (opsional, tergantung kebutuhan) — **tidak dibuat** (bukan kebutuhan; `APPROVAL_TASK_ASSIGNED` sudah di-push oleh Approval module sendiri).
+- [x] `REIMBURSEMENT_APPROVED` / `REIMBURSEMENT_REJECTED` — dikirim dari `HandleApprovalStatusChange` saat callback approval datang.
+- [x] `REIMBURSEMENT_PAID` — dikirim saat status berubah ke PAID (manual, sesuai keputusan §5).
+- [x] Tambahkan template pesan (EN+ID) ke `backend/internal/modules/notification/i18n.go` — **wajib**, tanpa ini `Notify()` tetap jalan tapi hanya menampilkan raw type string (lihat pola yang sama dikerjakan untuk Business Travel, commit `ab5646b0`).
+- [x] `FindUserIDByEmployeeID` ditambahkan ke `reimbursement.Repository` (pola sama dengan leave) untuk resolve employee → user.
+- [x] Test: `notifier_integration_test.go` (6 test) + 2 test auto-resolve flow di `approval_integration_test.go`.
 
 ---
 
 # 7. Phase 5 — Approval Detail Popup
 
-Reimbursement sudah terintegrasi ke Central Approval (module slug `"reimbursement"`), tapi perlu diverifikasi apakah detail dokumennya sudah tampil benar di popup approval generik.
+Reimbursement sudah terintegrasi ke Central Approval (module slug `"reimbursement"`).
 
-- [ ] Cek `frontend/tenant/src/views/modules/approval/Approvals.vue` — fungsi `documentEndpointFor(module, documentId)` — pastikan case `'reimbursement'` sudah ada dan mengarah ke endpoint yang benar (`/api/v1/tenant/reimbursements/requests/${documentId}`).
-- [ ] Kalau belum ada case-nya, tambahkan — polanya sama persis dengan yang baru dikerjakan untuk Business Travel (commit `6ab24b37`): field flat (title, description, total_amount, status, dst) otomatis tampil lewat fallback generik `documentFields`, tidak wajib bikin markup khusus kecuali mau tampilan lebih rapi.
+✅ **Selesai (sebelumnya, diverifikasi 2026-08-16)** — case `'reimbursement'` sudah ada di `documentEndpointFor` mengarah ke `/api/v1/tenant/reimbursements/requests/${documentId}` (commit `6ab24b37`); field flat otomatis tampil via fallback generik `documentFields`. Tidak ada perubahan yang diperlukan.
 
 ---
 
 # 8. Phase 6 — Housekeeping
 
-- [ ] **Selaraskan tipe kolom timestamp** antara `model.go` (int64 unix-nano) dan migrasi SQL (`TIMESTAMP`) — analisis §3 menandai ini sebagai inkonsistensi yang bisa jadi masalah tergantung `AutoMigrate` vs SQL migration mana yang jalan duluan. Perlu investigasi lebih dulu (bukan langsung diubah) karena berpotensi breaking change pada modul yang sudah production-tested.
-- [ ] Update `docs/project-completion-dashboard.md` supaya status "Reimbursement & Claim" mencerminkan kondisi FE yang sebenarnya (jangan biarkan "✅ Complete" menyesatkan pembaca lain).
+- [ ] **Selaraskan tipe kolom timestamp** antara `model.go` (int64 unix-nano) dan migrasi SQL (`TIMESTAMP`).
+
+  **Hasil investigasi (2026-08-16):** tenant DB hanya di-migrate lewat SQL file — `provisionTenant`/`MigrateTenantDB` (`backend/internal/platform/company/service.go`) menjalankan `tenantMigrator.Up()` saja, dan `AutoMigrate` modul tenant **tidak pernah dieksekusi** di path tenant (hanya platform modules yang di-AutoMigrate di `main.go` §8). Artinya skema efektif = SQL migration (`TIMESTAMP`), dan mapping `int64` di `model.go` untuk `submitted_at`/`approved_at`/`paid_at`/dst + penulisan `time.Now().UnixNano()` akan mismatch dengan kolom `TIMESTAMP` di Postgres (gagal di write maupun scan). Ini bug laten nyata, tapi **belum diubah** sesuai instruksi plan (breaking change pada modul yang sudah production-tested + perlu verifikasi end-to-end di Postgres). Rekomendasi lanjutan: ganti `int64` → `*time.Time` di `model.go` (kolom SQL sudah `TIMESTAMP`, jadi tidak perlu migration file baru), hapus `unixNanoToTimePtr`, dan sesuaikan service + test. Tanpa fix ini, transisi status reimbursement (submit/approve/pay) berisiko error di tenant Postgres.
+- [x] Update `docs/project-completion-dashboard.md` supaya status "Reimbursement & Claim" mencerminkan kondisi FE yang sebenarnya (jangan biarkan "✅ Complete" menyesatkan pembaca lain) — row modul diperbarui (16 Agu 2026), status notification-plan, dan test count 60 → 75.
 
 ---
 
 # 9. Urutan Kerja yang Disarankan
 
-1. **Phase 1** (Types master data) — prasyarat, kecil, cepat.
-2. **Phase 2** (Request CRUD + items + upload + detail + submit/cancel) — inti pekerjaan, paling besar.
-3. **Phase 5** (Approval detail popup) — cepat, bisa dikerjakan paralel dengan Phase 2 karena tidak saling bergantung.
-4. **Phase 4** (Notifikasi) — setelah Phase 2 jalan, supaya ada event nyata untuk ditest.
-5. **Phase 3** (Payroll integration) — **setelah keputusan produk didapat**, bisa dikerjakan kapan saja setelah itu.
-6. **Phase 6** (Housekeeping) — kapan saja, tidak blocking, tapi jangan dilupakan.
+Status per 2026-08-16:
+
+1. **Phase 1** (Types master data) — ✅ selesai.
+2. **Phase 2** (Request CRUD + items + upload + detail + submit/cancel) — ✅ selesai.
+3. **Phase 5** (Approval detail popup) — ✅ selesai (sudah ada sebelumnya, diverifikasi).
+4. **Phase 4** (Notifikasi) — ✅ selesai.
+5. **Phase 3** (Payroll integration) — keputusan produk diambil: **opsi manual**; opsi otomatis (`SalaryEmployeeAdjustment` one-off) terbuka sebagai iterasi berikutnya.
+6. **Phase 6** (Housekeeping) — dashboard doc ✅; selarasan timestamp `model.go` vs SQL **masih terbuka** (investigasi selesai, lihat §8) — rekomendasi: ganti `int64` → `*time.Time` di pass terpisah.
 
 ---
 

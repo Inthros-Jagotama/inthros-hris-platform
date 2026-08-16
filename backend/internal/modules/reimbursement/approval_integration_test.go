@@ -17,8 +17,10 @@ type fakeApprovalEngine struct {
 		documentID string
 		flowID     string
 	}
-	instanceID string
-	createErr  error
+	instanceID   string
+	createErr    error
+	activeFlowID string
+	resolveErr   error
 }
 
 func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error) {
@@ -38,6 +40,13 @@ func (f *fakeApprovalEngine) CreateApprovalInstance(ctx context.Context, module,
 
 func (f *fakeApprovalEngine) GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error) {
 	return "PENDING", nil
+}
+
+func (f *fakeApprovalEngine) GetActiveFlowIDForModule(ctx context.Context, module string) (string, error) {
+	if f.resolveErr != nil {
+		return "", f.resolveErr
+	}
+	return f.activeFlowID, nil
 }
 
 func TestService_UpdateReimbursementRequestStatus_SubmitWithApprovalEngine_CreatesInstance(t *testing.T) {
@@ -76,6 +85,63 @@ func TestService_UpdateReimbursementRequestStatus_SubmitNoFlowID_SkipsApproval(t
 	defer cleanup()
 
 	fake := &fakeApprovalEngine{}
+	svc.SetApprovalEngine(fake)
+
+	rType := createTestReimbursementType(repo)
+	empID := uuid.New()
+	created := createTestReimbursementRequest(repo, empID, rType.ID)
+
+	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil, nil)
+	if err != nil {
+		t.Fatalf("UpdateReimbursementRequestStatus failed: %v", err)
+	}
+	if updated.Status != "SUBMITTED" {
+		t.Errorf("expected status SUBMITTED, got '%s'", updated.Status)
+	}
+	if len(fake.createCalls) != 0 {
+		t.Errorf("expected no CreateApprovalInstance calls, got %d", len(fake.createCalls))
+	}
+}
+
+// TestService_UpdateReimbursementRequestStatus_SubmitAutoResolvesActiveFlow
+// guards the auto-resolve behavior: submitting without an explicit flow_id
+// resolves the module's active flow (same pattern business travel/leave use)
+// so the request still reaches the Approval inbox.
+func TestService_UpdateReimbursementRequestStatus_SubmitAutoResolvesActiveFlow(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	activeFlow := uuid.New().String()
+	fake := &fakeApprovalEngine{activeFlowID: activeFlow}
+	svc.SetApprovalEngine(fake)
+
+	rType := createTestReimbursementType(repo)
+	empID := uuid.New()
+	created := createTestReimbursementRequest(repo, empID, rType.ID)
+
+	updated, err := svc.UpdateReimbursementRequestStatus(ctx(), created.ID.String(), "SUBMITTED", "", nil, nil)
+	if err != nil {
+		t.Fatalf("UpdateReimbursementRequestStatus failed: %v", err)
+	}
+	if updated.Status != "PENDING_APPROVAL" {
+		t.Errorf("expected status PENDING_APPROVAL, got '%s'", updated.Status)
+	}
+	if len(fake.createCalls) != 1 {
+		t.Fatalf("expected 1 CreateApprovalInstance call, got %d", len(fake.createCalls))
+	}
+	if fake.createCalls[0].module != "reimbursement" || fake.createCalls[0].flowID != activeFlow {
+		t.Errorf("expected CreateApprovalInstance with auto-resolved flow %s, got %+v", activeFlow, fake.createCalls[0])
+	}
+}
+
+// TestService_UpdateReimbursementRequestStatus_SubmitFlowResolveErrorSkipsApproval
+// keeps the fallback contract: if the active-flow lookup itself fails, the
+// request degrades to plain SUBMITTED instead of hard-failing.
+func TestService_UpdateReimbursementRequestStatus_SubmitFlowResolveErrorSkipsApproval(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeApprovalEngine{resolveErr: errors.New("flow lookup failed")}
 	svc.SetApprovalEngine(fake)
 
 	rType := createTestReimbursementType(repo)

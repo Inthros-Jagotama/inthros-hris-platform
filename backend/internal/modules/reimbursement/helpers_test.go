@@ -22,6 +22,7 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&ReimbursementType{},
 		&ReimbursementRequest{},
 		&ReimbursementItem{},
+		&testEmployeeAccount{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
 	}
@@ -103,6 +104,24 @@ func createTestReimbursementItem(repo *Repository, requestID uuid.UUID) *Reimbur
 		panic(fmt.Sprintf("failed to create test reimbursement item: %v", err))
 	}
 	return item
+}
+
+// testEmployeeAccount mirrors useraccount.EmployeeAccount's employee_id <->
+// user_id mapping (employee_accounts table) for FindUserIDByEmployeeID tests,
+// without importing the useraccount package.
+type testEmployeeAccount struct {
+	ID         uuid.UUID `gorm:"type:char(36);primaryKey"`
+	EmployeeID uuid.UUID `gorm:"type:char(36);not null;uniqueIndex"`
+	UserID     uuid.UUID `gorm:"type:char(36);not null"`
+}
+
+func (testEmployeeAccount) TableName() string { return "employee_accounts" }
+
+func createTestEmployeeAccount(db *gorm.DB, employeeID, userID uuid.UUID) {
+	acc := &testEmployeeAccount{ID: uuid.New(), EmployeeID: employeeID, UserID: userID}
+	if err := db.Create(acc).Error; err != nil {
+		panic(fmt.Sprintf("failed to create test employee account: %v", err))
+	}
 }
 
 func uuidStr() string {

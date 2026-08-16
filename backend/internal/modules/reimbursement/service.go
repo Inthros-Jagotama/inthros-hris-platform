@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,12 +28,27 @@ const (
 type ApprovalEngine interface {
 	CreateApprovalInstance(ctx context.Context, module, documentID, flowID string) (string, error)
 	GetApprovalInstanceStatus(ctx context.Context, instanceID string) (string, error)
+	// GetActiveFlowIDForModule lets a reimbursement submission auto-resolve
+	// which flow to route through when the client doesn't supply one
+	// explicitly (same pattern leave/attendance use) — without this, a
+	// request submitted without a flow_id would silently stay SUBMITTED
+	// forever and never reach the Approval module.
+	GetActiveFlowIDForModule(ctx context.Context, module string) (string, error)
+}
+
+// Notifier abstracts the notification module so Reimbursement can notify an
+// employee of their request's approval/payment outcome
+// (docs/module-reimbursement-development-plan.md §6, Phase 4).
+// notification.Service satisfies this structurally.
+type Notifier interface {
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
 }
 
 type Service struct {
 	repo           *Repository
 	logger         *zap.Logger
 	approvalEngine ApprovalEngine
+	notifier       Notifier
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -44,13 +60,35 @@ func (s *Service) SetApprovalEngine(ae ApprovalEngine) {
 	s.approvalEngine = ae
 }
 
+// SetNotifier wires the notification module into this service so status
+// changes (approval outcome, payment) can notify the requesting employee
+// (docs/module-reimbursement-development-plan.md §6, Phase 4).
+func (s *Service) SetNotifier(n Notifier) {
+	s.notifier = n
+}
+
 // =========================================================================
 // Reimbursement Types
 // =========================================================================
 
 func (s *Service) CreateReimbursementType(ctx context.Context, req CreateReimbursementTypeRequest) (*ReimbursementTypeResponse, error) {
+	code := req.Code
+	if code == "" {
+		// Auto-generate a unique code from the display name (e.g. "Medical"
+		// -> "MEDICAL") so the create/edit form never needs to ask for one —
+		// same pattern as Business Travel expense categories/funding methods.
+		existingCodes, err := s.repo.ListReimbursementTypeCodes(ctx)
+		if err != nil {
+			return nil, err
+		}
+		existing := make(map[string]bool, len(existingCodes))
+		for _, c := range existingCodes {
+			existing[c] = true
+		}
+		code = generateReimbursementTypeCode(req.Name, existing)
+	}
 	t := &ReimbursementType{
-		Code:        req.Code,
+		Code:        code,
 		Name:        req.Name,
 		Description: req.Description,
 		IsActive:    true,
@@ -282,11 +320,22 @@ func (s *Service) UpdateReimbursementRequestStatus(ctx context.Context, id, stat
 		rr.TotalAmount = total
 		rr.SubmittedAt = now.UnixNano()
 
-		// Route through the central approval module when a flow is
-		// selected, instead of relying on this module's own ad-hoc
-		// SupervisorID/HrID fields.
-		if s.approvalEngine != nil && flowID != nil && *flowID != "" {
-			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "reimbursement", rr.ID.String(), *flowID)
+		// Route through the central approval module when a flow is selected,
+		// instead of relying on this module's own ad-hoc SupervisorID/HrID
+		// fields. If no flow_id was supplied, auto-resolve the active flow
+		// for this module (same pattern business travel uses) so a plain
+		// submit still reaches the Approval inbox instead of silently
+		// staying SUBMITTED forever.
+		flowIDToUse := ""
+		if flowID != nil && *flowID != "" {
+			flowIDToUse = *flowID
+		} else if s.approvalEngine != nil {
+			if resolved, resolveErr := s.approvalEngine.GetActiveFlowIDForModule(ctx, "reimbursement"); resolveErr == nil {
+				flowIDToUse = resolved
+			}
+		}
+		if s.approvalEngine != nil && flowIDToUse != "" {
+			instanceID, err := s.approvalEngine.CreateApprovalInstance(ctx, "reimbursement", rr.ID.String(), flowIDToUse)
 			if err != nil {
 				// Routing/assignee-resolution failures (approval.RoutingError)
 				// mean the configured flow can't reach an approver — fail
@@ -349,6 +398,9 @@ func (s *Service) UpdateReimbursementRequestStatus(ctx context.Context, id, stat
 		zap.String("id", rr.ID.String()),
 		zap.String("status", string(rr.Status)),
 	)
+	if rr.Status == ReimbStatusPaid {
+		s.notifyReimbursementOutcome(ctx, rr, "REIMBURSEMENT_PAID")
+	}
 	return reimbRequestToResponse(rr), nil
 }
 
@@ -386,7 +438,45 @@ func (s *Service) HandleApprovalStatusChange(ctx context.Context, documentID uui
 		zap.String("reimbursement_request_id", rr.ID.String()),
 		zap.String("approval_status", status),
 	)
-	return s.repo.UpdateReimbursementRequest(ctx, rr)
+	if err := s.repo.UpdateReimbursementRequest(ctx, rr); err != nil {
+		return err
+	}
+	switch rr.Status {
+	case ReimbStatusApproved:
+		s.notifyReimbursementOutcome(ctx, rr, "REIMBURSEMENT_APPROVED")
+	case ReimbStatusRejected:
+		s.notifyReimbursementOutcome(ctx, rr, "REIMBURSEMENT_REJECTED")
+	}
+	return nil
+}
+
+// notifyReimbursementOutcome notifies the requesting employee of their
+// reimbursement request's final outcome (approved/rejected/paid).
+// Best-effort: if the notifier isn't wired, the employee has no linked user
+// account, or Notify fails, this logs and moves on rather than failing the
+// status transition itself.
+func (s *Service) notifyReimbursementOutcome(ctx context.Context, rr *ReimbursementRequest, notifType string) {
+	if s.notifier == nil {
+		return
+	}
+	userID, err := s.repo.FindUserIDByEmployeeID(ctx, rr.EmployeeID)
+	if err != nil {
+		s.logger.Warn("Failed to resolve employee user id for reimbursement notification",
+			zap.String("reimbursement_request_id", rr.ID.String()),
+			zap.Error(err),
+		)
+		return
+	}
+	if userID == nil {
+		return
+	}
+	if err := s.notifier.Notify(ctx, *userID, notifType, nil, "reimbursement", rr.ID); err != nil {
+		s.logger.Warn("Failed to send reimbursement notification",
+			zap.String("reimbursement_request_id", rr.ID.String()),
+			zap.String("notif_type", notifType),
+			zap.Error(err),
+		)
+	}
 }
 
 func (s *Service) DeleteReimbursementRequest(ctx context.Context, id string) error {
@@ -517,6 +607,36 @@ func (s *Service) DeleteReimbursementItem(ctx context.Context, requestID, itemID
 		return fmt.Errorf("item does not belong to this request")
 	}
 	return s.repo.DeleteReimbursementItem(ctx, iID)
+}
+
+// generateReimbursementTypeCode slugifies a display name into an
+// UPPER_SNAKE_CASE code (e.g. "Transport & Travel" -> "TRANSPORT_TRAVEL") and
+// appends a numeric suffix if the base code already exists, so the type form
+// never needs to ask the user for a code.
+func generateReimbursementTypeCode(name string, existing map[string]bool) string {
+	var b strings.Builder
+	lastUnderscore := false
+	for _, r := range strings.ToUpper(strings.TrimSpace(name)) {
+		switch {
+		case r >= 'A' && r <= 'Z' || r >= '0' && r <= '9':
+			b.WriteRune(r)
+			lastUnderscore = false
+		default:
+			if !lastUnderscore && b.Len() > 0 {
+				b.WriteRune('_')
+				lastUnderscore = true
+			}
+		}
+	}
+	base := strings.TrimSuffix(b.String(), "_")
+	if base == "" {
+		base = "OTHER"
+	}
+	code := base
+	for i := 2; existing[code]; i++ {
+		code = fmt.Sprintf("%s_%d", base, i)
+	}
+	return code
 }
 
 // =========================================================================

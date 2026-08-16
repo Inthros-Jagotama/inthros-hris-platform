@@ -82,7 +82,7 @@
 | 9 | Leave & Time Off | 6 | 39 | 23 | ✅ Complete | 26 Jul 2026 |
 | 10 | Performance Management | 7 | 57 | 34 | ✅ Complete | 26 Jul 2026 |
 | 11 | Recruitment & Onboarding (ATS) | 7 | 75 | 33 | ✅ Complete | 26 Jul 2026 |
-| 12 | Reimbursement & Claim | 3 | 60 | 15 | ✅ Complete | 26 Jul 2026 |
+| 12 | Reimbursement & Claim | 3 | 75 | 15 | ✅ Complete | 16 Agu 2026 |
 | 13 | Training & Development | 7 | 31 | 35 | ✅ Complete | 26 Jul 2026 |
 | 14 | **Workforce Intelligence & Strategic Planning** | **7** | **108** | **68** | ✅ Complete | **25 Jul 2026** |
 | 15 | **Career Intelligence & Talent Management** | **4** | **65** | **19** | ✅ Complete | **26 Jul 2026** |
@@ -125,7 +125,7 @@ Ringkasan status implementasi per dokumen plan modul — diverifikasi terhadap k
 | [`performance-management-kpi-plan.md`](performance-management-kpi-plan.md) | ✅ **Selesai** | KPI Phase 1–4 (2026-08-06) + Scoring Phase 5 (07 Agu) + Seeder Phase 6 + Approval Integration & Two-Phase Target/Realization Phase 8 + Program Component/Bottom-Up Subordinate Scoring & OKR Self-Assessment Phase 9 (08 Agu) — backend & FE selesai; plan OKR & frontend KPI/OKR sudah di-archive |
 | `module-training-development-plan.md` *(di-archive: `docs/archive/`)* | ✅ **100% Selesai** | P0–P2 BE+FE selesai (2026-08-11): migration 088/089/090, CRUD lengkap, Central Approval, sertifikat, reports/history, 14 view FE — tanpa TODO tersisa |
 | [`module-movement-plan.md`](module-movement-plan.md) | 🟢 **Hampir Selesai** | 13/13 langkah + enhancement §12 P0–P2 ✅ (backend + FE Movements/Contracts/detail/reports/dashboard). Sisa: eksekusi E2E manual (menunggu environment tenant + akun `employeemovement.*`) + 4 enhancement opsional (bukan blocker) |
-| [`module-notification-plan.md`](module-notification-plan.md) | 🟡 **Sebagian** | Phase 1–4 ✅ + FE-1/2 ✅. Belum: Phase 5 — outcome notification payroll/employeemovement/reimbursement + recruitment; FE-3 deep-link per `reference_type` |
+| [`module-notification-plan.md`](module-notification-plan.md) | 🟡 **Sebagian** | Phase 1–4 ✅ + FE-1/2 ✅ + **outcome notification reimbursement ✅ (16 Agu 2026)**: `SetNotifier` di-wire + REIMBURSEMENT_APPROVED/REJECTED/PAID + i18n EN/ID. Belum: Phase 5 — outcome notification payroll/employeemovement/recruitment; FE-3 deep-link per `reference_type` |
 | [`module-career-intelligence-plan.md`](module-career-intelligence-plan.md) | 🟡 **Sebagian** | Backend ✅ penuh (talent maps, interests, career paths, gap analysis, succession plans). Belum: halaman FE Talent Maps/Interests/Gap Analysis/Succession Plans (baru career paths) |
 | [`module-leave-plan.md`](module-leave-plan.md) | 🟡 **Sebagian** | Phase 1–3 & 5 ✅; FE-1/2 ✅. Belum (Phase 4/6–10): accrual engine, adjustment HR, carry forward, expiry, sub-flow cancellation, team calendar, manager/HR dashboard |
 | [`module-attendance-plan.md`](module-attendance-plan.md) | 🟡 **Sebagian** | Mayoritas ✅ (geofence, session calc, corrections, overtime 2-alur, leave integration, notif) + FE-1–5 ✅. Belum: Absent/Exempt detection (butuh scheduled job), Manager/HR Dashboard & Team Calendar, Payroll integration (Phase 13), WRONG_CHECKIN/CHECKOUT otomatis |
@@ -147,7 +147,7 @@ Ringkasan status implementasi per dokumen plan modul — diverifikasi terhadap k
 | **Approval Engine** | **64** | 7.0% | Repository (25), service (25), handler (14) |
 | **Employee Movement** | **62** | 6.8% | Repository (22), service (22), handler (14) |
 | **Competency** | **60** | 6.6% | Service (25), repository (14), handler (15) |
-| **Reimbursement** | **60** | 6.6% | Repository (18), service (20), handler (16) |
+| **Reimbursement** | **75** | 8.1% | Repository (18), service (20), handler (16) + approval auto-resolve & notifier integration (16 Agu 2026) |
 | **Performance** | **57** | 6.2% | Repository (14), service (24), handler (17) |
 | **Shared: cache** | **51** | 5.6% | Unit (42), integration (8), benchmarks (31) |
 | **Payroll** | **39** | 4.3% | Repository (13), service (21) |

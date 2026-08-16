@@ -1017,6 +1017,10 @@ func main() {
 	reimbursementRepo := reimbursement.NewRepository(reimbursementResolver)
 	reimbursementSvc := reimbursement.NewService(reimbursementRepo, l.Named("reimbursement"))
 	reimbursementSvc.SetApprovalEngine(sharedApprovalEngine)
+	// Wire the notification module into reimbursement so requesters are
+	// notified of the final outcome (REIMBURSEMENT_APPROVED / _REJECTED
+	// / _PAID, docs/module-reimbursement-development-plan.md §6 Phase 4).
+	reimbursementSvc.SetNotifier(notificationSvc)
 	approvalSvc.RegisterStatusHandler("reimbursement", func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
 		return reimbursementSvc.HandleApprovalStatusChange(ctx, documentID, string(status), note)
 	})
