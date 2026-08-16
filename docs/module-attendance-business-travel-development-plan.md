@@ -1838,9 +1838,9 @@ ip_address
 - [x] Employee participant — `participant_type = EMPLOYEE` + `employee_id`.
 - [x] Non-employee participant — `participant_type = NON_EMPLOYEE` + field manual (name/organization/dst).
 - [x] Destinations — dibuat inline saat `CreateBusinessTravel` (`repo.CreateDestination`), belum ada endpoint tambah/edit terpisah.
-- [ ] Activities — model ada (`BusinessTravelActivity`), belum ada repository/service/endpoint.
-- [ ] Schedule — model ada (`BusinessTravelSchedule`), belum ada repository/service/endpoint.
-- [ ] Transportation — bagian dari Schedule, sama seperti di atas.
+- [x] Activities — `POST/GET /attendance/business-travels/:id/activities`.
+- [x] Schedule — `POST/GET /attendance/business-travels/:id/schedules`.
+- [x] Transportation — bagian dari Schedule (`transportation_type` field), sama endpoint di atas.
 
 ## Phase 3 — Approval Integration
 

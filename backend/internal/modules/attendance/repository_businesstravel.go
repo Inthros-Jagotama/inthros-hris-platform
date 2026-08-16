@@ -110,3 +110,67 @@ func (r *Repository) ListDestinationsByTravel(ctx context.Context, travelID uuid
 	}
 	return destinations, nil
 }
+
+// =========================================================================
+// Activities
+// =========================================================================
+
+func (r *Repository) CreateActivity(ctx context.Context, a *BusinessTravelActivity) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(a).Error
+}
+
+func (r *Repository) ListActivitiesByTravel(ctx context.Context, travelID uuid.UUID) ([]BusinessTravelActivity, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var activities []BusinessTravelActivity
+	if err := db.Where("business_travel_id = ?", travelID).Order("activity_date ASC").Find(&activities).Error; err != nil {
+		return nil, err
+	}
+	return activities, nil
+}
+
+// =========================================================================
+// Schedules
+// =========================================================================
+
+func (r *Repository) CreateSchedule(ctx context.Context, s *BusinessTravelSchedule) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(s).Error
+}
+
+func (r *Repository) ListSchedulesByTravel(ctx context.Context, travelID uuid.UUID) ([]BusinessTravelSchedule, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var schedules []BusinessTravelSchedule
+	if err := db.Where("business_travel_id = ?", travelID).Order("created_at ASC").Find(&schedules).Error; err != nil {
+		return nil, err
+	}
+	return schedules, nil
+}
+
+// FindBusinessTravelByIDForOwnership loads a bare BusinessTravel (no
+// preloads) — used by sub-resource creators (activity/schedule) that only
+// need to check the parent travel exists and read its status, without the
+// cost of preloading participants/destinations.
+func (r *Repository) FindBusinessTravelByIDForOwnership(ctx context.Context, id uuid.UUID) (*BusinessTravel, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var t BusinessTravel
+	if err := db.First(&t, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("business travel not found: %w", err)
+	}
+	return &t, nil
+}

@@ -88,6 +88,50 @@ func (h *Handler) SubmitBusinessTravel(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+func (h *Handler) AddBusinessTravelActivity(c *gin.Context) {
+	var req CreateBusinessTravelActivityRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.AddBusinessTravelActivity(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListBusinessTravelActivities(c *gin.Context) {
+	resp, err := h.service.ListBusinessTravelActivities(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) AddBusinessTravelSchedule(c *gin.Context) {
+	var req CreateBusinessTravelScheduleRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.AddBusinessTravelSchedule(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListBusinessTravelSchedules(c *gin.Context) {
+	resp, err := h.service.ListBusinessTravelSchedules(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) CancelBusinessTravel(c *gin.Context) {
 	resp, err := h.service.CancelBusinessTravel(c.Request.Context(), c.Param("id"))
 	if err != nil {

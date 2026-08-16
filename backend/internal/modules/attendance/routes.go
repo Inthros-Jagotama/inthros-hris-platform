@@ -74,5 +74,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.PUT("/business-travels/:id", handler.UpdateBusinessTravel)
 		att.POST("/business-travels/:id/submit", handler.SubmitBusinessTravel)
 		att.POST("/business-travels/:id/cancel", handler.CancelBusinessTravel)
+		att.POST("/business-travels/:id/activities", handler.AddBusinessTravelActivity)
+		att.GET("/business-travels/:id/activities", handler.ListBusinessTravelActivities)
+		att.POST("/business-travels/:id/schedules", handler.AddBusinessTravelSchedule)
+		att.GET("/business-travels/:id/schedules", handler.ListBusinessTravelSchedules)
 	}
 }

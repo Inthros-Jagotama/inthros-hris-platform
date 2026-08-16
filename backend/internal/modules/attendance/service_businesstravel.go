@@ -307,6 +307,134 @@ func (s *Service) CancelBusinessTravel(ctx context.Context, id string) (*Busines
 	return businessTravelToResponse(travel), nil
 }
 
+// AddBusinessTravelActivity menambahkan satu item agenda/kegiatan ke travel
+// yang sudah ada. Tidak dibatasi status DRAFT — agenda bisa disesuaikan
+// selama perjalanan berlangsung (§9 plan doc tidak menyebut pembatasan status).
+func (s *Service) AddBusinessTravelActivity(ctx context.Context, travelIDStr string, req CreateBusinessTravelActivityRequest) (*BusinessTravelActivityResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	if _, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, travelID); err != nil {
+		return nil, err
+	}
+	activityDate, err := time.Parse("2006-01-02", req.ActivityDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid activity_date: %w", err)
+	}
+	activity := &BusinessTravelActivity{
+		BusinessTravelID: travelID,
+		ActivityDate:     activityDate,
+		Title:            req.Title,
+	}
+	if req.StartTime != "" {
+		activity.StartTime = &req.StartTime
+	}
+	if req.EndTime != "" {
+		activity.EndTime = &req.EndTime
+	}
+	if req.Description != "" {
+		activity.Description = &req.Description
+	}
+	if req.Location != "" {
+		activity.Location = &req.Location
+	}
+	if req.Organizer != "" {
+		activity.Organizer = &req.Organizer
+	}
+	if req.Notes != "" {
+		activity.Notes = &req.Notes
+	}
+	if err := s.repo.CreateActivity(ctx, activity); err != nil {
+		return nil, err
+	}
+	resp := businessTravelActivityToResponse(activity)
+	return &resp, nil
+}
+
+func (s *Service) ListBusinessTravelActivities(ctx context.Context, travelIDStr string) ([]BusinessTravelActivityResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	activities, err := s.repo.ListActivitiesByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]BusinessTravelActivityResponse, 0, len(activities))
+	for i := range activities {
+		responses = append(responses, businessTravelActivityToResponse(&activities[i]))
+	}
+	return responses, nil
+}
+
+// AddBusinessTravelSchedule menambahkan satu jadwal/transportasi ke travel
+// yang sudah ada.
+func (s *Service) AddBusinessTravelSchedule(ctx context.Context, travelIDStr string, req CreateBusinessTravelScheduleRequest) (*BusinessTravelScheduleResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	if _, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, travelID); err != nil {
+		return nil, err
+	}
+	schedule := &BusinessTravelSchedule{
+		BusinessTravelID: travelID,
+		ScheduleType:     ScheduleType(strings.ToUpper(req.ScheduleType)),
+	}
+	if req.TransportationType != "" {
+		schedule.TransportationType = TransportationType(strings.ToUpper(req.TransportationType))
+	} else {
+		schedule.TransportationType = TransportationOther
+	}
+	if req.Origin != "" {
+		schedule.Origin = &req.Origin
+	}
+	if req.Destination != "" {
+		schedule.Destination = &req.Destination
+	}
+	if req.Provider != "" {
+		schedule.Provider = &req.Provider
+	}
+	if req.BookingReference != "" {
+		schedule.BookingReference = &req.BookingReference
+	}
+	if req.Notes != "" {
+		schedule.Notes = &req.Notes
+	}
+	if req.DepartureDatetime != "" {
+		if parsed, err := time.Parse(time.RFC3339, req.DepartureDatetime); err == nil {
+			schedule.DepartureDatetime = &parsed
+		}
+	}
+	if req.ArrivalDatetime != "" {
+		if parsed, err := time.Parse(time.RFC3339, req.ArrivalDatetime); err == nil {
+			schedule.ArrivalDatetime = &parsed
+		}
+	}
+	if err := s.repo.CreateSchedule(ctx, schedule); err != nil {
+		return nil, err
+	}
+	resp := businessTravelScheduleToResponse(schedule)
+	return &resp, nil
+}
+
+func (s *Service) ListBusinessTravelSchedules(ctx context.Context, travelIDStr string) ([]BusinessTravelScheduleResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	schedules, err := s.repo.ListSchedulesByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]BusinessTravelScheduleResponse, 0, len(schedules))
+	for i := range schedules {
+		responses = append(responses, businessTravelScheduleToResponse(&schedules[i]))
+	}
+	return responses, nil
+}
+
 // HandleBusinessTravelApprovalStatusChange is invoked by the approval
 // module's push-based status callback for the "business_travel" module slug
 // (registered separately from HandleApprovalStatusChange, which handles the
@@ -402,4 +530,33 @@ func businessTravelDestinationToResponse(d *BusinessTravelDestination) BusinessT
 		resp.DepartureDate = &departure
 	}
 	return resp
+}
+
+func businessTravelActivityToResponse(a *BusinessTravelActivity) BusinessTravelActivityResponse {
+	return BusinessTravelActivityResponse{
+		ID:           a.ID.String(),
+		ActivityDate: a.ActivityDate.Format("2006-01-02"),
+		StartTime:    a.StartTime,
+		EndTime:      a.EndTime,
+		Title:        a.Title,
+		Description:  a.Description,
+		Location:     a.Location,
+		Organizer:    a.Organizer,
+		Notes:        a.Notes,
+	}
+}
+
+func businessTravelScheduleToResponse(s *BusinessTravelSchedule) BusinessTravelScheduleResponse {
+	return BusinessTravelScheduleResponse{
+		ID:                 s.ID.String(),
+		ScheduleType:       string(s.ScheduleType),
+		DepartureDatetime:  s.DepartureDatetime,
+		ArrivalDatetime:    s.ArrivalDatetime,
+		Origin:             s.Origin,
+		Destination:        s.Destination,
+		TransportationType: string(s.TransportationType),
+		Provider:           s.Provider,
+		BookingReference:   s.BookingReference,
+		Notes:              s.Notes,
+	}
 }

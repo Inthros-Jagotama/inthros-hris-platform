@@ -60,6 +60,29 @@ type CreateBusinessTravelDestinationRequest struct {
 	Notes         string `json:"notes"`
 }
 
+type CreateBusinessTravelActivityRequest struct {
+	ActivityDate string `json:"activity_date" binding:"required"`
+	StartTime    string `json:"start_time"`
+	EndTime      string `json:"end_time"`
+	Title        string `json:"title" binding:"required"`
+	Description  string `json:"description"`
+	Location     string `json:"location"`
+	Organizer    string `json:"organizer"`
+	Notes        string `json:"notes"`
+}
+
+type CreateBusinessTravelScheduleRequest struct {
+	ScheduleType       string `json:"schedule_type" binding:"required"`
+	DepartureDatetime  string `json:"departure_datetime"`
+	ArrivalDatetime    string `json:"arrival_datetime"`
+	Origin             string `json:"origin"`
+	Destination        string `json:"destination"`
+	TransportationType string `json:"transportation_type"`
+	Provider           string `json:"provider"`
+	BookingReference   string `json:"booking_reference"`
+	Notes              string `json:"notes"`
+}
+
 // =========================================================================
 // Business Travel — Response DTOs
 // =========================================================================
@@ -108,4 +131,29 @@ type BusinessTravelDestinationResponse struct {
 	DepartureDate *string `json:"departure_date,omitempty"`
 	Purpose       *string `json:"purpose,omitempty"`
 	Notes         *string `json:"notes,omitempty"`
+}
+
+type BusinessTravelActivityResponse struct {
+	ID           string  `json:"id"`
+	ActivityDate string  `json:"activity_date"`
+	StartTime    *string `json:"start_time,omitempty"`
+	EndTime      *string `json:"end_time,omitempty"`
+	Title        string  `json:"title"`
+	Description  *string `json:"description,omitempty"`
+	Location     *string `json:"location,omitempty"`
+	Organizer    *string `json:"organizer,omitempty"`
+	Notes        *string `json:"notes,omitempty"`
+}
+
+type BusinessTravelScheduleResponse struct {
+	ID                 string     `json:"id"`
+	ScheduleType       string     `json:"schedule_type"`
+	DepartureDatetime  *time.Time `json:"departure_datetime,omitempty"`
+	ArrivalDatetime    *time.Time `json:"arrival_datetime,omitempty"`
+	Origin             *string    `json:"origin,omitempty"`
+	Destination        *string    `json:"destination,omitempty"`
+	TransportationType string     `json:"transportation_type"`
+	Provider           *string    `json:"provider,omitempty"`
+	BookingReference   *string    `json:"booking_reference,omitempty"`
+	Notes              *string    `json:"notes,omitempty"`
 }
