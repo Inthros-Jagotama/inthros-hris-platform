@@ -25,7 +25,7 @@
         <template #body="{ data }">
           <ToggleSwitch
             :modelValue="data.is_encryption_enabled"
-            :disabled="!!savingKeys[data.field_key]"
+            :disabled="!!savingKeys[data.field_key] || !canManage"
             @update:modelValue="(val) => toggleField(data.field_key, val)"
           />
         </template>
@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
 import api from '@/services/api'
@@ -43,9 +43,15 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import ToggleSwitch from 'primevue/toggleswitch'
 import SkeletonTable from '@/components/SkeletonTable.vue'
+import { useAuth } from '@/stores/auth'
 
 const { t } = useI18n()
 const toast = useToast()
+
+// Mengubah toggle enkripsi at-rest adalah aksi setingkat admin — dipisahkan
+// dari permission melihat halaman ini (lihat migrasi tenant 154).
+const auth = useAuth()
+const canManage = computed(() => auth.hasPermission('setting.sensitive-fields.manage'))
 
 const settings = ref([])
 const loading = ref(false)

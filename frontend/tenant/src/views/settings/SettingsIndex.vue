@@ -121,7 +121,7 @@ const groups = computed(() => [
     labelKey: 'settings.group_access',
     items: [
       { path: '/settings/rbac', icon: 'pi pi-shield', titleKey: 'settings.rbac', descKey: 'rbac.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', permission: 'rbac.roles.view' },
-      { path: '/settings/sensitive-fields', icon: 'pi pi-lock', titleKey: 'sensitive_field.title', descKey: 'sensitive_field.description', tint: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400', permission: 'employee.view' }
+      { path: '/settings/sensitive-fields', icon: 'pi pi-lock', titleKey: 'sensitive_field.title', descKey: 'sensitive_field.description', tint: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400', permission: 'setting.sensitive-fields.view' }
     ]
   }
 ])

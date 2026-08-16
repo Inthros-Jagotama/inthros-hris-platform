@@ -18,8 +18,14 @@ import (
 // sensitive_field_settings_test.go) onto a real gin router with the
 // package's route registration, mirroring the pattern used in
 // setting/numbering_handler_test.go.
-func setupSensitiveFieldHandlerRouter(t *testing.T) *gin.Engine {
+// perms: permission claim yang dibawa caller (seperti yang di-set middleware
+// AuthJWT). Kosong = pakai wildcard "*" supaya test perilaku handler tidak
+// bercampur dengan test gating (lihat sensitive_field_settings_authz_test.go).
+func setupSensitiveFieldHandlerRouter(t *testing.T, perms ...string) *gin.Engine {
 	t.Helper()
+	if len(perms) == 0 {
+		perms = []string{"*"}
+	}
 	db := setupSensitiveFieldTestDB(t)
 	resolver := func(ctx context.Context) (*gorm.DB, error) { return db, nil }
 	repo := NewRepository(resolver)
@@ -29,6 +35,10 @@ func setupSensitiveFieldHandlerRouter(t *testing.T) *gin.Engine {
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("permissions", perms)
+		c.Next()
+	})
 	group := r.Group("/api/v1/tenant")
 	RegisterRoutes(group, handler)
 	return r
