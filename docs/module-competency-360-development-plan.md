@@ -1146,12 +1146,19 @@ Test:
 
 ## Phase 1 — Analysis & Refactoring
 
-- [ ] Review existing competency implementation.
-- [ ] Review relationship Employee → Organization/Position.
-- [ ] Review Job Family competency mapping.
-- [ ] Review existing competency score calculation.
-- [ ] Review Approval Engine API/contract.
-- [ ] Tentukan backward compatibility strategy.
+- [x] Review existing competency implementation. (Selesai — §34.1)
+- [x] Review relationship Employee → Organization/Position. (Selesai — §34.1: `employee_id` sudah ada di target/scores, tapi unique constraint masih org-centric)
+- [x] Review Job Family competency mapping. (Selesai — §34.1: `job_family_competencies` tanpa kolom level/weight & tanpa kode Go)
+- [x] Review existing competency score calculation. (Selesai — §34.1: `competency_scores.organization_id` UNIQUE, satu skor per posisi)
+- [x] Review Approval Engine API/contract. (Selesai — §34.2: pola performance `ApprovalEngine`, `subscriptionModuleAliases`/`subscriptionModuleSubslots`)
+- [x] Tentukan backward compatibility strategy. (Keputusan: §34.7)
+
+### 34.7 Keputusan Fase 1 (Final)
+
+- **Slug approval**: `competency_360_assessment` → alias ke subscription `competency` (§34.2).
+- **`competence_values` (legacy)**: dipertahankan apa adanya; tidak ada kode baru yang menyentuhnya (§4.3).
+- **Backward compatibility tabel existing**: kolom tidak di-drop; hanya unique constraint `competency_event_targets`/`competency_scores` yang diganti ke employee-centric (§8/§15) — aman karena belum ada jalur pengisian aktif (diverifikasi §34.1).
+- **Renumbering migrasi**: plan §34.4 menulis mulai `139`, tapi saat implementasi `139_reimbursement_approve_permission` sudah terpakai → migrasi Competency 360 dimulai dari **`140`** (lihat §34.8).
 
 ## Phase 2 — Competency Foundation
 
@@ -1371,33 +1378,51 @@ Saat Business Travel diintegrasikan ke Approval, ditemukan **submit selalu gagal
 
 Tidak ada modul existing dengan pola "4 rater menilai 1 subject" persis, tapi **Attendance Overtime's dua-alur** (`AttendanceOvertimeRequest.FlowType`: `SELF` vs `ASSIGNED`, migrasi 080, §32b di `docs/module-attendance-plan.md`) adalah analog terdekat untuk konsep "orang lain mengisi form tentang/untuk orang lain, lalu ada approval gate": assignment → pengisian oleh assignee → submit → approval. Pola state machine-nya (`SUBMITTED → PENDING_APPROVAL → APPROVED → WAITING_ACTUAL → ACTUAL_SUBMITTED`) bisa jadi referensi konseptual untuk alur *assignment rater → isi response → submit response*, tapi **tidak bisa dipakai langsung** karena overtime single-assignee, sedangkan 360 butuh multi-rater per subject. Tetap perlu tabel baru (§9/§11 plan generik: `competency_assessment_raters`, `competency_assessment_responses`), bukan reuse tabel overtime.
 
-## 34.4 Urutan Migrasi Konkret (mulai `139`)
+## 34.4 Urutan Migrasi Konkret (mulai `140`)
 
-Menggabungkan §28 (Database Migration) plan generik dengan penomoran nyata:
+Menggabungkan §28 (Database Migration) plan generik dengan penomoran nyata. Catatan: plan awalnya menulis mulai `139`, tapi saat implementasi `139_reimbursement_approve_permission` sudah terpakai → semua nomor digeser +1 (lihat §34.7):
 
 ```text
-139_competency_job_family_requirement.sql   -- ALTER job_family_competencies: + required_level, + weight
+140_competency_job_family_requirement.sql   -- ALTER job_family_competencies: + required_level, + weight
                                               -- (tabel ini SEBELUMNYA tidak dipakai kode apapun — aman diubah)
-140_competency_event_target_employee_unique.sql
+141_competency_event_target_employee_unique.sql
                                               -- ALTER competency_event_targets: ganti UNIQUE(event,org) → UNIQUE(event,employee)
                                               -- §8 plan generik. BREAKING pada constraint lama — cek dulu data existing
                                               -- (kemungkinan besar masih kosong karena belum ada fitur yang mengisi tabel ini secara aktif)
-141_competency_score_employee_unique.sql
+142_competency_score_employee_unique.sql
                                               -- ALTER competency_scores: drop UNIQUE(organization_id) → UNIQUE(competency_event_id, employee_id)
                                               -- §15 plan generik
-142_competency_rating_scales.sql              -- competency_rating_scales, competency_rating_scale_items (§7)
-143_competency_assessment_templates.sql        -- competency_assessment_templates, template_competencies,
+143_competency_rating_scales.sql              -- competency_rating_scales, competency_rating_scale_items (§7)
+144_competency_assessment_templates.sql        -- competency_assessment_templates, template_competencies,
                                                 -- template_rater_types (§5, §10)
-144_competency_indicators.sql                   -- competency_indicators, template_indicators (§6)
-145_competency_assessment_raters.sql             -- competency_assessment_raters (§9)
-146_competency_assessment_responses.sql           -- competency_assessment_responses (§11)
-147_competency_assessment_approval_instance.sql    -- + approval_instance_id ke tabel finalisasi assessment
+145_competency_indicators.sql                   -- competency_indicators, template_indicators (§6)
+146_competency_assessment_raters.sql             -- competency_assessment_raters (§9)
+147_competency_assessment_responses.sql           -- competency_assessment_responses (§11)
+148_competency_assessment_approval_instance.sql    -- + approval_instance_id ke tabel finalisasi assessment
                                                      -- (pola sama migrasi 061/133 — reimbursement/business travel)
 ```
 
 Semua migrasi butuh pasangan `postgres`+`mysql`, plus `.down.sql`, mengikuti konvensi 100% yang sudah dipakai di seluruh repo (lihat `docs/module-attendance-business-travel-development-plan.md` §54.2 untuk detail konvensi penulisan).
 
-**Catatan risiko migrasi 140/141**: ubah UNIQUE constraint pada tabel yang sudah ada di production. Sebelum eksekusi nanti (di luar scope plan ini), **wajib** cek dulu apakah ada data existing yang akan melanggar constraint baru — kemungkinan besar aman karena `competency_event_targets`/`competency_scores` belum punya jalur pengisian aktif di kode manapun saat ini, tapi ini harus diverifikasi faktual saat implementasi, bukan diasumsikan dari sini.
+**Catatan risiko migrasi 141/142**: ubah UNIQUE constraint pada tabel yang sudah ada di production. Sebelum eksekusi nanti (di luar scope plan ini), **wajib** cek dulu apakah ada data existing yang akan melanggar constraint baru — kemungkinan besar aman karena `competency_event_targets`/`competency_scores` belum punya jalur pengisian aktif di kode manapun saat ini, tapi ini harus diverifikasi faktual saat implementasi, bukan diasumsikan dari sini.
+
+## 34.8 Nomor Migrasi Aktual (hasil implementasi)
+
+Karena `139_reimbursement_approve_permission` sudah terpakai sebelum Competency 360 dikerjakan, seluruh nomor di §34.4 digeser +1 dan diimplementasikan persis sebagai berikut:
+
+```text
+140_competency_job_family_requirement
+141_competency_event_target_employee_unique
+142_competency_score_employee_unique
+143_competency_rating_scales
+144_competency_assessment_templates
+145_competency_indicators
+146_competency_assessment_raters
+147_competency_assessment_responses
+148_competency_assessment_approval_instance
+```
+
+Semua punya pasangan `postgres` + `mysql` + `.down.sql`. Migrasi **tidak dijalankan** dalam implementasi ini (di luar scope — hanya file migrasi yang dibuat).
 
 ## 34.5 Frontend — Realita vs §24 Plan Generik
 
