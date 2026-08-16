@@ -121,6 +121,20 @@ func (r *Repository) DeleteRatingScale(ctx context.Context, id uuid.UUID) error 
 // Assessment Template
 // =========================================================================
 
+// FindAssessmentTemplateCodes mengambil seluruh code template yang sudah ada
+// — dipakai generate code otomatis dari Name (CreateAssessmentTemplate).
+func (r *Repository) FindAssessmentTemplateCodes(ctx context.Context) ([]string, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var codes []string
+	if err := db.WithContext(ctx).Model(&CompetencyAssessmentTemplate{}).Pluck("code", &codes).Error; err != nil {
+		return nil, err
+	}
+	return codes, nil
+}
+
 func (r *Repository) CreateAssessmentTemplate(ctx context.Context, tpl *CompetencyAssessmentTemplate) error {
 	db, err := r.getDB(ctx)
 	if err != nil {

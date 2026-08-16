@@ -196,9 +196,15 @@ func (s *Service) DeleteRatingScale(ctx context.Context, id string) error {
 // =========================================================================
 
 func (s *Service) CreateAssessmentTemplate(ctx context.Context, req CreateAssessmentTemplateRequest) (*AssessmentTemplateResponse, error) {
+	// Code dibuat otomatis dari Name (UPPER_SNAKE_CASE + suffix bila duplikat)
+	// — form pembuatan tidak perlu mengisi kode.
+	existingCodes, err := s.repo.FindAssessmentTemplateCodes(ctx)
+	if err != nil {
+		return nil, err
+	}
 	tpl := &CompetencyAssessmentTemplate{
 		Name: req.Name,
-		Code: req.Code,
+		Code: generateUniqueCode(req.Name, toCodeSet(existingCodes)),
 	}
 	if req.Description != nil {
 		tpl.Description = req.Description

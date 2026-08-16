@@ -790,3 +790,22 @@ func TestGenerateUniqueCode(t *testing.T) {
 		}
 	}
 }
+
+// TestCreateAssessmentTemplate_AutoCode memverifikasi code template dibuat
+// otomatis dari nama (tidak diterima dari client / tidak kosong).
+func TestCreateAssessmentTemplate_AutoCode(t *testing.T) {
+	svc, cleanup := newTestService()
+	defer cleanup()
+	ctx := context.Background()
+
+	created, err := svc.CreateAssessmentTemplate(ctx, CreateAssessmentTemplateRequest{Name: "Template Tahunan"})
+	if err != nil {
+		t.Fatalf("CreateAssessmentTemplate failed: %v", err)
+	}
+	if created.Code == "" {
+		t.Fatal("expected auto-generated code, got empty")
+	}
+	if created.Code != "TEMPLATE_TAHUNAN" {
+		t.Errorf("expected code TEMPLATE_TAHUNAN, got %q", created.Code)
+	}
+}

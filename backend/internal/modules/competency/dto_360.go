@@ -52,13 +52,14 @@ type TemplateRaterTypeRequest struct {
 }
 
 type CreateAssessmentTemplateRequest struct {
-	Name          string                      `json:"name" binding:"required,max=255"`
-	Code          string                      `json:"code" binding:"required,max=50"`
-	Description   *string                     `json:"description"`
-	Status        string                      `json:"status" binding:"omitempty,oneof=active inactive"`
-	ScaleID       *string                     `json:"scale_id"`
-	Competencies  []TemplateCompetencyRequest `json:"competencies"`
-	RaterTypes    []TemplateRaterTypeRequest  `json:"rater_types"`
+	// Code tidak diterima dari client — dibuat otomatis dari Name di service
+	// (Service.generateUniqueCode), jadi form pembuatan tidak perlu memintanya.
+	Name         string                      `json:"name" binding:"required,max=255"`
+	Description  *string                     `json:"description"`
+	Status       string                      `json:"status" binding:"omitempty,oneof=active inactive"`
+	ScaleID      *string                     `json:"scale_id"`
+	Competencies []TemplateCompetencyRequest `json:"competencies"`
+	RaterTypes   []TemplateRaterTypeRequest  `json:"rater_types"`
 }
 
 type UpdateAssessmentTemplateRequest struct {

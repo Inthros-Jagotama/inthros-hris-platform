@@ -46,7 +46,6 @@ func setup360Scenario(t *testing.T) (*Service, string, *AssessmentResult, func()
 	reqLevel := 3
 	tpl, err := svc.CreateAssessmentTemplate(ctx, CreateAssessmentTemplateRequest{
 		Name: "Template 360",
-		Code: "TPL-360-001",
 		Competencies: []TemplateCompetencyRequest{
 			{CompetencyID: comp.ID, RequiredLevel: &reqLevel, Weight: 1, SortOrder: 0},
 		},
@@ -211,7 +210,7 @@ func TestCalculateTarget_UnsubmittedRatersExcluded(t *testing.T) {
 	indUID := mustParseUUID(t, ind.ID)
 	reqLevel := 3
 	tpl, _ := svc.CreateAssessmentTemplate(ctx, CreateAssessmentTemplateRequest{
-		Name: "Tpl", Code: "TPL-002",
+		Name: "Tpl",
 		Competencies: []TemplateCompetencyRequest{
 			{CompetencyID: comp.ID, RequiredLevel: &reqLevel, Weight: 1},
 		},
