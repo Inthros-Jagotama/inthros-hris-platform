@@ -2328,27 +2328,30 @@ Tidak ada module baru untuk diregistrasi di `backend/cmd/server/main.go` (lihat 
 
 ## 54.6 Struktur Frontend
 
-Vue 3, tanpa store per-module, tanpa API-client/type layer terpisah — komponen memanggil `@/services/api` langsung. Ikuti pola **Attendance** (bukan Reimbursement, yang masih placeholder), dengan satu `.vue` per halaman/tab:
+**Status: diimplementasikan (versi ringkas)**, di `frontend/tenant/src/views/modules/attendance/business-travel/`:
 
 ```text
 frontend/tenant/src/views/modules/attendance/business-travel/
-├── BusinessTravelList.vue        # daftar + filter status
-├── BusinessTravelForm.vue         # create/edit request (section 45.A, tanpa field funding)
-├── BusinessTravelDetail.vue        # detail + tab: Info, Participants, Activities, Schedule, Documents
-├── BusinessTravelFunding.vue        # muncul setelah APPROVED (section 45.B)
-├── BusinessTravelExpenses.vue        # actual expense per participant
-├── BusinessTravelSettlement.vue       # form settlement + kalkulasi (section 45.C)
-├── BusinessTravelReimbursements.vue    # daftar & proses reimbursement claim
-├── BusinessTravelDashboard.vue          # section 46
-└── BusinessTravelReports.vue              # section 47 (bisa dipecah per jenis report jika perlu)
+├── BusinessTravelList.vue     # daftar + filter status + dialog create (tanpa field funding)
+└── BusinessTravelDetail.vue    # halaman tab tunggal: Info, Funding, Expenses, Settlement, Refund & Reimbursement
 ```
 
-Wiring:
+Deviasi dari rencana awal (2 file, bukan 9), alasan pragmatis:
 
-- Routes: tambahkan ke `frontend/tenant/src/router/index.js`.
-- Sidebar: entri baru di `frontend/tenant/src/layouts/Sidebar.vue`, gated `hasModule('business_travel')` + permission check per item (mis. tab Funding hanya tampil untuk yang punya `business_travel.funding.view`).
-- i18n: tambahkan string ke `src/locales/en.json` & `id.json` (dokumen ini sudah berbahasa Indonesia untuk field-level, tapi UI label tetap harus lewat i18n key seperti module lain).
-- Upload proof/receipt: pakai komponen upload yang sudah ada (cek existing usage endpoint `/api/v1/tenant/uploads` di module lain sebagai referensi, karena reimbursement FE belum mengimplementasikannya).
+- **Form digabung ke List** sebagai dialog create, bukan `BusinessTravelForm.vue` terpisah — request perjalanan dinas cukup sederhana (title/purpose/dates/origin/description) untuk satu dialog, edit-while-DRAFT belum ada UI-nya (baru create).
+- **Funding/Expenses/Settlement/Reimbursements digabung jadi tab di dalam satu `BusinessTravelDetail.vue`** (pola manual tab-button, bukan `TabView` PrimeVue — mengikuti `PayrollRunDetail.vue`/`ApplicationDetail.vue`), bukan file terpisah — konteks travel yang sama dipakai lintas tab (participants untuk funding/expense per-participant, dsb), lebih mudah dikelola dalam satu komponen daripada mem-props-drilling antar file.
+- **Participants/Destinations ditampilkan read-only** di tab Info (diisi saat create), belum ada UI tambah/edit setelah travel dibuat meski endpoint backend untuk activities/schedules sudah dipakai (ada dialog add).
+- **`BusinessTravelDashboard.vue`/`BusinessTravelReports.vue` (§46-47) belum dibuat** — Phase 12 backend (reporting endpoints) juga belum ada.
+- **Master data (funding method, expense category) tidak punya halaman admin terpisah** — quick-add dialog inline di dalam form Funding/Expense (`POST /business-travel-funding-methods`, `POST /business-travel-expense-categories`) karena belum ada tempat lain untuk membuatnya.
+- **Upload dokumen (transfer proof, receipt) belum diwire di FE** — backend endpoint (`.../fundings/:fundingId/documents`, `.../expenses/:expenseId/documents`) sudah ada, tapi dialog Funding/Expense di FE belum ada tombol upload seperti pola `AttendanceOvertime.vue`'s `attachment_url`. **TODO lanjutan.**
+
+Wiring aktual:
+
+- Routes: `/attendance/business-travel` (list) & `/attendance/business-travel/:id` (detail) di `frontend/tenant/src/router/index.js`, `module: 'attendance'` (bukan module terpisah, konsisten dengan §54.1).
+- Menu: card baru di `Attendance.vue` (pola sama dengan card Overtime/Corrections), **bukan** entri Sidebar terpisah — Business Travel diakses lewat halaman Attendance seperti Overtime/Corrections, bukan top-level module di sidebar.
+- i18n: section `"business_travel": {...}` baru ditambahkan ke `en.json` & `id.json` (bukan nested di dalam `"attendance"`).
+- Permission: **belum digating di FE** (tombol/menu tidak dicek `hasPermission('business_travel.*')` sama sekali) — konsisten dengan catatan §49 Phase 1 bahwa codebase ini tidak punya pola enforcement permission granular per-action, hanya module-level.
+- Verifikasi: `npm run build` sukses tanpa error. **Belum ditest di browser nyata** (belum ada environment jalan) — ini murni verifikasi kompilasi, bukan verifikasi fungsional UI.
 
 ## 54.7 Integrasi dengan Module Reimbursement — Bergantung Subscription
 
