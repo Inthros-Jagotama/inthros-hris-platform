@@ -124,6 +124,18 @@ const routes = [
         meta: { title: 'Assessment Templates', titleKey: 'competency_360.templates', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency' }
       },
       {
+        path: 'competencies/templates/new',
+        name: 'AssessmentTemplateNew',
+        component: () => import('@/views/modules/competency/AssessmentTemplateForm.vue'),
+        meta: { title: 'New Assessment Template', titleKey: 'competency_360.new_template', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies/templates', backLabelKey: 'competency_360.templates' }
+      },
+      {
+        path: 'competencies/templates/:id/edit',
+        name: 'AssessmentTemplateEdit',
+        component: () => import('@/views/modules/competency/AssessmentTemplateForm.vue'),
+        meta: { title: 'Edit Assessment Template', titleKey: 'competency_360.edit_template', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies/templates', backLabelKey: 'competency_360.templates' }
+      },
+      {
         path: 'competencies/events',
         name: 'CompetencyEvents',
         component: () => import('@/views/modules/competency/CompetencyEvents.vue'),
