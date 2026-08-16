@@ -3,10 +3,11 @@
 // berbasis role dari JWT claims dengan role hierarchy.
 //
 // Role Hierarchy:
-//   super_admin → akses penuh ke semua resource (platform + tenant)
-//   company_admin → platform view-only + full tenant management
-//   manager → tenant-level view/create/update (tanpa delete)
-//   employee → tenant-level view-only
+//
+//	super_admin → akses penuh ke semua resource (platform + tenant)
+//	company_admin → platform view-only + full tenant management
+//	manager → tenant-level view/create/update (tanpa delete)
+//	employee → tenant-level view-only
 //
 // Policy format: resource.action
 // Contoh: company.create, user.view, module.activate, employee.view
@@ -263,7 +264,7 @@ func (e *Enforcer) loadFromDB(db *gorm.DB) error {
 				}
 				if action == "*" {
 					e.policies[roleSlug][resource] = "*"
-				} else if !strings.Contains(existing, action) {
+				} else if !containsAction(existing, action) {
 					e.policies[roleSlug][resource] = existing + "," + action
 				}
 			} else {
@@ -273,6 +274,21 @@ func (e *Enforcer) loadFromDB(db *gorm.DB) error {
 	}
 
 	return nil
+}
+
+// containsAction memeriksa apakah daftar action (dipisah koma) sudah memuat
+// action tertentu — perbandingan per-token, BUKAN substring.
+//
+// Substring match akan salah begitu ada action yang merupakan prefix action
+// lain: "view_nik" mengandung "view", sehingga "view" tidak pernah ikut
+// ditambahkan dan Check(role, "employee", "view") jadi deny.
+func containsAction(existing, action string) bool {
+	for _, a := range strings.Split(existing, ",") {
+		if strings.TrimSpace(a) == action {
+			return true
+		}
+	}
+	return false
 }
 
 // seedDefaults memasukkan role dan permission default ke database.
@@ -380,51 +396,29 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 	}
 
 	// Company Admin: platform view-only + tenant full
-	companyAdminPerms := map[string][]string{
-		"company":             {"view"},
-		"user":                {"view"},
-		"license":             {"view"},
-		"package":             {"view"},
-		"organization":        {"*"},
-		"employee":            {"*"},
-		"attendance":          {"*"},
-		"leave":               {"*"},
-		"payroll":             {"*"},
-		"competency":          {"*"},
-		"jobmanagement":       {"*"},
-		"employeemovement":    {"*"},
-		"approval":            {"*"},
-		"setting":             {"*"},
-		"useraccount":         {"*"},
-		"performance":         {"*"},
-		"recruitment":         {"*"},
-		"reimbursement":       {"*"},
-		"training":            {"*"},
-		"workforceintelligence": {"*"},
-		"careerintelligence":  {"*"},
-	}
+	companyAdminPerms := companyAdminDefaultPerms()
 	if err := addPerms(companyAdminUUID, companyAdminPerms); err != nil {
 		return err
 	}
 
 	// Manager: view/create/update (no delete)
 	managerPerms := map[string][]string{
-		"organization":        {"view", "create", "update"},
-		"employee":            {"view", "create", "update"},
-		"attendance":          {"view"},
-		"leave":               {"view", "create"},
-		"payroll":             {"view", "create", "update"},
-		"competency":          {"view", "create", "update"},
-		"jobmanagement":       {"view", "create", "update"},
-		"employeemovement":    {"view", "create", "update"},
-		"approval":            {"view", "create", "update"},
-		"setting":             {"view", "create", "update"},
-		"performance":         {"view", "create", "update"},
-		"recruitment":         {"view", "create", "update"},
-		"reimbursement":       {"view", "create", "update"},
-		"training":            {"view", "create", "update"},
+		"organization":          {"view", "create", "update"},
+		"employee":              {"view", "create", "update"},
+		"attendance":            {"view"},
+		"leave":                 {"view", "create"},
+		"payroll":               {"view", "create", "update"},
+		"competency":            {"view", "create", "update"},
+		"jobmanagement":         {"view", "create", "update"},
+		"employeemovement":      {"view", "create", "update"},
+		"approval":              {"view", "create", "update"},
+		"setting":               {"view", "create", "update"},
+		"performance":           {"view", "create", "update"},
+		"recruitment":           {"view", "create", "update"},
+		"reimbursement":         {"view", "create", "update"},
+		"training":              {"view", "create", "update"},
 		"workforceintelligence": {"view", "create", "update"},
-		"careerintelligence":  {"view", "create", "update"},
+		"careerintelligence":    {"view", "create", "update"},
 	}
 	if err := addPerms(managerUUID, managerPerms); err != nil {
 		return err
@@ -432,26 +426,61 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 
 	// Employee: view-only
 	employeePerms := map[string][]string{
-		"organization":        {"view"},
-		"employee":            {"view"},
-		"attendance":          {"view"},
-		"leave":               {"view"},
-		"payroll":             {"view"},
-		"competency":          {"view"},
-		"employeemovement":    {"view"},
-		"setting":             {"view"},
-		"performance":         {"view"},
-		"recruitment":         {"view"},
-		"reimbursement":       {"view"},
-		"training":            {"view"},
+		"organization":          {"view"},
+		"employee":              {"view"},
+		"attendance":            {"view"},
+		"leave":                 {"view"},
+		"payroll":               {"view"},
+		"competency":            {"view"},
+		"employeemovement":      {"view"},
+		"setting":               {"view"},
+		"performance":           {"view"},
+		"recruitment":           {"view"},
+		"reimbursement":         {"view"},
+		"training":              {"view"},
 		"workforceintelligence": {"view"},
-		"careerintelligence":  {"view"},
+		"careerintelligence":    {"view"},
 	}
 	if err := addPerms(employeeUUID, employeePerms); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// companyAdminDefaultPerms adalah grant default untuk role company_admin:
+// platform view-only + tenant full. Dipakai bersama oleh seedDefaults()
+// (database kosong) dan upsertMissingPermissions() (database existing),
+// supaya resource baru yang di-grant wildcard tidak terlewat di tenant lama.
+func companyAdminDefaultPerms() map[string][]string {
+	return map[string][]string{
+		"company":      {"view"},
+		"user":         {"view"},
+		"license":      {"view"},
+		"package":      {"view"},
+		"organization": {"*"},
+		// Termasuk permission view_* per-field (Sensitive Data Masking, spec §3):
+		// company_admin melihat nilai asli, bukan hasil masking.
+		"employee":              {"*"},
+		"employee_family":       {"*"},
+		"employee_bank_account": {"*"},
+		"emergency_contact":     {"*"},
+		"attendance":            {"*"},
+		"leave":                 {"*"},
+		"payroll":               {"*"},
+		"competency":            {"*"},
+		"jobmanagement":         {"*"},
+		"employeemovement":      {"*"},
+		"approval":              {"*"},
+		"setting":               {"*"},
+		"useraccount":           {"*"},
+		"performance":           {"*"},
+		"recruitment":           {"*"},
+		"reimbursement":         {"*"},
+		"training":              {"*"},
+		"workforceintelligence": {"*"},
+		"careerintelligence":    {"*"},
+	}
 }
 
 // defaultResources mengembalikan daftar semua resource default dengan actions-nya.
@@ -467,7 +496,16 @@ func defaultResources() []defaultPerm {
 		{"monitoring", []string{"view"}},
 		{"package", []string{"view", "create", "update", "delete", "publish"}},
 		{"organization", []string{"view", "create", "update", "delete"}},
-		{"employee", []string{"view", "create", "update", "delete"}},
+		// Sensitive Data Masking (spec §3): permission per-field untuk melihat
+		// nilai asli (bukan hasil masking). Masking dievaluasi lewat permissions
+		// claim di JWT (authctx.HasPermission), bukan lewat Enforcer.Check —
+		// jadi company_admin harus benar-benar membawa permission ini di claim,
+		// tidak cukup mengandalkan wildcard "employee:*" pada policy hierarchy.
+		{"employee", []string{"view", "create", "update", "delete",
+			"view_nik", "view_passport", "view_phone_number", "view_email"}},
+		{"employee_family", []string{"view_nik"}},
+		{"employee_bank_account", []string{"view_account_number", "view_account_name"}},
+		{"emergency_contact", []string{"view_phone_number"}},
 		{"attendance", []string{"view", "create", "update", "delete"}},
 		{"leave", []string{"view", "create", "update", "delete"}},
 		{"payroll", []string{"view", "create", "update", "delete"}},
@@ -498,6 +536,12 @@ func allPermActions(resource string, resources []defaultPerm) []string {
 // upsertMissingPermissions menambahkan permission yang belum ada di database
 // beserta role_permission untuk super_admin. Berguna saat resource baru
 // ditambahkan ke allResources setelah initial seed.
+//
+// company_admin juga ikut di-grant untuk resource yang memang di-grant
+// wildcard ("*") padanya di companyAdminDefaultPerms — tanpa ini, database
+// platform yang sudah ada tidak pernah menerima permission baru (mis.
+// employee.view_nik), sehingga company_admin tetap melihat data ter-mask
+// padahal spec §3 menyatakan sebaliknya.
 func (e *Enforcer) upsertMissingPermissions(db *gorm.DB) error {
 	allResources := defaultResources()
 
@@ -505,6 +549,15 @@ func (e *Enforcer) upsertMissingPermissions(db *gorm.DB) error {
 	var superAdminRole RbacRole
 	if err := db.Where("slug = ?", "super_admin").First(&superAdminRole).Error; err != nil {
 		return fmt.Errorf("super_admin role not found: %w", err)
+	}
+
+	// company_admin bersifat opsional — instalasi lama mungkin tidak punya.
+	var companyAdminRole RbacRole
+	hasCompanyAdmin := db.Where("slug = ?", string(RoleCompanyAdmin)).First(&companyAdminRole).Error == nil
+	companyAdminPerms := companyAdminDefaultPerms()
+	companyAdminWildcard := func(resource string) bool {
+		actions, ok := companyAdminPerms[resource]
+		return ok && len(actions) == 1 && actions[0] == "*"
 	}
 
 	for _, r := range allResources {
@@ -531,6 +584,14 @@ func (e *Enforcer) upsertMissingPermissions(db *gorm.DB) error {
 			rp := RbacRolePermission{RoleID: superAdminRole.ID, PermissionID: perm.ID}
 			if err := db.Create(&rp).Error; err != nil {
 				return fmt.Errorf("failed to assign permission %s.%s to super_admin: %w", r.resource, action, err)
+			}
+
+			// Assign ke company_admin bila resource-nya memang wildcard untuknya.
+			if hasCompanyAdmin && companyAdminWildcard(r.resource) {
+				rp := RbacRolePermission{RoleID: companyAdminRole.ID, PermissionID: perm.ID}
+				if err := db.Create(&rp).Error; err != nil {
+					return fmt.Errorf("failed to assign permission %s.%s to company_admin: %w", r.resource, action, err)
+				}
 			}
 		}
 	}
@@ -687,24 +748,24 @@ func ActionFromMethod(method string) string {
 func singularize(s string) string {
 	// Handle irregular plurals
 	irregular := map[string]string{
-		"companies":                  "company",
-		"licenses":                   "license",
-		"modules":                    "module",
-		"packages":                   "package",
-		"users":                      "user",
-		"monitoring":                 "monitoring",
-		"tenants":                    "tenant",
-		"organizations":              "organization",
-		"organization-summaries":     "organization",
-		"employees":                  "employee",
-		"attendances":                "attendance",
-		"competencies":               "competency",
-		"job-management":             "jobmanagement",
-		"employee-movements":         "employeemovement",
-		"workforce-intelligence":     "workforceintelligence",
-		"career-intelligence":        "careerintelligence",
-		"settings":                    "setting",
-		"user-accounts":               "useraccount",
+		"companies":              "company",
+		"licenses":               "license",
+		"modules":                "module",
+		"packages":               "package",
+		"users":                  "user",
+		"monitoring":             "monitoring",
+		"tenants":                "tenant",
+		"organizations":          "organization",
+		"organization-summaries": "organization",
+		"employees":              "employee",
+		"attendances":            "attendance",
+		"competencies":           "competency",
+		"job-management":         "jobmanagement",
+		"employee-movements":     "employeemovement",
+		"workforce-intelligence": "workforceintelligence",
+		"career-intelligence":    "careerintelligence",
+		"settings":               "setting",
+		"user-accounts":          "useraccount",
 	}
 	if singular, ok := irregular[s]; ok {
 		return singular
