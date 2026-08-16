@@ -8,6 +8,9 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
+
+	"github.com/inthros/hris-platform/internal/pkg/crypto"
 )
 
 // =========================================================================
@@ -560,5 +563,113 @@ func TestService_Create_WithRecruitedFromApplicationID(t *testing.T) {
 	}
 	if persisted.RecruitedFromApplicationID != appID {
 		t.Errorf("expected persisted recruited_from_application_id %s, got %s", appID, persisted.RecruitedFromApplicationID)
+	}
+}
+
+// =========================================================================
+// Encrypt-on-write Tests (NIK, Passport, PhoneNumber, Email)
+// =========================================================================
+
+// setupEncryptionTestDB returns the shared employee test DB (setupTestDB
+// already migrates and seeds SensitiveFieldSetting, all disabled by
+// default) along with a Repository, so encryptIfEnabled has real rows to
+// check against.
+func setupEncryptionTestDB(t *testing.T) (*gorm.DB, *Repository) {
+	t.Helper()
+	db, dbResolver, cleanup := setupTestDB()
+	t.Cleanup(cleanup)
+	repo := NewRepository(dbResolver)
+	return db, repo
+}
+
+func TestCreate_EncryptsNIKWhenEnabled(t *testing.T) {
+	t.Setenv("HRIS_ENCRYPTION_KEY", "00000000000000000000000000000000000000000000000000000000000000aa")
+	db, repo := setupEncryptionTestDB(t)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+	ctx := context.Background()
+
+	if err := svc.SetSensitiveFieldEnabled(ctx, "employee.nik", true); err != nil {
+		t.Fatalf("SetSensitiveFieldEnabled() error = %v", err)
+	}
+
+	const originalNIK = "3201010101985678"
+	nik := originalNIK
+	resp, err := svc.Create(ctx, CreateEmployeeRequest{
+		EmployeeID: "ENC-001",
+		Name:       "Encrypt Test",
+		NIK:        &nik,
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	var stored Employee
+	db.First(&stored, "id = ?", resp.ID)
+	if stored.NIK == nil || *stored.NIK == originalNIK {
+		t.Fatal("expected NIK to be stored encrypted, got plaintext or nil")
+	}
+	if !crypto.LooksEncrypted(*stored.NIK) {
+		t.Errorf("stored NIK %q does not look encrypted", *stored.NIK)
+	}
+}
+
+func TestCreate_StoresPlaintextWhenDisabled(t *testing.T) {
+	t.Setenv("HRIS_ENCRYPTION_KEY", "00000000000000000000000000000000000000000000000000000000000000aa")
+	db, repo := setupEncryptionTestDB(t)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+	ctx := context.Background()
+	// employee.nik defaults to disabled — no toggle call.
+
+	nik := "3201010101985678"
+	resp, err := svc.Create(ctx, CreateEmployeeRequest{
+		EmployeeID: "ENC-002",
+		Name:       "Plaintext Test",
+		NIK:        &nik,
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	var stored Employee
+	db.First(&stored, "id = ?", resp.ID)
+	if stored.NIK == nil || *stored.NIK != nik {
+		t.Fatalf("expected NIK stored as plaintext %q, got %v", nik, stored.NIK)
+	}
+}
+
+func TestUpdate_EncryptsEmailWhenEnabled(t *testing.T) {
+	t.Setenv("HRIS_ENCRYPTION_KEY", "00000000000000000000000000000000000000000000000000000000000000aa")
+	db, repo := setupEncryptionTestDB(t)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+	ctx := context.Background()
+
+	created, err := svc.Create(ctx, CreateEmployeeRequest{
+		EmployeeID: "ENC-003",
+		Name:       "Update Encrypt Test",
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	if err := svc.SetSensitiveFieldEnabled(ctx, "employee.email", true); err != nil {
+		t.Fatalf("SetSensitiveFieldEnabled() error = %v", err)
+	}
+
+	const originalEmail = "encrypted.update@test.com"
+	email := originalEmail
+	if _, err := svc.Update(ctx, created.ID, UpdateEmployeeRequest{Email: &email}); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	var stored Employee
+	db.First(&stored, "id = ?", created.ID)
+	if stored.Email == nil || *stored.Email == originalEmail {
+		t.Fatal("expected Email to be stored encrypted, got plaintext or nil")
+	}
+	if !crypto.LooksEncrypted(*stored.Email) {
+		t.Errorf("stored Email %q does not look encrypted", *stored.Email)
 	}
 }

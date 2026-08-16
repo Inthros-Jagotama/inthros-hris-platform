@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/inthros/hris-platform/internal/pkg/authctx"
+	"github.com/inthros/hris-platform/internal/pkg/crypto"
 )
 
 const (
@@ -54,6 +55,27 @@ func (s *Service) checkQuota(ctx context.Context) error {
 	if count >= int64(max) {
 		return ErrQuotaExceeded
 	}
+	return nil
+}
+
+// encryptIfEnabled meng-enkripsi *value in-place jika toggle enkripsi
+// untuk fieldKey aktif. Nilai nil/kosong tidak diproses.
+func (s *Service) encryptIfEnabled(ctx context.Context, fieldKey string, value *string) error {
+	if value == nil || *value == "" {
+		return nil
+	}
+	enabled, err := s.IsFieldEncryptionEnabled(ctx, fieldKey)
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+	encrypted, err := crypto.EncryptString(*value)
+	if err != nil {
+		return fmt.Errorf("encrypt %s: %w", fieldKey, err)
+	}
+	*value = encrypted
 	return nil
 }
 
@@ -136,6 +158,19 @@ func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*Emplo
 			return nil, fmt.Errorf("invalid recruited_from_application_id: %w", err)
 		}
 		emp.RecruitedFromApplicationID = &id
+	}
+
+	if err := s.encryptIfEnabled(ctx, "employee.nik", emp.NIK); err != nil {
+		return nil, err
+	}
+	if err := s.encryptIfEnabled(ctx, "employee.passport", emp.Passport); err != nil {
+		return nil, err
+	}
+	if err := s.encryptIfEnabled(ctx, "employee.phone_number", emp.PhoneNumber); err != nil {
+		return nil, err
+	}
+	if err := s.encryptIfEnabled(ctx, "employee.email", emp.Email); err != nil {
+		return nil, err
 	}
 
 	if err := s.repo.CreateEmployee(ctx, emp); err != nil {
@@ -270,6 +305,19 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateEmployeeReque
 	}
 	if req.Status != nil {
 		emp.Status = *req.Status
+	}
+
+	if err := s.encryptIfEnabled(ctx, "employee.nik", emp.NIK); err != nil {
+		return nil, err
+	}
+	if err := s.encryptIfEnabled(ctx, "employee.passport", emp.Passport); err != nil {
+		return nil, err
+	}
+	if err := s.encryptIfEnabled(ctx, "employee.phone_number", emp.PhoneNumber); err != nil {
+		return nil, err
+	}
+	if err := s.encryptIfEnabled(ctx, "employee.email", emp.Email); err != nil {
+		return nil, err
 	}
 
 	if err := s.repo.UpdateEmployee(ctx, emp); err != nil {

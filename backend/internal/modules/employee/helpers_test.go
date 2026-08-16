@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	sqlite "github.com/glebarez/sqlite"
+	"github.com/google/uuid"
 )
 
 // setupTestDB creates an in-memory SQLite database and auto-migrates all employee models.
@@ -29,8 +30,16 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&EmployeeInsurance{},
 		&EmployeeBankAccount{},
 		&Employment{},
+		&SensitiveFieldSetting{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
+	}
+
+	// Seed sensitive field settings (all disabled by default), mirroring the
+	// real 151_sensitive_field_settings migration, so Create/Update's
+	// encryptIfEnabled has real rows to check against.
+	for _, d := range SensitiveFieldRegistry {
+		db.Create(&SensitiveFieldSetting{ID: uuid.New().String(), FieldKey: d.Key, IsEncryptionEnabled: false})
 	}
 
 	dbResolver := func(ctx context.Context) (*gorm.DB, error) {
