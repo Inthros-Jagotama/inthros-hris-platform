@@ -11,9 +11,9 @@ import (
 // (berasal dari JWT claims yang sudah di-set oleh AuthJWT middleware).
 //
 // Middleware ini:
-// 1. Validasi company_id ada di gin context (dari JWT claims)
-// 2. Propagate company_id & user_id ke request context agar bisa diakses
-//    oleh service/repository melalui c.Request.Context()
+//  1. Validasi company_id ada di gin context (dari JWT claims)
+//  2. Propagate company_id & user_id ke request context agar bisa diakses
+//     oleh service/repository melalui c.Request.Context()
 func TenantRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		companyID := c.GetString("company_id")
@@ -33,6 +33,11 @@ func TenantRequired() gin.HandlerFunc {
 		ctx := context.WithValue(c.Request.Context(), "company_id", companyID)
 		if userID := c.GetString("user_id"); userID != "" {
 			ctx = context.WithValue(ctx, "user_id", userID)
+		}
+		if perms, ok := c.Get("permissions"); ok {
+			if permsSlice, ok := perms.([]string); ok {
+				ctx = context.WithValue(ctx, "permissions", permsSlice)
+			}
 		}
 		c.Request = c.Request.WithContext(ctx)
 

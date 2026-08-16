@@ -30,3 +30,26 @@ func GetCompanyID(ctx context.Context) string {
 	}
 	return ""
 }
+
+// GetPermissions extracts the caller's permission claims ("resource.action"
+// strings) from the request context. Returns an empty slice if not found.
+// permissions diset oleh middleware AuthJWT dan di-propagate oleh
+// middleware.TenantRequired ke request context.
+func GetPermissions(ctx context.Context) []string {
+	if perms, ok := ctx.Value("permissions").([]string); ok {
+		return perms
+	}
+	return []string{}
+}
+
+// HasPermission mengecek apakah caller punya permission "resource.action"
+// tertentu, termasuk dukungan wildcard "*".
+func HasPermission(ctx context.Context, resource, action string) bool {
+	required := resource + "." + action
+	for _, p := range GetPermissions(ctx) {
+		if p == "*" || p == required {
+			return true
+		}
+	}
+	return false
+}
