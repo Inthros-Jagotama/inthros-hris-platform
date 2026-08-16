@@ -514,6 +514,45 @@ func (r *Repository) ListTravelReimbursementsByTravel(ctx context.Context, trave
 	return reimbursements, nil
 }
 
+// =========================================================================
+// Travel Documents
+// =========================================================================
+
+func (r *Repository) CreateTravelDocument(ctx context.Context, d *TravelDocument) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(d).Error
+}
+
+func (r *Repository) ListTravelDocumentsByTravel(ctx context.Context, travelID uuid.UUID) ([]TravelDocument, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var docs []TravelDocument
+	if err := db.Where("business_travel_id = ?", travelID).Order("created_at ASC").Find(&docs).Error; err != nil {
+		return nil, err
+	}
+	return docs, nil
+}
+
+func (r *Repository) DeleteTravelDocument(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.Where("id = ?", id).Delete(&TravelDocument{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("travel document not found")
+	}
+	return nil
+}
+
 // FindBusinessTravelByIDForOwnership loads a bare BusinessTravel (no
 // preloads) — used by sub-resource creators (activity/schedule) that only
 // need to check the parent travel exists and read its status, without the

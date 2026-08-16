@@ -343,6 +343,30 @@ type TravelReimbursementResponse struct {
 }
 
 // =========================================================================
+// Travel Documents (§23 plan doc: travel order, ticket, boarding pass, hotel,
+// travel report, dst — level travel, terpisah dari funding/expense document)
+// =========================================================================
+
+// AddTravelDocumentRequest stores the URL returned by the generic upload
+// endpoint, same pattern as AddFundingDocumentRequest/AddExpenseDocumentRequest (§54.4).
+type AddTravelDocumentRequest struct {
+	DocumentType string `json:"document_type" binding:"required"`
+	FileName     string `json:"file_name" binding:"required"`
+	FilePath     string `json:"file_path" binding:"required"`
+	MimeType     string `json:"mime_type"`
+	FileSize     int64  `json:"file_size"`
+}
+
+type TravelDocumentResponse struct {
+	ID           string  `json:"id"`
+	DocumentType string  `json:"document_type"`
+	FileName     string  `json:"file_name"`
+	FilePath     string  `json:"file_path"`
+	MimeType     *string `json:"mime_type,omitempty"`
+	FileSize     *int64  `json:"file_size,omitempty"`
+}
+
+// =========================================================================
 // Business Travel — Response DTOs
 // =========================================================================
 

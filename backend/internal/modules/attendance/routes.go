@@ -98,6 +98,12 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.DELETE("/business-travels/:id/expenses/:expenseId", handler.DeleteExpense)
 		att.POST("/business-travels/:id/expenses/:expenseId/documents", handler.AddExpenseDocument)
 
+		// Travel Documents (§23: travel order, ticket, boarding pass, hotel,
+		// travel report, dst — level travel, terpisah dari funding/expense document)
+		att.POST("/business-travels/:id/documents", handler.AddTravelDocument)
+		att.GET("/business-travels/:id/documents", handler.ListTravelDocuments)
+		att.DELETE("/business-travels/:id/documents/:documentId", handler.DeleteTravelDocument)
+
 		// Settlement (§24-33: hanya bisa dibuat setelah travel COMPLETED;
 		// approval terpisah dari Travel Approval — module slug
 		// "business_travel_settlement")

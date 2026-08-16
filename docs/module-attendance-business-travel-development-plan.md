@@ -1914,14 +1914,11 @@ ip_address
 
 ## Phase 11 — Documents
 
-- [ ] Travel order.
-- [ ] Ticket.
-- [ ] Boarding pass.
-- [ ] Hotel.
-- [ ] Receipt.
-- [ ] Transfer proof.
-- [ ] Travel report.
-- [ ] Activity evidence.
+Semua item di bawah adalah nilai `document_type` pada satu tabel generik `business_travel_documents` (§23), bukan tabel terpisah per jenis — satu endpoint CRUD menangani semuanya.
+
+- [x] Travel order / [x] Ticket / [x] Boarding pass / [x] Hotel / [x] Travel report / [x] Activity evidence — semua ditangani generik via `POST/GET /attendance/business-travels/:id/documents` + `DELETE .../documents/:documentId`, `document_type` bebas diisi client (`TRAVEL_ORDER`, `TICKET`, `BOARDING_PASS`, `HOTEL`, `MEETING_DOCUMENT`, `ATTENDANCE_PROOF`, `PHOTO`, `TRAVEL_REPORT`, `OTHER` — enum di model, tidak divalidasi ketat di backend).
+- [x] Receipt / [x] Transfer proof — **sudah ditangani di Phase 4/5** (`business_travel_expense_documents`/`business_travel_funding_documents`), bukan bagian dari tabel `business_travel_documents` ini — sengaja dipisah karena receipt/transfer-proof terikat ke funding/expense tertentu, sedangkan dokumen di Phase 11 ini terikat ke travel secara keseluruhan.
+- FE: section "Documents" baru di tab Info `BusinessTravelDetail.vue`, tombol upload (pola sama dengan funding/expense document — two-step via endpoint upload generik), list dengan link + tombol hapus. Type dokumen saat upload dari FE saat ini **selalu `OTHER`** (belum ada picker jenis dokumen di dialog) — gap kecil yang tersisa.
 
 ## Phase 12 — Reporting
 

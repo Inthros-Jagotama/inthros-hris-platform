@@ -465,6 +465,40 @@ func (h *Handler) PayTravelReimbursement(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+// =========================================================================
+// Travel Documents
+// =========================================================================
+
+func (h *Handler) AddTravelDocument(c *gin.Context) {
+	var req AddTravelDocumentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.AddTravelDocument(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListTravelDocuments(c *gin.Context) {
+	resp, err := h.service.ListTravelDocuments(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteTravelDocument(c *gin.Context) {
+	if err := h.service.DeleteTravelDocument(c.Request.Context(), c.Param("documentId")); err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"deleted": true})
+}
+
 func (h *Handler) CancelBusinessTravel(c *gin.Context) {
 	resp, err := h.service.CancelBusinessTravel(c.Request.Context(), c.Param("id"))
 	if err != nil {

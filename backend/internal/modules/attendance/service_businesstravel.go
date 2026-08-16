@@ -1406,6 +1406,74 @@ func (s *Service) maybeSettleAndCloseTravel(ctx context.Context, settlementID, t
 	}
 }
 
+// =========================================================================
+// Travel Documents (§23 plan doc)
+// =========================================================================
+
+func (s *Service) AddTravelDocument(ctx context.Context, travelIDStr string, req AddTravelDocumentRequest) (*TravelDocumentResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	if _, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, travelID); err != nil {
+		return nil, err
+	}
+	doc := &TravelDocument{
+		BusinessTravelID: travelID,
+		DocumentType:     TravelDocumentType(strings.ToUpper(req.DocumentType)),
+		FileName:         req.FileName,
+		FilePath:         req.FilePath,
+		UploadedBy:       authctx.GetUserID(ctx),
+	}
+	if req.MimeType != "" {
+		doc.MimeType = &req.MimeType
+	}
+	if req.FileSize > 0 {
+		doc.FileSize = &req.FileSize
+	}
+	now := time.Now()
+	doc.UploadedAt = &now
+	if err := s.repo.CreateTravelDocument(ctx, doc); err != nil {
+		return nil, err
+	}
+	return travelDocumentToResponse(doc), nil
+}
+
+func (s *Service) ListTravelDocuments(ctx context.Context, travelIDStr string) ([]TravelDocumentResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	docs, err := s.repo.ListTravelDocumentsByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]TravelDocumentResponse, 0, len(docs))
+	for i := range docs {
+		responses = append(responses, *travelDocumentToResponse(&docs[i]))
+	}
+	return responses, nil
+}
+
+func (s *Service) DeleteTravelDocument(ctx context.Context, documentIDStr string) error {
+	documentID, err := uuid.Parse(documentIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid document id: %w", err)
+	}
+	return s.repo.DeleteTravelDocument(ctx, documentID)
+}
+
+func travelDocumentToResponse(d *TravelDocument) *TravelDocumentResponse {
+	return &TravelDocumentResponse{
+		ID:           d.ID.String(),
+		DocumentType: string(d.DocumentType),
+		FileName:     d.FileName,
+		FilePath:     d.FilePath,
+		MimeType:     d.MimeType,
+		FileSize:     d.FileSize,
+	}
+}
+
 // pushBusinessTravelPayrollAdjustments pushes payroll-eligible actual
 // expense items onto payroll as one-off SalaryEmployeeAdjustment records
 // (§38 plan doc: Daily/Travel Allowance are payroll components, but

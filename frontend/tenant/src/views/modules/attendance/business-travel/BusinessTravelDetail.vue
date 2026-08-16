@@ -87,6 +87,25 @@
           </div>
           <p v-else class="text-xs text-gray-400">{{ t('business_travel.empty') }}</p>
         </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.documents') }}</h3>
+            <Button :label="t('common.add')" icon="pi pi-upload" size="small" text :loading="uploadingTravelDoc" @click="triggerTravelDocUpload" />
+          </div>
+          <div v-if="travelDocuments.length" class="divide-y divide-gray-100 dark:divide-gray-700">
+            <div v-for="d in travelDocuments" :key="d.id" class="py-2 flex items-center justify-between text-sm">
+              <a :href="d.file_path" target="_blank" class="text-emerald-600 dark:text-emerald-400 hover:underline">
+                <i class="pi pi-paperclip mr-1"></i>{{ d.file_name }}
+              </a>
+              <div class="flex items-center gap-2">
+                <Tag :value="d.document_type" severity="secondary" class="!text-xs !px-1.5 !py-0.5" />
+                <Button icon="pi pi-trash" size="small" text severity="danger" @click="handleDeleteTravelDocument(d)" />
+              </div>
+            </div>
+          </div>
+          <p v-else class="text-xs text-gray-400">{{ t('business_travel.empty') }}</p>
+        </div>
       </div>
 
       <!-- ── Funding ── -->
@@ -348,6 +367,8 @@ const cancelling = ref(false)
 
 const activities = ref([])
 const schedules = ref([])
+const travelDocuments = ref([])
+const uploadingTravelDoc = ref(false)
 const fundings = ref([])
 const fundingMethods = ref([])
 const expenses = ref([])
@@ -419,6 +440,9 @@ async function loadActivities() {
 async function loadSchedules() {
   try { schedules.value = (await api.get(`/api/v1/tenant/attendance/business-travels/${travelId}/schedules`)).data?.data || [] } catch { schedules.value = [] }
 }
+async function loadTravelDocuments() {
+  try { travelDocuments.value = (await api.get(`/api/v1/tenant/attendance/business-travels/${travelId}/documents`)).data?.data || [] } catch { travelDocuments.value = [] }
+}
 async function loadFundingMethods() {
   try { fundingMethods.value = (await api.get('/api/v1/tenant/attendance/business-travel-funding-methods')).data?.data || [] } catch { fundingMethods.value = [] }
 }
@@ -446,7 +470,7 @@ async function loadAll() {
   try {
     await loadTravel()
     await Promise.all([
-      loadActivities(), loadSchedules(), loadFundingMethods(), loadFundings(),
+      loadActivities(), loadSchedules(), loadTravelDocuments(), loadFundingMethods(), loadFundings(),
       loadExpenseCategories(), loadExpenses(), loadSettlements(), loadRefunds(), loadReimbursements()
     ])
   } catch (e) {
@@ -573,12 +597,17 @@ function triggerExpenseUpload(e) {
   docUploadTarget.value = { type: 'expense', id: e.id }
   docFileInputRef.value?.click()
 }
+function triggerTravelDocUpload() {
+  docUploadTarget.value = { type: 'travel', id: null }
+  docFileInputRef.value?.click()
+}
 
 async function onDocFileSelected(event) {
   const file = event.target.files?.[0]
   const target = docUploadTarget.value
   if (!file || !target) return
-  uploadingDocFor.value = target.id
+  if (target.type === 'travel') uploadingTravelDoc.value = true
+  else uploadingDocFor.value = target.id
   try {
     const fd = new FormData()
     fd.append('file', file)
@@ -586,18 +615,23 @@ async function onDocFileSelected(event) {
     const filePath = uploadRes.data?.data?.url || ''
     if (!filePath) throw new Error('upload failed')
 
-    const docPayload = { document_type: target.type === 'funding' ? 'TRANSFER_RECEIPT' : 'RECEIPT', file_name: file.name, file_path: filePath, mime_type: file.type, file_size: file.size }
+    const documentType = target.type === 'funding' ? 'TRANSFER_RECEIPT' : target.type === 'expense' ? 'RECEIPT' : 'OTHER'
+    const docPayload = { document_type: documentType, file_name: file.name, file_path: filePath, mime_type: file.type, file_size: file.size }
     if (target.type === 'funding') {
       await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/fundings/${target.id}/documents`, docPayload)
       await loadFundings()
-    } else {
+    } else if (target.type === 'expense') {
       await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/expenses/${target.id}/documents`, docPayload)
       await loadExpenses()
+    } else {
+      await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/documents`, docPayload)
+      await loadTravelDocuments()
     }
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
   } finally {
+    uploadingTravelDoc.value = false
     uploadingDocFor.value = null
     docUploadTarget.value = null
     if (docFileInputRef.value) docFileInputRef.value.value = ''
@@ -647,6 +681,15 @@ async function handleDeleteExpense(e) {
   try {
     await api.delete(`/api/v1/tenant/attendance/business-travels/${travelId}/expenses/${e.id}`)
     await loadExpenses()
+  } catch (err) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(err, t('message.operation_failed')), life: 4000 })
+  }
+}
+
+async function handleDeleteTravelDocument(d) {
+  try {
+    await api.delete(`/api/v1/tenant/attendance/business-travels/${travelId}/documents/${d.id}`)
+    await loadTravelDocuments()
   } catch (err) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(err, t('message.operation_failed')), life: 4000 })
   }
