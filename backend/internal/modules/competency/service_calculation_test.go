@@ -698,3 +698,39 @@ func TestCreateCompetencyEventTarget_NoAutoSelfRater(t *testing.T) {
 		t.Fatal("expected no auto rater when template has no required self type")
 	}
 }
+
+// TestListCompetencyEventTargets_RaterCount memverifikasi kolom rater_count
+// pada list target terisi sesuai jumlah rater yang ditugaskan (sebelumnya 0).
+func TestListCompetencyEventTargets_RaterCount(t *testing.T) {
+	svc, targetID, _, cleanup := setup360Scenario(t)
+	defer cleanup()
+	ctx := context.Background()
+	repo := svc.repo
+
+	// Jumlah rater sebenarnya (auto self rater + rater manual scenario).
+	actual, err := repo.FindRatersByTarget(ctx, mustParseUUID(t, targetID))
+	if err != nil {
+		t.Fatalf("find raters: %v", err)
+	}
+
+	resp, err := svc.ListCompetencyEventTargets(ctx, 1, 50)
+	if err != nil {
+		t.Fatalf("list targets: %v", err)
+	}
+	var found *CompetencyEventTargetResponse
+	if list, ok := resp.Data.([]CompetencyEventTargetResponse); ok {
+		for i := range list {
+			item := list[i]
+			if item.ID == targetID {
+				found = &item
+				break
+			}
+		}
+	}
+	if found == nil {
+		t.Fatal("target not found in list")
+	}
+	if found.RaterCount != len(actual) {
+		t.Errorf("expected rater_count %d, got %d", len(actual), found.RaterCount)
+	}
+}

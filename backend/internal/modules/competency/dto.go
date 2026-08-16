@@ -213,6 +213,7 @@ type CompetencyEventTargetResponse struct {
 	Status             string     `json:"status"`
 	ApprovalInstanceID string     `json:"approval_instance_id,omitempty"`
 	FinalizedAt        *time.Time `json:"finalized_at,omitempty"`
+	RaterCount         int        `json:"rater_count"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
 }

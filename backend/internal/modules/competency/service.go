@@ -556,6 +556,11 @@ func (s *Service) GetCompetencyEventTargetByID(ctx context.Context, id string) (
 		return nil, err
 	}
 	response := t.ToResponse()
+	counts, err := s.repo.CountRatersByTarget(ctx, []uuid.UUID{uid})
+	if err != nil {
+		return nil, err
+	}
+	response.RaterCount = counts[uid.String()]
 	return &response, nil
 }
 
@@ -570,9 +575,20 @@ func (s *Service) ListCompetencyEventTargets(ctx context.Context, page, perPage 
 	if err != nil {
 		return nil, err
 	}
+	// Isi rater_count per target (jumlah rater ditugaskan) — satu query grup.
+	ids := make([]uuid.UUID, 0, len(list))
+	for _, t := range list {
+		ids = append(ids, t.ID)
+	}
+	counts, err := s.repo.CountRatersByTarget(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
 	var responses []CompetencyEventTargetResponse
 	for _, t := range list {
-		responses = append(responses, t.ToResponse())
+		r := t.ToResponse()
+		r.RaterCount = counts[t.ID.String()]
+		responses = append(responses, r)
 	}
 	totalPages := int(total) / perPage
 	if int(total)%perPage > 0 {

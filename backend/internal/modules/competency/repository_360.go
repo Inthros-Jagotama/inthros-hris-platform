@@ -829,8 +829,10 @@ func (r *Repository) CountSubmittedRatersByTarget(ctx context.Context, targetIDs
 		Count    int
 	}
 	var rows []row
+	// Alias kolom agar GORM Scan memetakan ke field TargetID (lihat
+	// CountRatersByTarget).
 	if err := db.WithContext(ctx).Model(&CompetencyAssessmentRater{}).
-		Select("competency_event_target_id, COUNT(*) as count").
+		Select("competency_event_target_id AS target_id, COUNT(*) AS count").
 		Where("competency_event_target_id IN ? AND status = ?", targetIDs, string(RaterStatusSubmitted)).
 		Group("competency_event_target_id").
 		Scan(&rows).Error; err != nil {
@@ -857,8 +859,10 @@ func (r *Repository) CountRatersByTarget(ctx context.Context, targetIDs []uuid.U
 		Count    int
 	}
 	var rows []row
+	// Alias kolom agar GORM Scan memetakan ke field TargetID (lihat
+	// CountSubmittedRatersByTarget).
 	if err := db.WithContext(ctx).Model(&CompetencyAssessmentRater{}).
-		Select("competency_event_target_id, COUNT(*) as count").
+		Select("competency_event_target_id AS target_id, COUNT(*) AS count").
 		Where("competency_event_target_id IN ?", targetIDs).
 		Group("competency_event_target_id").
 		Scan(&rows).Error; err != nil {
