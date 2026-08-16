@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -874,5 +875,27 @@ func TestSubmitAssessmentForApproval_NotAllSubmitted(t *testing.T) {
 	}
 	if !errors.Is(err, ErrNotAllRatersSubmitted) {
 		t.Fatalf("expected ErrNotAllRatersSubmitted, got %v", err)
+	}
+	// Response error harus menyebutkan rater mana yang belum mengisi — di sini
+	// 2 rater pending: auto self rater (status assigned) + rater peer yang baru
+	// ditambahkan.
+	var pErr *ratersPendingError
+	if !errors.As(err, &pErr) {
+		t.Fatalf("expected *ratersPendingError, got %T", err)
+	}
+	if len(pErr.Pending) != 2 {
+		t.Fatalf("expected 2 pending raters, got %d: %+v", len(pErr.Pending), pErr.Pending)
+	}
+	foundPendingPeer := false
+	for _, p := range pErr.Pending {
+		if p.RaterType == string(RaterTypePeer) && p.Status == string(RaterStatusAssigned) {
+			foundPendingPeer = true
+		}
+	}
+	if !foundPendingPeer {
+		t.Errorf("expected pending peer (assigned) in %+v", pErr.Pending)
+	}
+	if !strings.Contains(err.Error(), "peer") {
+		t.Errorf("expected message to mention pending peer, got %q", err.Error())
 	}
 }

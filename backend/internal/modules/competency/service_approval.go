@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,38 @@ var (
 	ErrNoRatersAssigned            = errors.New("no raters assigned to this assessment")
 	ErrNotAllRatersSubmitted       = errors.New("not all raters have submitted yet")
 )
+
+// PendingRaterInfo — rater yang belum submit saat submit-approval ditolak.
+// Disertakan di response error agar pengguna tahu rater mana yang belum mengisi.
+type PendingRaterInfo struct {
+	RaterID    string `json:"rater_id"`
+	RaterType  string `json:"rater_type"`
+	RaterName  string `json:"rater_name,omitempty"`
+	EmployeeID string `json:"employee_id,omitempty"`
+	Status     string `json:"status"`
+}
+
+// ratersPendingError membungkus ErrNotAllRatersSubmitted dengan daftar rater
+// yang belum submit — errors.Is tetap mengenali sentinel-nya (Unwrap).
+type ratersPendingError struct {
+	Pending []PendingRaterInfo
+}
+
+func (e *ratersPendingError) Error() string {
+	parts := make([]string, 0, len(e.Pending))
+	for _, p := range e.Pending {
+		name := strings.TrimSpace(p.RaterName)
+		if name == "" {
+			name = p.RaterType
+		}
+		parts = append(parts, fmt.Sprintf("%s %s", p.RaterType, name))
+	}
+	return fmt.Sprintf("%s (%s)", ErrNotAllRatersSubmitted.Error(), strings.Join(parts, ", "))
+}
+
+func (e *ratersPendingError) Unwrap() error {
+	return ErrNotAllRatersSubmitted
+}
 
 const (
 	// ApprovalModuleCompetency360Assessment adalah slug approval flow untuk
@@ -76,10 +109,29 @@ func (s *Service) SubmitAssessmentForApproval(ctx context.Context, targetID stri
 	if len(raters) == 0 {
 		return nil, ErrNoRatersAssigned
 	}
+
+	// Kumpulkan SEMUA rater yang belum submit (bukan berhenti di yang pertama)
+	// + resolve nama karyawannya agar response error menyebutkan siapa saja.
+	pending := make([]PendingRaterInfo, 0)
+	var pendingEmpIDs []uuid.UUID
 	for _, r := range raters {
 		if r.Status != string(RaterStatusSubmitted) {
-			return nil, fmt.Errorf("%w (%s pending)", ErrNotAllRatersSubmitted, r.RaterType)
+			pending = append(pending, PendingRaterInfo{
+				RaterID:    r.ID.String(),
+				RaterType:  r.RaterType,
+				EmployeeID: r.RaterEmployeeID.String(),
+				Status:     r.Status,
+			})
+			pendingEmpIDs = append(pendingEmpIDs, r.RaterEmployeeID)
 		}
+	}
+	if len(pending) > 0 {
+		if names, err := s.repo.GetEmployeeNamesByIDs(ctx, pendingEmpIDs); err == nil {
+			for i := range pending {
+				pending[i].RaterName = names[pending[i].EmployeeID]
+			}
+		}
+		return nil, &ratersPendingError{Pending: pending}
 	}
 
 	// Route through Central Approval when a flow is configured. Kalau flow

@@ -2394,6 +2394,7 @@
     "raters": "Raters",
     "rater_filled": "filled",
     "rater_assigned": "assigned",
+    "pending_raters": "Not yet submitted",
     "my_rating_status": "My Rating Status",
     "not_assigned": "Not Assigned",
     "assign_fill": "Assign & Rate",

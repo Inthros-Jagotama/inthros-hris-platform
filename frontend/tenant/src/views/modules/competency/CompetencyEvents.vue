@@ -504,7 +504,17 @@ async function submitApproval(tgt) {
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('competency_360.submitted_approval'), life: 3000 })
     await loadTargets()
   } catch (e) {
-    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+    // Tampilkan rater mana saja yang belum mengisi bila backend menyertakannya
+    // (error.pending_raters) — mis. "Belum mengisi: peer: Budi, self: Andi".
+    const pending = e.response?.data?.error?.pending_raters
+    let detail = getErrorMessage(e, t('message.operation_failed'))
+    if (Array.isArray(pending) && pending.length > 0) {
+      const names = pending
+        .map(p => `${raterTypeLabel(p.rater_type)}${p.rater_name ? `: ${p.rater_name}` : ''}`)
+        .join(', ')
+      detail = `${t('competency_360.pending_raters')}: ${names}`
+    }
+    toast.add({ severity: 'error', summary: t('message.error'), detail, life: 5000 })
   } finally {
     submittingApprovalId.value = null
   }

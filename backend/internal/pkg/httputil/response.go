@@ -125,6 +125,21 @@ func ErrorRaw(c *gin.Context, status int, code string, rawMsg string) {
 	})
 }
 
+// ErrorRawExtra sends a JSON error response with a raw message plus additional
+// fields merged into the error object (e.g. validation details).
+//
+//	{ "success": false, "error": { "code": "...", "message": "raw", "extra": ... } }
+func ErrorRawExtra(c *gin.Context, status int, code string, rawMsg string, extra gin.H) {
+	body := gin.H{"code": code, "message": rawMsg}
+	for k, v := range extra {
+		body[k] = v
+	}
+	c.JSON(status, gin.H{
+		"success": false,
+		"error":   body,
+	})
+}
+
 // ErrorSimple sends a JSON error response with only a raw message (no code).
 //
 //	{ "success": false, "error": "raw message" }

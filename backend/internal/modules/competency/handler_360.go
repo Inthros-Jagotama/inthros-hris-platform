@@ -322,8 +322,20 @@ func (h *Handler) SubmitAssessmentForApproval(c *gin.Context) {
 			errors.Is(err, ErrAssessmentAlreadySubmitted),
 			errors.Is(err, ErrAssessmentHasApproval):
 			httputil.ErrorRaw(c, http.StatusConflict, "INVALID_STATE", err.Error())
-		case errors.Is(err, ErrNoRatersAssigned),
-			errors.Is(err, ErrNotAllRatersSubmitted):
+		case errors.Is(err, ErrNotAllRatersSubmitted):
+			// Sertakan daftar rater yang belum submit agar pengguna tahu siapa
+			// yang belum mengisi (bukan sekadar pesan generik).
+			var pErr *ratersPendingError
+			extra := gin.H{}
+			if errors.As(err, &pErr) && len(pErr.Pending) > 0 {
+				extra["pending_raters"] = pErr.Pending
+			}
+			if len(extra) > 0 {
+				httputil.ErrorRawExtra(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), extra)
+			} else {
+				httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+			}
+		case errors.Is(err, ErrNoRatersAssigned):
 			httputil.ErrorRaw(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
 		default:
 			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
