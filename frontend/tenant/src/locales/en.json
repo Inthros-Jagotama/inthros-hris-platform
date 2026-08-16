@@ -2406,7 +2406,6 @@
     "delete_scale_title": "Delete Scale",
     "delete_scale": "Delete scale \"{name}\"?",
     "code": "Code",
-    "code_auto_hint": "The code is generated automatically from the name (e.g. \"5-Point Scale\" → 5_POINT_SCALE).",
     "weight": "Weight",
     "new_template": "New Template",
     "edit_template": "Edit Template",

@@ -12,7 +12,6 @@
         <FormRow :label="t('common.name')" required :errors="errors?.name">
           <TextInput v-model="form.name" maxlength="255" :placeholder="t('common.name')" :class="{ 'p-invalid': errors?.name }" />
         </FormRow>
-        <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('competency_360.code_auto_hint') }}</p>
         <FormRow :label="t('common.description')" :errors="errors?.description">
           <TextInput v-model="form.description" textarea :rows="2" />
         </FormRow>

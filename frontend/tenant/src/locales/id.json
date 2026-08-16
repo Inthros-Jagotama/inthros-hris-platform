@@ -2406,7 +2406,6 @@
     "delete_scale_title": "Hapus Skala",
     "delete_scale": "Hapus skala \"{name}\"?",
     "code": "Kode",
-    "code_auto_hint": "Kode dibuat otomatis dari nama (mis. \"Skala 5 Poin\" → SCALA_5_POIN).",
     "weight": "Bobot",
     "new_template": "Template Baru",
     "edit_template": "Ubah Template",
