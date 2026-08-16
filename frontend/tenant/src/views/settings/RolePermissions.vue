@@ -21,7 +21,7 @@
       {{ t('rbac.empty_permissions') }}
     </div>
     <!-- Setiap grup permission berdiri sendiri sebagai card, di luar card utama -->
-    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+    <div v-else class="space-y-3">
       <div v-for="group in permissionGroups" :key="group.resource" class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
         <div class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
           <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ group.resource }}</span>
