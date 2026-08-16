@@ -136,10 +136,10 @@ const result = ref(null)
 const gap = ref(null)
 const showGap = ref(false)
 
-const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.employee_id })))
+const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.id })))
 
 function employeeName(id) {
-  return employees.value.find(e => e.employee_id === id)?.name || id?.slice(0, 8)
+  return employees.value.find(e => e.id === id)?.name || id?.slice(0, 8)
 }
 
 async function loadReferences() {

@@ -151,7 +151,7 @@ function statusSeverity(status) {
 }
 
 function employeeName(id) {
-  return employees.value.find(e => e.employee_id === id)?.name || id?.slice(0, 8) || '-'
+  return employees.value.find(e => e.id === id)?.name || id?.slice(0, 8) || '-'
 }
 
 async function loadReferences() {

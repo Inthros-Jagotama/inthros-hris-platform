@@ -157,7 +157,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
@@ -190,6 +190,7 @@ const perPage = ref(15)
 
 const templates = ref([])
 const employees = ref([])
+const orgEmployees = ref([])
 const organizations = ref([])
 
 const currentYear = new Date().getFullYear()
@@ -249,7 +250,7 @@ const targetSkeletonColumns = [
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 const typeError = computed(() => Array.isArray(errors.value?.type) ? errors.value.type.filter(Boolean).join(', ') : errors.value?.type)
 const templateOptions = computed(() => templates.value.filter(t => t.status !== 'inactive' || t.id === form.value.template_id))
-const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.employee_id })))
+const employeeOptions = computed(() => orgEmployees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.id })))
 const organizationOptions = computed(() => organizations.value.map(o => ({ label: o.name || o.nomenclature || o.code, value: o.id })))
 
 function defaultForm() {
@@ -290,8 +291,29 @@ function templateName(id) {
 
 function employeeName(id) {
   if (!id) return '-'
-  return employees.value.find(e => e.employee_id === id)?.name || id.slice(0, 8)
+  return employees.value.find(e => e.id === id)?.name || id.slice(0, 8)
 }
+
+// loadEmployees mengambil karyawan dengan employment saat ini di org tsb
+// (server-side filter) — pilihan dropdown mengikuti organisasi terpilih.
+async function loadEmployees(orgId) {
+  if (!orgId) {
+    orgEmployees.value = []
+    return
+  }
+  try {
+    const res = await api.get('/api/v1/tenant/employees', { params: { per_page: 500, organization_id: orgId } })
+    orgEmployees.value = res.data?.data || []
+  } catch {
+    orgEmployees.value = []
+  }
+}
+
+// Saat organisasi berubah, reset pilihan karyawan + muat karyawan org tsb.
+watch(() => targetForm.value.organization_id, (orgId) => {
+  targetForm.value.employee_id = null
+  loadEmployees(orgId)
+})
 
 async function loadReferences() {
   try {
@@ -407,6 +429,7 @@ async function openTargets(event) {
   targetsEvent.value = event
   targets.value = []
   targetForm.value = { organization_id: organizations.value[0]?.id || null, employee_id: null }
+  loadEmployees(targetForm.value.organization_id)
   targetsVisible.value = true
   await loadTargets()
 }

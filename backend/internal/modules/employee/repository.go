@@ -76,7 +76,7 @@ func (r *Repository) CountEmployees(ctx context.Context) (int64, error) {
 	return total, nil
 }
 
-func (r *Repository) FindAllEmployees(ctx context.Context, page, perPage int, search, status string) ([]Employee, int64, error) {
+func (r *Repository) FindAllEmployees(ctx context.Context, page, perPage int, search, status, organizationID string) ([]Employee, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -99,6 +99,11 @@ func (r *Repository) FindAllEmployees(ctx context.Context, page, perPage int, se
 	// Apply status filter
 	if status != "" {
 		query = query.Where("status = ?", status)
+	}
+
+	// Apply organization filter — employee dengan employment saat ini di org tsb.
+	if organizationID != "" {
+		query = query.Where("id IN (SELECT employee_id FROM employments WHERE organization_id = ? AND effective_end_date IS NULL)", organizationID)
 	}
 
 	if err := query.Count(&total).Error; err != nil {

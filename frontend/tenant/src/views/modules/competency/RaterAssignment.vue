@@ -172,7 +172,7 @@ const raterSkeletonColumns = [
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 const eventOptions = computed(() => events.value.map(e => ({ label: eventLabel(e), value: e.id })))
-const raterEmployeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.employee_id })))
+const raterEmployeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_code || e.employee_id})`, value: e.id })))
 
 function eventLabel(e) {
   const parts = [e.period_year]
@@ -222,7 +222,7 @@ function raterTypeLabel(type) {
 
 function employeeName(id) {
   if (!id) return '-'
-  return employees.value.find(e => e.employee_id === id)?.name || id.slice(0, 8)
+  return employees.value.find(e => e.id === id)?.name || id.slice(0, 8)
 }
 
 async function loadReferences() {

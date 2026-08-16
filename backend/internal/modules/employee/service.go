@@ -167,7 +167,7 @@ func (s *Service) GetByID(ctx context.Context, id string) (*EmployeeResponse, er
 	return &response, nil
 }
 
-func (s *Service) List(ctx context.Context, page, perPage int, search, status string) (*ListResponse, error) {
+func (s *Service) List(ctx context.Context, page, perPage int, search, status, organizationID string) (*ListResponse, error) {
 	if page < 1 {
 		page = defaultPage
 	}
@@ -175,7 +175,7 @@ func (s *Service) List(ctx context.Context, page, perPage int, search, status st
 		perPage = defaultPerPage
 	}
 
-	employees, total, err := s.repo.FindAllEmployees(ctx, page, perPage, search, status)
+	employees, total, err := s.repo.FindAllEmployees(ctx, page, perPage, search, status, organizationID)
 	if err != nil {
 		return nil, err
 	}
