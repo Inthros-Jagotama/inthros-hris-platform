@@ -159,10 +159,17 @@ else:
 ```
 
 `mask.PartialMask` (new package `backend/internal/pkg/mask/mask.go`)
-returns the value with all but the last 4 characters replaced by `*`
-(e.g. `3201xxxxxxxx5678` → `************5678`, `1234567890` →
-`******7890`). Values of length ≤ 4 are fully masked (all `*`, same
-length). The permission check uses the same JWT `permissions` claim /
+reveals a trailing slice of the value, sized by its length, and replaces
+the rest with `*`:
+
+| Length | Visible tail | Example |
+|---|---|---|
+| ≥ 10 | last 4 chars | `3201010101985678` (17) → `************5678` |
+| 4–9 | last 3 chars | `123456` (6) → `***456`; `1234567` (7) → `****567` |
+| 1–3 | none (fully masked) | `123` → `***` |
+| 0 | `""` | `""` → `""` |
+
+The permission check uses the same JWT `permissions` claim /
 `authz.Enforcer` fallback the existing middleware already uses — no new
 auth mechanism.
 

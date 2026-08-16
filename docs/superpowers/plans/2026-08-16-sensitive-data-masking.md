@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Masking format: last 4 characters visible, rest replaced with `*`; values of length ≤ 4 are fully masked to the same length (spec §6, revised in chat to partial mask).
+- Masking format: length ≥ 10 → last 4 chars visible; length 4–9 → last 3 chars visible; length 1–3 → fully masked; rest replaced with `*` (spec §6).
 - Encryption is **encrypt-on-write only** — no backfill of existing plaintext rows (spec Non-goals).
 - The set of maskable fields is a fixed, developer-maintained registry — admins toggle within it, they don't define new fields (spec Non-goals).
 - Tenant schema changes MUST be versioned SQL migrations under `backend/internal/pkg/migrator/migrations/tenant/{mysql,postgres}/` with matching numeric-prefix filenames — GORM AutoMigrate must not be relied on for these changes, per [[tenant-schema-migration-requirement]].
@@ -32,6 +32,9 @@
 
 - [ ] **Step 1: Write the failing test**
 
+Masking rule: length ≥ 10 → last 4 chars visible; length 4–9 → last 3
+chars visible; length 1–3 → fully masked; length 0 → empty string.
+
 ```go
 package mask
 
@@ -43,10 +46,13 @@ func TestPartialMask(t *testing.T) {
 		input string
 		want  string
 	}{
-		{"long value shows last 4", "3201010101985678", "************5678"},
-		{"exact 5 chars", "12345", "*2345"},
-		{"exact 4 chars fully masked", "1234", "****"},
-		{"3 chars fully masked", "123", "***"},
+		{"17 chars: last 4 visible", "3201010101985678", "************5678"},
+		{"exactly 10 chars: last 4 visible", "1234567890", "******7890"},
+		{"9 chars: last 3 visible", "123456789", "******789"},
+		{"6 chars: last 3 visible", "123456", "***456"},
+		{"4 chars: last 3 visible", "1234", "*234"},
+		{"3 chars: fully masked", "123", "***"},
+		{"1 char: fully masked", "1", "*"},
 		{"empty stays empty", "", ""},
 	}
 	for _, c := range cases {
@@ -73,19 +79,31 @@ Expected: FAIL — `undefined: PartialMask` (package doesn't exist yet)
 // nilai asli.
 package mask
 
-// PartialMask mengganti semua karakter kecuali 4 karakter terakhir
-// dengan '*'. Nilai dengan panjang <= 4 disamarkan penuh (semua '*'),
-// dengan panjang yang sama seperti input.
+// PartialMask menyamarkan value, menyisakan sejumlah karakter terakhir
+// tetap terlihat tergantung panjangnya:
+//   - panjang >= 10: 4 karakter terakhir terlihat
+//   - panjang 4-9:   3 karakter terakhir terlihat
+//   - panjang 1-3:   disamarkan penuh (semua '*')
+//   - panjang 0:     dikembalikan apa adanya ("")
 func PartialMask(value string) string {
 	runes := []rune(value)
 	n := len(runes)
 	if n == 0 {
 		return ""
 	}
-	if n <= 4 {
+
+	visible := 0
+	switch {
+	case n >= 10:
+		visible = 4
+	case n >= 4:
+		visible = 3
+	}
+
+	if visible == 0 {
 		return repeatStar(n)
 	}
-	visibleStart := n - 4
+	visibleStart := n - visible
 	masked := make([]rune, n)
 	for i := 0; i < visibleStart; i++ {
 		masked[i] = '*'
@@ -106,7 +124,7 @@ func repeatStar(n int) string {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `go test ./backend/internal/pkg/mask/... -run TestPartialMask -v`
-Expected: PASS (all 5 subtests)
+Expected: PASS (all 8 subtests)
 
 - [ ] **Step 5: Commit**
 
@@ -1560,7 +1578,7 @@ git commit -m "feat(employee): decrypt-on-read in DTO converters, tolerant of pl
 // Append to service_test.go
 func TestMaskFamilyResponse_MasksWithoutPermission(t *testing.T) {
 	ctx := context.Background() // no permissions in context
-	resp := &FamilyResponse{NIK: "3201010101985678"}
+	resp := &FamilyResponse{NIK: "3201010101985678"} // 16 chars -> last 4 visible
 
 	maskFamilyResponse(ctx, resp)
 
@@ -1582,15 +1600,15 @@ func TestMaskFamilyResponse_UnmaskedWithPermission(t *testing.T) {
 
 func TestMaskBankResponse_MasksAccountNumberAndName(t *testing.T) {
 	ctx := context.Background()
-	resp := &BankResponse{AccountNumber: "1234567890", AccountName: "Budi Santoso"}
+	resp := &BankResponse{AccountNumber: "1234567890", AccountName: "Budi Santoso"} // 10 chars, 12 chars -> both last 4 visible
 
 	maskBankResponse(ctx, resp)
 
 	if resp.AccountNumber != "******7890" {
 		t.Errorf("AccountNumber = %q, want masked", resp.AccountNumber)
 	}
-	if resp.AccountName != "**********oso" && resp.AccountName != "**********oso"[:len(resp.AccountName)] {
-		// AccountName masking follows the same PartialMask rule as any other field.
+	if resp.AccountName != "********ntoso" {
+		t.Errorf("AccountName = %q, want masked", resp.AccountName)
 	}
 }
 
