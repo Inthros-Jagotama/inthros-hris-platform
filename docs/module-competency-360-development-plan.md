@@ -1181,12 +1181,14 @@ Catatan tambahan: `competency_events` mendapat `template_id` (migrasi `144`) —
 
 ## Phase 4 — Approval
 
-- [ ] Integrate Approval Engine.
-- [ ] Create approval request.
-- [ ] Handle approved state.
-- [ ] Handle rejected state.
-- [ ] Handle resubmission.
-- [ ] Implement finalization.
+- [x] Integrate Approval Engine. (Migrasi `148` — `approval_instance_id`/`status`/`finalized_at` di `competency_event_targets`; Go `ApprovalEngine` interface + `SetApprovalEngine`; wiring main.go §34.2)
+- [x] Create approval request. (`SubmitAssessmentForApproval` — instance ber-module `competency_360_assessment` untuk document = target)
+- [x] Handle approved state. (`HandleAssessmentApprovalStatusChange` → status target `finalized` + `finalized_at`)
+- [x] Handle rejected state. (`REJECTED`/`CANCELLED` → target kembali `in_progress`, `approval_instance_id` direset)
+- [x] Handle resubmission. (Target `submitted` dapat di-submit ulang setelah reject — instance lama dibersihkan)
+- [x] Implement finalization. (Status `finalized` — hasil dihitung calculation engine setelah approval, lihat Phase 5)
+
+Catatan penting §34.2: entry `"competency_360_assessment": "competency"` ditambahkan ke `subscriptionModuleAliases` dan `"competency": ["competency_360_assessment"]` ke `subscriptionModuleSubslots` di `approval/service.go` — tanpa ini submit selalu gagal "module not subscribed" dan HR tidak bisa membuat flow approval.
 
 ## Phase 5 — Calculation
 

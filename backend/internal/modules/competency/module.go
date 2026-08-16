@@ -40,6 +40,19 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 	}
 }
 
+// NewModuleWithService mounts the competency module's routes using an
+// already-constructed Service, so callers (e.g. main.go) can register a
+// push-based approval status handler against it before it's wrapped
+// (pola sama employeemovement/attendance — §34.2).
+func NewModuleWithService(logger *zap.Logger, svc *Service) module.Module {
+	handler := NewHandler(svc)
+
+	return &compModule{
+		handler: handler,
+		logger:  logger,
+	}
+}
+
 type compModule struct {
 	handler *Handler
 	logger  *zap.Logger
@@ -58,6 +71,15 @@ func (m *compModule) Info() module.ModuleInfo {
 			"competency.create",
 			"competency.update",
 			"competency.delete",
+			// Competency 360 (§23 plan generik)
+			"competency_360.view",
+			"competency_360.manage",
+			"competency_360.create",
+			"competency_360.assign_rater",
+			"competency_360.assess",
+			"competency_360.approve",
+			"competency_360.view_result",
+			"competency_360.view_report",
 		},
 		Menus: []module.Menu{
 			{
@@ -69,6 +91,9 @@ func (m *compModule) Info() module.ModuleInfo {
 					{Name: "Values", Icon: "sliders", Route: "/admin/competency/values"},
 					{Name: "Events", Icon: "calendar", Route: "/admin/competency/events"},
 					{Name: "Scores", Icon: "bar-chart", Route: "/admin/competency/scores"},
+					{Name: "Assessment Templates", Icon: "clone", Route: "/admin/competency/templates"},
+					{Name: "Rater Assignment", Icon: "users", Route: "/admin/competency/raters"},
+					{Name: "My Assessment", Icon: "clipboard-list", Route: "/admin/competency/my-assessments"},
 				},
 			},
 		},

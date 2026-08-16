@@ -290,3 +290,16 @@ func (h *Handler) SubmitAssessment(c *gin.Context) {
 	}
 	httputil.SuccessJSON(c, resp)
 }
+
+// =========================================================================
+// Approval Integration Handlers (§13)
+// =========================================================================
+
+func (h *Handler) SubmitAssessmentForApproval(c *gin.Context) {
+	resp, err := h.service.SubmitAssessmentForApproval(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}

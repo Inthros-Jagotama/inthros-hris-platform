@@ -17,8 +17,9 @@ const (
 )
 
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
+	repo           *Repository
+	logger         *zap.Logger
+	approvalEngine ApprovalEngine
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {

@@ -91,5 +91,8 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		comp.GET("/my-assessments/:id", handler.GetAssessmentDetail)
 		comp.POST("/my-assessments/:id/responses", handler.SaveResponses)
 		comp.POST("/my-assessments/:id/submit", handler.SubmitAssessment)
+
+		// Competency 360 — Approval (§13)
+		comp.POST("/event-targets/:id/submit-approval", handler.SubmitAssessmentForApproval)
 	}
 }

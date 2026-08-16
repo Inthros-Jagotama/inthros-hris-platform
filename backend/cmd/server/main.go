@@ -1155,6 +1155,18 @@ func main() {
 		return okrSvc.HandleAssessmentApprovalStatusChange(ctx, documentID, string(status), note)
 	})
 
+	// Construct the competency service up front (instead of inside
+	// competency.NewModule) so its push-based approval status handler
+	// (finalisasi assessment 360 — §34.2) can be registered with approvalSvc
+	// before the module is mounted. Reuses the same shared approval adapter.
+	competencyResolver := competency.NewTenantDBResolver(dbManager)
+	competencyRepo := competency.NewRepository(competencyResolver)
+	competencySvc := competency.NewService(competencyRepo, l.Named("competency"))
+	competencySvc.SetApprovalEngine(sharedApprovalEngine)
+	approvalSvc.RegisterStatusHandler(competency.ApprovalModuleCompetency360Assessment, func(ctx context.Context, documentID uuid.UUID, status approval.InstanceStatus, note string) error {
+		return competencySvc.HandleAssessmentApprovalStatusChange(ctx, documentID, string(status), note)
+	})
+
 	// Promotion Eligibility adapters (plan §12.10/§12.11): movement hanya
 	// membaca hasil final Performance Management & Competency Management
 	// sebagai input eligibility/recommendation, tanpa menghitung KPI/OKR
@@ -1291,7 +1303,7 @@ func main() {
 			Priority: 3,
 		},
 		module.ModuleRegistration{
-			Module:   competency.NewModule(dbManager, l),
+			Module:   competency.NewModuleWithService(l, competencySvc),
 			TargetDB: module.TargetTenant,
 			Priority: 4,
 		},

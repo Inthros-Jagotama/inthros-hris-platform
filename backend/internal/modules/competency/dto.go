@@ -202,16 +202,19 @@ type CompetencyEventResponse struct {
 }
 
 type CompetencyEventTargetResponse struct {
-	ID                 string    `json:"id"`
-	CompetencyEventID  string    `json:"competency_event_id"`
-	OrganizationID     string    `json:"organization_id"`
-	EmployeeID         string    `json:"employee_id,omitempty"`
-	MissingSelf        int       `json:"missing_self"`
-	MissingSuperior    int       `json:"missing_superior"`
-	MissingPeer        int       `json:"missing_peer"`
-	MissingSubordinate int       `json:"missing_subordinate"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	ID                 string     `json:"id"`
+	CompetencyEventID  string     `json:"competency_event_id"`
+	OrganizationID     string     `json:"organization_id"`
+	EmployeeID         string     `json:"employee_id,omitempty"`
+	MissingSelf        int        `json:"missing_self"`
+	MissingSuperior    int        `json:"missing_superior"`
+	MissingPeer        int        `json:"missing_peer"`
+	MissingSubordinate int        `json:"missing_subordinate"`
+	Status             string     `json:"status"`
+	ApprovalInstanceID string     `json:"approval_instance_id,omitempty"`
+	FinalizedAt        *time.Time `json:"finalized_at,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
 }
 
 type CompetencyScoreResponse struct {
@@ -343,11 +346,16 @@ func (t *CompetencyEventTarget) ToResponse() CompetencyEventTargetResponse {
 		MissingSuperior:    t.MissingSuperior,
 		MissingPeer:        t.MissingPeer,
 		MissingSubordinate: t.MissingSubordinate,
+		Status:             t.Status,
+		FinalizedAt:        t.FinalizedAt,
 		CreatedAt:          t.CreatedAt,
 		UpdatedAt:          t.UpdatedAt,
 	}
 	if t.EmployeeID != nil {
 		r.EmployeeID = t.EmployeeID.String()
+	}
+	if t.ApprovalInstanceID != nil {
+		r.ApprovalInstanceID = t.ApprovalInstanceID.String()
 	}
 	return r
 }

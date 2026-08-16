@@ -200,6 +200,11 @@ var subscriptionModuleSubslots = map[string][]string{
 	// subscription — it routes through two independent checkpoints, Travel
 	// Approval and Settlement Approval, each its own flow module slug.
 	"attendance": {"business_travel", "business_travel_settlement"},
+	// Competency 360 (docs/module-competency-360-development-plan.md §34.2):
+	// finalisasi assessment di-routing lewat Central Approval sebagai instance
+	// ber-module competency_360_assessment — subscription "competency" yang
+	// membuka checkpoint flow ini di module picker Approval Flow Builder.
+	"competency": {"competency_360_assessment"},
 }
 
 // ListAvailableModules mengembalikan slug module flow yang (1) benar-benar
@@ -272,6 +277,10 @@ var subscriptionModuleAliases = map[string]string{
 	// here or CreateApprovalInstance would always reject them as unsubscribed.
 	"business_travel":            "attendance",
 	"business_travel_settlement": "attendance",
+	// Competency 360 checkpoint (kompetensi) bukan slug subscription asli —
+	// tanpa alias ini CreateApprovalInstance selalu menolak submission dengan
+	// "module not subscribed" (§34.2).
+	"competency_360_assessment": "competency",
 }
 
 func (s *Service) ensureModuleSubscribed(ctx context.Context, module string) error {

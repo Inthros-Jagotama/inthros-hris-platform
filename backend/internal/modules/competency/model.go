@@ -121,14 +121,17 @@ func (e *CompetencyEvent) BeforeCreate(tx *gorm.DB) error {
 // =========================================================================
 
 type CompetencyEventTarget struct {
-	ID                 uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
-	CompetencyEventID  uuid.UUID `gorm:"type:char(36);not null;index" json:"competency_event_id"`
-	OrganizationID     uuid.UUID `gorm:"type:char(36);not null;index" json:"organization_id"`
+	ID                 uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	CompetencyEventID  uuid.UUID  `gorm:"type:char(36);not null;index" json:"competency_event_id"`
+	OrganizationID     uuid.UUID  `gorm:"type:char(36);not null;index" json:"organization_id"`
 	EmployeeID         *uuid.UUID `gorm:"type:char(36);index" json:"employee_id,omitempty"`
 	MissingSelf        int        `gorm:"type:smallint;default:0" json:"missing_self"`
 	MissingSuperior    int        `gorm:"type:smallint;default:0" json:"missing_superior"`
 	MissingPeer        int        `gorm:"type:smallint;default:0" json:"missing_peer"`
 	MissingSubordinate int        `gorm:"type:smallint;default:0" json:"missing_subordinate"`
+	Status             string     `gorm:"type:varchar(20);default:draft" json:"status"`
+	ApprovalInstanceID *uuid.UUID `gorm:"type:char(36);index" json:"approval_instance_id,omitempty"`
+	FinalizedAt        *time.Time `gorm:"type:timestamp" json:"finalized_at,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
 
