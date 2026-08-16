@@ -59,7 +59,7 @@
           <TextInput v-model="form.title" />
         </FormRow>
         <FormRow :label="t('business_travel.purpose')" :errors="errors?.purpose">
-          <TextInput v-model="form.purpose" textarea :rows="2" />
+          <TextInput v-model="form.purpose" textarea :rows="2" :placeholder="t('business_travel.purpose_placeholder')" />
         </FormRow>
         <FormRow :label="t('business_travel.start_date')" required :errors="errors?.start_date">
           <DateInput v-model="form.start_date" />
@@ -68,12 +68,13 @@
           <DateInput v-model="form.end_date" />
         </FormRow>
         <FormRow :label="t('business_travel.origin')" :errors="errors?.origin">
-          <TextInput v-model="form.origin" />
+          <TextInput v-model="form.origin" :placeholder="t('business_travel.origin_placeholder')" />
         </FormRow>
         <FormRow :label="t('business_travel.description')" :errors="errors?.description">
           <TextInput v-model="form.description" textarea :rows="2" />
         </FormRow>
       </div>
+      <Message severity="info" :closable="false" class="!mt-1">{{ t('business_travel.destinations_hint') }}</Message>
       <template #footer>
         <div class="flex items-center justify-end gap-2">
           <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible = false" />
@@ -99,6 +100,7 @@ import Button from 'primevue/button'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
+import Message from 'primevue/message'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'

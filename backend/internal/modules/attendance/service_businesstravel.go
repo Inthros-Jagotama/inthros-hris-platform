@@ -307,6 +307,73 @@ func (s *Service) CancelBusinessTravel(ctx context.Context, id string) (*Busines
 	return businessTravelToResponse(travel), nil
 }
 
+// AddBusinessTravelDestination menambahkan satu tujuan (kota/negara) ke
+// travel yang sudah ada. Terpisah dari CreateBusinessTravel's inline
+// destinations array supaya destination bisa ditambah setelah travel
+// dibuat, simetris dengan AddBusinessTravelActivity/AddBusinessTravelSchedule.
+func (s *Service) AddBusinessTravelDestination(ctx context.Context, travelIDStr string, req CreateBusinessTravelDestinationRequest) (*BusinessTravelDestinationResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	if _, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, travelID); err != nil {
+		return nil, err
+	}
+	destination := &BusinessTravelDestination{
+		BusinessTravelID: travelID,
+		Sequence:         req.Sequence,
+	}
+	if req.Country != "" {
+		destination.Country = &req.Country
+	}
+	if req.Province != "" {
+		destination.Province = &req.Province
+	}
+	if req.City != "" {
+		destination.City = &req.City
+	}
+	if req.Location != "" {
+		destination.Location = &req.Location
+	}
+	if req.Purpose != "" {
+		destination.Purpose = &req.Purpose
+	}
+	if req.Notes != "" {
+		destination.Notes = &req.Notes
+	}
+	if req.ArrivalDate != "" {
+		if parsed, err := time.Parse("2006-01-02", req.ArrivalDate); err == nil {
+			destination.ArrivalDate = &parsed
+		}
+	}
+	if req.DepartureDate != "" {
+		if parsed, err := time.Parse("2006-01-02", req.DepartureDate); err == nil {
+			destination.DepartureDate = &parsed
+		}
+	}
+	if err := s.repo.CreateDestination(ctx, destination); err != nil {
+		return nil, err
+	}
+	resp := businessTravelDestinationToResponse(destination)
+	return &resp, nil
+}
+
+func (s *Service) ListBusinessTravelDestinations(ctx context.Context, travelIDStr string) ([]BusinessTravelDestinationResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	destinations, err := s.repo.ListDestinationsByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]BusinessTravelDestinationResponse, 0, len(destinations))
+	for i := range destinations {
+		responses = append(responses, businessTravelDestinationToResponse(&destinations[i]))
+	}
+	return responses, nil
+}
+
 // AddBusinessTravelActivity menambahkan satu item agenda/kegiatan ke travel
 // yang sudah ada. Tidak dibatasi status DRAFT — agenda bisa disesuaikan
 // selama perjalanan berlangsung (§9 plan doc tidak menyebut pembatasan status).

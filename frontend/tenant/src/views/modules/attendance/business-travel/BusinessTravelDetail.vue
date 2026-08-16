@@ -50,10 +50,14 @@
         </div>
 
         <div>
-          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">{{ t('business_travel.destinations') }}</h3>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.destinations') }}</h3>
+            <Button :label="t('common.add')" icon="pi pi-plus" size="small" text @click="openDestinationDialog" />
+          </div>
           <div v-if="travel.destinations?.length" class="divide-y divide-gray-100 dark:divide-gray-700">
             <div v-for="d in travel.destinations" :key="d.id" class="py-2 text-sm text-gray-700 dark:text-gray-200">
               {{ [d.city, d.province, d.country].filter(Boolean).join(', ') || d.location || '-' }}
+              <span v-if="d.purpose" class="text-gray-400 dark:text-gray-500">— {{ d.purpose }}</span>
             </div>
           </div>
           <p v-else class="text-xs text-gray-400">{{ t('business_travel.empty') }}</p>
@@ -227,6 +231,21 @@
         </div>
       </div>
     </div>
+
+    <!-- ── Dialog: Destination ── -->
+    <Dialog v-model:visible="destinationDialogVisible" :header="t('business_travel.add_destination')" modal :style="{ width: '460px' }">
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('business_travel.destination_hint') }}</p>
+      <div class="space-y-3">
+        <FormRow :label="t('business_travel.city')" required><TextInput v-model="destinationForm.city" /></FormRow>
+        <FormRow :label="t('business_travel.province')"><TextInput v-model="destinationForm.province" /></FormRow>
+        <FormRow :label="t('business_travel.country')"><TextInput v-model="destinationForm.country" /></FormRow>
+        <FormRow :label="t('business_travel.destination_purpose')"><TextInput v-model="destinationForm.purpose" textarea :rows="2" /></FormRow>
+      </div>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="destinationDialogVisible = false" />
+        <Button :label="t('common.save')" size="small" :loading="savingDestination" @click="handleSaveDestination" />
+      </template>
+    </Dialog>
 
     <!-- ── Dialog: Activity ── -->
     <Dialog v-model:visible="activityDialogVisible" :header="t('business_travel.add_activity')" modal :style="{ width: '460px' }">
@@ -503,6 +522,28 @@ async function handleCancel() {
     toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
   } finally {
     cancelling.value = false
+  }
+}
+
+// ── Destination ──
+const destinationDialogVisible = ref(false)
+const savingDestination = ref(false)
+const destinationForm = ref({ city: '', province: '', country: '', purpose: '' })
+function openDestinationDialog() {
+  destinationForm.value = { city: '', province: '', country: '', purpose: '' }
+  destinationDialogVisible.value = true
+}
+async function handleSaveDestination() {
+  if (!destinationForm.value.city?.trim()) return
+  savingDestination.value = true
+  try {
+    await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/destinations`, destinationForm.value)
+    destinationDialogVisible.value = false
+    await loadTravel()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+  } finally {
+    savingDestination.value = false
   }
 }
 
