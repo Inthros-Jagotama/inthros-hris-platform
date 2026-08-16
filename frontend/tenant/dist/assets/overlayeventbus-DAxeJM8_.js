@@ -1,1 +1,0 @@
-import{Q as e}from"./basecomponent-Dq2wVn8v.js";var t=e();export{t};
