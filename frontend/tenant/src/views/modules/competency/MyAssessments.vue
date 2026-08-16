@@ -44,6 +44,7 @@
                   optionLabel="label"
                   optionValue="value"
                   class="w-36"
+                  size="small"
                   :disabled="detail.rater.status === 'submitted'"
                   :placeholder="t('common.select')"
                 />
