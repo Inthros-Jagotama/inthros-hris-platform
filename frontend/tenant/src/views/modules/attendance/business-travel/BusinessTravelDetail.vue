@@ -302,9 +302,13 @@
     <Dialog v-model:visible="destinationDialogVisible" :header="t('business_travel.add_destination')" modal :style="{ width: '460px' }">
       <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('business_travel.destination_hint') }}</p>
       <div class="space-y-3">
+        <FormRow :label="t('business_travel.country')" required>
+          <Select v-model="destinationForm.country" :options="nationalityOptions" optionLabel="label" optionValue="value" filter class="w-full" />
+        </FormRow>
+        <FormRow v-if="isDestinationCountryIndonesia" :label="t('business_travel.province')">
+          <Select v-model="destinationForm.province" :options="provinceOptions" optionLabel="label" optionValue="value" filter showClear class="w-full" />
+        </FormRow>
         <FormRow :label="t('business_travel.city')" required><TextInput v-model="destinationForm.city" /></FormRow>
-        <FormRow :label="t('business_travel.province')"><TextInput v-model="destinationForm.province" /></FormRow>
-        <FormRow :label="t('business_travel.country')"><TextInput v-model="destinationForm.country" /></FormRow>
         <FormRow :label="t('business_travel.destination_purpose')"><TextInput v-model="destinationForm.purpose" textarea :rows="2" /></FormRow>
       </div>
       <template #footer>
@@ -457,6 +461,10 @@ const travelDocuments = ref([])
 const uploadingTravelDoc = ref(false)
 const employees = ref([])
 const employeeOptions = computed(() => employees.value.map(e => ({ label: `${e.name} (${e.employee_id})`, value: e.id })))
+const nationalities = ref([])
+const provinces = ref([])
+const nationalityOptions = computed(() => nationalities.value.map(n => ({ label: n.name, value: n.name })))
+const provinceOptions = computed(() => provinces.value.map(p => ({ label: p.name, value: p.name })))
 const fundings = ref([])
 const fundingMethods = ref([])
 const expenses = ref([])
@@ -542,6 +550,12 @@ async function loadTravelDocuments() {
 async function loadEmployees() {
   try { employees.value = (await api.get('/api/v1/tenant/employees', { params: { per_page: 500 } })).data?.data || [] } catch { employees.value = [] }
 }
+async function loadNationalities() {
+  try { nationalities.value = (await api.get('/api/v1/tenant/settings/nationalities', { params: { per_page: 300 } })).data?.data || [] } catch { nationalities.value = [] }
+}
+async function loadProvinces() {
+  try { provinces.value = (await api.get('/api/v1/tenant/settings/provinces', { params: { all: true } })).data?.data || [] } catch { provinces.value = [] }
+}
 async function loadFundingMethods() {
   try { fundingMethods.value = (await api.get('/api/v1/tenant/attendance/business-travel-funding-methods')).data?.data || [] } catch { fundingMethods.value = [] }
 }
@@ -569,7 +583,7 @@ async function loadAll() {
   try {
     await loadTravel()
     await Promise.all([
-      loadActivities(), loadSchedules(), loadTravelDocuments(), loadEmployees(), loadFundingMethods(), loadFundings(),
+      loadActivities(), loadSchedules(), loadTravelDocuments(), loadEmployees(), loadNationalities(), loadProvinces(), loadFundingMethods(), loadFundings(),
       loadExpenseCategories(), loadExpenses(), loadSettlements(), loadRefunds(), loadReimbursements()
     ])
   } catch (e) {
@@ -633,13 +647,15 @@ async function handleSaveParticipant() {
 // ── Destination ──
 const destinationDialogVisible = ref(false)
 const savingDestination = ref(false)
-const destinationForm = ref({ city: '', province: '', country: '', purpose: '' })
+const destinationForm = ref({ city: '', province: '', country: 'Indonesia', purpose: '' })
+const isDestinationCountryIndonesia = computed(() => destinationForm.value.country === 'Indonesia')
 function openDestinationDialog() {
-  destinationForm.value = { city: '', province: '', country: '', purpose: '' }
+  destinationForm.value = { city: '', province: '', country: 'Indonesia', purpose: '' }
   destinationDialogVisible.value = true
 }
 async function handleSaveDestination() {
   if (!destinationForm.value.city?.trim()) return
+  if (!isDestinationCountryIndonesia.value) destinationForm.value.province = ''
   savingDestination.value = true
   try {
     await api.post(`/api/v1/tenant/attendance/business-travels/${travelId}/destinations`, destinationForm.value)
