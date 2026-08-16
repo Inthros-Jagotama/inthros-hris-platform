@@ -122,6 +122,10 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.POST("/business-travels/:id/settlements", handler.CreateSettlement)
 		att.GET("/business-travels/:id/settlements", handler.ListSettlements)
 		att.GET("/business-travels/:id/settlements/:settlementId", handler.GetSettlementByID)
+		// Flat lookup by settlement ID alone, for callers that only know the
+		// approval instance's document_id (the settlement ID) and not its
+		// parent travel — e.g. the Approvals module's task detail popup.
+		att.GET("/business-travel-settlements/:settlementId", handler.GetSettlementByID)
 		att.POST("/business-travels/:id/settlements/:settlementId/submit", handler.SubmitSettlement)
 
 		// Refund (§35): dibuat otomatis oleh HandleSettlementApprovalStatusChange

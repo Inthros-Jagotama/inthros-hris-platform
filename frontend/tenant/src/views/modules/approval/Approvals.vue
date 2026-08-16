@@ -1129,7 +1129,10 @@ const DOCUMENT_FIELD_DENYLIST = new Set([
   'employee_id', 'organization_id', 'period_id', 'template_id',
   'approval_instance_id', 'target_approval_instance_id', 'realization_approval_instance_id',
   'kr_approval_instance_id', 'assessment_approval_instance_id',
-  'details', 'program_items', 'items', 'documents'
+  'details', 'program_items', 'items', 'documents',
+  // Business Travel (raw IDs already implied by the popup's own context —
+  // approval module → module/document_id — not useful to show as fields).
+  'requester_id', 'business_travel_id', 'participant_id'
 ])
 
 function humanizeLabel(key) {
@@ -1180,6 +1183,13 @@ function documentEndpointFor(module, documentId) {
       return `/api/v1/tenant/recruitment/offers/${documentId}`
     case 'training_request':
       return `/api/v1/tenant/trainings/requests/${documentId}`
+    case 'business_travel':
+      return `/api/v1/tenant/attendance/business-travels/${documentId}`
+    case 'business_travel_settlement':
+      // Settlements only have a nested detail route (business-travels/:id/
+      // settlements/:settlementId) — this flat lookup exists specifically so
+      // callers here, which only know the document_id, can fetch it.
+      return `/api/v1/tenant/attendance/business-travel-settlements/${documentId}`
     default:
       return null
   }
