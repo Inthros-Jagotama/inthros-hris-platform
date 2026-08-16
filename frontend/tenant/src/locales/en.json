@@ -2104,7 +2104,9 @@
       "okr_assessment": "OKR Assessment",
       "training_request": "Training Request",
       "recruitment": "Recruitment",
-      "recruitment_offer": "Candidate Offer"
+      "recruitment_offer": "Candidate Offer",
+      "business_travel": "Business Travel",
+      "business_travel_settlement": "Business Travel Settlement"
     }
   },
   "notification": {

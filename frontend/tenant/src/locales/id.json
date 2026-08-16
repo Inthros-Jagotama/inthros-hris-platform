@@ -2104,7 +2104,9 @@
       "okr_assessment": "Penilaian OKR",
       "training_request": "Permintaan Training",
       "recruitment": "Rekrutmen",
-      "recruitment_offer": "Penawaran Kandidat"
+      "recruitment_offer": "Penawaran Kandidat",
+      "business_travel": "Perjalanan Dinas",
+      "business_travel_settlement": "Penyelesaian Perjalanan Dinas"
     }
   },
   "notification": {

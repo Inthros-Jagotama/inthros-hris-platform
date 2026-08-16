@@ -2300,6 +2300,15 @@ Ikuti pola reimbursement persis (section 42/section 3 dokumen ini sudah sejalan)
 
 **Status: diimplementasikan penuh** — `HandleBusinessTravelApprovalStatusChange` & `HandleSettlementApprovalStatusChange` sudah live, diregister di `main.go` sesuai poin 4 di atas.
 
+### Module Picker di Approval Flow Builder
+
+Approval module punya dua map di `backend/internal/modules/approval/service.go` yang **wajib** diupdate ketika sebuah flow module slug baru ditambahkan (baik ini maupun module lain di masa depan) — keduanya sempat luput saat wiring awal Business Travel dan baru diperbaiki belakangan:
+
+1. **`subscriptionModuleAliases`** (slug flow → slug subscription asli) — dipakai `ensureModuleSubscribed` saat `CreateApprovalInstance` dipanggil. Tanpa entry `"business_travel": "attendance"` dan `"business_travel_settlement": "attendance"` di sini, **submit travel/settlement akan selalu gagal** dengan error "module not subscribed", karena `business_travel`/`business_travel_settlement` bukan slug subscription asli (Business Travel bukan module terpisah, §54.1).
+2. **`subscriptionModuleSubslots`** (slug subscription → daftar slug flow yang di-unlock) — dipakai `ListAvailableModules` (backend endpoint `/api/v1/tenant/approval/available-modules`, dikonsumsi FE `ApprovalFlows.vue`'s module picker). Entry `"attendance": ["business_travel", "business_travel_settlement"]` sudah ditambahkan supaya begitu tenant subscribe module Attendance, HR bisa langsung membuat flow persetujuan untuk "Business Travel" dan "Business Travel Settlement" di dropdown pembuatan alur — tanpa ini, kedua flow tidak akan pernah muncul di picker meski module-nya sudah aktif.
+
+Label dropdown ditambahkan di `frontend/tenant/src/locales/{en,id}.json` → `approval.module_names.business_travel` / `approval.module_names.business_travel_settlement` (fallback ke raw slug kalau tidak ada, jadi FE tidak pernah benar-benar rusak — tapi tanpa ini labelnya jelek).
+
 ### Integrasi Notifikasi
 
 `Service` sudah punya `Notifier` (dipakai overtime/correction), tinggal dipanggil untuk event Business Travel — **tidak perlu wiring baru** karena `attendanceSvc.SetNotifier(notificationSvc)` sudah ter-attach sejak awal di `main.go`.

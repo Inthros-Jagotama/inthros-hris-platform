@@ -194,7 +194,12 @@ var subscriptionModuleSubslots = map[string][]string{
 	// submission movement, bisa memakai approver yang sama/berbeda).
 	"employeemovement": {"employeemovement_cancellation"},
 	"training":         {"training_request"},
-	"recruitment":     {"recruitment_offer"},
+	"recruitment":      {"recruitment_offer"},
+	// Business Travel (docs/module-attendance-business-travel-development-plan.md
+	// §54.1/§54.3) lives inside the attendance module, not as its own
+	// subscription — it routes through two independent checkpoints, Travel
+	// Approval and Settlement Approval, each its own flow module slug.
+	"attendance": {"business_travel", "business_travel_settlement"},
 }
 
 // ListAvailableModules mengembalikan slug module flow yang (1) benar-benar
@@ -261,6 +266,12 @@ var subscriptionModuleAliases = map[string]string{
 	// tapi tenant subscribe "recruitment". Sama dengan training_request.
 	"recruitment_offer": "recruitment",
 	"training_request":  "training",
+	// Business Travel lives inside the attendance module (§54.1) — its two
+	// checkpoints route as "business_travel"/"business_travel_settlement" but
+	// neither is a real subscription slug, so both must resolve to "attendance"
+	// here or CreateApprovalInstance would always reject them as unsubscribed.
+	"business_travel":            "attendance",
+	"business_travel_settlement": "attendance",
 }
 
 func (s *Service) ensureModuleSubscribed(ctx context.Context, module string) error {
