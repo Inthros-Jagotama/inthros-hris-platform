@@ -1418,6 +1418,7 @@ func (s *Service) HandleBusinessTravelApprovalStatusChange(ctx context.Context, 
 	case "APPROVED":
 		travel.Status = TravelStatusApproved
 		travel.ApprovalStatus = string(TravelStatusApproved)
+		s.pushBusinessTravelAttendance(ctx, travel)
 	case "REJECTED":
 		travel.Status = TravelStatusRejected
 		travel.ApprovalStatus = string(TravelStatusRejected)
@@ -1425,6 +1426,29 @@ func (s *Service) HandleBusinessTravelApprovalStatusChange(ctx context.Context, 
 		travel.ApprovalStatus = status
 	}
 	return s.repo.UpdateBusinessTravel(ctx, travel)
+}
+
+// pushBusinessTravelAttendance marks every EMPLOYEE participant's attendance
+// session BUSINESS_TRAVEL for each day of the trip (§37 plan doc), once the
+// travel is APPROVED. Best-effort per participant/day: logs and continues
+// rather than failing the approval callback, matching notifyRequestOutcome's
+// policy for auxiliary side effects.
+func (s *Service) pushBusinessTravelAttendance(ctx context.Context, travel *BusinessTravel) {
+	for _, p := range travel.Participants {
+		if p.ParticipantType != ParticipantTypeEmployee || p.EmployeeID == nil {
+			continue
+		}
+		for d := travel.StartDate; !d.After(travel.EndDate); d = d.AddDate(0, 0, 1) {
+			if err := s.ApplyApprovedBusinessTravel(ctx, *p.EmployeeID, d.Format("2006-01-02"), travel.ID); err != nil {
+				s.logger.Warn("Failed to apply business travel to attendance session",
+					zap.String("business_travel_id", travel.ID.String()),
+					zap.String("employee_id", p.EmployeeID.String()),
+					zap.String("work_date", d.Format("2006-01-02")),
+					zap.Error(err),
+				)
+			}
+		}
+	}
 }
 
 func generateBusinessTravelRequestNumber() string {

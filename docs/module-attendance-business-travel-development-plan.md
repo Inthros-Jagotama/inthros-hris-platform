@@ -1898,12 +1898,10 @@ ip_address
 
 ## Phase 9 — Attendance
 
-- [ ] Business Travel attendance source.
-- [ ] Travel day.
-- [ ] Full day.
-- [ ] Half day.
-- [ ] Weekend.
-- [ ] Attendance integration.
+- [x] Business Travel attendance source — **keputusan desain: dedicated column, bukan generic `source_type`/`source_id`**. Plan doc §37 awalnya mengusulkan `attendance.source_type = BUSINESS_TRAVEL` generik, tapi codebase sudah punya pola established untuk kasus yang sama persis (Leave → Attendance, migration 004 `leave_request_id`/`leave_fraction` + `Service.ApplyApprovedLeave`, dipush via `leaveSvc.SetAttendanceSessionUpdater(attendanceSvc)`). Business Travel mengikuti pola itu: kolom `business_travel_id` baru di `attendance_sessions` (migration `136`, postgres+mysql), status session baru `BUSINESS_TRAVEL`, method `Service.ApplyApprovedBusinessTravel` (mirror `ApplyApprovedLeave` persis termasuk proteksi CLOSED-day). Dipanggil otomatis dari `HandleBusinessTravelApprovalStatusChange` saat travel APPROVED (`pushBusinessTravelAttendance`, iterasi semua participant `EMPLOYEE` × tanggal `StartDate..EndDate`) — tidak perlu wiring updater terpisah seperti leave karena sudah satu Service yang sama.
+- [x] Travel day — session di-mark `BUSINESS_TRAVEL` untuk setiap hari dalam rentang `start_date..end_date`.
+- [ ] Full day / [ ] Half day / [ ] Weekend — belum ada pembedaan granular; saat ini semua hari travel diperlakukan sama (full day). Tabel `business_travel_attendance_rules` (migration `135`) sudah ada di skema tapi belum dipakai untuk membedakan FULL_DAY/HALF_DAY/TRAVEL_DAY/NON_WORKING_DAY — masih best-effort binary (travel day vs bukan).
+- [x] Attendance integration — sesi tidak ditimpa jika sudah `CLOSED` (hari kerja nyata yang sudah selesai), sama seperti proteksi leave.
 
 ## Phase 10 — Payroll / Accounting
 

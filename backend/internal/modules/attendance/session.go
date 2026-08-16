@@ -214,6 +214,25 @@ func (s *Service) ApplyApprovedLeave(ctx context.Context, employeeID uuid.UUID, 
 	return s.repo.UpsertSession(ctx, session)
 }
 
+// ApplyApprovedBusinessTravel lets Business Travel push an APPROVED travel
+// onto a day's session (§37 plan doc), mirroring ApplyApprovedLeave's push
+// pattern rather than a generic source_type/source_id design. Same
+// CLOSED-day protection: a real, completed attendance day isn't overwritten,
+// so a half day of actual work coexisting with travel just records
+// BusinessTravelID without discarding it.
+func (s *Service) ApplyApprovedBusinessTravel(ctx context.Context, employeeID uuid.UUID, workDate string, businessTravelID uuid.UUID) error {
+	workDate = normalizeWorkDate(workDate)
+	session, err := s.repo.FindSessionByEmployeeAndDate(ctx, employeeID, workDate)
+	if err != nil {
+		session = &AttendanceSession{EmployeeID: employeeID, WorkDate: workDate}
+	}
+	session.BusinessTravelID = &businessTravelID
+	if session.Status != SessionStatusClosed {
+		session.Status = SessionStatusBusinessTravel
+	}
+	return s.repo.UpsertSession(ctx, session)
+}
+
 // selectCheckinCheckout picks the first CHECKIN and the first CHECKOUT that
 // follows it from a work date's events (already ordered by event_time_local
 // ascending) - covering the cross-midnight case where the checkout's local

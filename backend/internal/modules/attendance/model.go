@@ -253,6 +253,9 @@ const (
 	SessionStatusDayOff          SessionStatus = "DAY_OFF"
 	SessionStatusExempt          SessionStatus = "EXEMPT"
 	SessionStatusLeave           SessionStatus = "LEAVE"
+	// SessionStatusBusinessTravel: hari yang tercakup oleh Business Travel
+	// yang APPROVED (§37 plan doc), diterapkan via Service.ApplyApprovedBusinessTravel.
+	SessionStatusBusinessTravel SessionStatus = "BUSINESS_TRAVEL"
 )
 
 type AttendanceSession struct {
@@ -266,6 +269,7 @@ type AttendanceSession struct {
 	ApprovedOvertimeEndLocal   *time.Time     `json:"approved_overtime_end_local,omitempty"`
 	LeaveRequestID             *uuid.UUID     `gorm:"type:char(36);index:idx_att_session_leave" json:"leave_request_id,omitempty"`
 	LeaveFraction              *float64       `gorm:"type:decimal(4,2)" json:"leave_fraction,omitempty"`
+	BusinessTravelID           *uuid.UUID     `gorm:"type:char(36);index:idx_att_session_biztrav" json:"business_travel_id,omitempty"`
 	PlannedStartLocal          *time.Time     `json:"planned_start_local,omitempty"`
 	PlannedEndLocal            *time.Time     `json:"planned_end_local,omitempty"`
 	CheckinEventID             *uuid.UUID     `gorm:"type:char(36);index:idx_att_session_checkin" json:"checkin_event_id,omitempty"`
