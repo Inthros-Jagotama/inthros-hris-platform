@@ -39,12 +39,15 @@ func TestTenantRBACSubmenus(t *testing.T) {
 	}
 
 	// Sanity: beberapa permission submenu yang dipakai frontend harus ada.
+	// organization & setting sengaja TIDAK punya submenu — cukup module-level
+	// (organization.view/create/update/delete, setting.view/...), yang sudah
+	// meng-cover semua route submenu-nya lewat fallback module-covers-submenu
+	// di authz middleware & FE hasPermission().
 	required := []string{
 		"competency.events.view",
 		"competency.templates.view",
 		"competency.my-assessments.view",
 		"attendance.business-travel.view",
-		"setting.zones.view",
 		"rbac.roles.view",
 	}
 	for _, name := range required {
