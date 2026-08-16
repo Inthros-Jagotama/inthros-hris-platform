@@ -2390,6 +2390,7 @@
     "manager_assessments_empty": "Belum ada bawahan yang menjadi subject assessment pada scope ini.",
     "subordinate": "Bawahan",
     "employee": "Karyawan",
+    "raters": "Raters",
     "my_rating_status": "Status Penilaian Saya",
     "not_assigned": "Belum Ditugaskan",
     "assign_fill": "Tugaskan & Nilai",
