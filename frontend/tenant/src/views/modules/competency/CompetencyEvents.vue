@@ -187,6 +187,8 @@ const templates = ref([])
 const employees = ref([])
 const organizations = ref([])
 
+const currentYear = new Date().getFullYear()
+
 const dialogVisible = ref(false)
 const editing = ref(false)
 const editingId = ref(null)
@@ -200,7 +202,6 @@ const targets = ref([])
 const targetsEvent = ref(null)
 const targetForm = ref({ organization_id: null, employee_id: null })
 const addingTarget = ref(false)
-const currentYear = new Date().getFullYear()
 
 const deleteDialogVisible = ref(false)
 const deleting = ref(false)
