@@ -255,6 +255,117 @@ func (r *Repository) CreateFundingDocument(ctx context.Context, d *FundingDocume
 	return db.Create(d).Error
 }
 
+// =========================================================================
+// Expense Categories (master)
+// =========================================================================
+
+func (r *Repository) CreateExpenseCategory(ctx context.Context, c *ExpenseCategory) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(c).Error
+}
+
+func (r *Repository) ListExpenseCategories(ctx context.Context, activeOnly bool) ([]ExpenseCategory, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	query := db.Model(&ExpenseCategory{})
+	if activeOnly {
+		query = query.Where("active = ?", true)
+	}
+	var categories []ExpenseCategory
+	if err := query.Order("name ASC").Find(&categories).Error; err != nil {
+		return nil, err
+	}
+	return categories, nil
+}
+
+func (r *Repository) FindExpenseCategoryByID(ctx context.Context, id uuid.UUID) (*ExpenseCategory, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var c ExpenseCategory
+	if err := db.First(&c, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("expense category not found: %w", err)
+	}
+	return &c, nil
+}
+
+// =========================================================================
+// Expenses (actual)
+// =========================================================================
+
+func (r *Repository) CreateExpense(ctx context.Context, e *Expense) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(e).Error
+}
+
+func (r *Repository) FindExpenseByID(ctx context.Context, id uuid.UUID) (*Expense, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var e Expense
+	if err := db.Preload("Documents").First(&e, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("expense not found: %w", err)
+	}
+	return &e, nil
+}
+
+func (r *Repository) UpdateExpense(ctx context.Context, e *Expense) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Save(e).Error
+}
+
+func (r *Repository) DeleteExpense(ctx context.Context, id uuid.UUID) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	result := db.Where("id = ?", id).Delete(&Expense{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("expense not found")
+	}
+	return nil
+}
+
+func (r *Repository) ListExpensesByTravel(ctx context.Context, travelID uuid.UUID) ([]Expense, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var expenses []Expense
+	if err := db.Preload("Documents").Where("business_travel_id = ?", travelID).Order("expense_date ASC").Find(&expenses).Error; err != nil {
+		return nil, err
+	}
+	return expenses, nil
+}
+
+// =========================================================================
+// Expense Documents
+// =========================================================================
+
+func (r *Repository) CreateExpenseDocument(ctx context.Context, d *ExpenseDocument) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return err
+	}
+	return db.Create(d).Error
+}
+
 // FindBusinessTravelByIDForOwnership loads a bare BusinessTravel (no
 // preloads) — used by sub-resource creators (activity/schedule) that only
 // need to check the parent travel exists and read its status, without the

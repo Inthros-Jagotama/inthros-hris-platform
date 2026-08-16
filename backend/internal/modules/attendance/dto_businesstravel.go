@@ -158,6 +158,100 @@ type FundingDocumentResponse struct {
 }
 
 // =========================================================================
+// Expense Category (master) & Actual Expense — Request DTOs (§12, §21 plan doc)
+// =========================================================================
+
+type CreateExpenseCategoryRequest struct {
+	Code             string `json:"code" binding:"required"`
+	Name             string `json:"name" binding:"required"`
+	Description      string `json:"description"`
+	RequiresReceipt  *bool  `json:"requires_receipt"`
+	Reimbursable     *bool  `json:"reimbursable"`
+	PayrollTreatment string `json:"payroll_treatment"`
+	AccountCode      string `json:"account_code"`
+}
+
+type ExpenseCategoryResponse struct {
+	ID               string  `json:"id"`
+	Code             string  `json:"code"`
+	Name             string  `json:"name"`
+	Description      *string `json:"description,omitempty"`
+	RequiresReceipt  bool    `json:"requires_receipt"`
+	Reimbursable     bool    `json:"reimbursable"`
+	PayrollTreatment *string `json:"payroll_treatment,omitempty"`
+	AccountCode      *string `json:"account_code,omitempty"`
+	Active           bool    `json:"active"`
+}
+
+// CreateExpenseRequest — actual expense (§21). FundingMethodID di sini boleh
+// berbeda dengan funding awal travel (mixed funding per item, §33).
+type CreateExpenseRequest struct {
+	ParticipantID     string  `json:"participant_id"`
+	ExpenseCategoryID string  `json:"expense_category_id" binding:"required"`
+	ExpenseDate       string  `json:"expense_date" binding:"required"`
+	Description       string  `json:"description"`
+	Quantity          float64 `json:"quantity"`
+	Unit              string  `json:"unit"`
+	Amount            float64 `json:"amount" binding:"required"`
+	FundingMethodID   string  `json:"funding_method_id"`
+	Vendor            string  `json:"vendor"`
+	ReceiptNumber     string  `json:"receipt_number"`
+	Notes             string  `json:"notes"`
+}
+
+type UpdateExpenseRequest struct {
+	ExpenseCategoryID *string  `json:"expense_category_id"`
+	ExpenseDate       *string  `json:"expense_date"`
+	Description       *string  `json:"description"`
+	Quantity          *float64 `json:"quantity"`
+	Unit              *string  `json:"unit"`
+	Amount            *float64 `json:"amount"`
+	FundingMethodID   *string  `json:"funding_method_id"`
+	Vendor            *string  `json:"vendor"`
+	ReceiptNumber     *string  `json:"receipt_number"`
+	Notes             *string  `json:"notes"`
+}
+
+// AddExpenseDocumentRequest stores the URL returned by the generic upload
+// endpoint, same pattern as AddFundingDocumentRequest (§54.4).
+type AddExpenseDocumentRequest struct {
+	DocumentType string `json:"document_type" binding:"required"`
+	FileName     string `json:"file_name" binding:"required"`
+	FilePath     string `json:"file_path" binding:"required"`
+	MimeType     string `json:"mime_type"`
+	FileSize     int64  `json:"file_size"`
+}
+
+type ExpenseResponse struct {
+	ID                string                    `json:"id"`
+	BusinessTravelID  string                    `json:"business_travel_id"`
+	ParticipantID     *string                   `json:"participant_id,omitempty"`
+	ExpenseCategoryID string                    `json:"expense_category_id"`
+	ExpenseDate       string                    `json:"expense_date"`
+	Description       *string                   `json:"description,omitempty"`
+	Quantity          float64                   `json:"quantity"`
+	Unit              *string                   `json:"unit,omitempty"`
+	Amount            float64                   `json:"amount"`
+	FundingMethodID   *string                   `json:"funding_method_id,omitempty"`
+	Vendor            *string                   `json:"vendor,omitempty"`
+	ReceiptNumber     *string                   `json:"receipt_number,omitempty"`
+	Status            string                    `json:"status"`
+	Notes             *string                   `json:"notes,omitempty"`
+	Documents         []ExpenseDocumentResponse `json:"documents,omitempty"`
+	CreatedAt         time.Time                 `json:"created_at"`
+	UpdatedAt         time.Time                 `json:"updated_at"`
+}
+
+type ExpenseDocumentResponse struct {
+	ID           string  `json:"id"`
+	DocumentType string  `json:"document_type"`
+	FileName     string  `json:"file_name"`
+	FilePath     string  `json:"file_path"`
+	MimeType     *string `json:"mime_type,omitempty"`
+	FileSize     *int64  `json:"file_size,omitempty"`
+}
+
+// =========================================================================
 // Business Travel — Response DTOs
 // =========================================================================
 

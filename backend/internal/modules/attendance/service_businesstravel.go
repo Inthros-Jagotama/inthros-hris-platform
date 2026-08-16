@@ -643,6 +643,250 @@ func (s *Service) AddFundingDocument(ctx context.Context, fundingIDStr string, r
 	return fundingToResponse(funding), nil
 }
 
+// =========================================================================
+// Expense Category (master) & Actual Expense (§12, §21 plan doc)
+// =========================================================================
+
+// ErrExpenseInvalidState: aksi tidak valid untuk status expense saat ini.
+var ErrExpenseInvalidState = errors.New("expense is not in a valid state for this action")
+
+func (s *Service) CreateExpenseCategory(ctx context.Context, req CreateExpenseCategoryRequest) (*ExpenseCategoryResponse, error) {
+	category := &ExpenseCategory{
+		Code:            strings.ToUpper(req.Code),
+		Name:            req.Name,
+		RequiresReceipt: true,
+		Reimbursable:    true,
+		Active:          true,
+	}
+	if req.RequiresReceipt != nil {
+		category.RequiresReceipt = *req.RequiresReceipt
+	}
+	if req.Reimbursable != nil {
+		category.Reimbursable = *req.Reimbursable
+	}
+	if req.Description != "" {
+		category.Description = &req.Description
+	}
+	if req.PayrollTreatment != "" {
+		category.PayrollTreatment = &req.PayrollTreatment
+	}
+	if req.AccountCode != "" {
+		category.AccountCode = &req.AccountCode
+	}
+	if err := s.repo.CreateExpenseCategory(ctx, category); err != nil {
+		return nil, err
+	}
+	return expenseCategoryToResponse(category), nil
+}
+
+func (s *Service) ListExpenseCategories(ctx context.Context, activeOnly bool) ([]ExpenseCategoryResponse, error) {
+	categories, err := s.repo.ListExpenseCategories(ctx, activeOnly)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]ExpenseCategoryResponse, 0, len(categories))
+	for i := range categories {
+		responses = append(responses, *expenseCategoryToResponse(&categories[i]))
+	}
+	return responses, nil
+}
+
+// CreateExpense mencatat actual expense pasca perjalanan (§21). Funding
+// method boleh berbeda dari funding awal travel — mixed funding per item
+// (§33) ditangani lewat FundingMethodID opsional per expense, bukan
+// diwariskan otomatis dari travel.
+func (s *Service) CreateExpense(ctx context.Context, travelIDStr string, req CreateExpenseRequest) (*ExpenseResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	travel, err := s.repo.FindBusinessTravelByIDForOwnership(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	if travel.Status != TravelStatusApproved && travel.Status != TravelStatusInProgress && travel.Status != TravelStatusCompleted {
+		return nil, ErrBusinessTravelNotApproved
+	}
+	categoryID, err := uuid.Parse(req.ExpenseCategoryID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid expense_category_id: %w", err)
+	}
+	if _, err := s.repo.FindExpenseCategoryByID(ctx, categoryID); err != nil {
+		return nil, err
+	}
+	expenseDate, err := time.Parse("2006-01-02", req.ExpenseDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid expense_date: %w", err)
+	}
+
+	expense := &Expense{
+		BusinessTravelID:  travelID,
+		ExpenseCategoryID: categoryID,
+		ExpenseDate:       expenseDate,
+		Quantity:          1,
+		Amount:            req.Amount,
+		Status:            ExpenseStatusDraft,
+	}
+	if req.Quantity > 0 {
+		expense.Quantity = req.Quantity
+	}
+	if req.ParticipantID != "" {
+		if participantID, err := uuid.Parse(req.ParticipantID); err == nil {
+			expense.ParticipantID = &participantID
+		}
+	}
+	if req.FundingMethodID != "" {
+		if fundingMethodID, err := uuid.Parse(req.FundingMethodID); err == nil {
+			expense.FundingMethodID = &fundingMethodID
+		}
+	}
+	if req.Description != "" {
+		expense.Description = &req.Description
+	}
+	if req.Unit != "" {
+		expense.Unit = &req.Unit
+	}
+	if req.Vendor != "" {
+		expense.Vendor = &req.Vendor
+	}
+	if req.ReceiptNumber != "" {
+		expense.ReceiptNumber = &req.ReceiptNumber
+	}
+	if req.Notes != "" {
+		expense.Notes = &req.Notes
+	}
+
+	if err := s.repo.CreateExpense(ctx, expense); err != nil {
+		return nil, err
+	}
+	return expenseToResponse(expense), nil
+}
+
+func (s *Service) ListExpensesByTravel(ctx context.Context, travelIDStr string) ([]ExpenseResponse, error) {
+	travelID, err := uuid.Parse(travelIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %w", err)
+	}
+	expenses, err := s.repo.ListExpensesByTravel(ctx, travelID)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]ExpenseResponse, 0, len(expenses))
+	for i := range expenses {
+		responses = append(responses, *expenseToResponse(&expenses[i]))
+	}
+	return responses, nil
+}
+
+func (s *Service) UpdateExpense(ctx context.Context, expenseIDStr string, req UpdateExpenseRequest) (*ExpenseResponse, error) {
+	expenseID, err := uuid.Parse(expenseIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid expense id: %w", err)
+	}
+	expense, err := s.repo.FindExpenseByID(ctx, expenseID)
+	if err != nil {
+		return nil, err
+	}
+	if expense.Status == ExpenseStatusApproved {
+		return nil, ErrExpenseInvalidState
+	}
+	if req.ExpenseCategoryID != nil {
+		if categoryID, err := uuid.Parse(*req.ExpenseCategoryID); err == nil {
+			expense.ExpenseCategoryID = categoryID
+		}
+	}
+	if req.ExpenseDate != nil {
+		parsed, err := time.Parse("2006-01-02", *req.ExpenseDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid expense_date: %w", err)
+		}
+		expense.ExpenseDate = parsed
+	}
+	if req.Description != nil {
+		expense.Description = req.Description
+	}
+	if req.Quantity != nil {
+		expense.Quantity = *req.Quantity
+	}
+	if req.Unit != nil {
+		expense.Unit = req.Unit
+	}
+	if req.Amount != nil {
+		expense.Amount = *req.Amount
+	}
+	if req.FundingMethodID != nil {
+		if *req.FundingMethodID == "" {
+			expense.FundingMethodID = nil
+		} else if fundingMethodID, err := uuid.Parse(*req.FundingMethodID); err == nil {
+			expense.FundingMethodID = &fundingMethodID
+		}
+	}
+	if req.Vendor != nil {
+		expense.Vendor = req.Vendor
+	}
+	if req.ReceiptNumber != nil {
+		expense.ReceiptNumber = req.ReceiptNumber
+	}
+	if req.Notes != nil {
+		expense.Notes = req.Notes
+	}
+	if err := s.repo.UpdateExpense(ctx, expense); err != nil {
+		return nil, err
+	}
+	return expenseToResponse(expense), nil
+}
+
+func (s *Service) DeleteExpense(ctx context.Context, expenseIDStr string) error {
+	expenseID, err := uuid.Parse(expenseIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid expense id: %w", err)
+	}
+	expense, err := s.repo.FindExpenseByID(ctx, expenseID)
+	if err != nil {
+		return err
+	}
+	if expense.Status == ExpenseStatusApproved {
+		return ErrExpenseInvalidState
+	}
+	return s.repo.DeleteExpense(ctx, expenseID)
+}
+
+// AddExpenseDocument attaches proof of expense (receipt/invoice/ticket/dst,
+// §22). Sama seperti AddFundingDocument: URL didapat dari endpoint upload
+// generik, module ini tidak menangani file mentah (§54.4).
+func (s *Service) AddExpenseDocument(ctx context.Context, expenseIDStr string, req AddExpenseDocumentRequest) (*ExpenseResponse, error) {
+	expenseID, err := uuid.Parse(expenseIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid expense id: %w", err)
+	}
+	if _, err := s.repo.FindExpenseByID(ctx, expenseID); err != nil {
+		return nil, err
+	}
+	doc := &ExpenseDocument{
+		BusinessTravelExpenseID: expenseID,
+		DocumentType:            ExpenseDocumentType(strings.ToUpper(req.DocumentType)),
+		FileName:                req.FileName,
+		FilePath:                req.FilePath,
+		UploadedBy:              authctx.GetUserID(ctx),
+	}
+	if req.MimeType != "" {
+		doc.MimeType = &req.MimeType
+	}
+	if req.FileSize > 0 {
+		doc.FileSize = &req.FileSize
+	}
+	now := time.Now()
+	doc.UploadedAt = &now
+	if err := s.repo.CreateExpenseDocument(ctx, doc); err != nil {
+		return nil, err
+	}
+	expense, err := s.repo.FindExpenseByID(ctx, expenseID)
+	if err != nil {
+		return nil, err
+	}
+	return expenseToResponse(expense), nil
+}
+
 // HandleBusinessTravelApprovalStatusChange is invoked by the approval
 // module's push-based status callback for the "business_travel" module slug
 // (registered separately from HandleApprovalStatusChange, which handles the
@@ -751,6 +995,62 @@ func businessTravelActivityToResponse(a *BusinessTravelActivity) BusinessTravelA
 		Location:     a.Location,
 		Organizer:    a.Organizer,
 		Notes:        a.Notes,
+	}
+}
+
+func expenseCategoryToResponse(c *ExpenseCategory) *ExpenseCategoryResponse {
+	return &ExpenseCategoryResponse{
+		ID:               c.ID.String(),
+		Code:             c.Code,
+		Name:             c.Name,
+		Description:      c.Description,
+		RequiresReceipt:  c.RequiresReceipt,
+		Reimbursable:     c.Reimbursable,
+		PayrollTreatment: c.PayrollTreatment,
+		AccountCode:      c.AccountCode,
+		Active:           c.Active,
+	}
+}
+
+func expenseToResponse(e *Expense) *ExpenseResponse {
+	resp := &ExpenseResponse{
+		ID:                e.ID.String(),
+		BusinessTravelID:  e.BusinessTravelID.String(),
+		ExpenseCategoryID: e.ExpenseCategoryID.String(),
+		ExpenseDate:       e.ExpenseDate.Format("2006-01-02"),
+		Description:       e.Description,
+		Quantity:          e.Quantity,
+		Unit:              e.Unit,
+		Amount:            e.Amount,
+		Vendor:            e.Vendor,
+		ReceiptNumber:     e.ReceiptNumber,
+		Status:            string(e.Status),
+		Notes:             e.Notes,
+		CreatedAt:         e.CreatedAt,
+		UpdatedAt:         e.UpdatedAt,
+	}
+	if e.ParticipantID != nil {
+		participantID := e.ParticipantID.String()
+		resp.ParticipantID = &participantID
+	}
+	if e.FundingMethodID != nil {
+		fundingMethodID := e.FundingMethodID.String()
+		resp.FundingMethodID = &fundingMethodID
+	}
+	for _, d := range e.Documents {
+		resp.Documents = append(resp.Documents, expenseDocumentToResponse(&d))
+	}
+	return resp
+}
+
+func expenseDocumentToResponse(d *ExpenseDocument) ExpenseDocumentResponse {
+	return ExpenseDocumentResponse{
+		ID:           d.ID.String(),
+		DocumentType: string(d.DocumentType),
+		FileName:     d.FileName,
+		FilePath:     d.FilePath,
+		MimeType:     d.MimeType,
+		FileSize:     d.FileSize,
 	}
 }
 

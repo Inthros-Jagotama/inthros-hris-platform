@@ -228,6 +228,101 @@ func (h *Handler) AddFundingDocument(c *gin.Context) {
 	httputil.CreatedJSON(c, resp, "success.created")
 }
 
+// =========================================================================
+// Expense Category & Actual Expense
+// =========================================================================
+
+func (h *Handler) CreateExpenseCategory(c *gin.Context) {
+	var req CreateExpenseCategoryRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.CreateExpenseCategory(c.Request.Context(), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListExpenseCategories(c *gin.Context) {
+	activeOnly := c.DefaultQuery("active", "true") == "true"
+	resp, err := h.service.ListExpenseCategories(c.Request.Context(), activeOnly)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) CreateExpense(c *gin.Context) {
+	var req CreateExpenseRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.CreateExpense(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		if errors.Is(err, ErrBusinessTravelNotApproved) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
+func (h *Handler) ListExpenses(c *gin.Context) {
+	resp, err := h.service.ListExpensesByTravel(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) UpdateExpense(c *gin.Context) {
+	var req UpdateExpenseRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.UpdateExpense(c.Request.Context(), c.Param("expenseId"), req)
+	if err != nil {
+		if errors.Is(err, ErrExpenseInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+func (h *Handler) DeleteExpense(c *gin.Context) {
+	if err := h.service.DeleteExpense(c.Request.Context(), c.Param("expenseId")); err != nil {
+		if errors.Is(err, ErrExpenseInvalidState) {
+			httputil.ErrorSimple(c, http.StatusConflict, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"deleted": true})
+}
+
+func (h *Handler) AddExpenseDocument(c *gin.Context) {
+	var req AddExpenseDocumentRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.service.AddExpenseDocument(c.Request.Context(), c.Param("expenseId"), req)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
 func (h *Handler) CancelBusinessTravel(c *gin.Context) {
 	resp, err := h.service.CancelBusinessTravel(c.Request.Context(), c.Param("id"))
 	if err != nil {

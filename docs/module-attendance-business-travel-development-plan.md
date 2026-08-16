@@ -1862,12 +1862,12 @@ ip_address
 
 ## Phase 5 — Actual Expense
 
-- [ ] Expense category.
-- [ ] Actual expense.
-- [ ] Funding method per expense.
-- [ ] Expense receipt.
-- [ ] Expense validation.
-- [ ] Expense per participant.
+- [x] Expense category — CRUD `POST/GET /attendance/business-travel-expense-categories` (sama pola dengan funding methods, master diisi manual — codebase tidak punya auto-seed).
+- [x] Actual expense — `POST/GET /attendance/business-travels/:id/expenses`, `PUT/DELETE .../expenses/:expenseId`. Digating `ErrBusinessTravelNotApproved` sama seperti funding (hanya bisa dicatat setelah travel APPROVED/IN_PROGRESS/COMPLETED).
+- [x] Funding method per expense — `funding_method_id` opsional per expense, independen dari funding awal travel (mixed funding §33).
+- [x] Expense receipt — `POST .../expenses/:expenseId/documents`, pola sama dengan funding transfer proof (URL dari endpoint upload generik, §54.4).
+- [x] Expense validation — kategori & travel divalidasi exist saat create; update/delete ditolak (`ErrExpenseInvalidState`) jika expense sudah berstatus APPROVED.
+- [x] Expense per participant — `participant_id` opsional per expense.
 
 ## Phase 6 — Settlement
 

@@ -87,5 +87,15 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.PUT("/business-travels/:id/fundings/:fundingId", handler.UpdateFunding)
 		att.POST("/business-travels/:id/fundings/:fundingId/confirm", handler.ConfirmFunding)
 		att.POST("/business-travels/:id/fundings/:fundingId/documents", handler.AddFundingDocument)
+
+		// Actual Expense (§21-22: dicatat pasca perjalanan, funding method per
+		// item boleh berbeda dari funding awal travel — mixed funding §33)
+		att.POST("/business-travel-expense-categories", handler.CreateExpenseCategory)
+		att.GET("/business-travel-expense-categories", handler.ListExpenseCategories)
+		att.POST("/business-travels/:id/expenses", handler.CreateExpense)
+		att.GET("/business-travels/:id/expenses", handler.ListExpenses)
+		att.PUT("/business-travels/:id/expenses/:expenseId", handler.UpdateExpense)
+		att.DELETE("/business-travels/:id/expenses/:expenseId", handler.DeleteExpense)
+		att.POST("/business-travels/:id/expenses/:expenseId/documents", handler.AddExpenseDocument)
 	}
 }
