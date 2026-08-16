@@ -1,9 +1,5 @@
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-end gap-2">
-      <Button v-if="detail" :label="t('common.back')" icon="pi pi-arrow-left" size="small" severity="secondary" outlined @click="closeDetail" />
-    </div>
-
     <!-- ── Detail / form ── -->
     <template v-if="detail">
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
@@ -18,6 +14,7 @@
             </p>
           </div>
           <div class="flex items-center gap-2">
+            <Button :label="t('common.back')" icon="pi pi-arrow-left" size="small" severity="secondary" outlined @click="closeDetail" />
             <Button v-if="detail.rater.status !== 'submitted'" :label="t('competency_360.save_draft')" icon="pi pi-save" size="small" severity="secondary" outlined :loading="saving" @click="saveResponses(false)" />
             <Button v-if="detail.rater.status !== 'submitted'" :label="t('competency_360.submit')" icon="pi pi-check" size="small" :loading="submitting" @click="saveResponses(true)" />
           </div>
