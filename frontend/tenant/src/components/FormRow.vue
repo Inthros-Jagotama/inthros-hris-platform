@@ -1,9 +1,15 @@
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
     label: String,
     required: { type: Boolean, default: false },
-    errors: { type: String, default: '' }
+    errors: { type: [String, Array], default: '' }
 });
+
+const errorText = computed(() =>
+    Array.isArray(props.errors) ? props.errors.filter(Boolean).join(', ') : props.errors
+);
 </script>
 <template>
     <div class="flex items-start gap-3">
@@ -12,7 +18,7 @@ defineProps({
         </label>
         <div class="flex-1 min-w-0">
             <slot />
-            <small v-if="errors" class="text-red-500 text-xs mt-1 block">{{ errors }}</small>
+            <small v-if="errorText" class="text-red-500 text-xs mt-1 block">{{ errorText }}</small>
         </div>
     </div>
 </template>

@@ -119,23 +119,46 @@
     </div>
 
     <!-- ── Setting dialog ── -->
-    <Dialog v-model:visible="settingDialogVisible" :header="editingSetting ? t('payroll.pph21') : t('payroll.new_pph21_setting')" modal :style="{ width: 'min(900px, 95vw)' }" @hide="resetSettingForm">
+    <Dialog v-model:visible="settingDialogVisible" :header="editingSetting ? t('payroll.pph21') : t('payroll.new_pph21_setting')" modal :style="{ width: 'min(1100px, 95vw)' }" @hide="resetSettingForm">
       <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.pph21_setting_code')" required :errors="errors?.setting_code">
-            <TextInput v-model="settingForm.setting_code" maxlength="50" autofocus :placeholder="t('payroll.pph21_setting_code')" :class="{'p-invalid':errors?.setting_code}" :disabled="editingSetting" />
-          </FormRow>
-          <FormRow :label="t('payroll.pph21_setting_name')" required :errors="errors?.setting_name">
-            <TextInput v-model="settingForm.setting_name" maxlength="150" :placeholder="t('payroll.pph21_setting_name')" :class="{'p-invalid':errors?.setting_name}" />
-          </FormRow>
+        <FormRow :label="t('payroll.pph21_setting_name')" required :errors="errors?.setting_name">
+          <TextInput v-model="settingForm.setting_name" maxlength="150" autofocus :placeholder="t('payroll.pph21_setting_name')" :class="{'p-invalid':errors?.setting_name}" />
+        </FormRow>
+        <!-- Metode Perhitungan — card dengan pilihan radio berdeskripsi (2 kolom) -->
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <span class="text-sm font-medium block mb-3">{{ t('payroll.calculation_method') }}</span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div v-for="opt in calculationMethodOptions" :key="opt.value"
+                 class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 cursor-pointer select-none transition-all duration-150 flex items-start gap-3"
+                 :class="settingForm.calculation_method === opt.value
+                   ? 'border-emerald-400 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-sm'
+                   : 'hover:border-gray-300 dark:hover:border-gray-500'"
+                 @click="settingForm.calculation_method = opt.value">
+              <RadioButton :modelValue="settingForm.calculation_method" :inputId="'calc-method-' + opt.value.toLowerCase()" :value="opt.value" @update:modelValue="settingForm.calculation_method = $event" class="mt-0.5" />
+              <div class="flex flex-col gap-0.5 min-w-0">
+                <label :for="'calc-method-' + opt.value.toLowerCase()" class="text-sm font-medium cursor-pointer select-none">{{ opt.label }}</label>
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ opt.desc }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.calculation_method')" :errors="errors?.calculation_method">
-            <SelectLabel v-model="settingForm.calculation_method" :options="calculationMethodOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-          </FormRow>
-          <FormRow :label="t('payroll.default_tax_method')">
-            <SelectLabel v-model="settingForm.default_tax_method" :options="taxMethodOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-          </FormRow>
+        <!-- Metode Pajak Default — card dengan pilihan radio berdeskripsi (3 kolom) -->
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <span class="text-sm font-medium block mb-3">{{ t('payroll.default_tax_method') }}</span>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div v-for="opt in taxMethodOptions" :key="opt.value"
+                 class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 cursor-pointer select-none transition-all duration-150 flex items-start gap-3"
+                 :class="settingForm.default_tax_method === opt.value
+                   ? 'border-emerald-400 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-sm'
+                   : 'hover:border-gray-300 dark:hover:border-gray-500'"
+                 @click="settingForm.default_tax_method = opt.value">
+              <RadioButton :modelValue="settingForm.default_tax_method" :inputId="'tax-method-' + opt.value.toLowerCase()" :value="opt.value" @update:modelValue="settingForm.default_tax_method = $event" class="mt-0.5" />
+              <div class="flex flex-col gap-0.5 min-w-0">
+                <label :for="'tax-method-' + opt.value.toLowerCase()" class="text-sm font-medium cursor-pointer select-none">{{ opt.label }}</label>
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ opt.desc }}</span>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormRow :label="t('payroll.occupational_expense_rate')">
@@ -157,14 +180,9 @@
             <InputNumber v-model="settingForm.non_npwp_multiplier_percent" class="!w-full" :min="0" size="small" />
           </FormRow>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.deduct_bpjs_health_employee')"><ToggleSwitch v-model="settingForm.deduct_bpjs_health_employee" /></FormRow>
-          <FormRow :label="t('payroll.deduct_bpjs_jht_employee')"><ToggleSwitch v-model="settingForm.deduct_bpjs_jht_employee" /></FormRow>
-          <FormRow :label="t('payroll.deduct_bpjs_jp_employee')"><ToggleSwitch v-model="settingForm.deduct_bpjs_jp_employee" /></FormRow>
-          <FormRow :label="t('payroll.rounding_mode')">
-            <SelectLabel v-model="settingForm.rounding_mode" :options="roundingOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('payroll.rounding_mode')">
+          <SelectLabel v-model="settingForm.rounding_mode" :options="roundingOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
+        </FormRow>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormRow :label="t('payroll.effective_start_date')" required :errors="errors?.effective_start_date">
             <DateInput v-model="settingForm.effective_start_date" :class="{'p-invalid':errors?.effective_start_date}" />
@@ -173,9 +191,13 @@
             <DateInput v-model="settingForm.effective_end_date" />
           </FormRow>
         </div>
-        <FormRow :label="t('common.status')">
-          <SelectLabel v-model="settingForm.status" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-        </FormRow>
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center justify-between gap-3">
+          <div>
+            <span class="text-sm font-medium block">{{ t('common.status') }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payroll.status_desc') }}</span>
+          </div>
+          <ToggleSwitch v-model="settingForm.status" :true-value="'ACTIVE'" :false-value="'INACTIVE'" :label="statusLabel(settingForm.status)" class="shrink-0" />
+        </div>
       </div>
       <template #footer><div class="flex items-center justify-end gap-2"><Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="settingDialogVisible=false" /><Button :label="editingSetting ? t('common.update') : t('common.save')" size="small" :loading="settingSaving" :disabled="settingSaving" @click="handleSaveSetting" /></div></template>
     </Dialog>
@@ -250,9 +272,9 @@
   </div>
 </template>
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'; import { useI18n } from '@/composables/useI18n'; import { getValidationErrors } from '@/services/responseHandler'; import { formatDate } from '@/utils/formatDate'; import api from '@/services/api'
-import DataTable from 'primevue/datatable'; import Column from 'primevue/column'; import Button from 'primevue/button'; import InputNumber from 'primevue/inputnumber'; import Tag from 'primevue/tag'; import Dialog from 'primevue/dialog'; import InputText from 'primevue/inputtext'; import InputIcon from 'primevue/inputicon'; import IconField from 'primevue/iconfield'
+import DataTable from 'primevue/datatable'; import Column from 'primevue/column'; import Button from 'primevue/button'; import InputNumber from 'primevue/inputnumber'; import Tag from 'primevue/tag'; import Dialog from 'primevue/dialog'; import InputText from 'primevue/inputtext'; import InputIcon from 'primevue/inputicon'; import IconField from 'primevue/iconfield'; import RadioButton from 'primevue/radiobutton'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
@@ -280,12 +302,12 @@ const bracketDialogVisible = ref(false); const editingBracket = ref(false); cons
 const bracketDeleteDialogVisible = ref(false); const bracketDeleting = ref(false); const bracketDeleteError = ref(''); const bracketDeleteTarget = ref(null)
 const deleteDialogVisible = ref(false); const deleting = ref(false); const deleteError = ref(''); const deleteTarget = ref(null)
 const errors = ref({})
-const settingForm = ref({ setting_code: '', setting_name: '', calculation_method: 'TER', default_tax_method: 'GROSS', occupational_expense_rate_percent: 5, occupational_expense_max_monthly: 500000, occupational_expense_max_yearly: 6000000, deduct_bpjs_health_employee: false, deduct_bpjs_jht_employee: true, deduct_bpjs_jp_employee: true, annualization_months: 12, pkp_rounding_unit: 1000, non_npwp_multiplier_percent: 100, rounding_mode: 'ROUND', effective_start_date: '', effective_end_date: '', status: 'ACTIVE' })
+const settingForm = ref({ setting_code: '', setting_name: '', calculation_method: 'TER', default_tax_method: 'GROSS', occupational_expense_rate_percent: 5, occupational_expense_max_monthly: 500000, occupational_expense_max_yearly: 6000000, annualization_months: 12, pkp_rounding_unit: 1000, non_npwp_multiplier_percent: 100, rounding_mode: 'ROUND', effective_start_date: '', effective_end_date: '', status: 'ACTIVE' })
 const terForm = ref({ group: '', bruto_min: null, bruto_max: null, rate: 0 })
 const ptkpForm = ref({ name: '', group: '', ptkp: 0 })
 const bracketForm = ref({ bracket_order: 1, lower_bound: 0, upper_bound: null, rate_percent: 0, effective_start_date: '', effective_end_date: '' })
 
-const calculationMethodOptions = computed(() => ['TER', 'REGULAR_GROSS_ANNUALIZED'].map(v => ({ label: t(`payroll.calculation_method_${v.toLowerCase()}`), value: v })))
+const calculationMethodOptions = computed(() => ['TER', 'REGULAR_GROSS_ANNUALIZED'].map(v => ({ label: t(`payroll.calculation_method_${v.toLowerCase()}`), desc: t(`payroll.calculation_method_${v.toLowerCase()}_desc`), value: v })))
 const terFirst = computed(() => (terCurrentPage.value - 1) * terPerPage.value)
 const ptkpFirst = computed(() => (ptkpCurrentPage.value - 1) * ptkpPerPage.value)
 const terGroupOptions = computed(() => [
@@ -294,7 +316,7 @@ const terGroupOptions = computed(() => [
   { value: 'C', label: 'Group C — K/3' }
 ])
 const ptkpGroupOptions = computed(() => terGroupOptions.value)
-const taxMethodOptions = computed(() => ['GROSS', 'GROSS_UP', 'NETT'].map(v => ({ label: v, value: v })))
+const taxMethodOptions = computed(() => ['GROSS', 'GROSS_UP', 'NETT'].map(v => ({ label: t(`payroll.tax_method_${v.toLowerCase()}`), desc: t(`payroll.tax_method_${v.toLowerCase()}_desc`), value: v })))
 const roundingOptions = computed(() => ['NONE', 'ROUND', 'CEIL', 'FLOOR'].map(v => ({ label: t(`payroll.rounding_mode_${v.toLowerCase()}`), value: v })))
 const statusOptions = computed(() => ['ACTIVE', 'INACTIVE'].map(v => ({ label: t(`payroll.status_${v.toLowerCase()}`), value: v })))
 const deleteMessage = computed(() => deleteTarget.value ? `${t('payroll.pph21_setting_code')}: ${deleteTarget.value.setting_code}` : t('common.no_data'))
@@ -303,6 +325,21 @@ function statusLabel(v) { const key = `payroll.status_${String(v||'').toLowerCas
 function calculationMethodLabel(v) { const key = `payroll.calculation_method_${String(v||'').toLowerCase()}`; return t(key) !== key ? t(key) : v }
 function terGroupSeverity(g) { return { A: 'info', B: 'success', C: 'warn' }[g] || 'info' }
 function formatMoney(val) { const n = Number(val || 0); return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n) }
+
+function nameInitials(name) {
+  const words = (name || '').trim().split(/\s+/).filter(Boolean)
+  return words.map(w => w[0]).join('').toUpperCase().replace(/[^A-Z0-9]/g, '')
+}
+function generateCode(name) {
+  const prefix = nameInitials(name)
+  const d = new Date()
+  const pad = n => String(n).padStart(2, '0')
+  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const rand = Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('')
+  return prefix ? `${prefix}_${stamp}_${rand}` : ''
+}
+watch(() => settingForm.value.setting_name, (nv) => { if (!editingSetting.value) settingForm.value.setting_code = generateCode(nv) })
 
 async function loadSettings() {
   settingLoading.value = true
@@ -369,9 +406,6 @@ function openSettingDialog(item) {
     occupational_expense_rate_percent: item?.occupational_expense_rate_percent ?? 5,
     occupational_expense_max_monthly: item?.occupational_expense_max_monthly ?? 500000,
     occupational_expense_max_yearly: item?.occupational_expense_max_yearly ?? 6000000,
-    deduct_bpjs_health_employee: item?.deduct_bpjs_health_employee ?? false,
-    deduct_bpjs_jht_employee: item?.deduct_bpjs_jht_employee ?? true,
-    deduct_bpjs_jp_employee: item?.deduct_bpjs_jp_employee ?? true,
     annualization_months: item?.annualization_months ?? 12,
     pkp_rounding_unit: item?.pkp_rounding_unit ?? 1000,
     non_npwp_multiplier_percent: item?.non_npwp_multiplier_percent ?? 100,
@@ -382,12 +416,13 @@ function openSettingDialog(item) {
   settingDialogVisible.value = true
 }
 function resetSettingForm() {
-  settingForm.value = { setting_code: '', setting_name: '', calculation_method: 'TER', default_tax_method: 'GROSS', occupational_expense_rate_percent: 5, occupational_expense_max_monthly: 500000, occupational_expense_max_yearly: 6000000, deduct_bpjs_health_employee: false, deduct_bpjs_jht_employee: true, deduct_bpjs_jp_employee: true, annualization_months: 12, pkp_rounding_unit: 1000, non_npwp_multiplier_percent: 100, rounding_mode: 'ROUND', effective_start_date: '', effective_end_date: '', status: 'ACTIVE' }
+  settingForm.value = { setting_code: '', setting_name: '', calculation_method: 'TER', default_tax_method: 'GROSS', occupational_expense_rate_percent: 5, occupational_expense_max_monthly: 500000, occupational_expense_max_yearly: 6000000, annualization_months: 12, pkp_rounding_unit: 1000, non_npwp_multiplier_percent: 100, rounding_mode: 'ROUND', effective_start_date: '', effective_end_date: '', status: 'ACTIVE' }
   errors.value = {}; editingSetting.value = false; editingSettingId.value = null
 }
 async function handleSaveSetting() {
   errors.value = {}
-  if (!settingForm.value.setting_code?.trim()) { errors.value = { setting_code: [t('form.required')] }; return }
+  if (!settingForm.value.setting_code?.trim()) settingForm.value.setting_code = generateCode(settingForm.value.setting_name)
+  if (!settingForm.value.setting_code?.trim()) { errors.value = { setting_name: [t('form.required')] }; return }
   if (!settingForm.value.setting_name?.trim()) { errors.value = { setting_name: [t('form.required')] }; return }
   if (!settingForm.value.effective_start_date) { errors.value = { effective_start_date: [t('form.required')] }; return }
   settingSaving.value = true
@@ -400,9 +435,6 @@ async function handleSaveSetting() {
       occupational_expense_rate_percent: settingForm.value.occupational_expense_rate_percent,
       occupational_expense_max_monthly: settingForm.value.occupational_expense_max_monthly,
       occupational_expense_max_yearly: settingForm.value.occupational_expense_max_yearly,
-      deduct_bpjs_health_employee: settingForm.value.deduct_bpjs_health_employee,
-      deduct_bpjs_jht_employee: settingForm.value.deduct_bpjs_jht_employee,
-      deduct_bpjs_jp_employee: settingForm.value.deduct_bpjs_jp_employee,
       annualization_months: settingForm.value.annualization_months,
       pkp_rounding_unit: settingForm.value.pkp_rounding_unit,
       non_npwp_multiplier_percent: settingForm.value.non_npwp_multiplier_percent,

@@ -68,6 +68,12 @@ const routes = [
         meta: { title: 'New Employee', titleKey: 'employee.new', descKey: 'employee.description', icon: 'pi pi-user-plus', module: 'employee', backRoute: '/employees', backLabelKey: 'nav.employees' }
       },
       {
+        path: 'employees/:id',
+        name: 'EmployeeDetail',
+        component: () => import('@/views/modules/employee/EmployeeDetail.vue'),
+        meta: { title: 'View Employee', titleKey: 'employee.view', descKey: 'employee.description', icon: 'pi pi-eye', module: 'employee', backRoute: '/employees', backLabelKey: 'nav.employees' }
+      },
+      {
         path: 'employees/:id/edit',
         name: 'EmployeeEdit',
         component: () => import('@/views/modules/employee/EmployeeForm.vue'),
@@ -588,13 +594,9 @@ const routes = [
       { path: 'settings/competencies', name: 'SettingsCompetencies', component: () => import('@/views/settings/CompetenciesView.vue'), meta: { title: 'Competencies', titleKey: 'competencies.title', descKey: 'competencies.description', icon: 'pi pi-star', module: 'setting' } },
       { path: 'settings/salary-components', name: 'SettingsSalaryComponents', component: () => import('@/views/settings/SalaryComponentsView.vue'), meta: { title: 'Salary Components', titleKey: 'payroll.salary_components', descKey: 'payroll.salary_components_desc', icon: 'pi pi-list', module: 'payroll' } },
       { path: 'settings/payroll-periods', name: 'SettingsPayrollPeriods', component: () => import('@/views/settings/PayrollPeriodsView.vue'), meta: { title: 'Payroll Periods', titleKey: 'payroll.payroll_periods', descKey: 'payroll.payroll_periods_desc', icon: 'pi pi-calendar', module: 'payroll' } },
-      { path: 'settings/payroll-profiles', name: 'SettingsPayrollProfiles', component: () => import('@/views/settings/PayrollProfilesView.vue'), meta: { title: 'Employee Payroll Profiles', titleKey: 'payroll.employee_profiles', descKey: 'payroll.employee_profiles_desc', icon: 'pi pi-users', module: 'payroll' } },
       { path: 'settings/bpjs-settings', name: 'SettingsBpjsSettings', component: () => import('@/views/settings/BpjsSettingsView.vue'), meta: { title: 'BPJS Settings', titleKey: 'payroll.bpjs', descKey: 'payroll.bpjs_desc', icon: 'pi pi-shield', module: 'payroll' } },
       { path: 'settings/pph21-settings', name: 'SettingsPph21Settings', component: () => import('@/views/settings/Pph21SettingsView.vue'), meta: { title: 'PPh21 Settings', titleKey: 'payroll.pph21', descKey: 'payroll.pph21_desc', icon: 'pi pi-percentage', module: 'payroll' } },
       { path: 'settings/salary-structure', name: 'SettingsSalaryStructure', component: () => import('@/views/settings/SalaryStructureView.vue'), meta: { title: 'Salary Structure', titleKey: 'payroll.salary_structure', descKey: 'payroll.salary_structure_desc', icon: 'pi pi-sitemap', module: 'payroll' } },
-      { path: 'settings/bank-profiles', name: 'SettingsBankProfiles', component: () => import('@/views/settings/BankProfilesView.vue'), meta: { title: 'Bank Profiles', titleKey: 'payroll.bank_profiles', descKey: 'payroll.bank_profiles_desc', icon: 'pi pi-building', module: 'payroll' } },
-      { path: 'settings/bpjs-profiles', name: 'SettingsBpjsProfiles', component: () => import('@/views/settings/EmployeeBpjsProfilesView.vue'), meta: { title: 'BPJS Profiles', titleKey: 'payroll.bpjs_profiles', descKey: 'payroll.bpjs_profiles_desc', icon: 'pi pi-shield', module: 'payroll' } },
-      { path: 'settings/tax-profiles', name: 'SettingsTaxProfiles', component: () => import('@/views/settings/EmployeeTaxProfilesView.vue'), meta: { title: 'Tax Profiles', titleKey: 'payroll.tax_profiles', descKey: 'payroll.tax_profiles_desc', icon: 'pi pi-receipt', module: 'payroll' } },
       // Performance Settings
       { path: 'settings/performance-perspectives', name: 'SettingsPerformancePerspectives', component: () => import('@/views/settings/PerformancePerspectivesView.vue'), meta: { title: 'BSC Perspectives', titleKey: 'performance_perspectives.title', descKey: 'performance_perspectives.description', icon: 'pi pi-th-large', module: 'setting' } },
       { path: 'settings/performance-ratings', name: 'SettingsPerformanceRatings', component: () => import('@/views/settings/PerformanceRatingsView.vue'), meta: { title: 'Performance Ratings', titleKey: 'performance_ratings.title', descKey: 'performance_ratings.description', icon: 'pi pi-star', module: 'setting' } },

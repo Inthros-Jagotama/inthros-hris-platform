@@ -242,7 +242,7 @@ func TestService_List_DefaultPagination(t *testing.T) {
 	}
 
 	// Test with invalid params (should use defaults)
-	resp, err := svc.List(ctx, 0, 0, "")
+	resp, err := svc.List(ctx, 0, 0, "", "")
 	if err != nil {
 		t.Fatalf("List failed: %v", err)
 	}

@@ -51,8 +51,9 @@ func (h *Handler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	search := c.Query("search")
+	status := c.Query("status")
 
-	resp, err := h.service.List(c.Request.Context(), page, perPage, search)
+	resp, err := h.service.List(c.Request.Context(), page, perPage, search, status)
 	if err != nil {
 			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return

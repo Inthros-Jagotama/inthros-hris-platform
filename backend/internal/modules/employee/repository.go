@@ -76,7 +76,7 @@ func (r *Repository) CountEmployees(ctx context.Context) (int64, error) {
 	return total, nil
 }
 
-func (r *Repository) FindAllEmployees(ctx context.Context, page, perPage int, search string) ([]Employee, int64, error) {
+func (r *Repository) FindAllEmployees(ctx context.Context, page, perPage int, search, status string) ([]Employee, int64, error) {
 	db, err := r.getDB(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -90,10 +90,15 @@ func (r *Repository) FindAllEmployees(ctx context.Context, page, perPage int, se
 	if search != "" {
 		like := "%" + search + "%"
 		query = query.Where(
-			db.Where("name LIKE ?", like).
+		db.Where("name LIKE ?", like).
 				Or("employee_id LIKE ?", like).
 				Or("nik LIKE ?", like),
 		)
+	}
+
+	// Apply status filter
+	if status != "" {
+		query = query.Where("status = ?", status)
 	}
 
 	if err := query.Count(&total).Error; err != nil {

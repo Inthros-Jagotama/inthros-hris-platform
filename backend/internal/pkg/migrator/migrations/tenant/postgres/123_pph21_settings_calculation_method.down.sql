@@ -1,0 +1,5 @@
+-- =============================================================================
+-- Tenant Migration: 123_pph21_settings_calculation_method (PostgreSQL DOWN)
+-- =============================================================================
+-- No-op: postgres tidak pernah memakai ENUM untuk kolom ini; tipe tetap
+-- VARCHAR(255). Down migration dibiarkan kosong (hanya komentar).

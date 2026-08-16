@@ -4,10 +4,9 @@
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
         <Tag v-if="savedEmployeeId" :value="savedEmployeeId" severity="success" class="!text-xs !px-2 !py-1" />
-        <span v-if="isEdit && savedEmployeeId" class="text-sm text-gray-500 dark:text-gray-400">{{ savedEmployeeId }}</span>
+        <span v-if="isEdit && savedEmployeeId" class="text-sm text-gray-500 dark:text-gray-400">{{ form.name }}</span>
       </div>
     </div>
-
     <!-- Loading -->
     <div v-if="pageLoading" class="space-y-4">
       <div class="flex gap-4"><div class="w-56 space-y-2"><div v-for="n in 10" :key="n" class="h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div></div><div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4"><div v-for="n in 8" :key="n" class="space-y-2"><div class="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div><div class="h-9 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div></div></div></div>
@@ -56,7 +55,11 @@
 
         <EmploymentForm v-else-if="activeStep === 9" :items="employments" :errs="empErrors" :organization-options="organizationOptions" :employment-status-options="employmentStatusOptions" :saving="stepLoading" @update:items="employments = $event" @save="() => saveStep(9)" />
 
-        <AccountForm v-else-if="activeStep === 10" :employee-id="employeeId" :employee-email="form.email" @save="markAccountSaved" />
+        <PayrollProfilesForm v-else-if="activeStep === 10" :employee-id="employeeId" @save="stepSaved[10] = true" />
+
+        <SalaryStructureForm v-else-if="activeStep === 11" :employee-id="employeeId" @save="stepSaved[11] = true" />
+
+        <AccountForm v-else-if="activeStep === 12" :employee-id="employeeId" :employee-email="form.email" @save="markAccountSaved" />
       </div>
     </div>
   </div>
@@ -82,6 +85,8 @@ import DocumentForm from './DocumentForm.vue'
 import InsuranceForm from './InsuranceForm.vue'
 import BankAccountForm from './BankAccountForm.vue'
 import EmploymentForm from './EmploymentForm.vue'
+import PayrollProfilesForm from './PayrollProfilesForm.vue'
+import SalaryStructureForm from './SalaryStructureForm.vue'
 import AccountForm from './AccountForm.vue'
 
 const router = useRouter()
@@ -97,7 +102,7 @@ const pageLoading = ref(true)
 const savedEmployeeId = ref(null)
 const profilePicture = ref('')
 
-const stepSaved = reactive(Array(11).fill(false))
+const stepSaved = reactive(Array(13).fill(false))
 const personalDataSaved = computed(() => stepSaved[0])
 
 const steps = [
@@ -111,6 +116,8 @@ const steps = [
   { labelKey: 'employee.wizard_step_insurance' },
   { labelKey: 'employee.wizard_step_bank' },
   { labelKey: 'employee.wizard_step_employment' },
+  { labelKey: 'employee.wizard_step_payroll' },
+  { labelKey: 'employee.wizard_step_salary_structure' },
   { labelKey: 'employee.wizard_step_account' }
 ]
 
@@ -141,10 +148,10 @@ const empErrors = ref([])
 // ── Nav helpers ──
 function isStepEnabled(i) { return i === 0 || !!personalDataSaved.value }
 
-// Step Akun (10) bukan item list — ditandai saved langsung setelah akun dibuat
+// Step Akun (12) bukan item list — ditandai saved langsung setelah akun dibuat
 // atau email dikirim ulang (AccountForm emit('save')).
 function markAccountSaved() {
-  stepSaved[10] = true
+  stepSaved[12] = true
 }
 function selectStep(i) {
   if (isStepEnabled(i)) {
@@ -226,7 +233,10 @@ async function loadRefData() {
   employmentStatusOptions.value = (esRes.data?.data || []).map(e => ({ label: e.name, value: e.id }))
   bankOptions.value = (bankRes.data?.data || []).map(b => ({ label: b.name || '', value: b.id }))
   provinceOptions.value = (provRes.data?.data || []).map(p => ({ label: `${p.code} - ${p.name}`, value: p.code }))
-  insuranceOptions.value = (insRes.data?.data || []).map(ins => ({ label: ins.name || '', value: ins.id }))
+  // Asuransi di step ini khusus NON-BPJS — keanggotaan BPJS dikelola di step Payroll (BPJS Profile)
+  insuranceOptions.value = (insRes.data?.data || [])
+    .filter(ins => !/BPJS/i.test(ins.name || ''))
+    .map(ins => ({ label: ins.name || '', value: ins.id }))
   const orgList = []
   function flattenOrgTree(nodes, depth) {
     if (!nodes) return

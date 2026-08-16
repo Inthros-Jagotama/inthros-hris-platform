@@ -40,9 +40,9 @@ C. Profil Karyawan                                    H. Laporan
 - [ ] **Komponen PPh21** (baris potongan hasil pajak di payslip — cukup 1 komponen DEDUCTION) dan **Pengurang PPh21** (mis. iuran pensiun — bisa lebih dari satu). Engine PPh21 mengikuti flag ini, jadi tidak perlu pilih komponen lagi di PPh21 Settings.
 - [ ] **Display Order** (paling bawah) menentukan urutan tampil.
 
-**3. Salary Structure** — menu `Settings → Salary Structure`
-- [ ] **Tab Grade Components**: default komponen per grading, mis. Grade 5 → `GAJI_POKOK = 10.000.000`. Pilih grading (opsional), komponen, nominal, tanggal efektif, wajib/default.
-- [ ] **Tab Employee Components**: override per karyawan bila ada karyawan yang nilainya beda dari grade-nya. Pilih employee, komponen, nominal, sumber (Manual / Grade Inherit / Formula / Adjustment).
+**3. Salary Structure** — menu `Settings → Salary Structure` (komponen default per grading)
+- [ ] **Grade Components**: default komponen per grading, mis. Grade 5 → `GAJI_POKOK = 10.000.000`. Pilih grading (opsional), komponen, nominal, tanggal efektif, wajib/default.
+- [ ] **Override per karyawan (Employee Components)** dikelola di form karyawan (`Employees → Edit → step Struktur Gaji`): tambah komponen khusus karyawan bila nilainya beda dari grade-nya — pilih komponen, nominal, sumber (Manual / Grade Inherit / Formula / Adjustment).
 
 ### B. Pengaturan BPJS & Pajak
 
@@ -58,14 +58,14 @@ C. Profil Karyawan                                    H. Laporan
 
 ### C. Profil Karyawan
 
-**6. Payroll Profile** — menu `Settings → Employee Payroll Profiles`
-- [ ] Pilih employee, group code, frekuensi (MONTHLY/WEEKLY/DAILY), metode bayar (BANK_TRANSFER/CASH/CHEQUE), currency, aktif, tanggal efektif.
+**6. Payroll Profile** — di dalam form karyawan (wizard step `Payroll Profile`, `Employees → ... → Edit → Payroll Profile`; dipindah dari Settings 2026-08-16)
+- [ ] Group code, frekuensi (MONTHLY/WEEKLY/DAILY), metode bayar (BANK_TRANSFER/CASH/CHEQUE), currency, aktif, tanggal efektif.
 - [ ] Hanya profil **aktif** (is_payroll_active + ACTIVE + dalam rentang tanggal efektif) yang dihitung.
 
 **7. Data pendukung** (harus dibuat setelah payroll profile):
-- [ ] **Bank Profiles** — `Settings → Bank Profiles`: rekening untuk transfer gaji (akan disnapshot saat payment batch dibuat).
-- [ ] **BPJS Profiles** — `Settings → BPJS Profiles`: nomor kepesertaan Kesehatan/Ketenagakerjaan, class risiko JKK, JP aktif.
-- [ ] **Tax Profiles** — `Settings → Tax Profiles`: NPWP, status PTKP, metode pajak (GROSS/GROSS_UP/NETT).
+- [ ] **Bank Profiles** — di form karyawan (step Payroll Profile): rekening untuk transfer gaji (akan disnapshot saat payment batch dibuat).
+- [ ] **BPJS Profiles** — di form karyawan (step Payroll Profile): nomor kepesertaan Kesehatan/Ketenagakerjaan, class risiko JKK, JP aktif.
+- [ ] **Tax Profiles** — di form karyawan (step Payroll Profile): NPWP, status PTKP, metode pajak (GROSS/GROSS_UP/NETT).
 
 > ✅ **Cek siap proses:** periode OPEN ada · komponen gaji yang dipakai berstatus ACTIVE · minimal 1 employee punya payroll profile aktif · setting BPJS/PPh21 berlaku di as-of date periode.
 

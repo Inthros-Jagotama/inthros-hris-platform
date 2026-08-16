@@ -418,7 +418,7 @@ func (s *Service) CreateEmployeePayrollProfile(ctx context.Context, req CreateEm
 	}
 	p := &EmployeePayrollProfile{
 		EmployeeID:         empID,
-		PayrollGroupCode:   req.PayrollGroupCode,
+		PayrollGroupCode:   "MONTHLY",
 		PayrollFrequency:   "MONTHLY",
 		PaymentMethod:      "BANK_TRANSFER",
 		SalaryCurrency:     "IDR",
@@ -429,6 +429,9 @@ func (s *Service) CreateEmployeePayrollProfile(ctx context.Context, req CreateEm
 	if req.EmploymentID != nil && *req.EmploymentID != "" {
 		id, _ := uuid.Parse(*req.EmploymentID)
 		p.EmploymentID = &id
+	}
+	if req.PayrollGroupCode != "" {
+		p.PayrollGroupCode = req.PayrollGroupCode
 	}
 	if req.PayrollFrequency != "" {
 		p.PayrollFrequency = req.PayrollFrequency
@@ -1234,9 +1237,6 @@ func (s *Service) CreatePph21Setting(ctx context.Context, req CreatePph21Setting
 		OccupationalExpenseRatePercent: 5.0,
 		OccupationalExpenseMaxMonthly:  500000,
 		OccupationalExpenseMaxYearly:   6000000,
-		DeductBpjsHealthEmployee:       false,
-		DeductBpjsJhtEmployee:          true,
-		DeductBpjsJpEmployee:           true,
 		AnnualizationMonths:            12,
 		PkpRoundingUnit:                1000,
 		NonNpwpMultiplierPercent:       100,
@@ -1258,15 +1258,6 @@ func (s *Service) CreatePph21Setting(ctx context.Context, req CreatePph21Setting
 	}
 	if req.OccupationalExpenseMaxYearly != nil {
 		ps.OccupationalExpenseMaxYearly = *req.OccupationalExpenseMaxYearly
-	}
-	if req.DeductBpjsHealthEmployee != nil {
-		ps.DeductBpjsHealthEmployee = *req.DeductBpjsHealthEmployee
-	}
-	if req.DeductBpjsJhtEmployee != nil {
-		ps.DeductBpjsJhtEmployee = *req.DeductBpjsJhtEmployee
-	}
-	if req.DeductBpjsJpEmployee != nil {
-		ps.DeductBpjsJpEmployee = *req.DeductBpjsJpEmployee
 	}
 	if req.AnnualizationMonths != nil {
 		ps.AnnualizationMonths = *req.AnnualizationMonths
@@ -1304,9 +1295,18 @@ func (s *Service) CreatePayrollRun(ctx context.Context, req CreatePayrollRunRequ
 	if err != nil {
 		return nil, fmt.Errorf("invalid payroll_period_id: %w", err)
 	}
+	// run_code otomatis bila tidak dikirim: RUN-{period_code}-{timestamp}.
+	runCode := req.RunCode
+	if strings.TrimSpace(runCode) == "" {
+		period, findErr := s.repo.FindPayrollPeriodByID(ctx, periodID)
+		if findErr != nil {
+			return nil, findErr
+		}
+		runCode = fmt.Sprintf("RUN-%s-%s", period.PeriodCode, time.Now().Format("20060102150405"))
+	}
 	pr := &PayrollRun{
 		PayrollPeriodID: periodID,
-		RunCode:         req.RunCode,
+		RunCode:         runCode,
 		RunType:         "REGULAR",
 		ProrationMethod: "CALENDAR_DAYS",
 		Status:          "DRAFT",
@@ -1959,15 +1959,6 @@ func (s *Service) UpdatePph21Setting(ctx context.Context, id string, req UpdateP
 	}
 	if req.OccupationalExpenseMaxYearly != nil {
 		ps.OccupationalExpenseMaxYearly = *req.OccupationalExpenseMaxYearly
-	}
-	if req.DeductBpjsHealthEmployee != nil {
-		ps.DeductBpjsHealthEmployee = *req.DeductBpjsHealthEmployee
-	}
-	if req.DeductBpjsJhtEmployee != nil {
-		ps.DeductBpjsJhtEmployee = *req.DeductBpjsJhtEmployee
-	}
-	if req.DeductBpjsJpEmployee != nil {
-		ps.DeductBpjsJpEmployee = *req.DeductBpjsJpEmployee
 	}
 	if req.AnnualizationMonths != nil {
 		ps.AnnualizationMonths = *req.AnnualizationMonths

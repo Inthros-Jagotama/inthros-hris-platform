@@ -106,7 +106,7 @@ func TestRepository_FindAllEmployees_Pagination(t *testing.T) {
 	}
 
 	// Test page 1 with per_page 2
-	emps, total, err := repo.FindAllEmployees(ctx, 1, 2, "")
+	emps, total, err := repo.FindAllEmployees(ctx, 1, 2, "", "")
 	if err != nil {
 		t.Fatalf("FindAllEmployees failed: %v", err)
 	}
@@ -116,6 +116,22 @@ func TestRepository_FindAllEmployees_Pagination(t *testing.T) {
 	}
 	if len(emps) != 2 {
 		t.Errorf("expected 2 employees on page 1, got %d", len(emps))
+	}
+
+	// Test status filter
+	empsActive, totalActive, err := repo.FindAllEmployees(ctx, 1, 20, "", "active")
+	if err != nil {
+		t.Fatalf("FindAllEmployees (status filter) failed: %v", err)
+	}
+	if totalActive != 3 || len(empsActive) != 3 {
+		t.Errorf("expected 3 active employees, got total=%d len=%d", totalActive, len(empsActive))
+	}
+	empsInactive, totalInactive, err := repo.FindAllEmployees(ctx, 1, 20, "", "inactive")
+	if err != nil {
+		t.Fatalf("FindAllEmployees (inactive) failed: %v", err)
+	}
+	if totalInactive != 0 || len(empsInactive) != 0 {
+		t.Errorf("expected 0 inactive employees, got total=%d len=%d", totalInactive, len(empsInactive))
 	}
 }
 

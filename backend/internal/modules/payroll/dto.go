@@ -160,7 +160,7 @@ type UpdatePayrollPeriodRequest struct {
 type CreateEmployeePayrollProfileRequest struct {
 	EmployeeID         string  `json:"employee_id" binding:"required"`
 	EmploymentID       *string `json:"employment_id"`
-	PayrollGroupCode   string  `json:"payroll_group_code" binding:"required,max=50"`
+	PayrollGroupCode   string  `json:"payroll_group_code" binding:"omitempty,max=50"`
 	PayrollFrequency   string  `json:"payroll_frequency" binding:"omitempty,oneof=MONTHLY WEEKLY DAILY"`
 	PaymentMethod      string  `json:"payment_method" binding:"omitempty,oneof=BANK_TRANSFER CASH CHEQUE"`
 	SalaryCurrency     string  `json:"salary_currency" binding:"omitempty,len=3"`
@@ -367,9 +367,6 @@ type UpdatePph21SettingRequest struct {
 	OccupationalExpenseRatePercent *float64 `json:"occupational_expense_rate_percent"`
 	OccupationalExpenseMaxMonthly  *float64 `json:"occupational_expense_max_monthly"`
 	OccupationalExpenseMaxYearly   *float64 `json:"occupational_expense_max_yearly"`
-	DeductBpjsHealthEmployee       *bool    `json:"deduct_bpjs_health_employee"`
-	DeductBpjsJhtEmployee          *bool    `json:"deduct_bpjs_jht_employee"`
-	DeductBpjsJpEmployee           *bool    `json:"deduct_bpjs_jp_employee"`
 	AnnualizationMonths            *int     `json:"annualization_months"`
 	PkpRoundingUnit                *float64 `json:"pkp_rounding_unit"`
 	NonNpwpMultiplierPercent       *float64 `json:"non_npwp_multiplier_percent"`
@@ -387,9 +384,6 @@ type CreatePph21SettingRequest struct {
 	OccupationalExpenseRatePercent *float64 `json:"occupational_expense_rate_percent"`
 	OccupationalExpenseMaxMonthly  *float64 `json:"occupational_expense_max_monthly"`
 	OccupationalExpenseMaxYearly   *float64 `json:"occupational_expense_max_yearly"`
-	DeductBpjsHealthEmployee       *bool    `json:"deduct_bpjs_health_employee"`
-	DeductBpjsJhtEmployee          *bool    `json:"deduct_bpjs_jht_employee"`
-	DeductBpjsJpEmployee           *bool    `json:"deduct_bpjs_jp_employee"`
 	AnnualizationMonths            *int     `json:"annualization_months"`
 	PkpRoundingUnit                *float64 `json:"pkp_rounding_unit"`
 	NonNpwpMultiplierPercent       *float64 `json:"non_npwp_multiplier_percent"`
@@ -425,7 +419,9 @@ type UpdatePph21TaxBracketRequest struct {
 
 type CreatePayrollRunRequest struct {
 	PayrollPeriodID string   `json:"payroll_period_id" binding:"required"`
-	RunCode         string   `json:"run_code" binding:"required,max=50"`
+	// RunCode opsional — jika kosong, di-generate otomatis dari periode
+	// (RUN-{period_code}-{timestamp}) di service.
+	RunCode         string   `json:"run_code" binding:"omitempty,max=50"`
 	RunType         string   `json:"run_type" binding:"omitempty,oneof=REGULAR OFF_CYCLE THR BONUS"`
 	// ProrationMethod opsional: CALENDAR_DAYS (default) | WORKING_DAYS |
 	// FIXED_30_DAYS | ATTENDANCE_DAYS. Validasi nilai di service.
@@ -609,9 +605,6 @@ type Pph21SettingResponse struct {
 	OccupationalExpenseRatePercent float64 `json:"occupational_expense_rate_percent"`
 	OccupationalExpenseMaxMonthly float64  `json:"occupational_expense_max_monthly"`
 	OccupationalExpenseMaxYearly float64   `json:"occupational_expense_max_yearly"`
-	DeductBpjsHealthEmployee     bool      `json:"deduct_bpjs_health_employee"`
-	DeductBpjsJhtEmployee        bool      `json:"deduct_bpjs_jht_employee"`
-	DeductBpjsJpEmployee         bool      `json:"deduct_bpjs_jp_employee"`
 	AnnualizationMonths          int       `json:"annualization_months"`
 	PkpRoundingUnit              float64   `json:"pkp_rounding_unit"`
 	NonNpwpMultiplierPercent     float64   `json:"non_npwp_multiplier_percent"`
@@ -1204,9 +1197,6 @@ func toPph21SettingResponse(p *Pph21Setting) Pph21SettingResponse {
 		OccupationalExpenseRatePercent: p.OccupationalExpenseRatePercent,
 		OccupationalExpenseMaxMonthly:  p.OccupationalExpenseMaxMonthly,
 		OccupationalExpenseMaxYearly:   p.OccupationalExpenseMaxYearly,
-		DeductBpjsHealthEmployee: p.DeductBpjsHealthEmployee,
-		DeductBpjsJhtEmployee:    p.DeductBpjsJhtEmployee,
-		DeductBpjsJpEmployee:     p.DeductBpjsJpEmployee,
 		AnnualizationMonths:      p.AnnualizationMonths,
 		PkpRoundingUnit:          p.PkpRoundingUnit,
 		NonNpwpMultiplierPercent: p.NonNpwpMultiplierPercent,

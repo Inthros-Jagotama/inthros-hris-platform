@@ -103,13 +103,9 @@ const groups = computed(() => [
     items: [
       { path: '/settings/payroll-periods', icon: 'pi pi-calendar', titleKey: 'payroll.payroll_periods', descKey: 'payroll.payroll_periods_desc', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
       { path: '/settings/salary-components', icon: 'pi pi-list', titleKey: 'payroll.salary_components', descKey: 'payroll.salary_components_desc', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-      { path: '/settings/payroll-profiles', icon: 'pi pi-users', titleKey: 'payroll.employee_profiles', descKey: 'payroll.employee_profiles_desc', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400' },
       { path: '/settings/bpjs-settings', icon: 'pi pi-shield', titleKey: 'payroll.bpjs', descKey: 'payroll.bpjs_desc', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
       { path: '/settings/pph21-settings', icon: 'pi pi-percentage', titleKey: 'payroll.pph21', descKey: 'payroll.pph21_desc', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' },
       { path: '/settings/salary-structure', icon: 'pi pi-sitemap', titleKey: 'payroll.salary_structure', descKey: 'payroll.salary_structure_desc', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
-      { path: '/settings/bank-profiles', icon: 'pi pi-building', titleKey: 'payroll.bank_profiles', descKey: 'payroll.bank_profiles_desc', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400' },
-      { path: '/settings/bpjs-profiles', icon: 'pi pi-shield', titleKey: 'payroll.bpjs_profiles', descKey: 'payroll.bpjs_profiles_desc', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
-      { path: '/settings/tax-profiles', icon: 'pi pi-receipt', titleKey: 'payroll.tax_profiles', descKey: 'payroll.tax_profiles_desc', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' },
       { path: '/settings/banks', icon: 'pi pi-building', titleKey: 'settings.banks', descKey: 'banks.description', tint: 'bg-slate-100 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400' },
       { path: '/settings/gradings', icon: 'pi pi-chart-bar', titleKey: 'settings.gradings', descKey: 'gradings.description', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
       { path: '/settings/salary-grades', icon: 'pi pi-chart-bar', titleKey: 'settings.salary_grades', descKey: 'salary_grades.description', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400' },

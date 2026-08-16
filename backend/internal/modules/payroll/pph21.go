@@ -177,7 +177,9 @@ func (s *Service) calculatePph21(ctx context.Context, run *PayrollRun, period *P
 		occ = setting.OccupationalExpenseMaxMonthly
 	}
 
-	// 3. Iuran BPJS employee yang boleh dikurangkan sesuai flag setting.
+	// 3. Iuran BPJS employee yang boleh dikurangkan dari bruto pajak — aturan
+	// baku (migration 122 menghapus toggle setting): JHT & JP boleh
+	// dikurangkan, BPJS Kesehatan tidak.
 	bpjsDeductible := 0.0
 	for _, item := range bpjsItems {
 		if item.ItemCategory != ItemCategoryEmployeeDeduction || item.PaidBy != "EMPLOYEE" {
@@ -188,18 +190,8 @@ func (s *Service) calculatePph21(ctx context.Context, run *PayrollRun, period *P
 			program = *item.SourceType
 		}
 		switch program {
-		case BpjsProgramHealth:
-			if setting.DeductBpjsHealthEmployee {
-				bpjsDeductible += item.Amount
-			}
-		case BpjsProgramJHT:
-			if setting.DeductBpjsJhtEmployee {
-				bpjsDeductible += item.Amount
-			}
-		case BpjsProgramJP:
-			if setting.DeductBpjsJpEmployee {
-				bpjsDeductible += item.Amount
-			}
+		case BpjsProgramJHT, BpjsProgramJP:
+			bpjsDeductible += item.Amount
 		}
 	}
 

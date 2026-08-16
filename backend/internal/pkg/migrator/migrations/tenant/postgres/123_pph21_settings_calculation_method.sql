@@ -1,0 +1,8 @@
+-- =============================================================================
+-- Tenant Migration: 123_pph21_settings_calculation_method (PostgreSQL)
+-- =============================================================================
+-- Postgres sudah memakai VARCHAR(255) sejak migrasi 006, sehingga tidak ada
+-- perubahan yang diperlukan di sini. File ini dibuat agar nomor versi migrasi
+-- tetap sinkron antara MySQL dan PostgreSQL.
+-- MySQL: calculation_method diubah dari ENUM('REGULAR_GROSS_ANNUALIZED') menjadi
+--        VARCHAR(255) agar mendukung metode TER (lihat migrasi 120).

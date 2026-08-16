@@ -7,6 +7,18 @@
           <InputIcon class="pi pi-search" />
           <InputText v-model="searchQuery" :placeholder="t('employee.search')" size="small" class="!pl-8 !text-sm !py-1.5 !w-64" @input="onSearchInput" />
         </IconField>
+        <!-- Filter status (tombol) -->
+        <div class="flex items-center gap-1">
+          <Button
+            v-for="opt in statusFilterOptions"
+            :key="opt.value"
+            :label="opt.label"
+            size="small"
+            :severity="statusFilter === opt.value ? 'primary' : 'secondary'"
+            :outlined="statusFilter !== opt.value"
+            @click="setStatusFilter(opt.value)"
+          />
+        </div>
         <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
           {{ totalRecords }} {{ t('common.items') }}
         </span>
@@ -86,6 +98,7 @@
       <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right">
         <template #body="{data}">
           <div class="flex items-center gap-1">
+            <Button icon="pi pi-eye" size="small" text severity="secondary" v-tooltip.left="t('employee.view')" @click="goToView(data)" />
             <Button v-if="hasPermission('employee.update')" icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="goToEdit(data)" />
             <Button v-if="hasPermission('employee.delete')" icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" />
           </div>
@@ -136,10 +149,25 @@ const totalRecords = ref(0)
 const currentPage = ref(1)
 const perPage = ref(15)
 const searchQuery = ref('')
+const statusFilter = ref('active')
 let searchTimer = null
+
+const statusFilterOptions = computed(() => [
+  { label: t('common.all'), value: 'all' },
+  { label: t('common_status.active'), value: 'active' },
+  { label: t('common_status.inactive'), value: 'inactive' }
+])
+
+function setStatusFilter(v) {
+  if (statusFilter.value === v) return
+  statusFilter.value = v
+  currentPage.value = 1
+  loadData()
+}
 
 // ── Navigation ──
 function goToNew() { router.push('/employees/new') }
+function goToView(item) { router.push(`/employees/${item.id}`) }
 function goToEdit(item) { router.push(`/employees/${item.id}/edit`) }
 
 // ── Delete ──
@@ -169,6 +197,7 @@ async function loadData() {
     const params = { page: currentPage.value, per_page: perPage.value }
     const q = searchQuery.value?.trim()
     if (q) params.search = q
+    if (statusFilter.value !== 'all') params.status = statusFilter.value
     const res = await api.get('/api/v1/tenant/employees', { params })
     const body = res.data
     items.value = body?.data || []

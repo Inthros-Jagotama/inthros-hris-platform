@@ -140,17 +140,14 @@
         <FormRow :label="t('payroll.select_period')" required :errors="errors?.payroll_period_id">
           <SelectLabel v-model="createForm.payroll_period_id" :options="periodOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" :class="{ 'p-invalid': errors?.payroll_period_id }" showClear />
         </FormRow>
-        <FormRow :label="t('payroll.run_code')" required :errors="errors?.run_code">
-          <TextInput v-model="createForm.run_code" maxlength="50" :placeholder="t('payroll.run_code_placeholder')" :class="{ 'p-invalid': errors?.run_code }" />
+        <FormRow :label="t('payroll.run_type')">
+          <SelectLabel v-model="createForm.run_type" :options="runTypeOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
+          <small v-if="selectedRunTypeDesc" class="text-xs text-gray-400 mt-1 block"><i class="pi pi-info-circle mr-1"></i>{{ selectedRunTypeDesc }}</small>
         </FormRow>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormRow :label="t('payroll.run_type')">
-            <SelectLabel v-model="createForm.run_type" :options="runTypeOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-          </FormRow>
-          <FormRow :label="t('payroll.proration_method')">
-            <SelectLabel v-model="createForm.proration_method" :options="prorationOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('payroll.proration_method')">
+          <SelectLabel v-model="createForm.proration_method" :options="prorationOptions" optionLabel="label" optionValue="value" :placeholder="t('common.select')" />
+          <small v-if="selectedProrationDesc" class="text-xs text-gray-400 mt-1 block"><i class="pi pi-info-circle mr-1"></i>{{ selectedProrationDesc }}</small>
+        </FormRow>
         <FormRow :label="t('payroll.select_employee')" :errors="errors?.employee_ids">
           <SelectLabel v-model="createForm.employee_ids" :options="employeeOptions" optionLabel="label" optionValue="value" multiple filter :placeholder="t('common.select')" />
           <small class="text-xs text-gray-400 mt-1 block">{{ t('payroll.employee_ids_hint') }}</small>
@@ -193,7 +190,6 @@ import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 import FormRow from '@/components/FormRow.vue'
-import TextInput from '@/components/TextInput.vue'
 import SelectLabel from '@/components/SelectLabel.vue'
 import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
 
@@ -213,7 +209,7 @@ const employees = ref([])
 const createDialogVisible = ref(false)
 const creating = ref(false)
 const errors = ref({})
-const createForm = ref({ payroll_period_id: null, run_code: '', run_type: 'REGULAR', proration_method: 'CALENDAR_DAYS', employee_ids: [] })
+const createForm = ref({ payroll_period_id: null, run_type: 'REGULAR', proration_method: 'CALENDAR_DAYS', employee_ids: [] })
 
 const confirmVisible = ref(false)
 const confirmLoading = ref(false)
@@ -240,10 +236,24 @@ const employeeOptions = computed(() =>
   employees.value.map(e => ({ label: `${e.name} (${e.employee_id})`, value: e.id }))
 )
 const runTypeOptions = computed(() =>
-  ['REGULAR', 'OFF_CYCLE', 'THR', 'BONUS'].map(v => ({ label: t(`payroll.run_type_${v.toLowerCase()}`), value: v }))
+  ['REGULAR', 'OFF_CYCLE', 'THR', 'BONUS'].map(v => ({
+    label: t(`payroll.run_type_${v.toLowerCase()}`),
+    desc: t(`payroll.run_type_${v.toLowerCase()}_desc`),
+    value: v
+  }))
 )
 const prorationOptions = computed(() =>
-  ['CALENDAR_DAYS', 'WORKING_DAYS', 'FIXED_30_DAYS', 'ATTENDANCE_DAYS'].map(v => ({ label: t(`payroll.proration_${v.toLowerCase()}`), value: v }))
+  ['CALENDAR_DAYS', 'WORKING_DAYS', 'FIXED_30_DAYS', 'ATTENDANCE_DAYS'].map(v => ({
+    label: t(`payroll.proration_${v.toLowerCase()}`),
+    desc: t(`payroll.proration_${v.toLowerCase()}_desc`),
+    value: v
+  }))
+)
+const selectedRunTypeDesc = computed(() =>
+  runTypeOptions.value.find(o => o.value === createForm.value.run_type)?.desc || ''
+)
+const selectedProrationDesc = computed(() =>
+  prorationOptions.value.find(o => o.value === createForm.value.proration_method)?.desc || ''
 )
 
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
@@ -315,23 +325,21 @@ function openRun(run) {
 
 function openCreateDialog() {
   errors.value = {}
-  createForm.value = { payroll_period_id: null, run_code: '', run_type: 'REGULAR', proration_method: 'CALENDAR_DAYS', employee_ids: [] }
+  createForm.value = { payroll_period_id: null, run_type: 'REGULAR', proration_method: 'CALENDAR_DAYS', employee_ids: [] }
   createDialogVisible.value = true
 }
 function resetCreateForm() {
   errors.value = {}
-  createForm.value = { payroll_period_id: null, run_code: '', run_type: 'REGULAR', proration_method: 'CALENDAR_DAYS', employee_ids: [] }
+  createForm.value = { payroll_period_id: null, run_type: 'REGULAR', proration_method: 'CALENDAR_DAYS', employee_ids: [] }
 }
 
 async function handleCreate() {
   errors.value = {}
   if (!createForm.value.payroll_period_id) { errors.value = { payroll_period_id: [t('form.required')] }; return }
-  if (!createForm.value.run_code?.trim()) { errors.value = { run_code: [t('form.required')] }; return }
   creating.value = true
   try {
     const payload = {
       payroll_period_id: createForm.value.payroll_period_id,
-      run_code: createForm.value.run_code.trim(),
       run_type: createForm.value.run_type,
       proration_method: createForm.value.proration_method,
       employee_ids: createForm.value.employee_ids || []

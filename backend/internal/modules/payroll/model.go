@@ -395,9 +395,6 @@ type Pph21Setting struct {
 	OccupationalExpenseRatePercent float64  `gorm:"type:decimal(8,4);not null;default:5" json:"occupational_expense_rate_percent"`
 	OccupationalExpenseMaxMonthly float64   `gorm:"type:decimal(18,2);not null;default:500000" json:"occupational_expense_max_monthly"`
 	OccupationalExpenseMaxYearly float64    `gorm:"type:decimal(18,2);not null;default:6000000" json:"occupational_expense_max_yearly"`
-	DeductBpjsHealthEmployee     bool       `gorm:"not null;default:0" json:"deduct_bpjs_health_employee"`
-	DeductBpjsJhtEmployee        bool       `gorm:"not null;default:1" json:"deduct_bpjs_jht_employee"`
-	DeductBpjsJpEmployee         bool       `gorm:"not null;default:1" json:"deduct_bpjs_jp_employee"`
 	AnnualizationMonths          int        `gorm:"type:tinyint;not null;default:12" json:"annualization_months"`
 	PkpRoundingUnit              float64    `gorm:"type:decimal(18,2);not null;default:1000" json:"pkp_rounding_unit"`
 	NonNpwpMultiplierPercent     float64    `gorm:"type:decimal(8,4);not null;default:100" json:"non_npwp_multiplier_percent"`

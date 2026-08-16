@@ -46365,7 +46365,6 @@
         "type": "object",
         "required": [
           "employee_id",
-          "payroll_group_code",
           "effective_start_date"
         ],
         "properties": {
@@ -46381,7 +46380,8 @@
           "payroll_group_code": {
             "type": "string",
             "maxLength": 50,
-            "example": "REG"
+            "description": "Auto-generated (default MONTHLY) bila tidak dikirim.",
+            "example": "MONTHLY"
           },
           "payroll_frequency": {
             "type": "string",
@@ -47977,8 +47977,7 @@
       "CreatePayrollRunRequest": {
         "type": "object",
         "required": [
-          "payroll_period_id",
-          "run_code"
+          "payroll_period_id"
         ],
         "properties": {
           "payroll_period_id": {
@@ -47988,6 +47987,7 @@
           "run_code": {
             "type": "string",
             "maxLength": 50,
+            "description": "Optional — auto-generated (RUN-{period_code}-{timestamp}) when empty.",
             "example": "RUN-2026-07"
           },
           "run_type": {
