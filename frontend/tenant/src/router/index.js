@@ -192,6 +192,18 @@ const routes = [
         meta: { title: 'Corrections', titleKey: 'attendance.corrections', descKey: 'attendance.corrections_description', icon: 'pi pi-pencil', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title' }
       },
       {
+        path: 'attendance/business-travel',
+        name: 'BusinessTravelList',
+        component: () => import('@/views/modules/attendance/business-travel/BusinessTravelList.vue'),
+        meta: { title: 'Business Travel', titleKey: 'business_travel.title', descKey: 'business_travel.description', icon: 'pi pi-briefcase', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title' }
+      },
+      {
+        path: 'attendance/business-travel/:id',
+        name: 'BusinessTravelDetail',
+        component: () => import('@/views/modules/attendance/business-travel/BusinessTravelDetail.vue'),
+        meta: { title: 'Business Travel', titleKey: 'business_travel.view', descKey: 'business_travel.description', icon: 'pi pi-briefcase', module: 'attendance', backRoute: '/attendance/business-travel', backLabelKey: 'business_travel.title' }
+      },
+      {
         path: 'attendance/events',
         name: 'AttendanceEvents',
         component: () => import('@/views/modules/attendance/AttendanceEvents.vue'),
