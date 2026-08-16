@@ -28,7 +28,7 @@
       </template>
       <!-- 1 baris = 1 module: nama module → pilih semua → chips permission -->
       <Column field="resource" :header="t('rbac.module')" style="width:200px">
-        <template #body="{ data }"><span class="font-medium text-gray-800 dark:text-gray-100">{{ data.resource }}</span></template>
+        <template #body="{ data }"><span class="font-medium text-gray-800 dark:text-gray-100">{{ moduleLabel(data.resource) }}</span></template>
       </Column>
       <Column :header="t('common.select')" style="width:110px">
         <template #body="{ data }">
@@ -93,6 +93,12 @@ const skeletonColumns = [
 ]
 
 const selectedCount = computed(() => Object.values(selected.value).filter(Boolean).length)
+
+// Label bilingual nama module (rbac.modules.<resource>) — fallback ke slug.
+function moduleLabel(resource) {
+  const key = `rbac.modules.${resource}`
+  return t(key) !== key ? t(key) : resource
+}
 
 // Semua aksi yang ada lintas module (create, update, ...) — urutan kemunculan
 // pertama — menjadi kolom-kolom tabel.
