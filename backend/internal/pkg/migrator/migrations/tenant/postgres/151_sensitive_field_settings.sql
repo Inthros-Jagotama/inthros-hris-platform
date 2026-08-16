@@ -1,5 +1,5 @@
 -- =============================================================================
--- 150_sensitive_field_settings.sql (postgres)
+-- 151_sensitive_field_settings.sql (postgres)
 -- Sensitive Data Masking — tabel setting toggle enkripsi per field.
 -- =============================================================================
 

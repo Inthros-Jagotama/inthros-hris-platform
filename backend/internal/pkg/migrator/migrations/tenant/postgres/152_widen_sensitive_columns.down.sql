@@ -1,4 +1,4 @@
--- 151_widen_sensitive_columns.down.sql
+-- 152_widen_sensitive_columns.down.sql
 -- NB: only safe to run down if no encrypted (longer) values were written
 -- while the wider columns were in place — this truncates on rollback.
 

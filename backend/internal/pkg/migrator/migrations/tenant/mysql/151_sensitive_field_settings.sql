@@ -1,5 +1,5 @@
 -- =============================================================================
--- 150_sensitive_field_settings.sql
+-- 151_sensitive_field_settings.sql
 -- Sensitive Data Masking — tabel setting toggle enkripsi per field.
 -- Setiap baris mewakili satu field sensitif yang bisa di-enkripsi saat
 -- ditulis (encrypt-on-write). Toggle ini independen dari permission
