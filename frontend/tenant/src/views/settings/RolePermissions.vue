@@ -20,8 +20,8 @@
       </div>
     </div>
     <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="4" />
-    <div v-else class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden overflow-x-auto">
-      <table class="w-full border-collapse">
+    <div v-else class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-x-auto">
+      <table class="min-w-full border-collapse">
         <thead>
           <tr class="bg-gray-50 dark:bg-gray-700/50 text-left">
             <th class="px-2 py-2 font-medium text-gray-600 dark:text-gray-300" style="width:220px">{{ t('rbac.submenu') }}</th>
