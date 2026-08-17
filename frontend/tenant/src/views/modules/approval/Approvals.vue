@@ -7,7 +7,7 @@
         </span>
         <Button icon="pi pi-refresh" size="small" text severity="secondary" @click="loadTasks" />
       </div>
-      <Button :label="t('approval.flows')" icon="pi pi-sitemap" size="small" @click="router.push({ name: 'ApprovalFlows' })" />
+      <Button v-if="hasPermission('approval.settings.view')" :label="t('approval.flows')" icon="pi pi-sitemap" size="small" @click="router.push({ name: 'ApprovalFlows' })" />
     </div>
 
     <!-- Tab: Perlu Tindakan / Riwayat -->
@@ -646,10 +646,12 @@ import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import SkeletonTable from '@/components/SkeletonTable.vue'
+import { useAuth } from '@/stores/auth'
 
 const { t, locale } = useI18n()
 const toast = useToast()
 const router = useRouter()
+const { hasPermission } = useAuth()
 
 // formatDate — date + time, built on the app-wide date formatter
 // (utils/formatDate.js) so the date portion matches every other page
