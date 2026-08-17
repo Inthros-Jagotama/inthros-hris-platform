@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -331,6 +332,47 @@ func (h *Handler) GetEmployeeSummary(c *gin.Context) {
 		return
 	}
 	resp, err := h.service.GetEmployeeSummary(c.Request.Context(), employeeID, from, to)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetAttendanceStats — ringkasan absensi seluruh karyawan dalam rentang
+// tanggal (mode HR dashboard). Default: bulan berjalan. Di-gate oleh
+// middleware requireAttendanceReport("view") di routes.go.
+func (h *Handler) GetAttendanceStats(c *gin.Context) {
+	from := c.Query("from")
+	to := c.Query("to")
+	now := time.Now()
+	if from == "" {
+		from = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02")
+	}
+	if to == "" {
+		to = now.Format("2006-01-02")
+	}
+	resp, err := h.service.GetAttendanceStats(c.Request.Context(), from, to)
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GetOvertimeTrend — tren lembur per minggu (mode HR dashboard). Default:
+// bulan berjalan. Sama seperti /stats/summary, digate attendance.report.view.
+func (h *Handler) GetOvertimeTrend(c *gin.Context) {
+	from := c.Query("from")
+	to := c.Query("to")
+	now := time.Now()
+	if from == "" {
+		from = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02")
+	}
+	if to == "" {
+		to = now.Format("2006-01-02")
+	}
+	resp, err := h.service.GetOvertimeTrend(c.Request.Context(), from, to)
 	if err != nil {
 		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
 		return

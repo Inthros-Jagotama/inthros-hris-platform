@@ -49,7 +49,7 @@
         <div v-for="(s, i) in sections" :key="i" role="button" :tabindex="0"
              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 cursor-pointer select-none"
              :class="active === i ? 'bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-300 dark:ring-emerald-700' : 'hover:bg-gray-50 dark:hover:bg-gray-800'"
-             @click="active = i" @keydown.enter="active = i">
+             @click="selectSection(i)" @keydown.enter="selectSection(i)">
           <i :class="[s.icon, 'text-xs shrink-0', active === i ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500']"></i>
           <span class="flex-1 min-w-0 truncate" :class="active === i ? 'text-emerald-700 dark:text-emerald-300 font-medium' : 'text-gray-700 dark:text-gray-300'">{{ t(s.labelKey) }}</span>
           <span v-if="s.count" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{{ s.count }}</span>
@@ -69,10 +69,10 @@
             <DetailRow :label="t('employee.nik')" :value="emp.nik" />
             <DetailRow :label="t('employee.gender')" :value="genderLabel(emp.gender)" />
             <DetailRow :label="t('employee.mother_name')" :value="emp.mother_name" />
-            <DetailRow :label="t('employee.religion')" :value="labelOf(religionMap, emp.religion_id)" />
-            <DetailRow :label="t('employee.marital_status')" :value="labelOf(maritalMap, emp.marital_status_id)" />
+            <DetailRow :label="t('employee.religion')" :value="emp.religion_name || labelOf(religionMap, emp.religion_id)" />
+            <DetailRow :label="t('employee.marital_status')" :value="emp.marital_status_name || labelOf(maritalMap, emp.marital_status_id)" />
             <DetailRow :label="t('employee.nationality_type')" :value="emp.nationality_type ? t('employee.' + (emp.nationality_type === 'WNI' ? 'wni' : 'wna')) : ''" />
-            <DetailRow :label="t('employee.nationality')" :value="labelOf(nationalityMap, emp.nationality_id)" />
+            <DetailRow :label="t('employee.nationality')" :value="emp.nationality_name || labelOf(nationalityMap, emp.nationality_id)" />
             <DetailRow :label="t('employee.passport')" :value="emp.passport" />
             <DetailRow :label="t('employee.pob')" :value="emp.pob" />
             <DetailRow :label="t('employee.dob')" :value="formatDate(emp.dob, locale)" />
@@ -100,7 +100,7 @@
         <ListCard v-else-if="active === 2" :title="t('employee.tab_contacts')" icon="pi pi-phone" tint="text-emerald-500" :empty="t('employee.no_contacts')" :items="emp.emergency_contacts">
           <template #default="{ item }">
             <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.name }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.phone_number }}<template v-if="item.relationship_type_id"> · {{ labelOf(relationshipMap, item.relationship_type_id) }}</template></p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.phone_number }}<template v-if="item.relationship_type_id"> · {{ item.relationship_type_name || labelOf(relationshipMap, item.relationship_type_id) }}</template></p>
             <p v-if="item.address" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ item.address }}</p>
           </template>
         </ListCard>
@@ -110,7 +110,8 @@
           <template #default="{ item }">
             <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.name }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              <template v-if="item.relationship_type_id">{{ labelOf(relationshipMap, item.relationship_type_id) }}</template>
+              <template v-if="item.relationship_type_id">{{ item.relationship_type_name || labelOf(relationshipMap, item.relationship_type_id) }}</template>
+              <template v-if="item.education_name || item.education_id"> · {{ item.education_name || labelOf(educationMap, item.education_id) }}</template>
               <template v-if="item.dob"> · {{ formatDate(item.dob, locale) }}</template>
             </p>
             <p v-if="item.nik" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-mono">{{ item.nik }}</p>
@@ -120,7 +121,7 @@
         <!-- Education -->
         <ListCard v-else-if="active === 4" :title="t('employee.tab_education')" icon="pi pi-graduation-cap" tint="text-amber-500" :empty="t('employee.no_education')" :items="emp.educations">
           <template #default="{ item }">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.name || labelOf(educationMap, item.education_id) || '-' }}</p>
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.name || item.education_name || labelOf(educationMap, item.education_id) || '-' }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.major || item.major_name || '' }}<template v-if="item.graduation_year"> · {{ item.graduation_year }}</template></p>
           </template>
         </ListCard>
@@ -162,7 +163,7 @@
         <!-- Bank Accounts -->
         <ListCard v-else-if="active === 8" :title="t('employee.tab_bank')" icon="pi pi-building-columns" tint="text-sky-500" :empty="t('employee.no_bank')" :items="emp.banks">
           <template #default="{ item }">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ labelOf(bankMap, item.bank_id) || '-' }}</p>
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.bank_name || labelOf(bankMap, item.bank_id) || '-' }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">{{ item.account_number }}</p>
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ item.account_name }}</p>
           </template>
@@ -171,9 +172,9 @@
         <!-- Employment Record -->
         <ListCard v-else-if="active === 9" :title="t('employee.tab_employment')" icon="pi pi-briefcase" tint="text-cyan-500" :empty="t('employee.no_employment')" :items="emp.employments">
           <template #default="{ item }">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ labelOf(organizationMap, item.organization_id) || '-' }}</p>
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.organization_name || labelOf(organizationMap, item.organization_id) || '-' }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              <template v-if="item.employment_status_id">{{ labelOf(employmentStatusMap, item.employment_status_id) }}</template>
+              <template v-if="item.employment_status_id">{{ item.employment_status_name || labelOf(employmentStatusMap, item.employment_status_id) }}</template>
               <template v-if="item.decision_letter_number"> · {{ t('employee.decision_letter') }}: {{ item.decision_letter_number }}</template>
             </p>
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
@@ -304,8 +305,16 @@ const { hasPermission } = useAuth()
 
 const emp = ref({})
 const loading = ref(true)
-const active = ref(0)
+// Section aktif dipakai dari query ?tab= agar refresh tetap di section yang sama
+// (bukan selalu kembali ke Profile). Nilai invalid → fallback ke 0 (Profile).
+const initialTab = parseInt(route.query.tab, 10)
+const active = ref(Number.isInteger(initialTab) && initialTab >= 0 ? initialTab : 0)
 const canEdit = computed(() => hasPermission('employee.update'))
+
+function selectSection(i) {
+  active.value = i
+  router.replace({ query: { ...route.query, tab: String(i) } })
+}
 const payroll = ref({ profiles: [], banks: [], bpjs: [], taxes: [] })
 const payrollCount = computed(() => payroll.value.profiles.length + payroll.value.banks.length + payroll.value.bpjs.length + payroll.value.taxes.length)
 const careerData = ref(null)
@@ -494,7 +503,9 @@ async function loadRefData() {
 }
 
 async function doLoadRefData() {
-  const [rel, ms, nat, rt, edu, ins, bank, org, es] = await Promise.all([
+  // allSettled: satu endpoint gagal (mis. 403 untuk role terbatas) tidak
+  // menggagalkan map label lainnya — tiap map diisi independen.
+  const results = await Promise.allSettled([
     api.get('/api/v1/tenant/settings/religions?per_page=100'),
     api.get('/api/v1/tenant/settings/marital-statuses?per_page=100'),
     api.get('/api/v1/tenant/settings/nationalities?per_page=250'),
@@ -505,14 +516,15 @@ async function doLoadRefData() {
     api.get('/api/v1/tenant/organizations?tree=true'),
     api.get('/api/v1/tenant/settings/employment-statuses?per_page=100')
   ])
-  religionMap.value = Object.fromEntries((rel.data?.data || []).map(r => [r.id, r.name]))
-  maritalMap.value = Object.fromEntries((ms.data?.data || []).map(m => [m.id, m.name]))
-  nationalityMap.value = Object.fromEntries((nat.data?.data || []).map(n => [n.code, n.name]))
-  relationshipMap.value = Object.fromEntries((rt.data?.data || []).map(r => [r.id, r.name]))
-  educationMap.value = Object.fromEntries((edu.data?.data || []).map(e => [e.id, e.name]))
-  insuranceMap.value = Object.fromEntries((ins.data?.data || []).map(x => [x.id, x.name]))
-  bankMap.value = Object.fromEntries((bank.data?.data || []).map(b => [b.id, b.name]))
-  employmentStatusMap.value = Object.fromEntries((es.data?.data || []).map(x => [x.id, x.name]))
+  const rows = i => (results[i]?.status === 'fulfilled' ? (results[i].value?.data?.data || []) : [])
+  religionMap.value = Object.fromEntries(rows(0).map(r => [r.id, r.name]))
+  maritalMap.value = Object.fromEntries(rows(1).map(m => [m.id, m.name]))
+  nationalityMap.value = Object.fromEntries(rows(2).map(n => [n.code, n.name]))
+  relationshipMap.value = Object.fromEntries(rows(3).map(r => [r.id, r.name]))
+  educationMap.value = Object.fromEntries(rows(4).map(e => [e.id, e.name]))
+  insuranceMap.value = Object.fromEntries(rows(5).map(x => [x.id, x.name]))
+  bankMap.value = Object.fromEntries(rows(6).map(b => [b.id, b.name]))
+  employmentStatusMap.value = Object.fromEntries(rows(8).map(x => [x.id, x.name]))
   const orgList = {}
   function flattenOrgTree(nodes) {
     if (!nodes) return
@@ -520,7 +532,7 @@ async function doLoadRefData() {
     orgList[nodes.id] = nodes.nomenclature
     if (nodes.children) flattenOrgTree(nodes.children)
   }
-  flattenOrgTree(org.data?.data || [])
+  flattenOrgTree(rows(7))
   organizationMap.value = orgList
 }
 

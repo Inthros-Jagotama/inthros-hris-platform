@@ -3,6 +3,9 @@ package jobmanagement
 import "github.com/gin-gonic/gin"
 
 func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
+	// Dashboard module — ringkasan jumlah master data (untuk dashboard page)
+	rg.GET("/job-management/dashboard", handler.GetDashboard)
+
 	// Job Titles (9.1) — CRUD + Nested Subs
 	titles := rg.Group("/job-management/titles")
 	{

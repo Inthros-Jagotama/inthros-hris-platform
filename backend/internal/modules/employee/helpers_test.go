@@ -8,6 +8,9 @@ import (
 
 	sqlite "github.com/glebarez/sqlite"
 	"github.com/google/uuid"
+
+	"github.com/inthros/hris-platform/internal/modules/organization"
+	"github.com/inthros/hris-platform/internal/modules/setting"
 )
 
 // setupTestDB creates an in-memory SQLite database and auto-migrates all employee models.
@@ -18,7 +21,8 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		panic(fmt.Sprintf("failed to open test db: %v", err))
 	}
 
-	// AutoMigrate all models
+	// AutoMigrate all models + tabel referensi (settings/organization) yang
+	// di-preload di FindEmployeeByID supaya preload tidak error saat FK terisi.
 	if err := db.AutoMigrate(
 		&Employee{},
 		&EmployeeAddress{},
@@ -31,6 +35,16 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&EmployeeBankAccount{},
 		&Employment{},
 		&SensitiveFieldSetting{},
+		&setting.Religion{},
+		&setting.MaritalStatus{},
+		&setting.Nationality{},
+		&setting.RelationshipType{},
+		&setting.Education{},
+		&setting.EducationMajor{},
+		&setting.Insurance{},
+		&setting.Bank{},
+		&setting.EmploymentStatus{},
+		&organization.Organization{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
 	}

@@ -944,6 +944,13 @@ func (s *Service) GetLeaveUsageReport(ctx context.Context, fromDate, toDate stri
 	return responses, nil
 }
 
+// GetOnLeaveToday menghitung jumlah karyawan yang sedang cuti hari ini.
+// Dipakai dashboard Employment (statistik karyawan).
+func (s *Service) GetOnLeaveToday(ctx context.Context) (int64, error) {
+	today := time.Now().Format("2006-01-02")
+	return s.repo.CountOnLeaveToday(ctx, today)
+}
+
 // =========================================================================
 // Leave Balances
 // =========================================================================

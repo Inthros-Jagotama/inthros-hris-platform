@@ -1123,3 +1123,14 @@ func (h *Handler) DeleteJobCompetencyGroup(c *gin.Context) {
 	}
 	httputil.DeletedJSON(c, "success.deleted")
 }
+
+// GetDashboard menampilkan ringkasan jumlah record per master data
+// Job Management untuk dashboard module.
+func (h *Handler) GetDashboard(c *gin.Context) {
+	resp, err := h.service.GetDashboard(c.Request.Context())
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}

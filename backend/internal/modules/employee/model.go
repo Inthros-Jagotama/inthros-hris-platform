@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/inthros/hris-platform/internal/modules/organization"
 	"github.com/inthros/hris-platform/internal/modules/setting"
 )
 
@@ -100,6 +101,9 @@ type EmergencyContact struct {
 	Name               string     `gorm:"type:varchar(255);not null" json:"name"`
 	RelationshipTypeID *uuid.UUID `gorm:"type:char(36);index" json:"relationship_type_id,omitempty"`
 	PhoneNumber        string     `gorm:"type:varchar(50);not null" json:"phone_number"`
+
+	// Relasi ke RelationshipType (settings module)
+	RelationshipType *setting.RelationshipType `gorm:"foreignKey:RelationshipTypeID" json:"-"`
 	Address            *string    `gorm:"type:varchar(255)" json:"address,omitempty"`
 	CreatedBy          *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
 	UpdatedBy          *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
@@ -127,6 +131,10 @@ type EmployeeFamily struct {
 	DOB                *string    `gorm:"type:date" json:"dob,omitempty"`
 	RelationshipTypeID *uuid.UUID `gorm:"type:char(36);index" json:"relationship_type_id,omitempty"`
 	EducationID        *uuid.UUID `gorm:"type:char(36);index" json:"education_id,omitempty"`
+
+	// Relasi referensi (settings module)
+	RelationshipType *setting.RelationshipType `gorm:"foreignKey:RelationshipTypeID" json:"-"`
+	Education        *setting.Education        `gorm:"foreignKey:EducationID" json:"-"`
 	CreatedBy          *uuid.UUID `gorm:"type:char(36)" json:"created_by,omitempty"`
 	UpdatedBy          *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
@@ -158,7 +166,8 @@ type EmployeeEducation struct {
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
 
-	// Relasi ke EducationMajor (settings module)
+	// Relasi referensi (settings module)
+	Education      *setting.Education      `gorm:"foreignKey:EducationID" json:"-"`
 	EducationMajor *setting.EducationMajor `gorm:"foreignKey:EducationMajorID" json:"-"`
 }
 
@@ -291,6 +300,10 @@ type Employment struct {
 	UpdatedBy            *uuid.UUID `gorm:"type:char(36)" json:"updated_by,omitempty"`
 	CreatedAt            time.Time  `json:"created_at"`
 	UpdatedAt            time.Time  `json:"updated_at"`
+
+	// Relasi referensi (organization & settings module)
+	Organization     *organization.Organization `gorm:"foreignKey:OrganizationID" json:"-"`
+	EmploymentStatus *setting.EmploymentStatus  `gorm:"foreignKey:EmploymentStatusID" json:"-"`
 }
 
 func (Employment) TableName() string {

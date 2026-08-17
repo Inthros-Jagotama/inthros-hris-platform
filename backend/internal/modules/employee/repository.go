@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/inthros/hris-platform/internal/modules/setting"
 )
 
 type Repository struct {
@@ -41,14 +43,119 @@ func (r *Repository) FindEmployeeByID(ctx context.Context, id uuid.UUID) (*Emplo
 		return nil, err
 	}
 	var emp Employee
-	q := db.Preload("Addresses").Preload("EmergencyContacts").
-		Preload("Families").Preload("Educations.EducationMajor").
+	q := db.Preload("Addresses").Preload("EmergencyContacts.RelationshipType").
+		Preload("Families.RelationshipType").Preload("Families.Education").
+		Preload("Educations.Education").Preload("Educations.EducationMajor").
 		Preload("Experiences").Preload("Documents").
-		Preload("Insurances.Insurance").Preload("Banks").Preload("Employments")
+		Preload("Insurances.Insurance").Preload("Banks.Bank").
+		Preload("Employments.Organization").Preload("Employments.EmploymentStatus")
 	if err := q.First(&emp, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("employee not found: %w", err)
 	}
 	return &emp, nil
+}
+
+// CountByGender menghitung jumlah karyawan per jenis kelamin (kolom gender:
+// "M" / "F" / lainnya/kosong). Dipakai pie chart dashboard Employment.
+func (r *Repository) CountByGender(ctx context.Context) (male, female, other int64, err error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	type row struct {
+		Gender string
+		Count  int64
+	}
+	var rows []row
+	if err := db.Table("employees").
+		Where("status = ?", "active").
+		Select("COALESCE(gender, '') AS gender, COUNT(*) AS count").
+		Group("gender").
+		Scan(&rows).Error; err != nil {
+		return 0, 0, 0, err
+	}
+	for _, r := range rows {
+		switch r.Gender {
+		case "M":
+			male = r.Count
+		case "F":
+			female = r.Count
+		default:
+			other += r.Count
+		}
+	}
+	return male, female, other, nil
+}
+
+// CountByEmploymentStatus menghitung jumlah karyawan per status kepegawaian
+// berdasarkan employment berjalan (effective_end_date NULL/''). Karyawan tanpa
+// employment berjalan dihitung sebagai unclassified. Nama status diambil dari
+// tabel employment_statuses (tenant-configurable).
+func (r *Repository) CountByEmploymentStatus(ctx context.Context) ([]EmploymentStatusCount, int64, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	type row struct {
+		Name  string
+		Count int64
+	}
+	var rows []row
+	// Hanya karyawan aktif. Employment berjalan = effective_end_date NULL
+	// (kolom DATE — tidak boleh dibandingkan dengan '' di MySQL).
+	if err := db.Table("employments AS emp").
+		Joins("JOIN employees AS e ON e.id = emp.employee_id AND e.status = 'active'").
+		Joins("LEFT JOIN employment_statuses AS es ON es.id = emp.employment_status_id").
+		Where("emp.effective_end_date IS NULL").
+		Select("COALESCE(es.name, '') AS name, COUNT(DISTINCT e.id) AS count").
+		Group("es.name").
+		Scan(&rows).Error; err != nil {
+		return nil, 0, err
+	}
+	groups := make([]EmploymentStatusCount, 0, len(rows))
+	for _, r := range rows {
+		groups = append(groups, EmploymentStatusCount{Name: r.Name, Count: r.Count})
+	}
+	var unclassified int64
+	if err := db.Table("employees AS e").
+		Where("status = ? AND NOT EXISTS (SELECT 1 FROM employments emp WHERE emp.employee_id = e.id AND emp.effective_end_date IS NULL)", "active").
+		Count(&unclassified).Error; err != nil {
+		return nil, 0, err
+	}
+	return groups, unclassified, nil
+}
+
+// ResolveEmployeeRefNames mengambil nama referensi (agama, status perkawinan,
+// kewarganegaraan) untuk ditampilkan pada response detail employee.
+// Nama di-resolve langsung dari tabel tenant (religions / marital_statuses /
+// nationalities) supaya halaman profile tidak bergantung pada permission
+// viewer terhadap endpoint /settings/* — dan tidak menampilkan ID mentah
+// ketika referensi tidak ditemukan (mengembalikan string kosong).
+func (r *Repository) ResolveEmployeeRefNames(ctx context.Context, religionID, maritalStatusID *uuid.UUID, nationalityID *string) (religionName, maritalStatusName, nationalityName string) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return "", "", ""
+	}
+	if religionID != nil {
+		var row setting.Religion
+		if err := db.First(&row, "id = ?", *religionID).Error; err == nil {
+			religionName = row.Name
+		}
+	}
+	if maritalStatusID != nil {
+		var row setting.MaritalStatus
+		if err := db.First(&row, "id = ?", *maritalStatusID).Error; err == nil {
+			maritalStatusName = row.Name
+		}
+	}
+	if nationalityID != nil {
+		// NationalityID employee menyimpan kode (char(2)) — join via kolom code.
+		var row setting.Nationality
+		if err := db.First(&row, "code = ?", *nationalityID).Error; err == nil {
+			nationalityName = row.Name
+		}
+	}
+	return religionName, maritalStatusName, nationalityName
 }
 
 func (r *Repository) FindEmployeeByEmployeeID(ctx context.Context, employeeID string) (*Employee, error) {

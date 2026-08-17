@@ -287,6 +287,25 @@ func (r *Repository) FindLeaveRequestsInRange(ctx context.Context, fromDate, toD
 	return requests, nil
 }
 
+// CountOnLeaveToday menghitung jumlah karyawan berbeda yang sedang cuti
+// pada tanggal tertentu (detail cuti approved final yang mencakup tanggal tsb).
+func (r *Repository) CountOnLeaveToday(ctx context.Context, date string) (int64, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	err = db.Table("leave_request_details AS d").
+		Joins("JOIN leave_requests AS r ON r.id = d.leave_request_id").
+		Where("d.leave_date = ? AND r.status = ?", date, LeaveStatusApprovedFinal).
+		Distinct("d.employee_id").
+		Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed to count employees on leave: %w", err)
+	}
+	return count, nil
+}
+
 func (r *Repository) UpdateLeaveRequest(ctx context.Context, req *LeaveRequest) error {
 	db, err := r.db(ctx)
 	if err != nil {

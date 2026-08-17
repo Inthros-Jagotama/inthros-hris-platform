@@ -86,5 +86,6 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 
 		// Reports
 		leave.GET("/reports/usage", handler.GetLeaveUsageReport)
+		leave.GET("/reports/on-leave-today", handler.GetOnLeaveToday)
 	}
 }

@@ -1059,6 +1059,39 @@ func toJobScoreResponse(s *JobScore) JobScoreResponse {
 	return r
 }
 
+// =========================================================================
+// Dashboard
+// =========================================================================
+
+// OrgSummaryInfo — ringkasan organisasi AKTIF (organization_summaries
+// dengan status=active) yang menjadi acuan seluruh data dashboard Job
+// Management.
+type OrgSummaryInfo struct {
+	ID         string `json:"id"`
+	Code       string `json:"code"`
+	DecreeNo   string `json:"decree_no"`
+	DecreeDate string `json:"decree_date"`
+}
+
+// JobManagementDashboardResponse — ringkasan summary organisasi aktif untuk
+// dashboard Job Management (GET /job-management/dashboard). Semua angka
+// mengacu ke organisasi milik summary aktif tersebut.
+type JobManagementDashboardResponse struct {
+	// Summary aktif; null jika belum ada summary berstatus active.
+	Summary            *OrgSummaryInfo `json:"summary,omitempty"`
+	TotalOrganizations int             `json:"total_organizations"`
+	// Organisasi yang sudah terisi karyawan (employment berjalan) vs belum.
+	WithEmployees     int `json:"with_employees"`
+	WithoutEmployees  int `json:"without_employees"`
+	// Progres pengisian value (job_management_scores per organisasi).
+	ValueNotStarted int `json:"value_not_started"`
+	ValueOnProgress int `json:"value_on_progress"`
+	ValueCompleted  int `json:"value_completed"`
+	// Wewenang keuangan (job_management_financials.is_authorized).
+	WithFinancialAuthority    int `json:"with_financial_authority"`
+	WithoutFinancialAuthority int `json:"without_financial_authority"`
+}
+
 func toJobCompetencyGroupResponse(g *JobCompetencyGroup) JobCompetencyGroupResponse {
 	r := JobCompetencyGroupResponse{
 		ID:        g.ID.String(),

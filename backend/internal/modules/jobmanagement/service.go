@@ -40,6 +40,16 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 }
 
 // =========================================================================
+// Dashboard
+// =========================================================================
+
+// GetDashboard mengembalikan ringkasan summary organisasi aktif untuk
+// dashboard Job Management (GET /job-management/dashboard).
+func (s *Service) GetDashboard(ctx context.Context) (*JobManagementDashboardResponse, error) {
+	return s.repo.GetOrganizationSummaryDashboard(ctx)
+}
+
+// =========================================================================
 // Job Titles (9.1)
 // =========================================================================
 

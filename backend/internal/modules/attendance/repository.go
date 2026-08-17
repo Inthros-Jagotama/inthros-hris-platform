@@ -554,6 +554,76 @@ func (r *Repository) UpdateOvertimeRequest(ctx context.Context, o *AttendanceOve
 	return db.Save(o).Error
 }
 
+// OvertimeStats — agregat pengajuan lembur dalam rentang tanggal (mode HR
+// dashboard). Minutes hanya dijumlahkan untuk status APPROVED (calculated).
+type OvertimeStats struct {
+	Total    int
+	Pending  int
+	Approved int
+	Minutes  int
+}
+
+func (r *Repository) CountOvertimeStats(ctx context.Context, fromDate, toDate string) (*OvertimeStats, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []struct {
+		Status  string
+		Count   int
+		Minutes int
+	}
+	err = db.Model(&AttendanceOvertimeRequest{}).
+		Select("status, COUNT(*) AS count, COALESCE(SUM(calculated_minutes), 0) AS minutes").
+		Where("work_date >= ? AND work_date <= ?", fromDate, toDate).
+		Group("status").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	stats := &OvertimeStats{}
+	for _, row := range rows {
+		stats.Total += row.Count
+		switch OvertimeStatus(row.Status) {
+		case OvertimePendingApproval:
+			stats.Pending += row.Count
+		case OvertimeApproved:
+			stats.Approved += row.Count
+			stats.Minutes += row.Minutes
+		}
+	}
+	return stats, nil
+}
+
+// OvertimeTrendRow — lembur per tanggal (dipakai service untuk mengagregasi
+// per minggu; total & menit hanya dari pengajuan APPROVED).
+type OvertimeTrendRow struct {
+	WorkDate string
+	Count    int
+	Approved int
+	Minutes  int
+}
+
+// OvertimeTrendByDate mengembalikan lembur per work_date dalam rentang
+// (tenant-wide), diurutkan naik. Service mengagregasinya menjadi per-minggu.
+func (r *Repository) OvertimeTrendByDate(ctx context.Context, fromDate, toDate string) ([]OvertimeTrendRow, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []OvertimeTrendRow
+	err = db.Model(&AttendanceOvertimeRequest{}).
+		Select("work_date, COUNT(*) AS count, COALESCE(SUM(CASE WHEN status = '" + string(OvertimeApproved) + "' THEN 1 ELSE 0 END), 0) AS approved, COALESCE(SUM(CASE WHEN status = '" + string(OvertimeApproved) + "' THEN calculated_minutes ELSE 0 END), 0) AS minutes").
+		Where("work_date >= ? AND work_date <= ?", fromDate, toDate).
+		Group("work_date").
+		Order("work_date ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // =========================================================================
 // Exempt Positions
 // =========================================================================

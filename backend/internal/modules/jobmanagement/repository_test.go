@@ -2,10 +2,15 @@ package jobmanagement
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 // =========================================================================
@@ -1081,5 +1086,149 @@ func TestRepository_JobCompetencyGroupCRUD(t *testing.T) {
 	_, err = repo.FindJobCompetencyGroupByID(ctx, g.ID)
 	if err == nil {
 		t.Fatal("expected error after deletion")
+	}
+}
+
+func TestRepository_GetOrganizationSummaryDashboard(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	// Tanpa summary aktif → semua 0, Summary nil.
+	dash, err := repo.GetOrganizationSummaryDashboard(ctx)
+	if err != nil {
+		t.Fatalf("GetOrganizationSummaryDashboard failed: %v", err)
+	}
+	if dash.Summary != nil {
+		t.Fatalf("expected nil summary without active summary, got %+v", dash.Summary)
+	}
+
+	// Seed summary aktif + 4 organisasi.
+	summaryID := uuid.New().String()
+	if err := db.Table("organization_summaries").Create(map[string]interface{}{
+		"id": summaryID, "code": "ORG-01", "decree_no": "SK-001", "decree_date": "2026-01-15", "status": "active",
+	}).Error; err != nil {
+		t.Fatalf("seed summary failed: %v", err)
+	}
+	orgIDs := make([]string, 4)
+	for i := 0; i < 4; i++ {
+		orgIDs[i] = uuid.New().String()
+		if err := db.Table("organizations").Create(map[string]interface{}{
+			"id": orgIDs[i], "organization_summary_id": summaryID, "code": "O" + string(rune('1'+i)), "full_code": "F" + string(rune('1'+i)), "nomenclature": "Org " + string(rune('1'+i)),
+		}).Error; err != nil {
+			t.Fatalf("seed organization failed: %v", err)
+		}
+	}
+
+	// org[0] & org[1]: punya employment berjalan.
+	for _, id := range orgIDs[:2] {
+		if err := db.Table("employments").Create(map[string]interface{}{
+			"id": uuid.New().String(), "organization_id": id, "employee_id": uuid.New().String(), "effective_end_date": nil,
+		}).Error; err != nil {
+			t.Fatalf("seed employment failed: %v", err)
+		}
+	}
+	// org[1]: employment selesai (tidak dihitung).
+	if err := db.Table("employments").Create(map[string]interface{}{
+		"id": uuid.New().String(), "organization_id": orgIDs[1], "employee_id": uuid.New().String(), "effective_end_date": "2025-12-31",
+	}).Error; err != nil {
+		t.Fatalf("seed ended employment failed: %v", err)
+	}
+
+	// Score: org[1] on progress, org[2] completed, org[0] & org[3] belum.
+	if err := db.Table("job_management_scores").Create(map[string]interface{}{
+		"id": uuid.New().String(), "organization_id": orgIDs[1], "is_complete": false,
+	}).Error; err != nil {
+		t.Fatalf("seed score on-progress failed: %v", err)
+	}
+	if err := db.Table("job_management_scores").Create(map[string]interface{}{
+		"id": uuid.New().String(), "organization_id": orgIDs[2], "is_complete": true,
+	}).Error; err != nil {
+		t.Fatalf("seed score completed failed: %v", err)
+	}
+
+	// Finansial: org[0] & org[2] punya wewenang keuangan.
+	for _, id := range []string{orgIDs[0], orgIDs[2]} {
+		if err := db.Table("job_management_financials").Create(map[string]interface{}{
+			"id": uuid.New().String(), "organization_id": id, "nomenclature": "Fin", "full_code": "FIN", "is_authorized": true,
+		}).Error; err != nil {
+			t.Fatalf("seed financial failed: %v", err)
+		}
+	}
+
+	dash, err = repo.GetOrganizationSummaryDashboard(ctx)
+	if err != nil {
+		t.Fatalf("GetOrganizationSummaryDashboard failed: %v", err)
+	}
+	if dash.Summary == nil {
+		t.Fatal("expected active summary to be found")
+	}
+	if dash.Summary.Code != "ORG-01" || dash.Summary.DecreeNo != "SK-001" || dash.Summary.DecreeDate != "2026-01-15" {
+		t.Errorf("unexpected summary: %+v", dash.Summary)
+	}
+	if dash.TotalOrganizations != 4 {
+		t.Errorf("expected 4 organizations, got %d", dash.TotalOrganizations)
+	}
+	if dash.WithEmployees != 2 || dash.WithoutEmployees != 2 {
+		t.Errorf("expected with=2 without=2, got with=%d without=%d", dash.WithEmployees, dash.WithoutEmployees)
+	}
+	if dash.ValueNotStarted != 2 || dash.ValueOnProgress != 1 || dash.ValueCompleted != 1 {
+		t.Errorf("expected score 2/1/1, got %d/%d/%d", dash.ValueNotStarted, dash.ValueOnProgress, dash.ValueCompleted)
+	}
+	if dash.WithFinancialAuthority != 2 || dash.WithoutFinancialAuthority != 2 {
+		t.Errorf("expected financial with=2 without=2, got with=%d without=%d", dash.WithFinancialAuthority, dash.WithoutFinancialAuthority)
+	}
+}
+
+func TestHandler_GetDashboard(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	logger, _ := zap.NewDevelopment()
+	h := NewHandler(NewService(repo, logger))
+
+	r := gin.New()
+	r.GET("/job-management/dashboard", h.GetDashboard)
+
+	// Seed summary aktif + 2 organisasi.
+	summaryID := uuid.New().String()
+	if err := db.Table("organization_summaries").Create(map[string]interface{}{
+		"id": summaryID, "code": "ORG-99", "decree_no": "SK-099", "decree_date": "2026-02-01", "status": "active",
+	}).Error; err != nil {
+		t.Fatalf("seed summary failed: %v", err)
+	}
+	for i := 0; i < 2; i++ {
+		if err := db.Table("organizations").Create(map[string]interface{}{
+			"id": uuid.New().String(), "organization_summary_id": summaryID, "code": "OX", "full_code": "FX", "nomenclature": "Org X",
+		}).Error; err != nil {
+			t.Fatalf("seed organization failed: %v", err)
+		}
+	}
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/job-management/dashboard", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	var body struct {
+		Data struct {
+			Summary            *OrgSummaryInfo `json:"summary"`
+			TotalOrganizations int             `json:"total_organizations"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+	if body.Data.Summary == nil {
+		t.Fatal("expected summary in response")
+	}
+	if body.Data.Summary.DecreeNo != "SK-099" {
+		t.Errorf("expected decree_no SK-099, got %s", body.Data.Summary.DecreeNo)
+	}
+	if body.Data.TotalOrganizations != 2 {
+		t.Errorf("expected 2 organizations in response, got %d", body.Data.TotalOrganizations)
 	}
 }

@@ -23,6 +23,7 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&JobTitle{},
 		&JobTitleSub{},
 		&JobValue{},
+		&JobManagementValueCluster{},
 		&JobObjective{},
 		&JobIdentification{},
 		&JobResponsibility{},
@@ -46,6 +47,44 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		&OrganizationRef{},
 	); err != nil {
 		panic(fmt.Sprintf("failed to migrate test db: %v", err))
+	}
+
+	// Tabel milik module lain yang dipakai query raw dashboard
+	// (GetOrganizationSummaryDashboard) — minimal schema, kolom yang disentuh
+	// query saja.
+	// Ganti tabel organizations hasil AutoMigrate OrganizationRef (hanya
+	// id/nomenclature/full_code) dengan versi lengkap berisi kolom yang dipakai
+	// query raw dashboard: organization_summary_id & code.
+	rawTables := []string{
+		`DROP TABLE IF EXISTS organizations`,
+		`CREATE TABLE organizations (
+			id CHAR(36) PRIMARY KEY,
+			organization_summary_id CHAR(36) NULL,
+			code VARCHAR(10) NOT NULL DEFAULT '',
+			full_code VARCHAR(50) NOT NULL DEFAULT '',
+			nomenclature VARCHAR(255) NOT NULL DEFAULT '',
+			deleted_at DATETIME NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS organization_summaries (
+			id CHAR(36) PRIMARY KEY,
+			code VARCHAR(7) NOT NULL,
+			decree_no VARCHAR(20) NOT NULL,
+			decree_date DATE NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'inactive',
+			deleted_at DATETIME NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS employments (
+			id CHAR(36) PRIMARY KEY,
+			employee_id CHAR(36) NULL,
+			organization_id CHAR(36) NULL,
+			effective_end_date DATE NULL,
+			deleted_at DATETIME NULL
+		)`,
+	}
+	for _, q := range rawTables {
+		if err := db.Exec(q).Error; err != nil {
+			panic(fmt.Sprintf("failed to create raw table: %v", err))
+		}
 	}
 
 	dbResolver := func(ctx context.Context) (*gorm.DB, error) {

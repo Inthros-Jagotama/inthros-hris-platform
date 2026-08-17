@@ -220,25 +220,29 @@ type AddressResponse struct {
 }
 
 type EmergencyContactResponse struct {
-	ID                 string `json:"id"`
-	Name               string `json:"name"`
-	RelationshipTypeID string `json:"relationship_type_id,omitempty"`
-	PhoneNumber        string `json:"phone_number"`
-	Address            string `json:"address,omitempty"`
+	ID                   string `json:"id"`
+	Name                 string `json:"name"`
+	RelationshipTypeID   string `json:"relationship_type_id,omitempty"`
+	RelationshipTypeName string `json:"relationship_type_name,omitempty"`
+	PhoneNumber          string `json:"phone_number"`
+	Address              string `json:"address,omitempty"`
 }
 
 type FamilyResponse struct {
-	ID                 string `json:"id"`
-	NIK                string `json:"nik,omitempty"`
-	Name               string `json:"name"`
-	DOB                string `json:"dob,omitempty"`
-	RelationshipTypeID string `json:"relationship_type_id,omitempty"`
-	EducationID        string `json:"education_id,omitempty"`
+	ID                   string `json:"id"`
+	NIK                  string `json:"nik,omitempty"`
+	Name                 string `json:"name"`
+	DOB                  string `json:"dob,omitempty"`
+	RelationshipTypeID   string `json:"relationship_type_id,omitempty"`
+	RelationshipTypeName string `json:"relationship_type_name,omitempty"`
+	EducationID          string `json:"education_id,omitempty"`
+	EducationName        string `json:"education_name,omitempty"`
 }
 
 type EducationResponse struct {
 	ID                string `json:"id"`
 	EducationID       string `json:"education_id,omitempty"`
+	EducationName     string `json:"education_name,omitempty"`
 	EducationMajorID  string `json:"education_major_id,omitempty"`
 	MajorName         string `json:"major_name,omitempty"`
 	Name              string `json:"name"`
@@ -272,12 +276,37 @@ type InsuranceResponse struct {
 type EmploymentResponse struct {
 	ID                   string `json:"id"`
 	OrganizationID       string `json:"organization_id,omitempty"`
+	OrganizationName     string `json:"organization_name,omitempty"`
 	PositionID           string `json:"position_id,omitempty"`
 	EmploymentStatusID   string `json:"employment_status_id,omitempty"`
+	EmploymentStatusName string `json:"employment_status_name,omitempty"`
 	DecisionLetterNumber string `json:"decision_letter_number"`
 	DecisionLetterDate   string `json:"decision_letter_date"`
 	EffectiveDate        string `json:"effective_date"`
 	EffectiveEndDate     string `json:"effective_end_date,omitempty"`
+}
+
+// GenderStatsResponse adalah jumlah karyawan per jenis kelamin untuk pie
+// chart dashboard Employment (GET /employees/stats/gender).
+type GenderStatsResponse struct {
+	Male   int64 `json:"male"`
+	Female int64 `json:"female"`
+	Other  int64 `json:"other"`
+}
+
+// EmploymentStatusCount adalah satu grup jumlah karyawan per status
+// kepegawaian (nama status tenant-configurable).
+type EmploymentStatusCount struct {
+	Name  string `json:"name"`
+	Count int64  `json:"count"`
+}
+
+// EmploymentStatusStatsResponse adalah jumlah karyawan per status kepegawaian
+// (berdasarkan employment berjalan: effective_end_date NULL) untuk pie chart
+// dashboard Employment (GET /employees/stats/employment-status).
+type EmploymentStatusStatsResponse struct {
+	Groups       []EmploymentStatusCount `json:"groups"`
+	Unclassified int64                  `json:"unclassified"`
 }
 
 type EmployeeResponse struct {
@@ -299,6 +328,12 @@ type EmployeeResponse struct {
 	Instagram       string     `json:"ig,omitempty"`
 	ReligionID      string     `json:"religion_id,omitempty"`
 	MaritalStatusID string     `json:"marital_status_id,omitempty"`
+	// Nama referensi di-resolve di sisi server (lihat Service.ResolveEmployeeRefNames)
+	// agar halaman profile tidak bergantung pada permission viewer terhadap
+	// endpoint /settings/* dan tidak menampilkan ID mentah.
+	ReligionName      string `json:"religion_name,omitempty"`
+	MaritalStatusName string `json:"marital_status_name,omitempty"`
+	NationalityName   string `json:"nationality_name,omitempty"`
 	ProfilePicture  string     `json:"profile_picture,omitempty"`
 	Status          string     `json:"status"`
 	// G-4: referensi balik ke aplikasi recruitment asal.
@@ -367,6 +402,9 @@ func toEmergencyContactResponse(c *EmergencyContact) EmergencyContactResponse {
 	if c.RelationshipTypeID != nil {
 		r.RelationshipTypeID = c.RelationshipTypeID.String()
 	}
+	if c.RelationshipType != nil {
+		r.RelationshipTypeName = c.RelationshipType.Name
+	}
 	if c.Address != nil {
 		r.Address = *c.Address
 	}
@@ -387,8 +425,14 @@ func toFamilyResponse(f *EmployeeFamily) FamilyResponse {
 	if f.RelationshipTypeID != nil {
 		r.RelationshipTypeID = f.RelationshipTypeID.String()
 	}
+	if f.RelationshipType != nil {
+		r.RelationshipTypeName = f.RelationshipType.Name
+	}
 	if f.EducationID != nil {
 		r.EducationID = f.EducationID.String()
+	}
+	if f.Education != nil {
+		r.EducationName = f.Education.Name
 	}
 	return r
 }
@@ -400,6 +444,9 @@ func toEducationResponse(e *EmployeeEducation) EducationResponse {
 	}
 	if e.EducationID != nil {
 		r.EducationID = e.EducationID.String()
+	}
+	if e.Education != nil {
+		r.EducationName = e.Education.Name
 	}
 	if e.EducationMajorID != nil {
 		r.EducationMajorID = e.EducationMajorID.String()
@@ -458,6 +505,9 @@ func toBankResponse(b *EmployeeBankAccount) BankResponse {
 	if b.BankID != nil {
 		r.BankID = b.BankID.String()
 	}
+	if b.Bank != nil {
+		r.BankName = b.Bank.Name
+	}
 	return r
 }
 
@@ -466,6 +516,7 @@ func toBankResponse(b *EmployeeBankAccount) BankResponse {
 type BankResponse struct {
 	ID            string `json:"id"`
 	BankID        string `json:"bank_id,omitempty"`
+	BankName      string `json:"bank_name,omitempty"`
 	AccountNumber string `json:"account_number"`
 	AccountName   string `json:"account_name"`
 }
@@ -497,11 +548,17 @@ func toEmploymentResponse(e *Employment) EmploymentResponse {
 	if e.OrganizationID != nil {
 		r.OrganizationID = e.OrganizationID.String()
 	}
+	if e.Organization != nil {
+		r.OrganizationName = e.Organization.Nomenclature
+	}
 	if e.PositionID != nil {
 		r.PositionID = e.PositionID.String()
 	}
 	if e.EmploymentStatusID != nil {
 		r.EmploymentStatusID = e.EmploymentStatusID.String()
+	}
+	if e.EmploymentStatus != nil {
+		r.EmploymentStatusName = e.EmploymentStatus.Name
 	}
 	if e.EffectiveEndDate != nil {
 		r.EffectiveEndDate = *e.EffectiveEndDate

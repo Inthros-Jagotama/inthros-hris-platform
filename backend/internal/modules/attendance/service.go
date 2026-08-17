@@ -839,6 +839,110 @@ func (s *Service) GetEmployeeSummary(ctx context.Context, employeeID, fromDate, 
 	return summary, nil
 }
 
+// GetAttendanceStats mengagregasi sesi SELURUH karyawan dalam rentang
+// tanggal (tenant-wide) menjadi ringkasan HR: hadir/telat/missing/absen,
+// hari cuti, dan total jam kerja & lembur. Dipakai view HR dashboard
+// (GET /attendance/stats/summary).
+func (s *Service) GetAttendanceStats(ctx context.Context, fromDate, toDate string) (*AttendanceStatsResponse, error) {
+	sessions, err := s.repo.FindSessionsInRange(ctx, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+	stats := &AttendanceStatsResponse{
+		FromDate: fromDate,
+		ToDate:   toDate,
+	}
+	for _, session := range sessions {
+		stats.TotalSessions++
+		stats.TotalWorkMinutes += session.WorkMinutes
+		stats.TotalOvertimeMinutes += session.OvertimeMinutes
+		if session.LeaveFraction != nil {
+			stats.LeaveDays += *session.LeaveFraction
+		}
+		switch session.Status {
+		case SessionStatusClosed:
+			if session.LatenessMinutes > 0 {
+				stats.Late++
+			} else {
+				stats.Present++
+			}
+		case SessionStatusMissingCheckIn:
+			stats.MissingCheckin++
+		case SessionStatusMissingCheckOut:
+			stats.MissingCheckout++
+		case SessionStatusAbsent:
+			stats.Absent++
+		}
+	}
+
+	// Lembur & perjalanan dinas dalam periode yang sama (agregat org-wide).
+	if overtime, err := s.repo.CountOvertimeStats(ctx, fromDate, toDate); err == nil {
+		stats.OvertimeTotal = overtime.Total
+		stats.OvertimePending = overtime.Pending
+		stats.OvertimeApproved = overtime.Approved
+		stats.OvertimeMinutes = overtime.Minutes
+	}
+	if travel, err := s.repo.CountTravelStats(ctx, fromDate, toDate); err == nil {
+		stats.TravelTotal = travel.Total
+		stats.TravelApproved = travel.Approved
+		stats.TravelInProgress = travel.InProgress
+		stats.TravelCompleted = travel.Completed
+	}
+	return stats, nil
+}
+
+// GetOvertimeTrend mengagregasi lembur per MINGGU (ISO, mulai Senin) dalam
+// rentang tanggal — data untuk chart tren lembur di view HR dashboard.
+func (s *Service) GetOvertimeTrend(ctx context.Context, fromDate, toDate string) (*OvertimeTrendResponse, error) {
+	rows, err := s.repo.OvertimeTrendByDate(ctx, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+	resp := &OvertimeTrendResponse{From: fromDate, To: toDate}
+	weeks := map[string]*OvertimeWeek{}
+	var order []string
+	// Pre-create semua minggu dalam rentang (termasuk yang kosong) agar chart
+	// tren punya sumbu kontinu dari Senin pertama sampai akhir periode.
+	if start, err := time.Parse("2006-01-02", fromDate); err == nil {
+		if end, err2 := time.Parse("2006-01-02", toDate); err2 == nil {
+			for ws := isoWeekStart(start); !ws.After(end); ws = ws.AddDate(0, 0, 7) {
+				key := ws.Format("2006-01-02")
+				weeks[key] = &OvertimeWeek{WeekStart: key}
+				order = append(order, key)
+			}
+		}
+	}
+	for _, row := range rows {
+		// Driver berbeda mengembalikan DATE beda format: MySQL → "2026-01-05",
+		// sqlite (test) → "2026-01-05T00:00:00Z". Parse keduanya.
+		t, err := time.Parse("2006-01-02", row.WorkDate)
+		if err != nil {
+			t, err = time.Parse(time.RFC3339, row.WorkDate)
+			if err != nil {
+				continue
+			}
+		}
+		start := isoWeekStart(t).Format("2006-01-02")
+		if _, ok := weeks[start]; !ok {
+			continue // di luar rentang (tidak mungkin, tapi aman)
+		}
+		weeks[start].Count += row.Count
+		weeks[start].Approved += row.Approved
+		weeks[start].Minutes += row.Minutes
+	}
+	for _, start := range order {
+		resp.Weeks = append(resp.Weeks, *weeks[start])
+	}
+	return resp, nil
+}
+
+// isoWeekStart mengembalikan tanggal Senin pada minggu yang memuat t
+// (ISO 8601: minggu dimulai Senin).
+func isoWeekStart(t time.Time) time.Time {
+	offset := (int(t.Weekday()) + 6) % 7 // Senin=0 … Minggu=6
+	return t.AddDate(0, 0, -offset)
+}
+
 // =========================================================================
 // Overtime Requests
 // =========================================================================

@@ -63,6 +63,47 @@ func (r *Repository) ListBusinessTravels(ctx context.Context, requesterID *uuid.
 	return travels, total, nil
 }
 
+// TravelStats — agregat perjalanan dinas yang start_date-nya jatuh dalam
+// rentang tanggal (mode HR dashboard).
+type TravelStats struct {
+	Total      int
+	Approved   int
+	InProgress int
+	Completed  int
+}
+
+func (r *Repository) CountTravelStats(ctx context.Context, fromDate, toDate string) (*TravelStats, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []struct {
+		Status string
+		Count  int
+	}
+	err = db.Model(&BusinessTravel{}).
+		Select("status, COUNT(*) AS count").
+		Where("start_date >= ? AND start_date <= ?", fromDate, toDate).
+		Group("status").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	stats := &TravelStats{}
+	for _, row := range rows {
+		stats.Total += row.Count
+		switch TravelStatus(row.Status) {
+		case TravelStatusApproved:
+			stats.Approved += row.Count
+		case TravelStatusInProgress:
+			stats.InProgress += row.Count
+		case TravelStatusCompleted:
+			stats.Completed += row.Count
+		}
+	}
+	return stats, nil
+}
+
 // =========================================================================
 // Participants
 // =========================================================================

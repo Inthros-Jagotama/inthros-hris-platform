@@ -187,8 +187,40 @@ func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*Emplo
 	)
 
 	response := emp.ToResponse()
+	s.fillRefNames(ctx, emp, &response)
 	maskEmployeeResponse(ctx, &response)
 	return &response, nil
+}
+
+// GetEmploymentStatusStats mengembalikan jumlah karyawan per status kepegawaian
+// (employment berjalan) untuk pie chart dashboard Employment.
+func (s *Service) GetEmploymentStatusStats(ctx context.Context) (*EmploymentStatusStatsResponse, error) {
+	groups, unclassified, err := s.repo.CountByEmploymentStatus(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &EmploymentStatusStatsResponse{Groups: groups, Unclassified: unclassified}, nil
+}
+
+// GetGenderStats mengembalikan jumlah karyawan per jenis kelamin untuk pie
+// chart dashboard Employment.
+func (s *Service) GetGenderStats(ctx context.Context) (*GenderStatsResponse, error) {
+	male, female, other, err := s.repo.CountByGender(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &GenderStatsResponse{Male: male, Female: female, Other: other}, nil
+}
+
+// fillRefNames mengisi nama referensi (agama, status perkawinan, kewarganegaraan)
+// pada response — di-resolve langsung dari tenant DB supaya halaman profile
+// menampilkan nama (bukan ID mentah) dan tidak bergantung pada permission
+// viewer terhadap endpoint /settings/*.
+func (s *Service) fillRefNames(ctx context.Context, emp *Employee, response *EmployeeResponse) {
+	religionName, maritalStatusName, nationalityName := s.repo.ResolveEmployeeRefNames(ctx, emp.ReligionID, emp.MaritalStatusID, emp.NationalityID)
+	response.ReligionName = religionName
+	response.MaritalStatusName = maritalStatusName
+	response.NationalityName = nationalityName
 }
 
 func (s *Service) GetByID(ctx context.Context, id string) (*EmployeeResponse, error) {
@@ -203,6 +235,7 @@ func (s *Service) GetByID(ctx context.Context, id string) (*EmployeeResponse, er
 	}
 
 	response := emp.ToResponse()
+	s.fillRefNames(ctx, emp, &response)
 	maskEmployeeResponse(ctx, &response)
 	return &response, nil
 }
@@ -326,6 +359,7 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateEmployeeReque
 	}
 
 	response := emp.ToResponse()
+	s.fillRefNames(ctx, emp, &response)
 	maskEmployeeResponse(ctx, &response)
 	return &response, nil
 }

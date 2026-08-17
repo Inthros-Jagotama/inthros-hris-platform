@@ -220,6 +220,49 @@ type SummaryResponse struct {
 	TotalOvertimeMinutes int     `json:"total_overtime_minutes"`
 }
 
+// AttendanceStatsResponse — agregat absensi SELURUH karyawan dalam rentang
+// tanggal (mode HR dashboard). Kebalikan dari SummaryResponse yang agregat
+// per-employee: di sini tidak ada EmployeeID, dan ABSENT ikut dihitung
+// (karyawan yang benar-benar tidak hadir — berguna untuk ringkasan HR).
+type AttendanceStatsResponse struct {
+	FromDate              string  `json:"from_date"`
+	ToDate                string  `json:"to_date"`
+	TotalSessions         int     `json:"total_sessions"`
+	Present               int     `json:"present"`
+	Late                  int     `json:"late"`
+	MissingCheckin        int     `json:"missing_checkin"`
+	MissingCheckout       int     `json:"missing_checkout"`
+	Absent                int     `json:"absent"`
+	LeaveDays             float64 `json:"leave_days"`
+	TotalWorkMinutes      int     `json:"total_work_minutes"`
+	TotalOvertimeMinutes  int     `json:"total_overtime_minutes"`
+	// Lembur dalam periode (work_date).
+	OvertimeTotal    int `json:"overtime_total"`
+	OvertimePending  int `json:"overtime_pending"`
+	OvertimeApproved int `json:"overtime_approved"`
+	OvertimeMinutes  int `json:"overtime_minutes"`
+	// Perjalanan dinas dalam periode (start_date).
+	TravelTotal      int `json:"travel_total"`
+	TravelApproved   int `json:"travel_approved"`
+	TravelInProgress int `json:"travel_in_progress"`
+	TravelCompleted  int `json:"travel_completed"`
+}
+
+// OvertimeWeek — agregat lembur per minggu (ISO: mulai Senin) untuk chart
+// tren lembur di view HR dashboard.
+type OvertimeWeek struct {
+	WeekStart string `json:"week_start"` // YYYY-MM-DD (Senin)
+	Count     int    `json:"count"`      // total pengajuan
+	Approved  int    `json:"approved"`   // pengajuan APPROVED
+	Minutes   int    `json:"minutes"`    // calculated minutes (APPROVED saja)
+}
+
+type OvertimeTrendResponse struct {
+	From  string        `json:"from"`
+	To    string        `json:"to"`
+	Weeks []OvertimeWeek `json:"weeks"`
+}
+
 // =========================================================================
 // Overtime Request DTOs
 // =========================================================================

@@ -348,6 +348,17 @@ func (h *Handler) GetLeaveUsageReport(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
 
+// GetOnLeaveToday menghitung jumlah karyawan yang sedang cuti hari ini
+// (detail cuti approved final yang mencakup tanggal hari ini).
+func (h *Handler) GetOnLeaveToday(c *gin.Context) {
+	count, err := h.svc.GetOnLeaveToday(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"count": count}})
+}
+
 // =========================================================================
 // Leave Balances
 // =========================================================================

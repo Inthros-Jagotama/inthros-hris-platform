@@ -52,6 +52,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// Employee CRUD
 		emps.POST("", handler.Create)
 		emps.GET("", handler.List)
+		// Daftar sebelum /:id agar segmen statis menang (gin prioritaskan static route).
+		emps.GET("/stats/gender", handler.GetGenderStats)
+		emps.GET("/stats/employment-status", handler.GetEmploymentStatusStats)
 		emps.GET("/:id", handler.GetByID)
 		emps.PUT("/:id", handler.Update)
 		emps.PUT("/:id/photo", handler.UploadPhoto)

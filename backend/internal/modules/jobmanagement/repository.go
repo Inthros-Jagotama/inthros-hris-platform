@@ -2,6 +2,7 @@ package jobmanagement
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -21,6 +22,92 @@ func (r *Repository) getDB(ctx context.Context) (*gorm.DB, error) {
 		return nil, fmt.Errorf("context is required for tenant database resolution")
 	}
 	return r.dbResolver(ctx)
+}
+
+// GetOrganizationSummaryDashboard menghitung ringkasan untuk dashboard Job
+// Management (GET /job-management/dashboard), mengacu ke summary organisasi
+// AKTIF (organization_summaries.status='active'):
+//   - jumlah organisasi milik summary
+//   - terisi karyawan (ada employment berjalan, effective_end_date IS NULL)
+//   - progres pengisian value via job_management_scores (belum/proses/selesai)
+//   - wewenang keuangan via job_management_financials.is_authorized
+// Tanpa summary aktif → semua angka 0 dan Summary nil.
+func (r *Repository) GetOrganizationSummaryDashboard(ctx context.Context) (*JobManagementDashboardResponse, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := &JobManagementDashboardResponse{}
+
+	// 1. Summary aktif.
+	var summary OrgSummaryInfo
+	// DATE(...) menormalkan format tanggal lintas driver: MySQL mengembalikan
+	// "2026-01-15", sqlite (test) "2026-01-15T00:00:00Z" → DATE() → "2026-01-15".
+	err = db.Table("organization_summaries").
+		Select("id, code, decree_no, DATE(decree_date) AS decree_date").
+		Where("status = ? AND deleted_at IS NULL", "active").
+		Take(&summary).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return out, nil
+		}
+		return nil, err
+	}
+	out.Summary = &summary
+
+	// 2. Total organisasi dalam summary.
+	var total int64
+	if err := db.Table("organizations").
+		Where("organization_summary_id = ? AND deleted_at IS NULL", summary.ID).
+		Count(&total).Error; err != nil {
+		return nil, err
+	}
+	out.TotalOrganizations = int(total)
+
+	// 3. Organisasi terisi karyawan (employment berjalan). Catatan: tabel
+	// employments TIDAK punya kolom deleted_at (tanpa soft delete), jadi
+	// subquery tidak memfilter deleted_at.
+	var withEmp int64
+	if err := db.Table("organizations o").
+		Where("o.organization_summary_id = ? AND o.deleted_at IS NULL", summary.ID).
+		Where("EXISTS (SELECT 1 FROM employments e WHERE e.organization_id = o.id AND e.effective_end_date IS NULL)").
+		Count(&withEmp).Error; err != nil {
+		return nil, err
+	}
+	out.WithEmployees = int(withEmp)
+	out.WithoutEmployees = out.TotalOrganizations - out.WithEmployees
+
+	// 4. Progres pengisian value (satu baris skor per organisasi).
+	var scoreStats struct {
+		NotStarted int
+		OnProgress int
+		Completed  int
+	}
+	if err := db.Table("organizations o").
+		Select(`COALESCE(SUM(CASE WHEN s.id IS NULL THEN 1 ELSE 0 END), 0) AS not_started,
+			COALESCE(SUM(CASE WHEN s.id IS NOT NULL AND s.is_complete = 0 THEN 1 ELSE 0 END), 0) AS on_progress,
+			COALESCE(SUM(CASE WHEN s.id IS NOT NULL AND s.is_complete = 1 THEN 1 ELSE 0 END), 0) AS completed`).
+		Joins("LEFT JOIN job_management_scores s ON s.organization_id = o.id").
+		Where("o.organization_summary_id = ? AND o.deleted_at IS NULL", summary.ID).
+		Scan(&scoreStats).Error; err != nil {
+		return nil, err
+	}
+	out.ValueNotStarted = scoreStats.NotStarted
+	out.ValueOnProgress = scoreStats.OnProgress
+	out.ValueCompleted = scoreStats.Completed
+
+	// 5. Organisasi dengan wewenang keuangan (is_authorized = 1).
+	var withFin int64
+	if err := db.Table("organizations o").
+		Where("o.organization_summary_id = ? AND o.deleted_at IS NULL", summary.ID).
+		Where("EXISTS (SELECT 1 FROM job_management_financials f WHERE f.organization_id = o.id AND f.is_authorized = 1)").
+		Count(&withFin).Error; err != nil {
+		return nil, err
+	}
+	out.WithFinancialAuthority = int(withFin)
+	out.WithoutFinancialAuthority = out.TotalOrganizations - out.WithFinancialAuthority
+
+	return out, nil
 }
 
 // =========================================================================

@@ -67,10 +67,32 @@ func (h *Handler) List(c *gin.Context) {
 func (h *Handler) GetByID(c *gin.Context) {
 	resp, err := h.service.GetByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-			httputil.NotFound(c, err.Error())
+		httputil.NotFound(c, err.Error())
 		return
 	}
 
+	httputil.SuccessJSON(c, resp)
+}
+
+// GET /api/v1/tenant/employees/stats/gender — jumlah karyawan per jenis kelamin
+// untuk pie chart dashboard Employment.
+func (h *Handler) GetGenderStats(c *gin.Context) {
+	resp, err := h.service.GetGenderStats(c.Request.Context())
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
+// GET /api/v1/tenant/employees/stats/employment-status — jumlah karyawan per
+// status kepegawaian untuk pie chart dashboard Employment.
+func (h *Handler) GetEmploymentStatusStats(c *gin.Context) {
+	resp, err := h.service.GetEmploymentStatusStats(c.Request.Context())
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
 	httputil.SuccessJSON(c, resp)
 }
 

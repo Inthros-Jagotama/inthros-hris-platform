@@ -106,6 +106,11 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.GET("/sessions/detail", handler.GetSession)
 		att.GET("/calendar", handler.GetEmployeeCalendar)
 		att.GET("/summary", handler.GetEmployeeSummary)
+		// Ringkasan absensi seluruh karyawan (mode HR dashboard) — data
+		// org-wide, jadi digate strict ke attendance.report.view seperti
+		// laporan absensi lainnya.
+		att.GET("/stats/summary", requireAttendanceReport("view"), handler.GetAttendanceStats)
+		att.GET("/stats/overtime-trend", requireAttendanceReport("view"), handler.GetOvertimeTrend)
 		att.GET("/reports/sessions", requireAttendanceReport("view"), handler.GetAttendanceReport)
 
 		// Overtime Requests (§32b dua-alur: SELF & ASSIGNED → isian aktual)

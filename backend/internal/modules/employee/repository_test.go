@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+
+	"github.com/inthros/hris-platform/internal/modules/organization"
+	"github.com/inthros/hris-platform/internal/modules/setting"
 )
 
 // =========================================================================
@@ -566,5 +569,239 @@ func TestRepository_EmploymentCRUD(t *testing.T) {
 	_, err := repo.FindEmploymentByID(ctx, empl.ID)
 	if err == nil {
 		t.Fatal("expected error after deleting employment")
+	}
+}
+
+func TestRepository_CountByGender(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	// 2 laki-laki, 1 perempuan, 1 tanpa gender — semuanya aktif.
+	for _, g := range []*string{strPtr("M"), strPtr("M"), strPtr("F"), nil} {
+		emp := &Employee{EmployeeID: uuid.NewString(), Name: "X", Status: "active", Gender: g}
+		if err := repo.CreateEmployee(ctx, emp); err != nil {
+			t.Fatalf("failed to create employee: %v", err)
+		}
+	}
+	// 1 karyawan non-aktif dengan gender M — TIDAK dihitung.
+	inactive := &Employee{EmployeeID: uuid.NewString(), Name: "Y", Status: "inactive", Gender: strPtr("M")}
+	if err := repo.CreateEmployee(ctx, inactive); err != nil {
+		t.Fatalf("failed to create inactive employee: %v", err)
+	}
+
+	male, female, other, err := repo.CountByGender(ctx)
+	if err != nil {
+		t.Fatalf("CountByGender failed: %v", err)
+	}
+	if male != 2 {
+		t.Errorf("expected 2 male, got %d", male)
+	}
+	if female != 1 {
+		t.Errorf("expected 1 female, got %d", female)
+	}
+	if other != 1 {
+		t.Errorf("expected 1 other/unknown, got %d", other)
+	}
+	_ = db
+}
+
+func TestRepository_CountByEmploymentStatus(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	// 2 status: Tetap (PKWTT) & Kontrak (PKWT).
+	tetapID := uuid.New()
+	kontrakID := uuid.New()
+	if err := db.Create(&setting.EmploymentStatus{ID: tetapID, Code: "PKWTT", Name: "Tetap"}).Error; err != nil {
+		t.Fatalf("failed to create status: %v", err)
+	}
+	if err := db.Create(&setting.EmploymentStatus{ID: kontrakID, Code: "PKWT", Name: "Kontrak"}).Error; err != nil {
+		t.Fatalf("failed to create status: %v", err)
+	}
+
+	// 2 karyawan Tetap (employment berjalan), 1 Kontrak, 1 tanpa employment berjalan.
+	emp1 := createTestEmployee(ctx, repo)
+	emp2 := createTestEmployee(ctx, repo)
+	emp3 := createTestEmployee(ctx, repo)
+	emp4 := createTestEmployee(ctx, repo)
+	// Karyawan non-aktif dengan employment berjalan — TIDAK dihitung.
+	inactive := &Employee{EmployeeID: uuid.NewString(), Name: "Inactive", Status: "inactive"}
+	if err := repo.CreateEmployee(ctx, inactive); err != nil {
+		t.Fatalf("failed to create inactive employee: %v", err)
+	}
+
+	for _, empl := range []*Employment{
+		{EmployeeID: &emp1.ID, OrganizationID: &uuid.Nil, EmploymentStatusID: &tetapID, DecisionLetterNumber: "SK-1", DecisionLetterDate: "2024-01-01", EffectiveDate: "2024-01-01"},
+		{EmployeeID: &emp2.ID, OrganizationID: &uuid.Nil, EmploymentStatusID: &tetapID, DecisionLetterNumber: "SK-2", DecisionLetterDate: "2024-01-01", EffectiveDate: "2024-01-01"},
+		{EmployeeID: &emp3.ID, OrganizationID: &uuid.Nil, EmploymentStatusID: &kontrakID, DecisionLetterNumber: "SK-3", DecisionLetterDate: "2024-01-01", EffectiveDate: "2024-01-01"},
+		// emp4: employment sudah berakhir (bukan berjalan) → tidak terhitung di grup.
+		{EmployeeID: &emp4.ID, OrganizationID: &uuid.Nil, EmploymentStatusID: &kontrakID, DecisionLetterNumber: "SK-4", DecisionLetterDate: "2024-01-01", EffectiveDate: "2024-01-01", EffectiveEndDate: strPtr("2024-06-30")},
+		// inactive: employment berjalan tapi karyawan non-aktif → tidak dihitung.
+		{EmployeeID: &inactive.ID, OrganizationID: &uuid.Nil, EmploymentStatusID: &tetapID, DecisionLetterNumber: "SK-5", DecisionLetterDate: "2024-01-01", EffectiveDate: "2024-01-01"},
+	} {
+		if err := repo.CreateEmployment(ctx, empl); err != nil {
+			t.Fatalf("failed to create employment: %v", err)
+		}
+	}
+
+	groups, unclassified, err := repo.CountByEmploymentStatus(ctx)
+	if err != nil {
+		t.Fatalf("CountByEmploymentStatus failed: %v", err)
+	}
+	byName := map[string]int64{}
+	for _, g := range groups {
+		byName[g.Name] = g.Count
+	}
+	if byName["Tetap"] != 2 {
+		t.Errorf("expected 2 Tetap, got %v", byName)
+	}
+	if byName["Kontrak"] != 1 {
+		t.Errorf("expected 1 Kontrak, got %v", byName)
+	}
+	if unclassified != 1 {
+		t.Errorf("expected 1 unclassified employee (no open employment), got %d", unclassified)
+	}
+}
+
+func TestRepository_ResolveEmployeeRefNames(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+
+	// Tabel referensi tidak ikut AutoMigrate di setupTestDB — buat di sini.
+	if err := db.AutoMigrate(&setting.Religion{}, &setting.MaritalStatus{}, &setting.Nationality{}); err != nil {
+		t.Fatalf("failed to migrate setting ref tables: %v", err)
+	}
+
+	religionID := uuid.New()
+	maritalID := uuid.New()
+	if err := db.Create(&setting.Religion{ID: religionID, Code: "ISL", Name: "Islam"}).Error; err != nil {
+		t.Fatalf("failed to create religion: %v", err)
+	}
+	if err := db.Create(&setting.MaritalStatus{ID: maritalID, Code: "KWN", Name: "Kawin"}).Error; err != nil {
+		t.Fatalf("failed to create marital status: %v", err)
+	}
+	if err := db.Create(&setting.Nationality{ID: uuid.New(), Code: "ID", Name: "Indonesia"}).Error; err != nil {
+		t.Fatalf("failed to create nationality: %v", err)
+	}
+
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	religionName, maritalName, nationalityName := repo.ResolveEmployeeRefNames(ctx, &religionID, &maritalID, strPtr("ID"))
+	if religionName != "Islam" {
+		t.Errorf("expected religion name 'Islam', got '%s'", religionName)
+	}
+	if maritalName != "Kawin" {
+		t.Errorf("expected marital status name 'Kawin', got '%s'", maritalName)
+	}
+	if nationalityName != "Indonesia" {
+		t.Errorf("expected nationality name 'Indonesia', got '%s'", nationalityName)
+	}
+
+	// Referensi tidak ditemukan → string kosong (bukan ID mentah).
+	unknownID := uuid.New()
+	if name, _, _ := repo.ResolveEmployeeRefNames(ctx, &unknownID, nil, nil); name != "" {
+		t.Errorf("expected empty religion name for unknown id, got '%s'", name)
+	}
+}
+
+func TestRepository_FindEmployeeByID_ResolvesSubRefNames(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	db, _ := dbResolver(context.Background())
+
+	// Referensi settings + organization.
+	relTypeID := uuid.New()
+	eduID := uuid.New()
+	insID := uuid.New()
+	bankID := uuid.New()
+	empStatusID := uuid.New()
+	orgID := uuid.New()
+	for _, rec := range []map[string]interface{}{
+		{"model": &setting.RelationshipType{ID: relTypeID, Code: "IST", Name: "Istri"}},
+		{"model": &setting.Education{ID: eduID, Code: "S1", Name: "Strata 1"}},
+		{"model": &setting.Insurance{ID: insID, Code: "01", Name: "BPJS Kesehatan"}},
+		{"model": &setting.Bank{ID: bankID, Code: "BCA", Name: "Bank BCA"}},
+		{"model": &setting.EmploymentStatus{ID: empStatusID, Code: "PKWTT", Name: "Pegawai Tetap"}},
+	} {
+		if err := db.Create(rec["model"]).Error; err != nil {
+			t.Fatalf("failed to create setting ref: %v", err)
+		}
+	}
+	if err := db.Create(&organization.Organization{ID: orgID, Code: "HQ", FullCode: "HQ-01", Nomenclature: "Head Office"}).Error; err != nil {
+		t.Fatalf("failed to create organization: %v", err)
+	}
+
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+	emp := createTestEmployee(ctx, repo)
+
+	if err := repo.CreateEmergencyContact(ctx, &EmergencyContact{
+		EmployeeID:         &emp.ID,
+		Name:               "Siti",
+		PhoneNumber:        "0812",
+		RelationshipTypeID: &relTypeID,
+	}); err != nil {
+		t.Fatalf("CreateEmergencyContact failed: %v", err)
+	}
+	if err := repo.CreateFamily(ctx, &EmployeeFamily{
+		EmployeeID:         &emp.ID,
+		Name:               "Ayah",
+		RelationshipTypeID: &relTypeID,
+		EducationID:        &eduID,
+	}); err != nil {
+		t.Fatalf("CreateFamily failed: %v", err)
+	}
+	if err := repo.CreateEducation(ctx, &EmployeeEducation{
+		EmployeeID:  &emp.ID,
+		EducationID: &eduID,
+		Name:        "",
+	}); err != nil {
+		t.Fatalf("CreateEducation failed: %v", err)
+	}
+	if err := repo.CreateInsurance(ctx, &EmployeeInsurance{EmployeeID: &emp.ID, InsuranceID: &insID, Number: "0001"}); err != nil {
+		t.Fatalf("CreateInsurance failed: %v", err)
+	}
+	if err := repo.CreateBank(ctx, &EmployeeBankAccount{EmployeeID: &emp.ID, BankID: &bankID, AccountNumber: "123", AccountName: "Siti"}); err != nil {
+		t.Fatalf("CreateBank failed: %v", err)
+	}
+	if err := repo.CreateEmployment(ctx, &Employment{
+		EmployeeID:         &emp.ID,
+		OrganizationID:     &orgID,
+		EmploymentStatusID: &empStatusID,
+		DecisionLetterNumber: "SK-001",
+		DecisionLetterDate:   "2024-01-01",
+		EffectiveDate:        "2024-01-01",
+	}); err != nil {
+		t.Fatalf("CreateEmployment failed: %v", err)
+	}
+
+	found, err := repo.FindEmployeeByID(ctx, emp.ID)
+	if err != nil {
+		t.Fatalf("FindEmployeeByID failed: %v", err)
+	}
+	resp := found.ToResponse()
+
+	if len(resp.EmergencyContacts) != 1 || resp.EmergencyContacts[0].RelationshipTypeName != "Istri" {
+		t.Errorf("expected contact relationship type name 'Istri', got %+v", resp.EmergencyContacts)
+	}
+	if len(resp.Families) != 1 || resp.Families[0].RelationshipTypeName != "Istri" || resp.Families[0].EducationName != "Strata 1" {
+		t.Errorf("expected family names 'Istri'/'Strata 1', got %+v", resp.Families)
+	}
+	if len(resp.Educations) != 1 || resp.Educations[0].EducationName != "Strata 1" {
+		t.Errorf("expected education name 'Strata 1', got %+v", resp.Educations)
+	}
+	if len(resp.Insurances) != 1 || resp.Insurances[0].InsuranceName != "BPJS Kesehatan" {
+		t.Errorf("expected insurance name 'BPJS Kesehatan', got %+v", resp.Insurances)
+	}
+	if len(resp.Banks) != 1 || resp.Banks[0].BankName != "Bank BCA" {
+		t.Errorf("expected bank name 'Bank BCA', got %+v", resp.Banks)
+	}
+	if len(resp.Employments) != 1 || resp.Employments[0].OrganizationName != "Head Office" || resp.Employments[0].EmploymentStatusName != "Pegawai Tetap" {
+		t.Errorf("expected employment names 'Head Office'/'Pegawai Tetap', got %+v", resp.Employments)
 	}
 }

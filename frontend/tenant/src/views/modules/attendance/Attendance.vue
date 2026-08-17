@@ -12,11 +12,6 @@
         </div>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
-        <div class="h-4 w-40 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
-        <div class="h-3 w-64 bg-gray-200 dark:bg-gray-600 rounded"></div>
-      </div>
-
       <SkeletonCard type="stat" :count="4" />
 
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
@@ -64,26 +59,6 @@
         </div>
       </div>
 
-      <!-- Check-in / Check-out -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-        <div class="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('attendance.today') }}</h2>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ todayLabel }}</p>
-            <Tag v-if="displayStatus" :value="t('attendance.status_' + displayStatus.toLowerCase())" :severity="statusSeverity(displayStatus)" class="!text-xs !px-1.5 !py-0.5 mt-2" />
-          </div>
-          <Button
-            :label="canCheckOut ? t('attendance.check_out') : t('attendance.check_in')"
-            :icon="canCheckOut ? 'pi pi-sign-out' : 'pi pi-sign-in'"
-            :severity="canCheckOut ? 'warn' : 'success'"
-            :loading="punching"
-            :disabled="!canPunch"
-            @click="handlePunch"
-          />
-        </div>
-        <Message v-if="punchError" severity="error" :closable="true" class="mt-3" @close="punchError = ''">{{ punchError }}</Message>
-      </div>
-
       <!-- Summary -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div v-for="card in summaryCards" :key="card.label" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
@@ -123,11 +98,8 @@ import { useI18n } from '@/composables/useI18n'
 import { useAuth } from '@/stores/auth'
 import { useMyEmployee } from '@/composables/useMyEmployee'
 import api from '@/services/api'
-import { getErrorMessage } from '@/services/responseHandler'
-import { toLocalISOString } from '@/utils/localTime'
 import { formatDate } from '@/utils/formatDate'
 
-import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import SkeletonCard from '@/components/SkeletonCard.vue'
@@ -140,8 +112,6 @@ const { employeeId, loadMyEmployeeId } = useMyEmployee()
 const loading = ref(true)
 const summary = ref(null)
 const calendarSessions = ref([])
-const punching = ref(false)
-const punchError = ref('')
 
 // Menu absensi dikelompokkan per kategori (Pengaturan / Operasional / Laporan),
 // ikon dalam kotak tinted + chevron. Tiap grup hanya dirender jika ada item
@@ -192,44 +162,6 @@ const menuCards = computed(() => menuGroups.value.flatMap(g => g.items))
 
 const today = new Date()
 const todayStr = toDateOnly(today)
-const todayLabel = today.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-
-const todaySession = computed(() => calendarSessions.value.find(s => s.work_date === todayStr) || null)
-const companySettings = ref(null)
-const allowDayOffCheckin = computed(() => companySettings.value?.allow_checkin_on_day_off ?? true)
-
-// Event hari ini (dari endpoint events, urut event_time_utc DESC — item pertama = terbaru).
-// Dipakai sebagai sumber kebenaran tombol: sesi bisa saja stale (mis. dibuat sebelum
-// perbaikan recalculateSession → status DAY_OFF padahal sudah ada event CHECKIN).
-const todayEvents = ref([])
-function eventDateStr(ev) {
-  return (ev.event_time_local || '').slice(0, 10)
-}
-const todayEventList = computed(() => todayEvents.value.filter(e => eventDateStr(e) === todayStr))
-
-// Status tampilan: sesi bisa stale (mis. DAY_OFF dari sebelum perbaikan
-// recalculateSession). Jika ada event hari ini, cerminkan event aktual:
-//   CHECKIN terakhir  → MISSING_CHECKOUT (belum check-out)
-//   CHECKOUT terakhir → CLOSED (sudah check-in & check-out)
-const displayStatus = computed(() => {
-  const base = todaySession.value?.status || null
-  const list = todayEventList.value
-  if ((base === 'DAY_OFF' || !base) && list.length > 0) {
-    return list[0].event_type === 'CHECKIN' ? 'MISSING_CHECKOUT' : 'CLOSED'
-  }
-  return base
-})
-
-const canCheckOut = computed(() => displayStatus.value === 'MISSING_CHECKOUT')
-const canPunch = computed(() => {
-  if (displayStatus.value === 'MISSING_CHECKOUT') return true
-  if (displayStatus.value === 'OPEN') return true
-  // Hari libur: check-in hanya boleh jika setting allow_checkin_on_day_off aktif.
-  if (displayStatus.value === 'DAY_OFF' && allowDayOffCheckin.value) return true
-  // Belum ada sesi & belum ada event hari ini → boleh check-in.
-  if (!displayStatus.value) return true
-  return false
-})
 
 function toDateOnly(date) {
   const y = date.getFullYear()
@@ -273,25 +205,6 @@ const summaryCards = computed(() => {
   ]
 })
 
-async function loadSettings() {
-  try {
-    const res = await api.get('/api/v1/tenant/attendance/settings')
-    companySettings.value = res.data?.data || null
-  } catch {
-    companySettings.value = null
-  }
-}
-
-async function loadTodayEvents() {
-  if (!employeeId.value) return
-  try {
-    const res = await api.get('/api/v1/tenant/attendance/events', { params: { employee_id: employeeId.value, per_page: 100 } })
-    todayEvents.value = res.data?.data || []
-  } catch {
-    todayEvents.value = []
-  }
-}
-
 async function loadSummaryAndCalendar() {
   if (!employeeId.value) return
   const { from, to } = monthRange(today)
@@ -308,56 +221,11 @@ async function loadAll() {
   loading.value = true
   try {
     employeeId.value = await loadMyEmployeeId()
-    await loadSettings()
-    await Promise.all([loadTodayEvents(), loadSummaryAndCalendar()])
+    await loadSummaryAndCalendar()
   } catch (e) {
-    punchError.value = getErrorMessage(e, t('message.failed_to_load'))
+    // Abaikan — summary & kalender hanya menampilkan 0 bila gagal dimuat.
   } finally {
     loading.value = false
-  }
-}
-
-function getCurrentPosition() {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error(t('attendance.geolocation_unsupported')))
-      return
-    }
-    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
-  })
-}
-
-async function handlePunch() {
-  punchError.value = ''
-  punching.value = true
-  try {
-    const position = await getCurrentPosition()
-    const now = new Date()
-    await api.post('/api/v1/tenant/attendance/events', {
-      employee_id: employeeId.value,
-      event_type: canCheckOut.value ? 'CHECKOUT' : 'CHECKIN',
-      event_time_utc: now.toISOString(),
-      event_time_local: toLocalISOString(now),
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-      accuracy_m: position.coords.accuracy ? Math.round(position.coords.accuracy) : null,
-      location_provider: 'GPS'
-    })
-    await loadSummaryAndCalendar()
-    await loadTodayEvents()
-  } catch (e) {
-    // Self-heal: muat ulang event & sesi agar tombol otomatis membalik
-    // (mis. sudah check-in dari perangkat lain / sesi stale → tombol Check Out).
-    try {
-      await Promise.all([loadTodayEvents(), loadSummaryAndCalendar()])
-    } catch {
-      // Abaikan kegagalan reload — error asli tetap ditampilkan.
-    }
-    punchError.value = e?.code === 1
-      ? t('attendance.geolocation_denied')
-      : getErrorMessage(e, t('attendance.punch_failed'))
-  } finally {
-    punching.value = false
   }
 }
 
