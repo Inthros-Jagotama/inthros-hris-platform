@@ -62,6 +62,9 @@
           >
             {{ data.submenu ? submenuLabel(data.resource, data.submenu) : t('rbac.module_level') }}
           </span>
+          <span class="text-xs text-gray-400 dark:text-gray-500 block">
+            {{ descriptionLabel(data.resource, data.submenu) }}
+          </span>
         </template>
       </Column>
       <!-- Satu kolom per aksi (create, update, ...) — isi berupa switch tanpa label -->
@@ -126,6 +129,12 @@ function moduleLabel(resource) {
 function submenuLabel(resource, submenu) {
   const key = `rbac.submenus.${resource}.${submenu}`
   return t(key) !== key ? t(key) : submenu
+}
+
+// Deskripsi singkat bilingual per baris (rbac.descriptions.<resource>.<submenu|_module>) — kosong jika tidak ada.
+function descriptionLabel(resource, submenu) {
+  const key = `rbac.descriptions.${resource}.${submenu || '_module'}`
+  return t(key) !== key ? t(key) : ''
 }
 
 const filterQuery = ref('')
