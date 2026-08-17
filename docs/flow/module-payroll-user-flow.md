@@ -1,7 +1,7 @@
 # Panduan Pengisian Module Payroll (Runbook)
 
 > 📅 2026-08-15 · Dokumen ini **berdiri sendiri** — panduan praktis langkah demi langkah memakai module payroll, dari nol sampai laporan.
-> Untuk detail teknis/arsitektur lihat [docs/payroll/00-overview.md](payroll/00-overview.md) dan sub-plan 01–08; versi ringkas alur ada di [docs/payroll/09-user-flow.md](payroll/09-user-flow.md).
+> Untuk detail teknis/arsitektur lihat [docs/payroll/00-overview.md](../payroll/00-overview.md) dan sub-plan 01–08; versi ringkas alur ada di [docs/payroll/09-user-flow.md](../payroll/09-user-flow.md).
 
 ---
 

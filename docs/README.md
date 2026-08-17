@@ -18,7 +18,7 @@ Index pusat seluruh dokumentasi proyek. Semua dokumen (kecuali `README.md` di ro
 | **Analisis** | [`analisis-blueprint-vs-existing.md`](analisis-blueprint-vs-existing.md) | Perbandingan blueprint vs existing Laravel app (inthros-web) |
 | **Analisis** | [`job-management-score-analysis.md`](job-management-score-analysis.md) | Analisa perhitungan Job Management Score (dirujuk `calculator.go`) |
 | **Plan Recruitment** | `module-recruitment-development-plan.md` *(di-archive: `docs/archive/`)* · [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) · [`flow/module-recruitment-flow.md`](flow/module-recruitment-flow.md) | Plan pengembangan Recruitment (**operasional**, selesai — diarsipkan) + Strategic Layer Integration (**Workforce/Career Intelligence ↔ Recruitment**, S-1 s.d. S-7) + alur pengguna. Plan modul lain dikelola di [`project-completion-dashboard.md`](project-completion-dashboard.md) → *Module Development Plan Status* |
-| **Alur Pengguna** | [`flow/module-recruitment-flow.md`](flow/module-recruitment-flow.md) | Alur bisnis Recruitment end-to-end (requisition → kandidat → offer → onboarding) + integrasi lintas modul + peta UI + endpoint utama |
+| **Alur Pengguna** | [`flow/module-recruitment-flow.md`](flow/module-recruitment-flow.md) · [`flow/module-payroll-user-flow.md`](flow/module-payroll-user-flow.md) | Alur bisnis Recruitment end-to-end (requisition → kandidat → offer → onboarding) + runbook pengisian Payroll (setup → proses → distribusi) |
 
 ## 🔗 Alur Referensi Antar Dokumen
 
@@ -44,7 +44,8 @@ docs/
 ├── api/
 │   └── api-usage-guide.md           # Panduan penggunaan API
 ├── flow/
-│   └── module-recruitment-flow.md   # Alur bisnis Recruitment
+│   ├── module-recruitment-flow.md   # Alur bisnis Recruitment
+│   └── module-payroll-user-flow.md  # Runbook pengisian Payroll (setup → proses → distribusi)
 ├── database-schema.md               # Struktur database & ERD
 ├── platform-architecture-design.md  # Arsitektur utama
 ├── deployment-guide.md              # Panduan deployment
