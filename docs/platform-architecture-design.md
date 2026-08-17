@@ -1739,6 +1739,44 @@ Semua endpoint yang tidak memiliki akses akan mengembalikan:
 }
 ```
 
+### 10.6 Sensitive Employee Data — Encryption & Masking
+
+**Masalah:** Field karyawan sensitif (NIK, no. paspor, no. telepon, email, NIK anggota keluarga, no./nama rekening bank, telepon kontak darurat) sebelumnya tersimpan plain text di tenant DB dan tampil apa adanya ke siapa pun yang bisa mengakses data karyawan — tanpa pembatasan role.
+
+**Registry field sensitif** (`internal/modules/employee/sensitive_field_registry.go`) — daftar tetap 8 field di 4 model, hanya bisa diubah lewat kode (bukan UI/API):
+
+| Field Key | Resource | Model |
+|---|---|---|
+| `employee.nik` | `employee` | Employee |
+| `employee.passport` | `employee` | Employee |
+| `employee.phone_number` | `employee` | Employee |
+| `employee.email` | `employee` | Employee |
+| `employee_family.nik` | `employee_family` | EmployeeFamily |
+| `employee_bank_account.account_number` | `employee_bank_account` | EmployeeBankAccount |
+| `employee_bank_account.account_name` | `employee_bank_account` | EmployeeBankAccount |
+| `emergency_contact.phone_number` | `emergency_contact` | EmergencyContact |
+
+**Dua lapis proteksi independen, keduanya per-field:**
+
+1. **Encrypt-on-write (at-rest)** — AES-256-GCM (`internal/pkg/crypto/`), toggle per field lewat tabel `sensitive_field_settings` (migrasi tenant 150). Saat `is_encryption_enabled = true`, nilai dienkripsi sebelum disimpan dan didekripsi otomatis saat dibaca; kolom terkait dilebarkan untuk menampung ciphertext (migrasi 151). Diatur admin lewat halaman **Pengaturan Data Sensitif** (`GET/PUT /api/v1/tenant/employees/settings/sensitive-fields[/:fieldKey]`, permission `setting.sensitive-fields.view`/`.manage`, migrasi 154).
+2. **Role-based view masking (in-response)** — terlepas dari status enkripsi at-rest, nilai asli hanya ditampilkan ke caller yang punya permission RBAC khusus `<resource>.view_<field>` (mis. `employee.view_nik`, migrasi 153; default hanya role Admin). Caller lain menerima nilai ter-mask via `internal/pkg/mask.PartialMask` — length-tiered: ≥10 karakter tampil 4 digit terakhir, 6–9 karakter tampil 3 digit terakhir, ≤5 karakter mask penuh.
+
+```mermaid
+graph LR
+    A[Write: Create/Update Employee] --> B{Encryption enabled\nfor this field?}
+    B -->|Yes| C[crypto.EncryptString before save]
+    B -->|No| D[Save plain text]
+    E[Read: GET Employee] --> F{Value encrypted?}
+    F -->|Yes| G[crypto.DecryptString]
+    F -->|No| H[Use as-is]
+    G --> I{Caller has\nresource.view_field?}
+    H --> I
+    I -->|Yes| J[Return real value]
+    I -->|No| K[mask.PartialMask]
+```
+
+**Spec & plan:** `docs/superpowers/specs/2026-08-16-sensitive-data-masking-design.md`, `docs/superpowers/plans/2026-08-16-sensitive-data-masking.md`
+
 ---
 
 ## 11. Infrastructure & Deployment

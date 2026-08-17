@@ -115,11 +115,22 @@ Berdasarkan tinjauan arsitektur teknis, berikut area kritis yang harus diterapka
   - Config: `cache.default_ttl`, `cache.key_prefix`
   - **Testing:** ✅ **81 test functions** — 42 unit tests (cache + PubSub) + 8 integration tests (full lifecycle, cross-instance, TTL, concurrent) + 31 benchmarks (throughput, latency, data size). Semua menggunakan `miniredis` — mock Redis in-memory tanpa dependensi eksternal.
 
+### 6. Enkripsi & Masking Data Karyawan Sensitif ✅
+- **Masalah:** Field karyawan sensitif (NIK, no. paspor, no. telepon, email, NIK keluarga, no. rekening bank, kontak darurat) tersimpan plain text di tenant DB dan tampil apa adanya ke siapa pun yang bisa mengakses data karyawan.
+- **Status:** ✅ **Sudah diimplementasikan**
+  - Encrypt-on-write (AES-256-GCM, `internal/pkg/crypto/`) untuk 8 field di 4 model (`employee`, `employee_family`, `employee_bank_account`, `emergency_contact`) — bisa di-toggle per field lewat halaman **Pengaturan Data Sensitif** (`setting.sensitive-fields.*`)
+  - Registry field sensitif: `internal/modules/employee/sensitive_field_registry.go`
+  - Masking tampilan (`internal/pkg/mask.PartialMask`, length-tiered) untuk pengguna tanpa permission lihat nilai asli; permission per-field `<resource>.view_<field>` (mis. `employee.view_nik`) — default hanya role Admin
+  - Endpoint: `GET/PUT /api/v1/tenant/employees/settings/sensitive-fields`
+  - Migrasi tenant 150–154 (tabel `sensitive_field_settings`, pelebaran kolom untuk ciphertext, permission RBAC)
+  - Spec & plan: `docs/superpowers/specs/2026-08-16-sensitive-data-masking-design.md`, `docs/superpowers/plans/2026-08-16-sensitive-data-masking.md`
+
 ### Prioritas Eksekusi
 
 | Area | Komponen | Prioritas | Action Item Utama |
 | :--- | :--- | :---: | :--- |
 | **Security** | Tenant Credentials | ✅ Done | AES-256-GCM encrypt/decrypt via `internal/pkg/crypto/`, CLI `encrypt-passwords` |
+| **Security** | Sensitive Employee Fields | ✅ Done | Encrypt-on-write + role-based view masking untuk NIK/telepon/paspor/email/rekening bank dkk., toggle per field via halaman Pengaturan Data Sensitif |
 | **Database** | SQL Dialect | ✅ Done | Migrasi dipisah per dialect: `mysql/` dan `postgres/`, dipilih otomatis via `TenantRootPath(driver)` |
 | **Performance** | Connection Pool | ✅ Done | Platform pool (10/5/1jam) & Tenant pool (10/3/30mnt/5mnt) terpisah. PgBouncer + PoolStats() |
 | **Architecture** | Cache Sync | ✅ Done | Distributed cache (local sync.Map + Redis) + Pub/Sub invalidation via `internal/pkg/cache/` |
@@ -2125,6 +2136,7 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 
 ### Production Readiness 🎯
 - ✅ AES-256-GCM encryption untuk kredensial tenant DB (`internal/pkg/crypto/`, CLI `encrypt-passwords`)
+- ✅ Enkripsi & masking data karyawan sensitif (NIK, telepon, paspor, email, rekening bank, kontak darurat) — encrypt-on-write + role-based view masking, toggle per field via halaman Pengaturan Data Sensitif
 - ✅ **Connection Pool optimization** (Platform: 10/5/1jam, Tenant: 10/3/30mnt/5mnt idle→close, PoolStats(), PgBouncer support)
 - ✅ SQL dialect separation (PostgreSQL vs MySQL migrations) — 84 file per dialect (42 up + 42 down), auto-select via `TenantRootPath(driver)`
 - ✅ Redis Pub/Sub untuk distributed cache invalidation (`internal/pkg/cache/` — two-tier + Pub/Sub)
