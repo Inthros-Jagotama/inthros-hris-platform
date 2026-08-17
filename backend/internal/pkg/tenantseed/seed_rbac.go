@@ -68,16 +68,7 @@ func tenantRBACResources() []tenantRBACResource {
 			{"settings", std},
 			{"operations", std},
 		}},
-		{"payroll", std, []tenantRBACSubmenu{
-			{"runs", std},
-			{"periods", std},
-			{"salary-components", std},
-			{"profiles", std},
-			{"bpjs-settings", std},
-			{"pph21-settings", std},
-			{"ptkp-rates", std},
-			{"tax-brackets", std},
-		}},
+		{"payroll", std, nil},
 		{"leave", std, []tenantRBACSubmenu{
 			{"dashboard", std},
 			{"requests", std},
