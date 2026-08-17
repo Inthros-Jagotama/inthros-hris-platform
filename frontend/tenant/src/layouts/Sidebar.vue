@@ -344,39 +344,14 @@ const talentItems = computed(() => {
       key: 'performance',
       label: t('nav.performance'),
       icon: 'pi pi-chart-line',
+      // Flat (tanpa dropdown): klik langsung ke halaman dashboard performance,
+      // yang berisi card navigasi ke sub-halaman KPI/OKR (pola sama dengan
+      // attendance/leave/training). Sub-halaman /performance/kpi & /okr tetap
+      // menyorot menu ini via isItemActive (startsWith).
       command: () => router.push('/performance'),
+      path: '/performance',
       moduleSlug: 'performance',
-      permission: 'performance.view',
-      children: [
-        {
-          key: 'performance_main',
-          label: t('nav.performance_dashboard'),
-          icon: 'pi pi-th-large',
-          command: () => router.push('/performance'),
-          path: '/performance',
-          excludePaths: ['/performance/kpi', '/performance/okr'],
-          moduleSlug: 'performance',
-          permission: 'performance.view'
-        },
-        {
-          key: 'performance_kpi',
-          label: t('nav.kpi'),
-          icon: 'pi pi-chart-bar',
-          command: () => router.push('/performance/kpi'),
-          path: '/performance/kpi',
-          moduleSlug: 'performance',
-          permission: 'performance.kpi.view'
-        },
-        {
-          key: 'performance_okr',
-          label: t('nav.okr'),
-          icon: 'pi pi-bullseye',
-          command: () => router.push('/performance/okr'),
-          path: '/performance/okr',
-          moduleSlug: 'performance',
-          permission: 'performance.okr.view'
-        }
-      ]
+      permission: 'performance.view'
     },
     { key: 'training', label: t('nav.training'), icon: 'pi pi-book', command: () => router.push('/training'), path: '/training', moduleSlug: 'training', permission: 'training.view' },
     { key: 'recruitment', label: t('nav.recruitment'), icon: 'pi pi-user-plus', command: () => router.push('/recruitment'), path: '/recruitment', moduleSlug: 'recruitment', permission: 'recruitment.view' }

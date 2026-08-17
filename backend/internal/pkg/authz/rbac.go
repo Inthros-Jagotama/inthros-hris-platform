@@ -506,8 +506,18 @@ func defaultResources() []defaultPerm {
 		{"employee_family", []string{"view_nik"}},
 		{"employee_bank_account", []string{"view_account_number", "view_account_name"}},
 		{"emergency_contact", []string{"view_phone_number"}},
-		{"attendance", []string{"view", "create", "update", "delete"}},
-		{"leave", []string{"view", "create", "update", "delete"}},
+		{"attendance", []string{"view", "create", "update", "delete",
+			"settings.view", "settings.create", "settings.update", "settings.delete",
+			"report.view"}},
+		// Submenu admin-config leave (types, accrual-policies, reasons) digate oleh
+		// permission "leave.settings.<action>" di tenant (migration 149). Platform
+		// user (company_admin) harus benar-benar membawa permission ini di claim —
+		// module-level "leave.view" tidak cukup (strict permission, pola sama
+		// dengan approval.settings.* dan attendance.settings.*). Action dengan
+		// titik ini menghasilkan claim "leave.settings.view" dst. (pola sama
+		// seperti employee.view_nik).
+		{"leave", []string{"view", "create", "update", "delete",
+			"settings.view", "settings.create", "settings.update", "settings.delete"}},
 		{"payroll", []string{"view", "create", "update", "delete"}},
 		{"competency", []string{"view", "create", "update", "delete"}},
 		{"jobmanagement", []string{"view", "create", "update", "delete"}},
@@ -517,7 +527,8 @@ func defaultResources() []defaultPerm {
 		{"performance", []string{"view", "create", "update", "delete"}},
 		{"recruitment", []string{"view", "create", "update", "delete"}},
 		{"reimbursement", []string{"view", "create", "update", "delete"}},
-		{"training", []string{"view", "create", "update", "delete"}},
+		{"training", []string{"view", "create", "update", "delete",
+			"settings.view", "settings.create", "settings.update", "settings.delete"}},
 		{"workforceintelligence", []string{"view", "create", "update", "delete"}},
 		{"careerintelligence", []string{"view", "create", "update", "delete"}},
 	}

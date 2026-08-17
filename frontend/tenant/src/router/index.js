@@ -122,67 +122,67 @@ const routes = [
         path: 'competencies/values',
         name: 'CompetencyValues',
         component: () => import('@/views/modules/competency/CompetencyValues.vue'),
-        meta: { title: 'Rating Scales', titleKey: 'competency_360.rating_scales', descKey: 'competency_360.rating_scales_desc', icon: 'pi pi-sliders-h', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view' }
+        meta: { title: 'Rating Scales', titleKey: 'competency_360.rating_scales', descKey: 'competency_360.rating_scales_desc', icon: 'pi pi-sliders-h', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view', strictPermission: true }
       },
       {
         path: 'competencies/indicators',
         name: 'CompetencyIndicators',
         component: () => import('@/views/modules/competency/CompetencyIndicators.vue'),
-        meta: { title: 'Indicators', titleKey: 'competency_360.indicators', descKey: 'competency_360.indicators_desc', icon: 'pi pi-list', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view' }
+        meta: { title: 'Indicators', titleKey: 'competency_360.indicators', descKey: 'competency_360.indicators_desc', icon: 'pi pi-list', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view', strictPermission: true }
       },
       {
         path: 'competencies/templates',
         name: 'AssessmentTemplates',
         component: () => import('@/views/modules/competency/AssessmentTemplates.vue'),
-        meta: { title: 'Assessment Templates', titleKey: 'competency_360.templates', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view' }
+        meta: { title: 'Assessment Templates', titleKey: 'competency_360.templates', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view', strictPermission: true }
       },
       {
         path: 'competencies/templates/new',
         name: 'AssessmentTemplateNew',
         component: () => import('@/views/modules/competency/AssessmentTemplateForm.vue'),
-        meta: { title: 'New Assessment Template', titleKey: 'competency_360.new_template', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies/templates', backLabelKey: 'competency_360.templates', permission: 'competency.settings.view' }
+        meta: { title: 'New Assessment Template', titleKey: 'competency_360.new_template', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies/templates', backLabelKey: 'competency_360.templates', permission: 'competency.settings.view', strictPermission: true }
       },
       {
         path: 'competencies/templates/:id/edit',
         name: 'AssessmentTemplateEdit',
         component: () => import('@/views/modules/competency/AssessmentTemplateForm.vue'),
-        meta: { title: 'Edit Assessment Template', titleKey: 'competency_360.edit_template', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies/templates', backLabelKey: 'competency_360.templates', permission: 'competency.settings.view' }
+        meta: { title: 'Edit Assessment Template', titleKey: 'competency_360.edit_template', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies/templates', backLabelKey: 'competency_360.templates', permission: 'competency.settings.view', strictPermission: true }
       },
       {
         path: 'competencies/events',
         name: 'CompetencyEvents',
         component: () => import('@/views/modules/competency/CompetencyEvents.vue'),
-        meta: { title: 'Competency Events', titleKey: 'competency_360.events', descKey: 'competency_360.events_desc', icon: 'pi pi-calendar', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view' }
+        meta: { title: 'Competency Events', titleKey: 'competency_360.events', descKey: 'competency_360.events_desc', icon: 'pi pi-calendar', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view', strictPermission: true }
       },
       {
         path: 'competencies/raters',
         name: 'RaterAssignment',
         component: () => import('@/views/modules/competency/RaterAssignment.vue'),
-        meta: { title: 'Rater Assignment', titleKey: 'competency_360.rater_assignment', descKey: 'competency_360.rater_assignment_desc', icon: 'pi pi-users', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view' }
+        meta: { title: 'Rater Assignment', titleKey: 'competency_360.rater_assignment', descKey: 'competency_360.rater_assignment_desc', icon: 'pi pi-users', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view', strictPermission: true }
       },
       {
         path: 'competencies/my-assessments',
         name: 'MyAssessments',
         component: () => import('@/views/modules/competency/MyAssessments.vue'),
-        meta: { title: 'My Assessment', titleKey: 'competency_360.my_assessments', descKey: 'competency_360.my_assessments_desc', icon: 'pi pi-list-check', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.assessment.view' }
+        meta: { title: 'My Assessment', titleKey: 'competency_360.my_assessments', descKey: 'competency_360.my_assessments_desc', icon: 'pi pi-list-check', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.assessment.view', strictPermission: true }
       },
       {
         path: 'competencies/manager-assessments',
         name: 'ManagerAssessments',
         component: () => import('@/views/modules/competency/ManagerAssessments.vue'),
-        meta: { title: 'Manager Assessment', titleKey: 'competency_360.manager_assessments', descKey: 'competency_360.manager_assessments_desc', icon: 'pi pi-user-edit', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.assessment.view' }
+        meta: { title: 'Manager Assessment', titleKey: 'competency_360.manager_assessments', descKey: 'competency_360.manager_assessments_desc', icon: 'pi pi-user-edit', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.assessment.view', strictPermission: true }
       },
       {
         path: 'competencies/results',
         name: 'AssessmentResult',
         component: () => import('@/views/modules/competency/AssessmentResult.vue'),
-        meta: { title: 'Assessment Result', titleKey: 'competency_360.results', descKey: 'competency_360.results_desc', icon: 'pi pi-chart-bar', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.report.view' }
+        meta: { title: 'Assessment Result', titleKey: 'competency_360.results', descKey: 'competency_360.results_desc', icon: 'pi pi-chart-bar', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.report.view', strictPermission: true }
       },
       {
         path: 'competencies/reports',
         name: 'CompetencyReports',
         component: () => import('@/views/modules/competency/CompetencyReports.vue'),
-        meta: { title: 'Competency Reports', titleKey: 'competency_360.reports', descKey: 'competency_360.reports_desc', icon: 'pi pi-file-chart', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.report.view' }
+        meta: { title: 'Competency Reports', titleKey: 'competency_360.reports', descKey: 'competency_360.reports_desc', icon: 'pi pi-file-chart', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.report.view', strictPermission: true }
       },
       // Employee Movement & Career Management (G-8: route menyamakan menu server)
       {
@@ -216,83 +216,83 @@ const routes = [
         component: () => import('@/views/modules/attendance/Attendance.vue'),
         meta: { title: 'Attendance', titleKey: 'attendance.title', descKey: 'attendance.description', icon: 'pi pi-clock', module: 'attendance' }
       },
+      // Card menu admin attendance dipindah langsung ke halaman /attendance — route lama
+      // di-redirect agar bookmark/link lama tetap aman.
       {
         path: 'attendance/admin',
-        name: 'AttendanceAdmin',
-        component: () => import('@/views/modules/attendance/AttendanceAdmin.vue'),
-        meta: { title: 'Attendance Admin', titleKey: 'attendance.admin', descKey: 'attendance.admin_description', icon: 'pi pi-cog', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.settings.view' }
+        redirect: '/attendance'
       },
       {
         path: 'attendance/settings',
         name: 'AttendanceSettings',
         component: () => import('@/views/modules/attendance/AttendanceSettings.vue'),
-        meta: { title: 'Attendance Settings', titleKey: 'attendance.settings', descKey: 'attendance.settings_description', icon: 'pi pi-cog', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.settings.view' }
+        meta: { title: 'Attendance Settings', titleKey: 'attendance.settings', descKey: 'attendance.settings_description', icon: 'pi pi-cog', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.settings.view', strictPermission: true }
       },
       {
         path: 'attendance/shifts',
         name: 'AttendanceShifts',
         component: () => import('@/views/modules/attendance/AttendanceShifts.vue'),
-        meta: { title: 'Shifts', titleKey: 'attendance.shifts', descKey: 'attendance.shifts_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.settings.view' }
+        meta: { title: 'Shifts', titleKey: 'attendance.shifts', descKey: 'attendance.shifts_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.settings.view', strictPermission: true }
       },
       {
         path: 'attendance/employee-shifts',
         name: 'AttendanceEmployeeShifts',
         component: () => import('@/views/modules/attendance/AttendanceEmployeeShifts.vue'),
-        meta: { title: 'Employee Shifts', titleKey: 'attendance.employee_shifts', descKey: 'attendance.employee_shifts_description', icon: 'pi pi-users', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.settings.view' }
+        meta: { title: 'Employee Shifts', titleKey: 'attendance.employee_shifts', descKey: 'attendance.employee_shifts_description', icon: 'pi pi-users', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.settings.view', strictPermission: true }
       },
       {
         path: 'attendance/locations',
         name: 'AttendanceLocations',
         component: () => import('@/views/modules/attendance/AttendanceLocations.vue'),
-        meta: { title: 'Locations', titleKey: 'attendance.locations', descKey: 'attendance.locations_description', icon: 'pi pi-map-marker', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.settings.view' }
+        meta: { title: 'Locations', titleKey: 'attendance.locations', descKey: 'attendance.locations_description', icon: 'pi pi-map-marker', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.settings.view', strictPermission: true }
       },
       {
         path: 'attendance/exempt-positions',
         name: 'AttendanceExemptPositions',
         component: () => import('@/views/modules/attendance/AttendanceExemptPositions.vue'),
-        meta: { title: 'Exempt Positions', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description', icon: 'pi pi-shield', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.settings.view' }
+        meta: { title: 'Exempt Positions', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description', icon: 'pi pi-shield', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.settings.view', strictPermission: true }
       },
       {
         path: 'attendance/overtime',
         name: 'AttendanceOvertime',
         component: () => import('@/views/modules/attendance/AttendanceOvertime.vue'),
-        meta: { title: 'Overtime', titleKey: 'attendance.overtime', descKey: 'attendance.overtime_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.operations.view' }
+        meta: { title: 'Overtime', titleKey: 'attendance.overtime', descKey: 'attendance.overtime_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.operations.view', strictPermission: true }
       },
       {
         path: 'attendance/corrections',
         name: 'AttendanceCorrections',
         component: () => import('@/views/modules/attendance/AttendanceCorrections.vue'),
-        meta: { title: 'Corrections', titleKey: 'attendance.corrections', descKey: 'attendance.corrections_description', icon: 'pi pi-pencil', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.operations.view' }
+        meta: { title: 'Corrections', titleKey: 'attendance.corrections', descKey: 'attendance.corrections_description', icon: 'pi pi-pencil', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.operations.view', strictPermission: true }
       },
       {
         path: 'attendance/business-travel',
         name: 'BusinessTravelList',
         component: () => import('@/views/modules/attendance/business-travel/BusinessTravelList.vue'),
-        meta: { title: 'Business Travel', titleKey: 'business_travel.title', descKey: 'business_travel.description', icon: 'pi pi-briefcase', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.operations.view' }
+        meta: { title: 'Business Travel', titleKey: 'business_travel.title', descKey: 'business_travel.description', icon: 'pi pi-briefcase', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.operations.view', strictPermission: true }
       },
       {
         path: 'attendance/business-travel/:id',
         name: 'BusinessTravelDetail',
         component: () => import('@/views/modules/attendance/business-travel/BusinessTravelDetail.vue'),
-        meta: { title: 'Business Travel', titleKey: 'business_travel.view', descKey: 'business_travel.description', icon: 'pi pi-briefcase', module: 'attendance', backRoute: '/attendance/business-travel', backLabelKey: 'business_travel.title', permission: 'attendance.operations.view' }
+        meta: { title: 'Business Travel', titleKey: 'business_travel.view', descKey: 'business_travel.description', icon: 'pi pi-briefcase', module: 'attendance', backRoute: '/attendance/business-travel', backLabelKey: 'business_travel.title', permission: 'attendance.operations.view', strictPermission: true }
       },
       {
         path: 'attendance/events',
         name: 'AttendanceEvents',
         component: () => import('@/views/modules/attendance/AttendanceEvents.vue'),
-        meta: { title: 'Events', titleKey: 'attendance.events', descKey: 'attendance.events_description', icon: 'pi pi-list', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.operations.view' }
+        meta: { title: 'Events', titleKey: 'attendance.events', descKey: 'attendance.events_description', icon: 'pi pi-list', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.report.view', strictPermission: true }
       },
       {
         path: 'attendance/sessions',
         name: 'AttendanceSessions',
         component: () => import('@/views/modules/attendance/AttendanceSessions.vue'),
-        meta: { title: 'Sessions', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description', icon: 'pi pi-calendar', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.operations.view' }
+        meta: { title: 'Sessions', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description', icon: 'pi pi-calendar', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.report.view', strictPermission: true }
       },
       {
         path: 'attendance/reports',
         name: 'AttendanceReports',
         component: () => import('@/views/modules/attendance/AttendanceReports.vue'),
-        meta: { title: 'Reports', titleKey: 'attendance.reports', descKey: 'attendance.reports_description', icon: 'pi pi-chart-bar', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.report.view' }
+        meta: { title: 'Reports', titleKey: 'attendance.reports', descKey: 'attendance.reports_description', icon: 'pi pi-chart-bar', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.report.view', strictPermission: true }
       },
       // Approval Engine
       {
@@ -334,29 +334,29 @@ const routes = [
         component: () => import('@/views/modules/leave/Leave.vue'),
         meta: { title: 'Leave', titleKey: 'leave.title', descKey: 'leave.description', icon: 'pi pi-calendar', module: 'leave' }
       },
+      // Card menu admin cuti dipindah langsung ke halaman /leave — route lama
+      // di-redirect agar bookmark/link lama tetap aman.
       {
         path: 'leave/admin',
-        name: 'LeaveAdmin',
-        component: () => import('@/views/modules/leave/LeaveAdmin.vue'),
-        meta: { title: 'Leave Admin', titleKey: 'leave.admin', descKey: 'leave.admin_description', icon: 'pi pi-cog', module: 'leave', backRoute: '/leave', backLabelKey: 'leave.title', permission: 'leave.settings.view' }
+        redirect: '/leave'
       },
       {
         path: 'leave/types',
         name: 'LeaveTypes',
         component: () => import('@/views/modules/leave/LeaveTypes.vue'),
-        meta: { title: 'Leave Types', titleKey: 'leave.types', descKey: 'leave.types_description', icon: 'pi pi-tags', module: 'leave', backRoute: '/leave/admin', backLabelKey: 'leave.admin', permission: 'leave.settings.view' }
+        meta: { title: 'Leave Types', titleKey: 'leave.types', descKey: 'leave.types_description', icon: 'pi pi-tags', module: 'leave', backRoute: '/leave', backLabelKey: 'leave.title', permission: 'leave.settings.view', strictPermission: true }
       },
       {
         path: 'leave/accrual-policies',
         name: 'LeaveAccrualPolicies',
         component: () => import('@/views/modules/leave/LeaveAccrualPolicies.vue'),
-        meta: { title: 'Accrual Policies', titleKey: 'leave.accrual_policies', descKey: 'leave.accrual_policies_description', icon: 'pi pi-percentage', module: 'leave', backRoute: '/leave/admin', backLabelKey: 'leave.admin', permission: 'leave.settings.view' }
+        meta: { title: 'Accrual Policies', titleKey: 'leave.accrual_policies', descKey: 'leave.accrual_policies_description', icon: 'pi pi-percentage', module: 'leave', backRoute: '/leave', backLabelKey: 'leave.title', permission: 'leave.settings.view', strictPermission: true }
       },
       {
         path: 'leave/reasons',
         name: 'LeaveReasons',
         component: () => import('@/views/modules/leave/LeaveReasons.vue'),
-        meta: { title: 'Leave Reasons', titleKey: 'leave.reasons', descKey: 'leave.reasons_description', icon: 'pi pi-list', module: 'leave', backRoute: '/leave/admin', backLabelKey: 'leave.admin', permission: 'leave.settings.view' }
+        meta: { title: 'Leave Reasons', titleKey: 'leave.reasons', descKey: 'leave.reasons_description', icon: 'pi pi-list', module: 'leave', backRoute: '/leave', backLabelKey: 'leave.title', permission: 'leave.settings.view', strictPermission: true }
       },
       // Performance Management
       {
@@ -369,7 +369,7 @@ const routes = [
         path: 'performance/kpi',
         name: 'PerformanceKPI',
         component: () => import('@/views/modules/performance/kpi/KPIIndex.vue'),
-        meta: { title: 'KPI', titleKey: 'kpi.title', descKey: 'kpi.description', icon: 'pi pi-chart-bar', module: 'performance', permission: 'performance.operational.view' }
+        meta: { title: 'KPI', titleKey: 'kpi.title', descKey: 'kpi.description', icon: 'pi pi-chart-bar', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/kpi/templates',
@@ -411,13 +411,13 @@ const routes = [
         path: 'performance/okr/my-evaluation',
         name: 'OKRSelfAssessment',
         component: () => import('@/views/modules/performance/okr/OKRSelfAssessment.vue'),
-        meta: { title: 'My OKR', titleKey: 'okr.my_evaluation', descKey: 'okr.my_evaluation_desc', icon: 'pi pi-user-edit', module: 'performance', permission: 'performance.operational.view' }
+        meta: { title: 'My OKR', titleKey: 'okr.my_evaluation', descKey: 'okr.my_evaluation_desc', icon: 'pi pi-user-edit', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/okr',
         name: 'PerformanceOKR',
         component: () => import('@/views/modules/performance/okr/OKRIndex.vue'),
-        meta: { title: 'OKR', titleKey: 'okr.title', descKey: 'okr.description', icon: 'pi pi-bullseye', module: 'performance', permission: 'performance.operational.view' }
+        meta: { title: 'OKR', titleKey: 'okr.title', descKey: 'okr.description', icon: 'pi pi-bullseye', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/okr/templates',
@@ -560,79 +560,79 @@ const routes = [
         path: 'training/courses',
         name: 'TrainingCourses',
         component: () => import('@/views/modules/training/TrainingCourses.vue'),
-        meta: { title: 'Training Courses', titleKey: 'training.courses', descKey: 'training.courses_desc', icon: 'pi pi-book', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view' }
+        meta: { title: 'Training Courses', titleKey: 'training.courses', descKey: 'training.courses_desc', icon: 'pi pi-book', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view', strictPermission: true }
       },
       {
         path: 'training/categories',
         name: 'TrainingCategories',
         component: () => import('@/views/modules/training/TrainingCategories.vue'),
-        meta: { title: 'Training Categories', titleKey: 'training.categories', descKey: 'training.categories_desc', icon: 'pi pi-tags', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view' }
+        meta: { title: 'Training Categories', titleKey: 'training.categories', descKey: 'training.categories_desc', icon: 'pi pi-tags', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view', strictPermission: true }
       },
       {
         path: 'training/providers',
         name: 'TrainingProviders',
         component: () => import('@/views/modules/training/TrainingProviders.vue'),
-        meta: { title: 'Training Providers', titleKey: 'training.providers', descKey: 'training.providers_desc', icon: 'pi pi-building', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view' }
+        meta: { title: 'Training Providers', titleKey: 'training.providers', descKey: 'training.providers_desc', icon: 'pi pi-building', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view', strictPermission: true }
       },
       {
         path: 'training/trainers',
         name: 'TrainingTrainers',
         component: () => import('@/views/modules/training/TrainingTrainers.vue'),
-        meta: { title: 'Training Trainers', titleKey: 'training.trainers', descKey: 'training.trainers_desc', icon: 'pi pi-user', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view' }
+        meta: { title: 'Training Trainers', titleKey: 'training.trainers', descKey: 'training.trainers_desc', icon: 'pi pi-user', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view', strictPermission: true }
       },
       {
         path: 'training/sessions',
         name: 'TrainingSessions',
         component: () => import('@/views/modules/training/TrainingSessions.vue'),
-        meta: { title: 'Training Sessions', titleKey: 'training.sessions', descKey: 'training.sessions_desc', icon: 'pi pi-calendar', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view' }
+        meta: { title: 'Training Sessions', titleKey: 'training.sessions', descKey: 'training.sessions_desc', icon: 'pi pi-calendar', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view', strictPermission: true }
       },
       {
         path: 'training/sessions/:id',
         name: 'TrainingSessionDetail',
         component: () => import('@/views/modules/training/TrainingSessionDetail.vue'),
-        meta: { title: 'Session Detail', titleKey: 'training.session_detail', descKey: 'training.sessions_desc', icon: 'pi pi-calendar', module: 'training', backRoute: '/training/sessions', backLabelKey: 'training.sessions', permission: 'training.operations.view' }
+        meta: { title: 'Session Detail', titleKey: 'training.session_detail', descKey: 'training.sessions_desc', icon: 'pi pi-calendar', module: 'training', backRoute: '/training/sessions', backLabelKey: 'training.sessions', permission: 'training.operations.view', strictPermission: true }
       },
       {
         path: 'training/participants',
         name: 'TrainingParticipants',
         component: () => import('@/views/modules/training/TrainingParticipants.vue'),
-        meta: { title: 'Training Participants', titleKey: 'training.participants', descKey: 'training.participants_desc', icon: 'pi pi-users', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view' }
+        meta: { title: 'Training Participants', titleKey: 'training.participants', descKey: 'training.participants_desc', icon: 'pi pi-users', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view', strictPermission: true }
       },
       {
         path: 'training/plans',
         name: 'TrainingPlans',
         component: () => import('@/views/modules/training/TrainingPlans.vue'),
-        meta: { title: 'Training Planning', titleKey: 'training.planning', descKey: 'training.planning_desc', icon: 'pi pi-calendar-plus', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view' }
+        meta: { title: 'Training Planning', titleKey: 'training.planning', descKey: 'training.planning_desc', icon: 'pi pi-calendar-plus', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view', strictPermission: true }
       },
       {
         path: 'training/requests',
         name: 'TrainingRequests',
         component: () => import('@/views/modules/training/TrainingRequests.vue'),
-        meta: { title: 'Training Requests', titleKey: 'training.requests', descKey: 'training.requests_desc', icon: 'pi pi-send', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view' }
+        meta: { title: 'Training Requests', titleKey: 'training.requests', descKey: 'training.requests_desc', icon: 'pi pi-send', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view', strictPermission: true }
       },
       {
         path: 'training/needs',
         name: 'TrainingNeeds',
         component: () => import('@/views/modules/training/TrainingNeeds.vue'),
-        meta: { title: 'Training Needs', titleKey: 'training.needs', descKey: 'training.needs_desc', icon: 'pi pi-bullseye', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view' }
+        meta: { title: 'Training Needs', titleKey: 'training.needs', descKey: 'training.needs_desc', icon: 'pi pi-bullseye', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view', strictPermission: true }
       },
       {
         path: 'training/certificates',
         name: 'TrainingCertificates',
         component: () => import('@/views/modules/training/TrainingCertificates.vue'),
-        meta: { title: 'Training Certificates', titleKey: 'training.certificates', descKey: 'training.certificates_desc', icon: 'pi pi-id-card', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.records.view' }
+        meta: { title: 'Training Certificates', titleKey: 'training.certificates', descKey: 'training.certificates_desc', icon: 'pi pi-id-card', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.records.view', strictPermission: true }
       },
       {
         path: 'training/history',
         name: 'TrainingHistory',
         component: () => import('@/views/modules/training/TrainingHistory.vue'),
-        meta: { title: 'Training History', titleKey: 'training.history', descKey: 'training.history_desc', icon: 'pi pi-history', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.records.view' }
+        meta: { title: 'Training History', titleKey: 'training.history', descKey: 'training.history_desc', icon: 'pi pi-history', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.records.view', strictPermission: true }
       },
       {
         path: 'training/reports',
         name: 'TrainingReports',
         component: () => import('@/views/modules/training/TrainingReports.vue'),
-        meta: { title: 'Training Reports', titleKey: 'training.reports', descKey: 'training.reports_desc', icon: 'pi pi-chart-bar', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.reports.view' }
+        meta: { title: 'Training Reports', titleKey: 'training.reports', descKey: 'training.reports_desc', icon: 'pi pi-chart-bar', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.reports.view', strictPermission: true }
       },
       // Workforce Intelligence
       {

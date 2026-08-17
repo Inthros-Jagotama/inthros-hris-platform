@@ -1,51 +1,90 @@
 package training
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+// requireTrainingSettings menggating endpoint yang MENGUBAH (create/update/
+// delete) master training (categories, courses, providers, trainers beserta
+// sub-resource course) — supaya HANYA permission submenu "training.settings.
+// <action>" yang berlaku (bukan module-level "training.update"). Middleware
+// RBAC global (authz.NewMiddleware) menganggap module-level otomatis mencakup
+// semua submenu-nya — cocok untuk kebanyakan resource, tapi tidak untuk aksi
+// admin-config ini, yang harus benar-benar terpisah dari sekadar melihat
+// training sehari-hari ("training.view", yang dimiliki hampir semua role
+// termasuk Employee default). Pola sama seperti requireLeaveSettings /
+// requireAttendanceSettings.
+//
+// GET (list & detail) SENGAJA TIDAK dibatasi middleware ini — dipakai halaman
+// Training utama (stat) dan dropdown halaman lain (needs, participants,
+// requests, sessions) yang harus tetap bisa diakses siapa pun dengan
+// "training.view".
+func requireTrainingSettings(action string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		required := "training.settings." + action
+		for _, p := range c.GetStringSlice("permissions") {
+			if p == "*" || p == required {
+				c.Next()
+				return
+			}
+		}
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "FORBIDDEN",
+				"message": "You don't have permission to manage training settings",
+				"details": gin.H{"required": required},
+			},
+		})
+	}
+}
 
 func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 	trn := rg.Group("/trainings")
 	{
-		// Training Categories
-		trn.POST("/categories", handler.CreateCategory)
+		// Training Categories (admin-config)
+		trn.POST("/categories", requireTrainingSettings("create"), handler.CreateCategory)
 		trn.GET("/categories", handler.ListCategories)
 		trn.GET("/categories/:id", handler.GetCategoryByID)
-		trn.PUT("/categories/:id", handler.UpdateCategory)
-		trn.DELETE("/categories/:id", handler.DeleteCategory)
+		trn.PUT("/categories/:id", requireTrainingSettings("update"), handler.UpdateCategory)
+		trn.DELETE("/categories/:id", requireTrainingSettings("delete"), handler.DeleteCategory)
 
-		// Training Courses
-		trn.POST("/courses", handler.CreateCourse)
+		// Training Courses (admin-config)
+		trn.POST("/courses", requireTrainingSettings("create"), handler.CreateCourse)
 		trn.GET("/courses", handler.ListCourses)
 		trn.GET("/courses/:id", handler.GetCourseByID)
-		trn.PUT("/courses/:id", handler.UpdateCourse)
-		trn.DELETE("/courses/:id", handler.DeleteCourse)
+		trn.PUT("/courses/:id", requireTrainingSettings("update"), handler.UpdateCourse)
+		trn.DELETE("/courses/:id", requireTrainingSettings("delete"), handler.DeleteCourse)
 
-		// Course sub-resources (P1-BE — plan §8/§9/§10)
+		// Course sub-resources (P1-BE — plan §8/§9/§10) — mutasi ikut admin-config
 		trn.GET("/courses/:id/objectives", handler.ListCourseObjectives)
-		trn.POST("/courses/:id/objectives", handler.CreateCourseObjective)
-		trn.PUT("/course-objectives/:id", handler.UpdateCourseObjective)
-		trn.DELETE("/course-objectives/:id", handler.DeleteCourseObjective)
+		trn.POST("/courses/:id/objectives", requireTrainingSettings("create"), handler.CreateCourseObjective)
+		trn.PUT("/course-objectives/:id", requireTrainingSettings("update"), handler.UpdateCourseObjective)
+		trn.DELETE("/course-objectives/:id", requireTrainingSettings("delete"), handler.DeleteCourseObjective)
 
 		trn.GET("/courses/:id/competencies", handler.ListCourseCompetencies)
-		trn.POST("/courses/:id/competencies", handler.CreateCourseCompetency)
-		trn.DELETE("/course-competencies/:id", handler.DeleteCourseCompetency)
+		trn.POST("/courses/:id/competencies", requireTrainingSettings("create"), handler.CreateCourseCompetency)
+		trn.DELETE("/course-competencies/:id", requireTrainingSettings("delete"), handler.DeleteCourseCompetency)
 
 		trn.GET("/courses/:id/prerequisites", handler.ListCoursePrerequisites)
-		trn.POST("/courses/:id/prerequisites", handler.CreateCoursePrerequisite)
-		trn.DELETE("/course-prerequisites/:id", handler.DeleteCoursePrerequisite)
+		trn.POST("/courses/:id/prerequisites", requireTrainingSettings("create"), handler.CreateCoursePrerequisite)
+		trn.DELETE("/course-prerequisites/:id", requireTrainingSettings("delete"), handler.DeleteCoursePrerequisite)
 
-		// Training Providers (P0-BE — plan §11)
-		trn.POST("/providers", handler.CreateProvider)
+		// Training Providers (P0-BE — plan §11) (admin-config)
+		trn.POST("/providers", requireTrainingSettings("create"), handler.CreateProvider)
 		trn.GET("/providers", handler.ListProviders)
 		trn.GET("/providers/:id", handler.GetProviderByID)
-		trn.PUT("/providers/:id", handler.UpdateProvider)
-		trn.DELETE("/providers/:id", handler.DeleteProvider)
+		trn.PUT("/providers/:id", requireTrainingSettings("update"), handler.UpdateProvider)
+		trn.DELETE("/providers/:id", requireTrainingSettings("delete"), handler.DeleteProvider)
 
-		// Training Trainers (P0-BE — plan §12)
-		trn.POST("/trainers", handler.CreateTrainer)
+		// Training Trainers (P0-BE — plan §12) (admin-config)
+		trn.POST("/trainers", requireTrainingSettings("create"), handler.CreateTrainer)
 		trn.GET("/trainers", handler.ListTrainers)
 		trn.GET("/trainers/:id", handler.GetTrainerByID)
-		trn.PUT("/trainers/:id", handler.UpdateTrainer)
-		trn.DELETE("/trainers/:id", handler.DeleteTrainer)
+		trn.PUT("/trainers/:id", requireTrainingSettings("update"), handler.UpdateTrainer)
+		trn.DELETE("/trainers/:id", requireTrainingSettings("delete"), handler.DeleteTrainer)
 
 		// Training Sessions
 		trn.POST("/sessions", handler.CreateSession)

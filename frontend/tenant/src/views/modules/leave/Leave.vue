@@ -1,7 +1,27 @@
 <template>
   <div class="space-y-4">
-    <div v-if="loading" class="flex items-center justify-center h-40">
-      <i class="pi pi-spinner pi-spin text-2xl text-emerald-500"></i>
+    <!-- Skeleton halaman (mirror struktur: admin cards, balances, tabel permohonan, kalender) -->
+    <div v-if="loading" class="space-y-4">
+      <div v-if="adminCards.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div v-for="n in adminCards.length" :key="n" class="flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 animate-pulse">
+          <div class="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-600 shrink-0"></div>
+          <div class="flex-1 space-y-2">
+            <div class="h-3 w-1/2 bg-gray-200 dark:bg-gray-600 rounded"></div>
+            <div class="h-2.5 w-3/4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+          </div>
+        </div>
+      </div>
+
+      <SkeletonCard type="stat" :count="4" />
+      <SkeletonTable :columns="skeletonColumns" :rows="6" />
+
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+        <div class="h-4 w-40 bg-gray-200 dark:bg-gray-600 rounded mb-3"></div>
+        <div v-for="n in 5" :key="n" class="flex items-center justify-between py-2">
+          <div class="h-3 w-32 bg-gray-200 dark:bg-gray-600 rounded"></div>
+          <div class="h-5 w-24 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+        </div>
+      </div>
     </div>
 
     <template v-else-if="!employeeId">
@@ -9,15 +29,28 @@
     </template>
 
     <template v-else>
-      <!-- Top actions -->
-      <div class="flex justify-end gap-2">
-        <Button v-if="hasPermission('leave.update')" :label="t('leave.admin')" icon="pi pi-cog" size="small" severity="secondary" outlined @click="router.push('/leave/admin')" />
+      <!-- Admin menu cards (dipindah dari halaman /leave/admin — pola sama dengan menu cards halaman Attendance) -->
+      <div v-if="adminCards.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <button
+          v-for="card in adminCards"
+          :key="card.path"
+          type="button"
+          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-emerald-300 dark:hover:border-emerald-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+          @click="router.push(card.path)"
+        >
+          <div class="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center transition-colors" :class="card.tint">
+            <i :class="card.icon" class="text-base"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(card.titleKey) }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(card.descKey) }}</p>
+          </div>
+          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+        </button>
       </div>
 
       <!-- Balance cards -->
-      <div v-if="balancesLoading" class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div v-for="n in 4" :key="n" class="h-24 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse"></div>
-      </div>
+      <SkeletonCard v-if="balancesLoading" type="stat" :count="4" />
       <div v-else-if="balances.length === 0" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center text-gray-400 dark:text-gray-500">
         <i class="pi pi-wallet text-3xl mb-2 opacity-50"></i>
         <p class="text-sm">{{ t('leave.balances_empty') }}</p>
@@ -198,6 +231,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import Dialog from 'primevue/dialog'
+import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonTable from '@/components/SkeletonTable.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import FormRow from '@/components/FormRow.vue'
@@ -208,7 +242,7 @@ import SelectLabel from '@/components/SelectLabel.vue'
 const router = useRouter()
 const { t, locale } = useI18n()
 const toast = useToast()
-const { hasPermission } = useAuth()
+const { hasPermission, hasExactPermission } = useAuth()
 const { employeeId, loadMyEmployeeId } = useMyEmployee()
 
 const loading = ref(true)
@@ -244,6 +278,20 @@ const skeletonColumns = [
 ]
 
 const canCreate = computed(() => hasPermission('leave.create'))
+
+// Card menu admin cuti (dipindah dari halaman /leave/admin) — hanya tampil
+// untuk user dengan permission leave.settings.view secara EKSAK (hasExactPermission,
+// tanpa fallback module-level leave.view), sama seperti permission yang
+// menggating route /leave/admin sebelumnya + strictPermission di router.
+const adminCards = computed(() => {
+  if (!hasExactPermission('leave.settings.view')) return []
+  return [
+    { path: '/leave/types', icon: 'pi pi-tags', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', titleKey: 'leave.types', descKey: 'leave.types_description' },
+    { path: '/leave/accrual-policies', icon: 'pi pi-percentage', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', titleKey: 'leave.accrual_policies', descKey: 'leave.accrual_policies_description' },
+    { path: '/leave/reasons', icon: 'pi pi-list', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', titleKey: 'leave.reasons', descKey: 'leave.reasons_description' }
+  ]
+})
+
 const firstRecord = computed(() => (currentPage.value - 1) * perPage.value)
 
 const leaveTypeOptions = computed(() =>

@@ -22,6 +22,14 @@ func setupTestRouter() (*gin.Engine, *Repository, func()) {
 	handler := NewHandler(svc)
 
 	r := gin.New()
+	// requireLeaveSettings (routes.go) checks c.GetStringSlice("permissions")
+	// — simulate a fully-privileged caller so existing handler-level tests
+	// (which don't exercise the RBAC layer) keep passing; permission-scoped
+	// behavior itself is covered by TestRequireLeaveSettings.
+	r.Use(func(c *gin.Context) {
+		c.Set("permissions", []string{"*"})
+		c.Next()
+	})
 	rg := r.Group("/api/v1/tenant")
 	RegisterRoutes(rg, handler)
 

@@ -61,38 +61,38 @@
 
     <!-- Menu Cards -->
     <div v-for="group in menuGroups" :key="group.key" class="space-y-3">
-      <div class="flex items-center gap-2">
-        <h3 class="text-xs font-semibold uppercase tracking-wide" :class="group.highlight ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'">{{ t(group.titleKey) }}</h3>
-        <i v-if="group.highlight" class="pi pi-star-fill text-emerald-500 text-[10px]"></i>
+      <div class="md:col-span-2">
+        <div class="flex items-center gap-2 pt-2">
+          <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase">{{ t(group.titleKey) }}</span>
+          <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+        </div>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <button
           v-for="item in group.items"
           :key="item.path"
           type="button"
           :disabled="item.muted"
-          class="group flex items-center gap-4 rounded-xl text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+          class="group flex items-center gap-3 rounded-lg text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
           :class="item.muted
-            ? 'p-5 border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 grayscale opacity-60 cursor-not-allowed'
-            : group.highlight
-              ? 'p-5 cursor-pointer border-2 border-emerald-300 dark:border-emerald-500/60 bg-emerald-50/60 dark:bg-emerald-500/10 shadow-md shadow-emerald-100 dark:shadow-none hover:shadow-xl hover:shadow-emerald-100/80 dark:hover:shadow-none hover:-translate-y-1 hover:border-emerald-400 dark:hover:border-emerald-400'
-              : 'p-5 cursor-pointer border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-300 dark:hover:border-emerald-500/60 hover:shadow-lg hover:-translate-y-1'"
+            ? 'p-3.5 border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 grayscale opacity-60 cursor-not-allowed'
+            : 'p-3.5 cursor-pointer border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-300 dark:hover:border-emerald-500/60 hover:shadow-md hover:-translate-y-0.5'"
           @click="!item.muted && navigateTo(item.path)"
         >
           <div
-            class="w-14 h-14 rounded-xl shrink-0 flex items-center justify-center transition-colors"
+            class="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center transition-colors"
             :class="item.tint"
           >
-            <i :class="item.icon" class="text-xl"></i>
+            <i :class="item.icon" class="text-base"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-base font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate flex items-center gap-2">
               {{ t(item.titleKey) }}
-              <span v-if="item.muted" class="text-[10px] font-normal uppercase tracking-wide text-gray-400 dark:text-gray-500 border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5">{{ t('performance.not_available_yet') }}</span>
+              <span v-if="item.muted" class="text-[10px] font-normal uppercase tracking-wide text-gray-400 dark:text-gray-500 border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 shrink-0">{{ t('performance.not_available_yet') }}</span>
             </p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" :class="group.highlight && !item.muted ? '' : 'line-clamp-2'">{{ item.muted ? t(item.mutedDescKey) : t(item.descKey) }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ item.muted ? t(item.mutedDescKey) : t(item.descKey) }}</p>
           </div>
-          <i class="pi pi-chevron-right text-gray-300 dark:text-gray-600 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all shrink-0"></i>
+          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
         </button>
       </div>
     </div>
@@ -119,11 +119,26 @@ const stats = ref({
 const kpiSelfAssessmentAvailable = ref(true)
 const okrSelfAssessmentAvailable = ref(true)
 
+// Self-assessment (My Evaluation) dipindah ke grup masing-masing (KPI → grup
+// KPI, OKR → grup OKR) — grup self_service tersendiri dihapus.
+// Shared (Periods) disimpan di paling atas, lalu KPI dan OKR.
 const menuGroups = computed(() => [
   {
-    key: 'self_service',
-    titleKey: 'performance.group_self_service',
-    highlight: true,
+    key: 'shared',
+    titleKey: 'performance.group_shared',
+    items: [
+      {
+        path: '/performance/kpi/periods',
+        icon: 'pi pi-calendar',
+        titleKey: 'kpi.periods',
+        descKey: 'performance.periods_shared_desc',
+        tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400'
+      }
+    ]
+  },
+  {
+    key: 'kpi',
+    titleKey: 'performance.group_kpi',
     items: [
       {
         path: '/performance/kpi/my-evaluation',
@@ -134,21 +149,6 @@ const menuGroups = computed(() => [
         tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400',
         muted: !kpiSelfAssessmentAvailable.value
       },
-      {
-        path: '/performance/okr/my-evaluation',
-        icon: 'pi pi-user-edit',
-        titleKey: 'okr.my_evaluation',
-        descKey: 'okr.my_evaluation_desc',
-        mutedDescKey: 'performance.self_assessment_unavailable_desc',
-        tint: 'bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400',
-        muted: !okrSelfAssessmentAvailable.value
-      }
-    ]
-  },
-  {
-    key: 'kpi',
-    titleKey: 'performance.group_kpi',
-    items: [
       {
         path: '/performance/kpi',
         icon: 'pi pi-chart-bar',
@@ -168,33 +168,31 @@ const menuGroups = computed(() => [
   {
     key: 'okr',
     titleKey: 'performance.group_okr',
+    // Label card mengikuti grup KPI (tanpa kata "OKR") — grup sudah diberi
+    // judul "Objectives & Key Results (OKR)", jadi card tidak perlu mengulang.
     items: [
+      {
+        path: '/performance/okr/my-evaluation',
+        icon: 'pi pi-user-edit',
+        titleKey: 'kpi.my_evaluation',
+        descKey: 'okr.my_evaluation_desc',
+        mutedDescKey: 'performance.self_assessment_unavailable_desc',
+        tint: 'bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400',
+        muted: !okrSelfAssessmentAvailable.value
+      },
       {
         path: '/performance/okr',
         icon: 'pi pi-bullseye',
-        titleKey: 'performance.okr_evaluations',
-        descKey: 'performance.okr_evaluations_desc',
+        titleKey: 'kpi.evaluations',
+        descKey: 'okr.evaluations_desc',
         tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'
       },
       {
         path: '/performance/okr/templates',
         icon: 'pi pi-file-edit',
-        titleKey: 'performance.okr_templates',
-        descKey: 'performance.okr_templates_desc',
+        titleKey: 'kpi.templates',
+        descKey: 'okr.templates_desc',
         tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
-      }
-    ]
-  },
-  {
-    key: 'shared',
-    titleKey: 'performance.group_shared',
-    items: [
-      {
-        path: '/performance/kpi/periods',
-        icon: 'pi pi-calendar',
-        titleKey: 'kpi.periods',
-        descKey: 'performance.periods_shared_desc',
-        tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400'
       }
     ]
   }

@@ -1,7 +1,31 @@
 <template>
   <div class="space-y-4">
-    <div v-if="loading" class="flex items-center justify-center h-40">
-      <i class="pi pi-spinner pi-spin text-2xl text-emerald-500"></i>
+    <!-- Skeleton halaman (mirror struktur: menu cards, check-in, summary, kalender) -->
+    <div v-if="loading" class="space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div v-for="n in menuCards.length" :key="n" class="flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 animate-pulse">
+          <div class="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-600 shrink-0"></div>
+          <div class="flex-1 space-y-2">
+            <div class="h-3 w-1/2 bg-gray-200 dark:bg-gray-600 rounded"></div>
+            <div class="h-2.5 w-3/4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+        <div class="h-4 w-40 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
+        <div class="h-3 w-64 bg-gray-200 dark:bg-gray-600 rounded"></div>
+      </div>
+
+      <SkeletonCard type="stat" :count="4" />
+
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+        <div class="h-4 w-40 bg-gray-200 dark:bg-gray-600 rounded mb-3"></div>
+        <div v-for="n in 5" :key="n" class="flex items-center justify-between py-2">
+          <div class="h-3 w-32 bg-gray-200 dark:bg-gray-600 rounded"></div>
+          <div class="h-5 w-24 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+        </div>
+      </div>
     </div>
 
     <template v-else-if="!employeeId">
@@ -9,27 +33,35 @@
     </template>
 
     <template v-else>
-      <!-- Menu cards (pola sama dengan menu Settings) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <button
-          v-for="menu in menuCards"
-          :key="menu.route"
-          type="button"
-          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
-          @click="router.push(menu.route)"
-        >
-          <div
-            class="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center transition-colors"
-            :class="menu.tint"
+      <!-- Menu cards dikelompokkan per kategori: Pengaturan / Operasional / Laporan -->
+      <div v-for="group in menuGroups" :key="group.titleKey" class="space-y-2">
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-2 pt-2">
+            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase">{{ t(group.titleKey) }}</span>
+            <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <button
+            v-for="menu in group.items"
+            :key="menu.route"
+            type="button"
+            class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+            @click="router.push(menu.route)"
           >
-            <i :class="menu.icon" class="text-base"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(menu.labelKey) }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(menu.descKey) }}</p>
-          </div>
-          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
-        </button>
+            <div
+              class="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center transition-colors"
+              :class="menu.tint"
+            >
+              <i :class="menu.icon" class="text-base"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(menu.labelKey) }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(menu.descKey) }}</p>
+            </div>
+            <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Check-in / Check-out -->
@@ -98,10 +130,11 @@ import { formatDate } from '@/utils/formatDate'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
+import SkeletonCard from '@/components/SkeletonCard.vue'
 
 const router = useRouter()
 const { t, locale } = useI18n()
-const { hasPermission } = useAuth()
+const { hasExactPermission } = useAuth()
 const { employeeId, loadMyEmployeeId } = useMyEmployee()
 
 const loading = ref(true)
@@ -110,19 +143,52 @@ const calendarSessions = ref([])
 const punching = ref(false)
 const punchError = ref('')
 
-// Menu absensi sebagai card (Lembur / Koreksi / Admin — setting), pola sama
-// dengan card di halaman Settings (ikon dalam kotak tinted + chevron).
-const menuCards = computed(() => {
-  const cards = [
-    { labelKey: 'attendance.overtime', descKey: 'attendance.overtime_description', icon: 'pi pi-clock', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', route: '/attendance/overtime', permission: 'attendance.operations.view' },
-    { labelKey: 'attendance.corrections', descKey: 'attendance.corrections_description', icon: 'pi pi-pencil', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/attendance/corrections', permission: 'attendance.operations.view' },
-    { labelKey: 'business_travel.title', descKey: 'business_travel.description', icon: 'pi pi-briefcase', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', route: '/attendance/business-travel', permission: 'attendance.operations.view' }
+// Menu absensi dikelompokkan per kategori (Pengaturan / Operasional / Laporan),
+// ikon dalam kotak tinted + chevron. Tiap grup hanya dirender jika ada item
+// yang diizinkan permission-nya.
+// Semua card menu dicek dengan hasExactPermission (tanpa fallback module-level
+// attendance.view) — sama seperti leave.settings: "attendance.view" dimiliki
+// hampir semua role (termasuk Employee default), sehingga tidak boleh otomatis
+// mencakup submenu settings/operations/report.
+const menuGroups = computed(() => {
+  const groups = [
+    {
+      titleKey: 'attendance.group_settings',
+      items: [
+        { labelKey: 'attendance.settings', descKey: 'attendance.settings_description', icon: 'pi pi-cog', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/settings', permission: 'attendance.settings.view' },
+        { labelKey: 'attendance.shifts', descKey: 'attendance.shifts_description', icon: 'pi pi-clock', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/shifts', permission: 'attendance.settings.view' },
+        { labelKey: 'attendance.employee_shifts', descKey: 'attendance.employee_shifts_description', icon: 'pi pi-users', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/employee-shifts', permission: 'attendance.settings.view' },
+        { labelKey: 'attendance.locations', descKey: 'attendance.locations_description', icon: 'pi pi-map-marker', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/locations', permission: 'attendance.settings.view' },
+        { labelKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description', icon: 'pi pi-shield', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/exempt-positions', permission: 'attendance.settings.view' }
+      ]
+    },
+    {
+      titleKey: 'attendance.group_operations',
+      items: [
+        { labelKey: 'attendance.overtime', descKey: 'attendance.overtime_description', icon: 'pi pi-clock', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', route: '/attendance/overtime', permission: 'attendance.operations.view' },
+        { labelKey: 'attendance.corrections', descKey: 'attendance.corrections_description', icon: 'pi pi-pencil', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/attendance/corrections', permission: 'attendance.operations.view' },
+        { labelKey: 'business_travel.title', descKey: 'business_travel.description', icon: 'pi pi-briefcase', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', route: '/attendance/business-travel', permission: 'attendance.operations.view' }
+      ]
+    },
+    {
+      titleKey: 'attendance.group_reports',
+      items: [
+        // Events & Sessions digate report.view (bukan operations.view) —
+        // sejalan dengan pengelompokan UI di grup Laporan: mencabut
+        // attendance.report.view memblokir seluruh grup (Events, Sessions, Reports).
+        { labelKey: 'attendance.events', descKey: 'attendance.events_description', icon: 'pi pi-list', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/events', permission: 'attendance.report.view' },
+        { labelKey: 'attendance.sessions', descKey: 'attendance.sessions_description', icon: 'pi pi-calendar', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/sessions', permission: 'attendance.report.view' },
+        { labelKey: 'attendance.reports', descKey: 'attendance.reports_description', icon: 'pi pi-chart-bar', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/reports', permission: 'attendance.report.view' }
+      ]
+    }
   ]
-  if (hasPermission('attendance.settings.view')) {
-    cards.push({ labelKey: 'attendance.admin', descKey: 'attendance.admin_description', icon: 'pi pi-cog', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/admin' })
-  }
-  return cards.filter(card => !card.permission || hasPermission(card.permission))
+  return groups
+    .map(g => ({ ...g, items: g.items.filter(card => !card.permission || hasExactPermission(card.permission)) }))
+    .filter(g => g.items.length > 0)
 })
+
+// Total semua card (dipakai skeleton loading)
+const menuCards = computed(() => menuGroups.value.flatMap(g => g.items))
 
 const today = new Date()
 const todayStr = toDateOnly(today)

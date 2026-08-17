@@ -1,36 +1,100 @@
 package attendance
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+// requireAttendanceSettings menggating endpoint yang MENGUBAH (create/update/
+// delete) konfigurasi absensi (company settings, shifts, employee-shifts,
+// locations, exempt-positions) beserta GET-nya — supaya HANYA permission
+// submenu "attendance.settings.<action>" yang berlaku (bukan module-level
+// "attendance.view"). Middleware RBAC global (authz.NewMiddleware) menganggap
+// module-level otomatis mencakup semua submenu-nya — cocok untuk kebanyakan
+// resource, tapi tidak untuk aksi admin-config ini, yang harus benar-benar
+// terpisah dari sekadar melihat/check-in absensi sehari-hari ("attendance.view",
+// yang dimiliki hampir semua role termasuk Employee default). Pola sama seperti
+// requireLeaveSettings di modul leave.
+//
+// GET /settings SENGAJA TIDAK dibatasi middleware ini — dipakai halaman
+// Attendance utama (aturan check-in saat hari libur) yang harus tetap bisa
+// diakses siapa pun dengan "attendance.view".
+func requireAttendanceSettings(action string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		required := "attendance.settings." + action
+		for _, p := range c.GetStringSlice("permissions") {
+			if p == "*" || p == required {
+				c.Next()
+				return
+			}
+		}
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "FORBIDDEN",
+				"message": "You don't have permission to manage attendance settings",
+				"details": gin.H{"required": required},
+			},
+		})
+	}
+}
+
+// requireAttendanceReport menggating endpoint laporan absensi (GET
+// /reports/sessions) dengan permission "attendance.report.view" secara EKSAK —
+// module-level "attendance.view" tidak boleh mencakupnya, pola sama seperti
+// requireAttendanceSettings. Endpoint operations (events/sessions) SENGAJA
+// tidak digate di sini: GET /events & /sessions/detail juga dipakai halaman
+// Attendance utama & halaman Koreksi (alur self-service check-in/koreksi).
+func requireAttendanceReport(action string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		required := "attendance.report." + action
+		for _, p := range c.GetStringSlice("permissions") {
+			if p == "*" || p == required {
+				c.Next()
+				return
+			}
+		}
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "FORBIDDEN",
+				"message": "You don't have permission to view attendance reports",
+				"details": gin.H{"required": required},
+			},
+		})
+	}
+}
 
 // RegisterRoutes mendaftarkan semua endpoint Attendance ke router group tenant.
 // Semua endpoint di bawah /api/v1/tenant/attendance
 func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 	att := rg.Group("/attendance")
 	{
-		// Company Settings
+		// Company Settings (GET tetap terbuka — dipakai halaman Attendance utama)
 		att.GET("/settings", handler.GetCompanySetting)
-		att.PUT("/settings", handler.UpsertCompanySetting)
+		att.PUT("/settings", requireAttendanceSettings("update"), handler.UpsertCompanySetting)
 
-		// Company Shifts
-		att.POST("/shifts", handler.CreateShift)
-		att.GET("/shifts", handler.ListShifts)
-		att.GET("/shifts/:id", handler.GetShiftByID)
-		att.PUT("/shifts/:id", handler.UpdateShift)
-		att.DELETE("/shifts/:id", handler.DeleteShift)
+		// Company Shifts (admin-config)
+		att.POST("/shifts", requireAttendanceSettings("create"), handler.CreateShift)
+		att.GET("/shifts", requireAttendanceSettings("view"), handler.ListShifts)
+		att.GET("/shifts/:id", requireAttendanceSettings("view"), handler.GetShiftByID)
+		att.PUT("/shifts/:id", requireAttendanceSettings("update"), handler.UpdateShift)
+		att.DELETE("/shifts/:id", requireAttendanceSettings("delete"), handler.DeleteShift)
 
-		// Employee Shifts
-		att.POST("/employee-shifts", handler.CreateEmployeeShift)
-		att.GET("/employee-shifts", handler.ListEmployeeShifts)
-		att.GET("/employee-shifts/:id", handler.GetEmployeeShiftByID)
-		att.PUT("/employee-shifts/:id", handler.UpdateEmployeeShift)
-		att.DELETE("/employee-shifts/:id", handler.DeleteEmployeeShift)
+		// Employee Shifts (admin-config)
+		att.POST("/employee-shifts", requireAttendanceSettings("create"), handler.CreateEmployeeShift)
+		att.GET("/employee-shifts", requireAttendanceSettings("view"), handler.ListEmployeeShifts)
+		att.GET("/employee-shifts/:id", requireAttendanceSettings("view"), handler.GetEmployeeShiftByID)
+		att.PUT("/employee-shifts/:id", requireAttendanceSettings("update"), handler.UpdateEmployeeShift)
+		att.DELETE("/employee-shifts/:id", requireAttendanceSettings("delete"), handler.DeleteEmployeeShift)
 
-		// Locations (Geofence)
-		att.POST("/locations", handler.CreateLocation)
-		att.GET("/locations", handler.ListLocations)
-		att.GET("/locations/:id", handler.GetLocationByID)
-		att.PUT("/locations/:id", handler.UpdateLocation)
-		att.DELETE("/locations/:id", handler.DeleteLocation)
+		// Locations (Geofence) (admin-config)
+		att.POST("/locations", requireAttendanceSettings("create"), handler.CreateLocation)
+		att.GET("/locations", requireAttendanceSettings("view"), handler.ListLocations)
+		att.GET("/locations/:id", requireAttendanceSettings("view"), handler.GetLocationByID)
+		att.PUT("/locations/:id", requireAttendanceSettings("update"), handler.UpdateLocation)
+		att.DELETE("/locations/:id", requireAttendanceSettings("delete"), handler.DeleteLocation)
 
 		// Events (Check-in / Check-out)
 		att.POST("/events", handler.CreateEvent)
@@ -42,7 +106,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.GET("/sessions/detail", handler.GetSession)
 		att.GET("/calendar", handler.GetEmployeeCalendar)
 		att.GET("/summary", handler.GetEmployeeSummary)
-		att.GET("/reports/sessions", handler.GetAttendanceReport)
+		att.GET("/reports/sessions", requireAttendanceReport("view"), handler.GetAttendanceReport)
 
 		// Overtime Requests (§32b dua-alur: SELF & ASSIGNED → isian aktual)
 		att.POST("/overtime-requests", handler.CreateOvertimeRequest)
@@ -58,12 +122,12 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.GET("/corrections", handler.ListCorrectionRequests)
 		att.GET("/corrections/:id", handler.GetCorrectionRequestByID)
 
-		// Exempt Positions
-		att.POST("/exempt-positions", handler.CreateExemptPosition)
-		att.GET("/exempt-positions", handler.ListExemptPositions)
-		att.GET("/exempt-positions/:id", handler.GetExemptPositionByID)
-		att.PUT("/exempt-positions/:id", handler.UpdateExemptPosition)
-		att.DELETE("/exempt-positions/:id", handler.DeleteExemptPosition)
+		// Exempt Positions (admin-config)
+		att.POST("/exempt-positions", requireAttendanceSettings("create"), handler.CreateExemptPosition)
+		att.GET("/exempt-positions", requireAttendanceSettings("view"), handler.ListExemptPositions)
+		att.GET("/exempt-positions/:id", requireAttendanceSettings("view"), handler.GetExemptPositionByID)
+		att.PUT("/exempt-positions/:id", requireAttendanceSettings("update"), handler.UpdateExemptPosition)
+		att.DELETE("/exempt-positions/:id", requireAttendanceSettings("delete"), handler.DeleteExemptPosition)
 
 		// Business Travel (Phase 1-3: Travel CRUD + Approval integration.
 		// Funding/Expense/Settlement/Refund/Reimbursement belum diimplementasikan —
