@@ -49,9 +49,15 @@ const { t } = useI18n()
 const toast = useToast()
 
 // Mengubah toggle enkripsi at-rest adalah aksi setingkat admin — dipisahkan
-// dari permission melihat halaman ini (lihat migrasi tenant 154).
+// dari permission melihat halaman ini (lihat migrasi tenant 154). Backend
+// (requireSensitiveFieldSettings di routes.go) juga menerima "setting.update"
+// sebagai fallback module-level, jadi dicek juga di sini supaya tombol toggle
+// tidak disabled untuk role yang punya "setting.update" tapi bukan permission
+// khusus "setting.sensitive-fields.manage".
 const auth = useAuth()
-const canManage = computed(() => auth.hasPermission('setting.sensitive-fields.manage'))
+const canManage = computed(() =>
+  auth.hasPermission('setting.sensitive-fields.manage') || auth.hasPermission('setting.update')
+)
 
 const settings = ref([])
 const loading = ref(false)
