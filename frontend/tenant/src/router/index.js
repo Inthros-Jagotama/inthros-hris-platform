@@ -97,13 +97,13 @@ const routes = [
         path: 'job-management/values',
         name: 'JobValues',
         component: () => import('@/views/modules/jobvalues/JobValuesIndex.vue'),
-        meta: { title: 'Job Values', titleKey: 'job_management.values', descKey: 'job_values.description', icon: 'pi pi-sliders-h', module: 'jobmanagement', permission: 'jobmanagement.values.view' }
+        meta: { title: 'Job Values', titleKey: 'job_management.values', descKey: 'job_values.description', icon: 'pi pi-sliders-h', module: 'jobmanagement', permission: 'jobmanagement.assessment.view' }
       },
       {
         path: 'job-management/values/:type',
         name: 'JobValuesType',
         component: () => import('@/views/modules/jobvalues/JobValuesForm.vue'),
-        meta: { title: 'Job Value Type', titleKey: 'job_management.values', descKey: 'job_values.description', icon: 'pi pi-sliders-h', module: 'jobmanagement', permission: 'jobmanagement.values.view' }
+        meta: { title: 'Job Value Type', titleKey: 'job_management.values', descKey: 'job_values.description', icon: 'pi pi-sliders-h', module: 'jobmanagement', permission: 'jobmanagement.assessment.view' }
       },
       {
         path: 'job-management/form',

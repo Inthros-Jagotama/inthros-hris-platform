@@ -5,330 +5,9 @@
 -- Admin mendapat semua action; Employee hanya view.
 -- Catatan: organization, setting, & employee TIDAK punya permission level-submenu —
 -- cukup module-level (organization.view/create/update/delete, dst).
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('12895334-024d-54b5-bb2a-dad087f5c635', 'jobmanagement.titles.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('12895334-024d-54b5-bb2a-dad087f5c635', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('12895334-024d-54b5-bb2a-dad087f5c635', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('f6a36066-169a-57ac-9803-6408d0787b09', 'jobmanagement.titles.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('f6a36066-169a-57ac-9803-6408d0787b09', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('7b69ffc3-4355-590f-92b6-3cc400cfbd4e', 'jobmanagement.titles.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('7b69ffc3-4355-590f-92b6-3cc400cfbd4e', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('196871fa-1338-550a-9c77-6d24ed9dba83', 'jobmanagement.titles.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('196871fa-1338-550a-9c77-6d24ed9dba83', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('d99c9980-7899-5961-b91c-e561e7e946f2', 'jobmanagement.values.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('d99c9980-7899-5961-b91c-e561e7e946f2', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('d99c9980-7899-5961-b91c-e561e7e946f2', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('2e406de0-8ea1-5b85-bbf3-85618cd78004', 'jobmanagement.values.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('2e406de0-8ea1-5b85-bbf3-85618cd78004', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('0a045975-f29b-53dc-9a35-b908fc271f10', 'jobmanagement.values.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('0a045975-f29b-53dc-9a35-b908fc271f10', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('7a7d7a73-3677-5ffa-a6c3-49ed034c8880', 'jobmanagement.values.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('7a7d7a73-3677-5ffa-a6c3-49ed034c8880', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('a01bd2b7-0b0c-5932-adda-320ef57f4d0d', 'jobmanagement.objectives.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('a01bd2b7-0b0c-5932-adda-320ef57f4d0d', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('a01bd2b7-0b0c-5932-adda-320ef57f4d0d', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('b0585e62-61be-59d1-bd8d-b2e0926687d0', 'jobmanagement.objectives.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('b0585e62-61be-59d1-bd8d-b2e0926687d0', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('ab4d8399-f5c7-5299-916c-eda49d92f7ae', 'jobmanagement.objectives.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('ab4d8399-f5c7-5299-916c-eda49d92f7ae', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('9da765a6-808e-5c3e-a691-6ee7f801250b', 'jobmanagement.objectives.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('9da765a6-808e-5c3e-a691-6ee7f801250b', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('04f03573-222d-52dd-b79c-2a8005f86d00', 'jobmanagement.identifications.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('04f03573-222d-52dd-b79c-2a8005f86d00', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('04f03573-222d-52dd-b79c-2a8005f86d00', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('1ed4b65c-68e1-5875-86d8-9d127a17728e', 'jobmanagement.identifications.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('1ed4b65c-68e1-5875-86d8-9d127a17728e', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('7d94e84e-1bde-5157-bde6-0abc31bae648', 'jobmanagement.identifications.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('7d94e84e-1bde-5157-bde6-0abc31bae648', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('612ec1dd-a9be-54a4-ba77-f2fb06e55386', 'jobmanagement.identifications.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('612ec1dd-a9be-54a4-ba77-f2fb06e55386', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('d0a84b20-310b-5ba8-a305-2642d87d73d4', 'jobmanagement.responsibilities.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('d0a84b20-310b-5ba8-a305-2642d87d73d4', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('d0a84b20-310b-5ba8-a305-2642d87d73d4', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('ec4820e2-db77-5087-9eef-0e6b655f6358', 'jobmanagement.responsibilities.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('ec4820e2-db77-5087-9eef-0e6b655f6358', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('39a7d0ff-cc9e-5abe-b2ca-dec32cac7a2b', 'jobmanagement.responsibilities.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('39a7d0ff-cc9e-5abe-b2ca-dec32cac7a2b', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('31ccf27b-efaa-542a-92da-c3fb194dc88a', 'jobmanagement.responsibilities.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('31ccf27b-efaa-542a-92da-c3fb194dc88a', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('62cbcd89-96b0-5ad5-bc8b-9f238c95b48d', 'jobmanagement.authorities.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('62cbcd89-96b0-5ad5-bc8b-9f238c95b48d', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('62cbcd89-96b0-5ad5-bc8b-9f238c95b48d', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('6500277b-a6c5-5dc5-b1d0-cad0c472e182', 'jobmanagement.authorities.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('6500277b-a6c5-5dc5-b1d0-cad0c472e182', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('08e0925f-ced6-59d5-b3bd-b8a5ca972726', 'jobmanagement.authorities.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('08e0925f-ced6-59d5-b3bd-b8a5ca972726', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('91cee22b-7e60-5a84-902c-c78864d4e776', 'jobmanagement.authorities.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('91cee22b-7e60-5a84-902c-c78864d4e776', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('f1f93614-c9e2-5c5d-8ee4-683717160eeb', 'jobmanagement.working-conditions.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('f1f93614-c9e2-5c5d-8ee4-683717160eeb', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('f1f93614-c9e2-5c5d-8ee4-683717160eeb', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('39793bb8-7e2c-5f42-8ec0-535cc81b631e', 'jobmanagement.working-conditions.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('39793bb8-7e2c-5f42-8ec0-535cc81b631e', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('64210edd-a952-51f8-9b30-dcde309d17ee', 'jobmanagement.working-conditions.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('64210edd-a952-51f8-9b30-dcde309d17ee', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('ef472bdf-409a-5ff6-89ef-0be30554df22', 'jobmanagement.working-conditions.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('ef472bdf-409a-5ff6-89ef-0be30554df22', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('35f7def0-0005-5f6a-8801-eca9f37752ac', 'jobmanagement.scores.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('35f7def0-0005-5f6a-8801-eca9f37752ac', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('35f7def0-0005-5f6a-8801-eca9f37752ac', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('ecb135bb-f6f3-5c93-8960-a0b1c8ad9769', 'jobmanagement.scores.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('ecb135bb-f6f3-5c93-8960-a0b1c8ad9769', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('517b31bc-a470-5d54-a430-bdaa925e6ec5', 'jobmanagement.scores.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('517b31bc-a470-5d54-a430-bdaa925e6ec5', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('d159327d-c430-53ab-904b-e4c78747fb23', 'jobmanagement.scores.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('d159327d-c430-53ab-904b-e4c78747fb23', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('37e74ce9-ad12-53e1-98ab-42a97cea9316', 'jobmanagement.competencies.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('37e74ce9-ad12-53e1-98ab-42a97cea9316', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('37e74ce9-ad12-53e1-98ab-42a97cea9316', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('74a3c1c6-8716-5af9-851b-7fb85f42849c', 'jobmanagement.competencies.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('74a3c1c6-8716-5af9-851b-7fb85f42849c', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('e571e284-dccd-54af-8c06-5bf2607a9937', 'jobmanagement.competencies.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('e571e284-dccd-54af-8c06-5bf2607a9937', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('bd5e07d9-9c18-5218-8b23-a5197ac6a058', 'jobmanagement.competencies.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('bd5e07d9-9c18-5218-8b23-a5197ac6a058', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
+-- jobmanagement disederhanakan jadi 2 submenu: setting (titles, objectives,
+-- identifications, responsibilities, authorities, working-conditions,
+-- competencies) & assessment (values, scores).
 
 INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
 VALUES ('e1782ce7-c5f6-57c7-80cf-61e0ae1febde', 'competency.competencies.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -2598,3 +2277,74 @@ INSERT INTO role_has_permissions (permission_id, role_id)
 VALUES ('a16e766d-9f94-52ce-a83a-9c00d0093e06', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
 ON CONFLICT DO NOTHING;
 
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('c59b2317-1f08-5a4e-9034-7bce4c501f43', 'jobmanagement.setting.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('c59b2317-1f08-5a4e-9034-7bce4c501f43', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('c59b2317-1f08-5a4e-9034-7bce4c501f43', '3e562937-d5a1-543a-b1c8-af2f447500a4')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('ec82462b-00e4-516e-baca-677360931ddf', 'jobmanagement.setting.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('ec82462b-00e4-516e-baca-677360931ddf', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('4642a76a-c29c-56d6-90f6-e56ac506f1eb', 'jobmanagement.setting.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('4642a76a-c29c-56d6-90f6-e56ac506f1eb', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('97ea7d47-d665-5bda-8ad5-11329f878f80', 'jobmanagement.setting.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('97ea7d47-d665-5bda-8ad5-11329f878f80', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('1e34a394-b875-545e-9bcd-ae0d0e6fa386', 'jobmanagement.assessment.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('1e34a394-b875-545e-9bcd-ae0d0e6fa386', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('1e34a394-b875-545e-9bcd-ae0d0e6fa386', '3e562937-d5a1-543a-b1c8-af2f447500a4')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('ff80361a-85e6-58fe-894b-4813ecd90526', 'jobmanagement.assessment.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('ff80361a-85e6-58fe-894b-4813ecd90526', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('9825b818-8668-571a-aee0-180c9979e36d', 'jobmanagement.assessment.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('9825b818-8668-571a-aee0-180c9979e36d', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('bfb9a601-2941-5b73-93eb-75775cf5a3fe', 'jobmanagement.assessment.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('bfb9a601-2941-5b73-93eb-75775cf5a3fe', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;

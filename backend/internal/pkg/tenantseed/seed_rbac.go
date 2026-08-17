@@ -49,15 +49,8 @@ func tenantRBACResources() []tenantRBACResource {
 		{"organization", std, nil},
 		{"employee", std, nil},
 		{"jobmanagement", std, []tenantRBACSubmenu{
-			{"titles", std},
-			{"values", std},
-			{"objectives", std},
-			{"identifications", std},
-			{"responsibilities", std},
-			{"authorities", std},
-			{"working-conditions", std},
-			{"scores", std},
-			{"competencies", std},
+			{"setting", std},
+			{"assessment", std},
 		}},
 		{"competency", std, []tenantRBACSubmenu{
 			{"competencies", std},

@@ -318,7 +318,7 @@ const coreHRItems = computed(() => {
           command: () => router.push('/job-management/values'),
           path: '/job-management/values',
           moduleSlug: 'jobmanagement',
-          permission: 'jobmanagement.values.view'
+          permission: 'jobmanagement.assessment.view'
         },
         {
           key: 'job_management_main',
