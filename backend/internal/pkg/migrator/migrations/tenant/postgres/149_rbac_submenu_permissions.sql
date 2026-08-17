@@ -29,6 +29,11 @@
 -- recruitment disederhanakan jadi 2 submenu: pipeline (requisitions,
 -- applications, candidates, internal-candidates, assessments, offers),
 -- onboarding (tetap). interviews dihapus (tidak dipakai).
+-- training disederhanakan jadi 4 submenu (maksimal): settings (courses,
+-- categories, providers, trainers), operations (sessions, participants,
+-- planning, requests, needs), records (certificates, history), &
+-- reports (view only; kept plural to avoid colliding with the existing
+-- module-level action "report.view").
 
 INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
 VALUES ('207d3e01-43b1-594a-9acb-fe4783d50309', 'leave.settings.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -208,438 +213,6 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO role_has_permissions (permission_id, role_id)
 VALUES ('d36ec1a6-1d12-50f9-a792-64fc60065263', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('30e138b7-de50-55a6-9173-0ef15c3d6617', 'training.courses.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('30e138b7-de50-55a6-9173-0ef15c3d6617', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('30e138b7-de50-55a6-9173-0ef15c3d6617', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('767e6719-de5f-5eb4-8e09-0e909f43b8ab', 'training.courses.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('767e6719-de5f-5eb4-8e09-0e909f43b8ab', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('415855ee-2fd7-568f-9471-5f7cfc91e1e8', 'training.courses.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('415855ee-2fd7-568f-9471-5f7cfc91e1e8', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('d150bfcf-84b9-5dc5-a567-776d96aea35f', 'training.courses.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('d150bfcf-84b9-5dc5-a567-776d96aea35f', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('ab361091-9b49-52ab-a745-929ca34fc997', 'training.categories.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('ab361091-9b49-52ab-a745-929ca34fc997', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('ab361091-9b49-52ab-a745-929ca34fc997', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('7966895d-f85d-5a91-a20e-4e0bd5d2dd61', 'training.categories.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('7966895d-f85d-5a91-a20e-4e0bd5d2dd61', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('abde48ee-a825-54ba-b2e4-66f611baab62', 'training.categories.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('abde48ee-a825-54ba-b2e4-66f611baab62', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('c8c96ed3-6d2f-5323-9ba4-1582116e59b6', 'training.categories.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('c8c96ed3-6d2f-5323-9ba4-1582116e59b6', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('0cc27862-fb2d-5274-8c8a-2b963224579c', 'training.providers.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('0cc27862-fb2d-5274-8c8a-2b963224579c', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('0cc27862-fb2d-5274-8c8a-2b963224579c', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('a4aa09f5-3360-5241-88c1-5871c4f508f3', 'training.providers.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('a4aa09f5-3360-5241-88c1-5871c4f508f3', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('c1313d65-3c57-5aaf-b6ca-9bc936a958c3', 'training.providers.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('c1313d65-3c57-5aaf-b6ca-9bc936a958c3', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('8357e918-1002-5fc8-ac27-780087c25ba3', 'training.providers.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('8357e918-1002-5fc8-ac27-780087c25ba3', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('8f4d8784-4f46-5416-9986-d2d8f9b34a1c', 'training.trainers.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('8f4d8784-4f46-5416-9986-d2d8f9b34a1c', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('8f4d8784-4f46-5416-9986-d2d8f9b34a1c', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('5f3d7c09-dc1e-56b2-a960-a8876474e324', 'training.trainers.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('5f3d7c09-dc1e-56b2-a960-a8876474e324', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('75800331-432c-5430-8174-bc22339dca54', 'training.trainers.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('75800331-432c-5430-8174-bc22339dca54', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('abd52b25-c377-597c-b754-bbcc7610b8f0', 'training.trainers.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('abd52b25-c377-597c-b754-bbcc7610b8f0', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('ba2230f4-1bb8-5f9a-8531-542b41077b83', 'training.sessions.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('ba2230f4-1bb8-5f9a-8531-542b41077b83', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('ba2230f4-1bb8-5f9a-8531-542b41077b83', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('19b3c7cc-2781-589b-b24d-d83df075bde8', 'training.sessions.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('19b3c7cc-2781-589b-b24d-d83df075bde8', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('0f7c574a-fd1c-50ea-a5e7-0d3b678b0a8e', 'training.sessions.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('0f7c574a-fd1c-50ea-a5e7-0d3b678b0a8e', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('69e15a7e-ef1f-57a9-b5ef-989f39e33411', 'training.sessions.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('69e15a7e-ef1f-57a9-b5ef-989f39e33411', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('98cedd7b-3ae9-5d18-97fe-0d86cba998c9', 'training.participants.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('98cedd7b-3ae9-5d18-97fe-0d86cba998c9', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('98cedd7b-3ae9-5d18-97fe-0d86cba998c9', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('fd432ed0-9a10-51fb-bb9f-869a32d5aa93', 'training.participants.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('fd432ed0-9a10-51fb-bb9f-869a32d5aa93', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('9efaa95d-5cbc-52c2-8acd-492f473ed6c7', 'training.participants.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('9efaa95d-5cbc-52c2-8acd-492f473ed6c7', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('e1ab24fa-65e0-5586-9d60-0b7df44ae99a', 'training.participants.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('e1ab24fa-65e0-5586-9d60-0b7df44ae99a', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('4c31673f-7659-56ac-a315-23f57e0220fd', 'training.planning.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('4c31673f-7659-56ac-a315-23f57e0220fd', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('4c31673f-7659-56ac-a315-23f57e0220fd', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('987d998a-8db4-51f3-a91c-aee8c5592909', 'training.planning.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('987d998a-8db4-51f3-a91c-aee8c5592909', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('49ec0dff-c5ea-5ad7-b12c-4a9e9d148e7c', 'training.planning.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('49ec0dff-c5ea-5ad7-b12c-4a9e9d148e7c', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('082a557c-3037-5762-a313-918960d21560', 'training.planning.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('082a557c-3037-5762-a313-918960d21560', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('3d368e5e-a99e-5643-869c-9bc693fd8362', 'training.requests.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('3d368e5e-a99e-5643-869c-9bc693fd8362', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('3d368e5e-a99e-5643-869c-9bc693fd8362', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('f52c5e1c-e27f-5702-b26f-26be4e7d41c0', 'training.requests.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('f52c5e1c-e27f-5702-b26f-26be4e7d41c0', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('8793684f-1d59-56cf-9905-e03f21d6c008', 'training.requests.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('8793684f-1d59-56cf-9905-e03f21d6c008', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('cc14e0f3-7e37-526d-a70e-c736479abf41', 'training.requests.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('cc14e0f3-7e37-526d-a70e-c736479abf41', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('ac5624ad-b89c-54ae-8eb1-eb6604752a32', 'training.needs.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('ac5624ad-b89c-54ae-8eb1-eb6604752a32', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('ac5624ad-b89c-54ae-8eb1-eb6604752a32', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('c3aefd20-c54f-5614-a6c5-7bfe7b5d7203', 'training.needs.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('c3aefd20-c54f-5614-a6c5-7bfe7b5d7203', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('40967a83-e249-5ab2-9089-527fa0263708', 'training.needs.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('40967a83-e249-5ab2-9089-527fa0263708', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('6c20409e-5850-5a37-a9ce-d456324b8bbb', 'training.needs.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('6c20409e-5850-5a37-a9ce-d456324b8bbb', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('56808200-48f3-5e4b-ab88-7585684d3d31', 'training.certificates.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('56808200-48f3-5e4b-ab88-7585684d3d31', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('56808200-48f3-5e4b-ab88-7585684d3d31', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('1fd82008-de16-51d6-89dc-2e9df4084402', 'training.certificates.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('1fd82008-de16-51d6-89dc-2e9df4084402', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('a109c5f3-fd1e-5256-a2f8-72288ee28e28', 'training.certificates.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('a109c5f3-fd1e-5256-a2f8-72288ee28e28', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('ec1d7fe5-888a-5ad2-a089-268887a8edcf', 'training.certificates.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('ec1d7fe5-888a-5ad2-a089-268887a8edcf', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('6a56f4da-af1a-5a67-b691-ee651981f4e0', 'training.history.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('6a56f4da-af1a-5a67-b691-ee651981f4e0', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('6a56f4da-af1a-5a67-b691-ee651981f4e0', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('776b9c3b-d56e-5a98-93f6-4bf98a3c711a', 'training.history.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('776b9c3b-d56e-5a98-93f6-4bf98a3c711a', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('f848c54e-573c-50ed-9f01-50651d99ab92', 'training.history.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('f848c54e-573c-50ed-9f01-50651d99ab92', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('2ca3dfcf-40d0-5110-b6f4-9f799a40c1e3', 'training.history.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('2ca3dfcf-40d0-5110-b6f4-9f799a40c1e3', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('0a99150f-5693-5702-8934-2d35c5459eab', 'training.reports.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('0a99150f-5693-5702-8934-2d35c5459eab', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('0a99150f-5693-5702-8934-2d35c5459eab', '3e562937-d5a1-543a-b1c8-af2f447500a4')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('10972ea0-c8c9-5df3-91c9-07bf874d59e1', 'training.reports.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('10972ea0-c8c9-5df3-91c9-07bf874d59e1', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('d09d7b99-cd66-5f5f-b2c0-8092924fd83f', 'training.reports.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('d09d7b99-cd66-5f5f-b2c0-8092924fd83f', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('6b140aea-d616-5461-8fa4-130115d6739d', 'training.reports.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_has_permissions (permission_id, role_id)
-VALUES ('6b140aea-d616-5461-8fa4-130115d6739d', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
@@ -1144,4 +717,124 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO role_has_permissions (permission_id, role_id)
 VALUES ('7d2365b5-145d-54df-b8bd-702fc5e45f5e', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('687f578a-e8fc-5833-a546-b466b41926ac', 'training.settings.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('687f578a-e8fc-5833-a546-b466b41926ac', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('687f578a-e8fc-5833-a546-b466b41926ac', '3e562937-d5a1-543a-b1c8-af2f447500a4')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('802810c7-70bd-5c10-a1c8-7e577023f9b7', 'training.settings.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('802810c7-70bd-5c10-a1c8-7e577023f9b7', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('b9dbb900-69f4-554c-8b10-712027cdd552', 'training.settings.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('b9dbb900-69f4-554c-8b10-712027cdd552', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('0378521f-64bf-53a6-80ca-3f2886f48b42', 'training.settings.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('0378521f-64bf-53a6-80ca-3f2886f48b42', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('ed4714c3-aadd-5e38-be92-7988005c0f55', 'training.operations.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('ed4714c3-aadd-5e38-be92-7988005c0f55', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('ed4714c3-aadd-5e38-be92-7988005c0f55', '3e562937-d5a1-543a-b1c8-af2f447500a4')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('1547155c-003e-53ed-9759-efbf52f4f444', 'training.operations.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('1547155c-003e-53ed-9759-efbf52f4f444', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('7e85a747-cd2d-5084-9a5b-1b51c2f244a3', 'training.operations.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('7e85a747-cd2d-5084-9a5b-1b51c2f244a3', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('e641da29-f2e4-5f4f-b5f0-d696733a7e95', 'training.operations.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('e641da29-f2e4-5f4f-b5f0-d696733a7e95', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('1549f78b-891d-567d-9332-9a73056e8ba6', 'training.records.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('1549f78b-891d-567d-9332-9a73056e8ba6', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('1549f78b-891d-567d-9332-9a73056e8ba6', '3e562937-d5a1-543a-b1c8-af2f447500a4')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('69b8d4b0-7434-54f5-b451-c31ee029c58f', 'training.records.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('69b8d4b0-7434-54f5-b451-c31ee029c58f', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('e38969df-6c4d-50ef-a447-7d322874c9d9', 'training.records.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('e38969df-6c4d-50ef-a447-7d322874c9d9', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('20cf019e-1fcf-54ab-abd5-de9163dbbeba', 'training.records.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('20cf019e-1fcf-54ab-abd5-de9163dbbeba', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('0a99150f-5693-5702-8934-2d35c5459eab', 'training.reports.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('0a99150f-5693-5702-8934-2d35c5459eab', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_has_permissions (permission_id, role_id)
+VALUES ('0a99150f-5693-5702-8934-2d35c5459eab', '3e562937-d5a1-543a-b1c8-af2f447500a4')
 ON CONFLICT DO NOTHING;

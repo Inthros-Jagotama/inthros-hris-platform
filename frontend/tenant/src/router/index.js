@@ -560,73 +560,73 @@ const routes = [
         path: 'training/courses',
         name: 'TrainingCourses',
         component: () => import('@/views/modules/training/TrainingCourses.vue'),
-        meta: { title: 'Training Courses', titleKey: 'training.courses', descKey: 'training.courses_desc', icon: 'pi pi-book', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.courses.view' }
+        meta: { title: 'Training Courses', titleKey: 'training.courses', descKey: 'training.courses_desc', icon: 'pi pi-book', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view' }
       },
       {
         path: 'training/categories',
         name: 'TrainingCategories',
         component: () => import('@/views/modules/training/TrainingCategories.vue'),
-        meta: { title: 'Training Categories', titleKey: 'training.categories', descKey: 'training.categories_desc', icon: 'pi pi-tags', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.categories.view' }
+        meta: { title: 'Training Categories', titleKey: 'training.categories', descKey: 'training.categories_desc', icon: 'pi pi-tags', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view' }
       },
       {
         path: 'training/providers',
         name: 'TrainingProviders',
         component: () => import('@/views/modules/training/TrainingProviders.vue'),
-        meta: { title: 'Training Providers', titleKey: 'training.providers', descKey: 'training.providers_desc', icon: 'pi pi-building', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.providers.view' }
+        meta: { title: 'Training Providers', titleKey: 'training.providers', descKey: 'training.providers_desc', icon: 'pi pi-building', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view' }
       },
       {
         path: 'training/trainers',
         name: 'TrainingTrainers',
         component: () => import('@/views/modules/training/TrainingTrainers.vue'),
-        meta: { title: 'Training Trainers', titleKey: 'training.trainers', descKey: 'training.trainers_desc', icon: 'pi pi-user', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.trainers.view' }
+        meta: { title: 'Training Trainers', titleKey: 'training.trainers', descKey: 'training.trainers_desc', icon: 'pi pi-user', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.settings.view' }
       },
       {
         path: 'training/sessions',
         name: 'TrainingSessions',
         component: () => import('@/views/modules/training/TrainingSessions.vue'),
-        meta: { title: 'Training Sessions', titleKey: 'training.sessions', descKey: 'training.sessions_desc', icon: 'pi pi-calendar', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.sessions.view' }
+        meta: { title: 'Training Sessions', titleKey: 'training.sessions', descKey: 'training.sessions_desc', icon: 'pi pi-calendar', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view' }
       },
       {
         path: 'training/sessions/:id',
         name: 'TrainingSessionDetail',
         component: () => import('@/views/modules/training/TrainingSessionDetail.vue'),
-        meta: { title: 'Session Detail', titleKey: 'training.session_detail', descKey: 'training.sessions_desc', icon: 'pi pi-calendar', module: 'training', backRoute: '/training/sessions', backLabelKey: 'training.sessions', permission: 'training.sessions.view' }
+        meta: { title: 'Session Detail', titleKey: 'training.session_detail', descKey: 'training.sessions_desc', icon: 'pi pi-calendar', module: 'training', backRoute: '/training/sessions', backLabelKey: 'training.sessions', permission: 'training.operations.view' }
       },
       {
         path: 'training/participants',
         name: 'TrainingParticipants',
         component: () => import('@/views/modules/training/TrainingParticipants.vue'),
-        meta: { title: 'Training Participants', titleKey: 'training.participants', descKey: 'training.participants_desc', icon: 'pi pi-users', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.participants.view' }
+        meta: { title: 'Training Participants', titleKey: 'training.participants', descKey: 'training.participants_desc', icon: 'pi pi-users', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view' }
       },
       {
         path: 'training/plans',
         name: 'TrainingPlans',
         component: () => import('@/views/modules/training/TrainingPlans.vue'),
-        meta: { title: 'Training Planning', titleKey: 'training.planning', descKey: 'training.planning_desc', icon: 'pi pi-calendar-plus', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.planning.view' }
+        meta: { title: 'Training Planning', titleKey: 'training.planning', descKey: 'training.planning_desc', icon: 'pi pi-calendar-plus', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view' }
       },
       {
         path: 'training/requests',
         name: 'TrainingRequests',
         component: () => import('@/views/modules/training/TrainingRequests.vue'),
-        meta: { title: 'Training Requests', titleKey: 'training.requests', descKey: 'training.requests_desc', icon: 'pi pi-send', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.requests.view' }
+        meta: { title: 'Training Requests', titleKey: 'training.requests', descKey: 'training.requests_desc', icon: 'pi pi-send', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view' }
       },
       {
         path: 'training/needs',
         name: 'TrainingNeeds',
         component: () => import('@/views/modules/training/TrainingNeeds.vue'),
-        meta: { title: 'Training Needs', titleKey: 'training.needs', descKey: 'training.needs_desc', icon: 'pi pi-bullseye', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.needs.view' }
+        meta: { title: 'Training Needs', titleKey: 'training.needs', descKey: 'training.needs_desc', icon: 'pi pi-bullseye', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.operations.view' }
       },
       {
         path: 'training/certificates',
         name: 'TrainingCertificates',
         component: () => import('@/views/modules/training/TrainingCertificates.vue'),
-        meta: { title: 'Training Certificates', titleKey: 'training.certificates', descKey: 'training.certificates_desc', icon: 'pi pi-id-card', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.certificates.view' }
+        meta: { title: 'Training Certificates', titleKey: 'training.certificates', descKey: 'training.certificates_desc', icon: 'pi pi-id-card', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.records.view' }
       },
       {
         path: 'training/history',
         name: 'TrainingHistory',
         component: () => import('@/views/modules/training/TrainingHistory.vue'),
-        meta: { title: 'Training History', titleKey: 'training.history', descKey: 'training.history_desc', icon: 'pi pi-history', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.history.view' }
+        meta: { title: 'Training History', titleKey: 'training.history', descKey: 'training.history_desc', icon: 'pi pi-history', module: 'training', backRoute: '/training', backLabelKey: 'training.title', permission: 'training.records.view' }
       },
       {
         path: 'training/reports',
