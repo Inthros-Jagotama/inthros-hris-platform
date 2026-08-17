@@ -1,11 +1,11 @@
-= HRIS Platform — OpenAPI Comprehensive Report (v22) =
+= HRIS Platform — OpenAPI Comprehensive Report (v23) =
 
 
-**Generated:** 12 August 2026
+**Generated:** 17 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 552
-**Total Endpoints (methods):** 943
-**Total Schemas:** 627
+**Total Paths:** 693
+**Total Endpoints (methods):** 1157
+**Total Schemas:** 790
 **Total Tags:** 33
 
 > 🔗 **Index dokumentasi:** [`docs/README.md`](README.md) · **Terkait:** [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)
@@ -14,9 +14,9 @@
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 943/943 | 100% |
-| Endpoints with `description` | 943/943 | 100% |
-| Endpoints with `operationId` | 943/943 | 100% |
+| Endpoints with `summary` | 1157/1157 | 100% |
+| Endpoints with `description` | 1157/1157 | 100% |
+| Endpoints with `operationId` | 1157/1157 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -112,36 +112,40 @@ Tenant endpoints support validation for Indonesian data formats:
 | 3 | Tenant: Settings | 107 | 44 |
 | 4 | Tenant: Job Management | 96 | 40 |
 | 5 | Tenant: Workforce Intelligence & Strategic Pl... | 70 | 60 |
-| 6 | Tenant: Payroll & Compensation Engine | 47 | 24 |
-| 7 | Tenant: Time & Attendance | 40 | 24 |
-| 8 | Tenant: Employees | 36 | 23 |
-| 9 | Tenant: Competency Management | 35 | 15 |
-| 10 | Tenant: Recruitment & Onboarding (ATS) | 33 | 16 |
-| 11 | Tenant: Employee Movement & Career Management | 25 | 18 |
-| 12 | Tenant: Leave & Time Off | 25 | 14 |
-| 13 | Tenant: Career Intelligence | 22 | 12 |
-| 14 | Tenant: Organizations | 18 | 11 |
-| 15 | Tenant: Approval | 17 | 11 |
-| 16 | Tenant: Reimbursement & Claim | 15 | 7 |
-| 17 | Platform: Companies | 11 | 8 |
-| 18 | Platform: RBAC Management | 10 | 6 |
-| 19 | Platform: Packages | 9 | 6 |
-| 20 | Tenant: RBAC Management | 8 | 6 |
-| 21 | Platform: Modules | 7 | 5 |
-| 22 | Platform: Users | 6 | 3 |
-| 23 | Platform: Licenses | 5 | 2 |
-| 24 | Platform: Monitoring | 5 | 5 |
-| 25 | Health | 4 | 4 |
-| 26 | Tenant: Packages | 4 | 4 |
-| 27 | Tenant: User Accounts | 4 | 3 |
-| 28 | Tenant: Notifications | 4 | 4 |
-| 29 | Platform: Auth | 2 | 2 |
-| 30 | Public | 2 | 2 |
-| 31 | Tenant Auth | 2 | 2 |
-| 32 | Tenant: Company | 2 | 1 |
-| 33 | Recruitment | 1 | 1 |
-| 34 | Career Intelligence | 1 | 1 |
-| | **TOTAL** | **943** | **552** |
+| 6 | Tenant: Recruitment & Onboarding (ATS) | 53 | 26 |
+| 7 | Attendance | 52 | 35 |
+| 8 | Recruitment | 48 | 29 |
+| 9 | Tenant: Payroll & Compensation Engine | 45 | 23 |
+| 10 | Tenant: Time & Attendance | 40 | 24 |
+| 11 | Payroll | 38 | 29 |
+| 12 | Tenant: Employees | 36 | 23 |
+| 13 | Tenant: Competency Management | 35 | 15 |
+| 14 | Competency | 32 | 21 |
+| 15 | Tenant: Others | 27 | 23 |
+| 16 | Tenant: Employee Movement & Career Management | 25 | 18 |
+| 17 | Tenant: Leave & Time Off | 25 | 14 |
+| 18 | Tenant: Career Intelligence | 22 | 12 |
+| 19 | Tenant: Organizations | 18 | 11 |
+| 20 | Tenant: Approval | 17 | 11 |
+| 21 | Tenant: Reimbursement & Claim | 15 | 7 |
+| 22 | Platform: Companies | 11 | 8 |
+| 23 | Platform: RBAC Management | 10 | 6 |
+| 24 | Platform: Packages | 9 | 6 |
+| 25 | Tenant: RBAC Management | 8 | 6 |
+| 26 | Platform: Modules | 7 | 5 |
+| 27 | Platform: Users | 6 | 3 |
+| 28 | Platform: Licenses | 5 | 2 |
+| 29 | Platform: Monitoring | 5 | 5 |
+| 30 | Health | 4 | 4 |
+| 31 | Tenant: Packages | 4 | 4 |
+| 32 | Tenant: User Accounts | 4 | 3 |
+| 33 | Tenant: Notifications | 4 | 4 |
+| 34 | Platform: Auth | 2 | 2 |
+| 35 | Public | 2 | 2 |
+| 36 | Tenant Auth | 2 | 2 |
+| 37 | Tenant: Company | 2 | 1 |
+| 38 | Career Intelligence | 1 | 1 |
+| | **TOTAL** | **1157** | **693** |
 
 ## 2. Module Detail
 
@@ -728,9 +732,184 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}/clone` | Clone scenario | Clone an existing scenario as a new DRAFT scenario. Useful for creating variations of a simulation without affecting the original. |
 | `POST` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}/run` | Run scenario simulation | Execute a scenario simulation. Runs the scenario's parameters through the simulation engine and stores results in the scenario record. |
 
+### Tenant: Recruitment & Onboarding (ATS)
+**Description:** Recruitment & Onboarding (ATS) â€” job requisitions, candidate management, applications, interviews, and employee onboarding workflows
+**Endpoints:** 53 | **Paths:** 26
+**Methods:** DELETE=12 GET=17 POST=12 PUT=12
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/tenant/recruitment/applications` | Create job application | Submit a candidate's application to a job requisition. Candidate and requisition must exist |
+| `GET` | `/api/v1/tenant/recruitment/applications` | List job applications | Retrieve paginated list of applications, optionally filtered by requisition, candidate, or status |
+| `GET` | `/api/v1/tenant/recruitment/applications/{id}` | Get job application by ID | Retrieve application details including current status and notes |
+| `DELETE` | `/api/v1/tenant/recruitment/applications/{id}` | Delete job application | Permanently delete an application record |
+| `PUT` | `/api/v1/tenant/recruitment/applications/{id}/status` | Update application status | Update application status throughout the recruitment pipeline. Automatically updates requisition slots_filled when ACCEPTED |
+| `POST` | `/api/v1/tenant/recruitment/candidates` | Create candidate | Register a new candidate. Email must be unique across the system |
+| `GET` | `/api/v1/tenant/recruitment/candidates` | List candidates | Retrieve paginated list of candidates with optional search by name or email |
+| `GET` | `/api/v1/tenant/recruitment/candidates/{id}` | Get candidate by ID | Retrieve detailed candidate information including contact details and resume links |
+| `PUT` | `/api/v1/tenant/recruitment/candidates/{id}` | Update candidate | Update candidate profile fields. Only provided fields will be updated |
+| `DELETE` | `/api/v1/tenant/recruitment/candidates/{id}` | Delete candidate | Permanently delete a candidate record |
+| `POST` | `/api/v1/tenant/recruitment/candidates/{id}/certifications` | Create candidate certification | Add a certification to a candidate profile |
+| `GET` | `/api/v1/tenant/recruitment/candidates/{id}/certifications` | List candidate certifications | Retrieve all certifications recorded for a specific candidate |
+| `POST` | `/api/v1/tenant/recruitment/candidates/{id}/documents` | Create candidate document | Attach a document (resume, certificate, etc.) to a candidate profile |
+| `GET` | `/api/v1/tenant/recruitment/candidates/{id}/documents` | List candidate documents | Retrieve all documents attached to a specific candidate |
+| `POST` | `/api/v1/tenant/recruitment/candidates/{id}/educations` | Create candidate education | Add an education record to a candidate profile |
+| `GET` | `/api/v1/tenant/recruitment/candidates/{id}/educations` | List candidate educations | Retrieve all education records for a specific candidate |
+| `POST` | `/api/v1/tenant/recruitment/candidates/{id}/skills` | Create candidate skill | Add a skill to a candidate profile, referencing a competency from the competency master |
+| `GET` | `/api/v1/tenant/recruitment/candidates/{id}/skills` | List candidate skills | Retrieve all skills recorded for a specific candidate |
+| `POST` | `/api/v1/tenant/recruitment/candidates/{id}/work-experiences` | Create candidate work experience | Add a work experience record to a candidate profile |
+| `GET` | `/api/v1/tenant/recruitment/candidates/{id}/work-experiences` | List candidate work experiences | Retrieve all work experience records for a specific candidate |
+| `PUT` | `/api/v1/tenant/recruitment/certifications/{id}` | Update candidate certification | Update certification details. Only provided fields will be updated |
+| `DELETE` | `/api/v1/tenant/recruitment/certifications/{id}` | Delete candidate certification | Permanently remove a certification from a candidate profile |
+| `PUT` | `/api/v1/tenant/recruitment/documents/{id}` | Update candidate document | Update document metadata. Only provided fields will be updated |
+| `DELETE` | `/api/v1/tenant/recruitment/documents/{id}` | Delete candidate document | Permanently remove a document from a candidate profile |
+| `PUT` | `/api/v1/tenant/recruitment/educations/{id}` | Update candidate education | Update education details. Only provided fields will be updated |
+| `DELETE` | `/api/v1/tenant/recruitment/educations/{id}` | Delete candidate education | Permanently remove an education record from a candidate profile |
+| `POST` | `/api/v1/tenant/recruitment/employee-onboardings` | Create employee onboarding | Start onboarding for an accepted candidate. Automatically creates task items from active templates |
+| `GET` | `/api/v1/tenant/recruitment/employee-onboardings` | List employee onboardings | Retrieve paginated list of employee onboardings, optionally filtered by status |
+| `GET` | `/api/v1/tenant/recruitment/employee-onboardings/{id}` | Get employee onboarding by ID | Retrieve onboarding details including start date, buddy, and current status |
+| `PUT` | `/api/v1/tenant/recruitment/employee-onboardings/{id}` | Update employee onboarding | Update onboarding details. Setting status to COMPLETED automatically records completion timestamp |
+| `DELETE` | `/api/v1/tenant/recruitment/employee-onboardings/{id}` | Delete employee onboarding | Permanently delete an employee onboarding record and its task items |
+| `GET` | `/api/v1/tenant/recruitment/employee-onboardings/{id}/task-items` | List onboarding task items | Retrieve all task items for a specific employee onboarding, ordered by due date |
+| `POST` | `/api/v1/tenant/recruitment/interviews` | Create interview | Schedule a new interview for a job application with interviewer, stage, and time slot |
+| `GET` | `/api/v1/tenant/recruitment/interviews` | List interviews | Retrieve paginated list of interviews, optionally filtered by application or interviewer |
+| `GET` | `/api/v1/tenant/recruitment/interviews/{id}` | Get interview by ID | Retrieve interview details including score, feedback, and status |
+| `PUT` | `/api/v1/tenant/recruitment/interviews/{id}` | Update interview | Update interview schedule, score, feedback, or status. Setting status to COMPLETED automatically records completion timestamp |
+| `DELETE` | `/api/v1/tenant/recruitment/interviews/{id}` | Delete interview | Permanently delete an interview record |
+| `POST` | `/api/v1/tenant/recruitment/onboarding-task-items` | Create onboarding task item | Add a custom task item to an employee onboarding. Can optionally link to a template |
+| `PUT` | `/api/v1/tenant/recruitment/onboarding-task-items/{id}` | Update onboarding task item | Update task item details. Setting is_completed to true automatically records completion timestamp |
+| `DELETE` | `/api/v1/tenant/recruitment/onboarding-task-items/{id}` | Delete onboarding task item | Permanently delete a task item |
+| `POST` | `/api/v1/tenant/recruitment/onboarding-task-templates` | Create onboarding task template | Create a reusable task template for employee onboarding (e.g., IT Setup, Contract Signing) |
+| `GET` | `/api/v1/tenant/recruitment/onboarding-task-templates` | List onboarding task templates | Retrieve paginated list of task templates, optionally filtered by category |
+| `PUT` | `/api/v1/tenant/recruitment/onboarding-task-templates/{id}` | Update onboarding task template | Update a task template properties |
+| `DELETE` | `/api/v1/tenant/recruitment/onboarding-task-templates/{id}` | Delete onboarding task template | Permanently delete a task template |
+| `POST` | `/api/v1/tenant/recruitment/requisitions` | Create job requisition | Create a new job requisition with position details, salary range, and number of slots available |
+| `GET` | `/api/v1/tenant/recruitment/requisitions` | List job requisitions | Retrieve paginated list of job requisitions, optionally filtered by organization and status |
+| `GET` | `/api/v1/tenant/recruitment/requisitions/{id}` | Get job requisition by ID | Retrieve detailed job requisition information by UUID |
+| `PUT` | `/api/v1/tenant/recruitment/requisitions/{id}` | Update job requisition | Update job requisition fields. Only provided fields will be updated |
+| `DELETE` | `/api/v1/tenant/recruitment/requisitions/{id}` | Delete job requisition | Permanently delete a job requisition |
+| `PUT` | `/api/v1/tenant/recruitment/skills/{id}` | Update candidate skill | Update skill level or notes. Only provided fields will be updated |
+| `DELETE` | `/api/v1/tenant/recruitment/skills/{id}` | Delete candidate skill | Permanently remove a skill from a candidate profile |
+| `PUT` | `/api/v1/tenant/recruitment/work-experiences/{id}` | Update candidate work experience | Update work experience details. Only provided fields will be updated |
+| `DELETE` | `/api/v1/tenant/recruitment/work-experiences/{id}` | Delete candidate work experience | Permanently remove a work experience record from a candidate profile |
+
+### Attendance
+**Endpoints:** 52 | **Paths:** 35
+**Methods:** DELETE=6 GET=18 POST=21 PUT=7
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/tenant/attendance/business-travel-expense-categories` | Tambah kategori biaya |  |
+| `GET` | `/api/v1/tenant/attendance/business-travel-expense-categories` | Daftar kategori biaya |  |
+| `POST` | `/api/v1/tenant/attendance/business-travel-funding-methods` | Tambah metode pendanaan |  |
+| `GET` | `/api/v1/tenant/attendance/business-travel-funding-methods` | Daftar metode pendanaan |  |
+| `GET` | `/api/v1/tenant/attendance/business-travel-settlements/{settlementId}` | Detail settlement (flat lookup by settlement ID) |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels` | Buat pengajuan perjalanan dinas baru |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels` | Daftar perjalanan dinas (paginated) |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}` | Detail perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}` | Perbarui perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/activities` | Tambah aktivitas perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/activities` | Daftar aktivitas perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/activities/{activityId}` | Perbarui aktivitas perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/activities/{activityId}` | Hapus aktivitas perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/cancel` | Batalkan perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/destinations` | Tambah destinasi perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/destinations` | Daftar destinasi perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/destinations/{destinationId}` | Perbarui destinasi perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/destinations/{destinationId}` | Hapus destinasi perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/documents` | Tambah dokumen perjalanan (travel order, tiket, hotel, dst) |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/documents` | Daftar dokumen perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/documents/{documentId}` | Hapus dokumen perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/expenses` | Tambah biaya aktual perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/expenses` | Daftar biaya perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/expenses/{expenseId}` | Perbarui biaya perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/expenses/{expenseId}` | Hapus biaya perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/expenses/{expenseId}/documents` | Tambah dokumen biaya |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/fundings` | Tambah pendanaan perjalanan dinas (setelah travel APPROVED) |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/fundings` | Daftar pendanaan perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/fundings/{fundingId}` | Perbarui pendanaan perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/fundings/{fundingId}/confirm` | Konfirmasi pendanaan |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/fundings/{fundingId}/documents` | Tambah dokumen pendanaan |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/participants` | Tambah peserta perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/participants` | Daftar peserta perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/participants/{participantId}` | Perbarui peserta perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/participants/{participantId}` | Hapus peserta perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/refunds` | Daftar refund perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/refunds/{refundId}/confirm` | Konfirmasi refund |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements` | Daftar reimbursement perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements/{reimbursementId}/approve` | Setujui reimbursement |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements/{reimbursementId}/pay` | Bayar reimbursement |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements/{reimbursementId}/process` | Proses reimbursement (cek subscription modul Reimbursement) |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/schedules` | Tambah jadwal perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/schedules` | Daftar jadwal perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/schedules/{scheduleId}` | Perbarui jadwal perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/schedules/{scheduleId}` | Hapus jadwal perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/settlements` | Buat settlement perjalanan dinas (setelah travel COMPLETED) |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/settlements` | Daftar settlement perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/settlements/{settlementId}` | Detail settlement perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/settlements/{settlementId}/submit` | Submit settlement ke Central Approval |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/submit` | Submit perjalanan dinas ke Central Approval |  |
+| `GET` | `/api/v1/tenant/attendance/stats/overtime-trend` | Tren lembur per minggu (chart HR dashboard) |  |
+| `GET` | `/api/v1/tenant/attendance/stats/summary` | Ringkasan statistik absensi seluruh karyawan (HR dashboard) |  |
+
+### Recruitment
+**Endpoints:** 48 | **Paths:** 29
+**Methods:** DELETE=8 GET=16 POST=16 PUT=8
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/recruitment/analytics/summary` | Ringkasan analitik rekrutmen |  |
+| `GET` | `/api/v1/tenant/recruitment/applications/{id}/assessment` | Detail penilaian kandidat (requirement + assessment) |  |
+| `PUT` | `/api/v1/tenant/recruitment/applications/{id}/assessment` | Simpan penilaian kandidat (one-per-application) |  |
+| `GET` | `/api/v1/tenant/recruitment/applications/{id}/history` | Riwayat perubahan stage aplikasi |  |
+| `GET` | `/api/v1/tenant/recruitment/applications/{id}/match-score` | Skor kecocokan kandidat dengan requisition (advisory) |  |
+| `POST` | `/api/v1/tenant/recruitment/applications/{id}/screenings` | Tambah screening aplikasi |  |
+| `GET` | `/api/v1/tenant/recruitment/applications/{id}/screenings` | Daftar screening aplikasi |  |
+| `PUT` | `/api/v1/tenant/recruitment/assessment-participants/{id}` | Perbarui peserta assessment (status/skor/hasil) |  |
+| `DELETE` | `/api/v1/tenant/recruitment/assessment-participants/{id}` | Hapus peserta assessment |  |
+| `POST` | `/api/v1/tenant/recruitment/assessments` | Buat sesi assessment (batch) |  |
+| `GET` | `/api/v1/tenant/recruitment/assessments` | Daftar sesi assessment (paginated) |  |
+| `GET` | `/api/v1/tenant/recruitment/assessments/{id}` | Detail sesi assessment |  |
+| `PUT` | `/api/v1/tenant/recruitment/assessments/{id}` | Perbarui sesi assessment |  |
+| `DELETE` | `/api/v1/tenant/recruitment/assessments/{id}` | Hapus sesi assessment |  |
+| `POST` | `/api/v1/tenant/recruitment/assessments/{id}/participants` | Tambah peserta assessment |  |
+| `GET` | `/api/v1/tenant/recruitment/assessments/{id}/participants` | Daftar peserta assessment |  |
+| `POST` | `/api/v1/tenant/recruitment/candidates/{id}/consents` | Catat persetujuan/penolakan data kandidat |  |
+| `GET` | `/api/v1/tenant/recruitment/candidates/{id}/consents` | Riwayat persetujuan data kandidat |  |
+| `GET` | `/api/v1/tenant/recruitment/eligible-internal-candidates` | Get eligible internal candidates for target position (S-4) | Mengembalikan employee internal yang eligible untuk sebuah target position, dibaca dari Career Intelligence via interface narrow. CI menentukan eli... |
+| `DELETE` | `/api/v1/tenant/recruitment/interviewers/{id}` | Hapus interviewer dari interview |  |
+| `POST` | `/api/v1/tenant/recruitment/interviews/{id}/complete` | Tandai interview selesai |  |
+| `POST` | `/api/v1/tenant/recruitment/interviews/{id}/interviewers` | Tambah interviewer ke interview |  |
+| `GET` | `/api/v1/tenant/recruitment/interviews/{id}/interviewers` | Daftar interviewer interview |  |
+| `POST` | `/api/v1/tenant/recruitment/interviews/{id}/scorecard-items` | Tambah item scorecard interview |  |
+| `GET` | `/api/v1/tenant/recruitment/interviews/{id}/scorecard-items` | Daftar item scorecard interview |  |
+| `POST` | `/api/v1/tenant/recruitment/offers` | Buat penawaran kerja (offer) |  |
+| `GET` | `/api/v1/tenant/recruitment/offers` | Daftar penawaran kerja (paginated) |  |
+| `GET` | `/api/v1/tenant/recruitment/offers/{id}` | Detail penawaran kerja |  |
+| `PUT` | `/api/v1/tenant/recruitment/offers/{id}` | Perbarui penawaran kerja |  |
+| `DELETE` | `/api/v1/tenant/recruitment/offers/{id}` | Hapus penawaran kerja |  |
+| `POST` | `/api/v1/tenant/recruitment/offers/{id}/accept` | Terima offer (kandidat menerima) |  |
+| `POST` | `/api/v1/tenant/recruitment/offers/{id}/reject` | Tolak offer |  |
+| `POST` | `/api/v1/tenant/recruitment/offers/{id}/send` | Kirim offer ke kandidat |  |
+| `POST` | `/api/v1/tenant/recruitment/offers/{id}/submit` | Submit offer draft ke Central Approval |  |
+| `POST` | `/api/v1/tenant/recruitment/offers/{id}/withdraw` | Tarik offer |  |
+| `PUT` | `/api/v1/tenant/recruitment/requirements/{id}` | Perbarui requirement job requisition |  |
+| `DELETE` | `/api/v1/tenant/recruitment/requirements/{id}` | Hapus requirement job requisition |  |
+| `PUT` | `/api/v1/tenant/recruitment/requisition-competencies/{id}` | Perbarui kompetensi job requisition |  |
+| `DELETE` | `/api/v1/tenant/recruitment/requisition-competencies/{id}` | Hapus kompetensi job requisition |  |
+| `POST` | `/api/v1/tenant/recruitment/requisitions/{id}/competencies` | Tambah kompetensi ke job requisition |  |
+| `GET` | `/api/v1/tenant/recruitment/requisitions/{id}/competencies` | Daftar kompetensi job requisition |  |
+| `POST` | `/api/v1/tenant/recruitment/requisitions/{id}/requirements` | Tambah requirement ke job requisition |  |
+| `GET` | `/api/v1/tenant/recruitment/requisitions/{id}/requirements` | Daftar requirement job requisition |  |
+| `POST` | `/api/v1/tenant/recruitment/requisitions/{id}/submit` | Submit requisition draft ke Central Approval |  |
+| `PUT` | `/api/v1/tenant/recruitment/scorecard-items/{id}` | Perbarui item scorecard interview |  |
+| `DELETE` | `/api/v1/tenant/recruitment/scorecard-items/{id}` | Hapus item scorecard interview |  |
+| `PUT` | `/api/v1/tenant/recruitment/screenings/{id}` | Perbarui screening aplikasi |  |
+| `DELETE` | `/api/v1/tenant/recruitment/screenings/{id}` | Hapus screening aplikasi |  |
+
 ### Tenant: Payroll & Compensation Engine
-**Endpoints:** 47 | **Paths:** 24
-**Methods:** DELETE=8 GET=18 POST=12 PUT=9
+**Endpoints:** 45 | **Paths:** 23
+**Methods:** DELETE=8 GET=17 POST=11 PUT=9
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -762,8 +941,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/payroll/periods` | List payroll periods | Retrieve a paginated list of periods records. Supports filtering, sorting, and pagination parameters. |
 | `POST` | `/api/v1/tenant/payroll/periods` | Create payroll period | Create a new periods record. Validates required fields and returns the created resource with its assigned ID. |
 | `PUT` | `/api/v1/tenant/payroll/periods/{id}` | Update payroll period | Update an existing periods record by its unique ID. Accepts partial updates; only provided fields will be modified. |
-| `GET` | `/api/v1/tenant/payroll/pph21-ptkp-rates` | List PPh21 PTKP rates | Retrieve a paginated list of pph21 ptkp rates records. Supports filtering, sorting, and pagination parameters. |
-| `POST` | `/api/v1/tenant/payroll/pph21-ptkp-rates` | Create PPh21 PTKP rate | Create a new pph21 ptkp rates record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/payroll/pph21-settings` | List PPh21 settings | Retrieve a paginated list of pph21 settings records. Supports filtering, sorting, and pagination parameters. |
 | `POST` | `/api/v1/tenant/payroll/pph21-settings` | Create PPh21 setting | Create a new pph21 settings record. Validates required fields and returns the created resource with its assigned ID. |
 | `GET` | `/api/v1/tenant/payroll/pph21-settings/{id}` | Get PPh21 setting by ID | Retrieve a paginated list of pph21 settings records. Supports filtering, sorting, and pagination parameters. |
@@ -829,6 +1006,51 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/attendance/shifts/{id}` | Update a shift | Update an attendance record. |
 | `DELETE` | `/api/v1/tenant/attendance/shifts/{id}` | Delete a shift | Remove an attendance record. |
 | `GET` | `/api/v1/tenant/attendance/summary` | Get employee attendance summary | Rekap kehadiran satu karyawan dalam rentang tanggal (present, late, missing check-in/out, day off, leave, total work & overtime minutes). Query emp... |
+
+### Payroll
+**Endpoints:** 38 | **Paths:** 29
+**Methods:** DELETE=3 GET=23 POST=9 PUT=3
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/payroll/bpjs-rate-components` | Daftar komponen rate BPJS (paginated) |  |
+| `GET` | `/api/v1/tenant/payroll/employee-bank-profiles` | Daftar profil bank karyawan (paginated) |  |
+| `GET` | `/api/v1/tenant/payroll/employee-bpjs-profiles` | Daftar profil BPJS karyawan (paginated) |  |
+| `GET` | `/api/v1/tenant/payroll/employee-tax-profiles` | Daftar profil pajak karyawan (paginated) |  |
+| `POST` | `/api/v1/tenant/payroll/formula/validate` | Validasi sintaks formula |  |
+| `GET` | `/api/v1/tenant/payroll/formula/variables` | Daftar variabel built-in formula engine |  |
+| `GET` | `/api/v1/tenant/payroll/payments/{id}` | Detail pembayaran |  |
+| `POST` | `/api/v1/tenant/payroll/payments/{id}/status` | Perbarui status pembayaran |  |
+| `GET` | `/api/v1/tenant/payroll/payslips/{id}` | Detail payslip |  |
+| `POST` | `/api/v1/tenant/payroll/payslips/{id}/cancel` | Batalkan payslip |  |
+| `GET` | `/api/v1/tenant/payroll/payslips/{id}/html` | HTML payslip (untuk cetak) |  |
+| `POST` | `/api/v1/tenant/payroll/payslips/{id}/publish` | Publish payslip |  |
+| `PUT` | `/api/v1/tenant/payroll/pph21-tax-brackets/{id}` | Perbarui bracket PPh21 |  |
+| `DELETE` | `/api/v1/tenant/payroll/pph21-tax-brackets/{id}` | Hapus bracket PPh21 |  |
+| `POST` | `/api/v1/tenant/payroll/runs/{id}/calculate` | Hitung payroll run |  |
+| `GET` | `/api/v1/tenant/payroll/runs/{id}/dashboard` | Dashboard agregat payroll run |  |
+| `GET` | `/api/v1/tenant/payroll/runs/{id}/employees` | Daftar employee dalam payroll run |  |
+| `GET` | `/api/v1/tenant/payroll/runs/{id}/items` | Daftar item kalkulasi payroll run |  |
+| `POST` | `/api/v1/tenant/payroll/runs/{id}/payments` | Buat batch pembayaran run |  |
+| `GET` | `/api/v1/tenant/payroll/runs/{id}/payments` | Daftar pembayaran run |  |
+| `GET` | `/api/v1/tenant/payroll/runs/{id}/payments/export` | Export pembayaran run sebagai CSV |  |
+| `POST` | `/api/v1/tenant/payroll/runs/{id}/payslips` | Generate payslips untuk run |  |
+| `GET` | `/api/v1/tenant/payroll/runs/{id}/payslips` | Daftar payslip dalam run |  |
+| `GET` | `/api/v1/tenant/payroll/runs/{id}/reports/bank` | Laporan transfer bank run |  |
+| `GET` | `/api/v1/tenant/payroll/runs/{id}/reports/bpjs` | Laporan BPJS run |  |
+| `GET` | `/api/v1/tenant/payroll/runs/{id}/reports/detail` | Laporan detail payroll per employee per komponen |  |
+| `GET` | `/api/v1/tenant/payroll/runs/{id}/reports/summary` | Laporan ringkasan payroll run |  |
+| `GET` | `/api/v1/tenant/payroll/runs/{id}/reports/tax` | Laporan pajak (PPh21) run |  |
+| `GET` | `/api/v1/tenant/payroll/salary-employee-components` | Daftar komponen gaji per employee (paginated) |  |
+| `POST` | `/api/v1/tenant/payroll/salary-employee-components` | Tambah komponen gaji per employee (override) |  |
+| `GET` | `/api/v1/tenant/payroll/salary-employee-components/{id}` | Detail komponen gaji per employee |  |
+| `PUT` | `/api/v1/tenant/payroll/salary-employee-components/{id}` | Perbarui komponen gaji per employee |  |
+| `DELETE` | `/api/v1/tenant/payroll/salary-employee-components/{id}` | Hapus komponen gaji per employee |  |
+| `GET` | `/api/v1/tenant/payroll/salary-grade-components` | Daftar komponen gaji per grade (paginated) |  |
+| `POST` | `/api/v1/tenant/payroll/salary-grade-components` | Tambah komponen gaji per grade |  |
+| `GET` | `/api/v1/tenant/payroll/salary-grade-components/{id}` | Detail komponen gaji per grade |  |
+| `PUT` | `/api/v1/tenant/payroll/salary-grade-components/{id}` | Perbarui komponen gaji per grade |  |
+| `DELETE` | `/api/v1/tenant/payroll/salary-grade-components/{id}` | Hapus komponen gaji per grade |  |
 
 ### Tenant: Employees
 **Description:** Employee management with 8 sub-modules (addresses, emergency contacts, families, educations, experiences, documents, insurances, employments)
@@ -917,46 +1139,78 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/competency/values/{id}` | Update competency value | Update an existing values record by its unique ID. Accepts partial updates; only provided fields will be modified. |
 | `DELETE` | `/api/v1/tenant/competency/values/{id}` | Delete competency value | Delete a values record by its unique ID. This action may be reversible depending on system configuration. |
 
-### Tenant: Recruitment & Onboarding (ATS)
-**Description:** Recruitment & Onboarding (ATS) â€” job requisitions, candidate management, applications, interviews, and employee onboarding workflows
-**Endpoints:** 33 | **Paths:** 16
-**Methods:** DELETE=7 GET=12 POST=7 PUT=7
+### Competency
+**Endpoints:** 32 | **Paths:** 21
+**Methods:** DELETE=4 GET=17 POST=7 PUT=4
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
-| `POST` | `/api/v1/tenant/recruitment/applications` | Create job application | Submit a candidate's application to a job requisition. Candidate and requisition must exist |
-| `GET` | `/api/v1/tenant/recruitment/applications` | List job applications | Retrieve paginated list of applications, optionally filtered by requisition, candidate, or status |
-| `GET` | `/api/v1/tenant/recruitment/applications/{id}` | Get job application by ID | Retrieve application details including current status and notes |
-| `DELETE` | `/api/v1/tenant/recruitment/applications/{id}` | Delete job application | Permanently delete an application record |
-| `PUT` | `/api/v1/tenant/recruitment/applications/{id}/status` | Update application status | Update application status throughout the recruitment pipeline. Automatically updates requisition slots_filled when ACCEPTED |
-| `POST` | `/api/v1/tenant/recruitment/candidates` | Create candidate | Register a new candidate. Email must be unique across the system |
-| `GET` | `/api/v1/tenant/recruitment/candidates` | List candidates | Retrieve paginated list of candidates with optional search by name or email |
-| `GET` | `/api/v1/tenant/recruitment/candidates/{id}` | Get candidate by ID | Retrieve detailed candidate information including contact details and resume links |
-| `PUT` | `/api/v1/tenant/recruitment/candidates/{id}` | Update candidate | Update candidate profile fields. Only provided fields will be updated |
-| `DELETE` | `/api/v1/tenant/recruitment/candidates/{id}` | Delete candidate | Permanently delete a candidate record |
-| `POST` | `/api/v1/tenant/recruitment/employee-onboardings` | Create employee onboarding | Start onboarding for an accepted candidate. Automatically creates task items from active templates |
-| `GET` | `/api/v1/tenant/recruitment/employee-onboardings` | List employee onboardings | Retrieve paginated list of employee onboardings, optionally filtered by status |
-| `GET` | `/api/v1/tenant/recruitment/employee-onboardings/{id}` | Get employee onboarding by ID | Retrieve onboarding details including start date, buddy, and current status |
-| `PUT` | `/api/v1/tenant/recruitment/employee-onboardings/{id}` | Update employee onboarding | Update onboarding details. Setting status to COMPLETED automatically records completion timestamp |
-| `DELETE` | `/api/v1/tenant/recruitment/employee-onboardings/{id}` | Delete employee onboarding | Permanently delete an employee onboarding record and its task items |
-| `GET` | `/api/v1/tenant/recruitment/employee-onboardings/{id}/task-items` | List onboarding task items | Retrieve all task items for a specific employee onboarding, ordered by due date |
-| `POST` | `/api/v1/tenant/recruitment/interviews` | Create interview | Schedule a new interview for a job application with interviewer, stage, and time slot |
-| `GET` | `/api/v1/tenant/recruitment/interviews` | List interviews | Retrieve paginated list of interviews, optionally filtered by application or interviewer |
-| `GET` | `/api/v1/tenant/recruitment/interviews/{id}` | Get interview by ID | Retrieve interview details including score, feedback, and status |
-| `PUT` | `/api/v1/tenant/recruitment/interviews/{id}` | Update interview | Update interview schedule, score, feedback, or status. Setting status to COMPLETED automatically records completion timestamp |
-| `DELETE` | `/api/v1/tenant/recruitment/interviews/{id}` | Delete interview | Permanently delete an interview record |
-| `POST` | `/api/v1/tenant/recruitment/onboarding-task-items` | Create onboarding task item | Add a custom task item to an employee onboarding. Can optionally link to a template |
-| `PUT` | `/api/v1/tenant/recruitment/onboarding-task-items/{id}` | Update onboarding task item | Update task item details. Setting is_completed to true automatically records completion timestamp |
-| `DELETE` | `/api/v1/tenant/recruitment/onboarding-task-items/{id}` | Delete onboarding task item | Permanently delete a task item |
-| `POST` | `/api/v1/tenant/recruitment/onboarding-task-templates` | Create onboarding task template | Create a reusable task template for employee onboarding (e.g., IT Setup, Contract Signing) |
-| `GET` | `/api/v1/tenant/recruitment/onboarding-task-templates` | List onboarding task templates | Retrieve paginated list of task templates, optionally filtered by category |
-| `PUT` | `/api/v1/tenant/recruitment/onboarding-task-templates/{id}` | Update onboarding task template | Update a task template properties |
-| `DELETE` | `/api/v1/tenant/recruitment/onboarding-task-templates/{id}` | Delete onboarding task template | Permanently delete a task template |
-| `POST` | `/api/v1/tenant/recruitment/requisitions` | Create job requisition | Create a new job requisition with position details, salary range, and number of slots available |
-| `GET` | `/api/v1/tenant/recruitment/requisitions` | List job requisitions | Retrieve paginated list of job requisitions, optionally filtered by organization and status |
-| `GET` | `/api/v1/tenant/recruitment/requisitions/{id}` | Get job requisition by ID | Retrieve detailed job requisition information by UUID |
-| `PUT` | `/api/v1/tenant/recruitment/requisitions/{id}` | Update job requisition | Update job requisition fields. Only provided fields will be updated |
-| `DELETE` | `/api/v1/tenant/recruitment/requisitions/{id}` | Delete job requisition | Permanently delete a job requisition |
+| `GET` | `/api/v1/tenant/competency/employees/{employee}/gap` | Analisis gap kompetensi employee |  |
+| `GET` | `/api/v1/tenant/competency/employees/{employee}/report` | Laporan assessment employee |  |
+| `GET` | `/api/v1/tenant/competency/employees/{employee}/result` | Hasil assessment seorang employee |  |
+| `POST` | `/api/v1/tenant/competency/event-targets/{id}/raters` | Assign rater ke event target |  |
+| `GET` | `/api/v1/tenant/competency/event-targets/{id}/raters` | Daftar rater event target |  |
+| `POST` | `/api/v1/tenant/competency/event-targets/{id}/submit-approval` | Submit assessment event target untuk approval |  |
+| `GET` | `/api/v1/tenant/competency/event-targets/{id}/suggested-raters` | Saran rater (self/superior/subordinates) |  |
+| `POST` | `/api/v1/tenant/competency/indicators` | Buat indikator kompetensi |  |
+| `GET` | `/api/v1/tenant/competency/indicators` | Daftar indikator kompetensi (paginated) |  |
+| `GET` | `/api/v1/tenant/competency/indicators/{id}` | Detail indikator kompetensi |  |
+| `PUT` | `/api/v1/tenant/competency/indicators/{id}` | Perbarui indikator kompetensi |  |
+| `DELETE` | `/api/v1/tenant/competency/indicators/{id}` | Hapus indikator kompetensi |  |
+| `GET` | `/api/v1/tenant/competency/manager-assessments` | Daftar assessment bawahan (untuk manager) |  |
+| `GET` | `/api/v1/tenant/competency/my-assessments` | Daftar assessment milik saya (sebagai rater) |  |
+| `GET` | `/api/v1/tenant/competency/my-assessments/{id}` | Detail assessment saya (indikator + respons) |  |
+| `POST` | `/api/v1/tenant/competency/my-assessments/{id}/responses` | Simpan respons assessment (draft) |  |
+| `POST` | `/api/v1/tenant/competency/my-assessments/{id}/submit` | Submit assessment |  |
+| `DELETE` | `/api/v1/tenant/competency/raters/{id}` | Hapus rater |  |
+| `POST` | `/api/v1/tenant/competency/rating-scales` | Buat skala penilaian (rating scale) |  |
+| `GET` | `/api/v1/tenant/competency/rating-scales` | Daftar skala penilaian (paginated) |  |
+| `GET` | `/api/v1/tenant/competency/rating-scales/{id}` | Detail skala penilaian |  |
+| `PUT` | `/api/v1/tenant/competency/rating-scales/{id}` | Perbarui skala penilaian |  |
+| `DELETE` | `/api/v1/tenant/competency/rating-scales/{id}` | Hapus skala penilaian |  |
+| `GET` | `/api/v1/tenant/competency/reports/hr` | Laporan HR per event (distribusi & completion) |  |
+| `GET` | `/api/v1/tenant/competency/reports/manager` | Laporan manager (overview employee per event) |  |
+| `POST` | `/api/v1/tenant/competency/templates` | Buat template assessment 360 |  |
+| `GET` | `/api/v1/tenant/competency/templates` | Daftar template assessment (paginated) |  |
+| `GET` | `/api/v1/tenant/competency/templates/{id}` | Detail template assessment |  |
+| `PUT` | `/api/v1/tenant/competency/templates/{id}` | Perbarui template assessment |  |
+| `DELETE` | `/api/v1/tenant/competency/templates/{id}` | Hapus template assessment |  |
+| `GET` | `/api/v1/tenant/competency/templates/{id}/indicators` | Daftar indikator dalam template |  |
+| `PUT` | `/api/v1/tenant/competency/templates/{id}/indicators` | Set daftar indikator template |  |
+
+### Tenant: Others
+**Endpoints:** 27 | **Paths:** 23
+**Methods:** DELETE=1 GET=16 POST=7 PUT=3
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/tenant/approval/tasks/done` | Daftar task approval yang sudah diselesaikan (paginated) |  |
+| `GET` | `/api/v1/tenant/document-numbering` | Daftar setelan penomoran dokumen |  |
+| `PUT` | `/api/v1/tenant/document-numbering/{document_type}` | Perbarui format penomoran dokumen |  |
+| `GET` | `/api/v1/tenant/document-numbering/{document_type}/preview` | Preview nomor dokumen berikutnya |  |
+| `GET` | `/api/v1/tenant/document-templates` | Daftar template dokumen (paginated) |  |
+| `POST` | `/api/v1/tenant/document-templates` | Buat template dokumen |  |
+| `GET` | `/api/v1/tenant/document-templates/movement-types` | Daftar jenis movement untuk template SK |  |
+| `GET` | `/api/v1/tenant/document-templates/variables` | Daftar variabel yang tersedia untuk template |  |
+| `GET` | `/api/v1/tenant/document-templates/{id}` | Detail template dokumen |  |
+| `PUT` | `/api/v1/tenant/document-templates/{id}` | Perbarui template dokumen |  |
+| `DELETE` | `/api/v1/tenant/document-templates/{id}` | Hapus template dokumen |  |
+| `POST` | `/api/v1/tenant/document-templates/{id}/activate` | Aktifkan template |  |
+| `POST` | `/api/v1/tenant/document-templates/{id}/deactivate` | Nonaktifkan template |  |
+| `POST` | `/api/v1/tenant/document-templates/{id}/preview` | Preview template (render PDF) |  |
+| `GET` | `/api/v1/tenant/document-templates/{id}/versions` | Daftar versi template |  |
+| `POST` | `/api/v1/tenant/document-templates/{id}/versions` | Buat versi template baru |  |
+| `GET` | `/api/v1/tenant/document-templates/{id}/versions/{versionId}` | Detail versi template |  |
+| `POST` | `/api/v1/tenant/employee-movements/contracts/{id}/generate-document` | Generate PDF Perjanjian Kerja dari template aktif |  |
+| `GET` | `/api/v1/tenant/employee-movements/contracts/{id}/generated-documents` | Daftar dokumen kontrak yang sudah digenerate |  |
+| `POST` | `/api/v1/tenant/employee-movements/movements/{id}/generate-document` | Generate PDF SK Movement dari template aktif |  |
+| `GET` | `/api/v1/tenant/employee-movements/movements/{id}/generated-documents` | Daftar dokumen SK yang sudah digenerate |  |
+| `GET` | `/api/v1/tenant/employees/settings/sensitive-fields` | Daftar setelan field sensitif (enkripsi at-rest) |  |
+| `PUT` | `/api/v1/tenant/employees/settings/sensitive-fields/{fieldKey}` | Aktifkan/nonaktifkan enkripsi field sensitif |  |
+| `GET` | `/api/v1/tenant/employees/stats/employment-status` | Statistik jumlah karyawan per status kepegawaian |  |
+| `GET` | `/api/v1/tenant/employees/stats/gender` | Statistik jumlah karyawan per jenis kelamin |  |
+| `GET` | `/api/v1/tenant/job-management/dashboard` | Dashboard ringkasan master data Job Management |  |
+| `GET` | `/api/v1/tenant/leave/reports/on-leave-today` | Jumlah karyawan yang sedang cuti hari ini |  |
 
 ### Tenant: Employee Movement & Career Management
 **Description:** Employee career movements management including promotions, demotions, mutations, contract extensions (PKWT), retirements, offboarding, and employment contract management
@@ -1339,14 +1593,6 @@ Tenant endpoints support validation for Indonesian data formats:
 |---|---|---|---|
 | `GET` | `/api/v1/tenant/companies/me` | Get current company detail | Retrieve the profile of the company the authenticated tenant user belongs to. Company is resolved from the tenant context (X-Tenant-ID / JWT claims). |
 | `PUT` | `/api/v1/tenant/companies/me` | Update current company information | Update the tenant's own company profile (email, phone, address, NPWP, NIB). Company is resolved from the tenant context; name/subdomain/domain are ... |
-
-### Recruitment
-**Endpoints:** 1 | **Paths:** 1
-**Methods:** GET=1
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/tenant/recruitment/eligible-internal-candidates` | Get eligible internal candidates for target position (S-4) | Mengembalikan employee internal yang eligible untuk sebuah target position, dibaca dari Career Intelligence via interface narrow. CI menentukan eli... |
 
 ### Career Intelligence
 **Endpoints:** 1 | **Paths:** 1

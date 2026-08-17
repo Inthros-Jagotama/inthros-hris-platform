@@ -162,16 +162,16 @@ hris-platform/
 │   │   │   ├── employee/             #   Employee CRUD + 8 sub-modules
 │   │   │   ├── jobmanagement/        #   Job Management (18 entities)
 │   │   │   ├── competency/           #   Competency Management (7 entities)
-│   │   │   ├── employeemovement/     #   Employee Movement & Career Management (6 entities, 25 endpoints, 150 tests)
-│   │   │   ├── attendance/           #   Time & Attendance (11 entities, 40 endpoints, 146 tests)
-│   │   │   ├── approval/             #   Approval Engine (6 entities, 17 endpoints, 105 tests)
-│   │   │   ├── payroll/              #   Payroll & Compensation Engine (21 entities, 47 endpoints)
-│   │   │   ├── leave/                #   Leave & Time Off (7 entities, 25 endpoints, 79 tests)
+│   │   │   ├── employeemovement/     #   Employee Movement & Career Management (6 entities, 29 endpoints, 150 tests)
+│   │   │   ├── attendance/           #   Time & Attendance (11 entities, 92 endpoints, 146 tests)
+│   │   │   ├── approval/             #   Approval Engine (6 entities, 18 endpoints, 105 tests)
+│   │   │   ├── payroll/              #   Payroll & Compensation Engine (21 entities, 83 endpoints)
+│   │   │   ├── leave/                #   Leave & Time Off (7 entities, 26 endpoints, 79 tests)
 │   │   │   ├── performance/          #   Performance Management (17 entities, 147 endpoints, 125 tests)
-│   │   │   ├── recruitment/          #   Recruitment & Onboarding ATS (7 entities, 33 endpoints, 75 tests)
+│   │   │   ├── recruitment/          #   Recruitment & Onboarding ATS (7 entities, 101 endpoints, 75 tests)
 │   │   │   ├── training/            #   Training & Development (28 entities, 123 endpoints, 71 tests)
-│   │   │   ├── careerintelligence/   #   Career Intelligence & Talent Management (5 entities, 21 endpoints, 66 tests)
-│   │   │   ├── workforceintelligence/#   Workforce Intelligence & Strategic Planning (7 entities, 69 endpoints, 112 tests)
+│   │   │   ├── careerintelligence/   #   Career Intelligence & Talent Management (5 entities, 23 endpoints, 66 tests)
+│   │   │   ├── workforceintelligence/#   Workforce Intelligence & Strategic Planning (7 entities, 70 endpoints, 112 tests)
 │   │   │   ├── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints, 67 tests)
 │   │   │   └── setting/              #   Settings — 19 reference CRUDs (Zones, Provinces, Regencies, Districts, Villages, Educations, Education Majors, Religions, MaritalStatuses, RelationshipTypes, Banks, EmploymentStatuses, Nationalities, JobFamilies, SalaryGrades, TER, PTKP, Insurances, Company Holidays)
 │   │   └── pkg/                      # Shared Kernel│       │   ├── config/               # Viper configuration loader
@@ -1813,8 +1813,8 @@ POST /api/v1/platform/companies
 | **Job Management** | ✅ **Completed** | 18 GORM entities: Titles, Subs, Values, Objectives, Identifications, Responsibilities, Education Experiences, HR/Operational Authorities, Working Activities/Risks, Relationships, Subordinate Controls, Assets, Financials, Potency Competencies, Scores, Competency Groups |
 | **Competency Management** | ✅ **Completed** | 7 GORM entities: Competencies, CompetenceValues (legacy), CompetencyValues (structured), CompetencyEvents, CompetencyEventTargets, CompetencyScores, CompetencyScoreDetails |
 | **RBAC Management (Database-Backed)** | ✅ **Completed** | 4 default roles with hierarchy, 13 seeded resources (70+ permissions), CRUD API (10 endpoints), enforcer auto-reload, **80+ unit tests** |
-| **Employee Movement & Career Management** | ✅ **Completed** | 2 entities (EmployeeMovement, EmployeeContract) with 8 movement types, contract extension chain, 3-step approval flow (draft→approved→executed), **58 unit tests**, 15 OpenAPI endpoints |
-| **Approval Engine** | ✅ **Completed (24 Juli 2026)** | **5 GORM entities**: ApprovalFlow, ApprovalFlowStep, ApprovalInstance, ApprovalAction, ApprovalTask. Multi-step workflow engine dengan flexible approval flows. **67 unit tests** (25 repository + 25 service + 14 handler + 3 helpers). **15 endpoints** — 3 approval modes (ANY_ONE, ALL, N_OF_M), 3 approver types (USER, ROLE, SUPERVISOR), instance tracking & task management.
+| **Employee Movement & Career Management** | ✅ **Completed** | 2 entities (EmployeeMovement, EmployeeContract) with 8 movement types, contract extension chain, 3-step approval flow (draft→approved→executed), **58 unit tests**, 29 OpenAPI endpoints |
+| **Approval Engine** | ✅ **Completed (24 Juli 2026)** | **5 GORM entities**: ApprovalFlow, ApprovalFlowStep, ApprovalInstance, ApprovalAction, ApprovalTask. Multi-step workflow engine dengan flexible approval flows. **67 unit tests** (25 repository + 25 service + 14 handler + 3 helpers). **18 endpoints** — 3 approval modes (ANY_ONE, ALL, N_OF_M), 3 approver types (USER, ROLE, SUPERVISOR), instance tracking & task management.
   - **Flows**: CRUD approval flows, soft-delete, module-based filtering
   - **Steps**: Ordered step management per flow (auto-increment step_order)
   - **Instances**: Create approval instances for any module/document, with status workflow PENDING→APPROVED/REJECTED/CANCELLED
@@ -1823,16 +1823,16 @@ POST /api/v1/platform/companies
 | **Payroll & Compensation Engine** | ✅ **Completed (24 Juli 2026)** | **21 GORM entities**: SalaryComponent, PayrollPeriod, PayrollRun, BpjsSetting, BpjsRateComponent, Pph21Setting, Pph21PtkpRate, Pph21TaxBracket, EmployeePayrollProfile, EmployeeBankProfile, EmployeeBpjsProfile, EmployeeTaxProfile, PayrollRunEmployee, PayrollRunItem, PayrollPayslip, Pph21CalculationLog, dan lainnya. Full CRUD (Create/Read/Update/Delete) untuk seluruh entity. **34 unit tests** (13 repository + 21 service).
   - **BPJS Indonesia**: BPJS Settings & Rate Components (Kesehatan & Ketenagakerjaan)
   - **PPh21**: Settings, Tax Brackets, PTKP Rates, Calculation Logs
-  - **Payroll Run** |
-| **Performance Management** | ✅ **Completed (31 Juli 2026)** | **15 GORM entities** (7 KPI + 8 OKR): PerformancePeriod, PerformancePerspective, PerformanceTemplate, PerformanceIndicator, PerformanceEvaluation, PerformanceEvaluationDetail, PerformanceTarget, OKRTemplate, OKRObjective, OKRKeyResult, OKREvaluation, OKREvaluationDetail, OKRProgress, OKRComment, OKRAttachment. KPI (Balanced Scorecard) & OKR framework dengan period-based evaluations, status workflow (DRAFT → PLAN_SUBMITTED → PLAN_APPROVED → ACTUAL_SUBMITTED → ACTUAL_APPROVED → COMPLETED), dan dashboard per role (employee/manager/HR). **55 unit tests** (14 repository + 24 service + 17 handler). **117 endpoints** — 17 master data (periods, ratings, indicator-formulas, logs) + 58 KPI (`/performance/kpi/*`) + 42 OKR (`/performance/okr/*`). Full OpenAPI documentation terintegrasi. |
-| **Recruitment & Onboarding ATS** | ✅ **Completed (31 Juli 2026)** | **7 GORM entities**: Requisition, Candidate, Application, Interview, InterviewResult, OnboardingTask, OnboardingChecklist. End-to-end hiring pipeline: job req → candidate sourcing → application → interview → offer → onboarding. **66 unit tests** (27 repository + 23 service + 16 handler). **33 endpoints** across 7 resource groups. Full ATS workflow with status tracking (OPEN→IN_PROGRESS→FILLED→CANCELLED). |: Periods, Runs (dengan status workflow DRAFT→CALCULATED→REVIEWED→APPROVED→LOCKED), Run Employees, Items, Payslips
-  - **OpenAPI**: **23 path groups** (~46 endpoints), 21 request schemas, 22 response schemas (total 153 schemas) — versi 1.6.0 |
-| **Time & Attendance** | ✅ **Completed (26 Juli 2026)** | **10 GORM entities**: Company Settings, Company Shifts, Employee Shifts, Locations (Geofence), Device Captures, Face Captures, Events (Check-in/out), Sessions (Daily Work), Overtime Requests, Exempt Positions. Full CRUD untuk 8 sub-entities. **83 unit tests** (37 repo + 25 service + 21 handler). **30 endpoints**. OpenAPI docs enhanced — versi 1.6.3 |
-| **Leave & Time Off** | ✅ **Completed (26 Juli 2026)** | **6 GORM entities**: LeaveTypes, LeaveAccrualPolicies, LeaveReasons, LeaveRequests, LeaveRequestDetails, EmployeeLeaveBalances. Full CRUD untuk 5 sub-entities. **38 unit tests** (14 repo + 12 service + 12 handler). **23 endpoints**. |
+  - **Payroll Run**: Periods, Runs (status workflow DRAFT→CALCULATED→REVIEWED→APPROVED→LOCKED), Run Employees, Items, Payslips
+  - **OpenAPI**: **83 endpoints** terintegrasi — periods, runs, payslips, payments + export, reports (summary/detail/bpjs/tax/bank), salary grade & employee components, BPJS/PPh21 settings & brackets |
+| **Performance Management** | ✅ **Completed (31 Juli 2026)** | **15 GORM entities** (7 KPI + 8 OKR): PerformancePeriod, PerformancePerspective, PerformanceTemplate, PerformanceIndicator, PerformanceEvaluation, PerformanceEvaluationDetail, PerformanceTarget, OKRTemplate, OKRObjective, OKRKeyResult, OKREvaluation, OKREvaluationDetail, OKRProgress, OKRComment, OKRAttachment. KPI (Balanced Scorecard) & OKR framework dengan period-based evaluations, status workflow (DRAFT → PLAN_SUBMITTED → PLAN_APPROVED → ACTUAL_SUBMITTED → ACTUAL_APPROVED → COMPLETED), dan dashboard per role (employee/manager/HR). **55 unit tests** (14 repository + 24 service + 17 handler). **147 endpoints** — 17 master data (periods, ratings, indicator-formulas, logs) + 80 KPI (`/performance/kpi/*`) + 50 OKR (`/performance/okr/*`). Full OpenAPI documentation terintegrasi. |
+| **Recruitment & Onboarding ATS** | ✅ **Completed (31 Juli 2026)** | **7 GORM entities**: Requisition, Candidate, Application, Interview, InterviewResult, OnboardingTask, OnboardingChecklist. End-to-end hiring pipeline: job req → candidate sourcing → application → interview → offer → onboarding. **66 unit tests** (27 repository + 23 service + 16 handler). **101 endpoints** across 7 resource groups (+ requirements, competencies, offers workflow, consents, screenings, assessments, scorecards). Full ATS workflow with status tracking (OPEN→IN_PROGRESS→FILLED→CANCELLED). |
+| **Time & Attendance** | ✅ **Completed (26 Juli 2026)** | **10 GORM entities**: Company Settings, Company Shifts, Employee Shifts, Locations (Geofence), Device Captures, Face Captures, Events (Check-in/out), Sessions (Daily Work), Overtime Requests, Exempt Positions. Full CRUD untuk 8 sub-entities. **83 unit tests** (37 repo + 25 service + 21 handler). **92 endpoints** (termasuk Business Travel, overtime & stats). OpenAPI docs enhanced — versi 1.6.3 |
+| **Leave & Time Off** | ✅ **Completed (26 Juli 2026)** | **6 GORM entities**: LeaveTypes, LeaveAccrualPolicies, LeaveReasons, LeaveRequests, LeaveRequestDetails, EmployeeLeaveBalances. Full CRUD untuk 5 sub-entities. **38 unit tests** (14 repo + 12 service + 12 handler). **26 endpoints**. |
 | **Reimbursement & Claim** | ✅ **Completed (30 Juli 2026)** | **3 GORM entities**: ReimbursementType, ReimbursementRequest, ReimbursementItem. Multi-step status flow (DRAFT->SUBMITTED->APPROVED->PAID). **48 unit tests** (18 repo + 20 service + 16 handler). **15 OpenAPI endpoints**. Approval integration via Approval Engine. |
-| **Training & Development Management** | ✅ **Completed (1 Agustus 2026)** | **7 GORM entities**: TrainingCategory, TrainingCourse, TrainingSession, TrainingParticipant, TrainingMaterial, TrainingEvaluation, TrainingCertificate. Full CRUD untuk 7 resource groups dengan validasi (quota checks, FK existence, session status). **31 unit tests** (14 repository + 9 service + 8 handler). **35 endpoints** — categories, courses, sessions (with status update), participants, materials, evaluations, certificates. Migration files (016_training) untuk MySQL & Postgres. |
-| **Workforce Intelligence & Strategic Planning** | ✅ **Completed (25 Juli 2026)** | **7 GORM entities**: WorkforcePlanningHeadcount, WorkforceForecast, WorkforceKPI, WorkforceAnalyticsCache, WorkforceScenario, WorkforceRiskIndicator, WorkforceHealthScore. **108 unit tests** (31 repo + 41 service + 36 handler). **68 endpoints** — Planning (12), Analytics (9), Risk (8), Executive (8), Scenarios (7), People Analytics (7), Cost (5), Capacity (4), Health (5), KPI (3). Migration files (017_workforce_intelligence) untuk MySQL & Postgres. |
-| **Career Intelligence & Talent Management** | ✅ **Completed (1 September 2026)** | **4 GORM entities**: CareerTalentMap, CareerInterest, CareerPath, CareerSuccessionPlan. **65 unit tests** (23 repo + 20 service + 22 handler). **19 endpoints** — 9-box talent mapping (7), career interests (3), career paths (4), succession plans (5). OpenAPI docs (19 endpoints, 16 schemas, 24th tag). Migration files (018_career_intelligence) untuk MySQL & Postgres. |
+| **Training & Development Management** | ✅ **Completed (1 Agustus 2026)** | **7 GORM entities**: TrainingCategory, TrainingCourse, TrainingSession, TrainingParticipant, TrainingMaterial, TrainingEvaluation, TrainingCertificate. Full CRUD untuk 7 resource groups dengan validasi (quota checks, FK existence, session status). **31 unit tests** (14 repository + 9 service + 8 handler). **123 endpoints** — P0 core (categories, courses, sessions, participants, materials, evaluations, certificates), P1 planning & governance (plans, needs, requests, mandatories), P2 advanced (evaluation forms, effectiveness, certifications, history, reports). Migration files (016_training) untuk MySQL & Postgres. |
+| **Workforce Intelligence & Strategic Planning** | ✅ **Completed (25 Juli 2026)** | **7 GORM entities**: WorkforcePlanningHeadcount, WorkforceForecast, WorkforceKPI, WorkforceAnalyticsCache, WorkforceScenario, WorkforceRiskIndicator, WorkforceHealthScore. **108 unit tests** (31 repo + 41 service + 36 handler). **70 endpoints** — Planning, Analytics, Risk, Executive, Scenarios, People Analytics, Cost, Capacity, Health, KPI, quality-of-hire & projections. Migration files (017_workforce_intelligence) untuk MySQL & Postgres. |
+| **Career Intelligence & Talent Management** | ✅ **Completed (1 September 2026)** | **4 GORM entities**: CareerTalentMap, CareerInterest, CareerPath, CareerSuccessionPlan. **65 unit tests** (23 repo + 20 service + 22 handler). **23 endpoints** — 9-box talent mapping, career interests, career paths + gap analysis, succession plans + gaps. OpenAPI docs (23 endpoints, 24th tag). Migration files (018_career_intelligence) untuk MySQL & Postgres. |
 
 ### Modul Operasional & Siklus Karier (Planned 🗓️)
 
@@ -1851,7 +1851,7 @@ POST /api/v1/platform/companies
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
 | ✅ | Project completion dashboard (25 modules — 19 tenant + 6 platform, 1547 tests, 199 tables) | `docs/project-completion-dashboard.md` |
-| ✅ | OpenAPI comprehensive report (943 endpoints, 552 paths, 627 schemas, 33 tags) | `docs/openapi-report.md` |
+| ✅ | OpenAPI comprehensive report (1157 endpoints, 693 paths, 790 schemas, 33 tags) | `docs/openapi-report.md` |
 | ✅ | Go module architecture report (199 entities, 961 service methods, 1547 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
@@ -1945,7 +1945,7 @@ POST /api/v1/platform/companies
 
 | # | Item | File |
 |---|------|------|
-| ✅ | OpenAPI 3.0 JSON specification (**943 endpoints**, 552 paths, 627 schemas, 33 tags) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 JSON specification (**1157 endpoints**, 693 paths, 790 schemas, 33 tags) | `internal/pkg/docs/openapi.json` |
 | ✅ | Scalar UI served at `/docs` (interactive documentation) | `internal/pkg/docs/scalar.go` |
 | ✅ | OpenAPI spec served at `/openapi.json` | `internal/pkg/docs/scalar.go` |
 
@@ -2016,7 +2016,7 @@ gorm.io/gorm v1.30.0                      # ORM
 | ✅ | 8 sub-modules (Addresses, Emergency Contacts, Families, Educations, Experiences, Documents, Insurances, Employments) | `handler.go`, `service.go`, `repository.go` |
 | ✅ | Request/Response DTOs with validation (oneof, required, email, max) | `dto.go` |
 | ✅ | Paginated List response | `service.go` |
-| ✅ | Routes registration (30+ nested endpoints) | `routes.go` |
+| ✅ | Routes registration (40 endpoints) | `routes.go` |
 | ✅ | Module registration (Module SDK compliance) | `module.go` |
 | ✅ | Context-driven tenant DB resolver | `module.go` |
 | ✅ | AutoMigrate for 9 models during tenant provisioning | `module.go` |
@@ -2030,11 +2030,11 @@ gorm.io/gorm v1.30.0                      # ORM
 | ✅ | Full CRUD for all 18 entities | `handler.go`, `service.go`, `repository.go` |
 | ✅ | Request/Response DTOs with validation for all 18 entities | `dto.go` |
 | ✅ | Paginated List responses for list endpoints | `service.go` |
-| ✅ | Routes registration (36+ endpoints) | `routes.go` |
+| ✅ | Routes registration (97 endpoints) | `routes.go` |
 | ✅ | Module registration (Module SDK compliance) | `module.go` |
 | ✅ | Context-driven tenant DB resolver | `module.go` |
 | ✅ | SQLite-integrated unit tests (74 tests) | `*_test.go` |
-| ✅ | OpenAPI 3.0 documentation (35 schemas + 36 endpoints) | `internal/pkg/docs/openapi.json` |
+| ✅ | OpenAPI 3.0 documentation (23 schemas + 97 endpoints) | `internal/pkg/docs/openapi.json` |
 | ✅ | RBAC permission: `jobmanagement.*` for company_admin | `internal/pkg/authz/rbac.go` |
 
 ### 🏛️ Tenant Module — Competency Management ✅
@@ -2045,7 +2045,7 @@ gorm.io/gorm v1.30.0                      # ORM
 | ✅ | Full CRUD for all 7 entities: Competencies, CompetenceValues (legacy), CompetencyValues (structured), CompetencyEvents, CompetencyEventTargets, CompetencyScores, CompetencyScoreDetails | `handler.go`, `service.go`, `repository.go` |
 | ✅ | Request/Response DTOs with validation (required, oneof, max) | `dto.go` |
 | ✅ | Paginated List responses for all list endpoints | `service.go` |
-| ✅ | Routes registration (35 endpoints) | `routes.go` |
+| ✅ | Routes registration (67 endpoints) | `routes.go` |
 | ✅ | Module registration (Module SDK compliance) | `module.go` |
 | ✅ | Context-driven tenant DB resolver | `module.go` |
 | ✅ | AutoMigrate for 7 models during tenant provisioning | `module.go` |
@@ -2145,7 +2145,7 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 | [`docs/database-schema.md`](docs/database-schema.md) | Struktur database & ERD — Platform DB (11 tabel) + Tenant DB (173 tabel), relasi FK, konvensi kolom |
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap (satu-satunya dokumen arsitektur) |
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
-| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (report v22, spec 1.6.3 — 943 endpoints, 552 paths, 627 schemas, 33 tags) |
+| [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (report v23, spec 1.6.3 — 1157 endpoints, 693 paths, 790 schemas, 33 tags) |
 | [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (137 entities, 622 service methods, 1265 tests) |
 | [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (25 modules, 1547 tests, 199 tables) |
 | [`docs/panduan-uiux-hris-enterprise.md`](docs/panduan-uiux-hris-enterprise.md) | Standar UI/UX enterprise (modal-first, high-density, prompt AI, warna badge) |

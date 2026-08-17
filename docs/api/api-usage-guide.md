@@ -5,7 +5,7 @@
 
 Panduan praktis **cara menggunakan API** HRIS Platform: dari menjalankan server, autentikasi, format request/response, sampai contoh pemanggilan end-to-end (curl).
 
-> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 943 endpoint + skema, lihat:
+> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 1157 endpoint + skema, lihat:
 > - [`docs/openapi-report.md`](../openapi-report.md) — laporan komprehensif per modul
 > - `backend/internal/pkg/docs/openapi.json` — OpenAPI 3.0 spec (sumber kebenaran)
 
@@ -115,7 +115,7 @@ Setelah server jalan, dokumentasi API tersedia di:
 |---|---|
 | `http://localhost:8080/docs` | **Scalar UI** — explore & try endpoint langsung dari browser |
 | `http://localhost:8080/openapi.json` | OpenAPI 3.0 spec mentah (JSON) |
-| `docs/openapi-report.md` | Laporan markdown statis (943 endpoint, 552 paths, 627 schemas, 33 tag) |
+| `docs/openapi-report.md` | Laporan markdown statis (1157 endpoint, 693 paths, 790 schemas, 33 tag) |
 
 ---
 
@@ -484,6 +484,9 @@ curl -X POST http://localhost:8080/api/v1/tenant/employees \
 | Approval Engine | `GET/POST /api/v1/tenant/approval/flows`, `GET /api/v1/tenant/approval/available-modules`, `POST /api/v1/tenant/approval/instances/:id/actions` |
 | Employee Movement | `GET/POST /api/v1/tenant/employee-movements/movements`, `POST .../movements/:id/submit`, `.../:id/execute`, `GET .../employees/:employeeId/career-history`, `.../movement-eligibility`, `.../promotion-eligibility`, `GET .../reports/movements`, `.../reports/contracts`, `.../dashboard` |
 | Attendance | `GET/POST /api/v1/tenant/attendance/shifts`, `.../locations`, `.../events`, `GET .../sessions`, `.../calendar`, `.../summary`, `.../reports/sessions`, `POST/GET .../corrections`, `POST .../overtime-requests`, `.../overtime-requests/assign`, `.../overtime-requests/:id/actual`, `GET .../overtime-requests/assignable-employees` |
+| Attendance — Business Travel | `POST/GET/PUT/DELETE /api/v1/tenant/attendance/business-travels`, `.../business-travels/:id/submit`, `.../cancel`, `.../participants`, `.../destinations`, `.../activities`, `.../schedules`, `.../fundings`, `.../expenses`, `.../settlements`, `.../refunds`, `.../reimbursements`, `GET/POST .../business-travel-funding-methods`, `.../business-travel-expense-categories`, `GET .../stats/summary`, `.../stats/overtime-trend` |
+| Document Templates | `GET/POST /api/v1/tenant/document-templates`, `GET .../movement-types`, `.../variables`, `GET/PUT/DELETE .../{id}`, `POST .../{id}/preview`, `.../activate`, `.../deactivate`, `GET/POST .../{id}/versions`, `GET .../{id}/versions/{versionId}` |
+| Document Numbering | `GET/PUT /api/v1/tenant/document-numbering`, `PUT .../{document_type}`, `GET .../{document_type}/preview` |
 | Notification | `GET /api/v1/tenant/notifications`, `.../unread-count`, `PATCH .../:id/read`, `POST .../read-all` |
 | Reimbursements | `GET/POST /api/v1/tenant/reimbursements/types`, `.../requests`, `PUT .../requests/{id}/status`, `GET/POST .../requests/{requestId}/items` |
 | User Accounts | `GET /api/v1/tenant/user-accounts/me`, `POST .../employees/:employeeId`, `GET .../employees/:employeeId`, `POST .../employees/:employeeId/resend` |
