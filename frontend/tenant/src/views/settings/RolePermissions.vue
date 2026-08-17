@@ -52,7 +52,7 @@
             <thead>
               <tr class="text-left">
                 <th class="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300" style="width:220px">{{ t('rbac.submenu') }}</th>
-                <th v-for="act in groupActions(group)" :key="act" class="px-2 py-2 text-xs text-center font-medium text-gray-600 dark:text-gray-300" style="width:90px">{{ act }}</th>
+                <th v-for="act in groupActions(group)" :key="act" class="px-2 py-2 text-xs text-center font-medium text-gray-600 dark:text-gray-300" style="width:90px">{{ actionLabel(act) }}</th>
               </tr>
             </thead>
             <tbody>
@@ -139,6 +139,12 @@ function submenuLabel(resource, submenu) {
 function descriptionLabel(resource, submenu) {
   const key = `rbac.descriptions.${resource}.${submenu || '_module'}`
   return t(key) !== key ? t(key) : ''
+}
+
+// Label bilingual nama aksi/kolom (rbac.actions.<action>) — fallback ke slug.
+function actionLabel(action) {
+  const key = `rbac.actions.${action}`
+  return t(key) !== key ? t(key) : action
 }
 
 const filterQuery = ref('')
