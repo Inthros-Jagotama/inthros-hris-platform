@@ -3947,7 +3947,17 @@
     "field_name": "Field",
     "module": "Module",
     "encryption_enabled": "Encrypt at rest",
-    "updated_toast": "Setting updated successfully"
+    "updated_toast": "Setting updated successfully",
+    "fields": {
+      "employee.nik": "Employee NIK",
+      "employee.passport": "Employee Passport",
+      "employee.phone_number": "Employee Phone Number",
+      "employee.email": "Employee Email",
+      "employee_family.nik": "Family Member NIK",
+      "employee_bank_account.account_number": "Bank Account Number",
+      "employee_bank_account.account_name": "Bank Account Name",
+      "emergency_contact.phone_number": "Emergency Contact Phone Number"
+    }
   },
   "company_holidays": {
     "title": "Company Holidays",

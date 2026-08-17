@@ -18,7 +18,7 @@
       </template>
       <Column field="field_key" :header="t('sensitive_field.field_name')" sortable>
         <template #body="{ data }">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.field_key }}</span>
+          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ fieldLabel(data.field_key) }}</span>
         </template>
       </Column>
       <Column :header="t('sensitive_field.encryption_enabled')" style="width:160px">
@@ -61,6 +61,12 @@ const skeletonColumns = [
   { type: 'text', width: 'w-56', headerWidth: 'w-24' },
   { type: 'tag', width: 'w-16', headerWidth: 'w-20' }
 ]
+
+// Label bilingual field (sensitive_field.fields.<field_key>) — fallback ke slug.
+function fieldLabel(fieldKey) {
+  const key = `sensitive_field.fields.${fieldKey}`
+  return t(key) !== key ? t(key) : fieldKey
+}
 
 async function loadSettings() {
   loading.value = true

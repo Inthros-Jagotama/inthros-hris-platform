@@ -3947,7 +3947,17 @@
     "field_name": "Field",
     "module": "Modul",
     "encryption_enabled": "Enkripsi saat disimpan",
-    "updated_toast": "Setting berhasil diperbarui"
+    "updated_toast": "Setting berhasil diperbarui",
+    "fields": {
+      "employee.nik": "NIK Karyawan",
+      "employee.passport": "Paspor Karyawan",
+      "employee.phone_number": "No. Telepon Karyawan",
+      "employee.email": "Email Karyawan",
+      "employee_family.nik": "NIK Anggota Keluarga",
+      "employee_bank_account.account_number": "No. Rekening Bank",
+      "employee_bank_account.account_name": "Nama Rekening Bank",
+      "emergency_contact.phone_number": "No. Telepon Kontak Darurat"
+    }
   },
   "company_holidays": {
     "title": "Hari Libur Perusahaan",
