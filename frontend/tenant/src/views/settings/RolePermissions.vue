@@ -284,7 +284,6 @@ async function handleSave() {
     const ids = Object.keys(selected.value).filter(k => selected.value[k])
     await api.put(`/api/v1/tenant/rbac/roles/${roleId}/permissions`, { permission_ids: ids })
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('rbac.permissions_updated'), life: 3000 })
-    router.push('/settings/rbac')
   } catch (e) {
     toast.add({ severity: 'error', summary: t('message.error'), detail: e.response?.data?.error?.message || t('message.operation_failed'), life: 4000 })
   } finally {
