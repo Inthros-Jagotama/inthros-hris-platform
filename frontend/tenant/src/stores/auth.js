@@ -202,6 +202,20 @@ export function useAuth() {
     return false
   }
 
+  // hasExactPermission — sama seperti hasPermission tapi TANPA fallback
+  // module-covers-submenu. Dipakai untuk submenu admin-config yang sengaja
+  // harus terpisah dari permission module-levelnya (mis. "approval.settings"
+  // tidak boleh otomatis terpenuhi oleh "approval.view", karena hampir semua
+  // role — termasuk Employee default — punya "approval.view" untuk melihat
+  // tugas approval sehari-hari, bukan untuk mengelola alur persetujuan).
+  function hasExactPermission(required) {
+    if (!required) return true
+    const perms = state.permissions
+    if (!Array.isArray(perms) || perms.length === 0) return true
+    if (perms.includes('*')) return true
+    return perms.includes(required)
+  }
+
   function initAuth() {
     if (state.accessToken) {
       api.defaults.headers.common['Authorization'] = `Bearer ${state.accessToken}`
@@ -210,5 +224,5 @@ export function useAuth() {
 
   initAuth()
 
-  return { state, login, refreshToken, logout, hasPermission, setCompany }
+  return { state, login, refreshToken, logout, hasPermission, hasExactPermission, setCompany }
 }

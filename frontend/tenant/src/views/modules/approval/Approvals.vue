@@ -7,7 +7,7 @@
         </span>
         <Button icon="pi pi-refresh" size="small" text severity="secondary" @click="loadTasks" />
       </div>
-      <Button v-if="hasPermission('approval.settings.view')" :label="t('approval.flows')" icon="pi pi-sitemap" size="small" @click="router.push({ name: 'ApprovalFlows' })" />
+      <Button v-if="hasExactPermission('approval.settings.view')" :label="t('approval.flows')" icon="pi pi-sitemap" size="small" @click="router.push({ name: 'ApprovalFlows' })" />
     </div>
 
     <!-- Tab: Perlu Tindakan / Riwayat -->
@@ -651,7 +651,7 @@ import { useAuth } from '@/stores/auth'
 const { t, locale } = useI18n()
 const toast = useToast()
 const router = useRouter()
-const { hasPermission } = useAuth()
+const { hasExactPermission } = useAuth()
 
 // formatDate — date + time, built on the app-wide date formatter
 // (utils/formatDate.js) so the date portion matches every other page

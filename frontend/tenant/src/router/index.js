@@ -305,7 +305,7 @@ const routes = [
         path: 'approvals/flows',
         name: 'ApprovalFlows',
         component: () => import('@/views/modules/approval/ApprovalFlows.vue'),
-        meta: { title: 'Approval Flows', titleKey: 'approval.flows', descKey: 'approval.description', icon: 'pi pi-sitemap', module: 'approval', permission: 'approval.settings.view' }
+        meta: { title: 'Approval Flows', titleKey: 'approval.flows', descKey: 'approval.description', icon: 'pi pi-sitemap', module: 'approval', permission: 'approval.settings.view', strictPermission: true }
       },
       // Notifications
       {
@@ -770,7 +770,13 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.permission && isAuthenticated) {
     const auth = useAuth()
     try {
-      if (!auth.hasPermission(to.meta.permission)) {
+      // strictPermission: skip the module-covers-submenu fallback (dipakai
+      // untuk submenu admin-config yang sengaja terpisah dari module-levelnya,
+      // mis. ApprovalFlows — lihat komentar hasExactPermission di auth.js).
+      const allowed = to.meta.strictPermission
+        ? auth.hasExactPermission(to.meta.permission)
+        : auth.hasPermission(to.meta.permission)
+      if (!allowed) {
         next({ name: 'Forbidden' })
         return
       }
