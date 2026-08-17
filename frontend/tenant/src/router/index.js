@@ -369,79 +369,79 @@ const routes = [
         path: 'performance/kpi',
         name: 'PerformanceKPI',
         component: () => import('@/views/modules/performance/kpi/KPIIndex.vue'),
-        meta: { title: 'KPI', titleKey: 'kpi.title', descKey: 'kpi.description', icon: 'pi pi-chart-bar', module: 'performance', permission: 'performance.kpi.view' }
+        meta: { title: 'KPI', titleKey: 'kpi.title', descKey: 'kpi.description', icon: 'pi pi-chart-bar', module: 'performance', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/kpi/templates',
         name: 'KPITemplates',
         component: () => import('@/views/modules/performance/kpi/KPITemplates.vue'),
-        meta: { title: 'KPI Templates', titleKey: 'kpi.templates', descKey: 'kpi.templates_desc', icon: 'pi pi-file', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title', permission: 'performance.kpi.view' }
+        meta: { title: 'KPI Templates', titleKey: 'kpi.templates', descKey: 'kpi.templates_desc', icon: 'pi pi-file', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/kpi/templates/new',
         name: 'KPITemplateNew',
         component: () => import('@/views/modules/performance/kpi/KPITemplateForm.vue'),
-        meta: { title: 'New Template', titleKey: 'kpi.template_new', descKey: 'kpi.template_desc', icon: 'pi pi-plus', module: 'performance', backRoute: '/performance/kpi/templates', backLabelKey: 'kpi.templates', permission: 'performance.kpi.view' }
+        meta: { title: 'New Template', titleKey: 'kpi.template_new', descKey: 'kpi.template_desc', icon: 'pi pi-plus', module: 'performance', backRoute: '/performance/kpi/templates', backLabelKey: 'kpi.templates', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/kpi/templates/:id/edit',
         name: 'KPITemplateEdit',
         component: () => import('@/views/modules/performance/kpi/KPITemplateForm.vue'),
-        meta: { title: 'Edit Template', titleKey: 'kpi.template_edit', descKey: 'kpi.template_desc', icon: 'pi pi-pencil', module: 'performance', backRoute: '/performance/kpi/templates', backLabelKey: 'kpi.templates', permission: 'performance.kpi.view' }
+        meta: { title: 'Edit Template', titleKey: 'kpi.template_edit', descKey: 'kpi.template_desc', icon: 'pi pi-pencil', module: 'performance', backRoute: '/performance/kpi/templates', backLabelKey: 'kpi.templates', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/kpi/periods',
         name: 'KPIPeriods',
         component: () => import('@/views/settings/PerformancePeriodsView.vue'),
-        meta: { title: 'Periods', titleKey: 'performance_periods.title', descKey: 'performance_periods.description', icon: 'pi pi-calendar', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title', permission: 'performance.kpi.view' }
+        meta: { title: 'Periods', titleKey: 'performance_periods.title', descKey: 'performance_periods.description', icon: 'pi pi-calendar', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/kpi/my-evaluation',
         name: 'KPISelfAssessment',
         component: () => import('@/views/modules/performance/kpi/KPISelfAssessment.vue'),
-        meta: { title: 'My Evaluation', titleKey: 'kpi.my_evaluation', descKey: 'kpi.my_evaluation_desc', icon: 'pi pi-user-edit', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title', permission: 'performance.kpi.view' }
+        meta: { title: 'My Evaluation', titleKey: 'kpi.my_evaluation', descKey: 'kpi.my_evaluation_desc', icon: 'pi pi-user-edit', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/kpi/evaluation/:id',
         name: 'KPIEvaluationDetail',
         component: () => import('@/views/modules/performance/kpi/KPIEvaluationDetail.vue'),
-        meta: { title: 'Evaluation Detail', titleKey: 'kpi.evaluation_detail', descKey: 'kpi.evaluation_detail_desc', icon: 'pi pi-chart-bar', module: 'performance', backRoute: '/performance/kpi', backLabelKey: 'kpi.evaluations', permission: 'performance.kpi.view' }
+        meta: { title: 'Evaluation Detail', titleKey: 'kpi.evaluation_detail', descKey: 'kpi.evaluation_detail_desc', icon: 'pi pi-chart-bar', module: 'performance', backRoute: '/performance/kpi', backLabelKey: 'kpi.evaluations', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/okr/my-evaluation',
         name: 'OKRSelfAssessment',
         component: () => import('@/views/modules/performance/okr/OKRSelfAssessment.vue'),
-        meta: { title: 'My OKR', titleKey: 'okr.my_evaluation', descKey: 'okr.my_evaluation_desc', icon: 'pi pi-user-edit', module: 'performance', permission: 'performance.okr.view' }
+        meta: { title: 'My OKR', titleKey: 'okr.my_evaluation', descKey: 'okr.my_evaluation_desc', icon: 'pi pi-user-edit', module: 'performance', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/okr',
         name: 'PerformanceOKR',
         component: () => import('@/views/modules/performance/okr/OKRIndex.vue'),
-        meta: { title: 'OKR', titleKey: 'okr.title', descKey: 'okr.description', icon: 'pi pi-bullseye', module: 'performance', permission: 'performance.okr.view' }
+        meta: { title: 'OKR', titleKey: 'okr.title', descKey: 'okr.description', icon: 'pi pi-bullseye', module: 'performance', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/okr/templates',
         name: 'OKRTemplates',
         component: () => import('@/views/modules/performance/okr/OKRTemplates.vue'),
-        meta: { title: 'OKR Templates', titleKey: 'okr.templates', descKey: 'okr.templates_desc', icon: 'pi pi-file', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title', permission: 'performance.okr.view' }
+        meta: { title: 'OKR Templates', titleKey: 'okr.templates', descKey: 'okr.templates_desc', icon: 'pi pi-file', module: 'performance', backRoute: '/performance', backLabelKey: 'performance.title', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/okr/templates/new',
         name: 'OKRTemplateNew',
         component: () => import('@/views/modules/performance/okr/OKRTemplateForm.vue'),
-        meta: { title: 'New Template', titleKey: 'okr.template_new', descKey: 'okr.template_desc', icon: 'pi pi-plus', module: 'performance', backRoute: '/performance/okr/templates', backLabelKey: 'okr.templates', permission: 'performance.okr.view' }
+        meta: { title: 'New Template', titleKey: 'okr.template_new', descKey: 'okr.template_desc', icon: 'pi pi-plus', module: 'performance', backRoute: '/performance/okr/templates', backLabelKey: 'okr.templates', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/okr/templates/:id/edit',
         name: 'OKRTemplateEdit',
         component: () => import('@/views/modules/performance/okr/OKRTemplateForm.vue'),
-        meta: { title: 'Edit Template', titleKey: 'okr.template_edit', descKey: 'okr.template_desc', icon: 'pi pi-pencil', module: 'performance', backRoute: '/performance/okr/templates', backLabelKey: 'okr.templates', permission: 'performance.okr.view' }
+        meta: { title: 'Edit Template', titleKey: 'okr.template_edit', descKey: 'okr.template_desc', icon: 'pi pi-pencil', module: 'performance', backRoute: '/performance/okr/templates', backLabelKey: 'okr.templates', permission: 'performance.operational.view' }
       },
       {
         path: 'performance/okr/evaluation/:id',
         name: 'OKREvaluationDetail',
         component: () => import('@/views/modules/performance/okr/OKREvaluationDetail.vue'),
-        meta: { title: 'Evaluation Detail', titleKey: 'okr.evaluation_detail', descKey: 'okr.evaluation_detail_desc', icon: 'pi pi-bullseye', module: 'performance', backRoute: '/performance/okr', backLabelKey: 'okr.evaluations', permission: 'performance.okr.view' }
+        meta: { title: 'Evaluation Detail', titleKey: 'okr.evaluation_detail', descKey: 'okr.evaluation_detail_desc', icon: 'pi pi-bullseye', module: 'performance', backRoute: '/performance/okr', backLabelKey: 'okr.evaluations', permission: 'performance.operational.view' }
       },
       // Recruitment & Onboarding
       {

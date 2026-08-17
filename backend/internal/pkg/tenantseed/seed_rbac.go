@@ -74,13 +74,9 @@ func tenantRBACResources() []tenantRBACResource {
 			{"operations", std},
 		}},
 		{"performance", std, []tenantRBACSubmenu{
-			{"evaluations", std},
-			{"templates", std},
-			{"indicators", std},
-			{"periods", std},
-			{"perspectives", std},
-			{"kpi", std},
-			{"okr", std},
+			{"settings", std},
+			{"operational", std},
+			{"report", []string{"view"}},
 		}},
 		{"recruitment", std, []tenantRBACSubmenu{
 			{"requisitions", std},
