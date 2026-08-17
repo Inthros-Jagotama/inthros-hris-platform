@@ -57,10 +57,7 @@ func tenantRBACResources() []tenantRBACResource {
 			{"assessment", std},
 			{"report", []string{"view"}},
 		}},
-		{"employeemovement", std, []tenantRBACSubmenu{
-			{"movements", std},
-			{"contracts", std},
-		}},
+		{"employeemovement", std, nil},
 		{"useraccount", std, nil},
 		{"attendance", std, []tenantRBACSubmenu{
 			{"dashboard", std},
