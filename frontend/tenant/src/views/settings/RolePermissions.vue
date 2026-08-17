@@ -217,14 +217,12 @@ const filteredGroups = computed(() => {
     .filter(g => g.rows.length > 0)
 })
 
-function groupCount(resource) {
-  const g = groups.value.find(x => x.resource === resource)
-  return g ? g.items.length : 0
+function groupItems(resource) {
+  return permissions.value.filter(p => p.resource === resource)
 }
 
-function groupItems(resource) {
-  const g = groups.value.find(x => x.resource === resource)
-  return g ? g.items : []
+function groupCount(resource) {
+  return groupItems(resource).length
 }
 
 function groupAllSelected(resource) {
