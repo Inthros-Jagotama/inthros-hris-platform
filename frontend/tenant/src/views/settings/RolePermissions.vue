@@ -19,70 +19,74 @@
         </div>
       </div>
     </div>
-
     <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="4" />
-    <DataTable
-      v-else
-      :value="filteredRows"
-      size="small"
-      rowGroupMode="subheader"
-      groupRowsBy="resource"
-      :sortField="'resource'"
-      :sortOrder="1"
-      class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
-    >
-      <template #empty>
-        <div class="text-center text-sm text-gray-400 py-8">{{ t('rbac.empty_permissions') }}</div>
-      </template>
-      <template #groupheader="{ data }">
-        <div class="flex items-center justify-between flex-wrap gap-2 px-2 py-2 bg-gray-50 dark:bg-gray-700/50">
-          <div class="flex items-center gap-2">
-            <span class="font-semibold text-gray-800 dark:text-gray-100">{{ moduleLabel(data.resource) }}</span>
-            <span class="text-xs text-gray-400 dark:text-gray-500">{{ groupCount(data.resource) }} {{ t('rbac.permissions_count') }}</span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <Checkbox :binary="true" :model-value="groupAllSelected(data.resource)" @update:model-value="toggleResource(data.resource)" />
-            <Button
-              :label="groupAllSelected(data.resource) ? t('common.clear') : t('common.all')"
-              severity="secondary"
-              text
-              size="small"
-              class="!text-[11px] !p-0.5"
-              @click="toggleResource(data.resource)"
-            />
-          </div>
-        </div>
-      </template>
-      <!-- Kolom submenu: baris level-module ("Umum") diikuti tiap submenu -->
-      <Column field="submenu" :header="t('rbac.submenu')" style="width:220px">
-        <template #body="{ data }">
-          <div>
-            <span
-              class="text-gray-800 dark:text-gray-100"
-              :class="data.submenu ? 'font-normal' : 'font-semibold'"
-            >
-              {{ data.submenu ? submenuLabel(data.resource, data.submenu) : t('rbac.module_level') }}
-            </span>
-            <span class="text-xs text-gray-400 dark:text-gray-500 block">
-              {{ descriptionLabel(data.resource, data.submenu) }}
-            </span>
-          </div>
+    <div v-else class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden overflow-x-auto">
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="bg-gray-50 dark:bg-gray-700/50 text-left">
+            <th class="px-2 py-2 font-medium text-gray-600 dark:text-gray-300" style="width:220px">{{ t('rbac.submenu') }}</th>
+            <th v-for="act in allActions" :key="act" class="px-2 py-2 text-center font-medium text-gray-600 dark:text-gray-300" style="width:90px">{{ act }}</th>
+          </tr>
+        </thead>
+        <tbody v-if="filteredGroups.length === 0">
+          <tr>
+            <td :colspan="allActions.length + 1" class="text-center text-sm text-gray-400 py-8">{{ t('rbac.empty_permissions') }}</td>
+          </tr>
+        </tbody>
+        <template v-for="group in filteredGroups" :key="group.resource">
+          <tbody>
+            <!-- Baris subheader per resource -->
+            <tr class="bg-gray-50 dark:bg-gray-700/50">
+              <td :colspan="allActions.length + 1" class="px-2 py-2">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="font-semibold text-gray-800 dark:text-gray-100">{{ moduleLabel(group.resource) }}</span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500">{{ groupCount(group.resource) }} {{ t('rbac.permissions_count') }}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <Checkbox :binary="true" :model-value="groupAllSelected(group.resource)" @update:model-value="toggleResource(group.resource)" />
+                    <Button
+                      :label="groupAllSelected(group.resource) ? t('common.clear') : t('common.all')"
+                      severity="secondary"
+                      text
+                      size="small"
+                      class="!text-[11px] !p-0.5"
+                      @click="toggleResource(group.resource)"
+                    />
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <!-- Baris level-module ("Umum") diikuti tiap submenu -->
+            <tr v-for="row in group.rows" :key="row.rowKey" class="border-t border-gray-100 dark:border-gray-700/50">
+              <td class="px-2 py-2 align-top">
+                <div>
+                  <span
+                    class="text-gray-800 dark:text-gray-100"
+                    :class="row.submenu ? 'font-normal' : 'font-semibold'"
+                  >
+                    {{ row.submenu ? submenuLabel(row.resource, row.submenu) : t('rbac.module_level') }}
+                  </span>
+                  <span class="text-xs text-gray-400 dark:text-gray-500 block">
+                    {{ descriptionLabel(row.resource, row.submenu) }}
+                  </span>
+                </div>
+              </td>
+              <td v-for="act in allActions" :key="act" class="px-2 py-2 align-top">
+                <div class="flex justify-center">
+                  <ToggleSwitch
+                    v-if="row.byAction[act]"
+                    :model-value="selected[row.byAction[act].id]"
+                    @update:model-value="v => selected[row.byAction[act].id] = v"
+                  />
+                  <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
         </template>
-      </Column>
-      <!-- Satu kolom per aksi (create, update, ...) — isi berupa switch tanpa label -->
-      <Column v-for="act in allActions" :key="act" :header="act" style="width:90px">
-        <template #body="{ data }">
-          <div class="flex justify-center">
-            <ToggleSwitch
-              v-if="data.byAction[act]"
-              :model-value="selected[data.byAction[act].id]"
-              @update:model-value="v => selected[data.byAction[act].id] = v"
-            />
-            <span v-else class="text-gray-300 dark:text-gray-600">—</span>
-          </div>
-        </template>
-      </Column>
-    </DataTable>
+      </table>
+    </div>
   </div>
 </template>
 
@@ -95,8 +99,6 @@ import api from '@/services/api'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import ToggleSwitch from 'primevue/toggleswitch'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import InputIcon from 'primevue/inputicon'
 import IconField from 'primevue/iconfield'
@@ -179,6 +181,7 @@ const groups = computed(() => {
         return {
           resource: g.resource,
           submenu: sub,
+          rowKey: `${g.resource}::${sub}`,
           items,
           byAction,
           allSelected: items.length > 0 && items.every(i => selected.value[i.id])
@@ -188,28 +191,30 @@ const groups = computed(() => {
   })
 })
 
-// Semua baris (flatten) — urutan per resource, baris module-level dulu lalu submenu.
-const allRows = computed(() => {
+// Baris per group (resource) — urutan baris module-level dulu lalu submenu.
+function orderedRows(g) {
   const out = []
-  for (const g of groups.value) {
-    const moduleRow = g.rows.find(r => !r.submenu)
-    if (moduleRow) out.push(moduleRow)
-    for (const r of g.rows) {
-      if (r.submenu) out.push(r)
-    }
+  const moduleRow = g.rows.find(r => !r.submenu)
+  if (moduleRow) out.push(moduleRow)
+  for (const r of g.rows) {
+    if (r.submenu) out.push(r)
   }
   return out
-})
+}
 
-// Filter baris by nama module/submenu (label bilingual atau slug).
-const filteredRows = computed(() => {
+function rowMatchesQuery(r, q) {
+  if (!q) return true
+  const m = moduleLabel(r.resource).toLowerCase()
+  const s = r.submenu ? submenuLabel(r.resource, r.submenu).toLowerCase() : ''
+  return m.includes(q) || r.resource.toLowerCase().includes(q) || (r.submenu && r.submenu.toLowerCase().includes(q)) || s.includes(q)
+}
+
+// Group + baris yang lolos filter — resource tanpa baris tersisa disembunyikan.
+const filteredGroups = computed(() => {
   const q = filterQuery.value.trim().toLowerCase()
-  if (!q) return allRows.value
-  return allRows.value.filter(r => {
-    const m = moduleLabel(r.resource).toLowerCase()
-    const s = r.submenu ? submenuLabel(r.resource, r.submenu).toLowerCase() : ''
-    return m.includes(q) || r.resource.toLowerCase().includes(q) || (r.submenu && r.submenu.toLowerCase().includes(q)) || s.includes(q)
-  })
+  return groups.value
+    .map(g => ({ resource: g.resource, rows: orderedRows(g).filter(r => rowMatchesQuery(r, q)) }))
+    .filter(g => g.rows.length > 0)
 })
 
 function groupCount(resource) {
