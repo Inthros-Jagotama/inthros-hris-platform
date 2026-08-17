@@ -26,6 +26,9 @@
 -- performance disederhanakan jadi 3 submenu: settings (templates,
 -- indicators, periods, perspectives), operational (kpi, okr, evaluations),
 -- & report (kosong, disiapkan untuk nanti — view only).
+-- recruitment disederhanakan jadi 2 submenu: pipeline (requisitions,
+-- applications, candidates, internal-candidates, assessments, offers),
+-- onboarding (tetap). interviews dihapus (tidak dipakai).
 
 INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
 VALUES ('207d3e01-43b1-594a-9acb-fe4783d50309', 'leave.settings.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -53,114 +56,6 @@ VALUES ('d57c992d-0881-52ca-96d6-3a27cb0cb440', 'leave.settings.delete', 'web', 
 
 INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
 VALUES ('d57c992d-0881-52ca-96d6-3a27cb0cb440', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('f0fabdc6-cb16-52ce-9afc-c8b6372e9aba', 'recruitment.requisitions.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('f0fabdc6-cb16-52ce-9afc-c8b6372e9aba', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('f0fabdc6-cb16-52ce-9afc-c8b6372e9aba', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('f880ea50-83f5-5f61-8593-c99320a2cb67', 'recruitment.requisitions.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('f880ea50-83f5-5f61-8593-c99320a2cb67', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('23db20bf-c9a4-56f5-9387-07eb4a562b20', 'recruitment.requisitions.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('23db20bf-c9a4-56f5-9387-07eb4a562b20', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('5c140fa7-c270-5f0e-b8b4-da55820f6aeb', 'recruitment.requisitions.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('5c140fa7-c270-5f0e-b8b4-da55820f6aeb', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('3d60d36e-4c5e-53b8-af3c-46a2412fb6fc', 'recruitment.candidates.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('3d60d36e-4c5e-53b8-af3c-46a2412fb6fc', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('3d60d36e-4c5e-53b8-af3c-46a2412fb6fc', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('424ae719-dd2f-59a9-99b3-58b291e486aa', 'recruitment.candidates.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('424ae719-dd2f-59a9-99b3-58b291e486aa', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('9d9a2637-cfbd-5a9d-b520-0624b4185425', 'recruitment.candidates.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('9d9a2637-cfbd-5a9d-b520-0624b4185425', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('9aa57ba4-09c1-5f78-96fc-d5505f82e2c0', 'recruitment.candidates.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('9aa57ba4-09c1-5f78-96fc-d5505f82e2c0', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('cc6460b5-8305-5da9-a5cc-e430001a5c0a', 'recruitment.applications.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('cc6460b5-8305-5da9-a5cc-e430001a5c0a', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('cc6460b5-8305-5da9-a5cc-e430001a5c0a', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('82c725e6-b0bd-50eb-958b-bda4341c18e1', 'recruitment.applications.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('82c725e6-b0bd-50eb-958b-bda4341c18e1', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('d83a289e-5546-5b15-91d3-03fa0d5a1a8d', 'recruitment.applications.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('d83a289e-5546-5b15-91d3-03fa0d5a1a8d', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('7b053a04-c63a-55c2-92a0-9b464f562377', 'recruitment.applications.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('7b053a04-c63a-55c2-92a0-9b464f562377', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('676b46d1-372a-5420-ac06-26e7847076cf', 'recruitment.interviews.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('676b46d1-372a-5420-ac06-26e7847076cf', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('676b46d1-372a-5420-ac06-26e7847076cf', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('16d4dccf-839e-5a66-ae4c-7102f1f371b4', 'recruitment.interviews.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('16d4dccf-839e-5a66-ae4c-7102f1f371b4', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('2af43e23-4a4a-50cb-8e5c-8a1948d9e115', 'recruitment.interviews.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('2af43e23-4a4a-50cb-8e5c-8a1948d9e115', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('fb0c758c-2ee8-5c02-8b52-3d4ac37b6f45', 'recruitment.interviews.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('fb0c758c-2ee8-5c02-8b52-3d4ac37b6f45', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
 
 INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
 VALUES ('1759f095-97e0-547a-9c68-a0ea7b88bb8d', 'recruitment.onboarding.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -944,3 +839,30 @@ VALUES ('5b8f0eea-df9e-5ad6-94fc-5d938734f0ac', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e5
 
 INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
 VALUES ('5b8f0eea-df9e-5ad6-94fc-5d938734f0ac', '3e562937-d5a1-543a-b1c8-af2f447500a4');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('aa780452-d497-5ce5-9f6b-7b7b0d9a5527', 'recruitment.pipeline.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('aa780452-d497-5ce5-9f6b-7b7b0d9a5527', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('aa780452-d497-5ce5-9f6b-7b7b0d9a5527', '3e562937-d5a1-543a-b1c8-af2f447500a4');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('088d9aef-b462-55fa-acb0-ca4e1335bad7', 'recruitment.pipeline.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('088d9aef-b462-55fa-acb0-ca4e1335bad7', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('ff6fb33c-a7c2-5c0c-9fca-85134faeb0b3', 'recruitment.pipeline.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('ff6fb33c-a7c2-5c0c-9fca-85134faeb0b3', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('7d2365b5-145d-54df-b8bd-702fc5e45f5e', 'recruitment.pipeline.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('7d2365b5-145d-54df-b8bd-702fc5e45f5e', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');

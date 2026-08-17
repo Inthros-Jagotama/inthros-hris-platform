@@ -455,61 +455,61 @@ const routes = [
         path: 'recruitment/requisitions',
         name: 'Requisitions',
         component: () => import('@/views/modules/recruitment/Requisitions.vue'),
-        meta: { title: 'Job Requisitions', titleKey: 'recruitment.requisitions', descKey: 'requisitions.description', icon: 'pi pi-briefcase', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.requisitions.view' }
+        meta: { title: 'Job Requisitions', titleKey: 'recruitment.requisitions', descKey: 'requisitions.description', icon: 'pi pi-briefcase', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.pipeline.view' }
       },
       // Requisition Requirements & Competencies — G-9 sub-1 (+ Job Management fallback, G-9 sub-3)
       {
         path: 'recruitment/requisitions/:id/requirements',
         name: 'RequisitionRequirements',
         component: () => import('@/views/modules/recruitment/RequisitionRequirements.vue'),
-        meta: { title: 'Requirements & Competencies', titleKey: 'requisitions.requirements_competencies', module: 'recruitment', backRoute: '/recruitment/requisitions', backLabelKey: 'recruitment.requisitions', permission: 'recruitment.requisitions.view' }
+        meta: { title: 'Requirements & Competencies', titleKey: 'requisitions.requirements_competencies', module: 'recruitment', backRoute: '/recruitment/requisitions', backLabelKey: 'recruitment.requisitions', permission: 'recruitment.pipeline.view' }
       },
       // Applications — pipeline (list + detail: history/screening/assessment/interviews/match score)
       {
         path: 'recruitment/applications',
         name: 'Applications',
         component: () => import('@/views/modules/recruitment/Applications.vue'),
-        meta: { title: 'Applications', titleKey: 'recruitment.applications', descKey: 'applications.description', icon: 'pi pi-send', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.applications.view' }
+        meta: { title: 'Applications', titleKey: 'recruitment.applications', descKey: 'applications.description', icon: 'pi pi-send', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.pipeline.view' }
       },
       {
         path: 'recruitment/applications/:id',
         name: 'ApplicationDetail',
         component: () => import('@/views/modules/recruitment/ApplicationDetail.vue'),
-        meta: { title: 'Application Detail', titleKey: 'applications.detail', module: 'recruitment', backRoute: '/recruitment/applications', backLabelKey: 'recruitment.applications', permission: 'recruitment.applications.view' }
+        meta: { title: 'Application Detail', titleKey: 'applications.detail', module: 'recruitment', backRoute: '/recruitment/applications', backLabelKey: 'recruitment.applications', permission: 'recruitment.pipeline.view' }
       },
       // Candidates — G-6 profile (educations/experiences/skills/certifications/documents/consents)
       {
         path: 'recruitment/candidates',
         name: 'Candidates',
         component: () => import('@/views/modules/recruitment/Candidates.vue'),
-        meta: { title: 'Candidates', titleKey: 'recruitment.candidates', descKey: 'candidates.description', icon: 'pi pi-users', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.candidates.view' }
+        meta: { title: 'Candidates', titleKey: 'recruitment.candidates', descKey: 'candidates.description', icon: 'pi pi-users', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.pipeline.view' }
       },
       {
         path: 'recruitment/candidates/:id',
         name: 'CandidateDetail',
         component: () => import('@/views/modules/recruitment/CandidateDetail.vue'),
-        meta: { title: 'Candidate Profile', titleKey: 'candidates.profile', module: 'recruitment', backRoute: '/recruitment/candidates', backLabelKey: 'recruitment.candidates', permission: 'recruitment.candidates.view' }
+        meta: { title: 'Candidate Profile', titleKey: 'candidates.profile', module: 'recruitment', backRoute: '/recruitment/candidates', backLabelKey: 'recruitment.candidates', permission: 'recruitment.pipeline.view' }
       },
       // Internal Candidates — S-4 (eligible via career path dari Career Intelligence)
       {
         path: 'recruitment/internal-candidates',
         name: 'InternalCandidates',
         component: () => import('@/views/modules/recruitment/InternalCandidates.vue'),
-        meta: { title: 'Internal Candidates', titleKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.internal-candidates.view' }
+        meta: { title: 'Internal Candidates', titleKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.pipeline.view' }
       },
       // Job Offers — G-3 (offer management + approval workflow)
       {
         path: 'recruitment/offers',
         name: 'Offers',
         component: () => import('@/views/modules/recruitment/Offers.vue'),
-        meta: { title: 'Job Offers', titleKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.offers.view' }
+        meta: { title: 'Job Offers', titleKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.pipeline.view' }
       },
       // Assessments — G-7 sub-project 2 (batch session + peserta)
       {
         path: 'recruitment/assessments',
         name: 'Assessments',
         component: () => import('@/views/modules/recruitment/Assessments.vue'),
-        meta: { title: 'Assessments', titleKey: 'recruitment.assessments', descKey: 'assessments.description', icon: 'pi pi-clipboard', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.assessments.view' }
+        meta: { title: 'Assessments', titleKey: 'recruitment.assessments', descKey: 'assessments.description', icon: 'pi pi-clipboard', module: 'recruitment', backRoute: '/recruitment', backLabelKey: 'recruitment.title', permission: 'recruitment.pipeline.view' }
       },
       // Onboarding — G-4: employee hasil offer (recruited_from_application_id) + status (S-7 handoff)
       {

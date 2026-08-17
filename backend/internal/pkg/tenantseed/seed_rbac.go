@@ -79,14 +79,8 @@ func tenantRBACResources() []tenantRBACResource {
 			{"report", []string{"view"}},
 		}},
 		{"recruitment", std, []tenantRBACSubmenu{
-			{"requisitions", std},
-			{"candidates", std},
-			{"applications", std},
-			{"interviews", std},
+			{"pipeline", std},
 			{"onboarding", std},
-			{"internal-candidates", std},
-			{"offers", std},
-			{"assessments", std},
 		}},
 		{"reimbursement", append(std, "approve"), []tenantRBACSubmenu{
 			{"requests", std},
