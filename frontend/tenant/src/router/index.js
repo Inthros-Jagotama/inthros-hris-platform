@@ -305,7 +305,7 @@ const routes = [
         path: 'approvals/flows',
         name: 'ApprovalFlows',
         component: () => import('@/views/modules/approval/ApprovalFlows.vue'),
-        meta: { title: 'Approval Flows', titleKey: 'approval.flows', descKey: 'approval.description', icon: 'pi pi-sitemap', module: 'approval', permission: 'approval.flows.view' }
+        meta: { title: 'Approval Flows', titleKey: 'approval.flows', descKey: 'approval.description', icon: 'pi pi-sitemap', module: 'approval', permission: 'approval.settings.view' }
       },
       // Notifications
       {

@@ -16,87 +16,8 @@
 -- locations, exempt-positions, settings, admin), operations (dashboard,
 -- schedules, events, sessions, overtime, corrections, business-travel),
 -- & report (reports — view only).
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('f8198f71-ec65-5c9b-96dc-e65534125407', 'approval.tasks.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('f8198f71-ec65-5c9b-96dc-e65534125407', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('f8198f71-ec65-5c9b-96dc-e65534125407', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('5b1c464f-ca91-5fa9-9c75-7f4db13daffc', 'approval.tasks.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('5b1c464f-ca91-5fa9-9c75-7f4db13daffc', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('b0816bbc-98ee-5029-9466-4e2a2ed986e1', 'approval.tasks.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('b0816bbc-98ee-5029-9466-4e2a2ed986e1', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('a6b9bdeb-42ce-51f3-8afa-3ae98f062f83', 'approval.tasks.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('a6b9bdeb-42ce-51f3-8afa-3ae98f062f83', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('645fa664-9dd0-552c-8740-f523523ea1dd', 'approval.flows.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('645fa664-9dd0-552c-8740-f523523ea1dd', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('645fa664-9dd0-552c-8740-f523523ea1dd', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('52eecef9-305b-5235-a0d9-2203f84aff0a', 'approval.flows.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('52eecef9-305b-5235-a0d9-2203f84aff0a', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('aee62640-1f21-5f32-995a-1e704394723e', 'approval.flows.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('aee62640-1f21-5f32-995a-1e704394723e', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('d39e9cbe-aeec-52e5-86ca-14ca840949d2', 'approval.flows.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('d39e9cbe-aeec-52e5-86ca-14ca840949d2', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('2afebae2-d68c-5457-9a0e-a1a3f79fe150', 'approval.instances.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('2afebae2-d68c-5457-9a0e-a1a3f79fe150', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('2afebae2-d68c-5457-9a0e-a1a3f79fe150', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('de87b5fa-c2e5-5ed6-9020-db262deba0ee', 'approval.instances.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('de87b5fa-c2e5-5ed6-9020-db262deba0ee', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('04799bf5-ae57-5d6d-b13e-cf3fae20bc0d', 'approval.instances.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('04799bf5-ae57-5d6d-b13e-cf3fae20bc0d', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('af9bd05e-f475-5b62-a658-011652a7e347', 'approval.instances.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('af9bd05e-f475-5b62-a658-011652a7e347', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+-- approval disederhanakan jadi 2 submenu: settings (flows), operations
+-- (tasks, instances).
 
 INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
 VALUES ('265c4113-b9eb-5155-8fc5-b73e1cd0f530', 'payroll.runs.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -1330,3 +1251,57 @@ VALUES ('a61c3b32-c8a1-5dd5-a552-cca4b7e5d779', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e5
 
 INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
 VALUES ('a61c3b32-c8a1-5dd5-a552-cca4b7e5d779', '3e562937-d5a1-543a-b1c8-af2f447500a4');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('de15d7fc-db5b-5a4e-8dd7-174d1ce6dc87', 'approval.settings.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('de15d7fc-db5b-5a4e-8dd7-174d1ce6dc87', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('de15d7fc-db5b-5a4e-8dd7-174d1ce6dc87', '3e562937-d5a1-543a-b1c8-af2f447500a4');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('a0b7b2d9-56a1-5c25-927f-0ecdbbe5f18f', 'approval.settings.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('a0b7b2d9-56a1-5c25-927f-0ecdbbe5f18f', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('f82a7893-7b72-5324-84f2-d86bb2786bcb', 'approval.settings.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('f82a7893-7b72-5324-84f2-d86bb2786bcb', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('43a619b9-d420-5765-b872-a8c76ee0cd3f', 'approval.settings.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('43a619b9-d420-5765-b872-a8c76ee0cd3f', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('ef03cbb7-50ef-5905-83f2-41d7263e1469', 'approval.operations.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('ef03cbb7-50ef-5905-83f2-41d7263e1469', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('ef03cbb7-50ef-5905-83f2-41d7263e1469', '3e562937-d5a1-543a-b1c8-af2f447500a4');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('182c2097-5b6f-5c50-9360-556ce4a26b7c', 'approval.operations.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('182c2097-5b6f-5c50-9360-556ce4a26b7c', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('2ff128ca-807b-50b5-b2d2-512bbeaf83a5', 'approval.operations.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('2ff128ca-807b-50b5-b2d2-512bbeaf83a5', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('364011da-ce28-5a1b-b209-93c83ae03308', 'approval.operations.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('364011da-ce28-5a1b-b209-93c83ae03308', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
