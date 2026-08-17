@@ -3765,88 +3765,35 @@
     "submenu": "Submenu",
     "module_level": "Umum (Module)",
     "submenus": {
-      "organization": {
-        "tree": "Pohon Organisasi",
-        "zones": "Zona",
-        "job-families": "Famili Jabatan",
-        "positions": "Posisi"
-      },
-      "employee": {
-        "list": "Daftar Karyawan",
-        "create": "Tambah Karyawan"
-      },
       "jobmanagement": {
-        "titles": "Jabatan",
-        "values": "Nilai Jabatan",
-        "objectives": "Tujuan Jabatan",
-        "identifications": "Identifikasi Jabatan",
-        "responsibilities": "Tanggung Jawab",
-        "authorities": "Wewenang",
-        "working-conditions": "Kondisi Kerja",
-        "scores": "Skor Jabatan",
-        "competencies": "Pemetaan Kompetensi"
+        "setting": "Pengaturan",
+        "assessment": "Assessment"
       },
       "competency": {
-        "competencies": "Kompetensi",
-        "values": "Skala Penilaian",
-        "indicators": "Indikator",
-        "events": "Event",
-        "scores": "Skor",
-        "templates": "Template Assessment",
-        "raters": "Penugasan Rater",
-        "my-assessments": "Assessment Saya",
-        "manager-assessments": "Manager Assessment",
-        "results": "Hasil",
-        "reports": "Laporan"
-      },
-      "employeemovement": {
-        "movements": "Mutasi",
-        "contracts": "Kontrak"
+        "settings": "Pengaturan",
+        "assessment": "Assessment",
+        "report": "Laporan"
       },
       "attendance": {
-        "dashboard": "Dashboard",
-        "shifts": "Shift",
-        "schedules": "Jadwal",
-        "events": "Event",
-        "overtime": "Lembur",
-        "locations": "Lokasi",
-        "business-travel": "Perjalanan Dinas",
-        "settings": "Pengaturan"
+        "settings": "Pengaturan",
+        "operations": "Operasional",
+        "report": "Laporan"
       },
       "approval": {
-        "tasks": "Tugas Saya",
-        "flows": "Alur Persetujuan",
-        "instances": "Instansi"
-      },
-      "payroll": {
-        "runs": "Proses Gaji",
-        "periods": "Periode",
-        "salary-components": "Komponen Gaji",
-        "profiles": "Profil Karyawan",
-        "bpjs-settings": "Pengaturan BPJS",
-        "pph21-settings": "Pengaturan PPh21",
-        "ptkp-rates": "Tarif PTKP",
-        "tax-brackets": "Lapisan Pajak"
+        "settings": "Pengaturan",
+        "operations": "Operasional"
       },
       "leave": {
-        "dashboard": "Dashboard",
-        "requests": "Permohonan",
-        "types": "Tipe",
-        "balances": "Saldo",
-        "settings": "Pengaturan"
+        "settings": "Pengaturan",
+        "operations": "Operasional"
       },
       "performance": {
-        "evaluations": "Evaluasi",
-        "templates": "Template",
-        "indicators": "Indikator",
-        "periods": "Periode",
-        "perspectives": "Perspektif"
+        "settings": "Pengaturan",
+        "operational": "Operasional",
+        "report": "Laporan"
       },
       "recruitment": {
-        "requisitions": "Requisisi",
-        "candidates": "Kandidat",
-        "applications": "Aplikasi",
-        "interviews": "Wawancara",
+        "pipeline": "Pipeline",
         "onboarding": "Onboarding"
       },
       "reimbursement": {
@@ -3855,46 +3802,80 @@
         "reports": "Laporan"
       },
       "training": {
-        "courses": "Kursus",
-        "categories": "Kategori",
-        "providers": "Penyedia",
-        "trainers": "Pelatih",
-        "sessions": "Sesi",
-        "participants": "Peserta",
-        "planning": "Perencanaan",
-        "requests": "Permohonan",
-        "needs": "Kebutuhan",
-        "certificates": "Sertifikat",
-        "history": "Riwayat",
+        "settings": "Pengaturan",
+        "operations": "Operasional",
+        "records": "Rekam Data",
         "reports": "Laporan"
-      },
-      "setting": {
-        "zones": "Zona",
-        "provinces": "Provinsi",
-        "regencies": "Kota/Kabupaten",
-        "districts": "Kecamatan",
-        "villages": "Kelurahan",
-        "educations": "Pendidikan",
-        "education-majors": "Jurusan Pendidikan",
-        "religions": "Agama",
-        "marital-statuses": "Status Perkawinan",
-        "relationship-types": "Tipe Hubungan",
-        "banks": "Bank",
-        "employment-statuses": "Status Pegawai",
-        "nationalities": "Kewarganegaraan",
-        "job-families": "Famili Jabatan",
-        "gradings": "Grading",
-        "salary-grades": "Grade Gaji",
-        "ters": "TER",
-        "ptkps": "PTKP",
-        "insurances": "Asuransi",
-        "company-holidays": "Libur Perusahaan",
-        "competencies": "Kompetensi",
-        "document-templates": "Template Dokumen"
       },
       "rbac": {
         "roles": "Roles"
       }
+    },
+    "descriptions": {
+      "organization": { "_module": "Struktur organisasi, zona, posisi" },
+      "employee": { "_module": "Data dan profil karyawan" },
+      "jobmanagement": {
+        "_module": "Jabatan, nilai, pemetaan kompetensi",
+        "setting": "Konfigurasi atribut jabatan",
+        "assessment": "Penilaian dan skor jabatan"
+      },
+      "competency": {
+        "_module": "Kerangka dan penilaian kompetensi",
+        "settings": "Konfigurasi kompetensi dan skala",
+        "assessment": "Template dan event assessment",
+        "report": "Laporan hasil kompetensi"
+      },
+      "employeemovement": { "_module": "Mutasi, promosi, perubahan kontrak" },
+      "useraccount": { "_module": "Akun login untuk karyawan" },
+      "attendance": {
+        "_module": "Absensi dan pelacakan waktu kerja",
+        "settings": "Konfigurasi shift, lokasi, jam kerja",
+        "operations": "Aktivitas presensi harian",
+        "report": "Laporan ringkasan absensi"
+      },
+      "approval": {
+        "_module": "Alur persetujuan dan permohonan",
+        "settings": "Konfigurasi alur persetujuan",
+        "operations": "Persetujuan tertunda dan selesai"
+      },
+      "payroll": { "_module": "Proses dan menjalankan penggajian" },
+      "leave": {
+        "_module": "Permohonan dan saldo cuti",
+        "settings": "Konfigurasi tipe dan kebijakan cuti",
+        "operations": "Permohonan dan saldo cuti"
+      },
+      "performance": {
+        "_module": "Evaluasi kinerja dan KPI",
+        "settings": "Konfigurasi template evaluasi",
+        "operational": "Aktivitas KPI, OKR, evaluasi",
+        "report": "Laporan hasil kinerja"
+      },
+      "recruitment": {
+        "_module": "Rekrutmen dan manajemen kandidat",
+        "pipeline": "Requisisi, kandidat, wawancara",
+        "onboarding": "Onboarding karyawan baru"
+      },
+      "reimbursement": {
+        "_module": "Klaim reimbursemen biaya",
+        "requests": "Klaim reimbursemen karyawan",
+        "types": "Konfigurasi kategori reimbursemen",
+        "reports": "Laporan ringkasan reimbursemen"
+      },
+      "training": {
+        "_module": "Kursus pelatihan dan sertifikasi",
+        "settings": "Konfigurasi kursus, kategori, penyedia",
+        "operations": "Sesi, peserta, kehadiran",
+        "records": "Sertifikat dan riwayat pelatihan",
+        "reports": "Laporan ringkasan pelatihan"
+      },
+      "workforceintelligence": { "_module": "Analitik dan wawasan tenaga kerja" },
+      "careerintelligence": { "_module": "Wawasan jenjang karir dan suksesi" },
+      "setting": { "_module": "Konfigurasi data referensi sistem" },
+      "rbac": {
+        "_module": "Manajemen role dan permission",
+        "roles": "Definisi dan penugasan role"
+      },
+      "notification": { "_module": "Notifikasi sistem" }
     },
     "modules": {
       "approval": "Persetujuan",
