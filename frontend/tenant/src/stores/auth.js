@@ -184,14 +184,14 @@ export function useAuth() {
     if (resource && perms.includes(resource + '.*')) return true
 
     // level-submenu: resource.submenu.action → module-level resource.action
-    // juga memenuhi (mis. competency.view → competency.events.view).
+    // juga memenuhi (mis. competency.view → competency.settings.view).
     if (parts.length >= 3 && resource) {
       const action = parts[parts.length - 1]
       if (perms.includes(resource + '.' + action)) return true
     }
 
     // Arah sebaliknya: role yang hanya diberi permission level-submenu
-    // (mis. competency.events.view tanpa competency.view) tetap harus bisa
+    // (mis. competency.settings.view tanpa competency.view) tetap harus bisa
     // melihat menu module-nya — resource.action dianggap terpenuhi bila ada
     // permission resource.<submenu>.action mana pun.
     if (parts.length === 2 && resource) {

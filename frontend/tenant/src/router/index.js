@@ -122,67 +122,67 @@ const routes = [
         path: 'competencies/values',
         name: 'CompetencyValues',
         component: () => import('@/views/modules/competency/CompetencyValues.vue'),
-        meta: { title: 'Rating Scales', titleKey: 'competency_360.rating_scales', descKey: 'competency_360.rating_scales_desc', icon: 'pi pi-sliders-h', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.values.view' }
+        meta: { title: 'Rating Scales', titleKey: 'competency_360.rating_scales', descKey: 'competency_360.rating_scales_desc', icon: 'pi pi-sliders-h', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view' }
       },
       {
         path: 'competencies/indicators',
         name: 'CompetencyIndicators',
         component: () => import('@/views/modules/competency/CompetencyIndicators.vue'),
-        meta: { title: 'Indicators', titleKey: 'competency_360.indicators', descKey: 'competency_360.indicators_desc', icon: 'pi pi-list', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.indicators.view' }
+        meta: { title: 'Indicators', titleKey: 'competency_360.indicators', descKey: 'competency_360.indicators_desc', icon: 'pi pi-list', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view' }
       },
       {
         path: 'competencies/templates',
         name: 'AssessmentTemplates',
         component: () => import('@/views/modules/competency/AssessmentTemplates.vue'),
-        meta: { title: 'Assessment Templates', titleKey: 'competency_360.templates', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.templates.view' }
+        meta: { title: 'Assessment Templates', titleKey: 'competency_360.templates', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view' }
       },
       {
         path: 'competencies/templates/new',
         name: 'AssessmentTemplateNew',
         component: () => import('@/views/modules/competency/AssessmentTemplateForm.vue'),
-        meta: { title: 'New Assessment Template', titleKey: 'competency_360.new_template', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies/templates', backLabelKey: 'competency_360.templates', permission: 'competency.templates.view' }
+        meta: { title: 'New Assessment Template', titleKey: 'competency_360.new_template', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies/templates', backLabelKey: 'competency_360.templates', permission: 'competency.settings.view' }
       },
       {
         path: 'competencies/templates/:id/edit',
         name: 'AssessmentTemplateEdit',
         component: () => import('@/views/modules/competency/AssessmentTemplateForm.vue'),
-        meta: { title: 'Edit Assessment Template', titleKey: 'competency_360.edit_template', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies/templates', backLabelKey: 'competency_360.templates', permission: 'competency.templates.view' }
+        meta: { title: 'Edit Assessment Template', titleKey: 'competency_360.edit_template', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', module: 'competency', backRoute: '/competencies/templates', backLabelKey: 'competency_360.templates', permission: 'competency.settings.view' }
       },
       {
         path: 'competencies/events',
         name: 'CompetencyEvents',
         component: () => import('@/views/modules/competency/CompetencyEvents.vue'),
-        meta: { title: 'Competency Events', titleKey: 'competency_360.events', descKey: 'competency_360.events_desc', icon: 'pi pi-calendar', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.events.view' }
+        meta: { title: 'Competency Events', titleKey: 'competency_360.events', descKey: 'competency_360.events_desc', icon: 'pi pi-calendar', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view' }
       },
       {
         path: 'competencies/raters',
         name: 'RaterAssignment',
         component: () => import('@/views/modules/competency/RaterAssignment.vue'),
-        meta: { title: 'Rater Assignment', titleKey: 'competency_360.rater_assignment', descKey: 'competency_360.rater_assignment_desc', icon: 'pi pi-users', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.raters.view' }
+        meta: { title: 'Rater Assignment', titleKey: 'competency_360.rater_assignment', descKey: 'competency_360.rater_assignment_desc', icon: 'pi pi-users', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.settings.view' }
       },
       {
         path: 'competencies/my-assessments',
         name: 'MyAssessments',
         component: () => import('@/views/modules/competency/MyAssessments.vue'),
-        meta: { title: 'My Assessment', titleKey: 'competency_360.my_assessments', descKey: 'competency_360.my_assessments_desc', icon: 'pi pi-list-check', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.my-assessments.view' }
+        meta: { title: 'My Assessment', titleKey: 'competency_360.my_assessments', descKey: 'competency_360.my_assessments_desc', icon: 'pi pi-list-check', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.assessment.view' }
       },
       {
         path: 'competencies/manager-assessments',
         name: 'ManagerAssessments',
         component: () => import('@/views/modules/competency/ManagerAssessments.vue'),
-        meta: { title: 'Manager Assessment', titleKey: 'competency_360.manager_assessments', descKey: 'competency_360.manager_assessments_desc', icon: 'pi pi-user-edit', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.manager-assessments.view' }
+        meta: { title: 'Manager Assessment', titleKey: 'competency_360.manager_assessments', descKey: 'competency_360.manager_assessments_desc', icon: 'pi pi-user-edit', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.assessment.view' }
       },
       {
         path: 'competencies/results',
         name: 'AssessmentResult',
         component: () => import('@/views/modules/competency/AssessmentResult.vue'),
-        meta: { title: 'Assessment Result', titleKey: 'competency_360.results', descKey: 'competency_360.results_desc', icon: 'pi pi-chart-bar', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.results.view' }
+        meta: { title: 'Assessment Result', titleKey: 'competency_360.results', descKey: 'competency_360.results_desc', icon: 'pi pi-chart-bar', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.report.view' }
       },
       {
         path: 'competencies/reports',
         name: 'CompetencyReports',
         component: () => import('@/views/modules/competency/CompetencyReports.vue'),
-        meta: { title: 'Competency Reports', titleKey: 'competency_360.reports', descKey: 'competency_360.reports_desc', icon: 'pi pi-file-chart', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.reports.view' }
+        meta: { title: 'Competency Reports', titleKey: 'competency_360.reports', descKey: 'competency_360.reports_desc', icon: 'pi pi-file-chart', module: 'competency', backRoute: '/competencies', backLabelKey: 'nav.competency', permission: 'competency.report.view' }
       },
       // Employee Movement & Career Management (G-8: route menyamakan menu server)
       {

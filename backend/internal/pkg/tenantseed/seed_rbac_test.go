@@ -44,9 +44,9 @@ func TestTenantRBACSubmenus(t *testing.T) {
 	// meng-cover semua route submenu-nya lewat fallback module-covers-submenu
 	// di authz middleware & FE hasPermission().
 	required := []string{
-		"competency.events.view",
-		"competency.templates.view",
-		"competency.my-assessments.view",
+		"competency.settings.view",
+		"competency.assessment.view",
+		"competency.report.view",
 		"attendance.business-travel.view",
 		"rbac.roles.view",
 	}
