@@ -20,72 +20,72 @@
       </div>
     </div>
     <SkeletonTable v-if="loading" :columns="skeletonColumns" :rows="4" />
-    <div v-else class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-x-auto">
-      <table class="min-w-full border-collapse">
-        <thead>
-          <tr class="bg-gray-50 dark:bg-gray-700/50 text-left">
-            <th class="px-2 py-2 font-medium text-gray-600 dark:text-gray-300" style="width:220px">{{ t('rbac.submenu') }}</th>
-            <th v-for="act in allActions" :key="act" class="px-2 py-2 text-center font-medium text-gray-600 dark:text-gray-300" style="width:90px">{{ act }}</th>
-          </tr>
-        </thead>
-        <tbody v-if="filteredGroups.length === 0">
-          <tr>
-            <td :colspan="allActions.length + 1" class="text-center text-sm text-gray-400 py-8">{{ t('rbac.empty_permissions') }}</td>
-          </tr>
-        </tbody>
-        <template v-for="group in filteredGroups" :key="group.resource">
-          <tbody>
-            <!-- Baris subheader per resource -->
-            <tr class="bg-gray-50 dark:bg-gray-700/50">
-              <td :colspan="allActions.length + 1" class="px-2 py-2">
-                <div class="flex items-center justify-between flex-wrap gap-2">
-                  <div class="flex items-center gap-2">
-                    <span class="font-semibold text-gray-800 dark:text-gray-100">{{ moduleLabel(group.resource) }}</span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500">{{ groupCount(group.resource) }} {{ t('rbac.permissions_count') }}</span>
+    <div v-else class="space-y-3">
+      <div v-if="filteredGroups.length === 0" class="text-center text-sm text-gray-400 py-8 border border-gray-200 dark:border-gray-700 rounded-lg">
+        {{ t('rbac.empty_permissions') }}
+      </div>
+      <!-- Satu card per module (resource) -->
+      <div
+        v-for="group in filteredGroups"
+        :key="group.resource"
+        class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+      >
+        <div class="flex items-center justify-between flex-wrap gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-gray-800 dark:text-gray-100">{{ moduleLabel(group.resource) }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500">{{ groupCount(group.resource) }} {{ t('rbac.permissions_count') }}</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <Checkbox :binary="true" :model-value="groupAllSelected(group.resource)" @update:model-value="toggleResource(group.resource)" />
+            <Button
+              :label="groupAllSelected(group.resource) ? t('common.clear') : t('common.all')"
+              severity="secondary"
+              text
+              size="small"
+              class="!text-[11px] !p-0.5"
+              @click="toggleResource(group.resource)"
+            />
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full border-collapse">
+            <thead>
+              <tr class="text-left">
+                <th class="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300" style="width:220px">{{ t('rbac.submenu') }}</th>
+                <th v-for="act in groupActions(group)" :key="act" class="px-2 py-2 text-xs text-center font-medium text-gray-600 dark:text-gray-300" style="width:90px">{{ act }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Baris level-module ("Umum") diikuti tiap submenu -->
+              <tr v-for="row in group.rows" :key="row.rowKey" class="border-t border-gray-100 dark:border-gray-700/50">
+                <td class="px-4 py-2 align-top">
+                  <div>
+                    <span
+                      class="text-gray-800 dark:text-gray-100"
+                      :class="row.submenu ? 'font-normal' : 'font-semibold'"
+                    >
+                      {{ row.submenu ? submenuLabel(row.resource, row.submenu) : t('rbac.module_level') }}
+                    </span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500 block">
+                      {{ descriptionLabel(row.resource, row.submenu) }}
+                    </span>
                   </div>
-                  <div class="flex items-center gap-1.5">
-                    <Checkbox :binary="true" :model-value="groupAllSelected(group.resource)" @update:model-value="toggleResource(group.resource)" />
-                    <Button
-                      :label="groupAllSelected(group.resource) ? t('common.clear') : t('common.all')"
-                      severity="secondary"
-                      text
-                      size="small"
-                      class="!text-[11px] !p-0.5"
-                      @click="toggleResource(group.resource)"
+                </td>
+                <td v-for="act in groupActions(group)" :key="act" class="px-2 py-2 align-top">
+                  <div class="flex justify-center">
+                    <ToggleSwitch
+                      v-if="row.byAction[act]"
+                      :model-value="selected[row.byAction[act].id]"
+                      @update:model-value="v => selected[row.byAction[act].id] = v"
                     />
+                    <span v-else class="text-gray-300 dark:text-gray-600">—</span>
                   </div>
-                </div>
-              </td>
-            </tr>
-            <!-- Baris level-module ("Umum") diikuti tiap submenu -->
-            <tr v-for="row in group.rows" :key="row.rowKey" class="border-t border-gray-100 dark:border-gray-700/50">
-              <td class="px-2 py-2 align-top">
-                <div>
-                  <span
-                    class="text-gray-800 dark:text-gray-100"
-                    :class="row.submenu ? 'font-normal' : 'font-semibold'"
-                  >
-                    {{ row.submenu ? submenuLabel(row.resource, row.submenu) : t('rbac.module_level') }}
-                  </span>
-                  <span class="text-xs text-gray-400 dark:text-gray-500 block">
-                    {{ descriptionLabel(row.resource, row.submenu) }}
-                  </span>
-                </div>
-              </td>
-              <td v-for="act in allActions" :key="act" class="px-2 py-2 align-top">
-                <div class="flex justify-center">
-                  <ToggleSwitch
-                    v-if="row.byAction[act]"
-                    :model-value="selected[row.byAction[act].id]"
-                    @update:model-value="v => selected[row.byAction[act].id] = v"
-                  />
-                  <span v-else class="text-gray-300 dark:text-gray-600">—</span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </template>
-      </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -216,6 +216,12 @@ const filteredGroups = computed(() => {
     .map(g => ({ resource: g.resource, rows: orderedRows(g).filter(r => rowMatchesQuery(r, q)) }))
     .filter(g => g.rows.length > 0)
 })
+
+// Aksi yang benar-benar dipakai di dalam satu module (card) — tidak
+// menampilkan kolom aksi yang tidak relevan untuk module tersebut.
+function groupActions(group) {
+  return allActions.value.filter(act => group.rows.some(r => r.byAction[act]))
+}
 
 function groupItems(resource) {
   return permissions.value.filter(p => p.resource === resource)
