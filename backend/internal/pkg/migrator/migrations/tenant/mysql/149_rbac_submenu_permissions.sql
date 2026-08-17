@@ -21,114 +21,8 @@
 -- & report (reports — view only).
 -- approval disederhanakan jadi 2 submenu: settings (flows), operations
 -- (tasks, instances).
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('04976b88-eed2-580d-a244-4e3bb1dddbe8', 'leave.dashboard.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('04976b88-eed2-580d-a244-4e3bb1dddbe8', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('04976b88-eed2-580d-a244-4e3bb1dddbe8', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('eafe152e-65fd-52da-8af3-5aef7d6acb91', 'leave.dashboard.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('eafe152e-65fd-52da-8af3-5aef7d6acb91', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('1db4e988-6cf6-5997-8e60-625700403e20', 'leave.dashboard.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('1db4e988-6cf6-5997-8e60-625700403e20', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('2c0f3ff8-2b3d-56fc-ac92-28b9ffb54a53', 'leave.dashboard.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('2c0f3ff8-2b3d-56fc-ac92-28b9ffb54a53', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('a3a01d1e-2b94-55a6-b1bd-2ba5f7bc1bc6', 'leave.requests.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('a3a01d1e-2b94-55a6-b1bd-2ba5f7bc1bc6', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('a3a01d1e-2b94-55a6-b1bd-2ba5f7bc1bc6', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('297c9d5c-2cd8-53b3-9617-919322459e60', 'leave.requests.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('297c9d5c-2cd8-53b3-9617-919322459e60', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('716f7ea6-0e93-50f8-83d0-202de0c230b8', 'leave.requests.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('716f7ea6-0e93-50f8-83d0-202de0c230b8', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('e180bcac-8a70-5758-8f2e-e2cbc1d0b93b', 'leave.requests.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('e180bcac-8a70-5758-8f2e-e2cbc1d0b93b', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('96654182-bc67-594b-8467-e2a79ff28c17', 'leave.types.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('96654182-bc67-594b-8467-e2a79ff28c17', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('96654182-bc67-594b-8467-e2a79ff28c17', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('36f4e28d-cffa-534e-afac-5c65c0d98588', 'leave.types.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('36f4e28d-cffa-534e-afac-5c65c0d98588', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('01a2bbb5-403d-50aa-9a7f-496bccd7e465', 'leave.types.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('01a2bbb5-403d-50aa-9a7f-496bccd7e465', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('14cca6ea-9c5d-5b0e-83f3-6aa70af1f974', 'leave.types.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('14cca6ea-9c5d-5b0e-83f3-6aa70af1f974', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('ff5c48d0-f69a-5b9d-9aad-0acfc95b6874', 'leave.balances.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('ff5c48d0-f69a-5b9d-9aad-0acfc95b6874', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('ff5c48d0-f69a-5b9d-9aad-0acfc95b6874', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('9767c6cf-7fe1-5a70-a94e-bdb956c3bcae', 'leave.balances.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('9767c6cf-7fe1-5a70-a94e-bdb956c3bcae', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('139a5f68-7222-5b6c-913e-f43925e647c7', 'leave.balances.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('139a5f68-7222-5b6c-913e-f43925e647c7', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('0231cf23-d482-530e-a4e7-d00b4687c173', 'leave.balances.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('0231cf23-d482-530e-a4e7-d00b4687c173', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+-- leave disederhanakan jadi 2 submenu: settings (settings, types,
+-- accrual-policies, reasons), operations (dashboard, requests, balances).
 
 INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
 VALUES ('207d3e01-43b1-594a-9acb-fe4783d50309', 'leave.settings.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -1092,3 +986,30 @@ VALUES ('364011da-ce28-5a1b-b209-93c83ae03308', 'approval.operations.delete', 'w
 
 INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
 VALUES ('364011da-ce28-5a1b-b209-93c83ae03308', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('17622ba1-8e7e-5510-94a5-15ca11099960', 'leave.operations.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('17622ba1-8e7e-5510-94a5-15ca11099960', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('17622ba1-8e7e-5510-94a5-15ca11099960', '3e562937-d5a1-543a-b1c8-af2f447500a4');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('51add501-6150-58db-a7e4-46480ee68acb', 'leave.operations.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('51add501-6150-58db-a7e4-46480ee68acb', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('c63f59e1-e202-550e-b52b-61331878d4c8', 'leave.operations.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('c63f59e1-e202-550e-b52b-61331878d4c8', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('a1c67c35-b973-56f5-b405-bcd9a8aeb1cc', 'leave.operations.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('a1c67c35-b973-56f5-b405-bcd9a8aeb1cc', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');

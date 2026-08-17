@@ -70,13 +70,8 @@ func tenantRBACResources() []tenantRBACResource {
 		}},
 		{"payroll", std, nil},
 		{"leave", std, []tenantRBACSubmenu{
-			{"dashboard", std},
-			{"requests", std},
-			{"types", std},
-			{"balances", std},
 			{"settings", std},
-			{"accrual-policies", std},
-			{"reasons", std},
+			{"operations", std},
 		}},
 		{"performance", std, []tenantRBACSubmenu{
 			{"evaluations", std},
