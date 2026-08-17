@@ -209,7 +209,7 @@ Tidak ditemukan integrasi notifikasi langsung di modul reimbursement. `docs/modu
 
 **Catatan penting**: `docs/project-completion-dashboard.md` menandai "Reimbursement & Claim" sebagai "✅ Complete" — namun itu metrik **backend saja** (3 tabel, 60 test, 15 endpoint). Frontend belum diimplementasikan sama sekali, dan dua integrasi lintas modul (payroll payout, notifikasi) masih tertunda.
 
-Tidak ditemukan file `docs/module-reimbursement-plan.md` tersendiri (berbeda dengan modul leave, movement, notification, career-intelligence, recruitment yang masing-masing punya `module-*-plan.md`) — mengindikasikan reimbursement belum punya dokumen perencanaan build-out frontend.
+Pada saat analisis ini ditulis, belum ada file `docs/archive/module-reimbursement-development-plan.md` tersendiri (berbeda dengan modul leave, movement, notification, career-intelligence, recruitment yang masing-masing punya `module-*-plan.md`) — mengindikasikan reimbursement belum punya dokumen perencanaan build-out frontend. *(Update: plan tersebut kini ada & selesai — diarsipkan di `docs/archive/module-reimbursement-development-plan.md`, lihat `docs/flow/module-reimbursement-flow.md`.)*
 
 ## 7. Rekomendasi Langkah Berikutnya
 

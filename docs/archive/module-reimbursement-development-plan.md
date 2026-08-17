@@ -1,5 +1,8 @@
 # Plan Pengembangan Reimbursement & Claim
 
+> 📅 Status: **✅ SELESAI (2026-08-16)** — seluruh fase dieksekusi (Phase 1–2 FE, Phase 4 notifikasi, Phase 5 approval popup, Phase 6 housekeeping). Satu-satunya item yang **sengaja tidak dibangun**: Phase 3 integrasi payroll (keputusan produk final — pembayaran dicatat manual di modul, §5).
+> ✅ **Verifikasi arsip (2026-08-17):** backend (approval + RBAC + ±60 test) & frontend (4 view: hub, types, requests, detail) diverifikasi — lihat [`flow/module-reimbursement-flow.md`](flow/module-reimbursement-flow.md) untuk alur pengisian.
+
 > Sumber: `docs/analisis-modul-reimbursements.md` (analisis eksplorasi kode, 2026-08-16).
 > Dokumen ini adalah rencana kerja lanjutan — bukan analisis ulang. Untuk detail struktur kode/tabel/state machine yang sudah ada, rujuk dokumen analisis tersebut; dokumen ini fokus pada **apa yang tersisa dan bagaimana mengerjakannya**.
 
@@ -7,21 +10,19 @@
 
 # 1. Ringkasan Status
 
-Modul Reimbursement **backend-complete**, **frontend belum ada sama sekali** (placeholder "Coming soon"), dan dua integrasi lintas modul belum dikerjakan.
+Modul Reimbursement **selesai penuh** (backend + frontend + integrasi). Ringkasan per layer:
 
 | Layer | Status |
 |---|---|
 | Database & migrasi (Postgres + MySQL) | ✅ Selesai |
-| Model / Repository / Service / Handler / Routes | ✅ Selesai (±60 test) |
+| Model / Repository / Service / Handler / Routes | ✅ Selesai (±75 test) |
 | Integrasi Approval Engine (central) | ✅ Selesai |
 | RBAC permissions | ✅ Selesai (5 permission ter-seed) |
-| Frontend UI | ❌ Placeholder saja — **prioritas utama plan ini** |
+| Frontend UI | ✅ Selesai (2026-08-16) — hub, types, requests, detail (Phase 1–2) |
 | Integrasi payroll (pembayaran) | 🚫 Tidak dibangun — keputusan produk (2026-08-16): pembayaran langsung di module reimbursement, tanpa linkage payroll |
-| Notifikasi outcome | ❌ Belum ada — masuk Notification Phase 5 |
-| Upload lampiran bukti (receipt) | ⚠️ Field `receipt_url` ada, endpoint upload belum dipakai end-to-end |
-| Konsistensi tipe kolom timestamp (model.go vs SQL) | ⚠️ Perlu diselaraskan |
-
-`docs/project-completion-dashboard.md` menandai modul ini "✅ Complete" — itu keliru/menyesatkan karena hanya mengukur backend. Plan ini eksis untuk menutup gap tersebut.
+| Notifikasi outcome | ✅ Selesai (2026-08-16) — `REIMBURSEMENT_APPROVED/REJECTED/PAID` (Phase 4) |
+| Upload lampiran bukti (receipt) | ✅ Selesai (Phase 2 — dua-langkah via `POST /uploads`) |
+| Konsistensi tipe kolom timestamp (model.go vs SQL) | ✅ Fixed (2026-08-16) — `int64` → `*time.Time` (Phase 6) |
 
 ---
 
