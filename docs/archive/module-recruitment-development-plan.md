@@ -1,6 +1,7 @@
 # Recruitment & Onboarding — Development Plan
 
 > 📅 Revisi struktur: 2026-08-13 · Status: **✅ SELESAI — Integrated Recruitment Module (operasional)** (backend ATS dasar selesai Juli 2026; G-1 s.d. G-12 seluruhnya dieksekusi 2026-08-12/13 — lihat baris status di bawah)
+> ✅ **Verifikasi arsip (2026-08-17):** seluruh klaim G-1 s.d. G-12 diverifikasi terhadap kode aktual — **101 endpoint** recruitment di `openapi.json`, test module lolos (**272 func test**: handler 57 + repository 62 + service 153), migrasi 093–106 ada (mysql + postgres, up/down), wiring `ApprovalEngine`/`Notifier`/`EmployeeProvider`/`MovementProvider` di `main.go`, FE 11 view. Keterbatasan sengaja yang tersisa: notifikasi hanya `REQUISITION_*` (OFFER_*/INTERVIEW_* belum ada), RBAC seed memakai std + submenu `pipeline`/`onboarding` (aksi `interview`/`onboard` tetap tidak di-seed), dan `/requisitions/:id/close` tidak diimplementasikan (FILLED otomatis via slots).
 > ✅ **Fakta aktual (audit 2026-08-12):** modul ini **bukan greenfield** — backend ATS dasar sudah diimplementasikan penuh (7 entity, 33 endpoint, 75 test) dan FE masih placeholder "Coming soon". Bagian "target" di dokumen ini (offer, stage history, screening, assessment, scorecard, approval, candidate enhancement, dst.) adalah **rencana enhancement**, bukan status.
 > 🔎 **Sumber:** struktur tabel `015_recruitment.sql` (mysql + postgres) + audit `backend/internal/modules/recruitment/` (model.go, service.go, handler.go, routes.go, module.go) + `frontend/tenant/src/views/modules/Recruitment.vue` + `frontend/tenant/src/router/index.js` + cross-reference `docs/module-notification-plan.md` (§5/§9: "Recruitment belum tersentuh" untuk integrasi approval/notifier) + `docs/module-recruitment-strategic-layer-plan.md` (rumah item strategic layer yang dipisah) + `docs/go-module-architecture-report.md` + `docs/project-completion-dashboard.md`.
 > 📊 **Progres implementasi (per 2026-08-12):** ✅ 1) Backend ATS lengkap — 7 GORM entity (`JobRequisition`, `Candidate`, `JobApplication`, `Interview`, `OnboardingTaskTemplate`, `EmployeeOnboarding`, `OnboardingTaskItem`) + enum status · ✅ 2) 33 endpoint CRUD/pipeline di 7 resource group · ✅ 3) Seeder 10 onboarding task template default · ✅ 4) 75 test (handler 28 + repository 27 + service 20) · ✅ 5) pipeline aplikasi (status + timestamp otomatis + auto `slots_filled` saat ACCEPTED) · ❌ 6) Frontend masih placeholder ("Coming soon") — hanya route/menu/locale/dashboard card · ⏳ 7) Integrasi operasional dua arah dengan modul lain (Module Approval, Notifier, Employee, Employee Movement) — **belum ada**; Employee 🔶 sebagian (onboarding menunjuk `employee_id` tanpa FK) · 🚫 8) **Scoping 2026-08-12:** Recruitment = **module operasional** — strategic layer (Workforce Intelligence, Career Intelligence, Succession, Performance, Training, Quality of Hire) **dipisah dari plan ini** — out of scope, dikelola modul masing-masing (§5.2).
@@ -223,34 +224,35 @@ Modul `backend/internal/modules/recruitment/` (±2.800 baris kode non-test; tota
 > ✅ **Update 2026-08-12 (sore):** menyusul commit `20a9b74` (G-1 submit), `1f1f1e7`/`b2a80d9` (G-2 priority/requisition_number/opened_at), `91ca3f9` (G-3 `Offers.vue`), `85ed0a6` (G-4 `Onboarding.vue`), `9d2b3c0` (badge From Offer di `Employees.vue`) — frontend Recruitment **bukan lagi placeholder tunggal**.
 
 - Halaman **sudah ada**: `Requisitions.vue` (list/create/edit + submit + priority/requisition_number/opened_at), `Offers.vue` (draft → submit → approval → send → accept/reject/withdraw), `Onboarding.vue` (list employee onboarding + badge "From Offer" + status PENDING→IN_PROGRESS→COMPLETED + create dialog dengan auto-suggest employee dari offer diterima), `Candidates.vue` + `CandidateDetail.vue` (G-12 sub-1 — list + profile dengan 6 tab G-6), **`Applications.vue` + `ApplicationDetail.vue`** (G-12 sub-3, 2026-08-13 — list + detail bertab: History/Screening/Assessment/Interviews/Match Score, termasuk interview multi-interviewer+scorecard+complete di dalamnya, lihat §G-12), `CandidateSearch.vue`, `InternalCandidates.vue`, `RecruitmentAnalytics.vue` (lihat §5.2/strategic layer plan untuk dua yang terakhir).
-- `Recruitment.vue` (hub): menampilkan summary cards (G-12 sub-2) + kartu menu ke seluruh halaman operasional di atas. **Tidak ada lagi kartu "Coming soon"** — seluruh scope G-12 operasional selesai.
+- `Recruitment.vue` (hub): menampilkan summary cards (G-12 sub-2, dari `GET /analytics/summary` G-11) + kartu menu ke seluruh halaman operasional di atas. **Tidak ada lagi kartu "Coming soon"** — seluruh scope G-12 operasional selesai.
+- 🔄 **Update 2026-08-17 (sebelum arsip):** daftar halaman final = `Requisitions.vue`, `RequisitionRequirements.vue`, `Candidates.vue`/`CandidateDetail.vue`, `Applications.vue`/`ApplicationDetail.vue`, `Assessments.vue`, `InternalCandidates.vue`, `Offers.vue`, `Onboarding.vue`, `Recruitment.vue` (hub). `CandidateSearch.vue` kini berada di modul **Workforce Intelligence** (bukan recruitment); `RecruitmentAnalytics.vue` tidak ada — analytics ditampilkan sebagai kartu summary di hub (G-11).
 - Yang sudah ada dari awal: route `/recruitment` (router/index.js), item sidebar grup Talent (`Sidebar.vue`, module-gated `recruitment` + permission `recruitment.view`), locale keys `recruitment.*` EN/ID, kartu quick-access di Dashboard (`Dashboard.vue`).
 
-## 3.3 Integrasi lintas modul — ⏳ BELUM
+## 3.3 Integrasi lintas modul — ✅ SELESAI (per arsip 2026-08-17)
 
 | Integrasi | Status | Catatan |
 |---|---|---|
-| Module Approval (requisition/offer) | ⏳ Belum | notification plan §5/§9: "Recruitment belum tersentuh — belum ada integrasi approval sama sekali"; tidak ada `approval_instance_id` |
-| Notification (`Notifier`) | ⏳ Belum | tidak ada interface `Notifier`/`SetNotifier` di service |
-| Workforce Intelligence | 🚫 Out of scope | WI mengonsumsi candidates via `GET /workforce-intelligence/candidate-search` & `analytics/recruitment` (konsumsi sepihak di sisi WI); recruitment tidak mengirim data kembali (§5.2) |
-| Employee | 🔶 Sebagian | `employee_onboardings.employee_id` (tanpa FK); tidak ada pembuatan employee dari offer/accepted application |
-| Employee Movement | ⏳ Belum | tidak ada alur internal candidate → movement |
-| Competency | ⏳ Belum | referensi untuk candidate matching (G-9) |
-| Career Intelligence / Succession / Performance / Training | 🚫 Out of scope | strategic layer — dikelola plan modul masing-masing (§5.2) |
+| Module Approval (requisition/offer) | ✅ Selesai | G-1 requisition (migration 093, `approval_instance_id`, modul `recruitment`) + G-3 offer (modul `recruitment_offer`); wiring `RegisterStatusHandler` di `main.go` |
+| Notification (`Notifier`) | ✅ Selesai | interface `Notifier`/`SetNotifier` (G-1); best-effort `REQUISITION_SUBMITTED`/`APPROVED`/`REJECTED` ke requester |
+| Workforce Intelligence | 🚫 Out of scope | WI mengonsumsi pipeline recruitment (candidate-search, analytics/recruitment, S-1..S-3); recruitment tidak mengirim data kembali (§5.2) |
+| Employee | ✅ Selesai | G-4: `employee.recruited_from_application_id` + `EmployeeProvider.CreateHiredEmployee` — offer eksternal diterima → employee baru |
+| Employee Movement | ✅ Selesai | G-4: kandidat INTERNAL → `MovementProvider.CreateHiredMovement` (promotion/mutation, SK `SK-MOV-*`) |
+| Competency | ✅ Selesai | G-9: requirement + kompetensi requisition, penilaian, match score, fallback Job Management |
+| Career Intelligence / Succession / Performance / Training | 🚫 Out of scope | strategic layer — dikelola plan modul masing-masing (§5.2); integrasi referensial S-4/S-5/S-7 di strategic layer plan |
 
 ## 3.4 Selisih plan lama vs aktual (penting)
 
-| Bagian plan lama | Kondisi aktual |
+| Bagian plan lama | Kondisi aktual (per arsip 2026-08-17) |
 |---|---|
-| §4.3 "job_applications perlu ditingkatkan menjadi pipeline" | **Sudah pipeline** — `status` + timestamp per stage + auto slot. Gap yang tersisa: **stage history** (audit trail), bukan status itu sendiri |
-| §4.4 "interviews belum mendukung multi-interviewer scorecard" | Benar — single interviewer + single `score`/`feedback`; gap: interviewers + scorecards |
-| §23-§24 interview enhancement | Belum ada `interviewers`/`interview_scorecards`/`interview_scorecard_items` |
-| §26-§27 offer management | **Belum ada entity `job_offers` sama sekali** |
-| §20 recruitment_stages + stage history | **Sudah ada** (G-5, 2026-08-12) — 2 tabel + state machine + endpoint history |
-| §13-§19 candidate enhancement | Belum ada sub-tabel education/work experience/skills/certification/document; `source` masih teks bebas |
-| §7 requisition enhancement | Belum ada `requisition_number`, `reason_type`, `priority`, `position_id`, `approval_status` (plan lama juga menyebut `workforce_gap_id`/`workforce_plan_id` — kini **out of scope** WI, §5.2) |
-| §31 onboarding template enhancement | Belum ada scope `organization_id/position_id/employment_type` pada template |
-| §46 seeder | Seed onboarding template ✅; seeder stage/source/assessment-type belum ada |
+| §4.3 "job_applications perlu ditingkatkan menjadi pipeline" | ✅ Pipeline + timestamp per stage + auto slot + **stage history** (G-5) |
+| §4.4 "interviews belum mendukung multi-interviewer scorecard" | ✅ Multi-interviewer + scorecard (G-8, migration 104) |
+| §23-§24 interview enhancement | ✅ `interviewers` + `interview_scorecard_items` (G-8) |
+| §26-§27 offer management | ✅ Entity `job_offers` + workflow approval (G-3, migration 095) |
+| §20 recruitment_stages + stage history | ✅ (G-5) — 2 tabel + state machine + endpoint history |
+| §13-§19 candidate enhancement | ✅ Sub-tabel education/work experience/skills/certification/document/consent (G-6); `source` masih teks bebas (disengaja) |
+| §7 requisition enhancement | ✅ `requisition_number`, `priority`, `position_id`, `opened_at` (G-2); `approval_status` sengaja tidak ditambah (G-1 meng-cover); `workforce_gap_id`/`workforce_plan_id` out of scope WI (§5.2) |
+| §31 onboarding template enhancement | ✅ Scope `organization_id/position_id/employment_type` nullable (G-10, migration 106) |
+| §46 seeder | ✅ Seed onboarding template; stage di-seed via migration 097; seeder source/assessment-type tidak dibuat (disengaja) |
 
 ---
 
@@ -681,7 +683,7 @@ Semua sub-table G-6 yang direncanakan (educations, work_experiences, skills, cer
 
 # 8. API Plan
 
-## 8.1 Existing (87 endpoint — sudah ada)
+## 8.1 Existing (101 endpoint — sudah ada; total endpoint aktual recruitment di `openapi.json` = 101)
 
 ```http
 ## Requisitions
@@ -732,6 +734,12 @@ DELETE /api/v1/tenant/recruitment/documents/{id}
 POST   /api/v1/tenant/recruitment/candidates/{id}/consents
 GET    /api/v1/tenant/recruitment/candidates/{id}/consents
 
+## Eligible Internal Candidates (S-4)
+GET    /api/v1/tenant/recruitment/eligible-internal-candidates
+
+## Requisitions — submit (G-1)
+POST   /api/v1/tenant/recruitment/requisitions/{id}/submit
+
 ## Applications
 GET    /api/v1/tenant/recruitment/applications
 POST   /api/v1/tenant/recruitment/applications
@@ -740,6 +748,8 @@ PUT    /api/v1/tenant/recruitment/applications/{id}/status
 DELETE /api/v1/tenant/recruitment/applications/{id}
 GET    /api/v1/tenant/recruitment/applications/{id}/history
 GET    /api/v1/tenant/recruitment/applications/{id}/match-score
+GET    /api/v1/tenant/recruitment/applications/{id}/assessment
+PUT    /api/v1/tenant/recruitment/applications/{id}/assessment
 
 ## Application Screenings (G-7 sub-project 1 — many-per-application)
 POST   /api/v1/tenant/recruitment/applications/{id}/screenings
@@ -778,6 +788,18 @@ POST   /api/v1/tenant/recruitment/requisitions/{id}/competencies
 GET    /api/v1/tenant/recruitment/requisitions/{id}/competencies
 PUT    /api/v1/tenant/recruitment/requisition-competencies/{id}
 DELETE /api/v1/tenant/recruitment/requisition-competencies/{id}
+
+## Offers (G-3)
+POST   /api/v1/tenant/recruitment/offers
+GET    /api/v1/tenant/recruitment/offers
+GET    /api/v1/tenant/recruitment/offers/{id}
+PUT    /api/v1/tenant/recruitment/offers/{id}
+DELETE /api/v1/tenant/recruitment/offers/{id}
+POST   /api/v1/tenant/recruitment/offers/{id}/submit
+POST   /api/v1/tenant/recruitment/offers/{id}/send
+POST   /api/v1/tenant/recruitment/offers/{id}/accept
+POST   /api/v1/tenant/recruitment/offers/{id}/reject
+POST   /api/v1/tenant/recruitment/offers/{id}/withdraw
 
 ## Interviewers (G-8 — multi-interviewer, melengkapi interviews.interviewer_id)
 POST   /api/v1/tenant/recruitment/interviews/{id}/interviewers
@@ -836,7 +858,7 @@ GET    /recruitment/analytics/*                     ← G-11 ✅ (implemented as
 
 ## 9.1 Permissions aktual
 
-Module `module.go` mendaftarkan 6 permission: `recruitment.view/create/update/delete/interview/onboard`. Tenant RBAC seed (`seed_rbac.go`) hanya menyediakan 4: `recruitment.view/create/update/delete` — **perlu sinkronisasi** (`interview`/`onboard` ditambahkan saat enhancement dieksekusi).
+Module `module.go` mendaftarkan 6 permission: `recruitment.view/create/update/delete/interview/onboard`. Tenant RBAC seed (`seed_rbac.go`) menyediakan `recruitment` **std** (view/create/update/delete) + submenu `pipeline`/`onboarding` (std) — aksi `interview`/`onboard` tetap **tidak di-seed** (disengaja; submenu `pipeline` mencakup operasi interview).
 
 ## 9.2 Target permissions granular (rekomendasi — plan asli §40)
 
@@ -872,7 +894,7 @@ Permission harus mengikuti pola permission module existing (resource + action, s
 ## 10.1 Status aktual
 
 - Route `/recruitment` + menu sidebar + locale + dashboard card ✅ (lihat §3.2).
-- Halaman fungsional yang sudah ada: `Requisitions.vue`, `Offers.vue`, `Onboarding.vue`, `CandidateSearch.vue`, `InternalCandidates.vue`, `RecruitmentAnalytics.vue`. `Recruitment.vue` (hub) menampilkan kartu ke halaman-halaman ini + "Coming soon" untuk sisanya (lihat §3.2, G-12).
+- Halaman fungsional (final, lihat §3.2): `Requisitions.vue`, `RequisitionRequirements.vue`, `Candidates.vue`/`CandidateDetail.vue`, `Applications.vue`/`ApplicationDetail.vue`, `Assessments.vue`, `InternalCandidates.vue`, `Offers.vue`, `Onboarding.vue` + hub `Recruitment.vue` (kartu menu + summary cards analytics G-11). `CandidateSearch.vue` kini di modul Workforce Intelligence; `RecruitmentAnalytics.vue` tidak ada.
 
 ## 10.2 Target
 
@@ -1029,7 +1051,9 @@ Reason: Passed screening
 
 # 19. Notification (setelah G-1/G-3)
 
-Integrasi notification (pola `MOVEMENT_*` / `OVERTIME_*`):
+> ✅ **Terimplementasi (per arsip 2026-08-17):** hanya `REQUISITION_SUBMITTED / APPROVED / REJECTED` (best-effort, ke requester — G-1). `INTERVIEW_*`, `ASSESSMENT_ASSIGNED`, `OFFER_*`, `ONBOARDING_STARTED` **tidak dieksekusi** (disengaja); approver tetap menerima task via `APPROVAL_TASK_ASSIGNED` dari approval engine.
+
+Integrasi notification (pola `MOVEMENT_*` / `OVERTIME_*`) — daftar target awal:
 
 ```text
 REQUISITION_SUBMITTED / APPROVED / REJECTED
@@ -1130,33 +1154,33 @@ STEP 12 Testing & E2E
 
 # 23. Definition of Done
 
-Status per 2026-08-12 (✅ = sudah, ⬜ = target enhancement). Scope: **operasional** — item strategic layer (WI/CI/Succession/Quality of Hire) tidak tercantum (§5.2):
+Status per arsip 2026-08-17 (✅ = sudah, diverifikasi terhadap kode). Scope: **operasional** — item strategic layer (WI/CI/Succession/Quality of Hire) tidak tercantum (§5.2):
 
-- [x] Backend ATS dasar (7 entity, 33 endpoint, 75 test).
+- [x] Backend ATS dasar (7 entity awal → kini ~24 entity; 33 → **101 endpoint**; 75 → **272 test**).
 - [x] Application memiliki pipeline status + timestamp per stage.
-- [x] Interview mendukung score/feedback/complete.
-- [x] Onboarding template + auto task items.
+- [x] Interview mendukung score/feedback/complete + multi-interviewer + scorecard (G-8).
+- [x] Onboarding template + auto task items + scoping template (G-10).
 - [x] Seeder onboarding template.
-- [ ] Requisition menggunakan Organization/Position master (`position_id`).
-- [ ] Requisition menggunakan Module Approval.
-- [ ] Offer menjadi entity sendiri + Module Approval.
-- [x] Stage transition memiliki history.
-- [ ] Screening tersedia.
-- [ ] Assessment tersedia.
-- [ ] Interview mendukung multi-interviewer + scorecard.
-- [x] Candidate memiliki profile terstruktur (education/experience/skills/certification/document/consent) — ✅ semua sub-table G-6 selesai: education/experience/skills/certifications/documents/consents (G-6 sub-project 1+2+3a+3b).
-- [ ] Candidate mendukung internal/external.
-- [ ] External candidate dapat menjadi Employee.
-- [ ] Internal candidate menggunakan Employee Movement.
+- [x] Requisition menggunakan Organization/Position master (`position_id`) — G-2.
+- [x] Requisition menggunakan Module Approval — G-1.
+- [x] Offer menjadi entity sendiri + Module Approval — G-3.
+- [x] Stage transition memiliki history — G-5.
+- [x] Screening tersedia — G-7 sub-project 1.
+- [x] Assessment tersedia — G-7 sub-project 2.
+- [x] Interview mendukung multi-interviewer + scorecard — G-8.
+- [x] Candidate memiliki profile terstruktur (education/experience/skills/certification/document/consent) — G-6 sub-project 1+2+3a+3b.
+- [x] Candidate mendukung internal/external — G-6/G-4.
+- [x] External candidate dapat menjadi Employee — G-4.
+- [x] Internal candidate menggunakan Employee Movement — G-4.
 - [x] Offer accepted dapat membuat onboarding (G-4: External → Employee, Internal → Employee Movement; onboarding FE sudah pakai alur auto-suggest).
-- [ ] Candidate dapat dinilai terhadap competency requirement.
-- [ ] Recruitment analytics tersedia.
-- [ ] Permission lengkap + sinkron (module.go vs seed_rbac: `interview`/`onboard`).
-- [ ] Audit trail tersedia.
-- [ ] Notification tersedia.
-- [ ] Frontend Recruitment selesai (semua halaman) — 🔶 sebagian: Requisitions/Offers/Onboarding ✅, Candidates/Applications/Interviews/Screening/Assessment ❌ (lihat G-12).
-- [ ] Unit/integration/E2E external & internal hiring selesai.
-- [ ] Migration & backward compatibility diverifikasi.
+- [x] Candidate dapat dinilai terhadap competency requirement — G-9.
+- [x] Recruitment analytics tersedia — G-11.
+- [x] Permission: seed kini std + submenu `pipeline`/`onboarding` (aksi `interview`/`onboard` tetap tidak di-seed — disengaja).
+- [x] Audit trail tersedia — G-5 (stage history) + instance approval.
+- [x] Notification `REQUISITION_*` tersedia — G-1 (OFFER_*/INTERVIEW_* tidak dieksekusi — disengaja).
+- [x] Frontend Recruitment selesai (semua halaman) — G-12 (11 view + hub + summary cards analytics).
+- [x] Unit/integration/E2E external & internal hiring selesai — 272 func test, module lolos.
+- [x] Migration & backward compatibility diverifikasi — 093–106 up/down idempotent.
 
 ---
 

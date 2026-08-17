@@ -1,6 +1,6 @@
 # Recruitment Pipeline Stage History (G-5) — Design
 
-> Ref: `docs/module-recruitment-development-plan.md` §G-5, §12 (M4), §16, §18.
+> Ref: `docs/archive/module-recruitment-development-plan.md` §G-5, §12 (M4), §16, §18.
 
 ## Goal
 
@@ -230,4 +230,4 @@ gap, bukan hanya mulai dari transisi pertama.
 - `backend/internal/modules/recruitment/dto.go` — `StageHistoryResponse`
 - `backend/internal/modules/recruitment/handler.go` + `routes.go` — `GET /applications/:id/history`
 - `backend/internal/modules/recruitment/module.go` — seed 8 `recruitment_stages` + `AutoMigrate` 2 entity baru
-- `docs/module-recruitment-development-plan.md` — update status G-5 setelah selesai
+- `docs/archive/module-recruitment-development-plan.md` — update status G-5 setelah selesai

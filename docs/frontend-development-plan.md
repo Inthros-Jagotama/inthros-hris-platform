@@ -517,13 +517,18 @@ Memungkinkan final score KPI per Organization dihitung dari kombinasi berbobot b
 - [x] Locale keys `performance_components.*`, `performance_scoring.*`, `settings.performance_components`/`performance_scoring` EN/ID
 - [ ] ⏸️ Belum ada UI untuk menampilkan indikator "Organization ini pakai Scoring Config" di `KPIIndex.vue`/`KPITemplates.vue` — cukup minor, bisa menyusul kalau dibutuhkan
 
-### C.18. Recruitment & Onboarding (ATS) 🔴 (BARU)
-**Backend:** 33 endpoints — detail backend & gap di [`module-recruitment-development-plan.md`](module-recruitment-development-plan.md) (modul **operasional**); integrasi strategis (Workforce/Career Intelligence ↔ Recruitment) dipisah ke [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) (scoping 12 Agu 2026)
-- [ ] Job Requisitions CRUD
-- [ ] Candidates CRUD
-- [ ] Applications (status pipeline)
-- [ ] Interviews scheduling
-- [ ] Onboarding Tasks
+### C.18. Recruitment & Onboarding (ATS) ✅ (Selesai — sinkron 17 Agu 2026; G-1 s.d. G-12)
+**Backend:** 101 endpoints — plan pengembangan `module-recruitment-development-plan.md` *(di-archive: `docs/archive/`)* (modul **operasional**); integrasi strategis (Workforce/Career Intelligence ↔ Recruitment) dipisah ke [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) (scoping 12 Agu 2026); alur pengguna: [`flow/module-recruitment-flow.md`](flow/module-recruitment-flow.md)
+**Frontend (9 view + hub):**
+- [x] `Requisitions.vue` — CRUD + submit ke approval + priority/requisition_number
+- [x] `RequisitionRequirements.vue` — requirements & kompetensi + sinkronisasi Job Management (G-9)
+- [x] `Candidates.vue` / `CandidateDetail.vue` — profil kandidat 6 tab (G-6)
+- [x] `Applications.vue` / `ApplicationDetail.vue` — pipeline bertab: history/screening/assessment/interview/penilaian/match score (G-12 sub-3)
+- [x] `Assessments.vue` — sesi assessment batch (G-7)
+- [x] `InternalCandidates.vue` — kandidat internal eligible via career path (S-4)
+- [x] `Offers.vue` — workflow offer + approval (G-3)
+- [x] `Onboarding.vue` — onboarding + handoff training (S-7)
+- [x] `Recruitment.vue` (hub) — kartu menu + summary cards analytics (G-11)
 
 ### C.19. Reimbursement & Claim 🔴 (BARU)
 **Backend:** 15 endpoints

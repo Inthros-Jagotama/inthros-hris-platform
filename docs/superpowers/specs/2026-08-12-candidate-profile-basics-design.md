@@ -1,6 +1,6 @@
 # Candidate Profile Basics — Education & Work Experience (G-6 sub-project 1) — Design
 
-> Ref: `docs/module-recruitment-development-plan.md` §G-6 (partial — first of 3 planned sub-projects).
+> Ref: `docs/archive/module-recruitment-development-plan.md` §G-6 (partial — first of 3 planned sub-projects).
 
 ## Goal
 
@@ -116,4 +116,4 @@ DELETE /recruitment/work-experiences/:id
 - `backend/internal/modules/recruitment/dto.go` — request/response DTOs for both entities; add `candidate_number` to `CandidateResponse`.
 - `backend/internal/modules/recruitment/handler.go` + `routes.go` — new endpoints.
 - `backend/internal/modules/recruitment/module.go` — `AutoMigrate` additions (test-DB convenience only, not the real migration).
-- `docs/module-recruitment-development-plan.md` — update G-6 status to reflect partial completion (this sub-project only; skills/certifications/documents/consents/status/source_id remain open).
+- `docs/archive/module-recruitment-development-plan.md` — update G-6 status to reflect partial completion (this sub-project only; skills/certifications/documents/consents/status/source_id remain open).

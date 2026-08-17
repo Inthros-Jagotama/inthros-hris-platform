@@ -1,6 +1,6 @@
 # Candidate Skills & Certifications (G-6 sub-project 2) — Design
 
-> Ref: `docs/module-recruitment-development-plan.md` §G-6 (partial — second of 3 planned sub-projects; sub-project 1 was `candidate_number` + `candidate_educations` + `candidate_work_experiences`, migration 098).
+> Ref: `docs/archive/module-recruitment-development-plan.md` §G-6 (partial — second of 3 planned sub-projects; sub-project 1 was `candidate_number` + `candidate_educations` + `candidate_work_experiences`, migration 098).
 
 ## Goal
 
@@ -17,7 +17,7 @@ Add two more candidate profile sub-tables: `candidate_skills` and `candidate_cer
 
 ### `candidate_skills` (new table)
 
-Unlike `candidate_educations`' nullable master references (sub-project 1), `competency_id` here is **NOT NULL** — a skill entry without a link to the `competencies` master isn't actionable for the candidate-matching feature planned in G-9 (`docs/module-recruitment-development-plan.md` §G-9, "Candidate Matching memakai Job Requirement + Competency + ... → candidate_match_score"), so every skill row must resolve to a real competency.
+Unlike `candidate_educations`' nullable master references (sub-project 1), `competency_id` here is **NOT NULL** — a skill entry without a link to the `competencies` master isn't actionable for the candidate-matching feature planned in G-9 (`docs/archive/module-recruitment-development-plan.md` §G-9, "Candidate Matching memakai Job Requirement + Competency + ... → candidate_match_score"), so every skill row must resolve to a real competency.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -85,4 +85,4 @@ DELETE /recruitment/certifications/:id
 - `backend/internal/modules/recruitment/dto.go` — request/response DTOs for both entities.
 - `backend/internal/modules/recruitment/handler.go` + `routes.go` — 8 new endpoints.
 - `backend/internal/modules/recruitment/module.go` — `AutoMigrate` additions (test-DB/production consistency, not the real migration mechanism).
-- `docs/module-recruitment-development-plan.md` — update G-6 status (sub-project 2 of 3 done; documents/consents remain open).
+- `docs/archive/module-recruitment-development-plan.md` — update G-6 status (sub-project 2 of 3 done; documents/consents remain open).

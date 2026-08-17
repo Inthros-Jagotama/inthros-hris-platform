@@ -17,8 +17,8 @@
 | **Total Go Files** | **346** (231 source + 115 test) |
 | **Total GORM Entities** | **199** (191 tenant + 8 platform, dari `go-module-architecture-report.md`) |
 | **Total Test Functions** | **~1547+** |
-| **Total OpenAPI Endpoints** | **943** |
-| **Total OpenAPI Schemas** | **627** |
+| **Total OpenAPI Endpoints** | **1157** |
+| **Total OpenAPI Schemas** | **790** |
 | **Total OpenAPI Tags** | **33** |
 | **Module Type Filter** | ✅ **3 endpoints** (`/modules`, `/packages`, `/public/packages`) |
 | **Bilingual Support** | ✅ **EN/ID** — Backend 80+ message pairs + Frontend 200+ locale keys, middleware auto-detect, field validation errors |
@@ -72,34 +72,34 @@
 | # | Module | Entities | Tests | OpenAPI Endpoints | Status | Completed |
 |---|--------|:--------:|:-----:|:-----------------:|:------:|:---------:|
 | 1 | Organization Management | 3 | 0 | 12 | ✅ Complete | 22 Jul 2026 |
-| 2 | Employee Management | 9 | 35 | 29 | ✅ Complete | 22 Jul 2026 |
-| 3 | Job Management | 18 | 67 | 96 | ✅ Complete | 22 Jul 2026 *(05 Agu: +8 endpoint tree/clusters/details & auto-recalc)* |
-| 4 | Competency Management | 7 | 60 | 36 | ✅ Complete | 26 Jul 2026 |
-| 5 | Employee Movement & Career | 2 | 62 | 15 | ✅ Complete | 26 Jul 2026 |
-| 6 | Time & Attendance | 10 | 88 | 30 | ✅ Complete | 26 Jul 2026 |
-| 7 | Approval Engine | 5 | 64 | 15 (+1) | ✅ Complete | 24 Jul 2026 |
-| 8 | Payroll & Compensation | 21 | 39 | 47 | ✅ Complete | 24 Jul 2026 |
-| 9 | Leave & Time Off | 6 | 39 | 23 | ✅ Complete | 26 Jul 2026 |
-| 10 | Performance Management | 7 | 57 | 34 | ✅ Complete | 26 Jul 2026 |
-| 11 | Recruitment & Onboarding (ATS) | 7 | 75 | 33 | ✅ Complete | 26 Jul 2026 |
+| 2 | Employee Management | 9 | 35 | 40 | ✅ Complete | 22 Jul 2026 |
+| 3 | Job Management | 18 | 67 | 97 | ✅ Complete | 22 Jul 2026 *(05 Agu: +8 endpoint tree/clusters/details & auto-recalc)* |
+| 4 | Competency Management | 7 | 60 | 67 | ✅ Complete | 26 Jul 2026 |
+| 5 | Employee Movement & Career | 2 | 62 | 29 | ✅ Complete | 26 Jul 2026 |
+| 6 | Time & Attendance | 10 | 88 | 92 | ✅ Complete | 26 Jul 2026 |
+| 7 | Approval Engine | 5 | 64 | 18 | ✅ Complete | 24 Jul 2026 |
+| 8 | Payroll & Compensation | 21 | 39 | 83 | ✅ Complete | 24 Jul 2026 |
+| 9 | Leave & Time Off | 6 | 39 | 26 | ✅ Complete | 26 Jul 2026 |
+| 10 | Performance Management | 7 | 57 | 147 | ✅ Complete | 26 Jul 2026 |
+| 11 | Recruitment & Onboarding (ATS) | 7 | 75 | 101 | ✅ Complete | 26 Jul 2026 |
 | 12 | Reimbursement & Claim | 3 | 75 | 15 | ✅ Complete | 16 Agu 2026 |
-| 13 | Training & Development | 7 | 31 | 35 | ✅ Complete | 26 Jul 2026 |
-| 14 | **Workforce Intelligence & Strategic Planning** | **7** | **108** | **68** | ✅ Complete | **25 Jul 2026** |
-| 15 | **Career Intelligence & Talent Management** | **4** | **65** | **19** | ✅ Complete | **26 Jul 2026** |
-| 16 | **Settings (Master Data)** | **17** | **—** | **85** | ✅ Complete | **27 Jul 2026** |
-| | **TOTAL** | **133** | **850** | **584** | **16/16 (100%)** | |
+| 13 | Training & Development | 7 | 31 | 123 | ✅ Complete | 26 Jul 2026 |
+| 14 | **Workforce Intelligence & Strategic Planning** | **7** | **108** | **70** | ✅ Complete | **25 Jul 2026** |
+| 15 | **Career Intelligence & Talent Management** | **4** | **65** | **23** | ✅ Complete | **26 Jul 2026** |
+| 16 | **Settings (Master Data)** | **17** | **—** | **107** | ✅ Complete | **27 Jul 2026** |
+| | **TOTAL** | **133** | **850** | **1050** | **16/16 (100%)** | |
 
 ### Platform Modules (6/6 — 100% Complete ✅)
 
 | # | Module | Entities | Tests | OpenAPI Endpoints | Status |
 |---|--------|:--------:|:-----:|:-----------------:|:------:|
-| 1 | Company & Tenant Lifecycle | 2 | — | 10 | ✅ Complete |
+| 1 | Company & Tenant Lifecycle | 2 | — | 11 | ✅ Complete |
 | 2 | Module Management | 2 | — | 7 | ✅ Complete |
-| 3 | License Management | 1 | — | 4 | ✅ Complete |
-| 4 | **Package Management** | **2** | **25** | **9** | **✅ Complete** |
-| 5 | User & Auth (JWT) | 1 | — | 4 (+2 auth) | ✅ Complete |
-| 6 | Monitoring | — | — | 3 | ✅ Complete |
-| | **TOTAL** | **8** | **25** | **37** | **6/6 (100%)** |
+| 3 | License Management | 1 | — | 5 | ✅ Complete |
+| 4 | **Package Management** | **2** | **25** | **8** | **✅ Complete** |
+| 5 | User & Auth (JWT) | 1 | — | 6 (+2 auth) | ✅ Complete |
+| 6 | Monitoring | — | — | 5 | ✅ Complete |
+| | **TOTAL** | **8** | **25** | **42** | **6/6 (100%)** |
 
 ### Shared Packages (7/7 — 100% Complete ✅)
 
@@ -130,7 +130,7 @@ Ringkasan status implementasi per dokumen plan modul — diverifikasi terhadap k
 | [`module-leave-plan.md`](module-leave-plan.md) | 🟡 **Sebagian** | Phase 1–3 & 5 ✅; FE-1/2 ✅. Belum (Phase 4/6–10): accrual engine, adjustment HR, carry forward, expiry, sub-flow cancellation, team calendar, manager/HR dashboard |
 | [`module-attendance-plan.md`](module-attendance-plan.md) | 🟡 **Sebagian** | Mayoritas ✅ (geofence, session calc, corrections, overtime 2-alur, leave integration, notif) + FE-1–5 ✅. Belum: Absent/Exempt detection (butuh scheduled job), Manager/HR Dashboard & Team Calendar, Payroll integration (Phase 13), WRONG_CHECKIN/CHECKOUT otomatis |
 | [`career-intelligence-training-enhancement-plan.md`](career-intelligence-training-enhancement-plan.md) | 📋 **Proposal** | 11 fitur enhancement (training profile, gap, recommendation, readiness, dll.) — belum dieksekusi |
-| [`module-recruitment-development-plan.md`](module-recruitment-development-plan.md) | 🟡 **Sebagian** | Blueprint Integrated Recruitment **operasional** — **G-1 ✅ + G-2 ✅ + G-3 ✅ + G-4 ✅ (12 Agu 2026)**: G-1 requisition → Central Approval (migration 093); G-2 requisition enhancement (migration 094: requisition_number/priority/position_id/opened_at); G-3 offer management (migration 095 tabel `job_offers`, workflow approval modul `recruitment_offer`, accept → application ACCEPTED + slots_filled++ idempoten, expired guard, FE halaman Offers); G-4 Recruitment → Employee/Movement (migration 096: `employee.recruited_from_application_id` + `candidates.candidate_type`/`employee_id`; offer eksternal diterima → Employee module buat employee baru + referensi; kandidat INTERNAL → Employee Movement promotion/mutation; guard no-duplicate-handoff) — recruitment test 75→**128**. Sisa: G-5..G-12 (stage history, screening/assessment, FE penuh). Strategic layer **dipisah** ke [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) (scoping 12 Agu) |
+| `module-recruitment-development-plan.md` *(di-archive: `docs/archive/`)* | ✅ **100% Selesai** | Blueprint Integrated Recruitment **operasional** — **G-1 s.d. G-12 ✅ (12–13 Agu 2026)**: G-1 requisition → Central Approval (migration 093); G-2 requisition enhancement (094: requisition_number/priority/position_id/opened_at); G-3 offer management (095 tabel `job_offers`, workflow approval modul `recruitment_offer`); G-4 → Employee/Movement (096: `employee.recruited_from_application_id` + `candidates.candidate_type`/`employee_id`); G-5 stage history; G-6 candidate enhancement (6 sub-tabel); G-7 screening & assessment; G-8 multi-interviewer & scorecard; G-9 requirement/kompetensi & match score; G-10 onboarding template scope; G-11 analytics; G-12 FE penuh (9 view + hub) — **101 endpoint**, **272 test** (module lolos), migrasi 093–106. Strategic layer **dipisah** ke [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) (S-1 s.d. S-7 ✅); alur pengguna: [`flow/module-recruitment-flow.md`](flow/module-recruitment-flow.md) |
 | [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) | 🟡 **Sebagian** | Strategic layer ↔ Recruitment (Workforce gap → requisition, expected hires → remaining gap, internal candidate via career path, succession fallback, Quality of Hire, training handoff) — **S-1 ✅ + S-2 ✅ + S-3 ✅ + S-4 ✅ + S-5 ✅ + S-6 ✅ (12 Agu 2026)**: S-1 migration 091 + interface narrow `WorkforceGapProvider` + auto-resolve slots; S-2 WI konsumsi pipeline recruitment (`remaining_gap` di gap-analysis & recruitment-analytics), +8 test; S-3 candidate-search filter posisi + internal candidate eligible (interface narrow `InternalEligibilityProvider`) + metrik recruitment analytics (Time to Hire/Fill, Offer Acceptance Rate, Source Conversion), +12 test (WI → 132); S-4 CI eligible internal candidate via career path (`/career-intelligence/paths/{id}/eligible-employees` + interface narrow `InternalCandidateProvider` + `/recruitment/eligible-internal-candidates`), +12 test (CI 75, recruitment 85); S-5 succession fallback (`GET /successions/gaps` + reason `SUCCESSION_GAP` + `succession_position_id` migration 092 + interface narrow `SuccessionGapProvider`), +11 test (CI 82, recruitment 89); S-6 Quality of Hire (`GET /analytics/quality-of-hire`: interview score + onboarding completion proxy probation + performance evaluasi terbaru + retention, overall = rata-rata per-hire composite konsisten dengan breakdown by source/requisition/org; match & assessment placeholder G-9), +5 test (WI → 137); S-7 onboarding → training handoff (`TrainingHandoffProvider` + `TrainingNeed` source ONBOARDING saat onboarding bertransisi COMPLETED, anti-duplikat + fail-safe nil/error), +7 test (training 72, recruitment 94). **Strategic layer 7/7 selesai**; backend WI & CI sudah ✅ |
 | [`workforce-intelligence-training-enhancement-plan.md`](workforce-intelligence-training-enhancement-plan.md) | 📋 **Proposal** | 13 fitur enhancement (training demand, coverage, cost, readiness, risk, dll.) — belum dieksekusi |
 
@@ -170,7 +170,7 @@ Ringkasan status implementasi per dokumen plan modul — diverifikasi terhadap k
 |----------|-------------|:------:|
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
 | `docs/platform-architecture-design.md` | Architecture design (modular monolith, multi-tenant) | ✅ Complete |
-| `docs/openapi-report.md` | OpenAPI comprehensive report (report v22, spec 1.6.3) | ✅ v22 — 943 endpoints, 552 paths, 627 schemas, 33 tags |
+| `docs/openapi-report.md` | OpenAPI comprehensive report (report v23, spec 1.6.3) | ✅ v23 — 1157 endpoints, 693 paths, 790 schemas, 33 tags |
 | `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ 199 entities, 961 service methods, 1547 tests |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
@@ -235,8 +235,8 @@ Ringkasan status implementasi per dokumen plan modul — diverifikasi terhadap k
 | Component | Status | Details |
 |-----------|:------:|---------|
 | **API Server** | ✅ **Running** | `:8080` — Health check: `ok` |
-| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 943 endpoints |
-| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 943 endpoints |
+| **OpenAPI Spec** | ✅ **Served** | `GET /openapi.json` — 1157 endpoints |
+| **Scalar UI** | ✅ **Served** | `GET /docs` — Interactive API docs with 1157 endpoints |
 | **RBAC Engine** | ✅ **Active** | 4 default roles, **98 permissions (24 resources)**, auto-reload |
 | **On-Premise License Engine** | ✅ **Ready** | `internal/pkg/onpremise/` — RSA `.lic` (expires_at, allowed_modules, max_employees); CLI `licensectl` (gen-key/gen-lic); mode `on_premise` via `HRIS_LICENSE_DEPLOYMENT_MODE` (dormant di mode saas default); lister alternatif PlatformLicenseMiddleware. **`max_employees` di-enforce di `Service.Create()` → 403 `QUOTA_EXCEEDED`** (toast bilingual FE `employee.quota_exceeded`) |
 | **Quota Audit (no bypass)** | ✅ **Audited** | Kuota terpusat di `Service.Create()` — satu-satunya pembuat Employee master. Payroll profiles / onboarding / employee-shift / sub-record TIDAK membuat Employee master (tidak perlu kuota). Frontend hanya 1 caller (`EmployeeForm.savePersonalData`). Jalur masa depan (batch import) otomatis kena kuota. *(Audit 31 Jul 2026)* |
@@ -327,7 +327,7 @@ Ringkasan status implementasi per dokumen plan modul — diverifikasi terhadap k
 | Task | Priority | Notes | Status |
 |------|:--------:|-------|:------:|
 | Workforce Intelligence & Strategic Planning | 🟢 High | 11 submodules, 7 entities, 70+ endpoints | ✅ **Done (25 Jul 2026)** |
-| Career Intelligence & Talent Management | 🟢 High | 5 entities, 21 endpoints, 9-box grid, career paths, succession planning | ✅ **Done (26 Jul 2026)** |
+| Career Intelligence & Talent Management | 🟢 High | 5 entities, 23 endpoints, 9-box grid, career paths, succession planning | ✅ **Done (26 Jul 2026)** |
 
 ### Phase 5b: Polish
 

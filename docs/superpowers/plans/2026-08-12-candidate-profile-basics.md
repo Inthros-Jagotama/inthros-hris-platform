@@ -1409,7 +1409,7 @@ git commit -m "feat: AutoMigrate CandidateEducation + CandidateWorkExperience (G
 ## Task 7: Update plan doc status
 
 **Files:**
-- Modify: `docs/module-recruitment-development-plan.md`
+- Modify: `docs/archive/module-recruitment-development-plan.md`
 
 - [ ] **Step 1: Update §G-6 status**
 

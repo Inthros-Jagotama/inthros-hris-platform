@@ -786,7 +786,7 @@ git commit -m "feat: AutoMigrate CandidateDocument (G-6)"
 ## Task 7: Update plan doc status + `docs/database-schema.md`
 
 **Files:**
-- Modify: `docs/module-recruitment-development-plan.md`
+- Modify: `docs/archive/module-recruitment-development-plan.md`
 - Modify: `docs/database-schema.md`
 
 **This task's scope explicitly includes `docs/database-schema.md` — do not skip it.** A prior sub-project's final review found this file had been missed for two sub-projects running because no task in those plans named it explicitly. This plan names it here specifically to close that gap.

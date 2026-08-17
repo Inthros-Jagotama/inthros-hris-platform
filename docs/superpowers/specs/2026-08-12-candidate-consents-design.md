@@ -1,6 +1,6 @@
 # Candidate Consents (G-6 sub-project 3b) — Design
 
-> Ref: `docs/module-recruitment-development-plan.md` §G-6 (partial — the last of the originally-planned G-6 sub-tables; `candidates.status`/`source_id` remain separately deferred, out of scope here).
+> Ref: `docs/archive/module-recruitment-development-plan.md` §G-6 (partial — the last of the originally-planned G-6 sub-tables; `candidates.status`/`source_id` remain separately deferred, out of scope here).
 
 ## Goal
 
@@ -65,5 +65,5 @@ The "current" consent state for a candidate is derivable by the caller as the la
 - `backend/internal/modules/recruitment/dto.go` — request/response DTOs.
 - `backend/internal/modules/recruitment/handler.go` + `routes.go` — 2 new endpoints; the create handler reads `c.GetString("user_id")` the same way the G-5 `changed_by` fix does.
 - `backend/internal/modules/recruitment/module.go` — `AutoMigrate` addition.
-- `docs/module-recruitment-development-plan.md` — update G-6 status; this closes out the LAST of the originally-planned G-6 sub-tables (only `candidates.status`/`source_id` remain open, both explicitly skipped by earlier design decisions rather than deferred-to-later).
+- `docs/archive/module-recruitment-development-plan.md` — update G-6 status; this closes out the LAST of the originally-planned G-6 sub-tables (only `candidates.status`/`source_id` remain open, both explicitly skipped by earlier design decisions rather than deferred-to-later).
 - `docs/database-schema.md` — add `candidate_consents` to the table inventory and Mermaid ER block (named explicitly per the now-established convention from sub-project 3a).

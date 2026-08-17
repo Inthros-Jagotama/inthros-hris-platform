@@ -707,7 +707,7 @@ git commit -m "feat: AutoMigrate CandidateConsent (G-6)"
 ## Task 7: Update plan doc + `docs/database-schema.md`
 
 **Files:**
-- Modify: `docs/module-recruitment-development-plan.md`
+- Modify: `docs/archive/module-recruitment-development-plan.md`
 - Modify: `docs/database-schema.md`
 
 **This task's scope explicitly includes `docs/database-schema.md` — do not skip it.** This is the third G-6 sub-project in a row to name this file explicitly (sub-project 3a was the first to get it right, after two earlier sub-projects missed it and needed final-review fixes).

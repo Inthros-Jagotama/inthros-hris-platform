@@ -1,6 +1,6 @@
 # Candidate Documents (G-6 sub-project 3a) — Design
 
-> Ref: `docs/module-recruitment-development-plan.md` §G-6 (partial — third of the originally-planned sub-projects; `candidate_consents` is split out to its own separate sub-project, not part of this one).
+> Ref: `docs/archive/module-recruitment-development-plan.md` §G-6 (partial — third of the originally-planned sub-projects; `candidate_consents` is split out to its own separate sub-project, not part of this one).
 
 ## Goal
 
@@ -65,5 +65,5 @@ No `PATCH`-only partial file replace — updating `file_url` on an existing docu
 - `backend/internal/modules/recruitment/dto.go` — request/response DTOs.
 - `backend/internal/modules/recruitment/handler.go` + `routes.go` — 4 new endpoints.
 - `backend/internal/modules/recruitment/module.go` — `AutoMigrate` addition (test-DB/production consistency, not the real migration mechanism).
-- `docs/module-recruitment-development-plan.md` — update G-6 status (documents done; consents still open, now the sole remaining G-6 item besides `status`/`source_id`).
+- `docs/archive/module-recruitment-development-plan.md` — update G-6 status (documents done; consents still open, now the sole remaining G-6 item besides `status`/`source_id`).
 - `docs/database-schema.md` — add `candidate_documents` to the table inventory and Mermaid ER block, following the convention re-established during sub-project 2's final review fix (a gap that slipped through in earlier sub-projects — this plan's Task list must explicitly include this file so no task/review boundary misses it again).

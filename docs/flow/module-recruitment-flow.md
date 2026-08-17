@@ -4,8 +4,9 @@ Dokumen ini menjelaskan alur bisnis modul **Recruitment** dari awal (pengajuan l
 selesai (kandidat diterima & onboarding), termasuk integrasi dengan Central Approval, Notifikasi,
 Employee, Employee Movement, dan Training.
 
-- Referensi plan: G-1 … G-12 (offer/application/candidate), S-1 … S-7 (strategic layer)
+- Referensi plan: G-1 … G-12 (offer/application/candidate) — `module-recruitment-development-plan.md` *(di-archive: `docs/archive/`)*; S-1 … S-7 (strategic layer) — [`module-recruitment-strategic-layer-plan.md`](../module-recruitment-strategic-layer-plan.md)
 - Lokasi kode: `backend/internal/modules/recruitment/` · `frontend/tenant/src/views/modules/recruitment/`
+- Daftar endpoint + contoh curl: [`../api/api-usage-guide.md`](../api/api-usage-guide.md) → §8.2 (tabel Recruitment) & §8.10 (Succession Gaps → requisition)
 
 ---
 
@@ -126,7 +127,9 @@ mendefinisikan standar penilaian lowongan sebelum kandidat dinilai:
   sumber, resume/portfolio/linkedin) + profil terstruktur:
   - Riwayat Pendidikan · Pengalaman Kerja · Skills · Sertifikasi · Dokumen · Persetujuan (consent)
 - Kandidat **INTERNAL** (S-4): menunjuk employee yang sudah ada; hasil seleksi diteruskan ke
-  **Employee Movement**, bukan membuat employee baru.
+  **Employee Movement**, bukan membuat employee baru. Sumber kandidat internal yang *eligible*
+  diambil dari Career Intelligence (`/career-intelligence/paths/{id}/eligible-employees`) dan
+  diekspos lewat `GET /recruitment/eligible-internal-candidates` (S-4).
 - Kode kandidat `CAND-{YYYYMM}-{hex}` di-generate backend.
 
 ### 3.4 Pipeline Aplikasi (Application) — G-12
@@ -221,6 +224,16 @@ Saat offer **ACCEPTED**, sistem otomatis (dari `AcceptOffer`):
   `CreateOnboardingNeed` membuat Training Need bersumber `ONBOARDING` (S-7).
 - UI: menu **Rekrutmen → Onboarding** (daftar + status).
 
+### 3.13 Recruitment Analytics — G-11
+
+- `GET /recruitment/analytics/summary?from=&to=` menghitung metrik pipeline secara on-the-fly
+  (tanpa migration baru): total requisition/application/candidate, **time-to-hire**,
+  **offer-acceptance-rate**, **application-conversion-rate**, dan **source-conversion**.
+- UI: kartu summary di hub **Rekrutmen** (`Recruitment.vue`) — fail-silent (kartu tidak tampil
+  bila endpoint error).
+- S-3 menambahkan metrik Time to Hire/Fill, Offer Acceptance Rate, dan Source Conversion pada
+  analisis Workforce Intelligence yang mengonsumsi data pipeline ini.
+
 ---
 
 ## 4. Integrasi Lintas Modul
@@ -228,7 +241,7 @@ Saat offer **ACCEPTED**, sistem otomatis (dari `AcceptOffer`):
 | Modul | Peran |
 |---|---|
 | **Central Approval** | Instance approval requisition (`recruitment`) & offer (`recruitment_offer`); callback status → requisition/offer; task per approver (USER/ROLE) |
-| **Notification** | `REQUISITION_*`, `APPROVAL_TASK_ASSIGNED`, dan notifikasi hasil offer ke requester |
+| **Notification** | Notifikasi ke requester: `REQUISITION_SUBMITTED` / `REQUISITION_APPROVED` / `REQUISITION_REJECTED` (best-effort); approver menerima `APPROVAL_TASK_ASSIGNED` dari approval engine. **Catatan:** offer belum punya notifikasi tersendiri (OFFER_* belum diimplementasikan) |
 | **Employee** | Membuat employee baru saat offer eksternal diterima |
 | **Employee Movement** | Membuat movement saat offer internal diterima |
 | **Training** | Handoff onboarding selesai → Training Need (S-7) |
@@ -245,10 +258,14 @@ Saat offer **ACCEPTED**, sistem otomatis (dari `AcceptOffer`):
 | Rekrutmen → Lowongan → Requirements & Competencies | `RequisitionRequirements.vue` | Requirement + kompetensi (teknis/manajerial) + sinkronisasi Job Management (G-9) |
 | Rekrutmen → Kandidat | `Candidates.vue` / `CandidateDetail.vue` | Profil kandidat + sub-profil (G-6) |
 | Rekrutmen → Aplikasi | `Applications.vue` / `ApplicationDetail.vue` | Pipeline + daftar (kolom score) + detail (history/screening/assessment/interview/penilaian/match score) |
-| Rekrutmen → Kandidat Internal | `InternalCandidates.vue` | Eligible via career path (S-4) |
+| Rekrutmen → Kandidat Internal | `InternalCandidates.vue` | Eligible via career path (S-4) — `GET /eligible-internal-candidates` |
 | Rekrutmen → Assessment | `Assessments.vue` | Sesi assessment batch (G-7) |
 | Rekrutmen → Offer | `Offers.vue` | Offer + approval + kirim/terima |
 | Rekrutmen → Onboarding | `Onboarding.vue` | Employee hasil offer + handoff training (S-7) |
+| Rekrutmen (hub) | `Recruitment.vue` | Kartu menu + **summary cards analytics** (G-11, fail-silent) |
+
+> Cari kandidat eksternal (posisi/filter) ada di modul **Workforce Intelligence**
+> (`CandidateSearch.vue`), bukan di halaman recruitment — lihat §4.
 
 ---
 
@@ -261,11 +278,13 @@ Semua di bawah `/api/v1/tenant/recruitment/`.
 | Requisition | `POST/GET /requisitions`, `GET/PUT/DELETE /requisitions/:id`, `POST /requisitions/:id/submit` |
 | Requirement & Kompetensi | `POST/GET /requisitions/:id/requirements`, `PUT/DELETE /requirements/:id`, `POST/GET /requisitions/:id/competencies`, `PUT/DELETE /requisition-competencies/:id` |
 | Candidate | `POST/GET /candidates`, `GET/PUT/DELETE /candidates/:id`, sub-profil `…/educations`, `…/work-experiences`, `…/skills`, `…/certifications`, `…/documents`, `…/consents` |
-| Application | `POST/GET /applications`, `PUT /applications/:id/status`, `GET /applications/:id/history`, `GET/PUT /applications/:id/assessment`, `GET /applications/:id/match-score`, `POST /applications/:id/screenings` |
+| Application | `POST/GET /applications`, `PUT /applications/:id/status`, `GET /applications/:id/history`, `GET/PUT /applications/:id/assessment`, `GET /applications/:id/match-score`, `POST/GET /applications/:id/screenings`, `PUT/DELETE /screenings/:id` |
+| Internal Candidates | `GET /eligible-internal-candidates` (S-4 — kandidat internal eligible via career path) |
 | Assessment | `POST/GET /assessments`, `GET/PUT/DELETE /assessments/:id`, `POST/GET /assessments/:id/participants`, `PUT/DELETE /assessment-participants/:id` |
+| Analytics | `GET /analytics/summary` (G-11 — counts + time-to-hire + offer-acceptance-rate + conversion) |
 | Interview | `POST/GET /interviews`, `GET/PUT/DELETE /interviews/:id`, `POST/GET /interviews/:id/interviewers`, `POST/GET /interviews/:id/scorecard-items` |
 | Offer | `POST/GET /offers`, `GET/PUT/DELETE /offers/:id`, `POST /offers/:id/submit`, `POST /offers/:id/send`, `POST /offers/:id/accept`, `POST /offers/:id/reject`, `POST /offers/:id/withdraw` |
-| Onboarding | `POST/GET /onboardings`, `GET/PUT/DELETE /onboardings/:id`, task templates `POST/GET /onboarding-task-templates` |
+| Onboarding | `POST/GET /employee-onboardings`, `GET/PUT/DELETE /employee-onboardings/:id`, `GET /employee-onboardings/:id/task-items`, `POST /onboarding-task-items` + `PUT/DELETE /onboarding-task-items/:id`, task templates `POST/GET /onboarding-task-templates` + `PUT/DELETE /onboarding-task-templates/:id` |
 
 ---
 

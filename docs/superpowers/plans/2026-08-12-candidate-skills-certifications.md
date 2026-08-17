@@ -1200,7 +1200,7 @@ git commit -m "feat: AutoMigrate CandidateSkill + CandidateCertification (G-6)"
 ## Task 7: Update plan doc status
 
 **Files:**
-- Modify: `docs/module-recruitment-development-plan.md`
+- Modify: `docs/archive/module-recruitment-development-plan.md`
 
 - [ ] **Step 1: Update §G-6 status**
 

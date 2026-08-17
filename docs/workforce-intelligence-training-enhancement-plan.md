@@ -781,4 +781,4 @@ Workforce Intelligence
 └── Recruitment analytics     → module-recruitment-strategic-layer-plan.md (S-1/S-2/S-3/S-6)
 ```
 
-Recruitment tetap **module operasional** (plan terpisah: `docs/module-recruitment-development-plan.md`) — ia hanya menyediakan data; WI yang menghitung kebutuhan workforce & hiring need.
+Recruitment tetap **module operasional** (plan terpisah: `docs/archive/module-recruitment-development-plan.md`) — ia hanya menyediakan data; WI yang menghitung kebutuhan workforce & hiring need.
