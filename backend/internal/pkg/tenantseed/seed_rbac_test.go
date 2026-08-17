@@ -47,7 +47,7 @@ func TestTenantRBACSubmenus(t *testing.T) {
 		"competency.settings.view",
 		"competency.assessment.view",
 		"competency.report.view",
-		"attendance.business-travel.view",
+		"attendance.operations.view",
 		"rbac.roles.view",
 	}
 	for _, name := range required {

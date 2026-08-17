@@ -220,7 +220,7 @@ const routes = [
         path: 'attendance/admin',
         name: 'AttendanceAdmin',
         component: () => import('@/views/modules/attendance/AttendanceAdmin.vue'),
-        meta: { title: 'Attendance Admin', titleKey: 'attendance.admin', descKey: 'attendance.admin_description', icon: 'pi pi-cog', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.admin.view' }
+        meta: { title: 'Attendance Admin', titleKey: 'attendance.admin', descKey: 'attendance.admin_description', icon: 'pi pi-cog', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.settings.view' }
       },
       {
         path: 'attendance/settings',
@@ -232,67 +232,67 @@ const routes = [
         path: 'attendance/shifts',
         name: 'AttendanceShifts',
         component: () => import('@/views/modules/attendance/AttendanceShifts.vue'),
-        meta: { title: 'Shifts', titleKey: 'attendance.shifts', descKey: 'attendance.shifts_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.shifts.view' }
+        meta: { title: 'Shifts', titleKey: 'attendance.shifts', descKey: 'attendance.shifts_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.settings.view' }
       },
       {
         path: 'attendance/employee-shifts',
         name: 'AttendanceEmployeeShifts',
         component: () => import('@/views/modules/attendance/AttendanceEmployeeShifts.vue'),
-        meta: { title: 'Employee Shifts', titleKey: 'attendance.employee_shifts', descKey: 'attendance.employee_shifts_description', icon: 'pi pi-users', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.employee-shifts.view' }
+        meta: { title: 'Employee Shifts', titleKey: 'attendance.employee_shifts', descKey: 'attendance.employee_shifts_description', icon: 'pi pi-users', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.settings.view' }
       },
       {
         path: 'attendance/locations',
         name: 'AttendanceLocations',
         component: () => import('@/views/modules/attendance/AttendanceLocations.vue'),
-        meta: { title: 'Locations', titleKey: 'attendance.locations', descKey: 'attendance.locations_description', icon: 'pi pi-map-marker', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.locations.view' }
+        meta: { title: 'Locations', titleKey: 'attendance.locations', descKey: 'attendance.locations_description', icon: 'pi pi-map-marker', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.settings.view' }
       },
       {
         path: 'attendance/exempt-positions',
         name: 'AttendanceExemptPositions',
         component: () => import('@/views/modules/attendance/AttendanceExemptPositions.vue'),
-        meta: { title: 'Exempt Positions', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description', icon: 'pi pi-shield', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.exempt-positions.view' }
+        meta: { title: 'Exempt Positions', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description', icon: 'pi pi-shield', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.settings.view' }
       },
       {
         path: 'attendance/overtime',
         name: 'AttendanceOvertime',
         component: () => import('@/views/modules/attendance/AttendanceOvertime.vue'),
-        meta: { title: 'Overtime', titleKey: 'attendance.overtime', descKey: 'attendance.overtime_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.overtime.view' }
+        meta: { title: 'Overtime', titleKey: 'attendance.overtime', descKey: 'attendance.overtime_description', icon: 'pi pi-clock', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.operations.view' }
       },
       {
         path: 'attendance/corrections',
         name: 'AttendanceCorrections',
         component: () => import('@/views/modules/attendance/AttendanceCorrections.vue'),
-        meta: { title: 'Corrections', titleKey: 'attendance.corrections', descKey: 'attendance.corrections_description', icon: 'pi pi-pencil', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.corrections.view' }
+        meta: { title: 'Corrections', titleKey: 'attendance.corrections', descKey: 'attendance.corrections_description', icon: 'pi pi-pencil', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.operations.view' }
       },
       {
         path: 'attendance/business-travel',
         name: 'BusinessTravelList',
         component: () => import('@/views/modules/attendance/business-travel/BusinessTravelList.vue'),
-        meta: { title: 'Business Travel', titleKey: 'business_travel.title', descKey: 'business_travel.description', icon: 'pi pi-briefcase', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.business-travel.view' }
+        meta: { title: 'Business Travel', titleKey: 'business_travel.title', descKey: 'business_travel.description', icon: 'pi pi-briefcase', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.operations.view' }
       },
       {
         path: 'attendance/business-travel/:id',
         name: 'BusinessTravelDetail',
         component: () => import('@/views/modules/attendance/business-travel/BusinessTravelDetail.vue'),
-        meta: { title: 'Business Travel', titleKey: 'business_travel.view', descKey: 'business_travel.description', icon: 'pi pi-briefcase', module: 'attendance', backRoute: '/attendance/business-travel', backLabelKey: 'business_travel.title', permission: 'attendance.business-travel.view' }
+        meta: { title: 'Business Travel', titleKey: 'business_travel.view', descKey: 'business_travel.description', icon: 'pi pi-briefcase', module: 'attendance', backRoute: '/attendance/business-travel', backLabelKey: 'business_travel.title', permission: 'attendance.operations.view' }
       },
       {
         path: 'attendance/events',
         name: 'AttendanceEvents',
         component: () => import('@/views/modules/attendance/AttendanceEvents.vue'),
-        meta: { title: 'Events', titleKey: 'attendance.events', descKey: 'attendance.events_description', icon: 'pi pi-list', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.events.view' }
+        meta: { title: 'Events', titleKey: 'attendance.events', descKey: 'attendance.events_description', icon: 'pi pi-list', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.operations.view' }
       },
       {
         path: 'attendance/sessions',
         name: 'AttendanceSessions',
         component: () => import('@/views/modules/attendance/AttendanceSessions.vue'),
-        meta: { title: 'Sessions', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description', icon: 'pi pi-calendar', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.sessions.view' }
+        meta: { title: 'Sessions', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description', icon: 'pi pi-calendar', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.operations.view' }
       },
       {
         path: 'attendance/reports',
         name: 'AttendanceReports',
         component: () => import('@/views/modules/attendance/AttendanceReports.vue'),
-        meta: { title: 'Reports', titleKey: 'attendance.reports', descKey: 'attendance.reports_description', icon: 'pi pi-chart-bar', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.reports.view' }
+        meta: { title: 'Reports', titleKey: 'attendance.reports', descKey: 'attendance.reports_description', icon: 'pi pi-chart-bar', module: 'attendance', backRoute: '/attendance/admin', backLabelKey: 'attendance.admin', permission: 'attendance.report.view' }
       },
       // Approval Engine
       {

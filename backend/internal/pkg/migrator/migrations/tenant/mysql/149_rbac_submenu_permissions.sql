@@ -12,222 +12,10 @@
 -- competency disederhanakan jadi 3 submenu: settings (competencies, values,
 -- indicators, templates, events, raters), assessment (my-assessments,
 -- manager-assessments, scores), & report (results, reports — view only).
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('89a2d0a0-e8de-5ef1-a2e2-691ddd21a503', 'attendance.dashboard.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('89a2d0a0-e8de-5ef1-a2e2-691ddd21a503', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('89a2d0a0-e8de-5ef1-a2e2-691ddd21a503', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('68fa6bb5-bda7-50b9-93f5-7f3401777094', 'attendance.dashboard.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('68fa6bb5-bda7-50b9-93f5-7f3401777094', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('fffa8a75-5945-5dfa-935a-37d0d5429cb2', 'attendance.dashboard.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('fffa8a75-5945-5dfa-935a-37d0d5429cb2', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('f4638f7f-3324-5de2-818e-037759ea90c5', 'attendance.dashboard.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('f4638f7f-3324-5de2-818e-037759ea90c5', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('81ca4559-35c3-5d88-aceb-a82bb44c1721', 'attendance.shifts.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('81ca4559-35c3-5d88-aceb-a82bb44c1721', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('81ca4559-35c3-5d88-aceb-a82bb44c1721', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('4cb4ea07-658f-501e-8a62-e5892f493e57', 'attendance.shifts.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('4cb4ea07-658f-501e-8a62-e5892f493e57', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('f1359e90-712b-5eaa-bb6e-a4997369e2a0', 'attendance.shifts.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('f1359e90-712b-5eaa-bb6e-a4997369e2a0', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('e3204f30-d9fd-527f-b19a-6912ce24a21f', 'attendance.shifts.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('e3204f30-d9fd-527f-b19a-6912ce24a21f', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('79a83f86-d6e1-58d4-810a-0f17d2298dac', 'attendance.schedules.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('79a83f86-d6e1-58d4-810a-0f17d2298dac', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('79a83f86-d6e1-58d4-810a-0f17d2298dac', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('56f5f7f6-6142-587c-87c7-9029a5e8a565', 'attendance.schedules.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('56f5f7f6-6142-587c-87c7-9029a5e8a565', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('f4c59610-0886-59a0-bfc9-41483719da4f', 'attendance.schedules.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('f4c59610-0886-59a0-bfc9-41483719da4f', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('0c36958a-e9d4-5174-b048-56b02da775b3', 'attendance.schedules.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('0c36958a-e9d4-5174-b048-56b02da775b3', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('af76ae9c-d7fa-5506-9812-f3796f4a48db', 'attendance.events.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('af76ae9c-d7fa-5506-9812-f3796f4a48db', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('af76ae9c-d7fa-5506-9812-f3796f4a48db', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('3c224edb-6800-5168-8f04-e31bc14be468', 'attendance.events.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('3c224edb-6800-5168-8f04-e31bc14be468', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('bc94dd67-7c2a-56cd-8f81-198cd103b059', 'attendance.events.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('bc94dd67-7c2a-56cd-8f81-198cd103b059', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('2b2220fd-c0ab-54e4-b219-34f613b2f0c1', 'attendance.events.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('2b2220fd-c0ab-54e4-b219-34f613b2f0c1', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('659f01c7-a5f1-52c3-b157-bf9db85b7d2e', 'attendance.overtime.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('659f01c7-a5f1-52c3-b157-bf9db85b7d2e', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('659f01c7-a5f1-52c3-b157-bf9db85b7d2e', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('3a21b1bc-cea8-5018-97b0-b3a8a6d7192b', 'attendance.overtime.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('3a21b1bc-cea8-5018-97b0-b3a8a6d7192b', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('ed9b57d9-73f5-5f87-b408-332ed688d1f6', 'attendance.overtime.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('ed9b57d9-73f5-5f87-b408-332ed688d1f6', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('48558a00-469e-5d49-829d-bf16d41318ef', 'attendance.overtime.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('48558a00-469e-5d49-829d-bf16d41318ef', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('94441d07-b611-5c6a-b32b-698892599a2e', 'attendance.locations.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('94441d07-b611-5c6a-b32b-698892599a2e', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('94441d07-b611-5c6a-b32b-698892599a2e', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('8f1c83fb-b2a4-5ff9-a64d-aba55855762d', 'attendance.locations.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('8f1c83fb-b2a4-5ff9-a64d-aba55855762d', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('c3d699fd-bdb4-5601-a124-18aa1f53fab0', 'attendance.locations.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('c3d699fd-bdb4-5601-a124-18aa1f53fab0', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('d31288fd-5923-53ef-8654-59d540cf3868', 'attendance.locations.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('d31288fd-5923-53ef-8654-59d540cf3868', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('7fedcc32-fbd2-5f16-8b0e-5d5379f0340e', 'attendance.business-travel.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('7fedcc32-fbd2-5f16-8b0e-5d5379f0340e', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('7fedcc32-fbd2-5f16-8b0e-5d5379f0340e', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('2bb49c2a-5e5c-540b-8bb3-241dfb2d7e69', 'attendance.business-travel.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('2bb49c2a-5e5c-540b-8bb3-241dfb2d7e69', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('d247849b-a555-5147-9169-44991de65d44', 'attendance.business-travel.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('d247849b-a555-5147-9169-44991de65d44', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('5b216e6d-816c-515d-86e9-f5b34ba7ffeb', 'attendance.business-travel.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('5b216e6d-816c-515d-86e9-f5b34ba7ffeb', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('b85971d9-9ba0-5f51-a87f-da8d94e4bf31', 'attendance.settings.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('b85971d9-9ba0-5f51-a87f-da8d94e4bf31', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('b85971d9-9ba0-5f51-a87f-da8d94e4bf31', '3e562937-d5a1-543a-b1c8-af2f447500a4');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('85b5ece0-f963-52e6-aa2f-d6a36b5d8c55', 'attendance.settings.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('85b5ece0-f963-52e6-aa2f-d6a36b5d8c55', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('d4ab5d8d-2983-50e6-a624-5b6e824cee5f', 'attendance.settings.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('d4ab5d8d-2983-50e6-a624-5b6e824cee5f', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
-
-INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
-VALUES ('66786d93-2f19-5409-b442-56bc565fe263', 'attendance.settings.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
-INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
-VALUES ('66786d93-2f19-5409-b442-56bc565fe263', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+-- attendance disederhanakan jadi 3 submenu: settings (shifts, employee-shifts,
+-- locations, exempt-positions, settings, admin), operations (dashboard,
+-- schedules, events, sessions, overtime, corrections, business-travel),
+-- & report (reports — view only).
 
 INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
 VALUES ('f8198f71-ec65-5c9b-96dc-e65534125407', 'approval.tasks.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -1479,3 +1267,66 @@ VALUES ('0029d707-f241-57e9-91d1-3dc6d44f24c9', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e5
 
 INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
 VALUES ('0029d707-f241-57e9-91d1-3dc6d44f24c9', '3e562937-d5a1-543a-b1c8-af2f447500a4');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('b85971d9-9ba0-5f51-a87f-da8d94e4bf31', 'attendance.settings.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('b85971d9-9ba0-5f51-a87f-da8d94e4bf31', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('b85971d9-9ba0-5f51-a87f-da8d94e4bf31', '3e562937-d5a1-543a-b1c8-af2f447500a4');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('85b5ece0-f963-52e6-aa2f-d6a36b5d8c55', 'attendance.settings.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('85b5ece0-f963-52e6-aa2f-d6a36b5d8c55', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('d4ab5d8d-2983-50e6-a624-5b6e824cee5f', 'attendance.settings.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('d4ab5d8d-2983-50e6-a624-5b6e824cee5f', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('66786d93-2f19-5409-b442-56bc565fe263', 'attendance.settings.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('66786d93-2f19-5409-b442-56bc565fe263', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('2a40f9ea-06a3-52a4-95b6-b09dad649f37', 'attendance.operations.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('2a40f9ea-06a3-52a4-95b6-b09dad649f37', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('2a40f9ea-06a3-52a4-95b6-b09dad649f37', '3e562937-d5a1-543a-b1c8-af2f447500a4');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('86dc438a-696c-5d81-b03b-ffdd8f60a481', 'attendance.operations.create', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('86dc438a-696c-5d81-b03b-ffdd8f60a481', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('bd7ccd79-1978-5820-9901-b2b552ec731b', 'attendance.operations.update', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('bd7ccd79-1978-5820-9901-b2b552ec731b', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('49b4bc4d-42aa-5166-b66d-72e91147ec6d', 'attendance.operations.delete', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('49b4bc4d-42aa-5166-b66d-72e91147ec6d', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO permissions (id, name, guard_name, created_at, updated_at)
+VALUES ('a61c3b32-c8a1-5dd5-a552-cca4b7e5d779', 'attendance.report.view', 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('a61c3b32-c8a1-5dd5-a552-cca4b7e5d779', 'ea1dcc10-3eb8-52c4-bd7c-bfb43e56d345');
+
+INSERT IGNORE INTO role_has_permissions (permission_id, role_id)
+VALUES ('a61c3b32-c8a1-5dd5-a552-cca4b7e5d779', '3e562937-d5a1-543a-b1c8-af2f447500a4');

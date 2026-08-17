@@ -31,13 +31,13 @@ const { hasPermission } = useAuth()
 
 const allItems = [
   { path: '/attendance/settings', icon: 'pi pi-cog', titleKey: 'attendance.settings', descKey: 'attendance.settings_description', permission: 'attendance.settings.view' },
-  { path: '/attendance/shifts', icon: 'pi pi-clock', titleKey: 'attendance.shifts', descKey: 'attendance.shifts_description', permission: 'attendance.shifts.view' },
-  { path: '/attendance/employee-shifts', icon: 'pi pi-users', titleKey: 'attendance.employee_shifts', descKey: 'attendance.employee_shifts_description', permission: 'attendance.employee-shifts.view' },
-  { path: '/attendance/locations', icon: 'pi pi-map-marker', titleKey: 'attendance.locations', descKey: 'attendance.locations_description', permission: 'attendance.locations.view' },
-  { path: '/attendance/exempt-positions', icon: 'pi pi-shield', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description', permission: 'attendance.exempt-positions.view' },
-  { path: '/attendance/events', icon: 'pi pi-list', titleKey: 'attendance.events', descKey: 'attendance.events_description', permission: 'attendance.events.view' },
-  { path: '/attendance/sessions', icon: 'pi pi-calendar', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description', permission: 'attendance.sessions.view' },
-  { path: '/attendance/reports', icon: 'pi pi-chart-bar', titleKey: 'attendance.reports', descKey: 'attendance.reports_description', permission: 'attendance.reports.view' }
+  { path: '/attendance/shifts', icon: 'pi pi-clock', titleKey: 'attendance.shifts', descKey: 'attendance.shifts_description', permission: 'attendance.settings.view' },
+  { path: '/attendance/employee-shifts', icon: 'pi pi-users', titleKey: 'attendance.employee_shifts', descKey: 'attendance.employee_shifts_description', permission: 'attendance.settings.view' },
+  { path: '/attendance/locations', icon: 'pi pi-map-marker', titleKey: 'attendance.locations', descKey: 'attendance.locations_description', permission: 'attendance.settings.view' },
+  { path: '/attendance/exempt-positions', icon: 'pi pi-shield', titleKey: 'attendance.exempt_positions', descKey: 'attendance.exempt_positions_description', permission: 'attendance.settings.view' },
+  { path: '/attendance/events', icon: 'pi pi-list', titleKey: 'attendance.events', descKey: 'attendance.events_description', permission: 'attendance.operations.view' },
+  { path: '/attendance/sessions', icon: 'pi pi-calendar', titleKey: 'attendance.sessions', descKey: 'attendance.sessions_description', permission: 'attendance.operations.view' },
+  { path: '/attendance/reports', icon: 'pi pi-chart-bar', titleKey: 'attendance.reports', descKey: 'attendance.reports_description', permission: 'attendance.report.view' }
 ]
 
 const items = computed(() => allItems.filter(item => !item.permission || hasPermission(item.permission)))
