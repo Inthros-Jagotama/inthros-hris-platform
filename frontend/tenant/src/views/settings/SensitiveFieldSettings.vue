@@ -63,8 +63,10 @@ const skeletonColumns = [
 ]
 
 // Label bilingual field (sensitive_field.fields.<field_key>) — fallback ke slug.
+// Titik pada field_key (mis. "employee.phone_number") diganti "__" karena
+// t()'s deepLookup memecah key berdasarkan titik.
 function fieldLabel(fieldKey) {
-  const key = `sensitive_field.fields.${fieldKey}`
+  const key = `sensitive_field.fields.${fieldKey.replaceAll('.', '__')}`
   return t(key) !== key ? t(key) : fieldKey
 }
 

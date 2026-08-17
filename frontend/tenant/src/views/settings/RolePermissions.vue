@@ -142,8 +142,11 @@ function descriptionLabel(resource, submenu) {
 }
 
 // Label bilingual nama aksi/kolom (rbac.actions.<action>) — fallback ke slug.
+// Titik pada action (mis. "course.manage") diganti "__" karena t()'s deepLookup
+// memecah key berdasarkan titik — action dengan titik literal tidak boleh
+// disalahartikan sebagai path bersarang.
 function actionLabel(action) {
-  const key = `rbac.actions.${action}`
+  const key = `rbac.actions.${action.replaceAll('.', '__')}`
   return t(key) !== key ? t(key) : action
 }
 
