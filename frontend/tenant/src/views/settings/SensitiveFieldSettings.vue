@@ -30,7 +30,7 @@
               @update:modelValue="(val) => toggleField(data.field_key, val)"
             />
             <span class="text-xs text-gray-500 dark:text-gray-400">
-              {{ data.is_encryption_enabled ? t('common.active') : t('common.inactive') }}
+              {{ data.is_encryption_enabled ? t('common_status.active') : t('common_status.inactive') }}
             </span>
           </div>
         </template>
