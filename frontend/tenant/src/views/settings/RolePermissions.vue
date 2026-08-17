@@ -56,15 +56,17 @@
       <!-- Kolom submenu: baris level-module ("Umum") diikuti tiap submenu -->
       <Column field="submenu" :header="t('rbac.submenu')" style="width:220px">
         <template #body="{ data }">
-          <span
-            class="text-gray-800 dark:text-gray-100"
-            :class="data.submenu ? 'font-normal' : 'font-semibold'"
-          >
-            {{ data.submenu ? submenuLabel(data.resource, data.submenu) : t('rbac.module_level') }}
-          </span>
-          <span class="text-xs text-gray-400 dark:text-gray-500 block">
-            {{ descriptionLabel(data.resource, data.submenu) }}
-          </span>
+          <div>
+            <span
+              class="text-gray-800 dark:text-gray-100"
+              :class="data.submenu ? 'font-normal' : 'font-semibold'"
+            >
+              {{ data.submenu ? submenuLabel(data.resource, data.submenu) : t('rbac.module_level') }}
+            </span>
+            <span class="text-xs text-gray-400 dark:text-gray-500 block">
+              {{ descriptionLabel(data.resource, data.submenu) }}
+            </span>
+          </div>
         </template>
       </Column>
       <!-- Satu kolom per aksi (create, update, ...) — isi berupa switch tanpa label -->
