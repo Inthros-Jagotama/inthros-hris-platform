@@ -23,11 +23,16 @@
       </Column>
       <Column :header="t('sensitive_field.encryption_enabled')" style="width:160px">
         <template #body="{ data }">
-          <ToggleSwitch
-            :modelValue="data.is_encryption_enabled"
-            :disabled="!!savingKeys[data.field_key] || !canManage"
-            @update:modelValue="(val) => toggleField(data.field_key, val)"
-          />
+          <div class="flex items-center gap-2">
+            <ToggleSwitch
+              :modelValue="data.is_encryption_enabled"
+              :disabled="!!savingKeys[data.field_key] || !canManage"
+              @update:modelValue="(val) => toggleField(data.field_key, val)"
+            />
+            <span class="text-xs text-gray-500 dark:text-gray-400">
+              {{ data.is_encryption_enabled ? t('common.active') : t('common.inactive') }}
+            </span>
+          </div>
         </template>
       </Column>
     </DataTable>
