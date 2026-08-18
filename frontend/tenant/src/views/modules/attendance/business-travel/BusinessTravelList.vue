@@ -4,6 +4,7 @@
       <span v-if="totalRecords > 0" class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ totalRecords }} {{ t('common.items') }}</span>
       <div class="flex items-center gap-2 ml-auto">
         <Select v-model="statusFilter" :options="statusOptions" optionLabel="label" optionValue="value" showClear :placeholder="t('common.status')" class="w-44" @change="reload" />
+        <Button :label="t('business_travel.reports')" icon="pi pi-chart-bar" size="small" outlined @click="router.push('/attendance/business-travel/reports')" />
         <Button :label="t('common.add')" icon="pi pi-plus" size="small" @click="openCreateDialog" />
       </div>
     </div>

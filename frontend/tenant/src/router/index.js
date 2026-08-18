@@ -271,6 +271,12 @@ const routes = [
         meta: { title: 'Business Travel', titleKey: 'business_travel.title', descKey: 'business_travel.description', icon: 'pi pi-briefcase', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.operations.view', strictPermission: true }
       },
       {
+        path: 'attendance/business-travel/reports',
+        name: 'BusinessTravelReports',
+        component: () => import('@/views/modules/attendance/business-travel/BusinessTravelReports.vue'),
+        meta: { title: 'Business Travel Reports', titleKey: 'business_travel.reports', descKey: 'business_travel.reports_description', icon: 'pi pi-chart-bar', module: 'attendance', backRoute: '/attendance/business-travel', backLabelKey: 'business_travel.title', permission: 'business_travel.report', strictPermission: true }
+      },
+      {
         path: 'attendance/business-travel/:id',
         name: 'BusinessTravelDetail',
         component: () => import('@/views/modules/attendance/business-travel/BusinessTravelDetail.vue'),

@@ -66,6 +66,31 @@ func requireAttendanceReport(action string) gin.HandlerFunc {
 	}
 }
 
+// requireBusinessTravelReport menggating endpoint laporan business travel
+// (GET /business-travels/reports/*) dengan permission "business_travel.report"
+// secara eksak — hanya satu permission string yang dideklarasikan untuk report
+// business travel (berbeda dari attendance.report.<action> yang punya
+// sub-action), lihat module.go:100.
+func requireBusinessTravelReport() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		const required = "business_travel.report"
+		for _, p := range c.GetStringSlice("permissions") {
+			if p == "*" || p == required {
+				c.Next()
+				return
+			}
+		}
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "FORBIDDEN",
+				"message": "You don't have permission to view business travel reports",
+				"details": gin.H{"required": required},
+			},
+		})
+	}
+}
+
 // RegisterRoutes mendaftarkan semua endpoint Attendance ke router group tenant.
 // Semua endpoint di bawah /api/v1/tenant/attendance
 func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
@@ -139,6 +164,15 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// lihat docs/module-attendance-business-travel-development-plan.md §54.7 urutan kerja).
 		att.POST("/business-travels", handler.CreateBusinessTravel)
 		att.GET("/business-travels", handler.ListBusinessTravels)
+		// Reports (harus didaftarkan SEBELUM /business-travels/:id supaya
+		// "reports" tidak ketangkap wildcard :id — pola sama seperti
+		// funding assign-before-:id di bawah).
+		att.GET("/business-travels/reports/travel", requireBusinessTravelReport(), handler.GetBusinessTravelReport)
+		att.GET("/business-travels/reports/funding", requireBusinessTravelReport(), handler.GetBusinessTravelFundingReport)
+		att.GET("/business-travels/reports/advance", requireBusinessTravelReport(), handler.GetBusinessTravelAdvanceReport)
+		att.GET("/business-travels/reports/reimbursement", requireBusinessTravelReport(), handler.GetBusinessTravelReimbursementReport)
+		att.GET("/business-travels/reports/refund", requireBusinessTravelReport(), handler.GetBusinessTravelRefundReport)
+		att.GET("/business-travels/reports/travel-cost", requireBusinessTravelReport(), handler.GetBusinessTravelCostReport)
 		att.GET("/business-travels/:id", handler.GetBusinessTravelByID)
 		att.PUT("/business-travels/:id", handler.UpdateBusinessTravel)
 		att.POST("/business-travels/:id/submit", handler.SubmitBusinessTravel)
