@@ -40,7 +40,7 @@
 
       <Column field="employee_name" :header="t('kpi.employee')" sortable>
         <template #body="{data}">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.employee_name || data.employee_id }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.employee_name || data.employee_id }}</span>
         </template>
       </Column>
 

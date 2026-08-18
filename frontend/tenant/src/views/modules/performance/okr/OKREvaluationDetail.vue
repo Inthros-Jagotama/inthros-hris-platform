@@ -15,7 +15,7 @@
               <i class="pi pi-bullseye text-2xl text-purple-600 dark:text-purple-400"></i>
             </div>
             <div>
-              <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ evaluation.employee_name }}</h2>
+              <h2 class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ evaluation.employee_name }}</h2>
               <p class="text-sm text-gray-500 dark:text-gray-400">{{ evaluation.organization_name || '-' }}</p>
               <div class="flex items-center gap-2 mt-1">
                 <Tag :value="evaluation.period_code" severity="info" class="!text-xs" />
@@ -44,7 +44,7 @@
       <!-- Objectives / Key Results -->
       <div class="space-y-4">
         <div class="flex items-center justify-between">
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+          <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 flex items-center gap-2">
             <i class="pi pi-bullseye text-purple-500"></i>
             {{ t('okr.objectives') }}
             <span class="text-xs font-normal text-gray-500">({{ objectiveGroups.length }})</span>
@@ -59,7 +59,7 @@
         >
           <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div>
-              <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ group.title }}</p>
+              <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ group.title }}</p>
               <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('okr.weight') }}: {{ group.weight?.toFixed(1) }}%</p>
             </div>
             <div class="flex items-center gap-3">
@@ -87,7 +87,7 @@
                   class="w-full !text-xs"
                   size="small"
                 />
-                <span v-else class="text-gray-800 dark:text-gray-100 font-medium">{{ data.key_result_title }}</span>
+                <span v-else class="text-navy-800 dark:text-gray-100 font-medium">{{ data.key_result_title }}</span>
               </template>
             </Column>
 
@@ -160,7 +160,7 @@
                   class="w-full !text-xs"
                   size="small"
                 />
-                <span v-else-if="showActualColumn" class="text-gray-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual_value) }}</span>
+                <span v-else-if="showActualColumn" class="text-navy-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual_value) }}</span>
                 <span v-else class="text-gray-300 dark:text-gray-600">—</span>
               </template>
             </Column>
@@ -278,7 +278,7 @@
     <!-- Progress Check-in Dialog -->
     <Dialog v-model:visible="progressDialogVisible" :header="t('okr.check_in')" modal :style="{ width: '480px' }">
       <div v-if="progressTarget" class="space-y-4">
-        <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ progressTarget.key_result_title }}</p>
+        <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ progressTarget.key_result_title }}</p>
 
         <div class="grid grid-cols-2 gap-3 pb-3 border-b border-gray-100 dark:border-gray-700">
           <FormRow :label="t('common.date')">

@@ -15,7 +15,7 @@
               <i class="pi pi-user text-2xl text-emerald-600 dark:text-emerald-400"></i>
             </div>
             <div>
-              <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ evaluation.employee_name }}</h2>
+              <h2 class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ evaluation.employee_name }}</h2>
               <p class="text-sm text-gray-500 dark:text-gray-400">{{ evaluation.organization_name || '-' }}</p>
               <div class="flex items-center gap-2 mt-1">
                 <Tag :value="evaluation.period_code" severity="info" class="!text-xs" />
@@ -44,7 +44,7 @@
       <!-- Indicators Table -->
       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+          <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 flex items-center gap-2">
             <i class="pi pi-list text-blue-500"></i>
             {{ t('kpi.indicators') }}
             <span class="text-xs font-normal text-gray-500">({{ details.length }})</span>
@@ -57,7 +57,7 @@
         <DataTable :value="details" size="small" class="!text-sm p-datatable-sm" :rowHover="true" rowGroupMode="subheader" groupRowsBy="perspective_name" sortField="perspective_name" :sortOrder="1">
           <template #groupheader="{data}">
             <div class="flex items-center gap-2 py-1">
-              <i class="pi pi-th-large text-indigo-500"></i>
+              <i class="pi pi-th-large text-teal-500"></i>
               <span class="font-semibold text-gray-700 dark:text-gray-200">{{ data.perspective_name || 'Other' }}</span>
             </div>
           </template>
@@ -65,7 +65,7 @@
           <Column field="indicator_title" :header="t('kpi.indicator_title')" style="min-width:200px">
             <template #body="{data}">
               <div>
-                <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.indicator_title }}</span>
+                <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.indicator_title }}</span>
                 <p v-if="data.indicator_description" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{{ data.indicator_description }}</p>
               </div>
             </template>
@@ -113,7 +113,7 @@
                 class="w-full !text-xs"
                 size="small"
               />
-              <span v-else-if="showActualColumn" class="text-gray-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual_value) }}</span>
+              <span v-else-if="showActualColumn" class="text-navy-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual_value) }}</span>
               <span v-else class="text-gray-300 dark:text-gray-600">—</span>
             </template>
           </Column>
@@ -139,7 +139,7 @@
       <!-- Program Items -->
       <div v-if="showProgramSection" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+          <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 flex items-center gap-2">
             <i class="pi pi-briefcase text-purple-500"></i>
             {{ t('kpi.program_items') }}
             <span class="text-xs font-normal text-gray-500">({{ programItems.length }})</span>
@@ -165,7 +165,7 @@
                 class="w-full !text-xs"
                 size="small"
               />
-              <span v-else class="text-gray-800 dark:text-gray-100 font-medium">{{ data.title }}</span>
+              <span v-else class="text-navy-800 dark:text-gray-100 font-medium">{{ data.title }}</span>
             </template>
           </Column>
           <Column field="formula_type" :header="t('kpi.formula')" style="width:150px">
@@ -233,7 +233,7 @@
                 class="w-full !text-xs"
                 size="small"
               />
-              <span v-else-if="showActualColumn" class="text-gray-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual) }}</span>
+              <span v-else-if="showActualColumn" class="text-navy-800 dark:text-gray-100 font-mono font-semibold">{{ formatNumber(data.actual) }}</span>
               <span v-else class="text-gray-300 dark:text-gray-600">—</span>
             </template>
           </Column>
@@ -263,8 +263,8 @@
       <!-- Scoring Components Breakdown (Phase 5) -->
       <div v-if="components.length > 0 || hasScoringConfig" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-            <i class="pi pi-sliders-h text-indigo-500"></i>
+          <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 flex items-center gap-2">
+            <i class="pi pi-sliders-h text-teal-500"></i>
             {{ t('performance_scoring.components') }}
           </h3>
           <Button v-if="canEditActual" :label="t('performance_scoring.calculate')" icon="pi pi-calculator" size="small" outlined severity="secondary" :loading="calculatingScoring" @click="calculateScoring" />
@@ -277,7 +277,7 @@
         <DataTable v-else :value="components" size="small" class="!text-sm p-datatable-sm" :rowHover="true">
           <Column field="component_name" :header="t('performance_components.name')" style="min-width:160px">
             <template #body="{data}">
-              <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.component_name }}</span>
+              <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.component_name }}</span>
             </template>
           </Column>
           <Column field="score" :header="t('performance_scoring.raw_score')" style="width:120px">

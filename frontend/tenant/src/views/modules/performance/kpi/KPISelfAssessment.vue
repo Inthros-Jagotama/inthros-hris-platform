@@ -3,7 +3,7 @@
     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
       <div class="flex items-center gap-2 mb-2">
         <i class="pi pi-user-edit text-teal-500"></i>
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('kpi.self_assessment_title') }}</h3>
+        <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ t('kpi.self_assessment_title') }}</h3>
       </div>
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('kpi.self_assessment_intro') }}</p>
     </div>
@@ -30,7 +30,7 @@
     <div v-else class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
       <div>
         <p class="text-xs text-gray-400">{{ t('kpi.your_position') }}</p>
-        <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ context.organization_name }}</p>
+        <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ context.organization_name }}</p>
       </div>
 
       <FormRow :label="t('kpi.period')" required>
@@ -39,7 +39,7 @@
 
       <div v-for="tpl in context.templates" :key="tpl.id" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between gap-3">
         <div class="min-w-0">
-          <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{ tpl.name }}</p>
+          <p class="text-sm font-medium text-navy-800 dark:text-gray-100 truncate">{{ tpl.name }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ tpl.indicator_count }} {{ t('kpi.indicators') }}</p>
         </div>
         <Button

@@ -8,7 +8,7 @@
             <i class="pi pi-users text-blue-600 dark:text-blue-400"></i>
           </div>
           <div>
-            <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ stats.totalEmployees }}</p>
+            <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ stats.totalEmployees }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('kpi.total_employees') }}</p>
           </div>
         </div>
@@ -19,7 +19,7 @@
             <i class="pi pi-check-circle text-emerald-600 dark:text-emerald-400"></i>
           </div>
           <div>
-            <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ stats.completedCount }}</p>
+            <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ stats.completedCount }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('kpi.completed') }}</p>
           </div>
         </div>
@@ -30,7 +30,7 @@
             <i class="pi pi-clock text-amber-600 dark:text-amber-400"></i>
           </div>
           <div>
-            <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ stats.inProgressCount }}</p>
+            <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ stats.inProgressCount }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('kpi.in_progress') }}</p>
           </div>
         </div>
@@ -41,7 +41,7 @@
             <i class="pi pi-chart-line text-purple-600 dark:text-purple-400"></i>
           </div>
           <div>
-            <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ stats.averageScore.toFixed(1) }}</p>
+            <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ stats.averageScore.toFixed(1) }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('kpi.avg_score') }}</p>
           </div>
         </div>
@@ -86,7 +86,7 @@
             <i :class="item.icon" class="text-base"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate flex items-center gap-2">
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate flex items-center gap-2">
               {{ t(item.titleKey) }}
               <span v-if="item.muted" class="text-[10px] font-normal uppercase tracking-wide text-gray-400 dark:text-gray-500 border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 shrink-0">{{ t('performance.not_available_yet') }}</span>
             </p>

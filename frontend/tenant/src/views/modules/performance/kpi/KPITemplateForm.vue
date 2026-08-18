@@ -13,7 +13,7 @@
     <template v-else>
       <!-- Template Info Card -->
       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+        <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 mb-4 flex items-center gap-2">
           <i class="pi pi-file text-emerald-500"></i>
           {{ t('kpi.template_info') }}
         </h3>
@@ -41,7 +41,7 @@
       <!-- Indicators Card -->
       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+          <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 flex items-center gap-2">
             <i class="pi pi-list text-blue-500"></i>
             {{ t('kpi.indicators') }}
             <span class="text-xs font-normal text-gray-500">({{ indicators.length }})</span>
