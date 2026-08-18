@@ -1,6 +1,10 @@
 package useraccount
 
-import "time"
+import (
+	"time"
+
+	"github.com/inthros/hris-platform/internal/modules/employee"
+)
 
 // CreateAccountRequest — body untuk membuat akun login employee.
 type CreateAccountRequest struct {
@@ -20,6 +24,9 @@ type AccountResponse struct {
 	PasswordSet      bool       `json:"password_set"`
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
+	// Employee — data karyawan lengkap TANPA masking, hanya diisi oleh
+	// GetMyAccount (endpoint self-service /user-accounts/me).
+	Employee *employee.EmployeeResponse `json:"employee,omitempty"`
 }
 
 // SetPasswordRequest — body untuk set password via link email (publik).

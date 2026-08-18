@@ -41,13 +41,21 @@ func NewModule(dbManager *database.Manager, authManager *auth.Manager, mailer Ma
 
 	return &userAccountModule{
 		handler: handler,
+		svc:     svc,
 		logger:  logger,
 	}
 }
 
 type userAccountModule struct {
 	handler *Handler
+	svc     *Service
 	logger  *zap.Logger
+}
+
+// SetEmployeeProfileProvider menginjeksi resolver profile employee tanpa
+// masking untuk endpoint self-service GetMyAccount (/user-accounts/me).
+func (m *userAccountModule) SetEmployeeProfileProvider(p EmployeeProfileProvider) {
+	m.svc.SetEmployeeProfileProvider(p)
 }
 
 // PublicHandler diekspos agar main.go bisa mendaftarkan route publik

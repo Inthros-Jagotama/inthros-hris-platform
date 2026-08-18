@@ -93,6 +93,13 @@ func (m *empModule) SetEmployeeIDFormatProvider(p EmployeeIDFormatProvider) {
 	m.handler.service.SetEmployeeIDFormatProvider(p)
 }
 
+// Service exposes the underlying *Service for cross-module wiring — used by
+// useraccount's self-service /user-accounts/me endpoint to fetch the caller's
+// own employee profile unmasked (see Service.GetByIDUnmasked).
+func (m *empModule) Service() *Service {
+	return m.handler.service
+}
+
 func (m *empModule) Migrate(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&Employee{},

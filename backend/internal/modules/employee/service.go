@@ -253,6 +253,27 @@ func (s *Service) GetByID(ctx context.Context, id string) (*EmployeeResponse, er
 	return &response, nil
 }
 
+// GetByIDUnmasked mengembalikan data employee lengkap TANPA masking sensitive
+// field sama sekali — untuk pemakaian internal saja (mis. endpoint self-service
+// /user-accounts/me di module useraccount, yang datanya tidak ambigu milik
+// caller sendiri karena employeeID di-resolve dari employee_accounts.employee_id
+// milik user login, bukan dari input client). JANGAN diekspos lewat handler
+// HTTP publik secara langsung — pemanggil wajib memastikan employeeID memang
+// milik caller sebelum memanggil ini.
+func (s *Service) GetByIDUnmasked(ctx context.Context, id string) (*EmployeeResponse, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee id: %w", err)
+	}
+	emp, err := s.repo.FindEmployeeByID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	response := emp.ToResponse()
+	s.fillRefNames(ctx, emp, &response)
+	return &response, nil
+}
+
 func (s *Service) List(ctx context.Context, page, perPage int, search, status, organizationID string) (*ListResponse, error) {
 	if page < 1 {
 		page = defaultPage

@@ -1325,6 +1325,22 @@ func main() {
 	}
 
 	// 6c. Register tenant modules (ordered by priority & dependency)
+	employeeModuleInstance := newEmployeeModule(dbManager, l, onPremiseLic, empIDFormatSvc)
+	userAccountModuleInstance := useraccount.NewModule(dbManager, authManager, mailerSvc, l)
+	// Wire employee's unmasked profile lookup into useraccount's self-service
+	// /user-accounts/me endpoint (see GetMyAccount) — data is unambiguously
+	// the caller's own, so sensitive-field masking never applies there.
+	if empSvcAccessor, ok := employeeModuleInstance.(interface{ Service() *employee.Service }); ok {
+		if setter, ok := userAccountModuleInstance.(interface {
+			SetEmployeeProfileProvider(useraccount.EmployeeProfileProvider)
+		}); ok {
+			setter.SetEmployeeProfileProvider(empSvcAccessor.Service())
+		} else {
+			l.Warn("UserAccount module does not implement SetEmployeeProfileProvider — /user-accounts/me will not include employee profile")
+		}
+	} else {
+		l.Warn("Employee module does not implement Service() accessor — /user-accounts/me will not include employee profile")
+	}
 	tenantModules = append(tenantModules,
 		module.ModuleRegistration{
 			Module:   organization.NewModule(dbManager, l),
@@ -1332,7 +1348,7 @@ func main() {
 			Priority: 1,
 		},
 		module.ModuleRegistration{
-			Module:   newEmployeeModule(dbManager, l, onPremiseLic, empIDFormatSvc),
+			Module:   employeeModuleInstance,
 			TargetDB: module.TargetTenant,
 			Priority: 2,
 		},
@@ -1412,7 +1428,7 @@ func main() {
 			Priority: 17,
 		},
 		module.ModuleRegistration{
-			Module:   useraccount.NewModule(dbManager, authManager, mailerSvc, l),
+			Module:   userAccountModuleInstance,
 			TargetDB: module.TargetTenant,
 			Priority: 18,
 		},

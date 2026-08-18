@@ -14,9 +14,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
+	"github.com/inthros/hris-platform/internal/modules/employee"
 	"github.com/inthros/hris-platform/internal/pkg/auth"
 	"github.com/inthros/hris-platform/internal/pkg/authctx"
 )
+
+// EmployeeProfileProvider resolves the full, UNMASKED employee profile —
+// used only by GetMyAccount (self-service /user-accounts/me), where the
+// employeeID is always the caller's own (resolved server-side from
+// employee_accounts.employee_id, never client-supplied), so sensitive-field
+// masking never applies.
+type EmployeeProfileProvider interface {
+	GetByIDUnmasked(ctx context.Context, id string) (*employee.EmployeeResponse, error)
+}
 
 // DefaultRoleName adalah role bawaan tenant yang di-assign ke akun employee.
 const DefaultRoleName = "Employee"
@@ -41,14 +51,21 @@ type EmployeeRef struct {
 func (EmployeeRef) TableName() string { return "employees" }
 
 type Service struct {
-	repo        *Repository
-	authManager *auth.Manager
-	mailer      Mailer
-	logger      *zap.Logger
+	repo                    *Repository
+	authManager             *auth.Manager
+	mailer                  Mailer
+	logger                  *zap.Logger
+	employeeProfileProvider EmployeeProfileProvider
 }
 
 func NewService(repo *Repository, authManager *auth.Manager, mailer Mailer, logger *zap.Logger) *Service {
 	return &Service{repo: repo, authManager: authManager, mailer: mailer, logger: logger}
+}
+
+// SetEmployeeProfileProvider wires the unmasked employee-profile lookup into
+// GetMyAccount (self-service endpoint).
+func (s *Service) SetEmployeeProfileProvider(p EmployeeProfileProvider) {
+	s.employeeProfileProvider = p
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -290,7 +307,7 @@ func (s *Service) GetMyAccount(ctx context.Context) (*AccountResponse, error) {
 		return nil, err
 	}
 	passwordSet := acc.SetupToken == nil || acc.SetupTokenExpiry == nil
-	return &AccountResponse{
+	resp := &AccountResponse{
 		ID:          acc.ID.String(),
 		EmployeeID:  acc.EmployeeID.String(),
 		UserID:      acc.UserID.String(),
@@ -299,7 +316,19 @@ func (s *Service) GetMyAccount(ctx context.Context) (*AccountResponse, error) {
 		PasswordSet: passwordSet,
 		CreatedAt:   acc.CreatedAt,
 		UpdatedAt:   acc.UpdatedAt,
-	}, nil
+	}
+	// Sertakan data employee lengkap tanpa masking — employeeID di sini SELALU
+	// milik caller sendiri (di-resolve dari employee_accounts, bukan input
+	// client), jadi tidak ada ambiguitas "punya siapa" yang perlu dicek.
+	// Gagal memuat profile tidak menggagalkan seluruh response (best-effort).
+	if s.employeeProfileProvider != nil {
+		if profile, err := s.employeeProfileProvider.GetByIDUnmasked(ctx, acc.EmployeeID.String()); err == nil {
+			resp.Employee = profile
+		} else {
+			s.logger.Warn("GetMyAccount: failed to load unmasked employee profile", zap.Error(err))
+		}
+	}
+	return resp, nil
 }
 
 // ── Password setup (public, via link email) ──────────────────────────────────
