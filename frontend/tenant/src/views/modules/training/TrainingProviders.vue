@@ -34,7 +34,7 @@
         <template #body="{data}"><Tag :value="data.code" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
       </Column>
       <Column field="name" :header="t('common.name')">
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
       </Column>
       <Column field="type" :header="t('training.type')" style="width:110px">
         <template #body="{data}"><Tag :value="typeLabel(data.type)" :severity="data.type === 'EXTERNAL' ? 'warning' : 'info'" class="!text-xs !px-1.5 !py-0.5" /></template>
@@ -88,7 +88,7 @@
         </FormRow>
         <div class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
           <div>
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('training.is_active') }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ t('training.is_active') }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('training.provider_is_active_desc') }}</p>
           </div>
           <ToggleSwitch v-model="form.is_active" />

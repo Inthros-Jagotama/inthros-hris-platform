@@ -48,7 +48,7 @@
           <template #body="{data}"><Tag :value="data.code" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
         </Column>
         <Column field="name" :header="t('training.certification_name')">
-          <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
+          <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
         </Column>
         <Column field="issuing_body" :header="t('training.issuing_body')" style="width:180px">
           <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.issuing_body || '-' }}</span></template>
@@ -108,7 +108,7 @@
           <template #body="{data}"><Tag :value="data.certificate_no" severity="success" class="!text-xs !px-1.5 !py-0.5" /></template>
         </Column>
         <Column field="participant_id" :header="t('training.employee')" style="width:200px">
-          <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ participantName(data.participant_id) }}</span></template>
+          <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ participantName(data.participant_id) }}</span></template>
         </Column>
         <Column field="certification_id" :header="t('training.certification_name')">
           <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ certificationName(data.certification_id) }}</span></template>
@@ -153,14 +153,14 @@
         </FormRow>
         <div class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
           <div>
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('training.renewal_required') }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ t('training.renewal_required') }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('training.certification_renewal_required_desc') }}</p>
           </div>
           <ToggleSwitch v-model="certificationForm.renewal_required" />
         </div>
         <div class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
           <div>
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('training.is_active') }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ t('training.is_active') }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('training.certification_is_active_desc') }}</p>
           </div>
           <ToggleSwitch v-model="certificationForm.is_active" />

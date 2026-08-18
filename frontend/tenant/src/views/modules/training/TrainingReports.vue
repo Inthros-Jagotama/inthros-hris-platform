@@ -25,7 +25,7 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div v-for="card in dashboardCards" :key="card.key" class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5 hover:shadow-md transition-shadow">
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ t(card.labelKey) }}</p>
-            <p class="text-xl font-bold text-gray-800 dark:text-gray-100 mt-1">{{ formatStat(card.value, card.money) }}</p>
+            <p class="text-xl font-bold text-navy-800 dark:text-gray-100 mt-1">{{ formatStat(card.value, card.money) }}</p>
           </div>
         </div>
 
@@ -37,7 +37,7 @@
               <i class="pi pi-check-circle text-emerald-500 text-base"></i>
             </div>
             <div class="flex items-end justify-between gap-2">
-              <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ dashboard.completion_rate }}%</p>
+              <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ dashboard.completion_rate }}%</p>
             </div>
             <div class="mt-3 h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
               <div class="h-full rounded-full bg-emerald-500 transition-all" :style="{ width: `${dashboard.completion_rate}%` }"></div>
@@ -49,7 +49,7 @@
               <i class="pi pi-flag-fill text-sky-500 text-base"></i>
             </div>
             <div class="flex items-end justify-between gap-2">
-              <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ dashboard.pass_rate }}%</p>
+              <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ dashboard.pass_rate }}%</p>
             </div>
             <div class="mt-3 h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
               <div class="h-full rounded-full bg-sky-500 transition-all" :style="{ width: `${dashboard.pass_rate}%` }"></div>
@@ -60,7 +60,7 @@
               <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('training.total_training_cost') }}</p>
               <i class="pi pi-dollar text-amber-500 text-base"></i>
             </div>
-            <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ formatMoney(dashboard.total_training_cost) }}</p>
+            <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ formatMoney(dashboard.total_training_cost) }}</p>
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('training.cost_hint') }}</p>
           </div>
         </div>
@@ -85,7 +85,7 @@
           </div>
         </template>
         <Column field="employee_name" :header="t('training.employee')" sortable>
-          <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template>
+          <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template>
         </Column>
         <Column field="organization_name" :header="t('training.organization')" sortable style="width:180px">
           <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.organization_name || '-' }}</span></template>
@@ -135,13 +135,13 @@
           <template #body="{data}"><Tag :value="data.session_code" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
         </Column>
         <Column field="course_name" :header="t('training.course')" sortable style="width:240px">
-          <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.course_name }}</span></template>
+          <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.course_name }}</span></template>
         </Column>
         <Column field="provider_name" :header="t('training.provider')" sortable style="width:180px">
           <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.provider_name || '-' }}</span></template>
         </Column>
         <Column field="total_cost" :header="t('training.total_cost')" sortable style="width:140px">
-          <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.total_cost ? formatMoney(data.total_cost) : '-' }}</span></template>
+          <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.total_cost ? formatMoney(data.total_cost) : '-' }}</span></template>
         </Column>
         <Column field="participant_count" :header="t('training.participant_count')" sortable style="width:120px">
           <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.participant_count }}</span></template>
@@ -169,7 +169,7 @@
           </div>
         </template>
         <Column field="employee_name" :header="t('training.employee')" sortable>
-          <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template>
+          <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template>
         </Column>
         <Column field="organization_name" :header="t('training.organization')" sortable style="width:180px">
           <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.organization_name || '-' }}</span></template>

@@ -33,7 +33,7 @@
         </div>
       </template>
       <Column field="employee_id" :header="t('training.need_employee')" style="width:200px">
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span></template>
       </Column>
       <Column field="course_id" :header="t('training.need_course')">
         <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ courseName(data.course_id) }}</span></template>

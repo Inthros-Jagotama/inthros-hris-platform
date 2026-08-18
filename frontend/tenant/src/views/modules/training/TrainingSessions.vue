@@ -36,7 +36,7 @@
         <template #body="{data}"><Tag :value="data.session_code" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
       </Column>
       <Column field="course_name" :header="t('training.course')">
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ courseName(data.course_id) }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ courseName(data.course_id) }}</span></template>
       </Column>
       <Column field="trainer_name" :header="t('training.trainer')" style="width:160px">
         <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.trainer_name || '-' }}</span></template>

@@ -26,7 +26,7 @@
           <template #body="{data}"><Tag :value="data.session_code" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
         </Column>
         <Column field="course_name" :header="t('training.course')" sortable style="width:240px">
-          <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.course_name }}</span></template>
+          <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.course_name }}</span></template>
         </Column>
         <Column field="start_date" :header="t('training.start_date')" sortable style="width:130px">
           <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.start_date || '-' }}</span></template>

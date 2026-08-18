@@ -13,7 +13,7 @@
         <div class="flex items-start justify-between gap-3 flex-wrap">
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <h2 class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ session.session_code }}</h2>
+              <h2 class="text-base font-semibold text-navy-800 dark:text-gray-100">{{ session.session_code }}</h2>
               <Tag :value="statusLabel(session.status)" :severity="statusSeverity(session.status)" class="!text-xs !px-1.5 !py-0.5" />
             </div>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ courseName(session.course_id) }}</p>
@@ -26,27 +26,27 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('training.start_date') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{{ session.start_date || '-' }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5">{{ session.start_date || '-' }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('training.end_date') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{{ session.end_date || '-' }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5">{{ session.end_date || '-' }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('training.provider_type') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{{ session.provider_type ? typeLabel(session.provider_type) : '-' }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5">{{ session.provider_type ? typeLabel(session.provider_type) : '-' }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('training.delivery_mode') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{{ session.delivery_mode ? t(`training.mode_${session.delivery_mode.toLowerCase()}`) : '-' }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5">{{ session.delivery_mode ? t(`training.mode_${session.delivery_mode.toLowerCase()}`) : '-' }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('training.max_quota') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{{ session.max_quota }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5">{{ session.max_quota }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('training.trainer') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5 truncate">{{ session.trainer_name || '-' }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5 truncate">{{ session.trainer_name || '-' }}</p>
           </div>
         </div>
         <p v-if="session.location || session.meeting_url" class="text-xs text-gray-400 dark:text-gray-500 mt-3">
@@ -88,7 +88,7 @@
                     <i class="pi pi-user text-emerald-500 text-xs"></i>
                   </div>
                   <div class="min-w-0 flex-1">
-                    <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ trainerName(st.trainer_id) }}</p>
+                    <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ trainerName(st.trainer_id) }}</p>
                     <p class="text-xs text-gray-400">{{ t(`training.role_${(st.role || 'main').toLowerCase()}`) }}</p>
                   </div>
                 </div>
@@ -99,7 +99,7 @@
             <!-- Assessments -->
             <div class="rounded-lg border border-gray-200 dark:border-gray-700">
               <div class="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
-                <i class="pi pi-file-check text-indigo-500 text-sm"></i>
+                <i class="pi pi-file-check text-teal-500 text-sm"></i>
                 <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('training.assessments') }}</h3>
               </div>
               <div v-if="assessmentsLoading" class="p-4 space-y-2">
@@ -108,7 +108,7 @@
               <div v-else-if="assessments.length" class="divide-y divide-gray-100 dark:divide-gray-800">
                 <div v-for="a in assessments" :key="a.id" class="flex items-center gap-3 px-3 py-2.5">
                   <div class="min-w-0 flex-1">
-                    <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ a.name }}</p>
+                    <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ a.name }}</p>
                     <p class="text-xs text-gray-400">{{ t(`training.assessment_type_${(a.type || 'other').toLowerCase()}`) }} · {{ a.passing_score }}/{{ a.max_score }}</p>
                   </div>
                   <Tag :value="a.is_required ? t('training.required') : t('training.optional')" :severity="a.is_required ? 'danger' : 'secondary'" class="!text-[10px] !px-1.5 !py-0" />
@@ -133,7 +133,7 @@
               </div>
             </template>
             <Column field="employee_name" :header="t('training.employee')">
-              <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span></template>
+              <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span></template>
             </Column>
             <Column field="registration_status" :header="t('training.registration_status')" style="width:140px">
               <template #body="{data}"><Tag :value="regStatusLabel(data.registration_status)" :severity="regStatusSeverity(data.registration_status)" class="!text-xs !px-1.5 !py-0.5" /></template>
@@ -178,7 +178,7 @@
               <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.description || '-' }}</span></template>
             </Column>
             <Column field="amount" :header="t('training.cost_amount')" style="width:150px">
-              <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.amount ? formatMoney(data.amount) : '-' }}</span></template>
+              <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.amount ? formatMoney(data.amount) : '-' }}</span></template>
             </Column>
             <Column :header="t('common.actions')" style="width:90px" frozen alignFrozen="right">
               <template #body="{data}">
@@ -208,7 +208,7 @@
               <template #body="{data}"><Tag :value="docTypeLabel(data.document_type)" severity="warning" class="!text-xs !px-1.5 !py-0.5" /></template>
             </Column>
             <Column field="file_name" :header="t('training.document_file_name')">
-              <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.file_name || '-' }}</span></template>
+              <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.file_name || '-' }}</span></template>
             </Column>
             <Column field="file_url" :header="t('training.document_file_url')" style="width:220px">
               <template #body="{data}">
@@ -238,7 +238,7 @@
               </div>
             </template>
             <Column field="title" :header="t('training.material_title')">
-              <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.title }}</span></template>
+              <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.title }}</span></template>
             </Column>
             <Column field="is_required" :header="t('training.is_required')" style="width:110px">
               <template #body="{data}"><Tag :value="data.is_required ? t('common.yes') : t('common.no')" :severity="data.is_required ? 'danger' : 'secondary'" class="!text-xs !px-1.5 !py-0.5" /></template>
@@ -277,7 +277,7 @@
                 <div class="flex items-start justify-between gap-3 flex-wrap">
                   <div class="min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ evaluationForm.form.name }}</h3>
+                      <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ evaluationForm.form.name }}</h3>
                       <Tag :value="evaluationForm.form.is_active ? t('training.is_active') : t('training.inactive')" :severity="evaluationForm.form.is_active ? 'success' : 'secondary'" class="!text-[10px] !px-1.5 !py-0" />
                     </div>
                     <p class="text-xs text-gray-400 mt-0.5">{{ t('training.eval_questions_count', { count: evaluationForm.questions.length }) }}</p>
@@ -297,7 +297,7 @@
                   <template #body="{data}"><span class="text-gray-400">{{ data.sort_order }}</span></template>
                 </Column>
                 <Column field="question" :header="t('training.question')">
-                  <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.question }}</span></template>
+                  <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.question }}</span></template>
                 </Column>
                 <Column field="question_type" :header="t('training.question_type')" style="width:160px">
                   <template #body="{data}"><Tag :value="qTypeLabel(data.question_type)" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
@@ -329,7 +329,7 @@
                   </div>
                   <div v-if="answerParticipantId && (evaluationForm.questions || []).length" class="space-y-3">
                     <div v-for="q in evaluationForm.questions" :key="q.id" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-                      <p class="text-sm font-medium text-gray-800 dark:text-gray-100">
+                      <p class="text-sm font-medium text-navy-800 dark:text-gray-100">
                         {{ q.question }}
                         <span v-if="q.is_required" class="text-rose-500">*</span>
                       </p>
@@ -398,7 +398,7 @@
               </div>
             </template>
             <Column field="participant_id" :header="t('training.participant')" style="width:200px">
-              <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ participantLabel(data.participant_id) }}</span></template>
+              <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ participantLabel(data.participant_id) }}</span></template>
             </Column>
             <Column field="assessment_date" :header="t('training.assessment_date')" style="width:130px">
               <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.assessment_date || '-' }}</span></template>

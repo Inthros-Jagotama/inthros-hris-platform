@@ -5,42 +5,42 @@
       <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5 flex items-center justify-between hover:shadow-md transition-shadow">
         <div class="min-w-0">
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ t('training.stat_upcoming') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ stats.upcoming }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ stats.upcoming }}</p>
         </div>
         <i class="pi pi-calendar-plus text-lg text-emerald-500 shrink-0"></i>
       </div>
       <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5 flex items-center justify-between hover:shadow-md transition-shadow">
         <div class="min-w-0">
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ t('training.stat_ongoing') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ stats.ongoing }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ stats.ongoing }}</p>
         </div>
         <i class="pi pi-play-circle text-lg text-sky-500 shrink-0"></i>
       </div>
       <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5 flex items-center justify-between hover:shadow-md transition-shadow">
         <div class="min-w-0">
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ t('training.stat_completed') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ stats.completed }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ stats.completed }}</p>
         </div>
-        <i class="pi pi-check-circle text-lg text-indigo-500 shrink-0"></i>
+        <i class="pi pi-check-circle text-lg text-teal-500 shrink-0"></i>
       </div>
       <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5 flex items-center justify-between hover:shadow-md transition-shadow">
         <div class="min-w-0">
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ t('training.stat_total_courses') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ stats.courses }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ stats.courses }}</p>
         </div>
         <i class="pi pi-book text-lg text-amber-500 shrink-0"></i>
       </div>
       <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5 flex items-center justify-between hover:shadow-md transition-shadow">
         <div class="min-w-0">
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ t('training.stat_total_participants') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ stats.participants }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ stats.participants }}</p>
         </div>
         <i class="pi pi-users text-lg text-violet-500 shrink-0"></i>
       </div>
       <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5 flex items-center justify-between hover:shadow-md transition-shadow">
         <div class="min-w-0">
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ t('training.stat_total_providers') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ stats.providers }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ stats.providers }}</p>
         </div>
         <i class="pi pi-building text-lg text-rose-500 shrink-0"></i>
       </div>
@@ -66,7 +66,7 @@
             <i :class="menu.icon" class="text-base"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(menu.labelKey) }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ t(menu.labelKey) }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(menu.descKey) }}</p>
           </div>
           <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
@@ -150,7 +150,7 @@ const menuGroups = computed(() => {
         { labelKey: 'training.courses', descKey: 'training.courses_desc', icon: 'pi pi-book', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/training/courses', permission: 'training.settings.view' },
         { labelKey: 'training.categories', descKey: 'training.categories_desc', icon: 'pi pi-tags', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/training/categories', permission: 'training.settings.view' },
         { labelKey: 'training.providers', descKey: 'training.providers_desc', icon: 'pi pi-building', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', route: '/training/providers', permission: 'training.settings.view' },
-        { labelKey: 'training.trainers', descKey: 'training.trainers_desc', icon: 'pi pi-user', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/training/trainers', permission: 'training.settings.view' }
+        { labelKey: 'training.trainers', descKey: 'training.trainers_desc', icon: 'pi pi-user', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/training/trainers', permission: 'training.settings.view' }
       ]
     },
     {
