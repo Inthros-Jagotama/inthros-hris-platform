@@ -28,17 +28,17 @@
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <button
           type="button"
-          class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-teal-300 dark:hover:border-teal-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
           @click="router.push('/reimbursements/all')"
         >
-          <div class="w-11 h-11 rounded-lg shrink-0 flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+          <div class="w-11 h-11 rounded-lg shrink-0 flex items-center justify-center bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400">
             <i class="pi pi-briefcase text-lg"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('reimbursement.card_all') }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ t('reimbursement.card_all') }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t('reimbursement.card_all_desc') }}</p>
           </div>
-          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
         </button>
 
         <button
@@ -50,7 +50,7 @@
             <i class="pi pi-credit-card text-lg"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('reimbursement.my_requests') }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ t('reimbursement.my_requests') }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t('reimbursement.card_my_desc') }}</p>
           </div>
           <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
@@ -65,7 +65,7 @@
             <i class="pi pi-tags text-lg"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('reimbursement.types') }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ t('reimbursement.types') }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t('reimbursement.card_types_desc') }}</p>
           </div>
           <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
@@ -76,7 +76,7 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
           <div class="flex items-center gap-2">
-            <i class="pi pi-chart-bar text-sm text-indigo-500"></i>
+            <i class="pi pi-chart-bar text-sm text-teal-500"></i>
             <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('reimbursement.summary') }}</h2>
             <span class="text-xs text-gray-400 dark:text-gray-500">{{ isAdmin ? t('reimbursement.card_all') : t('reimbursement.my_requests') }}</span>
           </div>
@@ -98,7 +98,7 @@
           >
             <div class="min-w-0">
               <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ card.label }}</p>
-              <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ card.value }}</p>
+              <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ card.value }}</p>
             </div>
             <i :class="[card.icon, card.iconColor]" class="text-base shrink-0"></i>
           </div>
@@ -134,7 +134,7 @@ const summaryCards = computed(() => {
   const c = summaryCounts.value
   const basePath = isAdmin.value ? '/reimbursements/all' : '/reimbursements/my-requests'
   return [
-    { key: 'total', label: t('reimbursement.summary_total'), value: c.total || 0, icon: 'pi pi-inbox', iconColor: 'text-indigo-500', path: basePath },
+    { key: 'total', label: t('reimbursement.summary_total'), value: c.total || 0, icon: 'pi pi-inbox', iconColor: 'text-teal-500', path: basePath },
     { key: 'DRAFT', label: statusLabel('DRAFT'), value: c.DRAFT || 0, icon: 'pi pi-pencil', iconColor: 'text-gray-400', path: `${basePath}?status=DRAFT` },
     { key: 'PENDING', label: t('reimbursement.summary_pending'), value: (c.SUBMITTED || 0) + (c.PENDING_APPROVAL || 0), icon: 'pi pi-clock', iconColor: 'text-amber-500', path: `${basePath}?status=PENDING_APPROVAL` },
     { key: 'APPROVED', label: statusLabel('APPROVED'), value: c.APPROVED || 0, icon: 'pi pi-check-circle', iconColor: 'text-emerald-500', path: `${basePath}?status=APPROVED` },

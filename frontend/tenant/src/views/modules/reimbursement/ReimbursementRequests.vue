@@ -68,7 +68,7 @@
           </template>
           <Column field="title" :header="t('reimbursement.field_title')">
             <template #body="{data}">
-              <a class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium cursor-pointer" @click="router.push(`/reimbursements/${data.id}`)">{{ data.title }}</a>
+              <a class="text-teal-600 dark:text-teal-400 hover:underline font-medium cursor-pointer" @click="router.push(`/reimbursements/${data.id}`)">{{ data.title }}</a>
             </template>
           </Column>
           <Column :header="t('reimbursement.request_type')" style="width:160px">

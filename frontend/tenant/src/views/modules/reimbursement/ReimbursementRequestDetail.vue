@@ -44,7 +44,7 @@
       <div class="flex items-start justify-between flex-wrap gap-3">
         <div>
           <div class="flex items-center gap-2 flex-wrap">
-            <h2 class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ request.title }}</h2>
+            <h2 class="text-base font-semibold text-navy-800 dark:text-gray-100">{{ request.title }}</h2>
             <Tag :value="statusLabel(request.status)" :severity="statusSeverity(request.status)" class="!text-xs !px-1.5 !py-0.5" />
           </div>
           <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
@@ -63,15 +63,15 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2.5">
           <p class="text-xs text-gray-400">{{ t('reimbursement.total_amount') }}</p>
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ formatCurrency(request.total_amount, request.currency) }}</p>
+          <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ formatCurrency(request.total_amount, request.currency) }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2.5">
           <p class="text-xs text-gray-400">{{ t('reimbursement.request_type') }}</p>
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ requestTypeName(request.request_type_id) }}</p>
+          <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ requestTypeName(request.request_type_id) }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2.5">
           <p class="text-xs text-gray-400">{{ t('reimbursement.currency') }}</p>
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ request.currency || 'IDR' }}</p>
+          <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ request.currency || 'IDR' }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2.5">
           <p class="text-xs text-gray-400">{{ t('reimbursement.paid_amount') }}</p>
@@ -103,7 +103,7 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
         <div class="flex items-center gap-2">
-          <i class="pi pi-receipt text-indigo-500 text-sm"></i>
+          <i class="pi pi-receipt text-teal-500 text-sm"></i>
           <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('reimbursement.items') }}</h3>
           <span v-if="items.length" class="text-xs text-gray-400">{{ formatCurrency(totalItemsAmount, request.currency) }}</span>
         </div>
