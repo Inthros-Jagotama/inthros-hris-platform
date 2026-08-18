@@ -231,7 +231,7 @@
           <a
             :href="genDocUrl"
             :download="genDocName"
-            class="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+            class="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white font-medium"
           >
             <i class="pi pi-download"></i>{{ t('common.download') }}
           </a>

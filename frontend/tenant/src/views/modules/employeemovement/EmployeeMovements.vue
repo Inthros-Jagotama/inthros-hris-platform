@@ -261,10 +261,10 @@
         </div>
 
         <!-- Generate Document (plan §16) — PDF SK dari template aktif -->
-        <div class="rounded-lg border border-indigo-200 dark:border-indigo-900/40 p-3">
+        <div class="rounded-lg border border-teal-200 dark:border-teal-900/40 p-3">
           <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
             <div class="flex items-center gap-2">
-              <i class="pi pi-file-pdf text-sm text-indigo-500"></i>
+              <i class="pi pi-file-pdf text-sm text-teal-500"></i>
               <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('employee_movement.generated_documents') }}</p>
             </div>
             <Button
@@ -288,7 +288,7 @@
               :key="doc.id"
               class="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2"
             >
-              <i class="pi pi-file-pdf text-sm text-indigo-500 shrink-0"></i>
+              <i class="pi pi-file-pdf text-sm text-teal-500 shrink-0"></i>
               <div class="min-w-0 flex-1">
                 <p class="text-sm text-gray-700 dark:text-gray-200 truncate">{{ doc.file_name }}</p>
                 <span class="text-xs text-gray-400">{{ formatDateTime(doc.generated_at) }}</span>
@@ -305,7 +305,7 @@
               <a
                 :href="doc.file_url"
                 :download="doc.file_name"
-                class="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 shrink-0 text-xs"
+                class="text-teal-500 hover:text-teal-600 dark:text-teal-400 shrink-0 text-xs"
                 :title="t('common.download')"
               >
                 <i class="pi pi-download"></i>
@@ -474,7 +474,7 @@
           <a
             :href="genDocUrl"
             :download="genDocName"
-            class="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+            class="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white font-medium"
           >
             <i class="pi pi-download"></i>{{ t('common.download') }}
           </a>

@@ -10,7 +10,7 @@
           <i class="pi pi-arrows-alt text-white"></i>
         </div>
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('employee_movement.movements') }}</p>
+          <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ t('employee_movement.movements') }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{{ t('employee_movement.card_movements_desc') }}</p>
         </div>
         <div class="shrink-0 flex flex-col items-center gap-1">
@@ -19,19 +19,19 @@
         </div>
       </div>
       <div
-        class="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/50 dark:to-blue-950/30 border border-indigo-200 dark:border-indigo-800/60 rounded-lg p-4 flex items-center gap-3 cursor-pointer hover:border-indigo-400 hover:shadow-lg dark:hover:shadow-gray-900/50 hover:-translate-y-0.5 transition-all group"
+        class="bg-gradient-to-r from-teal-50 to-blue-50 dark:from-teal-950/50 dark:to-blue-950/30 border border-teal-200 dark:border-teal-800/60 rounded-lg p-4 flex items-center gap-3 cursor-pointer hover:border-teal-400 hover:shadow-lg dark:hover:shadow-gray-900/50 hover:-translate-y-0.5 transition-all group"
         @click="router.push('/admin/career/contracts')"
       >
-        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shrink-0 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center shrink-0 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all">
           <i class="pi pi-file-edit text-white"></i>
         </div>
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('employee_movement.contracts') }}</p>
+          <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ t('employee_movement.contracts') }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{{ t('employee_movement.card_contracts_desc') }}</p>
         </div>
         <div class="shrink-0 flex flex-col items-center gap-1">
-          <span class="text-[10px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">{{ t('common.open') }}</span>
-          <i class="pi pi-arrow-right text-indigo-500 group-hover:translate-x-0.5 transition-all"></i>
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400">{{ t('common.open') }}</span>
+          <i class="pi pi-arrow-right text-teal-500 group-hover:translate-x-0.5 transition-all"></i>
         </div>
       </div>
     </div>
@@ -108,7 +108,7 @@
           >
             <div class="min-w-0">
               <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ t.label }}</p>
-              <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ movementReport.by_type?.[t.value] || 0 }}</p>
+              <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ movementReport.by_type?.[t.value] || 0 }}</p>
             </div>
             <i :class="[typeIcon(t.value), typeIconColor(t.value)]" class="text-lg shrink-0"></i>
           </div>
@@ -143,7 +143,7 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('employee_movement.status_active') }}</p>
-            <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ contractReport.by_status?.active || 0 }}</p>
+            <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ contractReport.by_status?.active || 0 }}</p>
           </div>
           <div class="rounded-lg border border-amber-300 dark:border-amber-700/50 bg-amber-50/50 dark:bg-amber-900/10 p-3">
             <p class="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">{{ t('employee_movement.report_expiring') }}</p>
@@ -151,15 +151,15 @@
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('employee_movement.status_expired') }}</p>
-            <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ contractReport.by_status?.expired || 0 }}</p>
+            <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ contractReport.by_status?.expired || 0 }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('employee_movement.status_extended') }}</p>
-            <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ contractReport.by_status?.extended || 0 }}</p>
+            <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ contractReport.by_status?.extended || 0 }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('employee_movement.status_terminated') }}</p>
-            <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ contractReport.by_status?.terminated || 0 }}</p>
+            <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ contractReport.by_status?.terminated || 0 }}</p>
           </div>
         </div>
         <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">{{ t('employee_movement.report_contract_hint') }}</p>
@@ -220,7 +220,7 @@
           </div>
           <div class="min-w-0 flex-1">
             <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{{ t('employee_movement.timeline_current_position') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">
               {{ timelineData.employee_name || '-' }}
               <span v-if="timelineData.employee_code" class="text-gray-400 font-normal"> ({{ timelineData.employee_code }})</span>
             </p>
@@ -246,7 +246,7 @@
                 <i :class="timelineEventIcon(ev)" class="text-[10px] text-white"></i>
               </span>
               <div class="flex items-center gap-2 flex-wrap">
-                <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ timelineEventLabel(ev) }}</p>
+                <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ timelineEventLabel(ev) }}</p>
                 <Tag v-if="ev.movement_type" :value="typeLabel(ev.movement_type)" :severity="typeSeverity(ev.movement_type)" class="!text-[10px] !px-1.5 !py-0" />
                 <Tag v-if="ev.contract_type" :value="contractTypeLabel(ev.contract_type)" severity="info" class="!text-[10px] !px-1.5 !py-0" />
               </div>
@@ -423,7 +423,7 @@ function timelineDotClass(ev) {
     case 'demotion': return 'bg-red-500'
     case 'mutation': return 'bg-sky-500'
     case 'contract_extension': return 'bg-amber-500'
-    case 'status_change': return 'bg-indigo-500'
+    case 'status_change': return 'bg-teal-500'
     case 'retirement': return 'bg-gray-400'
     case 'offboarding': return 'bg-rose-500'
     default: return 'bg-slate-400'
@@ -462,7 +462,7 @@ function typeIconColor(type) {
     case 'demotion': return 'text-red-500'
     case 'mutation': return 'text-sky-500'
     case 'contract_extension': return 'text-amber-500'
-    case 'status_change': return 'text-indigo-500'
+    case 'status_change': return 'text-teal-500'
     case 'retirement': return 'text-gray-400'
     case 'offboarding': return 'text-red-400'
     default: return 'text-gray-400'
