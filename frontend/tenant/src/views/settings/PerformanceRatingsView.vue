@@ -29,7 +29,7 @@
         <template #body="{data}">
           <div class="flex items-center gap-2">
             <div v-if="data.color" class="w-3 h-3 rounded-full" :class="getColorClass(data.color)"></div>
-            <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
+            <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
           </div>
         </template>
       </Column>

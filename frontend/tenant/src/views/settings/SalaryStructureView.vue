@@ -20,8 +20,8 @@
           class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
         >
           <template #empty><div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500"><i class="pi pi-chart-bar text-3xl mb-2 opacity-50"></i><p class="text-sm font-medium">{{ t('payroll.grade_components_empty') }}</p></div></template>
-          <Column :header="t('payroll.grading')" style="width:140px"><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ gradingLabel(data.grading_id) }}</span></template></Column>
-          <Column :header="t('payroll.component')" style="width:200px"><template #body="{data}"><span class="text-gray-800 dark:text-gray-100">{{ componentLabel(data.salary_component_id) }}</span></template></Column>
+          <Column :header="t('payroll.grading')" style="width:140px"><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ gradingLabel(data.grading_id) }}</span></template></Column>
+          <Column :header="t('payroll.component')" style="width:200px"><template #body="{data}"><span class="text-navy-800 dark:text-gray-100">{{ componentLabel(data.salary_component_id) }}</span></template></Column>
           <Column :header="t('payroll.amount')" style="width:130px"><template #body="{data}"><span class="font-mono text-gray-600 dark:text-gray-300 text-xs">{{ formatMoney(data.amount) }}</span></template></Column>
           <Column :header="t('payroll.effective_start_date')" style="width:130px"><template #body="{data}"><span class="text-gray-500 dark:text-gray-400 text-xs">{{ formatDate(data.effective_start_date, locale) }}</span></template></Column>
           <Column :header="t('common.status')" style="width:100px"><template #body="{data}"><Tag :value="statusLabel(data.status)" :severity="data.status === 'ACTIVE' ? 'success' : 'secondary'" class="!text-xs !px-1.5 !py-0.5" /></template></Column>

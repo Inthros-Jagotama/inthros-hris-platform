@@ -8,7 +8,7 @@
         :key="dt.key"
         class="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 p-4 space-y-4"
       >
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t(dt.labelKey) }}</h3>
+        <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ t(dt.labelKey) }}</h3>
 
         <FormRow :label="t('numbering_settings.format_template')" required :errors="errors[dt.key]?.format_template">
           <TextInput
@@ -35,7 +35,7 @@
 
         <div class="rounded-md bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 px-3 py-2">
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('numbering_settings.preview_label') }}</p>
-          <p class="text-sm font-mono font-semibold text-gray-800 dark:text-gray-100">
+          <p class="text-sm font-mono font-semibold text-navy-800 dark:text-gray-100">
             {{ previews[dt.key] || '—' }}
           </p>
         </div>

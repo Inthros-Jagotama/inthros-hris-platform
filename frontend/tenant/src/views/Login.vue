@@ -25,7 +25,7 @@
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-emerald-600 text-white mb-4">
               <i class="pi pi-building text-2xl"></i>
             </div>
-            <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('auth.title') }}</h1>
+            <h1 class="text-xl font-bold text-navy-900 dark:text-gray-100">{{ t('auth.title') }}</h1>
             <!-- Subtitle: tampilkan nama company bila terdeteksi (auto-detect URL/env) -->
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {{ companyLabel || companySlug ? t('auth.login.subtitle_with_company', { company: companyLabel || companySlug }) : t('auth.login.subtitle') }}

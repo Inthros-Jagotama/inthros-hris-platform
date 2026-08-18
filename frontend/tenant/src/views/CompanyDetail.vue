@@ -21,7 +21,7 @@
               <i class="pi pi-building text-xl"></i>
             </div>
             <div class="min-w-0">
-              <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 truncate">{{ company.name || '—' }}</h2>
+              <h2 class="text-xl font-semibold text-navy-800 dark:text-gray-100 truncate">{{ company.name || '—' }}</h2>
               <p class="text-sm text-gray-500 dark:text-gray-400">
                 {{ t('company_detail.slug') }}: <span class="font-mono text-xs">{{ company.slug || '—' }}</span>
               </p>
@@ -58,7 +58,7 @@
         <template #title>
           <div class="flex items-center gap-2">
             <i class="pi pi-globe text-emerald-500"></i>
-            <span class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('company_detail.access_info') }}</span>
+            <span class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('company_detail.access_info') }}</span>
           </div>
         </template>
         <template #content>
@@ -74,7 +74,7 @@
         <template #title>
           <div class="flex items-center gap-2">
             <i class="pi pi-phone text-emerald-500"></i>
-            <span class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('company_detail.contact_info') }}</span>
+            <span class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('company_detail.contact_info') }}</span>
           </div>
         </template>
         <template #content>
@@ -89,7 +89,7 @@
         <template #title>
           <div class="flex items-center gap-2">
             <i class="pi pi-id-card text-emerald-500"></i>
-            <span class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('company_detail.legal_info') }}</span>
+            <span class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('company_detail.legal_info') }}</span>
           </div>
         </template>
         <template #content>
@@ -105,13 +105,13 @@
         <template #title>
           <div class="flex items-center gap-2">
             <i class="pi pi-key text-emerald-500"></i>
-            <span class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('company_detail.license_info') }}</span>
+            <span class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('company_detail.license_info') }}</span>
           </div>
         </template>
         <template #content>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <ViewLabel :label="t('company_detail.package')">
-              <span class="font-medium text-gray-800 dark:text-gray-100">{{ company.license_info?.package_name || '—' }}</span>
+              <span class="font-medium text-navy-800 dark:text-gray-100">{{ company.license_info?.package_name || '—' }}</span>
             </ViewLabel>
             <ViewLabel :label="t('company_detail.plan_type')">
               <span class="capitalize">{{ company.license_info?.plan_type || '—' }}</span>
@@ -137,7 +137,7 @@
               <span v-else>—</span>
             </ViewLabel>
             <ViewLabel :label="t('company_detail.max_employees')">
-              <span class="font-medium text-gray-800 dark:text-gray-100">
+              <span class="font-medium text-navy-800 dark:text-gray-100">
                 <template v-if="maxEmployees === null">—</template>
                 <template v-else-if="maxEmployees === 0">∞</template>
                 <template v-else>{{ maxEmployees.toLocaleString(locale === 'id' ? 'id-ID' : 'en-US') }}</template>
@@ -173,7 +173,7 @@
         <template #title>
           <div class="flex items-center gap-2">
             <i class="pi pi-database text-emerald-500"></i>
-            <span class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('company_detail.provisioning_info') }}</span>
+            <span class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('company_detail.provisioning_info') }}</span>
           </div>
         </template>
         <template #content>

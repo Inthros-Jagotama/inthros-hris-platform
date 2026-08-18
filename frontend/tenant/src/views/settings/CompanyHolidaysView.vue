@@ -33,7 +33,7 @@
     <DataTable v-else-if="viewMode === 'table'" :value="items" lazy :totalRecords="totalRecords" :first="firstRecord" :rows="perPage" @page="onPage($event)" paginator paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown" :rowsPerPageOptions="[10, 15, 25, 50]" size="small" class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" sortField="holiday_date" :sortOrder="1">
       <template #empty><div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500"><i class="pi pi-calendar text-3xl mb-2 opacity-50"></i><p class="text-sm font-medium">{{ t('company_holidays.empty_title') }}</p></div></template>
       <Column field="holiday_date" :header="t('company_holidays.holiday_date')" sortable style="width:140px"><template #body="{data}"><span class="text-gray-700 dark:text-gray-200 font-medium">{{ formatDate(data.holiday_date, locale) }}</span></template></Column>
-      <Column field="name" :header="t('company_holidays.name')" sortable><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template></Column>
+      <Column field="name" :header="t('company_holidays.name')" sortable><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template></Column>
       <Column field="description" :header="t('company_holidays.desc')" sortable><template #body="{data}"><span class="text-gray-500 dark:text-gray-400">{{ data.description || '—' }}</span></template></Column>
       <Column field="is_active" :header="t('common.status')" sortable style="width:110px"><template #body="{data}"><Tag :value="data.is_active ? t('common_status.active') : t('common_status.inactive')" :severity="data.is_active ? 'success' : 'warn'" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
       <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right"><template #body="{data}"><div class="flex items-center gap-1"><Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openDialog(data)" /><Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" /></div></template></Column>
@@ -70,7 +70,7 @@
           >
             <i class="pi pi-calendar text-xs text-rose-500 shrink-0"></i>
             <span class="text-gray-500 dark:text-gray-400 text-xs shrink-0 w-24">{{ formatDate(h.holiday_date, locale) }}</span>
-            <span class="text-gray-800 dark:text-gray-100 font-medium truncate">{{ h.name }}</span>
+            <span class="text-navy-800 dark:text-gray-100 font-medium truncate">{{ h.name }}</span>
             <span v-if="!h.is_active" class="text-xs text-gray-400 shrink-0">({{ t('common_status.inactive') }})</span>
           </li>
         </ul>

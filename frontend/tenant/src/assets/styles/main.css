@@ -127,7 +127,7 @@
 }
 
 .badge-draft {
-  @apply bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md px-2 py-0.5 text-xs font-medium;
+  @apply bg-teal-50 text-teal-700 border border-teal-200 rounded-md px-2 py-0.5 text-xs font-medium;
 }
 
 .badge-inactive {

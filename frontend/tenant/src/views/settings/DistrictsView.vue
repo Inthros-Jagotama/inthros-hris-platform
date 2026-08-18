@@ -39,7 +39,7 @@
         <template #body="{data}"><Tag :value="data.code" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
       </Column>
       <Column field="name" :header="t('districts.name')" sortable>
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
       </Column>
       <Column field="regency_name" :header="t('districts.regency')" sortable style="width:200px">
         <template #body="{data}"><span class="text-gray-500 dark:text-gray-400">{{ getRegencyName(data.regency_id) }}</span></template>

@@ -24,7 +24,7 @@
       :sortOrder="-1"
     >
       <template #empty><div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500"><i class="pi pi-calendar text-3xl mb-2 opacity-50"></i><p class="text-sm font-medium">{{ t('payroll.periods_empty') }}</p></div></template>
-      <Column field="period_code" :header="t('payroll.period_code')" sortable style="width:120px"><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium font-mono text-xs">{{ data.period_code }}</span></template></Column>
+      <Column field="period_code" :header="t('payroll.period_code')" sortable style="width:120px"><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium font-mono text-xs">{{ data.period_code }}</span></template></Column>
       <Column field="period_year" :header="t('payroll.period_year')" sortable style="width:90px"><template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.period_year }}</span></template></Column>
       <Column field="period_month" :header="t('payroll.period_month')" sortable style="width:90px"><template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ formatMonth(data.period_month) }}</span></template></Column>
       <Column field="start_date" :header="t('payroll.start_date')" sortable style="width:140px"><template #body="{data}"><span class="text-gray-500 dark:text-gray-400 text-xs">{{ formatDate(data.start_date, locale) }}</span></template></Column>

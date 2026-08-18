@@ -6,7 +6,7 @@
         <div class="flex items-center gap-3">
           <Avatar icon="pi pi-user" size="xlarge" class="!w-14 !h-14 !bg-emerald-100 dark:!bg-emerald-900/50 !text-emerald-700 dark:!text-emerald-300 !text-2xl" />
           <div>
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{{ user?.name || '—' }}</h2>
+            <h2 class="text-xl font-semibold text-navy-800 dark:text-gray-100">{{ user?.name || '—' }}</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ user?.email || '—' }}</p>
           </div>
         </div>
@@ -41,7 +41,7 @@
       <template #title>
         <div class="flex items-center gap-2">
           <i class="pi pi-lock text-emerald-500"></i>
-          <span class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('profile.change_password') }}</span>
+          <span class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('profile.change_password') }}</span>
         </div>
       </template>
       <template #content>

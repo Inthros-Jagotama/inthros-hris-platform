@@ -39,7 +39,7 @@
         <template #body="{data}"><Tag :value="data.code" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
       </Column>
       <Column field="name" :header="t('provinces.name')" sortable>
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
       </Column>
       <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right">
         <template #body="{data}">

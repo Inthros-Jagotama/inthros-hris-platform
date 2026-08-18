@@ -21,7 +21,7 @@
         </div>
       </template>
       <Column field="code" :header="t('educations.code')" sortable style="width:120px"><template #body="{data}"><Tag :value="data.code" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
-      <Column field="name" :header="t('educations.name')" sortable><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template></Column>
+      <Column field="name" :header="t('educations.name')" sortable><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template></Column>
       <Column field="sort_order" :header="t('educations.sort_order')" sortable style="width:100px"><template #body="{data}"><span class="text-gray-500 dark:text-gray-400">{{ data.sort_order }}</span></template></Column>
       <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right">
         <template #body="{data}"><div class="flex items-center gap-1"><Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openDialog(data)" /><Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDelete(data)" /></div></template>

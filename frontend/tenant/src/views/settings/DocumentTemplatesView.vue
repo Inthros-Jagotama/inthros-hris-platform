@@ -63,7 +63,7 @@
       <Column field="name" :header="t('document_templates.name')">
         <template #body="{ data }">
           <div class="flex items-center gap-1.5">
-            <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
+            <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
           </div>
         </template>
       </Column>
@@ -76,7 +76,7 @@
         <template #body="{ data }">
           <div class="flex flex-col">
             <span class="text-gray-700 dark:text-gray-200">{{ documentTypeLabel(data.document_type) }}</span>
-            <span v-if="data.movement_type" class="text-xs text-indigo-500 dark:text-indigo-400">{{ movementTypeLabel(data.movement_type) }}</span>
+            <span v-if="data.movement_type" class="text-xs text-teal-500 dark:text-teal-400">{{ movementTypeLabel(data.movement_type) }}</span>
           </div>
         </template>
       </Column>
@@ -156,7 +156,7 @@
     <Dialog v-model:visible="detailVisible" :header="t('document_templates.detail')" modal :style="{ width: '720px' }" :closable="true">
       <div v-if="detail" class="space-y-4">
         <div class="flex items-center justify-between gap-2">
-          <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ detail.name }}</h3>
+          <h3 class="text-base font-semibold text-navy-800 dark:text-gray-100">{{ detail.name }}</h3>
           <Tag :value="statusLabel(detail.status)" :severity="statusSeverity(detail.status)" class="!text-xs !px-1.5 !py-0.5" />
         </div>
         <div class="grid grid-cols-2 gap-3 text-sm">
@@ -189,11 +189,11 @@
             <div class="flex items-center gap-3 min-w-0">
               <i class="pi pi-file-word text-xl text-emerald-500"></i>
               <div class="min-w-0">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{ detailFile.name }}</p>
+                <p class="text-sm font-medium text-navy-800 dark:text-gray-100 truncate">{{ detailFile.name }}</p>
                 <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('document_templates.active_version') }} · v{{ activeVersionNumber }}</p>
               </div>
             </div>
-            <a :href="detailFile.url" :download="detailFile.name" class="text-sm text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 font-medium whitespace-nowrap">
+            <a :href="detailFile.url" :download="detailFile.name" class="text-sm text-teal-500 hover:text-teal-600 dark:text-teal-400 font-medium whitespace-nowrap">
               <i class="pi pi-download mr-1"></i>{{ t('common.download') }}
             </a>
           </div>
@@ -263,8 +263,8 @@
       <div class="space-y-3">
         <FormRow :label="t('document_templates.template_file')" required :errors="errors?.file">
           <div class="flex items-center gap-3">
-            <label class="flex items-center gap-2 cursor-pointer text-sm px-4 py-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/5 transition-colors" :class="{ 'p-invalid': errors?.file }">
-              <i class="pi pi-upload text-indigo-500"></i>
+            <label class="flex items-center gap-2 cursor-pointer text-sm px-4 py-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 hover:border-teal-400 hover:bg-teal-50/50 dark:hover:bg-teal-500/5 transition-colors" :class="{ 'p-invalid': errors?.file }">
+              <i class="pi pi-upload text-teal-500"></i>
               <span class="text-gray-600 dark:text-gray-300">{{ t('document_templates.choose_file') }}</span>
               <input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" @change="onVersionFileChange" />
             </label>
@@ -320,7 +320,7 @@
           <a
             :href="previewUrl"
             :download="previewFileName"
-            class="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium disabled:opacity-50"
+            class="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white font-medium disabled:opacity-50"
             :class="{ 'pointer-events-none opacity-50': !previewUrl || previewLoading }"
           >
             <i class="pi pi-download"></i>{{ t('common.download') }}
@@ -347,9 +347,9 @@
             <div v-if="versionDetail.file_url" class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3">
               <div class="flex items-center gap-3 min-w-0">
                 <i class="pi pi-file-word text-xl text-emerald-500"></i>
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{ versionDetail.file_name || 'template.docx' }}</p>
+                <p class="text-sm font-medium text-navy-800 dark:text-gray-100 truncate">{{ versionDetail.file_name || 'template.docx' }}</p>
               </div>
-              <a :href="versionDetail.file_url" :download="versionDetail.file_name || 'template.docx'" class="text-sm text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 font-medium whitespace-nowrap">
+              <a :href="versionDetail.file_url" :download="versionDetail.file_name || 'template.docx'" class="text-sm text-teal-500 hover:text-teal-600 dark:text-teal-400 font-medium whitespace-nowrap">
                 <i class="pi pi-download mr-1"></i>{{ t('common.download') }}
               </a>
             </div>

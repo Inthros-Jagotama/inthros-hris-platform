@@ -26,7 +26,7 @@
 
       <div v-else class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+          <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 flex items-center gap-2">
             <i class="pi pi-sliders-h text-purple-500"></i>
             {{ t('performance_scoring.components') }}
           </h3>
@@ -48,7 +48,7 @@
           </Column>
           <Column :header="t('performance_components.name')" style="min-width:180px">
             <template #body="{data}">
-              <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
+              <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
             </template>
           </Column>
           <Column :header="t('performance_scoring.enabled')" style="width:100px">

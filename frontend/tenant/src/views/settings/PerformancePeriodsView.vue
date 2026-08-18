@@ -27,7 +27,7 @@
         <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.period_type }}</span></template>
       </Column>
       <Column field="year" :header="t('performance_periods.year')" sortable style="width:80px">
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-semibold">{{ data.year }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-semibold">{{ data.year }}</span></template>
       </Column>
       <Column field="start_date" :header="t('performance_periods.start_date')" sortable style="width:120px">
         <template #body="{data}"><span class="text-gray-500 dark:text-gray-400">{{ data.start_date || '-' }}</span></template>

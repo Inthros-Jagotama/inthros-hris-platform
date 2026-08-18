@@ -13,8 +13,8 @@
     <template v-else>
       <!-- Template Info Card -->
       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-          <i class="pi pi-file-edit text-indigo-500"></i>
+        <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+          <i class="pi pi-file-edit text-teal-500"></i>
           {{ t('document_templates.template_info') }}
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -56,7 +56,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Template File Card (DOCX) -->
       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+        <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 mb-4 flex items-center gap-2">
           <i class="pi pi-file-word text-emerald-500"></i>
           {{ t('document_templates.template_file') }}
         </h3>
@@ -65,20 +65,20 @@
           <div class="flex items-center gap-3 min-w-0">
             <i class="pi pi-file-word text-xl text-emerald-500"></i>
             <div class="min-w-0">
-              <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{ currentFile.name }}</p>
+              <p class="text-sm font-medium text-navy-800 dark:text-gray-100 truncate">{{ currentFile.name }}</p>
               <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('document_templates.current_template_file') }}</p>
             </div>
           </div>
-          <a v-if="currentFile.url" :href="currentFile.url" :download="currentFile.name" class="text-sm text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 font-medium whitespace-nowrap">
+          <a v-if="currentFile.url" :href="currentFile.url" :download="currentFile.name" class="text-sm text-teal-500 hover:text-teal-600 dark:text-teal-400 font-medium whitespace-nowrap">
             <i class="pi pi-download mr-1"></i>{{ t('common.download') }}
           </a>
         </div>
 
         <div class="flex items-center gap-3 flex-wrap">
           <label
-            class="flex items-center gap-2 cursor-pointer text-sm px-4 py-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/5 transition-colors"
+            class="flex items-center gap-2 cursor-pointer text-sm px-4 py-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 hover:border-teal-400 hover:bg-teal-50/50 dark:hover:bg-teal-500/5 transition-colors"
           >
-            <i class="pi pi-upload text-indigo-500"></i>
+            <i class="pi pi-upload text-teal-500"></i>
             <span class="text-gray-600 dark:text-gray-300">
               {{ isEditing && currentFile ? t('document_templates.replace_file') : t('document_templates.choose_file') }}
             </span>
@@ -98,7 +98,7 @@
 
       <!-- Document Configuration Card -->
       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1 flex items-center gap-2">
+        <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 mb-1 flex items-center gap-2">
           <i class="pi pi-sliders-h text-sky-500"></i>
           {{ t('document_templates.document_configuration') }}
         </h3>
@@ -125,7 +125,7 @@
 
       <!-- Variable Reference Card -->
       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1 flex items-center gap-2">
+        <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 mb-1 flex items-center gap-2">
           <i class="pi pi-database text-violet-500"></i>
           {{ t('document_templates.variable_reference') }}
         </h3>
@@ -153,11 +153,11 @@
                   v-for="v in group.variables"
                   :key="v.key"
                   type="button"
-                  class="w-full text-left flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/5 transition-colors"
+                  class="w-full text-left flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-teal-400 hover:bg-teal-50/50 dark:hover:bg-teal-500/5 transition-colors"
                   @click="copyVariable(v)"
                 >
                   <span class="text-sm text-gray-700 dark:text-gray-200">{{ variableLabel(v) }}</span>
-                  <code class="text-[11px] text-indigo-500 dark:text-indigo-400 font-mono">{{ placeholderText(v.key) }}</code>
+                  <code class="text-[11px] text-teal-500 dark:text-teal-400 font-mono">{{ placeholderText(v.key) }}</code>
                 </button>
               </div>
             </div>

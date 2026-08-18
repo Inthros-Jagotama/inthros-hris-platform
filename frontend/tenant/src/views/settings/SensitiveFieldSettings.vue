@@ -18,7 +18,7 @@
       </template>
       <Column field="field_key" :header="t('sensitive_field.field_name')" sortable>
         <template #body="{ data }">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ fieldLabel(data.field_key) }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ fieldLabel(data.field_key) }}</span>
         </template>
       </Column>
       <Column :header="t('sensitive_field.encryption_enabled')" style="width:160px">

@@ -3,7 +3,7 @@
     <!-- Grouped Cards -->
     <div v-for="group in filteredGroups" :key="group.key" class="space-y-3">
       <div class="flex items-center gap-2">
-        <i :class="group.icon" class="text-indigo-400 text-sm"></i>
+        <i :class="group.icon" class="text-teal-400 text-sm"></i>
         <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t(group.labelKey) }}</h2>
         <span class="text-xs text-gray-400 dark:text-gray-500">{{ group.items.length }}</span>
         <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
@@ -13,7 +13,7 @@
           v-for="item in group.items"
           :key="item.path"
           type="button"
-          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-teal-300 dark:hover:border-teal-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
           @click="openSetting(item)"
         >
           <div
@@ -23,10 +23,10 @@
             <i :class="item.icon" class="text-base"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(item.titleKey) }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ t(item.titleKey) }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(item.descKey) }}</p>
           </div>
-          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
         </button>
       </div>
     </div>
@@ -63,7 +63,7 @@ const groups = computed(() => [
     items: [
       { path: '/settings/zones', icon: 'pi pi-map-marker', titleKey: 'settings.zones', descKey: 'zones.description', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', permission: 'setting.zones.view' },
       { path: '/settings/provinces', icon: 'pi pi-globe', titleKey: 'settings.provinces', descKey: 'provinces.description', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', permission: 'setting.provinces.view' },
-      { path: '/settings/regencies', icon: 'pi pi-map', titleKey: 'settings.regencies', descKey: 'regencies.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', permission: 'setting.regencies.view' },
+      { path: '/settings/regencies', icon: 'pi pi-map', titleKey: 'settings.regencies', descKey: 'regencies.description', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', permission: 'setting.regencies.view' },
       { path: '/settings/districts', icon: 'pi pi-building', titleKey: 'settings.districts', descKey: 'districts.description', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', permission: 'setting.districts.view' },
       { path: '/settings/villages', icon: 'pi pi-home', titleKey: 'settings.villages', descKey: 'villages.description', tint: 'bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400', permission: 'setting.villages.view' }
     ]
@@ -83,7 +83,7 @@ const groups = computed(() => [
       { path: '/settings/job-families', icon: 'pi pi-briefcase', titleKey: 'settings.job_families', descKey: 'job_families.description', tint: 'bg-lime-50 dark:bg-lime-500/10 text-lime-600 dark:text-lime-400', permission: 'setting.job-families.view' },
       { path: '/settings/competencies', icon: 'pi pi-star', titleKey: 'settings.competencies', descKey: 'competencies.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', permission: 'setting.competencies.view' },
       { path: '/settings/numbering', icon: 'pi pi-hashtag', titleKey: 'settings.numbering', descKey: 'numbering_settings.description', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400', permission: 'setting.numbering.view' },
-      { path: '/settings/document-templates', icon: 'pi pi-file-edit', titleKey: 'settings.document_templates', descKey: 'document_templates.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', permission: 'setting.document-templates.view' }
+      { path: '/settings/document-templates', icon: 'pi pi-file-edit', titleKey: 'settings.document_templates', descKey: 'document_templates.description', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', permission: 'setting.document-templates.view' }
     ]
   },
   {
@@ -95,7 +95,7 @@ const groups = computed(() => [
       { path: '/settings/performance-ratings', icon: 'pi pi-star', titleKey: 'settings.performance_ratings', descKey: 'performance_ratings.description', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', permission: 'setting.performance-ratings.view' },
       { path: '/settings/performance-formulas', icon: 'pi pi-calculator', titleKey: 'settings.performance_formulas', descKey: 'performance_formulas.description', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', permission: 'setting.performance-formulas.view' },
       { path: '/settings/performance-components', icon: 'pi pi-sliders-h', titleKey: 'settings.performance_components', descKey: 'performance_components.description', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', permission: 'setting.performance-components.view' },
-      { path: '/settings/performance-scoring', icon: 'pi pi-percentage', titleKey: 'settings.performance_scoring', descKey: 'performance_scoring.description', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', permission: 'setting.performance-scoring.view' }
+      { path: '/settings/performance-scoring', icon: 'pi pi-percentage', titleKey: 'settings.performance_scoring', descKey: 'performance_scoring.description', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', permission: 'setting.performance-scoring.view' }
     ]
   },
   {
@@ -103,7 +103,7 @@ const groups = computed(() => [
     icon: 'pi pi-calculator',
     labelKey: 'settings.group_payroll',
     items: [
-      { path: '/settings/payroll-periods', icon: 'pi pi-calendar', titleKey: 'payroll.payroll_periods', descKey: 'payroll.payroll_periods_desc', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', permission: 'setting.payroll-periods.view' },
+      { path: '/settings/payroll-periods', icon: 'pi pi-calendar', titleKey: 'payroll.payroll_periods', descKey: 'payroll.payroll_periods_desc', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', permission: 'setting.payroll-periods.view' },
       { path: '/settings/salary-components', icon: 'pi pi-list', titleKey: 'payroll.salary_components', descKey: 'payroll.salary_components_desc', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', permission: 'setting.salary-components.view' },
       { path: '/settings/bpjs-settings', icon: 'pi pi-shield', titleKey: 'payroll.bpjs', descKey: 'payroll.bpjs_desc', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', permission: 'setting.bpjs-settings.view' },
       { path: '/settings/pph21-settings', icon: 'pi pi-percentage', titleKey: 'payroll.pph21', descKey: 'payroll.pph21_desc', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', permission: 'setting.pph21-settings.view' },

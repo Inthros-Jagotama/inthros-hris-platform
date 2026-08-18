@@ -24,8 +24,8 @@
         class="!text-sm p-datatable-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
       >
         <template #empty><div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500"><i class="pi pi-shield text-3xl mb-2 opacity-50"></i><p class="text-sm font-medium">{{ t('payroll.bpjs_settings_empty') }}</p></div></template>
-        <Column field="setting_code" :header="t('payroll.bpjs_setting_code')" sortable style="width:140px"><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium font-mono text-xs">{{ data.setting_code }}</span></template></Column>
-        <Column field="setting_name" :header="t('payroll.bpjs_setting_name')" sortable><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.setting_name }}</span></template></Column>
+        <Column field="setting_code" :header="t('payroll.bpjs_setting_code')" sortable style="width:140px"><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium font-mono text-xs">{{ data.setting_code }}</span></template></Column>
+        <Column field="setting_name" :header="t('payroll.bpjs_setting_name')" sortable><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.setting_name }}</span></template></Column>
         <Column field="base_source" :header="t('payroll.base_source')" sortable style="width:180px"><template #body="{data}"><span class="text-gray-600 dark:text-gray-300 text-xs">{{ baseSourceLabel(data.base_source) }}</span></template></Column>
         <Column field="default_jkk_risk_class" :header="t('payroll.default_jkk_risk_class')" sortable style="width:150px"><template #body="{data}"><Tag :value="riskLabel(data.default_jkk_risk_class)" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
         <Column field="effective_start_date" :header="t('payroll.effective_start_date')" sortable style="width:140px"><template #body="{data}"><span class="text-gray-500 dark:text-gray-400 text-xs">{{ formatDate(data.effective_start_date, locale) }}</span></template></Column>
@@ -42,11 +42,11 @@
       </div>
       <DataTable :value="rateItems" size="small" class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" :loading="ratesLoading">
         <template #empty><div class="text-center py-6 text-sm text-gray-400">{{ t('payroll.bpjs_settings_empty') }}</div></template>
-        <Column field="rate_code" :header="t('payroll.rate_code')" style="width:130px"><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium font-mono text-xs">{{ data.rate_code }}</span></template></Column>
+        <Column field="rate_code" :header="t('payroll.rate_code')" style="width:130px"><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium font-mono text-xs">{{ data.rate_code }}</span></template></Column>
         <Column field="rate_name" :header="t('payroll.rate_name')"><template #body="{data}"><span class="text-gray-700 dark:text-gray-200">{{ data.rate_name }}</span></template></Column>
         <Column field="bpjs_program" :header="t('payroll.bpjs_program')" style="width:100px"><template #body="{data}"><Tag :value="t('payroll.bpjs_program_' + data.bpjs_program.toLowerCase())" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
         <Column field="paid_by" :header="t('payroll.paid_by')" style="width:100px"><template #body="{data}"><Tag :value="t('payroll.paid_by_' + data.paid_by.toLowerCase())" :severity="data.paid_by === 'EMPLOYEE' ? 'danger' : 'warn'" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
-        <Column field="rate_percent" :header="t('payroll.rate_percent')" style="width:90px"><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.rate_percent }}%</span></template></Column>
+        <Column field="rate_percent" :header="t('payroll.rate_percent')" style="width:90px"><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.rate_percent }}%</span></template></Column>
         <Column field="status" :header="t('common.status')" style="width:90px"><template #body="{data}"><Tag :value="statusLabel(data.status)" :severity="data.status === 'ACTIVE' ? 'success' : 'secondary'" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
         <Column :header="t('common.actions')" style="width:90px" frozen alignFrozen="right"><template #body="{data}"><div class="flex items-center gap-1 justify-end"><Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openRateDialog(data)" /><Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDeleteRate(data)" /></div></template></Column>
       </DataTable>

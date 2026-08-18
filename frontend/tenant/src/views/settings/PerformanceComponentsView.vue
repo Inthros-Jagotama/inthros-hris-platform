@@ -24,7 +24,7 @@
       <Column field="name" :header="t('performance_components.name')" sortable>
         <template #body="{data}">
           <div>
-            <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
+            <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
             <p v-if="data.description" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{{ data.description }}</p>
           </div>
         </template>

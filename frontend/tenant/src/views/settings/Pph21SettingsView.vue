@@ -22,8 +22,8 @@
       </div>
       <DataTable :value="settingItems" size="small" class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" :loading="settingLoading">
         <template #empty><div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500"><i class="pi pi-percentage text-3xl mb-2 opacity-50"></i><p class="text-sm font-medium">{{ t('payroll.pph21_settings_empty') }}</p></div></template>
-        <Column field="setting_code" :header="t('payroll.pph21_setting_code')" sortable style="width:140px"><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium font-mono text-xs">{{ data.setting_code }}</span></template></Column>
-        <Column field="setting_name" :header="t('payroll.pph21_setting_name')" sortable><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.setting_name }}</span></template></Column>
+        <Column field="setting_code" :header="t('payroll.pph21_setting_code')" sortable style="width:140px"><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium font-mono text-xs">{{ data.setting_code }}</span></template></Column>
+        <Column field="setting_name" :header="t('payroll.pph21_setting_name')" sortable><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.setting_name }}</span></template></Column>
         <Column field="calculation_method" :header="t('payroll.calculation_method')" sortable style="width:200px"><template #body="{data}"><Tag :value="calculationMethodLabel(data.calculation_method)" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
         <Column field="default_tax_method" :header="t('payroll.default_tax_method')" sortable style="width:120px"><template #body="{data}"><span class="text-gray-600 dark:text-gray-300 text-xs">{{ data.default_tax_method }}</span></template></Column>
         <Column field="effective_start_date" :header="t('payroll.effective_start_date')" sortable style="width:140px"><template #body="{data}"><span class="text-gray-500 dark:text-gray-400 text-xs">{{ formatDate(data.effective_start_date, locale) }}</span></template></Column>
@@ -62,7 +62,7 @@
         <Column field="group" :header="t('ters.group')" sortable style="width:100px"><template #body="{data}"><Tag :value="data.group" :severity="terGroupSeverity(data.group)" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
         <Column field="bruto_min" :header="t('ters.bruto_min')" sortable style="width:160px"><template #body="{data}"><span class="text-gray-700 dark:text-gray-200 font-mono text-xs">{{ formatMoney(data.bruto_min) }}</span></template></Column>
         <Column field="bruto_max" :header="t('ters.bruto_max')" sortable style="width:160px"><template #body="{data}"><span class="text-gray-700 dark:text-gray-200 font-mono text-xs">{{ data.bruto_max != null ? formatMoney(data.bruto_max) : '∞' }}</span></template></Column>
-        <Column field="rate" :header="t('ters.rate')" sortable style="width:120px"><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.rate }}%</span></template></Column>
+        <Column field="rate" :header="t('ters.rate')" sortable style="width:120px"><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.rate }}%</span></template></Column>
         <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right"><template #body="{data}"><div class="flex items-center gap-1 justify-end"><Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openTerDialog(data)" /><Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDeleteTer(data)" /></div></template></Column>
       </DataTable>
     </div>
@@ -94,9 +94,9 @@
         :loading="ptkpLoading"
       >
         <template #empty><div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500"><i class="pi pi-receipt text-3xl mb-2 opacity-50"></i><p class="text-sm font-medium">{{ t('ptkps.empty_title') }}</p></div></template>
-        <Column field="name" :header="t('ptkps.name')" sortable><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template></Column>
+        <Column field="name" :header="t('ptkps.name')" sortable><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template></Column>
         <Column field="group" :header="t('ptkps.group')" sortable style="width:100px"><template #body="{data}"><Tag :value="data.group" :severity="terGroupSeverity(data.group)" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
-        <Column field="ptkp" :header="t('ptkps.ptkp')" sortable style="width:180px"><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium font-mono text-xs">{{ formatMoney(data.ptkp) }}</span></template></Column>
+        <Column field="ptkp" :header="t('ptkps.ptkp')" sortable style="width:180px"><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium font-mono text-xs">{{ formatMoney(data.ptkp) }}</span></template></Column>
         <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right"><template #body="{data}"><div class="flex items-center gap-1 justify-end"><Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openPtkpDialog(data)" /><Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDeletePtkp(data)" /></div></template></Column>
       </DataTable>
     </div>
@@ -112,7 +112,7 @@
         <Column field="bracket_order" :header="t('payroll.display_order')" sortable style="width:100px"><template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.bracket_order }}</span></template></Column>
         <Column field="lower_bound" :header="t('payroll.min_base_amount')" sortable style="width:160px"><template #body="{data}"><span class="text-gray-700 dark:text-gray-200 font-mono text-xs">{{ formatMoney(data.lower_bound) }}</span></template></Column>
         <Column field="upper_bound" :header="t('payroll.max_base_amount')" sortable style="width:160px"><template #body="{data}"><span class="text-gray-700 dark:text-gray-200 font-mono text-xs">{{ data.upper_bound ? formatMoney(data.upper_bound) : '∞' }}</span></template></Column>
-        <Column field="rate_percent" :header="t('payroll.rate_percent')" sortable style="width:100px"><template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.rate_percent }}%</span></template></Column>
+        <Column field="rate_percent" :header="t('payroll.rate_percent')" sortable style="width:100px"><template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.rate_percent }}%</span></template></Column>
         <Column field="status" :header="t('common.status')" sortable style="width:90px"><template #body="{data}"><Tag :value="statusLabel(data.status)" :severity="data.status === 'ACTIVE' ? 'success' : 'secondary'" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
         <Column :header="t('common.actions')" style="width:100px" frozen alignFrozen="right"><template #body="{data}"><div class="flex items-center gap-1 justify-end"><Button icon="pi pi-pencil" size="small" text severity="secondary" v-tooltip.left="t('common.edit')" @click="openBracketDialog(data)" /><Button icon="pi pi-trash" size="small" text severity="danger" v-tooltip.left="t('common.delete')" @click="confirmDeleteBracket(data)" /></div></template></Column>
       </DataTable>

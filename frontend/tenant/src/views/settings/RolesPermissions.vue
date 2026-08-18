@@ -42,7 +42,7 @@
         <Column field="name" :header="t('rbac.role_name')" sortable>
           <template #body="{ data }">
             <div class="flex items-center gap-2">
-              <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
+              <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
               <Tag v-if="data.is_system" :value="t('rbac.system')" severity="secondary" class="!text-[10px] !px-1.5 !py-0.5" />
               <Tag v-if="data.is_default" :value="t('rbac.default')" severity="info" class="!text-[10px] !px-1.5 !py-0.5" />
             </div>
@@ -96,7 +96,7 @@
           </div>
         </template>
         <Column field="name" :header="t('common.name')" sortable>
-          <template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
+          <template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
         </Column>
         <Column field="email" :header="t('common.email')" sortable>
           <template #body="{ data }"><span class="text-gray-500 dark:text-gray-400">{{ data.email }}</span></template>

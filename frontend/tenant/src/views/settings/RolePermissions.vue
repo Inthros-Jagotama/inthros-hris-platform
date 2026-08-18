@@ -4,8 +4,8 @@
     <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">
-            {{ t('rbac.assign_permissions') }} — <span class="text-indigo-600 dark:text-indigo-400">{{ role?.name || '' }}</span>
+          <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">
+            {{ t('rbac.assign_permissions') }} — <span class="text-teal-600 dark:text-teal-400">{{ role?.name || '' }}</span>
           </p>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ selectedCount }} / {{ permissions.length }} {{ t('rbac.permissions_count') }}</p>
         </div>
@@ -32,7 +32,7 @@
       >
         <div class="flex items-center justify-between flex-wrap gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
           <div class="flex items-center gap-2">
-            <span class="font-semibold text-gray-800 dark:text-gray-100">{{ moduleLabel(group.resource) }}</span>
+            <span class="font-semibold text-navy-800 dark:text-gray-100">{{ moduleLabel(group.resource) }}</span>
             <span class="text-xs text-gray-400 dark:text-gray-500">{{ groupCount(group.resource) }} {{ t('rbac.permissions_count') }}</span>
           </div>
           <div class="flex items-center gap-1.5">
@@ -61,7 +61,7 @@
                 <td class="px-4 py-2 align-top">
                   <div>
                     <span
-                      class="text-gray-800 dark:text-gray-100"
+                      class="text-navy-800 dark:text-gray-100"
                       :class="row.submenu ? 'font-normal' : 'font-semibold'"
                     >
                       {{ row.submenu ? submenuLabel(row.resource, row.submenu) : t('rbac.module_level') }}
