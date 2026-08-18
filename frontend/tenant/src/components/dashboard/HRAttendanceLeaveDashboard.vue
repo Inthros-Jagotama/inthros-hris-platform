@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="space-y-3">
     <div class="flex items-center gap-2 mb-3">
       <i class="pi pi-calendar-clock text-sm text-indigo-500"></i>
       <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('dashboard.view_hr') }}</h2>

@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="space-y-3">
     <!-- KPI karyawan (data real) -->
     <div v-if="empLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
       <div v-for="i in 4" :key="i" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 animate-pulse">
