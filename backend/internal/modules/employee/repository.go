@@ -191,7 +191,13 @@ func (r *Repository) FindAllEmployees(ctx context.Context, page, perPage int, se
 	var employees []Employee
 	var total int64
 
-	query := db.Model(&Employee{})
+	// Preload ringan: hanya employment yang masih berjalan (effective_end_date
+	// NULL) + Organization-nya, untuk menampilkan organization_name di list —
+	// sengaja tidak pakai Preload chain penuh milik FindEmployeeByID (Addresses,
+	// Families, dst) karena terlalu berat untuk query list.
+	query := db.Model(&Employee{}).
+		Preload("Employments", "effective_end_date IS NULL").
+		Preload("Employments.Organization")
 
 	// Apply search filter
 	if search != "" {

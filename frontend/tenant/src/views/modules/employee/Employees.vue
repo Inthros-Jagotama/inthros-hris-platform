@@ -164,8 +164,7 @@
               <p class="text-navy-800 dark:text-gray-100 font-medium text-sm truncate">{{ item.name }}</p>
               <Tag v-if="item.recruited_from_application_id" :value="t('employee.from_offer')" severity="success" class="!text-[10px] !px-1.5 !py-0 shrink-0" />
             </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ item.position || item.organization_name || '-' }}</p>
-            <p v-if="item.position && item.organization_name" class="text-[11px] text-gray-400 dark:text-gray-500 truncate">{{ item.organization_name }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ item.organization_name || '-' }}</p>
             <div class="flex items-center gap-1.5 flex-wrap mt-1">
               <Tag :value="item.employee_id" severity="info" class="!text-[10px] !px-1.5 !py-0.5" />
               <Tag :value="t('common_status.' + item.status)" :severity="item.status === 'active' ? 'success' : item.status === 'inactive' ? 'warn' : 'danger'" class="!text-[10px] !px-1.5 !py-0.5" />

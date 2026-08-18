@@ -335,6 +335,11 @@ type EmployeeResponse struct {
 	MaritalStatusName string `json:"marital_status_name,omitempty"`
 	NationalityName   string `json:"nationality_name,omitempty"`
 	ProfilePicture  string     `json:"profile_picture,omitempty"`
+	// OrganizationName adalah nama organisasi dari employment yang sedang
+	// berjalan (effective_end_date NULL) — dipakai list/grid karyawan.
+	// Di HRIS ini organization merepresentasikan position, jadi field ini juga
+	// berfungsi sebagai "jabatan saat ini".
+	OrganizationName string     `json:"organization_name,omitempty"`
 	Status          string     `json:"status"`
 	// G-4: referensi balik ke aplikasi recruitment asal.
 	RecruitedFromApplicationID string     `json:"recruited_from_application_id,omitempty"`
@@ -625,6 +630,12 @@ func (e *Employee) ToResponse() EmployeeResponse {
 	}
 	if e.RecruitedFromApplicationID != nil {
 		r.RecruitedFromApplicationID = e.RecruitedFromApplicationID.String()
+	}
+	for _, emp := range e.Employments {
+		if emp.EffectiveEndDate == nil && emp.Organization != nil {
+			r.OrganizationName = emp.Organization.Nomenclature
+			break
+		}
 	}
 
 	// Sub-modules
