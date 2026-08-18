@@ -77,13 +77,13 @@
 
       <Column :header="t('offers.start_date')" style="width: 120px">
         <template #body="{ data }">
-          <span class="text-xs text-gray-600 dark:text-gray-300">{{ data.start_date || '—' }}</span>
+          <span class="text-xs text-gray-600 dark:text-gray-300">{{ data.start_date ? formatDate(data.start_date, locale) : '—' }}</span>
         </template>
       </Column>
 
       <Column :header="t('offers.expiry_date')" style="width: 120px">
         <template #body="{ data }">
-          <span class="text-xs text-gray-600 dark:text-gray-300">{{ data.expiry_date || '—' }}</span>
+          <span class="text-xs text-gray-600 dark:text-gray-300">{{ data.expiry_date ? formatDate(data.expiry_date, locale) : '—' }}</span>
         </template>
       </Column>
 
@@ -211,6 +211,7 @@ import { useI18n } from '@/composables/useI18n'
 import { useToast } from 'primevue/usetoast'
 import api from '@/services/api'
 import { getErrorMessage } from '@/services/responseHandler'
+import { formatDate } from '@/utils/formatDate'
 
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
@@ -227,7 +228,7 @@ import SkeletonTable from '@/components/SkeletonTable.vue'
 import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 
 const loading = ref(true)
