@@ -2,7 +2,7 @@
   <div class="space-y-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
     <div class="flex items-start justify-between gap-4">
       <div>
-        <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.potency_managerial_title') }}</h3>
+        <h3 class="text-base font-semibold text-navy-800 dark:text-gray-100">{{ t('job_management.potency_managerial_title') }}</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.potency_managerial_description') }}</p>
       </div>
 
@@ -68,7 +68,7 @@
               class="border-t border-gray-100 dark:border-gray-700 align-top"
             >
               <td class="px-4 py-3">
-                <div class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ row.competency_name }}</div>
+                <div class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ row.competency_name }}</div>
                 <div v-if="row.cluster" class="text-xs text-gray-400 dark:text-gray-500">{{ row.cluster }}</div>
               </td>
               <td class="px-4 py-3">

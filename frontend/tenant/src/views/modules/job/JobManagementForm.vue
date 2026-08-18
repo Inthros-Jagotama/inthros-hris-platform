@@ -44,7 +44,7 @@
                 <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                   <i class="pi pi-briefcase text-sm"></i>
                 </div>
-                <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ orgName || t('job_management.job_info_untitled') }}</h3>
+                <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ orgName || t('job_management.job_info_untitled') }}</h3>
               </div>
               <div class="flex items-center justify-between gap-2">
                 <span class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">{{ t('organization.full_code') }}</span>

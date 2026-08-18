@@ -53,7 +53,7 @@
         <template #body="{data}"><span class="text-gray-500 dark:text-gray-400 font-mono text-xs">{{ data.full_code }}</span></template>
       </Column>
       <Column field="nomenclature" :header="t('organization.nomenclature')" sortable>
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.nomenclature }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.nomenclature }}</span></template>
       </Column>
       <Column :header="t('job_management.score')" style="width:110px" field="score">
         <template #body="{data}">

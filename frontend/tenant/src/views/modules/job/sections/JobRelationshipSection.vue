@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <div>
-      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.relationships') }}</h2>
+      <h2 class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('job_management.relationships') }}</h2>
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.relationship_description') }}</p>
     </div>
 
@@ -82,7 +82,7 @@
     <div class="max-w-3xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
       <div class="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.relationship_details') }}</h3>
+          <h3 class="text-base font-semibold text-navy-800 dark:text-gray-100">{{ t('job_management.relationship_details') }}</h3>
           <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.relationship_details_description') }}</p>
         </div>
         <Button

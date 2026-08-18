@@ -9,7 +9,7 @@
       <template #body="{data}"> 
         <span v-if="col.field.startsWith('_')" class="text-gray-500 dark:text-gray-400 text-xs">{{ data[col.field] || '-' }}</span>
         <div v-if="col.html" class="editor-content" v-html="data[col.field]"/>
-        <span v-else class="text-gray-800 dark:text-gray-100">{{ data[col.field] || '-' }}</span>
+        <span v-else class="text-navy-800 dark:text-gray-100">{{ data[col.field] || '-' }}</span>
       </template>
     </Column>
     <Column :header="t('common.actions')" style="width:90px" frozen alignFrozen="right">

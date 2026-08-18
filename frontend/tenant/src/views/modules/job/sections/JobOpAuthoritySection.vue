@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <div><h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.op_authorities') }}</h2><p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.authority_description') }}</p></div>
+      <div><h2 class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('job_management.op_authorities') }}</h2><p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.authority_description') }}</p></div>
       <Button :label="t('common.create')" icon="pi pi-plus" size="small" @click="openCreate()" />
     </div>
     <DataTableSection :items="items" :loading="loading" :total="total" :columns="cols" entity="operational-authorities" :org-id="orgId" :on-load="loadData" @edit="openEdit" @delete="confirmDelete">

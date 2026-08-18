@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <div>
-      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.identifications') }}</h2>
+      <h2 class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('job_management.identifications') }}</h2>
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.identification_description') }}</p>
     </div>
 

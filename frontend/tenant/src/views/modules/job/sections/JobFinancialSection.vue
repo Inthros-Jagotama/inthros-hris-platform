@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <div>
-      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.financials') }}</h2>
+      <h2 class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('job_management.financials') }}</h2>
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.financial_description') }}</p>
     </div>
 
@@ -13,7 +13,7 @@
         <!-- Has Financial Authority — deskripsi kiri, switch kanan -->
         <div class="flex items-center justify-between gap-4 bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
           <div class="min-w-0">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ t('job_management.is_authorized') }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ t('job_management.is_authorized') }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('job_management.is_authorized_description') }}</p>
           </div>
           <ToggleSwitch v-model="form.is_authorized" />

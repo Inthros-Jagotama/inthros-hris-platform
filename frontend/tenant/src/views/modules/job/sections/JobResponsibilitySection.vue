@@ -2,7 +2,7 @@
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.responsibilities_title') }}</h2>
+        <h2 class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('job_management.responsibilities_title') }}</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.responsibilities_description') }}</p>
       </div>
       <Button :label="t('common.create')" icon="pi pi-plus" size="small" @click="openCreate()" />

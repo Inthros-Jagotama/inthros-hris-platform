@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <div>
-      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ t('job_management.scores') }}</h2>
+      <h2 class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('job_management.scores') }}</h2>
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_management.score_description') }}</p>
     </div>
 
@@ -50,7 +50,7 @@
 
               <!-- Skor komponen -->
               <div class="text-right">
-                <span class="text-sm font-bold text-gray-900 dark:text-gray-100">{{ formatNumber(comp.score) }}</span>
+                <span class="text-sm font-bold text-navy-900 dark:text-gray-100">{{ formatNumber(comp.score) }}</span>
               </div>
             </div>
           </div>
