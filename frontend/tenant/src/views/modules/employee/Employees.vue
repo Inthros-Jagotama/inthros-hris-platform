@@ -138,7 +138,7 @@
         <div
           v-for="item in items"
           :key="item.id"
-          class="group relative flex flex-col items-center text-center gap-2 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer transition-all hover:border-teal-300 dark:hover:border-teal-500/60 hover:shadow-md"
+          class="group relative flex items-center text-left gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer transition-all hover:border-teal-300 dark:hover:border-teal-500/60 hover:shadow-md"
           @click="goToView(item)"
         >
           <div class="absolute top-2 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -150,27 +150,26 @@
             v-if="item.profile_picture"
             :image="item.profile_picture"
             shape="circle"
-            class="!w-16 !h-16"
+            class="!w-16 !h-16 shrink-0"
           />
           <Avatar
             v-else
             :label="initials(item.name)"
             shape="circle"
-            class="!w-16 !h-16 !bg-teal-50 dark:!bg-teal-500/10 !text-teal-600 dark:!text-teal-400 !font-semibold"
+            class="!w-16 !h-16 shrink-0 !bg-teal-50 dark:!bg-teal-500/10 !text-teal-600 dark:!text-teal-400 !font-semibold"
           />
 
-          <div class="min-w-0 w-full">
-            <div class="flex items-center justify-center gap-1.5 min-w-0">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 min-w-0">
               <p class="text-navy-800 dark:text-gray-100 font-medium text-sm truncate">{{ item.name }}</p>
               <Tag v-if="item.recruited_from_application_id" :value="t('employee.from_offer')" severity="success" class="!text-[10px] !px-1.5 !py-0 shrink-0" />
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ item.position || item.organization_name || '-' }}</p>
             <p v-if="item.position && item.organization_name" class="text-[11px] text-gray-400 dark:text-gray-500 truncate">{{ item.organization_name }}</p>
-          </div>
-
-          <div class="flex items-center gap-1.5 flex-wrap justify-center">
-            <Tag :value="item.employee_id" severity="info" class="!text-[10px] !px-1.5 !py-0.5" />
-            <Tag :value="t('common_status.' + item.status)" :severity="item.status === 'active' ? 'success' : item.status === 'inactive' ? 'warn' : 'danger'" class="!text-[10px] !px-1.5 !py-0.5" />
+            <div class="flex items-center gap-1.5 flex-wrap mt-1">
+              <Tag :value="item.employee_id" severity="info" class="!text-[10px] !px-1.5 !py-0.5" />
+              <Tag :value="t('common_status.' + item.status)" :severity="item.status === 'active' ? 'success' : item.status === 'inactive' ? 'warn' : 'danger'" class="!text-[10px] !px-1.5 !py-0.5" />
+            </div>
           </div>
         </div>
       </div>
