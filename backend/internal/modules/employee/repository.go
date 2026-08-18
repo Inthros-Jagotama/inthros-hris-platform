@@ -2,6 +2,7 @@ package employee
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -168,6 +169,26 @@ func (r *Repository) FindEmployeeByEmployeeID(ctx context.Context, employeeID st
 		return nil, fmt.Errorf("employee not found: %w", err)
 	}
 	return &emp, nil
+}
+
+// FindEmployeeIDByUserID mengembalikan employee.id yang terhubung ke user
+// login (kolom employees.user_id, diisi oleh module useraccount saat linking
+// akun) — dipakai untuk menentukan apakah viewer sedang melihat data dirinya
+// sendiri (self-view), supaya data masking sensitive field bisa dilewati.
+// Mengembalikan nil (bukan error) jika user belum terhubung ke employee manapun.
+func (r *Repository) FindEmployeeIDByUserID(ctx context.Context, userID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var emp Employee
+	if err := db.Select("id").Where("user_id = ?", userID).First(&emp).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &emp.ID, nil
 }
 
 // CountEmployees menghitung jumlah total employee (untuk kuota on-premise).

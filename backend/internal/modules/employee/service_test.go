@@ -900,7 +900,7 @@ func TestMaskFamilyResponse_MasksWithoutPermission(t *testing.T) {
 	ctx := context.Background() // no permissions in context
 	resp := &FamilyResponse{NIK: "3201010101985678"} // 16 chars -> last 4 visible
 
-	maskFamilyResponse(ctx, resp)
+	maskFamilyResponse(ctx, resp, false)
 
 	if resp.NIK != "************5678" {
 		t.Errorf("NIK = %q, want masked", resp.NIK)
@@ -911,10 +911,21 @@ func TestMaskFamilyResponse_UnmaskedWithPermission(t *testing.T) {
 	ctx := context.WithValue(context.Background(), "permissions", []string{"employee_family.view_nik"})
 	resp := &FamilyResponse{NIK: "3201010101985678"}
 
-	maskFamilyResponse(ctx, resp)
+	maskFamilyResponse(ctx, resp, false)
 
 	if resp.NIK != "3201010101985678" {
 		t.Errorf("NIK = %q, want unmasked plaintext", resp.NIK)
+	}
+}
+
+func TestMaskFamilyResponse_UnmaskedWhenSelf(t *testing.T) {
+	ctx := context.Background() // no permissions in context, but isSelf=true
+	resp := &FamilyResponse{NIK: "3201010101985678"}
+
+	maskFamilyResponse(ctx, resp, true)
+
+	if resp.NIK != "3201010101985678" {
+		t.Errorf("NIK = %q, want unmasked plaintext (self-view bypasses masking)", resp.NIK)
 	}
 }
 
@@ -922,7 +933,7 @@ func TestMaskBankResponse_MasksAccountNumberAndName(t *testing.T) {
 	ctx := context.Background()
 	resp := &BankResponse{AccountNumber: "1234567890", AccountName: "Budi Santoso"} // 10 chars, 12 chars -> both last 4 visible
 
-	maskBankResponse(ctx, resp)
+	maskBankResponse(ctx, resp, false)
 
 	if resp.AccountNumber != "******7890" {
 		t.Errorf("AccountNumber = %q, want masked", resp.AccountNumber)
@@ -936,7 +947,7 @@ func TestMaskEmployeeResponse_PerFieldGranularity(t *testing.T) {
 	ctx := context.WithValue(context.Background(), "permissions", []string{"employee.view_nik"}) // NIK only, not passport/phone/email
 	resp := &EmployeeResponse{NIK: "3201010101985678", Passport: "A1234567", PhoneNumber: "081234567890", Email: "budi@example.com"}
 
-	maskEmployeeResponse(ctx, resp)
+	maskEmployeeResponse(ctx, resp, false)
 
 	if resp.NIK != "3201010101985678" {
 		t.Errorf("NIK should be unmasked, got %q", resp.NIK)

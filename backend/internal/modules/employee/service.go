@@ -201,7 +201,7 @@ func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*Emplo
 
 	response := emp.ToResponse()
 	s.fillRefNames(ctx, emp, &response)
-	maskEmployeeResponse(ctx, &response)
+	maskEmployeeResponse(ctx, &response, s.isSelfEmployee(ctx, emp.ID))
 	return &response, nil
 }
 
@@ -249,7 +249,7 @@ func (s *Service) GetByID(ctx context.Context, id string) (*EmployeeResponse, er
 
 	response := emp.ToResponse()
 	s.fillRefNames(ctx, emp, &response)
-	maskEmployeeResponse(ctx, &response)
+	maskEmployeeResponse(ctx, &response, s.isSelfEmployee(ctx, uid))
 	return &response, nil
 }
 
@@ -266,10 +266,19 @@ func (s *Service) List(ctx context.Context, page, perPage int, search, status, o
 		return nil, err
 	}
 
+	// Resolve employee milik viewer sekali di luar loop (bukan per-row) supaya
+	// tidak N query berulang — dipakai untuk melewati masking pada baris
+	// miliknya sendiri saat browsing daftar karyawan.
+	var ownEmployeeID *uuid.UUID
+	if userID := authctx.GetUserID(ctx); userID != nil {
+		ownEmployeeID, _ = s.repo.FindEmployeeIDByUserID(ctx, *userID)
+	}
+
 	var responses []EmployeeResponse
 	for _, e := range employees {
 		r := e.ToResponse()
-		maskEmployeeResponse(ctx, &r)
+		isSelf := ownEmployeeID != nil && *ownEmployeeID == e.ID
+		maskEmployeeResponse(ctx, &r, isSelf)
 		responses = append(responses, r)
 	}
 
@@ -373,7 +382,7 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateEmployeeReque
 
 	response := emp.ToResponse()
 	s.fillRefNames(ctx, emp, &response)
-	maskEmployeeResponse(ctx, &response)
+	maskEmployeeResponse(ctx, &response, s.isSelfEmployee(ctx, emp.ID))
 	return &response, nil
 }
 
@@ -542,7 +551,7 @@ func (s *Service) CreateEmergencyContact(ctx context.Context, employeeID string,
 	}
 
 	response := toEmergencyContactResponse(contact)
-	maskEmergencyContactResponse(ctx, &response)
+	maskEmergencyContactResponse(ctx, &response, s.isSelfEmployeeStr(ctx, employeeID))
 	return &response, nil
 }
 
@@ -579,7 +588,7 @@ func (s *Service) UpdateEmergencyContact(ctx context.Context, employeeID, contac
 	}
 
 	response := toEmergencyContactResponse(contact)
-	maskEmergencyContactResponse(ctx, &response)
+	maskEmergencyContactResponse(ctx, &response, s.isSelfEmployeeStr(ctx, employeeID))
 	return &response, nil
 }
 
@@ -631,7 +640,7 @@ func (s *Service) CreateFamily(ctx context.Context, employeeID string, req Creat
 	}
 
 	response := toFamilyResponse(fam)
-	maskFamilyResponse(ctx, &response)
+	maskFamilyResponse(ctx, &response, s.isSelfEmployeeStr(ctx, employeeID))
 	return &response, nil
 }
 
@@ -672,7 +681,7 @@ func (s *Service) UpdateFamily(ctx context.Context, employeeID, familyID string,
 	}
 
 	response := toFamilyResponse(fam)
-	maskFamilyResponse(ctx, &response)
+	maskFamilyResponse(ctx, &response, s.isSelfEmployeeStr(ctx, employeeID))
 	return &response, nil
 }
 
@@ -1054,7 +1063,7 @@ func (s *Service) CreateBank(ctx context.Context, employeeID string, req CreateB
 	}
 
 	response := toBankResponse(bank)
-	maskBankResponse(ctx, &response)
+	maskBankResponse(ctx, &response, s.isSelfEmployeeStr(ctx, employeeID))
 	return &response, nil
 }
 
@@ -1089,7 +1098,7 @@ func (s *Service) UpdateBank(ctx context.Context, employeeID, bankID string, req
 	}
 
 	response := toBankResponse(bank)
-	maskBankResponse(ctx, &response)
+	maskBankResponse(ctx, &response, s.isSelfEmployeeStr(ctx, employeeID))
 	return &response, nil
 }
 
