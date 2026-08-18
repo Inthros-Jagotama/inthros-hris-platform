@@ -484,6 +484,8 @@
     "edit": "Edit Employee",
     "view": "View Employee",
     "employee_id_placeholder": "e.g. EMP-001",
+    "employee_id_auto_hint": "Will be generated automatically on save",
+    "employee_id_hybrid_hint": "Leave blank to auto-generate",
     "nik_placeholder": "Enter NIK",
     "select_gender": "Select gender...",
     "phone_placeholder": "Enter phone number",
@@ -3295,6 +3297,8 @@
     "group_geography": "Geography",
     "group_hr": "HR Reference",
     "group_payroll": "Payroll & Tax",
+    "group_general": "General Settings",
+    "employee_id_format": "Employee ID Format",
     "rbac": "Roles & Permissions",
     "group_access": "Access Control",
     "company_holidays": "Company Holidays",
@@ -3443,6 +3447,17 @@
     "reset_never": "Never",
     "tokens_help": "Available tokens: {sequence}, {sequence:3} (zero-padded), {year}, {yy}, {month}, {month_roman}",
     "preview_label": "Next number preview"
+  },
+  "employee_id_format": {
+    "title": "Employee ID Format",
+    "description": "Configure how Employee ID is generated when adding a new employee.",
+    "mode": "Generation Mode",
+    "mode_manual": "Manual",
+    "mode_hybrid": "Hybrid",
+    "mode_auto": "Automatic",
+    "mode_manual_desc": "Employee ID must be entered manually on the add employee form.",
+    "mode_hybrid_desc": "Employee ID is optional — if left blank, it is generated automatically using the format below.",
+    "mode_auto_desc": "Employee ID is always generated automatically using the format below and cannot be entered manually."
   },
   "provinces": {
     "title": "Provinces",

@@ -34,8 +34,17 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <FormRow :label="t('employee.employee_id')" required :errors="errors?.employee_id">
-        <TextInput v-model="form.employee_id" maxlength="50" :placeholder="t('employee.employee_id_placeholder')" :class="{'p-invalid':errors?.employee_id}" :disabled="disabled" />
+      <FormRow :label="t('employee.employee_id')" :required="employeeIdRequired" :errors="errors?.employee_id">
+        <TextInput
+          v-model="form.employee_id"
+          maxlength="50"
+          :placeholder="employeeIdPlaceholder"
+          :class="{'p-invalid':errors?.employee_id}"
+          :disabled="disabled || employeeIdMode === 'AUTO'"
+        />
+        <p v-if="!disabled && employeeIdMode !== 'MANUAL'" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+          {{ employeeIdMode === 'AUTO' ? t('employee.employee_id_auto_hint') : t('employee.employee_id_hybrid_hint') }}
+        </p>
       </FormRow>
       <FormRow :label="t('common.name')" required :errors="errors?.name">
         <TextInput v-model="form.name" maxlength="255" :placeholder="t('common.name')" :class="{'p-invalid':errors?.name}" />
@@ -138,7 +147,7 @@
   </div>
 </template>
 <script setup>
-import { ref, watch, shallowRef } from 'vue'
+import { ref, watch, shallowRef, computed, onMounted } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import Button from 'primevue/button'
 import FormRow from '@/components/FormRow.vue'
@@ -176,6 +185,26 @@ const previewUrl = ref('')
 const uploading = ref(false)
 const cropDialogVisible = ref(false)
 const cropImageSrc = shallowRef('')
+
+// ── Mode format employee_id (auto/hybrid/manual) — hanya relevan saat create
+// (employeeId kosong). Saat edit, field selalu diperlakukan seperti manual
+// (nilai existing, dikunci oleh prop `disabled` seperti sebelumnya).
+const employeeIdMode = ref('MANUAL')
+const employeeIdRequired = computed(() => !props.employeeId && employeeIdMode.value !== 'AUTO')
+const employeeIdPlaceholder = computed(() => {
+  if (employeeIdMode.value === 'AUTO' && !props.employeeId) return t('employee.employee_id_auto_hint')
+  return t('employee.employee_id_placeholder')
+})
+
+onMounted(async () => {
+  if (props.employeeId) return
+  try {
+    const res = await api.get('/api/v1/tenant/settings/employee-id-format')
+    employeeIdMode.value = res.data?.data?.generation_mode || 'MANUAL'
+  } catch {
+    employeeIdMode.value = 'MANUAL'
+  }
+})
 
 // Watch for photoUrl prop changes to set preview
 watch(() => props.photoUrl, (url) => {

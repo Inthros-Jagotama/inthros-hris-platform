@@ -57,6 +57,14 @@ const searchQuery = ref('')
 // ── Definisi semua sub-menu settings ──
 const groups = computed(() => [
   {
+    key: 'general',
+    icon: 'pi pi-cog',
+    labelKey: 'settings.group_general',
+    items: [
+      { path: '/settings/employee-id-format', icon: 'pi pi-id-card', titleKey: 'settings.employee_id_format', descKey: 'employee_id_format.description', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', permission: 'setting.employee_id_format.view' }
+    ]
+  },
+  {
     key: 'geography',
     icon: 'pi pi-globe',
     labelKey: 'settings.group_geography',
