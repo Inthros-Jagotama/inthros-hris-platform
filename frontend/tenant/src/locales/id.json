@@ -361,6 +361,8 @@
   "employee": {
     "title": "Karyawan",
     "description": "Kelola data dan catatan karyawan.",
+    "view_table": "Tampilan tabel",
+    "view_grid": "Tampilan grid",
     "saved": "Data karyawan berhasil disimpan",
     "quota_exceeded": "Kuota karyawan telah tercapai. Hubungi administrator untuk menambah batas lisensi.",
     "mother_name": "Nama Ibu",

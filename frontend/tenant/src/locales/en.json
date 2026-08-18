@@ -361,6 +361,8 @@
   "employee": {
     "title": "Employees",
     "description": "Manage employee data and records.",
+    "view_table": "Table view",
+    "view_grid": "Grid view",
     "saved": "Employee data saved successfully",
     "quota_exceeded": "Employee quota reached. Contact your administrator to increase the license limit.",
     "mother_name": "Mother's Name",
