@@ -18,7 +18,7 @@
       </template>
       <Column field="name" :header="t('employee.school_name')" sortable>
         <template #body="{data}">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
         </template>
       </Column>
       <Column field="education_id" :header="t('employee.education_level')">

@@ -18,7 +18,7 @@
       </template>
       <Column field="bank_id" :header="t('employee.bank_name')" sortable>
         <template #body="{data}">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ getBankLabel(data.bank_id) }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ getBankLabel(data.bank_id) }}</span>
         </template>
       </Column>
       <Column field="account_number" :header="t('employee.bank_account_number')" sortable>

@@ -40,7 +40,7 @@
           >
             <template #option="{option}">
               <div class="flex flex-col py-1">
-                <span class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ option.label }}</span>
+                <span class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ option.label }}</span>
                 <span class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   <template v-if="option.district_name">Kec. {{ option.district_name }}</template>
                   <template v-if="option.regency_name"><span v-if="option.district_name">, </span>Kab. {{ option.regency_name }}</template>

@@ -59,7 +59,7 @@
       <Column field="name" :header="t('common.name')" sortable style="min-width:200px">
         <template #body="{data}">
           <div class="flex items-center gap-1.5 min-w-0">
-            <span class="text-gray-800 dark:text-gray-100 font-medium truncate">{{ data.name }}</span>
+            <span class="text-navy-800 dark:text-gray-100 font-medium truncate">{{ data.name }}</span>
             <!-- G-4: employee yang dibuat dari offer recruitment yang diterima -->
             <Tag
               v-if="data.recruited_from_application_id"

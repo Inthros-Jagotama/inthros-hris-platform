@@ -13,7 +13,7 @@
       <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
         <div class="flex items-center justify-between gap-2 flex-wrap px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <div>
-            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 flex items-center gap-2">
               <i class="pi pi-users text-sky-500 text-sm"></i> {{ t('payroll.employee_profiles') }}
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('payroll.employee_profiles_desc') }}</p>
@@ -43,7 +43,7 @@
       <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
         <div class="flex items-center justify-between gap-2 flex-wrap px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <div>
-            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 flex items-center gap-2">
               <i class="pi pi-building text-sky-500 text-sm"></i> {{ t('payroll.bank_profiles') }}
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('payroll.bank_profiles_desc') }}</p>
@@ -74,7 +74,7 @@
       <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
         <div class="flex items-center justify-between gap-2 flex-wrap px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <div>
-            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 flex items-center gap-2">
               <i class="pi pi-shield text-teal-500 text-sm"></i> {{ t('payroll.bpjs_profiles') }}
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('payroll.bpjs_profiles_desc') }}</p>
@@ -104,7 +104,7 @@
       <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
         <div class="flex items-center justify-between gap-2 flex-wrap px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <div>
-            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <h3 class="text-sm font-semibold text-navy-800 dark:text-gray-100 flex items-center gap-2">
               <i class="pi pi-receipt text-purple-500 text-sm"></i> {{ t('payroll.tax_profiles') }}
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('payroll.tax_profiles_desc') }}</p>

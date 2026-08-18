@@ -24,7 +24,7 @@
       </Column>
       <Column field="number" :header="t('employee.insurance_number')" sortable>
         <template #body="{data}">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.number }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.number }}</span>
         </template>
       </Column>
       <Column field="type" :header="t('employee.insurance_type')">

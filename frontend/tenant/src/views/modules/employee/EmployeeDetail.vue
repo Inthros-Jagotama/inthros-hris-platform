@@ -9,7 +9,7 @@
         </div>
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
-            <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100 truncate">{{ emp.name || '-' }}</h1>
+            <h1 class="text-lg font-semibold text-navy-800 dark:text-gray-100 truncate">{{ emp.name || '-' }}</h1>
             <Tag v-if="emp.employee_id" :value="emp.employee_id" severity="info" class="!text-xs !px-1.5 !py-0.5" />
             <Tag v-if="emp.status" :value="t('common_status.' + emp.status)" :severity="emp.status === 'active' ? 'success' : emp.status === 'inactive' ? 'warn' : 'danger'" class="!text-xs !px-1.5 !py-0.5" />
             <Tag v-if="emp.recruited_from_application_id" :value="t('employee.from_offer')" severity="success" class="!text-xs !px-1.5 !py-0.5" />
@@ -61,8 +61,8 @@
         <!-- Personal Data -->
         <section v-if="active === 0" class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
           <header class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center gap-2">
-            <i class="pi pi-user text-indigo-500 text-sm"></i>
-            <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('employee.tab_profile') }}</h2>
+            <i class="pi pi-user text-teal-500 text-sm"></i>
+            <h2 class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ t('employee.tab_profile') }}</h2>
           </header>
           <div class="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-3">
             <DetailRow :label="t('employee.employee_id')" :value="emp.employee_id" />
@@ -99,7 +99,7 @@
         <!-- Emergency Contacts -->
         <ListCard v-else-if="active === 2" :title="t('employee.tab_contacts')" icon="pi pi-phone" tint="text-emerald-500" :empty="t('employee.no_contacts')" :items="emp.emergency_contacts">
           <template #default="{ item }">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.name }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.name }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.phone_number }}<template v-if="item.relationship_type_id"> · {{ item.relationship_type_name || labelOf(relationshipMap, item.relationship_type_id) }}</template></p>
             <p v-if="item.address" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ item.address }}</p>
           </template>
@@ -108,7 +108,7 @@
         <!-- Family -->
         <ListCard v-else-if="active === 3" :title="t('employee.tab_family')" icon="pi pi-users" tint="text-rose-500" :empty="t('employee.no_family')" :items="emp.families">
           <template #default="{ item }">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.name }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.name }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               <template v-if="item.relationship_type_id">{{ item.relationship_type_name || labelOf(relationshipMap, item.relationship_type_id) }}</template>
               <template v-if="item.education_name || item.education_id"> · {{ item.education_name || labelOf(educationMap, item.education_id) }}</template>
@@ -121,7 +121,7 @@
         <!-- Education -->
         <ListCard v-else-if="active === 4" :title="t('employee.tab_education')" icon="pi pi-graduation-cap" tint="text-amber-500" :empty="t('employee.no_education')" :items="emp.educations">
           <template #default="{ item }">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.name || item.education_name || labelOf(educationMap, item.education_id) || '-' }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.name || item.education_name || labelOf(educationMap, item.education_id) || '-' }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.major || item.major_name || '' }}<template v-if="item.graduation_year"> · {{ item.graduation_year }}</template></p>
           </template>
         </ListCard>
@@ -129,22 +129,22 @@
         <!-- Work Experience -->
         <ListCard v-else-if="active === 5" :title="t('employee.tab_experience')" icon="pi pi-briefcase" tint="text-violet-500" :empty="t('employee.no_experience')" :items="emp.experiences">
           <template #default="{ item }">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.company }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.company }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.position || '' }}<template v-if="item.start_year"> · {{ item.start_year }}<template v-if="item.end_year"> – {{ item.end_year }}</template></template></p>
           </template>
         </ListCard>
 
         <!-- Documents -->
-        <ListCard v-else-if="active === 6" :title="t('employee.tab_documents')" icon="pi pi-file" tint="text-indigo-500" :empty="t('employee.no_documents')" :items="emp.documents">
+        <ListCard v-else-if="active === 6" :title="t('employee.tab_documents')" icon="pi pi-file" tint="text-teal-500" :empty="t('employee.no_documents')" :items="emp.documents">
           <template #default="{ item }">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.name }}</p>
+                <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.name }}</p>
                 <p v-if="item.note" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.note }}</p>
                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{{ item.file }}</p>
               </div>
               <a v-if="item.file" :href="item.file" :download="downloadName(item)"
-                 class="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline select-none">
+                 class="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-teal-600 dark:text-teal-400 hover:underline select-none">
                 <i class="pi pi-download"></i>
                 {{ t('common.download') }}
               </a>
@@ -155,7 +155,7 @@
         <!-- Insurance (non-BPJS) -->
         <ListCard v-else-if="active === 7" :title="t('employee.tab_insurance')" icon="pi pi-shield" tint="text-teal-500" :empty="t('employee.no_insurance')" :items="emp.insurances">
           <template #default="{ item }">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.insurance_name || labelOf(insuranceMap, item.insurance_id) || '-' }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.insurance_name || labelOf(insuranceMap, item.insurance_id) || '-' }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.number }}<template v-if="item.type"> · {{ item.type }}</template></p>
           </template>
         </ListCard>
@@ -163,7 +163,7 @@
         <!-- Bank Accounts -->
         <ListCard v-else-if="active === 8" :title="t('employee.tab_bank')" icon="pi pi-building-columns" tint="text-sky-500" :empty="t('employee.no_bank')" :items="emp.banks">
           <template #default="{ item }">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.bank_name || labelOf(bankMap, item.bank_id) || '-' }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.bank_name || labelOf(bankMap, item.bank_id) || '-' }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">{{ item.account_number }}</p>
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ item.account_name }}</p>
           </template>
@@ -172,7 +172,7 @@
         <!-- Employment Record -->
         <ListCard v-else-if="active === 9" :title="t('employee.tab_employment')" icon="pi pi-briefcase" tint="text-cyan-500" :empty="t('employee.no_employment')" :items="emp.employments">
           <template #default="{ item }">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.organization_name || labelOf(organizationMap, item.organization_id) || '-' }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.organization_name || labelOf(organizationMap, item.organization_id) || '-' }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               <template v-if="item.employment_status_id">{{ item.employment_status_name || labelOf(employmentStatusMap, item.employment_status_id) }}</template>
               <template v-if="item.decision_letter_number"> · {{ t('employee.decision_letter') }}: {{ item.decision_letter_number }}</template>
@@ -196,7 +196,7 @@
             </div>
             <div class="min-w-0 flex-1">
               <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{{ t('employee_movement.timeline_current_position') }}</p>
-              <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">
+              <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">
                 {{ careerData.current_position.position_name || '-' }}
                 <span v-if="careerData.current_position.organization_name" class="text-gray-400 font-normal"> · {{ careerData.current_position.organization_name }}</span>
                 <span v-if="careerData.current_position.employment_status_name" class="text-gray-400 font-normal"> · {{ careerData.current_position.employment_status_name }}</span>
@@ -219,7 +219,7 @@
                   <i :class="careerEventIcon(ev)" class="text-[10px] text-white"></i>
                 </span>
                 <div class="flex items-center gap-2 flex-wrap">
-                  <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ careerEventLabel(ev) }}</p>
+                  <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ careerEventLabel(ev) }}</p>
                   <Tag v-if="ev.movement_type" :value="careerTypeLabel(ev.movement_type)" :severity="careerTypeSeverity(ev.movement_type)" class="!text-[10px] !px-1.5 !py-0" />
                   <Tag v-if="ev.contract_type" :value="careerTypeLabel(ev.contract_type)" severity="info" class="!text-[10px] !px-1.5 !py-0" />
                 </div>
@@ -254,7 +254,7 @@
 
           <ListCard :title="t('payroll.bank_profiles')" icon="pi pi-building" tint="text-sky-500" :empty="t('payroll.bank_profiles_empty')" :items="payroll.banks">
             <template #default="{ item }">
-              <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.bank_name }} <Tag :value="item.is_primary ? t('common.yes') : t('common.no')" :severity="item.is_primary ? 'success' : 'secondary'" class="!text-[10px] !px-1.5 !py-0.5 ml-1" /></p>
+              <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.bank_name }} <Tag :value="item.is_primary ? t('common.yes') : t('common.no')" :severity="item.is_primary ? 'success' : 'secondary'" class="!text-[10px] !px-1.5 !py-0.5 ml-1" /></p>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">{{ item.bank_account_number }}</p>
               <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ item.bank_account_holder_name }} · {{ t('payroll.effective_start_date') }}: {{ formatDate(item.effective_start_date, locale) }}</p>
             </template>
@@ -262,7 +262,7 @@
 
           <ListCard :title="t('payroll.bpjs_profiles')" icon="pi pi-shield" tint="text-teal-500" :empty="t('payroll.bpjs_profiles_empty')" :items="payroll.bpjs">
             <template #default="{ item }">
-              <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ trans(item.jkk_risk_class, 'payroll.jkk_risk_class_') }} <Tag :value="trans(item.status, 'payroll.status_')" :severity="item.status === 'ACTIVE' ? 'success' : 'secondary'" class="!text-[10px] !px-1.5 !py-0.5 ml-1" /></p>
+              <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ trans(item.jkk_risk_class, 'payroll.jkk_risk_class_') }} <Tag :value="trans(item.status, 'payroll.status_')" :severity="item.status === 'ACTIVE' ? 'success' : 'secondary'" class="!text-[10px] !px-1.5 !py-0.5 ml-1" /></p>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 <template v-if="item.bpjs_health_no">{{ t('payroll.bpjs_health_no') }}: {{ item.bpjs_health_no }}</template>
                 <template v-if="item.bpjs_tk_no"> · {{ t('payroll.bpjs_tk_no') }}: {{ item.bpjs_tk_no }}</template>
@@ -273,7 +273,7 @@
 
           <ListCard :title="t('payroll.tax_profiles')" icon="pi pi-receipt" tint="text-purple-500" :empty="t('payroll.tax_profiles_empty')" :items="payroll.taxes">
             <template #default="{ item }">
-              <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.npwp || '-' }} <Tag :value="item.ptkp_status || '-'" severity="info" class="!text-[10px] !px-1.5 !py-0.5 ml-1" /></p>
+              <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.npwp || '-' }} <Tag :value="item.ptkp_status || '-'" severity="info" class="!text-[10px] !px-1.5 !py-0.5 ml-1" /></p>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ trans(item.tax_method, 'payroll.tax_method_') }}<template v-if="item.has_npwp"> · {{ t('payroll.has_npwp') }}: {{ t('common.yes') }}</template></p>
               <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('payroll.effective_start_date') }}: {{ formatDate(item.effective_start_date, locale) }}</p>
             </template>
@@ -392,7 +392,7 @@ function careerDotClass(ev) {
     case 'demotion': return 'bg-red-500'
     case 'mutation': return 'bg-sky-500'
     case 'contract_extension': return 'bg-amber-500'
-    case 'status_change': return 'bg-indigo-500'
+    case 'status_change': return 'bg-teal-500'
     case 'retirement': return 'bg-gray-400'
     case 'offboarding': return 'bg-rose-500'
     default: return 'bg-slate-400'

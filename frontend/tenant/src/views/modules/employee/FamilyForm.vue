@@ -19,7 +19,7 @@
       <Column field="name" :header="t('common.name')" sortable>
         <template #body="{data}">
           <div class="flex items-center gap-2">
-            <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
+            <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
             <Tag v-if="data.nik" :value="data.nik" severity="info" class="!text-xs !px-1.5 !py-0.5" />
           </div>
         </template>
