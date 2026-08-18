@@ -27,6 +27,7 @@
       <!-- ── Menu Cards ── -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <button
+          v-if="hasPermission('reimbursement.approve')"
           type="button"
           class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-teal-300 dark:hover:border-teal-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
           @click="router.push('/reimbursements/all')"
@@ -42,6 +43,7 @@
         </button>
 
         <button
+          v-if="hasPermission('reimbursement.requests.view')"
           type="button"
           class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-emerald-300 dark:hover:border-emerald-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
           @click="router.push('/reimbursements/my-requests')"
@@ -57,6 +59,7 @@
         </button>
 
         <button
+          v-if="hasExactPermission('reimbursement.types.view')"
           type="button"
           class="cursor-pointer group flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-violet-300 dark:hover:border-violet-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
           @click="router.push('/reimbursements/types')"
@@ -120,7 +123,7 @@ import Message from 'primevue/message'
 
 const router = useRouter()
 const { t } = useI18n()
-const { hasPermission } = useAuth()
+const { hasPermission, hasExactPermission } = useAuth()
 const { employeeId, loadMyEmployeeId } = useMyEmployee()
 
 const loading = ref(true)
