@@ -18,7 +18,7 @@
     <div v-else>
       <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
         <div class="flex items-center gap-2">
-          <i class="pi pi-briefcase text-sm text-indigo-500"></i>
+          <i class="pi pi-briefcase text-sm text-teal-500"></i>
           <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('dashboard.view_job') }}</h2>
           <span class="text-[11px] text-gray-400 dark:text-gray-500 hidden sm:inline">{{ t('dashboard.job_management_desc') }}</span>
         </div>
@@ -36,7 +36,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3">
           <div class="flex items-center justify-between gap-2 mb-3">
             <div class="flex items-center gap-2">
-              <i class="pi pi-sitemap text-sm text-indigo-500"></i>
+              <i class="pi pi-sitemap text-sm text-teal-500"></i>
               <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('dashboard.job_summary_title') }}</h2>
             </div>
             <Tag :value="data.summary.code" severity="info" class="!text-xs !px-2 !py-0.5" />
@@ -44,15 +44,15 @@
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
               <p class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.job_summary_code') }}</p>
-              <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ data.summary.code }}</p>
+              <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ data.summary.code }}</p>
             </div>
             <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
               <p class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.job_summary_decree') }}</p>
-              <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ data.summary.decree_no }}</p>
+              <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ data.summary.decree_no }}</p>
             </div>
             <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
               <p class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.job_summary_decree_date') }}</p>
-              <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ formatDate(data.summary.decree_date, locale) }}</p>
+              <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ formatDate(data.summary.decree_date, locale) }}</p>
             </div>
           </div>
         </div>
@@ -62,30 +62,30 @@
           <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.job_total_organizations') }}</span>
-              <i class="pi pi-building text-lg text-indigo-500"></i>
+              <i class="pi pi-building text-lg text-teal-500"></i>
             </div>
-            <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ data.total_organizations ?? 0 }}</div>
+            <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ data.total_organizations ?? 0 }}</div>
           </div>
           <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.job_value_not_started') }}</span>
               <i class="pi pi-circle text-lg text-gray-400"></i>
             </div>
-            <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ data.value_not_started ?? 0 }}</div>
+            <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ data.value_not_started ?? 0 }}</div>
           </div>
           <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.job_value_on_progress') }}</span>
               <i class="pi pi-spinner text-lg text-amber-500"></i>
             </div>
-            <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ data.value_on_progress ?? 0 }}</div>
+            <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ data.value_on_progress ?? 0 }}</div>
           </div>
           <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.job_value_completed') }}</span>
               <i class="pi pi-check-circle text-lg text-emerald-500"></i>
             </div>
-            <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ data.value_completed ?? 0 }}</div>
+            <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ data.value_completed ?? 0 }}</div>
           </div>
         </div>
 
@@ -110,7 +110,7 @@
                 <div v-for="seg in employeeSegments" :key="seg.label" class="flex items-center gap-2 text-sm">
                   <span class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: seg.color }"></span>
                   <span class="text-gray-600 dark:text-gray-300 flex-1 truncate">{{ seg.label }}</span>
-                  <span class="font-semibold text-gray-800 dark:text-gray-100">{{ seg.value }}</span>
+                  <span class="font-semibold text-navy-800 dark:text-gray-100">{{ seg.value }}</span>
                   <span class="text-gray-400 dark:text-gray-500 w-10 text-right shrink-0">{{ seg.pct }}%</span>
                 </div>
               </div>
@@ -136,7 +136,7 @@
                 <div v-for="seg in financialSegments" :key="seg.label" class="flex items-center gap-2 text-sm">
                   <span class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: seg.color }"></span>
                   <span class="text-gray-600 dark:text-gray-300 flex-1 truncate">{{ seg.label }}</span>
-                  <span class="font-semibold text-gray-800 dark:text-gray-100">{{ seg.value }}</span>
+                  <span class="font-semibold text-navy-800 dark:text-gray-100">{{ seg.value }}</span>
                   <span class="text-gray-400 dark:text-gray-500 w-10 text-right shrink-0">{{ seg.pct }}%</span>
                 </div>
               </div>

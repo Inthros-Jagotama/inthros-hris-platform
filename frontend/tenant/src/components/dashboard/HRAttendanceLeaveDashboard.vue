@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-3">
     <div class="flex items-center gap-2 mb-3">
-      <i class="pi pi-calendar-clock text-sm text-indigo-500"></i>
+      <i class="pi pi-calendar-clock text-sm text-teal-500"></i>
       <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('dashboard.view_hr') }}</h2>
       <span class="text-[11px] text-gray-400 dark:text-gray-500 hidden sm:inline">{{ t('dashboard.hr_desc') }}</span>
     </div>
@@ -19,7 +19,7 @@
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.on_leave_today') }}</span>
           <i class="pi pi-calendar text-lg text-amber-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ hrOnLeaveToday ?? '—' }}</div>
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ hrOnLeaveToday ?? '—' }}</div>
         <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('dashboard.hr_month_label') }}</div>
       </div>
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
@@ -27,7 +27,7 @@
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.hr_present') }}</span>
           <i class="pi pi-check-circle text-lg text-emerald-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ hrAttStats.present ?? '—' }}</div>
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ hrAttStats.present ?? '—' }}</div>
         <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ hrTotalWorkHours }} {{ t('dashboard.hr_total_work_hours').toLowerCase() }}</div>
       </div>
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
@@ -35,7 +35,7 @@
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.hr_late') }}</span>
           <i class="pi pi-clock text-lg text-orange-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ hrAttStats.late ?? '—' }}</div>
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ hrAttStats.late ?? '—' }}</div>
         <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ hrAttStats.total_sessions ?? 0 }} {{ t('dashboard.hr_sessions') }}</div>
       </div>
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
@@ -43,7 +43,7 @@
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.hr_missing_checkout') }}</span>
           <i class="pi pi-sign-out text-lg text-rose-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ hrAttStats.missing_checkout ?? '—' }}</div>
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ hrAttStats.missing_checkout ?? '—' }}</div>
         <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ hrOvertimeHours }} {{ t('dashboard.hr_overtime_hours').toLowerCase() }}</div>
       </div>
     </div>
@@ -69,7 +69,7 @@
             <div v-for="seg in hrStatusSegments" :key="seg.label" class="flex items-center gap-2 text-sm">
               <span class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: seg.color }"></span>
               <span class="text-gray-600 dark:text-gray-300 flex-1 truncate">{{ seg.label }}</span>
-              <span class="font-semibold text-gray-800 dark:text-gray-100">{{ seg.value }}</span>
+              <span class="font-semibold text-navy-800 dark:text-gray-100">{{ seg.value }}</span>
               <span class="text-gray-400 dark:text-gray-500 w-10 text-right shrink-0">{{ seg.pct }}%</span>
             </div>
           </div>
@@ -95,7 +95,7 @@
             <div v-for="seg in hrUsageSegments" :key="seg.label" class="flex items-center gap-2 text-sm">
               <span class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: seg.color }"></span>
               <span class="text-gray-600 dark:text-gray-300 flex-1 truncate">{{ seg.label }}</span>
-              <span class="font-semibold text-gray-800 dark:text-gray-100">{{ formatDays(seg.value) }}</span>
+              <span class="font-semibold text-navy-800 dark:text-gray-100">{{ formatDays(seg.value) }}</span>
               <span class="text-gray-400 dark:text-gray-500 w-10 text-right shrink-0">{{ seg.pct }}%</span>
             </div>
           </div>
@@ -106,7 +106,7 @@
       <div v-if="hrTrendBars.length" class="md:col-start-2 md:col-span-3 md:row-start-1 md:row-span-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
         <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
           <div class="flex items-center gap-2">
-            <i class="pi pi-chart-bar text-sm text-indigo-500"></i>
+            <i class="pi pi-chart-bar text-sm text-teal-500"></i>
             <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('dashboard.hr_overtime_trend') }}</h2>
           </div>
           <span class="text-[11px] text-gray-400 dark:text-gray-500">{{ t('dashboard.hr_trend_hours') }}</span>
@@ -124,7 +124,7 @@
               width="10"
               :height="b.height"
               rx="1.5"
-              class="fill-indigo-500 dark:fill-indigo-400"
+              class="fill-teal-500 dark:fill-teal-400"
             >
               <title>{{ b.label }} · {{ b.hours }} {{ t('dashboard.hr_trend_hours').toLowerCase() }}</title>
             </rect>
@@ -141,10 +141,10 @@
           <!-- Legend: detail per minggu -->
           <div class="space-y-2 flex-1 min-w-0">
             <div v-for="b in hrTrendBars" :key="b.week_start + '-d'" class="flex items-center gap-2 text-sm">
-              <span class="w-3 h-3 rounded-sm bg-indigo-500 dark:bg-indigo-400 shrink-0"></span>
+              <span class="w-3 h-3 rounded-sm bg-teal-500 dark:bg-teal-400 shrink-0"></span>
               <span class="text-gray-600 dark:text-gray-300 w-14 shrink-0">{{ b.label }}</span>
               <span class="text-gray-400 dark:text-gray-500 flex-1 truncate">{{ b.count }} {{ t('dashboard.hr_requests') }} · {{ b.approved }} {{ t('dashboard.hr_approved').toLowerCase() }}</span>
-              <span class="font-semibold text-gray-800 dark:text-gray-100 shrink-0">{{ b.hours }} jam</span>
+              <span class="font-semibold text-navy-800 dark:text-gray-100 shrink-0">{{ b.hours }} jam</span>
             </div>
           </div>
         </div>
@@ -157,7 +157,7 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
         <div class="flex items-center justify-between gap-2 mb-3">
           <div class="flex items-center gap-2">
-            <i class="pi pi-clock text-sm text-indigo-500"></i>
+            <i class="pi pi-clock text-sm text-teal-500"></i>
             <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('dashboard.hr_overtime_title') }}</h2>
           </div>
           <Button :label="t('dashboard.my_kpi_view_all')" icon="pi pi-arrow-right" size="small" text class="!text-xs" @click="$router.push('/attendance/overtime')" />
@@ -165,7 +165,7 @@
         <div class="grid grid-cols-4 gap-2">
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ t('dashboard.hr_total') }}</p>
-            <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ hrAttStats.overtime_total ?? 0 }}</p>
+            <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ hrAttStats.overtime_total ?? 0 }}</p>
           </div>
           <div class="rounded-lg border border-amber-300 dark:border-amber-700/50 bg-amber-50/50 dark:bg-amber-900/10 p-2.5">
             <p class="text-[11px] text-amber-600 dark:text-amber-400">{{ t('dashboard.hr_pending') }}</p>
@@ -194,7 +194,7 @@
         <div class="grid grid-cols-4 gap-2">
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ t('dashboard.hr_total') }}</p>
-            <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ hrAttStats.travel_total ?? 0 }}</p>
+            <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ hrAttStats.travel_total ?? 0 }}</p>
           </div>
           <div class="rounded-lg border border-emerald-300 dark:border-emerald-700/50 bg-emerald-50/50 dark:bg-emerald-900/10 p-2.5">
             <p class="text-[11px] text-emerald-600 dark:text-emerald-400">{{ t('dashboard.hr_approved') }}</p>
@@ -206,7 +206,7 @@
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ t('dashboard.hr_travel_completed') }}</p>
-            <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ hrAttStats.travel_completed ?? 0 }}</p>
+            <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ hrAttStats.travel_completed ?? 0 }}</p>
           </div>
         </div>
       </div>

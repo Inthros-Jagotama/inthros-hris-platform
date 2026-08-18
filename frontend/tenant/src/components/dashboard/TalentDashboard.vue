@@ -17,7 +17,7 @@
     <div v-else>
       <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
         <div class="flex items-center gap-2">
-          <i class="pi pi-user text-sm text-indigo-500"></i>
+          <i class="pi pi-user text-sm text-teal-500"></i>
           <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('dashboard.view_talent') }}</h2>
           <span class="text-[11px] text-gray-400 dark:text-gray-500 hidden sm:inline">{{ t('dashboard.talent_desc') }}</span>
         </div>
@@ -31,12 +31,12 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3">
         <div class="flex items-center justify-between gap-2 mb-3">
           <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('dashboard.assessment_pipeline') }}</h2>
-          <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{{ kpiRate }}%</span>
+          <span class="text-xs font-semibold text-teal-600 dark:text-teal-400">{{ kpiRate }}%</span>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.assessment_draft') }}</p>
-            <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ kpiStats.draft_count ?? 0 }}</p>
+            <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ kpiStats.draft_count ?? 0 }}</p>
           </div>
           <div class="rounded-lg border border-amber-300 dark:border-amber-700/50 bg-amber-50/50 dark:bg-amber-900/10 p-2.5">
             <p class="text-[11px] text-amber-600 dark:text-amber-400 uppercase tracking-wider">{{ t('dashboard.assessment_submitted') }}</p>
@@ -52,7 +52,7 @@
           </div>
         </div>
         <div class="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div class="h-2 bg-indigo-500 rounded-full transition-all" :style="{ width: Math.min(100, kpiRate) + '%' }"></div>
+          <div class="h-2 bg-teal-500 rounded-full transition-all" :style="{ width: Math.min(100, kpiRate) + '%' }"></div>
         </div>
         <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5">{{ t('dashboard.assessment_rate') }}: {{ kpiRate }}%</p>
       </div>
@@ -62,30 +62,30 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.assessment_total') }}</span>
-            <i class="pi pi-users text-lg text-indigo-500"></i>
+            <i class="pi pi-users text-lg text-teal-500"></i>
           </div>
-          <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ kpiStats.total_employees ?? 0 }}</div>
+          <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ kpiStats.total_employees ?? 0 }}</div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.assessment_in_progress') }}</span>
             <i class="pi pi-spinner text-lg text-amber-500"></i>
           </div>
-          <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ kpiInProgress }}</div>
+          <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ kpiInProgress }}</div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.assessment_average_score') }}</span>
             <i class="pi pi-chart-line text-lg text-emerald-500"></i>
           </div>
-          <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ fmtScore(kpiStats.average_score) }}</div>
+          <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ fmtScore(kpiStats.average_score) }}</div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.assessment_average_achievement') }}</span>
             <i class="pi pi-bullseye text-lg text-cyan-500"></i>
           </div>
-          <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ fmtPct(kpiStats.average_achievement) }}</div>
+          <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ fmtPct(kpiStats.average_achievement) }}</div>
         </div>
       </div>
 
@@ -96,28 +96,28 @@
             <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.assessment_okr_total') }}</span>
             <i class="pi pi-target text-lg text-violet-500"></i>
           </div>
-          <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ okrHR.total_evaluations ?? 0 }}</div>
+          <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ okrHR.total_evaluations ?? 0 }}</div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.assessment_okr_completed') }}</span>
             <i class="pi pi-check-circle text-lg text-emerald-500"></i>
           </div>
-          <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ okrHR.completed_count ?? 0 }}</div>
+          <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ okrHR.completed_count ?? 0 }}</div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.assessment_average_score') }}</span>
             <i class="pi pi-chart-line text-lg text-violet-400"></i>
           </div>
-          <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ fmtScore(okrHR.average_score) }}</div>
+          <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ fmtScore(okrHR.average_score) }}</div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.assessment_average_achievement') }}</span>
             <i class="pi pi-bullseye text-lg text-violet-300"></i>
           </div>
-          <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ fmtPct(okrHR.average_achievement) }}</div>
+          <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ fmtPct(okrHR.average_achievement) }}</div>
         </div>
       </div>
 
@@ -141,7 +141,7 @@
               <div v-for="seg in kpiRatingSegments" :key="seg.label" class="flex items-center gap-2 text-sm">
                 <span class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: seg.color }"></span>
                 <span class="text-gray-600 dark:text-gray-300 flex-1 truncate">{{ seg.label }}</span>
-                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ seg.value }}</span>
+                <span class="font-semibold text-navy-800 dark:text-gray-100">{{ seg.value }}</span>
                 <span class="text-gray-400 dark:text-gray-500 w-10 text-right shrink-0">{{ seg.pct }}%</span>
               </div>
             </div>
@@ -166,7 +166,7 @@
               <div v-for="seg in okrRatingSegments" :key="seg.label" class="flex items-center gap-2 text-sm">
                 <span class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: seg.color }"></span>
                 <span class="text-gray-600 dark:text-gray-300 flex-1 truncate">{{ seg.label }}</span>
-                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ seg.value }}</span>
+                <span class="font-semibold text-navy-800 dark:text-gray-100">{{ seg.value }}</span>
                 <span class="text-gray-400 dark:text-gray-500 w-10 text-right shrink-0">{{ seg.pct }}%</span>
               </div>
             </div>
@@ -191,7 +191,7 @@
               <p class="text-[11px] text-gray-400 dark:text-gray-500 truncate">{{ p.organization_name || '' }}</p>
             </div>
             <span v-if="p.rating_name" class="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0" :style="{ color: p.rating_color || '#8b5cf6', backgroundColor: (p.rating_color || '#8b5cf6') + '1a' }">{{ p.rating_name }}</span>
-            <span class="font-semibold text-gray-800 dark:text-gray-100 shrink-0">{{ fmtScore(p.final_score) }}</span>
+            <span class="font-semibold text-navy-800 dark:text-gray-100 shrink-0">{{ fmtScore(p.final_score) }}</span>
           </div>
         </div>
       </div>

@@ -82,7 +82,7 @@ function onBlur(idx) {
                 :placeholder="placeholder"
                 inputmode="numeric"
                 maxlength="2"
-                class="w-11 px-1 py-1.5 text-center text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:cursor-not-allowed"
+                class="w-11 px-1 py-1.5 text-center text-sm text-navy-800 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:cursor-not-allowed"
                 @input="onInput(idx, $event)"
                 @keydown="onKeydown(idx, $event)"
                 @blur="onBlur(idx)"

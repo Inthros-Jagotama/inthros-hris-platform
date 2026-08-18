@@ -6,7 +6,7 @@
         <i class="pi pi-user text-emerald-600 dark:text-emerald-400 text-lg"></i>
       </div>
       <div class="min-w-0">
-        <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100 truncate">{{ greetingText }}</h1>
+        <h1 class="text-lg font-semibold text-navy-800 dark:text-gray-100 truncate">{{ greetingText }}</h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ t('dashboard.greeting_sub') }}</p>
       </div>
     </div>
@@ -49,7 +49,7 @@
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.my_attendance') }}</span>
           <i class="pi pi-clock text-lg text-emerald-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">
           {{ attendanceStatusLabel }}
         </div>
         <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">
@@ -62,7 +62,7 @@
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.my_leave_balance') }}</span>
           <i class="pi pi-calendar text-lg text-amber-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ formatDays(totalRemainingDays) }} <span class="text-sm font-medium text-gray-400">hari</span></div>
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ formatDays(totalRemainingDays) }} <span class="text-sm font-medium text-gray-400">hari</span></div>
         <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ balances.length }} {{ t('dashboard.leave_types') }}</div>
       </div>
       <!-- Persetujuan menunggu -->
@@ -71,7 +71,7 @@
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.my_approvals') }}</span>
           <i class="pi pi-check-square text-lg text-violet-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ approvalTasks.length }}</div>
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ approvalTasks.length }}</div>
         <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('dashboard.my_approvals') }}</div>
       </div>
       <!-- Progres KPI -->
@@ -80,7 +80,7 @@
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.my_kpi') }}</span>
           <i class="pi pi-chart-line text-lg text-cyan-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ myKpiProgress }}%</div>
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ myKpiProgress }}%</div>
         <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('dashboard.overall_progress') }}</div>
       </div>
     </div>
@@ -150,17 +150,17 @@
           v-for="card in quickAccessCards"
           :key="card.route"
           type="button"
-          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-teal-300 dark:hover:border-teal-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
           @click="$router.push(card.route)"
         >
           <div class="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center transition-colors" :class="card.tint">
             <i :class="card.icon" class="text-base"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(card.labelKey) }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ t(card.labelKey) }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(card.descKey) }}</p>
           </div>
-          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
         </button>
       </div>
     </div>

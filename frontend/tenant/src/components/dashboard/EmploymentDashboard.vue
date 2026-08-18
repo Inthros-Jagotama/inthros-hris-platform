@@ -13,28 +13,28 @@
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.kpi_total_employees') }}</span>
           <i class="pi pi-users text-lg text-emerald-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ empStats.total ?? '—' }}</div>
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ empStats.total ?? '—' }}</div>
       </div>
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
         <div class="flex items-center justify-between mb-2">
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.kpi_active') }}</span>
           <i class="pi pi-check-circle text-lg text-blue-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ empStats.active ?? '—' }}</div>
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ empStats.active ?? '—' }}</div>
       </div>
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
         <div class="flex items-center justify-between mb-2">
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.on_leave_today') }}</span>
           <i class="pi pi-calendar text-lg text-amber-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ empStats.onLeave ?? '—' }}</div>
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ empStats.onLeave ?? '—' }}</div>
       </div>
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
         <div class="flex items-center justify-between mb-2">
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('dashboard.kpi_pending_approvals') }}</span>
           <i class="pi pi-clock text-lg text-rose-500"></i>
         </div>
-        <div class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ empStats.pending ?? '—' }}</div>
+        <div class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ empStats.pending ?? '—' }}</div>
       </div>
     </div>
 
@@ -59,7 +59,7 @@
             <div v-for="seg in donutSegments" :key="seg.label" class="flex items-center gap-2 text-sm">
               <span class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: seg.color }"></span>
               <span class="text-gray-600 dark:text-gray-300 flex-1 truncate">{{ seg.label }}</span>
-              <span class="font-semibold text-gray-800 dark:text-gray-100">{{ seg.value }}</span>
+              <span class="font-semibold text-navy-800 dark:text-gray-100">{{ seg.value }}</span>
               <span class="text-gray-400 dark:text-gray-500 w-10 text-right shrink-0">{{ seg.pct }}%</span>
             </div>
           </div>
@@ -85,7 +85,7 @@
             <div v-for="seg in empStatusSegments" :key="seg.label" class="flex items-center gap-2 text-sm">
               <span class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: seg.color }"></span>
               <span class="text-gray-600 dark:text-gray-300 flex-1 truncate">{{ seg.label }}</span>
-              <span class="font-semibold text-gray-800 dark:text-gray-100">{{ seg.value }}</span>
+              <span class="font-semibold text-navy-800 dark:text-gray-100">{{ seg.value }}</span>
               <span class="text-gray-400 dark:text-gray-500 w-10 text-right shrink-0">{{ seg.pct }}%</span>
             </div>
           </div>
@@ -136,7 +136,7 @@
             >
               <div class="min-w-0">
                 <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">{{ mt.label }}</p>
-                <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ movementData.movement_by_type?.[mt.value] || 0 }}</p>
+                <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ movementData.movement_by_type?.[mt.value] || 0 }}</p>
               </div>
               <i :class="[typeIcon(mt.value), typeIconColor(mt.value)]" class="text-base shrink-0"></i>
             </div>
@@ -169,7 +169,7 @@
         <div class="grid grid-cols-3 gap-2">
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ t('dashboard.contract_active') }}</p>
-            <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ movementData.contracts?.active || 0 }}</p>
+            <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ movementData.contracts?.active || 0 }}</p>
           </div>
           <div class="rounded-lg border border-amber-300 dark:border-amber-700/50 bg-amber-50/50 dark:bg-amber-900/10 p-2.5">
             <p class="text-[11px] text-amber-600 dark:text-amber-400">{{ t('dashboard.contract_expiring') }}</p>
@@ -177,7 +177,7 @@
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ t('dashboard.contract_expired') }}</p>
-            <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ movementData.contracts?.expired || 0 }}</p>
+            <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ movementData.contracts?.expired || 0 }}</p>
           </div>
         </div>
       </div>
@@ -223,19 +223,19 @@
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.hires_analyzed') }}</p>
-          <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ qohData.hires_analyzed }}</p>
+          <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ qohData.hires_analyzed }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.interview_score') }}</p>
-          <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ fmtScore(qohData.interview_score) }}</p>
+          <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ fmtScore(qohData.interview_score) }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.onboarding_completion') }}</p>
-          <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ fmtPct(qohData.onboarding_completion_rate) }}</p>
+          <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ fmtPct(qohData.onboarding_completion_rate) }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.retention_rate') }}</p>
-          <p class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ fmtPct(qohData.retention_rate) }}</p>
+          <p class="text-lg font-bold text-navy-800 dark:text-gray-100">{{ fmtPct(qohData.retention_rate) }}</p>
         </div>
       </div>
     </div>
@@ -319,7 +319,7 @@ function typeIconColor(type) {
     case 'demotion': return 'text-red-500'
     case 'mutation': return 'text-sky-500'
     case 'contract_extension': return 'text-amber-500'
-    case 'status_change': return 'text-indigo-500'
+    case 'status_change': return 'text-teal-500'
     case 'retirement': return 'text-gray-400'
     case 'offboarding': return 'text-red-400'
     default: return 'text-gray-400'
