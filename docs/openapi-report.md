@@ -1,11 +1,11 @@
 = HRIS Platform — OpenAPI Comprehensive Report (v23) =
 
 
-**Generated:** 17 August 2026
+**Generated:** 19 August 2026
 **Spec Version:** 1.6.3
-**Total Paths:** 693
-**Total Endpoints (methods):** 1157
-**Total Schemas:** 790
+**Total Paths:** 701
+**Total Endpoints (methods):** 1166
+**Total Schemas:** 799
 **Total Tags:** 33
 
 > 🔗 **Index dokumentasi:** [`docs/README.md`](README.md) · **Terkait:** [`api/api-usage-guide.md`](api/api-usage-guide.md) · [`go-module-architecture-report.md`](go-module-architecture-report.md)
@@ -14,9 +14,9 @@
 
 | Metric | Coverage | % |
 |---|---|---|
-| Endpoints with `summary` | 1157/1157 | 100% |
-| Endpoints with `description` | 1157/1157 | 100% |
-| Endpoints with `operationId` | 1157/1157 | 100% |
+| Endpoints with `summary` | 1166/1166 | 100% |
+| Endpoints with `description` | 1166/1166 | 100% |
+| Endpoints with `operationId` | 1166/1166 | 100% |
 
 ## Response Format & Bilingual Support
 
@@ -112,8 +112,8 @@ Tenant endpoints support validation for Indonesian data formats:
 | 3 | Tenant: Settings | 107 | 44 |
 | 4 | Tenant: Job Management | 96 | 40 |
 | 5 | Tenant: Workforce Intelligence & Strategic Pl... | 70 | 60 |
-| 6 | Tenant: Recruitment & Onboarding (ATS) | 53 | 26 |
-| 7 | Attendance | 52 | 35 |
+| 6 | Attendance | 58 | 41 |
+| 7 | Tenant: Recruitment & Onboarding (ATS) | 53 | 26 |
 | 8 | Recruitment | 48 | 29 |
 | 9 | Tenant: Payroll & Compensation Engine | 45 | 23 |
 | 10 | Tenant: Time & Attendance | 40 | 24 |
@@ -121,7 +121,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | 12 | Tenant: Employees | 36 | 23 |
 | 13 | Tenant: Competency Management | 35 | 15 |
 | 14 | Competency | 32 | 21 |
-| 15 | Tenant: Others | 27 | 23 |
+| 15 | Tenant: Others | 30 | 25 |
 | 16 | Tenant: Employee Movement & Career Management | 25 | 18 |
 | 17 | Tenant: Leave & Time Off | 25 | 14 |
 | 18 | Tenant: Career Intelligence | 22 | 12 |
@@ -145,7 +145,7 @@ Tenant endpoints support validation for Indonesian data formats:
 | 36 | Tenant Auth | 2 | 2 |
 | 37 | Tenant: Company | 2 | 1 |
 | 38 | Career Intelligence | 1 | 1 |
-| | **TOTAL** | **1157** | **693** |
+| | **TOTAL** | **1166** | **701** |
 
 ## 2. Module Detail
 
@@ -732,6 +732,71 @@ Tenant endpoints support validation for Indonesian data formats:
 | `POST` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}/clone` | Clone scenario | Clone an existing scenario as a new DRAFT scenario. Useful for creating variations of a simulation without affecting the original. |
 | `POST` | `/api/v1/tenant/workforce-intelligence/scenarios/{id}/run` | Run scenario simulation | Execute a scenario simulation. Runs the scenario's parameters through the simulation engine and stores results in the scenario record. |
 
+### Attendance
+**Endpoints:** 58 | **Paths:** 41
+**Methods:** DELETE=6 GET=24 POST=21 PUT=7
+
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/tenant/attendance/business-travel-expense-categories` | Tambah kategori biaya |  |
+| `GET` | `/api/v1/tenant/attendance/business-travel-expense-categories` | Daftar kategori biaya |  |
+| `POST` | `/api/v1/tenant/attendance/business-travel-funding-methods` | Tambah metode pendanaan |  |
+| `GET` | `/api/v1/tenant/attendance/business-travel-funding-methods` | Daftar metode pendanaan |  |
+| `GET` | `/api/v1/tenant/attendance/business-travel-settlements/{settlementId}` | Detail settlement (flat lookup by settlement ID) |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels` | Buat pengajuan perjalanan dinas baru |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels` | Daftar perjalanan dinas (paginated) |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/reports/advance` | Laporan advance vs actual expense per settlement |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/reports/funding` | Laporan funding perjalanan dinas (rentang funding_date) |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/reports/refund` | Laporan refund kelebihan advance |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/reports/reimbursement` | Laporan klaim reimbursement perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/reports/travel` | Laporan daftar perjalanan dinas (rentang start_date) |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/reports/travel-cost` | Total biaya per perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}` | Detail perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}` | Perbarui perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/activities` | Tambah aktivitas perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/activities` | Daftar aktivitas perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/activities/{activityId}` | Perbarui aktivitas perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/activities/{activityId}` | Hapus aktivitas perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/cancel` | Batalkan perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/destinations` | Tambah destinasi perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/destinations` | Daftar destinasi perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/destinations/{destinationId}` | Perbarui destinasi perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/destinations/{destinationId}` | Hapus destinasi perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/documents` | Tambah dokumen perjalanan (travel order, tiket, hotel, dst) |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/documents` | Daftar dokumen perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/documents/{documentId}` | Hapus dokumen perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/expenses` | Tambah biaya aktual perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/expenses` | Daftar biaya perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/expenses/{expenseId}` | Perbarui biaya perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/expenses/{expenseId}` | Hapus biaya perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/expenses/{expenseId}/documents` | Tambah dokumen biaya |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/fundings` | Tambah pendanaan perjalanan dinas (setelah travel APPROVED) |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/fundings` | Daftar pendanaan perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/fundings/{fundingId}` | Perbarui pendanaan perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/fundings/{fundingId}/confirm` | Konfirmasi pendanaan |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/fundings/{fundingId}/documents` | Tambah dokumen pendanaan |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/participants` | Tambah peserta perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/participants` | Daftar peserta perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/participants/{participantId}` | Perbarui peserta perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/participants/{participantId}` | Hapus peserta perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/refunds` | Daftar refund perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/refunds/{refundId}/confirm` | Konfirmasi refund |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements` | Daftar reimbursement perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements/{reimbursementId}/approve` | Setujui reimbursement |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements/{reimbursementId}/pay` | Bayar reimbursement |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements/{reimbursementId}/process` | Proses reimbursement (cek subscription modul Reimbursement) |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/schedules` | Tambah jadwal perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/schedules` | Daftar jadwal perjalanan dinas |  |
+| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/schedules/{scheduleId}` | Perbarui jadwal perjalanan dinas |  |
+| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/schedules/{scheduleId}` | Hapus jadwal perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/settlements` | Buat settlement perjalanan dinas (setelah travel COMPLETED) |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/settlements` | Daftar settlement perjalanan dinas |  |
+| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/settlements/{settlementId}` | Detail settlement perjalanan dinas |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/settlements/{settlementId}/submit` | Submit settlement ke Central Approval |  |
+| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/submit` | Submit perjalanan dinas ke Central Approval |  |
+| `GET` | `/api/v1/tenant/attendance/stats/overtime-trend` | Tren lembur per minggu (chart HR dashboard) |  |
+| `GET` | `/api/v1/tenant/attendance/stats/summary` | Ringkasan statistik absensi seluruh karyawan (HR dashboard) |  |
+
 ### Tenant: Recruitment & Onboarding (ATS)
 **Description:** Recruitment & Onboarding (ATS) â€” job requisitions, candidate management, applications, interviews, and employee onboarding workflows
 **Endpoints:** 53 | **Paths:** 26
@@ -792,65 +857,6 @@ Tenant endpoints support validation for Indonesian data formats:
 | `DELETE` | `/api/v1/tenant/recruitment/skills/{id}` | Delete candidate skill | Permanently remove a skill from a candidate profile |
 | `PUT` | `/api/v1/tenant/recruitment/work-experiences/{id}` | Update candidate work experience | Update work experience details. Only provided fields will be updated |
 | `DELETE` | `/api/v1/tenant/recruitment/work-experiences/{id}` | Delete candidate work experience | Permanently remove a work experience record from a candidate profile |
-
-### Attendance
-**Endpoints:** 52 | **Paths:** 35
-**Methods:** DELETE=6 GET=18 POST=21 PUT=7
-
-| Method | Path | Summary | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/tenant/attendance/business-travel-expense-categories` | Tambah kategori biaya |  |
-| `GET` | `/api/v1/tenant/attendance/business-travel-expense-categories` | Daftar kategori biaya |  |
-| `POST` | `/api/v1/tenant/attendance/business-travel-funding-methods` | Tambah metode pendanaan |  |
-| `GET` | `/api/v1/tenant/attendance/business-travel-funding-methods` | Daftar metode pendanaan |  |
-| `GET` | `/api/v1/tenant/attendance/business-travel-settlements/{settlementId}` | Detail settlement (flat lookup by settlement ID) |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels` | Buat pengajuan perjalanan dinas baru |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels` | Daftar perjalanan dinas (paginated) |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}` | Detail perjalanan dinas |  |
-| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}` | Perbarui perjalanan dinas |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/activities` | Tambah aktivitas perjalanan dinas |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/activities` | Daftar aktivitas perjalanan dinas |  |
-| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/activities/{activityId}` | Perbarui aktivitas perjalanan dinas |  |
-| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/activities/{activityId}` | Hapus aktivitas perjalanan dinas |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/cancel` | Batalkan perjalanan dinas |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/destinations` | Tambah destinasi perjalanan dinas |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/destinations` | Daftar destinasi perjalanan dinas |  |
-| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/destinations/{destinationId}` | Perbarui destinasi perjalanan dinas |  |
-| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/destinations/{destinationId}` | Hapus destinasi perjalanan dinas |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/documents` | Tambah dokumen perjalanan (travel order, tiket, hotel, dst) |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/documents` | Daftar dokumen perjalanan dinas |  |
-| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/documents/{documentId}` | Hapus dokumen perjalanan dinas |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/expenses` | Tambah biaya aktual perjalanan dinas |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/expenses` | Daftar biaya perjalanan dinas |  |
-| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/expenses/{expenseId}` | Perbarui biaya perjalanan dinas |  |
-| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/expenses/{expenseId}` | Hapus biaya perjalanan dinas |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/expenses/{expenseId}/documents` | Tambah dokumen biaya |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/fundings` | Tambah pendanaan perjalanan dinas (setelah travel APPROVED) |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/fundings` | Daftar pendanaan perjalanan dinas |  |
-| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/fundings/{fundingId}` | Perbarui pendanaan perjalanan dinas |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/fundings/{fundingId}/confirm` | Konfirmasi pendanaan |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/fundings/{fundingId}/documents` | Tambah dokumen pendanaan |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/participants` | Tambah peserta perjalanan dinas |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/participants` | Daftar peserta perjalanan dinas |  |
-| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/participants/{participantId}` | Perbarui peserta perjalanan dinas |  |
-| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/participants/{participantId}` | Hapus peserta perjalanan dinas |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/refunds` | Daftar refund perjalanan dinas |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/refunds/{refundId}/confirm` | Konfirmasi refund |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements` | Daftar reimbursement perjalanan dinas |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements/{reimbursementId}/approve` | Setujui reimbursement |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements/{reimbursementId}/pay` | Bayar reimbursement |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/reimbursements/{reimbursementId}/process` | Proses reimbursement (cek subscription modul Reimbursement) |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/schedules` | Tambah jadwal perjalanan dinas |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/schedules` | Daftar jadwal perjalanan dinas |  |
-| `PUT` | `/api/v1/tenant/attendance/business-travels/{id}/schedules/{scheduleId}` | Perbarui jadwal perjalanan dinas |  |
-| `DELETE` | `/api/v1/tenant/attendance/business-travels/{id}/schedules/{scheduleId}` | Hapus jadwal perjalanan dinas |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/settlements` | Buat settlement perjalanan dinas (setelah travel COMPLETED) |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/settlements` | Daftar settlement perjalanan dinas |  |
-| `GET` | `/api/v1/tenant/attendance/business-travels/{id}/settlements/{settlementId}` | Detail settlement perjalanan dinas |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/settlements/{settlementId}/submit` | Submit settlement ke Central Approval |  |
-| `POST` | `/api/v1/tenant/attendance/business-travels/{id}/submit` | Submit perjalanan dinas ke Central Approval |  |
-| `GET` | `/api/v1/tenant/attendance/stats/overtime-trend` | Tren lembur per minggu (chart HR dashboard) |  |
-| `GET` | `/api/v1/tenant/attendance/stats/summary` | Ringkasan statistik absensi seluruh karyawan (HR dashboard) |  |
 
 ### Recruitment
 **Endpoints:** 48 | **Paths:** 29
@@ -1179,8 +1185,8 @@ Tenant endpoints support validation for Indonesian data formats:
 | `PUT` | `/api/v1/tenant/competency/templates/{id}/indicators` | Set daftar indikator template |  |
 
 ### Tenant: Others
-**Endpoints:** 27 | **Paths:** 23
-**Methods:** DELETE=1 GET=16 POST=7 PUT=3
+**Endpoints:** 30 | **Paths:** 25
+**Methods:** DELETE=1 GET=18 POST=7 PUT=4
 
 | Method | Path | Summary | Description |
 |---|---|---|---|
@@ -1201,6 +1207,9 @@ Tenant endpoints support validation for Indonesian data formats:
 | `GET` | `/api/v1/tenant/document-templates/{id}/versions` | Daftar versi template |  |
 | `POST` | `/api/v1/tenant/document-templates/{id}/versions` | Buat versi template baru |  |
 | `GET` | `/api/v1/tenant/document-templates/{id}/versions/{versionId}` | Detail versi template |  |
+| `GET` | `/api/v1/tenant/employee-id-format` | Dapatkan setelan format employee ID |  |
+| `PUT` | `/api/v1/tenant/employee-id-format` | Perbarui setelan format employee ID |  |
+| `GET` | `/api/v1/tenant/employee-id-format/preview` | Preview employee ID berikutnya berdasarkan format aktif |  |
 | `POST` | `/api/v1/tenant/employee-movements/contracts/{id}/generate-document` | Generate PDF Perjanjian Kerja dari template aktif |  |
 | `GET` | `/api/v1/tenant/employee-movements/contracts/{id}/generated-documents` | Daftar dokumen kontrak yang sudah digenerate |  |
 | `POST` | `/api/v1/tenant/employee-movements/movements/{id}/generate-document` | Generate PDF SK Movement dari template aktif |  |

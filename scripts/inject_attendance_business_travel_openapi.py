@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inject missing attendance endpoints (Business Travels + stats) into openapi.json (idempotent).
+"""Inject missing attendance endpoints (Business Travels + stats + reports) into openapi.json (idempotent).
 
 Covers endpoints registered in backend/internal/modules/attendance/routes.go that are
 missing from the OpenAPI spec:
@@ -11,6 +11,7 @@ missing from the OpenAPI spec:
 - Settlements + settlement submit
 - Refunds + refund confirm
 - Reimbursements (approve/process/pay)
+- Business Travel Reports (travel, funding, advance, reimbursement, refund, travel-cost)
 
 Usage:
     python scripts/inject_attendance_business_travel_openapi.py
@@ -704,6 +705,124 @@ def main():
                  responses=responses_ok("TravelReimbursementResponse"))
     add_endpoint(spec, "POST", f"{BT}/{{id}}/reimbursements/{{reimbursementId}}/pay", "Bayar reimbursement",
                  request_body="PayReimbursementRequest", responses=responses_ok("TravelReimbursementResponse"))
+
+    # ------------------------------------------------------------------
+    # Schemas — Business Travel Reports
+    # ------------------------------------------------------------------
+
+    add_schema(spec, "BusinessTravelReportRow", obj({
+        "id": prop("string", fmt="uuid"),
+        "request_number": prop("string"),
+        "title": prop("string"),
+        "requester_id": prop("string", fmt="uuid"),
+        "start_date": prop("string", fmt="date"),
+        "end_date": prop("string", fmt="date"),
+        "status": prop("string"),
+        "approval_status": prop("string"),
+        "destination_city": prop("string", desc="Kota pertama dari destinasi"),
+        "destination_count": prop("integer"),
+    }))
+
+    add_schema(spec, "BusinessTravelFundingReportRow", obj({
+        "travel_id": prop("string", fmt="uuid"),
+        "request_number": prop("string"),
+        "participant_id": prop("string", fmt="uuid"),
+        "funding_method_id": prop("string", fmt="uuid"),
+        "funding_method": prop("string"),
+        "amount": prop("number"),
+        "funding_date": prop("string", fmt="date"),
+        "funded_by": prop("string", fmt="uuid"),
+        "status": prop("string"),
+    }))
+
+    add_schema(spec, "BusinessTravelAdvanceReportRow", obj({
+        "travel_id": prop("string", fmt="uuid"),
+        "request_number": prop("string"),
+        "participant_id": prop("string", fmt="uuid"),
+        "total_advance": prop("number"),
+        "total_actual_expense": prop("number"),
+        "remaining": prop("number"),
+        "settlement_status": prop("string"),
+    }))
+
+    add_schema(spec, "BusinessTravelReimbursementReportRow", obj({
+        "travel_id": prop("string", fmt="uuid"),
+        "request_number": prop("string"),
+        "participant_id": prop("string", fmt="uuid"),
+        "amount": prop("number"),
+        "approved_at": prop("string", fmt="date-time"),
+        "paid_at": prop("string", fmt="date-time"),
+        "payment_reference": prop("string"),
+        "status": prop("string"),
+    }))
+
+    add_schema(spec, "BusinessTravelRefundReportRow", obj({
+        "travel_id": prop("string", fmt="uuid"),
+        "request_number": prop("string"),
+        "participant_id": prop("string", fmt="uuid"),
+        "advance": prop("number"),
+        "actual": prop("number"),
+        "refund_amount": prop("number"),
+        "refund_date": prop("string", fmt="date"),
+        "status": prop("string"),
+    }))
+
+    add_schema(spec, "BusinessTravelCostReportRow", obj({
+        "travel_id": prop("string", fmt="uuid"),
+        "request_number": prop("string"),
+        "title": prop("string"),
+        "total_company_paid": prop("number"),
+        "total_advance": prop("number"),
+        "total_reimbursement": prop("number"),
+        "total_actual_cost": prop("number"),
+        "balance": prop("number"),
+    }))
+
+    # ------------------------------------------------------------------
+    # Endpoints — Business Travel Reports
+    # ------------------------------------------------------------------
+    report_date_params = [
+        qparam("from", {"type": "string", "format": "date"}),
+        qparam("to", {"type": "string", "format": "date"}),
+        qparam("status", {"type": "string"}),
+    ]
+
+    add_endpoint(spec, "GET", f"{BT}/reports/travel", "Laporan daftar perjalanan dinas (rentang start_date)",
+                 responses={"200": {"description": "OK", "content": {"application/json": {"schema": {"type": "object", "properties": {
+                     "success": {"type": "boolean", "example": True},
+                     "data": {"type": "array", "items": ref("BusinessTravelReportRow")}}}}}},
+                          "400": {"description": "Bad request / Validation error"}},
+                 query=report_date_params)
+    add_endpoint(spec, "GET", f"{BT}/reports/funding", "Laporan funding perjalanan dinas (rentang funding_date)",
+                 responses={"200": {"description": "OK", "content": {"application/json": {"schema": {"type": "object", "properties": {
+                     "success": {"type": "boolean", "example": True},
+                     "data": {"type": "array", "items": ref("BusinessTravelFundingReportRow")}}}}}},
+                          "400": {"description": "Bad request / Validation error"}},
+                 query=report_date_params)
+    add_endpoint(spec, "GET", f"{BT}/reports/advance", "Laporan advance vs actual expense per settlement",
+                 responses={"200": {"description": "OK", "content": {"application/json": {"schema": {"type": "object", "properties": {
+                     "success": {"type": "boolean", "example": True},
+                     "data": {"type": "array", "items": ref("BusinessTravelAdvanceReportRow")}}}}}},
+                          "400": {"description": "Bad request / Validation error"}},
+                 query=report_date_params)
+    add_endpoint(spec, "GET", f"{BT}/reports/reimbursement", "Laporan klaim reimbursement perjalanan dinas",
+                 responses={"200": {"description": "OK", "content": {"application/json": {"schema": {"type": "object", "properties": {
+                     "success": {"type": "boolean", "example": True},
+                     "data": {"type": "array", "items": ref("BusinessTravelReimbursementReportRow")}}}}}},
+                          "400": {"description": "Bad request / Validation error"}},
+                 query=report_date_params)
+    add_endpoint(spec, "GET", f"{BT}/reports/refund", "Laporan refund kelebihan advance",
+                 responses={"200": {"description": "OK", "content": {"application/json": {"schema": {"type": "object", "properties": {
+                     "success": {"type": "boolean", "example": True},
+                     "data": {"type": "array", "items": ref("BusinessTravelRefundReportRow")}}}}}},
+                          "400": {"description": "Bad request / Validation error"}},
+                 query=report_date_params)
+    add_endpoint(spec, "GET", f"{BT}/reports/travel-cost", "Total biaya per perjalanan dinas",
+                 responses={"200": {"description": "OK", "content": {"application/json": {"schema": {"type": "object", "properties": {
+                     "success": {"type": "boolean", "example": True},
+                     "data": {"type": "array", "items": ref("BusinessTravelCostReportRow")}}}}}},
+                          "400": {"description": "Bad request / Validation error"}},
+                 query=report_date_params)
 
     with open(JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(spec, f, indent=2, ensure_ascii=False)

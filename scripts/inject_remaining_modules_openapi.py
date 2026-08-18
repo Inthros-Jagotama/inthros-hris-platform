@@ -6,6 +6,7 @@ Covers endpoints registered in routes.go that are missing from the OpenAPI spec:
 - employee-movements (employeemovement): generate-document + generated-documents (movement & contract)
 - employees (employee module): stats/gender, stats/employment-status, settings/sensitive-fields
 - document-numbering (setting module): list, update, preview
+- employee-id-format (setting module): get, update, preview
 - approval: GET /approval/tasks/done
 - job-management: GET /job-management/dashboard
 - leave: GET /leave/reports/on-leave-today
@@ -287,6 +288,32 @@ def main():
     }, required=["format_template", "reset_period"]))
 
     # ------------------------------------------------------------------
+    # Schemas — Employee ID Format
+    # ------------------------------------------------------------------
+
+    add_schema(spec, "EmployeeIDFormatSettingResponse", obj({
+        "id": prop("string", fmt="uuid"),
+        "generation_mode": prop("string", enum=["MANUAL", "HYBRID", "AUTO"],
+                                 desc="MANUAL = user input, AUTO = auto-generate, HYBRID = manual with auto-fallback"),
+        "format_template": prop("string", desc="Format template (mis. EMP-YYYYMM-SEQ)"),
+        "reset_period": prop("string", enum=["YEARLY", "MONTHLY", "NEVER"]),
+        "last_sequence": prop("integer"),
+        "last_reset_key": prop("string"),
+        "created_at": prop("string", fmt="date-time"),
+        "updated_at": prop("string", fmt="date-time"),
+    }))
+
+    add_schema(spec, "UpdateEmployeeIDFormatRequest", obj({
+        "generation_mode": prop("string", enum=["MANUAL", "HYBRID", "AUTO"]),
+        "format_template": prop("string", desc="Format template (mis. EMP-YYYYMM-SEQ)"),
+        "reset_period": prop("string", enum=["YEARLY", "MONTHLY", "NEVER"]),
+    }, required=["generation_mode", "format_template", "reset_period"]))
+
+    add_schema(spec, "EmployeeIDFormatPreviewResponse", obj({
+        "preview": prop("string", desc="Contoh employee ID berikutnya")
+    }))
+
+    # ------------------------------------------------------------------
     # Schemas — Job management dashboard & leave
     # ------------------------------------------------------------------
 
@@ -381,6 +408,18 @@ def main():
                  request_body="UpdateDocumentNumberingRequest", responses=responses_ok("DocumentNumberingSettingResponse"))
     add_endpoint(spec, "GET", f"{DN}/{{document_type}}/preview", "Preview nomor dokumen berikutnya",
                  responses=responses_plain("Preview nomor dokumen", content_type="application/json"))
+
+    # ------------------------------------------------------------------
+    # Endpoints — Employee ID Format
+    # ------------------------------------------------------------------
+    EMP_FMT = "/api/v1/tenant/employee-id-format"
+
+    add_endpoint(spec, "GET", EMP_FMT, "Dapatkan setelan format employee ID",
+                 responses=responses_ok("EmployeeIDFormatSettingResponse"))
+    add_endpoint(spec, "PUT", EMP_FMT, "Perbarui setelan format employee ID",
+                 request_body="UpdateEmployeeIDFormatRequest", responses=responses_ok("EmployeeIDFormatSettingResponse"))
+    add_endpoint(spec, "GET", f"{EMP_FMT}/preview", "Preview employee ID berikutnya berdasarkan format aktif",
+                 responses=responses_ok("EmployeeIDFormatPreviewResponse"))
 
     # ------------------------------------------------------------------
     # Endpoints — Approval, Job Management, Leave

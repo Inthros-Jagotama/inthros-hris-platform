@@ -4,7 +4,7 @@ Dokumen ini menjelaskan **cara pakai / pengisian** modul **Competency 360** — 
 employee berbasis multi-rater (Self, Superior/Manager, Peer, Subordinate) dari setup master sampai
 hasil akhir — pola runbook seperti [`module-payroll-user-flow.md`](module-payroll-user-flow.md).
 
-- Plan pengembangan: [`module-competency-360-development-plan.md`](../module-competency-360-development-plan.md) — fase 1–7 selesai, fase 8 (testing/hardening) sebagian
+- Plan pengembangan: [`module-competency-360-development-plan.md`](../archive/module-competency-360-development-plan.md) — fase 1–7 selesai, fase 8 (testing/hardening) sebagian *(di-archive)*
 - Lokasi kode: `backend/internal/modules/competency/` · `frontend/tenant/src/views/modules/competency/`
 - Daftar endpoint + contoh curl: [`../api/api-usage-guide.md`](../api/api-usage-guide.md) → §8.2 (tabel Competency)
 

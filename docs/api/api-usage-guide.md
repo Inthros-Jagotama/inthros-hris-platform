@@ -5,7 +5,7 @@
 
 Panduan praktis **cara menggunakan API** HRIS Platform: dari menjalankan server, autentikasi, format request/response, sampai contoh pemanggilan end-to-end (curl).
 
-> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 1157 endpoint + skema, lihat:
+> 📖 Dokumen ini berfokus pada **cara pakai**. Untuk daftar lengkap seluruh 1166 endpoint + skema, lihat:
 > - [`docs/openapi-report.md`](../openapi-report.md) — laporan komprehensif per modul
 > - `backend/internal/pkg/docs/openapi.json` — OpenAPI 3.0 spec (sumber kebenaran)
 
@@ -115,7 +115,7 @@ Setelah server jalan, dokumentasi API tersedia di:
 |---|---|
 | `http://localhost:8080/docs` | **Scalar UI** — explore & try endpoint langsung dari browser |
 | `http://localhost:8080/openapi.json` | OpenAPI 3.0 spec mentah (JSON) |
-| `docs/openapi-report.md` | Laporan markdown statis (1157 endpoint, 693 paths, 790 schemas, 33 tag) |
+| `docs/openapi-report.md` | Laporan markdown statis (1166 endpoint, 701 paths, 799 schemas, 38 tag) |
 
 ---
 
@@ -466,7 +466,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/employees \
 
 | Modul | Contoh Endpoint |
 |---|---|
-| Settings / Master data | `GET /api/v1/tenant/settings/banks`, `.../religions`, `.../zones`, `.../company-holidays` |
+| Settings / Master data | `GET /api/v1/tenant/settings/banks`, `.../religions`, `.../zones`, `.../company-holidays`, `GET/PUT /api/v1/tenant/employee-id-format`, `GET .../employee-id-format/preview` |
 | Job Management | `GET/POST /api/v1/tenant/job-management/titles`, `.../values/tree` |
 | Training & Development | `GET/POST /api/v1/tenant/trainings/categories`, `.../courses`, `.../plans`, `.../needs`, `.../requests`, `.../providers`, `.../trainers`, `.../sessions`, `.../evaluation-forms`, `.../certifications`, `GET .../reports/participation`, `.../history` → lihat §8.8 |
 | Career Intelligence | `GET/POST /api/v1/tenant/career-intelligence/paths`, `.../talent-maps`, `.../interests`, `.../successions`, `GET .../successions/gaps`, `GET .../paths/gap-analysis` → lihat §8.10 |
@@ -484,7 +484,7 @@ curl -X POST http://localhost:8080/api/v1/tenant/employees \
 | Approval Engine | `GET/POST /api/v1/tenant/approval/flows`, `GET /api/v1/tenant/approval/available-modules`, `POST /api/v1/tenant/approval/instances/:id/actions` |
 | Employee Movement | `GET/POST /api/v1/tenant/employee-movements/movements`, `POST .../movements/:id/submit`, `.../:id/execute`, `GET .../employees/:employeeId/career-history`, `.../movement-eligibility`, `.../promotion-eligibility`, `GET .../reports/movements`, `.../reports/contracts`, `.../dashboard` |
 | Attendance | `GET/POST /api/v1/tenant/attendance/shifts`, `.../locations`, `.../events`, `GET .../sessions`, `.../calendar`, `.../summary`, `.../reports/sessions`, `POST/GET .../corrections`, `POST .../overtime-requests`, `.../overtime-requests/assign`, `.../overtime-requests/:id/actual`, `GET .../overtime-requests/assignable-employees` |
-| Attendance — Business Travel | `POST/GET/PUT/DELETE /api/v1/tenant/attendance/business-travels`, `.../business-travels/:id/submit`, `.../cancel`, `.../participants`, `.../destinations`, `.../activities`, `.../schedules`, `.../fundings`, `.../expenses`, `.../settlements`, `.../refunds`, `.../reimbursements`, `GET/POST .../business-travel-funding-methods`, `.../business-travel-expense-categories`, `GET .../stats/summary`, `.../stats/overtime-trend` |
+| Attendance — Business Travel | `POST/GET/PUT/DELETE /api/v1/tenant/attendance/business-travels`, `.../business-travels/:id/submit`, `.../cancel`, `.../participants`, `.../destinations`, `.../activities`, `.../schedules`, `.../fundings`, `.../expenses`, `.../settlements`, `.../refunds`, `.../reimbursements`, `GET/POST .../business-travel-funding-methods`, `.../business-travel-expense-categories`, `GET .../stats/summary`, `.../stats/overtime-trend`, `GET .../reports/travel`, `.../reports/funding`, `.../reports/advance`, `.../reports/reimbursement`, `.../reports/refund`, `.../reports/travel-cost` |
 | Document Templates | `GET/POST /api/v1/tenant/document-templates`, `GET .../movement-types`, `.../variables`, `GET/PUT/DELETE .../{id}`, `POST .../{id}/preview`, `.../activate`, `.../deactivate`, `GET/POST .../{id}/versions`, `GET .../{id}/versions/{versionId}` |
 | Document Numbering | `GET/PUT /api/v1/tenant/document-numbering`, `PUT .../{document_type}`, `GET .../{document_type}/preview` |
 | Notification | `GET /api/v1/tenant/notifications`, `.../unread-count`, `PATCH .../:id/read`, `POST .../read-all` |

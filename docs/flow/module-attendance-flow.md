@@ -5,7 +5,7 @@ check-in/check-out (geofence), koreksi, dan lembur (overtime 2 alur) — **plus 
 Perjalanan Dinas (Bagian B)**, bagian dari module Attendance. Pola runbook seperti
 [`module-payroll-user-flow.md`](module-payroll-user-flow.md).
 
-- Plan pengembangan: [`../module-attendance-plan.md`](../module-attendance-plan.md) — 🟡 sebagian (inti ✅; Absent/Exempt detection, Manager/HR dashboard, payroll integration belum)
+- Plan pengembangan: [`module-attendance-plan.md`](../archive/module-attendance-plan.md) — 🟡 sebagian (inti ✅; Absent/Exempt detection, Manager/HR dashboard, payroll integration belum)
 - Lokasi kode: `backend/internal/modules/attendance/` · `frontend/tenant/src/views/modules/attendance/`
 - Daftar endpoint + contoh curl: [`../api/api-usage-guide.md`](../api/api-usage-guide.md) → §8.2 (tabel Attendance)
 
@@ -185,7 +185,7 @@ Semua di bawah `/api/v1/tenant/attendance/`.
 # ══ BAGIAN B — BUSINESS TRAVEL / PERJALANAN DINAS ══
 
 > Business Travel adalah bagian dari module **Attendance** — runbook pengisiannya digabung ke
-> dokumen ini. Plan: [`../module-attendance-business-travel-development-plan.md`](../module-attendance-business-travel-development-plan.md)
+> dokumen ini. Plan: [`module-attendance-business-travel-development-plan.md`](../archive/module-attendance-business-travel-development-plan.md)
 > · UI: `frontend/tenant/src/views/modules/attendance/business-travel/`
 > (`BusinessTravelList.vue` / `BusinessTravelDetail.vue`).
 
