@@ -25,7 +25,7 @@
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('competency_360.overall_score') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ result.overall_score ?? 0 }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ result.overall_score ?? 0 }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('competency_360.total_gap') }}</p>
@@ -33,11 +33,11 @@
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('competency_360.self_score') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ result.self_score ?? 0 }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ result.self_score ?? 0 }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('competency_360.others_score') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ result.others_score ?? 0 }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ result.others_score ?? 0 }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('competency_360.perception_gap') }}</p>
@@ -77,7 +77,7 @@
             <div class="text-center py-6 text-gray-400 dark:text-gray-500 text-sm">{{ t('competency_360.no_data') }}</div>
           </template>
           <Column field="competency_name" :header="t('competency_360.competency')">
-            <template #body="{data}"><span class="text-gray-800 dark:text-gray-100">{{ data.competency_name || data.competency_id }}</span></template>
+            <template #body="{data}"><span class="text-navy-800 dark:text-gray-100">{{ data.competency_name || data.competency_id }}</span></template>
           </Column>
           <Column field="score" :header="t('competency_360.score')" style="width:80px">
             <template #body="{data}"><span class="text-gray-700 dark:text-gray-200 font-medium">{{ data.score }}</span></template>

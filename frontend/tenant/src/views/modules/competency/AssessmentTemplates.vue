@@ -35,7 +35,7 @@
         <template #body="{data}"><Tag :value="data.code || '-'" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
       </Column>
       <Column field="name" :header="t('common.name')">
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
       </Column>
       <Column :header="t('competency_360.competencies')" style="width:130px">
         <template #body="{data}">
@@ -73,7 +73,7 @@
         <div v-for="ind in allIndicators" :key="ind.id" class="flex items-start gap-2 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
           <ToggleSwitch v-model="selectedIndicatorIds[ind.id]" />
           <div class="flex-1 min-w-0">
-            <p class="text-sm text-gray-800 dark:text-gray-100">{{ ind.statement }}</p>
+            <p class="text-sm text-navy-800 dark:text-gray-100">{{ ind.statement }}</p>
             <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{{ ind.competency_name || '-' }}</p>
           </div>
           <div class="w-20 shrink-0">

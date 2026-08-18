@@ -33,7 +33,7 @@
       </template>
       <Column :header="t('competency_360.event_period')" style="width:150px">
         <template #body="{data}">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ periodLabel(data) }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ periodLabel(data) }}</span>
         </template>
       </Column>
       <Column field="type" :header="t('competency_360.event_type')" style="width:110px">
@@ -116,7 +116,7 @@
         </template>
         <Column :header="t('competency_360.employee')">
           <template #body="{data}">
-            <span class="text-gray-800 dark:text-gray-100">{{ employeeName(data.employee_id) }}</span>
+            <span class="text-navy-800 dark:text-gray-100">{{ employeeName(data.employee_id) }}</span>
           </template>
         </Column>
         <Column field="status" :header="t('common.status')" style="width:110px">

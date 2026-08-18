@@ -24,19 +24,19 @@
       <div v-if="hrReport" class="grid grid-cols-2 md:grid-cols-4 gap-2">
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('competency_360.total_targets') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ hrReport.total_targets ?? 0 }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ hrReport.total_targets ?? 0 }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('competency_360.finalized_targets') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ hrReport.finalized_targets ?? 0 }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ hrReport.finalized_targets ?? 0 }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('competency_360.rater_completion') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ hrReport.rater_completion ?? 0 }}%</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ hrReport.rater_completion ?? 0 }}%</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('competency_360.avg_score') }}</p>
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ hrReport.avg_score ?? 0 }}</p>
+          <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ hrReport.avg_score ?? 0 }}</p>
         </div>
       </div>
 
@@ -52,7 +52,7 @@
           </template>
           <Column :header="t('competency_360.employee')">
             <template #body="{data}">
-              <span class="text-gray-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span>
+              <span class="text-navy-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span>
             </template>
           </Column>
           <Column field="overall_score" :header="t('competency_360.overall_score')" style="width:100px">

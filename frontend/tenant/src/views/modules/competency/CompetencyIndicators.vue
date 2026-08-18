@@ -45,7 +45,7 @@
       </template>
       <Column field="competency_name" :header="t('competency_360.competency')" style="width:260px">
         <template #body="{data}">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.competency_name || '-' }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.competency_name || '-' }}</span>
         </template>
       </Column>
       <Column field="code" :header="t('competency_360.code')" style="width:120px">

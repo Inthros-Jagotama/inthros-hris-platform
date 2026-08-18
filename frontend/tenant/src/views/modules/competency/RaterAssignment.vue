@@ -38,7 +38,7 @@
       </template>
       <Column :header="t('competency_360.employee')" style="width:200px">
         <template #body="{data}">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span>
         </template>
       </Column>
       <Column :header="t('competency_360.event_period')" style="width:140px">
@@ -89,7 +89,7 @@
         </template>
         <Column :header="t('competency_360.rater')">
           <template #body="{data}">
-            <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.rater_employee_name || data.rater_employee_id?.slice(0, 8) }}</span>
+            <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.rater_employee_name || data.rater_employee_id?.slice(0, 8) }}</span>
           </template>
         </Column>
         <Column :header="t('competency_360.rater_type')" style="width:130px">

@@ -13,17 +13,17 @@
           v-for="menu in group.items"
           :key="menu.route"
           type="button"
-          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-teal-300 dark:hover:border-teal-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
           @click="router.push(menu.route)"
         >
           <div class="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center transition-colors" :class="menu.tint">
             <i :class="menu.icon" class="text-base"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(menu.titleKey) }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ t(menu.titleKey) }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(menu.descKey) }}</p>
           </div>
-          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
         </button>
       </div>
     </div>
@@ -49,7 +49,7 @@ const menuGroups = computed(() => {
     {
       titleKey: 'competency_360.group_settings',
       items: [
-        { route: '/competencies/values', titleKey: 'competency_360.rating_scales', descKey: 'competency_360.rating_scales_desc', icon: 'pi pi-sliders-h', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', permission: 'competency.settings.view' },
+        { route: '/competencies/values', titleKey: 'competency_360.rating_scales', descKey: 'competency_360.rating_scales_desc', icon: 'pi pi-sliders-h', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', permission: 'competency.settings.view' },
         { route: '/competencies/indicators', titleKey: 'competency_360.indicators', descKey: 'competency_360.indicators_desc', icon: 'pi pi-list', tint: 'bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400', permission: 'competency.settings.view' },
         { route: '/competencies/templates', titleKey: 'competency_360.templates', descKey: 'competency_360.templates_desc', icon: 'pi pi-clone', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', permission: 'competency.settings.view' },
         { route: '/competencies/events', titleKey: 'competency_360.events', descKey: 'competency_360.events_desc', icon: 'pi pi-calendar', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', permission: 'competency.settings.view' },

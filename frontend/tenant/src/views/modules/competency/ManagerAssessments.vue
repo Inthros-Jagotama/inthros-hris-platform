@@ -13,7 +13,7 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">
               {{ t('competency_360.assessing') }}: {{ detail.target?.employee_id ? subjectName(detail.target.employee_id) : '-' }}
             </p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -34,7 +34,7 @@
 
         <div v-else class="space-y-3">
           <div v-for="ind in detail.indicators" :key="ind.indicator_id" class="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ ind.statement }}</p>
+            <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ ind.statement }}</p>
             <div class="flex items-center gap-4 mt-2 flex-wrap">
               <div class="flex items-center gap-1.5">
                 <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('competency_360.rating') }}:</span>
@@ -89,7 +89,7 @@
           </template>
           <Column :header="t('competency_360.subordinate')">
             <template #body="{data}">
-              <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.employee_name || data.employee_id?.slice(0, 8) || '-' }}</span>
+              <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.employee_name || data.employee_id?.slice(0, 8) || '-' }}</span>
             </template>
           </Column>
           <Column :header="t('competency_360.event_period')" style="width:140px">
