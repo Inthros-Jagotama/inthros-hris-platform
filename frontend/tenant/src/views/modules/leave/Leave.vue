@@ -42,7 +42,7 @@
             <i :class="card.icon" class="text-base"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(card.titleKey) }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ t(card.titleKey) }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(card.descKey) }}</p>
           </div>
           <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
@@ -97,7 +97,7 @@
           </template>
           <Column :header="t('leave.leave_type')" style="width:180px">
             <template #body="{data}">
-              <span class="text-gray-800 dark:text-gray-100 font-medium">{{ leaveTypeName(data.leave_type_id) }}</span>
+              <span class="text-navy-800 dark:text-gray-100 font-medium">{{ leaveTypeName(data.leave_type_id) }}</span>
             </template>
           </Column>
           <Column :header="t('leave.request_start_date')" style="width:150px">

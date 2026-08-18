@@ -32,7 +32,7 @@
       </template>
       <Column :header="t('leave.leave_type')" style="width:160px">
         <template #body="{data}">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ leaveTypeName(data.leave_type_id) }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ leaveTypeName(data.leave_type_id) }}</span>
         </template>
       </Column>
       <Column field="base_quota_days" :header="t('leave.base_quota_days')" style="width:120px">

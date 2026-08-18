@@ -34,7 +34,7 @@
         <template #body="{data}"><Tag :value="data.code" severity="info" class="!text-xs !px-1.5 !py-0.5" /></template>
       </Column>
       <Column field="name" :header="t('common.name')">
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
       </Column>
       <Column field="quota_period" :header="t('leave.quota_period')" style="width:110px">
         <template #body="{data}"><span class="text-gray-500 dark:text-gray-400">{{ t('leave.quota_period_' + (data.quota_period || 'none').toLowerCase()) }}</span></template>
