@@ -22,7 +22,7 @@
     <div v-if="items.length" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800">
         <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('payroll.total_earning') }}</p>
-        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-1">{{ formatMoney(sum(items, 'total_earning')) }}</p>
+        <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-1">{{ formatMoney(sum(items, 'total_earning')) }}</p>
       </div>
       <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800">
         <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('payroll.total_deduction') }}</p>
@@ -38,7 +38,7 @@
       </div>
       <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800">
         <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('payroll.total_company_cost') }}</p>
-        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-1">{{ formatMoney(sum(items, 'total_company_cost')) }}</p>
+        <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-1">{{ formatMoney(sum(items, 'total_company_cost')) }}</p>
       </div>
     </div>
 
@@ -89,7 +89,7 @@
         <template #body="{ data }"><span class="text-gray-600 dark:text-gray-300">{{ data.total_employees }}</span></template>
       </Column>
       <Column field="total_net" :header="t('payroll.total_net')" sortable style="width:150px">
-        <template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-medium font-mono text-xs">{{ formatMoney(data.total_net) }}</span></template>
+        <template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-medium font-mono text-xs">{{ formatMoney(data.total_net) }}</span></template>
       </Column>
       <Column field="calculated_at" :header="t('payroll.calculated')" sortable style="width:130px">
         <template #body="{ data }"><span class="text-gray-500 dark:text-gray-400 text-xs">{{ data.calculated_at ? formatDateTime(data.calculated_at) : '-' }}</span></template>

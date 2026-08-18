@@ -13,7 +13,7 @@
         <div class="flex items-start justify-between gap-3 flex-wrap">
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <h2 class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ run.run_code }}</h2>
+              <h2 class="text-base font-semibold text-navy-800 dark:text-gray-100">{{ run.run_code }}</h2>
               <Tag :value="statusLabel(run.status)" :severity="statusSeverity(run.status)" class="!text-xs !px-1.5 !py-0.5" />
               <Tag :value="t('payroll.run_type_' + run.run_type.toLowerCase())" severity="info" class="!text-xs !px-1.5 !py-0.5" />
             </div>
@@ -55,11 +55,11 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('payroll.total_employees') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{{ run.total_employees }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5">{{ run.total_employees }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('payroll.total_earning') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{{ formatMoney(run.total_earning) }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5">{{ formatMoney(run.total_earning) }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('payroll.total_deduction') }}</p>
@@ -75,7 +75,7 @@
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('payroll.total_company_cost') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{{ formatMoney(run.total_company_cost) }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5">{{ formatMoney(run.total_company_cost) }}</p>
           </div>
         </div>
       </div>
@@ -109,13 +109,13 @@
               <div v-else-if="summary" class="divide-y divide-gray-100 dark:divide-gray-800">
                 <div v-for="row in summaryRows" :key="row.key" class="flex items-center justify-between px-3 py-2.5">
                   <span class="text-sm text-gray-500 dark:text-gray-400">{{ t(row.labelKey) }}</span>
-                  <span class="text-sm font-semibold text-gray-800 dark:text-gray-100 font-mono text-xs">{{ row.value }}</span>
+                  <span class="text-sm font-semibold text-navy-800 dark:text-gray-100 font-mono text-xs">{{ row.value }}</span>
                 </div>
               </div>
             </div>
             <div class="rounded-lg border border-gray-200 dark:border-gray-700">
               <div class="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
-                <i class="pi pi-clock text-indigo-500 text-sm"></i>
+                <i class="pi pi-clock text-teal-500 text-sm"></i>
                 <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('common.status') }}</h3>
               </div>
               <div class="p-4 space-y-3">
@@ -125,11 +125,11 @@
                 </div>
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('payroll.calculated') }}</span>
-                  <span class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ run.calculated_at ? formatDateTime(run.calculated_at) : '-' }}</span>
+                  <span class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ run.calculated_at ? formatDateTime(run.calculated_at) : '-' }}</span>
                 </div>
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('payroll.status_reviewed') }}</span>
-                  <span class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ run.reviewed_at ? formatDateTime(run.reviewed_at) : '-' }}</span>
+                  <span class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ run.reviewed_at ? formatDateTime(run.reviewed_at) : '-' }}</span>
                 </div>
                 <div v-if="run.status === 'CALCULATED' && run.approval_instance_id" class="flex items-center justify-between">
                   <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('payroll.approval_submit') }}</span>
@@ -137,11 +137,11 @@
                 </div>
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('payroll.status_approved') }}</span>
-                  <span class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ run.approved_at ? formatDateTime(run.approved_at) : '-' }}</span>
+                  <span class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ run.approved_at ? formatDateTime(run.approved_at) : '-' }}</span>
                 </div>
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('payroll.status_locked') }}</span>
-                  <span class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ run.locked_at ? formatDateTime(run.locked_at) : '-' }}</span>
+                  <span class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ run.locked_at ? formatDateTime(run.locked_at) : '-' }}</span>
                 </div>
               </div>
             </div>
@@ -164,7 +164,7 @@
               <template #body="{ data }"><span class="text-gray-600 dark:text-gray-300">{{ data.employee_code }}</span></template>
             </Column>
             <Column field="employee_name" :header="t('payroll.employee_name')">
-              <template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template>
+              <template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template>
             </Column>
             <Column field="position_title" :header="t('payroll.position_title')" style="width:180px">
               <template #body="{ data }"><span class="text-gray-600 dark:text-gray-300">{{ data.position_title || '-' }}</span></template>
@@ -194,7 +194,7 @@
               </div>
             </template>
             <Column field="employee_name" :header="t('payroll.employee_name')" style="width:180px">
-              <template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ employeeNameFor(data.employee_id) }}</span></template>
+              <template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ employeeNameFor(data.employee_id) }}</span></template>
             </Column>
             <Column field="component_name" :header="t('payroll.component_name')">
               <template #body="{ data }">
@@ -215,7 +215,7 @@
               <template #body="{ data }"><span class="text-gray-600 dark:text-gray-300 text-xs">{{ data.rate != null ? (data.rate * 100).toFixed(2) + '%' : '-' }}</span></template>
             </Column>
             <Column field="amount" :header="t('payroll.amount')" style="width:140px">
-              <template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-semibold font-mono text-xs">{{ formatMoney(data.amount) }}</span></template>
+              <template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-semibold font-mono text-xs">{{ formatMoney(data.amount) }}</span></template>
             </Column>
           </DataTable>
         </div>
@@ -234,7 +234,7 @@
               </div>
             </template>
             <Column field="payslip_number" :header="t('payroll.payslip_number')" style="width:160px">
-              <template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.payslip_number }}</span></template>
+              <template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.payslip_number }}</span></template>
             </Column>
             <Column field="employee_name" :header="t('payroll.employee_name')">
               <template #body="{ data }"><span class="text-gray-700 dark:text-gray-200">{{ data.employee_name }}</span></template>
@@ -283,7 +283,7 @@
               </div>
             </template>
             <Column field="employee_name" :header="t('payroll.employee_name')">
-              <template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template>
+              <template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template>
             </Column>
             <Column field="bank_name" :header="t('payroll.bank_name')" style="width:130px">
               <template #body="{ data }"><span class="text-gray-600 dark:text-gray-300">{{ data.bank_name || '-' }}</span></template>
@@ -292,7 +292,7 @@
               <template #body="{ data }"><span class="text-gray-600 dark:text-gray-300 font-mono text-xs">{{ data.bank_account_number }}</span></template>
             </Column>
             <Column field="amount" :header="t('payroll.amount')" style="width:140px">
-              <template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-semibold font-mono text-xs">{{ formatMoney(data.amount) }}</span></template>
+              <template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-semibold font-mono text-xs">{{ formatMoney(data.amount) }}</span></template>
             </Column>
             <Column field="status" :header="t('common.status')" style="width:110px">
               <template #body="{ data }"><Tag :value="paymentStatusLabel(data.status)" :severity="paymentStatusSeverity(data.status)" class="!text-xs !px-1.5 !py-0.5" /></template>
@@ -335,35 +335,35 @@
           <div v-if="activeReport === 'summary'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div v-for="row in summaryRows" :key="row.key" class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
               <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t(row.labelKey) }}</p>
-              <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-1 font-mono">{{ row.value }}</p>
+              <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-1 font-mono">{{ row.value }}</p>
             </div>
           </div>
 
           <!-- Detail -->
           <DataTable v-if="activeReport === 'detail'" :value="detailRows" size="small" class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" :loading="reportLoading">
             <template #empty><div class="text-center py-6 text-sm text-gray-400">{{ t('payroll.items_empty') }}</div></template>
-            <Column field="employee_name" :header="t('payroll.employee_name')" style="width:180px"><template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template></Column>
+            <Column field="employee_name" :header="t('payroll.employee_name')" style="width:180px"><template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template></Column>
             <Column field="component_name" :header="t('payroll.component_name')"><template #body="{ data }"><span class="text-gray-700 dark:text-gray-200">{{ data.component_name }}</span></template></Column>
             <Column field="item_category" :header="t('payroll.item_category')" style="width:120px"><template #body="{ data }"><Tag :value="itemCategoryLabel(data.item_category)" :severity="itemCategorySeverity(data.item_category)" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
             <Column field="base_amount" :header="t('payroll.base_amount')" style="width:120px"><template #body="{ data }"><span class="text-gray-600 dark:text-gray-300 font-mono text-xs">{{ formatMoney(data.base_amount) }}</span></template></Column>
-            <Column field="amount" :header="t('payroll.amount')" style="width:130px"><template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-semibold font-mono text-xs">{{ formatMoney(data.amount) }}</span></template></Column>
+            <Column field="amount" :header="t('payroll.amount')" style="width:130px"><template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-semibold font-mono text-xs">{{ formatMoney(data.amount) }}</span></template></Column>
           </DataTable>
 
           <!-- BPJS -->
           <DataTable v-if="activeReport === 'bpjs'" :value="bpjsRows" size="small" class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" :loading="reportLoading">
             <template #empty><div class="text-center py-6 text-sm text-gray-400">{{ t('payroll.bpjs_settings_empty') }}</div></template>
-            <Column field="employee_name" :header="t('payroll.employee_name')" style="width:180px"><template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template></Column>
+            <Column field="employee_name" :header="t('payroll.employee_name')" style="width:180px"><template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template></Column>
             <Column field="bpjs_number" :header="t('payroll.bpjs_number')" style="width:160px"><template #body="{ data }"><span class="text-gray-600 dark:text-gray-300 font-mono text-xs">{{ data.bpjs_number || '-' }}</span></template></Column>
             <Column field="wage_basis" :header="t('payroll.wage_basis')" style="width:130px"><template #body="{ data }"><span class="text-gray-700 dark:text-gray-200 font-mono text-xs">{{ formatMoney(data.wage_basis) }}</span></template></Column>
             <Column field="employee_contribution" :header="t('payroll.employee_contribution')" style="width:130px"><template #body="{ data }"><span class="text-rose-600 dark:text-rose-400 font-mono text-xs">{{ formatMoney(data.employee_contribution) }}</span></template></Column>
             <Column field="employer_contribution" :header="t('payroll.employer_contribution')" style="width:130px"><template #body="{ data }"><span class="text-amber-600 dark:text-amber-400 font-mono text-xs">{{ formatMoney(data.employer_contribution) }}</span></template></Column>
-            <Column field="total_contribution" :header="t('payroll.total_contribution')" style="width:130px"><template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-semibold font-mono text-xs">{{ formatMoney(data.total_contribution) }}</span></template></Column>
+            <Column field="total_contribution" :header="t('payroll.total_contribution')" style="width:130px"><template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-semibold font-mono text-xs">{{ formatMoney(data.total_contribution) }}</span></template></Column>
           </DataTable>
 
           <!-- Tax -->
           <DataTable v-if="activeReport === 'tax'" :value="taxRows" size="small" class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" :loading="reportLoading">
             <template #empty><div class="text-center py-6 text-sm text-gray-400">{{ t('payroll.pph21_settings_empty') }}</div></template>
-            <Column field="employee_name" :header="t('payroll.employee_name')" style="width:180px"><template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template></Column>
+            <Column field="employee_name" :header="t('payroll.employee_name')" style="width:180px"><template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template></Column>
             <Column field="taxable_income" :header="t('payroll.taxable_income')" style="width:160px"><template #body="{ data }"><span class="text-gray-700 dark:text-gray-200 font-mono text-xs">{{ formatMoney(data.taxable_income) }}</span></template></Column>
             <Column field="pph21" :header="t('payroll.pph21_amount')" style="width:140px"><template #body="{ data }"><span class="text-rose-600 dark:text-rose-400 font-semibold font-mono text-xs">{{ formatMoney(data.pph21) }}</span></template></Column>
           </DataTable>
@@ -371,11 +371,11 @@
           <!-- Bank -->
           <DataTable v-if="activeReport === 'bank'" :value="bankRows" size="small" class="!text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" :loading="reportLoading">
             <template #empty><div class="text-center py-6 text-sm text-gray-400">{{ t('payroll.payments_empty') }}</div></template>
-            <Column field="employee_name" :header="t('payroll.employee_name')" style="width:180px"><template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template></Column>
+            <Column field="employee_name" :header="t('payroll.employee_name')" style="width:180px"><template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.employee_name }}</span></template></Column>
             <Column field="bank_name" :header="t('payroll.bank_name')" style="width:130px"><template #body="{ data }"><span class="text-gray-600 dark:text-gray-300">{{ data.bank_name || '-' }}</span></template></Column>
             <Column field="account_number" :header="t('payroll.account_number')" style="width:150px"><template #body="{ data }"><span class="text-gray-600 dark:text-gray-300 font-mono text-xs">{{ data.account_number }}</span></template></Column>
             <Column field="account_holder_name" :header="t('payroll.account_holder_name')" style="width:170px"><template #body="{ data }"><span class="text-gray-600 dark:text-gray-300">{{ data.account_holder_name }}</span></template></Column>
-            <Column field="amount" :header="t('payroll.amount')" style="width:140px"><template #body="{ data }"><span class="text-gray-800 dark:text-gray-100 font-semibold font-mono text-xs">{{ formatMoney(data.amount) }}</span></template></Column>
+            <Column field="amount" :header="t('payroll.amount')" style="width:140px"><template #body="{ data }"><span class="text-navy-800 dark:text-gray-100 font-semibold font-mono text-xs">{{ formatMoney(data.amount) }}</span></template></Column>
             <Column field="status" :header="t('common.status')" style="width:110px"><template #body="{ data }"><Tag :value="paymentStatusLabel(data.status)" :severity="paymentStatusSeverity(data.status)" class="!text-xs !px-1.5 !py-0.5" /></template></Column>
           </DataTable>
         </div>
