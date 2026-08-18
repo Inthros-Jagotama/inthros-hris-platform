@@ -92,7 +92,7 @@
       </Column>
       <Column field="flow_name" :header="t('approval.instance')">
         <template #body="{data}">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.flow_name || '-' }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.flow_name || '-' }}</span>
         </template>
       </Column>
       <Column field="submitter_name" :header="t('approval.submitted_by')">
@@ -136,7 +136,7 @@
         <!-- Left column: the data being submitted -->
         <div class="space-y-4 md:border-r md:border-gray-200 md:dark:border-gray-700 md:pr-5">
           <div v-if="!isAttendanceModule" class="flex items-center gap-2">
-            <i class="pi pi-file text-indigo-400 text-sm"></i>
+            <i class="pi pi-file text-teal-400 text-sm"></i>
             <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('approval.submitted_data') }}</h2>
             <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
           </div>
@@ -147,7 +147,7 @@
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="col-span-2">
                 <p class="text-xs text-gray-400">{{ t('kpi.employee') }}</p>
-                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ documentDetail?.employee_name || '-' }}</p>
+                <p class="text-navy-800 dark:text-gray-100 font-medium">{{ documentDetail?.employee_name || '-' }}</p>
               </div>
               <div>
                 <p class="text-xs text-gray-400">{{ t('kpi.organization') }}</p>
@@ -190,7 +190,7 @@
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="col-span-2">
                 <p class="text-xs text-gray-400">{{ t('okr.employee') }}</p>
-                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ documentDetail?.employee_name || '-' }}</p>
+                <p class="text-navy-800 dark:text-gray-100 font-medium">{{ documentDetail?.employee_name || '-' }}</p>
               </div>
               <div>
                 <p class="text-xs text-gray-400">{{ t('okr.organization') }}</p>
@@ -224,14 +224,14 @@
               <!-- Group: Informasi Lembur -->
               <div>
                 <div class="flex items-center gap-2 mb-2">
-                  <i class="pi pi-clock text-indigo-400 text-sm"></i>
+                  <i class="pi pi-clock text-teal-400 text-sm"></i>
                   <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('attendance.overtime_info') }}</h2>
                   <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-3 text-sm">
                   <div class="col-span-2">
                     <p class="text-xs text-gray-400">{{ t('attendance.employee') }}</p>
-                    <p class="text-gray-800 dark:text-gray-100 font-medium">{{ overtimeEmployeeName || '-' }}</p>
+                    <p class="text-navy-800 dark:text-gray-100 font-medium">{{ overtimeEmployeeName || '-' }}</p>
                     <p v-if="overtimeEmployeeCode" class="text-xs text-gray-400">{{ overtimeEmployeeCode }}</p>
                   </div>
                   <div>
@@ -283,7 +283,7 @@
               <!-- Group: Detail Aktual -->
               <div v-if="hasActualData">
                 <div class="flex items-center gap-2 mb-2">
-                  <i class="pi pi-check-square text-indigo-400 text-sm"></i>
+                  <i class="pi pi-check-square text-teal-400 text-sm"></i>
                   <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('attendance.actual_data') }}</h2>
                   <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
                 </div>
@@ -319,7 +319,7 @@
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="col-span-2">
                 <p class="text-xs text-gray-400">{{ t('leave.employee') }}</p>
-                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ leaveEmployeeName || '-' }}</p>
+                <p class="text-navy-800 dark:text-gray-100 font-medium">{{ leaveEmployeeName || '-' }}</p>
                 <p v-if="leaveEmployeeCode" class="text-xs text-gray-400">{{ leaveEmployeeCode }}</p>
               </div>
               <div class="col-span-2">
@@ -357,7 +357,7 @@
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="col-span-2">
                 <p class="text-xs text-gray-400">{{ t('employee_movement.employee') }}</p>
-                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ documentDetail?.employee_name || '-' }}</p>
+                <p class="text-navy-800 dark:text-gray-100 font-medium">{{ documentDetail?.employee_name || '-' }}</p>
                 <p v-if="documentDetail?.employee_code" class="text-xs text-gray-400">{{ documentDetail.employee_code }}</p>
               </div>
               <div>
@@ -411,7 +411,7 @@
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="col-span-2">
                 <p class="text-xs text-gray-400">{{ t('requisitions.title') }}</p>
-                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ documentDetail?.title || '-' }}</p>
+                <p class="text-navy-800 dark:text-gray-100 font-medium">{{ documentDetail?.title || '-' }}</p>
                 <p v-if="documentDetail?.requisition_number" class="text-xs text-gray-400 font-mono">{{ documentDetail.requisition_number }}</p>
               </div>
               <div>
@@ -478,7 +478,7 @@
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="col-span-2">
                 <p class="text-xs text-gray-400">{{ t('offers.offer_number') }}</p>
-                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ documentDetail?.offer_number || '-' }}</p>
+                <p class="text-navy-800 dark:text-gray-100 font-medium">{{ documentDetail?.offer_number || '-' }}</p>
               </div>
               <div>
                 <p class="text-xs text-gray-400">{{ t('common.status') }}</p>
@@ -516,7 +516,7 @@
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="col-span-2">
                 <p class="text-xs text-gray-400">{{ t('training.request_employee') }}</p>
-                <p class="text-gray-800 dark:text-gray-100 font-medium">{{ trainingRequestEmployeeName || '-' }}</p>
+                <p class="text-navy-800 dark:text-gray-100 font-medium">{{ trainingRequestEmployeeName || '-' }}</p>
               </div>
               <div class="col-span-2">
                 <p class="text-xs text-gray-400">{{ t('training.request_course') }}</p>
@@ -558,7 +558,7 @@
         <!-- Right column: existing approval data -->
         <div class="space-y-4">
           <div class="flex items-center gap-2">
-            <i class="pi pi-check-circle text-indigo-400 text-sm"></i>
+            <i class="pi pi-check-circle text-teal-400 text-sm"></i>
             <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('approval.approval_data') }}</h2>
             <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
           </div>

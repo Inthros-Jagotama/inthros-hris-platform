@@ -23,7 +23,7 @@
       </Column>
       <Column field="name" :header="t('approval.flow_name')">
         <template #body="{data}">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
         </template>
       </Column>
       <Column field="version" :header="t('approval.version')" style="width:90px">
@@ -118,7 +118,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ step.step_name }}</span>
+                <span class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ step.step_name }}</span>
                 <Tag :value="step.approver_type" severity="info" class="!text-xs !px-1.5 !py-0.5" />
                 <Tag :value="step.participation_type" :severity="step.participation_type === 'WATCHER' ? 'secondary' : 'success'" class="!text-xs !px-1.5 !py-0.5" />
                 <Tag :value="step.approval_mode" severity="secondary" class="!text-xs !px-1.5 !py-0.5" />
