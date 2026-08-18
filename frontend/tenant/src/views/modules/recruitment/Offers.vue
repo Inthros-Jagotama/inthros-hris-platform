@@ -52,11 +52,11 @@
       <Column :header="t('offers.candidate')" style="min-width: 200px">
         <template #body="{ data }">
           <div class="flex items-center gap-2.5 min-w-0">
-            <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <div class="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
               <i class="pi pi-user text-xs"></i>
             </div>
             <div class="min-w-0">
-              <p class="font-medium text-gray-800 dark:text-gray-100 truncate">{{ candidateName(data.application_id) }}</p>
+              <p class="font-medium text-navy-800 dark:text-gray-100 truncate">{{ candidateName(data.application_id) }}</p>
               <p class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ applicationStatus(data.application_id) }}</p>
             </div>
           </div>

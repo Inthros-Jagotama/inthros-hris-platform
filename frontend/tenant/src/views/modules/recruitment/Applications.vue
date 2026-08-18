@@ -43,7 +43,7 @@
       <Column :header="t('applications.candidate')">
         <template #body="{ data }">
           <button type="button" class="text-left group" @click="router.push(`/recruitment/applications/${data.id}`)">
-            <p class="font-medium text-gray-800 dark:text-gray-100 group-hover:text-sky-600 dark:group-hover:text-sky-400">{{ candidateName(data.candidate_id) }}</p>
+            <p class="font-medium text-navy-800 dark:text-gray-100 group-hover:text-sky-600 dark:group-hover:text-sky-400">{{ candidateName(data.candidate_id) }}</p>
             <p class="text-xs text-gray-400 dark:text-gray-500">{{ candidateEmail(data.candidate_id) }}</p>
           </button>
         </template>

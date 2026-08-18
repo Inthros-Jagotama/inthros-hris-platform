@@ -13,7 +13,7 @@
         <div class="flex items-start justify-between gap-3 flex-wrap">
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <h2 class="text-base font-semibold text-gray-800 dark:text-gray-100 truncate">{{ candidateName }}</h2>
+              <h2 class="text-base font-semibold text-navy-800 dark:text-gray-100 truncate">{{ candidateName }}</h2>
               <Tag :value="t('applications.status_' + (application.status || 'new').toLowerCase())" :severity="statusSeverity(application.status)" class="!text-xs !px-1.5 !py-0.5" />
             </div>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ requisitionTitle }}</p>
@@ -54,7 +54,7 @@
             <div v-for="item in history" :key="item.id" class="flex items-center gap-3 px-3 py-2.5">
               <i class="pi pi-arrow-right-arrow-left text-gray-400 text-xs"></i>
               <div class="min-w-0 flex-1">
-                <p class="text-sm text-gray-800 dark:text-gray-100">
+                <p class="text-sm text-navy-800 dark:text-gray-100">
                   <span v-if="item.from_stage" class="text-gray-400">{{ item.from_stage.name }} →</span>
                   <span class="font-medium">{{ item.to_stage.name }}</span>
                 </p>
@@ -94,7 +94,7 @@
           <div v-else-if="participations.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             <div v-for="item in participations" :key="item.participant.id" class="flex items-center gap-3 px-3 py-2.5">
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.assessmentName }}</p>
+                <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.assessmentName }}</p>
                 <p class="text-xs text-gray-400">{{ t('applications.participant_status_' + (item.participant.status || 'invited').toLowerCase()) }} <span v-if="item.participant.score">· {{ t('applications.score') }}: {{ item.participant.score }}</span></p>
                 <p v-if="item.participant.recommendation" class="text-xs text-gray-400 mt-0.5">{{ t('applications.assessment_recommendation') }}: {{ item.participant.recommendation }}</p>
               </div>
@@ -113,7 +113,7 @@
           <div v-if="interviews.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             <div v-for="item in interviews" :key="item.id" class="flex items-center gap-3 px-3 py-2.5">
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.stage }}</p>
+                <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.stage }}</p>
                 <p class="text-xs text-gray-400">{{ t('applications.interviewer') }}: {{ employeeName(item.interviewer_id) }} <span v-if="item.score">· {{ t('applications.score') }}: {{ item.score }}</span></p>
               </div>
               <Tag :value="t('applications.interview_status_' + (item.status || 'scheduled').toLowerCase())" :severity="interviewStatusSeverity(item.status)" class="!text-xs !px-1.5 !py-0.5" />
@@ -136,7 +136,7 @@
             <div v-if="matchScore.breakdown && matchScore.breakdown.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
               <div v-for="(b, i) in matchScore.breakdown" :key="i" class="flex items-center gap-3 px-3 py-2.5">
                 <div class="min-w-0 flex-1">
-                  <p class="text-sm text-gray-800 dark:text-gray-100">{{ b.competency_name || b.competency_id }}</p>
+                  <p class="text-sm text-navy-800 dark:text-gray-100">{{ b.competency_name || b.competency_id }}</p>
                   <p class="text-xs text-gray-400">{{ t('applications.required_level') }} {{ b.required_level }} · {{ t('applications.candidate_level') }} {{ b.candidate_level }} · {{ t('applications.weight') }} {{ b.weight }}</p>
                 </div>
               </div>
@@ -187,7 +187,7 @@
               <div v-if="evaluation.requirements.competencies && evaluation.requirements.competencies.length" class="divide-y divide-gray-100 dark:divide-gray-800">
                 <div v-for="comp in evaluation.requirements.competencies" :key="comp.competency_id" class="flex items-center gap-3 px-3 py-2.5 flex-wrap">
                   <div class="min-w-0 flex-1">
-                    <p class="text-sm text-gray-800 dark:text-gray-100">{{ comp.competency_name || comp.competency_id }}</p>
+                    <p class="text-sm text-navy-800 dark:text-gray-100">{{ comp.competency_name || comp.competency_id }}</p>
                     <p class="text-xs text-gray-400">{{ t('applications.required_level') }} {{ comp.required_level }}<span v-if="comp.weight"> · {{ t('applications.weight') }} {{ comp.weight }}</span></p>
                   </div>
                   <div class="flex items-center gap-2 w-full lg:w-auto">
@@ -294,7 +294,7 @@
       <div v-if="manageInterview" class="space-y-5">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ manageInterview.stage }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ manageInterview.stage }}</p>
             <Tag :value="t('applications.interview_status_' + (manageInterview.status || 'scheduled').toLowerCase())" :severity="interviewStatusSeverity(manageInterview.status)" class="!text-xs !px-1.5 !py-0.5 mt-1" />
           </div>
           <Button

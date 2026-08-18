@@ -25,7 +25,7 @@
 
       <Column field="name" :header="t('assessments.name')">
         <template #body="{ data }">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
+          <span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span>
         </template>
       </Column>
       <Column :header="t('assessments.type')" style="width:150px">

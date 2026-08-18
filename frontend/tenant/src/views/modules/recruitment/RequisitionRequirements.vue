@@ -11,7 +11,7 @@
       <!-- Header -->
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between gap-3 flex-wrap">
         <div class="min-w-0">
-          <h2 class="text-base font-semibold text-gray-800 dark:text-gray-100 truncate">{{ requisition.title }}</h2>
+          <h2 class="text-base font-semibold text-navy-800 dark:text-gray-100 truncate">{{ requisition.title }}</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ t('requisitions.requirements_competencies') }}</p>
         </div>
         <Button :label="t('common.back')" icon="pi pi-arrow-left" size="small" severity="secondary" outlined @click="router.push('/recruitment/requisitions')" />
@@ -27,7 +27,7 @@
           <div v-if="requirements.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             <div v-for="item in requirements" :key="item.id" class="flex items-center gap-2 px-3 py-2.5">
               <div class="min-w-0 flex-1">
-                <p class="text-sm text-gray-800 dark:text-gray-100">{{ item.name }}</p>
+                <p class="text-sm text-navy-800 dark:text-gray-100">{{ item.name }}</p>
                 <p class="text-xs text-gray-400">{{ item.requirement_type }}<span v-if="item.minimum_value || item.maximum_value"> · {{ item.minimum_value ?? '?' }}–{{ item.maximum_value ?? '?' }}</span></p>
               </div>
               <Tag v-if="item.is_required" :value="t('requisitions.required')" severity="danger" class="!text-[10px] !px-1.5 !py-0" />
@@ -91,7 +91,7 @@
             <template v-if="sec.items.length">
               <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
                 <div v-for="item in sec.items" :key="item.id" class="px-3 py-2.5">
-                  <p class="text-sm text-gray-800 dark:text-gray-100">{{ competencyName(item) }}</p>
+                  <p class="text-sm text-navy-800 dark:text-gray-100">{{ competencyName(item) }}</p>
                   <p v-if="item.required_level || item.weight" class="text-xs text-gray-400">
                     <span v-if="item.required_level">{{ t('requisitions.required_level') }} {{ item.required_level }}</span>
                     <span v-if="item.weight"> · {{ t('requisitions.weight') }} {{ item.weight }}%</span>
@@ -128,7 +128,7 @@
             </div>
             <div class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
               <div v-for="item in otherItems" :key="item.id" class="px-3 py-2.5">
-                <p class="text-sm text-gray-800 dark:text-gray-100">{{ competencyName(item) }}</p>
+                <p class="text-sm text-navy-800 dark:text-gray-100">{{ competencyName(item) }}</p>
                 <p v-if="item.required_level || item.weight" class="text-xs text-gray-400">
                   <span v-if="item.required_level">{{ t('requisitions.required_level') }} {{ item.required_level }}</span>
                   <span v-if="item.weight"> · {{ t('requisitions.weight') }} {{ item.weight }}%</span>

@@ -50,7 +50,7 @@
             </div>
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
-                <p class="font-medium text-gray-800 dark:text-gray-100 truncate">{{ employeeName(data.employee_id) }}</p>
+                <p class="font-medium text-navy-800 dark:text-gray-100 truncate">{{ employeeName(data.employee_id) }}</p>
                 <!-- G-4: badge employee yang dibuat dari offer recruitment -->
                 <Tag
                   v-if="isHiredFromOffer(data.employee_id)"

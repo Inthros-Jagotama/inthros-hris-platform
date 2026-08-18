@@ -41,7 +41,7 @@
               {{ initials(data) }}
             </div>
             <div class="min-w-0">
-              <p class="font-medium text-gray-800 dark:text-gray-100 truncate group-hover:text-sky-600 dark:group-hover:text-sky-400">{{ data.first_name }} {{ data.last_name }}</p>
+              <p class="font-medium text-navy-800 dark:text-gray-100 truncate group-hover:text-sky-600 dark:group-hover:text-sky-400">{{ data.first_name }} {{ data.last_name }}</p>
               <p class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ data.email }}</p>
             </div>
           </button>

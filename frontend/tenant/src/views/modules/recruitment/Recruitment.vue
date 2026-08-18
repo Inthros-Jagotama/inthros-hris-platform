@@ -10,7 +10,7 @@
           <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t(card.labelKey) }}</span>
           <i :class="card.icon" class="text-sm" :style="{ color: card.color }"></i>
         </div>
-        <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ card.value }}</p>
+        <p class="text-xl font-bold text-navy-800 dark:text-gray-100">{{ card.value }}</p>
       </div>
     </div>
 
@@ -30,7 +30,7 @@
           <i :class="menu.icon" class="text-base"></i>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(menu.labelKey) }}</p>
+          <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ t(menu.labelKey) }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(menu.descKey) }}</p>
         </div>
         <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-sky-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
@@ -85,7 +85,7 @@ const menuCards = computed(() => [
   // S-4: Internal Candidates — eligible via career path (Career Intelligence)
   { labelKey: 'internal_candidates.title', descKey: 'internal_candidates.description', icon: 'pi pi-user-plus', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/recruitment/internal-candidates', permission: 'recruitment.internal-candidates.view' },
   // G-3: Job Offers — offer management + approval workflow
-  { labelKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/recruitment/offers', permission: 'recruitment.offers.view' },
+  { labelKey: 'recruitment.offers', descKey: 'offers.description', icon: 'pi pi-file-edit', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/recruitment/offers', permission: 'recruitment.offers.view' },
   // G-4: Onboarding — employee hasil offer + status (COMPLETED → training handoff S-7)
   { labelKey: 'recruitment.onboarding', descKey: 'onboarding.description', icon: 'pi pi-sign-in', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/recruitment/onboarding', permission: 'recruitment.onboarding.view' },
   // G-7 sub-2: Assessments — batch session + peserta kandidat

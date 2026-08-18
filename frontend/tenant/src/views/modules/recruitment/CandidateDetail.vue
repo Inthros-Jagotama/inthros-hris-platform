@@ -17,7 +17,7 @@
             </div>
             <div class="min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <h2 class="text-base font-semibold text-gray-800 dark:text-gray-100 truncate">{{ candidate.first_name }} {{ candidate.last_name }}</h2>
+                <h2 class="text-base font-semibold text-navy-800 dark:text-gray-100 truncate">{{ candidate.first_name }} {{ candidate.last_name }}</h2>
                 <Tag :value="t('candidates.type_' + (candidate.candidate_type || 'external').toLowerCase())" :severity="candidate.candidate_type === 'INTERNAL' ? 'info' : 'secondary'" class="!text-xs !px-1.5 !py-0.5" />
               </div>
               <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ candidate.email }}</p>
@@ -32,23 +32,23 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-4">
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('candidates.candidate_number') }}</p>
-            <p class="text-sm font-mono font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{{ candidate.candidate_number || '—' }}</p>
+            <p class="text-sm font-mono font-semibold text-navy-800 dark:text-gray-100 mt-0.5">{{ candidate.candidate_number || '—' }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('candidates.phone') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{{ candidate.phone || '—' }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5">{{ candidate.phone || '—' }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('candidates.current_title') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5 truncate">{{ candidate.current_title || '—' }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5 truncate">{{ candidate.current_title || '—' }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('candidates.current_company') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5 truncate">{{ candidate.current_company || '—' }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5 truncate">{{ candidate.current_company || '—' }}</p>
           </div>
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
             <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ t('candidates.source') }}</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5 truncate">{{ candidate.source || '—' }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 mt-0.5 truncate">{{ candidate.source || '—' }}</p>
           </div>
         </div>
       </div>
@@ -76,7 +76,7 @@
           <div v-if="educations.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             <div v-for="item in educations" :key="item.id" class="flex items-center gap-3 px-3 py-2.5">
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.institution_name }} <span v-if="item.is_highest" class="ml-1"><Tag :value="t('candidates.is_highest')" severity="success" class="!text-[10px] !px-1.5 !py-0" /></span></p>
+                <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.institution_name }} <span v-if="item.is_highest" class="ml-1"><Tag :value="t('candidates.is_highest')" severity="success" class="!text-[10px] !px-1.5 !py-0" /></span></p>
                 <p class="text-xs text-gray-400">{{ item.major || '—' }} · {{ item.start_year || '?' }}–{{ item.end_year || t('candidates.is_current') }} <span v-if="item.gpa">· GPA {{ item.gpa }}</span></p>
               </div>
               <Button icon="pi pi-trash" text severity="danger" size="small" class="!w-7 !h-7" @click="confirmItemDelete('educations', item)" />
@@ -93,7 +93,7 @@
           <div v-if="experiences.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             <div v-for="item in experiences" :key="item.id" class="flex items-center gap-3 px-3 py-2.5">
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.job_title }} <span class="text-gray-400 font-normal">@ {{ item.company_name }}</span></p>
+                <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.job_title }} <span class="text-gray-400 font-normal">@ {{ item.company_name }}</span></p>
                 <p class="text-xs text-gray-400">{{ item.start_date }} – {{ item.is_current ? t('candidates.is_current') : (item.end_date || '—') }}</p>
               </div>
               <Button icon="pi pi-trash" text severity="danger" size="small" class="!w-7 !h-7" @click="confirmItemDelete('experiences', item)" />
@@ -110,7 +110,7 @@
           <div v-if="skills.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             <div v-for="item in skills" :key="item.id" class="flex items-center gap-3 px-3 py-2.5">
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.competency_name || item.competency_id }}</p>
+                <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.competency_name || item.competency_id }}</p>
                 <p v-if="item.level" class="text-xs text-gray-400">{{ t('candidates.level') }}: {{ item.level }}</p>
               </div>
               <Button icon="pi pi-trash" text severity="danger" size="small" class="!w-7 !h-7" @click="confirmItemDelete('skills', item)" />
@@ -127,7 +127,7 @@
           <div v-if="certifications.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             <div v-for="item in certifications" :key="item.id" class="flex items-center gap-3 px-3 py-2.5">
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.name }}</p>
+                <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.name }}</p>
                 <p class="text-xs text-gray-400">{{ item.issuing_organization || '—' }} <span v-if="item.expiry_date">· {{ t('candidates.expiry_date') }}: {{ item.expiry_date }}</span></p>
               </div>
               <Button icon="pi pi-trash" text severity="danger" size="small" class="!w-7 !h-7" @click="confirmItemDelete('certifications', item)" />
@@ -144,7 +144,7 @@
           <div v-if="documents.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             <div v-for="item in documents" :key="item.id" class="flex items-center gap-3 px-3 py-2.5">
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.name }}</p>
+                <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ item.name }}</p>
                 <p class="text-xs text-gray-400">{{ t('candidates.doc_type_' + (item.document_type || 'other').toLowerCase()) }} · <a :href="item.file_url" target="_blank" rel="noopener" class="text-sky-500 hover:underline">{{ t('candidates.file_url') }}</a></p>
               </div>
               <Button icon="pi pi-trash" text severity="danger" size="small" class="!w-7 !h-7" @click="confirmItemDelete('documents', item)" />
