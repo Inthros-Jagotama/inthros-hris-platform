@@ -1,12 +1,12 @@
 <template>
   <aside
-    class="flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 overflow-hidden"
+    class="flex flex-col bg-navy-800 dark:bg-gray-800 border-r border-navy-700 dark:border-gray-700 transition-all duration-200 overflow-hidden"
     :class="collapsed ? 'w-16' : 'w-60'"
   >
     <!-- Logo Area -->
-    <div class="flex items-center h-12 px-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
-      <i class="pi pi-building text-emerald-600 text-lg mr-2"></i>
-      <span v-if="!collapsed" class="font-semibold text-sm text-gray-800 dark:text-gray-100 truncate">HRIS Platform</span>
+    <div class="flex items-center h-12 px-4 border-b border-navy-700 dark:border-gray-700 shrink-0">
+      <i class="pi pi-building text-teal-400 text-lg mr-2"></i>
+      <span v-if="!collapsed" class="font-semibold text-sm text-navy-50 dark:text-gray-100 truncate">HRIS Platform</span>
     </div>
 
     <!-- Navigation: Expanded -->
@@ -15,7 +15,7 @@
       <router-link
         to="/dashboard"
         class="flex items-center gap-2 px-2.5 py-2 text-sm rounded-md transition-colors"
-        :class="route.path === '/dashboard' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+        :class="route.path === '/dashboard' ? 'bg-teal-500/20 dark:bg-teal-900/30 text-teal-200 dark:text-teal-300' : 'text-navy-200 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-teal-900/10'"
       >
         <i class="pi pi-home" style="font-size:0.875rem"></i>
         <span>{{ t('nav.dashboard') }}</span>
@@ -23,14 +23,14 @@
 
       <!-- Core HR Section Title -->
       <div v-if="coreHRItems.length > 0" class="pt-2">
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-navy-300 dark:text-gray-500">
           <i class="pi pi-building" style="font-size:0.7rem"></i>
           <span>{{ t('nav.core_hr') }}</span>
         </div>
         <template v-for="item in coreHRItems" :key="item.key || item.label">
           <div
             class="ml-2 flex items-center justify-between gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
-            :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+            :class="isItemActive(item) ? 'bg-teal-500/20 dark:bg-teal-900/30 text-teal-200 dark:text-teal-300' : 'text-navy-200 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-teal-900/10'"
             @click="item.children?.length ? toggleMenu(item.key) : item.command()"
           >
             <div class="flex items-center gap-2 min-w-0">
@@ -49,7 +49,7 @@
               v-for="child in visibleChildren(item)"
               :key="child.key || child.label"
               class="ml-6 flex items-center gap-2 px-2.5 py-1.5 text-[13px] rounded-md cursor-pointer transition-colors"
-              :class="isItemActive(child) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-500 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+              :class="isItemActive(child) ? 'bg-teal-500/20 dark:bg-teal-900/30 text-teal-200 dark:text-teal-300' : 'text-navy-300 dark:text-gray-400 hover:bg-teal-500/10 dark:hover:bg-teal-900/10'"
               @click="child.command()"
             >
               <i :class="child.icon" class="text-[11px]"></i>
@@ -61,14 +61,14 @@
 
       <!-- Talent Section Title -->
       <div v-if="talentItems.length > 0" class="pt-2">
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-navy-300 dark:text-gray-500">
           <i class="pi pi-star" style="font-size:0.7rem"></i>
           <span>{{ t('nav.talent') }}</span>
         </div>
         <template v-for="item in talentItems" :key="item.key || item.label">
           <div
             class="ml-2 flex items-center justify-between gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
-            :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+            :class="isItemActive(item) ? 'bg-teal-500/20 dark:bg-teal-900/30 text-teal-200 dark:text-teal-300' : 'text-navy-200 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-teal-900/10'"
             @click="item.children?.length ? toggleMenu(item.key) : item.command()"
           >
             <div class="flex items-center gap-2 min-w-0">
@@ -87,7 +87,7 @@
               v-for="child in visibleChildren(item)"
               :key="child.key || child.label"
               class="ml-6 flex items-center gap-2 px-2.5 py-1.5 text-[13px] rounded-md cursor-pointer transition-colors"
-              :class="isItemActive(child) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-500 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+              :class="isItemActive(child) ? 'bg-teal-500/20 dark:bg-teal-900/30 text-teal-200 dark:text-teal-300' : 'text-navy-300 dark:text-gray-400 hover:bg-teal-500/10 dark:hover:bg-teal-900/10'"
               @click="child.command()"
             >
               <i :class="child.icon" class="text-[11px]"></i>
@@ -99,7 +99,7 @@
 
       <!-- Operations Section Title -->
       <div v-if="operationsItems.length > 0" class="pt-2">
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-navy-300 dark:text-gray-500">
           <i class="pi pi-cog" style="font-size:0.7rem"></i>
           <span>{{ t('nav.operations') }}</span>
         </div>
@@ -107,7 +107,7 @@
           v-for="item in operationsItems"
           :key="item.key || item.label"
           class="ml-2 flex items-center gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
-          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+          :class="isItemActive(item) ? 'bg-teal-500/20 dark:bg-teal-900/30 text-teal-200 dark:text-teal-300' : 'text-navy-200 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-teal-900/10'"
           @click="item.command()"
         >
           <i :class="item.icon" class="text-xs"></i>
@@ -117,7 +117,7 @@
 
       <!-- Finance Section Title — flat, pola sama dengan Operations -->
       <div v-if="financeItems.length > 0" class="pt-2">
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-navy-300 dark:text-gray-500">
           <i class="pi pi-dollar" style="font-size:0.7rem"></i>
           <span>{{ t('nav.finance') }}</span>
         </div>
@@ -125,7 +125,7 @@
           v-for="item in financeItems"
           :key="item.key || item.label"
           class="ml-2 flex items-center gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
-          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+          :class="isItemActive(item) ? 'bg-teal-500/20 dark:bg-teal-900/30 text-teal-200 dark:text-teal-300' : 'text-navy-200 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-teal-900/10'"
           @click="item.command()"
         >
           <i :class="item.icon" class="text-xs"></i>
@@ -135,7 +135,7 @@
 
       <!-- Strategic Section Title — flat, pola sama dengan Operations -->
       <div v-if="strategicItems.length > 0" class="pt-2">
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-navy-300 dark:text-gray-500">
           <i class="pi pi-chart-bar" style="font-size:0.7rem"></i>
           <span>{{ t('nav.strategic') }}</span>
         </div>
@@ -143,7 +143,7 @@
           v-for="item in strategicItems"
           :key="item.key || item.label"
           class="ml-2 flex items-center gap-2 px-2.5 py-2 text-sm rounded-md cursor-pointer transition-colors"
-          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+          :class="isItemActive(item) ? 'bg-teal-500/20 dark:bg-teal-900/30 text-teal-200 dark:text-teal-300' : 'text-navy-200 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-teal-900/10'"
           @click="item.command()"
         >
           <i :class="item.icon" class="text-xs"></i>
@@ -158,7 +158,7 @@
           :key="item.key || item.label"
           :to="item.path"
           class="flex items-center gap-2 px-2.5 py-2 text-sm rounded-md transition-colors"
-          :class="isItemActive(item) ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'"
+          :class="isItemActive(item) ? 'bg-teal-500/20 dark:bg-teal-900/30 text-teal-200 dark:text-teal-300' : 'text-navy-200 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-teal-900/10'"
         >
           <i :class="item.icon" style="font-size:0.875rem"></i>
           <span>{{ item.label }}</span>
@@ -172,8 +172,8 @@
         v-for="item in topLevelMenuItems"
         :key="item.key || item.label"
         v-tooltip.left="item.tooltip || item.label"
-        class="w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
-        :class="{ 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300': isActive(item) }"
+        class="w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer text-navy-100 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-teal-900/30 transition-colors"
+        :class="{ 'bg-teal-500/20 dark:bg-teal-900/30 text-teal-200 dark:text-teal-300': isActive(item) }"
         @click="item.command?.()"
       >
         <i :class="item.icon" class="text-sm"></i>
@@ -181,14 +181,14 @@
     </nav>
 
     <!-- Bottom Section: Company Name → klik buka halaman Detail Perusahaan -->
-    <div class="border-t border-gray-200 dark:border-gray-700 p-3 shrink-0">
+    <div class="border-t border-navy-700 dark:border-gray-700 p-3 shrink-0">
       <button
         type="button"
-        class="flex items-center gap-2 w-full text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors rounded-md px-1 py-0.5"
+        class="flex items-center gap-2 w-full text-sm text-navy-200 dark:text-gray-400 hover:text-teal-300 dark:hover:text-teal-400 transition-colors rounded-md px-1 py-0.5"
         :title="companyLabel"
         @click="router.push('/company')"
       >
-        <i class="pi pi-building text-emerald-400 text-xs"></i>
+        <i class="pi pi-building text-teal-300 text-xs"></i>
         <span class="truncate">{{ companyLabel }}</span>
       </button>
     </div>

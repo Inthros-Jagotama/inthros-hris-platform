@@ -15,7 +15,7 @@
         <Button
           text
           size="small"
-          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-teal-600 dark:hover:!text-teal-400"
           @click="goBackToSummary"
         >
           {{ t('org_summary.title') }}
@@ -29,7 +29,7 @@
         <Button
           text
           size="small"
-          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-teal-600 dark:hover:!text-teal-400"
           @click="goBackToEmployees"
         >
           {{ t('nav.employees') }}
@@ -43,7 +43,7 @@
         <Button
           text
           size="small"
-          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-teal-600 dark:hover:!text-teal-400"
           @click="goBackToJobManagement"
         >
           {{ t('nav.job_management') }}
@@ -57,7 +57,7 @@
         <Button
           text
           size="small"
-          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-teal-600 dark:hover:!text-teal-400"
           @click="goBackToJobValues"
         >
           {{ t('nav.job_values_mapping') }}
@@ -71,7 +71,7 @@
         <Button
           text
           size="small"
-          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-teal-600 dark:hover:!text-teal-400"
           @click="goBackToSettings"
         >
           {{ t('nav.settings') }}
@@ -85,7 +85,7 @@
         <Button
           text
           size="small"
-          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-teal-600 dark:hover:!text-teal-400"
           @click="goBackToApprovals"
         >
           {{ t('approval.my_tasks') }}
@@ -99,7 +99,7 @@
         <Button
           text
           size="small"
-          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-indigo-600 dark:hover:!text-indigo-400"
+          class="!p-0 !text-xs !text-gray-500 dark:!text-gray-400 hover:!text-teal-600 dark:hover:!text-teal-400"
           @click="goBackToMetaRoute"
         >
           {{ t(route.meta.backLabelKey) }}
@@ -181,11 +181,11 @@
             v-for="item in notifState.recentItems"
             :key="item.id"
             class="px-2 py-2 border-b border-gray-50 dark:border-gray-700/50 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40 rounded"
-            :class="{ 'bg-emerald-50/60 dark:bg-emerald-500/5': !item.is_read }"
+            :class="{ 'bg-orange-50/60 dark:bg-orange-500/5': !item.is_read }"
             @click="handleNotificationClick(item)"
           >
             <div class="flex items-start gap-2">
-              <span v-if="!item.is_read" class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
+              <span v-if="!item.is_read" class="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0"></span>
               <span v-else class="w-1.5 h-1.5 shrink-0"></span>
               <div class="min-w-0 flex-1">
                 <p class="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{{ item.title }}</p>
