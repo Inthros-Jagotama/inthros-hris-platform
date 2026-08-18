@@ -62,16 +62,16 @@
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.hires_analyzed') }}</span>
             <i class="pi pi-user-plus text-base text-sky-500"></i>
           </div>
-          <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ data.hires_analyzed }}</p>
+          <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ data.hires_analyzed }}</p>
         </div>
 
         <!-- Interview score -->
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3.5">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.interview_score') }}</span>
-            <i class="pi pi-comments text-base text-indigo-500"></i>
+            <i class="pi pi-comments text-base text-teal-500"></i>
           </div>
-          <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ fmtScore(data.interview_score) }}</p>
+          <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ fmtScore(data.interview_score) }}</p>
         </div>
 
         <!-- Performance score -->
@@ -80,7 +80,7 @@
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.performance_score') }}</span>
             <i class="pi pi-star text-base text-violet-500"></i>
           </div>
-          <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ fmtScore(data.performance_score) }}</p>
+          <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ fmtScore(data.performance_score) }}</p>
         </div>
 
         <!-- Onboarding completion rate -->
@@ -89,7 +89,7 @@
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.onboarding_completion') }}</span>
             <i class="pi pi-check-circle text-base text-emerald-500"></i>
           </div>
-          <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ fmtPct(data.onboarding_completion_rate) }}</p>
+          <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ fmtPct(data.onboarding_completion_rate) }}</p>
         </div>
 
         <!-- Retention rate -->
@@ -98,7 +98,7 @@
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('quality_of_hire.retention_rate') }}</span>
             <i class="pi pi-users text-base text-teal-500"></i>
           </div>
-          <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ fmtPct(data.retention_rate) }}</p>
+          <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ fmtPct(data.retention_rate) }}</p>
         </div>
 
         <!-- Recruitment match (placeholder) -->

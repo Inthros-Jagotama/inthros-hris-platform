@@ -17,7 +17,7 @@
           <i :class="menu.icon" class="text-base"></i>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(menu.labelKey) }}</p>
+          <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ t(menu.labelKey) }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(menu.descKey) }}</p>
         </div>
         <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-sky-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
@@ -68,7 +68,7 @@ const menuCards = computed(() => [
   // Quality of Hire — metrik agregat kualitas hire (S-6: interview/onboarding/performance/retention)
   { labelKey: 'quality_of_hire.title', descKey: 'quality_of_hire.description', icon: 'pi pi-bullseye', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/workforce-intelligence/quality-of-hire', permission: 'workforceintelligence.quality-of-hire.view' },
   // P2-FE integrasi: analisis training (completion/cost/compliance) dari modul Training
-  { labelKey: 'workforce_intel.training_analysis', descKey: 'workforce_intel.training_analysis_desc', icon: 'pi pi-graduation-cap', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', route: '/training/reports', permission: 'workforceintelligence.training-analysis.view' }
+  { labelKey: 'workforce_intel.training_analysis', descKey: 'workforce_intel.training_analysis_desc', icon: 'pi pi-graduation-cap', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400', route: '/training/reports', permission: 'workforceintelligence.training-analysis.view' }
 ].filter(card => !card.permission || hasPermission(card.permission)))
 
 // Fitur yang sudah terdefinisi di locale tapi halamannya belum dibangun —

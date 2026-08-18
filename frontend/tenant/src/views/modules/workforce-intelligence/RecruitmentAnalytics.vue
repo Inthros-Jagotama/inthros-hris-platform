@@ -50,16 +50,16 @@
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('recruitment_analytics.expected_hires') }}</span>
             <i class="pi pi-user-plus text-base text-emerald-500"></i>
           </div>
-          <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ data.expected_hires }}</p>
+          <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ data.expected_hires }}</p>
         </div>
 
         <!-- Open positions -->
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3.5">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('recruitment_analytics.open_positions') }}</span>
-            <i class="pi pi-briefcase text-base text-indigo-500"></i>
+            <i class="pi pi-briefcase text-base text-teal-500"></i>
           </div>
-          <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ data.open_positions }}</p>
+          <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ data.open_positions }}</p>
         </div>
 
         <!-- Filled positions -->
@@ -68,7 +68,7 @@
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('recruitment_analytics.filled_positions') }}</span>
             <i class="pi pi-check-circle text-base text-teal-500"></i>
           </div>
-          <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ data.filled_positions }}</p>
+          <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ data.filled_positions }}</p>
         </div>
 
         <!-- Time to hire (S-3) -->
@@ -77,7 +77,7 @@
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('recruitment_analytics.time_to_hire') }}</span>
             <i class="pi pi-clock text-base text-amber-500"></i>
           </div>
-          <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ fmtDays(data.time_to_hire) }}</p>
+          <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ fmtDays(data.time_to_hire) }}</p>
         </div>
 
         <!-- Time to fill (S-3) -->
@@ -86,7 +86,7 @@
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('recruitment_analytics.time_to_fill') }}</span>
             <i class="pi pi-hourglass text-base text-rose-500"></i>
           </div>
-          <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ fmtDays(data.time_to_fill) }}</p>
+          <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ fmtDays(data.time_to_fill) }}</p>
         </div>
 
         <!-- Offer acceptance rate (S-3) -->
@@ -95,7 +95,7 @@
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ t('recruitment_analytics.offer_acceptance') }}</span>
             <i class="pi pi-percentage text-base text-violet-500"></i>
           </div>
-          <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ fmtPct(data.offer_acceptance_rate) }}</p>
+          <p class="text-2xl font-bold text-navy-800 dark:text-gray-100">{{ fmtPct(data.offer_acceptance_rate) }}</p>
         </div>
 
         <!-- Candidate match (placeholder) -->

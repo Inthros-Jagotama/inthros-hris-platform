@@ -54,7 +54,7 @@
               <i class="pi pi-briefcase text-xs"></i>
             </div>
             <div class="min-w-0">
-              <p class="font-medium text-gray-800 dark:text-gray-100 truncate">{{ data.organization_name }}</p>
+              <p class="font-medium text-navy-800 dark:text-gray-100 truncate">{{ data.organization_name }}</p>
               <p class="text-xs text-gray-400 dark:text-gray-500 font-mono">{{ data.organization_code }}</p>
             </div>
           </div>
@@ -115,7 +115,7 @@
                       {{ internalInitials(ic) }}
                     </div>
                     <div class="min-w-0">
-                      <p class="font-medium text-gray-800 dark:text-gray-100 truncate">{{ ic.name || '—' }}</p>
+                      <p class="font-medium text-navy-800 dark:text-gray-100 truncate">{{ ic.name || '—' }}</p>
                       <p class="text-xs text-gray-400 dark:text-gray-500 truncate font-mono">{{ ic.employee_id }}</p>
                     </div>
                   </div>
@@ -155,7 +155,7 @@
                     {{ initials(c) }}
                   </div>
                   <div class="min-w-0">
-                    <p class="font-medium text-gray-800 dark:text-gray-100 truncate">{{ c.first_name }} {{ c.last_name }}</p>
+                    <p class="font-medium text-navy-800 dark:text-gray-100 truncate">{{ c.first_name }} {{ c.last_name }}</p>
                     <p class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ c.email }}</p>
                   </div>
                 </div>
