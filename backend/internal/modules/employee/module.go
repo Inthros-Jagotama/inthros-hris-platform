@@ -86,6 +86,13 @@ func (m *empModule) SetQuotaChecker(qc EmployeeQuotaChecker) {
 	m.handler.service.SetQuotaChecker(qc)
 }
 
+// SetEmployeeIDFormatProvider menginjeksi provider mode generasi employee_id
+// (MANUAL/HYBRID/AUTO). Dipanggil dari main.go via type assertion setelah
+// setting module dikonstruksi — pola yang sama dengan SetQuotaChecker.
+func (m *empModule) SetEmployeeIDFormatProvider(p EmployeeIDFormatProvider) {
+	m.handler.service.SetEmployeeIDFormatProvider(p)
+}
+
 func (m *empModule) Migrate(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&Employee{},

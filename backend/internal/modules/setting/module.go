@@ -35,15 +35,20 @@ func NewTenantDBResolver(dbManager *database.Manager) TenantDBFunc {
 // employeemovement module in Task 5) — the setting module does not
 // construct its own, so there is exactly one Service (and therefore one
 // consistent DB-transactional sequence state) per process.
+// employeeIDFormatSvc is likewise the shared EmployeeIDFormatService
+// instance owned by main.go (also wired into the employee module so
+// CreateEmployee can resolve employee_id per the configured generation
+// mode) — same single-instance rationale as numberingSvc.
 // uploadDir adalah root direktori upload (diserve publik via /uploads) —
 // dipakai documenttemplate untuk menyimpan file template .docx.
 // pdfSvc (opsional) dipakai documenttemplate untuk preview DOCX → PDF.
-func NewModule(dbManager *database.Manager, logger *zap.Logger, numberingSvc *numbering.Service, uploadDir string, pdfSvc documenttemplate.PDFService) module.Module {
+func NewModule(dbManager *database.Manager, logger *zap.Logger, numberingSvc *numbering.Service, employeeIDFormatSvc *EmployeeIDFormatService, uploadDir string, pdfSvc documenttemplate.PDFService) module.Module {
 	resolver := NewTenantDBResolver(dbManager)
 	repo := NewRepository(resolver)
 	svc := NewService(repo, logger)
 	handler := NewHandler(svc)
 	numberingHandler := NewNumberingHandler(numberingSvc)
+	empIDFormatHandler := NewEmployeeIDFormatHandler(employeeIDFormatSvc)
 
 	// Document templates adalah sub-feature dari Settings (lihat plan
 	// docs/module-settngs-fitur-template-dokumen-plan.md) — handler-nya
@@ -54,10 +59,12 @@ func NewModule(dbManager *database.Manager, logger *zap.Logger, numberingSvc *nu
 	dtHandler := documenttemplate.NewHandler(dtSvc, uploadDir, pdfSvc)
 
 	return &settingModule{
-		handler:                handler,
-		numberingHandler:       numberingHandler,
+		handler:                 handler,
+		numberingHandler:        numberingHandler,
 		documentTemplateHandler: dtHandler,
-		logger:                 logger,
+		employeeIDFormatHandler: empIDFormatHandler,
+		employeeIDFormatSvc:     employeeIDFormatSvc,
+		logger:                  logger,
 	}
 }
 
@@ -65,7 +72,16 @@ type settingModule struct {
 	handler                 *Handler
 	numberingHandler        *NumberingHandler
 	documentTemplateHandler *documenttemplate.Handler
+	employeeIDFormatHandler *EmployeeIDFormatHandler
+	employeeIDFormatSvc     *EmployeeIDFormatService
 	logger                  *zap.Logger
+}
+
+// EmployeeIDFormatService returns the tenant employee_id-format service so
+// main.go can wire it into the employee module (mirrors the SetQuotaChecker
+// / employeemovement numbering wiring pattern used elsewhere in this repo).
+func (m *settingModule) EmployeeIDFormatService() *EmployeeIDFormatService {
+	return m.employeeIDFormatSvc
 }
 
 func (m *settingModule) Info() module.ModuleInfo {
@@ -101,6 +117,7 @@ func (m *settingModule) Info() module.ModuleInfo {
 			"setting.document_template.view", "setting.document_template.create", "setting.document_template.update", "setting.document_template.delete",
 			"setting.document_template.activate", "setting.document_template.deactivate",
 			"setting.document_template.version",
+			"setting.employee_id_format.view", "setting.employee_id_format.update",
 		},
 		Menus: []module.Menu{
 			{
@@ -137,10 +154,14 @@ func (m *settingModule) Info() module.ModuleInfo {
 }
 
 func (m *settingModule) RegisterRoutes(rg *gin.RouterGroup) {
-	RegisterRoutesWithNumbering(rg, m.handler, m.numberingHandler, m.documentTemplateHandler)
+	RegisterRoutesWithNumbering(rg, m.handler, m.numberingHandler, m.documentTemplateHandler, m.employeeIDFormatHandler)
 }
 
 func (m *settingModule) Migrate(db *gorm.DB) error {
+	// Catatan: employee_id_format_settings TIDAK di-AutoMigrate di sini —
+	// tabel tenant baru wajib lewat migrasi SQL bernomor (lihat
+	// internal/pkg/migrator/migrations/tenant/{postgres,mysql}/155_*),
+	// AutoMigrate tidak pernah dijalankan untuk modul tenant.
 	return db.AutoMigrate(&Zone{}, &Province{}, &Regency{}, &District{}, &Village{}, &Education{}, &EducationMajor{}, &Religion{}, &MaritalStatus{}, &RelationshipType{}, &EmploymentStatus{}, &Bank{}, &Nationality{}, &JobFamily{}, &Grading{}, &SalaryGrade{}, &TER{}, &PTKP{}, &Insurance{}, &CompanyHoliday{}, &Competency{})
 }
 

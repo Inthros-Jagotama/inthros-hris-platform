@@ -760,7 +760,7 @@ func runContractExpirationPass(dbManager *database.Manager, movSvc *employeemove
 	}
 }
 
-func newEmployeeModule(dbManager *database.Manager, l *zap.Logger, lic *onpremise.License) module.Module {
+func newEmployeeModule(dbManager *database.Manager, l *zap.Logger, lic *onpremise.License, empIDFormatSvc *setting.EmployeeIDFormatService) module.Module {
 	m := employee.NewModule(dbManager, l)
 	if lic != nil {
 		if setter, ok := m.(interface {
@@ -773,7 +773,36 @@ func newEmployeeModule(dbManager *database.Manager, l *zap.Logger, lic *onpremis
 			l.Warn("Employee module does not implement SetQuotaChecker — quota enforcement disabled")
 		}
 	}
+	// Wire the employee_id generation-mode setting (MANUAL/HYBRID/AUTO) into
+	// CreateEmployee — same shared EmployeeIDFormatService instance the
+	// setting module's endpoints use (see setting.NewModule doc comment).
+	if setter, ok := m.(interface {
+		SetEmployeeIDFormatProvider(employee.EmployeeIDFormatProvider)
+	}); ok {
+		setter.SetEmployeeIDFormatProvider(employeeIDFormatAdapter{svc: empIDFormatSvc})
+	} else {
+		l.Warn("Employee module does not implement SetEmployeeIDFormatProvider — employee_id generation mode disabled")
+	}
 	return m
+}
+
+// employeeIDFormatAdapter adapts setting.EmployeeIDFormatService to the
+// narrow employee.EmployeeIDFormatProvider interface (same adapter pattern
+// used for employeeHireAdapter, workforceGapAdapter, etc. in this file).
+type employeeIDFormatAdapter struct {
+	svc *setting.EmployeeIDFormatService
+}
+
+func (a employeeIDFormatAdapter) GenerationMode(ctx context.Context) (string, error) {
+	s, err := a.svc.GetSetting(ctx)
+	if err != nil {
+		return "", err
+	}
+	return s.GenerationMode, nil
+}
+
+func (a employeeIDFormatAdapter) Generate(ctx context.Context) (string, error) {
+	return a.svc.Generate(ctx)
 }
 
 func main() {
@@ -1260,6 +1289,16 @@ func main() {
 	// (narrow provider — WI tidak menghitung eligibility sendiri).
 	wiSvc.SetInternalEligibilityProvider(wiInternalCandidateAdapter{ciSvc: ciSvc, logger: l.Named("wi-internal-candidate-adapter")})
 
+	// Shared EmployeeIDFormatService instance for the whole process — used
+	// both by the employee module (CreateEmployee generation-mode wiring)
+	// and the setting module (employee_id_format CRUD + preview endpoints).
+	// Same single-instance rationale as numberingSvc above.
+	empIDFormatSvc := setting.NewEmployeeIDFormatService(
+		setting.NewEmployeeIDFormatRepository(setting.NewTenantDBResolver(dbManager)),
+		setting.NewTenantDBResolver(dbManager),
+		l.Named("employee-id-format"),
+	)
+
 	// 6b-2. Load deployment license (mode on-premise) SEBELUM registrasi tenant
 	// modules, agar employee module dapat menerima quota checker max_employees
 	// dari file .lic. Pada mode saas, licenseLister memakai company_modules DB.
@@ -1293,7 +1332,7 @@ func main() {
 			Priority: 1,
 		},
 		module.ModuleRegistration{
-			Module:   newEmployeeModule(dbManager, l, onPremiseLic),
+			Module:   newEmployeeModule(dbManager, l, onPremiseLic, empIDFormatSvc),
 			TargetDB: module.TargetTenant,
 			Priority: 2,
 		},
@@ -1363,7 +1402,7 @@ func main() {
 			Priority: 15,
 		},
 		module.ModuleRegistration{
-			Module:   setting.NewModule(dbManager, l, numberingSvc, cfg.Storage.UploadDir, newPDFService(cfg)),
+			Module:   setting.NewModule(dbManager, l, numberingSvc, empIDFormatSvc, cfg.Storage.UploadDir, newPDFService(cfg)),
 			TargetDB: module.TargetTenant,
 			Priority: 16,
 		},

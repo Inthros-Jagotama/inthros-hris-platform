@@ -39,6 +39,10 @@ func (h *Handler) Create(c *gin.Context) {
 			httputil.ErrorRaw(c, http.StatusForbidden, "QUOTA_EXCEEDED", err.Error())
 			return
 		}
+		if errors.Is(err, ErrEmployeeIDRequired) {
+			httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "employee.employee_id_required")
+			return
+		}
 		httputil.InternalError(c, err.Error())
 		return
 	}

@@ -8,7 +8,7 @@ import (
 
 // RegisterRoutesWithNumbering registers all setting routes plus the
 // document numbering and document template sub-resource routes.
-func RegisterRoutesWithNumbering(rg *gin.RouterGroup, handler *Handler, numberingHandler *NumberingHandler, documentTemplateHandler *documenttemplate.Handler) {
+func RegisterRoutesWithNumbering(rg *gin.RouterGroup, handler *Handler, numberingHandler *NumberingHandler, documentTemplateHandler *documenttemplate.Handler, employeeIDFormatHandler *EmployeeIDFormatHandler) {
 	settings := rg.Group("/settings")
 	{
 		// Zones
@@ -210,6 +210,26 @@ func RegisterRoutesWithNumbering(rg *gin.RouterGroup, handler *Handler, numberin
 		if numberingHandler != nil {
 			RegisterNumberingRoutes(settings, numberingHandler)
 		}
+		// Employee ID Format
+		if employeeIDFormatHandler != nil {
+			RegisterEmployeeIDFormatRoutes(settings, employeeIDFormatHandler)
+		}
+	}
+}
+
+// RegisterEmployeeIDFormatRoutes registers the employee_id generation-mode
+// setting routes onto the given group (e.g. the "/settings" group). The
+// URL segment (employee-id-format) intentionally matches the permission
+// slug naming (setting.employee-id-format.view/update) since permission
+// enforcement derives the submenu slug literally from the path segment
+// (see authz.SubresourceFromPath) — hyphenated to match this codebase's
+// URL/permission convention (e.g. education-majors, document-numbering).
+func RegisterEmployeeIDFormatRoutes(rg *gin.RouterGroup, handler *EmployeeIDFormatHandler) {
+	empIDFormat := rg.Group("/employee-id-format")
+	{
+		empIDFormat.GET("", handler.Get)
+		empIDFormat.PUT("", handler.Update)
+		empIDFormat.GET("/preview", handler.Preview)
 	}
 }
 

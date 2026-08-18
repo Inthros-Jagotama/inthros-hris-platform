@@ -18,9 +18,10 @@ const (
 )
 
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
-	quota  EmployeeQuotaChecker // nil = unlimited (mode saas)
+	repo              *Repository
+	logger            *zap.Logger
+	quota             EmployeeQuotaChecker     // nil = unlimited (mode saas)
+	employeeIDFormat  EmployeeIDFormatProvider // nil = fully-manual fallback (see resolveEmployeeID)
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -31,6 +32,13 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 // Dipanggil dari main.go saat lisensi on-premise dimuat.
 func (s *Service) SetQuotaChecker(qc EmployeeQuotaChecker) {
 	s.quota = qc
+}
+
+// SetEmployeeIDFormatProvider menginjeksi provider untuk mode generasi
+// employee_id (MANUAL/HYBRID/AUTO), dipanggil dari main.go setelah setting
+// module dikonstruksi (pola yang sama dengan SetQuotaChecker).
+func (s *Service) SetEmployeeIDFormatProvider(p EmployeeIDFormatProvider) {
+	s.employeeIDFormat = p
 }
 
 // checkQuota menolak pembuatan employee jika jumlah saat ini sudah mencapai
@@ -92,8 +100,13 @@ func (s *Service) Create(ctx context.Context, req CreateEmployeeRequest) (*Emplo
 		return nil, err
 	}
 
+	employeeID, err := s.resolveEmployeeID(ctx, req.EmployeeID)
+	if err != nil {
+		return nil, err
+	}
+
 	emp := &Employee{
-		EmployeeID: req.EmployeeID,
+		EmployeeID: employeeID,
 		Name:       req.Name,
 		Status:     "active",
 	}

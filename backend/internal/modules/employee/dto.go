@@ -18,7 +18,11 @@ func decryptIfLooksEncrypted(value string) string {
 // =========================================================================
 
 type CreateEmployeeRequest struct {
-	EmployeeID      string  `json:"employee_id" binding:"required,max=50"`
+	// EmployeeID wajib diisi hanya di mode generation MANUAL. Validasi
+	// requirement per-mode dilakukan di Service.resolveEmployeeID (lihat
+	// employee_id_format.go), bukan lewat tag binding, karena required-ness
+	// bergantung pada setting.employee_id_format.generation_mode.
+	EmployeeID      string  `json:"employee_id" binding:"omitempty,max=50"`
 	NIK             *string `json:"nik" binding:"omitempty,max=16"`
 	FamilyID        *string `json:"family_id" binding:"omitempty,max=16"`
 	Name            string  `json:"name" binding:"required,max=255"`
