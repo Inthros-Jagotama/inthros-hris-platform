@@ -4073,6 +4073,7 @@
     "assign_permissions": "Assign permissions",
     "assign_roles": "Assign roles",
     "select_roles": "Select roles...",
+    "no_description": "No description",
     "empty_roles": "No roles created yet",
     "empty_users": "No users found",
     "empty_permissions": "No permissions available",

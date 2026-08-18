@@ -148,17 +148,19 @@
     <Dialog v-model:visible="userRoleDialogVisible" :header="`${t('rbac.assign_roles')} — ${userRoleTarget?.name || ''}`" modal :style="{ width: '480px' }" :closable="true" @hide="userRoleForm.role_ids = []">
       <div class="space-y-3">
         <FormRow :label="t('rbac.roles')" required :errors="userRoleErrors?.role_ids">
-          <MultiSelect
-            v-model="userRoleForm.role_ids"
-            :options="roles"
-            optionLabel="name"
-            optionValue="id"
-            :placeholder="t('rbac.select_roles')"
-            :maxSelectedLabels="3"
-            class="!w-full"
-            display="chip"
-            :class="{ 'p-invalid': userRoleErrors?.role_ids }"
-          />
+          <div class="space-y-2">
+            <div
+              v-for="role in roles"
+              :key="role.id"
+              class="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
+            >
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-navy-800 dark:text-gray-100 truncate">{{ role.name }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ role.description || t('rbac.no_description') }}</p>
+              </div>
+              <ToggleSwitch :modelValue="isRoleSelected(role.id)" @update:modelValue="toggleRoleSelected(role.id)" class="shrink-0" />
+            </div>
+          </div>
         </FormRow>
       </div>
       <template #footer>
@@ -194,7 +196,6 @@ import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
-import MultiSelect from 'primevue/multiselect'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Dialog from 'primevue/dialog'
 import SkeletonTable from '@/components/SkeletonTable.vue'
@@ -350,6 +351,17 @@ function openUserRoleDialog(user) {
   userRoleForm.value = { role_ids: [...(user.role_ids || [])] }
   if (roles.value.length === 0) loadRoles()
   userRoleDialogVisible.value = true
+}
+
+function isRoleSelected(roleId) {
+  return userRoleForm.value.role_ids.includes(roleId)
+}
+
+function toggleRoleSelected(roleId) {
+  const ids = userRoleForm.value.role_ids
+  const idx = ids.indexOf(roleId)
+  if (idx === -1) ids.push(roleId)
+  else ids.splice(idx, 1)
 }
 
 async function handleSaveUserRoles() {

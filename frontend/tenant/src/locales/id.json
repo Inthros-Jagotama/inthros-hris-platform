@@ -4073,6 +4073,7 @@
     "assign_permissions": "Atur permissions",
     "assign_roles": "Atur roles",
     "select_roles": "Pilih roles...",
+    "no_description": "Tidak ada deskripsi",
     "empty_roles": "Belum ada roles dibuat",
     "empty_users": "Tidak ada user ditemukan",
     "empty_permissions": "Tidak ada permissions tersedia",
