@@ -41,7 +41,7 @@
       </Column>
       <Column field="title" :header="t('notification.column_title')">
         <template #body="{data}">
-          <span class="font-medium text-gray-800 dark:text-gray-100" :class="{ 'font-semibold': !data.is_read }">{{ data.title }}</span>
+          <span class="font-medium text-navy-800 dark:text-gray-100" :class="{ 'font-semibold': !data.is_read }">{{ data.title }}</span>
         </template>
       </Column>
       <Column field="body" :header="t('notification.column_body')">
