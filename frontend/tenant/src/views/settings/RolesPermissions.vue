@@ -147,21 +147,20 @@
     <!-- ═══ ASSIGN USER ROLES DIALOG ═══ -->
     <Dialog v-model:visible="userRoleDialogVisible" :header="`${t('rbac.assign_roles')} — ${userRoleTarget?.name || ''}`" modal :style="{ width: '480px' }" :closable="true" @hide="userRoleForm.role_ids = []">
       <div class="space-y-3">
-        <FormRow :label="t('rbac.roles')" required :errors="userRoleErrors?.role_ids">
-          <div class="space-y-2">
-            <div
-              v-for="role in roles"
-              :key="role.id"
-              class="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
-            >
-              <div class="min-w-0">
-                <p class="text-sm font-medium text-navy-800 dark:text-gray-100 truncate">{{ role.name }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ role.description || t('rbac.no_description') }}</p>
-              </div>
-              <ToggleSwitch :modelValue="isRoleSelected(role.id)" @update:modelValue="toggleRoleSelected(role.id)" class="shrink-0" />
+        <div class="space-y-2">
+          <div
+            v-for="role in roles"
+            :key="role.id"
+            class="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
+          >
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-navy-800 dark:text-gray-100 truncate">{{ role.name }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ role.description || t('rbac.no_description') }}</p>
             </div>
+            <ToggleSwitch :modelValue="isRoleSelected(role.id)" @update:modelValue="toggleRoleSelected(role.id)" class="shrink-0" />
           </div>
-        </FormRow>
+        </div>
+        <small v-if="userRoleErrors?.role_ids" class="text-red-500 text-xs block">{{ Array.isArray(userRoleErrors.role_ids) ? userRoleErrors.role_ids.filter(Boolean).join(', ') : userRoleErrors.role_ids }}</small>
       </div>
       <template #footer>
         <div class="flex items-center justify-end gap-2">
