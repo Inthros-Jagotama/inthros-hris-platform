@@ -102,7 +102,7 @@
     <Dialog v-model:visible="detailVisible" :header="t('career_paths.path_detail_title')" modal :style="{ width: '520px' }">
       <div v-if="detailItem" class="space-y-4">
         <div>
-          <p class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ detailItem.name }}</p>
+          <p class="text-base font-semibold text-navy-800 dark:text-gray-100">{{ detailItem.name }}</p>
           <p v-if="detailItem.description" class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ detailItem.description }}</p>
           <Tag
             class="mt-2 !text-xs !px-1.5 !py-0.5"
@@ -121,14 +121,14 @@
                 <div class="flex flex-col items-center">
                   <span
                     class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 shrink-0"
-                    :class="idx === 0 ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-400 text-emerald-600 dark:text-emerald-300' : 'bg-indigo-100 dark:bg-indigo-900/40 border-indigo-400 text-indigo-600 dark:text-indigo-300'"
+                    :class="idx === 0 ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-400 text-emerald-600 dark:text-emerald-300' : 'bg-teal-100 dark:bg-teal-900/40 border-teal-400 text-teal-600 dark:text-teal-300'"
                   >
                     {{ idx + 1 }}
                   </span>
                   <span v-if="idx < (detailItem.steps || []).length - 1" class="w-px flex-1 bg-gray-300 dark:bg-gray-600 my-1"></span>
                 </div>
                 <div class="flex-1 pt-1 pb-1">
-                  <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ step.position_name || step.position_id }}</p>
+                  <p class="text-sm font-medium text-navy-800 dark:text-gray-100">{{ step.position_name || step.position_id }}</p>
                   <div class="flex items-center gap-2 mt-1 flex-wrap">
                     <Tag v-if="step.minimum_service_months != null" severity="warning" class="!text-[10px] !px-1 !py-0.5">
                       {{ step.minimum_service_months }} {{ t('career_paths.months_short') }}
@@ -186,8 +186,8 @@
               class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-2"
             >
               <div class="flex items-center justify-between">
-                <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-500">
-                  <span class="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 flex items-center justify-center">{{ idx + 1 }}</span>
+                <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-500">
+                  <span class="w-5 h-5 rounded-full bg-teal-100 dark:bg-teal-900/60 flex items-center justify-center">{{ idx + 1 }}</span>
                   {{ t('career_paths.step') }} {{ idx + 1 }}
                 </span>
                 <div class="flex items-center gap-1">

@@ -48,7 +48,7 @@
               <i class="pi pi-shield text-xs"></i>
             </div>
             <div class="min-w-0">
-              <p class="font-medium text-gray-800 dark:text-gray-100 truncate">{{ data.position_title }}</p>
+              <p class="font-medium text-navy-800 dark:text-gray-100 truncate">{{ data.position_title }}</p>
               <p class="text-xs text-gray-400 dark:text-gray-500 font-mono truncate">{{ data.position_id }}</p>
             </div>
           </div>

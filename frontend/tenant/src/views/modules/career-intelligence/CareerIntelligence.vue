@@ -16,7 +16,7 @@
           <i :class="menu.icon" class="text-base"></i>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ t(menu.labelKey) }}</p>
+          <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ t(menu.labelKey) }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(menu.descKey) }}</p>
         </div>
         <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
