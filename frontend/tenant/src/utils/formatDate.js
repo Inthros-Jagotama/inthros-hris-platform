@@ -85,3 +85,42 @@ export function formatMonth(monthIndex, lang = 'en') {
   if (monthIndex < 1 || monthIndex > 12) return ''
   return months[monthIndex - 1]
 }
+
+/**
+ * Format a date+time value: "30 July 2026 14:30" (EN) or "30 Juli 2026 14:30" (ID).
+ *
+ * @param {string|Date} value — ISO timestamp or date string
+ * @param {string} lang — Language code: 'en' or 'id'
+ * @returns {string} Formatted date+time string, or '-'
+ */
+export function formatDateDateTime(value, lang = 'en') {
+  if (!value) return '-'
+  const datePart = formatDate(value, lang)
+  if (!datePart) return '-'
+  const time = new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return `${datePart} ${time}`
+}
+
+/**
+ * Format time only: "14:30" from an RFC3339 timestamp.
+ *
+ * @param {string} value — RFC3339 timestamp
+ * @returns {string} Formatted time string, or '-'
+ */
+export function formatTime(value) {
+  if (!value) return '-'
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return '-'
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+/**
+ * Format currency in IDR without decimals: "Rp 1.000.000".
+ *
+ * @param {number|string|null} value
+ * @returns {string} Formatted currency string, or '-'
+ */
+export function formatCurrency(value) {
+  if (value === null || value === undefined || value === '') return '-'
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value))
+}

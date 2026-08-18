@@ -291,6 +291,7 @@ import { useI18n } from '@/composables/useI18n'
 import { useAuth } from '@/stores/auth'
 import { useToast } from 'primevue/usetoast'
 import { formatDate } from '@/utils/formatDate'
+import { genderLabel } from '@/utils/genderLabel'
 import api from '@/services/api'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -438,11 +439,6 @@ const employmentStatusMap = ref({})
 function labelOf(map, id) {
   if (!id || !map) return ''
   return map[id] || id
-}
-
-function genderLabel(v) {
-  if (!v) return ''
-  return t('employee.gender_' + v.toLowerCase())
 }
 
 // Nama file unduhan: nama dokumen + ekstensi dari path file.

@@ -1,3 +1,5 @@
+> ✅ **Diarsipkan (2026-08-18)**: Phase 1-7 (backend model/migrasi 140-148, integrasi Approval Engine, calculation engine, reporting, 9 halaman frontend) diverifikasi lengkap terhadap kode aktual — seluruh klaim di dokumen ini cocok dengan kode (`go test ./internal/modules/competency/... ./internal/modules/approval/...` lolos). 4 item Phase 8 yang unchecked (Authorization/Frontend/Security/Performance testing) **bukan gap khusus modul ini** — tidak ada modul manapun di codebase yang punya frontend test atau per-route authorization test, konsisten dengan pola RBAC di level module (bukan per-route) yang dipakai project ini. Diarsipkan sebagai selesai.
+
 # Development Plan — Competency 360 Module
 
 ## 1. Tujuan

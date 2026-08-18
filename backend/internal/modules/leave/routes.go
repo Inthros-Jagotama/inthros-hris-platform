@@ -49,7 +49,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		// Leave Types (admin-config)
 		leave.POST("/types", requireLeaveSettings("create"), handler.CreateLeaveType)
 		leave.GET("/types", handler.ListLeaveTypes)
-		leave.GET("/types/:id", requireLeaveSettings("view"), handler.GetLeaveTypeByID)
+		leave.GET("/types/:id", handler.GetLeaveTypeByID)
 		leave.PUT("/types/:id", requireLeaveSettings("update"), handler.UpdateLeaveType)
 		leave.DELETE("/types/:id", requireLeaveSettings("delete"), handler.DeleteLeaveType)
 

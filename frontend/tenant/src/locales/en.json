@@ -2292,6 +2292,7 @@
     "review": "Review",
     "document_id": "Document ID",
     "watcher_note": "You are watching this approval — no action is required.",
+    "instance_resolved": "This approval has been resolved — no further action is available.",
     "submitted_data": "Submitted Data",
     "approval_data": "Approval Data",
     "submitted_data_unavailable": "Submitted data is not available for this module.",

@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 const props = defineProps({
     label: { type: String, default: '' },
     value: { type: [String, Number], default: '' },
+    description: { type: String, default: '' },
     mono: { type: Boolean, default: false },
     breakAll: { type: Boolean, default: false },
     copyable: { type: Boolean, default: false },
@@ -29,21 +30,21 @@ async function copyValue() {
 </script>
 
 <template>
-    <div class="flex flex-col gap-1">
+    <div class="flex flex-col gap-0">
         <!-- Label: font lebih kecil dari value (text-xs < text-sm) -->
-        <label class="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+        <label class="text-xs text-gray-400 dark:text-gray-500 tracking-wide">
             {{ label }}
         </label>
 
         <!-- Slot untuk konten custom (Tag, link, dll) -->
-        <span v-if="$slots.default" class="text-sm text-gray-700 dark:text-gray-200">
+        <span v-if="$slots.default" class="text-md text-gray-700 dark:text-gray-200">
             <slot />
         </span>
 
         <!-- Render value standar + tombol copy opsional -->
         <span
             v-else
-            class="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-200"
+            class="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200"
             :class="{ 'font-mono': mono, 'break-all': breakAll }"
         >
             <template v-if="hasValue">{{ value }}</template>
@@ -59,5 +60,8 @@ async function copyValue() {
                 <i :class="copied ? 'pi pi-check' : 'pi pi-copy'" style="font-size: 0.75rem"></i>
             </button>
         </span>
+        <p v-if="description" class="text-xs text-gray-400 dark:text-gray-500">
+            {{ description }}
+        </p>
     </div>
 </template>

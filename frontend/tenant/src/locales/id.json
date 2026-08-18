@@ -2292,6 +2292,7 @@
     "review": "Tinjau",
     "document_id": "Document ID",
     "watcher_note": "Anda hanya memantau persetujuan ini — tidak perlu tindakan.",
+    "instance_resolved": "Persetujuan ini sudah selesai — tidak ada tindakan lebih lanjut.",
     "submitted_data": "Data yang Diajukan",
     "approval_data": "Data Approval",
     "submitted_data_unavailable": "Data yang diajukan tidak tersedia untuk module ini.",

@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-2xl mx-auto space-y-6">
+  <div class="w-full space-y-6">
     <!-- User Info Card -->
     <Card>
       <template #title>
@@ -31,11 +31,36 @@
           </div>
           <div>
             <label class="block text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">{{ t('profile.last_login') }}</label>
-            <span class="text-sm text-gray-700 dark:text-gray-200">{{ user?.last_login ? formatDate(user.last_login) : '—' }}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{{ user?.last_login ? formatDate(user.last_login, locale) : '—' }}</span>
           </div>
         </div>
       </template>
     </Card>
+
+    <!-- Employee Profile Card (non-platform users only) -->
+    <Card v-if="employee">
+      <template #title>
+        <div class="flex items-center gap-2">
+          <i class="pi pi-id-card text-emerald-500"></i>
+          <span class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('profile.employee_data') }}</span>
+        </div>
+      </template>
+      <template #content>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <ViewLabel :label="t('employee.employee_id')" :value="employee.employee_id" mono />
+          <ViewLabel v-if="employee.nik" :label="t('employee.nik')" :value="employee.nik" mono />
+          <ViewLabel :label="t('employee.name')" :value="employee.name" />
+          <ViewLabel :label="t('employee.gender')" :value="genderLabel(employee.gender)" />
+          <ViewLabel :label="t('employee.dob')" :value="formatDate(employee.dob, locale)" />
+          <ViewLabel :label="t('employee.phone_number')" :value="employee.phone_number" />
+          <ViewLabel :label="t('employee.email')" :value="employee.email" />
+          <ViewLabel :label="t('employee.organization')" :value="employee.organization_name" />
+          <ViewLabel v-if="employee.religion_name" :label="t('employee.religion')" :value="employee.religion_name" />
+          <ViewLabel v-if="employee.marital_status_name" :label="t('employee.marital_status')" :value="employee.marital_status_name" />
+        </div>
+      </template>
+    </Card>
+
     <!-- Change Password Card (platform user only — employees use the email setup-password link) -->
     <Card v-if="isPlatformUser">
       <template #title>
@@ -116,7 +141,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useAuth } from '@/stores/auth'
-import { useLanguage } from '@/stores/language'
 import { useI18n } from '@/composables/useI18n'
 import { getValidationErrors } from '@/services/responseHandler'
 import api from '@/services/api'
@@ -126,10 +150,13 @@ import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import Password from 'primevue/password'
 import { useToast } from 'primevue/usetoast'
+import { formatDate } from '@/utils/formatDate'
+import { genderLabel } from '@/utils/genderLabel'
+import ViewLabel from '@/components/ViewLabel.vue'
+
 const toast = useToast()
 const { state: auth } = useAuth()
-const langStore = useLanguage()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const user = ref(auth.user)
 const submitting = ref(false)
 const errors = ref({})
@@ -137,15 +164,26 @@ const errors = ref({})
 // (company_admin/super_admin). Untuk login employee, data sudah tersedia dari
 // response login (auth.user + company_name) — skip fetch agar tidak gagal.
 const isPlatformUser = computed(() => ['company_admin', 'super_admin', 'admin'].includes(auth.user?.role))
+const employee = ref(null)
 onMounted(async () => {
-  if (!isPlatformUser.value) return
-  try {
-    const res = await api.get(`/api/v1/platform/users/${auth.user.id}`)
-    const data = res.data?.data || res.data
-    user.value = { ...auth.user, ...data }
-  } catch {
-    // Fallback to auth store data if API fails
-    user.value = auth.user
+  // Fetch employee profile from /user-accounts/me (non-platform users)
+  if (!isPlatformUser.value) {
+    try {
+      const res = await api.get('/api/v1/tenant/user-accounts/me')
+      employee.value = res.data?.data?.employee || null
+    } catch {
+      // silently fail
+    }
+  }
+  // Fetch platform user details
+  if (isPlatformUser.value) {
+    try {
+      const res = await api.get(`/api/v1/platform/users/${auth.user.id}`)
+      const data = res.data?.data || res.data
+      user.value = { ...auth.user, ...data }
+    } catch {
+      user.value = auth.user
+    }
   }
 })
 const roleLabel = computed(() => {
@@ -164,10 +202,7 @@ function resetForm() {
   form.confirm_password = ''
   errors.value = {}
 }
-function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString(langStore.state.lang === 'id' ? 'id-ID' : 'en-US')
-}
+
 async function handleChangePassword() {
   errors.value = {}
   // Client-side validation
