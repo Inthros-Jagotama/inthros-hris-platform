@@ -29,7 +29,7 @@
         </div>
       </template>
       <Column field="organization_id" :header="t('attendance.organization')">
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ organizationName(data.organization_id) }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ organizationName(data.organization_id) }}</span></template>
       </Column>
       <Column field="is_exempt" :header="t('attendance.is_exempt')" style="width:120px">
         <template #body="{data}"><Tag :value="data.is_exempt ? t('common.yes') : t('common.no')" :severity="data.is_exempt ? 'success' : 'secondary'" class="!text-xs !px-1.5 !py-0.5" /></template>

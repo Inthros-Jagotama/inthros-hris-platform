@@ -29,7 +29,7 @@
         </div>
       </template>
       <Column field="name" :header="t('common.name')" sortable>
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.name }}</span></template>
       </Column>
       <Column field="latitude" :header="t('attendance.latitude')" style="width:140px">
         <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.latitude }}</span></template>

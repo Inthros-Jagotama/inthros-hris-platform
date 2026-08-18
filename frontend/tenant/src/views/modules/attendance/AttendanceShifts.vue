@@ -29,7 +29,7 @@
         </div>
       </template>
       <Column field="shift_name" :header="t('attendance.shift_name')" sortable>
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.shift_name }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.shift_name }}</span></template>
       </Column>
       <Column field="check_in_time" :header="t('attendance.check_in_time')" style="width:140px">
         <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ data.check_in_time }}</span></template>

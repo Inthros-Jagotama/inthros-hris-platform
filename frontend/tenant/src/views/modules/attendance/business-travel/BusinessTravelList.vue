@@ -31,7 +31,7 @@
       </template>
       <Column field="request_number" :header="t('business_travel.request_number')" style="width:160px">
         <template #body="{data}">
-          <a class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium cursor-pointer" @click="router.push(`/attendance/business-travel/${data.id}`)">{{ data.request_number }}</a>
+          <a class="text-teal-600 dark:text-teal-400 hover:underline font-medium cursor-pointer" @click="router.push(`/attendance/business-travel/${data.id}`)">{{ data.request_number }}</a>
         </template>
       </Column>
       <Column field="title" :header="t('business_travel.field_title')" />

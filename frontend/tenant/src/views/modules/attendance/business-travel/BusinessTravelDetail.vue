@@ -9,7 +9,7 @@
       <div class="flex items-start justify-between flex-wrap gap-3">
         <div>
           <div class="flex items-center gap-2 flex-wrap">
-            <h2 class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ travel.title }}</h2>
+            <h2 class="text-base font-semibold text-navy-800 dark:text-gray-100">{{ travel.title }}</h2>
             <Tag :value="statusLabel(travel.status)" :severity="statusSeverity(travel.status)" class="!text-xs !px-1.5 !py-0.5" />
           </div>
           <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ travel.request_number }} · {{ formatDate(travel.start_date, locale) }} — {{ formatDate(travel.end_date, locale) }}</p>
@@ -24,11 +24,11 @@
       <div v-if="fundings.length || expenses.length" class="grid grid-cols-3 gap-3 mt-4">
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2.5">
           <p class="text-xs text-gray-400">{{ t('business_travel.total_funding') }}</p>
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ formatCurrency(totalFundingAmount) }}</p>
+          <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ formatCurrency(totalFundingAmount) }}</p>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2.5">
           <p class="text-xs text-gray-400">{{ t('business_travel.total_expense') }}</p>
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ formatCurrency(totalExpenseAmount) }}</p>
+          <p class="text-sm font-semibold text-navy-800 dark:text-gray-100">{{ formatCurrency(totalExpenseAmount) }}</p>
         </div>
         <div class="rounded-lg border px-3 py-2.5" :class="remainingBalance < 0 ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-900/20' : 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20'">
           <p class="text-xs" :class="remainingBalance < 0 ? 'text-rose-500' : 'text-emerald-600 dark:text-emerald-400'">{{ t('business_travel.remaining_balance') }}</p>
@@ -42,7 +42,7 @@
       <div class="flex items-center gap-1 px-3 pt-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
         <button v-for="tab in tabs" :key="tab.key" type="button"
           class="px-3 py-2 text-sm font-medium rounded-t-md transition-colors whitespace-nowrap"
-          :class="activeTab === tab.key ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
+          :class="activeTab === tab.key ? 'text-teal-600 dark:text-teal-400 border-b-2 border-teal-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
           @click="activeTab = tab.key">
           {{ t(tab.labelKey) }}
         </button>
@@ -55,7 +55,7 @@
           <div class="rounded-lg border border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
               <div class="flex items-center gap-2">
-                <i class="pi pi-users text-indigo-500 text-sm"></i>
+                <i class="pi pi-users text-teal-500 text-sm"></i>
                 <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ t('business_travel.participants') }}</h3>
               </div>
               <Button icon="pi pi-plus" size="small" text @click="openParticipantDialog" />

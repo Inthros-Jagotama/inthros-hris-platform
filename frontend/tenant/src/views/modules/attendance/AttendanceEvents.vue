@@ -29,7 +29,7 @@
         </div>
       </template>
       <Column field="employee_id" :header="t('employee.title')">
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span></template>
       </Column>
       <Column field="event_type" :header="t('attendance.event_type')" style="width:110px">
         <template #body="{data}"><Tag :value="data.event_type" :severity="data.event_type === 'CHECKIN' ? 'success' : 'warn'" class="!text-xs !px-1.5 !py-0.5" /></template>

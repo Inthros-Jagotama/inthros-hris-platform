@@ -27,7 +27,7 @@
         </div>
       </template>
       <Column field="employee_id" :header="t('employee.title')" sortable>
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ employeeName(data.employee_id) }}</span></template>
       </Column>
       <Column field="work_date" :header="t('attendance.work_date')" sortable style="width:150px">
         <template #body="{data}"><span class="text-gray-600 dark:text-gray-300">{{ formatDate(data.work_date, locale) }}</span></template>
