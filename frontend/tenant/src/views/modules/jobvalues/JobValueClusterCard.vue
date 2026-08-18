@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
     <div>
-      <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ t('job_values.cluster_mapping_title') }}</h3>
+      <h3 class="text-base font-semibold text-navy-800 dark:text-gray-100">{{ t('job_values.cluster_mapping_title') }}</h3>
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('job_values.cluster_mapping_description') }}</p>
     </div>
 

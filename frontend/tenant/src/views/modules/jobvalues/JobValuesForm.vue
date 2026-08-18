@@ -19,7 +19,7 @@
           </div>
           <div class="min-w-0">
             <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">{{ t('organization.title') }}</div>
-            <div class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ orgName }}</div>
+            <div class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ orgName }}</div>
             <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">{{ orgCode }}</div>
           </div>
         </div>

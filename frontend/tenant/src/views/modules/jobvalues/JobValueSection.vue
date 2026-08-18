@@ -38,7 +38,7 @@
       <!-- Kolom description menampilkan nama pendidikan (auto-fill) untuk tipe education;
            fallback ke nama dari ref_id utk data lama yg description-nya kosong -->
       <Column field="descriptions" :header="t('job_values.descriptions')" sortable>
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100">{{ data.descriptions || educationName(data.ref_id) || '-' }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100">{{ data.descriptions || educationName(data.ref_id) || '-' }}</span></template>
       </Column>
       <Column field="note" :header="t('job_values.note')" sortable>
         <template #body="{data}"><span class="text-gray-500 dark:text-gray-400">{{ data.note || '-' }}</span></template>

@@ -3,7 +3,7 @@
     <!-- Grouped Cards -->
     <div v-for="group in filteredGroups" :key="group.key" class="space-y-3">
       <div class="flex items-center gap-2">
-        <i :class="group.icon" class="text-indigo-400 text-sm"></i>
+        <i :class="group.icon" class="text-teal-400 text-sm"></i>
         <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t(group.labelKey) }}</h2>
         <span class="text-xs text-gray-400 dark:text-gray-500">{{ group.items.length }}</span>
         <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
@@ -13,7 +13,7 @@
           v-for="item in group.items"
           :key="item.type"
           type="button"
-          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-teal-300 dark:hover:border-teal-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
           @click="openType(item.type)"
         >
           <div
@@ -23,10 +23,10 @@
             <i :class="item.icon" class="text-base"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ typeLabel(item.type) }}</p>
+            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ typeLabel(item.type) }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(`job_values.type_desc.${item.type}`) }}</p>
           </div>
-          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
         </button>
       </div>
     </div>
@@ -62,7 +62,7 @@ const groups = computed(() => [
       { type: 'subordinate', icon: 'pi pi-sitemap', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400' },
       { type: 'activity', icon: 'pi pi-directions', tint: 'bg-lime-50 dark:bg-lime-500/10 text-lime-600 dark:text-lime-400' },
       { type: 'communicating_influencing_skill', icon: 'pi pi-comments', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
-      { type: 'thinking_environment', icon: 'pi pi-wave-pulse', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
+      { type: 'thinking_environment', icon: 'pi pi-wave-pulse', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
       { type: 'thinking_chalenge', icon: 'pi pi-flag', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400' }
     ]
   },
@@ -85,7 +85,7 @@ const groups = computed(() => [
     labelKey: 'job_values.group_technical_managerial',
     items: [
       { type: 'technical', icon: 'pi pi-cog', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-      { type: 'managerial', icon: 'pi pi-briefcase', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' }
+      { type: 'managerial', icon: 'pi pi-briefcase', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' }
     ]
   },
   {
@@ -104,7 +104,7 @@ const groups = computed(() => [
     icon: 'pi pi-shield',
     labelKey: 'job_values.group_authority',
     items: [
-      { type: 'asset', icon: 'pi pi-box', tint: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
+      { type: 'asset', icon: 'pi pi-box', tint: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' },
       { type: 'asset_authority', icon: 'pi pi-box', tint: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
       { type: 'authority', icon: 'pi pi-shield', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
       { type: 'authority_unauthorized', icon: 'pi pi-ban', tint: 'bg-slate-100 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400' }
