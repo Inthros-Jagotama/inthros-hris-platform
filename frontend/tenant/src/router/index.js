@@ -274,7 +274,7 @@ const routes = [
         path: 'attendance/business-travel/reports',
         name: 'BusinessTravelReports',
         component: () => import('@/views/modules/attendance/business-travel/BusinessTravelReports.vue'),
-        meta: { title: 'Business Travel Reports', titleKey: 'business_travel.reports', descKey: 'business_travel.reports_description', icon: 'pi pi-chart-bar', module: 'attendance', backRoute: '/attendance/business-travel', backLabelKey: 'business_travel.title', permission: 'business_travel.report', strictPermission: true }
+        meta: { title: 'Business Travel Reports', titleKey: 'business_travel.reports', descKey: 'business_travel.reports_description', icon: 'pi pi-chart-bar', module: 'attendance', backRoute: '/attendance', backLabelKey: 'attendance.title', permission: 'attendance.report.view', strictPermission: true }
       },
       {
         path: 'attendance/business-travel/:id',

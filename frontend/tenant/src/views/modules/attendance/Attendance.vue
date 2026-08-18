@@ -36,7 +36,7 @@
             <div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
           </div>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div :class="['grid grid-cols-1 sm:grid-cols-2 gap-3', group.titleKey === 'attendance.group_reports' ? 'lg:grid-cols-4' : 'lg:grid-cols-3']">
           <button
             v-for="menu in group.items"
             :key="menu.route"
@@ -148,7 +148,8 @@ const menuGroups = computed(() => {
         // attendance.report.view memblokir seluruh grup (Events, Sessions, Reports).
         { labelKey: 'attendance.events', descKey: 'attendance.events_description', icon: 'pi pi-list', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/events', permission: 'attendance.report.view' },
         { labelKey: 'attendance.sessions', descKey: 'attendance.sessions_description', icon: 'pi pi-calendar', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/sessions', permission: 'attendance.report.view' },
-        { labelKey: 'attendance.reports', descKey: 'attendance.reports_description', icon: 'pi pi-chart-bar', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/reports', permission: 'attendance.report.view' }
+        { labelKey: 'attendance.reports', descKey: 'attendance.reports_description', icon: 'pi pi-chart-bar', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/attendance/reports', permission: 'attendance.report.view' },
+        { labelKey: 'business_travel.reports', descKey: 'business_travel.reports_description', icon: 'pi pi-chart-bar', tint: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', route: '/attendance/business-travel/reports', permission: 'attendance.report.view' }
       ]
     }
   ]

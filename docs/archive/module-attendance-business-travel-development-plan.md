@@ -1,5 +1,7 @@
 # Plan Pengembangan Business Travel / Perjalanan Dinas
 
+> ✅ **Diarsipkan (2026-08-18)**: modul Attendance (termasuk Business Travel) dinyatakan selesai oleh user dan dokumen ini dipindahkan ke `docs/archive/`. Phase 12 Reporting (§40/§47) sudah diimplementasikan 2026-08-18 (6 endpoint report + halaman `BusinessTravelReports.vue`, digate `attendance.report.view`, terhubung dari hub Attendance). Catatan jujur: §50 Testing masih belum ada test khusus untuk business travel, dan payment-proof/refund-proof (Phase 7-8) masih pakai field URL polos, bukan upload multi-dokumen. Diarsipkan sebagai keputusan produk (scope dianggap cukup), bukan karena seluruh gap tertutup.
+
 ## 1. Tujuan
 
 Menambahkan fitur **Business Travel / Perjalanan Dinas** pada HRIS sebagai bagian dari module Attendance, dengan integrasi ke:
