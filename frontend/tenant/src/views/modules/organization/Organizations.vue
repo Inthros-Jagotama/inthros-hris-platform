@@ -115,7 +115,7 @@
         <template #default="{ node }">
           <div class="flex items-center gap-2 py-0.5 select-none">
             <i :class="node.children?.length ? 'pi pi-folder-open text-amber-500 text-xs' : 'pi pi-file text-gray-400 text-xs'"></i>
-            <span class="font-medium text-gray-800 dark:text-gray-100">{{ node.data.nomenclature }}</span>
+            <span class="font-medium text-navy-800 dark:text-gray-100">{{ node.data.nomenclature }}</span>
             <Tag :value="node.data.code" severity="info" class="!text-[10px] !px-1 !py-0" />
             <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{{ node.data.full_code }}</span>
           </div>

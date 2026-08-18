@@ -22,7 +22,7 @@
         <template #body="{ data }">
           <div class="flex items-center gap-2">
             <i class="pi pi-folder-open text-amber-500 text-xs"></i>
-            <span class="font-medium text-gray-800 dark:text-gray-100">{{ data.nomenclature }}</span>
+            <span class="font-medium text-navy-800 dark:text-gray-100">{{ data.nomenclature }}</span>
             <Tag
               v-if="data.children?.length"
               :value="data.children.length"

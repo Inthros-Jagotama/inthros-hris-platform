@@ -50,7 +50,7 @@
         <template #body="{data}"><Tag :value="data.code" severity="info" class="!text-xs !font-mono !px-1.5 !py-0.5" /></template>
       </Column>
       <Column field="decree_no" :header="t('org_summary.decree_no')" sortable>
-        <template #body="{data}"><span class="text-gray-800 dark:text-gray-100 font-medium">{{ data.decree_no }}</span></template>
+        <template #body="{data}"><span class="text-navy-800 dark:text-gray-100 font-medium">{{ data.decree_no }}</span></template>
       </Column>
       <Column field="decree_date" :header="t('org_summary.decree_date')" sortable style="width:160px">
         <template #body="{data}"><span class="text-gray-500 dark:text-gray-400">{{ formatDate(data.decree_date, locale) }}</span></template>
