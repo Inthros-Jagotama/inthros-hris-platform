@@ -10,7 +10,7 @@ Dokumen ini menjelaskan struktur database HRIS Platform: arsitektur dua-database
 | Database | Isi | Jumlah Tabel |
 |---|---|---|
 | **Platform DB** | Data multi-tenant: companies, modul, lisensi, paket, RBAC platform | 11 |
-| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 202 |
+| **Tenant DB** (1 per company) | Seluruh data HRIS milik satu company | 250 |
 
 > Sumber kebenaran: file migrasi SQL di `backend/internal/pkg/migrator/migrations/` (dialect `postgres/` & `mysql/` identik).
 
@@ -176,7 +176,7 @@ erDiagram
 
 Satu database terisolasi **per company** (database per tenant). Struktur identik untuk semua tenant (dibuat saat provisioning company).
 
-Total **251 tabel** dikelompokkan dalam 20 modul:
+Total **250 tabel** dikelompokkan dalam 20 modul:
 
 > ℹ️ **Catatan:** pengelompokan di sini berbasis **domain tabel** (mis. Performance dipecah jadi KPI & OKR, RBAC digabung dengan Auth) — bukan folder kode. Jumlah **folder modul tenant** di kode = **19** (termasuk `notification`, `rbac`, `useraccount`), lihat [`go-module-architecture-report.md`](go-module-architecture-report.md).
 
@@ -188,7 +188,7 @@ Total **251 tabel** dikelompokkan dalam 20 modul:
 | 4 | Attendance | 11 |
 | 5 | Notification | 1 |
 | 6 | Leave | 7 |
-| 7 | Payroll | 22 |
+| 7 | Payroll | 21 |
 | 8 | Competency | 16 |
 | 9 | Job Management | 22 |
 | 10 | Approval Engine | 6 |
@@ -199,7 +199,7 @@ Total **251 tabel** dikelompokkan dalam 20 modul:
 | 15 | Performance — KPI | 17 |
 | 16 | Performance — OKR | 8 |
 | 17 | Recruitment | 24 |
-| 18 | Training | 28 |
+| 18 | Training | 27 |
 | 19 | Workforce Intelligence | 7 |
 | 20 | Career Intelligence | 5 |
 
@@ -224,12 +224,11 @@ Total **251 tabel** dikelompokkan dalam 20 modul:
 | `banks` | 7 | - |
 | `nationalities` | 7 | - |
 | `salary_grades` | 10 | - |
-| `ptkps` | 9 | - |
+| `ptkps` | 10 | - |
 | `ters` | 10 | - |
 | `insurances` | 7 | - |
 | `company_holidays` | 6 | - |
-| `document_templates` | 7 | - |
-
+| `document_templates` | 14 | active_version_id->document_template_versions |
 | `document_numbering_settings` | 8 | - |
 | `document_template_versions` | 13 | template_id->document_templates |
 | `document_template_audits` | 7 | template_id->document_templates |
@@ -400,6 +399,7 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
         TIMESTAMP deleted_at
+        VARCHAR code
     }
     ters {
         CHAR id
@@ -438,10 +438,14 @@ erDiagram
         SMALLINT is_active
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        VARCHAR code
+        TEXT description
+        CHAR active_version_id
+        VARCHAR status
+        BOOLEAN is_default
+        TIMESTAMP deleted_at
+        VARCHAR movement_type
     }
-    provinces ||--o{ regencies : "province_id"
-    regencies ||--o{ districts : "regency_id"
-    districts ||--o{ villages : "district_id"
     document_numbering_settings {
         CHAR id
         VARCHAR document_type
@@ -457,7 +461,6 @@ erDiagram
         CHAR template_id
         INT version
         TEXT content
-        VARCHAR file_name
         VARCHAR paper_size
         VARCHAR orientation
         INT margin_top
@@ -466,6 +469,7 @@ erDiagram
         INT margin_left
         CHAR created_by
         TIMESTAMP created_at
+        VARCHAR file_name
     }
     document_template_audits {
         CHAR id
@@ -473,7 +477,7 @@ erDiagram
         CHAR version_id
         VARCHAR action
         CHAR actor_id
-        JSON payload
+        JSONB payload
         TIMESTAMP created_at
     }
     generated_documents {
@@ -507,7 +511,14 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-
+    provinces ||--o{ regencies : "province_id"
+    regencies ||--o{ districts : "regency_id"
+    districts ||--o{ villages : "district_id"
+    document_template_versions ||--o{ document_templates : "active_version_id"
+    document_templates ||--o{ document_template_versions : "template_id"
+    document_templates ||--o{ document_template_audits : "template_id"
+    document_templates ||--o{ generated_documents : "template_id"
+    document_template_versions ||--o{ generated_documents : "template_version_id"
 ```
 
 
@@ -520,7 +531,7 @@ erDiagram
 | `zones` | 13 | - |
 | `organizations` | 17 | organization_summary_id->organization_summaries, parent_id->organizations, zone_id->zones, job_family_id->job_families, grading_id->gradings |
 | `positions` | 14 | organization_id->organizations, parent_position_id->positions, job_family_id->job_families, grading_id->gradings |
-| `job_family_competencies` | 5 | job_family_id->job_families, competency_id->competencies |
+| `job_family_competencies` | 7 | job_family_id->job_families, competency_id->competencies |
 
 ### ERD — Organization
 
@@ -601,6 +612,8 @@ erDiagram
         CHAR competency_id
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        SMALLINT required_level
+        DECIMAL weight
     }
     organization_summaries ||--o{ organizations : "organization_summary_id"
     organizations ||--o{ organizations : "parent_id"
@@ -614,7 +627,7 @@ erDiagram
 
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
-| `employees` | 24 | religion_id->religions, marital_status_id->marital_statuses, nationality_id->nationalities |
+| `employees` | 25 | religion_id->religions, marital_status_id->marital_statuses, nationality_id->nationalities |
 | `employments` | 13 | employee_id->employees, organization_id->organizations, position_id->positions, employment_status_id->employment_statuses |
 | `employee_addresses` | 13 | employee_id->employees, province_id->provinces, regency_id->regencies, district_id->districts, village_id->villages |
 | `emergency_contacts` | 10 | employee_id->employees, relationship_type_id->relationship_types |
@@ -654,6 +667,7 @@ erDiagram
         CHAR updated_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR recruited_from_application_id
     }
     employments {
         CHAR id
@@ -793,7 +807,7 @@ erDiagram
 | `attendance_device_captures` | 10 | - |
 | `attendance_face_captures` | 11 | employee_id->employees |
 | `attendance_events` | 20 | employee_id->employees, device_id->attendance_device_captures, face_capture_id->attendance_face_captures |
-| `attendance_sessions` | 23 | employee_id->employees, shift_id->attendance_company_shifts, checkin_event_id->attendance_events, checkout_event_id->attendance_events |
+| `attendance_sessions` | 24 | employee_id->employees, shift_id->attendance_company_shifts, checkin_event_id->attendance_events, checkout_event_id->attendance_events |
 | `attendance_overtime_requests` | 29 | employee_id->employees |
 | `attendance_exempt_positions` | 9 | organization_id->organizations |
 | `attendance_correction_requests` | 13 | employee_id->employees, attendance_session_id->attendance_sessions |
@@ -929,6 +943,7 @@ erDiagram
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR business_travel_id
     }
     attendance_overtime_requests {
         CHAR id
@@ -1162,7 +1177,7 @@ erDiagram
 
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
-| `salary_components` | 17 | - |
+| `salary_components` | 21 | reference_component_id->salary_components |
 | `salary_grade_components` | 15 | grading_id->gradings, salary_component_id->salary_components |
 | `salary_employee_components` | 18 | employee_id->employees, employment_id->employments, position_id->positions, grading_id->gradings, salary_component_id->salary_components |
 | `salary_change_logs` | 19 | employee_id->employees |
@@ -1175,15 +1190,13 @@ erDiagram
 | `bpjs_settings` | 16 | - |
 | `bpjs_rate_components` | 25 | bpjs_setting_id->bpjs_settings, salary_component_id->salary_components |
 | `pph21_settings` | 24 | pph21_component_id->salary_components |
-| `pph21_ptkp_rates` | 11 | - |
 | `pph21_tax_brackets` | 12 | - |
-| `payroll_runs` | 20 | payroll_period_id->payroll_periods |
+| `payroll_runs` | 21 | payroll_period_id->payroll_periods |
 | `payroll_run_employees` | 18 | payroll_run_id->payroll_runs, employee_id->employees, employment_id->employments, position_id->positions |
-| `payroll_run_items` | 23 | payroll_run_id->payroll_runs, payroll_run_employee_id->payroll_run_employees, salary_component_id->salary_components |
-| `payroll_payslips` | 23 | payroll_run_id->payroll_runs, payroll_run_employee_id->payroll_run_employees, employee_id->employees |
-| `pph21_calculation_logs` | 28 | payroll_run_id->payroll_runs, payroll_run_employee_id->payroll_run_employees, employee_id->employees, pph21_setting_id->pph21_settings, employee_tax_profile_id->employee_tax_profiles |
+| `payroll_run_items` | 28 | payroll_run_id->payroll_runs, payroll_run_employee_id->payroll_run_employees, salary_component_id->salary_components |
+| `payroll_payslips` | 24 | payroll_run_id->payroll_runs, payroll_run_employee_id->payroll_run_employees, employee_id->employees |
+| `pph21_calculation_logs` | 30 | payroll_run_id->payroll_runs, payroll_run_employee_id->payroll_run_employees, employee_id->employees, pph21_setting_id->pph21_settings, employee_tax_profile_id->employee_tax_profiles |
 | `payroll_profile_change_logs` | 13 | employee_id->employees |
-
 | `payroll_payments` | 26 | payroll_run_employee_id->payroll_run_employees |
 
 ### ERD — Payroll
@@ -1208,6 +1221,10 @@ erDiagram
         CHAR updated_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        TEXT formula
+        CHAR reference_component_id
+        SMALLINT is_pph21_component
+        SMALLINT is_pph21_deductible
     }
     salary_grade_components {
         CHAR id
@@ -1450,19 +1467,6 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    pph21_ptkp_rates {
-        CHAR id
-        VARCHAR ptkp_status
-        VARCHAR description
-        DECIMAL annual_amount
-        DATE effective_start_date
-        DATE effective_end_date
-        VARCHAR status
-        CHAR created_by
-        CHAR updated_by
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
     pph21_tax_brackets {
         CHAR id
         INT bracket_order
@@ -1498,6 +1502,7 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
         CHAR approval_instance_id
+        VARCHAR proration_method
     }
     payroll_run_employees {
         CHAR id
@@ -1543,6 +1548,11 @@ erDiagram
         TEXT notes
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        VARCHAR calculation_type
+        DECIMAL base_amount
+        DECIMAL rate
+        TEXT formula
+        DECIMAL formula_result
     }
     payroll_payslips {
         CHAR id
@@ -1568,6 +1578,7 @@ erDiagram
         CHAR updated_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        DECIMAL total_employer_contribution
     }
     pph21_calculation_logs {
         CHAR id
@@ -1598,6 +1609,8 @@ erDiagram
         CHAR updated_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        DECIMAL pension_deductible_monthly
+        VARCHAR calculation_method
     }
     payroll_profile_change_logs {
         CHAR id
@@ -1614,26 +1627,6 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    salary_components ||--o{ salary_grade_components : "salary_component_id"
-    salary_components ||--o{ salary_employee_components : "salary_component_id"
-    salary_components ||--o{ salary_employee_adjustments : "salary_component_id"
-    employee_payroll_profiles ||--o{ employee_bank_profiles : "employee_payroll_profile_id"
-    employee_payroll_profiles ||--o{ employee_bpjs_profiles : "employee_payroll_profile_id"
-    employee_payroll_profiles ||--o{ employee_tax_profiles : "employee_payroll_profile_id"
-    bpjs_settings ||--o{ bpjs_rate_components : "bpjs_setting_id"
-    salary_components ||--o{ bpjs_rate_components : "salary_component_id"
-    salary_components ||--o{ pph21_settings : "pph21_component_id"
-    payroll_periods ||--o{ payroll_runs : "payroll_period_id"
-    payroll_runs ||--o{ payroll_run_employees : "payroll_run_id"
-    payroll_runs ||--o{ payroll_run_items : "payroll_run_id"
-    payroll_run_employees ||--o{ payroll_run_items : "payroll_run_employee_id"
-    salary_components ||--o{ payroll_run_items : "salary_component_id"
-    payroll_runs ||--o{ payroll_payslips : "payroll_run_id"
-    payroll_run_employees ||--o{ payroll_payslips : "payroll_run_employee_id"
-    payroll_runs ||--o{ pph21_calculation_logs : "payroll_run_id"
-    payroll_run_employees ||--o{ pph21_calculation_logs : "payroll_run_employee_id"
-    pph21_settings ||--o{ pph21_calculation_logs : "pph21_setting_id"
-    employee_tax_profiles ||--o{ pph21_calculation_logs : "employee_tax_profile_id"
     payroll_payments {
         CHAR id
         CHAR payroll_run_id
@@ -1662,7 +1655,28 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-
+    salary_components ||--o{ salary_components : "reference_component_id"
+    salary_components ||--o{ salary_grade_components : "salary_component_id"
+    salary_components ||--o{ salary_employee_components : "salary_component_id"
+    salary_components ||--o{ salary_employee_adjustments : "salary_component_id"
+    employee_payroll_profiles ||--o{ employee_bank_profiles : "employee_payroll_profile_id"
+    employee_payroll_profiles ||--o{ employee_bpjs_profiles : "employee_payroll_profile_id"
+    employee_payroll_profiles ||--o{ employee_tax_profiles : "employee_payroll_profile_id"
+    bpjs_settings ||--o{ bpjs_rate_components : "bpjs_setting_id"
+    salary_components ||--o{ bpjs_rate_components : "salary_component_id"
+    salary_components ||--o{ pph21_settings : "pph21_component_id"
+    payroll_periods ||--o{ payroll_runs : "payroll_period_id"
+    payroll_runs ||--o{ payroll_run_employees : "payroll_run_id"
+    payroll_runs ||--o{ payroll_run_items : "payroll_run_id"
+    payroll_run_employees ||--o{ payroll_run_items : "payroll_run_employee_id"
+    salary_components ||--o{ payroll_run_items : "salary_component_id"
+    payroll_runs ||--o{ payroll_payslips : "payroll_run_id"
+    payroll_run_employees ||--o{ payroll_payslips : "payroll_run_employee_id"
+    payroll_runs ||--o{ pph21_calculation_logs : "payroll_run_id"
+    payroll_run_employees ||--o{ pph21_calculation_logs : "payroll_run_employee_id"
+    pph21_settings ||--o{ pph21_calculation_logs : "pph21_setting_id"
+    employee_tax_profiles ||--o{ pph21_calculation_logs : "employee_tax_profile_id"
+    payroll_run_employees ||--o{ payroll_payments : "payroll_run_employee_id"
 ```
 
 
@@ -1673,20 +1687,19 @@ erDiagram
 | `competencies` | 9 | - |
 | `competence_values` | 8 | - |
 | `competency_values` | 9 | - |
-| `competency_events` | 10 | - |
-| `competency_event_targets` | 10 | competency_event_id->competency_events, organization_id->organizations, employee_id->employees |
+| `competency_events` | 11 | template_id->competency_assessment_templates |
+| `competency_event_targets` | 13 | competency_event_id->competency_events, organization_id->organizations, employee_id->employees |
 | `competency_scores` | 11 | organization_id->organizations, employee_id->employees, competency_event_id->competency_events |
 | `competency_score_details` | 11 | competency_score_id->competency_scores, competency_id->competencies |
-
+| `competency_indicators` | 9 | competency_id->competencies |
 | `competency_rating_scales` | 9 | - |
 | `competency_rating_scale_items` | 9 | scale_id->competency_rating_scales |
 | `competency_assessment_templates` | 10 | - |
-| `competency_assessment_template_competencies` | 8 | competency_id->competencies, template_id->competency_assessment_templates |
-| `competency_assessment_template_indicators` | 7 | indicator_id->competency_indicators, template_id->competency_assessment_templates |
+| `competency_assessment_template_competencies` | 8 | template_id->competency_assessment_templates, competency_id->competencies |
+| `competency_assessment_template_indicators` | 7 | template_id->competency_assessment_templates, indicator_id->competency_indicators |
 | `competency_assessment_template_rater_types` | 10 | template_id->competency_assessment_templates |
-| `competency_indicators` | 9 | competency_id->competencies |
-| `competency_assessment_raters` | 10 | rater_employee_id->employees, competency_event_target_id->competency_event_targets |
-| `competency_assessment_responses` | 8 | indicator_id->competency_indicators, rater_id->competency_assessment_raters |
+| `competency_assessment_raters` | 10 | competency_event_target_id->competency_event_targets, rater_employee_id->employees |
+| `competency_assessment_responses` | 8 | rater_id->competency_assessment_raters, indicator_id->competency_indicators |
 
 ### ERD — Competency
 
@@ -1735,6 +1748,7 @@ erDiagram
         CHAR updated_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR template_id
     }
     competency_event_targets {
         CHAR id
@@ -1747,6 +1761,9 @@ erDiagram
         SMALLINT missing_subordinate
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        CHAR approval_instance_id
+        VARCHAR status
+        TIMESTAMP finalized_at
     }
     competency_scores {
         CHAR id
@@ -1774,10 +1791,17 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    competency_events ||--o{ competency_event_targets : "competency_event_id"
-    competency_events ||--o{ competency_scores : "competency_event_id"
-    competency_scores ||--o{ competency_score_details : "competency_score_id"
-    competencies ||--o{ competency_score_details : "competency_id"
+    competency_indicators {
+        CHAR id
+        CHAR competency_id
+        VARCHAR code
+        VARCHAR statement
+        TEXT description
+        VARCHAR status
+        INT sort_order
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
     competency_rating_scales {
         CHAR id
         VARCHAR name
@@ -1843,17 +1867,6 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    competency_indicators {
-        CHAR id
-        CHAR competency_id
-        VARCHAR code
-        VARCHAR statement
-        TEXT description
-        VARCHAR status
-        INT sort_order
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
     competency_assessment_raters {
         CHAR id
         CHAR competency_event_target_id
@@ -1876,7 +1889,21 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-
+    competency_assessment_templates ||--o{ competency_events : "template_id"
+    competency_events ||--o{ competency_event_targets : "competency_event_id"
+    competency_events ||--o{ competency_scores : "competency_event_id"
+    competency_scores ||--o{ competency_score_details : "competency_score_id"
+    competencies ||--o{ competency_score_details : "competency_id"
+    competencies ||--o{ competency_indicators : "competency_id"
+    competency_rating_scales ||--o{ competency_rating_scale_items : "scale_id"
+    competency_assessment_templates ||--o{ competency_assessment_template_competencies : "template_id"
+    competencies ||--o{ competency_assessment_template_competencies : "competency_id"
+    competency_assessment_templates ||--o{ competency_assessment_template_indicators : "template_id"
+    competency_indicators ||--o{ competency_assessment_template_indicators : "indicator_id"
+    competency_assessment_templates ||--o{ competency_assessment_template_rater_types : "template_id"
+    competency_event_targets ||--o{ competency_assessment_raters : "competency_event_target_id"
+    competency_assessment_raters ||--o{ competency_assessment_responses : "rater_id"
+    competency_indicators ||--o{ competency_assessment_responses : "indicator_id"
 ```
 
 
@@ -2364,9 +2391,8 @@ erDiagram
 |---|---|---|
 | `employee_movements` | 33 | employee_id->employees, from_employment_id->employments, to_employment_id->employments, from_organization_id->organizations, to_organization_id->organizations, from_position_id->positions, to_position_id->positions, from_employment_status_id->employment_statuses, to_employment_status_id->employment_statuses |
 | `employee_contracts` | 16 | employee_id->employees, previous_contract_id->employee_contracts |
-
-| `employee_movement_audits` | 10 | movement_id->employee_movements |
-| `employee_movement_documents` | 7 | movement_id->employee_movements |
+| `employee_movement_audits` | 10 | - |
+| `employee_movement_documents` | 7 | - |
 
 ### ERD — Employee Movement
 
@@ -2425,7 +2451,6 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    employee_contracts ||--o{ employee_contracts : "previous_contract_id"
     employee_movement_audits {
         CHAR id
         CHAR movement_id
@@ -2447,7 +2472,7 @@ erDiagram
         CHAR uploaded_by
         TIMESTAMP created_at
     }
-
+    employee_contracts ||--o{ employee_contracts : "previous_contract_id"
 ```
 
 
@@ -2456,7 +2481,7 @@ erDiagram
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
 | `reimbursement_types` | 8 | - |
-| `reimbursement_requests` | 24 | - |
+| `reimbursement_requests` | 27 | - |
 | `reimbursement_items` | 10 | - |
 
 ### ERD — Reimbursement
@@ -2498,6 +2523,9 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
         CHAR approval_instance_id
+        VARCHAR payment_method
+        VARCHAR payment_reference
+        VARCHAR payment_note
     }
     reimbursement_items {
         CHAR id
@@ -2514,7 +2542,6 @@ erDiagram
 ```
 
 
-
 ## Business Travel
 
 | Tabel | Jumlah Kolom | FK Utama |
@@ -2524,20 +2551,20 @@ erDiagram
 | `business_travel_destinations` | 14 | - |
 | `business_travel_activities` | 13 | - |
 | `business_travel_schedules` | 14 | - |
-| `business_travel_expense_categories` | 12 | - |
-| `business_travel_expense_plans` | 12 | - |
-| `business_travel_fundings` | 14 | - |
-| `business_travel_funding_methods` | 8 | - |
-| `business_travel_funding_documents` | 12 | - |
-| `business_travel_expenses` | 17 | - |
-| `business_travel_expense_documents` | 12 | - |
 | `business_travel_documents` | 12 | - |
+| `business_travel_expense_categories` | 12 | - |
+| `business_travel_expenses` | 17 | - |
+| `business_travel_expense_plans` | 12 | - |
+| `business_travel_expense_documents` | 12 | - |
+| `business_travel_funding_methods` | 8 | - |
+| `business_travel_fundings` | 14 | - |
+| `business_travel_funding_documents` | 12 | - |
 | `business_travel_settlements` | 18 | - |
 | `business_travel_settlement_items` | 11 | - |
-| `business_travel_refunds` | 14 | - |
 | `business_travel_reimbursements` | 15 | - |
-| `business_travel_audit_logs` | 9 | - |
+| `business_travel_refunds` | 14 | - |
 | `business_travel_attendance_rules` | 9 | - |
+| `business_travel_audit_logs` | 9 | - |
 
 ### ERD — Business Travel
 
@@ -2625,63 +2652,9 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    business_travel_expense_categories {
-        CHAR id
-        VARCHAR code
-        VARCHAR name
-        VARCHAR description
-        BOOLEAN requires_receipt
-        BOOLEAN reimbursable
-        VARCHAR payroll_treatment
-        VARCHAR account_code
-        BOOLEAN active
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    business_travel_expense_plans {
+    business_travel_documents {
         CHAR id
         CHAR business_travel_id
-        CHAR participant_id
-        CHAR expense_category_id
-        VARCHAR description
-        DECIMAL quantity
-        VARCHAR unit
-        DECIMAL estimated_amount
-        VARCHAR notes
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    business_travel_fundings {
-        CHAR id
-        CHAR business_travel_id
-        CHAR funding_method_id
-        CHAR participant_id
-        DECIMAL amount
-        DATE funding_date
-        VARCHAR payment_method
-        VARCHAR payment_reference
-        CHAR funded_by
-        VARCHAR status
-        VARCHAR notes
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    business_travel_funding_methods {
-        CHAR id
-        VARCHAR code
-        VARCHAR name
-        VARCHAR description
-        BOOLEAN active
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    business_travel_funding_documents {
-        CHAR id
-        CHAR business_travel_funding_id
         VARCHAR document_type
         VARCHAR file_name
         TEXT file_path
@@ -2689,6 +2662,20 @@ erDiagram
         BIGINT file_size
         CHAR uploaded_by
         TIMESTAMP uploaded_at
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    business_travel_expense_categories {
+        CHAR id
+        VARCHAR code
+        VARCHAR name
+        VARCHAR description
+        SMALLINT requires_receipt
+        SMALLINT reimbursable
+        VARCHAR payroll_treatment
+        VARCHAR account_code
+        SMALLINT active
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
@@ -2712,6 +2699,20 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
+    business_travel_expense_plans {
+        CHAR id
+        CHAR business_travel_id
+        CHAR participant_id
+        CHAR expense_category_id
+        VARCHAR description
+        DECIMAL quantity
+        VARCHAR unit
+        DECIMAL estimated_amount
+        VARCHAR notes
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
     business_travel_expense_documents {
         CHAR id
         CHAR business_travel_expense_id
@@ -2726,9 +2727,35 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    business_travel_documents {
+    business_travel_funding_methods {
+        CHAR id
+        VARCHAR code
+        VARCHAR name
+        VARCHAR description
+        SMALLINT active
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    business_travel_fundings {
         CHAR id
         CHAR business_travel_id
+        CHAR funding_method_id
+        CHAR participant_id
+        DECIMAL amount
+        DATE funding_date
+        VARCHAR payment_method
+        VARCHAR payment_reference
+        CHAR funded_by
+        VARCHAR status
+        VARCHAR notes
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    business_travel_funding_documents {
+        CHAR id
+        CHAR business_travel_funding_id
         VARCHAR document_type
         VARCHAR file_name
         TEXT file_path
@@ -2773,22 +2800,6 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    business_travel_refunds {
-        CHAR id
-        CHAR business_travel_id
-        CHAR settlement_id
-        CHAR participant_id
-        DECIMAL refund_amount
-        DATE refund_date
-        VARCHAR refund_reference
-        CHAR refunded_by
-        TEXT refund_document
-        VARCHAR status
-        VARCHAR notes
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
     business_travel_reimbursements {
         CHAR id
         CHAR business_travel_id
@@ -2806,6 +2817,33 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
+    business_travel_refunds {
+        CHAR id
+        CHAR business_travel_id
+        CHAR settlement_id
+        CHAR participant_id
+        DECIMAL refund_amount
+        DATE refund_date
+        VARCHAR refund_reference
+        CHAR refunded_by
+        TEXT refund_document
+        VARCHAR status
+        VARCHAR notes
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    business_travel_attendance_rules {
+        CHAR id
+        CHAR business_travel_id
+        VARCHAR rule_type
+        VARCHAR description
+        SMALLINT is_default
+        SMALLINT active
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
     business_travel_audit_logs {
         CHAR id
         VARCHAR entity_type
@@ -2817,18 +2855,8 @@ erDiagram
         VARCHAR ip_address
         TIMESTAMP created_at
     }
-    business_travel_attendance_rules {
-        CHAR id
-        CHAR business_travel_id
-        VARCHAR rule_type
-        VARCHAR description
-        BOOLEAN is_default
-        BOOLEAN active
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
 ```
+
 
 ## Performance — KPI
 
@@ -3246,31 +3274,30 @@ erDiagram
 
 | Tabel | Jumlah Kolom | FK Utama |
 |---|---|---|
-| `job_requisitions` | 20 | - |
+| `job_requisitions` | 29 | - |
 | `candidates` | 18 | - |
-| `candidate_educations` | 13 | candidates.id |
-| `candidate_work_experiences` | 11 | candidates.id |
-| `candidate_skills` | 7 | candidates.id, competencies.id |
-| `candidate_certifications` | 10 | candidates.id |
-| `candidate_documents` | 8 | candidates.id |
-| `candidate_consents` | 7 | candidates.id |
 | `job_applications` | 15 | - |
-| `recruitment_stages` | 6 | - |
-| `job_application_stage_histories` | 8 | job_applications.id, recruitment_stages.id |
 | `interviews` | 14 | - |
-| `onboarding_task_templates` | 9 | - |
+| `onboarding_task_templates` | 12 | - |
 | `employee_onboardings` | 10 | - |
 | `onboarding_task_items` | 12 | - |
-
-| `application_screenings` | 9 | application_id->job_applications |
+| `job_requisition_competencies` | 8 | requisition_id->job_requisitions, competency_id->competencies |
+| `job_requisition_requirements` | 11 | requisition_id->job_requisitions |
+| `recruitment_stages` | 6 | - |
 | `recruitment_assessments` | 10 | requisition_id->job_requisitions |
-| `assessment_participants` | 9 | application_id->job_applications, assessment_id->recruitment_assessments |
+| `candidate_skills` | 7 | candidate_id->candidates, competency_id->competencies |
+| `candidate_educations` | 13 | candidate_id->candidates, education_id->educations, education_major_id->education_majors |
+| `candidate_work_experiences` | 11 | candidate_id->candidates |
+| `candidate_certifications` | 10 | candidate_id->candidates |
+| `candidate_documents` | 8 | candidate_id->candidates |
+| `candidate_consents` | 7 | candidate_id->candidates |
+| `application_screenings` | 9 | application_id->job_applications |
+| `application_assessments` | 12 | application_id->job_applications |
+| `assessment_participants` | 9 | assessment_id->recruitment_assessments, application_id->job_applications |
 | `interviewers` | 5 | interview_id->interviews |
 | `interview_scorecard_items` | 8 | interview_id->interviews |
-| `job_requisition_competencies` | 8 | competency_id->competencies, requisition_id->job_requisitions |
-| `job_requisition_requirements` | 11 | requisition_id->job_requisitions |
 | `job_offers` | 16 | application_id->job_applications |
-| `application_assessments` | 12 | application_id->job_applications |
+| `job_application_stage_histories` | 8 | application_id->job_applications, from_stage_id->recruitment_stages, to_stage_id->recruitment_stages |
 
 ### ERD — Recruitment
 
@@ -3297,6 +3324,15 @@ erDiagram
         BIGINT closed_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
+        VARCHAR reason_type
+        CHAR workforce_gap_id
+        CHAR workforce_plan_id
+        CHAR succession_position_id
+        CHAR approval_instance_id
+        VARCHAR requisition_number
+        VARCHAR priority
+        CHAR position_id
+        BIGINT opened_at
     }
     candidates {
         CHAR id
@@ -3317,6 +3353,131 @@ erDiagram
         VARCHAR candidate_type
         CHAR employee_id
         VARCHAR candidate_number
+    }
+    job_applications {
+        CHAR id
+        CHAR requisition_id
+        CHAR candidate_id
+        VARCHAR status
+        BIGINT applied_at
+        BIGINT screened_at
+        BIGINT shortlisted_at
+        BIGINT offered_at
+        BIGINT accepted_at
+        BIGINT rejected_at
+        BIGINT withdrawn_at
+        TEXT rejection_reason
+        TEXT notes
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    interviews {
+        CHAR id
+        CHAR application_id
+        CHAR interviewer_id
+        VARCHAR stage
+        BIGINT scheduled_at
+        INT duration_minutes
+        VARCHAR location
+        TEXT meeting_link
+        VARCHAR status
+        DECIMAL score
+        TEXT feedback
+        BIGINT completed_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    onboarding_task_templates {
+        CHAR id
+        VARCHAR name
+        TEXT description
+        VARCHAR category
+        INT day_offset
+        VARCHAR assigned_role
+        BOOLEAN is_mandatory
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+        CHAR organization_id
+        CHAR position_id
+        VARCHAR employment_type
+    }
+    employee_onboardings {
+        CHAR id
+        CHAR employee_id
+        CHAR application_id
+        DATE start_date
+        VARCHAR status
+        CHAR buddy_id
+        BIGINT completed_at
+        TEXT notes
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    onboarding_task_items {
+        CHAR id
+        CHAR employee_onboarding_id
+        CHAR template_id
+        VARCHAR name
+        TEXT description
+        CHAR assigned_to
+        BIGINT due_date
+        BOOLEAN is_completed
+        BIGINT completed_at
+        TEXT notes
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    job_requisition_competencies {
+        CHAR id
+        CHAR requisition_id
+        CHAR competency_id
+        SMALLINT required_level
+        BOOLEAN is_required
+        DECIMAL weight
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    job_requisition_requirements {
+        CHAR id
+        CHAR requisition_id
+        VARCHAR requirement_type
+        VARCHAR name
+        TEXT description
+        DECIMAL minimum_value
+        DECIMAL maximum_value
+        BOOLEAN is_required
+        INT sort_order
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    recruitment_stages {
+        CHAR id
+        VARCHAR code
+        VARCHAR name
+        INT sort_order
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    recruitment_assessments {
+        CHAR id
+        CHAR requisition_id
+        VARCHAR name
+        VARCHAR type
+        BIGINT scheduled_at
+        VARCHAR location
+        TEXT meeting_link
+        TEXT notes
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    candidate_skills {
+        CHAR id
+        CHAR candidate_id
+        CHAR competency_id
+        SMALLINT level
+        TEXT notes
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
     }
     candidate_educations {
         CHAR id
@@ -3343,15 +3504,6 @@ erDiagram
         DATE end_date
         BOOLEAN is_current
         TEXT description
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    candidate_skills {
-        CHAR id
-        CHAR candidate_id
-        CHAR competency_id
-        SMALLINT level
-        TEXT notes
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
@@ -3386,94 +3538,6 @@ erDiagram
         BIGINT changed_at
         TIMESTAMP created_at
     }
-    job_applications {
-        CHAR id
-        CHAR requisition_id
-        CHAR candidate_id
-        VARCHAR status
-        BIGINT applied_at
-        BIGINT screened_at
-        BIGINT shortlisted_at
-        BIGINT offered_at
-        BIGINT accepted_at
-        BIGINT rejected_at
-        BIGINT withdrawn_at
-        TEXT rejection_reason
-        TEXT notes
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    recruitment_stages {
-        CHAR id
-        VARCHAR code
-        VARCHAR name
-        INT sort_order
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    job_application_stage_histories {
-        CHAR id
-        CHAR application_id
-        CHAR from_stage_id
-        CHAR to_stage_id
-        CHAR changed_by
-        TEXT notes
-        BIGINT changed_at
-        TIMESTAMP created_at
-    }
-    interviews {
-        CHAR id
-        CHAR application_id
-        CHAR interviewer_id
-        VARCHAR stage
-        BIGINT scheduled_at
-        INT duration_minutes
-        VARCHAR location
-        TEXT meeting_link
-        VARCHAR status
-        DECIMAL score
-        TEXT feedback
-        BIGINT completed_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    onboarding_task_templates {
-        CHAR id
-        VARCHAR name
-        TEXT description
-        VARCHAR category
-        INT day_offset
-        VARCHAR assigned_role
-        BOOLEAN is_mandatory
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    employee_onboardings {
-        CHAR id
-        CHAR employee_id
-        CHAR application_id
-        DATE start_date
-        VARCHAR status
-        CHAR buddy_id
-        BIGINT completed_at
-        TEXT notes
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    onboarding_task_items {
-        CHAR id
-        CHAR employee_onboarding_id
-        CHAR template_id
-        VARCHAR name
-        TEXT description
-        CHAR assigned_to
-        BIGINT due_date
-        BOOLEAN is_completed
-        BIGINT completed_at
-        TEXT notes
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
     application_screenings {
         CHAR id
         CHAR application_id
@@ -3485,15 +3549,17 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    recruitment_assessments {
+    application_assessments {
         CHAR id
-        CHAR requisition_id
-        VARCHAR name
-        VARCHAR type
-        BIGINT scheduled_at
-        VARCHAR location
-        TEXT meeting_link
-        TEXT notes
+        CHAR application_id
+        BOOLEAN education_match
+        TEXT education_note
+        BOOLEAN experience_match
+        TEXT experience_note
+        JSONB competency_levels
+        NUMERIC score
+        JSONB breakdown
+        CHAR assessed_by
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
@@ -3525,29 +3591,6 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    job_requisition_competencies {
-        CHAR id
-        CHAR requisition_id
-        CHAR competency_id
-        SMALLINT required_level
-        BOOLEAN is_required
-        DECIMAL weight
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    job_requisition_requirements {
-        CHAR id
-        CHAR requisition_id
-        VARCHAR requirement_type
-        VARCHAR name
-        TEXT description
-        DECIMAL minimum_value
-        DECIMAL maximum_value
-        BOOLEAN is_required
-        INT sort_order
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
     job_offers {
         CHAR id
         CHAR application_id
@@ -3566,21 +3609,35 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    application_assessments {
+    job_application_stage_histories {
         CHAR id
         CHAR application_id
-        BOOLEAN education_match
-        TEXT education_note
-        BOOLEAN experience_match
-        TEXT experience_note
-        JSON competency_levels
-        DECIMAL score
-        JSON breakdown
-        CHAR assessed_by
+        CHAR from_stage_id
+        CHAR to_stage_id
+        CHAR changed_by
+        TEXT notes
+        BIGINT changed_at
         TIMESTAMP created_at
-        TIMESTAMP updated_at
     }
-
+    job_requisitions ||--o{ job_requisition_competencies : "requisition_id"
+    job_requisitions ||--o{ job_requisition_requirements : "requisition_id"
+    job_requisitions ||--o{ recruitment_assessments : "requisition_id"
+    candidates ||--o{ candidate_skills : "candidate_id"
+    candidates ||--o{ candidate_educations : "candidate_id"
+    candidates ||--o{ candidate_work_experiences : "candidate_id"
+    candidates ||--o{ candidate_certifications : "candidate_id"
+    candidates ||--o{ candidate_documents : "candidate_id"
+    candidates ||--o{ candidate_consents : "candidate_id"
+    job_applications ||--o{ application_screenings : "application_id"
+    job_applications ||--o{ application_assessments : "application_id"
+    recruitment_assessments ||--o{ assessment_participants : "assessment_id"
+    job_applications ||--o{ assessment_participants : "application_id"
+    interviews ||--o{ interviewers : "interview_id"
+    interviews ||--o{ interview_scorecard_items : "interview_id"
+    job_applications ||--o{ job_offers : "application_id"
+    job_applications ||--o{ job_application_stage_histories : "application_id"
+    recruitment_stages ||--o{ job_application_stage_histories : "from_stage_id"
+    recruitment_stages ||--o{ job_application_stage_histories : "to_stage_id"
 ```
 
 
@@ -3595,28 +3652,26 @@ erDiagram
 | `training_materials` | 12 | - |
 | `training_evaluations` | 8 | - |
 | `training_certificates` | 10 | - |
-
+| `training_needs` | 13 | - |
+| `training_plans` | 9 | - |
+| `training_plan_items` | 10 | - |
 | `training_providers` | 13 | - |
 | `training_trainers` | 12 | - |
 | `training_session_trainers` | 7 | - |
-| `training_assessments` | 11 | - |
-| `training_assessment_results` | 11 | - |
-| `training_attendances` | 11 | - |
-| `training_plans` | 9 | - |
-| `training_plan_items` | 10 | - |
-| `training_needs` | 13 | - |
+| `training_session_costs` | 8 | - |
+| `training_attendances` | 10 | - |
 | `training_requests` | 15 | - |
+| `training_documents` | 9 | - |
 | `training_mandatories` | 11 | - |
 | `training_course_objectives` | 7 | - |
 | `training_course_competencies` | 7 | - |
 | `training_course_prerequisites` | 8 | - |
-| `training_documents` | 9 | - |
-| `training_session_costs` | 8 | - |
-| `training_certifications` | 11 | - |
-| `training_effectiveness_assessments` | 11 | - |
 | `training_evaluation_forms` | 7 | - |
 | `training_evaluation_questions` | 9 | - |
 | `training_evaluation_answers` | 7 | - |
+| `training_assessments` | 11 | - |
+| `training_assessment_results` | 10 | - |
+| `training_effectiveness_assessments` | 11 | - |
 
 ### ERD — Training
 
@@ -3727,6 +3782,44 @@ erDiagram
         CHAR certification_id
         TEXT certificate_file_url
     }
+    training_needs {
+        CHAR id
+        CHAR employee_id
+        CHAR organization_id
+        CHAR position_id
+        CHAR course_id
+        TEXT reason
+        VARCHAR priority
+        VARCHAR source_type
+        CHAR source_id
+        VARCHAR status
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    training_plans {
+        CHAR id
+        VARCHAR code
+        VARCHAR name
+        INT year
+        TEXT description
+        VARCHAR status
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    training_plan_items {
+        CHAR id
+        CHAR training_plan_id
+        CHAR course_id
+        DATE target_date
+        INT target_participants
+        DECIMAL estimated_cost
+        VARCHAR priority
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
     training_providers {
         CHAR id
         VARCHAR code
@@ -3765,31 +3858,15 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    training_assessments {
+    training_session_costs {
         CHAR id
         CHAR session_id
-        VARCHAR name
-        VARCHAR type
-        DECIMAL max_score
-        DECIMAL passing_score
-        INT attempt_limit
-        BOOLEAN is_required
+        VARCHAR cost_type
+        TEXT description
+        DECIMAL amount
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
-    }
-    training_assessment_results {
-        CHAR id
-        CHAR assessment_id
-        CHAR participant_id
-        DECIMAL score
-        BOOLEAN passed
-        INT attempt
-        TIMESTAMP completed_at
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-        CHAR res_active_key
     }
     training_attendances {
         CHAR id
@@ -3799,45 +3876,6 @@ erDiagram
         TIMESTAMP check_out
         VARCHAR status
         TEXT remarks
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-        CHAR att_active_key
-    }
-    training_plans {
-        CHAR id
-        VARCHAR code
-        VARCHAR name
-        INT year
-        TEXT description
-        VARCHAR status
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    training_plan_items {
-        CHAR id
-        CHAR training_plan_id
-        CHAR course_id
-        DATE target_date
-        INT target_participants
-        DECIMAL estimated_cost
-        VARCHAR priority
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    training_needs {
-        CHAR id
-        CHAR employee_id
-        CHAR organization_id
-        CHAR position_id
-        CHAR course_id
-        TEXT reason
-        VARCHAR priority
-        VARCHAR source_type
-        CHAR source_id
-        VARCHAR status
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
@@ -3855,6 +3893,17 @@ erDiagram
         TIMESTAMP approved_at
         TIMESTAMP rejected_at
         TEXT supervisor_note
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    training_documents {
+        CHAR id
+        CHAR session_id
+        VARCHAR document_type
+        VARCHAR file_name
+        TEXT file_url
+        CHAR uploaded_by
         TIMESTAMP deleted_at
         TIMESTAMP created_at
         TIMESTAMP updated_at
@@ -3900,53 +3949,6 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-    training_documents {
-        CHAR id
-        CHAR session_id
-        VARCHAR document_type
-        VARCHAR file_name
-        TEXT file_url
-        CHAR uploaded_by
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    training_session_costs {
-        CHAR id
-        CHAR session_id
-        VARCHAR cost_type
-        TEXT description
-        DECIMAL amount
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-    training_certifications {
-        CHAR id
-        VARCHAR code
-        VARCHAR name
-        VARCHAR issuing_body
-        INT validity_period_month
-        BOOLEAN renewal_required
-        BOOLEAN is_active
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-        VARCHAR validity_period_unit
-    }
-    training_effectiveness_assessments {
-        CHAR id
-        CHAR participant_id
-        DATE assessment_date
-        CHAR assessor_employee_id
-        DECIMAL before_score
-        DECIMAL after_score
-        DECIMAL effectiveness_score
-        TEXT remarks
-        TIMESTAMP deleted_at
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
     training_evaluation_forms {
         CHAR id
         CHAR session_id
@@ -3976,7 +3978,44 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-
+    training_assessments {
+        CHAR id
+        CHAR session_id
+        VARCHAR name
+        VARCHAR type
+        DECIMAL max_score
+        DECIMAL passing_score
+        INT attempt_limit
+        BOOLEAN is_required
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    training_assessment_results {
+        CHAR id
+        CHAR assessment_id
+        CHAR participant_id
+        DECIMAL score
+        BOOLEAN passed
+        INT attempt
+        TIMESTAMP completed_at
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    training_effectiveness_assessments {
+        CHAR id
+        CHAR participant_id
+        DATE assessment_date
+        CHAR assessor_employee_id
+        DECIMAL before_score
+        DECIMAL after_score
+        DECIMAL effectiveness_score
+        TEXT remarks
+        TIMESTAMP deleted_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
 ```
 
 
@@ -4091,9 +4130,8 @@ erDiagram
 | `career_talent_maps` | 12 | - |
 | `career_interests` | 12 | - |
 | `career_paths` | 16 | - |
+| `career_path_steps` | 12 | - |
 | `career_succession_plans` | 12 | - |
-
-| `career_path_steps` | 12 | career_path_id->career_paths |
 
 ### ERD — Career Intelligence
 
@@ -4145,20 +4183,6 @@ erDiagram
         CHAR created_by
         CHAR updated_by
     }
-    career_succession_plans {
-        CHAR id
-        CHAR position_id
-        CHAR successor_id
-        VARCHAR readiness_level
-        INT priority_order
-        DATE target_date
-        TEXT development_plan
-        TEXT notes
-        VARCHAR status
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-        TIMESTAMP deleted_at
-    }
     career_path_steps {
         CHAR id
         CHAR career_path_id
@@ -4173,7 +4197,20 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
-
+    career_succession_plans {
+        CHAR id
+        CHAR position_id
+        CHAR successor_id
+        VARCHAR readiness_level
+        INT priority_order
+        DATE target_date
+        TEXT development_plan
+        TEXT notes
+        VARCHAR status
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at
+    }
 ```
 
 
@@ -4190,7 +4227,7 @@ erDiagram
 
 ## Migrasi & Dialect
 
-- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 89 file up + 89 file down per dialect (356 total).
+- Migrasi tenant tersedia untuk **PostgreSQL** (`postgres/`) dan **MySQL** (`mysql/`) — 154 file up + 154 file down per dialect (616 total).
 - Migrasi **platform** bersifat cross-dialect di `migrations/platform/`.
 - Tabel tambahan platform (`packages`, `package_modules`) dibuat via GORM `AutoMigrate`.
 - Dijalankan otomatis saat **provisioning company** (tenant DB dibuat + migrasi + seed).

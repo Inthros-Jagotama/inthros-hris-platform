@@ -260,10 +260,14 @@ MODULES = OrderedDict([
         "relationship_types", "employment_statuses", "gradings", "job_families",
         "banks", "nationalities", "salary_grades", "ptkps", "ters",
         "insurances", "company_holidays", "document_templates",
+        "document_numbering_settings", "document_template_versions",
+        "document_template_audits", "generated_documents",
+        "sensitive_field_settings", "employee_id_format_settings",
     ]),
     ("Organization", [
         "organization_summaries", "organization_levels", "zones",
         "organizations", "positions", "job_family_competencies",
+        "countries",
     ]),
     ("Employee", [
         "employees", "employments", "employee_addresses", "emergency_contacts",
@@ -294,11 +298,19 @@ MODULES = OrderedDict([
         "pph21_ptkp_rates", "pph21_tax_brackets",
         "payroll_runs", "payroll_run_employees", "payroll_run_items",
         "payroll_payslips", "pph21_calculation_logs", "payroll_profile_change_logs",
+        "payroll_payments",
     ]),
     ("Competency", [
         "competencies", "competence_values", "competency_values",
         "competency_events", "competency_event_targets",
         "competency_scores", "competency_score_details",
+        "competency_indicators", "competency_rating_scales",
+        "competency_rating_scale_items",
+        "competency_assessment_templates",
+        "competency_assessment_template_competencies",
+        "competency_assessment_template_indicators",
+        "competency_assessment_template_rater_types",
+        "competency_assessment_raters", "competency_assessment_responses",
     ]),
     ("Job Management", [
         "job_management_titles", "job_management_title_subs",
@@ -324,9 +336,22 @@ MODULES = OrderedDict([
     ]),
     ("Employee Movement", [
         "employee_movements", "employee_contracts",
+        "employee_movement_audits", "employee_movement_documents",
     ]),
     ("Reimbursement", [
         "reimbursement_types", "reimbursement_requests", "reimbursement_items",
+    ]),
+    ("Business Travel", [
+        "business_travels", "business_travel_participants",
+        "business_travel_destinations", "business_travel_activities",
+        "business_travel_schedules", "business_travel_documents",
+        "business_travel_expense_categories", "business_travel_expenses",
+        "business_travel_expense_plans", "business_travel_expense_documents",
+        "business_travel_funding_methods", "business_travel_fundings",
+        "business_travel_funding_documents", "business_travel_settlements",
+        "business_travel_settlement_items", "business_travel_reimbursements",
+        "business_travel_refunds", "business_travel_attendance_rules",
+        "business_travel_audit_logs",
     ]),
     ("Performance — KPI", [
         "performance_periods", "performance_perspectives",
@@ -345,11 +370,28 @@ MODULES = OrderedDict([
     ("Recruitment", [
         "job_requisitions", "candidates", "job_applications", "interviews",
         "onboarding_task_templates", "employee_onboardings", "onboarding_task_items",
+        "job_requisition_competencies", "job_requisition_requirements",
+        "recruitment_stages", "recruitment_assessments",
+        "candidate_skills", "candidate_educations", "candidate_work_experiences",
+        "candidate_certifications", "candidate_documents", "candidate_consents",
+        "application_screenings", "application_assessments",
+        "assessment_participants", "interviewers",
+        "interview_scorecard_items", "job_offers",
+        "job_application_stage_histories",
     ]),
     ("Training", [
         "training_categories", "training_courses", "training_sessions",
         "training_participants", "training_materials",
         "training_evaluations", "training_certificates",
+        "training_needs", "training_plans", "training_plan_items",
+        "training_providers", "training_trainers", "training_session_trainers",
+        "training_session_costs", "training_attendances",
+        "training_requests", "training_documents", "training_mandatories",
+        "training_course_objectives", "training_course_competencies",
+        "training_course_prerequisites", "training_evaluation_forms",
+        "training_evaluation_questions", "training_evaluation_answers",
+        "training_assessments", "training_assessment_results",
+        "training_effectiveness_assessments",
     ]),
     ("Workforce Intelligence", [
         "workforce_planning_headcounts", "workforce_forecasts", "workforce_kpis",
@@ -358,7 +400,7 @@ MODULES = OrderedDict([
     ]),
     ("Career Intelligence", [
         "career_talent_maps", "career_interests", "career_paths",
-        "career_succession_plans",
+        "career_path_steps", "career_succession_plans",
     ]),
 ])
 
