@@ -52,6 +52,10 @@ docs/seeder/
 frontend/platform-admin/node_modules
 frontend/tenant/node_modules
 
+# Build output
+frontend/*/dist/
+frontend/*/dist/**
+
 # === Python ===
 __pycache__/
 *.pyc
