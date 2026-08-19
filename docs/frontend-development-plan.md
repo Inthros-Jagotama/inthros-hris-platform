@@ -4,7 +4,7 @@
 > **Terkait:** [`panduan-uiux-hris-enterprise.md`](panduan-uiux-hris-enterprise.md) · [`project-completion-dashboard.md`](project-completion-dashboard.md) · [`api/api-usage-guide.md`](api/api-usage-guide.md)
 
 **Generated:** 27 July 2026
-**Last Updated:** 12 August 2026 (Sinkronisasi status dengan implementasi aktual: Attendance, Employee Movement, Approval Engine, Training & Development, Notifications, Career Paths, Candidate Search ditandai selesai/parsial; angka backend per modul disinkronkan dengan `go-module-architecture-report.md`; **+ scoping Recruitment: strategic layer dipisah ke `module-recruitment-strategic-layer-plan.md`**)
+**Last Updated:** 12 August 2026 (Sinkronisasi status dengan implementasi aktual: Attendance, Employee Movement, Approval Engine, Training & Development, Notifications, Career Paths, Candidate Search ditandai selesai/parsial; angka backend per modul disinkronkan dengan `go-module-architecture-report.md`; **+ scoping Recruitment: strategic layer dipisah ke `docs/archive/module-recruitment-strategic-layer-plan.md`**)
 **Tech Stack:** Vue 3 + PrimeVue 4 + Tailwind CSS 4 + Vite + Axios
 
 ---
@@ -558,7 +558,7 @@ Memungkinkan final score KPI per Organization dihitung dari kombinasi berbobot b
 - [ ] ⏸️ Belum ada UI untuk menampilkan indikator "Organization ini pakai Scoring Config" di `KPIIndex.vue`/`KPITemplates.vue` — cukup minor, bisa menyusul kalau dibutuhkan
 
 ### C.18. Recruitment & Onboarding (ATS) ✅ (Selesai — sinkron 17 Agu 2026; G-1 s.d. G-12)
-**Backend:** 101 endpoints — plan pengembangan `module-recruitment-development-plan.md` *(di-archive: `docs/archive/`)* (modul **operasional**); integrasi strategis (Workforce/Career Intelligence ↔ Recruitment) dipisah ke [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) (scoping 12 Agu 2026); alur pengguna: [`flow/module-recruitment-flow.md`](flow/module-recruitment-flow.md)
+**Backend:** 101 endpoints — plan pengembangan `module-recruitment-development-plan.md` *(di-archive: `docs/archive/`)* (modul **operasional**); integrasi strategis (Workforce/Career Intelligence ↔ Recruitment) dipisah ke [`module-recruitment-strategic-layer-plan.md`](archive/module-recruitment-strategic-layer-plan.md) (scoping 12 Agu 2026); alur pengguna: [`flow/module-recruitment-flow.md`](flow/module-recruitment-flow.md)
 **Frontend (9 view + hub):**
 - [x] `Requisitions.vue` — CRUD + submit ke approval + priority/requisition_number
 - [x] `RequisitionRequirements.vue` — requirements & kompetensi + sinkronisasi Job Management (G-9)
@@ -590,14 +590,14 @@ Memungkinkan final score KPI per Organization dihitung dari kombinasi berbobot b
 - [x] `TrainingCertificates.vue`, `TrainingHistory.vue`, `TrainingReports.vue` — sertifikat, riwayat, laporan (participation/cost/compliance/dashboard)
 
 ### C.21. Workforce Intelligence 🟡 (Parsial — sinkron 12 Agu 2026)
-**Backend:** 69 endpoints (analytics layer) — candidate-search, planning/headcounts, executive summary, analytics (headcount/attendance/leave/payroll/recruitment), risk, organization health — integrasi strategis ↔ Recruitment (workforce gap → requisition, expected hires → remaining gap, Quality of Hire) dikelola di [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) S-1/S-2/S-3/S-6
+**Backend:** 69 endpoints (analytics layer) — candidate-search, planning/headcounts, executive summary, analytics (headcount/attendance/leave/payroll/recruitment), risk, organization health — integrasi strategis ↔ Recruitment (S-1/S-2/S-3/S-6, di-archive: `docs/archive/module-recruitment-strategic-layer-plan.md`)
 **Frontend:**
 - [x] `WorkforceIntelligence.vue` — index kartu sub-menu (dashboard analytics)
 - [x] `CandidateSearch.vue` — posisi kosong + kandidat recruitment (`GET /workforce-intelligence/candidate-search`)
 - [ ] Sub-halaman analytics (headcount planning, risk, executive, scenario, organization health, people analytics) — masih "Coming soon"
 
 ### C.22. Career Intelligence 🟡 (Parsial — sinkron 12 Agu 2026)
-**Backend:** 21 endpoints — talent maps + grid, career interests, career paths (ladder-style: name + steps), gap analysis, succession plans — integrasi strategis ↔ Recruitment (internal candidate via career path, succession fallback → external recruitment) dikelola di [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) S-4/S-5
+**Backend:** 21 endpoints — talent maps + grid, career interests, career paths (ladder-style: name + steps), gap analysis, succession plans — integrasi strategis ↔ Recruitment (S-4/S-5, di-archive: `docs/archive/module-recruitment-strategic-layer-plan.md`)
 **Frontend:**
 - [x] `CareerIntelligence.vue` — index kartu sub-menu
 - [x] `CareerPaths.vue` — career paths ladder-style, route `career-intelligence/paths`

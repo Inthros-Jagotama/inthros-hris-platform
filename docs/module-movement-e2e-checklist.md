@@ -1,6 +1,6 @@
 # Checklist Verifikasi E2E Manual — Employee Movement & Career Management
 
-> 📅 Dibuat: 2026-08-10 · Basis: Testing Plan §10 `docs/module-movement-plan.md` · Status: **SIAP DIEKSEKUSI** (checklist disusun dari implementasi aktual langkah 1–12 + enhancement P1/P2 s.d. item 14 — termasuk reporting §12.17 & dashboard §12.18; eksekusi menunggu environment tenant + akun dengan permission `employeemovement.*`).
+> 📅 Dibuat: 2026-08-10 · Basis: Testing Plan §10 `docs/archive/module-movement-plan.md` · Status: **SIAP DIEKSEKUSI** (checklist disusun dari implementasi aktual langkah 1–12 + enhancement P1/P2 s.d. item 14 — termasuk reporting §12.17 & dashboard §12.18; eksekusi menunggu environment tenant + akun dengan permission `employeemovement.*`).
 
 ---
 

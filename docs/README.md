@@ -17,7 +17,7 @@ Index pusat seluruh dokumentasi proyek. Semua dokumen (kecuali `README.md` di ro
 | **Frontend** | [`panduan-uiux-hris-enterprise.md`](panduan-uiux-hris-enterprise.md) | Standar UI/UX enterprise: modal-first, high-density, master prompt AI, warna badge |
 | **Analisis** | [`analisis-blueprint-vs-existing.md`](analisis-blueprint-vs-existing.md) | Perbandingan blueprint vs existing Laravel app (inthros-web) |
 | **Analisis** | [`job-management-score-analysis.md`](job-management-score-analysis.md) | Analisa perhitungan Job Management Score (dirujuk `calculator.go`) |
-| **Plan Recruitment** | `module-recruitment-development-plan.md` *(di-archive: `docs/archive/`)* · [`module-recruitment-strategic-layer-plan.md`](module-recruitment-strategic-layer-plan.md) · [`flow/module-recruitment-flow.md`](flow/module-recruitment-flow.md) | Plan pengembangan Recruitment (**operasional**, selesai — diarsipkan) + Strategic Layer Integration (**Workforce/Career Intelligence ↔ Recruitment**, S-1 s.d. S-7) + alur pengguna. Plan modul lain dikelola di [`project-completion-dashboard.md`](project-completion-dashboard.md) → *Module Development Plan Status* |
+| **Plan Recruitment** | `module-recruitment-development-plan.md` *(di-archive: `docs/archive/`)* · [`module-recruitment-strategic-layer-plan.md`](archive/module-recruitment-strategic-layer-plan.md) · [`flow/module-recruitment-flow.md`](flow/module-recruitment-flow.md) | Plan pengembangan Recruitment (**operasional**, selesai — diarsipkan) + Strategic Layer Integration (**Workforce/Career Intelligence ↔ Recruitment**, S-1 s.d. S-7) + alur pengguna. Plan modul lain dikelola di [`project-completion-dashboard.md`](project-completion-dashboard.md) → *Module Development Plan Status* |
 | **Alur Pengguna** | [`flow/module-recruitment-flow.md`](flow/module-recruitment-flow.md) · [`flow/module-payroll-user-flow.md`](flow/module-payroll-user-flow.md) · [`flow/module-reimbursement-flow.md`](flow/module-reimbursement-flow.md) · [`flow/module-competency-360-flow.md`](flow/module-competency-360-flow.md) · [`flow/module-leave-flow.md`](flow/module-leave-flow.md) · [`flow/module-attendance-flow.md`](flow/module-attendance-flow.md) | Alur bisnis & runbook pengisian modul: Recruitment, Payroll, Reimbursement, Competency 360, Leave, Attendance (+ Business Travel di dalamnya) |
 
 ## 🔗 Alur Referensi Antar Dokumen
@@ -60,7 +60,6 @@ docs/
 ├── panduan-uiux-hris-enterprise.md
 ├── analisis-blueprint-vs-existing.md
 ├── job-management-score-analysis.md
-├── module-recruitment-strategic-layer-plan.md
 ├── archive/                         # 🚫 DIABAIKAN — plan lama yang sudah selesai
 ├── backlog/                         # 🚫 DIABAIKAN — ide/backlog, bukan dokumentasi aktif
 ├── seeder/                          # 🚫 DIABAIKAN — file seeder/export sementara

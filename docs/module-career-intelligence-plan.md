@@ -158,7 +158,7 @@ created_at / updated_at / deleted_at (idx_csp_deleted_at)
 
 # 4. Career Path (strategical planning) — ✅ SELESAI
 
-> Bagian ini dipindahkan dari `module-movement-plan.md` §12.9 (enhancement plan Employee Movement) karena kepemilikan career path kini berada di modul ini (keputusan pemisahan transactional vs strategical, log §7.3).
+> Bagian ini dipindahkan dari `module-movement-plan.md` §12.9 (di-archive: `docs/archive/`) (enhancement plan Employee Movement) karena kepemilikan career path kini berada di modul ini (keputusan pemisahan transactional vs strategical, log §7.3).
 
 ## 4.1 Konsep
 
@@ -330,11 +330,11 @@ DELETE /successions/:id
 
 # 7. Log Implementasi
 
-> Log berikut dipindahkan dari `module-movement-plan.md` (§3.23, §3.29, §3.30) karena seluruhnya tentang career path yang kini dimiliki modul ini.
+> Log berikut dipindahkan dari `module-movement-plan.md` (§3.23, §3.29, §3.30) (di-archive: `docs/archive/`) karena seluruhnya tentang career path yang kini dimiliki modul ini.
 
 ## 7.1 Career Path pertama kali dibangun di Employee Movement (migration 086) — 2026-08-10
 
-*dipindah dari module-movement-plan §3.23*
+*dipindah dari module-movement-plan §3.23 (di-archive)*
 
 > ⚠️ **Log historis.** Bagian ini menggambarkan implementasi awal saat career path masih dimiliki Employee
 > Movement. Endpoint lama (`/career-paths`) **sudah tidak berlaku** — sejak kepemilikan pindah ke modul ini,
@@ -367,7 +367,7 @@ DELETE /successions/:id
 
 ## 7.2 UNIFIKASI schema career_paths (086 + Career Intelligence 018) + apply migration 083–087 — 2026-08-10
 
-*dipindah dari module-movement-plan §3.29*
+*dipindah dari module-movement-plan §3.29 (di-archive)*
 
 > **Latar:** saat verifikasi langsung ke database ditemukan tenant DB hanya 81/86 migration ter-apply (083–087 pending), DAN migration 086 `career_paths` berkonflik dengan tabel `career_paths` dari Career Intelligence (018) yang memakai `CREATE TABLE IF NOT EXISTS` — jika 086 dijalankan apa adanya, kolom `name` tidak akan pernah dibuat. Keputusan user (2026-08-10): **unifikasi penuh** — satu skema `career_paths` + `career_path_steps` untuk kedua modul.
 
@@ -404,7 +404,7 @@ DELETE /successions/:id
 
 ## 7.3 PEMISAHAN TRANSACTIONAL vs STRATEGICAL — Career Paths pindah penuh ke Career Intelligence — 2026-08-10
 
-*dipindah dari module-movement-plan §3.30*
+*dipindah dari module-movement-plan §3.30 (di-archive)*
 
 > **Latar:** user meminta career paths berada di modul **career-intelligence** (strategical planning), bukan di **employeemovement** (transactional eksekusi). Setelah unifikasi skema 086, kedua modul berbagi tabel `career_paths`/`career_path_steps` — namun kepemilikan CRUD masih di EM. Keputusan user: **full ownership pindah ke CI** + path `/career-intelligence/paths` + CI mendukung **ladder-style penuh** (`name` + `steps[]`).
 >
@@ -519,4 +519,4 @@ Pola FE mengikuti `CareerPaths.vue` (DataTable lazy + SkeletonTable + ConfirmDel
 - **Performance Management** — KPI/OKR/competency menjadi **input** untuk talent mapping (9-box) dan eligibility. Career Intelligence tidak menghitung skor.
 - **Organization / Job Management** — `position_id` pada steps/talent map/succession merujuk tabel `positions`; eksistensi divalidasi via `GetPositionNamesByIDs`/`GetPositionTitle`.
 - **Employee** — `employee_id` pada talent map/interest/succession merujuk karyawan.
-- **Recruitment (operasional)** — integrasi strategis (internal candidate via career path, succession fallback → external recruitment) dikelola di **`docs/module-recruitment-strategic-layer-plan.md`** (S-4/S-5); Recruitment hanya mengeksekusi, tidak menentukan eligibility (scoping 2026-08-12).
+- **Recruitment (operasional)** — integrasi strategis (internal candidate via career path, succession fallback → external recruitment) dikelola di **`docs/archive/module-recruitment-strategic-layer-plan.md`** (S-4/S-5); Recruitment hanya mengeksekusi, tidak menentukan eligibility (scoping 2026-08-12).

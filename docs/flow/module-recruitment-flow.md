@@ -4,7 +4,7 @@ Dokumen ini menjelaskan alur bisnis modul **Recruitment** dari awal (pengajuan l
 selesai (kandidat diterima & onboarding), termasuk integrasi dengan Central Approval, Notifikasi,
 Employee, Employee Movement, dan Training.
 
-- Referensi plan: G-1 … G-12 (offer/application/candidate) — `module-recruitment-development-plan.md` *(di-archive: `docs/archive/`)*; S-1 … S-7 (strategic layer) — [`module-recruitment-strategic-layer-plan.md`](../module-recruitment-strategic-layer-plan.md)
+- Referensi plan: G-1 … G-12 (offer/application/candidate) — `module-recruitment-development-plan.md` *(di-archive: `docs/archive/`)*; S-1 … S-7 (strategic layer) — [`module-recruitment-strategic-layer-plan.md`](../archive/module-recruitment-strategic-layer-plan.md)
 - Lokasi kode: `backend/internal/modules/recruitment/` · `frontend/tenant/src/views/modules/recruitment/`
 - Daftar endpoint + contoh curl: [`../api/api-usage-guide.md`](../api/api-usage-guide.md) → §8.2 (tabel Recruitment) & §8.10 (Succession Gaps → requisition)
 
