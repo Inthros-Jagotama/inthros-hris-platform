@@ -12,11 +12,11 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tenant Modules** | **16** complete (15 business + Settings with 18 reference CRUDs) *(+3 modul tambahan terdaftar di `main.go`: rbac, useraccount & notification — dihitung terpisah; total 19 folder modul tenant, lihat `go-module-architecture-report.md`)* |
+| **Tenant Modules** | **16** complete (15 business + Settings with 18 reference CRUDs) *(+3 modul tambahan terdaftar di `main.go`: rbac, useraccount & notification — dihitung terpisah; total 20 folder modul tenant, lihat `go-module-architecture-report.md`)* |
 | **Platform Modules** | **6** complete + **2** shared packages |
 | **Total Go Files** | **346** (231 source + 115 test) |
-| **Total GORM Entities** | **199** (191 tenant + 8 platform, dari `go-module-architecture-report.md`) |
-| **Total Test Functions** | **~1547+** |
+| **Total GORM Entities** | **229** (221 tenant + 8 platform, dari `go-module-architecture-report.md`) |
+| **Total Test Functions** | **~2077+** |
 | **Total OpenAPI Endpoints** | **1166** |
 | **Total OpenAPI Schemas** | **799** |
 | **Total OpenAPI Tags** | **38** |
@@ -173,7 +173,7 @@ Ringkasan status implementasi per dokumen plan modul — diverifikasi terhadap k
 | `README.md` | Main project documentation (setup, API, testing, modules) | ✅ Complete (updated with module_type filter) |
 | `docs/platform-architecture-design.md` | Architecture design (modular monolith, multi-tenant) | ✅ Complete |
 | `docs/openapi-report.md` | OpenAPI comprehensive report (report v23, spec 1.6.3) | ✅ v23 — 1166 endpoints, 701 paths, 799 schemas, 38 tags |
-| `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ 199 entities, 961 service methods, 1547 tests |
+| `docs/go-module-architecture-report.md` | Go module architecture report (entities, services, tests) | ✅ 229 entities, 1265 service methods, 2077 tests |
 | `docs/platform-architecture-design.md` | Platform architecture design | ✅ Complete |
 | `docs/analisis-blueprint-vs-existing.md` | Gap analysis vs existing Laravel app | ✅ Complete |
 | `docs/project-completion-dashboard.md` | **This document** | ✅ **Updated — Phase 1 Frontend added** |

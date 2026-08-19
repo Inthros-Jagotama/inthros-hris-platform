@@ -1,6 +1,6 @@
 ====================================================================================================
   HRIS PLATFORM — GO MODULE ARCHITECTURE REPORT
-  Generated: 12 Aug 2026
+  Generated: 19 Aug 2026
 
   Index dokumentasi: docs/README.md  |  Terkait: platform-architecture-design.md, openapi-report.md
 ====================================================================================================
@@ -9,48 +9,51 @@
 
 | Module | Entities | Service Methods | Repo Methods | Handler Funcs | Route Regs | Tests |
 |--------|:--------:|:--------------:|:------------:|:-------------:|:----------:|:-----:|
-| approval | 6 | 28 | 43 | 17 | 17 | 105 |
-| attendance | 11 | 54 | 56 | 40 | 40 | 146 |
-| careerintelligence | 5 | 23 | 28 | 21 | 21 | 66 |
-| competency | 7 | 35 | 37 | 35 | 35 | 60 |
-| employee | 10 | 38 | 51 | 36 | 36 | 40 |
-| employeemovement | 6 | 46 | 50 | 25 | 25 | 150 |
-| jobmanagement | 23 | 100 | 98 | 96 | 96 | 83 |
-| leave | 7 | 38 | 33 | 25 | 25 | 79 |
+| approval | 6 | 30 | 45 | 18 | 18 | 119 |
+| attendance | 11 | 122 | 123 | 97 | 98 | 151 |
+| careerintelligence | 5 | 27 | 32 | 23 | 23 | 82 |
+| competency | 7 | 77 | 93 | 67 | 67 | 81 |
+| documenttemplate | 4 | 12 | 18 | 14 | 13 | 51 |
+| employee | 10 | 50 | 57 | 40 | 40 | 90 |
+| employeemovement | 6 | 51 | 51 | 30 | 29 | 158 |
+| jobmanagement | 23 | 101 | 99 | 97 | 97 | 85 |
+| leave | 7 | 39 | 34 | 26 | 26 | 81 |
 | notification | 1 | 5 | 5 | 5 | 4 | 8 |
 | organization | 3 | 20 | 26 | 18 | 18 | 9 |
-| payroll | 21 | 49 | 70 | 47 | 47 | 43 |
+| payroll | 30 | 108 | 110 | 85 | 83 | 120 |
 | performance | 17 | 109 | 126 | 99 | 147 | 125 |
-| rbac | 5 | 8 | 15 | 8 | 8 | 0 |
-| recruitment | 7 | 33 | 38 | 33 | 33 | 75 |
-| reimbursement | 3 | 17 | 17 | 15 | 15 | 67 |
-| setting | 21 | 119 | 126 | 107 | 107 | 52 |
-| training | 28 | 129 | 139 | 123 | 123 | 71 |
-| useraccount | 3 | 10 | 20 | 7 | 4 | 0 |
-| workforceintelligence | 7 | 47 | 38 | 71 | 69 | 112 |
-| **TOTAL** | **191** | **908** | **1016** | **828** | **870** | **1291** |
+| rbac | 5 | 8 | 15 | 8 | 8 | 2 |
+| recruitment | 24 | 122 | 119 | 101 | 101 | 272 |
+| reimbursement | 3 | 19 | 20 | 15 | 15 | 78 |
+| setting | 21 | 119 | 126 | 107 | 113 | 60 |
+| training | 28 | 130 | 145 | 123 | 123 | 79 |
+| useraccount | 3 | 11 | 20 | 7 | 4 | 0 |
+| workforceintelligence | 7 | 52 | 48 | 72 | 70 | 137 |
+| **TOTAL** | **221** | **1212** | **1312** | **1052** | **1097** | **1788** |
 
 ### Test Breakdown per Module
 
 | Module | Repo Tests | Service Tests | Handler Tests | Other | Total |
 |--------|:----------:|:-------------:|:-------------:|:-----:|:-----:|
-| approval | 25 | 32 | 22 | 26 | 105 |
-| attendance | 34 | 39 | 26 | 47 | 146 |
-| careerintelligence | 24 | 20 | 22 | 0 | 66 |
-| competency | 12 | 35 | 13 | 0 | 60 |
-| employee | 18 | 22 | 0 | 0 | 40 |
-| employeemovement | 27 | 49 | 16 | 58 | 150 |
-| jobmanagement | 27 | 29 | 10 | 17 | 83 |
-| leave | 17 | 18 | 11 | 33 | 79 |
+| approval | 25 | 35 | 22 | 37 | 119 |
+| attendance | 34 | 39 | 26 | 52 | 151 |
+| careerintelligence | 31 | 29 | 22 | 0 | 82 |
+| competency | 12 | 37 | 13 | 19 | 81 |
+| documenttemplate | 7 | 15 | 10 | 19 | 51 |
+| employee | 22 | 37 | 3 | 28 | 90 |
+| employeemovement | 27 | 49 | 16 | 66 | 158 |
+| jobmanagement | 29 | 29 | 10 | 17 | 85 |
+| leave | 17 | 18 | 11 | 35 | 81 |
 | notification | 2 | 6 | 0 | 0 | 8 |
 | organization | 0 | 9 | 0 | 0 | 9 |
-| payroll | 17 | 26 | 0 | 0 | 43 |
+| payroll | 23 | 37 | 0 | 60 | 120 |
 | performance | 19 | 27 | 14 | 65 | 125 |
-| recruitment | 27 | 20 | 28 | 0 | 75 |
-| reimbursement | 19 | 24 | 17 | 7 | 67 |
-| setting | 18 | 26 | 0 | 8 | 52 |
-| training | 14 | 17 | 9 | 31 | 71 |
-| workforceintelligence | 33 | 43 | 36 | 0 | 112 |
+| rbac | 0 | 2 | 0 | 0 | 2 |
+| recruitment | 62 | 153 | 57 | 0 | 272 |
+| reimbursement | 19 | 27 | 17 | 15 | 78 |
+| setting | 18 | 30 | 2 | 10 | 60 |
+| training | 14 | 21 | 10 | 34 | 79 |
+| workforceintelligence | 46 | 55 | 36 | 0 | 137 |
 
 ## SECTION 2: PLATFORM MODULES (internal/platform/)
 
@@ -69,11 +72,11 @@
 | Package | Go Files | Test Funcs | Description |
 |---------|:--------:|:----------:|-------------|
 | auth | 1 | 0 | JWT authentication |
-| authctx | 1 | 0 | Auth context helpers (user/company from gin context) |
-| authz | 13 | 104 | Casbin RBAC authorization |
+| authctx | 2 | 4 | Auth context helpers (user/company from gin context) |
+| authz | 17 | 120 | Casbin RBAC authorization |
 | cache | 6 | 51 | Distributed cache + Pub/Sub |
 | config | 1 | 0 | Viper configuration loader |
-| crypto | 2 | 8 | AES-256-GCM encryption |
+| crypto | 2 | 9 | AES-256-GCM encryption |
 | database | 1 | 0 | Multi-tenant DB connection manager |
 | docs | 1 | 0 | OpenAPI/Scalar documentation |
 | driver | 1 | 0 | DB driver detection |
@@ -81,17 +84,19 @@
 | httputil | 4 | 0 | Bilingual response helpers (SuccessJSON, CreatedJSON, ErrorJSON, NotFound) + locale message catalog (80+ EN/ID pairs) + custom Indonesian validators (NIK, NPWP, KK, Passport, SIM, No Rekening) |
 | logger | 1 | 0 | Structured logging |
 | mailer | 1 | 0 | Email sending (SMTP/template) |
+| mask | 2 | 1 | menyediakan utilitas untuk menyamarkan sebagian nilai |
 | middleware | 10 | 16 | HTTP middleware: Auth, CORS, Logger, Recovery, Tenant, Localize (auto-detect Accept-Language) |
 | migrator | 3 | 3 | Database migration engine |
 | module | 1 | 0 | Module SDK |
+| numbering | 5 | 8 | numbering |
 | onpremise | 2 | 6 | On-premise license enforcement |
 | router | 1 | 0 | Router setup |
 | telemetry | 0 | 0 | Telemetry/metrics |
 | tenant | 0 | 0 | Tenant resolution helpers |
-| tenantseed | 7 | 8 | Tenant seed data (nationalities, competencies, RBAC) |
+| tenantseed | 8 | 11 | Tenant seed data (nationalities, competencies, RBAC) |
 | upload | 1 | 0 | menyediakan endpoint upload file generik untuk lampiran |
 | validator | 0 | 0 | Validator helpers |
-| **TOTAL** | **58** | **196** | |
+| **TOTAL** | **71** | **229** | |
 
 ## SECTION 4: ENTITY DETAIL PER MODULE
 
@@ -135,6 +140,12 @@
 - CompetencyEventTarget
 - CompetencyScore
 - CompetencyScoreDetail
+
+### documenttemplate
+- DocumentTemplate
+- DocumentTemplateVersion
+- DocumentTemplateAudit
+- GeneratedDocument
 
 ### employee
 - Employee
@@ -225,14 +236,23 @@
 - BpjsSetting
 - BpjsRateComponent
 - Pph21Setting
-- Pph21PtkpRate
+- TerRate
+- Ptkp
 - Pph21TaxBracket
 - PayrollRun
 - PayrollRunEmployee
 - PayrollRunItem
 - PayrollPayslip
+- PayrollPayment
 - Pph21CalculationLog
 - PayrollProfileChangeLog
+- EmployeeRead
+- EmploymentRead
+- PositionRead
+- GradingRead
+- AttendanceSessionRead
+- LeaveRequestRead
+- LeaveRequestDetailRead
 
 ### performance
 - PerformancePeriod
@@ -262,9 +282,26 @@
 
 ### recruitment
 - JobRequisition
+- JobOffer
 - Candidate
+- CandidateEducation
+- CandidateWorkExperience
+- CandidateSkill
+- CandidateCertification
+- CandidateDocument
+- CandidateConsent
 - JobApplication
+- JobRequisitionRequirement
+- JobRequisitionCompetency
+- RecruitmentStage
+- ApplicationStageHistory
+- ApplicationScreening
+- ApplicationAssessment
+- RecruitmentAssessment
+- AssessmentParticipant
 - Interview
+- Interviewer
+- InterviewScorecardItem
 - OnboardingTaskTemplate
 - EmployeeOnboarding
 - OnboardingTaskItem
@@ -346,7 +383,7 @@
 
 ## SECTION 5: SERVICE METHOD DETAIL
 
-### approval.Service — 28 methods
+### approval.Service — 30 methods
 - `SetNotifier()`
 - `RegisterStatusHandler()`
 - `notifyStatusChange()`
@@ -371,13 +408,17 @@
 - `CancelInstance()`
 - `SubmitAction()`
 - `ListMyPendingTasks()`
+- `ListMyDoneTasks()`
+- `listMyTasks()`
 - `resolveStepAssignees()`
 - `resolveSupervisorAssignees()`
 - `resolveOrganizationAssignees()`
 - `advanceThroughWatcherSteps()`
 
-### attendance.Service — 54 methods
+### attendance.Service — 122 methods
 - `SetApprovalEngine()`
+- `SetModuleChecker()`
+- `SetPayrollAdjuster()`
 - `SetNotifier()`
 - `notifyRequestOutcome()`
 - `UpsertCompanySetting()`
@@ -407,6 +448,8 @@
 - `GetEmployeeCalendar()`
 - `GetAttendanceReport()`
 - `GetEmployeeSummary()`
+- `GetAttendanceStats()`
+- `GetOvertimeTrend()`
 - `CreateOvertimeRequest()`
 - `HandleApprovalStatusChange()`
 - `handleOvertimeApprovalStatusChange()`
@@ -429,10 +472,74 @@
 - `ListExemptPositions()`
 - `UpdateExemptPosition()`
 - `DeleteExemptPosition()`
+- `CreateBusinessTravel()`
+- `GetBusinessTravelByID()`
+- `ListBusinessTravels()`
+- `UpdateBusinessTravel()`
+- `SubmitBusinessTravel()`
+- `CancelBusinessTravel()`
+- `AddBusinessTravelParticipant()`
+- `requireDraftTravel()`
+- `UpdateBusinessTravelParticipant()`
+- `DeleteBusinessTravelParticipant()`
+- `ListBusinessTravelParticipants()`
+- `AddBusinessTravelDestination()`
+- `UpdateBusinessTravelDestination()`
+- `DeleteBusinessTravelDestination()`
+- `ListBusinessTravelDestinations()`
+- `AddBusinessTravelActivity()`
+- `UpdateBusinessTravelActivity()`
+- `DeleteBusinessTravelActivity()`
+- `ListBusinessTravelActivities()`
+- `AddBusinessTravelSchedule()`
+- `UpdateBusinessTravelSchedule()`
+- `DeleteBusinessTravelSchedule()`
+- `ListBusinessTravelSchedules()`
+- `CreateFundingMethod()`
+- `ListFundingMethods()`
+- `CreateFunding()`
+- `ListFundingsByTravel()`
+- `UpdateFunding()`
+- `ConfirmFunding()`
+- `AddFundingDocument()`
+- `CreateExpenseCategory()`
+- `ListExpenseCategories()`
+- `CreateExpense()`
+- `ListExpensesByTravel()`
+- `UpdateExpense()`
+- `DeleteExpense()`
+- `AddExpenseDocument()`
+- `CreateSettlement()`
+- `GetSettlementByID()`
+- `ListSettlementsByTravel()`
+- `SubmitSettlement()`
+- `HandleSettlementApprovalStatusChange()`
+- `ListRefundsByTravel()`
+- `ConfirmRefund()`
+- `ListTravelReimbursements()`
+- `ApproveTravelReimbursement()`
+- `ProcessTravelReimbursement()`
+- `PayTravelReimbursement()`
+- `maybeSettleAndCloseTravel()`
+- `AddTravelDocument()`
+- `ListTravelDocuments()`
+- `DeleteTravelDocument()`
+- `pushBusinessTravelPayrollAdjustments()`
+- `HandleBusinessTravelApprovalStatusChange()`
+- `notifyBusinessTravelUser()`
+- `resolveBusinessTravelRecipientUserID()`
+- `pushBusinessTravelAttendance()`
+- `GetBusinessTravelReport()`
+- `GetBusinessTravelFundingReport()`
+- `GetBusinessTravelAdvanceReport()`
+- `GetBusinessTravelReimbursementReport()`
+- `GetBusinessTravelRefundReport()`
+- `GetBusinessTravelCostReport()`
 - `recalculateSession()`
 - `ApplyApprovedLeave()`
+- `ApplyApprovedBusinessTravel()`
 
-### careerintelligence.Service — 23 methods
+### careerintelligence.Service — 27 methods
 - `CreateTalentMap()`
 - `GetTalentMapByID()`
 - `ListTalentMaps()`
@@ -450,11 +557,15 @@
 - `ListCareerPaths()`
 - `DeleteCareerPath()`
 - `GetGapAnalysis()`
+- `GetEligibleEmployeesForPath()`
+- `GetEligibleEmployeesByPosition()`
 - `CreateSuccessionPlan()`
 - `ListSuccessionPlans()`
 - `GetSuccessionPlanByID()`
 - `UpdateSuccessionPlan()`
 - `DeleteSuccessionPlan()`
+- `GetSuccessionGaps()`
+- `CheckSuccessionGapByPosition()`
 - `careerPathToResponse()`
 
 ### company.Service — 15 methods
@@ -474,7 +585,7 @@
 - `Activate()`
 - `Terminate()`
 
-### competency.Service — 35 methods
+### competency.Service — 77 methods
 - `CreateCompetency()`
 - `GetCompetencyByID()`
 - `ListCompetencies()`
@@ -496,8 +607,10 @@
 - `UpdateCompetencyEvent()`
 - `DeleteCompetencyEvent()`
 - `CreateCompetencyEventTarget()`
+- `ensureSelfRater()`
 - `GetCompetencyEventTargetByID()`
 - `ListCompetencyEventTargets()`
+- `buildTargetRaterSummaries()`
 - `UpdateCompetencyEventTarget()`
 - `DeleteCompetencyEventTarget()`
 - `CreateCompetencyScore()`
@@ -510,12 +623,78 @@
 - `ListCompetencyScoreDetails()`
 - `UpdateCompetencyScoreDetail()`
 - `DeleteCompetencyScoreDetail()`
+- `CreateRatingScale()`
+- `GetRatingScaleByID()`
+- `ListRatingScales()`
+- `UpdateRatingScale()`
+- `DeleteRatingScale()`
+- `CreateAssessmentTemplate()`
+- `GetAssessmentTemplateByID()`
+- `ListAssessmentTemplates()`
+- `UpdateAssessmentTemplate()`
+- `DeleteAssessmentTemplate()`
+- `replaceTemplateChildren()`
+- `CreateIndicator()`
+- `GetIndicatorByID()`
+- `ListIndicators()`
+- `UpdateIndicator()`
+- `DeleteIndicator()`
+- `SetTemplateIndicators()`
+- `ListTemplateIndicators()`
+- `SetApprovalEngine()`
+- `SubmitAssessmentForApproval()`
+- `HandleAssessmentApprovalStatusChange()`
+- `AssignRaters()`
+- `SuggestedRaters()`
+- `templateRequiresSelf()`
+- `ListRatersByTarget()`
+- `DeleteRater()`
+- `MyAssessments()`
+- `ManagerAssessments()`
+- `GetAssessmentDetail()`
+- `SaveResponses()`
+- `templateIndicatorSet()`
+- `SubmitAssessment()`
+- `enrichRaterNames()`
+- `CalculateTarget()`
+- `FinalizeTarget()`
+- `GetEmployeeResult()`
+- `GetEmployeeGap()`
+- `GetEmployeeReport()`
+- `GetManagerReport()`
+- `GetHRReport()`
 
-### employee.Service — 38 methods
-- `SetQuotaChecker()`
-- `checkQuota()`
-- `Create()`
+### documenttemplate.Service — 12 methods
+- `List()`
 - `GetByID()`
+- `checkCodeUnique()`
+- `validateMovementType()`
+- `Create()`
+- `Update()`
+- `Delete()`
+- `Activate()`
+- `Deactivate()`
+- `CreateVersion()`
+- `ListVersions()`
+- `GetVersion()`
+
+### employee.Service — 50 methods
+- `resolveEmployeeID()`
+- `isSelfEmployee()`
+- `isSelfEmployeeStr()`
+- `ListSensitiveFieldSettings()`
+- `SetSensitiveFieldEnabled()`
+- `IsFieldEncryptionEnabled()`
+- `SetQuotaChecker()`
+- `SetEmployeeIDFormatProvider()`
+- `checkQuota()`
+- `encryptIfEnabled()`
+- `Create()`
+- `GetEmploymentStatusStats()`
+- `GetGenderStats()`
+- `fillRefNames()`
+- `GetByID()`
+- `GetByIDUnmasked()`
 - `List()`
 - `Update()`
 - `Delete()`
@@ -551,13 +730,15 @@
 - `UpdateEmployment()`
 - `DeleteEmployment()`
 
-### employeemovement.Service — 46 methods
+### employeemovement.Service — 51 methods
 - `SetApprovalEngine()`
 - `SetCareerExecutor()`
 - `SetNotifier()`
 - `SetPerformanceProvider()`
 - `SetCompetencyProvider()`
 - `SetOKRProvider()`
+- `SetDocumentGenerator()`
+- `SetNumberingService()`
 - `recordAudit()`
 - `notifyMovementOutcome()`
 - `validateMovement()`
@@ -585,6 +766,9 @@
 - `currentPosition()`
 - `CreateContract()`
 - `GetContractByID()`
+- `GenerateMovementDocument()`
+- `GenerateContractDocument()`
+- `ListGeneratedDocuments()`
 - `ListContractsByEmployee()`
 - `ListContracts()`
 - `GetMovementReport()`
@@ -599,7 +783,8 @@
 - `evaluatePromotionRules()`
 - `findPromotionNextStep()`
 
-### jobmanagement.Service — 100 methods
+### jobmanagement.Service — 101 methods
+- `GetDashboard()`
 - `CreateJobTitle()`
 - `GetJobTitleByID()`
 - `ListJobTitles()`
@@ -701,7 +886,7 @@
 - `UpdateJobCompetencyGroup()`
 - `DeleteJobCompetencyGroup()`
 
-### leave.Service — 38 methods
+### leave.Service — 39 methods
 - `getOrCreateLeaveBalance()`
 - `applyLeaveUsage()`
 - `reverseLeaveUsage()`
@@ -738,6 +923,7 @@
 - `ListLeaveRequestDetails()`
 - `GetEmployeeCalendar()`
 - `GetLeaveUsageReport()`
+- `GetOnLeaveToday()`
 - `GetLeaveBalance()`
 - `ListLeaveBalances()`
 
@@ -802,13 +988,53 @@
 - `updateStatus()`
 - `validateModuleDependencies()`
 
-### payroll.Service — 49 methods
+### payroll.Service — 108 methods
+- `calculateBpjsContributions()`
+- `buildBpjsRunItem()`
+- `CalculatePayrollRun()`
+- `selectRunEmployees()`
+- `findActivePayrollProfiles()`
+- `loadAllActiveComponents()`
+- `validateComponentFormulas()`
+- `calculateEmployee()`
+- `employmentProrationFactor()`
+- `buildComponentInputs()`
+- `evaluateComponents()`
+- `tryEvaluateComponent()`
+- `evaluateFormulaWithValues()`
+- `buildRunItem()`
+- `persistRunSnapshot()`
+- `CreatePaymentBatch()`
+- `UpdatePaymentStatus()`
+- `ListPaymentsByRun()`
+- `GetPaymentByID()`
+- `ExportPaymentsCSV()`
+- `GeneratePayslips()`
+- `PublishPayslip()`
+- `CancelPayslip()`
+- `ListPayslipsByRun()`
+- `GetPayslipByID()`
+- `GetPayslipHTML()`
+- `calculatePph21()`
+- `calculatePph21TerMonthly()`
+- `buildPph21RunItem()`
+- `GetPayrollSummaryReport()`
+- `GetPayrollDashboard()`
+- `GetPayrollDetailReport()`
+- `GetBpjsReport()`
+- `GetTaxReport()`
+- `GetBankTransferReport()`
+- `SetFormulaEngine()`
 - `SetApprovalEngine()`
+- `SetNotifier()`
 - `CreateSalaryComponent()`
 - `GetSalaryComponentByID()`
 - `ListSalaryComponents()`
 - `UpdateSalaryComponent()`
 - `DeleteSalaryComponent()`
+- `validateSalaryComponentCalculation()`
+- `ValidateFormula()`
+- `ListFormulaVariables()`
 - `CreatePayrollPeriod()`
 - `ListPayrollPeriods()`
 - `UpdatePayrollPeriod()`
@@ -828,19 +1054,37 @@
 - `UpdateEmployeeTaxProfile()`
 - `DeleteEmployeeTaxProfile()`
 - `CreateEmployeeTaxProfile()`
+- `ListEmployeeBankProfiles()`
+- `ListEmployeeBpjsProfiles()`
+- `ListEmployeeTaxProfiles()`
+- `buildPaginated()`
+- `ListSalaryGradeComponents()`
+- `GetSalaryGradeComponentByID()`
+- `CreateSalaryGradeComponent()`
+- `UpdateSalaryGradeComponent()`
+- `DeleteSalaryGradeComponent()`
+- `ListSalaryEmployeeComponents()`
+- `GetSalaryEmployeeComponentByID()`
+- `CreateSalaryEmployeeComponent()`
+- `UpdateSalaryEmployeeComponent()`
+- `DeleteSalaryEmployeeComponent()`
 - `CreateBpjsSetting()`
 - `CreatePph21Setting()`
 - `CreatePayrollRun()`
 - `ListPayrollRuns()`
 - `GetPayrollRunByID()`
+- `ListPayrollRunEmployees()`
+- `ListPayrollRunItems()`
 - `UpdatePayrollRunStatus()`
 - `CheckPayrollRunApproval()`
 - `HandleApprovalStatusChange()`
+- `notifyRunOutcome()`
 - `UpdateBpjsSetting()`
 - `GetBpjsSettingByID()`
 - `ListBpjsSettings()`
 - `DeleteBpjsSetting()`
 - `GetBpjsRateComponentByID()`
+- `ListBpjsRateComponentsBySettingID()`
 - `UpdateBpjsRateComponent()`
 - `DeleteBpjsRateComponent()`
 - `CreateBpjsRateComponent()`
@@ -848,10 +1092,11 @@
 - `ListPph21Settings()`
 - `UpdatePph21Setting()`
 - `DeletePph21Setting()`
-- `CreatePph21PtkpRate()`
-- `ListPph21PtkpRates()`
 - `CreatePph21TaxBracket()`
+- `UpdatePph21TaxBracket()`
+- `DeletePph21TaxBracket()`
 - `ListPph21TaxBrackets()`
+- `loadWorkforceSummary()`
 
 ### performance.Service — 109 methods
 - `SetApprovalEngine()`
@@ -974,12 +1219,35 @@
 - `ListUsers()`
 - `AssignUserRoles()`
 
-### recruitment.Service — 33 methods
+### recruitment.Service — 122 methods
+- `SetWorkforceGapProvider()`
+- `SetInternalCandidateProvider()`
+- `SetSuccessionGapProvider()`
+- `SetTrainingHandoffProvider()`
+- `SetApprovalEngine()`
+- `SetNotifier()`
+- `SetEmployeeProvider()`
+- `SetMovementProvider()`
+- `SetJobManagementProvider()`
 - `CreateRequisition()`
 - `GetRequisitionByID()`
 - `ListRequisitions()`
 - `UpdateRequisition()`
 - `DeleteRequisition()`
+- `CreateOffer()`
+- `GetOfferByID()`
+- `ListOffers()`
+- `UpdateOffer()`
+- `DeleteOffer()`
+- `SubmitOffer()`
+- `HandleOfferApprovalStatusChange()`
+- `SendOffer()`
+- `AcceptOffer()`
+- `RejectOffer()`
+- `WithdrawOffer()`
+- `SubmitRequisition()`
+- `HandleApprovalStatusChange()`
+- `notifyRequisitionOutcome()`
 - `CreateCandidate()`
 - `GetCandidateByID()`
 - `ListCandidates()`
@@ -988,7 +1256,9 @@
 - `CreateApplication()`
 - `GetApplicationByID()`
 - `ListApplications()`
+- `transitionApplicationStatus()`
 - `UpdateApplicationStatus()`
+- `GetApplicationHistory()`
 - `DeleteApplication()`
 - `CreateInterview()`
 - `GetInterviewByID()`
@@ -1003,14 +1273,79 @@
 - `GetEmployeeOnboardingByID()`
 - `ListEmployeeOnboardings()`
 - `UpdateEmployeeOnboarding()`
+- `handoffOnboardingTraining()`
 - `DeleteEmployeeOnboarding()`
 - `CreateOnboardingTaskItem()`
 - `ListOnboardingTaskItems()`
 - `UpdateOnboardingTaskItem()`
 - `DeleteOnboardingTaskItem()`
+- `resolveWorkforceGapSlots()`
+- `validateSuccessionGapFallback()`
+- `GetEligibleInternalCandidates()`
+- `handoffHiredEmployee()`
+- `CreateCandidateEducation()`
+- `ListCandidateEducations()`
+- `UpdateCandidateEducation()`
+- `DeleteCandidateEducation()`
+- `CreateCandidateWorkExperience()`
+- `ListCandidateWorkExperiences()`
+- `UpdateCandidateWorkExperience()`
+- `DeleteCandidateWorkExperience()`
+- `CreateCandidateSkill()`
+- `ListCandidateSkills()`
+- `UpdateCandidateSkill()`
+- `DeleteCandidateSkill()`
+- `CreateCandidateCertification()`
+- `ListCandidateCertifications()`
+- `UpdateCandidateCertification()`
+- `DeleteCandidateCertification()`
+- `CreateCandidateDocument()`
+- `ListCandidateDocuments()`
+- `UpdateCandidateDocument()`
+- `DeleteCandidateDocument()`
+- `CreateCandidateConsent()`
+- `ListCandidateConsents()`
+- `filterTemplatesForApplication()`
+- `CreateApplicationScreening()`
+- `ListApplicationScreenings()`
+- `UpdateApplicationScreening()`
+- `DeleteApplicationScreening()`
+- `assessmentRequirementStrings()`
+- `effectiveAssessmentCompetencies()`
+- `GetApplicationAssessment()`
+- `SaveApplicationAssessment()`
+- `CreateAssessment()`
+- `ListAssessments()`
+- `GetAssessmentByID()`
+- `UpdateAssessment()`
+- `DeleteAssessment()`
+- `AddAssessmentParticipant()`
+- `ListAssessmentParticipants()`
+- `UpdateAssessmentParticipant()`
+- `DeleteAssessmentParticipant()`
+- `GetRecruitmentAnalyticsSummary()`
+- `CreateRequisitionRequirement()`
+- `ListRequisitionRequirements()`
+- `UpdateRequisitionRequirement()`
+- `DeleteRequisitionRequirement()`
+- `CreateRequisitionCompetency()`
+- `ListRequisitionCompetencies()`
+- `UpdateRequisitionCompetency()`
+- `DeleteRequisitionCompetency()`
+- `GetCandidateMatchScore()`
+- `assessmentCandidateLevels()`
+- `AddInterviewer()`
+- `ListInterviewers()`
+- `RemoveInterviewer()`
+- `AddScorecardItem()`
+- `ListScorecardItems()`
+- `UpdateScorecardItem()`
+- `DeleteScorecardItem()`
+- `CompleteInterview()`
 
-### reimbursement.Service — 17 methods
+### reimbursement.Service — 19 methods
 - `SetApprovalEngine()`
+- `SetNotifier()`
 - `CreateReimbursementType()`
 - `GetReimbursementTypeByID()`
 - `ListReimbursementTypes()`
@@ -1022,6 +1357,7 @@
 - `UpdateReimbursementRequest()`
 - `UpdateReimbursementRequestStatus()`
 - `HandleApprovalStatusChange()`
+- `notifyReimbursementOutcome()`
 - `DeleteReimbursementRequest()`
 - `CreateReimbursementItem()`
 - `ListReimbursementItems()`
@@ -1149,7 +1485,7 @@
 - `UpdatePTKP()`
 - `DeletePTKP()`
 
-### training.Service — 129 methods
+### training.Service — 130 methods
 - `SetApprovalEngine()`
 - `SetNotifier()`
 - `CreateCategory()`
@@ -1217,6 +1553,7 @@
 - `UpdatePlanItem()`
 - `DeletePlanItem()`
 - `CreateNeed()`
+- `CreateOnboardingNeed()`
 - `GetNeedByID()`
 - `ListNeeds()`
 - `DeleteNeed()`
@@ -1294,7 +1631,8 @@
 - `EnsureMigrate()`
 - `EnsureSeed()`
 
-### useraccount.Service — 10 methods
+### useraccount.Service — 11 methods
+- `SetEmployeeProfileProvider()`
 - `CreateAccount()`
 - `ResendSetupEmail()`
 - `GetAccountStatus()`
@@ -1306,7 +1644,8 @@
 - `Refresh()`
 - `tryLinkEmployeeUser()`
 
-### workforceintelligence.Service — 47 methods
+### workforceintelligence.Service — 52 methods
+- `SetInternalEligibilityProvider()`
 - `CreateHeadcountPlan()`
 - `GetHeadcountPlanByID()`
 - `ListHeadcountPlans()`
@@ -1321,6 +1660,9 @@
 - `GetKPISummary()`
 - `ListKPIs()`
 - `GetHeadcountAnalytics()`
+- `GetRecruitmentAnalytics()`
+- `GetQualityOfHire()`
+- `computeTimeToFill()`
 - `GetMovementAnalytics()`
 - `CreateScenario()`
 - `RunScenario()`
@@ -1354,26 +1696,27 @@
 - `GetHealthDashboard()`
 - `ListHealthScores()`
 - `CandidateSearch()`
+- `resolveEligibleInternalCandidates()`
 
 ## SECTION 6: GRAND TOTALS
 
 | Category | Count |
 |----------|:-----:|
-| Tenant Modules | 19 |
+| Tenant Modules | 20 |
 | Platform Modules | 6 |
-| Shared Kernel Packages | 23 |
-| **Total Architecture Layers** | **48** |
-| Total GORM Entities (tenant) | 191 |
+| Shared Kernel Packages | 25 |
+| **Total Architecture Layers** | **51** |
+| Total GORM Entities (tenant) | 221 |
 | Total GORM Entities (platform) | 8 |
-| **Total Entities (combined)** | **199** |
-| Total Service Methods | 961 |
-| Total Repository Methods | 1061 |
-| Total Handler Functions | 876 |
-| Total Route Registrations | 915 |
-| **Total Unit Tests (all)** | **1547** |
-| Total Go Source Files | 232 |
-| Total Test Files (_test.go) | 128 |
-| **Total Go Files** | **360** |
+| **Total Entities (combined)** | **229** |
+| Total Service Methods | 1265 |
+| Total Repository Methods | 1357 |
+| Total Handler Functions | 1100 |
+| Total Route Registrations | 1142 |
+| **Total Unit Tests (all)** | **2077** |
+| Total Go Source Files | 290 |
+| Total Test Files (_test.go) | 175 |
+| **Total Go Files** | **465** |
 
 ## SECTION 7: TEST FILE INVENTORY
 
@@ -1383,10 +1726,11 @@
 | `internal\modules\approval\handler_test.go` | 14 |
 | `internal\modules\approval\helpers_test.go` | 0 |
 | `internal\modules\approval\hierarchy_test.go` | 7 |
-| `internal\modules\approval\module_subscription_test.go` | 10 |
+| `internal\modules\approval\module_subscription_test.go` | 20 |
 | `internal\modules\approval\notifier_test.go` | 5 |
 | `internal\modules\approval\repository_test.go` | 25 |
-| `internal\modules\approval\service_test.go` | 32 |
+| `internal\modules\approval\routes_test.go` | 1 |
+| `internal\modules\approval\service_test.go` | 35 |
 | `internal\modules\approval\status_handler_test.go` | 8 |
 | `internal\modules\attendance\approval_integration_test.go` | 14 |
 | `internal\modules\attendance\correction_test.go` | 3 |
@@ -1395,29 +1739,51 @@
 | `internal\modules\attendance\notifier_integration_test.go` | 4 |
 | `internal\modules\attendance\overtime_two_flow_test.go` | 15 |
 | `internal\modules\attendance\repository_test.go` | 34 |
+| `internal\modules\attendance\routes_test.go` | 2 |
 | `internal\modules\attendance\service_test.go` | 39 |
 | `internal\modules\attendance\session_test.go` | 8 |
-| `internal\modules\attendance\summary_test.go` | 3 |
+| `internal\modules\attendance\summary_test.go` | 6 |
 | `internal\modules\careerintelligence\handler_test.go` | 22 |
 | `internal\modules\careerintelligence\helpers_test.go` | 0 |
-| `internal\modules\careerintelligence\repository_test.go` | 24 |
-| `internal\modules\careerintelligence\service_test.go` | 20 |
+| `internal\modules\careerintelligence\repository_test.go` | 31 |
+| `internal\modules\careerintelligence\service_test.go` | 29 |
 | `internal\modules\competency\handler_test.go` | 13 |
 | `internal\modules\competency\helpers_test.go` | 0 |
 | `internal\modules\competency\repository_test.go` | 12 |
-| `internal\modules\competency\service_test.go` | 35 |
+| `internal\modules\competency\service_calculation_test.go` | 19 |
+| `internal\modules\competency\service_test.go` | 37 |
+| `internal\modules\documenttemplate\dateformat_test.go` | 1 |
+| `internal\modules\documenttemplate\docx2pdf_service_test.go` | 1 |
+| `internal\modules\documenttemplate\docx_test.go` | 10 |
+| `internal\modules\documenttemplate\generator_test.go` | 4 |
+| `internal\modules\documenttemplate\handler_test.go` | 10 |
+| `internal\modules\documenttemplate\helpers_test.go` | 0 |
+| `internal\modules\documenttemplate\model_test.go` | 2 |
+| `internal\modules\documenttemplate\pdf_service_test.go` | 4 |
+| `internal\modules\documenttemplate\repository_test.go` | 7 |
+| `internal\modules\documenttemplate\service_test.go` | 10 |
+| `internal\modules\documenttemplate\variables_test.go` | 2 |
+| `internal\modules\employee\dto_test.go` | 7 |
+| `internal\modules\employee\employee_id_format_test.go` | 4 |
 | `internal\modules\employee\helpers_test.go` | 0 |
-| `internal\modules\employee\repository_test.go` | 18 |
-| `internal\modules\employee\service_test.go` | 22 |
+| `internal\modules\employee\repository_test.go` | 22 |
+| `internal\modules\employee\sensitive_field_registry_test.go` | 3 |
+| `internal\modules\employee\sensitive_field_settings_authz_test.go` | 2 |
+| `internal\modules\employee\sensitive_field_settings_handler_test.go` | 3 |
+| `internal\modules\employee\sensitive_field_settings_test.go` | 4 |
+| `internal\modules\employee\sensitive_field_update_test.go` | 8 |
+| `internal\modules\employee\service_test.go` | 37 |
 | `internal\modules\employeemovement\approval_integration_test.go` | 10 |
 | `internal\modules\employeemovement\audit_test.go` | 10 |
 | `internal\modules\employeemovement\career_test.go` | 4 |
-| `internal\modules\employeemovement\document_test.go` | 6 |
+| `internal\modules\employeemovement\document_sensitive_test.go` | 2 |
+| `internal\modules\employeemovement\document_test.go` | 10 |
 | `internal\modules\employeemovement\eligibility_test.go` | 7 |
 | `internal\modules\employeemovement\enrichment_test.go` | 6 |
 | `internal\modules\employeemovement\expiry_test.go` | 3 |
 | `internal\modules\employeemovement\handler_test.go` | 16 |
 | `internal\modules\employeemovement\helpers_test.go` | 0 |
+| `internal\modules\employeemovement\numbering_test.go` | 2 |
 | `internal\modules\employeemovement\report_test.go` | 12 |
 | `internal\modules\employeemovement\repository_test.go` | 27 |
 | `internal\modules\employeemovement\service_test.go` | 49 |
@@ -1425,7 +1791,7 @@
 | `internal\modules\jobmanagement\education_update_test.go` | 1 |
 | `internal\modules\jobmanagement\handler_test.go` | 10 |
 | `internal\modules\jobmanagement\helpers_test.go` | 0 |
-| `internal\modules\jobmanagement\repository_test.go` | 27 |
+| `internal\modules\jobmanagement\repository_test.go` | 29 |
 | `internal\modules\jobmanagement\router_test.go` | 3 |
 | `internal\modules\jobmanagement\service_test.go` | 29 |
 | `internal\modules\leave\approval_integration_test.go` | 10 |
@@ -1436,17 +1802,26 @@
 | `internal\modules\leave\handler_test.go` | 11 |
 | `internal\modules\leave\helpers_test.go` | 0 |
 | `internal\modules\leave\notifier_integration_test.go` | 6 |
-| `internal\modules\leave\report_test.go` | 2 |
+| `internal\modules\leave\report_test.go` | 3 |
 | `internal\modules\leave\repository_test.go` | 17 |
+| `internal\modules\leave\routes_test.go` | 1 |
 | `internal\modules\leave\service_test.go` | 18 |
 | `internal\modules\notification\helpers_test.go` | 0 |
 | `internal\modules\notification\repository_test.go` | 2 |
 | `internal\modules\notification\service_test.go` | 6 |
 | `internal\modules\organization\helpers_test.go` | 0 |
 | `internal\modules\organization\service_test.go` | 9 |
+| `internal\modules\payroll\bpjs_test.go` | 5 |
+| `internal\modules\payroll\calculation_test.go` | 8 |
+| `internal\modules\payroll\calculator\engine_test.go` | 18 |
+| `internal\modules\payroll\calculator\proration_test.go` | 7 |
 | `internal\modules\payroll\helpers_test.go` | 0 |
-| `internal\modules\payroll\repository_test.go` | 17 |
-| `internal\modules\payroll\service_test.go` | 26 |
+| `internal\modules\payroll\payslip_payment_test.go` | 8 |
+| `internal\modules\payroll\pph21_test.go` | 6 |
+| `internal\modules\payroll\report_test.go` | 2 |
+| `internal\modules\payroll\repository_test.go` | 23 |
+| `internal\modules\payroll\service_test.go` | 37 |
+| `internal\modules\payroll\workforce_test.go` | 6 |
 | `internal\modules\performance\evaluation_enrichment_test.go` | 3 |
 | `internal\modules\performance\handler_test.go` | 14 |
 | `internal\modules\performance\helpers_test.go` | 0 |
@@ -1460,29 +1835,35 @@
 | `internal\modules\performance\okr_two_phase_test.go` | 3 |
 | `internal\modules\performance\repository_test.go` | 19 |
 | `internal\modules\performance\service_test.go` | 27 |
-| `internal\modules\recruitment\handler_test.go` | 28 |
+| `internal\modules\rbac\service_test.go` | 2 |
+| `internal\modules\recruitment\handler_test.go` | 57 |
 | `internal\modules\recruitment\helpers_test.go` | 0 |
-| `internal\modules\recruitment\repository_test.go` | 27 |
-| `internal\modules\recruitment\service_test.go` | 20 |
-| `internal\modules\reimbursement\approval_integration_test.go` | 7 |
+| `internal\modules\recruitment\repository_test.go` | 62 |
+| `internal\modules\recruitment\service_test.go` | 153 |
+| `internal\modules\reimbursement\approval_integration_test.go` | 9 |
 | `internal\modules\reimbursement\handler_test.go` | 17 |
 | `internal\modules\reimbursement\helpers_test.go` | 0 |
+| `internal\modules\reimbursement\notifier_integration_test.go` | 6 |
 | `internal\modules\reimbursement\repository_test.go` | 19 |
-| `internal\modules\reimbursement\service_test.go` | 24 |
+| `internal\modules\reimbursement\service_test.go` | 27 |
 | `internal\modules\setting\competency_test.go` | 8 |
+| `internal\modules\setting\employee_id_format_service_test.go` | 4 |
 | `internal\modules\setting\helpers_test.go` | 0 |
+| `internal\modules\setting\numbering_handler_test.go` | 2 |
+| `internal\modules\setting\permission_test.go` | 2 |
 | `internal\modules\setting\repository_test.go` | 18 |
 | `internal\modules\setting\service_test.go` | 26 |
 | `internal\modules\training\advanced_p2_test.go` | 7 |
-| `internal\modules\training\handler_test.go` | 9 |
+| `internal\modules\training\handler_test.go` | 10 |
 | `internal\modules\training\helpers_test.go` | 1 |
-| `internal\modules\training\plan_p1_test.go` | 23 |
+| `internal\modules\training\plan_p1_test.go` | 25 |
 | `internal\modules\training\repository_test.go` | 14 |
-| `internal\modules\training\service_test.go` | 17 |
+| `internal\modules\training\routes_test.go` | 1 |
+| `internal\modules\training\service_test.go` | 21 |
 | `internal\modules\workforceintelligence\handler_test.go` | 36 |
 | `internal\modules\workforceintelligence\helpers_test.go` | 0 |
-| `internal\modules\workforceintelligence\repository_test.go` | 33 |
-| `internal\modules\workforceintelligence\service_test.go` | 43 |
+| `internal\modules\workforceintelligence\repository_test.go` | 46 |
+| `internal\modules\workforceintelligence\service_test.go` | 55 |
 | `internal\platform\company\handler_test.go` | 8 |
 | `internal\platform\company\helpers_test.go` | 0 |
 | `internal\platform\company\service_test.go` | 22 |

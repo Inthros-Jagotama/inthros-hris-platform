@@ -1861,9 +1861,9 @@ POST /api/v1/platform/companies
 |---|------|------|
 | ✅ | Analisis blueprint v3 vs existing Laravel app | `docs/analisis-blueprint-vs-existing.md` |
 | ✅ | Platform architecture design (modular monolith, multi-tenant) | `docs/platform-architecture-design.md` |
-| ✅ | Project completion dashboard (25 modules — 19 tenant + 6 platform, 1547 tests, 199 tables) | `docs/project-completion-dashboard.md` |
+| ✅ | Project completion dashboard (26 modules — 20 tenant + 6 platform, 2077 tests, 199 tables) | `docs/project-completion-dashboard.md` |
 | ✅ | OpenAPI comprehensive report (1166 endpoints, 701 paths, 799 schemas, 38 tags) | `docs/openapi-report.md` |
-| ✅ | Go module architecture report (199 entities, 961 service methods, 1547 tests) | `docs/go-module-architecture-report.md` |
+| ✅ | Go module architecture report (229 entities, 1265 service methods, 2077 tests) | `docs/go-module-architecture-report.md` |
 | ✅ | Environment variables template | `backend/.env.example` |
 | ✅ | Build & development Makefile | `backend/Makefile` |
 | ✅ | README utama proyek | `README.md` |
@@ -2158,8 +2158,8 @@ export HRIS_LICENSE_PUBLIC_KEY_FILE=/etc/hris/public.pem
 | [`docs/platform-architecture-design.md`](docs/platform-architecture-design.md) | Architecture design document lengkap (satu-satunya dokumen arsitektur) |
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | Panduan deployment lengkap: Subscription SaaS (multi-tenant) & On-Premise (dedicated `.lic` RSA) |
 | [`docs/openapi-report.md`](docs/openapi-report.md) | OpenAPI comprehensive report (report v23, spec 1.6.3 — 1166 endpoints, 701 paths, 799 schemas, 38 tags) |
-| [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (137 entities, 622 service methods, 1265 tests) |
-| [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (25 modules, 1547 tests, 199 tables) |
+| [`docs/go-module-architecture-report.md`](docs/go-module-architecture-report.md) | Go module architecture report (229 entities, 1265 service methods, 2077 tests) |
+| [`docs/project-completion-dashboard.md`](docs/project-completion-dashboard.md) | Project completion dashboard (26 modules, 2077 tests, 199 tables) |
 | [`docs/panduan-uiux-hris-enterprise.md`](docs/panduan-uiux-hris-enterprise.md) | Standar UI/UX enterprise (modal-first, high-density, prompt AI, warna badge) |
 | [`docs/frontend-development-plan.md`](docs/frontend-development-plan.md) | Roadmap implementasi frontend Platform Admin & Tenant |
 | [`docs/job-management-score-analysis.md`](docs/job-management-score-analysis.md) | Analisa perhitungan Job Management Score (dirujuk `calculator.go`) |
