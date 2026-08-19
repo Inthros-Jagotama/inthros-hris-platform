@@ -229,7 +229,7 @@ frontend/
 - [x] **Group accordion** — `openMenus` ref + `toggleMenu(key)`; auto-open saat salah satu child aktif
 - [x] **PanelMenu styling** — `:deep(.p-panelmenu-*)` compact (padding 0.5rem, font 0.8125rem), hover hijau `#f0fdf4` (light) + `rgba(16,185,129,0.1)` (dark)
 
-### C.2. Dashboard ✅ (Existing - Enhanced)
+### C.2. Dashboard ✅ (Existing — sinkron 19 Agu 2026)
 - [x] KPI Cards (Total Employees, Active Today, On Leave, Pending Approvals)
 - [x] Quick Access Modules grid (12 modules)
 - [x] Recent Activity (static)
@@ -242,6 +242,13 @@ frontend/
   - GET /api/v1/tenant/attendance/events (active today)
   - GET /api/v1/tenant/leave/requests (on leave count)
   - GET /api/v1/tenant/approval/tasks (pending approval count)
+
+**Sub-dashboard components (5):**
+- [x] `components/dashboard/MyDashboard.vue` — personal dashboard karyawan
+- [x] `components/dashboard/EmploymentDashboard.vue` — employment overview
+- [x] `components/dashboard/HRAttendanceLeaveDashboard.vue` — HR view attendance & leave
+- [x] `components/dashboard/JobManagementDashboard.vue` — job management overview
+- [x] `components/dashboard/TalentDashboard.vue` — talent & competency overview
 
 ### C.3. Tenant Authentication & Login ✅ (BARU - Done)
 - [x] **Login page** — `views/Login.vue` bilingual + dark mode (emerald brand, gradient bg)
@@ -324,8 +331,9 @@ frontend/
 | 19 | `settings/PtkpsView.vue` | Same |
 | 20 | `settings/GradingsView.vue` | Remove duplicate `handleDelete` + leftover old code fragment (wrong API path `/gradings/` → `/settings/gradings/`) |
 
-### C.7. Setting Module — All 19 Reference CRUDs ✅ (BARU - Done)
-**Backend:** `backend/internal/modules/setting/` — packages for zones, provinces, regencies, districts, villages, educations, education_majors, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades, ters, ptkps, insurances, company_holidays + 5 legacy endpoints
+### C.7. Setting Module — All Reference CRUDs ✅ (BARU — sinkron 19 Agu 2026)
+**Backend:** `backend/internal/modules/setting/` — zones, provinces, regencies, districts, villages, educations, education_majors, religions, marital_statuses, relationship_types, banks, employment_statuses, nationalities, job_families, salary_grades, ters, ptkps, insurances, company_holidays, employee-id-format, numbering, document-templates, sensitive-fields + legacy endpoints
+**Frontend views (39 total):** 19 base CRUDs + 20 settings views (termasuk EmployeeIdFormat, Numbering, DocumentTemplates, SensitiveField, Competencies, 6 Performance, 5 Payroll)
 - [x] **Zones CRUD** — Code, Name, Region, IsActive, SortOrder
 - [x] **Provinces CRUD** — Code, Name, SortOrder
 - [x] **Regencies CRUD** — Code, Name, ProvinceID, SortOrder
@@ -361,6 +369,13 @@ frontend/
 - [x] **Bilingual** — All labels via `t()` locale lookups
 - [x] **ConfirmDeleteDialog** (custom) — Delete confirmation dengan custom component (bukan PrimeVue ConfirmDialog), tetap terbuka selama API call, error tampil inline
 - [x] **Locale keys** — 6+ keys per entity (title, description, create, edit, delete, confirm_delete)
+
+**Additional Settings Views (bukan base 19 CRUD):**
+- [x] **Employee ID Format** — `EmployeeIdFormatSettingsView.vue` — format nomor induk karyawan (`/settings/employee-id-format`)
+- [x] **Numbering Settings** — `NumberingSettingsView.vue` — pengaturan penomoran dokumen (`/settings/numbering`)
+- [x] **Document Templates** — `DocumentTemplatesView.vue` + `DocumentTemplateForm.vue` — template dokumen dinamis (`/settings/document-templates`)
+- [x] **Sensitive Field Settings** — `SensitiveFieldSettingsView.vue` — pengaturan field sensitif (`/settings/sensitive-fields`)
+- [x] **Competencies (Setting)** — `CompetenciesView.vue` — master kompetensi untuk setting (`/settings/competencies`)
 
 ### C.8. Organization Management ✅ (BARU - Done)
 **Backend:** 12 endpoints
@@ -427,12 +442,21 @@ frontend/
 - ✅ **Daftar job management** — kolom Score / With Financial (Yes-No) / Status Complete + pencarian (search param `?search=` di API organizations), tanpa kolom code/order/level
 - ✅ **Recalc otomatis** — calculator.go di-hook ke Create/Update/Delete tiap section yang memengaruhi skor
 
-### C.11. Competency Management 🔴 (BARU)
+### C.11. Competency Management ✅ (Selesai — sinkron 19 Agu 2026)
 **Backend:** 35 endpoints (7 entities)
-- [ ] Competencies CRUD
-- [ ] Competency Values CRUD
-- [ ] Competency Events + Targets CRUD
-- [ ] Competency Scores + Details CRUD
+**Frontend (11 views):**
+- [x] `Competencies.vue` — hub/index modul Competency 360
+- [x] `CompetencyValues.vue` — CRUD Rating Scales (`competencies/values`)
+- [x] `CompetencyIndicators.vue` — CRUD Indikator Kompetensi (`competencies/indicators`)
+- [x] `AssessmentTemplates.vue` — daftar template assessment (`competencies/templates`)
+- [x] `AssessmentTemplateForm.vue` — form buat/edit template (`competencies/templates/new`, `:id/edit`)
+- [x] `CompetencyEvents.vue` — CRUD event assessment (`competencies/events`)
+- [x] `RaterAssignment.vue` — assign rater per target (`competencies/raters`)
+- [x] `MyAssessments.vue` — daftar assessment milik karyawan (`competencies/my-assessments`)
+- [x] `ManagerAssessments.vue` — daftar assessment bawahan (`competencies/manager-assessments`)
+- [x] `AssessmentResult.vue` — hasil assessment per karyawan (`competencies/results`)
+- [x] `CompetencyReports.vue` — laporan competency (`competencies/reports`)
+- [x] 14 routes terdaftar di router (termasuk nested form routes) + locale keys EN/ID
 
 ### C.12. Employee Movement ✅ (Selesai — sinkron 12 Agu 2026)
 **Backend:** 25 endpoints — movement CRUD + submit (Central Approval), execute, cancel, audits, movement documents, career history, movement/promotion eligibility, contract CRUD, movement & contract reports, HR dashboard
@@ -442,32 +466,48 @@ frontend/
 - [x] `EmployeeMovementReports.vue` — kartu laporan movement & kontrak (`GET /reports/movements`, `/reports/contracts`, `/dashboard`)
 - [x] Routes `admin/career/movements`, `admin/career/contracts`, `admin/career/reports` (menu "Movements & Contracts") + locale keys EN/ID
 
-### C.13. Time & Attendance ✅ (Selesai — sinkron 12 Agu 2026)
-**Backend:** 40 endpoints (11 entities) — company settings, shifts, employee shifts, locations (geofence), events, sessions, calendar, summary, reports, overtime requests (dua alur SELF/ASSIGNED), corrections, exempt positions
-**Frontend (13 view):**
-- [x] `Attendance.vue` — kalender kehadiran + rekap summary + koreksi (employee)
-- [x] `AttendanceAdmin.vue` — index kartu sub-menu
+### C.13. Time & Attendance ✅ (Selesai — sinkron 19 Agu 2026)
+**Backend:** 52 endpoints (14 entities) — company settings, shifts, employee shifts, locations (geofence), events, sessions, calendar, summary, reports, overtime requests (dua alur SELF/ASSIGNED), corrections, exempt positions, business travel (8 entities + 6 report endpoints)
+**Frontend (14 view + 3 business travel):**
+- [x] `Attendance.vue` — kalender kehadiran + rekap summary + koreksi (employee); termasuk kartu admin (dulu `AttendanceAdmin.vue`, dikonsolidasi — commit `9fc4c375`)
 - [x] `AttendanceSettings.vue`, `AttendanceShifts.vue`, `AttendanceEmployeeShifts.vue`, `AttendanceLocations.vue`, `AttendanceExemptPositions.vue` — konfigurasi
 - [x] `AttendanceOvertime.vue` — request overtime (SELF + ASSIGNED + isian aktual)
 - [x] `AttendanceCorrections.vue` — pengajuan koreksi kehadiran
 - [x] `AttendanceEvents.vue`, `AttendanceSessions.vue`, `AttendanceReports.vue` — event log, daily sessions, laporan HR
+- [x] `business-travel/BusinessTravelList.vue` — daftar perjalanan bisnis
+- [x] `business-travel/BusinessTravelDetail.vue` — detail perjalanan + expenses + funding + settlement
+- [x] `business-travel/BusinessTravelReports.vue` — laporan business travel (travel, funding, advance, reimbursement, refund, travel-cost)
 
-### C.14. Approval Engine ✅ (Selesai — sinkron 12 Agu 2026)
+### C.14. Approval Engine ✅ (Selesai — sinkron 19 Agu 2026)
 **Backend:** 17 endpoints — flows (multi-step), instances, tasks, actions (approve/reject), available-modules, active-flow resolver
 **Frontend:**
-- [x] `Approvals.vue` — my tasks (pending approvals) + instance history + approve/reject actions
+- [x] `Approvals.vue` — my tasks (pending approvals) + instance history + approve/reject actions; dynamic import 8 detail views berdasarkan module type
 - [x] `ApprovalFlows.vue` — flow builder (multi-step) + aktivasi flow
 - [x] Route `approvals` & `approvals/flows` + menu sidebar + locale keys EN/ID
 
-### C.15. Payroll & Compensation 🔴 (BARU)
+**Approval detail views (9):**
+- [x] `detail/KpiDetail.vue` — detail dokumen KPI (dalam Approval, dynamic import)
+- [x] `detail/OkrDetail.vue` — detail dokumen OKR
+- [x] `detail/AttendanceDetail.vue` — detail dokumen Attendance
+- [x] `detail/LeaveDetail.vue` — detail dokumen Leave
+- [x] `detail/MovementDetail.vue` — detail dokumen Employee Movement
+- [x] `detail/RecruitmentDetail.vue` — detail dokumen Recruitment
+- [x] `detail/OfferDetail.vue` — detail dokumen Offer
+- [x] `detail/TrainingRequestDetail.vue` — detail dokumen Training Request
+- [x] `detail/BusinessTravelDetail.vue` — detail dokumen Business Travel (via route `/approvals/business-travel/:id`)
+
+### C.15. Payroll & Compensation 🟡 (Parsial — sinkron 19 Agu 2026)
 **Backend:** 47 endpoints (21 entities)
-- [ ] Salary Components CRUD
-- [ ] Payroll Periods CRUD
-- [ ] Payroll Runs (with status workflow)
-- [ ] Employee Payroll Profiles
-- [ ] BPJS Settings
-- [ ] PPh21 Settings
-- [ ] Tax Brackets
+**Frontend (2 views + 5 settings):**
+- [x] `payroll/Payroll.vue` — index payroll (daftar runs + summary)
+- [x] `payroll/PayrollRunDetail.vue` — detail payroll run (`/payroll/runs/:id`)
+- [x] `settings/SalaryComponentsView.vue` — CRUD komponen gaji
+- [x] `settings/PayrollPeriodsView.vue` — CRUD periode payroll
+- [x] `settings/BpjsSettingsView.vue` — pengaturan BPJS
+- [x] `settings/Pph21SettingsView.vue` — pengaturan PPh21
+- [x] `settings/SalaryStructureView.vue` — struktur gaji
+- [ ] Employee Payroll Profiles (view belum ada)
+- [ ] Tax Brackets view
 - [ ] Payslip view
 
 ### C.16. Leave & Time Off ✅ (Selesai — Update 09 Agu 2026)
@@ -530,12 +570,14 @@ Memungkinkan final score KPI per Organization dihitung dari kombinasi berbobot b
 - [x] `Onboarding.vue` — onboarding + handoff training (S-7)
 - [x] `Recruitment.vue` (hub) — kartu menu + summary cards analytics (G-11)
 
-### C.19. Reimbursement & Claim 🔴 (BARU)
+### C.19. Reimbursement & Claim 🟡 (Parsial — sinkron 19 Agu 2026)
 **Backend:** 15 endpoints
-- [ ] Reimbursement Types CRUD
-- [ ] Requests (DRAFT → SUBMITTED → APPROVED → PAID)
-- [ ] Items per request
-- [ ] Status workflow buttons
+**Frontend (4 views):**
+- [x] `Reimbursements.vue` — index (kartu menu + summary)
+- [x] `ReimbursementTypes.vue` — CRUD tipe reimbursement
+- [x] `ReimbursementRequests.vue` — daftar requests (my-requests & all-requests via prop)
+- [x] `ReimbursementRequestDetail.vue` — detail request + items + upload receipt + status workflow
+- [x] 5 routes terdaftar (`/reimbursements`, `/all`, `/my-requests`, `/types`, `/:id`) + locale keys EN/ID
 
 ### C.20. Training & Development ✅ (Selesai — sinkron 12 Agu 2026; P0–P2 FE)
 **Backend:** 123 endpoints — P0 core (categories, courses, sessions, participants, materials, evaluations, certificates, providers, trainers, session trainers/attendance/assessments), P1 planning & governance (plans + items, needs, requests + submit/cancel via Central Approval, mandatories, session costs/documents), P2 advanced (evaluation forms/questions/answers, effectiveness, certifications, history, reports)
@@ -576,11 +618,12 @@ Memungkinkan final score KPI per Organization dihitung dari kombinasi berbobot b
 - [x] `Notifications.vue` — feed notifikasi (filter `is_read`, paginated), badge unread-count, tandai dibaca per item & read-all
 - [x] Route `notifications` + menu sidebar + locale keys EN/ID
 
-### C.25. Tenant RBAC — Roles & Permissions ✅ (Selesai — sinkron 12 Agu 2026)
+### C.25. Tenant RBAC — Roles & Permissions ✅ (Selesai — sinkron 19 Agu 2026)
 **Backend:** endpoint `tenant/rbac/*` — roles, permissions, assign permissions ke role, assign roles ke user
 **Frontend:**
 - [x] `settings/RolesPermissions.vue` — daftar role + permission, assign permission per role, assign role ke user
-- [x] Route `settings/rbac` + card di SettingsIndex + locale keys EN/ID
+- [x] `settings/RolePermissions.vue` — halaman detail per role (manage permissions per role, route `settings/rbac/roles/:id/permissions`)
+- [x] Route `settings/rbac` + `settings/rbac/roles/:id/permissions` + card di SettingsIndex + locale keys EN/ID
 
 ---
 
