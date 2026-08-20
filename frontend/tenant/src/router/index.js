@@ -687,7 +687,7 @@ const routes = [
         path: 'career-intelligence/gap-analysis',
         name: 'CareerGapAnalysis',
         component: () => import('@/views/modules/career-intelligence/GapAnalysis.vue'),
-        meta: { title: 'Gap Analysis', titleKey: 'gap_analysis.title', descKey: 'gap_analysis.description', icon: 'pi pi-sitemap', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'career-intelligence.gap-analysis.view' }
+        meta: { title: 'Gap Analysis', titleKey: 'gap_analysis.title', descKey: 'gap_analysis.description', icon: 'pi pi-sitemap', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'careerintelligence.view' }
       },
       // Settings — index page menampilkan card sub-menu settings
       { path: 'settings', name: 'SettingsIndex', component: () => import('@/views/settings/SettingsIndex.vue'), meta: { title: 'Settings', titleKey: 'settings.title', descKey: 'settings.description', icon: 'pi pi-cog', module: 'setting' } },
