@@ -122,6 +122,61 @@ func TestService_UpdateZone_DuplicateCode_Conflict(t *testing.T) {
 	}
 }
 
+func TestCreateZone_RejectsInvalidTimezone(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	tz := "Asia/Singapore"
+	_, err := svc.CreateZone(context.Background(), CreateZoneRequest{
+		Code: "TZ1", Name: "Zone TZ1", Timezone: &tz,
+	})
+	if err != ErrInvalidZoneTimezone {
+		t.Errorf("got %v, want ErrInvalidZoneTimezone", err)
+	}
+}
+
+func TestCreateZone_AllowsNilTimezone(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	resp, err := svc.CreateZone(context.Background(), CreateZoneRequest{Code: "TZ2", Name: "Zone TZ2"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Timezone != nil {
+		t.Errorf("got %v, want nil", resp.Timezone)
+	}
+}
+
+func TestCreateZone_AllowsValidTimezone(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	tz := "Asia/Jakarta"
+	resp, err := svc.CreateZone(context.Background(), CreateZoneRequest{
+		Code: "TZ3", Name: "Zone TZ3", Timezone: &tz,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Timezone == nil || *resp.Timezone != "Asia/Jakarta" {
+		t.Errorf("got %v, want Asia/Jakarta", resp.Timezone)
+	}
+}
+
+func TestUpdateZone_RejectsInvalidTimezone(t *testing.T) {
+	svc, db, cleanup := newTestService()
+	defer cleanup()
+
+	zone := createTestZone(db, "TZ4", "Zone TZ4")
+
+	tz := "Asia/Singapore"
+	_, err := svc.UpdateZone(context.Background(), zone.ID.String(), UpdateZoneRequest{Timezone: &tz})
+	if err != ErrInvalidZoneTimezone {
+		t.Errorf("got %v, want ErrInvalidZoneTimezone", err)
+	}
+}
+
 // =========================================================================
 // Education — duplicate code validation
 // =========================================================================

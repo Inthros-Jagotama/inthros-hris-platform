@@ -17,6 +17,23 @@ import (
 // given IANA timezone identifier fails timezone.IsValid.
 var ErrInvalidCompanyTimezone = errors.New("invalid company timezone")
 
+// ErrInvalidZoneTimezone is returned by CreateZone/UpdateZone when the given
+// zone timezone override fails timezone.IsValid.
+var ErrInvalidZoneTimezone = errors.New("invalid zone timezone")
+
+// validateZoneTimezone returns ErrInvalidZoneTimezone if tz is non-nil,
+// non-empty, and not a valid IANA timezone identifier. A nil or empty tz is
+// treated as "no override" and is always valid.
+func validateZoneTimezone(tz *string) error {
+	if tz == nil || *tz == "" {
+		return nil
+	}
+	if !timezone.IsValid(*tz) {
+		return ErrInvalidZoneTimezone
+	}
+	return nil
+}
+
 const (
 	defaultPage    = 1
 	defaultPerPage = 20
@@ -78,7 +95,8 @@ func (s *Service) UpdateCompanyTimezone(ctx context.Context, tz string) error {
 func (s *Service) CreateZone(ctx context.Context, req CreateZoneRequest) (*ZoneResponse, error) {
 	isActive := true
 	if req.IsActive != nil { isActive = *req.IsActive }
-	zone := &Zone{Code: req.Code, Name: req.Name, Zone: req.Name, Region: req.Region, IsActive: isActive, SortOrder: req.SortOrder}
+	if err := validateZoneTimezone(req.Timezone); err != nil { return nil, err }
+	zone := &Zone{Code: req.Code, Name: req.Name, Zone: req.Name, Region: req.Region, Timezone: req.Timezone, IsActive: isActive, SortOrder: req.SortOrder}
 	if err := s.validateUniqueCode(ctx, &Zone{}, req.Code, "zones"); err != nil { return nil, err }
 	if err := s.repo.CreateZone(ctx, zone); err != nil { return nil, err }
 	s.logger.Info("Zone created", zap.String("id", zone.ID.String()), zap.String("code", zone.Code))
@@ -123,6 +141,10 @@ func (s *Service) UpdateZone(ctx context.Context, id string, req UpdateZoneReque
 	}
 	if req.Name != nil { zone.Name = *req.Name; zone.Zone = *req.Name }
 	if req.Region != nil { zone.Region = *req.Region }
+	if req.Timezone != nil {
+		if err := validateZoneTimezone(req.Timezone); err != nil { return nil, err }
+		zone.Timezone = req.Timezone
+	}
 	if req.IsActive != nil { zone.IsActive = *req.IsActive }
 	if req.SortOrder != nil { zone.SortOrder = *req.SortOrder }
 	if err := s.repo.UpdateZone(ctx, zone); err != nil { return nil, err }

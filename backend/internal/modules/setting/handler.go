@@ -134,6 +134,10 @@ func (h *Handler) CreateZone(c *gin.Context) {
 	}
 	resp, err := h.service.CreateZone(c.Request.Context(), req)
 	if err != nil {
+		if errors.Is(err, ErrInvalidZoneTimezone) {
+			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+			return
+		}
 		if handleDupErr(c, err) {
 			return
 		}
@@ -176,6 +180,10 @@ func (h *Handler) UpdateZone(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateZone(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
+		if errors.Is(err, ErrInvalidZoneTimezone) {
+			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+			return
+		}
 		if handleDupErr(c, err) {
 			return
 		}
