@@ -682,6 +682,13 @@ const routes = [
         component: () => import('@/views/modules/career-intelligence/SuccessionGaps.vue'),
         meta: { title: 'Succession Gaps', titleKey: 'succession_gaps.title', descKey: 'succession_gaps.description', icon: 'pi pi-users', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'careerintelligence.successions.view' }
       },
+      // Gap Analysis — kesenjangan kompetensi employee menuju target job title
+      {
+        path: 'career-intelligence/gap-analysis',
+        name: 'CareerGapAnalysis',
+        component: () => import('@/views/modules/career-intelligence/GapAnalysis.vue'),
+        meta: { title: 'Gap Analysis', titleKey: 'gap_analysis.title', descKey: 'gap_analysis.description', icon: 'pi pi-sitemap', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'career-intelligence.gap-analysis.view' }
+      },
       // Settings — index page menampilkan card sub-menu settings
       { path: 'settings', name: 'SettingsIndex', component: () => import('@/views/settings/SettingsIndex.vue'), meta: { title: 'Settings', titleKey: 'settings.title', descKey: 'settings.description', icon: 'pi pi-cog', module: 'setting' } },
       { path: 'settings/zones', name: 'SettingsZones', component: () => import('@/views/settings/ZonesView.vue'), meta: { title: 'Zones', titleKey: 'zones.title', descKey: 'zones.description', icon: 'pi pi-map-marker', module: 'setting', permission: 'setting.zones.view' } },

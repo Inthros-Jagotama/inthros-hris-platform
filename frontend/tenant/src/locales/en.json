@@ -3135,6 +3135,21 @@
     "requires_external": "External Needed",
     "covered": "Covered Internally"
   },
+  "gap_analysis": {
+    "title": "Gap Analysis",
+    "description": "Employee competency gap towards a target job title.",
+    "subtitle": "Select an employee and target job title to see the competency gap and development recommendations.",
+    "employee": "Employee",
+    "target_title": "Target Job Title",
+    "analyze": "Analyze",
+    "empty": "Select an employee and target job title, then click Analyze.",
+    "matched_skills": "Matched Skills",
+    "gap_percentage": "Gap Percentage",
+    "estimated_timeline": "Estimated Timeline",
+    "readiness": "Readiness",
+    "recommendations": "Development Recommendations",
+    "no_recommendations": "No recommendations."
+  },
   "quality_of_hire": {
     "title": "Quality of Hire",
     "description": "Composite quality metrics of accepted hires from operational data.",

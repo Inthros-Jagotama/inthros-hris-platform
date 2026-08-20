@@ -473,7 +473,7 @@ Setelah ladder-style menjadi satu-satunya bentuk create, dead code edge CI dihap
 |---|---|---|---|
 | 1 | Talent Maps (9-box grid + CRUD) | `/career-intelligence/talent-maps` | `/talent-maps`, `/talent-maps/grid`, `/talent-maps/employee/:id` |
 | 2 | Career Interests | `/career-intelligence/interests` | `/interests`, `/interests/employee/:id` |
-| 3 | Gap Analysis | `/career-intelligence/gap-analysis` | `/paths/gap-analysis` |
+| 3 | Gap Analysis | `/career-intelligence/gap-analysis` | `/paths/gap-analysis` — ✅ **SELESAI (2026-08-21)**, `GapAnalysis.vue` |
 | 4 | Succession Plans | `/career-intelligence/successions` | `/successions` |
 
 Pola FE mengikuti `CareerPaths.vue` (DataTable lazy + SkeletonTable + ConfirmDeleteDialog + useI18n + module gate `career-intelligence`).
@@ -488,7 +488,7 @@ Pola FE mengikuti `CareerPaths.vue` (DataTable lazy + SkeletonTable + ConfirmDel
 | 2 | Career Paths FE (`CareerPaths.vue`) | ✅ | FE |
 | 3 | Talent Maps / Interests / Gap Analysis / Succession Plans backend | ✅ | BE |
 | 4 | Halaman FE Talent Maps / Interests / Gap Analysis / Succession Plans | ⏳ TODO | FE |
-| 5 | Career Path FE halaman lengkap + gap analysis visualization | ⏳ TODO | FE |
+| 5 | Gap Analysis FE (form employee + target title, hasil + rekomendasi) | ✅ **SELESAI (2026-08-21)** — `GapAnalysis.vue`, catatan: backend masih stub/hardcoded (belum query modul competency asli, lihat komentar `service.go:463`) | FE |
 | 6 | `career_path_requirements` (rule eligibility terstruktur) | ⏳ opsional | DB/BE |
 | 7 | Notification untuk event talent mapping / succession / interest | ⏳ opsional | BE/FE |
 | 8 | Integrasi hasil performance/competency ke talent grid (input 9-box otomatis) | ⏳ opsional | BE |

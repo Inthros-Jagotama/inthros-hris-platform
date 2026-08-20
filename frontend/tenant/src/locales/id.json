@@ -3135,6 +3135,21 @@
     "requires_external": "Perlu Eksternal",
     "covered": "Tercover Internal"
   },
+  "gap_analysis": {
+    "title": "Analisis Kesenjangan",
+    "description": "Kesenjangan kompetensi karyawan menuju target jabatan.",
+    "subtitle": "Pilih karyawan dan target jabatan untuk melihat kesenjangan kompetensi dan rekomendasi pengembangan.",
+    "employee": "Karyawan",
+    "target_title": "Target Jabatan",
+    "analyze": "Analisis",
+    "empty": "Pilih karyawan dan target jabatan, lalu klik Analisis.",
+    "matched_skills": "Kompetensi Terpenuhi",
+    "gap_percentage": "Persentase Gap",
+    "estimated_timeline": "Estimasi Waktu",
+    "readiness": "Kesiapan",
+    "recommendations": "Rekomendasi Pengembangan",
+    "no_recommendations": "Tidak ada rekomendasi."
+  },
   "quality_of_hire": {
     "title": "Kualitas Perekrutan",
     "description": "Metrik komposit kualitas kandidat yang diterima dari data operasional.",
