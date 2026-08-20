@@ -627,10 +627,23 @@ func (s *Service) checkEventSequence(ctx context.Context, employeeID uuid.UUID, 
 // device validation stay PENDING because there is no face-matching provider
 // or employee-device mapping in this codebase yet (see docs/module-attendance-plan.md
 // §17, Phase 2/4), so this can't silently decide those checks passed.
+// clockSkewTolerance is the maximum allowed absolute difference between a
+// check-in/out event's EventTimeUTC and the server's own clock before the
+// event is flagged as a suspected device clock/timezone mismatch.
+const clockSkewTolerance = 5 * time.Minute
+
 func (s *Service) applyEventValidation(ctx context.Context, event *AttendanceEvent) {
+	clockSkewNote := s.checkClockSkew(ctx, event)
+
 	setting, err := s.repo.FindCompanySetting(ctx)
 	if err != nil {
-		// No settings configured yet - nothing to validate against.
+		// No settings configured yet - nothing to validate against, unless
+		// the clock-skew check itself already flagged the event.
+		if clockSkewNote != nil {
+			event.ValidationStatus = ValidationInvalid
+			event.ValidationNote = clockSkewNote
+			return
+		}
 		event.ValidationStatus = ValidationPending
 		return
 	}
@@ -645,6 +658,9 @@ func (s *Service) applyEventValidation(ctx context.Context, event *AttendanceEve
 	}
 
 	switch {
+	case clockSkewNote != nil:
+		event.ValidationStatus = ValidationInvalid
+		event.ValidationNote = clockSkewNote
 	case setting.IsLocationRequired && !locationOK:
 		event.ValidationStatus = ValidationInvalid
 		note := "outside allowed check-in location"
@@ -656,6 +672,34 @@ func (s *Service) applyEventValidation(ctx context.Context, event *AttendanceEve
 	default:
 		event.ValidationStatus = ValidationValid
 	}
+}
+
+// checkClockSkew compares an event's device-supplied EventTimeUTC against
+// the server's own clock, using the employee's resolved organization
+// timezone only to phrase the resulting note. Returns nil (no flag) when
+// the skew is within tolerance, or when the employee's organization/company
+// timezone can't be resolved - a missing timezone context must never block
+// a check-in, so this fails open rather than erroring.
+func (s *Service) checkClockSkew(ctx context.Context, event *AttendanceEvent) *string {
+	orgID, err := s.repo.FindOrganizationIDByEmployeeID(ctx, event.EmployeeID)
+	if err != nil || orgID == nil {
+		return nil
+	}
+	loc, err := s.repo.ResolveOrganizationTimezone(ctx, *orgID)
+	if err != nil {
+		return nil
+	}
+
+	skew := time.Since(event.EventTimeUTC)
+	if skew < 0 {
+		skew = -skew
+	}
+	if skew <= clockSkewTolerance {
+		return nil
+	}
+
+	note := fmt.Sprintf("clock/timezone mismatch: device time differs from server (%s) by %s", loc.String(), skew.Round(time.Second))
+	return &note
 }
 
 func (s *Service) GetEventByID(ctx context.Context, id string) (*EventResponse, error) {

@@ -732,6 +732,44 @@ func TestRepo_DeleteExemptPosition_Success(t *testing.T) {
 	}
 }
 
+func TestRepo_FindOrganizationIDByEmployeeID_ReturnsCurrentOrg(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	employeeID := uuid.New()
+	orgID := uuid.New()
+	seedOrgWithZone(db, orgID, nil, "Test Org")
+	seedEmployment(db, employeeID, orgID)
+
+	got, err := repo.FindOrganizationIDByEmployeeID(ctx, employeeID)
+	if err != nil {
+		t.Fatalf("FindOrganizationIDByEmployeeID failed: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected organization id, got nil")
+	}
+	if *got != orgID {
+		t.Errorf("got %s, want %s", got, orgID)
+	}
+}
+
+func TestRepo_FindOrganizationIDByEmployeeID_NoEmployment_ReturnsNil(t *testing.T) {
+	_, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	ctx := context.Background()
+
+	got, err := repo.FindOrganizationIDByEmployeeID(ctx, uuid.New())
+	if err != nil {
+		t.Fatalf("FindOrganizationIDByEmployeeID failed: %v", err)
+	}
+	if got != nil {
+		t.Errorf("expected nil organization id, got %s", got)
+	}
+}
+
 // =========================================================================
 // (intPtr is defined in helpers_test.go)
 // =========================================================================

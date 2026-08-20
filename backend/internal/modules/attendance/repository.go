@@ -912,6 +912,38 @@ func (r *Repository) FindOrganizationIDByUserID(ctx context.Context, userID uuid
 	return &orgID, nil
 }
 
+// FindOrganizationIDByEmployeeID resolves the current (open-ended)
+// organization of an employee directly by employee ID (no user/account
+// indirection) — join employments only, filtered to the open-ended row.
+// Returns nil if the employee has no active employment.
+func (r *Repository) FindOrganizationIDByEmployeeID(ctx context.Context, employeeID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		OrganizationID string
+	}
+	var result row
+	err = db.Table("employments").
+		Where("employee_id = ? AND effective_end_date IS NULL", employeeID).
+		Order("effective_date DESC").
+		Limit(1).
+		Select("organization_id AS organization_id").
+		Scan(&result).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve employee organization: %w", err)
+	}
+	if result.OrganizationID == "" {
+		return nil, nil
+	}
+	orgID, err := uuid.Parse(result.OrganizationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid organization id: %w", err)
+	}
+	return &orgID, nil
+}
+
 // getCompanyTimezone reads the current tenant's company timezone from the
 // platform DB (companies.timezone), keyed by the company ID carried in ctx
 // by middleware.TenantRequired (authctx.GetCompanyID). Mirrors

@@ -3,8 +3,10 @@ package attendance
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 func ctx() context.Context {
@@ -525,6 +527,97 @@ func TestService_CreateEvent_LocationRequired_OutsideGeofence_MarksInvalid(t *te
 	}
 	if resp.ValidationStatus != "INVALID" {
 		t.Errorf("expected validation_status INVALID, got '%s'", resp.ValidationStatus)
+	}
+}
+
+func TestService_CreateEvent_ClockSkewBeyondTolerance_MarksInvalid(t *testing.T) {
+	companyID := uuid.New()
+	repo, db, baseCtx := newTestRepository(t, companyID, "Asia/Jakarta")
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+
+	orgID := uuid.New()
+	seedOrgWithZone(db, orgID, nil, "Test Org")
+	employeeID := uuid.New()
+	seedEmployment(db, employeeID, orgID)
+
+	skewedTime := time.Now().UTC().Add(-20 * time.Minute)
+	req := CreateEventRequest{
+		EmployeeID:     employeeID.String(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   skewedTime.Format(time.RFC3339),
+		EventTimeLocal: skewedTime.Format(time.RFC3339),
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	resp, err := svc.CreateEvent(baseCtx, req)
+	if err != nil {
+		t.Fatalf("CreateEvent failed: %v", err)
+	}
+	if resp.ValidationStatus != "INVALID" {
+		t.Errorf("expected validation_status INVALID, got '%s'", resp.ValidationStatus)
+	}
+	if resp.ValidationNote == nil || *resp.ValidationNote == "" {
+		t.Error("expected a validation note explaining the clock/timezone mismatch")
+	}
+}
+
+func TestService_CreateEvent_ClockSkewWithinTolerance_MarksValid(t *testing.T) {
+	companyID := uuid.New()
+	repo, db, baseCtx := newTestRepository(t, companyID, "Asia/Jakarta")
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+
+	orgID := uuid.New()
+	seedOrgWithZone(db, orgID, nil, "Test Org")
+	employeeID := uuid.New()
+	seedEmployment(db, employeeID, orgID)
+
+	if _, err := svc.UpsertCompanySetting(baseCtx, CreateCompanySettingRequest{}); err != nil {
+		t.Fatalf("UpsertCompanySetting failed: %v", err)
+	}
+
+	closeTime := time.Now().UTC().Add(-2 * time.Minute)
+	req := CreateEventRequest{
+		EmployeeID:     employeeID.String(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   closeTime.Format(time.RFC3339),
+		EventTimeLocal: closeTime.Format(time.RFC3339),
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	resp, err := svc.CreateEvent(baseCtx, req)
+	if err != nil {
+		t.Fatalf("CreateEvent failed: %v", err)
+	}
+	if resp.ValidationStatus != "VALID" {
+		t.Errorf("expected validation_status VALID, got '%s'", resp.ValidationStatus)
+	}
+}
+
+func TestService_CreateEvent_ClockSkew_OrgUnresolvable_FailsOpen(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	// Employee has no employment/organization seeded at all (newTestService's
+	// repo also has no platformDB) - the clock-skew check must fail open
+	// rather than blocking a check-in when timezone context can't be
+	// resolved, since these existing tests use a fixed far-past event time.
+	skewedTime := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+	req := CreateEventRequest{
+		EmployeeID:     uuidStr(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   skewedTime.Format(time.RFC3339),
+		EventTimeLocal: "2026-01-15T07:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	resp, err := svc.CreateEvent(ctx(), req)
+	if err != nil {
+		t.Fatalf("CreateEvent failed: %v", err)
+	}
+	if resp.ValidationStatus != "PENDING" {
+		t.Errorf("expected validation_status PENDING (no settings, org unresolvable -> fail open), got '%s'", resp.ValidationStatus)
 	}
 }
 
