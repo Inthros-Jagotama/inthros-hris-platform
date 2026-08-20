@@ -88,3 +88,17 @@ Two independent Vue 3 + PrimeVue + Tailwind apps (`frontend/tenant/`, `frontend/
 - `docs/platform-architecture-design.md` — the primary architecture document (multi-tenancy, module SDK, provisioning, security).
 - `docs/flow/module-*-flow.md` — one runbook per module explaining its business flow, entities, and endpoints. Read the relevant one before making non-trivial changes to a module.
 - `docs/openapi-report.md` — generated; run `make docs` to refresh after adding/removing routes.
+
+## Recommended Skills/Workflow (Claude Code)
+
+For non-trivial changes, follow this sequence rather than editing ad hoc:
+
+1. **`superpowers:brainstorming`** — required before any implementation. Classifies scope (bounded vs architectural) and gets explicit approval on the design before touching code.
+2. **`superpowers:writing-plans`** + **`superpowers:subagent-driven-development`** — for architectural-scale features (new subsystem, cross-module changes): spec → implementation plan → per-task execution with review loops.
+3. **`superpowers:using-git-worktrees`** — isolate implementation work for a plan so `main` isn't touched until the work is reviewed.
+4. **`superpowers:test-driven-development`** — mandatory for Go changes in this repo. This codebase's test suite (in-memory sqlite, no cgo) is built around TDD-sized units; write the failing test first, using the existing `helpers_test.go` patterns in the module you're touching.
+5. **`superpowers:finishing-a-development-branch`** — merge/PR/keep decision after work is verified, never skip the test-suite check first.
+6. **`superpowers:systematic-debugging`** — for bugs/unexpected behavior, before proposing a fix.
+7. **`code-review`** / **`security-review`** — worth running before merging changes that touch sensitive data (payroll, employee PII) or cross-tenant boundaries, given this is a multi-tenant SaaS handling HR/payroll data.
+
+Not generally relevant to this repo: `frontend-design`/`design`/`dataviz` (UI already has an established PrimeVue + Tailwind pattern), `claude-api` (not an LLM-integrated app).
