@@ -177,6 +177,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/composables/useI18n'
+import { useLanguage } from '@/stores/language'
 import { getErrorMessage } from '@/services/responseHandler'
 import { useAuth } from '@/stores/auth'
 import { useMyEmployee } from '@/composables/useMyEmployee'
@@ -190,6 +191,7 @@ import Message from 'primevue/message'
 import CompanyHolidayCalendar from './CompanyHolidayCalendar.vue'
 
 const { t } = useI18n()
+const { state: langState } = useLanguage()
 const toast = useToast()
 const auth = useAuth()
 const { hasPermission, hasExactPermission } = auth
@@ -219,7 +221,14 @@ const punching = ref(false)
 const punchError = ref('')
 const todaySession = ref(null)
 const companySettings = ref(null)
-const todayLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+const todayLabel = computed(() =>
+  new Date().toLocaleDateString(langState.lang === 'id' ? 'id-ID' : 'en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+)
 
 // Quick Access — menu self-service, gaya card standar halaman modul lain.
 // Permission dicocokkan dengan route tujuan (mirror):
