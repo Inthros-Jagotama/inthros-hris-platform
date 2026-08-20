@@ -4,16 +4,18 @@ import "time"
 
 // ── Zone DTOs ──
 type CreateZoneRequest struct {
-	Code      string `json:"code" binding:"required,max=20"`
-	Name      string `json:"name" binding:"required,max=255"`
-	Region    string `json:"region,omitempty" binding:"max=100"`
-	IsActive  *bool  `json:"is_active,omitempty"`
-	SortOrder int    `json:"sort_order,omitempty"`
+	Code      string  `json:"code" binding:"required,max=20"`
+	Name      string  `json:"name" binding:"required,max=255"`
+	Region    string  `json:"region,omitempty" binding:"max=100"`
+	Timezone  *string `json:"timezone,omitempty"`
+	IsActive  *bool   `json:"is_active,omitempty"`
+	SortOrder int     `json:"sort_order,omitempty"`
 }
 type UpdateZoneRequest struct {
 	Code      *string `json:"code,omitempty" binding:"omitempty,max=20"`
 	Name      *string `json:"name,omitempty" binding:"omitempty,max=255"`
 	Region    *string `json:"region,omitempty" binding:"omitempty,max=100"`
+	Timezone  *string `json:"timezone,omitempty"`
 	IsActive  *bool   `json:"is_active,omitempty"`
 	SortOrder *int    `json:"sort_order,omitempty"`
 }
@@ -22,13 +24,14 @@ type ZoneResponse struct {
 	Code      string    `json:"code"`
 	Name      string    `json:"name"`
 	Region    string    `json:"region,omitempty"`
+	Timezone  *string   `json:"timezone,omitempty"`
 	IsActive  bool      `json:"is_active"`
 	SortOrder int       `json:"sort_order"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 func (z *Zone) ToResponse() ZoneResponse {
-	return ZoneResponse{ID: z.ID.String(), Code: z.Code, Name: z.Name, Region: z.Region, IsActive: z.IsActive, SortOrder: z.SortOrder, CreatedAt: z.CreatedAt, UpdatedAt: z.UpdatedAt}
+	return ZoneResponse{ID: z.ID.String(), Code: z.Code, Name: z.Name, Region: z.Region, Timezone: z.Timezone, IsActive: z.IsActive, SortOrder: z.SortOrder, CreatedAt: z.CreatedAt, UpdatedAt: z.UpdatedAt}
 }
 
 // ── Province DTOs ──

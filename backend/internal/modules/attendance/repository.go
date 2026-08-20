@@ -7,14 +7,28 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
+	"github.com/inthros/hris-platform/internal/pkg/timezone"
 )
 
 type Repository struct {
 	dbResolver func(ctx context.Context) (*gorm.DB, error)
+	platformDB *gorm.DB
 }
 
 func NewRepository(dbResolver func(ctx context.Context) (*gorm.DB, error)) *Repository {
 	return &Repository{dbResolver: dbResolver}
+}
+
+// NewRepositoryWithPlatformDB is like NewRepository but also wires a
+// platform-DB handle, following the pattern established in
+// setting.Repository (dbResolver for the tenant DB, platformDB for
+// cross-tenant platform tables such as companies). Used by
+// ResolveOrganizationTimezone since companies.timezone lives in the
+// platform DB, not the tenant DB.
+func NewRepositoryWithPlatformDB(dbResolver func(ctx context.Context) (*gorm.DB, error), platformDB *gorm.DB) *Repository {
+	return &Repository{dbResolver: dbResolver, platformDB: platformDB}
 }
 
 func (r *Repository) getDB(ctx context.Context) (*gorm.DB, error) {
@@ -896,6 +910,53 @@ func (r *Repository) FindOrganizationIDByUserID(ctx context.Context, userID uuid
 		return nil, fmt.Errorf("invalid organization id: %w", err)
 	}
 	return &orgID, nil
+}
+
+// getCompanyTimezone reads the current tenant's company timezone from the
+// platform DB (companies.timezone), keyed by the company ID carried in ctx
+// by middleware.TenantRequired (authctx.GetCompanyID). Mirrors
+// setting.Repository.FindCompanyTimezone's platform-DB access pattern.
+func (r *Repository) getCompanyTimezone(ctx context.Context) (string, error) {
+	if r.platformDB == nil {
+		return "", fmt.Errorf("platform database not configured")
+	}
+	companyID := authctx.GetCompanyID(ctx)
+	if companyID == "" {
+		return "", fmt.Errorf("company id not found in context")
+	}
+	var c struct {
+		Timezone string
+	}
+	if err := r.platformDB.Table("companies").Select("timezone").Where("id = ?", companyID).First(&c).Error; err != nil {
+		return "", fmt.Errorf("failed to resolve company timezone: %w", err)
+	}
+	return c.Timezone, nil
+}
+
+// ResolveOrganizationTimezone mengembalikan zona waktu efektif untuk sebuah
+// organization: Zone.timezone (jika di-set) mengalahkan Company.timezone.
+func (r *Repository) ResolveOrganizationTimezone(ctx context.Context, organizationID uuid.UUID) (*time.Location, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var zoneTz *string
+	err = db.Table("organizations AS o").
+		Joins("LEFT JOIN zones AS z ON z.id = o.zone_id AND z.deleted_at IS NULL").
+		Where("o.id = ? AND o.deleted_at IS NULL", organizationID).
+		Select("z.timezone AS zone_tz").
+		Scan(&zoneTz).Error
+	if err != nil {
+		return nil, err
+	}
+
+	companyTz, err := r.getCompanyTimezone(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return timezone.Resolve(companyTz, zoneTz)
 }
 
 // GetChildOrganizationIDs returns the direct children of an organization.

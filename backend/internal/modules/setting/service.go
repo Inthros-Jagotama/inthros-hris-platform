@@ -2,12 +2,37 @@ package setting
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
+	"github.com/inthros/hris-platform/internal/pkg/timezone"
 )
+
+// ErrInvalidCompanyTimezone is returned by UpdateCompanyTimezone when the
+// given IANA timezone identifier fails timezone.IsValid.
+var ErrInvalidCompanyTimezone = errors.New("invalid company timezone")
+
+// ErrInvalidZoneTimezone is returned by CreateZone/UpdateZone when the given
+// zone timezone override fails timezone.IsValid.
+var ErrInvalidZoneTimezone = errors.New("invalid zone timezone")
+
+// validateZoneTimezone returns ErrInvalidZoneTimezone if tz is non-nil,
+// non-empty, and not a valid IANA timezone identifier. A nil or empty tz is
+// treated as "no override" and is always valid.
+func validateZoneTimezone(tz *string) error {
+	if tz == nil || *tz == "" {
+		return nil
+	}
+	if !timezone.IsValid(*tz) {
+		return ErrInvalidZoneTimezone
+	}
+	return nil
+}
 
 const (
 	defaultPage    = 1
@@ -46,11 +71,32 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
 }
 
+// ── Company Timezone ──
+
+// GetCompanyTimezone returns the current tenant company's default IANA
+// timezone (companies.timezone in the platform DB).
+func (s *Service) GetCompanyTimezone(ctx context.Context) (string, error) {
+	companyID := authctx.GetCompanyID(ctx)
+	return s.repo.FindCompanyTimezone(ctx, companyID)
+}
+
+// UpdateCompanyTimezone sets the current tenant company's default IANA
+// timezone. Returns ErrInvalidCompanyTimezone if tz is not a valid IANA
+// timezone identifier.
+func (s *Service) UpdateCompanyTimezone(ctx context.Context, tz string) error {
+	if !timezone.IsValid(tz) {
+		return ErrInvalidCompanyTimezone
+	}
+	companyID := authctx.GetCompanyID(ctx)
+	return s.repo.UpdateCompanyTimezone(ctx, companyID, tz)
+}
+
 // ── Zone CRUD ──
 func (s *Service) CreateZone(ctx context.Context, req CreateZoneRequest) (*ZoneResponse, error) {
 	isActive := true
 	if req.IsActive != nil { isActive = *req.IsActive }
-	zone := &Zone{Code: req.Code, Name: req.Name, Zone: req.Name, Region: req.Region, IsActive: isActive, SortOrder: req.SortOrder}
+	if err := validateZoneTimezone(req.Timezone); err != nil { return nil, err }
+	zone := &Zone{Code: req.Code, Name: req.Name, Zone: req.Name, Region: req.Region, Timezone: req.Timezone, IsActive: isActive, SortOrder: req.SortOrder}
 	if err := s.validateUniqueCode(ctx, &Zone{}, req.Code, "zones"); err != nil { return nil, err }
 	if err := s.repo.CreateZone(ctx, zone); err != nil { return nil, err }
 	s.logger.Info("Zone created", zap.String("id", zone.ID.String()), zap.String("code", zone.Code))
@@ -95,6 +141,18 @@ func (s *Service) UpdateZone(ctx context.Context, id string, req UpdateZoneReque
 	}
 	if req.Name != nil { zone.Name = *req.Name; zone.Zone = *req.Name }
 	if req.Region != nil { zone.Region = *req.Region }
+	if req.Timezone != nil {
+		if *req.Timezone == "" {
+			// Explicit empty string means "clear the override / ikut default
+			// perusahaan" — distinct from an omitted field (nil), which means
+			// "no change". JSON null also unmarshals to nil and is treated as
+			// no-change above, so the frontend must send "" to clear.
+			zone.Timezone = nil
+		} else {
+			if err := validateZoneTimezone(req.Timezone); err != nil { return nil, err }
+			zone.Timezone = req.Timezone
+		}
+	}
 	if req.IsActive != nil { zone.IsActive = *req.IsActive }
 	if req.SortOrder != nil { zone.SortOrder = *req.SortOrder }
 	if err := s.repo.UpdateZone(ctx, zone); err != nil { return nil, err }

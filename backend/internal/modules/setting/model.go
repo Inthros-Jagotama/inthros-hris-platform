@@ -14,6 +14,7 @@ type Zone struct {
 	Name        string         `gorm:"type:varchar(255);not null" json:"name"`
 	Zone        string         `gorm:"column:zone;type:varchar(200);not null" json:"-"`
 	Region      string         `gorm:"type:varchar(100)" json:"region,omitempty"`
+	Timezone    *string        `gorm:"type:varchar(64)" json:"timezone,omitempty"`
 	Description string         `gorm:"column:description;type:varchar(255);not null" json:"description,omitempty"`
 	IsActive    bool           `gorm:"default:true" json:"is_active"`
 	SortOrder   int            `gorm:"default:0" json:"sort_order"`

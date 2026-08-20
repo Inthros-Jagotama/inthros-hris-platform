@@ -11,6 +11,9 @@ import (
 func RegisterRoutesWithNumbering(rg *gin.RouterGroup, handler *Handler, numberingHandler *NumberingHandler, documentTemplateHandler *documenttemplate.Handler, employeeIDFormatHandler *EmployeeIDFormatHandler) {
 	settings := rg.Group("/settings")
 	{
+		// Company Timezone
+		settings.GET("/company/timezone", handler.GetCompanyTimezone)
+		settings.PUT("/company/timezone", handler.UpdateCompanyTimezone)
 		// Zones
 		zones := settings.Group("/zones")
 		{

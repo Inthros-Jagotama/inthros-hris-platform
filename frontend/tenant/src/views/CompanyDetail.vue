@@ -168,6 +168,43 @@
         </template>
       </Card>
 
+      <!-- Regional / Timezone Settings -->
+      <Card>
+        <template #title>
+          <div class="flex items-center gap-2">
+            <i class="pi pi-clock text-emerald-500"></i>
+            <span class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ t('company_detail.regional_settings') }}</span>
+          </div>
+        </template>
+        <template #content>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+            <FormRow :label="t('company_detail.timezone')">
+              <Select
+                v-model="timezone"
+                :options="timezoneOptions"
+                optionLabel="label"
+                optionValue="value"
+                :disabled="!timezoneLoaded"
+                :placeholder="timezoneLoading ? t('common.loading') : undefined"
+                class="w-full"
+              />
+            </FormRow>
+            <div>
+              <Button
+                v-if="canEditCompany"
+                :label="t('common.save')"
+                icon="pi pi-check"
+                size="small"
+                :loading="savingTimezone"
+                :disabled="savingTimezone || timezoneLoading || !timezoneLoaded"
+                @click="handleSaveTimezone"
+              />
+            </div>
+          </div>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">{{ t('company_detail.timezone_desc') }}</p>
+        </template>
+      </Card>
+
       <!-- Provisioning Info -->
       <Card>
         <template #title>
@@ -251,6 +288,7 @@ import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
+import Select from 'primevue/select'
 import { useToast } from 'primevue/usetoast'
 import FormRow from '@/components/FormRow.vue'
 import TextInput from '@/components/TextInput.vue'
@@ -301,6 +339,53 @@ function openEditDialog() {
 function closeEditDialog() {
   editDialogVisible.value = false
   errors.value = {}
+}
+
+// ── Regional settings: company default timezone ──
+const timezoneOptions = [
+  { label: 'WIB (Asia/Jakarta)', value: 'Asia/Jakarta' },
+  { label: 'WITA (Asia/Makassar)', value: 'Asia/Makassar' },
+  { label: 'WIT (Asia/Jayapura)', value: 'Asia/Jayapura' }
+]
+// Mulai dari null (bukan default 'Asia/Jakarta') sampai GET benar-benar
+// berhasil — bila GET gagal, field tidak boleh terlihat seolah-olah nilai
+// tersimpan yang terkonfirmasi (risiko overwrite tak sengaja saat Save).
+const timezone = ref(null)
+const timezoneLoading = ref(false)
+const timezoneLoaded = ref(false)
+const savingTimezone = ref(false)
+
+async function loadTimezone() {
+  timezoneLoading.value = true
+  try {
+    const res = await api.get('/api/v1/tenant/settings/company/timezone')
+    const tz = res.data?.data?.timezone || res.data?.timezone
+    if (tz) {
+      timezone.value = tz
+      timezoneLoaded.value = true
+    }
+  } catch {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: t('company_detail.timezone_load_error'), life: 4000 })
+  } finally {
+    timezoneLoading.value = false
+  }
+}
+
+async function handleSaveTimezone() {
+  savingTimezone.value = true
+  try {
+    await api.put('/api/v1/tenant/settings/company/timezone', { timezone: timezone.value })
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('company_detail.timezone_updated'), life: 3000 })
+  } catch (e) {
+    toast.add({
+      severity: 'error',
+      summary: t('message.error'),
+      detail: e.response?.data?.error?.message || t('message.operation_failed'),
+      life: 4000
+    })
+  } finally {
+    savingTimezone.value = false
+  }
 }
 
 async function handleSave() {
@@ -396,5 +481,6 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  loadTimezone()
 })
 </script>

@@ -2,7 +2,13 @@ package setting
 
 import (
 	"context"
+	"errors"
 	"testing"
+
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/platform/company"
 )
 
 // =========================================================================
@@ -113,6 +119,100 @@ func TestService_UpdateZone_DuplicateCode_Conflict(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected error when updating to an existing code")
+	}
+}
+
+func TestCreateZone_RejectsInvalidTimezone(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	tz := "Asia/Singapore"
+	_, err := svc.CreateZone(context.Background(), CreateZoneRequest{
+		Code: "TZ1", Name: "Zone TZ1", Timezone: &tz,
+	})
+	if err != ErrInvalidZoneTimezone {
+		t.Errorf("got %v, want ErrInvalidZoneTimezone", err)
+	}
+}
+
+func TestCreateZone_AllowsNilTimezone(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	resp, err := svc.CreateZone(context.Background(), CreateZoneRequest{Code: "TZ2", Name: "Zone TZ2"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Timezone != nil {
+		t.Errorf("got %v, want nil", resp.Timezone)
+	}
+}
+
+func TestCreateZone_AllowsValidTimezone(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	tz := "Asia/Jakarta"
+	resp, err := svc.CreateZone(context.Background(), CreateZoneRequest{
+		Code: "TZ3", Name: "Zone TZ3", Timezone: &tz,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Timezone == nil || *resp.Timezone != "Asia/Jakarta" {
+		t.Errorf("got %v, want Asia/Jakarta", resp.Timezone)
+	}
+}
+
+func TestUpdateZone_RejectsInvalidTimezone(t *testing.T) {
+	svc, db, cleanup := newTestService()
+	defer cleanup()
+
+	zone := createTestZone(db, "TZ4", "Zone TZ4")
+
+	tz := "Asia/Singapore"
+	_, err := svc.UpdateZone(context.Background(), zone.ID.String(), UpdateZoneRequest{Timezone: &tz})
+	if err != ErrInvalidZoneTimezone {
+		t.Errorf("got %v, want ErrInvalidZoneTimezone", err)
+	}
+}
+
+// TestUpdateZone_EmptyStringClearsOverride verifies the frontend "Ikut
+// default perusahaan" flow: a zone created with a timezone override, then
+// updated with Timezone: ptr(""), must have its override cleared to nil
+// (inherit the company default) — not silently left unchanged as a nil
+// pointer would be.
+func TestUpdateZone_EmptyStringClearsOverride(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	ctx := context.Background()
+	tz := "Asia/Makassar"
+	created, err := svc.CreateZone(ctx, CreateZoneRequest{
+		Code: "TZ5", Name: "Zone TZ5", Timezone: &tz,
+	})
+	if err != nil {
+		t.Fatalf("CreateZone failed: %v", err)
+	}
+	if created.Timezone == nil || *created.Timezone != "Asia/Makassar" {
+		t.Fatalf("expected created zone to have override, got %v", created.Timezone)
+	}
+
+	empty := ""
+	updated, err := svc.UpdateZone(ctx, created.ID, UpdateZoneRequest{Timezone: &empty})
+	if err != nil {
+		t.Fatalf("UpdateZone failed: %v", err)
+	}
+	if updated.Timezone != nil {
+		t.Errorf("expected override cleared to nil, got %v", *updated.Timezone)
+	}
+
+	refetched, err := svc.GetZoneByID(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("GetZoneByID failed: %v", err)
+	}
+	if refetched.Timezone != nil {
+		t.Errorf("expected refetched zone override to be nil, got %v", *refetched.Timezone)
 	}
 }
 
@@ -447,5 +547,71 @@ func TestService_ValidateUniqueCodeExcludeSelf_NonExistent(t *testing.T) {
 	err := svc.validateUniqueCodeExcludeSelf(ctx, &Zone{}, "NONEXIST", uuidStr(), "zones")
 	if err != nil {
 		t.Fatalf("validateUniqueCodeExcludeSelf for non-existent code should succeed: %v", err)
+	}
+}
+
+// =========================================================================
+// Company Timezone
+// =========================================================================
+
+func TestUpdateCompanyTimezone_RejectsInvalidValue(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	err := svc.UpdateCompanyTimezone(context.Background(), "Asia/Singapore")
+	if err != ErrInvalidCompanyTimezone {
+		t.Errorf("got %v, want ErrInvalidCompanyTimezone", err)
+	}
+}
+
+func TestUpdateCompanyTimezone_PersistsAndGetReadsBack(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	platformDB, platformCleanup := setupTestPlatformDB()
+	defer platformCleanup()
+
+	comp := &company.Company{ID: uuid.New(), Name: "Acme", Slug: "acme", Timezone: "Asia/Jakarta"}
+	if err := platformDB.Create(comp).Error; err != nil {
+		t.Fatalf("failed to seed test company: %v", err)
+	}
+
+	repo := NewRepositoryWithPlatformDB(testDBResolver(db), platformDB)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+
+	ctx := context.WithValue(context.Background(), "company_id", comp.ID.String())
+
+	if err := svc.UpdateCompanyTimezone(ctx, "Asia/Makassar"); err != nil {
+		t.Fatalf("UpdateCompanyTimezone should succeed: %v", err)
+	}
+
+	tz, err := svc.GetCompanyTimezone(ctx)
+	if err != nil {
+		t.Fatalf("GetCompanyTimezone should succeed: %v", err)
+	}
+	if tz != "Asia/Makassar" {
+		t.Errorf("got timezone %q, want %q", tz, "Asia/Makassar")
+	}
+}
+
+func TestGetCompanyTimezone_CompanyNotFound(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	ctx := context.WithValue(context.Background(), "company_id", uuid.New().String())
+	_, err := svc.GetCompanyTimezone(ctx)
+	if !errors.Is(err, ErrCompanyNotFound) {
+		t.Errorf("got %v, want ErrCompanyNotFound", err)
+	}
+}
+
+func TestUpdateCompanyTimezone_CompanyNotFound(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	ctx := context.WithValue(context.Background(), "company_id", uuid.New().String())
+	err := svc.UpdateCompanyTimezone(ctx, "Asia/Makassar")
+	if !errors.Is(err, ErrCompanyNotFound) {
+		t.Errorf("got %v, want ErrCompanyNotFound", err)
 	}
 }

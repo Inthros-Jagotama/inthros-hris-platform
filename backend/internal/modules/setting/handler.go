@@ -30,6 +30,44 @@ func handleDupErr(c *gin.Context, err error) bool {
 	return false
 }
 
+// ── Company Timezone Handlers ──
+func (h *Handler) GetCompanyTimezone(c *gin.Context) {
+	tz, err := h.service.GetCompanyTimezone(c.Request.Context())
+	if err != nil {
+		if errors.Is(err, ErrCompanyNotFound) {
+			httputil.ErrorSimple(c, http.StatusNotFound, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"timezone": tz})
+}
+
+type updateCompanyTimezoneRequest struct {
+	Timezone string `json:"timezone" binding:"required"`
+}
+
+func (h *Handler) UpdateCompanyTimezone(c *gin.Context) {
+	var req updateCompanyTimezoneRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	if err := h.service.UpdateCompanyTimezone(c.Request.Context(), req.Timezone); err != nil {
+		if errors.Is(err, ErrInvalidCompanyTimezone) {
+			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		if errors.Is(err, ErrCompanyNotFound) {
+			httputil.ErrorSimple(c, http.StatusNotFound, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"timezone": req.Timezone})
+}
+
 // ── Competency Handlers ──
 func (h *Handler) CreateCompetency(c *gin.Context) {
 	var req CreateCompetencyRequest
@@ -96,6 +134,10 @@ func (h *Handler) CreateZone(c *gin.Context) {
 	}
 	resp, err := h.service.CreateZone(c.Request.Context(), req)
 	if err != nil {
+		if errors.Is(err, ErrInvalidZoneTimezone) {
+			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+			return
+		}
 		if handleDupErr(c, err) {
 			return
 		}
@@ -138,6 +180,10 @@ func (h *Handler) UpdateZone(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateZone(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
+		if errors.Is(err, ErrInvalidZoneTimezone) {
+			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+			return
+		}
 		if handleDupErr(c, err) {
 			return
 		}
