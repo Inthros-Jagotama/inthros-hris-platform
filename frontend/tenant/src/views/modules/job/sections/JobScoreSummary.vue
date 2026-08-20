@@ -69,7 +69,7 @@ async function refresh() {
   }
 }
 
-defineExpose({ refresh })
+defineExpose({ refresh, score })
 
 watch(() => props.orgId, refresh)
 onMounted(refresh)

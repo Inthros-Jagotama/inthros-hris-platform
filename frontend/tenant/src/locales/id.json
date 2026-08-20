@@ -2510,6 +2510,8 @@
     "completed_at": "Selesai pada",
     "score_complete": "Lengkap",
     "score_incomplete": "Belum Lengkap",
+    "section_incomplete_hint": "Bagian ini belum lengkap — belum ikut terhitung skor",
+    "incomplete_banner_title": "Bagian berikut belum lengkap dan belum ikut terhitung skor:",
     "no_score": "Belum ada skor dihitung",
     "score_hint": "Isi semua bagian di atas, lalu klik Hitung Ulang Skor.",
     "score_calculated": "Skor berhasil dihitung",

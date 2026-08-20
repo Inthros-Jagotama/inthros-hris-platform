@@ -2510,6 +2510,8 @@
     "completed_at": "Completed at",
     "score_complete": "Complete",
     "score_incomplete": "Incomplete",
+    "section_incomplete_hint": "This section is incomplete — not yet counted in the score",
+    "incomplete_banner_title": "The following sections are incomplete and not yet counted in the score:",
     "no_score": "No score calculated yet",
     "score_hint": "Fill in all sections above, then click Recalculate.",
     "score_calculated": "Score calculated successfully",

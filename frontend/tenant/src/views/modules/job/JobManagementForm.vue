@@ -29,7 +29,12 @@
           <div class="flex-1 min-w-0">
             <div class="text-sm font-medium truncate" :class="getNavTextClass(i)">{{ t(s.labelKey) }}</div>
           </div>
-          <i v-if="sectionSaved[i]" class="pi pi-check-circle text-emerald-400 text-xs shrink-0"></i>
+          <i
+            v-if="incompleteSections.has(i)"
+            class="pi pi-exclamation-circle text-amber-500 text-xs shrink-0"
+            v-tooltip.left="t('job_management.section_incomplete_hint')"
+          ></i>
+          <i v-else-if="sectionSaved[i]" class="pi pi-check-circle text-emerald-400 text-xs shrink-0"></i>
         </div>
       </div>
 
@@ -54,6 +59,18 @@
 
             <div class="flex-1 min-w-0">
               <JobScoreSummary ref="scoreSummaryRef" :org-id="orgId" />
+            </div>
+          </div>
+
+          <!-- Banner bagian yang belum lengkap (hanya tampil bila skor sudah pernah dihitung tapi belum lengkap) -->
+          <div
+            v-if="incompleteSections.size > 0"
+            class="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5"
+          >
+            <i class="pi pi-exclamation-triangle text-amber-500 text-sm mt-0.5 shrink-0"></i>
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-amber-700 dark:text-amber-300">{{ t('job_management.incomplete_banner_title') }}</p>
+              <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">{{ incompleteSectionNames }}</p>
             </div>
           </div>
         </div>
@@ -178,6 +195,56 @@ function onSectionSaved(i) {
   // Refresh ringkasan skor setelah section tersimpan (kalkulator otomatis berjalan di backend)
   scoreSummaryRef.value?.refresh()
 }
+
+// ── Indikator section belum lengkap ──
+// Mirror persis aturan backend isResultComplete (calculator.go) dari breakdown
+// `score.components` (JSON) yang sudah di-fetch JobScoreSummary — supaya user
+// tahu section MANA yang bikin status skor "Belum Lengkap", bukan cuma badge
+// ringkasan tanpa detail. Section yang tidak masuk perhitungan skor
+// (Identification/Objective/Responsibilities/HR&Op Authority/Score = index
+// 0,1,2,11,12,13) sengaja tidak pernah ditandai.
+const SECTION_INDEX = {
+  EDU_EXP: 3,
+  POTENCY: 4,
+  FINANCIAL: 5,
+  ASSET: 6,
+  SUBORDINATE: 7,
+  RELATIONSHIP: 8,
+  ACTIVITY: 9,
+  RISK: 10
+}
+
+const incompleteSections = computed(() => {
+  const set = new Set()
+  const raw = scoreSummaryRef.value?.score?.components
+  if (!raw) return set
+  let c
+  try { c = JSON.parse(raw) } catch { return set }
+
+  if ((c.education_experience?.education_points ?? 0) <= 0 || (c.education_experience?.experience_points ?? 0) <= 0) {
+    set.add(SECTION_INDEX.EDU_EXP)
+  }
+  if (
+    (c.potentials?.score ?? 0) <= 0 ||
+    (c.competencies?.technical_points ?? 0) <= 0 ||
+    (c.competencies?.managerial_points ?? 0) <= 0 ||
+    (c.problem_solving?.score ?? 0) <= 0
+  ) {
+    set.add(SECTION_INDEX.POTENCY)
+  }
+  if ((c.financial_authority?.score ?? 0) <= 0) set.add(SECTION_INDEX.FINANCIAL)
+  if ((c.asset_authority?.score ?? 0) <= 0) set.add(SECTION_INDEX.ASSET)
+  if ((c.subordinate_control?.score ?? 0) <= 0) set.add(SECTION_INDEX.SUBORDINATE)
+  if ((c.work_scope?.score ?? 0) <= 0) set.add(SECTION_INDEX.RELATIONSHIP)
+  if ((c.work_activity?.score ?? 0) <= 0) set.add(SECTION_INDEX.ACTIVITY)
+  if ((c.work_risk?.score ?? 0) <= 0) set.add(SECTION_INDEX.RISK)
+
+  return set
+})
+
+const incompleteSectionNames = computed(() => {
+  return [...incompleteSections.value].map(i => t(sections[i]?.labelKey)).join(', ')
+})
 
 function goBack() {
   router.push('/job-management')
