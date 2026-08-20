@@ -66,12 +66,12 @@ Extend modul `setting` yang sudah ada (`backend/internal/modules/setting/`):
 - Tidak perlu route baru — field ditambahkan ke form yang sudah ada.
 
 ## Penerapan di Modul Attendance (flagship)
-`backend/internal/modules/attendance/service.go`:
-- Titik-titik yang menentukan "hari ini" / batas tanggal untuk clock-in, clock-out, dan perhitungan keterlambatan (baris-baris yang saat ini memanggil `time.Now()` langsung, mis. sekitar service.go:1047,1135,1215,1318,1351,1584) diubah untuk:
-  1. Resolve zona waktu efektif employee (via Organization → Zone → Company).
-  2. Konversi `time.Now().UTC()` ke zona tersebut untuk keperluan penentuan tanggal/boundary.
-  3. Tetap menyimpan timestamp asli UTC ke DB (tidak berubah).
-- Cakupan perubahan dibatasi ke titik-titik penentuan boundary tanggal, bukan rewrite menyeluruh file.
+Temuan saat investigasi detail: clock-in/out (`CreateEvent` di `service.go`, logika sesi di `session.go`) **sudah** menerima `EventTimeLocal` dari client, dan "work date" sudah ditentukan dari tanggal lokal clock-in versi client — bukan dari `time.Now()` server. 6 titik `time.Now()` yang teridentifikasi di awal eksplorasi ternyata berada di alur approval overtime/koreksi (timestamp instan, bukan penentu boundary tanggal), sehingga tidak relevan untuk resolusi zona waktu.
+
+Titik integrasi flagship yang sebenarnya butuh resolusi zona waktu server-side adalah query **"attendance hari ini"** (dashboard/ringkasan) yang tidak punya input tanggal dari client untuk disandarkan:
+1. Tambah `Repository.ResolveOrganizationTimezone(ctx, organizationID)` yang join `organizations → zones` lalu fallback ke `Company.timezone`.
+2. Query "hari ini" memakai `time.Now().In(loc)` alih-alih `time.Now()` mentah.
+3. Penyimpanan timestamp tetap UTC (tidak berubah).
 
 ## Rollout Modul Lain (di luar implementasi awal)
 Fondasi (`pkg/timezone`, kolom DB, API, UI) dibangun generik agar modul lain tinggal memanggil `timezone.Resolve` di titik yang relevan:
