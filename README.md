@@ -1003,7 +1003,7 @@ Zona waktu tenant, dibatasi ke 3 zona Indonesia (`Asia/Jakarta`/WIB, `Asia/Makas
 | `PUT` | `/settings/company/timezone` | Update timezone default company |
 | `GET` | `/attendance/timezone/me` | Zona waktu efektif user yang login (organization → zone → company) |
 
-Penerapan saat ini: query "attendance hari ini" & clock-skew check saat check-in/out (toleransi 5 menit, device time vs server — melewati batas ditandai `INVALID`, tidak diblokir), dan jam/tanggal berjalan di header (`LiveClock.vue`). Belum diterapkan ke Payroll cutoff & Leave (fase rollout berikutnya).
+Penerapan saat ini: query "attendance hari ini" & clock-skew check saat check-in/out (toleransi 5 menit, device time vs server — melewati batas ditandai `INVALID`, tidak diblokir); penentuan `workDate` + perhitungan telat/pulang cepat (mengganti offset client yang sebelumnya jadi satu-satunya sumber "local"); dan jam/tanggal berjalan di header (`LiveClock.vue`). Semua fail-open ke behavior/offset lama kalau organization/timezone tidak bisa diresolusi. Belum diterapkan ke Payroll cutoff & Leave (fase rollout berikutnya).
 
 **Tenant: Packages — Browse & Subscribe**
 

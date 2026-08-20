@@ -192,8 +192,14 @@ tanggal/tampilan, bukan penulisan timestamp.
 
 **Penerapan saat ini:**
 - Attendance: query "attendance hari ini" (dashboard/ringkasan tanpa input tanggal dari
-  client) dan validasi clock-skew saat check-in/check-out (device time vs server, toleransi
-  5 menit — melewati batas ditandai `INVALID`, tidak diblokir).
+  client), validasi clock-skew saat check-in/check-out (device time vs server, toleransi
+  5 menit — melewati batas ditandai `INVALID`, tidak diblokir), **dan** penentuan `workDate`
+  + perhitungan telat/pulang cepat (`session.go`) — keduanya memakai zona waktu efektif
+  organization (Zone override → Company default), bukan lagi offset yang di-embed client
+  di `EventTimeLocal`. `EventTimeLocal` tetap tersimpan apa adanya sebagai audit trail,
+  tapi tidak lagi jadi sumber kebenaran untuk boundary. Fail-open ke offset client kalau
+  organization/timezone tidak bisa diresolusi (data organisasi belum lengkap tidak boleh
+  memblokir presensi).
 - Header aplikasi: jam & tanggal berjalan (`LiveClock.vue`) mengikuti zona efektif user
   yang login (via organization → zone → company).
 - **Belum diterapkan** (fase berikutnya, per rollout plan): Payroll cutoff, Leave/cuti.

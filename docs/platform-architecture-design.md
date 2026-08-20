@@ -763,10 +763,13 @@ dan Zone berada di modul berbeda dan tidak ada relasi GORM lintas modul di codeb
 `employees`/`organizations` lewat raw query, bukan import package modul lain — menghindari
 circular dependency).
 
-**Penerapan saat ini:** Attendance (query "hari ini" tanpa input tanggal dari client,
-clock-skew check saat check-in/out dengan toleransi 5 menit), header aplikasi (jam/tanggal
-berjalan). **Belum diterapkan** ke Payroll cutoff & Leave — direncanakan sebagai fase
-rollout terpisah yang memakai resolver yang sama.
+**Penerapan saat ini:** Attendance — query "hari ini" tanpa input tanggal dari client,
+clock-skew check saat check-in/out (toleransi 5 menit), dan penentuan `workDate` +
+perhitungan lateness/early-leave (menggantikan offset yang sebelumnya di-embed client di
+`EventTimeLocal` sebagai satu-satunya sumber "local"). Header aplikasi (jam/tanggal
+berjalan). Semua titik ini fail-open ke behavior/offset lama saat organization/timezone
+tidak bisa diresolusi. **Belum diterapkan** ke Payroll cutoff & Leave — direncanakan sebagai
+fase rollout terpisah yang memakai resolver yang sama.
 
 ### 4.10 Multi-Tenant DB Connection Manager
 
