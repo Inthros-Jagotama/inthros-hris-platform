@@ -184,8 +184,9 @@ hris-platform/
 │   │   │   ├── careerintelligence/   #   Career Intelligence & Talent Management (5 entities, 23 endpoints, 66 tests)
 │   │   │   ├── workforceintelligence/#   Workforce Intelligence & Strategic Planning (7 entities, 70 endpoints, 112 tests)
 │   │   │   ├── reimbursement/        #   Reimbursement & Claim (3 entities, 15 endpoints, 67 tests)
-│   │   │   └── setting/              #   Settings — 19 reference CRUDs (Zones, Provinces, Regencies, Districts, Villages, Educations, Education Majors, Religions, MaritalStatuses, RelationshipTypes, Banks, EmploymentStatuses, Nationalities, JobFamilies, SalaryGrades, TER, PTKP, Insurances, Company Holidays)
+│   │   │   └── setting/              #   Settings — 19 reference CRUDs (Zones, Provinces, Regencies, Districts, Villages, Educations, Education Majors, Religions, MaritalStatuses, RelationshipTypes, Banks, EmploymentStatuses, Nationalities, JobFamilies, SalaryGrades, TER, PTKP, Insurances, Company Holidays) + Timezone Settings (company default + zone override)
 │   │   └── pkg/                      # Shared Kernel│       │   ├── config/               # Viper configuration loader
+│       │   ├── timezone/             # Resolusi zona waktu efektif (Zone override → Company default → WIB)
 │       │   ├── database/             # Multi-tenant DB manager
 │       │   ├── driver/               # Shared DB driver type
 │       │   ├── auth/                 # JWT generation & validation
@@ -970,7 +971,7 @@ Semua endpoint settings berada di `/api/v1/tenant/settings/`. Masing-masing enti
 
 | Entity | Endpoint | Fields | PK Type | Frontend View |
 |--------|----------|--------|:-------:|:-------------:|
-| Zones | `/settings/zones` | Code, Name, Region, IsActive, SortOrder | `UUID` | `ZonesView.vue` |
+| Zones | `/settings/zones` | Code, Name, Region, Timezone (opsional — override), IsActive, SortOrder | `UUID` | `ZonesView.vue` |
 | Provinces | `/settings/provinces` | Code, Name | `CHAR(2)` — BPS code | `ProvincesView.vue` |
 | Regencies | `/settings/regencies` | Code, Name, ProvinceID (parent) | `CHAR(4)` — BPS code | `RegenciesView.vue` |
 | Districts | `/settings/districts` | Code, Name, RegencyID (parent) | `CHAR(6)` — BPS code | `DistrictsView.vue` |
@@ -991,6 +992,18 @@ Semua endpoint settings berada di `/api/v1/tenant/settings/`. Masing-masing enti
 | Company Holidays | `/settings/company-holidays` | HolidayDate (unique), Name, Description, IsActive | `UUID` | `CompanyHolidaysView.vue` |
 
 > **Query parameters:** Semua endpoint GET mendukung `?page=&per_page=&search=&sort_by=&sort_order=` — standar server-side pagination & sorting. Untuk zona, ada tambahan `?active_only=true`.
+
+**Timezone Settings — Company Default & Zone Override**
+
+Zona waktu tenant, dibatasi ke 3 zona Indonesia (`Asia/Jakarta`/WIB, `Asia/Makassar`/WITA, `Asia/Jayapura`/WIT). Dua level: default company (wajib) + override per Zone (opsional). Resolusi: **Zone override → Company default → fallback `Asia/Jakarta`** (package `internal/pkg/timezone`). Semua timestamp tetap disimpan **UTC** — resolusi hanya dipakai untuk interpretasi tanggal & tampilan.
+
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `GET` | `/settings/company/timezone` | Baca timezone default company |
+| `PUT` | `/settings/company/timezone` | Update timezone default company |
+| `GET` | `/attendance/timezone/me` | Zona waktu efektif user yang login (organization → zone → company) |
+
+Penerapan saat ini: query "attendance hari ini" & clock-skew check saat check-in/out (toleransi 5 menit, device time vs server — melewati batas ditandai `INVALID`, tidak diblokir), dan jam/tanggal berjalan di header (`LiveClock.vue`). Belum diterapkan ke Payroll cutoff & Leave (fase rollout berikutnya).
 
 **Tenant: Packages — Browse & Subscribe**
 

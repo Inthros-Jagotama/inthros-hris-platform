@@ -732,6 +732,42 @@ func (s *FeatureFlagService) SetFlag(ctx context.Context, companyID, flagKey str
 }
 ```
 
+### 4.9b Timezone Resolution
+
+Setiap tenant punya zona waktu default (level Company, platform DB), dengan opsi override
+per Zone (level tenant DB — Zone adalah entity payroll/allowance zoning di modul `setting`).
+Dibatasi ke 3 zona Indonesia: `Asia/Jakarta` (WIB), `Asia/Makassar` (WITA), `Asia/Jayapura`
+(WIT). Semua timestamp tetap disimpan **UTC** di database — resolusi zona waktu hanya
+dipakai untuk interpretasi tanggal (boundary "hari ini") dan tampilan, bukan penulisan data.
+
+```go
+// Package internal/pkg/timezone — pure resolver, tanpa akses DB/IO.
+// Prioritas: Zone override > Company default > fallback Asia/Jakarta.
+func Resolve(companyTimezone string, zoneTimezone *string) (*time.Location, error)
+```
+
+```
+Employee → Organization → Zone.timezone (jika di-set)
+                              │
+                              ▼ (jika kosong)
+                         Company.timezone (wajib diisi, platform DB)
+                              │
+                              ▼ (jika kosong/invalid)
+                         fallback "Asia/Jakarta"
+```
+
+Resolusi cross-module (Employee/Organization → Zone → Company) dilakukan via raw
+`db.Table().Joins()` query — sengaja tidak pakai GORM preload relation, karena Organization
+dan Zone berada di modul berbeda dan tidak ada relasi GORM lintas modul di codebase ini
+(pola yang sama dipakai modul lain untuk resolusi lintas modul, mis. `attendance` membaca
+`employees`/`organizations` lewat raw query, bukan import package modul lain — menghindari
+circular dependency).
+
+**Penerapan saat ini:** Attendance (query "hari ini" tanpa input tanggal dari client,
+clock-skew check saat check-in/out dengan toleransi 5 menit), header aplikasi (jam/tanggal
+berjalan). **Belum diterapkan** ke Payroll cutoff & Leave — direncanakan sebagai fase
+rollout terpisah yang memakai resolver yang sama.
+
 ### 4.10 Multi-Tenant DB Connection Manager
 
 ```go
