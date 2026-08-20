@@ -177,17 +177,16 @@ SETUP MASTER                     KPI                                 OKR
 
 | Menu | Halaman |
 |---|---|
-| Performance (hub) | `PerformanceIndex.vue` |
+| Performance (hub) | `PerformanceIndex.vue` / `Performance.vue` |
 | KPI Hub | `kpi/KPIIndex.vue` |
-| Templates | `kpi/KPITemplates.vue` / `KPITemplateForm.vue` |
-| Evaluations | `kpi/KPIEvaluations.vue` (workflow target + realization) |
-| Indicators | `kpi/KPIIndicators.vue` |
-| Periods | `PerformancePeriodsView.vue` (di settings) |
-| Perspectives | `kpi/KPIPerspectives.vue` |
+| KPI Templates | `kpi/KPITemplates.vue` / `kpi/KPITemplateForm.vue` |
+| KPI Evaluation Detail | `kpi/KPIEvaluationDetail.vue` |
+| KPI Self-Assessment | `kpi/KPISelfAssessment.vue` |
+| Periods | `settings/PerformancePeriodsView.vue` |
 | OKR Hub | `okr/OKRIndex.vue` |
-| OKR Templates | `okr/OKRTemplates.vue` |
-| OKR Evaluations | `okr/OKREvaluations.vue` |
-| Dashboards | `kpi/KPIDashboard.vue`, `okr/OKRDashboard.vue` |
+| OKR Templates | `okr/OKRTemplates.vue` / `okr/OKRTemplateForm.vue` |
+| OKR Evaluation Detail | `okr/OKREvaluationDetail.vue` |
+| OKR Self-Assessment | `okr/OKRSelfAssessment.vue` |
 
 ---
 

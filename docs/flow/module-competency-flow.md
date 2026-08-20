@@ -109,9 +109,9 @@ SETUP MASTER                     360 ASSESSMENT                        REPORTING
 
 | Entitas | Status |
 |---|---|
-| Event | `DRAFT → ACTIVE → COMPLETED` |
-| Event Target | `PENDING → ASSESSING → SUBMITTED → APPROVED` |
-| Assessment (rater) | `DRAFT → SUBMITTED` |
+| Event | `active` (default) · bisa di-update ke status lain via API |
+| Event Target | `draft → submitted → finalized` (finalized via approval callback, ditandai `finalized_at`) |
+| Rater | `assigned → started → submitted` |
 
 ---
 
@@ -178,3 +178,4 @@ Semua di bawah `/api/v1/tenant/competency/`.
 - **Approval** dikumpulkan setelah semua rater selesai mengisi → submit untuk approval → skor final dihitung.
 - **Gap analysis** membandingkan skor aktual vs target kompetensi (berdasarkan grading/job family).
 - **Competency values** punya 2 versi: legacy (flat) dan structured (per level dengan range).
+- **Competency 360 Assessment** didokumentasikan secara detail di [`module-competency-360-flow.md`](module-competency-360-flow.md) — dokumen ini fokus pada dictionary, values, events, dan scoring tradisional.
