@@ -1,2 +1,2 @@
 -- 156_zone_timezone.down.sql (postgres)
-DROP COLUMN timezone FROM zones;
+ALTER TABLE zones DROP COLUMN timezone;
