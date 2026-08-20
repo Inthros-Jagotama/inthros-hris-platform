@@ -2,12 +2,20 @@ package setting
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/pkg/authctx"
+	"github.com/inthros/hris-platform/internal/pkg/timezone"
 )
+
+// ErrInvalidCompanyTimezone is returned by UpdateCompanyTimezone when the
+// given IANA timezone identifier fails timezone.IsValid.
+var ErrInvalidCompanyTimezone = errors.New("invalid company timezone")
 
 const (
 	defaultPage    = 1
@@ -44,6 +52,26 @@ func (s *Service) validateUniqueCodeExcludeSelf(ctx context.Context, model inter
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// ── Company Timezone ──
+
+// GetCompanyTimezone returns the current tenant company's default IANA
+// timezone (companies.timezone in the platform DB).
+func (s *Service) GetCompanyTimezone(ctx context.Context) (string, error) {
+	companyID := authctx.GetCompanyID(ctx)
+	return s.repo.FindCompanyTimezone(ctx, companyID)
+}
+
+// UpdateCompanyTimezone sets the current tenant company's default IANA
+// timezone. Returns ErrInvalidCompanyTimezone if tz is not a valid IANA
+// timezone identifier.
+func (s *Service) UpdateCompanyTimezone(ctx context.Context, tz string) error {
+	if !timezone.IsValid(tz) {
+		return ErrInvalidCompanyTimezone
+	}
+	companyID := authctx.GetCompanyID(ctx)
+	return s.repo.UpdateCompanyTimezone(ctx, companyID, tz)
 }
 
 // ── Zone CRUD ──

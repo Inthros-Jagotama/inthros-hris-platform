@@ -41,6 +41,7 @@ type Company struct {
 	Address   *string        `gorm:"type:text" json:"address,omitempty"`
 	Email     *string        `gorm:"type:varchar(255)" json:"email,omitempty"`
 	Phone     *string        `gorm:"type:varchar(20)" json:"phone,omitempty"`
+	Timezone  string         `gorm:"type:varchar(64);not null;default:Asia/Jakarta" json:"timezone"`
 	Status    CompanyStatus  `gorm:"type:varchar(20);default:active" json:"status"`
 	CreatedBy *uuid.UUID     `gorm:"type:char(36)" json:"created_by,omitempty"`
 	UpdatedBy *uuid.UUID     `gorm:"type:char(36)" json:"updated_by,omitempty"`

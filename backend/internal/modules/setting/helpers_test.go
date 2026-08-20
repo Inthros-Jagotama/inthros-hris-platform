@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 
 	sqlite "github.com/glebarez/sqlite"
+
+	"github.com/inthros/hris-platform/internal/platform/company"
 )
 
 // setupTestDB creates an in-memory SQLite database and auto-migrates
@@ -72,15 +74,40 @@ func newTestRepo() (*Repository, *gorm.DB, func()) {
 	return repo, db, cleanup
 }
 
-// newTestService creates a Service backed by in-memory SQLite.
+// setupTestPlatformDB creates a separate in-memory SQLite database
+// containing just the companies table, mirroring the platform DB that
+// useraccount.Repository / setting.Repository read companies.timezone from.
+func setupTestPlatformDB() (*gorm.DB, func()) {
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared&platform=1"), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("failed to open test platform db: %v", err))
+	}
+	if err := db.AutoMigrate(&company.Company{}); err != nil {
+		panic(fmt.Sprintf("failed to migrate test platform db: %v", err))
+	}
+	cleanup := func() {
+		sqlDB, _ := db.DB()
+		if sqlDB != nil {
+			sqlDB.Close()
+		}
+	}
+	return db, cleanup
+}
+
+// newTestService creates a Service backed by in-memory SQLite (tenant DB)
+// plus a separate in-memory SQLite platform DB (for companies.timezone).
 // Returns the service and a cleanup function.
 func newTestService() (*Service, *gorm.DB, func()) {
 	db, cleanup := setupTestDB()
-	repo := NewRepository(testDBResolver(db))
+	platformDB, platformCleanup := setupTestPlatformDB()
+	repo := NewRepositoryWithPlatformDB(testDBResolver(db), platformDB)
 	logger, _ := zap.NewDevelopment()
 	svc := NewService(repo, logger)
 	return svc, db, func() {
 		cleanup()
+		platformCleanup()
 		_ = logger.Sync()
 	}
 }

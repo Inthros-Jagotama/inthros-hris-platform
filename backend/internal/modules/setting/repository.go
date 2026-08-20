@@ -10,10 +10,20 @@ import (
 
 type Repository struct {
 	dbResolver func(ctx context.Context) (*gorm.DB, error)
+	platformDB *gorm.DB
 }
 
 func NewRepository(dbResolver func(ctx context.Context) (*gorm.DB, error)) *Repository {
 	return &Repository{dbResolver: dbResolver}
+}
+
+// NewRepositoryWithPlatformDB is like NewRepository but also wires a
+// platform-DB handle, following the pattern established in
+// useraccount.Repository (dbResolver for the tenant DB, platformDB for
+// cross-tenant platform tables such as companies). Used by GetCompanyTimezone
+// / UpdateCompanyTimezone since companies.timezone lives in the platform DB.
+func NewRepositoryWithPlatformDB(dbResolver func(ctx context.Context) (*gorm.DB, error), platformDB *gorm.DB) *Repository {
+	return &Repository{dbResolver: dbResolver, platformDB: platformDB}
 }
 
 func (r *Repository) getDB(ctx context.Context) (*gorm.DB, error) {
@@ -640,4 +650,27 @@ func (r *Repository) FindCompanyHolidaysInRange(ctx context.Context, fromDate, t
 	var list []CompanyHoliday
 	err = db.Where("is_active = ? AND holiday_date BETWEEN ? AND ?", true, fromDate, toDate).Find(&list).Error
 	return list, err
+}
+
+// ── Company Timezone (platform DB) ──
+// companies.timezone lives in the platform database (not the tenant DB),
+// so these methods use r.platformDB directly rather than r.getDB(ctx),
+// mirroring useraccount.Repository's FindCompanyByID / FindCompanyNameByID.
+
+func (r *Repository) FindCompanyTimezone(ctx context.Context, companyID string) (string, error) {
+	if r.platformDB == nil {
+		return "", fmt.Errorf("platform database not configured")
+	}
+	var tz string
+	if err := r.platformDB.Table("companies").Select("timezone").Where("id = ?", companyID).Pluck("timezone", &tz).Error; err != nil {
+		return "", fmt.Errorf("company not found: %w", err)
+	}
+	return tz, nil
+}
+
+func (r *Repository) UpdateCompanyTimezone(ctx context.Context, companyID, tz string) error {
+	if r.platformDB == nil {
+		return fmt.Errorf("platform database not configured")
+	}
+	return r.platformDB.Table("companies").Where("id = ?", companyID).Update("timezone", tz).Error
 }

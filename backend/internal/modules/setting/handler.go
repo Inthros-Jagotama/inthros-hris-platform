@@ -30,6 +30,36 @@ func handleDupErr(c *gin.Context, err error) bool {
 	return false
 }
 
+// ── Company Timezone Handlers ──
+func (h *Handler) GetCompanyTimezone(c *gin.Context) {
+	tz, err := h.service.GetCompanyTimezone(c.Request.Context())
+	if err != nil {
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"timezone": tz})
+}
+
+type updateCompanyTimezoneRequest struct {
+	Timezone string `json:"timezone" binding:"required"`
+}
+
+func (h *Handler) UpdateCompanyTimezone(c *gin.Context) {
+	var req updateCompanyTimezoneRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	if err := h.service.UpdateCompanyTimezone(c.Request.Context(), req.Timezone); err != nil {
+		if errors.Is(err, ErrInvalidCompanyTimezone) {
+			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"timezone": req.Timezone})
+}
+
 // ── Competency Handlers ──
 func (h *Handler) CreateCompetency(c *gin.Context) {
 	var req CreateCompetencyRequest

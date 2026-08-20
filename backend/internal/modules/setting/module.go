@@ -44,7 +44,7 @@ func NewTenantDBResolver(dbManager *database.Manager) TenantDBFunc {
 // pdfSvc (opsional) dipakai documenttemplate untuk preview DOCX → PDF.
 func NewModule(dbManager *database.Manager, logger *zap.Logger, numberingSvc *numbering.Service, employeeIDFormatSvc *EmployeeIDFormatService, uploadDir string, pdfSvc documenttemplate.PDFService) module.Module {
 	resolver := NewTenantDBResolver(dbManager)
-	repo := NewRepository(resolver)
+	repo := NewRepositoryWithPlatformDB(resolver, dbManager.PlatformDB())
 	svc := NewService(repo, logger)
 	handler := NewHandler(svc)
 	numberingHandler := NewNumberingHandler(numberingSvc)

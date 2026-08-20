@@ -449,3 +449,17 @@ func TestService_ValidateUniqueCodeExcludeSelf_NonExistent(t *testing.T) {
 		t.Fatalf("validateUniqueCodeExcludeSelf for non-existent code should succeed: %v", err)
 	}
 }
+
+// =========================================================================
+// Company Timezone
+// =========================================================================
+
+func TestUpdateCompanyTimezone_RejectsInvalidValue(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	err := svc.UpdateCompanyTimezone(context.Background(), "Asia/Singapore")
+	if err != ErrInvalidCompanyTimezone {
+		t.Errorf("got %v, want ErrInvalidCompanyTimezone", err)
+	}
+}
