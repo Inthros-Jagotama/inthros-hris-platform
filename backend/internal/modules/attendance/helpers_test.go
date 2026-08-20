@@ -87,7 +87,8 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 		// the column touched (timezone).
 		`CREATE TABLE IF NOT EXISTS zones (
 			id CHAR(36) PRIMARY KEY,
-			timezone VARCHAR(64) NULL
+			timezone VARCHAR(64) NULL,
+			deleted_at DATETIME NULL
 		)`,
 	}
 	for _, stmt := range rawTables {

@@ -184,6 +184,8 @@
                 :options="timezoneOptions"
                 optionLabel="label"
                 optionValue="value"
+                :disabled="!timezoneLoaded"
+                :placeholder="timezoneLoading ? t('common.loading') : undefined"
                 class="w-full"
               />
             </FormRow>
@@ -194,7 +196,7 @@
                 icon="pi pi-check"
                 size="small"
                 :loading="savingTimezone"
-                :disabled="savingTimezone || timezoneLoading"
+                :disabled="savingTimezone || timezoneLoading || !timezoneLoaded"
                 @click="handleSaveTimezone"
               />
             </div>
@@ -345,8 +347,12 @@ const timezoneOptions = [
   { label: 'WITA (Asia/Makassar)', value: 'Asia/Makassar' },
   { label: 'WIT (Asia/Jayapura)', value: 'Asia/Jayapura' }
 ]
-const timezone = ref('Asia/Jakarta')
+// Mulai dari null (bukan default 'Asia/Jakarta') sampai GET benar-benar
+// berhasil — bila GET gagal, field tidak boleh terlihat seolah-olah nilai
+// tersimpan yang terkonfirmasi (risiko overwrite tak sengaja saat Save).
+const timezone = ref(null)
 const timezoneLoading = ref(false)
+const timezoneLoaded = ref(false)
 const savingTimezone = ref(false)
 
 async function loadTimezone() {
@@ -354,7 +360,10 @@ async function loadTimezone() {
   try {
     const res = await api.get('/api/v1/tenant/settings/company/timezone')
     const tz = res.data?.data?.timezone || res.data?.timezone
-    if (tz) timezone.value = tz
+    if (tz) {
+      timezone.value = tz
+      timezoneLoaded.value = true
+    }
   } catch {
     toast.add({ severity: 'error', summary: t('message.error'), detail: t('company_detail.timezone_load_error'), life: 4000 })
   } finally {

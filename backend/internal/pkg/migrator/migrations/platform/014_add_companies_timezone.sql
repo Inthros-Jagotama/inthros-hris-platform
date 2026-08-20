@@ -5,4 +5,4 @@
 -- yang melibatkan timezone awareness di aplikasi.
 
 ALTER TABLE companies
-    ADD COLUMN timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Jakarta' AFTER phone;
+    ADD COLUMN timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Jakarta';

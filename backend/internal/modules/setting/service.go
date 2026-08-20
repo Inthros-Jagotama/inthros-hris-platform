@@ -142,8 +142,16 @@ func (s *Service) UpdateZone(ctx context.Context, id string, req UpdateZoneReque
 	if req.Name != nil { zone.Name = *req.Name; zone.Zone = *req.Name }
 	if req.Region != nil { zone.Region = *req.Region }
 	if req.Timezone != nil {
-		if err := validateZoneTimezone(req.Timezone); err != nil { return nil, err }
-		zone.Timezone = req.Timezone
+		if *req.Timezone == "" {
+			// Explicit empty string means "clear the override / ikut default
+			// perusahaan" — distinct from an omitted field (nil), which means
+			// "no change". JSON null also unmarshals to nil and is treated as
+			// no-change above, so the frontend must send "" to clear.
+			zone.Timezone = nil
+		} else {
+			if err := validateZoneTimezone(req.Timezone); err != nil { return nil, err }
+			zone.Timezone = req.Timezone
+		}
 	}
 	if req.IsActive != nil { zone.IsActive = *req.IsActive }
 	if req.SortOrder != nil { zone.SortOrder = *req.SortOrder }

@@ -247,14 +247,22 @@ async function handleSave() {
       code: form.value.code,
       name: form.value.name,
       region: form.value.region || undefined,
-      timezone: form.value.timezone || null,
       is_active: form.value.is_active,
       sort_order: form.value.sort_order || 0
     }
     if (editing.value) {
+      // Update: selalu kirim "timezone" secara eksplisit. String kosong ("")
+      // berarti "ikut default perusahaan" (hapus override) — backend
+      // membedakan "" (clear) dari field yang di-omit (no-op, JSON null pun
+      // unmarshal ke nil pointer yang sama). Jangan kirim null di sini.
+      payload.timezone = form.value.timezone || ''
       await api.put(`/api/v1/tenant/settings/zones/${editingId.value}`, payload)
       toast.add({ severity: 'success', summary: t('message.success'), detail: t('zones.updated'), life: 3000 })
     } else {
+      // Create: zona baru tidak punya state sebelumnya untuk "di-clear" —
+      // cukup omit field bila kosong agar backend menyimpan override sebagai
+      // nil (ikut default perusahaan) dari awal.
+      if (form.value.timezone) payload.timezone = form.value.timezone
       await api.post('/api/v1/tenant/settings/zones', payload)
       toast.add({ severity: 'success', summary: t('message.success'), detail: t('zones.created'), life: 3000 })
     }

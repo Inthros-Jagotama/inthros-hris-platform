@@ -177,6 +177,45 @@ func TestUpdateZone_RejectsInvalidTimezone(t *testing.T) {
 	}
 }
 
+// TestUpdateZone_EmptyStringClearsOverride verifies the frontend "Ikut
+// default perusahaan" flow: a zone created with a timezone override, then
+// updated with Timezone: ptr(""), must have its override cleared to nil
+// (inherit the company default) — not silently left unchanged as a nil
+// pointer would be.
+func TestUpdateZone_EmptyStringClearsOverride(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	ctx := context.Background()
+	tz := "Asia/Makassar"
+	created, err := svc.CreateZone(ctx, CreateZoneRequest{
+		Code: "TZ5", Name: "Zone TZ5", Timezone: &tz,
+	})
+	if err != nil {
+		t.Fatalf("CreateZone failed: %v", err)
+	}
+	if created.Timezone == nil || *created.Timezone != "Asia/Makassar" {
+		t.Fatalf("expected created zone to have override, got %v", created.Timezone)
+	}
+
+	empty := ""
+	updated, err := svc.UpdateZone(ctx, created.ID, UpdateZoneRequest{Timezone: &empty})
+	if err != nil {
+		t.Fatalf("UpdateZone failed: %v", err)
+	}
+	if updated.Timezone != nil {
+		t.Errorf("expected override cleared to nil, got %v", *updated.Timezone)
+	}
+
+	refetched, err := svc.GetZoneByID(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("GetZoneByID failed: %v", err)
+	}
+	if refetched.Timezone != nil {
+		t.Errorf("expected refetched zone override to be nil, got %v", *refetched.Timezone)
+	}
+}
+
 // =========================================================================
 // Education — duplicate code validation
 // =========================================================================

@@ -943,8 +943,8 @@ func (r *Repository) ResolveOrganizationTimezone(ctx context.Context, organizati
 
 	var zoneTz *string
 	err = db.Table("organizations AS o").
-		Joins("LEFT JOIN zones AS z ON z.id = o.zone_id").
-		Where("o.id = ?", organizationID).
+		Joins("LEFT JOIN zones AS z ON z.id = o.zone_id AND z.deleted_at IS NULL").
+		Where("o.id = ? AND o.deleted_at IS NULL", organizationID).
 		Select("z.timezone AS zone_tz").
 		Scan(&zoneTz).Error
 	if err != nil {
