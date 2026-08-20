@@ -11,9 +11,12 @@
       />
       <main class="flex-1 overflow-auto bg-white dark:bg-gray-900">
         <!-- Main Header — Bilingual dari route name -->
-        <div v-if="pageTitle" class="border-b border-gray-200 dark:border-gray-700 px-4 py-2">
-          <h1 class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ pageTitle }}</h1>
-          <p v-if="pageDescription" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ pageDescription }}</p>
+        <div v-if="pageTitle" class="flex items-start justify-between gap-4 border-b border-gray-200 dark:border-gray-700 px-4 py-2">
+          <div class="min-w-0">
+            <h1 class="text-lg font-semibold text-navy-800 dark:text-gray-100">{{ pageTitle }}</h1>
+            <p v-if="pageDescription" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ pageDescription }}</p>
+          </div>
+          <LiveClock />
         </div>
         <div class="p-4">
           <router-view />
@@ -32,6 +35,7 @@ import { useI18n } from '@/composables/useI18n'
 import { jobValueTypeLabel, jobValueTypeDesc } from '@/utils/jobValues'
 import Sidebar from './Sidebar.vue'
 import HeaderBar from './HeaderBar.vue'
+import LiveClock from './LiveClock.vue'
 
 const router = useRouter()
 const route = useRoute()

@@ -965,6 +965,17 @@ func (r *Repository) getCompanyTimezone(ctx context.Context) (string, error) {
 	return c.Timezone, nil
 }
 
+// ResolveCompanyDefaultTimezone mengembalikan zona waktu default tenant
+// (companies.timezone), tanpa mempertimbangkan override Zone apa pun — dipakai
+// sebagai fallback saat pengguna tidak punya organization/employment aktif.
+func (r *Repository) ResolveCompanyDefaultTimezone(ctx context.Context) (*time.Location, error) {
+	companyTz, err := r.getCompanyTimezone(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return timezone.Resolve(companyTz, nil)
+}
+
 // ResolveOrganizationTimezone mengembalikan zona waktu efektif untuk sebuah
 // organization: Zone.timezone (jika di-set) mengalahkan Company.timezone.
 func (r *Repository) ResolveOrganizationTimezone(ctx context.Context, organizationID uuid.UUID) (*time.Location, error) {

@@ -48,6 +48,17 @@ func (h *Handler) GetCompanySetting(c *gin.Context) {
 	httputil.SuccessJSON(c, resp)
 }
 
+// GetMyTimezone mengembalikan zona waktu efektif untuk user yang login,
+// dipakai frontend untuk menampilkan jam/tanggal berjalan.
+func (h *Handler) GetMyTimezone(c *gin.Context) {
+	tz, err := h.service.GetMyTimezone(c.Request.Context())
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, gin.H{"timezone": tz})
+}
+
 // =========================================================================
 // Company Shifts
 // =========================================================================

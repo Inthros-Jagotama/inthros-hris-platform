@@ -199,6 +199,25 @@ func (s *Service) GetCompanySetting(ctx context.Context) (*CompanySettingRespons
 	return settingToResponse(setting), nil
 }
 
+// GetMyTimezone mengembalikan zona waktu efektif untuk user yang sedang
+// login: Zone override milik organization tempat dia bekerja saat ini
+// (via employment aktif) jika ada, jika tidak ikut default company. Selalu
+// mengembalikan sebuah zona waktu valid (fail-open ke Asia/Jakarta) - ini
+// elemen tampilan, bukan pemeriksaan yang boleh memblokir pengguna.
+func (s *Service) GetMyTimezone(ctx context.Context) (string, error) {
+	if userID := authctx.GetUserID(ctx); userID != nil {
+		if orgID, err := s.repo.FindOrganizationIDByUserID(ctx, *userID); err == nil && orgID != nil {
+			if loc, err := s.repo.ResolveOrganizationTimezone(ctx, *orgID); err == nil {
+				return loc.String(), nil
+			}
+		}
+	}
+	if loc, err := s.repo.ResolveCompanyDefaultTimezone(ctx); err == nil {
+		return loc.String(), nil
+	}
+	return "Asia/Jakarta", nil
+}
+
 // =========================================================================
 // Company Shifts
 // =========================================================================

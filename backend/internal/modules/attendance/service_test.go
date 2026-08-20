@@ -621,6 +621,64 @@ func TestService_CreateEvent_ClockSkew_OrgUnresolvable_FailsOpen(t *testing.T) {
 	}
 }
 
+func TestService_GetMyTimezone_UsesUserOrganizationZoneOverride(t *testing.T) {
+	companyID := uuid.New()
+	repo, db, baseCtx := newTestRepository(t, companyID, "Asia/Jakarta")
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+
+	zoneID := uuid.New()
+	seedZone(db, zoneID, "Asia/Jayapura")
+	orgID := uuid.New()
+	seedOrgWithZone(db, orgID, &zoneID, "Test Org")
+
+	userID := uuid.New()
+	employeeID := uuid.New()
+	createTestEmployeeAccount(db, employeeID, userID)
+	seedEmployment(db, employeeID, orgID)
+
+	testCtx := context.WithValue(baseCtx, "user_id", userID.String())
+
+	tz, err := svc.GetMyTimezone(testCtx)
+	if err != nil {
+		t.Fatalf("GetMyTimezone failed: %v", err)
+	}
+	if tz != "Asia/Jayapura" {
+		t.Errorf("got %s, want Asia/Jayapura", tz)
+	}
+}
+
+func TestService_GetMyTimezone_NoOrganization_FallsBackToCompanyDefault(t *testing.T) {
+	companyID := uuid.New()
+	repo, _, baseCtx := newTestRepository(t, companyID, "Asia/Makassar")
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+
+	userID := uuid.New()
+	testCtx := context.WithValue(baseCtx, "user_id", userID.String())
+
+	tz, err := svc.GetMyTimezone(testCtx)
+	if err != nil {
+		t.Fatalf("GetMyTimezone failed: %v", err)
+	}
+	if tz != "Asia/Makassar" {
+		t.Errorf("got %s, want Asia/Makassar", tz)
+	}
+}
+
+func TestService_GetMyTimezone_NoUser_FallsBackToJakarta(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	tz, err := svc.GetMyTimezone(ctx())
+	if err != nil {
+		t.Fatalf("GetMyTimezone failed: %v", err)
+	}
+	if tz != "Asia/Jakarta" {
+		t.Errorf("got %s, want Asia/Jakarta", tz)
+	}
+}
+
 func TestService_CreateEvent_FaceRequired_LeavesStatusPending(t *testing.T) {
 	svc, _, _, cleanup := newTestService()
 	defer cleanup()

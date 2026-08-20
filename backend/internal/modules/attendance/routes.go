@@ -84,6 +84,9 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		att.GET("/settings", handler.GetCompanySetting)
 		att.PUT("/settings", requireAttendanceSettings("update"), handler.UpsertCompanySetting)
 
+		// Zona waktu efektif user yang login (dipakai jam berjalan di header) - terbuka untuk semua user terautentikasi.
+		att.GET("/timezone/me", handler.GetMyTimezone)
+
 		// Company Shifts (admin-config)
 		att.POST("/shifts", requireAttendanceSettings("create"), handler.CreateShift)
 		att.GET("/shifts", requireAttendanceSettings("view"), handler.ListShifts)

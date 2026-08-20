@@ -770,6 +770,19 @@ func TestRepo_FindOrganizationIDByEmployeeID_NoEmployment_ReturnsNil(t *testing.
 	}
 }
 
+func TestRepo_ResolveCompanyDefaultTimezone_ReturnsCompanyTimezone(t *testing.T) {
+	companyID := uuid.New()
+	repo, _, testCtx := newTestRepository(t, companyID, "Asia/Makassar")
+
+	loc, err := repo.ResolveCompanyDefaultTimezone(testCtx)
+	if err != nil {
+		t.Fatalf("ResolveCompanyDefaultTimezone failed: %v", err)
+	}
+	if loc.String() != "Asia/Makassar" {
+		t.Errorf("got %s, want Asia/Makassar", loc.String())
+	}
+}
+
 // =========================================================================
 // (intPtr is defined in helpers_test.go)
 // =========================================================================
