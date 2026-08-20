@@ -2,7 +2,13 @@ package setting
 
 import (
 	"context"
+	"errors"
 	"testing"
+
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+
+	"github.com/inthros/hris-platform/internal/platform/company"
 )
 
 // =========================================================================
@@ -461,5 +467,57 @@ func TestUpdateCompanyTimezone_RejectsInvalidValue(t *testing.T) {
 	err := svc.UpdateCompanyTimezone(context.Background(), "Asia/Singapore")
 	if err != ErrInvalidCompanyTimezone {
 		t.Errorf("got %v, want ErrInvalidCompanyTimezone", err)
+	}
+}
+
+func TestUpdateCompanyTimezone_PersistsAndGetReadsBack(t *testing.T) {
+	db, cleanup := setupTestDB()
+	defer cleanup()
+	platformDB, platformCleanup := setupTestPlatformDB()
+	defer platformCleanup()
+
+	comp := &company.Company{ID: uuid.New(), Name: "Acme", Slug: "acme", Timezone: "Asia/Jakarta"}
+	if err := platformDB.Create(comp).Error; err != nil {
+		t.Fatalf("failed to seed test company: %v", err)
+	}
+
+	repo := NewRepositoryWithPlatformDB(testDBResolver(db), platformDB)
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+
+	ctx := context.WithValue(context.Background(), "company_id", comp.ID.String())
+
+	if err := svc.UpdateCompanyTimezone(ctx, "Asia/Makassar"); err != nil {
+		t.Fatalf("UpdateCompanyTimezone should succeed: %v", err)
+	}
+
+	tz, err := svc.GetCompanyTimezone(ctx)
+	if err != nil {
+		t.Fatalf("GetCompanyTimezone should succeed: %v", err)
+	}
+	if tz != "Asia/Makassar" {
+		t.Errorf("got timezone %q, want %q", tz, "Asia/Makassar")
+	}
+}
+
+func TestGetCompanyTimezone_CompanyNotFound(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	ctx := context.WithValue(context.Background(), "company_id", uuid.New().String())
+	_, err := svc.GetCompanyTimezone(ctx)
+	if !errors.Is(err, ErrCompanyNotFound) {
+		t.Errorf("got %v, want ErrCompanyNotFound", err)
+	}
+}
+
+func TestUpdateCompanyTimezone_CompanyNotFound(t *testing.T) {
+	svc, _, cleanup := newTestService()
+	defer cleanup()
+
+	ctx := context.WithValue(context.Background(), "company_id", uuid.New().String())
+	err := svc.UpdateCompanyTimezone(ctx, "Asia/Makassar")
+	if !errors.Is(err, ErrCompanyNotFound) {
+		t.Errorf("got %v, want ErrCompanyNotFound", err)
 	}
 }

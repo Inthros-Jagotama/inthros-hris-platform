@@ -2,11 +2,17 @@ package setting
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// ErrCompanyNotFound is returned by FindCompanyTimezone / UpdateCompanyTimezone
+// when the given companyID does not match any row in the platform companies
+// table (missing row, not a validation failure).
+var ErrCompanyNotFound = errors.New("company not found")
 
 type Repository struct {
 	dbResolver func(ctx context.Context) (*gorm.DB, error)
@@ -661,16 +667,28 @@ func (r *Repository) FindCompanyTimezone(ctx context.Context, companyID string) 
 	if r.platformDB == nil {
 		return "", fmt.Errorf("platform database not configured")
 	}
-	var tz string
-	if err := r.platformDB.Table("companies").Select("timezone").Where("id = ?", companyID).Pluck("timezone", &tz).Error; err != nil {
+	var c struct {
+		Timezone string
+	}
+	if err := r.platformDB.Table("companies").Select("timezone").Where("id = ?", companyID).First(&c).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", ErrCompanyNotFound
+		}
 		return "", fmt.Errorf("company not found: %w", err)
 	}
-	return tz, nil
+	return c.Timezone, nil
 }
 
 func (r *Repository) UpdateCompanyTimezone(ctx context.Context, companyID, tz string) error {
 	if r.platformDB == nil {
 		return fmt.Errorf("platform database not configured")
 	}
-	return r.platformDB.Table("companies").Where("id = ?", companyID).Update("timezone", tz).Error
+	result := r.platformDB.Table("companies").Where("id = ?", companyID).Update("timezone", tz)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrCompanyNotFound
+	}
+	return nil
 }
