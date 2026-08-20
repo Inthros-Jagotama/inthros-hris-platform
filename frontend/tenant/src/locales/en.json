@@ -3141,6 +3141,7 @@
     "subtitle": "Select an employee and target job title to see the competency gap and development recommendations.",
     "employee": "Employee",
     "target_title": "Target Job Title",
+    "target_title_hint": "Sourced from the Job Title master data (Job Management module), not from Organization/Position.",
     "analyze": "Analyze",
     "empty": "Select an employee and target job title, then click Analyze.",
     "matched_skills": "Matched Skills",

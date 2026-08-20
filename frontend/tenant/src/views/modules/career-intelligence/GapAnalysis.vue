@@ -23,6 +23,7 @@
             optionValue="id"
             :placeholder="t('common.select')"
           />
+          <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">{{ t('gap_analysis.target_title_hint') }}</p>
         </FormRow>
       </div>
       <div class="flex justify-end mt-3">

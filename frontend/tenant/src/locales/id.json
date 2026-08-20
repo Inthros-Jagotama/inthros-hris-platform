@@ -3141,6 +3141,7 @@
     "subtitle": "Pilih karyawan dan target jabatan untuk melihat kesenjangan kompetensi dan rekomendasi pengembangan.",
     "employee": "Karyawan",
     "target_title": "Target Jabatan",
+    "target_title_hint": "Diambil dari master Job Title (modul Job Management), bukan dari Organization/Position.",
     "analyze": "Analisis",
     "empty": "Pilih karyawan dan target jabatan, lalu klik Analisis.",
     "matched_skills": "Kompetensi Terpenuhi",
