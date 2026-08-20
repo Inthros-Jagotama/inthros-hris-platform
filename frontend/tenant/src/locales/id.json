@@ -268,7 +268,9 @@
     "job_financials": "Financials",
     "job_potency_competencies": "Potency Competencies",
     "job_scores": "Scores",
-    "job_competency_groups": "Competency Groups"
+    "job_competency_groups": "Competency Groups",
+    "company_holidays": "Hari Libur Perusahaan",
+    "company_holidays_view_all": "Lihat Semua Libur"
   },
   "org_summary": {
     "title": "Ringkasan Organisasi",

@@ -142,26 +142,32 @@
       </div>
     </div>
 
-    <!-- Quick Access (self-service) -->
-    <div v-if="quickAccessCards.length" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-      <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">{{ t('dashboard.quick_access') }}</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <button
-          v-for="card in quickAccessCards"
-          :key="card.route"
-          type="button"
-          class="cursor-pointer group flex items-center gap-3 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-teal-300 dark:hover:border-teal-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
-          @click="$router.push(card.route)"
-        >
-          <div class="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center transition-colors" :class="card.tint">
-            <i :class="card.icon" class="text-base"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ t(card.labelKey) }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(card.descKey) }}</p>
-          </div>
-          <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
-        </button>
+    <!-- Company Holiday Calendar + Quick Access (side by side) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- Left: Company Holiday Calendar -->
+      <CompanyHolidayCalendar />
+
+      <!-- Right: Quick Access (self-service) -->
+      <div v-if="quickAccessCards.length" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">{{ t('dashboard.quick_access') }}</h2>
+        <div class="space-y-2.5">
+          <button
+            v-for="card in quickAccessCards"
+            :key="card.route"
+            type="button"
+            class="cursor-pointer group flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-teal-300 dark:hover:border-teal-500/60 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50 w-full"
+            @click="$router.push(card.route)"
+          >
+            <div class="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center transition-colors" :class="card.tint">
+              <i :class="card.icon" class="text-base"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-navy-800 dark:text-gray-100 truncate">{{ t(card.labelKey) }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ t(card.descKey) }}</p>
+            </div>
+            <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -181,6 +187,7 @@ import { localDateStr, formatTime, formatDays } from '@/utils/dashboard'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
+import CompanyHolidayCalendar from './CompanyHolidayCalendar.vue'
 
 const { t } = useI18n()
 const toast = useToast()
