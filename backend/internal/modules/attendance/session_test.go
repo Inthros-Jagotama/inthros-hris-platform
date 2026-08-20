@@ -1,9 +1,11 @@
 package attendance
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 func TestService_CreateEvent_SessionGeneration_OnTimeCheckinAndCheckout(t *testing.T) {
@@ -85,6 +87,84 @@ func TestService_CreateEvent_SessionGeneration_LateWithTolerance(t *testing.T) {
 	}
 	if session.LatenessMinutes != 5 {
 		t.Errorf("expected 5 lateness minutes (15 - 10 tolerance), got %d", session.LatenessMinutes)
+	}
+}
+
+// TestService_CreateEvent_SessionGeneration_UsesOrganizationTimezoneNotClientOffset
+// verifies that lateness is computed against the employee's *resolved
+// organization timezone* (company default, when no zone override), not the
+// UTC offset the client chose to embed in EventTimeLocal. The event's
+// absolute instant (EventTimeUTC = 01:00Z) is reported by the client as
+// "08:00+07:00" (on-time for an 08:00 WIB shift under the OLD behavior),
+// but the organization's official timezone is Asia/Jayapura (WIT, UTC+9) —
+// so the same instant is 10:00 WIT, two hours late against an 08:00 shift.
+func TestService_CreateEvent_SessionGeneration_UsesOrganizationTimezoneNotClientOffset(t *testing.T) {
+	companyID := uuid.New()
+	repo, db, baseCtx := newTestRepository(t, companyID, "Asia/Jayapura")
+	logger, _ := zap.NewDevelopment()
+	svc := NewService(repo, logger)
+
+	shift := createTestShift(repo) // 08:00 - 17:00
+	orgID := uuid.New()
+	seedOrgWithZone(db, orgID, nil, "Test Org")
+	employeeID := uuid.New()
+	seedEmployment(db, employeeID, orgID)
+	createTestEmployeeShift(repo, employeeID, shift.ID)
+
+	checkin := CreateEventRequest{
+		EmployeeID:     employeeID.String(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   "2026-01-15T01:00:00Z",
+		EventTimeLocal: "2026-01-15T08:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	if _, err := svc.CreateEvent(baseCtx, checkin); err != nil {
+		t.Fatalf("checkin CreateEvent failed: %v", err)
+	}
+
+	// Work date must be the WIT calendar date (still 2026-01-15 here since
+	// 10:00 WIT is the same day), and lateness must reflect the WIT
+	// interpretation (10:00 vs 08:00 shift start = 120 minutes late).
+	session, err := repo.FindSessionByEmployeeAndDate(baseCtx, employeeID, "2026-01-15")
+	if err != nil {
+		t.Fatalf("expected session to be generated: %v", err)
+	}
+	if session.LatenessMinutes != 120 {
+		t.Errorf("expected 120 lateness minutes (organization tz interpretation), got %d", session.LatenessMinutes)
+	}
+}
+
+// TestService_CreateEvent_SessionGeneration_OrgUnresolvable_FallsBackToClientOffset
+// verifies the fail-open path: when the employee has no resolvable
+// organization/timezone, lateness computation falls back to the old
+// behavior (client-embedded EventTimeLocal offset) rather than blocking.
+func TestService_CreateEvent_SessionGeneration_OrgUnresolvable_FallsBackToClientOffset(t *testing.T) {
+	svc, repo, _, cleanup := newTestService()
+	defer cleanup()
+
+	shift := createTestShift(repo) // 08:00 - 17:00
+	empID := uuid.New()
+	createTestEmployeeShift(repo, empID, shift.ID)
+
+	checkin := CreateEventRequest{
+		EmployeeID:     empID.String(),
+		EventType:      "CHECKIN",
+		EventTimeUTC:   "2026-01-15T01:00:00Z",
+		EventTimeLocal: "2026-01-15T08:00:00+07:00",
+		Latitude:       -6.2088,
+		Longitude:      106.8456,
+	}
+	if _, err := svc.CreateEvent(ctx(), checkin); err != nil {
+		t.Fatalf("checkin CreateEvent failed: %v", err)
+	}
+
+	session, err := repo.FindSessionByEmployeeAndDate(context.Background(), empID, "2026-01-15")
+	if err != nil {
+		t.Fatalf("expected session to be generated: %v", err)
+	}
+	if session.LatenessMinutes != 0 {
+		t.Errorf("expected 0 lateness minutes (fallback to client offset, on-time), got %d", session.LatenessMinutes)
 	}
 }
 

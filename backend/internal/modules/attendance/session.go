@@ -101,18 +101,23 @@ func (s *Service) recalculateSession(ctx context.Context, employeeID uuid.UUID, 
 	}
 
 	// attendance_company_shifts.check_in_time/check_out_time carry no
-	// timezone of their own - anchor them to whichever event's local
-	// timestamp we have, since event_time_local's offset is this codebase's
-	// only source of "local" (there's no company/tenant timezone setting -
-	// see docs/module-attendance-plan.md §3, deferred in Phase 1). Falling
-	// back to UTC when there are no events yet is harmless: planned times
-	// aren't meaningfully comparable to anything in that case anyway.
+	// timezone of their own - anchor them to the employee's resolved
+	// organization timezone (company default, or zone override) when
+	// resolvable, so lateness/early-leave reflect the org's official zone
+	// rather than whatever offset the client device chose to report.
+	// Falls back to the client-embedded EventTimeLocal offset when
+	// org/timezone data is incomplete (must never block session
+	// generation), and to UTC when there are no events yet at all.
 	loc := time.UTC
-	switch {
-	case checkin != nil:
-		loc = checkin.EventTimeLocal.Location()
-	case checkout != nil:
-		loc = checkout.EventTimeLocal.Location()
+	if empLoc := s.resolveEmployeeTimezone(ctx, employeeID); empLoc != nil {
+		loc = empLoc
+	} else {
+		switch {
+		case checkin != nil:
+			loc = checkin.EventTimeLocal.Location()
+		case checkout != nil:
+			loc = checkout.EventTimeLocal.Location()
+		}
 	}
 
 	plannedStart, err := combineDateAndTime(workDateT, shift.CheckInTime, loc)

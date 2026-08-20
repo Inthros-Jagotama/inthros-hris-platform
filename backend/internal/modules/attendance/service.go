@@ -594,12 +594,23 @@ func (s *Service) CreateEvent(ctx context.Context, req CreateEventRequest) (*Eve
 		return nil, err
 	}
 
-	// Work date is the CHECKIN's local calendar date (§24) - for a CHECKOUT
-	// that closes a cross-midnight shift, that's lastEvent's date, not this
-	// event's own (which lands on the following day).
-	workDate := event.EventTimeLocal.Format(workDateLayout)
+	// Work date is the CHECKIN's calendar date (§24) - for a CHECKOUT that
+	// closes a cross-midnight shift, that's lastEvent's date, not this
+	// event's own (which lands on the following day). Interpreted in the
+	// employee's resolved organization timezone (company default, or zone
+	// override) when resolvable; falls back to the client-embedded
+	// EventTimeLocal offset otherwise (org/timezone data incomplete must
+	// never block a check-in).
+	empLoc := s.resolveEmployeeTimezone(ctx, empID)
+	workDateSource := event
 	if eventType == EventTypeCheckOut && lastEvent != nil {
-		workDate = lastEvent.EventTimeLocal.Format(workDateLayout)
+		workDateSource = lastEvent
+	}
+	var workDate string
+	if empLoc != nil {
+		workDate = workDateSource.EventTimeUTC.In(empLoc).Format(workDateLayout)
+	} else {
+		workDate = workDateSource.EventTimeLocal.Format(workDateLayout)
 	}
 	if err := s.recalculateSession(ctx, empID, workDate); err != nil {
 		s.logger.Warn("Failed to recalculate attendance session",
@@ -693,6 +704,23 @@ func (s *Service) applyEventValidation(ctx context.Context, event *AttendanceEve
 	}
 }
 
+// resolveEmployeeTimezone mengembalikan zona waktu efektif organization
+// tempat employeeID bekerja saat ini (Zone override -> Company default),
+// atau nil kalau organization/timezone-nya tidak bisa diresolusi. Selalu
+// fail-open (nil, bukan error) - dipakai di titik-titik yang harus tetap
+// berfungsi dengan fallback lama saat data organisasi tidak lengkap.
+func (s *Service) resolveEmployeeTimezone(ctx context.Context, employeeID uuid.UUID) *time.Location {
+	orgID, err := s.repo.FindOrganizationIDByEmployeeID(ctx, employeeID)
+	if err != nil || orgID == nil {
+		return nil
+	}
+	loc, err := s.repo.ResolveOrganizationTimezone(ctx, *orgID)
+	if err != nil {
+		return nil
+	}
+	return loc
+}
+
 // checkClockSkew compares an event's device-supplied EventTimeUTC against
 // the server's own clock, using the employee's resolved organization
 // timezone only to phrase the resulting note. Returns nil (no flag) when
@@ -700,12 +728,8 @@ func (s *Service) applyEventValidation(ctx context.Context, event *AttendanceEve
 // timezone can't be resolved - a missing timezone context must never block
 // a check-in, so this fails open rather than erroring.
 func (s *Service) checkClockSkew(ctx context.Context, event *AttendanceEvent) *string {
-	orgID, err := s.repo.FindOrganizationIDByEmployeeID(ctx, event.EmployeeID)
-	if err != nil || orgID == nil {
-		return nil
-	}
-	loc, err := s.repo.ResolveOrganizationTimezone(ctx, *orgID)
-	if err != nil {
+	loc := s.resolveEmployeeTimezone(ctx, event.EmployeeID)
+	if loc == nil {
 		return nil
 	}
 
