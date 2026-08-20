@@ -356,7 +356,9 @@
     "confirm_delete_title": "Hapus Wilayah",
     "created": "Wilayah berhasil dibuat",
     "updated": "Wilayah berhasil diperbarui",
-    "deleted": "Wilayah berhasil dihapus"
+    "deleted": "Wilayah berhasil dihapus",
+    "timezone": "Zona Waktu",
+    "timezone_inherit": "Ikut default perusahaan"
   },
   "employee": {
     "title": "Karyawan",
@@ -3237,7 +3239,12 @@
     "address_placeholder": "Masukkan alamat perusahaan",
     "npwp_placeholder": "Masukkan NPWP (16 digit)",
     "nib_placeholder": "Masukkan NIB",
-    "updated": "Informasi perusahaan berhasil diperbarui"
+    "updated": "Informasi perusahaan berhasil diperbarui",
+    "regional_settings": "Pengaturan Zona Waktu",
+    "timezone": "Zona Waktu Perusahaan",
+    "timezone_desc": "Zona waktu default ini digunakan di seluruh sistem kecuali wilayah tertentu diatur berbeda.",
+    "timezone_updated": "Zona waktu perusahaan berhasil disimpan",
+    "timezone_load_error": "Gagal memuat zona waktu perusahaan"
   },
   "set_password": {
     "title": "Atur Password Anda",

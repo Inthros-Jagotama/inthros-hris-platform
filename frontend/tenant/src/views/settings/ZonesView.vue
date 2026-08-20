@@ -87,6 +87,9 @@
             <FormRow :label="t('zones.region')" :errors="errors?.region">
             <TextInput v-model="form.region" maxlength="100" :placeholder="t('zones.region')" />
           </FormRow>
+            <FormRow :label="t('zones.timezone')" :errors="errors?.timezone">
+            <Select v-model="form.timezone" :options="timezoneOverrideOptions" optionLabel="label" optionValue="value" class="w-full" />
+          </FormRow>
             <div class="flex items-center justify-between pt-2"><label class="text-sm font-medium text-gray-600 dark:text-gray-300">{{ t('zones.is_active') }}</label><ToggleSwitch v-model="form.is_active" /></div>
             <FormRow :label="t('zones.sort_order')" :errors="errors?.sort_order">
             <InputNumber v-model="form.sort_order" class="!w-full" :min="0" size="small" />
@@ -130,6 +133,7 @@ import InputIcon from 'primevue/inputicon'
 import IconField from 'primevue/iconfield'
 import InputNumber from 'primevue/inputnumber'
 import Tag from 'primevue/tag'
+import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Dialog from 'primevue/dialog'
 import SkeletonTable from '@/components/SkeletonTable.vue'
@@ -149,7 +153,14 @@ const editing = ref(false)
 const editingId = ref(null)
 const saving = ref(false)
 const errors = ref({})
-const form = ref({ code: '', name: '', region: '', is_active: true, sort_order: 0 })
+const form = ref({ code: '', name: '', region: '', timezone: null, is_active: true, sort_order: 0 })
+
+const timezoneOverrideOptions = computed(() => [
+  { label: t('zones.timezone_inherit'), value: null },
+  { label: 'WIB (Asia/Jakarta)', value: 'Asia/Jakarta' },
+  { label: 'WITA (Asia/Makassar)', value: 'Asia/Makassar' },
+  { label: 'WIT (Asia/Jayapura)', value: 'Asia/Jayapura' }
+])
 const deleteDialogVisible = ref(false)
 const deleting = ref(false)
 const deleteError = ref('')
@@ -212,6 +223,7 @@ function openDialog(item) {
     code: item?.code || '',
     name: item?.name || '',
     region: item?.region || '',
+    timezone: item?.timezone ?? null,
     is_active: item?.is_active !== undefined ? item.is_active : true,
     sort_order: item?.sort_order || 0
   }
@@ -219,7 +231,7 @@ function openDialog(item) {
 }
 
 function resetForm() {
-  form.value = { code: '', name: '', region: '', is_active: true, sort_order: 0 }
+  form.value = { code: '', name: '', region: '', timezone: null, is_active: true, sort_order: 0 }
   errors.value = {}
   editing.value = false
   editingId.value = null
@@ -235,6 +247,7 @@ async function handleSave() {
       code: form.value.code,
       name: form.value.name,
       region: form.value.region || undefined,
+      timezone: form.value.timezone || null,
       is_active: form.value.is_active,
       sort_order: form.value.sort_order || 0
     }

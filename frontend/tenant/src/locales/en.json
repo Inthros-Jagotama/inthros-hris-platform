@@ -356,7 +356,9 @@
     "confirm_delete_title": "Delete Zone",
     "created": "Zone created successfully",
     "updated": "Zone updated successfully",
-    "deleted": "Zone deleted successfully"
+    "deleted": "Zone deleted successfully",
+    "timezone": "Timezone",
+    "timezone_inherit": "Follow company default"
   },
   "employee": {
     "title": "Employees",
@@ -3237,7 +3239,12 @@
     "address_placeholder": "Enter company address",
     "npwp_placeholder": "Enter NPWP (16 digits)",
     "nib_placeholder": "Enter NIB",
-    "updated": "Company information updated successfully"
+    "updated": "Company information updated successfully",
+    "regional_settings": "Timezone Settings",
+    "timezone": "Company Timezone",
+    "timezone_desc": "This default timezone is used across the system unless a specific zone overrides it.",
+    "timezone_updated": "Company timezone saved successfully",
+    "timezone_load_error": "Failed to load company timezone"
   },
   "set_password": {
     "title": "Set Your Password",
