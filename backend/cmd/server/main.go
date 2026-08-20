@@ -1118,7 +1118,7 @@ func main() {
 	// attendance.NewModule) so its push-based approval status handler can be
 	// registered with approvalSvc before the module is mounted.
 	attendanceResolver := attendance.NewTenantDBResolver(dbManager)
-	attendanceRepo := attendance.NewRepository(attendanceResolver)
+	attendanceRepo := attendance.NewRepositoryWithPlatformDB(attendanceResolver, dbManager.PlatformDB())
 	attendanceSvc := attendance.NewService(attendanceRepo, l.Named("attendance"))
 	attendanceSvc.SetApprovalEngine(sharedApprovalEngine)
 	attendanceSvc.SetNotifier(notificationSvc)

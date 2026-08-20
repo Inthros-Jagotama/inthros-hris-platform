@@ -30,7 +30,7 @@ func NewTenantDBResolver(dbManager *database.Manager) TenantDBFunc {
 
 func NewModule(dbManager *database.Manager, logger *zap.Logger) module.Module {
 	resolver := NewTenantDBResolver(dbManager)
-	repo := NewRepository(resolver)
+	repo := NewRepositoryWithPlatformDB(resolver, dbManager.PlatformDB())
 	svc := NewService(repo, logger)
 	handler := NewHandler(svc)
 

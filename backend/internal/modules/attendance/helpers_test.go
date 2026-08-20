@@ -3,6 +3,7 @@ package attendance
 import (
 	"context"
 	"fmt"
+	"testing"
 	"time"
 
 	"github.com/google/uuid"
@@ -71,6 +72,7 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 			id CHAR(36) PRIMARY KEY,
 			nomenclature VARCHAR(255) NOT NULL DEFAULT '',
 			parent_id CHAR(36) NULL,
+			zone_id CHAR(36) NULL,
 			deleted_at DATETIME NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS employments (
@@ -79,6 +81,13 @@ func setupTestDB() (*gorm.DB, func(ctx context.Context) (*gorm.DB, error), func(
 			organization_id CHAR(36) NOT NULL,
 			effective_date DATE NOT NULL,
 			effective_end_date DATE NULL
+		)`,
+		// Raw zones table (owned by module `setting`) — used only by
+		// ResolveOrganizationTimezone's LEFT JOIN. Minimal schema covering
+		// the column touched (timezone).
+		`CREATE TABLE IF NOT EXISTS zones (
+			id CHAR(36) PRIMARY KEY,
+			timezone VARCHAR(64) NULL
 		)`,
 	}
 	for _, stmt := range rawTables {
@@ -266,6 +275,73 @@ func seedOrg(db *gorm.DB, id uuid.UUID, parentID *uuid.UUID, name string) {
 	}
 	if err := db.Exec(sql, args...).Error; err != nil {
 		panic(fmt.Sprintf("failed to seed organization: %v", err))
+	}
+}
+
+// setupTestPlatformDB creates a separate in-memory SQLite database
+// containing just a minimal companies table (id, timezone), mirroring the
+// platform DB that Repository.getCompanyTimezone reads companies.timezone
+// from. Mirrors setting/helpers_test.go's setupTestPlatformDB, but avoids
+// importing the company package (raw table, same convention as this file's
+// other cross-module fixtures) to sidestep any import-cycle risk.
+func setupTestPlatformDB() (*gorm.DB, func()) {
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared&platform=1"), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("failed to open test platform db: %v", err))
+	}
+	if err := db.Exec(`CREATE TABLE IF NOT EXISTS companies (
+		id CHAR(36) PRIMARY KEY,
+		timezone VARCHAR(64) NOT NULL DEFAULT ''
+	)`).Error; err != nil {
+		panic(fmt.Sprintf("failed to create test companies table: %v", err))
+	}
+	cleanup := func() {
+		sqlDB, _ := db.DB()
+		if sqlDB != nil {
+			sqlDB.Close()
+		}
+	}
+	return db, cleanup
+}
+
+// newTestRepository creates a Repository wired with both an in-memory
+// tenant DB and an in-memory platform DB (with a seeded company row keyed
+// by companyID, timezone companyTz), and a ctx carrying that company ID via
+// authctx (mirrors how middleware.TenantRequired populates request
+// context). Used by ResolveOrganizationTimezone tests.
+func newTestRepository(t *testing.T, companyID uuid.UUID, companyTz string) (*Repository, *gorm.DB, context.Context) {
+	t.Helper()
+	db, dbResolver, cleanup := setupTestDB()
+	platformDB, platformCleanup := setupTestPlatformDB()
+	t.Cleanup(func() {
+		cleanup()
+		platformCleanup()
+	})
+	if err := platformDB.Exec("INSERT INTO companies (id, timezone) VALUES (?, ?)", companyID.String(), companyTz).Error; err != nil {
+		t.Fatalf("failed to seed test company: %v", err)
+	}
+	repo := NewRepositoryWithPlatformDB(dbResolver, platformDB)
+	ctx := context.WithValue(context.Background(), "company_id", companyID.String())
+	return repo, db, ctx
+}
+
+// seedZone inserts a zone row (raw table) with the given timezone override.
+func seedZone(db *gorm.DB, id uuid.UUID, tz string) {
+	if err := db.Exec("INSERT INTO zones (id, timezone) VALUES (?, ?)", id.String(), tz).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed zone: %v", err))
+	}
+}
+
+// seedOrgWithZone inserts an organization row with a zone_id reference.
+func seedOrgWithZone(db *gorm.DB, id uuid.UUID, zoneID *uuid.UUID, name string) {
+	var zid interface{}
+	if zoneID != nil {
+		zid = zoneID.String()
+	}
+	if err := db.Exec("INSERT INTO organizations (id, nomenclature, parent_id, zone_id) VALUES (?, ?, NULL, ?)", id.String(), name, zid).Error; err != nil {
+		panic(fmt.Sprintf("failed to seed organization with zone: %v", err))
 	}
 }
 
