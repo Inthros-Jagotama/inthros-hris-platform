@@ -161,7 +161,7 @@
       v-model:visible="settingsVisible"
       :header="t('talent_maps.settings_title')"
       modal
-      :style="{ width: '460px' }"
+      :style="{ width: '620px' }"
     >
       <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('talent_maps.settings_hint') }}</p>
       <div class="space-y-3">
