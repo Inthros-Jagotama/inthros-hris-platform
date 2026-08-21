@@ -654,6 +654,13 @@ const routes = [
         component: () => import('@/views/modules/workforce-intelligence/HeadcountPlanning.vue'),
         meta: { title: 'Headcount Planning', titleKey: 'headcount_planning.title', descKey: 'headcount_planning.description', icon: 'pi pi-arrows-alt', module: 'workforce-intelligence', backRoute: '/workforce-intelligence', backLabelKey: 'workforce_intel.title', permission: 'workforceintelligence.headcount-planning.view' }
       },
+      // Risk Dashboard — indikator risiko workforce (turnover/retirement/contract-expiry/absenteeism)
+      {
+        path: 'workforce-intelligence/risk-dashboard',
+        name: 'RiskDashboard',
+        component: () => import('@/views/modules/workforce-intelligence/RiskDashboard.vue'),
+        meta: { title: 'Risk Dashboard', titleKey: 'risk_dashboard.title', descKey: 'risk_dashboard.description', icon: 'pi pi-exclamation-triangle', module: 'workforce-intelligence', backRoute: '/workforce-intelligence', backLabelKey: 'workforce_intel.title', permission: 'workforceintelligence.risk-dashboard.view' }
+      },
       // Candidate Search — posisi kosong + kandidat recruitment
       {
         path: 'workforce-intelligence/candidate-search',
