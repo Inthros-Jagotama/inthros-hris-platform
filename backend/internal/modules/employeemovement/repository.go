@@ -250,9 +250,13 @@ func (r *Repository) GetOrganizationNamesByIDs(ctx context.Context, ids []uuid.U
 }
 
 // GetPositionNamesByIDs resolves position titles for a batch of ids
-// (used for from/to_position_name enrichment).
+// (used for from/to_position_name enrichment). "positions" is a dead table
+// (never written by any FE flow) -- this app's data model is
+// Organization = Position, so position_id values are actually
+// organizations.id (same source dropdowns as GetOrganizationNamesByIDs
+// use); resolve from organizations.nomenclature instead.
 func (r *Repository) GetPositionNamesByIDs(ctx context.Context, ids []uuid.UUID) (map[string]string, error) {
-	return r.resolveNamesByIDs(ctx, "positions", "title", ids)
+	return r.resolveNamesByIDs(ctx, "organizations", "nomenclature", ids)
 }
 
 // GetEmploymentStatusNamesByIDs resolves employment status names for a batch

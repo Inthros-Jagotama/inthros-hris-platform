@@ -71,6 +71,13 @@ func seedEnrichmentRefs(t *testing.T, dbResolver func(ctx context.Context) (*gor
 		posID.String(), orgID.String(), "P-IT-01", "Software Engineer").Error; err != nil {
 		t.Fatalf("failed to seed position: %v", err)
 	}
+	// position_id sebenarnya organizations.id (Organization = Position) --
+	// GetPositionNamesByIDs sekarang resolve dari organizations, bukan tabel
+	// positions yang mati; seed posID sebagai baris organizations terpisah juga.
+	if err := db.Exec(`INSERT INTO organizations (id, code, full_code, nomenclature) VALUES (?, ?, ?, ?)`,
+		posID.String(), "PI", "POS-P-IT-01", "Software Engineer").Error; err != nil {
+		t.Fatalf("failed to seed position as organization: %v", err)
+	}
 	if err := db.Exec(`INSERT INTO employment_statuses (id, code, name) VALUES (?, ?, ?)`,
 		statusID.String(), "PERM", "Permanent").Error; err != nil {
 		t.Fatalf("failed to seed employment status: %v", err)

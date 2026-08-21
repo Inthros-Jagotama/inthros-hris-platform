@@ -47,7 +47,10 @@ func seedCareerReferenceTables(t *testing.T, repo *Repository, employeeID uuid.U
 	if err := db.Exec("INSERT INTO organizations (id, nomenclature) VALUES (?, ?)", orgID.String(), "PT Maju Bersama").Error; err != nil {
 		t.Fatalf("failed to seed organization: %v", err)
 	}
-	if err := db.Exec("INSERT INTO positions (id, title) VALUES (?, ?)", posID.String(), "Software Engineer").Error; err != nil {
+	// position_id sebenarnya organizations.id (Organization = Position) --
+	// GetPositionNamesByIDs sekarang resolve dari organizations, bukan tabel
+	// positions yang mati; seed posID sebagai baris organizations terpisah.
+	if err := db.Exec("INSERT INTO organizations (id, nomenclature) VALUES (?, ?)", posID.String(), "Software Engineer").Error; err != nil {
 		t.Fatalf("failed to seed position: %v", err)
 	}
 	if err := db.Exec("INSERT INTO employment_statuses (id, name) VALUES (?, ?)", statusID.String(), "Permanent").Error; err != nil {
