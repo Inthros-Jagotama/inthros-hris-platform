@@ -212,7 +212,7 @@
                 </div>
                 <div>
                   <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('career_paths.min_service_months') }}</label>
-                  <InputNumber v-model="step.minimum_service_months" :min="0" :useGrouping="false" class="w-full" />
+                  <InputNumber v-model="step.minimum_service_months" :min="0" :useGrouping="false" inputClass="!text-sm" class="w-full" />
                 </div>
                 <div>
                   <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('career_paths.step_requirements') }}</label>
