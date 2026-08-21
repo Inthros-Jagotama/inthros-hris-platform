@@ -687,7 +687,7 @@ const routes = [
         path: 'career-intelligence/succession-plans',
         name: 'SuccessionPlans',
         component: () => import('@/views/modules/career-intelligence/SuccessionPlans.vue'),
-        meta: { title: 'Succession Plans', titleKey: 'succession_plans.title', descKey: 'succession_plans.description', icon: 'pi pi-user-plus', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'career-intelligence.view' }
+        meta: { title: 'Succession Plans', titleKey: 'succession_plans.title', descKey: 'succession_plans.description', icon: 'pi pi-user-plus', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'careerintelligence.view' }
       },
       // Gap Analysis — kesenjangan kompetensi employee menuju target job title
       {
