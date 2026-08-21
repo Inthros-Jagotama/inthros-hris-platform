@@ -662,7 +662,8 @@ func createSuccessionGapTables(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	if err := db.Exec(`CREATE TABLE organizations (
 		id CHAR(36) PRIMARY KEY,
-		nomenclature VARCHAR(200)
+		nomenclature VARCHAR(200),
+		full_code VARCHAR(50)
 	)`).Error; err != nil {
 		t.Fatalf("failed to create organizations table: %v", err)
 	}

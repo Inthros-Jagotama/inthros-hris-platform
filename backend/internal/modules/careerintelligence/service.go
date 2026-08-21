@@ -900,6 +900,7 @@ func (s *Service) GetSuccessionGaps(ctx context.Context) ([]SuccessionGapRespons
 		responses = append(responses, SuccessionGapResponse{
 			PositionID:                  row.PositionID,
 			PositionTitle:               row.PositionTitle,
+			PositionCode:                row.PositionCode,
 			OrganizationID:              row.OrganizationID,
 			SuccessorCount:              row.SuccessorCount,
 			ReadyNowCount:               row.ReadyNowCount,

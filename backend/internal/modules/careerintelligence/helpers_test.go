@@ -143,7 +143,7 @@ func seedCareerPathPositions(t *testing.T, repo *Repository) (uuid.UUID, uuid.UU
 	if err != nil {
 		t.Fatalf("failed to get test db: %v", err)
 	}
-	if err := db.Exec("CREATE TABLE IF NOT EXISTS organizations (id CHAR(36) PRIMARY KEY, nomenclature VARCHAR(255))").Error; err != nil {
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS organizations (id CHAR(36) PRIMARY KEY, nomenclature VARCHAR(255), full_code VARCHAR(50))").Error; err != nil {
 		t.Fatalf("failed to create organizations table: %v", err)
 	}
 	a := uuid.New()

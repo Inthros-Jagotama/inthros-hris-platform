@@ -282,6 +282,7 @@ type SuccessionPlanResponse struct {
 type SuccessionGapResponse struct {
 	PositionID                 string `json:"position_id"`
 	PositionTitle              string `json:"position_title"`
+	PositionCode               string `json:"position_code,omitempty"`
 	OrganizationID             string `json:"organization_id,omitempty"`
 	SuccessorCount             int    `json:"successor_count"`
 	ReadyNowCount              int    `json:"ready_now_count"`

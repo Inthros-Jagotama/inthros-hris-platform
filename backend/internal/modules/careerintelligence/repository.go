@@ -543,6 +543,7 @@ func (r *Repository) DeleteSuccessionPlan(ctx context.Context, id uuid.UUID) err
 type SuccessionGapRow struct {
 	PositionID      string
 	PositionTitle   string
+	PositionCode    string
 	OrganizationID  string
 	SuccessorCount  int
 	ReadyNowCount   int
@@ -562,11 +563,11 @@ func (r *Repository) ListSuccessionGapPositions(ctx context.Context) ([]Successi
 	}
 	var rows []SuccessionGapRow
 	if err := db.Table("career_succession_plans sp").
-		Select("sp.position_id AS position_id, COALESCE(o.nomenclature, '') AS position_title, sp.position_id AS organization_id, COUNT(*) AS successor_count, COALESCE(SUM(CASE WHEN sp.readiness_level = ? THEN 1 ELSE 0 END), 0) AS ready_now_count", "READY_NOW").
+		Select("sp.position_id AS position_id, COALESCE(o.nomenclature, '') AS position_title, COALESCE(o.full_code, '') AS position_code, sp.position_id AS organization_id, COUNT(*) AS successor_count, COALESCE(SUM(CASE WHEN sp.readiness_level = ? THEN 1 ELSE 0 END), 0) AS ready_now_count", "READY_NOW").
 		Joins("LEFT JOIN organizations o ON o.id = sp.position_id").
 		Where("sp.status = ?", "ACTIVE").
 		Where("sp.deleted_at IS NULL").
-		Group("sp.position_id, o.nomenclature").
+		Group("sp.position_id, o.nomenclature, o.full_code").
 		Order("position_title ASC").
 		Scan(&rows).Error; err != nil {
 		return nil, err
