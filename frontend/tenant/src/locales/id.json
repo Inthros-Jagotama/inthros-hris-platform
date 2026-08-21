@@ -3137,6 +3137,27 @@
     "requires_external": "Perlu Eksternal",
     "covered": "Tercover Internal"
   },
+  "succession_plans": {
+    "title": "Rencana Suksesi",
+    "description": "Rencanakan suksesor untuk posisi kunci: kesiapan, prioritas, dan target tanggal.",
+    "add_plan": "Rencana Suksesi Baru",
+    "edit_plan": "Ubah Rencana Suksesi",
+    "empty_plans": "Belum ada rencana suksesi",
+    "plan_detail_title": "Detail Rencana Suksesi",
+    "position": "Posisi Kunci",
+    "successor": "Suksesor",
+    "readiness_level": "Kesiapan",
+    "readiness_READY_NOW": "Siap Sekarang",
+    "readiness_READY_1YR": "Siap 1 Tahun",
+    "readiness_READY_2YR": "Siap 2 Tahun",
+    "readiness_POTENTIAL": "Potensial",
+    "priority_order": "Prioritas",
+    "target_date": "Target Tanggal",
+    "development_plan": "Rencana Pengembangan",
+    "notes": "Catatan",
+    "confirm_delete_title": "Hapus Rencana Suksesi",
+    "confirm_delete_msg": "Hapus rencana suksesi ini? Tindakan ini tidak dapat dibatalkan."
+  },
   "gap_analysis": {
     "title": "Analisis Kesenjangan",
     "description": "Kesenjangan kompetensi karyawan menuju target jabatan.",
@@ -3182,6 +3203,7 @@
     "talent_map": "Peta Bakat 9-Box",
     "interests": "Minat Karir",
     "paths": "Jalur Karir",
+    "succession_plans": "Rencana Suksesi",
     "development": "Training Pengembangan",
     "development_desc": "Riwayat training per karyawan untuk mendukung rekomendasi pengembangan karir (pemetaan course–competency)."
   },

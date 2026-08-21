@@ -3137,6 +3137,27 @@
     "requires_external": "External Needed",
     "covered": "Covered Internally"
   },
+  "succession_plans": {
+    "title": "Succession Plans",
+    "description": "Plan successors for key positions: readiness, priority, and target date.",
+    "add_plan": "New Succession Plan",
+    "edit_plan": "Edit Succession Plan",
+    "empty_plans": "No succession plans yet",
+    "plan_detail_title": "Succession Plan Detail",
+    "position": "Key Position",
+    "successor": "Successor",
+    "readiness_level": "Readiness",
+    "readiness_READY_NOW": "Ready Now",
+    "readiness_READY_1YR": "Ready in 1 Year",
+    "readiness_READY_2YR": "Ready in 2 Years",
+    "readiness_POTENTIAL": "Potential",
+    "priority_order": "Priority",
+    "target_date": "Target Date",
+    "development_plan": "Development Plan",
+    "notes": "Notes",
+    "confirm_delete_title": "Delete Succession Plan",
+    "confirm_delete_msg": "Delete this succession plan? This action cannot be undone."
+  },
   "gap_analysis": {
     "title": "Gap Analysis",
     "description": "Employee competency gap towards a target job title.",
@@ -3182,6 +3203,7 @@
     "talent_map": "9-Box Talent Map",
     "interests": "Career Interests",
     "paths": "Career Paths",
+    "succession_plans": "Succession Plans",
     "development": "Development Training",
     "development_desc": "Per-employee training history supporting career development recommendations (course–competency mapping)."
   },

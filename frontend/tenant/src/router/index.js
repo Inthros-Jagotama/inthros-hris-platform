@@ -682,6 +682,13 @@ const routes = [
         component: () => import('@/views/modules/career-intelligence/SuccessionGaps.vue'),
         meta: { title: 'Succession Gaps', titleKey: 'succession_gaps.title', descKey: 'succession_gaps.description', icon: 'pi pi-users', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'careerintelligence.successions.view' }
       },
+      // Succession Plans — CRUD posisi kunci → suksesor (readiness, priority, target date)
+      {
+        path: 'career-intelligence/succession-plans',
+        name: 'SuccessionPlans',
+        component: () => import('@/views/modules/career-intelligence/SuccessionPlans.vue'),
+        meta: { title: 'Succession Plans', titleKey: 'succession_plans.title', descKey: 'succession_plans.description', icon: 'pi pi-user-plus', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'career-intelligence.succession.view' }
+      },
       // Gap Analysis — kesenjangan kompetensi employee menuju target job title
       {
         path: 'career-intelligence/gap-analysis',
