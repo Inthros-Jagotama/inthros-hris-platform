@@ -168,19 +168,19 @@
         <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">{{ t('talent_maps.performance') }}</p>
         <div class="grid grid-cols-2 gap-3">
           <FormRow :label="t('talent_maps.low_max')" :errors="settingsErrors?.performance_low_max">
-            <InputNumber v-model="settingsForm.performance_low_max" :min="0" :max="100" suffix="%" class="w-full" />
+            <InputNumber v-model="settingsForm.performance_low_max" :min="0" :max="100" suffix="%" class="!w-28" />
           </FormRow>
           <FormRow :label="t('talent_maps.high_min')" :errors="settingsErrors?.performance_high_min">
-            <InputNumber v-model="settingsForm.performance_high_min" :min="0" :max="100" suffix="%" class="w-full" />
+            <InputNumber v-model="settingsForm.performance_high_min" :min="0" :max="100" suffix="%" class="!w-28" />
           </FormRow>
         </div>
         <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mt-2">{{ t('talent_maps.potential') }}</p>
         <div class="grid grid-cols-2 gap-3">
           <FormRow :label="t('talent_maps.low_max')" :errors="settingsErrors?.potential_low_max">
-            <InputNumber v-model="settingsForm.potential_low_max" :min="0" :max="100" suffix="%" class="w-full" />
+            <InputNumber v-model="settingsForm.potential_low_max" :min="0" :max="100" suffix="%" class="!w-28" />
           </FormRow>
           <FormRow :label="t('talent_maps.high_min')" :errors="settingsErrors?.potential_high_min">
-            <InputNumber v-model="settingsForm.potential_high_min" :min="0" :max="100" suffix="%" class="w-full" />
+            <InputNumber v-model="settingsForm.potential_high_min" :min="0" :max="100" suffix="%" class="!w-28" />
           </FormRow>
         </div>
         <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('talent_maps.settings_band_hint') }}</p>
