@@ -1370,6 +1370,30 @@ func (r *Repository) ListCourseCompetencies(ctx context.Context, courseID uuid.U
 	return items, nil
 }
 
+// ListCoursesByCompetencyIDs finds every active course that develops any of
+// the given competencies (reverse lookup of training_course_competencies),
+// used to recommend training that closes a Career Intelligence competency
+// gap. Empty input returns an empty slice, not an error.
+func (r *Repository) ListCoursesByCompetencyIDs(ctx context.Context, competencyIDs []uuid.UUID) ([]CourseCompetencyMatchResponse, error) {
+	if len(competencyIDs) == 0 {
+		return []CourseCompetencyMatchResponse{}, nil
+	}
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rows []CourseCompetencyMatchResponse
+	err = db.WithContext(ctx).Table("training_course_competencies tcc").
+		Select("c.id AS course_id, c.name AS course_name, tcc.competency_id AS competency_id, tcc.target_level AS target_level, c.is_mandatory AS is_mandatory, c.is_certified AS is_certified").
+		Joins("JOIN training_courses c ON c.id = tcc.course_id AND c.is_active = ?", true).
+		Where("tcc.competency_id IN ? AND tcc.deleted_at IS NULL", competencyIDs).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list courses by competency: %w", err)
+	}
+	return rows, nil
+}
+
 func (r *Repository) DeleteCourseCompetency(ctx context.Context, id uuid.UUID) error {
 	db, err := r.db(ctx)
 	if err != nil {

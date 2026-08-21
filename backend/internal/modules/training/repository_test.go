@@ -75,6 +75,57 @@ func TestRepository_GetEmployeeTrainingSummary(t *testing.T) {
 	}
 }
 
+func TestRepository_ListCoursesByCompetencyIDs(t *testing.T) {
+	repo := testRepo(t)
+	svc := NewService(repo, testLogger())
+	ctx := testCtx()
+
+	categoryID := seedCategory(t, svc)
+	courseID := seedCourse(t, svc, categoryID)
+
+	db, err := repo.db(ctx)
+	if err != nil {
+		t.Fatalf("failed to get test db: %v", err)
+	}
+	competencyID := uuid.New()
+	otherCompetencyID := uuid.New()
+	targetLevel := 4
+	if err := db.Create(&TrainingCourseCompetency{
+		CourseID:     uuid.MustParse(courseID),
+		CompetencyID: competencyID,
+		TargetLevel:  &targetLevel,
+	}).Error; err != nil {
+		t.Fatalf("failed to seed course competency: %v", err)
+	}
+
+	matches, err := repo.ListCoursesByCompetencyIDs(ctx, []uuid.UUID{competencyID})
+	if err != nil {
+		t.Fatalf("ListCoursesByCompetencyIDs failed: %v", err)
+	}
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 match, got %d", len(matches))
+	}
+	if matches[0].CourseID != courseID {
+		t.Errorf("expected course id %s, got %s", courseID, matches[0].CourseID)
+	}
+
+	noMatches, err := repo.ListCoursesByCompetencyIDs(ctx, []uuid.UUID{otherCompetencyID})
+	if err != nil {
+		t.Fatalf("ListCoursesByCompetencyIDs (no match) failed: %v", err)
+	}
+	if len(noMatches) != 0 {
+		t.Errorf("expected 0 matches for unrelated competency, got %d", len(noMatches))
+	}
+
+	empty, err := repo.ListCoursesByCompetencyIDs(ctx, []uuid.UUID{})
+	if err != nil {
+		t.Fatalf("ListCoursesByCompetencyIDs (empty input) failed: %v", err)
+	}
+	if len(empty) != 0 {
+		t.Errorf("expected 0 matches for empty input, got %d", len(empty))
+	}
+}
+
 func TestRepository_CreateCategory(t *testing.T) {
 	svc := testSvc(t)
 	desc := "IT training category"

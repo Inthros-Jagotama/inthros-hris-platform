@@ -3,8 +3,10 @@ package training
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/inthros/hris-platform/internal/modules/approval"
 	"github.com/inthros/hris-platform/internal/pkg/httputil"
@@ -1669,6 +1671,30 @@ func (h *Handler) UpdateCertificateFile(c *gin.Context) {
 // =========================================================================
 // Reports & History — handler P2 (plan §38)
 // =========================================================================
+
+func (h *Handler) ListCoursesByCompetencyIDs(c *gin.Context) {
+	raw := c.Query("competency_ids")
+	if raw == "" {
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "training.competency_ids_required")
+		return
+	}
+	parts := strings.Split(raw, ",")
+	ids := make([]uuid.UUID, 0, len(parts))
+	for _, p := range parts {
+		id, err := uuid.Parse(strings.TrimSpace(p))
+		if err != nil {
+			httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "training.invalid_competency_id")
+			return
+		}
+		ids = append(ids, id)
+	}
+	resp, err := h.svc.ListCoursesByCompetencyIDs(c.Request.Context(), ids)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
 
 func (h *Handler) GetEmployeeTrainingSummary(c *gin.Context) {
 	employeeID := c.Param("employeeId")

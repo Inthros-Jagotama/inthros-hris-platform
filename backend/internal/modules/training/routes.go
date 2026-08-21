@@ -217,6 +217,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 
 		// ── P2-BE: Reports & History (route statis SEBELUM /:id — konstrain Gin) ──
 		trn.GET("/employees/:employeeId/summary", handler.GetEmployeeTrainingSummary)
+		trn.GET("/courses/by-competency", handler.ListCoursesByCompetencyIDs)
 		trn.GET("/history", handler.GetTrainingHistory)
 		trn.GET("/reports/participation", handler.GetParticipationReport)
 		trn.GET("/reports/cost", handler.GetCostReport)

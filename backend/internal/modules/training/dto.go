@@ -952,6 +952,18 @@ type EmployeeTrainingSummaryResponse struct {
 	CompetencyTrainingCount int     `json:"competency_training_count"`
 }
 
+// CourseCompetencyMatchResponse is one course that develops a requested
+// competency, used by Career Intelligence to recommend training that closes
+// a competency gap (Career Intelligence Training Enhancement plan §7/§8).
+type CourseCompetencyMatchResponse struct {
+	CourseID     string `json:"course_id"`
+	CourseName   string `json:"course_name"`
+	CompetencyID string `json:"competency_id"`
+	TargetLevel  *int   `json:"target_level,omitempty"`
+	IsMandatory  bool   `json:"is_mandatory"`
+	IsCertified  bool   `json:"is_certified"`
+}
+
 type TrainingHistoryResponse struct {
 	ParticipantID    string  `json:"participant_id"`
 	EmployeeID       string  `json:"employee_id"`
