@@ -1670,6 +1670,16 @@ func (h *Handler) UpdateCertificateFile(c *gin.Context) {
 // Reports & History — handler P2 (plan §38)
 // =========================================================================
 
+func (h *Handler) GetEmployeeTrainingSummary(c *gin.Context) {
+	employeeID := c.Param("employeeId")
+	resp, err := h.svc.GetEmployeeTrainingSummary(c.Request.Context(), employeeID)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.SuccessJSON(c, resp)
+}
+
 func (h *Handler) GetTrainingHistory(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	if employeeID == "" {

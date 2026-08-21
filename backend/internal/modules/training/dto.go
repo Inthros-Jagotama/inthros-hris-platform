@@ -936,6 +936,22 @@ type UpdateCertificateRequest struct {
 // Reports & History DTOs (P2-BE — plan §38)
 // =========================================================================
 
+// EmployeeTrainingSummaryResponse — aggregate training profile numbers for
+// one employee (Career Intelligence Training Enhancement plan §5 — Employee
+// Training Profile). Read-only projection over training_participants /
+// training_courses / training_certificates / training_course_competencies;
+// no new table.
+type EmployeeTrainingSummaryResponse struct {
+	EmployeeID              string  `json:"employee_id"`
+	TotalTraining           int     `json:"total_training"`
+	Completed               int     `json:"completed"`
+	Failed                  int     `json:"failed"`
+	TrainingHours           float64 `json:"training_hours"`
+	AverageScore            float64 `json:"average_score"`
+	CertificationCount      int     `json:"certification_count"`
+	CompetencyTrainingCount int     `json:"competency_training_count"`
+}
+
 type TrainingHistoryResponse struct {
 	ParticipantID    string  `json:"participant_id"`
 	EmployeeID       string  `json:"employee_id"`

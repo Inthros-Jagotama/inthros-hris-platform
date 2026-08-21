@@ -216,6 +216,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 		trn.DELETE("/certifications/:id", handler.DeleteCertification)
 
 		// ── P2-BE: Reports & History (route statis SEBELUM /:id — konstrain Gin) ──
+		trn.GET("/employees/:employeeId/summary", handler.GetEmployeeTrainingSummary)
 		trn.GET("/history", handler.GetTrainingHistory)
 		trn.GET("/reports/participation", handler.GetParticipationReport)
 		trn.GET("/reports/cost", handler.GetCostReport)

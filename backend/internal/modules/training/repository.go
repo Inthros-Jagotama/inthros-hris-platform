@@ -1935,6 +1935,36 @@ func round2(v float64) float64 {
 // =========================================================================
 
 // HistoryByEmployee — riwayat training per employee (dengan nama course & session).
+// GetEmployeeTrainingSummary aggregates one employee's training profile
+// numbers (Career Intelligence Training Enhancement plan §5). Read-only
+// projection, no new table.
+func (r *Repository) GetEmployeeTrainingSummary(ctx context.Context, employeeID uuid.UUID) (*EmployeeTrainingSummaryResponse, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	summary := &EmployeeTrainingSummaryResponse{EmployeeID: employeeID.String()}
+	query := `
+		SELECT
+			COUNT(DISTINCT tp.id) AS total_training,
+			COALESCE(SUM(CASE WHEN tp.completion_status = 'COMPLETED' THEN 1 ELSE 0 END), 0) AS completed,
+			COALESCE(SUM(CASE WHEN tp.completion_status = 'FAILED' THEN 1 ELSE 0 END), 0) AS failed,
+			COALESCE(SUM(c.duration_hour), 0) AS training_hours,
+			COALESCE(AVG(NULLIF(tp.score, 0)), 0) AS average_score,
+			COUNT(DISTINCT tc.id) AS certification_count,
+			COUNT(DISTINCT tcc.competency_id) AS competency_training_count
+		FROM training_participants tp
+		JOIN training_sessions ts ON ts.id = tp.session_id
+		JOIN training_courses c ON c.id = ts.course_id
+		LEFT JOIN training_certificates tc ON tc.participant_id = tp.id
+		LEFT JOIN training_course_competencies tcc ON tcc.course_id = c.id AND tcc.deleted_at IS NULL
+		WHERE tp.employee_id = ? AND tp.deleted_at IS NULL`
+	if err := db.WithContext(ctx).Raw(query, employeeID).Scan(summary).Error; err != nil {
+		return nil, fmt.Errorf("failed to aggregate training summary: %w", err)
+	}
+	return summary, nil
+}
+
 func (r *Repository) HistoryByEmployee(ctx context.Context, employeeID uuid.UUID) ([]TrainingHistoryResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {

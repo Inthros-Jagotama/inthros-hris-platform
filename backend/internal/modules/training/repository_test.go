@@ -6,6 +6,75 @@ import (
 	"github.com/google/uuid"
 )
 
+func TestRepository_GetEmployeeTrainingSummary(t *testing.T) {
+	repo := testRepo(t)
+	svc := NewService(repo, testLogger())
+	ctx := testCtx()
+
+	categoryID := seedCategory(t, svc)
+	courseID := seedCourse(t, svc, categoryID)
+	sessionID := seedSession(t, svc, courseID)
+
+	db, err := repo.db(ctx)
+	if err != nil {
+		t.Fatalf("failed to get test db: %v", err)
+	}
+
+	competencyID := uuid.New()
+	targetLevel := 4
+	if err := db.Create(&TrainingCourseCompetency{
+		CourseID:     uuid.MustParse(courseID),
+		CompetencyID: competencyID,
+		TargetLevel:  &targetLevel,
+	}).Error; err != nil {
+		t.Fatalf("failed to seed course competency: %v", err)
+	}
+
+	employeeID := uuid.New()
+	participant := &TrainingParticipant{
+		SessionID:        uuid.MustParse(sessionID),
+		EmployeeID:       employeeID,
+		CompletionStatus: CompletionCompleted,
+		Score:            92,
+	}
+	if err := db.Create(participant).Error; err != nil {
+		t.Fatalf("failed to seed participant: %v", err)
+	}
+	if err := db.Create(&TrainingCertificate{
+		ParticipantID: participant.ID,
+		CertificateNo: "CERT-001",
+		IssuedDate:    "2026-01-15",
+	}).Error; err != nil {
+		t.Fatalf("failed to seed certificate: %v", err)
+	}
+
+	summary, err := repo.GetEmployeeTrainingSummary(ctx, employeeID)
+	if err != nil {
+		t.Fatalf("GetEmployeeTrainingSummary failed: %v", err)
+	}
+	if summary.TotalTraining != 1 {
+		t.Errorf("expected total_training 1, got %d", summary.TotalTraining)
+	}
+	if summary.Completed != 1 {
+		t.Errorf("expected completed 1, got %d", summary.Completed)
+	}
+	if summary.Failed != 0 {
+		t.Errorf("expected failed 0, got %d", summary.Failed)
+	}
+	if summary.TrainingHours != 8 {
+		t.Errorf("expected training_hours 8, got %.2f", summary.TrainingHours)
+	}
+	if summary.AverageScore != 92 {
+		t.Errorf("expected average_score 92, got %.2f", summary.AverageScore)
+	}
+	if summary.CertificationCount != 1 {
+		t.Errorf("expected certification_count 1, got %d", summary.CertificationCount)
+	}
+	if summary.CompetencyTrainingCount != 1 {
+		t.Errorf("expected competency_training_count 1, got %d", summary.CompetencyTrainingCount)
+	}
+}
+
 func TestRepository_CreateCategory(t *testing.T) {
 	svc := testSvc(t)
 	desc := "IT training category"

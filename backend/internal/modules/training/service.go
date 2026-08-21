@@ -3868,6 +3868,14 @@ func (s *Service) UpdateCertificateFile(ctx context.Context, id string, req Upda
 // Reports & History (P2-BE — plan §38)
 // =========================================================================
 
+func (s *Service) GetEmployeeTrainingSummary(ctx context.Context, employeeID string) (*EmployeeTrainingSummaryResponse, error) {
+	uid, err := uuid.Parse(employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee_id: %w", err)
+	}
+	return s.repo.GetEmployeeTrainingSummary(ctx, uid)
+}
+
 func (s *Service) GetTrainingHistory(ctx context.Context, employeeID string) ([]TrainingHistoryResponse, error) {
 	uid, err := uuid.Parse(employeeID)
 	if err != nil {
