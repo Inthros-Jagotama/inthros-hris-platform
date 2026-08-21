@@ -459,6 +459,138 @@ func (r *Repository) GetEmployeesByDepartment(ctx context.Context) ([]DataPoint,
 	return points, nil
 }
 
+// GetTurnoverByDepartment menghitung jumlah offboarding (movement_type=
+// offboarding, status=executed) per organisasi asal untuk suatu period
+// (YYYY-MM) -- dipakai widget risk "high-turnover" (GetRiskDetail), sumber
+// data real menggantikan angka demo hardcoded sebelumnya.
+func (r *Repository) GetTurnoverByDepartment(ctx context.Context, period string) ([]DataPoint, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type result struct {
+		Name  string
+		Count int
+	}
+	var rows []result
+	query := db.WithContext(ctx).Table("employee_movements em").
+		Select("o.nomenclature AS name, COUNT(em.id) as count").
+		Joins("LEFT JOIN organizations o ON o.id = em.from_organization_id").
+		Where("em.movement_type = ? AND em.status = 'executed'", "offboarding")
+	if period != "" {
+		query = query.Where("SUBSTR(em.created_at, 1, 7) = ?", period)
+	}
+	if err := query.Group("o.nomenclature").Order("count DESC").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	var points []DataPoint
+	for _, r := range rows {
+		if r.Name == "" {
+			continue
+		}
+		points = append(points, DataPoint{Label: r.Name, Value: float64(r.Count)})
+	}
+	return points, nil
+}
+
+// GetRetirementByDepartment menghitung employee aktif yang mendekati usia
+// pensiun (default retirementAgeDefault, dalam retirementWindowMonths bulan)
+// per organisasi -- dipakai widget risk "retirement".
+func (r *Repository) GetRetirementByDepartment(ctx context.Context, cutoffDOB string) ([]DataPoint, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type result struct {
+		Name  string
+		Count int
+	}
+	var rows []result
+	if err := db.WithContext(ctx).Table("employees e").
+		Select("o.nomenclature AS name, COUNT(e.id) as count").
+		Joins("LEFT JOIN organizations o ON o.id = e.organization_id").
+		Where("e.status = ? AND e.dob IS NOT NULL AND e.dob <= ?", "active", cutoffDOB).
+		Group("o.nomenclature").
+		Order("count DESC").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	var points []DataPoint
+	for _, r := range rows {
+		if r.Name == "" {
+			continue
+		}
+		points = append(points, DataPoint{Label: r.Name, Value: float64(r.Count)})
+	}
+	return points, nil
+}
+
+// GetContractExpiryByDepartment menghitung kontrak aktif yang berakhir
+// antara today dan cutoffDate per organisasi employee -- dipakai widget
+// risk "contract-expiry".
+func (r *Repository) GetContractExpiryByDepartment(ctx context.Context, today, cutoffDate string) ([]DataPoint, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type result struct {
+		Name  string
+		Count int
+	}
+	var rows []result
+	if err := db.WithContext(ctx).Table("employee_contracts c").
+		Select("o.nomenclature AS name, COUNT(c.id) as count").
+		Joins("JOIN employees e ON e.id = c.employee_id").
+		Joins("LEFT JOIN organizations o ON o.id = e.organization_id").
+		Where("c.status = ? AND c.end_date IS NOT NULL AND c.end_date BETWEEN ? AND ?", "active", today, cutoffDate).
+		Group("o.nomenclature").
+		Order("count DESC").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	var points []DataPoint
+	for _, r := range rows {
+		if r.Name == "" {
+			continue
+		}
+		points = append(points, DataPoint{Label: r.Name, Value: float64(r.Count)})
+	}
+	return points, nil
+}
+
+// GetAbsenteeismByDepartment menghitung tingkat absen (persentase sesi
+// ABSENT dari total sesi) per organisasi dalam rentang tanggal -- dipakai
+// widget risk "high-absenteeism".
+func (r *Repository) GetAbsenteeismByDepartment(ctx context.Context, periodStart, periodEnd string) ([]DataPoint, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type result struct {
+		Name        string
+		AbsentCount int
+		TotalCount  int
+	}
+	var rows []result
+	if err := db.WithContext(ctx).Table("attendance_sessions s").
+		Select("o.nomenclature AS name, COUNT(CASE WHEN s.status = 'ABSENT' THEN 1 END) as absent_count, COUNT(*) as total_count").
+		Joins("JOIN employees e ON e.id = s.employee_id").
+		Joins("LEFT JOIN organizations o ON o.id = e.organization_id").
+		Where("s.work_date BETWEEN ? AND ?", periodStart, periodEnd).
+		Group("o.nomenclature").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	var points []DataPoint
+	for _, r := range rows {
+		if r.Name == "" || r.TotalCount == 0 {
+			continue
+		}
+		points = append(points, DataPoint{Label: r.Name, Value: float64(r.AbsentCount) / float64(r.TotalCount) * 100})
+	}
+	return points, nil
+}
+
 func (r *Repository) GetEmployeeCountByType(ctx context.Context) ([]DataPoint, error) {
 	db, err := r.db(ctx)
 	if err != nil {

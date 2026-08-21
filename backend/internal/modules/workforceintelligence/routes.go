@@ -58,6 +58,7 @@ func RegisterRoutes(r *gin.RouterGroup, handler *Handler) {
 
 		// Risk
 		wi.GET("/risk/dashboard", handler.GetRiskDashboard)
+		wi.POST("/risk/indicators", handler.CreateRiskIndicator)
 		wi.GET("/risk/indicators", handler.ListRiskIndicators)
 		wi.GET("/risk/indicators/:id", handler.GetRiskIndicatorByID)
 		wi.PUT("/risk/indicators/:id", handler.UpdateRiskIndicator)

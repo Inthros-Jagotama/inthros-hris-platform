@@ -327,6 +327,19 @@ func (h *Handler) GetBudgetVsActual(c *gin.Context) {
 // Risk
 // =========================================================================
 
+func (h *Handler) CreateRiskIndicator(c *gin.Context) {
+	var req CreateRiskIndicatorRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	resp, err := h.svc.CreateRiskIndicator(c.Request.Context(), req)
+	if err != nil {
+		httputil.InternalError(c, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, resp, "success.created")
+}
+
 func (h *Handler) GetRiskDashboard(c *gin.Context) {
 	period := c.DefaultQuery("period", "")
 	resp, err := h.svc.GetRiskDashboard(c.Request.Context(), period)

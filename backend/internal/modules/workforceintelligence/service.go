@@ -691,6 +691,34 @@ func (s *Service) executeSimulation(ctx context.Context, sc *WorkforceScenario) 
 // Risk Dashboard
 // =========================================================================
 
+// CreateRiskIndicator — sebelumnya tidak ada endpoint create sama sekali
+// (workforce_risk_indicators tidak punya mekanisme pengisian data);
+// repository.CreateRiskIndicator sudah ada tapi hanya dipanggil dari test.
+func (s *Service) CreateRiskIndicator(ctx context.Context, req CreateRiskIndicatorRequest) (*RiskResponse, error) {
+	ri := &WorkforceRiskIndicator{
+		Period:         req.Period,
+		RiskCode:       req.RiskCode,
+		RiskName:       req.RiskName,
+		RiskLevel:      req.RiskLevel,
+		Score:          req.Score,
+		Threshold:      req.Threshold,
+		Recommendation: req.Recommendation,
+		SnapshotAt:     parseDateOrNow(req.SnapshotDate),
+	}
+	if req.DepartmentID != "" {
+		deptID, err := uuid.Parse(req.DepartmentID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid department_id: %w", err)
+		}
+		ri.DepartmentID = &deptID
+	}
+	if err := s.repo.CreateRiskIndicator(ctx, ri); err != nil {
+		return nil, err
+	}
+	s.logger.Info("Risk indicator created", zap.String("risk_code", ri.RiskCode), zap.String("level", ri.RiskLevel))
+	return riskToResponse(ri), nil
+}
+
 func (s *Service) GetRiskDashboard(ctx context.Context, period string) (*RiskDashboardResponse, error) {
 	if period == "" {
 		period = time.Now().Format("2006-01")
@@ -1110,50 +1138,150 @@ func (s *Service) GetSuccessionReadiness(ctx context.Context) (*SuccessionReadin
 // Risk Detail
 // =========================================================================
 
+// Ambang batas & retention window untuk widget risk detail. Threshold tetap
+// kebijakan bisnis (konstanta), tapi Value/ExceededBy/AffectedDepts sekarang
+// dihitung dari data real (lihat repository.go Get*ByDepartment) -- dulu
+// hardcoded angka demo statis.
+const (
+	riskTurnoverThreshold    = 15.0 // % offboarding per bulan aktif
+	riskRetirementThreshold  = 10.0 // % employee mendekati usia pensiun
+	riskContractExpiryThreshold = 30.0 // jumlah kontrak berakhir dalam 90 hari
+	riskAbsenteeismThreshold = 10.0 // % sesi absent
+
+	retirementAgeDefault    = 55 // tidak ada setting retirement_age di codebase; default kebijakan
+	retirementWindowMonths  = 12
+	contractExpiryWindowDays = 90
+)
+
 func (s *Service) GetRiskDetail(ctx context.Context, riskType string) (*RiskDetailResponse, error) {
-	riskDefs := map[string]*RiskDetailResponse{
-		"high-turnover": {
-			RiskCode: "HIGH_TURNOVER", RiskName: "High Turnover Risk", RiskLevel: "HIGH",
-			Value: 18.5, Threshold: 15.0, ExceededBy: 3.5,
-			AffectedDepts: []DataPoint{
-				{Label: "Sales", Value: 24.5},
-				{Label: "Operations", Value: 18.2},
-			},
-			Recommendations: []string{"Conduct exit interviews", "Review compensation competitiveness", "Implement retention programs"},
-		},
-		"retirement": {
-			RiskCode: "RETIREMENT", RiskName: "Retirement Risk", RiskLevel: "MEDIUM",
-			Value: 8.5, Threshold: 10.0, ExceededBy: -1.5,
-			AffectedDepts: []DataPoint{
-				{Label: "Finance", Value: 12.0},
-				{Label: "HR", Value: 10.5},
-			},
-			Recommendations: []string{"Identify critical knowledge transfer needs", "Plan succession pipeline for retiring roles", "Offer phased retirement options"},
-		},
-		"contract-expiry": {
-			RiskCode: "CONTRACT_EXPIRY", RiskName: "Contract Expiration Risk", RiskLevel: "HIGH",
-			Value: 42, Threshold: 30, ExceededBy: 12,
-			AffectedDepts: []DataPoint{
-				{Label: "IT", Value: 55},
-				{Label: "Marketing", Value: 38},
-			},
-			Recommendations: []string{"Review and plan contract renewals", "Identify critical roles on expiring contracts", "Start recruitment pipeline early"},
-		},
-		"high-absenteeism": {
-			RiskCode: "HIGH_ABSENTEEISM", RiskName: "High Absenteeism Risk", RiskLevel: "MEDIUM",
-			Value: 12.5, Threshold: 10.0, ExceededBy: 2.5,
-			AffectedDepts: []DataPoint{
-				{Label: "Manufacturing", Value: 15.2},
-				{Label: "Logistics", Value: 13.8},
-			},
-			Recommendations: []string{"Investigate root causes of absenteeism", "Implement wellness programs", "Review shift scheduling"},
-		},
-	}
-	def, ok := riskDefs[riskType]
-	if !ok {
+	switch riskType {
+	case "high-turnover":
+		return s.getTurnoverRiskDetail(ctx)
+	case "retirement":
+		return s.getRetirementRiskDetail(ctx)
+	case "contract-expiry":
+		return s.getContractExpiryRiskDetail(ctx)
+	case "high-absenteeism":
+		return s.getAbsenteeismRiskDetail(ctx)
+	default:
 		return nil, fmt.Errorf("unknown risk type: %s", riskType)
 	}
-	return def, nil
+}
+
+func sumDataPoints(points []DataPoint) float64 {
+	total := 0.0
+	for _, p := range points {
+		total += p.Value
+	}
+	return total
+}
+
+func avgDataPoints(points []DataPoint) float64 {
+	if len(points) == 0 {
+		return 0
+	}
+	return sumDataPoints(points) / float64(len(points))
+}
+
+func (s *Service) getTurnoverRiskDetail(ctx context.Context) (*RiskDetailResponse, error) {
+	period := time.Now().Format("2006-01")
+	byDept, err := s.repo.GetTurnoverByDepartment(ctx, period)
+	if err != nil {
+		s.logger.Warn("failed to read turnover by department", zap.Error(err))
+		byDept = nil
+	}
+	activeHC, err := s.repo.GetActiveEmployeeCount(ctx)
+	if err != nil {
+		s.logger.Warn("failed to read active employee count", zap.Error(err))
+	}
+	value := 0.0
+	if activeHC > 0 {
+		value = sumDataPoints(byDept) / float64(activeHC) * 100
+	}
+	return &RiskDetailResponse{
+		RiskCode: "HIGH_TURNOVER", RiskName: "High Turnover Risk", RiskLevel: riskLevelFor(value, riskTurnoverThreshold),
+		Value: value, Threshold: riskTurnoverThreshold, ExceededBy: value - riskTurnoverThreshold,
+		AffectedDepts:   byDept,
+		Recommendations: []string{"Conduct exit interviews", "Review compensation competitiveness", "Implement retention programs"},
+	}, nil
+}
+
+func (s *Service) getRetirementRiskDetail(ctx context.Context) (*RiskDetailResponse, error) {
+	cutoffDOB := time.Now().AddDate(-retirementAgeDefault, retirementWindowMonths, 0).Format("2006-01-02")
+	byDept, err := s.repo.GetRetirementByDepartment(ctx, cutoffDOB)
+	if err != nil {
+		s.logger.Warn("failed to read retirement by department", zap.Error(err))
+		byDept = nil
+	}
+	activeHC, err := s.repo.GetActiveEmployeeCount(ctx)
+	if err != nil {
+		s.logger.Warn("failed to read active employee count", zap.Error(err))
+	}
+	value := 0.0
+	if activeHC > 0 {
+		value = sumDataPoints(byDept) / float64(activeHC) * 100
+	}
+	return &RiskDetailResponse{
+		RiskCode: "RETIREMENT", RiskName: "Retirement Risk", RiskLevel: riskLevelFor(value, riskRetirementThreshold),
+		Value: value, Threshold: riskRetirementThreshold, ExceededBy: value - riskRetirementThreshold,
+		AffectedDepts:   byDept,
+		Recommendations: []string{"Identify critical knowledge transfer needs", "Plan succession pipeline for retiring roles", "Offer phased retirement options"},
+	}, nil
+}
+
+func (s *Service) getContractExpiryRiskDetail(ctx context.Context) (*RiskDetailResponse, error) {
+	today := time.Now().Format("2006-01-02")
+	cutoff := time.Now().AddDate(0, 0, contractExpiryWindowDays).Format("2006-01-02")
+	byDept, err := s.repo.GetContractExpiryByDepartment(ctx, today, cutoff)
+	if err != nil {
+		s.logger.Warn("failed to read contract expiry by department", zap.Error(err))
+		byDept = nil
+	}
+	value := sumDataPoints(byDept)
+	return &RiskDetailResponse{
+		RiskCode: "CONTRACT_EXPIRY", RiskName: "Contract Expiration Risk", RiskLevel: riskLevelFor(value, riskContractExpiryThreshold),
+		Value: value, Threshold: riskContractExpiryThreshold, ExceededBy: value - riskContractExpiryThreshold,
+		AffectedDepts:   byDept,
+		Recommendations: []string{"Review and plan contract renewals", "Identify critical roles on expiring contracts", "Start recruitment pipeline early"},
+	}, nil
+}
+
+func (s *Service) getAbsenteeismRiskDetail(ctx context.Context) (*RiskDetailResponse, error) {
+	now := time.Now()
+	periodStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02")
+	periodEnd := now.Format("2006-01-02")
+	byDept, err := s.repo.GetAbsenteeismByDepartment(ctx, periodStart, periodEnd)
+	if err != nil {
+		s.logger.Warn("failed to read absenteeism by department", zap.Error(err))
+		byDept = nil
+	}
+	value := avgDataPoints(byDept)
+	return &RiskDetailResponse{
+		RiskCode: "HIGH_ABSENTEEISM", RiskName: "High Absenteeism Risk", RiskLevel: riskLevelFor(value, riskAbsenteeismThreshold),
+		Value: value, Threshold: riskAbsenteeismThreshold, ExceededBy: value - riskAbsenteeismThreshold,
+		AffectedDepts:   byDept,
+		Recommendations: []string{"Investigate root causes of absenteeism", "Implement wellness programs", "Review shift scheduling"},
+	}, nil
+}
+
+// riskLevelFor membanding nilai terhadap threshold menjadi level kualitatif
+// -- dipakai widget risk detail supaya RiskLevel konsisten dengan Value
+// yang sekarang real (bukan hardcoded lagi).
+func riskLevelFor(value, threshold float64) string {
+	if threshold <= 0 {
+		return "LOW"
+	}
+	ratio := value / threshold
+	switch {
+	case ratio >= 1.5:
+		return "CRITICAL"
+	case ratio >= 1.0:
+		return "HIGH"
+	case ratio >= 0.7:
+		return "MEDIUM"
+	default:
+		return "LOW"
+	}
 }
 
 // =========================================================================

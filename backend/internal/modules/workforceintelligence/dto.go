@@ -326,6 +326,21 @@ type UpdateRiskRequest struct {
 	Recommendation *string `json:"recommendation"`
 }
 
+// CreateRiskIndicatorRequest — belum ada endpoint create sebelumnya
+// (workforce_risk_indicators tidak punya mekanisme pengisian data sama
+// sekali). RiskCode bebas (mis. "HIGH_TURNOVER"), period format YYYY-MM.
+type CreateRiskIndicatorRequest struct {
+	Period         string  `json:"period" binding:"required,max=7"`
+	RiskCode       string  `json:"risk_code" binding:"required"`
+	RiskName       string  `json:"risk_name" binding:"required"`
+	RiskLevel      string  `json:"risk_level" binding:"required,oneof=LOW MEDIUM HIGH CRITICAL"`
+	Score          float64 `json:"score"`
+	Threshold      float64 `json:"threshold"`
+	DepartmentID   string  `json:"department_id"`
+	Recommendation string  `json:"recommendation"`
+	SnapshotDate   string  `json:"snapshot_date"`
+}
+
 // =========================================================================
 // Executive Dashboard DTOs
 // =========================================================================

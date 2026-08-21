@@ -3,6 +3,7 @@ package workforceintelligence
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -1342,5 +1343,89 @@ func TestRepo_GetQualityOfHireHires_Empty(t *testing.T) {
 	}
 	if len(rows) != 0 {
 		t.Errorf("expected 0 rows on empty data, got %d", len(rows))
+	}
+}
+
+// =========================================================================
+// Risk Detail (real data) Repository Tests
+// =========================================================================
+
+// createRiskDetailTables membuat tabel raw milik modul lain yang di-query
+// widget risk detail secara langsung (Career Intelligence Training
+// Enhancement session, GetRiskDetail sebelumnya hardcoded demo statis).
+func createRiskDetailTables(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	statements := []string{
+		`CREATE TABLE organizations (
+			id CHAR(36) PRIMARY KEY,
+			nomenclature VARCHAR(255),
+			parent_id CHAR(36) NULL,
+			deleted_at DATETIME NULL
+		)`,
+		`CREATE TABLE employees (
+			id CHAR(36) PRIMARY KEY,
+			organization_id CHAR(36),
+			status VARCHAR(20)
+		)`,
+		`CREATE TABLE employee_contracts (
+			id CHAR(36) PRIMARY KEY,
+			employee_id CHAR(36),
+			status VARCHAR(20),
+			end_date TEXT NULL
+		)`,
+	}
+	for _, stmt := range statements {
+		if err := db.Exec(stmt).Error; err != nil {
+			t.Fatalf("failed to create risk detail table: %v\n%s", err, stmt)
+		}
+	}
+}
+
+func TestRepo_GetContractExpiryByDepartment(t *testing.T) {
+	db, dbResolver, cleanup := setupTestDB()
+	defer cleanup()
+	repo := NewRepository(dbResolver)
+	createRiskDetailTables(t, db)
+	ctx := context.Background()
+
+	orgID := uuid.New()
+	if err := db.Exec("INSERT INTO organizations (id, nomenclature) VALUES (?, ?)", orgID.String(), "IT").Error; err != nil {
+		t.Fatalf("failed to seed organization: %v", err)
+	}
+	empExpiring := uuid.New()
+	empNotExpiring := uuid.New()
+	empInactive := uuid.New()
+	db.Exec("INSERT INTO employees (id, organization_id, status) VALUES (?, ?, 'active')", empExpiring.String(), orgID.String())
+	db.Exec("INSERT INTO employees (id, organization_id, status) VALUES (?, ?, 'active')", empNotExpiring.String(), orgID.String())
+	db.Exec("INSERT INTO employees (id, organization_id, status) VALUES (?, ?, 'active')", empInactive.String(), orgID.String())
+
+	today := time.Now()
+	within90 := today.AddDate(0, 0, 30).Format("2006-01-02")
+	beyond90 := today.AddDate(0, 6, 0).Format("2006-01-02")
+
+	// Contract expiring soon (within window) -- should be counted.
+	db.Exec("INSERT INTO employee_contracts (id, employee_id, status, end_date) VALUES (?, ?, 'active', ?)",
+		uuid.New().String(), empExpiring.String(), within90)
+	// Contract expiring far in the future -- should NOT be counted.
+	db.Exec("INSERT INTO employee_contracts (id, employee_id, status, end_date) VALUES (?, ?, 'active', ?)",
+		uuid.New().String(), empNotExpiring.String(), beyond90)
+	// Expired (non-active) contract within window -- should NOT be counted (status filter).
+	db.Exec("INSERT INTO employee_contracts (id, employee_id, status, end_date) VALUES (?, ?, 'expired', ?)",
+		uuid.New().String(), empInactive.String(), within90)
+
+	todayStr := today.Format("2006-01-02")
+	cutoffStr := today.AddDate(0, 0, 90).Format("2006-01-02")
+	points, err := repo.GetContractExpiryByDepartment(ctx, todayStr, cutoffStr)
+	if err != nil {
+		t.Fatalf("GetContractExpiryByDepartment failed: %v", err)
+	}
+	if len(points) != 1 {
+		t.Fatalf("expected 1 department with expiring contracts, got %d: %+v", len(points), points)
+	}
+	if points[0].Label != "IT" {
+		t.Errorf("expected department 'IT', got '%s'", points[0].Label)
+	}
+	if points[0].Value != 1 {
+		t.Errorf("expected 1 expiring contract counted (not 2 or 0), got %.0f", points[0].Value)
 	}
 }
