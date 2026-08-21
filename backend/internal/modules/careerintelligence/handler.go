@@ -139,6 +139,15 @@ func (h *Handler) GetTalentGrid(c *gin.Context) {
 	respondSuccess(c, result)
 }
 
+func (h *Handler) GetEmployeeTrainingProfile(c *gin.Context) {
+	result, err := h.svc.GetEmployeeTrainingProfile(c.Request.Context(), c.Param("employeeId"))
+	if err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondSuccess(c, result)
+}
+
 func (h *Handler) GetEmployeeTalentProfile(c *gin.Context) {
 	result, err := h.svc.GetEmployeeTalentProfile(c.Request.Context(), c.Param("employeeId"))
 	if err != nil {

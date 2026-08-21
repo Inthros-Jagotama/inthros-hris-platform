@@ -92,6 +92,30 @@ type EmployeeTalentProfileResponse struct {
 	ReadyFor     []string              `json:"ready_for,omitempty"` // recommended next positions
 }
 
+// TrainingProfileResponse — Employee Training Profile (Career Intelligence
+// Training Enhancement plan §5). Read-only view over Training data via
+// TrainingProvider; Career Intelligence stores none of this itself.
+type TrainingProfileResponse struct {
+	EmployeeID              string                         `json:"employee_id"`
+	TotalTraining           int                            `json:"total_training"`
+	Completed               int                            `json:"completed"`
+	Failed                  int                            `json:"failed"`
+	TrainingHours           float64                        `json:"training_hours"`
+	AverageScore            float64                        `json:"average_score"`
+	CertificationCount      int                            `json:"certification_count"`
+	CompetencyTrainingCount int                            `json:"competency_training_count"`
+	History                 []TrainingHistoryItemResponse `json:"history"`
+}
+
+type TrainingHistoryItemResponse struct {
+	CourseID         string  `json:"course_id"`
+	CourseName       string  `json:"course_name"`
+	StartDate        string  `json:"start_date"`
+	CompletionStatus string  `json:"completion_status"`
+	Score            float64 `json:"score"`
+	CertificateNo    string  `json:"certificate_no,omitempty"`
+}
+
 // =========================================================================
 // Career Interest DTOs
 // =========================================================================

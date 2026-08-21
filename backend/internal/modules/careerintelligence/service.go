@@ -404,6 +404,45 @@ func (s *Service) GetTalentGrid(ctx context.Context, period string) (*TalentGrid
 	}, nil
 }
 
+// GetEmployeeTrainingProfile — Employee Training Profile (Career
+// Intelligence Training Enhancement plan §5): summary numbers + relevant
+// history, sourced entirely from Training via trainingProvider.
+func (s *Service) GetEmployeeTrainingProfile(ctx context.Context, employeeID string) (*TrainingProfileResponse, error) {
+	if s.trainingProvider == nil {
+		return nil, fmt.Errorf("training profile belum dikonfigurasi (training provider)")
+	}
+	summary, err := s.trainingProvider.GetTrainingSummary(ctx, employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read training summary: %w", err)
+	}
+	history, err := s.trainingProvider.GetTrainingHistory(ctx, employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read training history: %w", err)
+	}
+	historyResp := make([]TrainingHistoryItemResponse, 0, len(history))
+	for _, h := range history {
+		historyResp = append(historyResp, TrainingHistoryItemResponse{
+			CourseID:         h.CourseID,
+			CourseName:       h.CourseName,
+			StartDate:        h.StartDate,
+			CompletionStatus: h.CompletionStatus,
+			Score:            h.Score,
+			CertificateNo:    h.CertificateNo,
+		})
+	}
+	return &TrainingProfileResponse{
+		EmployeeID:              employeeID,
+		TotalTraining:           summary.TotalTraining,
+		Completed:               summary.Completed,
+		Failed:                  summary.Failed,
+		TrainingHours:           summary.TrainingHours,
+		AverageScore:            summary.AverageScore,
+		CertificationCount:      summary.CertificationCount,
+		CompetencyTrainingCount: summary.CompetencyTrainingCount,
+		History:                 historyResp,
+	}, nil
+}
+
 func (s *Service) GetEmployeeTalentProfile(ctx context.Context, employeeID string) (*EmployeeTalentProfileResponse, error) {
 	empID, err := uuid.Parse(employeeID)
 	if err != nil {

@@ -14,6 +14,7 @@ func RegisterRoutes(r *gin.RouterGroup, handler *Handler) {
 		ci.PUT("/talent-maps/settings", handler.UpdateTalentMapSettings)
 		ci.GET("/talent-maps/grid", handler.GetTalentGrid)
 		ci.GET("/talent-maps/employee/:employeeId", handler.GetEmployeeTalentProfile)
+		ci.GET("/employees/:employeeId/training-profile", handler.GetEmployeeTrainingProfile)
 		ci.GET("/talent-maps/:id", handler.GetTalentMapByID)
 		ci.PUT("/talent-maps/:id", handler.UpdateTalentMap)
 		ci.DELETE("/talent-maps/:id", handler.DeleteTalentMap)

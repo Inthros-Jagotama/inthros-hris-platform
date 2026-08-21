@@ -432,6 +432,47 @@ func (f *fakeTrainingProvider) ListCoursesByCompetencyIDs(_ context.Context, _ [
 	return f.courses, f.coursesErr
 }
 
+func TestService_GetEmployeeTrainingProfile_Success(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	fake := &fakeTrainingProvider{
+		summary: &TrainingSummary{
+			TotalTraining: 3, Completed: 2, Failed: 1,
+			TrainingHours: 40, AverageScore: 85,
+			CertificationCount: 1, CompetencyTrainingCount: 2,
+		},
+		history: []TrainingHistoryItem{
+			{CourseID: uuidStr(), CourseName: "Leadership Development", StartDate: "2026-01-10", CompletionStatus: "COMPLETED", Score: 92},
+		},
+	}
+	svc.SetTrainingProvider(fake)
+
+	profile, err := svc.GetEmployeeTrainingProfile(ctx(), uuidStr())
+	if err != nil {
+		t.Fatalf("GetEmployeeTrainingProfile failed: %v", err)
+	}
+	if profile.TotalTraining != 3 {
+		t.Errorf("expected total_training 3, got %d", profile.TotalTraining)
+	}
+	if len(profile.History) != 1 {
+		t.Fatalf("expected 1 history item, got %d", len(profile.History))
+	}
+	if profile.History[0].CourseName != "Leadership Development" {
+		t.Errorf("expected course name 'Leadership Development', got '%s'", profile.History[0].CourseName)
+	}
+}
+
+func TestService_GetEmployeeTrainingProfile_NoProvider(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	// TrainingProvider never wired -- must fail clearly, not panic.
+	if _, err := svc.GetEmployeeTrainingProfile(ctx(), uuidStr()); err == nil {
+		t.Error("expected error when training provider is not configured")
+	}
+}
+
 // TestService_CreateSuccessionPlan_NotifiesSuccessor verifies the module
 // notification integration (module-career-intelligence-plan.md §9 #7):
 // naming a successor sends a SUCCESSION_PLAN_NAMED notification to their
