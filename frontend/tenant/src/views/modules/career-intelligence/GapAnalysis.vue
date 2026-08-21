@@ -114,6 +114,35 @@
           </div>
         </div>
       </div>
+
+      <!-- Training Profile -->
+      <div v-if="trainingProfile" class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 mt-4 bg-white dark:bg-gray-800">
+        <p class="text-xs uppercase tracking-wide text-gray-400 font-medium mb-3">{{ t('gap_analysis.training_profile') }}</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+          <div><span class="text-gray-400">{{ t('gap_analysis.total_training') }}</span><p class="font-semibold text-navy-800 dark:text-gray-100">{{ trainingProfile.total_training }}</p></div>
+          <div><span class="text-gray-400">{{ t('gap_analysis.completed') }}</span><p class="font-semibold text-navy-800 dark:text-gray-100">{{ trainingProfile.completed }}</p></div>
+          <div><span class="text-gray-400">{{ t('gap_analysis.training_hours') }}</span><p class="font-semibold text-navy-800 dark:text-gray-100">{{ trainingProfile.training_hours }}</p></div>
+          <div><span class="text-gray-400">{{ t('gap_analysis.average_score') }}</span><p class="font-semibold text-navy-800 dark:text-gray-100">{{ trainingProfile.average_score?.toFixed?.(0) ?? trainingProfile.average_score }}</p></div>
+        </div>
+      </div>
+
+      <!-- Recommended Training per gapped competency -->
+      <div v-if="trainingRecommendations?.recommendations?.length" class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 mt-4 bg-white dark:bg-gray-800">
+        <p class="text-xs uppercase tracking-wide text-gray-400 font-medium mb-3">{{ t('gap_analysis.recommended_training') }}</p>
+        <div class="space-y-2">
+          <div v-for="item in trainingRecommendations.recommendations" :key="item.competency_id" class="flex items-center justify-between text-sm border-b border-gray-100 dark:border-gray-700 pb-2 last:border-0 last:pb-0">
+            <div>
+              <p class="font-medium text-navy-800 dark:text-gray-100">{{ item.competency_name }}</p>
+              <p class="text-xs text-gray-400">{{ t('gap_analysis.gap_level', { current: item.current_level, required: item.required_level }) }}</p>
+            </div>
+            <div class="text-right">
+              <Tag :value="item.priority" :severity="prioritySeverity(item.priority)" class="!text-xs !px-1.5 !py-0.5" />
+              <p v-if="item.course_name" class="text-xs text-teal-600 dark:text-teal-400 mt-1">{{ item.course_name }}</p>
+              <p v-else class="text-xs text-gray-400 mt-1">{{ t('gap_analysis.no_course_available') }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -137,6 +166,8 @@ const toast = useToast()
 const loading = ref(false)
 const loadFailed = ref(false)
 const result = ref(null)
+const trainingProfile = ref(null)
+const trainingRecommendations = ref(null)
 
 const employees = ref([])
 const targetOrganizations = ref([])
@@ -163,6 +194,7 @@ async function analyze() {
       params: { employee_id: form.value.employee_id, target_title_id: form.value.target_title_id }
     })
     result.value = res.data?.data || null
+    await loadTrainingData(form.value.employee_id, form.value.target_title_id)
   } catch (e) {
     loadFailed.value = true
     result.value = null
@@ -170,6 +202,18 @@ async function analyze() {
   } finally {
     loading.value = false
   }
+}
+
+// Training profile + rekomendasi dimuat terpisah via Promise.allSettled agar
+// kegagalan sisi training tidak menghalangi hasil gap analysis yang sudah
+// berhasil di atas.
+async function loadTrainingData(employeeId, targetTitleId) {
+  const [profileRes, recRes] = await Promise.allSettled([
+    api.get(`/api/v1/tenant/career-intelligence/employees/${employeeId}/training-profile`),
+    api.get(`/api/v1/tenant/career-intelligence/employees/${employeeId}/training-recommendations`, { params: { target_title_id: targetTitleId } })
+  ])
+  trainingProfile.value = profileRes.status === 'fulfilled' ? (profileRes.value.data?.data || null) : null
+  trainingRecommendations.value = recRes.status === 'fulfilled' ? (recRes.value.data?.data || null) : null
 }
 
 const gapColorClass = computed(() => {

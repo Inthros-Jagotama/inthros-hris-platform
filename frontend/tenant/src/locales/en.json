@@ -3231,7 +3231,15 @@
     "estimated_timeline": "Estimated Timeline",
     "readiness": "Readiness",
     "recommendations": "Development Recommendations",
-    "no_recommendations": "No recommendations."
+    "no_recommendations": "No recommendations.",
+    "training_profile": "Training Profile",
+    "total_training": "Total Training",
+    "completed": "Completed",
+    "training_hours": "Training Hours",
+    "average_score": "Average Score",
+    "recommended_training": "Recommended Training",
+    "gap_level": "Current level {current}, target {required}",
+    "no_course_available": "No matching course found"
   },
   "quality_of_hire": {
     "title": "Quality of Hire",

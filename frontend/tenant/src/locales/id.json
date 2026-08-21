@@ -3231,7 +3231,15 @@
     "estimated_timeline": "Estimasi Waktu",
     "readiness": "Kesiapan",
     "recommendations": "Rekomendasi Pengembangan",
-    "no_recommendations": "Tidak ada rekomendasi."
+    "no_recommendations": "Tidak ada rekomendasi.",
+    "training_profile": "Profil Training",
+    "total_training": "Total Training",
+    "completed": "Selesai",
+    "training_hours": "Jam Training",
+    "average_score": "Skor Rata-rata",
+    "recommended_training": "Training Direkomendasikan",
+    "gap_level": "Level saat ini {current}, target {required}",
+    "no_course_available": "Belum ada course yang cocok"
   },
   "quality_of_hire": {
     "title": "Kualitas Perekrutan",
