@@ -1,9 +1,10 @@
 # Career Intelligence & Talent Management — Development Plan
 
-> 📅 Versi plan: 2026-08-10 · Status: **BACKEND ✅ TERIMPLEMENTASI PENUH (5 sub-module) · FRONTEND 🔄 Sebagian** (Career Paths ✅, sub-module lain masih placeholder)
-> 🔎 Berdasarkan audit modul `backend/internal/modules/careerintelligence`, migration `018_career_intelligence` + `086_career_paths` (mysql & postgres), dan `frontend/tenant/src/views/modules/CareerPaths.vue` / `CareerIntelligence.vue`.
+> 📅 Versi plan: 2026-08-21 · Status: **BACKEND ✅ TERIMPLEMENTASI PENUH · FRONTEND ✅ SELESAI (5/5 sub-module)**
+> 🔎 Berdasarkan audit modul `backend/internal/modules/careerintelligence`, migration `018_career_intelligence` + `086_career_paths` + `157_career_talentmap_settings` (mysql & postgres), dan `frontend/tenant/src/views/modules/career-intelligence/*.vue`.
 > 🔀 **Pemisahan transactional vs strategical (2026-08-10):** Career Paths **pindah penuh** dari modul Employee Movement ke module ini — endpoint `/career-intelligence/paths` (ladder-style `name` + `steps[]`), Employee Movement hanya **membaca** `career_paths`/`career_path_steps` untuk promotion eligibility. Lihat log §7.3.
-> ⏳ **Sisa TODO (per 2026-08-10):** (1) halaman FE untuk Talent Maps, Career Interests, Gap Analysis, dan Succession Plans (backend sudah ✅) · (2) integrasi Notification untuk event talent mapping/succession (opsional) · (3) `career_path_requirements` (opsional — eligibility masih hardcode rule di service) — semuanya enhancement opsional, bukan blocker.
+> ✅ **Update 2026-08-21:** seluruh 5 halaman FE selesai (Career Paths, Succession Plans, Career Interests, Gap Analysis, Talent Maps). Talent Map juga tidak lagi input manual — performance & potential dihitung otomatis dari skor final Performance Management + skor Competency terakhir milik employee (item roadmap §9 no. 8, dulu opsional, sekarang selesai). Lihat log §7.5.
+> ⏳ **Sisa TODO:** (1) integrasi Notification untuk event talent mapping/succession (opsional) · (2) `career_path_requirements` (opsional — eligibility masih hardcode rule di service) · (3) Gap Analysis backend masih stub/hardcode kompetensi (lihat `service.go:463`, belum query modul competency asli) — semuanya enhancement opsional, bukan blocker.
 
 ---
 
@@ -31,30 +32,35 @@ Prinsip utama:
 
 ---
 
-# 2. Status Aktual (per 2026-08-10)
+# 2. Status Aktual (per 2026-08-21)
 
 ## 2.1 Backend — ✅ TERIMPLEMENTASI PENUH
 
 | Sub-module | Status | Endpoint | Catatan |
 |---|---|---|---|
-| Talent Maps (9-box) | ✅ | 7 | CRUD + grid + profil employee |
-| Career Interests | ✅ | 3 | CRUD + by employee |
+| Talent Maps (9-box) | ✅ | 10 | CRUD + grid + profil employee + **generate otomatis** (`/talent-maps/generate`) + settings ambang batas (`/talent-maps/settings`) |
+| Career Interests | ✅ | 3 | Create + List + by employee (tidak ada Update/Delete — lihat §8.4) |
 | Career Paths (ladder) | ✅ | 5 | **pindah dari EM** — `/career-intelligence/paths` |
-| Gap Analysis | ✅ | 1 | `/paths/gap-analysis` |
-| Succession Plans | ✅ | 5 | CRUD |
+| Gap Analysis | ✅ | 1 | `/paths/gap-analysis` (stub kompetensi, lihat catatan di atas) |
+| Succession Plans | ✅ | 6 | CRUD + `/successions/gaps` |
 
-Module terdaftar di `main.go`; AutoMigrate menyertakan seluruh 5 model (`CareerTalentMap`, `CareerInterest`, `CareerPath`, `CareerPathStep`, `CareerSuccessionPlan`).
+Module terdaftar di `main.go`; AutoMigrate menyertakan seluruh 6 model (`CareerTalentMap`, `CareerInterest`, `CareerPath`, `CareerPathStep`, `CareerSuccessionPlan`, `TalentMapSettings`).
 
-## 2.2 Frontend — 🔄 SEBAGIAN
+## 2.2 Frontend — ✅ SELESAI (5/5)
 
 | Halaman | Route | Status |
 |---|---|---|
+| Talent Maps | `/career-intelligence/talent-maps` | ✅ **SELESAI (2026-08-21)** (`TalentMaps.vue` — grid 9-box interaktif + generate otomatis + koreksi manual + settings ambang batas) |
 | Career Paths | `/career-intelligence/paths` | ✅ **SELESAI** (`CareerPaths.vue` — CRUD ladder-style lengkap) |
-| Career Intelligence (shell) | `/career-intelligence` | ⏳ placeholder "Coming soon" (`CareerIntelligence.vue`) |
+| Succession Plans | `/career-intelligence/succession-plans` | ✅ **SELESAI (2026-08-21)** (`SuccessionPlans.vue` — CRUD penuh) |
+| Career Interests | `/career-intelligence/interests` | ✅ **SELESAI (2026-08-21)** (`CareerInterests.vue` — create + list, sesuai kapasitas backend) |
+| Gap Analysis | `/career-intelligence/gap-analysis` | ✅ **SELESAI (2026-08-21)** (`GapAnalysis.vue`) |
+| Succession Gaps (S-5) | `/career-intelligence/successions` | ✅ (`SuccessionGaps.vue`, dibangun sebelumnya) |
+| Career Intelligence (shell) | `/career-intelligence` | ✅ hub dengan card navigasi ke seluruh sub-module (`CareerIntelligence.vue`) |
 
 ## 2.3 Permissions
 
-Module mengekspos 10 permission:
+Module mengekspos 10 permission (`module.go`). **Catatan implementasi:** route FE untuk sub-module ini sebagian besar digate memakai permission level-module `careerintelligence.view` (string tanpa tanda hubung, hasil generate `tenantseed/seed_rbac.go` dari key `careerintelligence`) — **bukan** string di bawah ini yang berasal dari `module.go`'s `Permissions()`, yang ternyata tidak dipakai untuk seeding RBAC aktual. Lihat catatan di §8.5.
 
 ```text
 career-intelligence.view
@@ -463,20 +469,34 @@ Setelah ladder-style menjadi satu-satunya bentuk create, dead code edge CI dihap
 - i18n namespace **`career_paths.*`** (en/id); sidebar di grup **Strategic**.
 - Payload create/update cocok dengan DTO backend (sequence = idx+1, opsional pakai `undefined`, full-replace steps; `description: ''` eksplisit untuk clear karena backend pointer-presence).
 
-## 8.2 Career Intelligence shell — ⏳ placeholder
+## 8.2 Career Intelligence shell — ✅ SELESAI
 
-`views/modules/CareerIntelligence.vue` (route `/career-intelligence`) masih placeholder "Coming soon".
+`views/modules/CareerIntelligence.vue` (route `/career-intelligence`) adalah hub dengan card navigasi ke seluruh sub-module (Talent Maps, Career Paths, Succession Plans, Succession Gaps, Gap Analysis, Development Training). Tidak ada lagi card "Coming soon".
 
-## 8.3 TODO halaman FE
+## 8.3 Halaman FE — ✅ SEMUA SELESAI (2026-08-21)
 
-| # | Halaman | Route yang disarankan | Endpoint konsumen |
+| # | Halaman | Route | Endpoint konsumen |
 |---|---|---|---|
-| 1 | Talent Maps (9-box grid + CRUD) | `/career-intelligence/talent-maps` | `/talent-maps`, `/talent-maps/grid`, `/talent-maps/employee/:id` |
-| 2 | Career Interests | `/career-intelligence/interests` | `/interests`, `/interests/employee/:id` |
-| 3 | Gap Analysis | `/career-intelligence/gap-analysis` | `/paths/gap-analysis` — ✅ **SELESAI (2026-08-21)**, `GapAnalysis.vue` |
-| 4 | Succession Plans | `/career-intelligence/successions` | `/successions` |
+| 1 | Talent Maps (9-box grid + generate otomatis) | `/career-intelligence/talent-maps` | `/talent-maps`, `/talent-maps/grid`, `/talent-maps/generate`, `/talent-maps/settings`, `/talent-maps/employee/:id` |
+| 2 | Career Interests (create + list) | `/career-intelligence/interests` | `/interests`, `/interests/employee/:id` |
+| 3 | Gap Analysis | `/career-intelligence/gap-analysis` | `/paths/gap-analysis` |
+| 4 | Succession Plans (CRUD) | `/career-intelligence/succession-plans` | `/successions` |
 
 Pola FE mengikuti `CareerPaths.vue` (DataTable lazy + SkeletonTable + ConfirmDeleteDialog + useI18n + module gate `career-intelligence`).
+
+## 8.4 Career Interests — keterbatasan backend (create + list saja)
+
+Backend Career Interests hanya menyediakan `POST /interests`, `GET /interests`, dan `GET /interests/employee/:employeeId` — **tidak ada Update/Delete**. `CareerInterests.vue` dibangun sesuai kapasitas ini: form tambah + tabel daftar (filter per employee) + dialog detail, tanpa tombol edit/hapus. Kalau ke depan dibutuhkan koreksi/penghapusan, perlu ditambah endpoint `PUT`/`DELETE /interests/:id` di backend dulu.
+
+## 8.5 Talent Map — generate otomatis dari Performance Management + Competency (2026-08-21)
+
+Sebelumnya `performance`/`potential` diinput manual (LOW/MEDIUM/HIGH langsung dari user). Sekarang otomatis:
+
+- **`GenerateTalentMap`** (`service.go`): ambil skor final performance evaluation terakhir yang `COMPLETED`/`ACTUAL_APPROVED` via `PerformanceProvider.LatestFinalScore` (reuse `performance.Repository.LatestFinalScoreByEmployee`), dan skor competency terbaru via `CompetencyProvider.LatestScore` (reuse `competency.Repository.LatestScoreByEmployee`) — kedua provider di-wire di `main.go` pakai adapter yang sama persis dengan `employeemovement`'s promotion eligibility (`performanceEligibilityAdapter`/`competencyEligibilityAdapter`, structural typing Go).
+- Skor (skala 0-100) dibanding LOW/MEDIUM/HIGH memakai **`TalentMapSettings`** — singleton tenant settings baru (migration `157_career_talentmap_settings`, default low_max=50/high_min=80 untuk performance & potential masing-masing), bisa diubah via `GET/PUT /talent-maps/settings` dan dialog pengaturan (ikon gear) di `TalentMaps.vue`.
+- Jika employee belum punya evaluasi performance final atau assessment competency, `GenerateTalentMap` menolak dengan pesan error jelas (bukan silently default).
+- CRUD manual (`POST/PUT /talent-maps`) tetap ada di backend untuk fleksibilitas, tapi FE hanya expose **Generate** (create otomatis) + **Koreksi** (edit performance/potential/notes hasil generate, untuk override HR) + **Delete**.
+- **Catatan verifikasi (2026-08-21):** dicek langsung ke tenant DB `hris_pt-inthros-jago-utama` — belum ada karyawan yang memenuhi syarat generate: performance evaluation yang ada berstatus `APPROVED` (bukan `COMPLETED`/`ACTUAL_APPROVED`), dan `competency_scores` untuk employee masih kosong. Fitur generate baru bisa dipakai setelah alur approval performance & minimal satu competency assessment selesai untuk karyawan terkait.
 
 ---
 
@@ -487,11 +507,11 @@ Pola FE mengikuti `CareerPaths.vue` (DataTable lazy + SkeletonTable + ConfirmDel
 | 1 | Career Paths backend (CRUD ladder) | ✅ | BE |
 | 2 | Career Paths FE (`CareerPaths.vue`) | ✅ | FE |
 | 3 | Talent Maps / Interests / Gap Analysis / Succession Plans backend | ✅ | BE |
-| 4 | Halaman FE Talent Maps / Interests / Gap Analysis / Succession Plans | ⏳ TODO | FE |
+| 4 | Halaman FE Talent Maps / Interests / Gap Analysis / Succession Plans | ✅ **SELESAI (2026-08-21)** — semua 4 halaman dibangun | FE |
 | 5 | Gap Analysis FE (form employee + target title, hasil + rekomendasi) | ✅ **SELESAI (2026-08-21)** — `GapAnalysis.vue`, catatan: backend masih stub/hardcoded (belum query modul competency asli, lihat komentar `service.go:463`) | FE |
 | 6 | `career_path_requirements` (rule eligibility terstruktur) | ⏳ opsional | DB/BE |
 | 7 | Notification untuk event talent mapping / succession / interest | ⏳ opsional | BE/FE |
-| 8 | Integrasi hasil performance/competency ke talent grid (input 9-box otomatis) | ⏳ opsional | BE |
+| 8 | Integrasi hasil performance/competency ke talent grid (input 9-box otomatis) | ✅ **SELESAI (2026-08-21)** — `GenerateTalentMap` + `TalentMapSettings` (migration 157), lihat §8.5 | BE/FE |
 
 ---
 
@@ -516,7 +536,7 @@ Pola FE mengikuti `CareerPaths.vue` (DataTable lazy + SkeletonTable + ConfirmDel
 ```
 
 - **Employee Movement** — membaca `career_paths`/`career_path_steps` untuk promotion eligibility (`movement-eligibility`, `promotion-eligibility`). Tidak menulis.
-- **Performance Management** — KPI/OKR/competency menjadi **input** untuk talent mapping (9-box) dan eligibility. Career Intelligence tidak menghitung skor.
+- **Performance Management & Competency** — skor final menjadi **input otomatis** untuk talent mapping (9-box, sejak 2026-08-21, lihat §8.5) dan untuk eligibility promosi (Employee Movement). Career Intelligence tidak menghitung KPI/OKR/competency sendiri, hanya membaca skor final via provider (`PerformanceProvider`/`CompetencyProvider`) lalu membanding LOW/MEDIUM/HIGH.
 - **Organization / Job Management** — `position_id` pada steps/talent map/succession merujuk tabel `positions`; eksistensi divalidasi via `GetPositionNamesByIDs`/`GetPositionTitle`.
 - **Employee** — `employee_id` pada talent map/interest/succession merujuk karyawan.
 - **Recruitment (operasional)** — integrasi strategis (internal candidate via career path, succession fallback → external recruitment) dikelola di **`docs/archive/module-recruitment-strategic-layer-plan.md`** (S-4/S-5); Recruitment hanya mengeksekusi, tidak menentukan eligibility (scoping 2026-08-12).
