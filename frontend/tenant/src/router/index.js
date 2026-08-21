@@ -682,6 +682,13 @@ const routes = [
         component: () => import('@/views/modules/career-intelligence/SuccessionGaps.vue'),
         meta: { title: 'Succession Gaps', titleKey: 'succession_gaps.title', descKey: 'succession_gaps.description', icon: 'pi pi-users', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'careerintelligence.successions.view' }
       },
+      // Career Interests — aspirasi karier karyawan (create + list, backend belum sediakan update/delete)
+      {
+        path: 'career-intelligence/interests',
+        name: 'CareerInterests',
+        component: () => import('@/views/modules/career-intelligence/CareerInterests.vue'),
+        meta: { title: 'Career Interests', titleKey: 'career_interests.title', descKey: 'career_interests.description', icon: 'pi pi-compass', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'careerintelligence.view' }
+      },
       // Succession Plans — CRUD posisi kunci → suksesor (readiness, priority, target date)
       {
         path: 'career-intelligence/succession-plans',

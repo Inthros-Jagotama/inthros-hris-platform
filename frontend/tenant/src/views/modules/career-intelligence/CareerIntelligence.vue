@@ -62,9 +62,10 @@ const { hasPermission } = useAuth()
 // transactional vs strategical: halaman ini untuk konfigurasi/perencanaan karir.
 const menuCards = computed(() => [
   { labelKey: 'career_intel.paths', descKey: 'career_paths.description', icon: 'pi pi-sitemap', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/career-intelligence/paths', permission: 'careerintelligence.paths.view' },
+  { labelKey: 'career_intel.interests', descKey: 'career_interests.description', icon: 'pi pi-compass', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/career-intelligence/interests', permission: 'careerintelligence.view' },
   // S-5: Succession Gaps — posisi kunci tanpa successor siap → external recruitment
-  { labelKey: 'succession_gaps.title', descKey: 'succession_gaps.description', icon: 'pi pi-users', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/career-intelligence/successions', permission: 'careerintelligence.successions.view' },
   { labelKey: 'career_intel.succession_plans', descKey: 'succession_plans.description', icon: 'pi pi-user-plus', tint: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400', route: '/career-intelligence/succession-plans', permission: 'careerintelligence.view' },
+  { labelKey: 'succession_gaps.title', descKey: 'succession_gaps.description', icon: 'pi pi-users', tint: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', route: '/career-intelligence/successions', permission: 'careerintelligence.successions.view' },
   { labelKey: 'gap_analysis.title', descKey: 'gap_analysis.description', icon: 'pi pi-sitemap', tint: 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400', route: '/career-intelligence/gap-analysis', permission: 'careerintelligence.view' },
   // P2-FE integrasi: riwayat pengembangan (course–competency) dari modul Training
   { labelKey: 'career_intel.development', descKey: 'career_intel.development_desc', icon: 'pi pi-graduation-cap', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/training/history', permission: 'careerintelligence.development.view' }
@@ -73,7 +74,6 @@ const menuCards = computed(() => [
 // Fitur yang sudah terdefinisi di locale tapi halamannya belum dibangun —
 // ditampilkan sebagai card "Coming soon" agar roadmap modul terlihat jelas.
 const comingSoonCards = computed(() => [
-  { labelKey: 'career_intel.talent_map', icon: 'pi pi-th-large', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-  { labelKey: 'career_intel.interests', icon: 'pi pi-compass', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' }
+  { labelKey: 'career_intel.talent_map', icon: 'pi pi-th-large', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' }
 ])
 </script>
