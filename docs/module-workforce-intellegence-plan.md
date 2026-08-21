@@ -1,6 +1,6 @@
 # Development Plan — Workforce Intelligence Enhancement
 
-> ⚠️ **Status aktual (2026-08-21): dokumen ini usang.** Diverifikasi langsung ke kode — **backend keempat fitur (Headcount Planning, Risk Dashboard, Executive Dashboard, Scenario Planning) sudah 100% terimplementasi**, bukan "belum tersedia" seperti klaim §2.2 di bawah. Yang benar-benar belum ada hanyalah **frontend**-nya (4 halaman Vue). Detail lengkap di §2.3 (baru).
+> ⚠️ **Status aktual (2026-08-21): dokumen ini usang.** Diverifikasi langsung ke kode — backend keempat fitur (Headcount Planning, Risk Dashboard, Executive Dashboard, Scenario Planning) route-nya sudah ada, bukan "belum tersedia" seperti klaim §2.2 di bawah. Yang benar-benar belum ada adalah **frontend**-nya (4 halaman Vue) — progres: **Headcount Planning ✅ FE selesai, Risk Dashboard ✅ FE selesai (+ 2 gap backend diperbaiki), Executive Dashboard ⏳ backend ternyata stub penuh (lihat §2.4, FE ditunda), Scenario Planning belum dicek**. Detail lengkap di §2.3/§2.4 (baru).
 
 ## 1. Overview
 
@@ -52,10 +52,10 @@ Audit langsung ke `backend/internal/modules/workforceintelligence/` (`model.go`,
 | Recruitment Analytics | ✅ | ✅ `RecruitmentAnalytics.vue` |
 | Quality of Hire | ✅ | ✅ `QualityOfHire.vue` |
 | Training Analysis | ✅ (`GET /analytics/learning`) | ✅ — tapi bukan halaman workforce-intelligence sendiri, card-nya di hub `WorkforceIntelligence.vue` mengarah ke `/training/reports` (halaman modul Training) |
-| **Headcount Planning** | ✅ **lengkap** (model `WorkforcePlanningHeadcount`, migration `017_workforce_intelligence`, repo/service/handler penuh) | ❌ belum ada — card "Coming soon" di hub |
-| **Risk Dashboard** | ✅ **lengkap** (model `WorkforceRiskIndicator`, 8 endpoint) | ❌ belum ada — card "Coming soon" di hub |
-| **Executive Dashboard** | ✅ **lengkap** (8 endpoint: summary/growth/cost-trend/attrition-trend/capacity/hiring-progress/risk-overview/health-score) | ❌ belum ada — card "Coming soon" di hub |
-| **Scenario Planning** | ✅ **lengkap** (model `WorkforceScenario`, CRUD + run + clone) | ❌ belum ada — card "Coming soon" di hub |
+| **Headcount Planning** | ✅ **lengkap** (model `WorkforcePlanningHeadcount`, migration `017_workforce_intelligence`, repo/service/handler penuh) | ✅ **SELESAI (2026-08-21)** — `HeadcountPlanning.vue` |
+| **Risk Dashboard** | ✅ **lengkap** — diperbaiki 2026-08-21: endpoint create ditambahkan (tidak ada sama sekali sebelumnya) + 4 widget detail diganti dari hardcoded demo ke data real (lihat §2.4) | ✅ **SELESAI (2026-08-21)** — `RiskDashboard.vue` |
+| **Executive Dashboard** | ⚠️ **route ada, tapi SEMUA 8 endpoint stub hardcoded** — lihat §2.4, belum layak dipakai | ⏳ **ditunda** — FE tidak dibangun sampai backend diperbaiki (supaya tidak menampilkan angka palsu) |
+| **Scenario Planning** | route ada, belum diaudit apakah real/stub | ❌ belum ada — card "Coming soon" di hub |
 
 **Endpoint lengkap yang sudah aktif** (`backend/internal/modules/workforceintelligence/routes.go`, prefix `/api/v1/tenant/workforce-intelligence`):
 
@@ -177,6 +177,33 @@ Candidate Search          Recruitment Analytics       Training Analysis
 ```
 
 Scenario Planning berada di layer paling atas karena menggunakan data dari Headcount, Risk, Recruitment, Training, Talent, dan cost.
+
+---
+
+## 2.4 TODO — Executive Dashboard backend (catatan untuk pekerjaan selanjutnya)
+
+**Temuan (2026-08-21):** sebelum membangun FE Executive Dashboard, audit ke `service.go`/`handler.go` menunjukkan **kedelapan endpoint di bawah `/executive/*` adalah stub hardcoded** — pola identik dengan `GetRiskDetail` sebelum diperbaiki (lihat log perbaikan Risk Dashboard di atas), tapi cakupannya lebih luas (8 endpoint vs 4 widget).
+
+| Endpoint | Fungsi | Status |
+|---|---|---|
+| `/executive/summary` | `GetExecutiveSummary` | Sebagian real — `TotalHC` dari `GetActiveEmployeeCount`; `HCGrowth`, `AttritionRate`, `AvgCost`, `UtilizationRate`, `HealthScore` semua angka literal (komentar kode sendiri: `// Would be computed from historical data`) |
+| `/executive/growth` | `GetExecutiveGrowth` | Sebagian real — `Current` dari live HC count; `Trend: []` kosong, `Change: 5.2` literal |
+| `/executive/cost-trend` | `GetExecutiveCostTrend` | **Stub penuh** — `Current: 8500000000`, `Change: 8.3`, tidak ada query ke data payroll sama sekali |
+| `/executive/attrition-trend` | `GetExecutiveAttritionTrend` | **Stub penuh** — `Current: 12.3`, `Change: -1.1`, tidak ada query |
+| `/executive/capacity` | `GetExecutiveCapacity` | **Stub penuh** — `UtilizationRate: 78.5`, `AvailableHC: 1245`, dll, semua literal |
+| `/executive/hiring-progress` | inline di handler (bukan lewat service) | **Stub penuh** — `Planned: 50, InProgress: 25, Completed: 15, Total: 50` hardcoded langsung di `handler.go` |
+| `/executive/risk-overview` | `GetExecutiveRiskOverview` | **Stub penuh** — `TotalRisks: 24, HighRiskCount: 7, CriticalCount: 2` literal, padahal `s.repo.ListRiskIndicators` (data real, dipakai Risk Dashboard) sudah tersedia di file yang sama dan tidak dipanggil di sini |
+| `/executive/health-score` | `GetExecutiveHealthScore` | **Stub penuh** — `Score: 72.5` sama persis dengan angka literal `HealthScore` di `GetExecutiveSummary` (indikasi copy-paste, bukan hasil hitung); tidak delegasi ke `/health/dashboard` yang datanya sudah real (`WorkforceHealthScore`, tersimpan di DB) |
+
+Tambahan: tidak satu pun dari 8 handler menerima query param (`period`, `organization_id`) meski beberapa response field (`Period`) menyiratkan seharusnya bisa difilter.
+
+**Rekomendasi perbaikan (belum dikerjakan, scope besar — 4 modul sumber data):**
+1. `risk-overview` — paling mudah: tinggal reuse `s.repo.ListRiskIndicators` yang sudah ada (persis pola `GetRiskDashboard`), agregasi by-department/by-category dari `WorkforceRiskIndicator.DepartmentID`.
+2. `health-score` — delegasikan ke computation/storage yang sama dengan `GetHealthDashboard`/`ListHealthScores` (§ Organization Health, `WorkforceHealthScore`) alih-alih duplikasi angka hardcoded.
+3. `summary`/`growth` — lengkapi bagian yang masih literal (`AttritionRate` dari `employee_movements` movement_type=offboarding, sama seperti perbaikan Risk Dashboard's high-turnover widget; `Trend` histori bulanan perlu query baru, ikuti pola `GetMonthlyHeadcountTrend`).
+4. `cost-trend`/`capacity`/`hiring-progress` — butuh riset dulu data apa yang tersedia di modul Payroll (cost) dan Recruitment/Requisition (hiring progress: planned vs filled) sebelum bisa di-wire; belum diriset.
+
+**Keputusan (2026-08-21):** FE Executive Dashboard **ditunda**, tidak dibangun di atas data palsu. Dicatat sebagai TODO terpisah, dikerjakan setelah Scenario Planning diaudit/diselesaikan.
 
 ---
 
