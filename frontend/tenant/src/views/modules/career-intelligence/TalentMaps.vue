@@ -161,12 +161,12 @@
       v-model:visible="settingsVisible"
       :header="t('talent_maps.settings_title')"
       modal
-      :style="{ width: '620px' }"
+      :style="{ width: '420px' }"
     >
       <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('talent_maps.settings_hint') }}</p>
       <div class="space-y-3">
         <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">{{ t('talent_maps.performance') }}</p>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 gap-3">
           <FormRow :label="t('talent_maps.low_max')" :errors="settingsErrors?.performance_low_max">
             <InputNumber v-model="settingsForm.performance_low_max" :min="0" :max="100" suffix="%" class="w-full" />
           </FormRow>
@@ -175,7 +175,7 @@
           </FormRow>
         </div>
         <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mt-2">{{ t('talent_maps.potential') }}</p>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 gap-3">
           <FormRow :label="t('talent_maps.low_max')" :errors="settingsErrors?.potential_low_max">
             <InputNumber v-model="settingsForm.potential_low_max" :min="0" :max="100" suffix="%" class="w-full" />
           </FormRow>
