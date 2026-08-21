@@ -319,9 +319,13 @@ func (r *Repository) GetPositionNamesByIDs(ctx context.Context, ids []uuid.UUID)
 		Name string
 	}
 	var rows []row
-	if err := db.Table("positions").
+	// "positions" table tidak pernah dipakai aplikasi (Organization = Position,
+	// lihat prinsip modul ini) -- position_id yang dikirim FE (dari dropdown
+	// /organizations) sebenarnya adalah organizations.id, jadi resolve nama
+	// dari organizations.nomenclature, bukan dari tabel positions yang mati.
+	if err := db.Table("organizations").
 		Where("id IN ?", ids).
-		Select("id AS id, title AS name").
+		Select("id AS id, nomenclature AS name").
 		Scan(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -416,9 +420,9 @@ func (r *Repository) ListEligibleEmployeesByPositionIDs(ctx context.Context, pos
 	// employees/employments tidak punya kolom deleted_at (lihat employee/model.go
 	// — tanpa soft delete); filter employee aktif pakai e.status.
 	if err := db.Table("employees e").
-		Select("e.id AS employee_id, e.name AS name, em.position_id AS position_id, p.title AS position_name").
+		Select("e.id AS employee_id, e.name AS name, em.position_id AS position_id, o.nomenclature AS position_name").
 		Joins("JOIN employments em ON em.employee_id = e.id").
-		Joins("LEFT JOIN positions p ON p.id = em.position_id").
+		Joins("LEFT JOIN organizations o ON o.id = em.position_id").
 		Where("e.status = ?", "active").
 		Where("em.position_id IN ?", positionIDs).
 		Where("em.effective_date <= ?", today).
@@ -502,8 +506,10 @@ type SuccessionGapRow struct {
 // ListSuccessionGapPositions mengembalikan posisi kunci (positions yang memiliki
 // ≥1 succession plan ACTIVE) beserta statistik successor-nya, TANPA memfilter
 // readiness — service yang menentukan gap (tidak ada successor READY_NOW).
-// Join positions untuk title + organization_id (cross-module read, sama pola
-// GetPositionNamesByIDs).
+// Join organizations untuk nama (Organization = Position, lihat komentar
+// GetPositionNamesByIDs) — organization_id di response sengaja sama dengan
+// position_id itu sendiri karena tidak ada level "organization pemilik posisi"
+// terpisah dalam model data ini.
 func (r *Repository) ListSuccessionGapPositions(ctx context.Context) ([]SuccessionGapRow, error) {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -511,11 +517,11 @@ func (r *Repository) ListSuccessionGapPositions(ctx context.Context) ([]Successi
 	}
 	var rows []SuccessionGapRow
 	if err := db.Table("career_succession_plans sp").
-		Select("sp.position_id AS position_id, COALESCE(p.title, '') AS position_title, COALESCE(p.organization_id, '') AS organization_id, COUNT(*) AS successor_count, COALESCE(SUM(CASE WHEN sp.readiness_level = ? THEN 1 ELSE 0 END), 0) AS ready_now_count", "READY_NOW").
-		Joins("LEFT JOIN positions p ON p.id = sp.position_id").
+		Select("sp.position_id AS position_id, COALESCE(o.nomenclature, '') AS position_title, sp.position_id AS organization_id, COUNT(*) AS successor_count, COALESCE(SUM(CASE WHEN sp.readiness_level = ? THEN 1 ELSE 0 END), 0) AS ready_now_count", "READY_NOW").
+		Joins("LEFT JOIN organizations o ON o.id = sp.position_id").
 		Where("sp.status = ?", "ACTIVE").
 		Where("sp.deleted_at IS NULL").
-		Group("sp.position_id, p.title, p.organization_id").
+		Group("sp.position_id, o.nomenclature").
 		Order("position_title ASC").
 		Scan(&rows).Error; err != nil {
 		return nil, err
@@ -563,11 +569,12 @@ func (r *Repository) GetEmployeePosition(ctx context.Context, employeeID uuid.UU
 		PositionTitle string
 	}
 	var res result
-	// employments tidak punya kolom position — ambil title via join positions.
+	// employments tidak punya kolom position — ambil nama via join organizations
+	// (Organization = Position, lihat GetPositionNamesByIDs).
 	if err := db.Table("employees").
-		Select("COALESCE(p.title, '') as position_title").
+		Select("COALESCE(o.nomenclature, '') as position_title").
 		Joins("LEFT JOIN employments eo ON eo.employee_id = employees.id").
-		Joins("LEFT JOIN positions p ON p.id = eo.position_id").
+		Joins("LEFT JOIN organizations o ON o.id = eo.position_id").
 		Where("employees.id = ?", employeeID).
 		Scan(&res).Error; err != nil {
 		return "", fmt.Errorf("employee not found: %w", err)
@@ -575,14 +582,19 @@ func (r *Repository) GetEmployeePosition(ctx context.Context, employeeID uuid.UU
 	return res.PositionTitle, nil
 }
 
+// GetPositionTitle resolves the display name for a "target title" id used by
+// Gap Analysis. "job_management_titles" is a dead table (never written by any
+// FE flow -- Job Management is built entirely on organizations, see
+// GetPositionNamesByIDs comment) -- resolve from organizations instead,
+// consistent with how the rest of this module treats position/title ids.
 func (r *Repository) GetPositionTitle(ctx context.Context, titleID uuid.UUID) (string, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return "", err
 	}
 	var name string
-	if err := db.Table("job_management_titles").
-		Select("name").
+	if err := db.Table("organizations").
+		Select("nomenclature").
 		Where("id = ?", titleID).
 		Scan(&name).Error; err != nil {
 		return "", err

@@ -143,14 +143,14 @@ func seedCareerPathPositions(t *testing.T, repo *Repository) (uuid.UUID, uuid.UU
 	if err != nil {
 		t.Fatalf("failed to get test db: %v", err)
 	}
-	if err := db.Exec("CREATE TABLE IF NOT EXISTS positions (id CHAR(36) PRIMARY KEY, title VARCHAR(255))").Error; err != nil {
-		t.Fatalf("failed to create positions table: %v", err)
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS organizations (id CHAR(36) PRIMARY KEY, nomenclature VARCHAR(255))").Error; err != nil {
+		t.Fatalf("failed to create organizations table: %v", err)
 	}
 	a := uuid.New()
 	b := uuid.New()
-	if err := db.Table("positions").Create([]map[string]interface{}{
-		{"id": a.String(), "title": "Staff"},
-		{"id": b.String(), "title": "Supervisor"},
+	if err := db.Table("organizations").Create([]map[string]interface{}{
+		{"id": a.String(), "nomenclature": "Staff"},
+		{"id": b.String(), "nomenclature": "Supervisor"},
 	}).Error; err != nil {
 		t.Fatalf("failed to seed positions: %v", err)
 	}

@@ -422,9 +422,9 @@ func createEligibilityTables(t *testing.T, db *gorm.DB) {
 			effective_date DATE,
 			effective_end_date DATE NULL
 		)`,
-		`CREATE TABLE positions (
+		`CREATE TABLE organizations (
 			id CHAR(36) PRIMARY KEY,
-			title VARCHAR(200)
+			nomenclature VARCHAR(200)
 		)`,
 	}
 	for _, stmt := range statements {
@@ -660,12 +660,11 @@ func TestRepo_DeleteSuccessionPlan_Success(t *testing.T) {
 // untuk test S-5 — tabel positions lintas modul, bukan milik CI.
 func createSuccessionGapTables(t *testing.T, db *gorm.DB) {
 	t.Helper()
-	if err := db.Exec(`CREATE TABLE positions (
+	if err := db.Exec(`CREATE TABLE organizations (
 		id CHAR(36) PRIMARY KEY,
-		title VARCHAR(200),
-		organization_id CHAR(36)
+		nomenclature VARCHAR(200)
 	)`).Error; err != nil {
-		t.Fatalf("failed to create positions table: %v", err)
+		t.Fatalf("failed to create organizations table: %v", err)
 	}
 }
 
@@ -691,13 +690,12 @@ func TestRepo_ListSuccessionGapPositions_GroupByPosition(t *testing.T) {
 	createSuccessionGapTables(t, db)
 	ctx := context.Background()
 
-	orgID := uuid.New()
 	posGap := uuid.New()    // tanpa successor READY_NOW → gap
 	posReady := uuid.New()  // ada successor READY_NOW → bukan gap
 	posOther := uuid.New()  // punya plan tapi position tanpa join
 	for _, p := range []uuid.UUID{posGap, posReady} {
-		db.Exec("INSERT INTO positions (id, title, organization_id) VALUES (?, ?, ?)",
-			p.String(), "Key Position", orgID.String())
+		db.Exec("INSERT INTO organizations (id, nomenclature) VALUES (?, ?)",
+			p.String(), "Key Position")
 	}
 
 	seedSuccessionPlans(t, db, posGap, "READY_1YR", "POTENTIAL")
@@ -729,7 +727,7 @@ func TestRepo_ListSuccessionGapPositions_GroupByPosition(t *testing.T) {
 	if readyRow.SuccessorCount != 2 || readyRow.ReadyNowCount != 1 {
 		t.Errorf("expected ready pos successor=2 ready_now=1, got %d/%d", readyRow.SuccessorCount, readyRow.ReadyNowCount)
 	}
-	if gapRow.PositionTitle != "Key Position" || gapRow.OrganizationID != orgID.String() {
+	if gapRow.PositionTitle != "Key Position" || gapRow.OrganizationID != posGap.String() {
 		t.Errorf("expected position join fields, got title=%q org=%q", gapRow.PositionTitle, gapRow.OrganizationID)
 	}
 }

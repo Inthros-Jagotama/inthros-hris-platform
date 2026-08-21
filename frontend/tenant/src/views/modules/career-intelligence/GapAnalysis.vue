@@ -18,7 +18,7 @@
         <FormRow :label="t('gap_analysis.target_title')" required>
           <SelectLabel
             v-model="form.target_title_id"
-            :options="jobTitles"
+            :options="targetOrganizations"
             optionLabel="name"
             optionValue="id"
             :placeholder="t('common.select')"
@@ -139,17 +139,19 @@ const loadFailed = ref(false)
 const result = ref(null)
 
 const employees = ref([])
-const jobTitles = ref([])
+const targetOrganizations = ref([])
 
 const form = ref({ employee_id: null, target_title_id: null })
 
 async function loadReferences() {
-  const [empRes, titleRes] = await Promise.allSettled([
+  // Target jabatan diambil dari /organizations (Organization = Position di
+  // aplikasi ini) — job_management_titles tidak pernah ditulis oleh UI manapun.
+  const [empRes, orgRes] = await Promise.allSettled([
     api.get('/api/v1/tenant/employees', { params: { per_page: 500 } }),
-    api.get('/api/v1/tenant/job-management/titles', { params: { per_page: 500 } })
+    api.get('/api/v1/tenant/organizations', { params: { per_page: 500, active_only: true } })
   ])
   employees.value = empRes.value?.data?.data || []
-  jobTitles.value = titleRes.value?.data?.data || []
+  targetOrganizations.value = (orgRes.value?.data?.data || []).map(o => ({ id: o.id, name: o.nomenclature }))
 }
 
 async function analyze() {

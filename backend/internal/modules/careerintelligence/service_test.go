@@ -572,18 +572,16 @@ func TestService_GetSuccessionGaps_FlagsExternalRecruitment(t *testing.T) {
 	defer cleanup()
 	ctx := ctx()
 
-	if err := db.Exec(`CREATE TABLE positions (
+	if err := db.Exec(`CREATE TABLE organizations (
 		id CHAR(36) PRIMARY KEY,
-		title VARCHAR(200),
-		organization_id CHAR(36)
+		nomenclature VARCHAR(200)
 	)`).Error; err != nil {
-		t.Fatalf("failed to create positions table: %v", err)
+		t.Fatalf("failed to create organizations table: %v", err)
 	}
-	orgID := uuid.New()
 	posGap := uuid.New()
 	posReady := uuid.New()
-	db.Exec("INSERT INTO positions (id, title, organization_id) VALUES (?, 'CTO', ?)", posGap.String(), orgID.String())
-	db.Exec("INSERT INTO positions (id, title, organization_id) VALUES (?, 'CFO', ?)", posReady.String(), orgID.String())
+	db.Exec("INSERT INTO organizations (id, nomenclature) VALUES (?, 'CTO')", posGap.String())
+	db.Exec("INSERT INTO organizations (id, nomenclature) VALUES (?, 'CFO')", posReady.String())
 
 	// posGap: successor belum siap → requires_external_recruitment = true
 	repo.CreateSuccessionPlan(ctx, &CareerSuccessionPlan{
@@ -619,12 +617,11 @@ func TestService_GetSuccessionGaps_FlagsExternalRecruitment(t *testing.T) {
 func TestService_GetSuccessionGaps_Empty(t *testing.T) {
 	svc, _, db, cleanup := newTestService()
 	defer cleanup()
-	if err := db.Exec(`CREATE TABLE positions (
+	if err := db.Exec(`CREATE TABLE organizations (
 		id CHAR(36) PRIMARY KEY,
-		title VARCHAR(200),
-		organization_id CHAR(36)
+		nomenclature VARCHAR(200)
 	)`).Error; err != nil {
-		t.Fatalf("failed to create positions table: %v", err)
+		t.Fatalf("failed to create organizations table: %v", err)
 	}
 
 	gaps, err := svc.GetSuccessionGaps(ctx())

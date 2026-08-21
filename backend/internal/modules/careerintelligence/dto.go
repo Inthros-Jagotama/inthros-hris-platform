@@ -193,7 +193,9 @@ type PaginatedCareerPathResponse = PaginatedResponse
 // =========================================================================
 
 type GapAnalysisRequest struct {
-	EmployeeID   string `json:"employee_id" form:"employee_id" binding:"required"`
+	EmployeeID string `json:"employee_id" form:"employee_id" binding:"required"`
+	// TargetTitleID is actually an organizations.id (Organization = Position
+	// in this app's data model) -- resolved via Repository.GetPositionTitle.
 	TargetTitleID string `json:"target_title_id" form:"target_title_id" binding:"required"`
 }
 
