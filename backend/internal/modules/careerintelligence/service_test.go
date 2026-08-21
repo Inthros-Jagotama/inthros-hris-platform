@@ -432,6 +432,76 @@ func (f *fakeTrainingProvider) ListCoursesByCompetencyIDs(_ context.Context, _ [
 	return f.courses, f.coursesErr
 }
 
+func TestService_GetTrainingRecommendations_Success(t *testing.T) {
+	svc, _, db, cleanup := newTestService()
+	defer cleanup()
+
+	employeeID := uuid.New()
+	orgID := uuid.New()
+	leadershipID := uuid.New()
+	communicationID := uuid.New()
+
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS competencies (id CHAR(36) PRIMARY KEY, name VARCHAR(255))").Error; err != nil {
+		t.Fatalf("failed to create competencies table: %v", err)
+	}
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS competency_scores (id CHAR(36) PRIMARY KEY, organization_id CHAR(36), employee_id CHAR(36), assessed_at TIMESTAMP)").Error; err != nil {
+		t.Fatalf("failed to create competency_scores table: %v", err)
+	}
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS competency_score_details (id CHAR(36) PRIMARY KEY, competency_score_id CHAR(36), competency_id CHAR(36), standard_level INT, employee_level INT)").Error; err != nil {
+		t.Fatalf("failed to create competency_score_details table: %v", err)
+	}
+	db.Table("competencies").Create([]map[string]interface{}{
+		{"id": leadershipID.String(), "name": "Leadership"},
+		{"id": communicationID.String(), "name": "Communication"},
+	})
+	orgScoreID := uuid.New()
+	db.Table("competency_scores").Create(map[string]interface{}{"id": orgScoreID.String(), "organization_id": orgID.String(), "assessed_at": "2026-01-01"})
+	db.Table("competency_score_details").Create([]map[string]interface{}{
+		{"id": uuid.New().String(), "competency_score_id": orgScoreID.String(), "competency_id": leadershipID.String(), "standard_level": 4},
+		{"id": uuid.New().String(), "competency_score_id": orgScoreID.String(), "competency_id": communicationID.String(), "standard_level": 3},
+	})
+	empScoreID := uuid.New()
+	db.Table("competency_scores").Create(map[string]interface{}{"id": empScoreID.String(), "organization_id": uuid.New().String(), "employee_id": employeeID.String(), "assessed_at": "2026-01-05"})
+	db.Table("competency_score_details").Create([]map[string]interface{}{
+		{"id": uuid.New().String(), "competency_score_id": empScoreID.String(), "competency_id": leadershipID.String(), "employee_level": 4},
+		{"id": uuid.New().String(), "competency_score_id": empScoreID.String(), "competency_id": communicationID.String(), "employee_level": 2},
+	})
+
+	fake := &fakeTrainingProvider{
+		courses: []RecommendedCourse{
+			{CourseID: uuid.New().String(), CourseName: "Communication Skills", CompetencyID: communicationID.String(), IsMandatory: false, IsCertified: true},
+		},
+	}
+	svc.SetTrainingProvider(fake)
+
+	resp, err := svc.GetTrainingRecommendations(ctx(), employeeID.String(), orgID.String())
+	if err != nil {
+		t.Fatalf("GetTrainingRecommendations failed: %v", err)
+	}
+	if len(resp.Recommendations) != 1 {
+		t.Fatalf("expected 1 recommendation, got %d", len(resp.Recommendations))
+	}
+	item := resp.Recommendations[0]
+	if item.Gap != 1 {
+		t.Errorf("expected gap 1, got %d", item.Gap)
+	}
+	if item.CourseName != "Communication Skills" {
+		t.Errorf("expected course 'Communication Skills', got '%s'", item.CourseName)
+	}
+}
+
+func TestService_GetTrainingRecommendations_NoRequirements(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+	svc.SetTrainingProvider(&fakeTrainingProvider{})
+
+	// competency_score_details table doesn't exist in this test's DB (never
+	// seeded) -- must surface a clear error, same contract as GetGapAnalysis.
+	if _, err := svc.GetTrainingRecommendations(ctx(), uuidStr(), uuidStr()); err == nil {
+		t.Error("expected error when target org has no competency assessment data")
+	}
+}
+
 func TestService_GetEmployeeTrainingProfile_Success(t *testing.T) {
 	svc, _, _, cleanup := newTestService()
 	defer cleanup()

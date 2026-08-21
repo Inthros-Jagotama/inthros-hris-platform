@@ -727,6 +727,96 @@ func (s *Service) DeleteCareerPath(ctx context.Context, id string) error {
 // §8.5/§9). Konsekuensinya: target organization yang belum pernah di-assess
 // tidak bisa dianalisis (dikembalikan sebagai error, bukan hasil kosong yang
 // menyesatkan seolah 0% gap).
+// GetTrainingRecommendations — Training & Competency Gap (plan §7) +
+// Career Training Recommendation (plan §8). Reuses the exact same
+// requirement/actual-level data as GetGapAnalysis (target org's latest
+// finalized competency_scores as requirement, employee's latest as actual)
+// so the two features never disagree about what the gap is; the only new
+// step is looking up which course (if any) develops each gapped
+// competency via trainingProvider.
+func (s *Service) GetTrainingRecommendations(ctx context.Context, employeeID, targetOrgID string) (*TrainingRecommendationResponse, error) {
+	empID, err := uuid.Parse(employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee_id: %w", err)
+	}
+	targetID, err := uuid.Parse(targetOrgID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid target_title_id: %w", err)
+	}
+	if s.trainingProvider == nil {
+		return nil, fmt.Errorf("training recommendation belum dikonfigurasi (training provider)")
+	}
+
+	targetTitle, _ := s.repo.GetPositionTitle(ctx, targetID)
+
+	requirements, err := s.repo.GetOrgCompetencyRequirements(ctx, targetID)
+	if err != nil {
+		return nil, err
+	}
+	if len(requirements) == 0 {
+		return nil, fmt.Errorf("target position belum memiliki data assessment competency (belum ada standar kompetensi tercatat untuk organisasi ini)")
+	}
+
+	employeeLevels, err := s.repo.GetEmployeeCompetencyLevels(ctx, empID)
+	if err != nil {
+		return nil, err
+	}
+
+	gapCompetencyIDs := make([]uuid.UUID, 0)
+	items := make([]TrainingRecommendationItem, 0)
+	for _, r := range requirements {
+		level, has := employeeLevels[r.CompetencyID]
+		if has && level >= r.StandardLevel {
+			continue // met -- no recommendation needed
+		}
+		gap := r.StandardLevel - level // level is 0 when !has
+		priority := "MEDIUM"
+		if gap >= 2 {
+			priority = "HIGH"
+		} else if gap <= 0 {
+			priority = "LOW"
+		}
+		items = append(items, TrainingRecommendationItem{
+			CompetencyID:   r.CompetencyID.String(),
+			CompetencyName: r.CompetencyName,
+			CurrentLevel:   level,
+			RequiredLevel:  r.StandardLevel,
+			Gap:            gap,
+			Priority:       priority,
+		})
+		gapCompetencyIDs = append(gapCompetencyIDs, r.CompetencyID)
+	}
+
+	if len(gapCompetencyIDs) > 0 {
+		courses, err := s.trainingProvider.ListCoursesByCompetencyIDs(ctx, gapCompetencyIDs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read course recommendations: %w", err)
+		}
+		courseByCompetency := make(map[string]RecommendedCourse, len(courses))
+		for _, c := range courses {
+			// First course found for a competency wins -- good enough for
+			// P0; ranking multiple candidate courses is out of scope here.
+			if _, exists := courseByCompetency[c.CompetencyID]; !exists {
+				courseByCompetency[c.CompetencyID] = c
+			}
+		}
+		for i := range items {
+			if c, ok := courseByCompetency[items[i].CompetencyID]; ok {
+				items[i].CourseID = c.CourseID
+				items[i].CourseName = c.CourseName
+				items[i].IsMandatory = c.IsMandatory
+				items[i].IsCertified = c.IsCertified
+			}
+		}
+	}
+
+	return &TrainingRecommendationResponse{
+		EmployeeID:      employeeID,
+		TargetTitle:     targetTitle,
+		Recommendations: items,
+	}, nil
+}
+
 func (s *Service) GetGapAnalysis(ctx context.Context, req GapAnalysisRequest) (*GapAnalysisResponse, error) {
 	empID, err := uuid.Parse(req.EmployeeID)
 	if err != nil {

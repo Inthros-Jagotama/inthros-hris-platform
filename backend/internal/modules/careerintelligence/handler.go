@@ -267,6 +267,21 @@ func (h *Handler) GetEligibleEmployees(c *gin.Context) {
 	respondSuccess(c, result)
 }
 
+func (h *Handler) GetTrainingRecommendations(c *gin.Context) {
+	employeeID := c.Param("employeeId")
+	targetTitleID := c.Query("target_title_id")
+	if targetTitleID == "" {
+		respondError(c, http.StatusBadRequest, "target_title_id is required")
+		return
+	}
+	result, err := h.svc.GetTrainingRecommendations(c.Request.Context(), employeeID, targetTitleID)
+	if err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondSuccess(c, result)
+}
+
 func (h *Handler) GetGapAnalysis(c *gin.Context) {
 	req := GapAnalysisRequest{
 		EmployeeID:    c.Query("employee_id"),

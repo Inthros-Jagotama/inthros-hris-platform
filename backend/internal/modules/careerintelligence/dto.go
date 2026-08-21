@@ -271,6 +271,30 @@ type GapRecommendation struct {
 	Priority    string `json:"priority"`     // HIGH / MEDIUM / LOW
 }
 
+// TrainingRecommendationResponse — Training & Competency Gap + Career
+// Training Recommendation (Career Intelligence Training Enhancement plan
+// §7/§8). Gap computation reuses the same GetOrgCompetencyRequirements /
+// GetEmployeeCompetencyLevels data as GetGapAnalysis; recommendations are
+// courses (via TrainingProvider) that develop a gapped competency.
+type TrainingRecommendationResponse struct {
+	EmployeeID      string                        `json:"employee_id"`
+	TargetTitle     string                        `json:"target_title"`
+	Recommendations []TrainingRecommendationItem `json:"recommendations"`
+}
+
+type TrainingRecommendationItem struct {
+	CompetencyID   string `json:"competency_id"`
+	CompetencyName string `json:"competency_name"`
+	CurrentLevel   int    `json:"current_level"`
+	RequiredLevel  int    `json:"required_level"`
+	Gap            int    `json:"gap"`
+	Priority       string `json:"priority"` // HIGH / MEDIUM / LOW -- same bands as GetGapAnalysis
+	CourseID       string `json:"course_id,omitempty"`
+	CourseName     string `json:"course_name,omitempty"`
+	IsMandatory    bool   `json:"is_mandatory,omitempty"`
+	IsCertified    bool   `json:"is_certified,omitempty"`
+}
+
 // =========================================================================
 // Succession Plan DTOs
 // =========================================================================
