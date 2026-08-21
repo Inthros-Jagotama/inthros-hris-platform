@@ -285,11 +285,15 @@ func TestHandler_ListCareerPaths_Success(t *testing.T) {
 }
 
 func TestHandler_GetGapAnalysis_Success(t *testing.T) {
-	router, _, cleanup := setupTestRouter()
+	router, repo, cleanup := setupTestRouter()
 	defer cleanup()
 
+	employeeID := uuid.New()
+	orgID := uuid.New()
+	seedGapAnalysisCompetencyData(t, repo, employeeID, orgID)
+
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/api/v1/tenant/career-intelligence/paths/gap-analysis?employee_id="+uuid.New().String()+"&target_title_id="+uuid.New().String(), nil)
+	req, _ := http.NewRequest("GET", "/api/v1/tenant/career-intelligence/paths/gap-analysis?employee_id="+employeeID.String()+"&target_title_id="+orgID.String(), nil)
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {

@@ -309,12 +309,16 @@ func TestService_DeleteCareerPath_Success(t *testing.T) {
 }
 
 func TestService_GetGapAnalysis_Success(t *testing.T) {
-	svc, _, _, cleanup := newTestService()
+	svc, repo, _, cleanup := newTestService()
 	defer cleanup()
 
+	employeeID := uuid.New()
+	orgID := uuid.New()
+	seedGapAnalysisCompetencyData(t, repo, employeeID, orgID)
+
 	req := GapAnalysisRequest{
-		EmployeeID:    uuidStr(),
-		TargetTitleID: uuidStr(),
+		EmployeeID:    employeeID.String(),
+		TargetTitleID: orgID.String(),
 	}
 
 	resp, err := svc.GetGapAnalysis(ctx(), req)
@@ -325,6 +329,14 @@ func TestService_GetGapAnalysis_Success(t *testing.T) {
 	if resp.EmployeeID != req.EmployeeID {
 		t.Errorf("expected employee ID '%s', got '%s'", req.EmployeeID, resp.EmployeeID)
 	}
+	// Fixture: 2 syarat (Leadership lvl4, Communication lvl3); employee
+	// memenuhi Leadership (lvl4) tapi tidak Communication (lvl2) -> 1/2 gap.
+	if resp.TotalRequired != 2 {
+		t.Errorf("expected 2 total required, got %d", resp.TotalRequired)
+	}
+	if resp.MatchedSkills != 1 {
+		t.Errorf("expected 1 matched skill, got %d", resp.MatchedSkills)
+	}
 	if resp.GapPercentage <= 0 {
 		t.Errorf("expected positive gap percentage, got %.2f", resp.GapPercentage)
 	}
@@ -333,6 +345,23 @@ func TestService_GetGapAnalysis_Success(t *testing.T) {
 	}
 	if resp.EstimatedTimeline == "" {
 		t.Error("expected estimated timeline to be set")
+	}
+}
+
+func TestService_GetGapAnalysis_NoRequirements(t *testing.T) {
+	svc, _, _, cleanup := newTestService()
+	defer cleanup()
+
+	req := GapAnalysisRequest{
+		EmployeeID:    uuidStr(),
+		TargetTitleID: uuidStr(),
+	}
+
+	// competency_score_details table doesn't even exist in this test's DB
+	// (never seeded) -- GetOrgCompetencyRequirements must surface this as a
+	// clear error, not a misleading 0%-gap result.
+	if _, err := svc.GetGapAnalysis(ctx(), req); err == nil {
+		t.Error("expected error when target org has no competency assessment data")
 	}
 }
 

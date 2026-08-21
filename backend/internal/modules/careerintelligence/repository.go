@@ -646,3 +646,66 @@ func (r *Repository) GetPositionTitle(ctx context.Context, titleID uuid.UUID) (s
 	}
 	return name, nil
 }
+
+// CompetencyRequirement is one competency required by a target organization,
+// derived from that organization's own latest finalized competency
+// assessment (competency_scores.organization_id has a unique index -- one
+// row per org -- so "latest" is simply the org's single existing row).
+type CompetencyRequirement struct {
+	CompetencyID   uuid.UUID
+	CompetencyName string
+	StandardLevel  int
+}
+
+// GetOrgCompetencyRequirements reads the required competency levels for a
+// target organization, sourced from competency_score_details of that org's
+// own finalized competency_scores row (real data -- no standalone "required
+// competencies per position" master table exists in this codebase; see
+// docs/module-career-intelligence-plan.md §8.5/§9). Returns an empty slice
+// (not an error) if the target org has never been assessed.
+func (r *Repository) GetOrgCompetencyRequirements(ctx context.Context, orgID uuid.UUID) ([]CompetencyRequirement, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []CompetencyRequirement
+	err = db.Table("competency_score_details csd").
+		Select("csd.competency_id AS competency_id, c.name AS competency_name, csd.standard_level AS standard_level").
+		Joins("JOIN competencies c ON c.id = csd.competency_id").
+		Where("csd.competency_score_id = (SELECT id FROM competency_scores WHERE organization_id = ? ORDER BY assessed_at DESC LIMIT 1)", orgID).
+		Where("csd.standard_level IS NOT NULL").
+		Scan(&out).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to load org competency requirements: %w", err)
+	}
+	return out, nil
+}
+
+// GetEmployeeCompetencyLevels reads an employee's own latest assessed
+// competency levels, keyed by competency_id, from their most recent
+// competency_scores row (across whichever organization they were last
+// assessed in).
+func (r *Repository) GetEmployeeCompetencyLevels(ctx context.Context, employeeID uuid.UUID) (map[uuid.UUID]int, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		CompetencyID  uuid.UUID
+		EmployeeLevel int
+	}
+	var rows []row
+	err = db.Table("competency_score_details csd").
+		Select("csd.competency_id AS competency_id, csd.employee_level AS employee_level").
+		Where("csd.competency_score_id = (SELECT id FROM competency_scores WHERE employee_id = ? ORDER BY assessed_at DESC LIMIT 1)", employeeID).
+		Where("csd.employee_level IS NOT NULL").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to load employee competency levels: %w", err)
+	}
+	levels := make(map[uuid.UUID]int, len(rows))
+	for _, rw := range rows {
+		levels[rw.CompetencyID] = rw.EmployeeLevel
+	}
+	return levels, nil
+}

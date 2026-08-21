@@ -4,7 +4,8 @@
 > 🔎 Berdasarkan audit modul `backend/internal/modules/careerintelligence`, migration `018_career_intelligence` + `086_career_paths` + `157_career_talentmap_settings` (mysql & postgres), dan `frontend/tenant/src/views/modules/career-intelligence/*.vue`.
 > 🔀 **Pemisahan transactional vs strategical (2026-08-10):** Career Paths **pindah penuh** dari modul Employee Movement ke module ini — endpoint `/career-intelligence/paths` (ladder-style `name` + `steps[]`), Employee Movement hanya **membaca** `career_paths`/`career_path_steps` untuk promotion eligibility. Lihat log §7.3.
 > ✅ **Update 2026-08-21:** seluruh 5 halaman FE selesai (Career Paths, Succession Plans, Career Interests, Gap Analysis, Talent Maps). Talent Map juga tidak lagi input manual — performance & potential dihitung otomatis dari skor final Performance Management + skor Competency terakhir milik employee (item roadmap §9 no. 8, dulu opsional, sekarang selesai). Lihat log §7.5.
-> ⏳ **Sisa TODO:** (1) integrasi Notification untuk event talent mapping/succession (opsional) · (2) `career_path_requirements` (opsional — eligibility masih hardcode rule di service) · (3) Gap Analysis backend masih stub/hardcode kompetensi (lihat `service.go:463`, belum query modul competency asli) — semuanya enhancement opsional, bukan blocker.
+> ✅ **Update 2026-08-21 (lanjutan):** Gap Analysis backend tidak lagi stub — `GetGapAnalysis` sekarang query data competency real (syarat dari `competency_score_details` milik assessment terakhir target organization, level aktual dari assessment terakhir employee). Keterbatasan: hanya akurat untuk target organization yang sudah pernah di-assess (tidak ada tabel "syarat kompetensi per posisi" independen di skema ini) — target yang belum pernah di-assess mengembalikan error jelas, bukan hasil 0%-gap yang menyesatkan. Lihat log §7.6.
+> ⏳ **Sisa TODO:** (1) integrasi Notification untuk event talent mapping/succession (opsional) · (2) `career_path_requirements` (opsional — eligibility masih hardcode rule di service) · (3) tabel "syarat kompetensi per posisi" independen (opsional — supaya Gap Analysis bisa dipakai untuk posisi yang belum pernah di-assess) — semuanya enhancement opsional, bukan blocker.
 
 ---
 
@@ -275,8 +276,8 @@ Kesenjangan kompetensi karyawan menuju target posisi.
 GET /api/v1/tenant/career-intelligence/paths/gap-analysis?employee_id=<uuid>&target_title_id=<uuid>
 ```
 
-- Service: `GetGapAnalysis` — matched skills vs total required → `gap_percentage` + rekomendasi.
-- Repository: `GetEmployeePosition` · `GetPositionTitle` · `FindCareerPathsBySource`.
+- Service: `GetGapAnalysis` — matched skills vs total required → `gap_percentage` + rekomendasi. **Real data sejak 2026-08-21** (lihat log §7.6): syarat dari `competency_score_details` milik assessment terakhir target organization, level aktual employee dari assessment terakhir mereka sendiri. Error jelas jika target organization belum pernah di-assess.
+- Repository: `GetPositionTitle` · `GetOrgCompetencyRequirements` · `GetEmployeeCompetencyLevels`.
 
 ## 5.5 Succession Plans
 
@@ -454,6 +455,22 @@ Setelah ladder-style menjadi satu-satunya bentuk create, dead code edge CI dihap
 - Test edge diganti `TestService_CreateCareerPathLadder_Success`; test handler di-rename konsisten.
 - Validasi: `go build ./...` ✅ · `go vet` ✅ · `go test ./internal/modules/...` — **17/17 modul PASS** ✅ · `npm run build` (tenant FE) ✅.
 
+## 7.6 Gap Analysis — real query menggantikan stub hardcoded (2026-08-21)
+
+**Latar:** `GetGapAnalysis` sejak awal hardcode `matchedSkills=3`, `totalRequired=8`, dan 3 rekomendasi tetap — komentar di kode secara eksplisit menyebut "would query competency module in production". User meminta ini diselesaikan.
+
+**Temuan skema:** tidak ada tabel "syarat kompetensi per posisi/organisasi" independen di modul Competency — required level hanya tersimpan per-template assessment (`CompetencyAssessmentTemplateCompetency.RequiredLevel`), yang terhubung ke organisasi hanya secara transien lewat `CompetencyEventTarget.OrganizationID` saat sebuah assessment event dijalankan. Keputusan user: pakai data assessment yang sudah ada (bukan bangun tabel requirement baru) — `competency_scores.organization_id` punya unique index (satu row per organisasi), jadi "syarat kompetensi organisasi X" = `competency_score_details.standard_level` dari assessment terakhir organisasi itu sendiri.
+
+**Implementasi:**
+- **Repository baru** (`careerintelligence/repository.go`): `GetOrgCompetencyRequirements(ctx, orgID)` — join `competency_score_details`+`competencies` dari row `competency_scores` terbaru milik org tsb; `GetEmployeeCompetencyLevels(ctx, employeeID)` — map competency_id→employee_level dari assessment terakhir employee (query cross-module langsung ke tabel, pola sama seperti `workforceintelligence.GetQualityOfHire`).
+- **Service** (`GetGapAnalysis`): ambil requirements + employee levels → hitung matched/gap per kompetensi → `MatchedSkills`/`TotalRequired`/`GapPercentage` real, `Recommendations` dibangun per kompetensi yang belum terpenuhi (priority HIGH/MEDIUM/LOW berdasar besar gap), `EstimatedTimeline` diturunkan dari gap percentage (3-6/6-12/12-18/18-24 bulan). Target organization yang belum pernah di-assess → error 400 jelas ("belum ada standar kompetensi tercatat"), bukan hasil 0%-gap yang menyesatkan.
+- **Handler**: error `GetGapAnalysis` diubah dari 500 ke 400 (kegagalan validasi data, bukan server error).
+- **Test**: fixture `seedGapAnalysisCompetencyData` (helpers_test.go) membuat tabel `competencies`/`competency_scores`/`competency_score_details` + data 2 kompetensi (1 terpenuhi employee, 1 tidak) untuk `TestService_GetGapAnalysis_Success`/`TestHandler_GetGapAnalysis_Success`; tambah `TestService_GetGapAnalysis_NoRequirements` untuk kasus target belum pernah di-assess.
+
+### Validasi
+
+- `go build ./...` ✅ · `go vet` ✅ · `go test ./internal/modules/careerintelligence/...` — **PASS** ✅.
+
 ---
 
 # 8. Frontend Plan
@@ -508,10 +525,12 @@ Sebelumnya `performance`/`potential` diinput manual (LOW/MEDIUM/HIGH langsung da
 | 2 | Career Paths FE (`CareerPaths.vue`) | ✅ | FE |
 | 3 | Talent Maps / Interests / Gap Analysis / Succession Plans backend | ✅ | BE |
 | 4 | Halaman FE Talent Maps / Interests / Gap Analysis / Succession Plans | ✅ **SELESAI (2026-08-21)** — semua 4 halaman dibangun | FE |
-| 5 | Gap Analysis FE (form employee + target title, hasil + rekomendasi) | ✅ **SELESAI (2026-08-21)** — `GapAnalysis.vue`, catatan: backend masih stub/hardcoded (belum query modul competency asli, lihat komentar `service.go:463`) | FE |
+| 5 | Gap Analysis FE (form employee + target title, hasil + rekomendasi) | ✅ **SELESAI (2026-08-21)** — `GapAnalysis.vue` | FE |
 | 6 | `career_path_requirements` (rule eligibility terstruktur) | ⏳ opsional | DB/BE |
 | 7 | Notification untuk event talent mapping / succession / interest | ⏳ opsional | BE/FE |
 | 8 | Integrasi hasil performance/competency ke talent grid (input 9-box otomatis) | ✅ **SELESAI (2026-08-21)** — `GenerateTalentMap` + `TalentMapSettings` (migration 157), lihat §8.5 | BE/FE |
+| 9 | Gap Analysis backend real (bukan stub hardcoded) | ✅ **SELESAI (2026-08-21)** — query `competency_score_details` real, lihat §7.6 | BE |
+| 10 | Tabel syarat kompetensi per posisi independen (opsional, agar Gap Analysis bisa dipakai untuk posisi yang belum pernah di-assess) | ⏳ opsional | DB/BE |
 
 ---
 

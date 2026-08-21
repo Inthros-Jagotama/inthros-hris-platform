@@ -587,8 +587,17 @@ func (s *Service) DeleteCareerPath(ctx context.Context, id string) error {
 	return s.repo.DeleteCareerPath(ctx, uid)
 }
 
+// GetGapAnalysis membanding kompetensi employee terhadap syarat kompetensi
+// target organization. Syarat diambil dari competency_score_details milik
+// assessment terakhir yang pernah dijalankan untuk target organization itu
+// sendiri (competency_scores.organization_id unik per org) -- data real,
+// bukan stub -- karena tidak ada tabel "syarat kompetensi per posisi" yang
+// berdiri sendiri di skema ini (lihat docs/module-career-intelligence-plan.md
+// §8.5/§9). Konsekuensinya: target organization yang belum pernah di-assess
+// tidak bisa dianalisis (dikembalikan sebagai error, bukan hasil kosong yang
+// menyesatkan seolah 0% gap).
 func (s *Service) GetGapAnalysis(ctx context.Context, req GapAnalysisRequest) (*GapAnalysisResponse, error) {
-	_, err := uuid.Parse(req.EmployeeID)
+	empID, err := uuid.Parse(req.EmployeeID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid employee_id: %w", err)
 	}
@@ -597,26 +606,64 @@ func (s *Service) GetGapAnalysis(ctx context.Context, req GapAnalysisRequest) (*
 		return nil, fmt.Errorf("invalid target_title_id: %w", err)
 	}
 
-	// Get target position name
 	targetTitle, _ := s.repo.GetPositionTitle(ctx, targetID)
 
-	// Simplified gap analysis — would query competency module in production
-	matchedSkills := 3
-	totalRequired := 8
-	gapPct := float64(totalRequired-matchedSkills) / float64(totalRequired) * 100
+	requirements, err := s.repo.GetOrgCompetencyRequirements(ctx, targetID)
+	if err != nil {
+		return nil, err
+	}
+	if len(requirements) == 0 {
+		return nil, fmt.Errorf("target position belum memiliki data assessment competency (belum ada standar kompetensi tercatat untuk organisasi ini)")
+	}
+
+	employeeLevels, err := s.repo.GetEmployeeCompetencyLevels(ctx, empID)
+	if err != nil {
+		return nil, err
+	}
+
+	matched := 0
+	recommendations := make([]GapRecommendation, 0, len(requirements))
+	for _, r := range requirements {
+		level, has := employeeLevels[r.CompetencyID]
+		if has && level >= r.StandardLevel {
+			matched++
+			continue
+		}
+		gap := r.StandardLevel - level // level is 0 when !has
+		priority := "MEDIUM"
+		if gap >= 2 {
+			priority = "HIGH"
+		} else if gap <= 0 {
+			priority = "LOW"
+		}
+		recommendations = append(recommendations, GapRecommendation{
+			Category:    "TRAINING",
+			Description: fmt.Sprintf("Tingkatkan kompetensi \"%s\" (level saat ini %d, target %d)", r.CompetencyName, level, r.StandardLevel),
+			Priority:    priority,
+		})
+	}
+
+	totalRequired := len(requirements)
+	gapPct := float64(totalRequired-matched) / float64(totalRequired) * 100
+
+	timeline := "3-6 months"
+	switch {
+	case gapPct > 50:
+		timeline = "18-24 months"
+	case gapPct > 20:
+		timeline = "12-18 months"
+	case gapPct > 0:
+		timeline = "6-12 months"
+	}
 
 	return &GapAnalysisResponse{
-		EmployeeID:    req.EmployeeID,
-		TargetTitle:   targetTitle,
-		MatchedSkills: matchedSkills,
-		TotalRequired: totalRequired,
-		GapPercentage: gapPct,
-		Recommendations: []GapRecommendation{
-			{Category: "TRAINING", Description: "Leadership Development Program", Priority: "HIGH"},
-			{Category: "EXPERIENCE", Description: "Cross-functional project assignment", Priority: "MEDIUM"},
-			{Category: "CERTIFICATION", Description: "Professional certification in target domain", Priority: "MEDIUM"},
-		},
-		EstimatedTimeline: "12-18 months",
+		EmployeeID:        req.EmployeeID,
+		TargetTitle:       targetTitle,
+		MatchedSkills:     matched,
+		TotalRequired:     totalRequired,
+		GapPercentage:     gapPct,
+		Recommendations:   recommendations,
+		EstimatedTimeline: timeline,
 	}, nil
 }
 

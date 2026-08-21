@@ -269,7 +269,7 @@ func (h *Handler) GetGapAnalysis(c *gin.Context) {
 	}
 	result, err := h.svc.GetGapAnalysis(c.Request.Context(), req)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, err.Error())
+		respondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	respondSuccess(c, result)
