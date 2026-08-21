@@ -3137,6 +3137,27 @@
     "requires_external": "Perlu Eksternal",
     "covered": "Tercover Internal"
   },
+  "talent_maps": {
+    "title": "Peta Bakat",
+    "description": "Penilaian grid 9-box: performa x potensi per periode.",
+    "add_assessment": "Penilaian Baru",
+    "edit_assessment": "Ubah Penilaian",
+    "empty_maps": "Belum ada penilaian untuk periode ini",
+    "period_placeholder": "cth. 2026-Q1",
+    "filtered_by": "Difilter berdasarkan {position}",
+    "all_period": "Semua penilaian — periode {period}",
+    "employee": "Karyawan",
+    "period": "Periode",
+    "performance": "Performa",
+    "potential": "Potensi",
+    "level_LOW": "Rendah",
+    "level_MEDIUM": "Sedang",
+    "level_HIGH": "Tinggi",
+    "grid_position": "Posisi Grid",
+    "notes": "Catatan",
+    "confirm_delete_title": "Hapus Penilaian",
+    "confirm_delete_msg": "Hapus penilaian bakat ini? Tindakan ini tidak dapat dibatalkan."
+  },
   "career_interests": {
     "title": "Minat Karir",
     "description": "Aspirasi karir karyawan: jenis minat, target posisi/departemen, kesiapan.",

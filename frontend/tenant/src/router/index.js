@@ -682,6 +682,13 @@ const routes = [
         component: () => import('@/views/modules/career-intelligence/SuccessionGaps.vue'),
         meta: { title: 'Succession Gaps', titleKey: 'succession_gaps.title', descKey: 'succession_gaps.description', icon: 'pi pi-users', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'careerintelligence.successions.view' }
       },
+      // Talent Maps — 9-box grid (performance x potential)
+      {
+        path: 'career-intelligence/talent-maps',
+        name: 'TalentMaps',
+        component: () => import('@/views/modules/career-intelligence/TalentMaps.vue'),
+        meta: { title: 'Talent Maps', titleKey: 'talent_maps.title', descKey: 'talent_maps.description', icon: 'pi pi-th-large', module: 'career-intelligence', backRoute: '/career-intelligence', backLabelKey: 'career_intel.title', permission: 'careerintelligence.view' }
+      },
       // Career Interests — aspirasi karier karyawan (create + list, backend belum sediakan update/delete)
       {
         path: 'career-intelligence/interests',

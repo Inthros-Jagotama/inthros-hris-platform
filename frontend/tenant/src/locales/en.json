@@ -3137,6 +3137,27 @@
     "requires_external": "External Needed",
     "covered": "Covered Internally"
   },
+  "talent_maps": {
+    "title": "Talent Maps",
+    "description": "9-box grid assessment: performance x potential per period.",
+    "add_assessment": "New Assessment",
+    "edit_assessment": "Edit Assessment",
+    "empty_maps": "No assessments for this period",
+    "period_placeholder": "e.g. 2026-Q1",
+    "filtered_by": "Filtered by {position}",
+    "all_period": "All assessments — period {period}",
+    "employee": "Employee",
+    "period": "Period",
+    "performance": "Performance",
+    "potential": "Potential",
+    "level_LOW": "Low",
+    "level_MEDIUM": "Medium",
+    "level_HIGH": "High",
+    "grid_position": "Grid Position",
+    "notes": "Notes",
+    "confirm_delete_title": "Delete Assessment",
+    "confirm_delete_msg": "Delete this talent assessment? This action cannot be undone."
+  },
   "career_interests": {
     "title": "Career Interests",
     "description": "Employee career aspirations: interest type, target position/department, readiness.",

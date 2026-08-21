@@ -21,26 +21,6 @@
         </div>
         <i class="pi pi-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all shrink-0"></i>
       </button>
-
-      <!-- Fitur strategis berikutnya (belum ada halaman) — card "Coming soon" -->
-      <div
-        v-for="soon in comingSoonCards"
-        :key="soon.labelKey"
-        class="flex items-center gap-3 p-3.5 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 text-left opacity-70 cursor-not-allowed"
-      >
-        <div
-          class="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center"
-          :class="soon.tint"
-        >
-          <i :class="soon.icon" class="text-base"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 truncate">{{ t(soon.labelKey) }}</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-            <Tag :value="t('common.coming_soon')" severity="secondary" class="!text-[10px] !px-1.5 !py-0" />
-          </p>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -51,8 +31,6 @@ import { useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
 import { useAuth } from '@/stores/auth'
 
-import Tag from 'primevue/tag'
-
 const router = useRouter()
 const { t } = useI18n()
 const { hasPermission } = useAuth()
@@ -61,6 +39,7 @@ const { hasPermission } = useAuth()
 // Career Paths berada di sini (bukan di sidebar) sesuai keputusan pemisahan
 // transactional vs strategical: halaman ini untuk konfigurasi/perencanaan karir.
 const menuCards = computed(() => [
+  { labelKey: 'career_intel.talent_map', descKey: 'talent_maps.description', icon: 'pi pi-th-large', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', route: '/career-intelligence/talent-maps', permission: 'careerintelligence.view' },
   { labelKey: 'career_intel.paths', descKey: 'career_paths.description', icon: 'pi pi-sitemap', tint: 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400', route: '/career-intelligence/paths', permission: 'careerintelligence.paths.view' },
   { labelKey: 'career_intel.interests', descKey: 'career_interests.description', icon: 'pi pi-compass', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/career-intelligence/interests', permission: 'careerintelligence.view' },
   // S-5: Succession Gaps — posisi kunci tanpa successor siap → external recruitment
@@ -70,10 +49,4 @@ const menuCards = computed(() => [
   // P2-FE integrasi: riwayat pengembangan (course–competency) dari modul Training
   { labelKey: 'career_intel.development', descKey: 'career_intel.development_desc', icon: 'pi pi-graduation-cap', tint: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', route: '/training/history', permission: 'careerintelligence.development.view' }
 ].filter(card => !card.permission || hasPermission(card.permission)))
-
-// Fitur yang sudah terdefinisi di locale tapi halamannya belum dibangun —
-// ditampilkan sebagai card "Coming soon" agar roadmap modul terlihat jelas.
-const comingSoonCards = computed(() => [
-  { labelKey: 'career_intel.talent_map', icon: 'pi pi-th-large', tint: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' }
-])
 </script>
