@@ -30,15 +30,49 @@ type CompetencyProvider interface {
 	LatestScore(ctx context.Context, employeeID uuid.UUID) (float64, bool, error)
 }
 
+// Notifier — narrow interface ke module notification (pola sama dengan
+// training/performance/recruitment). Best-effort: kegagalan notifikasi tidak
+// pernah menggagalkan operasi utama, hanya di-log.
+type Notifier interface {
+	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
+}
+
 type Service struct {
 	repo                *Repository
 	logger              *zap.Logger
 	performanceProvider PerformanceProvider
 	competencyProvider  CompetencyProvider
+	notifier            Notifier
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// SetNotifier wires the notification service (module-career-intelligence-plan.md
+// §9 #7). Must be called before Create* methods for notifications to fire.
+func (s *Service) SetNotifier(n Notifier) {
+	s.notifier = n
+}
+
+// notifyEmployee resolves employeeID's linked user account and sends a
+// best-effort notification. Silently no-ops if notifier isn't wired or the
+// employee has no linked user account.
+func (s *Service) notifyEmployee(ctx context.Context, employeeID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) {
+	if s.notifier == nil {
+		return
+	}
+	userID, err := s.repo.FindUserIDByEmployeeID(ctx, employeeID)
+	if err != nil {
+		s.logger.Warn("Failed to resolve employee user id for notification", zap.Error(err), zap.String("employee_id", employeeID.String()))
+		return
+	}
+	if userID == nil {
+		return
+	}
+	if err := s.notifier.Notify(ctx, *userID, notifType, params, referenceType, referenceID); err != nil {
+		s.logger.Warn("Failed to send notification", zap.Error(err), zap.String("type", notifType))
+	}
 }
 
 // SetPerformanceProvider wires the Performance Management score source used
@@ -198,6 +232,7 @@ func (s *Service) GenerateTalentMap(ctx context.Context, req GenerateTalentMapRe
 		zap.Float64("performance_score", perfScore),
 		zap.Float64("potential_score", potScore),
 		zap.String("position", gridPos))
+	s.notifyEmployee(ctx, empID, "TALENT_MAP_ASSESSED", []string{req.Period, performance, potential}, "career_talent_map", tm.ID)
 	return talentMapToResponse(tm), nil
 }
 
@@ -220,6 +255,7 @@ func (s *Service) CreateTalentMap(ctx context.Context, req CreateTalentMapReques
 		return nil, err
 	}
 	s.logger.Info("Talent map created", zap.String("employee", req.EmployeeID), zap.String("position", gridPos))
+	s.notifyEmployee(ctx, empID, "TALENT_MAP_ASSESSED", []string{req.Period, req.Performance, req.Potential}, "career_talent_map", tm.ID)
 	return talentMapToResponse(tm), nil
 }
 
@@ -377,6 +413,7 @@ func (s *Service) CreateCareerInterest(ctx context.Context, req CreateCareerInte
 	if err := s.repo.CreateCareerInterest(ctx, ci); err != nil {
 		return nil, err
 	}
+	s.notifyEmployee(ctx, empID, "CAREER_INTEREST_RECORDED", []string{req.InterestType}, "career_interest", ci.ID)
 	return careerInterestToResponse(ci), nil
 }
 
@@ -809,6 +846,8 @@ func (s *Service) CreateSuccessionPlan(ctx context.Context, req CreateSuccession
 		zap.String("position", req.PositionID),
 		zap.String("successor", req.SuccessorID),
 		zap.String("readiness", req.ReadinessLevel))
+	positionTitle, _ := s.repo.GetPositionTitle(ctx, posID)
+	s.notifyEmployee(ctx, succID, "SUCCESSION_PLAN_NAMED", []string{positionTitle}, "career_succession_plan", sp.ID)
 	return successionPlanToResponse(sp), nil
 }
 

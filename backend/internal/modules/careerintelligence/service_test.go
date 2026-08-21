@@ -1,6 +1,7 @@
 package careerintelligence
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -392,6 +393,62 @@ func TestService_CreateSuccessionPlan_Success(t *testing.T) {
 	}
 	if resp.ID == "" {
 		t.Error("expected ID to be set")
+	}
+}
+
+// fakeNotifier implements Notifier for tests, recording every call.
+type fakeNotifier struct {
+	calls []fakeNotifyCall
+}
+
+type fakeNotifyCall struct {
+	RecipientUserID uuid.UUID
+	Type            string
+	Params          []string
+}
+
+func (f *fakeNotifier) Notify(_ context.Context, recipientUserID uuid.UUID, notifType string, params []string, _ string, _ uuid.UUID) error {
+	f.calls = append(f.calls, fakeNotifyCall{RecipientUserID: recipientUserID, Type: notifType, Params: params})
+	return nil
+}
+
+// TestService_CreateSuccessionPlan_NotifiesSuccessor verifies the module
+// notification integration (module-career-intelligence-plan.md §9 #7):
+// naming a successor sends a SUCCESSION_PLAN_NAMED notification to their
+// linked user account.
+func TestService_CreateSuccessionPlan_NotifiesSuccessor(t *testing.T) {
+	svc, _, db, cleanup := newTestService()
+	defer cleanup()
+	notifier := &fakeNotifier{}
+	svc.SetNotifier(notifier)
+
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS employee_accounts (employee_id CHAR(36), user_id CHAR(36))").Error; err != nil {
+		t.Fatalf("failed to create employee_accounts table: %v", err)
+	}
+	successorID := uuid.New()
+	userID := uuid.New()
+	if err := db.Exec("INSERT INTO employee_accounts (employee_id, user_id) VALUES (?, ?)", successorID.String(), userID.String()).Error; err != nil {
+		t.Fatalf("failed to seed employee account: %v", err)
+	}
+
+	req := CreateSuccessionPlanRequest{
+		PositionID:     uuidStr(),
+		SuccessorID:    successorID.String(),
+		ReadinessLevel: "READY_NOW",
+	}
+	if _, err := svc.CreateSuccessionPlan(ctx(), req); err != nil {
+		t.Fatalf("CreateSuccessionPlan failed: %v", err)
+	}
+
+	if len(notifier.calls) != 1 {
+		t.Fatalf("expected 1 notification, got %d", len(notifier.calls))
+	}
+	call := notifier.calls[0]
+	if call.Type != "SUCCESSION_PLAN_NAMED" {
+		t.Errorf("expected notification type SUCCESSION_PLAN_NAMED, got %s", call.Type)
+	}
+	if call.RecipientUserID != userID {
+		t.Errorf("expected recipient %s, got %s", userID, call.RecipientUserID)
 	}
 }
 

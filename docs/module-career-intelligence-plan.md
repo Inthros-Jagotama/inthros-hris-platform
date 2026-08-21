@@ -6,7 +6,8 @@
 > ✅ **Update 2026-08-21:** seluruh 5 halaman FE selesai (Career Paths, Succession Plans, Career Interests, Gap Analysis, Talent Maps). Talent Map juga tidak lagi input manual — performance & potential dihitung otomatis dari skor final Performance Management + skor Competency terakhir milik employee (item roadmap §9 no. 8, dulu opsional, sekarang selesai). Lihat log §7.5.
 > ✅ **Update 2026-08-21 (lanjutan):** Gap Analysis backend tidak lagi stub — `GetGapAnalysis` sekarang query data competency real (syarat dari `competency_score_details` milik assessment terakhir target organization, level aktual dari assessment terakhir employee). Keterbatasan: hanya akurat untuk target organization yang sudah pernah di-assess (tidak ada tabel "syarat kompetensi per posisi" independen di skema ini) — target yang belum pernah di-assess mengembalikan error jelas, bukan hasil 0%-gap yang menyesatkan. Lihat log §7.6.
 > ✅ **Update 2026-08-21 (lanjutan lagi):** `career_path_requirements` selesai — ambang batas eligibility promosi (performance/competency/OKR, sebelumnya hardcode global `>=80`) sekarang bisa dikonfigurasi **per langkah career path** lewat 3 kolom nullable baru di `career_path_steps` (migration 158). Lihat log §7.7.
-> ⏳ **Sisa TODO:** (1) integrasi Notification untuk event talent mapping/succession (opsional) · (2) tabel "syarat kompetensi per posisi" independen (opsional — supaya Gap Analysis bisa dipakai untuk posisi yang belum pernah di-assess) — keduanya enhancement opsional, bukan blocker.
+> ✅ **Update 2026-08-21 (lanjutan lagi):** integrasi Notification selesai — talent map assessed, succession plan (successor dinotifikasi), dan career interest recorded sekarang kirim notifikasi ke user account employee terkait (best-effort, tidak menggagalkan operasi utama). Lihat log §7.8.
+> ⏳ **Sisa TODO:** tabel "syarat kompetensi per posisi" independen (opsional — supaya Gap Analysis bisa dipakai untuk posisi yang belum pernah di-assess) — satu-satunya item opsional yang tersisa, bukan blocker.
 
 ---
 
@@ -491,6 +492,26 @@ Setelah ladder-style menjadi satu-satunya bentuk create, dead code edge CI dihap
 - `go test ./internal/modules/employeemovement/...` — 15 test gagal (`organizations.code NOT NULL` dll) **diverifikasi pre-existing** via `git stash` diff (list identik dengan/tanpa perubahan ini, hanya durasi run yang beda). Test integrasi `TestGetPromotionEligibility_WithCareerPath` (yang seharusnya menguji jalur baru ini end-to-end) termasuk yang terblokir bug fixture pre-existing tsb, jadi ditambahkan unit test murni `TestEvaluatePromotionRules_PerStepThresholdOverride` (tanpa DB) untuk memverifikasi logika override benar: skor 70 gagal terhadap default 80, lolos terhadap override 60 — **PASS** ✅.
 - `npm run build` (tenant FE) ✅.
 
+## 7.8 Integrasi Notification — talent mapping / succession / interest (2026-08-21)
+
+**Pola:** narrow interface + setter, sama persis dengan `training`/`performance`/`recruitment` (`notification.Service.Notify(ctx, recipientUserID, notifType, params, referenceType, referenceID)`, best-effort — kegagalan hanya di-log, tidak menggagalkan operasi utama).
+
+**Implementasi:**
+- **`careerintelligence/service.go`**: `Notifier` interface + field `notifier` + `SetNotifier` (mengikuti pola modul lain persis) + helper `notifyEmployee(ctx, employeeID, notifType, params, referenceType, referenceID)` yang resolve `employee_id → user_id` via `employee_accounts` lalu panggil `notifier.Notify` (no-op kalau notifier belum di-wire atau employee tidak punya akun user).
+- **`careerintelligence/repository.go`**: `FindUserIDByEmployeeID` — query `employee_accounts` (pola sama `performance.Repository.FindUserIDByEmployeeID`).
+- **Event yang memicu notifikasi** (semua ke employee/successor yang bersangkutan, bukan HR/manager — tidak ada resolver "manager karyawan" atau "user dengan role HR" yang sudah ada di codebase untuk dipakai):
+  - `GenerateTalentMap`/`CreateTalentMap` → `TALENT_MAP_ASSESSED` ke employee yang dinilai (params: period, performance, potential).
+  - `CreateSuccessionPlan` → `SUCCESSION_PLAN_NAMED` ke successor (params: nama posisi).
+  - `CreateCareerInterest` → `CAREER_INTEREST_RECORDED` ke employee sendiri (konfirmasi, params: interest_type).
+- **`notification/i18n.go`**: 3 entry katalog baru (EN+ID title/body) — `TALENT_MAP_ASSESSED`, `SUCCESSION_PLAN_NAMED`, `CAREER_INTEREST_RECORDED`.
+- **`cmd/server/main.go`**: `ciSvc.SetNotifier(notificationSvc)` ditambahkan setelah wiring provider performance/competency yang sudah ada.
+
+**Test:** `fakeNotifier` (merekam setiap panggilan) + `TestService_CreateSuccessionPlan_NotifiesSuccessor` — verifikasi notifikasi terkirim ke user account successor yang benar dengan type yang benar.
+
+### Validasi
+
+- `go build ./...` ✅ · `go vet` ✅ · `go test ./internal/modules/careerintelligence/...` — **PASS** ✅ · `go test ./internal/modules/notification/...` — **PASS** ✅.
+
 ---
 
 # 8. Frontend Plan
@@ -547,7 +568,7 @@ Sebelumnya `performance`/`potential` diinput manual (LOW/MEDIUM/HIGH langsung da
 | 4 | Halaman FE Talent Maps / Interests / Gap Analysis / Succession Plans | ✅ **SELESAI (2026-08-21)** — semua 4 halaman dibangun | FE |
 | 5 | Gap Analysis FE (form employee + target title, hasil + rekomendasi) | ✅ **SELESAI (2026-08-21)** — `GapAnalysis.vue` | FE |
 | 6 | `career_path_requirements` (rule eligibility terstruktur) | ✅ **SELESAI (2026-08-21)** — migration 158, lihat §7.7 | DB/BE |
-| 7 | Notification untuk event talent mapping / succession / interest | ⏳ opsional | BE/FE |
+| 7 | Notification untuk event talent mapping / succession / interest | ✅ **SELESAI (2026-08-21)** — lihat §7.8 | BE |
 | 8 | Integrasi hasil performance/competency ke talent grid (input 9-box otomatis) | ✅ **SELESAI (2026-08-21)** — `GenerateTalentMap` + `TalentMapSettings` (migration 157), lihat §8.5 | BE/FE |
 | 9 | Gap Analysis backend real (bukan stub hardcoded) | ✅ **SELESAI (2026-08-21)** — query `competency_score_details` real, lihat §7.6 | BE |
 | 10 | Tabel syarat kompetensi per posisi independen (opsional, agar Gap Analysis bisa dipakai untuk posisi yang belum pernah di-assess) | ⏳ opsional | DB/BE |

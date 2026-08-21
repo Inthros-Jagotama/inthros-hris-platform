@@ -21,6 +21,34 @@ func (r *Repository) db(ctx context.Context) (*gorm.DB, error) {
 	return r.dbResolver(ctx)
 }
 
+// FindUserIDByEmployeeID resolves the platform user id linked to an employee
+// (employee_accounts.employee_id -> user_id), used to notify the employee
+// directly on talent map/succession/career interest events. Returns nil
+// (not an error) if the employee has no linked user account -- same
+// convention as performance.Repository.FindUserIDByEmployeeID.
+func (r *Repository) FindUserIDByEmployeeID(ctx context.Context, employeeID uuid.UUID) (*uuid.UUID, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var userIDStrs []string
+	err = db.Table("employee_accounts").
+		Where("employee_id = ?", employeeID).
+		Limit(1).
+		Pluck("user_id", &userIDStrs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve employee user id: %w", err)
+	}
+	if len(userIDStrs) == 0 || userIDStrs[0] == "" {
+		return nil, nil
+	}
+	userID, err := uuid.Parse(userIDStrs[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id: %w", err)
+	}
+	return &userID, nil
+}
+
 // =========================================================================
 // Talent Map Settings (singleton, ambang batas banding skor)
 // =========================================================================

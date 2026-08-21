@@ -433,6 +433,36 @@ var catalog = map[string]catalogEntry{
 			httputil.LangID: "Permohonan %s telah mencapai langkah yang Anda pantau (%s).",
 		},
 	},
+	"TALENT_MAP_ASSESSED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Talent Assessment Recorded",
+			httputil.LangID: "Penilaian Bakat Tercatat",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your talent assessment for period %s has been recorded: performance %s, potential %s.",
+			httputil.LangID: "Penilaian bakat Anda untuk periode %s telah tercatat: performa %s, potensi %s.",
+		},
+	},
+	"SUCCESSION_PLAN_NAMED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Named as Successor Candidate",
+			httputil.LangID: "Ditunjuk sebagai Kandidat Suksesor",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "You have been named as a successor candidate for the position \"%s\".",
+			httputil.LangID: "Anda telah ditunjuk sebagai kandidat suksesor untuk posisi \"%s\".",
+		},
+	},
+	"CAREER_INTEREST_RECORDED": {
+		title: map[httputil.Lang]string{
+			httputil.LangEN: "Career Interest Recorded",
+			httputil.LangID: "Minat Karir Tercatat",
+		},
+		body: map[httputil.Lang]string{
+			httputil.LangEN: "Your career interest (%s) has been recorded.",
+			httputil.LangID: "Minat karir Anda (%s) telah tercatat.",
+		},
+	},
 }
 
 // translate renders a notification's title/body in the given language,

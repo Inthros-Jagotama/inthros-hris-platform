@@ -1246,6 +1246,9 @@ func main() {
 	// interfaces since the method signatures match).
 	ciSvc.SetPerformanceProvider(performanceEligibilityAdapter{repo: performanceRepo})
 	ciSvc.SetCompetencyProvider(competencyEligibilityAdapter{repo: competencyRepo})
+	// Notification untuk event talent mapping/succession/interest
+	// (module-career-intelligence-plan.md §9 #7).
+	ciSvc.SetNotifier(notificationSvc)
 
 	// Construct the recruitment service up front (instead of inside
 	// recruitment.NewModule) so its narrow providers (plan S-1 workforce gap,
