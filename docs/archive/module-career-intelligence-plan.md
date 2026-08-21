@@ -1,5 +1,7 @@
 # Career Intelligence & Talent Management — Development Plan
 
+> 🗄️ **ARSIP (2026-08-21).** Modul dianggap **SELESAI** — backend + frontend penuh, seluruh item roadmap wajib & opsional tuntas kecuali satu enhancement non-blocker (lihat baris "Sisa TODO" di bawah). Dokumen dipindah ke `docs/archive/` sebagai referensi historis; tidak lagi di-maintain aktif.
+
 > 📅 Versi plan: 2026-08-21 · Status: **BACKEND ✅ TERIMPLEMENTASI PENUH · FRONTEND ✅ SELESAI (5/5 sub-module)**
 > 🔎 Berdasarkan audit modul `backend/internal/modules/careerintelligence`, migration `018_career_intelligence` + `086_career_paths` + `157_career_talentmap_settings` (mysql & postgres), dan `frontend/tenant/src/views/modules/career-intelligence/*.vue`.
 > 🔀 **Pemisahan transactional vs strategical (2026-08-10):** Career Paths **pindah penuh** dari modul Employee Movement ke module ini — endpoint `/career-intelligence/paths` (ladder-style `name` + `steps[]`), Employee Movement hanya **membaca** `career_paths`/`career_path_steps` untuk promotion eligibility. Lihat log §7.3.
