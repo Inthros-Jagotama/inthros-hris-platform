@@ -157,7 +157,7 @@
       v-model:visible="dialogVisible"
       :header="editingId ? t('career_paths.edit_path') : t('career_paths.add_path')"
       modal
-      :style="{ width: '680px' }"
+      :style="{ width: '820px' }"
       @hide="resetForm"
     >
       <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('career_paths.path_hint') }}</p>
@@ -196,7 +196,7 @@
                   <Button icon="pi pi-trash" size="small" text severity="danger" :disabled="form.steps.length === 1" @click="removeStep(idx)" />
                 </div>
               </div>
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2">
                 <div class="sm:col-span-1">
                   <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('career_paths.step_position') }}</label>
                   <Select
